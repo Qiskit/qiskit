@@ -15,7 +15,7 @@
 
 from typing import Optional
 
-from qiskit.circuit import QuantumRegister
+from qiskit.circuit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 
 from .functional_pauli_rotations import FunctionalPauliRotations
@@ -161,21 +161,25 @@ class LinearPauliRotations(FunctionalPauliRotations):
         # check if we have to rebuild and if the configuration is valid
         super()._build()
 
+        circuit = QuantumCircuit(*self.qregs, name=self.name)
+
         # build the circuit
         qr_state = self.qubits[: self.num_state_qubits]
         qr_target = self.qubits[self.num_state_qubits]
 
         if self.basis == "x":
-            self.rx(self.offset, qr_target)
+            circuit.rx(self.offset, qr_target)
         elif self.basis == "y":
-            self.ry(self.offset, qr_target)
+            circuit.ry(self.offset, qr_target)
         else:  # 'Z':
-            self.rz(self.offset, qr_target)
+            circuit.rz(self.offset, qr_target)
 
         for i, q_i in enumerate(qr_state):
             if self.basis == "x":
-                self.crx(self.slope * pow(2, i), q_i, qr_target)
+                circuit.crx(self.slope * pow(2, i), q_i, qr_target)
             elif self.basis == "y":
-                self.cry(self.slope * pow(2, i), q_i, qr_target)
+                circuit.cry(self.slope * pow(2, i), q_i, qr_target)
             else:  # 'Z'
-                self.crz(self.slope * pow(2, i), q_i, qr_target)
+                circuit.crz(self.slope * pow(2, i), q_i, qr_target)
+
+        self.append(circuit.to_gate(), self.qubits)

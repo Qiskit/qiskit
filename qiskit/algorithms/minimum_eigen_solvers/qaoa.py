@@ -130,7 +130,7 @@ class QAOA(VQE):
         if operator.num_qubits != self.ansatz.num_qubits:
             self.ansatz = QAOAAnsatz(
                 operator, self._reps, initial_state=self._initial_state, mixer_operator=self._mixer
-            )
+            ).decompose()  # TODO remove decompose once #6674 is fixed
 
     @property
     def initial_state(self) -> Optional[QuantumCircuit]:

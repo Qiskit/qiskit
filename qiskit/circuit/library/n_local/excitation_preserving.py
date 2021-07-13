@@ -99,6 +99,7 @@ class ExcitationPreserving(TwoLocal):
         parameter_prefix: str = "θ",
         insert_barriers: bool = False,
         initial_state: Optional[Any] = None,
+        name: str = "ExcitationPreserving",
     ) -> None:
         """Create a new ExcitationPreserving 2-local circuit.
 
@@ -153,6 +154,7 @@ class ExcitationPreserving(TwoLocal):
             parameter_prefix=parameter_prefix,
             insert_barriers=insert_barriers,
             initial_state=initial_state,
+            name=name,
         )
 
     @property
