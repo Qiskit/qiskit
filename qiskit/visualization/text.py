@@ -1390,8 +1390,8 @@ class Layer:
         else:
             if isinstance(creg, Clbit):
                 clbit = [creg]
-                label_bool = "= T" if val is True else "= F"
-                self._set_multibox(label_bool, clbits=clbit, top_connect=top_connect)
+                cond_bin = "1" if val is True else "0"
+                self.set_cond_bullets(cond_bin, clbit)
             else:
                 clbit = [
                     bit for bit in self.clbits if self._clbit_locations[bit]["register"] == creg

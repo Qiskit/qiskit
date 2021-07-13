@@ -2920,15 +2920,15 @@ class TestTextConditional(QiskitTestCase):
 
         expected = "\n".join(
             [
-                "          ┌───┐        ",
-                "qr_0: |0>─┤ H ├────────",
-                "          └─╥─┘  ┌───┐ ",
-                "qr_1: |0>───╫────┤ H ├─",
-                "         ┌──╨──┐ └─╥─┘ ",
-                " cr_0: 0 ╡ = T ╞═══╬═══",
-                "         └─────┘┌──╨──┐",
-                " cr_1: 0 ═══════╡ = F ╞",
-                "                └─────┘",
+                "         ┌───┐     ",
+                "qr_0: |0>┤ H ├─────",
+                "         └─╥─┘┌───┐",
+                "qr_1: |0>──╫──┤ H ├",
+                "           ║  └─╥─┘",
+                " cr_0: 0 ══■════╬══",
+                "           =1   ║  ",
+                " cr_1: 0 ═══════o══",
+                "                =0 ",
             ]
         )
 
@@ -2949,13 +2949,17 @@ class TestTextConditional(QiskitTestCase):
                 "qr_0: |0>───┤ H ├────────────────",
                 "            └─╥─┘       ┌───┐    ",
                 "qr_1: |0>─────╫─────────┤ H ├────",
-                "         ┌────╨─────┐┌──┴─╨─┴───┐",
+                "              ║         └─╥─┘    ",
+                "         ┌────╨─────┐┌────╨─────┐",
                 " cr: 0 2/╡ cr_0 = T ╞╡ cr_1 = F ╞",
                 "         └──────────┘└──────────┘",
             ]
         )
 
-        self.assertEqual(str(_text_circuit_drawer(circuit, cregbundle=True)), expected)
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, cregbundle=True, vertical_compression="medium")),
+            expected,
+        )
 
     def test_text_conditional_reverse_bits_1(self):
         """Classical condition on 2q2c circuit with cregbundle=False and reverse bits"""
