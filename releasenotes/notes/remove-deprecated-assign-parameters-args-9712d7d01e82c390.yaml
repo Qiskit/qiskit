@@ -15,7 +15,7 @@ upgrade:
 fixes:
   - |
     Fix the statement about the parameter order if the parameters are provided as
-    iteratble and not dictionary in
+    iterable and not dictionary in
     :meth:`qiskit.circuit.QuantumCircuit.assign_parameters`. The parameters are not
     sorted by insertion but by name, with the special case that the order of a
     :class:`~qiskit.circuit.ParameterVector` is maintained.
