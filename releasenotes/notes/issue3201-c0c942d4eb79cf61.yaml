@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    The MPL circuit drawer wrongly rendered custom instructions involving classical bits.
-    See  `#3201 <https://github.com/Qiskit/qiskit-terra/issues/3201>`__ for more information.
