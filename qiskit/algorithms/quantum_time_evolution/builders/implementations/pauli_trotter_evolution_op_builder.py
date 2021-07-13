@@ -57,7 +57,7 @@ from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 logger = logging.getLogger(__name__)
 
 
-class TrotterizationBuilder(EvolutionOpBuilder):
+class PauliTrotterEvolutionOpBuilder(EvolutionOpBuilder):
     r"""
     An Evolution algorithm replacing exponentiated sums of Paulis by changing them each to the
     Z basis, rotating with an rZ, changing back, and Trotterizing.

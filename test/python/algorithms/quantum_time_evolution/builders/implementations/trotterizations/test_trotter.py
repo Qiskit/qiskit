@@ -14,8 +14,8 @@ import unittest
 
 import numpy as np
 
-from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterization_builder import (
-    TrotterizationBuilder,
+from qiskit.algorithms.quantum_time_evolution.builders.implementations.pauli_trotter_evolution_op_builder import (
+    PauliTrotterEvolutionOpBuilder,
 )
 from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations.suzuki import (
     Suzuki,
