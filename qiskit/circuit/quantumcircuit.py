@@ -1281,7 +1281,7 @@ class QuantumCircuit:
         to decompose one level (shallow decompose).
 
         Args:
-            gates_to_decompose (list(str)): optional subset of gates to decompose.
+            gates_to_decompose (str or list(str)): optional subset of gates to decompose.
                 Defaults to all gates in circuit.
 
         Returns:
