@@ -23,6 +23,15 @@ from qiskit.algorithms.quantum_time_evolution.builders.evolution_op_builder impo
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations\
+    .trotter_mode_enum import \
+    TrotterModeEnum
+from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations\
+    .trotterization_base import \
+    TrotterizationBase
+from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations\
+    .trotterization_factory import \
+    TrotterizationFactory
 
 """ PauliTrotterEvolution Class """
 
@@ -33,8 +42,6 @@ import numpy as np
 
 from qiskit.opflow.converters.pauli_basis_change import PauliBasisChange
 from qiskit.opflow.evolutions.evolved_op import EvolvedOp
-from qiskit.opflow.evolutions.trotterizations.trotterization_base import TrotterizationBase
-from qiskit.opflow.evolutions.trotterizations.trotterization_factory import TrotterizationFactory
 from qiskit.opflow.list_ops.list_op import ListOp
 from qiskit.opflow.list_ops.summed_op import SummedOp
 from qiskit.opflow.operator_base import OperatorBase
@@ -62,7 +69,7 @@ class TrotterizationBuilder(EvolutionOpBuilder):
 
     def __init__(
             self,
-            trotter_mode: Optional[Union[str, TrotterizationBase]] = "trotter",
+            trotter_mode: Optional[Union[TrotterModeEnum, TrotterizationBase]] = TrotterModeEnum.TROTTER,
             reps: Optional[int] = 1,
             # TODO uncomment when we implement Abelian grouped evolution.
             # group_paulis: Optional[bool] = False
@@ -150,7 +157,7 @@ class TrotterizationBuilder(EvolutionOpBuilder):
                 ]
                 # Construct sum without the identity operators.
                 new_primitive = SummedOp(oplist, coeff=operator.primitive.coeff)
-                trotterized = self.trotter.convert(new_primitive)
+                trotterized = self.trotter.build(new_primitive)
                 circuit_no_identities = self._recursive_convert(trotterized)
                 # Set the global phase of the QuantumCircuit to account for removed identity terms.
                 global_phase = -sum(identity_phases) * operator.primitive.coeff

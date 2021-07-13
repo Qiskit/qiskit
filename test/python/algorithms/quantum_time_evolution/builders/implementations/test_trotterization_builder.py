@@ -15,10 +15,14 @@ import unittest
 
 import numpy as np
 import scipy.linalg
+from qiskit import quantum_info
 
 from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterization_builder \
     import \
     TrotterizationBuilder
+from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations\
+    .trotter_mode_enum import \
+    TrotterModeEnum
 from test.python.opflow import QiskitOpflowTestCase
 import qiskit
 from qiskit.circuit import ParameterVector
@@ -42,22 +46,22 @@ class TestTrotterizationBuilder(QiskitOpflowTestCase):
         """trotterization of operator with identity term"""
         op = (2.0 * I ^ I) + (Z ^ Y)
         exact_matrix = scipy.linalg.expm(-1j * op.to_matrix())
-        evo = TrotterizationBuilder(trotter_mode="suzuki", reps=2)
+        evo = TrotterizationBuilder(trotter_mode=TrotterModeEnum.SUZUKI, reps=2)
         with self.subTest("all PauliOp terms"):
             circ_op = evo.build(EvolvedOp(op))
-            circuit_matrix = qiskit.quantum_info.Operator(circ_op.to_circuit()).data
+            circuit_matrix = quantum_info.Operator(circ_op.to_circuit()).data
             np.testing.assert_array_almost_equal(exact_matrix, circuit_matrix)
 
         with self.subTest("MatrixOp identity term"):
             op = (2.0 * I ^ I).to_matrix_op() + (Z ^ Y)
             circ_op = evo.build(EvolvedOp(op))
-            circuit_matrix = qiskit.quantum_info.Operator(circ_op.to_circuit()).data
+            circuit_matrix = quantum_info.Operator(circ_op.to_circuit()).data
             np.testing.assert_array_almost_equal(exact_matrix, circuit_matrix)
 
         with self.subTest("CircuitOp identity term"):
             op = (2.0 * I ^ I).to_circuit_op() + (Z ^ Y)
             circ_op = evo.build(EvolvedOp(op))
-            circuit_matrix = qiskit.quantum_info.Operator(circ_op.to_circuit()).data
+            circuit_matrix = quantum_info.Operator(circ_op.to_circuit()).data
             np.testing.assert_array_almost_equal(exact_matrix, circuit_matrix)
 
     def test_parameterized_evolution(self):
@@ -72,7 +76,7 @@ class TestTrotterizationBuilder(QiskitOpflowTestCase):
                 + (thetas[5] * Z ^ Z)
         )
         op = op * thetas[6]
-        evolution = TrotterizationBuilder(trotter_mode="trotter", reps=1)
+        evolution = TrotterizationBuilder(trotter_mode=TrotterModeEnum.TROTTER, reps=1)
         # wf = (Pl^Pl) + (Ze^Ze)
         wf = (op).exp_i() @ CX @ (H ^ I) @ Zero
         mean = evolution.build(wf)
@@ -94,7 +98,7 @@ class TestTrotterizationBuilder(QiskitOpflowTestCase):
                 + (thetas[5] * Z ^ Z)
         )
         op = thetas[0] * op
-        evolution = TrotterizationBuilder(trotter_mode="trotter", reps=1)
+        evolution = TrotterizationBuilder(trotter_mode=TrotterModeEnum.TROTTER, reps=1)
         # wf = (Pl^Pl) + (Ze^Ze)
         wf = (op).exp_i() @ CX @ (H ^ I) @ Zero
         wf = wf.assign_parameters({thetas: np.arange(10, 16)})
@@ -115,7 +119,7 @@ class TestTrotterizationBuilder(QiskitOpflowTestCase):
                 + (thetas[5] * Z ^ Z)
         )
         op = thetas[0] * op
-        evolution = TrotterizationBuilder(trotter_mode="trotter", reps=1)
+        evolution = TrotterizationBuilder(trotter_mode=TrotterModeEnum.TROTTER, reps=1)
         # wf = (Pl^Pl) + (Ze^Ze)
         wf = (op).exp_i() @ CX @ (H ^ I) @ Zero
         evo = evolution.build(wf)
@@ -139,7 +143,7 @@ class TestTrotterizationBuilder(QiskitOpflowTestCase):
                 + (thetas[5] * Z ^ Z)
         )
         op = thetas[0] * op
-        evolution = TrotterizationBuilder(trotter_mode="trotter", reps=1)
+        evolution = TrotterizationBuilder(trotter_mode=TrotterModeEnum.TROTTER, reps=1)
         # wf = (Pl^Pl) + (Ze^Ze)
         wf = (op).exp_i() @ CX @ (H ^ I) @ Zero
         evo = evolution.build(wf)
@@ -165,7 +169,7 @@ class TestTrotterizationBuilder(QiskitOpflowTestCase):
                 + (thetas[5] * (Z ^ I).to_circuit_op())
         )
         op = thetas[0] * op
-        evolution = TrotterizationBuilder(trotter_mode="trotter", reps=1)
+        evolution = TrotterizationBuilder(trotter_mode=TrotterModeEnum.TROTTER, reps=1)
         wf = (op).exp_i() @ CX @ (H ^ I) @ Zero
         wf = wf.assign_parameters({thetas: np.arange(10, 16)})
         mean = evolution.build(wf)
