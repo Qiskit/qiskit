@@ -1,7 +1,7 @@
 ---
 other:
   - |
-    The string cast for :class:`qiskit.circuit.Parameter` does not have full precision
+    The string cast for :class:`qiskit.circuit.ParameterExpression` does not have full precision
     anymore. This removes the trailing 0s when printing parameters that are bound to floats.
     This has consequence down to, for example, QASM serialization and circuit text drawer.
 
