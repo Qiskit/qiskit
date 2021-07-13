@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    Fixed an issue with :class:`~qiskit.transpiler.passes.BasisTranslator` where in some
-    cases it would translate gates already in the target basis.
