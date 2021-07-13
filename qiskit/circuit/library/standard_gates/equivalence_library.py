@@ -760,13 +760,13 @@ _sel.add_equivalence(HGate(), h_to_rr)
 
 # BRGGate
 
-q = QuantumRegister(3, 'q')
+q = QuantumRegister(3, "q")
 def_brg = QuantumCircuit(q)
 for inst, qargs, cargs in [
     (CXGate(), [q[1], q[2]], []),
     (CXGate(), [q[0], q[1]], []),
     (CXGate(), [q[1], q[2]], []),
-    (CXGate(), [q[0], q[1]], [])
+    (CXGate(), [q[0], q[1]], []),
 ]:
     def_brg.append(inst, qargs, cargs)
 _sel.add_equivalence(BRGGate(), def_brg)

@@ -39,21 +39,21 @@ class BRGGate(Gate):
 
     def __init__(self, label=None):
         """Create new BrG gate."""
-        super().__init__('brg', 3, [])
+        super().__init__("brg", 3, [])
 
     def _define(self):
-        """gate Bridge-Gate {cx b,c; cx a,b; cx b,c; cx a,b;} """
+        """gate Bridge-Gate {cx b,c; cx a,b; cx b,c; cx a,b;}"""
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate
 
-        q = QuantumRegister(3, 'q')
+        q = QuantumRegister(3, "q")
         qc = QuantumCircuit(q, name=self.name)
 
         rules = [
             (CXGate(), [q[1], q[2]], []),
             (CXGate(), [q[0], q[1]], []),
             (CXGate(), [q[1], q[2]], []),
-            (CXGate(), [q[0], q[1]], [])
+            (CXGate(), [q[0], q[1]], []),
         ]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
