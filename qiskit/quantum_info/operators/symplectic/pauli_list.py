@@ -1082,7 +1082,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         # convert into list where tuple elements are qubit-wise non-commuting operators
         return list(zip(*np.where(np.triu(np.logical_not(mat3), k=1))))
 
-    def group_subops_pauli_list(self):
+    def group_qubit_wise_commuting(self):
         """Partition a PauliList into sets of mutually qubit-wise commuting Pauli strings.
 
         Returns:

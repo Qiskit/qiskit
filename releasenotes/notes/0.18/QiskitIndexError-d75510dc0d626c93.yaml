@@ -1,0 +1,7 @@
+---
+deprecations:
+  - |
+    The class :class:`qiskit.exceptions.QiskitIndexError`
+    is deprecated and will be removed in a future release. This exception
+    was not actively being used by anything in Qiskit, if you were using
+    it you can create a custom exception class to replace it.

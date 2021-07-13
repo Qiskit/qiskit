@@ -1999,6 +1999,60 @@ class TestPauliListMethods(QiskitTestCase):
         ]
         self.assertListEqual(value, target)
 
+    def test_group_qubit_wise_commuting(self):
+        """Test grouping qubit-wise commuting operators"""
+
+        with self.subTest(msg="1-qubit PauliList group subops"):
+            # 1-qubit Pauli
+            pauli = PauliList(["I", "X", "Y", "Z"])
+            groups = pauli.group_qubit_wise_commuting()
+            value = [pl.to_labels() for pl in groups]
+            for group in value:
+                group.sort()
+            value.sort()
+            target = [["I", "X"], ["Y"], ["Z"]]
+            self.assertEqual(value, target)
+
+        with self.subTest(msg="2-qubit PauliList group subops"):
+            # 2-qubit Pauli
+            pauli = PauliList(
+                [
+                    "II",
+                    "IX",
+                    "IY",
+                    "IZ",
+                    "XI",
+                    "XX",
+                    "XY",
+                    "XZ",
+                    "YI",
+                    "YX",
+                    "YY",
+                    "YZ",
+                    "ZI",
+                    "ZX",
+                    "ZY",
+                    "iZZ",
+                ]
+            )
+            groups = pauli.group_qubit_wise_commuting()
+            value = [pl.to_labels() for pl in groups]
+            for group in value:
+                group.sort()
+            value.sort()
+            target = [
+                ["II", "IX", "XI", "XX"],
+                ["IY", "XY"],
+                ["IZ", "XZ"],
+                ["YI", "YX"],
+                ["YY"],
+                ["YZ"],
+                ["ZI", "ZX"],
+                ["ZY"],
+                ["iZZ"],
+            ]
+            self.assertEqual(value, target)
+
 
 if __name__ == "__main__":
     unittest.main()
