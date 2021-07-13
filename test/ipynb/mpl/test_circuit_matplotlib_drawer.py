@@ -35,7 +35,7 @@ from qiskit.circuit.library import (
     ZGate,
     CYGate,
     CHGate,
-    SGate
+    SGate,
 )
 from qiskit.circuit.library import MCXVChain
 from qiskit.extensions import HamiltonianGate
