@@ -10,21 +10,21 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """TrotterizationFactory Class """
-from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations.qdrift \
-    import \
-    QDrift
-from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations.suzuki \
-    import \
-    Suzuki
-from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations.trotter \
-    import \
-    Trotter
-from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations\
-    .trotter_mode_enum import \
-    TrotterModeEnum
-from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations\
-    .trotterization_base import \
-    TrotterizationBase
+from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations.qdrift import (
+    QDrift,
+)
+from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations.suzuki import (
+    Suzuki,
+)
+from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations.trotter import (
+    Trotter,
+)
+from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations.trotter_mode_enum import (
+    TrotterModeEnum,
+)
+from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations.trotterization_base import (
+    TrotterizationBase,
+)
 
 
 class TrotterizationFactory:

@@ -14,17 +14,22 @@ import unittest
 
 import numpy as np
 
-from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterization_builder \
-    import \
-    TrotterizationBuilder
-from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations.suzuki \
-    import \
-    Suzuki
+from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterization_builder import (
+    TrotterizationBuilder,
+)
+from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations.suzuki import (
+    Suzuki,
+)
 from qiskit.circuit import ParameterVector
 from test.python.opflow import QiskitOpflowTestCase
 from qiskit.opflow import (
     X,
-    Z, I, Y, CX, Zero, H,
+    Z,
+    I,
+    Y,
+    CX,
+    Zero,
+    H,
 )
 
 

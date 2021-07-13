@@ -15,7 +15,6 @@ from qiskit.opflow import OperatorBase
 
 
 class EvolutionOpBuilder(ABC):
-
     @abstractmethod
     def build(self, operator: OperatorBase) -> OperatorBase:
         raise NotImplementedError()

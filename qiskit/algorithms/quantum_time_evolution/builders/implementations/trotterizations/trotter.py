@@ -10,9 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """ Trotter Class """
-from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations.suzuki \
-    import \
-    Suzuki
+from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations.suzuki import (
+    Suzuki,
+)
 
 
 class Trotter(Suzuki):

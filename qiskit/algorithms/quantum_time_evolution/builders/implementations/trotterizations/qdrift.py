@@ -18,9 +18,9 @@ from typing import List, Union, cast
 
 import numpy as np
 
-from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations\
-    .trotterization_base import \
-    TrotterizationBase
+from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations.trotterization_base import (
+    TrotterizationBase,
+)
 from qiskit.opflow.list_ops.composed_op import ComposedOp
 from qiskit.opflow.list_ops.summed_op import SummedOp
 from qiskit.opflow.operator_base import OperatorBase

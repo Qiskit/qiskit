@@ -17,12 +17,12 @@ import numpy as np
 import scipy.linalg
 from qiskit import quantum_info
 
-from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterization_builder \
-    import \
-    TrotterizationBuilder
-from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations\
-    .trotter_mode_enum import \
-    TrotterModeEnum
+from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterization_builder import (
+    TrotterizationBuilder,
+)
+from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations.trotter_mode_enum import (
+    TrotterModeEnum,
+)
 from test.python.opflow import QiskitOpflowTestCase
 import qiskit
 from qiskit.circuit import ParameterVector
@@ -68,12 +68,12 @@ class TestTrotterizationBuilder(QiskitOpflowTestCase):
         """parameterized evolution test"""
         thetas = ParameterVector("θ", length=7)
         op = (
-                (thetas[0] * I ^ I)
-                + (thetas[1] * I ^ Z)
-                + (thetas[2] * X ^ X)
-                + (thetas[3] * Z ^ I)
-                + (thetas[4] * Y ^ Z)
-                + (thetas[5] * Z ^ Z)
+            (thetas[0] * I ^ I)
+            + (thetas[1] * I ^ Z)
+            + (thetas[2] * X ^ X)
+            + (thetas[3] * Z ^ I)
+            + (thetas[4] * Y ^ Z)
+            + (thetas[5] * Z ^ Z)
         )
         op = op * thetas[6]
         evolution = TrotterizationBuilder(trotter_mode=TrotterModeEnum.TROTTER, reps=1)
@@ -91,11 +91,11 @@ class TestTrotterizationBuilder(QiskitOpflowTestCase):
         """bind parameters test"""
         thetas = ParameterVector("θ", length=6)
         op = (
-                (thetas[1] * I ^ Z)
-                + (thetas[2] * X ^ X)
-                + (thetas[3] * Z ^ I)
-                + (thetas[4] * Y ^ Z)
-                + (thetas[5] * Z ^ Z)
+            (thetas[1] * I ^ Z)
+            + (thetas[2] * X ^ X)
+            + (thetas[3] * Z ^ I)
+            + (thetas[4] * Y ^ Z)
+            + (thetas[5] * Z ^ Z)
         )
         op = thetas[0] * op
         evolution = TrotterizationBuilder(trotter_mode=TrotterModeEnum.TROTTER, reps=1)
@@ -112,11 +112,11 @@ class TestTrotterizationBuilder(QiskitOpflowTestCase):
         """bind circuit parameters test"""
         thetas = ParameterVector("θ", length=6)
         op = (
-                (thetas[1] * I ^ Z)
-                + (thetas[2] * X ^ X)
-                + (thetas[3] * Z ^ I)
-                + (thetas[4] * Y ^ Z)
-                + (thetas[5] * Z ^ Z)
+            (thetas[1] * I ^ Z)
+            + (thetas[2] * X ^ X)
+            + (thetas[3] * Z ^ I)
+            + (thetas[4] * Y ^ Z)
+            + (thetas[5] * Z ^ Z)
         )
         op = thetas[0] * op
         evolution = TrotterizationBuilder(trotter_mode=TrotterModeEnum.TROTTER, reps=1)
@@ -136,11 +136,11 @@ class TestTrotterizationBuilder(QiskitOpflowTestCase):
         """bind parameters list test"""
         thetas = ParameterVector("θ", length=6)
         op = (
-                (thetas[1] * I ^ Z)
-                + (thetas[2] * X ^ X)
-                + (thetas[3] * Z ^ I)
-                + (thetas[4] * Y ^ Z)
-                + (thetas[5] * Z ^ Z)
+            (thetas[1] * I ^ Z)
+            + (thetas[2] * X ^ X)
+            + (thetas[3] * Z ^ I)
+            + (thetas[4] * Y ^ Z)
+            + (thetas[5] * Z ^ Z)
         )
         op = thetas[0] * op
         evolution = TrotterizationBuilder(trotter_mode=TrotterModeEnum.TROTTER, reps=1)
@@ -162,11 +162,11 @@ class TestTrotterizationBuilder(QiskitOpflowTestCase):
         """bind parameters test"""
         thetas = ParameterVector("θ", length=6)
         op = (
-                (thetas[1] * (I ^ Z).to_matrix_op())
-                + (thetas[2] * (X ^ X)).to_matrix_op()
-                + (thetas[3] * Z ^ I)
-                + (thetas[4] * Y ^ Z).to_circuit_op()
-                + (thetas[5] * (Z ^ I).to_circuit_op())
+            (thetas[1] * (I ^ Z).to_matrix_op())
+            + (thetas[2] * (X ^ X)).to_matrix_op()
+            + (thetas[3] * Z ^ I)
+            + (thetas[4] * Y ^ Z).to_circuit_op()
+            + (thetas[5] * (Z ^ I).to_circuit_op())
         )
         op = thetas[0] * op
         evolution = TrotterizationBuilder(trotter_mode=TrotterModeEnum.TROTTER, reps=1)

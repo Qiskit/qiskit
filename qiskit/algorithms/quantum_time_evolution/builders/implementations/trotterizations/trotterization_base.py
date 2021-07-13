@@ -14,8 +14,9 @@
 
 from abc import abstractmethod
 
-from qiskit.algorithms.quantum_time_evolution.builders.evolution_op_builder import \
-    EvolutionOpBuilder
+from qiskit.algorithms.quantum_time_evolution.builders.evolution_op_builder import (
+    EvolutionOpBuilder,
+)
 from qiskit.opflow.operator_base import OperatorBase
 
 # TODO centralize handling of commuting groups

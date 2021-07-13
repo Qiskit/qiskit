@@ -12,9 +12,9 @@
 """ Test QDrift. """
 import unittest
 
-from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations.qdrift \
-    import \
-    QDrift
+from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations.qdrift import (
+    QDrift,
+)
 from test.python.opflow import QiskitOpflowTestCase
 from qiskit.opflow import (
     CircuitOp,

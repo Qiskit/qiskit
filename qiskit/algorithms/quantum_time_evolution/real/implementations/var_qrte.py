@@ -10,8 +10,34 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 from qiskit.algorithms.quantum_time_evolution.real.qrte import Qrte
+from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import (
+    EvolutionGradientResult,
+)
+from qiskit.algorithms.quantum_time_evolution.results.evolution_result import EvolutionResult
 from qiskit.algorithms.quantum_time_evolution.variational.var_qte import VarQte
+from qiskit.opflow import OperatorBase, StateFn
 
 
 class VarQrte(Qrte, VarQte):
-    pass
+    def evolve(
+        self,
+        hamiltonian: OperatorBase,
+        time: float,
+        initial_state: StateFn = None,
+        observable: OperatorBase = None,
+        t_param=None,
+        hamiltonian_value_dict=None,
+    ) -> EvolutionResult:
+        raise NotImplementedError()
+
+    def gradient(
+        self,
+        hamiltonian: OperatorBase,
+        time: float,
+        initial_state: StateFn,
+        observable: OperatorBase = None,
+        t_param=None,
+        hamiltonian_value_dict=None,
+        gradient_params=None,
+    ) -> EvolutionGradientResult:
+        raise NotImplementedError()

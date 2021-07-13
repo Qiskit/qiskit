@@ -12,21 +12,35 @@
 from abc import abstractmethod
 
 from qiskit.algorithms.quantum_time_evolution.evolution_base import EvolutionBase
-from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import \
-    EvolutionGradientResult
+from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import (
+    EvolutionGradientResult,
+)
 from qiskit.algorithms.quantum_time_evolution.results.evolution_result import EvolutionResult
 from qiskit.opflow import StateFn, OperatorBase
 
 
 class Qrte(EvolutionBase):
     @abstractmethod
-    def evolve(self, hamiltonian: OperatorBase, time: float, initial_state: StateFn = None,
-               observable: OperatorBase = None, t_param=None,
-               hamiltonian_value_dict=None) -> EvolutionResult:
+    def evolve(
+        self,
+        hamiltonian: OperatorBase,
+        time: float,
+        initial_state: StateFn = None,
+        observable: OperatorBase = None,
+        t_param=None,
+        hamiltonian_value_dict=None,
+    ) -> EvolutionResult:
         raise NotImplementedError()
 
     @abstractmethod
-    def gradient(self, hamiltonian: OperatorBase, time: float, initial_state: StateFn,
-                 observable: OperatorBase = None, t_param=None,
-                 hamiltonian_value_dict=None, gradient_params=None) -> EvolutionGradientResult:
+    def gradient(
+        self,
+        hamiltonian: OperatorBase,
+        time: float,
+        initial_state: StateFn,
+        observable: OperatorBase = None,
+        t_param=None,
+        hamiltonian_value_dict=None,
+        gradient_params=None,
+    ) -> EvolutionGradientResult:
         raise NotImplementedError()

@@ -9,8 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from qiskit.algorithms.quantum_time_evolution.builders.evolution_op_builder import \
-    EvolutionOpBuilder
+from qiskit.algorithms.quantum_time_evolution.builders.evolution_op_builder import (
+    EvolutionOpBuilder,
+)
 
 # This code is part of Qiskit.
 #
@@ -23,15 +24,15 @@ from qiskit.algorithms.quantum_time_evolution.builders.evolution_op_builder impo
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations\
-    .trotter_mode_enum import \
-    TrotterModeEnum
-from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations\
-    .trotterization_base import \
-    TrotterizationBase
-from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations\
-    .trotterization_factory import \
-    TrotterizationFactory
+from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations.trotter_mode_enum import (
+    TrotterModeEnum,
+)
+from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations.trotterization_base import (
+    TrotterizationBase,
+)
+from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations.trotterization_factory import (
+    TrotterizationFactory,
+)
 
 """ PauliTrotterEvolution Class """
 
@@ -68,11 +69,13 @@ class TrotterizationBuilder(EvolutionOpBuilder):
     """
 
     def __init__(
-            self,
-            trotter_mode: Optional[Union[TrotterModeEnum, TrotterizationBase]] = TrotterModeEnum.TROTTER,
-            reps: Optional[int] = 1,
-            # TODO uncomment when we implement Abelian grouped evolution.
-            # group_paulis: Optional[bool] = False
+        self,
+        trotter_mode: Optional[
+            Union[TrotterModeEnum, TrotterizationBase]
+        ] = TrotterModeEnum.TROTTER,
+        reps: Optional[int] = 1,
+        # TODO uncomment when we implement Abelian grouped evolution.
+        # group_paulis: Optional[bool] = False
     ) -> None:
         """
         Args:

@@ -16,12 +16,12 @@ import numpy as np
 from numpy.testing import assert_raises
 
 from qiskit import QiskitError
-from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations \
-    .trotter_mode_enum import \
-    TrotterModeEnum
-from qiskit.algorithms.quantum_time_evolution.real.implementations.trotterization.trotter_qrte \
-    import \
-    TrotterQrte
+from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations.trotter_mode_enum import (
+    TrotterModeEnum,
+)
+from qiskit.algorithms.quantum_time_evolution.real.implementations.trotterization.trotter_qrte import (
+    TrotterQrte,
+)
 from qiskit.quantum_info import Statevector
 from qiskit.utils import algorithm_globals
 from test.python.opflow import QiskitOpflowTestCase
@@ -29,7 +29,10 @@ from qiskit.circuit import Parameter
 from qiskit.opflow import (
     X,
     Z,
-    Zero, VectorStateFn, StateFn, MatrixOp,
+    Zero,
+    VectorStateFn,
+    StateFn,
+    MatrixOp,
 )
 
 
@@ -44,8 +47,8 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         initial_state = Zero
         evolved_state = trotter_qrte.evolve(operator, 1, initial_state)
         expected_evolved_state = VectorStateFn(
-            Statevector([0.29192658 - 0.45464871j, -0.70807342 - 0.45464871j],
-                        dims=(2,)))
+            Statevector([0.29192658 - 0.45464871j, -0.70807342 - 0.45464871j], dims=(2,))
+        )
 
         np.testing.assert_equal(evolved_state, expected_evolved_state)
 
@@ -57,8 +60,8 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         initial_state = StateFn([1, 0])
         evolved_state = trotter_qrte.evolve(operator, 1, initial_state)
         expected_evolved_state = VectorStateFn(
-            Statevector([0.29192658 - 0.45464871j, -0.70807342 - 0.45464871j],
-                        dims=(2,)))
+            Statevector([0.29192658 - 0.45464871j, -0.70807342 - 0.45464871j], dims=(2,))
+        )
 
         np.testing.assert_equal(evolved_state, expected_evolved_state)
 
@@ -70,10 +73,12 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         observable = X
         evolved_observable = trotter_qrte.evolve(operator, 1, observable=observable)
         evolved_observable = evolved_observable.to_matrix_op()
-        expected_evolved_observable = MatrixOp([[2.99928030e-17 - 4.67110231e-17j,
-                                                 -4.16146837e-01 + 9.09297427e-01j],
-                                                [-4.16146837e-01 - 9.09297427e-01j,
-                                                 0.00000000e+00 + 0.00000000e+00j]])
+        expected_evolved_observable = MatrixOp(
+            [
+                [2.99928030e-17 - 4.67110231e-17j, -4.16146837e-01 + 9.09297427e-01j],
+                [-4.16146837e-01 - 9.09297427e-01j, 0.00000000e00 + 0.00000000e00j],
+            ]
+        )
         np.testing.assert_equal(evolved_observable, expected_evolved_observable)
 
     def test_trotter_qrte_suzuki(self):
@@ -84,8 +89,8 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         initial_state = Zero
         evolved_state = trotter_qrte.evolve(operator, 1, initial_state)
         expected_evolved_state = VectorStateFn(
-            Statevector([0.29192658 - 0.45464871j, 0. - 0.84147098j],
-                        dims=(2,)))
+            Statevector([0.29192658 - 0.45464871j, 0.0 - 0.84147098j], dims=(2,))
+        )
 
         np.testing.assert_equal(evolved_state, expected_evolved_state)
 
@@ -98,8 +103,8 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         initial_state = Zero
         evolved_state = trotter_qrte.evolve(operator, 1, initial_state)
         expected_evolved_state = VectorStateFn(
-            Statevector([0.23071786 - 0.69436148j, -0.4646314 - 0.49874749j],
-                        dims=(2,)))
+            Statevector([0.23071786 - 0.69436148j, -0.4646314 - 0.49874749j], dims=(2,))
+        )
 
         np.testing.assert_equal(evolved_state, expected_evolved_state)
 
@@ -111,11 +116,16 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         mode = TrotterModeEnum.TROTTER
         trotter_qrte = TrotterQrte(mode)
         initial_state = Zero
-        evolved_state = trotter_qrte.evolve(operator, 1, initial_state, t_param=t_param,
-                                            hamiltonian_value_dict=hamiltonian_value_dict)
+        evolved_state = trotter_qrte.evolve(
+            operator,
+            1,
+            initial_state,
+            t_param=t_param,
+            hamiltonian_value_dict=hamiltonian_value_dict,
+        )
         expected_evolved_state = VectorStateFn(
-            Statevector([0.29192658 - 0.45464871j, -0.70807342 - 0.45464871j],
-                        dims=(2,)))
+            Statevector([0.29192658 - 0.45464871j, -0.70807342 - 0.45464871j], dims=(2,))
+        )
 
         np.testing.assert_equal(evolved_state, expected_evolved_state)
 

@@ -9,8 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from qiskit.algorithms.quantum_time_evolution.builders.evolution_op_builder import \
-    EvolutionOpBuilder
+from qiskit.algorithms.quantum_time_evolution.builders.evolution_op_builder import (
+    EvolutionOpBuilder,
+)
 
 
 class ExactEvolutionOpBuilder(EvolutionOpBuilder):

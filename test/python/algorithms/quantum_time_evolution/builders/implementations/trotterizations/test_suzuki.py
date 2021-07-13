@@ -14,9 +14,9 @@ import unittest
 
 import numpy as np
 
-from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations.suzuki \
-    import \
-    Suzuki
+from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations.suzuki import (
+    Suzuki,
+)
 from test.python.opflow import QiskitOpflowTestCase
 from qiskit.opflow import (
     X,
@@ -26,6 +26,7 @@ from qiskit.opflow import (
 
 class TestSuzuki(QiskitOpflowTestCase):
     """Suzuki tests."""
+
     def test_suzuki_directly(self):
         """Test for Suzuki converter"""
         operator = X + Z
