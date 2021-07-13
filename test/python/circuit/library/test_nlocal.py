@@ -284,9 +284,10 @@ class TestNLocal(QiskitTestCase):
                     reps=3,
                     skip_unentangled_qubits=True,
                 )
+                decomposed = nlocal.decompose()
 
-                skipped_set = {nlocal.qubits[i] for i in skipped}
-                dag = circuit_to_dag(nlocal)
+                skipped_set = {decomposed.qubits[i] for i in skipped}
+                dag = circuit_to_dag(decomposed)
                 idle = set(dag.idle_wires())
                 self.assertEqual(skipped_set, idle)
 
@@ -575,7 +576,7 @@ class TestTwoLocal(QiskitTestCase):
         for i in range(3):
             reference.rz(next(param_iter), i)
 
-        self.assertCircuitEqual(circuit, reference)
+        self.assertCircuitEqual(circuit.decompose(), reference)
 
     def test_composing_two(self):
         """Test adding two two-local circuits."""
@@ -779,8 +780,8 @@ class TestTwoLocal(QiskitTestCase):
 
         expected_cx = reps * num_qubits * (num_qubits - 1) / 2
 
-        self.assertEqual(two_np32.count_ops()["cx"], expected_cx)
-        self.assertEqual(two_np64.count_ops()["cx"], expected_cx)
+        self.assertEqual(two_np32.decompose().count_ops()["cx"], expected_cx)
+        self.assertEqual(two_np64.decompose().count_ops()["cx"], expected_cx)
 
 
 if __name__ == "__main__":

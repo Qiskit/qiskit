@@ -61,7 +61,7 @@ class TestBooleanLogicLibrary(QiskitTestCase):
         circuit = XOR(num_qubits=3, amount=4)
         expected = QuantumCircuit(3)
         expected.x(2)
-        self.assertEqual(circuit, expected)
+        self.assertEqual(circuit.decompose(), expected)
 
     def test_inner_product(self):
         """Test inner product circuit.
@@ -73,7 +73,7 @@ class TestBooleanLogicLibrary(QiskitTestCase):
         expected.cz(0, 3)
         expected.cz(1, 4)
         expected.cz(2, 5)
-        self.assertEqual(circuit, expected)
+        self.assertEqual(circuit.decompose(), expected)
 
     @data(
         (2, None, "noancilla"),

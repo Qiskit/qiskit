@@ -1,8 +1,0 @@
----
-fixes:
-  - |
-    Fixes bug in :meth:`qiskit.quantum_info.Statevector.expectation_value`
-    and :meth:`qiskit.quantum_info.DensityMatrix.expectation_value` where
-    the ``qargs`` kwarg was ignored if the operator was a
-    :class:`~qiskit.quantum_info.Pauli` or
-    :class:`~qiskit.quantum_info.SparsePauliOp` operator.

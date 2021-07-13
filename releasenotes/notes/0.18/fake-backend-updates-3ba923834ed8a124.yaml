@@ -1,0 +1,25 @@
+---
+features:
+  - |
+    A new fake backend class is available under ``qiskit.test.mock`` for the
+    ``ibmq_guadalupe`` backend.  As with the other fake backends, this includes
+    a snapshot of calibration data (i.e. ``backend.defaults()``) and error data
+    (i.e. ``backend.properties()``) taken from the real system, and can be used
+    for local testing, compilation and simulation.
+upgrade:
+  - |
+    The existing fake backend classes in ``qiskit.test.mock`` now strictly 
+    implement the :class:`~qiskit.providers.BackendV1` interface. This means
+    that if you were manually constructing :class:`~qiskit.qobj.QasmQobj` or
+    :class:`~qiskit.qobj.PulseQobj` object for use with the ``run()`` method
+    this will no longer work. The ``run()`` method only accepts
+    :class:`~qiskit.circuit.QuantumCircuit` or :class:`~qiskit.pulse.Schedule`
+    objects now. This was necessary to enable testing of new backends
+    implemented without qobj which previously did not have any testing inside
+    qiskit terra. If you need to leverage the fake backends with
+    :class:`~qiskit.qobj.QasmQobj` or :class:`~qiskit.qobj.PulseQobj` new
+    fake legacy backend objects were added to explicitly test the legacy
+    providers interface. This will be removed after the legacy interface is
+    deprecated and removed. Moving forward new fake backends will only
+    implement the :class:`~qiskit.providers.BackendV1` interface and will not
+    add new legacy backend classes for new fake backends.
