@@ -15,7 +15,7 @@
 from typing import Optional
 import numpy as np
 
-from qiskit.circuit import QuantumRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister
 
 from ..blueprintcircuit import BlueprintCircuit
 
@@ -82,7 +82,7 @@ class QFT(BlueprintCircuit):
         do_swaps: bool = True,
         inverse: bool = False,
         insert_barriers: bool = False,
-        name: str = "qft",
+        name: str = "QFT",
     ) -> None:
         """Construct a new QFT circuit.
 
@@ -217,8 +217,8 @@ class QFT(BlueprintCircuit):
             The inverted circuit.
         """
 
-        if self.name in ("qft", "iqft"):
-            name = "qft" if self._inverse else "iqft"
+        if self.name in ("QFT", "IQFT"):
+            name = "QFT" if self._inverse else "IQFT"
         else:
             name = self.name + "_dg"
 
@@ -235,11 +235,6 @@ class QFT(BlueprintCircuit):
         inverted._inverse = not self._inverse
         return inverted
 
-    def _swap_qubits(self):
-        num_qubits = self.num_qubits
-        for i in range(num_qubits // 2):
-            self.swap(i, num_qubits - i - 1)
-
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         valid = True
         if self.num_qubits is None:
@@ -253,20 +248,28 @@ class QFT(BlueprintCircuit):
         """Construct the circuit representing the desired state vector."""
         super()._build()
 
-        for j in reversed(range(self.num_qubits)):
-            self.h(j)
-            num_entanglements = max(
-                0, j - max(0, self.approximation_degree - (self.num_qubits - j - 1))
-            )
+        num_qubits = self.num_qubits
+
+        if num_qubits == 0:
+            return
+
+        circuit = QuantumCircuit(*self.qregs, name=self.name)
+        for j in reversed(range(num_qubits)):
+            circuit.h(j)
+            num_entanglements = max(0, j - max(0, self.approximation_degree - (num_qubits - j - 1)))
             for k in reversed(range(j - num_entanglements, j)):
                 lam = np.pi / (2 ** (j - k))
-                self.cp(lam, j, k)
+                circuit.cp(lam, j, k)
 
             if self.insert_barriers:
-                self.barrier()
+                circuit.barrier()
 
         if self._do_swaps:
-            self._swap_qubits()
+            for i in range(num_qubits // 2):
+                circuit.swap(i, num_qubits - i - 1)
 
         if self._inverse:
-            self._data = super().inverse()
+            circuit._data = circuit.inverse()
+
+        wrapped = circuit.to_instruction() if self.insert_barriers else circuit.to_gate()
+        self.compose(wrapped, qubits=self.qubits, inplace=True)
