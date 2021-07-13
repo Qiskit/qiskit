@@ -28,8 +28,9 @@ from qiskit.opflow import OperatorBase, StateFn
 
 class TrotterQrte(Qrte):
 
-    def __init__(self, mode: TrotterModeEnum):
+    def __init__(self, mode: TrotterModeEnum, reps: int = 1):
         self._mode = mode
+        self._reps = reps
 
     def evolve(self, hamiltonian: OperatorBase, time: float, initial_state: StateFn = None,
                observable: OperatorBase = None, t_param: Parameter = None,
@@ -43,7 +44,7 @@ class TrotterQrte(Qrte):
             else:
                 hamiltonian = hamiltonian.bind_parameters(hamiltonian_value_dict)
 
-        trotter = TrotterizationFactory.build(self._mode)
+        trotter = TrotterizationFactory.build(self._mode, self._reps)
         trotterized_hamiltonian = trotter.build(time * hamiltonian)
         if initial_state is None and observable is None:
             raise ValueError(
