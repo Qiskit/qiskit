@@ -194,7 +194,6 @@ from .synthesis import UnitarySynthesis
 from .scheduling import TimeUnitConversion
 from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
-from .scheduling import RZXCalibrationBuilder
 from .scheduling import RZXCalibrationBuilderNoEcho
 from .scheduling import DynamicalDecoupling
 from .scheduling import AlignMeasures
