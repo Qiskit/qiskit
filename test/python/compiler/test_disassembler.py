@@ -251,7 +251,7 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
                 self.assertEqual(gate_cals.keys(), out_qc.calibrations[gate_name].keys())
             for (_, in_gate), (_, out_gate) in zip(in_qc.calibrations.items(), out_qc.calibrations.items()):
                 for in_sched, out_sched in zip(in_gate.values(), out_gate.values()):
-                    self.assertEqual(map(_parametric_to_waveforms, (in_sched, out_sched)))
+                    self.assertEqual(*map(_parametric_to_waveforms, (in_sched, out_sched)))
 
     def test_single_circuit_calibrations(self):
         """Test that disassembler parses single circuit QOBJ calibrations (from QOBJ-level)."""
