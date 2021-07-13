@@ -68,6 +68,10 @@ class CalibrationCreator(TransformationPass):
 
         return dag
 
+         warnings.warn("The scheduling.calibration_creators.py has been deprecated "
+                      "and replaced by transformation.calibration_creators.py.",
+                      DeprecationWarning, stacklevel=2)
+
 
 class RZXCalibrationBuilder(CalibrationCreator):
     """
@@ -384,3 +388,5 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
         rzx_theta = rzx_theta.insert(0, Delay(cr.duration, DriveChannel(control)))
 
         return rzx_theta
+
+
