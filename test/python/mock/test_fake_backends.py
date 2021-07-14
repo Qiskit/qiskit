@@ -14,12 +14,12 @@
 import math
 import unittest
 
-from qiskit import (QuantumRegister, ClassicalRegister, QuantumCircuit,
-                    schedule, transpile, assemble)
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, schedule, transpile, assemble
 from qiskit.pulse import Schedule
 from qiskit.qobj import PulseQobj
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock.utils import ConfigurableFakeBackend
+from qiskit.test.mock import FakeAthens
 
 from qiskit.test.mock.fake_backend import HAS_AER
 
@@ -28,7 +28,7 @@ def get_test_circuit():
     """Generates simple circuit for tests."""
     desired_vector = [1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)]
     qr = QuantumRegister(2, "qr")
-    cr = ClassicalRegister(2, 'cr')
+    cr = ClassicalRegister(2, "cr")
     qc = QuantumCircuit(qr, cr)
     qc.initialize(desired_vector, [qr[0], qr[1]])
     qc.measure(qr[0], cr[0])
@@ -42,8 +42,8 @@ class GeneratedFakeBackendsTest(QiskitTestCase):
     def setUp(self) -> None:
         self.backend = ConfigurableFakeBackend("Tashkent", n_qubits=4)
 
-    @unittest.skip('Skipped until qiskit-aer#741 is fixed and released')
-    @unittest.skipUnless(HAS_AER, 'qiskit-aer is required to run this test')
+    @unittest.skip("Skipped until qiskit-aer#741 is fixed and released")
+    @unittest.skipUnless(HAS_AER, "qiskit-aer is required to run this test")
     def test_transpile_schedule_and_assemble(self):
         """Test transpile, schedule and assemble on generated backend."""
         qc = get_test_circuit()
@@ -65,3 +65,21 @@ class GeneratedFakeBackendsTest(QiskitTestCase):
         result = job.result()
         self.assertTrue(result.success)
         self.assertEqual(len(result.results), 1)
+
+
+class FakeBackendsTest(QiskitTestCase):
+    """fake backends test."""
+
+    @unittest.skipUnless(HAS_AER, "qiskit-aer is required to run this test")
+    def test_fake_backends_get_kwargs(self):
+        """Fake backends honor kwargs passed."""
+        backend = FakeAthens()
+
+        qc = QuantumCircuit(2)
+        qc.x(range(0, 2))
+        qc.measure_all()
+
+        trans_qc = transpile(qc, backend)
+        raw_counts = backend.run(trans_qc, shots=1000).result().get_counts()
+
+        self.assertEqual(sum(raw_counts.values()), 1000)

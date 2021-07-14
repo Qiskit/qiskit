@@ -28,7 +28,7 @@ class TestPauliTwoDesign(QiskitTestCase):
         """Test the Random Pauli circuit."""
         circuit = PauliTwoDesign(4, seed=12, reps=1)
 
-        qr = QuantumRegister(4, 'q')
+        qr = QuantumRegister(4, "q")
         params = circuit.ordered_parameters
 
         # expected circuit for the random seed 12
@@ -54,18 +54,19 @@ class TestPauliTwoDesign(QiskitTestCase):
         expected.rx(params[6], 2)
         expected.rx(params[7], 3)
 
-        self.assertEqual(circuit, expected)
+        self.assertEqual(circuit.decompose(), expected)
 
     def test_resize(self):
         """Test resizing the Random Pauli circuit preserves the gates."""
         circuit = PauliTwoDesign(1)
-        top_gates = [op.name for op, _, _ in circuit.data]
+        top_gates = [op.name for op, _, _ in circuit.decompose().data]
 
         circuit.num_qubits = 3
-        with self.subTest('assert existing gates remain'):
+        decomposed = circuit.decompose()
+        with self.subTest("assert existing gates remain"):
             new_top_gates = []
-            for op, qargs, _ in circuit:
-                if qargs == [circuit.qubits[0]]:  # if top qubit
+            for op, qargs, _ in decomposed:
+                if qargs == [decomposed.qubits[0]]:  # if top qubit
                     new_top_gates.append(op.name)
 
             self.assertEqual(top_gates, new_top_gates)
@@ -83,5 +84,5 @@ class TestPauliTwoDesign(QiskitTestCase):
         self.assertEqual(bound0, bound2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
