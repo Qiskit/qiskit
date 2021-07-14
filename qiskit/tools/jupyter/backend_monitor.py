@@ -82,7 +82,7 @@ def _backend_monitor(backend):
         raise QiskitError("Input variable is not of type IBMQBackend.")
     title_style = "style='color:#ffffff;background-color:#000000;padding-top: 1%;"
     title_style += "padding-bottom: 1%;padding-left: 1%; margin-top: 0px'"
-    title_html = "<h1 {style}>{name}</h1>".format(style=title_style, name=backend.name())
+    title_html = f"<h1 {title_style}>{backend.name()}</h1>"
 
     details = [config_tab(backend)]
 
@@ -180,7 +180,7 @@ tr:nth-child(even) {background-color: #f6f6f6;}
 
     upper_str += "<tr><th>Property</th><th>Value</th></tr>"
     for key in upper_list:
-        upper_str += "<tr><td><font style='font-weight:bold'>%s</font></td><td>%s</td></tr>" % (
+        upper_str += "<tr><td><font style='font-weight:bold'>{}</font></td><td>{}</td></tr>".format(
             key,
             config_dict[key],
         )
@@ -203,7 +203,10 @@ tr:nth-child(even) {background-color: #f6f6f6;}
 
     if not config["simulator"]:
         with image_widget:
-            gate_map = plot_gate_map(backend)
+            qubit_size = 24
+            if config["n_qubits"] > 20:
+                qubit_size = 34
+            gate_map = plot_gate_map(backend, qubit_size=qubit_size)
             display(gate_map)
         plt.close(gate_map)
 
@@ -224,7 +227,7 @@ tr:nth-child(even) {background-color: #f6f6f6;}
     lower_str += "<tr><th></th><th></th></tr>"
     for key in lower_list:
         if key != "name":
-            lower_str += "<tr><td>%s</td><td>%s</td></tr>" % (key, config_dict[key])
+            lower_str += f"<tr><td>{key}</td><td>{config_dict[key]}</td></tr>"
     lower_str += footer
 
     lower_table = widgets.HTMLMath(
@@ -377,7 +380,7 @@ tr:nth-child(even) {background-color: #f6f6f6;};
 
         left_table += "<tr><td><font style='font-weight:bold'>%s</font>"
         left_table += "</td><td>%s</td><td>%s</td></tr>"
-        left_table = left_table % ("{}{}_{}".format(ttype, qubits[0], qubits[1]), ttype, error)
+        left_table = left_table % (f"{ttype}{qubits[0]}_{qubits[1]}", ttype, error)
     left_table += gate_footer
 
     middle_table = gate_html
@@ -390,7 +393,7 @@ tr:nth-child(even) {background-color: #f6f6f6;};
 
         middle_table += "<tr><td><font style='font-weight:bold'>%s</font>"
         middle_table += "</td><td>%s</td><td>%s</td></tr>"
-        middle_table = middle_table % ("{}{}_{}".format(ttype, qubits[0], qubits[1]), ttype, error)
+        middle_table = middle_table % (f"{ttype}{qubits[0]}_{qubits[1]}", ttype, error)
     middle_table += gate_footer
 
     right_table = gate_html
@@ -403,7 +406,7 @@ tr:nth-child(even) {background-color: #f6f6f6;};
 
         right_table += "<tr><td><font style='font-weight:bold'>%s</font>"
         right_table += "</td><td>%s</td><td>%s</td></tr>"
-        right_table = right_table % ("{}{}_{}".format(ttype, qubits[0], qubits[1]), ttype, error)
+        right_table = right_table % (f"{ttype}{qubits[0]}_{qubits[1]}", ttype, error)
     right_table += gate_footer
 
     left_table_widget = widgets.HTML(value=left_table, layout=widgets.Layout(grid_area="left"))
@@ -568,9 +571,9 @@ def plot_job_history(jobs, interval="year"):
     colors = ["#003f5c", "#ffa600", "#374c80", "#ff764a", "#7a5195", "#ef5675", "#bc5090"]
 
     if interval == "year":
-        labels = ["{}-{}".format(str(bins[b].year)[2:], MONTH_NAMES[bins[b].month]) for b in nz_idx]
+        labels = [f"{str(bins[b].year)[2:]}-{MONTH_NAMES[bins[b].month]}" for b in nz_idx]
     else:
-        labels = ["{}-{}".format(MONTH_NAMES[bins[b].month], bins[b].day) for b in nz_idx]
+        labels = [f"{MONTH_NAMES[bins[b].month]}-{bins[b].day}" for b in nz_idx]
     fig, ax = plt.subplots(1, 1, figsize=(5.5, 5.5))
     ax.pie(
         nz_bins[::-1],

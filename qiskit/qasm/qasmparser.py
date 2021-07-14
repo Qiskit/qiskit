@@ -1109,8 +1109,7 @@ class QasmParser:
         if token is None:
             return 0
         last_cr = input_.rfind("\n", 0, token.lexpos)
-        if last_cr < 0:
-            last_cr = 0
+        last_cr = max(last_cr, 0)
         column = (token.lexpos - last_cr) + 1
         return column
 

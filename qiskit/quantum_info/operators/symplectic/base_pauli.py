@@ -15,11 +15,12 @@ Optimized list of Pauli operators
 # pylint: disable=invalid-name
 
 import copy
+
 import numpy as np
 
-from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.barrier import Barrier
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.mixins import AdjointMixin, MultiplyMixin
 
@@ -70,9 +71,19 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
 
     @classmethod
     def _tensor(cls, a, b):
-        z = np.hstack([a._stack(b._z, a._num_paulis), a._z])
-        x = np.hstack([a._stack(b._x, a._num_paulis), a._x])
-        phase = np.mod(a._phase + b._phase, 4)
+        x1 = cls._stack(a._x, b._num_paulis, False)
+        x2 = cls._stack(b._x, a._num_paulis)
+        z1 = cls._stack(a._z, b._num_paulis, False)
+        z2 = cls._stack(b._z, a._num_paulis)
+        phase1 = (
+            np.vstack(b._num_paulis * [a._phase])
+            .transpose(1, 0)
+            .reshape(a._num_paulis * b._num_paulis)
+        )
+        phase2 = cls._stack(b._phase, a._num_paulis)
+        z = np.hstack([z2, z1])
+        x = np.hstack([x2, x1])
+        phase = np.mod(phase1 + phase2, 4)
         return BasePauli(z, x, phase)
 
     # pylint: disable=arguments-differ
@@ -96,13 +107,11 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         )
         # Validation
         if qargs is None and other.num_qubits != self.num_qubits:
-            raise QiskitError(
-                "other {} must be on the same number of qubits.".format(type(self).__name__)
-            )
+            raise QiskitError(f"other {type(self).__name__} must be on the same number of qubits.")
 
         if qargs and other.num_qubits != len(qargs):
             raise QiskitError(
-                "Number of qubits of the other {} does not match qargs.".format(type(self).__name__)
+                f"Number of qubits of the other {type(self).__name__} does not match qargs."
             )
 
         if other._num_paulis not in [1, self._num_paulis]:
@@ -248,8 +257,61 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             ret = ret.compose(other, front=True, qargs=qargs)
             return ret
 
+        # pylint: disable=cyclic-import
+        from qiskit.quantum_info.operators.symplectic.clifford import Clifford
+
+        # Convert Clifford to quantum circuits
+        if isinstance(other, Clifford):
+            return self._evolve_clifford(other, qargs=qargs)
+
         # Otherwise evolve by the inverse circuit to compute C^dg.P.C
         return self.copy()._append_circuit(other.inverse(), qargs=qargs)
+
+    def _evolve_clifford(self, other, qargs=None):
+        """Heisenberg picture evolution of a Pauli by a Clifford."""
+        if qargs is None:
+            idx = slice(None)
+            num_act = self.num_qubits
+        else:
+            idx = list(qargs)
+            num_act = len(idx)
+
+        # Set return to I on qargs
+        ret = self.copy()
+        ret._x[:, idx] = False
+        ret._z[:, idx] = False
+
+        # pylint: disable=cyclic-import
+        from qiskit.quantum_info.operators.symplectic.pauli import Pauli
+        from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
+
+        # Get action of Pauli's from Clifford
+        adj = other.adjoint()
+        pauli_list = []
+        for z in self._z[:, idx]:
+            pauli = Pauli("I" * num_act)
+            for row in adj.stabilizer[z]:
+                pauli.compose(Pauli((row.Z[0], row.X[0], 2 * row.phase[0])), inplace=True)
+            pauli_list.append(pauli)
+        ret.dot(PauliList(pauli_list), qargs=qargs, inplace=True)
+
+        pauli_list = []
+        for x in self._x[:, idx]:
+            pauli = Pauli("I" * num_act)
+            for row in adj.destabilizer[x]:
+                pauli.compose(Pauli((row.Z[0], row.X[0], 2 * row.phase[0])), inplace=True)
+            pauli_list.append(pauli)
+        ret.dot(PauliList(pauli_list), qargs=qargs, inplace=True)
+        return ret
+
+    def _eq(self, other):
+        """Entrywise comparison of Pauli equality."""
+        return (
+            self.num_qubits == other.num_qubits
+            and np.all(np.mod(self._phase, 4) == np.mod(other._phase, 4))
+            and np.all(self._z == other._z)
+            and np.all(self._x == other._x)
+        )
 
     # ---------------------------------------------------------------------
     # Helper Methods
@@ -268,11 +330,13 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         return np.sum(np.logical_and(self._x, self._z), axis=1)
 
     @staticmethod
-    def _stack(array, size):
+    def _stack(array, size, vertical=True):
         """Stack array."""
         if size == 1:
             return array
-        return np.vstack(size * [array])
+        if vertical:
+            return np.vstack(size * [array]).reshape((size * len(array),) + array.shape[1:])
+        return np.hstack(size * [array]).reshape((size * len(array),) + array.shape[1:])
 
     @staticmethod
     def _phase_from_complex(coeff):
@@ -462,7 +526,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         if isinstance(gate, str):
             # Check if gate is a valid Clifford basis gate string
             if gate not in basis_1q and gate not in basis_2q:
-                raise QiskitError("Invalid Clifford gate name string {}".format(gate))
+                raise QiskitError(f"Invalid Clifford gate name string {gate}")
             name = gate
         else:
             # Assume gate is an Instruction
@@ -470,7 +534,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
 
         # Apply gate if it is a Clifford basis gate
         if name in non_clifford:
-            raise QiskitError("Cannot update Pauli with non-Clifford gate {}".format(name))
+            raise QiskitError(f"Cannot update Pauli with non-Clifford gate {name}")
         if name in basis_1q:
             if len(qargs) != 1:
                 raise QiskitError("Invalid qubits for 1-qubit gate.")
@@ -483,7 +547,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         # If not a Clifford basis gate we try to unroll the gate and
         # raise an exception if unrolling reaches a non-Clifford gate.
         if gate.definition is None:
-            raise QiskitError("Cannot apply Instruction: {}".format(gate.name))
+            raise QiskitError(f"Cannot apply Instruction: {gate.name}")
         if not isinstance(gate.definition, QuantumCircuit):
             raise QiskitError(
                 "{} instruction definition is {}; expected QuantumCircuit".format(
@@ -501,7 +565,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         for instr, qregs, cregs in flat_instr:
             if cregs:
                 raise QiskitError(
-                    "Cannot apply Instruction with classical registers: {}".format(instr.name)
+                    f"Cannot apply Instruction with classical registers: {instr.name}"
                 )
             # Get the integer position of the flat register
             new_qubits = [qargs[bit_indices[tup]] for tup in qregs]

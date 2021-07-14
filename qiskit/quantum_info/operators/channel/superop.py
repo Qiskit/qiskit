@@ -338,7 +338,7 @@ class SuperOp(QuantumChannel):
             # circuit decomposition definition if it exists, otherwise we
             # cannot compose this gate and raise an error.
             if obj.definition is None:
-                raise QiskitError("Cannot apply Instruction: {}".format(obj.name))
+                raise QiskitError(f"Cannot apply Instruction: {obj.name}")
             if not isinstance(obj.definition, QuantumCircuit):
                 raise QiskitError(
                     "{} instruction definition is {}; "
@@ -348,7 +348,7 @@ class SuperOp(QuantumChannel):
             for instr, qregs, cregs in obj.definition.data:
                 if cregs:
                     raise QiskitError(
-                        "Cannot apply instruction with classical registers: {}".format(instr.name)
+                        f"Cannot apply instruction with classical registers: {instr.name}"
                     )
                 # Get the integer position of the flat register
                 if qargs is None:
