@@ -10,11 +10,5 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-============================================
-Mitigation (:mod:`qiskit.mitigation`)
-============================================
-
-.. currentmodule:: qiskit.mitigation
-
+"""Mitigation routines
 """

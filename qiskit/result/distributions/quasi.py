@@ -15,8 +15,8 @@ from math import sqrt
 import re
 
 from qiskit.exceptions import QiskitError
-from qiskit.mitigation.mthree.probability import quasi_to_probs
-from qiskit.mitigation.mthree.expval import exp_val, exp_val_and_stddev
+from .mle_prob import quasi_to_probs
+from .expval import exp_val, exp_val_and_stddev
 from .probability import ProbDistribution
 
 

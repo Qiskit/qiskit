@@ -20,9 +20,6 @@ import numpy as np
 import scipy.linalg as la
 import scipy.sparse.linalg as spla
 import orjson
-from qiskit.circuit import QuantumCircuit
-from qiskit.compiler import transpile
-from qiskit.exceptions import QiskitError
 
 from .matrix import _reduced_cal_matrix, sdd_check
 from .utils import counts_to_vector, vector_to_quasiprobs
@@ -31,6 +28,7 @@ from .matvec import M3MatVec
 
 
 def _tensor_meas_states(qubit, num_qubits):
+    from qiskit.circuit import QuantumCircuit
     qc0 = QuantumCircuit(num_qubits, 1)
     qc0.measure(qubit, 0)
     qc1 = QuantumCircuit(num_qubits, 1)
@@ -89,7 +87,7 @@ class M3Mitigation:
             bool: True if A-matrix is SDD, else False
 
         Raises:
-            M3Error: Number of qubits supplied does not match bit-string length.
+            QiskitError: Number of qubits supplied does not match bit-string length.
         """
         # If distance is None, then assume max distance.
         num_bits = len(qubits)
@@ -140,6 +138,8 @@ class M3Mitigation:
         Raises:
             QiskitError: Faulty qubits found.
         """
+        from qiskit.compiler import transpile
+        from qiskit.exceptions import QiskitError
         if self.single_qubit_cals is None:
             self.single_qubit_cals = [None] * self.num_qubits
         if self.cal_shots is None:

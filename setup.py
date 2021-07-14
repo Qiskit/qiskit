@@ -43,11 +43,11 @@ CYTHON_EXTS = {
     "qiskit/quantum_info/states/cython/exp_value": "qiskit.quantum_info.states.cython.exp_value",
     "qiskit/mitigation/mthree/compute": "qiskit.mitigation.mthree.compute",
     "qiskit/mitigation/mthree/converters": "qiskit.mitigation.mthree.converters",
-    "qiskit/mitigation/mthree/expval": "qiskit.mitigation.mthree.expval",
     "qiskit/mitigation/mthree/hamming": "qiskit.mitigation.mthree.hamming",
     "qiskit/mitigation/mthree/matrix": "qiskit.mitigation.mthree.matrix",
     "qiskit/mitigation/mthree/matvec": "qiskit.mitigation.mthree.matvec",
-    "qiskit/mitigation/mthree/probability": "qiskit.mitigation.mthree.probability",
+    "qiskit/result/distributions/expval": "qiskit.result.distributions.expval",
+    "qiskit/result/distributions/mle_prob": "qiskit.result.distributions.mle_prob",
     "qiskit/mitigation/mthree/test/column_testing": "qiskit.mitigation.mthree.test.column_testing",
     "qiskit/mitigation/mthree/test/converters_testing": "qiskit.mitigation.mthree.test.converters_testing",
 }
