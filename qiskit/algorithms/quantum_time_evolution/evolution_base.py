@@ -15,7 +15,7 @@ from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result 
     EvolutionGradientResult,
 )
 from qiskit.algorithms.quantum_time_evolution.results.evolution_result import EvolutionResult
-from qiskit.opflow import OperatorBase, StateFn
+from qiskit.opflow import OperatorBase, StateFn, Gradient
 
 
 class EvolutionBase(ABC):
@@ -37,6 +37,7 @@ class EvolutionBase(ABC):
         hamiltonian: OperatorBase,
         time: float,
         initial_state: StateFn,
+        gradient_object: Gradient,
         observable: OperatorBase = None,
         t_param=None,
         hamiltonian_value_dict=None,
