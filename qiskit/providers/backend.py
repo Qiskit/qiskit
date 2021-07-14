@@ -176,7 +176,7 @@ class BackendV1(Backend, ABC):
 
         [0] https://docs.python.org/3/reference/datamodel.html#object.__repr__
         """
-        return "<{}('{}')>".format(self.__class__.__name__, self.name())
+        return f"<{self.__class__.__name__}('{self.name()}')>"
 
     @property
     def options(self):

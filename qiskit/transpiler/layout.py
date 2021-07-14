@@ -41,7 +41,7 @@ class Layout:
         """Representation of a Layout"""
         str_list = []
         for key, val in self._p2v.items():
-            str_list.append("{k}: {v},".format(k=key, v=val))
+            str_list.append(f"{key}: {val},")
         if str_list:
             str_list[-1] = str_list[-1][:-1]
         return "Layout({\n" + "\n".join(str_list) + "\n})"
@@ -102,7 +102,7 @@ class Layout:
             return self._p2v[item]
         if item in self._v2p:
             return self._v2p[item]
-        raise KeyError("The item %s does not exist in the Layout" % (item,))
+        raise KeyError(f"The item {item} does not exist in the Layout")
 
     def __contains__(self, item):
         return item in self._p2v or item in self._v2p
@@ -123,11 +123,11 @@ class Layout:
 
     def __delitem__(self, key):
         if isinstance(key, int):
-            del self._p2v[key]
             del self._v2p[self._p2v[key]]
+            del self._p2v[key]
         elif isinstance(key, Qubit):
-            del self._v2p[key]
             del self._p2v[self._v2p[key]]
+            del self._v2p[key]
         else:
             raise LayoutError(
                 "The key to remove should be of the form"

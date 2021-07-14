@@ -38,7 +38,7 @@ import numpy
 
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.classicalregister import ClassicalRegister
+from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.circuit.parameter import ParameterExpression
 from .tools import pi_check
@@ -53,7 +53,7 @@ class Instruction:
     # NOTE: Using this attribute may change in the future (See issue # 5811)
     _directive = False
 
-    def __init__(self, name, num_qubits, num_clbits, params, duration=None, unit="dt"):
+    def __init__(self, name, num_qubits, num_clbits, params, duration=None, unit="dt", label=None):
         """Create a new instruction.
 
         Args:
@@ -64,6 +64,7 @@ class Instruction:
                 list of parameters
             duration (int or float): instruction's duration. it must be integer if ``unit`` is 'dt'
             unit (str): time unit of duration
+            label (str or None): An optional label for identifying the instruction.
 
         Raises:
             CircuitError: when the register is not in the correct format.
@@ -79,8 +80,14 @@ class Instruction:
         self.num_clbits = num_clbits
 
         self._params = []  # a list of gate params stored
-
-        # tuple (ClassicalRegister, int) when the instruction has a conditional ("if")
+        # Custom instruction label
+        # NOTE: The conditional statement checking if the `_label` attribute is
+        #       already set is a temporary work around that can be removed after
+        #       the next stable qiskit-aer release
+        if not hasattr(self, "_label"):
+            self._label = label
+        # tuple (ClassicalRegister, int), tuple (Clbit, bool) or tuple (Clbit, int)
+        # when the instruction has a conditional ("if")
         self.condition = None
         # list of instructions (and their contexts) that this instruction is composed of
         # empty definition means opaque or fundamental instruction
@@ -274,12 +281,35 @@ class Instruction:
             instruction.qubits = list(range(self.num_qubits))
         if self.num_clbits:
             instruction.memory = list(range(self.num_clbits))
+        # Add label if defined
+        if self.label:
+            instruction.label = self.label
         # Add condition parameters for assembler. This is needed to convert
         # to a qobj conditional instruction at assemble time and after
         # conversion will be deleted by the assembler.
         if self.condition:
             instruction._condition = self.condition
         return instruction
+
+    @property
+    def label(self) -> str:
+        """Return instruction label"""
+        return self._label
+
+    @label.setter
+    def label(self, name: str):
+        """Set instruction label to name
+
+        Args:
+            name (str or None): label to assign instruction
+
+        Raises:
+            TypeError: name is not string or None.
+        """
+        if isinstance(name, (str, type(None))):
+            self._label = name
+        else:
+            raise TypeError("label expects a string or None")
 
     def mirror(self):
         """DEPRECATED: use instruction.reverse_ops().
@@ -336,18 +366,20 @@ class Instruction:
 
         from qiskit.circuit import QuantumCircuit, Gate  # pylint: disable=cyclic-import
 
+        if self.name.endswith("_dg"):
+            name = self.name[:-3]
+        else:
+            name = self.name + "_dg"
         if self.num_clbits:
             inverse_gate = Instruction(
-                name=self.name + "_dg",
+                name=name,
                 num_qubits=self.num_qubits,
                 num_clbits=self.num_clbits,
                 params=self.params.copy(),
             )
 
         else:
-            inverse_gate = Gate(
-                name=self.name + "_dg", num_qubits=self.num_qubits, params=self.params.copy()
-            )
+            inverse_gate = Gate(name=name, num_qubits=self.num_qubits, params=self.params.copy())
 
         inverse_gate.definition = QuantumCircuit(
             *self.definition.qregs,
@@ -361,11 +393,15 @@ class Instruction:
         return inverse_gate
 
     def c_if(self, classical, val):
-        """Add classical condition on register classical and value val."""
-        if not isinstance(classical, ClassicalRegister):
-            raise CircuitError("c_if must be used with a classical register")
+        """Add classical condition on register or cbit classical and value val."""
+        if not isinstance(classical, (ClassicalRegister, Clbit)):
+            raise CircuitError("c_if must be used with a classical register or classical bit")
         if val < 0:
             raise CircuitError("condition value should be non-negative")
+        if isinstance(classical, Clbit):
+            # Casting the conditional value as Boolean when
+            # the classical condition is on a classical bit.
+            val = bool(val)
         self.condition = (classical, val)
         return self
 
@@ -408,7 +444,7 @@ class Instruction:
         """
         name_param = self.name
         if self.params:
-            name_param = "%s(%s)" % (
+            name_param = "{}({})".format(
                 name_param,
                 ",".join([pi_check(i, ndigits=8, output="qasm") for i in self.params]),
             )
@@ -443,7 +479,7 @@ class Instruction:
 
     def _return_repeat(self, exponent):
         return Instruction(
-            name="%s*%s" % (self.name, exponent),
+            name=f"{self.name}*{exponent}",
             num_qubits=self.num_qubits,
             num_clbits=self.num_clbits,
             params=self.params,

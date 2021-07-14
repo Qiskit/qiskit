@@ -1,0 +1,18 @@
+---
+features:  
+  - |
+    A new kwarg, ``wrap``, has been added to the
+    :meth:`~qiskit.circuit.QuantumCircuit.compose` method of
+    :class:`~qiskit.circuit.QuantumCircuit`. This enables choosing whether
+    composed circuits should be wrapped into an instruction or not. By
+    default this is ``False``, i.e. no wrapping. For example:
+
+    .. jupyter-execute::
+
+        from qiskit import QuantumCircuit
+        circuit = QuantumCircuit(2)
+        circuit.h([0, 1])
+        other = QuantumCircuit(2)
+        other.x([0, 1])
+        print(circuit.compose(other, wrap=True))  # wrapped
+        print(circuit.compose(other, wrap=False))  # not wrapped

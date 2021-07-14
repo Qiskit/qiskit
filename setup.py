@@ -16,11 +16,13 @@ import os
 import re
 import sys
 from setuptools import setup, find_packages, Extension
+
 try:
     from Cython.Build import cythonize
 except ImportError:
     import subprocess
-    subprocess.call([sys.executable, '-m', 'pip', 'install', 'Cython>=0.27.1'])
+
+    subprocess.call([sys.executable, "-m", "pip", "install", "Cython>=0.27.1"])
     from Cython.Build import cythonize
 
 try:
@@ -64,15 +66,15 @@ INCLUDE_DIRS = [np.get_include()]
 # Extra link args
 LINK_FLAGS = []
 # If on Win and not in MSYS2 (i.e. Visual studio compile)
-if (sys.platform == 'win32' and os.environ.get('MSYSTEM') is None):
-    COMPILER_FLAGS = ['/O2']
+if sys.platform == "win32" and os.environ.get("MSYSTEM") is None:
+    COMPILER_FLAGS = ["/O2"]
 # Everything else
 else:
-    COMPILER_FLAGS = ['-O2', '-funroll-loops', '-std=c++11']
-    if sys.platform == 'darwin':
+    COMPILER_FLAGS = ["-O2", "-funroll-loops", "-std=c++11"]
+    if sys.platform == "darwin":
         # These are needed for compiling on OSX 10.14+
-        COMPILER_FLAGS.append('-mmacosx-version-min=10.9')
-        LINK_FLAGS.append('-mmacosx-version-min=10.9')
+        COMPILER_FLAGS.append("-mmacosx-version-min=10.9")
+        LINK_FLAGS.append("-mmacosx-version-min=10.9")
 
 
 EXT_MODULES = []
@@ -88,19 +90,41 @@ for src, module in CYTHON_EXTS.items():
     EXT_MODULES.append(ext)
 
 # Read long description from README.
-README_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                           'README.md')
+README_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)), "README.md")
 with open(README_PATH) as readme_file:
     README = re.sub(
-        '<!--- long-description-skip-begin -->.*<!--- long-description-skip-end -->', '',
-        readme_file.read(), flags=re.S | re.M)
+        "<!--- long-description-skip-begin -->.*<!--- long-description-skip-end -->",
+        "",
+        readme_file.read(),
+        flags=re.S | re.M,
+    )
+
+
+visualization_extras = [
+    "matplotlib>=2.1",
+    "ipywidgets>=7.3.0",
+    "pydot",
+    "pillow>=4.2.1",
+    "pylatexenc>=1.4",
+    "seaborn>=0.9.0",
+    "pygments>=2.4",
+]
+
+
+z3_requirements = [
+    "z3-solver>=4.7",
+]
+
+
+bip_requirements = ["cplex", "docplex"]
+
 
 setup(
     name="qiskit-terra",
-    version="0.18.0",
+    version="0.19.0",
     description="Software for developing quantum computing programs",
     long_description=README,
-    long_description_content_type='text/markdown',
+    long_description_content_type="text/markdown",
     url="https://github.com/Qiskit/qiskit-terra",
     author="Qiskit Development Team",
     author_email="hello@qiskit.org",
@@ -121,19 +145,17 @@ setup(
         "Topic :: Scientific/Engineering",
     ],
     keywords="qiskit sdk quantum",
-    packages=find_packages(exclude=['test*']),
+    packages=find_packages(exclude=["test*"]),
     install_requires=REQUIREMENTS,
     package_data=PACKAGE_DATA,
     setup_requires=['Cython>=0.27.1', 'numpy>=1.17'],
     include_package_data=True,
     python_requires=">=3.6",
     extras_require={
-        'visualization': ['matplotlib>=2.1', 'ipywidgets>=7.3.0',
-                          'pydot', "pillow>=4.2.1", "pylatexenc>=1.4",
-                          "seaborn>=0.9.0", "pygments>=2.4"],
-        'classical-function-compiler': ['tweedledum>=1.0,<2.0'],
-        'full-featured-simulators': ['qiskit-aer>=0.1'],
-        'crosstalk-pass': ['z3-solver>=4.7'],
+        "visualization": visualization_extras,
+        "bip-mapper": bip_requirements,
+        "crosstalk-pass": z3_requirements,
+        "all": visualization_extras + z3_requirements + bip_requirements,
     },
     project_urls={
         "Bug Tracker": "https://github.com/Qiskit/qiskit-terra/issues",
@@ -141,5 +163,5 @@ setup(
         "Source Code": "https://github.com/Qiskit/qiskit-terra",
     },
     ext_modules=cythonize(EXT_MODULES),
-    zip_safe=False
+    zip_safe=False,
 )

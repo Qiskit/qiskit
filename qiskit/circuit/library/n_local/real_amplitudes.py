@@ -114,6 +114,7 @@ class RealAmplitudes(TwoLocal):
         parameter_prefix: str = "θ",
         insert_barriers: bool = False,
         initial_state: Optional[Any] = None,
+        name: str = "RealAmplitudes",
     ) -> None:
         """Create a new RealAmplitudes 2-local circuit.
 
@@ -153,6 +154,7 @@ class RealAmplitudes(TwoLocal):
             skip_final_rotation_layer=skip_final_rotation_layer,
             parameter_prefix=parameter_prefix,
             insert_barriers=insert_barriers,
+            name=name,
         )
 
     @property
