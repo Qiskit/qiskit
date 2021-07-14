@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Test converts"""
+from qiskit.test import QiskitTestCase
 from qiskit.mitigation.mthree.matrix import bitstring_int
 from qiskit.mitigation.mthree.test.converters_testing import (_test_counts_roundtrip,
                                                               _test_counts_to_array)

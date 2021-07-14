@@ -14,6 +14,7 @@
 import numpy as np
 import scipy.linalg as la
 
+from qiskit.test import QiskitTestCase
 from qiskit.mitigation.mthree import M3Mitigation
 from qiskit.mitigation.mthree.matrix import bitstring_int
 
