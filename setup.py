@@ -15,7 +15,6 @@
 import os
 import re
 import sys
-import numpy as np
 from setuptools import setup, find_packages, Extension
 try:
     from Cython.Build import cythonize
@@ -23,6 +22,13 @@ except ImportError:
     import subprocess
     subprocess.call([sys.executable, '-m', 'pip', 'install', 'Cython>=0.27.1'])
     from Cython.Build import cythonize
+
+try:
+    import numpy as np
+except ImportError:
+    import subprocess
+    subprocess.call([sys.executable, '-m', 'pip', 'install', 'numpy>=0.17'])
+    import numpy as np
 
 with open('requirements.txt') as f:
     REQUIREMENTS = f.read().splitlines()
@@ -118,7 +124,7 @@ setup(
     packages=find_packages(exclude=['test*']),
     install_requires=REQUIREMENTS,
     package_data=PACKAGE_DATA,
-    setup_requires=['Cython>=0.27.1'],
+    setup_requires=['Cython>=0.27.1', 'numpy>=1.17'],
     include_package_data=True,
     python_requires=">=3.6",
     extras_require={
