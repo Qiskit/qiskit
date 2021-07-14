@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=method-hidden,arguments-differ
+# pylint: disable=arguments-differ
 
 """Module providing definitions of QASM Qobj classes."""
 
@@ -155,9 +155,9 @@ class QasmQobjInstruction:
             attr_val = getattr(self, attr, None)
             if attr_val is not None:
                 if isinstance(attr_val, str):
-                    out += ', %s="%s"' % (attr, attr_val)
+                    out += f', {attr}="{attr_val}"'
                 else:
-                    out += ", %s=%s" % (attr, attr_val)
+                    out += f", {attr}={attr_val}"
         out += ")"
         return out
 
@@ -177,7 +177,7 @@ class QasmQobjInstruction:
             "snapshot_type",
         ]:
             if hasattr(self, attr):
-                out += "\t\t%s: %s\n" % (attr, getattr(self, attr))
+                out += f"\t\t{attr}: {getattr(self, attr)}\n"
         return out
 
     @classmethod
@@ -222,7 +222,7 @@ class QasmQobjExperiment:
     def __repr__(self):
         instructions_str = [repr(x) for x in self.instructions]
         instructions_repr = "[" + ", ".join(instructions_str) + "]"
-        out = "QasmQobjExperiment(config=%s, header=%s, instructions=%s)" % (
+        out = "QasmQobjExperiment(config={}, header={}, instructions={})".format(
             repr(self.config),
             repr(self.header),
             instructions_repr,
@@ -299,6 +299,8 @@ class QasmQobjConfig(SimpleNamespace):
         pulse_library=None,
         calibrations=None,
         rep_delay=None,
+        qubit_lo_freq=None,
+        meas_lo_freq=None,
         **kwargs,
     ):
         """Model for RunConfig.
@@ -319,6 +321,9 @@ class QasmQobjConfig(SimpleNamespace):
                 backends (``backend.configuration().dynamic_reprate_enabled`` ). Must be from the
                 range supplied by the backend (``backend.configuration().rep_delay_range``). Default
                 is ``backend.configuration().default_rep_delay``.
+            qubit_lo_freq (list): List of frequencies (as floats) for the qubit driver LO's in GHz.
+            meas_lo_freq (list): List of frequencies (as floats) for the measurement driver LO's in
+                GHz.
             kwargs: Additional free form key value fields to add to the
                 configuration.
         """
@@ -357,6 +362,12 @@ class QasmQobjConfig(SimpleNamespace):
 
         if rep_delay is not None:
             self.rep_delay = rep_delay
+
+        if qubit_lo_freq is not None:
+            self.qubit_lo_freq = qubit_lo_freq
+
+        if meas_lo_freq is not None:
+            self.meas_lo_freq = meas_lo_freq
 
         if kwargs:
             self.__dict__.update(kwargs)
@@ -413,15 +424,21 @@ class QasmQobjExperimentHeader(QobjDictField):
 class QasmQobjExperimentConfig(QobjDictField):
     """Configuration for a single QASM experiment in the qobj."""
 
-    def __init__(self, calibrations=None, **kwargs):
+    def __init__(self, calibrations=None, qubit_lo_freq=None, meas_lo_freq=None, **kwargs):
         """
         Args:
             calibrations (QasmExperimentCalibrations): Information required for Pulse gates.
-            kwargs: Additional free form key value fields to add to the
-                configuration.
+            qubit_lo_freq (List[float]): List of qubit LO frequencies in GHz.
+            meas_lo_freq (List[float]): List of meas readout LO frequencies in GHz.
+            kwargs: Additional free form key value fields to add to the configuration
         """
         if calibrations:
             self.calibrations = calibrations
+        if qubit_lo_freq is not None:
+            self.qubit_lo_freq = qubit_lo_freq
+        if meas_lo_freq is not None:
+            self.meas_lo_freq = meas_lo_freq
+
         super().__init__(**kwargs)
 
     def to_dict(self):
@@ -577,7 +594,7 @@ class QasmQobj:
     def __repr__(self):
         experiments_str = [repr(x) for x in self.experiments]
         experiments_repr = "[" + ", ".join(experiments_str) + "]"
-        out = "QasmQobj(qobj_id='%s', config=%s, experiments=%s, header=%s)" % (
+        out = "QasmQobj(qobj_id='{}', config={}, experiments={}, header={})".format(
             self.qobj_id,
             repr(self.config),
             experiments_repr,

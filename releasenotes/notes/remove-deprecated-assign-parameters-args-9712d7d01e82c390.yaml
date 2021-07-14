@@ -1,0 +1,21 @@
+---
+upgrade:
+  - |
+    The deprecated argument ``param_dict`` of the
+    :meth:`~qiskit.circuit.QuantumCircuit.assign_parameters` method of the
+    :class:`~qiskit.circuit.QuantumCircuit` class has been removed and no
+    longer exists. This argument was deprecated as part of the 0.17.0 release.
+    Instead you should use the ``parameters`` argument on the method.
+  - |
+    The deprecated argument ``value_dict``
+    of the :meth:`qiskit.circuit.QuantumCircuit.bind_parameters` method of the
+    :class:`~qiskit.circuit.QuantumCircuit` class has been removed and no
+    longer exist. These arguments were deprecated as part of the 0.17.0 release.
+    Instead you should use the ``values`` argument on the method.
+fixes:
+  - |
+    Fix the statement about the parameter order if the parameters are provided as
+    iterable and not dictionary in
+    :meth:`qiskit.circuit.QuantumCircuit.assign_parameters`. The parameters are not
+    sorted by insertion but by name, with the special case that the order of a
+    :class:`~qiskit.circuit.ParameterVector` is maintained.

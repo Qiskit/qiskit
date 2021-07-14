@@ -31,7 +31,7 @@ def _filter_deprecation_warnings():
     [2] https://www.python.org/dev/peps/pep-0565/
     """
     deprecation_filter = (
-        "always",
+        "default",
         None,
         DeprecationWarning,
         re.compile(r"^qiskit\.*", re.UNICODE),
@@ -96,9 +96,7 @@ def _rename_kwargs(func_name, kwargs, kwarg_map):
     for old_arg, new_arg in kwarg_map.items():
         if old_arg in kwargs:
             if new_arg in kwargs:
-                raise TypeError(
-                    "{} received both {} and {} (deprecated).".format(func_name, new_arg, old_arg)
-                )
+                raise TypeError(f"{func_name} received both {new_arg} and {old_arg} (deprecated).")
 
             warnings.warn(
                 "{} keyword argument {} is deprecated and "

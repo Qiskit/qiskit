@@ -33,6 +33,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations, InstructionDurationsType
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
+from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.preset_passmanagers import (
     level_0_pass_manager,
     level_1_pass_manager,
@@ -57,6 +58,7 @@ def transpile(
     instruction_durations: Optional[InstructionDurationsType] = None,
     dt: Optional[float] = None,
     approximation_degree: Optional[float] = None,
+    timing_constraints: Optional[Dict[str, int]] = None,
     seed_transpiler: Optional[int] = None,
     optimization_level: Optional[int] = None,
     pass_manager: Optional[PassManager] = None,
@@ -147,6 +149,25 @@ def transpile(
             If ``None`` (default), ``backend.configuration().dt`` is used.
         approximation_degree (float): heuristic dial used for circuit approximation
             (1.0=no approximation, 0.0=maximal approximation)
+        timing_constraints: An optional control hardware restriction on instruction time resolution.
+            A quantum computer backend may report a set of restrictions, namely:
+
+            - granularity: An integer value representing minimum pulse gate
+              resolution in units of ``dt``. A user-defined pulse gate should have
+              duration of a multiple of this granularity value.
+            - min_length: An integer value representing minimum pulse gate
+              length in units of ``dt``. A user-defined pulse gate should be longer
+              than this length.
+            - pulse_alignment: An integer value representing a time resolution of gate
+              instruction starting time. Gate instruction should start at time which
+              is a multiple of the alignment value.
+            - acquire_alignment: An integer value representing a time resolution of measure
+              instruction starting time. Measure instruction should start at time which
+              is a multiple of the alignment value.
+
+            This information will be provided by the backend configuration.
+            If the backend doesn't have any restriction on the instruction time allocation,
+            then ``timing_constraints`` is None and no adjustment will be performed.
         seed_transpiler: Sets random seed for the stochastic parts of the transpiler
         optimization_level: How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,
@@ -263,6 +284,7 @@ def transpile(
         optimization_level,
         callback,
         output_name,
+        timing_constraints,
     )
 
     _check_circuits_coupling_map(circuits, transpile_args, backend)
@@ -306,10 +328,8 @@ def _check_circuits_coupling_map(circuits, transpile_args, backend):
 
         if max_qubits is not None and (num_qubits > max_qubits):
             raise TranspilerError(
-                "Number of qubits ({}) ".format(num_qubits)
-                + "in {} ".format(circuit.name)
-                + "is greater than maximum ({}) ".format(max_qubits)
-                + "in the coupling_map"
+                f"Number of qubits ({num_qubits}) in {circuit.name} "
+                f"is greater than maximum ({max_qubits}) in the coupling_map"
             )
 
 
@@ -445,6 +465,7 @@ def _parse_transpile_args(
     optimization_level,
     callback,
     output_name,
+    timing_constraints,
 ) -> List[Dict]:
     """Resolve the various types of args allowed to the transpile() function through
     duck typing, overriding args, etc. Refer to the transpile() docstring for details on
@@ -482,6 +503,7 @@ def _parse_transpile_args(
     callback = _parse_callback(callback, num_circuits)
     durations = _parse_instruction_durations(backend, instruction_durations, dt, circuits)
     scheduling_method = _parse_scheduling_method(scheduling_method, num_circuits)
+    timing_constraints = _parse_timing_constraints(backend, timing_constraints, num_circuits)
     if scheduling_method and any(d is None for d in durations):
         raise TranspilerError(
             "Transpiling a circuit with a scheduling method"
@@ -500,6 +522,7 @@ def _parse_transpile_args(
         scheduling_method,
         durations,
         approximation_degree,
+        timing_constraints,
         seed_transpiler,
         optimization_level,
         output_name,
@@ -519,13 +542,14 @@ def _parse_transpile_args(
                 scheduling_method=args[7],
                 instruction_durations=args[8],
                 approximation_degree=args[9],
-                seed_transpiler=args[10],
+                timing_constraints=args[10],
+                seed_transpiler=args[11],
             ),
-            "optimization_level": args[11],
-            "output_name": args[12],
-            "callback": args[13],
-            "backend_num_qubits": args[14],
-            "faulty_qubits_map": args[15],
+            "optimization_level": args[12],
+            "output_name": args[13],
+            "callback": args[14],
+            "backend_num_qubits": args[15],
+            "faulty_qubits_map": args[16],
         }
         list_transpile_args.append(transpile_args)
 
@@ -587,10 +611,21 @@ def _parse_coupling_map(coupling_map, backend, num_circuits):
             if hasattr(configuration, "coupling_map") and configuration.coupling_map:
                 faulty_map = _create_faulty_qubits_map(backend)
                 if faulty_map:
+                    faulty_edges = [gate.qubits for gate in backend.properties().faulty_gates()]
+                    functional_gates = [
+                        edge for edge in configuration.coupling_map if edge not in faulty_edges
+                    ]
                     coupling_map = CouplingMap()
-                    for qubit1, qubit2 in configuration.coupling_map:
+                    for qubit1, qubit2 in functional_gates:
                         if faulty_map[qubit1] is not None and faulty_map[qubit2] is not None:
                             coupling_map.add_edge(faulty_map[qubit1], faulty_map[qubit2])
+                    if configuration.n_qubits != coupling_map.size():
+                        warnings.warn(
+                            "The backend has currently some qubits/edges out of service."
+                            " This temporarily reduces the backend size from "
+                            f"{configuration.n_qubits} to {coupling_map.size()}",
+                            UserWarning,
+                        )
                 else:
                     coupling_map = CouplingMap(configuration.coupling_map)
 
@@ -635,7 +670,7 @@ def _parse_backend_properties(backend_properties, backend, num_circuits):
                     replacement_gate = Gate.from_dict(gate_dict)
                     gate_dict["qubits"] = [faulty_qubits_map[qubit] for qubit in gate.qubits]
                     args = "_".join([str(qubit) for qubit in gate_dict["qubits"]])
-                    gate_dict["name"] = "%s%s" % (gate_dict["gate"], args)
+                    gate_dict["name"] = "{}{}".format(gate_dict["gate"], args)
                     gates.append(replacement_gate)
 
                 backend_properties.gates = gates
@@ -824,3 +859,16 @@ def _parse_output_name(output_name, circuits):
             )
     else:
         return [circuit.name for circuit in circuits]
+
+
+def _parse_timing_constraints(backend, timing_constraints, num_circuits):
+
+    if backend is None and timing_constraints is None:
+        timing_constraints = TimingConstraints()
+    else:
+        if timing_constraints is None:
+            # get constraints from backend
+            timing_constraints = getattr(backend.configuration(), "timing_constraints", {})
+        timing_constraints = TimingConstraints(**timing_constraints)
+
+    return [timing_constraints] * num_circuits

@@ -287,7 +287,7 @@ class UCGate(Gate):
             return parameter
         else:
             raise CircuitError(
-                "invalid param type {0} in gate " "{1}".format(type(parameter), self.name)
+                "invalid param type {} in gate " "{}".format(type(parameter), self.name)
             )
 
 
