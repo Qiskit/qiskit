@@ -38,8 +38,9 @@ def _tensor_meas_states(qubit, num_qubits):
     return [qc0, qc1]
 
 
-class M3Mitigation():
+class M3Mitigation:
     """Main M3 calibration class."""
+
     def __init__(self, system, iter_threshold=4096):
         """Main M3 calibration class.
 
@@ -68,11 +69,11 @@ class M3Mitigation():
             ndarray: 1D Array of float cals data.
         """
         qubits = np.asarray(qubits, dtype=int)
-        cals = np.zeros(4*qubits.shape[0], dtype=float)
+        cals = np.zeros(4 * qubits.shape[0], dtype=float)
 
         # Reverse index qubits for easier indexing later
         for kk, qubit in enumerate(qubits[::-1]):
-            cals[4*kk:4*kk+4] = self.single_qubit_cals[qubit].ravel()
+            cals[4 * kk : 4 * kk + 4] = self.single_qubit_cals[qubit].ravel()
         return cals
 
     def _check_sdd(self, counts, qubits, distance=None):
@@ -97,8 +98,10 @@ class M3Mitigation():
         # check if len of bitstrings does not equal number of qubits passed.
         bitstring_len = len(next(iter(counts)))
         if bitstring_len != num_bits:
-            raise QiskitError('Bitstring length ({}) does not match'.format(bitstring_len) +
-                              ' number of qubits ({})'.format(num_bits))
+            raise QiskitError(
+                "Bitstring length ({}) does not match".format(bitstring_len)
+                + " number of qubits ({})".format(num_bits)
+            )
         cals = self._form_cals(qubits)
         return sdd_check(counts, cals, num_bits, distance)
 
@@ -114,17 +117,16 @@ class M3Mitigation():
             qubits = range(self.num_qubits)
         self._grab_additional_cals(qubits, shots)
         if counts_file:
-            with open(counts_file, 'wb') as fd:
-                fd.write(orjson.dumps(self.single_qubit_cals,
-                                      option=orjson.OPT_SERIALIZE_NUMPY))
+            with open(counts_file, "wb") as fd:
+                fd.write(orjson.dumps(self.single_qubit_cals, option=orjson.OPT_SERIALIZE_NUMPY))
 
     def tensored_cals_from_file(self, counts_file):
         """Generated the tensored calibration data from a previous runs output
 
-            counts_file (str): A string path to the saved counts file from an
-                earlier run.
+        counts_file (str): A string path to the saved counts file from an
+            earlier run.
         """
-        with open(counts_file, 'r') as fd:
+        with open(counts_file, "r") as fd:
             self.single_qubit_cals = np.array(orjson.loads(fd.read()))
 
     def _grab_additional_cals(self, qubits, shots=4096):
@@ -138,7 +140,7 @@ class M3Mitigation():
             QiskitError: Faulty qubits found.
         """
         if self.single_qubit_cals is None:
-            self.single_qubit_cals = [None]*self.num_qubits
+            self.single_qubit_cals = [None] * self.num_qubits
         if self.cal_shots is None:
             self.cal_shots = shots
 
@@ -153,25 +155,31 @@ class M3Mitigation():
         for idx, qubit in enumerate(qubits):
             self.single_qubit_cals[qubit] = np.zeros((2, 2), dtype=float)
             # Counts 0 has all P00, P10 data, so do that here
-            prep0_counts = counts[2*idx]
-            P10 = prep0_counts.get('1', 0) / shots
-            P00 = 1-P10
+            prep0_counts = counts[2 * idx]
+            P10 = prep0_counts.get("1", 0) / shots
+            P00 = 1 - P10
             self.single_qubit_cals[qubit][:, 0] = [P00, P10]
             # plus 1 here since zeros data at pos=0
-            prep1_counts = counts[2*idx+1]
-            P01 = prep1_counts.get('0', 0) / shots
-            P11 = 1-P01
+            prep1_counts = counts[2 * idx + 1]
+            P01 = prep1_counts.get("0", 0) / shots
+            P11 = 1 - P01
             self.single_qubit_cals[qubit][:, 1] = [P01, P11]
             if P01 >= P00:
                 bad_list.append(qubit)
             if any(bad_list):
-                raise QiskitError('Faulty qubits detected: {}'.format(bad_list))
+                raise QiskitError("Faulty qubits detected: {}".format(bad_list))
 
-    def apply_correction(self, counts, qubits, distance=None,
-                         method='auto',
-                         max_iter=25, tol=1e-5,
-                         return_mitigation_overhead=False,
-                         details=False):
+    def apply_correction(
+        self,
+        counts,
+        qubits,
+        distance=None,
+        method="auto",
+        max_iter=25,
+        tol=1e-5,
+        return_mitigation_overhead=False,
+        details=False,
+    ):
         """Applies correction to given counts.
 
         Parameters:
@@ -203,48 +211,53 @@ class M3Mitigation():
         # check if len of bitstrings does not equal number of qubits passed.
         bitstring_len = len(next(iter(counts)))
         if bitstring_len != num_bits:
-            raise QiskitError('Bitstring length ({}) does not match'.format(bitstring_len) +
-                              ' number of qubits ({})'.format(num_bits))
+            raise QiskitError(
+                "Bitstring length ({}) does not match".format(bitstring_len)
+                + " number of qubits ({})".format(num_bits)
+            )
 
         # Check if no cals done yet
         if self.single_qubit_cals is None:
-            warnings.warn('No calibration data. Calibrating: {}'.format(qubits))
+            warnings.warn("No calibration data. Calibrating: {}".format(qubits))
             self._grab_additional_cals(qubits)
 
         # Check if one or more new qubits need to be calibrated.
         missing_qubits = [qq for qq in qubits if self.single_qubit_cals[qq] is None]
         if any(missing_qubits):
-            warnings.warn('Computing missing calibrations for qubits: {}'.format(missing_qubits))
+            warnings.warn("Computing missing calibrations for qubits: {}".format(missing_qubits))
             self._grab_additional_cals(missing_qubits)
 
-        if method == 'auto':
+        if method == "auto":
             current_free_mem = psutil.virtual_memory().available
             # First check if direct method can be run
-            if num_elems <= self.iter_threshold \
-                    and ((num_elems**2+num_elems)*8/1024**3 < current_free_mem/1.5):
-                method = 'direct'
+            if num_elems <= self.iter_threshold and (
+                (num_elems ** 2 + num_elems) * 8 / 1024 ** 3 < current_free_mem / 1.5
+            ):
+                method = "direct"
             # If readout is not so good try direct if memory allows
-            elif np.min(self.readout_fidelity(qubits)) < 0.85 \
-                    and ((num_elems**2+num_elems)*8/1024**3 < current_free_mem/1.5):
-                method = 'direct'
+            elif np.min(self.readout_fidelity(qubits)) < 0.85 and (
+                (num_elems ** 2 + num_elems) * 8 / 1024 ** 3 < current_free_mem / 1.5
+            ):
+                method = "direct"
             else:
-                method = 'iterative'
+                method = "iterative"
 
-        if method == 'direct':
+        if method == "direct":
             st = perf_counter()
-            mit_counts, col_norms, gamma = self._direct_solver(counts, qubits, distance,
-                                                               return_mitigation_overhead)
-            dur = perf_counter()-st
+            mit_counts, col_norms, gamma = self._direct_solver(
+                counts, qubits, distance, return_mitigation_overhead
+            )
+            dur = perf_counter() - st
             mit_counts.shots = shots
             if gamma is not None:
                 mit_counts.mitigation_overhead = gamma * gamma
             if details:
-                info = {'method': 'direct', 'time': dur, 'dimension': num_elems}
-                info['col_norms'] = col_norms
+                info = {"method": "direct", "time": dur, "dimension": num_elems}
+                info["col_norms"] = col_norms
                 return mit_counts, info
             return mit_counts
 
-        elif method == 'iterative':
+        elif method == "iterative":
             iter_count = np.zeros(1, dtype=int)
 
             def callback(_):
@@ -252,33 +265,28 @@ class M3Mitigation():
 
             if details:
                 st = perf_counter()
-                mit_counts, col_norms, gamma = self._matvec_solver(counts,
-                                                                   qubits,
-                                                                   distance,
-                                                                   tol,
-                                                                   max_iter,
-                                                                   1,
-                                                                   callback,
-                                                                   return_mitigation_overhead)
-                dur = perf_counter()-st
+                mit_counts, col_norms, gamma = self._matvec_solver(
+                    counts, qubits, distance, tol, max_iter, 1, callback, return_mitigation_overhead
+                )
+                dur = perf_counter() - st
                 mit_counts.shots = shots
                 if gamma is not None:
                     mit_counts.mitigation_overhead = gamma * gamma
-                info = {'method': 'iterative', 'time': dur, 'dimension': num_elems}
-                info['iterations'] = iter_count[0]
-                info['col_norms'] = col_norms
+                info = {"method": "iterative", "time": dur, "dimension": num_elems}
+                info["iterations"] = iter_count[0]
+                info["col_norms"] = col_norms
                 return mit_counts, info
             # pylint: disable=unbalanced-tuple-unpacking
-            mit_counts, gamma = self._matvec_solver(counts, qubits, distance, tol,
-                                                    max_iter, 0, None,
-                                                    return_mitigation_overhead)
+            mit_counts, gamma = self._matvec_solver(
+                counts, qubits, distance, tol, max_iter, 0, None, return_mitigation_overhead
+            )
             mit_counts.shots = shots
             if gamma is not None:
                 mit_counts.mitigation_overhead = gamma * gamma
             return mit_counts
 
         else:
-            raise QiskitError('Invalid method: {}'.format(method))
+            raise QiskitError("Invalid method: {}".format(method))
 
     def reduced_cal_matrix(self, counts, qubits, distance=None):
         """Return the reduced calibration matrix used in the solution.
@@ -305,15 +313,16 @@ class M3Mitigation():
         # check if len of bitstrings does not equal number of qubits passed.
         bitstring_len = len(next(iter(counts)))
         if bitstring_len != num_bits:
-            raise QiskitError('Bitstring length ({}) does not match'.format(bitstring_len) +
-                              ' number of qubits ({})'.format(num_bits))
+            raise QiskitError(
+                "Bitstring length ({}) does not match".format(bitstring_len)
+                + " number of qubits ({})".format(num_bits)
+            )
 
         cals = self._form_cals(qubits)
         A, counts, _ = _reduced_cal_matrix(counts, cals, num_bits, distance)
         return A, counts
 
-    def _direct_solver(self, counts, qubits, distance=None,
-                       return_mitigation_overhead=False):
+    def _direct_solver(self, counts, qubits, distance=None, return_mitigation_overhead=False):
         """Apply the mitigation using direct LU factorization.
 
         Parameters:
@@ -337,9 +346,17 @@ class M3Mitigation():
         out = vector_to_quasiprobs(x, sorted_counts)
         return out, col_norms, gamma
 
-    def _matvec_solver(self, counts, qubits, distance, tol=1e-5, max_iter=25,
-                       details=0, callback=None,
-                       return_mitigation_overhead=False):
+    def _matvec_solver(
+        self,
+        counts,
+        qubits,
+        distance,
+        tol=1e-5,
+        max_iter=25,
+        details=0,
+        callback=None,
+        return_mitigation_overhead=False,
+    ):
         """Compute solution using GMRES and Jacobi preconditioning.
 
         Parameters:
@@ -360,8 +377,7 @@ class M3Mitigation():
         """
         cals = self._form_cals(qubits)
         M = M3MatVec(dict(counts), cals, distance)
-        L = spla.LinearOperator((M.num_elems, M.num_elems),
-                                matvec=M.matvec, rmatvec=M.rmatvec)
+        L = spla.LinearOperator((M.num_elems, M.num_elems), matvec=M.matvec, rmatvec=M.rmatvec)
         diags = M.get_diagonal()
 
         def precond_matvec(x):
@@ -370,10 +386,9 @@ class M3Mitigation():
 
         P = spla.LinearOperator((M.num_elems, M.num_elems), precond_matvec)
         vec = counts_to_vector(M.sorted_counts)
-        out, error = spla.gmres(L, vec, tol=tol, atol=tol, maxiter=max_iter,
-                                M=P, callback=callback)
+        out, error = spla.gmres(L, vec, tol=tol, atol=tol, maxiter=max_iter, M=P, callback=callback)
         if error:
-            raise QiskitError('GMRES did not converge: {}'.format(error))
+            raise QiskitError("GMRES did not converge: {}".format(error))
 
         gamma = None
         if return_mitigation_overhead:
@@ -398,14 +413,14 @@ class M3Mitigation():
             QiskitError: Qubit indices out of range.
         """
         if self.single_qubit_cals is None:
-            raise QiskitError('Mitigator is not calibrated')
+            raise QiskitError("Mitigator is not calibrated")
 
         if qubits is None:
             qubits = range(self.num_qubits)
         else:
             outliers = [kk for kk in qubits if kk >= self.num_qubits]
             if any(outliers):
-                raise QiskitError('One or more qubit indices out of range: {}'.format(outliers))
+                raise QiskitError("One or more qubit indices out of range: {}".format(outliers))
         fids = []
         for kk in qubits:
             qubit = self.single_qubit_cals[kk]

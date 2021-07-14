@@ -29,41 +29,31 @@ try:
     import numpy as np
 except ImportError:
     import subprocess
-    subprocess.call([sys.executable, '-m', 'pip', 'install', 'numpy>=1.17'])
+
+    subprocess.call([sys.executable, "-m", "pip", "install", "numpy>=1.17"])
     import numpy as np
 
-with open('requirements.txt') as f:
+with open("requirements.txt") as f:
     REQUIREMENTS = f.read().splitlines()
 
 # Add Cython extensions here
 CYTHON_EXTS = {
-    'qiskit/transpiler/passes/routing/cython/stochastic_swap/utils':
-        'qiskit.transpiler.passes.routing.cython.stochastic_swap.utils',
-    'qiskit/transpiler/passes/routing/cython/stochastic_swap/swap_trial':
-        'qiskit.transpiler.passes.routing.cython.stochastic_swap.swap_trial',
-    'qiskit/quantum_info/states/cython/exp_value':
-        'qiskit.quantum_info.states.cython.exp_value',
-    'qiskit/mitigation/mthree/compute':
-        'qiskit.mitigation.mthree.compute',
-    'qiskit/mitigation/mthree/converters':
-        'qiskit.mitigation.mthree.converters',
-    'qiskit/mitigation/mthree/expval':
-        'qiskit.mitigation.mthree.expval',
-    'qiskit/mitigation/mthree/hamming':
-        'qiskit.mitigation.mthree.hamming',
-    'qiskit/mitigation/mthree/matrix':
-        'qiskit.mitigation.mthree.matrix',
-    'qiskit/mitigation/mthree/matvec':
-        'qiskit.mitigation.mthree.matvec',
-    'qiskit/mitigation/mthree/probability':
-        'qiskit.mitigation.mthree.probability',
-    'qiskit/mitigation/mthree/test/column_testing':
-        'qiskit.mitigation.mthree.test.column_testing',
-    'qiskit/mitigation/mthree/test/converters_testing':
-        'qiskit.mitigation.mthree.test.converters_testing',
+    "qiskit/transpiler/passes/routing/cython/stochastic_swap/utils": "qiskit.transpiler.passes.routing.cython.stochastic_swap.utils",
+    "qiskit/transpiler/passes/routing/cython/stochastic_swap/swap_trial": "qiskit.transpiler.passes.routing.cython.stochastic_swap.swap_trial",
+    "qiskit/quantum_info/states/cython/exp_value": "qiskit.quantum_info.states.cython.exp_value",
+    "qiskit/mitigation/mthree/compute": "qiskit.mitigation.mthree.compute",
+    "qiskit/mitigation/mthree/converters": "qiskit.mitigation.mthree.converters",
+    "qiskit/mitigation/mthree/expval": "qiskit.mitigation.mthree.expval",
+    "qiskit/mitigation/mthree/hamming": "qiskit.mitigation.mthree.hamming",
+    "qiskit/mitigation/mthree/matrix": "qiskit.mitigation.mthree.matrix",
+    "qiskit/mitigation/mthree/matvec": "qiskit.mitigation.mthree.matvec",
+    "qiskit/mitigation/mthree/probability": "qiskit.mitigation.mthree.probability",
+    "qiskit/mitigation/mthree/test/column_testing": "qiskit.mitigation.mthree.test.column_testing",
+    "qiskit/mitigation/mthree/test/converters_testing": "qiskit.mitigation.mthree.test.converters_testing",
 }
 
-PACKAGE_DATA = {'qiskit/mitigation/mthree': ['*.pxd'],
+PACKAGE_DATA = {
+    "qiskit/mitigation/mthree": ["*.pxd"],
 }
 
 INCLUDE_DIRS = [np.get_include()]
@@ -84,13 +74,15 @@ else:
 EXT_MODULES = []
 # Add Cython Extensions
 for src, module in CYTHON_EXTS.items():
-    ext = Extension(module,
-                    sources=[src + '.pyx'],
-                    include_dirs=INCLUDE_DIRS,
-                    extra_compile_args=COMPILER_FLAGS,
-                    extra_link_args=LINK_FLAGS,
-                    language='c++',
-                    define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")])
+    ext = Extension(
+        module,
+        sources=[src + ".pyx"],
+        include_dirs=INCLUDE_DIRS,
+        extra_compile_args=COMPILER_FLAGS,
+        extra_link_args=LINK_FLAGS,
+        language="c++",
+        define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
+    )
     EXT_MODULES.append(ext)
 
 # Read long description from README.
@@ -152,7 +144,7 @@ setup(
     packages=find_packages(exclude=["test*"]),
     install_requires=REQUIREMENTS,
     package_data=PACKAGE_DATA,
-    setup_requires=['Cython>=0.27.1', 'numpy>=1.17'],
+    setup_requires=["Cython>=0.27.1", "numpy>=1.17"],
     include_package_data=True,
     python_requires=">=3.6",
     extras_require={

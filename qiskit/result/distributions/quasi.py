@@ -95,9 +95,9 @@ class QuasiDistribution(dict):
             QiskitError: Missing shots or mitigation_overhead information.
         """
         if self.shots is None:
-            raise QiskitError('Quasi-dist is missing shots information.')
+            raise QiskitError("Quasi-dist is missing shots information.")
         if self.mitigation_overhead is None:
-            raise QiskitError('Quasi-dist is missing mitigation overhead.')
+            raise QiskitError("Quasi-dist is missing mitigation overhead.")
         return exp_val(self), math.sqrt(self.mitigation_overhead / self.shots)
 
     def nearest_probability_distribution(self, return_distance=False):

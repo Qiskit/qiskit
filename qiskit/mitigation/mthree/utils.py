@@ -16,7 +16,7 @@ from qiskit.result.distributions import QuasiDistribution
 
 
 def counts_to_vector(counts):
-    """ Return probability vector from counts dict.
+    """Return probability vector from counts dict.
 
     Parameters:
         counts (dict): Input dict of counts.
@@ -35,7 +35,7 @@ def counts_to_vector(counts):
 
 
 def vector_to_quasiprobs(vec, counts):
-    """ Return dict of quasi-probabilities.
+    """Return dict of quasi-probabilities.
 
     Parameters:
         vec (ndarray): 1d vector of quasi-probabilites.
