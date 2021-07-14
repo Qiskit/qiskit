@@ -13,7 +13,7 @@
 """
 Convenience function to load RZXGate based templates.
 """
-
+import warnings
 from typing import List
 
 from qiskit.circuit.library.templates.rzx import rzx_zz1, rzx_zz2, rzx_zz3, rzx_yz, rzx_xz, rzx_cy
