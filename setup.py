@@ -15,6 +15,7 @@
 import os
 import re
 import sys
+import numpy as np
 from setuptools import setup, find_packages, Extension
 try:
     from Cython.Build import cythonize
@@ -34,9 +35,26 @@ CYTHON_EXTS = {
         'qiskit.transpiler.passes.routing.cython.stochastic_swap.swap_trial',
     'qiskit/quantum_info/states/cython/exp_value':
         'qiskit.quantum_info.states.cython.exp_value',
+    'qiskit/mitigation/mthree/compute':
+        'qiskit.mitigation.mthree.compute',
+    'qiskit/mitigation/mthree/converters':
+        'qiskit.mitigation.mthree.converters',
+    'qiskit/mitigation/mthree/expval':
+        'qiskit.mitigation.mthree.expval',
+    'qiskit/mitigation/mthree/hamming':
+        'qiskit.mitigation.mthree.hamming',
+    'qiskit/mitigation/mthree/matrix':
+        'qiskit.mitigation.mthree.matrix',
+    'qiskit/mitigation/mthree/matvec':
+        'qiskit.mitigation.mthree.matvec',
+    'qiskit/mitigation/mthree/probability':
+        'qiskit.mitigation.mthree.probability',
 }
 
-INCLUDE_DIRS = []
+PACKAGE_DATA = {'qiskit/mitigation/mthree': ['*.pxd'],
+}
+
+INCLUDE_DIRS = [np.get_include()]
 # Extra link args
 LINK_FLAGS = []
 # If on Win and not in MSYS2 (i.e. Visual studio compile)
@@ -59,7 +77,8 @@ for src, module in CYTHON_EXTS.items():
                     include_dirs=INCLUDE_DIRS,
                     extra_compile_args=COMPILER_FLAGS,
                     extra_link_args=LINK_FLAGS,
-                    language='c++')
+                    language='c++',
+                    define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")])
     EXT_MODULES.append(ext)
 
 # Read long description from README.
@@ -98,6 +117,7 @@ setup(
     keywords="qiskit sdk quantum",
     packages=find_packages(exclude=['test*']),
     install_requires=REQUIREMENTS,
+    package_data=PACKAGE_DATA,
     setup_requires=['Cython>=0.27.1'],
     include_package_data=True,
     python_requires=">=3.6",
