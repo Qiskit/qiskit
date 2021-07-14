@@ -29,7 +29,7 @@ try:
     import numpy as np
 except ImportError:
     import subprocess
-    subprocess.call([sys.executable, '-m', 'pip', 'install', 'numpy>=0.17'])
+    subprocess.call([sys.executable, '-m', 'pip', 'install', 'numpy>=1.17'])
     import numpy as np
 
 with open('requirements.txt') as f:
