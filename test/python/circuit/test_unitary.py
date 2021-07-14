@@ -174,7 +174,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         self.assertEqual(instr.name, "unitary")
         assert_allclose(numpy.array(instr.params[0]).astype(numpy.complex64), matrix)
         # check conversion to dict
-        qobj_dict = qobj.to_dict(validate=True)
+        qobj_dict = qobj.to_dict()
 
         class NumpyEncoder(json.JSONEncoder):
             """Class for encoding json str with complex and numpy arrays."""
