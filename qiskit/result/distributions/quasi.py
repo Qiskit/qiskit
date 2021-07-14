@@ -14,6 +14,9 @@
 from math import sqrt
 import re
 
+from qiskit.exceptions import QiskitError
+from qiskit.mitigation.mthree.probability import quasi_to_probs
+from qiskit.mitigation.mthree.expval import exp_val, exp_val_and_stddev
 from .probability import ProbDistribution
 
 
@@ -28,7 +31,7 @@ class QuasiDistribution(dict):
 
     _bitstring_regex = re.compile(r"^[01]+$")
 
-    def __init__(self, data, shots=None):
+    def __init__(self, data, shots=None, mitigation_overhead=None):
         """Builds a quasiprobability distribution object.
 
         Parameters:
@@ -42,6 +45,7 @@ class QuasiDistribution(dict):
                     * An integer
 
             shots (int): Number of shots the distribution was derived from.
+            mitigation_overhead (float): Overhead from performing mitigation.
 
         Raises:
             TypeError: If the input keys are not a string or int
@@ -71,6 +75,30 @@ class QuasiDistribution(dict):
             else:
                 raise TypeError("Input data's keys are of invalid type, must be str or int")
         super().__init__(data)
+
+    def expval(self):
+        """Compute expectation value from distribution.
+
+        Returns:
+            float: Expectation value.
+        """
+        return exp_val(self)
+
+    def expval_and_stddev(self):
+        """Compute expectation value and standard deviation estimate from distribution.
+
+        Returns:
+            float: Expectation value.
+            float: Estimate of standard deviation upper-bound.
+
+        Raises:
+            QiskitError: Missing shots or mitigation_overhead information.
+        """
+        if self.shots is None:
+            raise QiskitError('Quasi-dist is missing shots information.')
+        if self.mitigation_overhead is None:
+            raise QiskitError('Quasi-dist is missing mitigation overhead.')
+        return exp_val(self), math.sqrt(self.mitigation_overhead / self.shots)
 
     def nearest_probability_distribution(self, return_distance=False):
         """Takes a quasiprobability distribution and maps

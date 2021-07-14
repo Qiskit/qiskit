@@ -12,7 +12,7 @@
 # pylint: disable=no-name-in-module
 """Utility functions"""
 import numpy as np
-from mthree.classes import QuasiDistribution
+from qiskit.result.distributions import QuasiDistribution
 
 
 def counts_to_vector(counts):

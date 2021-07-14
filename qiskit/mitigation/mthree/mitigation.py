@@ -26,7 +26,7 @@ from mthree.matrix import _reduced_cal_matrix, sdd_check
 from mthree.utils import counts_to_vector, vector_to_quasiprobs
 from mthree.norms import ainv_onenorm_est_lu, ainv_onenorm_est_iter
 from mthree.matvec import M3MatVec
-from mthree.exceptions import M3Error
+from qiskit.exceptions import QiskitError
 
 
 def _tensor_meas_states(qubit, num_qubits):
@@ -97,8 +97,8 @@ class M3Mitigation():
         # check if len of bitstrings does not equal number of qubits passed.
         bitstring_len = len(next(iter(counts)))
         if bitstring_len != num_bits:
-            raise M3Error('Bitstring length ({}) does not match'.format(bitstring_len) +
-                          ' number of qubits ({})'.format(num_bits))
+            raise QiskitError('Bitstring length ({}) does not match'.format(bitstring_len) +
+                              ' number of qubits ({})'.format(num_bits))
         cals = self._form_cals(qubits)
         return sdd_check(counts, cals, num_bits, distance)
 
@@ -109,9 +109,6 @@ class M3Mitigation():
             qubits (array_like): Qubits over which to correct calibration data. Default is all.
             shots (int): Number of shots per circuit. Default is 8192.
             counts_file (str): Output path to write JSON calibration data to.
-
-        Raises:
-            M3Error: Bad qubit measurement calibrations.
         """
         if qubits is None:
             qubits = range(self.num_qubits)
@@ -138,7 +135,7 @@ class M3Mitigation():
             shots (int): Number of shots to take.
 
         Raises:
-            M3Error: Faulty qubits found.
+            QiskitError: Faulty qubits found.
         """
         if self.single_qubit_cals is None:
             self.single_qubit_cals = [None]*self.num_qubits
@@ -168,7 +165,7 @@ class M3Mitigation():
             if P01 >= P00:
                 bad_list.append(qubit)
             if any(bad_list):
-                raise M3Error('Faulty qubits detected: {}'.format(bad_list))
+                raise QiskitError('Faulty qubits detected: {}'.format(bad_list))
 
     def apply_correction(self, counts, qubits, distance=None,
                          method='auto',
@@ -191,7 +188,7 @@ class M3Mitigation():
             QuasiDistribution: Dictionary of mitigated counts as probabilities.
 
         Raises:
-            M3Error: Bitstring length does not match number of qubits given.
+            QiskitError: Bitstring length does not match number of qubits given.
         """
         # This is needed because counts is a Counts object in Qiskit not a dict.
         counts = dict(counts)
@@ -206,8 +203,8 @@ class M3Mitigation():
         # check if len of bitstrings does not equal number of qubits passed.
         bitstring_len = len(next(iter(counts)))
         if bitstring_len != num_bits:
-            raise M3Error('Bitstring length ({}) does not match'.format(bitstring_len) +
-                          ' number of qubits ({})'.format(num_bits))
+            raise QiskitError('Bitstring length ({}) does not match'.format(bitstring_len) +
+                              ' number of qubits ({})'.format(num_bits))
 
         # Check if no cals done yet
         if self.single_qubit_cals is None:
@@ -281,7 +278,7 @@ class M3Mitigation():
             return mit_counts
 
         else:
-            raise M3Error('Invalid method: {}'.format(method))
+            raise QiskitError('Invalid method: {}'.format(method))
 
     def reduced_cal_matrix(self, counts, qubits, distance=None):
         """Return the reduced calibration matrix used in the solution.
@@ -296,7 +293,7 @@ class M3Mitigation():
             dict: Counts in order they are displayed in matrix.
 
         Raises:
-            M3Error: If bit-string length does not match passed number
+            QiskitError: If bit-string length does not match passed number
                      of qubits.
         """
         counts = dict(counts)
@@ -308,8 +305,8 @@ class M3Mitigation():
         # check if len of bitstrings does not equal number of qubits passed.
         bitstring_len = len(next(iter(counts)))
         if bitstring_len != num_bits:
-            raise M3Error('Bitstring length ({}) does not match'.format(bitstring_len) +
-                          ' number of qubits ({})'.format(num_bits))
+            raise QiskitError('Bitstring length ({}) does not match'.format(bitstring_len) +
+                              ' number of qubits ({})'.format(num_bits))
 
         cals = self._form_cals(qubits)
         A, counts, _ = _reduced_cal_matrix(counts, cals, num_bits, distance)
@@ -359,7 +356,7 @@ class M3Mitigation():
             QuasiDistribution: dict of Quasiprobabilites
 
         Raises:
-            M3Error: Solver did not converge.
+            QiskitError: Solver did not converge.
         """
         cals = self._form_cals(qubits)
         M = M3MatVec(dict(counts), cals, distance)
@@ -376,7 +373,7 @@ class M3Mitigation():
         out, error = spla.gmres(L, vec, tol=tol, atol=tol, maxiter=max_iter,
                                 M=P, callback=callback)
         if error:
-            raise M3Error('GMRES did not converge: {}'.format(error))
+            raise QiskitError('GMRES did not converge: {}'.format(error))
 
         gamma = None
         if return_mitigation_overhead:
@@ -397,18 +394,18 @@ class M3Mitigation():
             list: List of qubit fidelities.
 
         Raises:
-            M3Error: Mitigator is not calibrated.
-            M3Error: Qubit indices out of range.
+            QiskitError: Mitigator is not calibrated.
+            QiskitError: Qubit indices out of range.
         """
         if self.single_qubit_cals is None:
-            raise M3Error('Mitigator is not calibrated')
+            raise QiskitError('Mitigator is not calibrated')
 
         if qubits is None:
             qubits = range(self.num_qubits)
         else:
             outliers = [kk for kk in qubits if kk >= self.num_qubits]
             if any(outliers):
-                raise M3Error('One or more qubit indices out of range: {}'.format(outliers))
+                raise QiskitError('One or more qubit indices out of range: {}'.format(outliers))
         fids = []
         for kk in qubits:
             qubit = self.single_qubit_cals[kk]
