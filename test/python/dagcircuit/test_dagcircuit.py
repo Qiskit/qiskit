@@ -63,7 +63,7 @@ def raise_if_dagcircuit_invalid(dag):
         elif node.type == "op":
             continue
         else:
-            raise DAGCircuitError("Found node of unexpected type: {}".format(node.type))
+            raise DAGCircuitError(f"Found node of unexpected type: {node.type}")
 
     # Shape of node.op should match shape of node.
     for node in dag.op_nodes():
@@ -120,7 +120,7 @@ def raise_if_dagcircuit_invalid(dag):
 
         all_bits = node_qubits | node_clbits | node_cond_bits
 
-        assert in_wires == all_bits, "In-edge wires {} != node bits {}".format(in_wires, all_bits)
+        assert in_wires == all_bits, f"In-edge wires {in_wires} != node bits {all_bits}"
         assert out_wires == all_bits, "Out-edge wires {} != node bits {}".format(
             out_wires, all_bits
         )
@@ -515,6 +515,20 @@ class TestDagNodeSelection(QiskitTestCase):
             or (successor2.type == "out" and isinstance(successor1.op, Reset))
         )
 
+    def test_is_successor(self):
+        """The method dag.is_successor(A, B) checks if node B is a successor of A"""
+        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(Reset(), [self.qubit0], [])
+
+        measure_node = self.dag.named_nodes("measure")[0]
+        cx_node = self.dag.named_nodes("cx")[0]
+        reset_node = self.dag.named_nodes("reset")[0]
+
+        self.assertTrue(self.dag.is_successor(measure_node, cx_node))
+        self.assertFalse(self.dag.is_successor(measure_node, reset_node))
+        self.assertTrue(self.dag.is_successor(cx_node, reset_node))
+
     def test_quantum_predecessors(self):
         """The method dag.quantum_predecessors() returns predecessors connected by quantum edges"""
 
@@ -549,6 +563,21 @@ class TestDagNodeSelection(QiskitTestCase):
             (predecessor1.type == "in" and isinstance(predecessor2.op, Reset))
             or (predecessor2.type == "in" and isinstance(predecessor1.op, Reset))
         )
+
+    def test_is_predecessor(self):
+        """The method dag.is_predecessor(A, B) checks if node B is a predecessor of A"""
+
+        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(Reset(), [self.qubit0], [])
+
+        measure_node = self.dag.named_nodes("measure")[0]
+        cx_node = self.dag.named_nodes("cx")[0]
+        reset_node = self.dag.named_nodes("reset")[0]
+
+        self.assertTrue(self.dag.is_predecessor(cx_node, measure_node))
+        self.assertFalse(self.dag.is_predecessor(reset_node, measure_node))
+        self.assertTrue(self.dag.is_predecessor(reset_node, cx_node))
 
     def test_get_gates_nodes(self):
         """The method dag.gate_nodes() returns all gate nodes"""
@@ -1360,6 +1389,81 @@ class TestDagProperties(QiskitTestCase):
         qc.measure(q[0], c[0])
         dag = circuit_to_dag(qc)
         self.assertEqual(dag.depth(), 6)
+
+
+class TestConditional(QiskitTestCase):
+    """Test the classical conditional gates."""
+
+    def setUp(self):
+        super().setUp()
+        self.qreg = QuantumRegister(3, "q")
+        self.creg = ClassicalRegister(2, "c")
+        self.creg2 = ClassicalRegister(2, "c2")
+        self.qubit0 = self.qreg[0]
+        self.circuit = QuantumCircuit(self.qreg, self.creg, self.creg2)
+        self.dag = None
+
+    def test_creg_conditional(self):
+        """Test consistency of conditional on classical register."""
+
+        self.circuit.h(self.qreg[0]).c_if(self.creg, 1)
+        self.dag = circuit_to_dag(self.circuit)
+        gate_node = self.dag.gate_nodes()[0]
+        self.assertEqual(gate_node.op, HGate())
+        self.assertEqual(gate_node.qargs, [self.qreg[0]])
+        self.assertEqual(gate_node.cargs, [])
+        self.assertEqual(gate_node.condition, (self.creg, 1))
+        self.assertEqual(
+            sorted(self.dag._multi_graph.in_edges(gate_node._node_id)),
+            sorted(
+                [
+                    (self.dag.input_map[self.qreg[0]]._node_id, gate_node._node_id, self.qreg[0]),
+                    (self.dag.input_map[self.creg[0]]._node_id, gate_node._node_id, self.creg[0]),
+                    (self.dag.input_map[self.creg[1]]._node_id, gate_node._node_id, self.creg[1]),
+                ]
+            ),
+        )
+
+        self.assertEqual(
+            sorted(self.dag._multi_graph.out_edges(gate_node._node_id)),
+            sorted(
+                [
+                    (gate_node._node_id, self.dag.output_map[self.qreg[0]]._node_id, self.qreg[0]),
+                    (gate_node._node_id, self.dag.output_map[self.creg[0]]._node_id, self.creg[0]),
+                    (gate_node._node_id, self.dag.output_map[self.creg[1]]._node_id, self.creg[1]),
+                ]
+            ),
+        )
+
+    def test_clbit_conditional(self):
+        """Test consistency of conditional on single classical bit."""
+
+        self.circuit.h(self.qreg[0]).c_if(self.creg[0], 1)
+        self.dag = circuit_to_dag(self.circuit)
+        gate_node = self.dag.gate_nodes()[0]
+        self.assertEqual(gate_node.op, HGate())
+        self.assertEqual(gate_node.qargs, [self.qreg[0]])
+        self.assertEqual(gate_node.cargs, [])
+        self.assertEqual(gate_node.condition, (self.creg[0], 1))
+        self.assertEqual(
+            sorted(self.dag._multi_graph.in_edges(gate_node._node_id)),
+            sorted(
+                [
+                    (self.dag.input_map[self.qreg[0]]._node_id, gate_node._node_id, self.qreg[0]),
+                    (self.dag.input_map[self.creg[0]]._node_id, gate_node._node_id, self.creg[0]),
+                ]
+            ),
+        )
+
+        self.assertEqual(
+            sorted(self.dag._multi_graph.out_edges(gate_node._node_id)),
+            sorted(
+                [
+                    (gate_node._node_id, self.dag.output_map[self.qreg[0]]._node_id, self.qreg[0]),
+                    (gate_node._node_id, self.dag.output_map[self.creg[0]]._node_id, self.creg[0]),
+                ]
+            ),
+        )
 
 
 if __name__ == "__main__":

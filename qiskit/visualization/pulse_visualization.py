@@ -17,6 +17,7 @@ import warnings
 
 from typing import Union, Callable, List, Dict, Tuple
 
+from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.pulse import Schedule, Instruction, Waveform
 from qiskit.pulse.channels import Channel
 from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
@@ -34,7 +35,7 @@ def pulse_drawer(
     scale: float = None,
     channel_scales: Dict[Channel, float] = None,
     plot_all: bool = False,
-    plot_range: Tuple[Union[int, float], Union[int, float]] = None,
+    plot_range: Tuple[float, float] = None,
     interactive: bool = False,
     table: bool = False,
     label: bool = False,
@@ -140,7 +141,7 @@ def pulse_drawer(
 
     Raises:
         VisualizationError: when invalid data is given
-        ImportError: when matplotlib is not installed
+        MissingOptionalLibraryError: when matplotlib is not installed
     """
     warnings.warn(
         "This legacy pulse drawer is deprecated and will be removed no earlier than "
@@ -153,7 +154,11 @@ def pulse_drawer(
     )
 
     if not HAS_MATPLOTLIB:
-        raise ImportError("Must have Matplotlib installed.")
+        raise MissingOptionalLibraryError(
+            libname="Matplotlib",
+            name="pulse_drawer",
+            pip_install="pip install matplotlib",
+        )
     from matplotlib import get_backend
     from matplotlib import pyplot as plt
 

@@ -14,40 +14,9 @@
 
 import math
 import numpy as np
-from qiskit.exceptions import QiskitError
+from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 from .matplotlib import HAS_MATPLOTLIB
 from .exceptions import VisualizationError
-
-
-class _GraphDist:
-    """Transform the circles properly for non-square axes."""
-
-    def __init__(self, size, ax, x=True):
-        self.size = size
-        self.ax = ax  # pylint: disable=invalid-name
-        self.x = x
-
-    @property
-    def dist_real(self):
-        """Compute distance."""
-        x0, y0 = self.ax.transAxes.transform((0, 0))
-        x1, y1 = self.ax.transAxes.transform((1, 1))
-        value = x1 - x0 if self.x else y1 - y0
-        return value
-
-    @property
-    def dist_abs(self):
-        """Distance abs"""
-        bounds = self.ax.get_xlim() if self.x else self.ax.get_ylim()
-        return bounds[0] - bounds[1]
-
-    @property
-    def value(self):
-        """Return value."""
-        return (self.size / self.dist_real) * self.dist_abs
-
-    def __mul__(self, obj):
-        return self.value * obj
 
 
 def plot_gate_map(
@@ -55,9 +24,9 @@ def plot_gate_map(
     figsize=None,
     plot_directed=False,
     label_qubits=True,
-    qubit_size=24,
+    qubit_size=None,
     line_width=4,
-    font_size=12,
+    font_size=None,
     qubit_color=None,
     qubit_labels=None,
     line_color=None,
@@ -85,7 +54,7 @@ def plot_gate_map(
 
     Raises:
         QiskitError: if tried to pass a simulator.
-        ImportError: if matplotlib not installed.
+        MissingOptionalLibraryError: if matplotlib not installed.
 
     Example:
         .. jupyter-execute::
@@ -107,8 +76,10 @@ def plot_gate_map(
            plot_gate_map(backend)
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError(
-            "Must have Matplotlib installed. To install, " 'run "pip install matplotlib".'
+        raise MissingOptionalLibraryError(
+            libname="Matplotlib",
+            name="plot_gate_map",
+            pip_install="pip install matplotlib",
         )
     from matplotlib import get_backend
     import matplotlib.pyplot as plt
@@ -378,6 +349,15 @@ def plot_gate_map(
     num_qubits = config.n_qubits
     cmap = config.coupling_map
 
+    if font_size is None:
+        font_size = 12
+
+    if qubit_size is None:
+        qubit_size = 24
+    if num_qubits > 20:
+        qubit_size = 28
+        font_size = 10
+
     if qubit_labels is None:
         qubit_labels = list(range(num_qubits))
     else:
@@ -392,8 +372,8 @@ def plot_gate_map(
             ax.axis("off")
             return fig
 
-    x_max = max([d[1] for d in grid_data])
-    y_max = max([d[0] for d in grid_data])
+    x_max = max(d[1] for d in grid_data)
+    y_max = max(d[0] for d in grid_data)
     max_dim = max(x_max, y_max)
 
     if figsize is None:
@@ -475,10 +455,16 @@ def plot_gate_map(
     # Add circles for qubits
     for var, idx in enumerate(grid_data):
         _idx = [idx[1], -idx[0]]
-        width = _GraphDist(qubit_size, ax, True)
-        height = _GraphDist(qubit_size, ax, False)
-        ax.add_artist(mpatches.Ellipse(_idx, width, height, color=qubit_color[var], zorder=1))
-        if label_qubits:
+        ax.add_artist(
+            mpatches.Ellipse(
+                _idx,
+                qubit_size / 48,
+                qubit_size / 48,  # This is here so that the changes
+                color=qubit_color[var],
+                zorder=1,
+            )
+        )  # to how qubits are plotted does
+        if label_qubits:  # not affect qubit size kwarg.
             ax.text(
                 *_idx,
                 s=qubit_labels[var],
@@ -490,6 +476,7 @@ def plot_gate_map(
             )
     ax.set_xlim([-1, x_max + 1])
     ax.set_ylim([-(y_max + 1), 1])
+    ax.set_aspect("equal")
     if not input_axes:
         if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
             plt.close(fig)
@@ -606,7 +593,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
 
     Raises:
         VisualizationError: Input is not IBMQ backend.
-        ImportError: If seaborn is not installed
+        MissingOptionalLibraryError: If seaborn is not installed
 
     Example:
         .. jupyter-execute::
@@ -630,13 +617,16 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     try:
         import seaborn as sns
     except ImportError as ex:
-        raise ImportError(
-            "Must have seaborn installed to use plot_error_map. "
-            'To install, run "pip install seaborn".'
+        raise MissingOptionalLibraryError(
+            libname="seaborn",
+            name="plot_error_map",
+            pip_install="pip install seaborn",
         ) from ex
     if not HAS_MATPLOTLIB:
-        raise ImportError(
-            "Must have Matplotlib installed. To install, " 'run "pip install matplotlib".'
+        raise MissingOptionalLibraryError(
+            libname="Matplotlib",
+            name="plot_error_map",
+            pip_install="pip install matplotlib",
         )
     import matplotlib
     from matplotlib import get_backend
@@ -722,11 +712,14 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     if cmap:
         bright_ax = plt.subplot(grid_spec[-1, 7:])
 
+    qubit_size = 28
+    if num_qubits <= 5:
+        qubit_size = 20
     plot_gate_map(
         backend,
         qubit_color=q_colors,
         line_color=line_colors,
-        qubit_size=28,
+        qubit_size=qubit_size,
         line_width=5,
         plot_directed=directed,
         ax=main_ax,
@@ -741,11 +734,11 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
         single_cb.locator = tick_locator
         single_cb.update_ticks()
         single_cb.update_ticks()
-        bleft_ax.set_title("H error rate (%) [Avg. = {}]".format(round(avg_1q_err, 3)))
+        bleft_ax.set_title(f"H error rate (%) [Avg. = {round(avg_1q_err, 3)}]")
 
     if cmap is None:
         bleft_ax.axis("off")
-        bleft_ax.set_title("H error rate (%) = {}".format(round(avg_1q_err, 3)))
+        bleft_ax.set_title(f"H error rate (%) = {round(avg_1q_err, 3)}")
 
     if cmap:
         cx_cb = matplotlib.colorbar.ColorbarBase(
@@ -754,7 +747,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
         tick_locator = ticker.MaxNLocator(nbins=5)
         cx_cb.locator = tick_locator
         cx_cb.update_ticks()
-        bright_ax.set_title("CNOT error rate (%) [Avg. = {}]".format(round(avg_cx_err, 3)))
+        bright_ax.set_title(f"CNOT error rate (%) [Avg. = {round(avg_cx_err, 3)}]")
 
     if num_qubits < 10:
         num_left = num_qubits
@@ -794,7 +787,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
         spine.set_visible(False)
 
     if show_title:
-        fig.suptitle("{name} Error Map".format(name=backend.name()), fontsize=24, y=0.9)
+        fig.suptitle(f"{backend.name()} Error Map", fontsize=24, y=0.9)
     if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
         plt.close(fig)
     return fig
