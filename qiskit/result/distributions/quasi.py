@@ -53,28 +53,6 @@ class QuasiDistribution(dict):
         """
         self.shots = shots
         self.mitigation_overhead = mitigation_overhead
-        if data:
-            first_key = next(iter(data.keys()))
-            if isinstance(first_key, int):
-                pass
-            elif isinstance(first_key, str):
-                if first_key.startswith("0x"):
-                    hex_raw = data
-                    data = {int(key, 0): value for key, value in hex_raw.items()}
-                elif first_key.startswith("0b"):
-                    bin_raw = data
-                    data = {int(key, 0): value for key, value in bin_raw.items()}
-                elif self._bitstring_regex.search(first_key):
-                    bin_raw = data
-                    data = {int("0b" + key, 0): value for key, value in bin_raw.items()}
-                else:
-                    raise ValueError(
-                        "The input keys are not a valid string format, must either "
-                        "be a hex string prefixed by '0x' or a binary string "
-                        "optionally prefixed with 0b"
-                    )
-            else:
-                raise TypeError("Input data's keys are of invalid type, must be str or int")
         super().__init__(data)
 
     def expval(self):
