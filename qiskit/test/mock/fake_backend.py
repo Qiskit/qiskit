@@ -148,7 +148,7 @@ class FakeBackend(BackendV1):
                     from qiskit.providers.aer.noise import NoiseModel
 
                     noise_model = NoiseModel.from_backend(self, warnings=False)
-                    job = sim.run(circuits, noise_model=noise_model)
+                    job = sim.run(circuits, noise_model=noise_model, **kwargs)
                 else:
                     job = sim.run(circuits, **kwargs)
         else:
