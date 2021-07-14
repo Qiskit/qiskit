@@ -67,7 +67,7 @@ class GeneratedFakeBackendsTest(QiskitTestCase):
         self.assertEqual(len(result.results), 1)
 
 
-class GeneratedFakeBackendsTest(QiskitTestCase):
+class FakeBackendsTest(QiskitTestCase):
     """fake backends test."""
 
     @unittest.skipUnless(HAS_AER, "qiskit-aer is required to run this test")
