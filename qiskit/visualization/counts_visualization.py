@@ -54,6 +54,7 @@ def plot_histogram(
     bar_labels=True,
     title=None,
     ax=None,
+    filename=None,
 ):
     """Plot a histogram of data.
 
@@ -78,6 +79,7 @@ def plot_histogram(
             the visualization output. If none is specified a new matplotlib
             Figure will be created and used. Additionally, if specified there
             will be no returned Figure since it is redundant.
+        filename (str): file path to save image to.
 
     Returns:
         matplotlib.Figure:
@@ -240,7 +242,10 @@ def plot_histogram(
     if fig:
         if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
             plt.close(fig)
-    return fig
+    if filename is None:
+        return fig
+    else:
+        return fig.savefig(filename)
 
 
 def _plot_histogram_data(data, labels, number_to_keep):
