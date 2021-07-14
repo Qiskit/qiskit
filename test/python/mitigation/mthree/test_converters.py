@@ -58,7 +58,7 @@ class TestConverters(QiskitTestCase):
         self.assertTrue(ans_list == out_list)
 
 
-    def test_roundtrip_convert(self.):
+    def test_roundtrip_convert(self):
         """Tests converts work roundtrip"""
         shots = sum(COUNTS.values())
         out = _test_counts_roundtrip(COUNTS)
