@@ -1,5 +1,6 @@
 features:
   - |
-    The ``result.get_statevector()`` method now has an optional ``label``
-    argument that can be used to retrieve labelled statevectors saved at 
-    circuit midpoints by the ``QuantumCircuit.save_statevector()`` method.
+    The ``get_statevector()`` method in ``qiskit.result.Result`` now has an 
+    optional ``label`` argument that can be used to retrieve labeled 
+    statevectors saved at circuit midpoints by the ``save_statevector()``
+    method in ``qiskit.circuit.QuantumCircuit``.
