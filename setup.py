@@ -57,6 +57,10 @@ CYTHON_EXTS = {
         'qiskit.mitigation.mthree.matvec',
     'qiskit/mitigation/mthree/probability':
         'qiskit.mitigation.mthree.probability',
+    'qiskit/mitigation/mthree/test/column_testing':
+        'qiskit.mitigation.mthree.test.column_testing',
+    'qiskit/mitigation/mthree/test/converters_testing':
+        'qiskit.mitigation.mthree.test.converters_testing',
 }
 
 PACKAGE_DATA = {'qiskit/mitigation/mthree': ['*.pxd'],

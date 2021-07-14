@@ -148,3 +148,5 @@ docs/stubs/*
 test/ipynb/mpl/*.png
 test/ipynb/mpl/*.zip
 test/ipynb/mpl/result_test.json
+qiskit/mitigation/mthree/*.cpp
+qiskit/mitigation/mthree/test/*.cpp
