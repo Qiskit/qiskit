@@ -19,7 +19,7 @@ from qiskit.pulse import Schedule
 from qiskit.qobj import PulseQobj
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock.utils import ConfigurableFakeBackend
-from qiskit.test.mock import FakeMontreal
+from qiskit.test.mock import FakeAthens
 
 from qiskit.test.mock.fake_backend import HAS_AER
 
@@ -66,9 +66,14 @@ class GeneratedFakeBackendsTest(QiskitTestCase):
         self.assertTrue(result.success)
         self.assertEqual(len(result.results), 1)
 
+
+class GeneratedFakeBackendsTest(QiskitTestCase):
+    """fake backends test."""
+
     @unittest.skipUnless(HAS_AER, "qiskit-aer is required to run this test")
     def test_fake_backends_get_kwargs(self):
-        backend = FakeMontreal()
+        """Fake backends honor kwargs passed."""
+        backend = FakeAthens()
 
         N = 2
         qc = QuantumCircuit(N)
