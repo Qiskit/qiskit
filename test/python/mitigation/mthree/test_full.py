@@ -21,7 +21,7 @@ from qiskit.mitigation.mthree.matrix import bitstring_int
 class TestFull(QiskitTestCase):
     """Tests cmatrix elements"""
 
-    def test_full_problem(self.):
+    def test_full_problem(self):
         """Tests if matrix elements can be computed properly from the data"""
 
         # Compute using M3
