@@ -15,6 +15,7 @@
 
 import unittest
 import logging
+from itertools import permutations
 from ddt import ddt, data
 import numpy as np
 from numpy.testing import assert_allclose
@@ -24,8 +25,9 @@ from qiskit import QiskitError
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit import transpile
 from qiskit.circuit.library import HGate, QFT
+from qiskit.providers.basicaer import QasmSimulatorPy
 
-from qiskit.quantum_info.random import random_unitary, random_statevector
+from qiskit.quantum_info.random import random_unitary, random_statevector, random_pauli
 from qiskit.quantum_info.states import Statevector
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
@@ -120,7 +122,7 @@ class TestStatevector(QiskitTestCase):
         circuit.h(0)
         circuit.x(1)
         circuit.ry(np.pi / 2, 2)
-        target = Statevector.from_label('000').evolve(Operator(circuit))
+        target = Statevector.from_label("000").evolve(Operator(circuit))
         psi = Statevector.from_instruction(circuit)
         self.assertEqual(psi, target)
 
@@ -130,7 +132,7 @@ class TestStatevector(QiskitTestCase):
         circuit.h(0)
         circuit.h(1)
         circuit.cp(lam, 0, 1)
-        target = Statevector.from_label('00').evolve(Operator(circuit))
+        target = Statevector.from_label("00").evolve(Operator(circuit))
         psi = Statevector.from_instruction(circuit)
         self.assertEqual(psi, target)
 
@@ -138,7 +140,7 @@ class TestStatevector(QiskitTestCase):
         circuit = QuantumCircuit(2)
         circ.x(0)
         circuit.ch(0, 1)
-        target = Statevector.from_label('00').evolve(Operator(circuit))
+        target = Statevector.from_label("00").evolve(Operator(circuit))
         psi = Statevector.from_instruction(circuit)
         self.assertEqual(psi, target)
 
@@ -152,7 +154,7 @@ class TestStatevector(QiskitTestCase):
         circuit = QuantumCircuit(3)
         circuit.x(0)
         circuit.append(gate_ctrl, range(3))
-        target = Statevector.from_label('000').evolve(Operator(circuit))
+        target = Statevector.from_label("000").evolve(Operator(circuit))
         psi = Statevector.from_instruction(circuit)
         self.assertEqual(psi, target)
 
@@ -187,15 +189,15 @@ class TestStatevector(QiskitTestCase):
         z_p = Statevector(np.array([1, 0]))
         z_m = Statevector(np.array([0, 1]))
 
-        label = '01'
+        label = "01"
         target = z_p.tensor(z_m)
         self.assertEqual(target, Statevector.from_label(label))
 
-        label = '+-'
+        label = "+-"
         target = x_p.tensor(x_m)
         self.assertEqual(target, Statevector.from_label(label))
 
-        label = 'rl'
+        label = "rl"
         target = y_p.tensor(y_m)
         self.assertEqual(target, Statevector.from_label(label))
 
@@ -203,8 +205,7 @@ class TestStatevector(QiskitTestCase):
         """Test __eq__ method"""
         for _ in range(10):
             vec = self.rand_vec(4)
-            self.assertEqual(Statevector(vec),
-                             Statevector(vec.tolist()))
+            self.assertEqual(Statevector(vec), Statevector(vec.tolist()))
 
     def test_copy(self):
         """Test Statevector copy method"""
@@ -393,53 +394,53 @@ class TestStatevector(QiskitTestCase):
     def test_to_dict(self):
         """Test to_dict method"""
 
-        with self.subTest(msg='dims = (2, 3)'):
+        with self.subTest(msg="dims = (2, 3)"):
             vec = Statevector(np.arange(1, 7), dims=(2, 3))
-            target = {'00': 1, '01': 2, '10': 3, '11': 4, '20': 5, '21': 6}
+            target = {"00": 1, "01": 2, "10": 3, "11": 4, "20": 5, "21": 6}
             self.assertDictAlmostEqual(target, vec.to_dict())
 
-        with self.subTest(msg='dims = (11, )'):
+        with self.subTest(msg="dims = (11, )"):
             vec = Statevector(np.arange(1, 12), dims=(11,))
             target = {str(i): i + 1 for i in range(11)}
             self.assertDictAlmostEqual(target, vec.to_dict())
 
-        with self.subTest(msg='dims = (2, 11)'):
+        with self.subTest(msg="dims = (2, 11)"):
             vec = Statevector(np.arange(1, 23), dims=(2, 11))
             target = {}
             for i in range(11):
                 for j in range(2):
-                    key = '{},{}'.format(i, j)
+                    key = f"{i},{j}"
                     target[key] = 2 * i + j + 1
             self.assertDictAlmostEqual(target, vec.to_dict())
 
     def test_probabilities_product(self):
         """Test probabilities method for product state"""
 
-        state = Statevector.from_label('+0')
+        state = Statevector.from_label("+0")
 
         # 2-qubit qargs
-        with self.subTest(msg='P(None)'):
+        with self.subTest(msg="P(None)"):
             probs = state.probabilities()
             target = np.array([0.5, 0, 0.5, 0])
             self.assertTrue(np.allclose(probs, target))
 
-        with self.subTest(msg='P([0, 1])'):
+        with self.subTest(msg="P([0, 1])"):
             probs = state.probabilities([0, 1])
             target = np.array([0.5, 0, 0.5, 0])
             self.assertTrue(np.allclose(probs, target))
 
-        with self.subTest(msg='P([1, 0]'):
+        with self.subTest(msg="P([1, 0]"):
             probs = state.probabilities([1, 0])
             target = np.array([0.5, 0.5, 0, 0])
             self.assertTrue(np.allclose(probs, target))
 
         # 1-qubit qargs
-        with self.subTest(msg='P([0])'):
+        with self.subTest(msg="P([0])"):
             probs = state.probabilities([0])
             target = np.array([1, 0])
             self.assertTrue(np.allclose(probs, target))
 
-        with self.subTest(msg='P([1])'):
+        with self.subTest(msg="P([1])"):
             probs = state.probabilities([1])
             target = np.array([0.5, 0.5])
             self.assertTrue(np.allclose(probs, target))
@@ -447,143 +448,145 @@ class TestStatevector(QiskitTestCase):
     def test_probabilities_ghz(self):
         """Test probabilities method for GHZ state"""
 
-        state = (Statevector.from_label('000') +
-                 Statevector.from_label('111')) / np.sqrt(2)
+        state = (Statevector.from_label("000") + Statevector.from_label("111")) / np.sqrt(2)
 
         # 3-qubit qargs
         target = np.array([0.5, 0, 0, 0, 0, 0, 0, 0.5])
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
-            with self.subTest(msg='P({})'.format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 probs = state.probabilities(qargs)
                 self.assertTrue(np.allclose(probs, target))
 
         # 2-qubit qargs
         target = np.array([0.5, 0, 0, 0.5])
         for qargs in [[0, 1], [2, 1], [1, 2], [1, 2]]:
-            with self.subTest(msg='P({})'.format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 probs = state.probabilities(qargs)
                 self.assertTrue(np.allclose(probs, target))
 
         # 1-qubit qargs
         target = np.array([0.5, 0.5])
         for qargs in [[0], [1], [2]]:
-            with self.subTest(msg='P({})'.format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 probs = state.probabilities(qargs)
                 self.assertTrue(np.allclose(probs, target))
 
     def test_probabilities_w(self):
         """Test probabilities method with W state"""
 
-        state = (Statevector.from_label('001') +
-                 Statevector.from_label('010') +
-                 Statevector.from_label('100')) / np.sqrt(3)
+        state = (
+            Statevector.from_label("001")
+            + Statevector.from_label("010")
+            + Statevector.from_label("100")
+        ) / np.sqrt(3)
 
         # 3-qubit qargs
-        target = np.array([0, 1/3, 1/3, 0, 1/3, 0, 0, 0])
+        target = np.array([0, 1 / 3, 1 / 3, 0, 1 / 3, 0, 0, 0])
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
-            with self.subTest(msg='P({})'.format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 probs = state.probabilities(qargs)
                 self.assertTrue(np.allclose(probs, target))
 
         # 2-qubit qargs
-        target = np.array([1/3, 1/3, 1/3, 0])
+        target = np.array([1 / 3, 1 / 3, 1 / 3, 0])
         for qargs in [[0, 1], [2, 1], [1, 2], [1, 2]]:
-            with self.subTest(msg='P({})'.format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 probs = state.probabilities(qargs)
                 self.assertTrue(np.allclose(probs, target))
 
         # 1-qubit qargs
-        target = np.array([2/3, 1/3])
+        target = np.array([2 / 3, 1 / 3])
         for qargs in [[0], [1], [2]]:
-            with self.subTest(msg='P({})'.format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 probs = state.probabilities(qargs)
                 self.assertTrue(np.allclose(probs, target))
 
     def test_probabilities_dict_product(self):
         """Test probabilities_dict method for product state"""
 
-        state = Statevector.from_label('+0')
+        state = Statevector.from_label("+0")
 
         # 2-qubit qargs
-        with self.subTest(msg='P(None)'):
+        with self.subTest(msg="P(None)"):
             probs = state.probabilities_dict()
-            target = {'00': 0.5, '10': 0.5}
+            target = {"00": 0.5, "10": 0.5}
             self.assertDictAlmostEqual(probs, target)
 
-        with self.subTest(msg='P([0, 1])'):
+        with self.subTest(msg="P([0, 1])"):
             probs = state.probabilities_dict([0, 1])
-            target = {'00': 0.5, '10': 0.5}
+            target = {"00": 0.5, "10": 0.5}
             self.assertDictAlmostEqual(probs, target)
 
-        with self.subTest(msg='P([1, 0]'):
+        with self.subTest(msg="P([1, 0]"):
             probs = state.probabilities_dict([1, 0])
-            target = {'00': 0.5, '01': 0.5}
+            target = {"00": 0.5, "01": 0.5}
             self.assertDictAlmostEqual(probs, target)
 
         # 1-qubit qargs
-        with self.subTest(msg='P([0])'):
+        with self.subTest(msg="P([0])"):
             probs = state.probabilities_dict([0])
-            target = {'0': 1}
+            target = {"0": 1}
             self.assertDictAlmostEqual(probs, target)
 
-        with self.subTest(msg='P([1])'):
+        with self.subTest(msg="P([1])"):
             probs = state.probabilities_dict([1])
-            target = {'0': 0.5, '1': 0.5}
+            target = {"0": 0.5, "1": 0.5}
             self.assertDictAlmostEqual(probs, target)
 
     def test_probabilities_dict_ghz(self):
         """Test probabilities_dict method for GHZ state"""
 
-        state = (Statevector.from_label('000') +
-                 Statevector.from_label('111')) / np.sqrt(2)
+        state = (Statevector.from_label("000") + Statevector.from_label("111")) / np.sqrt(2)
 
         # 3-qubit qargs
-        target = {'000': 0.5, '111': 0.5}
+        target = {"000": 0.5, "111": 0.5}
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
-            with self.subTest(msg='P({})'.format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 probs = state.probabilities_dict(qargs)
                 self.assertDictAlmostEqual(probs, target)
 
         # 2-qubit qargs
-        target = {'00': 0.5, '11': 0.5}
+        target = {"00": 0.5, "11": 0.5}
         for qargs in [[0, 1], [2, 1], [1, 2], [1, 2]]:
-            with self.subTest(msg='P({})'.format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 probs = state.probabilities_dict(qargs)
                 self.assertDictAlmostEqual(probs, target)
 
         # 1-qubit qargs
-        target = {'0': 0.5, '1': 0.5}
+        target = {"0": 0.5, "1": 0.5}
         for qargs in [[0], [1], [2]]:
-            with self.subTest(msg='P({})'.format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 probs = state.probabilities_dict(qargs)
                 self.assertDictAlmostEqual(probs, target)
 
     def test_probabilities_dict_w(self):
         """Test probabilities_dict method with W state"""
 
-        state = (Statevector.from_label('001') +
-                 Statevector.from_label('010') +
-                 Statevector.from_label('100')) / np.sqrt(3)
+        state = (
+            Statevector.from_label("001")
+            + Statevector.from_label("010")
+            + Statevector.from_label("100")
+        ) / np.sqrt(3)
 
         # 3-qubit qargs
-        target = np.array([0, 1/3, 1/3, 0, 1/3, 0, 0, 0])
-        target = {'001': 1/3, '010': 1/3, '100': 1/3}
+        target = np.array([0, 1 / 3, 1 / 3, 0, 1 / 3, 0, 0, 0])
+        target = {"001": 1 / 3, "010": 1 / 3, "100": 1 / 3}
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
-            with self.subTest(msg='P({})'.format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 probs = state.probabilities_dict(qargs)
                 self.assertDictAlmostEqual(probs, target)
 
         # 2-qubit qargs
-        target = {'00': 1/3, '01': 1/3, '10': 1/3}
+        target = {"00": 1 / 3, "01": 1 / 3, "10": 1 / 3}
         for qargs in [[0, 1], [2, 1], [1, 2], [1, 2]]:
-            with self.subTest(msg='P({})'.format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 probs = state.probabilities_dict(qargs)
                 self.assertDictAlmostEqual(probs, target)
 
         # 1-qubit qargs
-        target = {'0': 2/3, '1': 1/3}
+        target = {"0": 2 / 3, "1": 1 / 3}
         for qargs in [[0], [1], [2]]:
-            with self.subTest(msg='P({})'.format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 probs = state.probabilities_dict(qargs)
                 self.assertDictAlmostEqual(probs, target)
 
@@ -592,31 +595,30 @@ class TestStatevector(QiskitTestCase):
 
         shots = 2000
         threshold = 0.02 * shots
-        state = (Statevector.from_label('000') +
-                 Statevector.from_label('111')) / np.sqrt(2)
+        state = (Statevector.from_label("000") + Statevector.from_label("111")) / np.sqrt(2)
         state.seed(100)
 
         # 3-qubit qargs
-        target = {'000': shots / 2, '111': shots / 2}
+        target = {"000": shots / 2, "111": shots / 2}
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
 
-            with self.subTest(msg='counts (qargs={})'.format(qargs)):
+            with self.subTest(msg=f"counts (qargs={qargs})"):
                 counts = state.sample_counts(shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, threshold)
 
         # 2-qubit qargs
-        target = {'00': shots / 2, '11': shots / 2}
+        target = {"00": shots / 2, "11": shots / 2}
         for qargs in [[0, 1], [2, 1], [1, 2], [1, 2]]:
 
-            with self.subTest(msg='counts (qargs={})'.format(qargs)):
+            with self.subTest(msg=f"counts (qargs={qargs})"):
                 counts = state.sample_counts(shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, threshold)
 
         # 1-qubit qargs
-        target = {'0': shots / 2, '1': shots / 2}
+        target = {"0": shots / 2, "1": shots / 2}
         for qargs in [[0], [1], [2]]:
 
-            with self.subTest(msg='counts (qargs={})'.format(qargs)):
+            with self.subTest(msg=f"counts (qargs={qargs})"):
                 counts = state.sample_counts(shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, threshold)
 
@@ -624,31 +626,33 @@ class TestStatevector(QiskitTestCase):
         """Test sample_counts method for W state"""
         shots = 3000
         threshold = 0.02 * shots
-        state = (Statevector.from_label('001') +
-                 Statevector.from_label('010') +
-                 Statevector.from_label('100')) / np.sqrt(3)
+        state = (
+            Statevector.from_label("001")
+            + Statevector.from_label("010")
+            + Statevector.from_label("100")
+        ) / np.sqrt(3)
         state.seed(100)
 
-        target = {'001': shots / 3, '010': shots / 3, '100': shots / 3}
+        target = {"001": shots / 3, "010": shots / 3, "100": shots / 3}
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
 
-            with self.subTest(msg='P({})'.format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 counts = state.sample_counts(shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, threshold)
 
         # 2-qubit qargs
-        target = {'00': shots / 3, '01': shots / 3, '10': shots / 3}
+        target = {"00": shots / 3, "01": shots / 3, "10": shots / 3}
         for qargs in [[0, 1], [2, 1], [1, 2], [1, 2]]:
 
-            with self.subTest(msg='P({})'.format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 counts = state.sample_counts(shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, threshold)
 
         # 1-qubit qargs
-        target = {'0': 2 * shots / 3, '1': shots / 3}
+        target = {"0": 2 * shots / 3, "1": shots / 3}
         for qargs in [[0], [1], [2]]:
 
-            with self.subTest(msg='P({})'.format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 counts = state.sample_counts(shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, threshold)
 
@@ -660,8 +664,8 @@ class TestStatevector(QiskitTestCase):
         state = Statevector([np.sqrt(p), 0, np.sqrt(1 - p)])
         state.seed(100)
 
-        with self.subTest(msg='counts'):
-            target = {'0': shots * p, '2': shots * (1 - p)}
+        with self.subTest(msg="counts"):
+            target = {"0": shots * p, "2": shots * (1 - p)}
             counts = state.sample_counts(shots=shots)
             self.assertDictAlmostEqual(counts, target, threshold)
 
@@ -669,33 +673,32 @@ class TestStatevector(QiskitTestCase):
         """Test sample_memory method for GHZ state"""
 
         shots = 2000
-        state = (Statevector.from_label('000') +
-                 Statevector.from_label('111')) / np.sqrt(2)
+        state = (Statevector.from_label("000") + Statevector.from_label("111")) / np.sqrt(2)
         state.seed(100)
 
         # 3-qubit qargs
-        target = {'000': shots / 2, '111': shots / 2}
+        target = {"000": shots / 2, "111": shots / 2}
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
 
-            with self.subTest(msg='memory (qargs={})'.format(qargs)):
+            with self.subTest(msg=f"memory (qargs={qargs})"):
                 memory = state.sample_memory(shots, qargs=qargs)
                 self.assertEqual(len(memory), shots)
                 self.assertEqual(set(memory), set(target))
 
         # 2-qubit qargs
-        target = {'00': shots / 2, '11': shots / 2}
+        target = {"00": shots / 2, "11": shots / 2}
         for qargs in [[0, 1], [2, 1], [1, 2], [1, 2]]:
 
-            with self.subTest(msg='memory (qargs={})'.format(qargs)):
+            with self.subTest(msg=f"memory (qargs={qargs})"):
                 memory = state.sample_memory(shots, qargs=qargs)
                 self.assertEqual(len(memory), shots)
                 self.assertEqual(set(memory), set(target))
 
         # 1-qubit qargs
-        target = {'0': shots / 2, '1': shots / 2}
+        target = {"0": shots / 2, "1": shots / 2}
         for qargs in [[0], [1], [2]]:
 
-            with self.subTest(msg='memory (qargs={})'.format(qargs)):
+            with self.subTest(msg=f"memory (qargs={qargs})"):
                 memory = state.sample_memory(shots, qargs=qargs)
                 self.assertEqual(len(memory), shots)
                 self.assertEqual(set(memory), set(target))
@@ -703,33 +706,35 @@ class TestStatevector(QiskitTestCase):
     def test_sample_memory_w(self):
         """Test sample_memory method for W state"""
         shots = 3000
-        state = (Statevector.from_label('001') +
-                 Statevector.from_label('010') +
-                 Statevector.from_label('100')) / np.sqrt(3)
+        state = (
+            Statevector.from_label("001")
+            + Statevector.from_label("010")
+            + Statevector.from_label("100")
+        ) / np.sqrt(3)
         state.seed(100)
 
-        target = {'001': shots / 3, '010': shots / 3, '100': shots / 3}
+        target = {"001": shots / 3, "010": shots / 3, "100": shots / 3}
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
 
-            with self.subTest(msg='memory (qargs={})'.format(qargs)):
+            with self.subTest(msg=f"memory (qargs={qargs})"):
                 memory = state.sample_memory(shots, qargs=qargs)
                 self.assertEqual(len(memory), shots)
                 self.assertEqual(set(memory), set(target))
 
         # 2-qubit qargs
-        target = {'00': shots / 3, '01': shots / 3, '10': shots / 3}
+        target = {"00": shots / 3, "01": shots / 3, "10": shots / 3}
         for qargs in [[0, 1], [2, 1], [1, 2], [1, 2]]:
 
-            with self.subTest(msg='memory (qargs={})'.format(qargs)):
+            with self.subTest(msg=f"memory (qargs={qargs})"):
                 memory = state.sample_memory(shots, qargs=qargs)
                 self.assertEqual(len(memory), shots)
                 self.assertEqual(set(memory), set(target))
 
         # 1-qubit qargs
-        target = {'0': 2 * shots / 3, '1': shots / 3}
+        target = {"0": 2 * shots / 3, "1": shots / 3}
         for qargs in [[0], [1], [2]]:
 
-            with self.subTest(msg='memory (qargs={})'.format(qargs)):
+            with self.subTest(msg=f"memory (qargs={qargs})"):
                 memory = state.sample_memory(shots, qargs=qargs)
                 self.assertEqual(len(memory), shots)
                 self.assertEqual(set(memory), set(target))
@@ -741,10 +746,10 @@ class TestStatevector(QiskitTestCase):
         state = Statevector([np.sqrt(p), 0, np.sqrt(1 - p)])
         state.seed(100)
 
-        with self.subTest(msg='memory'):
+        with self.subTest(msg="memory"):
             memory = state.sample_memory(shots)
             self.assertEqual(len(memory), shots)
-            self.assertEqual(set(memory), {'0', '2'})
+            self.assertEqual(set(memory), {"0", "2"})
 
     def test_reset_2qubit(self):
         """Test reset method for 2-qubit state"""
@@ -752,30 +757,28 @@ class TestStatevector(QiskitTestCase):
         state = Statevector(np.array([1, 0, 0, 1]) / np.sqrt(2))
         state.seed(100)
 
-        with self.subTest(msg='reset'):
+        with self.subTest(msg="reset"):
             psi = state.copy()
             value = psi.reset()
             target = Statevector(np.array([1, 0, 0, 0]))
             self.assertEqual(value, target)
 
-        with self.subTest(msg='reset'):
+        with self.subTest(msg="reset"):
             psi = state.copy()
             value = psi.reset([0, 1])
             target = Statevector(np.array([1, 0, 0, 0]))
             self.assertEqual(value, target)
 
-        with self.subTest(msg='reset [0]'):
+        with self.subTest(msg="reset [0]"):
             psi = state.copy()
             value = psi.reset([0])
-            targets = [Statevector(np.array([1, 0, 0, 0])),
-                       Statevector(np.array([0, 0, 1, 0]))]
+            targets = [Statevector(np.array([1, 0, 0, 0])), Statevector(np.array([0, 0, 1, 0]))]
             self.assertIn(value, targets)
 
-        with self.subTest(msg='reset [0]'):
+        with self.subTest(msg="reset [0]"):
             psi = state.copy()
             value = psi.reset([1])
-            targets = [Statevector(np.array([1, 0, 0, 0])),
-                       Statevector(np.array([0, 1, 0, 0]))]
+            targets = [Statevector(np.array([1, 0, 0, 0])), Statevector(np.array([0, 1, 0, 0]))]
             self.assertIn(value, targets)
 
     def test_reset_qutrit(self):
@@ -790,65 +793,65 @@ class TestStatevector(QiskitTestCase):
     def test_measure_2qubit(self):
         """Test measure method for 2-qubit state"""
 
-        state = Statevector.from_label('+0')
+        state = Statevector.from_label("+0")
         seed = 200
         shots = 100
 
-        with self.subTest(msg='measure'):
+        with self.subTest(msg="measure"):
             for i in range(shots):
                 psi = state.copy()
                 psi.seed(seed + i)
                 outcome, value = psi.measure()
-                self.assertIn(outcome, ['00', '10'])
-                if outcome == '00':
-                    target = Statevector.from_label('00')
+                self.assertIn(outcome, ["00", "10"])
+                if outcome == "00":
+                    target = Statevector.from_label("00")
                     self.assertEqual(value, target)
                 else:
-                    target = Statevector.from_label('10')
+                    target = Statevector.from_label("10")
                     self.assertEqual(value, target)
 
-        with self.subTest(msg='measure [0, 1]'):
+        with self.subTest(msg="measure [0, 1]"):
             for i in range(shots):
                 psi = state.copy()
                 outcome, value = psi.measure([0, 1])
-                self.assertIn(outcome, ['00', '10'])
-                if outcome == '00':
-                    target = Statevector.from_label('00')
+                self.assertIn(outcome, ["00", "10"])
+                if outcome == "00":
+                    target = Statevector.from_label("00")
                     self.assertEqual(value, target)
                 else:
-                    target = Statevector.from_label('10')
+                    target = Statevector.from_label("10")
                     self.assertEqual(value, target)
 
-        with self.subTest(msg='measure [1, 0]'):
+        with self.subTest(msg="measure [1, 0]"):
             for i in range(shots):
                 psi = state.copy()
                 outcome, value = psi.measure([1, 0])
-                self.assertIn(outcome, ['00', '01'])
-                if outcome == '00':
-                    target = Statevector.from_label('00')
+                self.assertIn(outcome, ["00", "01"])
+                if outcome == "00":
+                    target = Statevector.from_label("00")
                     self.assertEqual(value, target)
                 else:
-                    target = Statevector.from_label('10')
+                    target = Statevector.from_label("10")
                     self.assertEqual(value, target)
 
-        with self.subTest(msg='measure [0]'):
+        with self.subTest(msg="measure [0]"):
             for i in range(shots):
                 psi = state.copy()
                 outcome, value = psi.measure([0])
-                self.assertEqual(outcome, '0')
+                self.assertEqual(outcome, "0")
                 target = Statevector(np.array([1, 0, 1, 0]) / np.sqrt(2))
                 self.assertEqual(value, target)
 
-        with self.subTest(msg='measure [1]'):
+        with self.subTest(msg="measure [1]"):
             for i in range(shots):
                 psi = state.copy()
                 outcome, value = psi.measure([1])
-                self.assertIn(outcome, ['0', '1'])
-                if outcome == '0':
-                    target = Statevector.from_label('00')
+                self.assertIn(outcome, ["0", "1"])
+                if outcome == "0":
+                    target = Statevector.from_label("00")
                     self.assertEqual(value, target)
                 else:
-                    target = Statevector.from_label('10')
+                    target = Statevector.from_label("10")
                     self.assertEqual(value, target)
 
     def test_measure_qutrit(self):
@@ -862,11 +865,11 @@ class TestStatevector(QiskitTestCase):
             psi = state.copy()
             psi.seed(seed + i)
             outcome, value = psi.measure()
-            self.assertIn(outcome, ['0', '1', '2'])
-            if outcome == '0':
+            self.assertIn(outcome, ["0", "1", "2"])
+            if outcome == "0":
                 target = Statevector([1, 0, 0])
                 self.assertEqual(value, target)
-            elif outcome == '1':
+            elif outcome == "1":
                 target = Statevector([0, 1, 0])
                 self.assertEqual(value, target)
             else:
@@ -876,17 +879,17 @@ class TestStatevector(QiskitTestCase):
     def test_from_int(self):
         """Test from_int method"""
 
-        with self.subTest(msg='from_int(0, 4)'):
+        with self.subTest(msg="from_int(0, 4)"):
             target = Statevector([1, 0, 0, 0])
             value = Statevector.from_int(0, 4)
             self.assertEqual(target, value)
 
-        with self.subTest(msg='from_int(3, 4)'):
+        with self.subTest(msg="from_int(3, 4)"):
             target = Statevector([0, 0, 0, 1])
             value = Statevector.from_int(3, 4)
             self.assertEqual(target, value)
 
-        with self.subTest(msg='from_int(8, (3, 3))'):
+        with self.subTest(msg="from_int(8, (3, 3))"):
             target = Statevector([0, 0, 0, 0, 0, 0, 0, 0, 1], dims=(3, 3))
             value = Statevector.from_int(8, (3, 3))
             self.assertEqual(target, value)
@@ -896,55 +899,162 @@ class TestStatevector(QiskitTestCase):
 
         psi = Statevector([1, 0, 0, 1]) / np.sqrt(2)
         for label, target in [
-                ('II', 1), ('XX', 1), ('YY', -1), ('ZZ', 1),
-                ('IX', 0), ('YZ', 0), ('ZX', 0), ('YI', 0)]:
-            with self.subTest(msg="<{}>".format(label)):
+            ("II", 1),
+            ("XX", 1),
+            ("YY", -1),
+            ("ZZ", 1),
+            ("IX", 0),
+            ("YZ", 0),
+            ("ZX", 0),
+            ("YI", 0),
+        ]:
+            with self.subTest(msg=f"<{label}>"):
                 op = Pauli(label)
                 expval = psi.expectation_value(op)
                 self.assertAlmostEqual(expval, target)
 
-        psi = Statevector([np.sqrt(2), 0, 0, 0, 0, 0, 0, 1+1j]) / 2
+        psi = Statevector([np.sqrt(2), 0, 0, 0, 0, 0, 0, 1 + 1j]) / 2
         for label, target in [
-                ('XXX', np.sqrt(2)/2), ('YYY', -np.sqrt(2)/2), ('ZZZ', 0),
-                ('XYZ', 0), ('YIY', 0)]:
-            with self.subTest(msg="<{}>".format(label)):
+            ("XXX", np.sqrt(2) / 2),
+            ("YYY", -np.sqrt(2) / 2),
+            ("ZZZ", 0),
+            ("XYZ", 0),
+            ("YIY", 0),
+        ]:
+            with self.subTest(msg=f"<{label}>"):
                 op = Pauli(label)
                 expval = psi.expectation_value(op)
                 self.assertAlmostEqual(expval, target)
 
-        labels = ['XXX', 'IXI', 'YYY', 'III']
+        labels = ["XXX", "IXI", "YYY", "III"]
         coeffs = [3.0, 5.5, -1j, 23]
         spp_op = SparsePauliOp.from_list(list(zip(labels, coeffs)))
         expval = psi.expectation_value(spp_op)
-        target = 25.121320343559642+0.7071067811865476j
+        target = 25.121320343559642 + 0.7071067811865476j
         self.assertAlmostEqual(expval, target)
 
-    @data('II', 'IX', 'IY', 'IZ', 'XI', 'XX', 'XY', 'XZ',
-          'YI', 'YX', 'YY', 'YZ', 'ZI', 'ZX', 'ZY', 'ZZ',
-          '-II', '-IX', '-IY', '-IZ', '-XI', '-XX', '-XY', '-XZ',
-          '-YI', '-YX', '-YY', '-YZ', '-ZI', '-ZX', '-ZY', '-ZZ',
-          'iII', 'iIX', 'iIY', 'iIZ', 'iXI', 'iXX', 'iXY', 'iXZ',
-          'iYI', 'iYX', 'iYY', 'iYZ', 'iZI', 'iZX', 'iZY', 'iZZ',
-          '-iII', '-iIX', '-iIY', '-iIZ', '-iXI', '-iXX', '-iXY', '-iXZ',
-          '-iYI', '-iYX', '-iYY', '-iYZ', '-iZI', '-iZX', '-iZY', '-iZZ')
+    @data(
+        "II",
+        "IX",
+        "IY",
+        "IZ",
+        "XI",
+        "XX",
+        "XY",
+        "XZ",
+        "YI",
+        "YX",
+        "YY",
+        "YZ",
+        "ZI",
+        "ZX",
+        "ZY",
+        "ZZ",
+        "-II",
+        "-IX",
+        "-IY",
+        "-IZ",
+        "-XI",
+        "-XX",
+        "-XY",
+        "-XZ",
+        "-YI",
+        "-YX",
+        "-YY",
+        "-YZ",
+        "-ZI",
+        "-ZX",
+        "-ZY",
+        "-ZZ",
+        "iII",
+        "iIX",
+        "iIY",
+        "iIZ",
+        "iXI",
+        "iXX",
+        "iXY",
+        "iXZ",
+        "iYI",
+        "iYX",
+        "iYY",
+        "iYZ",
+        "iZI",
+        "iZX",
+        "iZY",
+        "iZZ",
+        "-iII",
+        "-iIX",
+        "-iIY",
+        "-iIZ",
+        "-iXI",
+        "-iXX",
+        "-iXY",
+        "-iXZ",
+        "-iYI",
+        "-iYX",
+        "-iYY",
+        "-iYZ",
+        "-iZI",
+        "-iZX",
+        "-iZY",
+        "-iZZ",
+    )
     def test_expval_pauli(self, pauli):
         """Test expectation_value method for Pauli op"""
         seed = 1020
         op = Pauli(pauli)
-        state = random_statevector(2**op.num_qubits, seed=seed)
+        state = random_statevector(2 ** op.num_qubits, seed=seed)
         target = state.expectation_value(op.to_matrix())
         expval = state.expectation_value(op)
         self.assertAlmostEqual(expval, target)
+
+    @data([0, 1], [0, 2], [1, 0], [1, 2], [2, 0], [2, 1])
+    def test_expval_pauli_qargs(self, qubits):
+        """Test expectation_value method for Pauli op"""
+        seed = 1020
+        op = random_pauli(2, seed=seed)
+        state = random_statevector(2 ** 3, seed=seed)
+        target = state.expectation_value(op.to_matrix(), qubits)
+        expval = state.expectation_value(op, qubits)
+        self.assertAlmostEqual(expval, target)
+
+    @data(*(qargs for i in range(4) for qargs in permutations(range(4), r=i + 1)))
+    def test_probabilities_qargs(self, qargs):
+        """Test probabilities method with qargs"""
+        # Get initial state
+        nq = 4
+        nc = len(qargs)
+        state_circ = QuantumCircuit(nq, nc)
+        for i in range(nq):
+            state_circ.ry((i + 1) * np.pi / (nq + 1), i)
+
+        # Get probabilities
+        state = Statevector(state_circ)
+        probs = state.probabilities(qargs)
+
+        # Estimate target probs from simulator measurement
+        sim = QasmSimulatorPy()
+        shots = 5000
+        seed = 100
+        circ = transpile(state_circ, sim)
+        circ.measure(qargs, range(nc))
+        result = sim.run(circ, shots=shots, seed_simulator=seed).result()
+        target = np.zeros(2 ** nc, dtype=float)
+        for i, p in result.get_counts(0).int_outcomes().items():
+            target[i] = p / shots
+        # Compare
+        delta = np.linalg.norm(probs - target)
+        self.assertLess(delta, 0.05)
 
     def test_global_phase(self):
         """Test global phase is handled correctly when evolving statevector."""
 
         qc = QuantumCircuit(1)
         qc.rz(0.5, 0)
-        qc2 = transpile(qc, basis_gates=['p'])
+        qc2 = transpile(qc, basis_gates=["p"])
         sv = Statevector.from_instruction(qc2)
-        expected = np.array([0.96891242-0.24740396j, 0])
-        self.assertEqual(float(qc2.global_phase), -1/4)
+        expected = np.array([0.96891242 - 0.24740396j, 0])
+        self.assertEqual(float(qc2.global_phase), 2 * np.pi - 0.25)
         self.assertEqual(sv, Statevector(expected))
 
     def test_reverse_qargs(self):
@@ -960,13 +1070,12 @@ class TestStatevector(QiskitTestCase):
         """Test draw method"""
         qc1 = QFT(5)
         sv = Statevector.from_instruction(qc1)
-        with self.subTest(msg='str(statevector)'):
+        with self.subTest(msg="str(statevector)"):
             str(sv)
-        for drawtype in ['repr', 'text', 'latex', 'latex_source',
-                         'qsphere', 'hinton', 'bloch']:
+        for drawtype in ["repr", "text", "latex", "latex_source", "qsphere", "hinton", "bloch"]:
             with self.subTest(msg=f"draw('{drawtype}')"):
                 sv.draw(drawtype)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

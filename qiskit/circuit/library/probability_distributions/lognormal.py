@@ -16,6 +16,7 @@ from typing import Tuple, List, Union, Optional
 import warnings
 import numpy as np
 from qiskit.circuit import QuantumCircuit
+from qiskit.exceptions import QiskitError
 from .normal import _check_bounds_valid, _check_dimensions_match
 
 
@@ -79,13 +80,15 @@ class LogNormalDistribution(QuantumCircuit):
 
     """
 
-    def __init__(self,
-                 num_qubits: Union[int, List[int]],
-                 mu: Optional[Union[float, List[float]]] = None,
-                 sigma: Optional[Union[float, List[float]]] = None,
-                 bounds: Optional[Union[Tuple[float, float], List[Tuple[float, float]]]] = None,
-                 upto_diag: bool = False,
-                 name: str = 'P(X)') -> None:
+    def __init__(
+        self,
+        num_qubits: Union[int, List[int]],
+        mu: Optional[Union[float, List[float]]] = None,
+        sigma: Optional[Union[float, List[float]]] = None,
+        bounds: Optional[Union[Tuple[float, float], List[Tuple[float, float]]]] = None,
+        upto_diag: bool = False,
+        name: str = "P(X)",
+    ) -> None:
         r"""
         Args:
             num_qubits: The number of qubits used to discretize the random variable. For a 1d
@@ -103,10 +106,13 @@ class LogNormalDistribution(QuantumCircuit):
                 with a diagonal for a more efficient circuit.
             name: The name of the circuit.
         """
-        warnings.warn('`LogNormalDistribution` is deprecated as of version 0.17.0 and will be '
-                      'removed no earlier than 3 months after the release date. '
-                      'It moved to qiskit_finance.circuit.library.LogNormalDistribution.',
-                      DeprecationWarning, stacklevel=2)
+        warnings.warn(
+            "`LogNormalDistribution` is deprecated as of version 0.17.0 and will be "
+            "removed no earlier than 3 months after the release date. "
+            "It moved to qiskit_finance.circuit.library.LogNormalDistribution.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
         _check_dimensions_match(num_qubits, mu, sigma, bounds)
         _check_bounds_valid(bounds)
@@ -123,18 +129,23 @@ class LogNormalDistribution(QuantumCircuit):
             bounds = (0, 1) if dim == 1 else [(0, 1)] * dim
 
         if not isinstance(num_qubits, list):  # univariate case
-            super().__init__(num_qubits, name=name)
+            circuit = QuantumCircuit(num_qubits, name=name)
 
-            x = np.linspace(bounds[0], bounds[1], num=2**num_qubits)  # evaluation points
+            x = np.linspace(bounds[0], bounds[1], num=2 ** num_qubits)  # evaluation points
         else:  # multivariate case
-            super().__init__(sum(num_qubits), name=name)
+            circuit = QuantumCircuit(sum(num_qubits), name=name)
 
             # compute the evaluation points using numpy's meshgrid
             # indexing 'ij' yields the "column-based" indexing
-            meshgrid = np.meshgrid(*[np.linspace(bound[0], bound[1], num=2**num_qubits[i])
-                                     for i, bound in enumerate(bounds)], indexing='ij')
+            meshgrid = np.meshgrid(
+                *(
+                    np.linspace(bound[0], bound[1], num=2 ** num_qubits[i])
+                    for i, bound in enumerate(bounds)
+                ),
+                indexing="ij",
+            )
             # flatten into a list of points
-            x = list(zip(*[grid.flatten() for grid in meshgrid]))
+            x = list(zip(*(grid.flatten() for grid in meshgrid)))
 
         # compute the normalized, truncated probabilities
         probabilities = []
@@ -159,12 +170,22 @@ class LogNormalDistribution(QuantumCircuit):
         # use default the isometry (or initialize w/o resets) algorithm to construct the circuit
         # pylint: disable=no-member
         if upto_diag:
-            self.isometry(np.sqrt(normalized_probabilities), self.qubits, None)
+            circuit.isometry(np.sqrt(normalized_probabilities), circuit.qubits, None)
         else:
             from qiskit.extensions import Initialize  # pylint: disable=cyclic-import
+
             initialize = Initialize(np.sqrt(normalized_probabilities))
-            circuit = initialize.gates_to_uncompute().inverse()
-            self.compose(circuit, inplace=True)
+            distribution = initialize.gates_to_uncompute().inverse()
+            circuit.compose(distribution, inplace=True)
+
+        super().__init__(*circuit.qregs, name=name)
+
+        try:
+            instr = circuit.to_gate()
+        except QiskitError:
+            instr = circuit.to_instruction()
+
+        self.compose(instr, qubits=self.qubits, inplace=True)
 
     @property
     def values(self) -> np.ndarray:
