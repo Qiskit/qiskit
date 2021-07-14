@@ -75,7 +75,7 @@ class GeneratedFakeBackendsTest(QiskitTestCase):
         qc.x(range(0, N))
         qc.measure_all()
 
-        trans_qc = transpile(qc, backend
+        trans_qc = transpile(qc, backend)
         raw_counts = backend.run(trans_qc, shots=1000).result().get_counts()
 
         self.assertEqual(sum(raw_counts.values()), 1000)
