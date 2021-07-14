@@ -50,7 +50,7 @@ subsequent sections:
     result = job.result()
 
     # Returns counts
-    counts = result.get_counts(circuit)
+    counts = result.get_counts(compiled_circuit)
     print("\nTotal count for 00 and 11 are:",counts)
 
     # Draw the circuit
@@ -241,7 +241,7 @@ taking the respective counts and dividing by the total number of shots.
 
 .. note::
 
-  Try changing the ``shots`` keyword in the ``execute`` method to see how
+  Try changing the ``shots`` keyword in the ``run()`` method to see how
   the estimated probabilities change.
 
 
