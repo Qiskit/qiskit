@@ -1276,9 +1276,13 @@ class QuantumCircuit:
 
         return circuit_to_gate(self, parameter_map, label=label)
 
-    def decompose(self):
+    def decompose(self, gates_to_decompose=None):
         """Call a decomposition pass on this circuit,
         to decompose one level (shallow decompose).
+
+        Args:
+            gates_to_decompose (str or list(str)): optional subset of gates to decompose.
+                Defaults to all gates in circuit.
 
         Returns:
             QuantumCircuit: a circuit one level decomposed
@@ -1288,7 +1292,7 @@ class QuantumCircuit:
         from qiskit.converters.circuit_to_dag import circuit_to_dag
         from qiskit.converters.dag_to_circuit import dag_to_circuit
 
-        pass_ = Decompose()
+        pass_ = Decompose(gates_to_decompose=gates_to_decompose)
         decomposed_dag = pass_.run(circuit_to_dag(self))
         return dag_to_circuit(decomposed_dag)
 
