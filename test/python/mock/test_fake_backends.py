@@ -75,9 +75,8 @@ class FakeBackendsTest(QiskitTestCase):
         """Fake backends honor kwargs passed."""
         backend = FakeAthens()
 
-        N = 2
-        qc = QuantumCircuit(N)
-        qc.x(range(0, N))
+        qc = QuantumCircuit(2)
+        qc.x(range(0, 2))
         qc.measure_all()
 
         trans_qc = transpile(qc, backend)
