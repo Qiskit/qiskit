@@ -52,6 +52,7 @@ class QuasiDistribution(dict):
             ValueError: If the string format of the keys is incorrect
         """
         self.shots = shots
+        self.mitigation_overhead = mitigation_overhead
         if data:
             first_key = next(iter(data.keys()))
             if isinstance(first_key, int):
@@ -98,7 +99,7 @@ class QuasiDistribution(dict):
             raise QiskitError("Quasi-dist is missing shots information.")
         if self.mitigation_overhead is None:
             raise QiskitError("Quasi-dist is missing mitigation overhead.")
-        return exp_val(self), math.sqrt(self.mitigation_overhead / self.shots)
+        return exp_val(self), sqrt(self.mitigation_overhead / self.shots)
 
     def nearest_probability_distribution(self, return_distance=False):
         """Takes a quasiprobability distribution and maps

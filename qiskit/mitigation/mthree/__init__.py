@@ -10,4 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Matrix-free measurement mitigation.
+"""
+
 from .mitigation import M3Mitigation

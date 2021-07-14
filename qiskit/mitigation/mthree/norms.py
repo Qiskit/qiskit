@@ -9,13 +9,13 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=no-name-in-module
+# pylint: disable=no-name-in-module, invalid-name
 """mthree one-norm estimators"""
 
 import numpy as np
 import scipy.linalg as la
 import scipy.sparse.linalg as spla
-from mthree.exceptions import M3Error
+from qiskit.exceptions import QiskitError
 
 
 def ainv_onenorm_est_lu(A, LU=None):
@@ -103,7 +103,7 @@ def ainv_onenorm_est_iter(M, tol=1e-5, max_iter=25):
         N. J. Higham, ACM Trans. Math. Software, Vol. 14, 381 (1988).
 
     Raises:
-        M3Error: Error in iterative solver.
+        QiskitError: Error in iterative solver.
     """
     # Setup linear operator interfaces
     L = spla.LinearOperator((M.num_elems, M.num_elems), matvec=M.matvec)
@@ -126,12 +126,12 @@ def ainv_onenorm_est_iter(M, tol=1e-5, max_iter=25):
     # Initial solve
     v, error = spla.gmres(L, v, tol=tol, atol=tol, maxiter=max_iter, M=P)
     if error:
-        raise M3Error("Iterative solver error {}".format(error))
+        raise QiskitError("Iterative solver error {}".format(error))
     gamma = la.norm(v, 1)
     eta = np.sign(v)
     x, error = spla.gmres(LT, eta, tol=tol, atol=tol, maxiter=max_iter, M=P)
     if error:
-        raise M3Error("Iterative solver error {}".format(error))
+        raise QiskitError("Iterative solver error {}".format(error))
     # loop over reasonable number of trials
     k = 2
     while k < 6:
@@ -141,7 +141,7 @@ def ainv_onenorm_est_iter(M, tol=1e-5, max_iter=25):
         v[idx] = 1
         v, error = spla.gmres(L, v, tol=tol, atol=tol, maxiter=max_iter, M=P)
         if error:
-            raise M3Error("Iterative solver error {}".format(error))
+            raise QiskitError("Iterative solver error {}".format(error))
         gamma_prime = gamma
         gamma = la.norm(v, 1)
 
@@ -151,7 +151,7 @@ def ainv_onenorm_est_iter(M, tol=1e-5, max_iter=25):
         eta = np.sign(v)
         x, error = spla.gmres(LT, eta, tol=tol, atol=tol, maxiter=max_iter, M=P)
         if error:
-            raise M3Error("Iterative solver error {}".format(error))
+            raise QiskitError("Iterative solver error {}".format(error))
         if la.norm(x, np.inf) == x[idx]:
             break
         k += 1
@@ -162,7 +162,7 @@ def ainv_onenorm_est_iter(M, tol=1e-5, max_iter=25):
 
     x, error = spla.gmres(L, x, tol=tol, atol=tol, maxiter=max_iter, M=P)
     if error:
-        raise M3Error("Iterative solver error {}".format(error))
+        raise QiskitError("Iterative solver error {}".format(error))
 
     temp = 2 * la.norm(x, 1) / (3 * dims)
 

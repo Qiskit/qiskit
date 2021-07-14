@@ -20,13 +20,14 @@ import numpy as np
 import scipy.linalg as la
 import scipy.sparse.linalg as spla
 import orjson
-from qiskit import QuantumCircuit, execute
-
-from mthree.matrix import _reduced_cal_matrix, sdd_check
-from mthree.utils import counts_to_vector, vector_to_quasiprobs
-from mthree.norms import ainv_onenorm_est_lu, ainv_onenorm_est_iter
-from mthree.matvec import M3MatVec
+from qiskit.circuit import QuantumCircuit
+from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
+
+from .matrix import _reduced_cal_matrix, sdd_check
+from .utils import counts_to_vector, vector_to_quasiprobs
+from .norms import ainv_onenorm_est_lu, ainv_onenorm_est_iter
+from .matvec import M3MatVec
 
 
 def _tensor_meas_states(qubit, num_qubits):
@@ -147,7 +148,8 @@ class M3Mitigation:
         circs = []
         for kk in qubits:
             circs.extend(_tensor_meas_states(kk, self.num_qubits))
-        job = execute(circs, self.system, shots=self.cal_shots, optimization_level=0)
+        trans_circs = transpile(circs, self.system, optimization_level=0)
+        job = self.system.run(shots=self.cal_shots)
         counts = job.result().get_counts()
 
         # A list of qubits with bad meas cals
