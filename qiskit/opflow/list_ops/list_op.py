@@ -175,6 +175,15 @@ class ListOp(OperatorBase):
         """
         return self._coeff
 
+    @property
+    def coeffs(self) -> List[Union[complex, ParameterExpression]]:
+        """Return a list of the coefficients of the operators listed.
+        Raises exception for nested Listops.
+        """
+        if any(isinstance(op, ListOp) for op in self.oplist):
+            raise TypeError("Coefficients are not returned for nested ListOps.")
+        return [self.coeff * op.coeff for op in self.oplist]
+
     def primitive_strings(self) -> Set[str]:
         return reduce(set.union, [op.primitive_strings() for op in self.oplist])
 
