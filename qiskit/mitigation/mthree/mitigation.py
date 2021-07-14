@@ -29,6 +29,7 @@ from .matvec import M3MatVec
 
 def _tensor_meas_states(qubit, num_qubits):
     from qiskit.circuit import QuantumCircuit
+
     qc0 = QuantumCircuit(num_qubits, 1)
     qc0.measure(qubit, 0)
     qc1 = QuantumCircuit(num_qubits, 1)
@@ -140,6 +141,7 @@ class M3Mitigation:
         """
         from qiskit.compiler import transpile
         from qiskit.exceptions import QiskitError
+
         if self.single_qubit_cals is None:
             self.single_qubit_cals = [None] * self.num_qubits
         if self.cal_shots is None:
