@@ -373,8 +373,8 @@ def plot_gate_map_data(
 
     Args:
         num_qubits (int): The number of qubits defined and plotted.
-        mpl_data (List[List[int]]): A list of two-element lists, with entries of each nested list being the
-            planar coordinates in a 0-based square grid where each qubit is located.
+        mpl_data (List[List[int]]): A list of two-element lists, with entries of each nested list being
+            the planar coordinates in a 0-based square grid where each qubit is located.
         cmap (List[List[int]]): A list two-element lists, with entries of each nested list being the
             qubit numbers of the bonds to be plotted.
         figsize (tuple): Output figure size (wxh) in inches.
