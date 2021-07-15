@@ -12,8 +12,6 @@
 # pylint: disable=invalid-name
 
 """Test M3 quasi attributes"""
-import numpy as np
-
 from qiskit import QuantumCircuit, transpile
 from qiskit.test import QiskitTestCase
 from qiskit.mitigation.mthree import M3Mitigation

@@ -12,6 +12,7 @@
 # pylint: disable=no-name-in-module
 """Quasidistribution class"""
 import re
+from math import sqrt
 
 from qiskit.exceptions import QiskitError
 from .mle_prob import quasi_to_probs
