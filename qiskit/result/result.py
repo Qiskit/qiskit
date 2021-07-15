@@ -304,7 +304,7 @@ class Result:
         if len(dict_list) == 1:
             return {k: dict_list[0][k] for k in sorted(dict_list[0].keys())}
         else:
-            return {k: dict_list[k] for k in sorted(dict_list.keys())}
+            return dict_list
 
 
 
