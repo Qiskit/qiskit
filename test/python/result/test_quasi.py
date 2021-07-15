@@ -22,11 +22,11 @@ class TestQuasi(QiskitTestCase):
 
     def test_known_quasi_conversion(self):
         """Reproduce conversion from Smolin PRL"""
-        qprobs = {'000': 3 / 5, '001': 1 / 2, '010': 7 / 20, '011': 1 / 10, '100': -11 / 20}
+        qprobs = {"000": 3 / 5, "001": 1 / 2, "010": 7 / 20, "011": 1 / 10, "100": -11 / 20}
         closest, dist = QuasiDistribution(qprobs).nearest_probability_distribution(
             return_distance=True
         )
-        ans = {'000': 9 / 20, '001': 7 / 20, '010': 1 / 5}
+        ans = {"000": 9 / 20, "001": 7 / 20, "010": 1 / 5}
         # Check probs are correct
         for key, val in closest.items():
             assert abs(ans[key] - val) < 1e-14
