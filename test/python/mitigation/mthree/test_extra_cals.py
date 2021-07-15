@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+# pylint: disable=c-extension-no-member
 
 """Test M3 extra cals"""
 import numpy as np
@@ -62,7 +63,7 @@ class TestM3ExtraCals(QiskitTestCase):
         trans_qc = transpile(qc, backend)
         raw_counts = backend.run(trans_qc, shots=2048).result().get_counts()
 
-        mit = mthree.M3Mitigation(backend)
+        mit = M3Mitigation(backend)
         _ = mit.apply_correction(raw_counts, range(5))
 
         assert not any(mit.single_qubit_cals[kk] is None for kk in range(5))
@@ -83,6 +84,6 @@ class TestM3ExtraCals(QiskitTestCase):
         backend = FakeAthens()
         mit = M3Mitigation(backend)
         mit.tensored_cals_from_system(counts_file=cal_file)
-        new_mit = mthree.M3Mitigation(backend)
+        new_mit = M3Mitigation(backend)
         new_mit.tensored_cals_from_file(cal_file)
         self.assertTrue(np.array_equal(mit.single_qubit_cals, new_mit.single_qubit_cals))

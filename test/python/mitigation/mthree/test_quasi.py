@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+# pylint: disable=invalid-name
 
 """Test M3 quasi attributes"""
 import numpy as np
@@ -22,7 +23,7 @@ from qiskit.test.mock import FakeMontreal
 class TestQuasi(QiskitTestCase):
     """Test quasiprobs"""
 
-    def test_quasi_attr_set():
+    def test_quasi_attr_set(self):
         """Test quasi-probs attributes are set"""
         backend = FakeMontreal()
 
