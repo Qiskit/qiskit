@@ -15,7 +15,7 @@
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.classicalregister import ClassicalRegister
+from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 
 
 def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None, label=None):
@@ -113,7 +113,16 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
         condition = rule[0].condition
         if condition:
             reg, val = condition
-            if reg.size == c.size:
+            if isinstance(reg, Clbit):
+                idx = 0
+                for creg in circuit.cregs:
+                    if reg not in creg:
+                        idx += creg.size
+                    else:
+                        cond_reg = creg
+                        break
+                rule[0].condition = (c[idx + list(cond_reg).index(reg)], val)
+            elif reg.size == c.size:
                 rule[0].condition = (c, val)
             else:
                 raise QiskitError(
