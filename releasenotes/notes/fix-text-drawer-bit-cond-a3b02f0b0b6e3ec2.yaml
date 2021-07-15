@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    The ``text`` output method for the :func:`qiskit.visualization.circuit_drawer`
+    function and the :meth:`~qiskit.circuit.QuantumCircuit.draw` method can now 
+    draw circuits that contain gates with single bit condition. This was added for
+    compatibility of text drawer with the new feature of supporting classical 
+    conditioning of gates on single classical bits.

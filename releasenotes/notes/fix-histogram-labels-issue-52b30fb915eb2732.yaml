@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    Fixed an issue in :func:`~qiskit.visualization.plot_histogram` function where a `ValueError`
-    would be raised when the function run on distributions with unequal lengths. 

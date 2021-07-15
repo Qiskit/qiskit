@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    Allows specification of gates to decompose inside `circuit.decompose()` (and
+    in the :class:`qiskit.transpiler.passes.basis.Decompose` pass).
+    It takes input as a list of strings or gates as well as single strings or gates
+    and also supports wildcards.
+
+    For example::
+      circ.decompose(['cz','h'])
+
+    See  `#2906 <https://github.com/Qiskit/qiskit-terra/issues/2906>`__ for more information.
+
+deprecations:
+  - |
+    There is a deprecation of the `gate` param for
+    the :class:`qiskit.transpiler.passes.basis.Decompose` and is replaced by `gates_to_decompose`.
