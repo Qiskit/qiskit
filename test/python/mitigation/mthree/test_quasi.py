@@ -15,7 +15,7 @@
 from qiskit import QuantumCircuit, transpile
 from qiskit.test import QiskitTestCase
 from qiskit.mitigation.mthree import M3Mitigation
-from qiskit.test.mock import FakeMontreal
+from qiskit.test.mock import FakeCasablanca
 
 
 class TestQuasi(QiskitTestCase):
@@ -23,7 +23,7 @@ class TestQuasi(QiskitTestCase):
 
     def test_quasi_attr_set(self):
         """Test quasi-probs attributes are set"""
-        backend = FakeMontreal()
+        backend = FakeCasablanca()
 
         N = 6
         qc = QuantumCircuit(N)
@@ -35,12 +35,10 @@ class TestQuasi(QiskitTestCase):
             qc.ch(kk, kk + 1)
         qc.measure_all()
 
-        qubits = [1, 4, 7, 10, 12, 13]
-
         mit = M3Mitigation(backend)
         mit.tensored_cals_from_system(qubits)
 
-        trans_qc = transpile(qc, backend, initial_layout=qubits)
+        trans_qc = transpile(qc, backend)
 
         for shots in [1000, 2000, 1234]:
             raw_counts = backend.run(trans_qc, shots=shots).result().get_counts()
