@@ -151,7 +151,7 @@ class M3Mitigation:
         for kk in qubits:
             circs.extend(_tensor_meas_states(kk, self.num_qubits))
         trans_circs = transpile(circs, self.system, optimization_level=0)
-        job = self.system.run(shots=self.cal_shots)
+        job = self.system.run(trans_circs, shots=self.cal_shots)
         counts = job.result().get_counts()
 
         # A list of qubits with bad meas cals

@@ -36,7 +36,7 @@ class TestFullPipeline(QiskitTestCase):
         trans_qc = transpile(qc, backend)
         job = backend.run(trans_qc)
         raw_counts = job.result().get_counts()
-        mit = mthree.M3Mitigation(backend)
+        mit = M3Mitigation(backend)
         mit.tensored_cals_from_system()
         mit_counts = mit.apply_correction(raw_counts, qubits=range(5))
 
