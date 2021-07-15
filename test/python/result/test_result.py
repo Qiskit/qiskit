@@ -490,7 +490,7 @@ class TestResultOperations(QiskitTestCase):
         self.assertEqual(statevector.shape, (8,))
         self.assertEqual(statevector.dtype, np.complex_)
         np.testing.assert_almost_equal(statevector, processed_sv)
-    
+
     def test_circuit_statevector_with_label(self):
         """Test postprocessing of saved statevector without giving any decimals arg."""
         raw_statevector = np.array(
@@ -522,7 +522,7 @@ class TestResultOperations(QiskitTestCase):
         data = models.ExperimentResultData(probe1=raw_statevector)
         exp_result = models.ExperimentResult(shots=1, success=True, data=data)
         result = Result(results=[exp_result], **self.base_result_args)
-        statevector = result.get_statevector(label='probe1')
+        statevector = result.get_statevector(label="probe1")
         self.assertEqual(statevector.shape, (8,))
         self.assertEqual(statevector.dtype, np.complex_)
         np.testing.assert_almost_equal(statevector, processed_sv)

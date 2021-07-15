@@ -325,19 +325,18 @@ class Result:
         """
 
         if label is None:
-            _label = 'statevector'
+            _label = "statevector"
         else:
             _label = label
 
         try:
-            return postprocess.format_statevector(self.data(experiment)[_label],
-                                                  decimals=decimals)
+            return postprocess.format_statevector(self.data(experiment)[_label], decimals=decimals)
         except KeyError as ex:
             if label is None:
                 raise QiskitError(f'No statevector for experiment "{repr(experiment)}"') from ex
             raise QiskitError(
-                f'No statevector "{label}"'
-                'for experiment "{repr(experiment)}"') from ex
+                f'No statevector "{label}"' 'for experiment "{repr(experiment)}"'
+            ) from ex
 
     def get_unitary(self, experiment=None, decimals=None):
         """Get the final unitary of an experiment.
