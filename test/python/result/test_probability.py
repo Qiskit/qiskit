@@ -17,4 +17,5 @@ from qiskit.result import ProbDistribution
 
 class TestProbDistribution(QiskitTestCase):
     """Tests for probsdistributions."""
+
     pass
