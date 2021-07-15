@@ -69,7 +69,7 @@ class TestM3ExtraCals(QiskitTestCase):
 
         assert not any(mit.single_qubit_cals[kk] is None for kk in range(5))
 
-    @unittest.skip('Need to figure out path.')
+    @unittest.skip("Need to figure out path.")
     def test_save_cals(self, tmp_path):
         """Test if passing a calibration file saves the correct JSON."""
         backend = FakeAthens()
@@ -80,7 +80,7 @@ class TestM3ExtraCals(QiskitTestCase):
             cals = np.array(orjson.loads(fd.read()))
         self.assertTrue(np.array_equal(mit.single_qubit_cals, cals))
 
-    @unittest.skip('Need to figure out path.')
+    @unittest.skip("Need to figure out path.")
     def test_load_cals(self, tmp_path):
         """Test if loading a calibration JSON file correctly loads the cals."""
         cal_file = tmp_path / "cal.json"

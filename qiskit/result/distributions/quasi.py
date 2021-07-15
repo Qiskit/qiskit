@@ -11,8 +11,6 @@
 # that they have been altered from the originals.
 # pylint: disable=no-name-in-module
 """Quasidistribution class"""
-
-from math import sqrt
 import re
 
 from qiskit.exceptions import QiskitError
@@ -85,5 +83,5 @@ class QuasiDistribution(dict):
         """
         new_probs, dist = quasi_to_probs(self)
         if return_distance:
-            return ProbDistribution(new_probs, self.shots), sqrt(dist)
+            return ProbDistribution(new_probs, self.shots), dist
         return ProbDistribution(new_probs, self.shots)
