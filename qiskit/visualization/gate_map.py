@@ -335,20 +335,22 @@ def plot_gate_map(
     num_qubits = config.n_qubits
     cmap = config.coupling_map
 
-    return plot_gate_map_data(num_qubits,
-                              mpl_data,
-                              cmap,
-                              figsize,
-                              plot_directed,
-                              label_qubits,
-                              qubit_size,
-                              line_width,
-                              font_size,
-                              qubit_color,
-                              qubit_labels,
-                              line_color,
-                              font_color,
-                              ax)
+    return plot_gate_map_data(
+        num_qubits,
+        mpl_data,
+        cmap,
+        figsize,
+        plot_directed,
+        label_qubits,
+        qubit_size,
+        line_width,
+        font_size,
+        qubit_color,
+        qubit_labels,
+        line_color,
+        font_color,
+        ax,
+    )
 
 
 def plot_gate_map_data(
@@ -365,7 +367,7 @@ def plot_gate_map_data(
     qubit_labels=None,
     line_color=None,
     font_color="w",
-    ax=None
+    ax=None,
 ):
     """Plots the gate map of a device.
 
@@ -393,7 +395,7 @@ def plot_gate_map_data(
     Raises:
         QiskitError: if tried to pass a simulator.
         MissingOptionalLibraryError: if matplotlib not installed.
-   """
+    """
 
     if not HAS_MATPLOTLIB:
         raise MissingOptionalLibraryError(
