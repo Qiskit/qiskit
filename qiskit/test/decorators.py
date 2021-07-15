@@ -310,14 +310,14 @@ def enforce_subclasses_call(methods, attr="_enforce_subclasses_call_cache"):
 
     methods = {methods} if isinstance(methods, str) else set(methods)
 
-    def initialize_call_memory(self, *args, **kwargs):
+    def initialize_call_memory(self, *_args, **_kwargs):
         """Add the extra attribute used for tracking the method calls."""
         setattr(self, attr, set())
 
     def save_call_status(name):
         """Decorator, whose return saves the fact that the top-level method call occurred."""
 
-        def out(self, *args, **kwargs):
+        def out(self, *_args, **_kwargs):
             getattr(self, attr).add(name)
 
         return out
@@ -326,7 +326,7 @@ def enforce_subclasses_call(methods, attr="_enforce_subclasses_call_cache"):
         """Decorator, whose return clears the call status of the method ``name``.  This prepares the
         call tracking for the child class's method call."""
 
-        def out(self, *args, **kwargs):
+        def out(self, *_args, **_kwargs):
             getattr(self, attr).discard(name)
 
         return out
@@ -335,7 +335,7 @@ def enforce_subclasses_call(methods, attr="_enforce_subclasses_call_cache"):
         """Decorator, whose return checks that the top-level method call occurred, and raises
         ``ValueError`` if not.  Concretely, this is an assertion that ``save_call_status`` ran."""
 
-        def out(self, *args, **kwargs):
+        def out(self, *_args, **_kwargs):
             cache = getattr(self, attr)
             if name not in cache:
                 classname = self.__name__ if isinstance(self, type) else type(self).__name__
