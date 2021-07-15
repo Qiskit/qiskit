@@ -18,6 +18,7 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
 .. autosummary::
    :toctree: ../stubs/
 
+   BRGGate
    C3XGate
    C3SXGate
    C4XGate
@@ -66,10 +67,9 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
    XGate
    YGate
    ZGate
-   BRGGate
 
 """
-
+from .brg import BRGGate
 from .h import HGate, CHGate
 from .i import IGate
 from .p import PhaseGate, CPhaseGate, MCPhaseGate
@@ -100,4 +100,3 @@ from .z import ZGate, CZGate
 
 
 from .multi_control_rotation_gates import mcrx, mcry, mcrz
-from .brg import BRGGate

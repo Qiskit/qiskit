@@ -1,3 +1,15 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2017, 2021.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
 """bridge gate."""
 
 from qiskit.circuit.gate import Gate
@@ -28,10 +40,9 @@ class BRGGate(Gate):
 
     ..Note::
 
-    The bridge gate is used as a transformation rules in mapping.
+    The bridge gate is used as a transformation rule in mapping.
 
     """
-    # pylint: disable = E1101
 
     def __init__(self, label=None):
         """Create new BrG gate."""
@@ -39,6 +50,7 @@ class BRGGate(Gate):
 
     def _define(self):
         """gate Bridge-Gate {cx b,c; cx a,b; cx b,c; cx a,b;}"""
+
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate
 
