@@ -75,22 +75,8 @@ def plot_gate_map(
            backend = accountProvider.get_backend('ibmq_vigo')
            plot_gate_map(backend)
     """
-    if not HAS_MATPLOTLIB:
-        raise MissingOptionalLibraryError(
-            libname="Matplotlib",
-            name="plot_gate_map",
-            pip_install="pip install matplotlib",
-        )
-    from matplotlib import get_backend
-    import matplotlib.pyplot as plt
-    import matplotlib.patches as mpatches
-
     if backend.configuration().simulator:
         raise QiskitError("Requires a device backend, not simulator.")
-
-    input_axes = False
-    if ax:
-        input_axes = True
 
     mpl_data = {}
 
@@ -349,6 +335,80 @@ def plot_gate_map(
     num_qubits = config.n_qubits
     cmap = config.coupling_map
 
+    return plot_gate_map_data(num_qubits,
+                              mpl_data,
+                              cmap,
+                              figsize,
+                              plot_directed,
+                              label_qubits,
+                              qubit_size,
+                              line_width,
+                              font_size,
+                              qubit_color,
+                              qubit_labels,
+                              line_color,
+                              font_color,
+                              ax)
+
+
+def plot_gate_map_data(
+    num_qubits,
+    mpl_data,
+    cmap,
+    figsize=None,
+    plot_directed=False,
+    label_qubits=True,
+    qubit_size=None,
+    line_width=4,
+    font_size=None,
+    qubit_color=None,
+    qubit_labels=None,
+    line_color=None,
+    font_color="w",
+    ax=None
+):
+    """Plots the gate map of a device.
+
+    Args:
+        num_qubits (int): The number of qubits defined and plotted.
+        mpl_data (List[List[int]]): A list of two-element lists, with entries of each nested list being the
+            planar coordinates in a 0-based square grid where each qubit is located.
+        cmap (List[List[int]]): A list two-element lists, with entries of each nested list being the
+            qubit numbers of the bonds to be plotted.
+        figsize (tuple): Output figure size (wxh) in inches.
+        plot_directed (bool): Plot directed coupling map.
+        label_qubits (bool): Label the qubits.
+        qubit_size (float): Size of qubit marker.
+        line_width (float): Width of lines.
+        font_size (int): Font size of qubit labels.
+        qubit_color (list): A list of colors for the qubits
+        qubit_labels (list): A list of qubit labels
+        line_color (list): A list of colors for each line from coupling_map.
+        font_color (str): The font color for the qubit labels.
+        ax (Axes): A Matplotlib axes instance.
+
+    Returns:
+        Figure: A Matplotlib figure instance.
+
+    Raises:
+        QiskitError: if tried to pass a simulator.
+        MissingOptionalLibraryError: if matplotlib not installed.
+   """
+
+    if not HAS_MATPLOTLIB:
+        raise MissingOptionalLibraryError(
+            libname="Matplotlib",
+            name="plot_gate_map",
+            pip_install="pip install matplotlib",
+        )
+    from matplotlib import get_backend
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as mpatches
+
+    input_axes = False
+    if ax:
+        input_axes = True
+
     if font_size is None:
         font_size = 12
 
@@ -388,7 +448,7 @@ def plot_gate_map(
 
     # set coloring
     if qubit_color is None:
-        qubit_color = ["#648fff"] * config.n_qubits
+        qubit_color = ["#648fff"] * num_qubits
     if line_color is None:
         line_color = ["#648fff"] * len(cmap) if cmap else []
 
