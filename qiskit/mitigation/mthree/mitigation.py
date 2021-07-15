@@ -361,7 +361,7 @@ class M3Mitigation:
         callback=None,
         return_mitigation_overhead=False,
     ):
-        """Compute solution using GMRES and Jacobi preconditioning.
+        """Compute solution using GMRES preconditioning.
 
         Parameters:
             counts (dict): Input counts dict.
@@ -390,7 +390,8 @@ class M3Mitigation:
 
         P = spla.LinearOperator((M.num_elems, M.num_elems), precond_matvec)
         vec = counts_to_vector(M.sorted_counts)
-        out, error = spla.gmres(L, vec, tol=tol, atol=tol, maxiter=max_iter, M=P, callback=callback)
+        out, error = spla.gmres(L, vec, tol=tol, atol=tol, maxiter=max_iter, M=P,
+                                callback=callback, callback_type='legacy')
         if error:
             raise QiskitError("GMRES did not converge: {}".format(error))
 
