@@ -1,5 +1,0 @@
----
-deprecations:
-  - |
-    The class :class:`qiskit.exceptions.QiskitIndexError`
-    is being deprecated and it is going to be removed in the future.
