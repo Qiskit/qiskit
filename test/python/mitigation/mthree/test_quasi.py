@@ -45,7 +45,7 @@ class TestQuasi(QiskitTestCase):
         trans_qc = transpile(qc, backend, initial_layout=qubits)
 
         for shots in [1000, 2000, 1234]:
-            raw_counts = backend.run(trans_qc, backend, shots=shots).result().get_counts()
+            raw_counts = backend.run(trans_qc, shots=shots).result().get_counts()
 
             quasi1 = mit.apply_correction(
                 raw_counts, qubits, return_mitigation_overhead=True, method="direct"

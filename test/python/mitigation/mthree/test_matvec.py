@@ -38,7 +38,7 @@ class TestMatVec(QiskitTestCase):
         qc.measure_all()
 
         trans_qc = transpile(qc, backend)
-        raw_counts = backend.run(trans_qc, backend).result().get_counts()
+        raw_counts = backend.run(trans_qc).result().get_counts()
         mit = M3Mitigation(backend)
         mit.tensored_cals_from_system(range(5))
 
