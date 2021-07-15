@@ -245,14 +245,15 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
 
     def assertCircuitCalibrationsEqual(self, in_circuits, out_circuits):
         """Verify circuit calibrations are equivalent pre-assembly and post-disassembly"""
+        self.assertEqual(len(in_circuits), len(out_circuits))
         for in_qc, out_qc in zip(in_circuits, out_circuits):
-            self.assertEqual(in_qc.calibrations.keys(), out_qc.calibrations.keys())
-            for gate_name, gate_cals in in_qc.calibrations.items():
-                self.assertEqual(gate_cals.keys(), out_qc.calibrations[gate_name].keys())
-            for (_, in_gate), (_, out_gate) in zip(
-                in_qc.calibrations.items(), out_qc.calibrations.items()
-            ):
-                for in_sched, out_sched in zip(in_gate.values(), out_gate.values()):
+            in_cals = in_qc.calibrations
+            out_cals = out_qc.calibrations
+            self.assertEqual(in_cals.keys(), out_cals.keys())
+            for gate_name in in_cals:
+                self.assertEqual(in_cals[gate_name].keys(), out_cals[gate_name].keys())
+                for gate_params, in_sched in in_cals[gate_name]:
+                    out_sched = out_cals[gate_name][gate_params]
                     self.assertEqual(*map(_parametric_to_waveforms, (in_sched, out_sched)))
 
     def test_single_circuit_calibrations(self):
