@@ -140,9 +140,6 @@ class M3Mitigation:
         Raises:
             QiskitError: Faulty qubits found.
         """
-        from qiskit.compiler import transpile
-        from qiskit.exceptions import QiskitError
-
         if self.single_qubit_cals is None:
             self.single_qubit_cals = [None] * self.num_qubits
         if self.cal_shots is None:

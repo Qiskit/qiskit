@@ -17,7 +17,7 @@ import re
 
 from qiskit.exceptions import QiskitError
 from .mle_prob import quasi_to_probs
-from .expval import exp_val, exp_val_and_stddev
+from .expval import exp_val
 from .probability import ProbDistribution
 
 
@@ -95,20 +95,7 @@ class QuasiDistribution(dict):
         Notes:
             Method from Smolin et al., Phys. Rev. Lett. 108, 070502 (2012).
         """
-        sorted_probs = dict(sorted(self.items(), key=lambda item: item[1]))
-        num_elems = len(sorted_probs)
-        new_probs = {}
-        beta = 0
-        diff = 0
-        for key, val in sorted_probs.items():
-            temp = val + beta / num_elems
-            if temp < 0:
-                beta += val
-                num_elems -= 1
-                diff += val * val
-            else:
-                diff += (beta / num_elems) * (beta / num_elems)
-                new_probs[key] = sorted_probs[key] + beta / num_elems
+        probs, dist = quasi_to_probs(self)
         if return_distance:
             return ProbDistribution(new_probs, self.shots), sqrt(diff)
         return ProbDistribution(new_probs, self.shots)
