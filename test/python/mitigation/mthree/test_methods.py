@@ -34,7 +34,7 @@ class TestM3Methods(QiskitTestCase):
         trans_qc = transpile(qc, backend)
         raw_counts = backend.run(trans_qc, shots=2048).result().get_counts()
 
-        mit = mthree.M3Mitigation(backend)
+        mit = M3Mitigation(backend)
         mit.tensored_cals_from_system()
 
         iter_q = mit.apply_correction(raw_counts, range(5), method="iterative")
@@ -58,7 +58,7 @@ class TestM3Methods(QiskitTestCase):
         trans_qc = transpile(qc, backend)
         raw_counts = backend.run(trans_qc, shots=4096).result().get_counts()
 
-        mit = mthree.M3Mitigation(backend)
+        mit = M3Mitigation(backend)
         mit.tensored_cals_from_system(shots=4096)
 
         _, details = mit.apply_correction(raw_counts, range(5), method="iterative", details=True)
