@@ -254,7 +254,6 @@ class Result:
             ) from ex
 
     def get_counts(self, experiment=None):
-
         """Get the histogram data of an experiment.
 
         Args:
@@ -305,9 +304,6 @@ class Result:
             return {k: dict_list[0][k] for k in sorted(dict_list[0].keys())}
         else:
             return dict_list
-
-
-
 
     def get_statevector(self, experiment=None, decimals=None):
         """Get the final statevector of an experiment.
