@@ -84,7 +84,7 @@ class Instruction:
         # NOTE: The conditional statement checking if the `_label` attribute is
         #       already set is a temporary work around that can be removed after
         #       the next stable qiskit-aer release
-        if label is not None or not hasattr(self, "_label"):
+        if not hasattr(self, "_label"):
             self._label = label
         # tuple (ClassicalRegister, int), tuple (Clbit, bool) or tuple (Clbit, int)
         # when the instruction has a conditional ("if")

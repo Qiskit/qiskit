@@ -372,7 +372,10 @@ class BIPMappingModel:
             for i in range(self.num_pqubits):
                 if self.solution.get_value(f"w_{t}_{q}_{i}") > 0.5:
                     dic[self._index_to_virtual[q]] = i
-        return Layout(dic)
+        layout = Layout(dic)
+        for reg in self._dag.qregs.values():
+            layout.add_register(reg)
+        return layout
 
     def get_swaps(self, t: int) -> list:
         """Get swaps (pairs of physical qubits) inserted at time-step ``t``.

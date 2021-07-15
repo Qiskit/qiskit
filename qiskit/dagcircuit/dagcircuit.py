@@ -395,6 +395,8 @@ class DAGCircuit:
         target_dag = DAGCircuit()
         target_dag.name = self.name
         target_dag._global_phase = self._global_phase
+        target_dag.duration = self.duration
+        target_dag.unit = self.unit
         target_dag.metadata = self.metadata
 
         target_dag.add_qubits(self.qubits)
@@ -598,20 +600,19 @@ class DAGCircuit:
                         )
                     except StopIteration as ex:
                         raise DAGCircuitError(
-                            "Did not find creg containing " "mapped clbit in conditional."
+                            "Did not find creg containing mapped clbit in conditional."
                         ) from ex
                 else:
                     # If cond is on a single Clbit then the candidate_creg is
                     # the target Clbit to which 'bit' is mapped to.
                     candidate_creg = wire_map[bit]
-
                 if new_creg is None:
                     new_creg = candidate_creg
                 elif new_creg != candidate_creg:
                     # Raise if wire_map maps condition creg on to more than one
                     # creg in target DAG.
                     raise DAGCircuitError(
-                        "wire_map maps conditional " "register onto more than one creg."
+                        "wire_map maps conditional register onto more than one creg."
                     )
 
                 if not is_reg:

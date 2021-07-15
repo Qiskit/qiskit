@@ -1,0 +1,25 @@
+---
+fixes:
+  - |
+    When loading an OpenQASM2 file or string with the
+    :meth:`~qiskit.circuitQuantumCircuit.from_qasm_file` or
+    :meth:`~qiskit.circuitQuantumCircuit.from_qasm_str` constructors for the
+    :class:`~qiskit.circuit.QuantumCircuit` class, if the OpenQASM2 circuit
+    contains an instruction with the name ``delay`` this will be mapped to
+    a :class:`qiskit.circuit.Delay` instruction. For example:
+
+    .. jupyter-execute::
+
+       from qiskit import QuantumCircuit
+
+       qasm = """OPENQASM 2.0;
+       include "qelib1.inc";
+       opaque delay(time) q;
+       qreg q[1];
+       delay(172) q[0];
+       u3(0.1,0.2,0.3) q[0];
+       """
+       circuit = QuantumCircuit.from_qasm_str(qasm)
+       circuit.draw()
+
+    Fixed `#6510 <https://github.com/Qiskit/qiskit-terra/issues/6510>`__

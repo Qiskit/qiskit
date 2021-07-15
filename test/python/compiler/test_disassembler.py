@@ -18,15 +18,27 @@ import numpy as np
 from numpy.testing import assert_allclose
 
 from qiskit import pulse
+from qiskit.compiler.assembler import assemble
 from qiskit.assembler.disassemble import disassemble
 from qiskit.assembler.run_config import RunConfig
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.circuit import Instruction
-from qiskit.compiler.assembler import assemble
+from qiskit.circuit import Gate, Instruction, Parameter
+
+from qiskit.circuit.library import RXGate
 from qiskit.pulse.transforms import target_qobj_transform
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 import qiskit.quantum_info as qi
+
+
+def _parametric_to_waveforms(schedule):
+    instructions = list(schedule.instructions)
+    for i, time_instruction_tuple in enumerate(schedule.instructions):
+        time, instruction = time_instruction_tuple
+        if not isinstance(instruction.pulse, pulse.library.Waveform):
+            new_inst = pulse.Play(instruction.pulse.get_waveform(), instruction.channel)
+            instructions[i] = (time, new_inst)
+    return tuple(instructions)
 
 
 class TestQuantumCircuitDisassembler(QiskitTestCase):
@@ -230,6 +242,137 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         self.assertEqual(len(circuits), 1)
         self.assertEqual(circuits[0], qc)
         self.assertEqual({}, header)
+
+    def assertCircuitCalibrationsEqual(self, in_circuits, out_circuits):
+        """Verify circuit calibrations are equivalent pre-assembly and post-disassembly"""
+        self.assertEqual(len(in_circuits), len(out_circuits))
+        for in_qc, out_qc in zip(in_circuits, out_circuits):
+            in_cals = in_qc.calibrations
+            out_cals = out_qc.calibrations
+            self.assertEqual(in_cals.keys(), out_cals.keys())
+            for gate_name in in_cals:
+                self.assertEqual(in_cals[gate_name].keys(), out_cals[gate_name].keys())
+                for gate_params, in_sched in in_cals[gate_name].items():
+                    out_sched = out_cals[gate_name][gate_params]
+                    self.assertEqual(*map(_parametric_to_waveforms, (in_sched, out_sched)))
+
+    def test_single_circuit_calibrations(self):
+        """Test that disassembler parses single circuit QOBJ calibrations (from QOBJ-level)."""
+        theta = Parameter("theta")
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.rx(np.pi, 0)
+        qc.rx(theta, 1)
+        qc = qc.assign_parameters({theta: np.pi})
+
+        with pulse.build() as h_sched:
+            pulse.play(pulse.library.Drag(1, 0.15, 4, 2), pulse.DriveChannel(0))
+
+        with pulse.build() as x180:
+            pulse.play(pulse.library.Gaussian(1, 0.2, 5), pulse.DriveChannel(0))
+
+        qc.add_calibration("h", [0], h_sched)
+        qc.add_calibration(RXGate(np.pi), [0], x180)
+
+        qobj = assemble(qc, FakeOpenPulse2Q())
+        output_circuits, _, _ = disassemble(qobj)
+
+        self.assertCircuitCalibrationsEqual([qc], output_circuits)
+
+    def test_parametric_pulse_circuit_calibrations(self):
+        """Test that disassembler parses parametric pulses back to pulse gates."""
+        with pulse.build() as h_sched:
+            pulse.play(pulse.library.Drag(50, 0.15, 4, 2), pulse.DriveChannel(0))
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.add_calibration("h", [0], h_sched)
+
+        backend = FakeOpenPulse2Q()
+        backend.configuration().parametric_pulses = ["drag"]
+
+        qobj = assemble(qc, backend)
+        output_circuits, _, _ = disassemble(qobj)
+        out_qc = output_circuits[0]
+
+        self.assertCircuitCalibrationsEqual([qc], output_circuits)
+        self.assertTrue(
+            all(
+                qc_sched.instructions == out_qc_sched.instructions
+                for (_, qc_gate), (_, out_qc_gate) in zip(
+                    qc.calibrations.items(), out_qc.calibrations.items()
+                )
+                for qc_sched, out_qc_sched in zip(qc_gate.values(), out_qc_gate.values())
+            ),
+        )
+
+    def test_multi_circuit_uncommon_calibrations(self):
+        """Test that disassembler parses uncommon calibrations (stored at QOBJ experiment-level)."""
+        with pulse.build() as sched:
+            pulse.play(pulse.library.Drag(50, 0.15, 4, 2), pulse.DriveChannel(0))
+
+        qc_0 = QuantumCircuit(2)
+        qc_0.h(0)
+        qc_0.append(RXGate(np.pi), [1])
+        qc_0.add_calibration("h", [0], sched)
+        qc_0.add_calibration(RXGate(np.pi), [1], sched)
+
+        qc_1 = QuantumCircuit(2)
+        qc_1.h(0)
+
+        circuits = [qc_0, qc_1]
+        qobj = assemble(circuits, FakeOpenPulse2Q())
+        output_circuits, _, _ = disassemble(qobj)
+
+        self.assertCircuitCalibrationsEqual(circuits, output_circuits)
+
+    def test_multi_circuit_common_calibrations(self):
+        """Test that disassembler parses common calibrations (stored at QOBJ-level)."""
+        with pulse.build() as sched:
+            pulse.play(pulse.library.Drag(1, 0.15, 4, 2), pulse.DriveChannel(0))
+
+        qc_0 = QuantumCircuit(2)
+        qc_0.h(0)
+        qc_0.append(RXGate(np.pi), [1])
+        qc_0.add_calibration("h", [0], sched)
+        qc_0.add_calibration(RXGate(np.pi), [1], sched)
+
+        qc_1 = QuantumCircuit(2)
+        qc_1.h(0)
+        qc_1.add_calibration(RXGate(np.pi), [1], sched)
+
+        circuits = [qc_0, qc_1]
+        qobj = assemble(circuits, FakeOpenPulse2Q())
+        output_circuits, _, _ = disassemble(qobj)
+
+        self.assertCircuitCalibrationsEqual(circuits, output_circuits)
+
+    def test_single_circuit_delay_calibrations(self):
+        """Test that disassembler parses delay instruction back to delay gate."""
+        qc = QuantumCircuit(2)
+        qc.append(Gate("test", 1, []), [0])
+        test_sched = pulse.Delay(64, pulse.DriveChannel(0)) + pulse.Delay(
+            160, pulse.DriveChannel(0)
+        )
+
+        qc.add_calibration("test", [0], test_sched)
+
+        qobj = assemble(qc, FakeOpenPulse2Q())
+        output_circuits, _, _ = disassemble(qobj)
+
+        self.assertEqual(len(qc.calibrations), len(output_circuits[0].calibrations))
+        self.assertEqual(qc.calibrations.keys(), output_circuits[0].calibrations.keys())
+        self.assertTrue(
+            all(
+                qc_cal.keys() == out_qc_cal.keys()
+                for qc_cal, out_qc_cal in zip(
+                    qc.calibrations.values(), output_circuits[0].calibrations.values()
+                )
+            )
+        )
+        self.assertEqual(
+            qc.calibrations["test"][((0,), ())], output_circuits[0].calibrations["test"][((0,), ())]
+        )
 
 
 class TestPulseScheduleDisassembler(QiskitTestCase):
