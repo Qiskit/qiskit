@@ -252,6 +252,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
 
     @classmethod
     def setUpClass(cls):
+        super().setUpClass()
         class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
         exclude = {
             "ControlledGate",
