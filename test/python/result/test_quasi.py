@@ -29,6 +29,6 @@ class TestQuasi(QiskitTestCase):
         ans = {"000": 9 / 20, "001": 7 / 20, "010": 1 / 5}
         # Check probs are correct
         for key, val in closest.items():
-            assert abs(ans[key] - val) < 1e-14
+            self.assertTrue(abs(ans[key] - val) < 1e-14)
         # Check if distance calculation is correct
-        assert abs(dist - sqrt(0.38)) < 1e-14
+        self.assertTrue(abs(dist - sqrt(0.38)) < 1e-14)

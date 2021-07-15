@@ -21,6 +21,7 @@ import scipy.linalg as la
 import scipy.sparse.linalg as spla
 import orjson
 
+from qiskit import transpile
 from qiskit.exceptions import QiskitError
 from .matrix import _reduced_cal_matrix, sdd_check
 from .utils import counts_to_vector, vector_to_quasiprobs
