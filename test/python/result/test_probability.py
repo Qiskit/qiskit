@@ -12,7 +12,6 @@
 
 """Test conversion to probability distribution"""
 from qiskit.test import QiskitTestCase
-from qiskit.result import ProbDistribution
 
 
 class TestProbDistribution(QiskitTestCase):
