@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Disassembled circuits now inherit calibrations from assembled qobj and experiment.
+    Fixes `#5348 <https://github.com/Qiskit/qiskit-terra/issues/5348>`
