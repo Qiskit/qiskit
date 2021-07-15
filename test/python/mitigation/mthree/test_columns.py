@@ -9,12 +9,12 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+# pylint: disable=no-name-in-module
 
 """Test conversion to probability distribution"""
 import numpy as np
 
 from qiskit.test import QiskitTestCase
-from qiskit.result import QuasiDistribution
 from qiskit.mitigation.mthree.hamming import hamming_ball
 from qiskit.mitigation.mthree.test.column_testing import _test_vector_column_norm
 

@@ -9,7 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=no-name-in-module
+# pylint: disable=no-name-in-module, invalid-name, c-extension-no-member
 """Main M3 mitigation module"""
 
 import warnings
@@ -21,6 +21,7 @@ import scipy.linalg as la
 import scipy.sparse.linalg as spla
 import orjson
 
+from qiskit.exceptions import QiskitError
 from .matrix import _reduced_cal_matrix, sdd_check
 from .utils import counts_to_vector, vector_to_quasiprobs
 from .norms import ainv_onenorm_est_lu, ainv_onenorm_est_iter
