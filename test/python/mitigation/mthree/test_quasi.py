@@ -25,15 +25,14 @@ class TestQuasi(QiskitTestCase):
         """Test quasi-probs attributes are set"""
         backend = FakeCasablanca()
 
-        N = 4
-        qc = QuantumCircuit(N)
+        qc = QuantumCircuit(4)
         qc.h(0)
         qc.cx(0, 1)
         qc.cx(1, 2)
         qc.cx(2, 3)
         qc.measure_all()
 
-        qubits = [0, 1, 3, 5, 4]
+        qubits = [0, 1, 3, 5]
         mit = M3Mitigation(backend)
         mit.tensored_cals_from_system(qubits)
 
