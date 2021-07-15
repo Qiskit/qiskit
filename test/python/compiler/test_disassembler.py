@@ -252,7 +252,7 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
             self.assertEqual(in_cals.keys(), out_cals.keys())
             for gate_name in in_cals:
                 self.assertEqual(in_cals[gate_name].keys(), out_cals[gate_name].keys())
-                for gate_params, in_sched in in_cals[gate_name]:
+                for gate_params, in_sched in in_cals[gate_name].items():
                     out_sched = out_cals[gate_name][gate_params]
                     self.assertEqual(*map(_parametric_to_waveforms, (in_sched, out_sched)))
 
