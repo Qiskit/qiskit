@@ -29,6 +29,7 @@ An instance of this class is instantiated by Pulse-enabled backends and populate
 import inspect
 import warnings
 from collections import defaultdict
+from enum import IntEnum
 from typing import Callable, Iterable, List, Tuple, Union, Optional, NamedTuple
 
 from qiskit.circuit.instruction import Instruction
@@ -40,6 +41,14 @@ Generator = NamedTuple(
     "Generator",
     [("function", Union[Callable, Schedule, ScheduleBlock]), ("signature", inspect.Signature)],
 )
+
+
+class CalibrationPublisher(IntEnum):
+    """Defines who defined schedule entry."""
+
+    BackendProvider = 0
+    Qiskit = 1
+    ExperimentService = 2
 
 
 class InstructionScheduleMap:
@@ -300,6 +309,10 @@ class InstructionScheduleMap:
                 "Supplied schedule must be one of the Schedule, ScheduleBlock or a "
                 "callable that outputs a schedule."
             )
+
+        # add metadata
+        if "publisher" not in schedule.metadata:
+            schedule.metadata["publisher"] = CalibrationPublisher.Qiskit
 
         self._map[instruction][qubits] = Generator(schedule, signature)
         self._qubit_instructions[qubits].add(instruction)
