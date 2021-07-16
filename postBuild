@@ -7,7 +7,8 @@
 # - pylatexenc: for MPL drawer
 # - pillow: for image comparison
 # - appmode: jupyter extension for executing the notebook
-pip install matplotlib pylatexenc pillow appmode
+# - seaborn: visualisation pacakge required for some graphs
+pip install matplotlib pylatexenc pillow appmode seaborn
 pip install .
 
 # Install QCircuit for LaTeX drawer
