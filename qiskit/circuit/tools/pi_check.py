@@ -64,7 +64,7 @@ def pi_check(inpt, eps=1e-6, output="text", ndigits=5):
                 # in order to preserve spacing around minuses in expression
                 if pi[0] == "-":
                     pi = pi[1:]
-                param_str = param_str.replace(str(abs(sym)), pi)
+                param_str = param_str.replace(str(abs(float(sym))), pi)
         return param_str
     elif isinstance(inpt, str):
         return inpt
