@@ -47,6 +47,7 @@ from qiskit.transpiler.passes import ALAPSchedule
 from qiskit.transpiler.passes import ASAPSchedule
 from qiskit.transpiler.passes import AlignMeasures
 from qiskit.transpiler.passes import ValidatePulseGates
+from qiskit.transpiler.passes import PulseGates
 from qiskit.transpiler.passes import Error
 
 from qiskit.transpiler import TranspilerError
@@ -76,6 +77,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         TranspilerError: if the passmanager config is invalid.
     """
     basis_gates = pass_manager_config.basis_gates
+    inst_map = pass_manager_config.inst_map
     coupling_map = pass_manager_config.coupling_map
     initial_layout = pass_manager_config.initial_layout
     layout_method = pass_manager_config.layout_method or "trivial"
@@ -162,7 +164,10 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _direction = [GateDirection(coupling_map)]
 
-    # 7. Unify all durations (either SI, or convert to dt if known)
+    # 7. Add calibrations for pulse gates
+    _calibrations = PulseGates(inst_map=inst_map)
+
+    # 8. Unify all durations (either SI, or convert to dt if known)
     # Schedule the circuit only when scheduling_method is supplied
     _scheduling = [TimeUnitConversion(instruction_durations)]
     if scheduling_method:
@@ -173,7 +178,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         else:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
 
-    # 8. Call measure alignment. Should come after scheduling.
+    # 9. Call measure alignment. Should come after scheduling.
     _alignments = [
         ValidatePulseGates(
             granularity=timing_constraints.granularity, min_length=timing_constraints.min_length
@@ -195,6 +200,8 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm0.append(_direction_check)
         pm0.append(_direction, condition=_direction_condition)
         pm0.append(_unroll)
+    if inst_map and inst_map.instructions:
+        pm0.append(_calibrations)
     pm0.append(_scheduling)
     pm0.append(_alignments)
     return pm0

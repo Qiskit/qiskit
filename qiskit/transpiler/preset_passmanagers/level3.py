@@ -58,6 +58,7 @@ from qiskit.transpiler.passes import ALAPSchedule
 from qiskit.transpiler.passes import ASAPSchedule
 from qiskit.transpiler.passes import AlignMeasures
 from qiskit.transpiler.passes import ValidatePulseGates
+from qiskit.transpiler.passes import PulseGates
 from qiskit.transpiler.passes import Error
 
 from qiskit.transpiler import TranspilerError
@@ -91,6 +92,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         TranspilerError: if the passmanager config is invalid.
     """
     basis_gates = pass_manager_config.basis_gates
+    inst_map = pass_manager_config.inst_map
     coupling_map = pass_manager_config.coupling_map
     initial_layout = pass_manager_config.initial_layout
     layout_method = pass_manager_config.layout_method or "dense"
@@ -248,7 +250,10 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         CommutativeCancellation(),
     ]
 
-    # 9. Unify all durations (either SI, or convert to dt if known)
+    # 9. Add calibrations for pulse gates
+    _calibrations = PulseGates(inst_map=inst_map)
+
+    # 10. Unify all durations (either SI, or convert to dt if known)
     # Schedule the circuit only when scheduling_method is supplied
     _scheduling = [TimeUnitConversion(instruction_durations)]
     if scheduling_method:
@@ -259,7 +264,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         else:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
 
-    # 10. Call measure alignment. Should come after scheduling.
+    # 11. Call measure alignment. Should come after scheduling.
     _alignments = [
         ValidatePulseGates(
             granularity=timing_constraints.granularity, min_length=timing_constraints.min_length
@@ -285,6 +290,8 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm3.append(_direction, condition=_direction_condition)
     pm3.append(_reset)
     pm3.append(_depth_check + _opt + _unroll, do_while=_opt_control)
+    if inst_map and inst_map.instructions:
+        pm3.append(_calibrations)
     pm3.append(_scheduling)
     pm3.append(_alignments)
 

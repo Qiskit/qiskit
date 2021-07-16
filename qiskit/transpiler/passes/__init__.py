@@ -76,6 +76,14 @@ Optimizations
    CrosstalkAdaptiveSchedule
    TemplateOptimization
 
+Calibration
+=============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+    PulseGates
+
 Scheduling
 =============
 
@@ -186,6 +194,9 @@ from .analysis import DAGLongestPath
 
 # synthesis
 from .synthesis import UnitarySynthesis
+
+# calibration
+from .calibration import PulseGates
 
 # circuit scheduling
 from .scheduling import TimeUnitConversion
