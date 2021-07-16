@@ -81,10 +81,8 @@ class BIPMappingModel:
         self.num_pqubits = self._coupling.size()
         self._arcs = self._coupling.get_edges()
 
-        # pylint: disable=unnecessary-comprehension
-        initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
-        self._virtual_to_index = {v: i for i, v in enumerate(initial_layout.get_virtual_bits())}
-        self._index_to_virtual = {i: v for i, v in enumerate(initial_layout.get_virtual_bits())}
+        self._index_to_virtual = dict(enumerate(dag.qubits))
+        self._virtual_to_index = {v: i for i, v in self._index_to_virtual.items()}
 
         # Construct internal circuit model
         # Extract layers with 2-qubit gates
