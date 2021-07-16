@@ -35,7 +35,7 @@ class MetaPass(type):
         self_guard = object()
         init_signature = signature(class_.__init__)
         bound_signature = init_signature.bind(self_guard, *args, **kwargs)
-        arguments = [('class_.__name__', class_.__name__)]
+        arguments = [("class_.__name__", class_.__name__)]
         for name, value in bound_signature.arguments.items():
             if value == self_guard:
                 continue
@@ -53,9 +53,8 @@ class BasePass(metaclass=MetaPass):
         self.requires = []  # List of passes that requires
         self.preserves = []  # List of passes that preserves
         self.property_set = PropertySet()  # This pass's pointer to the pass manager's property set.
-        self._hash = None
+        self._hash = hash(None)
 
-    # pylint: disable=invalid-hash-returned
     def __hash__(self):
         return self._hash
 
@@ -131,17 +130,19 @@ class BasePass(metaclass=MetaPass):
         elif result is None:
             result_circuit = circuit.copy()
 
-        if self.property_set['layout']:
-            result_circuit._layout = self.property_set['layout']
+        if self.property_set["layout"]:
+            result_circuit._layout = self.property_set["layout"]
 
         return result_circuit
 
 
 class AnalysisPass(BasePass):  # pylint: disable=abstract-method
     """An analysis pass: change property set, not DAG."""
+
     pass
 
 
 class TransformationPass(BasePass):  # pylint: disable=abstract-method
     """A transformation pass: change DAG, not property set."""
+
     pass

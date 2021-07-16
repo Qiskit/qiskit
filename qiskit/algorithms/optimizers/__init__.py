@@ -50,13 +50,16 @@ Local Optimizers
    COBYLA
    L_BFGS_B
    GSLS
+   GradientDescent
    NELDER_MEAD
    NFT
    P_BFGS
    POWELL
    SLSQP
    SPSA
+   QNSPSA
    TNC
+   SciPyOptimizer
 
 Qiskit also provides the following optimizers, which are built-out using the optimizers from
 the `scikit-quant` package. The `scikit-quant` package is not installed by default but must be
@@ -97,43 +100,57 @@ The global optimizers are as follows:
 
 """
 
-from .optimizer import OptimizerSupportLevel, Optimizer
 from .adam_amsgrad import ADAM
+from .aqgd import AQGD
+from .bobyqa import BOBYQA
 from .cg import CG
 from .cobyla import COBYLA
-from .l_bfgs_b import L_BFGS_B
 from .gsls import GSLS
+from .gradient_descent import GradientDescent
+from .imfil import IMFIL
+from .l_bfgs_b import L_BFGS_B
 from .nelder_mead import NELDER_MEAD
-from .p_bfgs import P_BFGS
-from .powell import POWELL
-from .slsqp import SLSQP
-from .spsa import SPSA
-from .tnc import TNC
-from .aqgd import AQGD
 from .nft import NFT
 from .nlopts.crs import CRS
 from .nlopts.direct_l import DIRECT_L
 from .nlopts.direct_l_rand import DIRECT_L_RAND
 from .nlopts.esch import ESCH
 from .nlopts.isres import ISRES
+from .optimizer import Optimizer, OptimizerSupportLevel
+from .p_bfgs import P_BFGS
+from .powell import POWELL
+from .qnspsa import QNSPSA
+from .scipy_optimizer import SciPyOptimizer
+from .slsqp import SLSQP
 from .snobfit import SNOBFIT
-from .bobyqa import BOBYQA
-from .imfil import IMFIL
+from .spsa import SPSA
+from .tnc import TNC
 
-__all__ = ['Optimizer',
-           'OptimizerSupportLevel',
-           'ADAM',
-           'AQGD',
-           'CG',
-           'COBYLA',
-           'GSLS',
-           'L_BFGS_B',
-           'NELDER_MEAD',
-           'NFT',
-           'P_BFGS',
-           'POWELL',
-           'SLSQP',
-           'SPSA',
-           'TNC',
-           'CRS', 'DIRECT_L', 'DIRECT_L_RAND', 'ESCH', 'ISRES',
-           'SNOBFIT', 'BOBYQA', 'IMFIL']
+__all__ = [
+    "Optimizer",
+    "OptimizerSupportLevel",
+    "ADAM",
+    "AQGD",
+    "CG",
+    "COBYLA",
+    "GSLS",
+    "GradientDescent",
+    "L_BFGS_B",
+    "NELDER_MEAD",
+    "NFT",
+    "P_BFGS",
+    "POWELL",
+    "SciPyOptimizer",
+    "SLSQP",
+    "SPSA",
+    "QNSPSA",
+    "TNC",
+    "CRS",
+    "DIRECT_L",
+    "DIRECT_L_RAND",
+    "ESCH",
+    "ISRES",
+    "SNOBFIT",
+    "BOBYQA",
+    "IMFIL",
+]

@@ -34,6 +34,7 @@ class ScalarOp(LinearOp):
     kinds of operator subclasses by using the :meth:`compose`, :meth:`dot`,
     :meth:`tensor`, :meth:`expand` methods.
     """
+
     def __init__(self, dims=None, coeff=1):
         """Initialize an operator object.
 
@@ -46,7 +47,7 @@ class ScalarOp(LinearOp):
             QiskitError: If the optional coefficient is invalid.
         """
         if not isinstance(coeff, Number):
-            QiskitError("coeff {} must be a number.".format(coeff))
+            QiskitError(f"coeff {coeff} must be a number.")
         self._coeff = coeff
         super().__init__(input_dims=dims, output_dims=dims)
 
@@ -56,8 +57,7 @@ class ScalarOp(LinearOp):
         return self.to_matrix()
 
     def __repr__(self):
-        return 'ScalarOp({}, coeff={})'.format(
-            self.input_dims(), self.coeff)
+        return f"ScalarOp({self.input_dims()}, coeff={self.coeff})"
 
     @property
     def coeff(self):
@@ -88,13 +88,13 @@ class ScalarOp(LinearOp):
 
     def to_operator(self):
         """Convert to an Operator object."""
-        return Operator(self.to_matrix(),
-                        input_dims=self.input_dims(),
-                        output_dims=self.output_dims())
+        return Operator(
+            self.to_matrix(), input_dims=self.input_dims(), output_dims=self.output_dims()
+        )
 
     def compose(self, other, qargs=None, front=False):
         if qargs is None:
-            qargs = getattr(other, 'qargs', None)
+            qargs = getattr(other, "qargs", None)
         if not isinstance(other, BaseOperator):
             other = Operator(other)
 
@@ -127,8 +127,7 @@ class ScalarOp(LinearOp):
         # Note that this will raise an error if the other operator does
         # not support initialization from a ScalarOp or the ScalarOps
         # `to_operator` method).
-        return other.__class__(self).compose(
-            other, qargs=qargs, front=front)
+        return other.__class__(self).compose(other, qargs=qargs, front=front)
 
     def power(self, n):
         """Return the power of the ScalarOp.
@@ -186,7 +185,7 @@ class ScalarOp(LinearOp):
             QiskitError: if other has incompatible dimensions.
         """
         if qargs is None:
-            qargs = getattr(other, 'qargs', None)
+            qargs = getattr(other, "qargs", None)
 
         if not isinstance(other, BaseOperator):
             other = Operator(other)
@@ -195,7 +194,7 @@ class ScalarOp(LinearOp):
 
         # Next if we are adding two ScalarOps we return a ScalarOp
         if isinstance(other, ScalarOp):
-            return ScalarOp(self.input_dims(), coeff=self.coeff+other.coeff)
+            return ScalarOp(self.input_dims(), coeff=self.coeff + other.coeff)
 
         # If qargs are specified we have to pad the other BaseOperator
         # with identities on remaining subsystems. We do this by
@@ -227,7 +226,7 @@ class ScalarOp(LinearOp):
             QiskitError: if other is not a valid complex number.
         """
         if not isinstance(other, Number):
-            raise QiskitError("other ({}) is not a number".format(other))
+            raise QiskitError(f"other ({other}) is not a number")
         ret = self.copy()
         ret._coeff = other * self.coeff
         return ret

@@ -25,16 +25,16 @@ from qiskit.circuit.exceptions import CircuitError
 class Register:
     """Implement a generic register."""
 
-    __slots__ = ['_name', '_size', '_bits', '_hash', '_repr']
+    __slots__ = ["_name", "_size", "_bits", "_hash", "_repr"]
 
     # Register name should conform to OpenQASM 2.0 specification
     # See appendix A of https://arxiv.org/pdf/1707.03429v2.pdf
-    name_format = re.compile('[a-z][a-zA-Z0-9_]*')
+    name_format = re.compile("[a-z][a-zA-Z0-9_]*")
 
     # Counter for the number of instances in this class.
     instances_counter = itertools.count()
     # Prefix to use for auto naming.
-    prefix = 'reg'
+    prefix = "reg"
     bit_type = None
 
     def __init__(self, size=None, name=None, bits=None):
@@ -60,13 +60,11 @@ class Register:
             CircuitError: if ``bits`` contained bits of an incorrect type.
         """
 
-        if (
-                (size, bits) == (None, None)
-                or (size is not None and bits is not None)
-        ):
-            raise CircuitError("Exactly one of the size or bits arguments can be "
-                               "provided. Provided size=%s bits=%s."
-                               % (size, bits))
+        if (size, bits) == (None, None) or (size is not None and bits is not None):
+            raise CircuitError(
+                "Exactly one of the size or bits arguments can be "
+                "provided. Provided size=%s bits=%s." % (size, bits)
+            )
 
         # validate (or cast) size
         if bits is not None:
@@ -78,26 +76,34 @@ class Register:
             valid_size = False
 
         if not valid_size:
-            raise CircuitError("Register size must be an integer. (%s '%s' was provided)"
-                               % (type(size).__name__, size))
+            raise CircuitError(
+                "Register size must be an integer. (%s '%s' was provided)"
+                % (type(size).__name__, size)
+            )
         size = int(size)  # cast to int
 
         if size <= 0:
-            raise CircuitError("Register size must be positive (%s '%s' was provided)"
-                               % (type(size).__name__, size))
+            raise CircuitError(
+                "Register size must be positive (%s '%s' was provided)"
+                % (type(size).__name__, size)
+            )
 
         # validate (or cast) name
         if name is None:
-            name = '%s%i' % (self.prefix, next(self.instances_counter))
+            name = "%s%i" % (self.prefix, next(self.instances_counter))
         else:
             try:
                 name = str(name)
             except Exception as ex:
-                raise CircuitError("The circuit name should be castable to a string "
-                                   "(or None for autogenerate a name).") from ex
+                raise CircuitError(
+                    "The circuit name should be castable to a string "
+                    "(or None for autogenerate a name)."
+                ) from ex
             if self.name_format.match(name) is None:
-                raise CircuitError("%s is an invalid OPENQASM register name. See appendix"
-                                   " A of https://arxiv.org/pdf/1707.03429v2.pdf." % name)
+                raise CircuitError(
+                    "%s is an invalid OPENQASM register name. See appendix"
+                    " A of https://arxiv.org/pdf/1707.03429v2.pdf." % name
+                )
 
         self._name = name
         self._size = size
@@ -107,8 +113,9 @@ class Register:
         if bits is not None:
             # pylint: disable=isinstance-second-argument-not-valid-type
             if any(not isinstance(bit, self.bit_type) for bit in bits):
-                raise CircuitError("Provided bits did not all match "
-                                   "register type. bits=%s" % bits)
+                raise CircuitError(
+                    "Provided bits did not all match " "register type. bits=%s" % bits
+                )
             self._bits = list(bits)
         else:
             self._bits = [self.bit_type(self, idx) for idx in range(size)]
@@ -142,8 +149,7 @@ class Register:
             key is int. If key is a slice, returns a list of these instances.
 
         Raises:
-            CircuitError: if the `key` is not an integer.
-            QiskitIndexError: if the `key` is not in the range `(0, self.size)`.
+            CircuitError: if the `key` is not an integer or not in the range `(0, self.size)`.
         """
         if not isinstance(key, (int, np.integer, slice, list)):
             raise CircuitError("expected integer or slice index into register")
@@ -153,7 +159,7 @@ class Register:
             if max(key) < len(self):
                 return [self._bits[idx] for idx in key]
             else:
-                raise CircuitError('register index out of range')
+                raise CircuitError("register index out of range")
         else:
             return self._bits[key]
 
@@ -178,16 +184,16 @@ class Register:
             return True
 
         res = False
-        if type(self) is type(other) and \
-                self._repr == other._repr and \
-                all(
-                        # For new-style bits, check bitwise equality.
-                        sbit == obit
-                        for sbit, obit in zip(self, other)
-                        if None in
-                        (sbit._register, sbit._index,
-                         obit._register, obit._index)
-                ):
+        if (
+            type(self) is type(other)
+            and self._repr == other._repr
+            and all(
+                # For new-style bits, check bitwise equality.
+                sbit == obit
+                for sbit, obit in zip(self, other)
+                if None in (sbit._register, sbit._index, obit._register, obit._index)
+            )
+        ):
             res = True
         return res
 

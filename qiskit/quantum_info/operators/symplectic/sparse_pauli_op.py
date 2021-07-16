@@ -13,6 +13,7 @@
 N-Qubit Sparse Pauli Operator class.
 """
 
+from typing import Dict
 from numbers import Number
 import numpy as np
 
@@ -64,10 +65,11 @@ class SparsePauliOp(LinearOp):
 
         # Initialize Coeffs
         self._coeffs = np.asarray(coeffs, dtype=complex)
-        if self._coeffs.shape != (self._table.size, ):
-            raise QiskitError("coeff vector is incorrect shape for number"
-                              " of Paulis {} != {}".format(self._coeffs.shape,
-                                                           self._table.size))
+        if self._coeffs.shape != (self._table.size,):
+            raise QiskitError(
+                "coeff vector is incorrect shape for number"
+                " of Paulis {} != {}".format(self._coeffs.shape, self._table.size)
+            )
         # Initialize LinearOp
         super().__init__(num_qubits=self._table.num_qubits)
 
@@ -77,18 +79,27 @@ class SparsePauliOp(LinearOp):
         return self.to_matrix()
 
     def __repr__(self):
-        prefix = 'SparsePauliOp('
-        pad = len(prefix) * ' '
-        return '{}{},\n{}coeffs={})'.format(
-            prefix, np.array2string(
-                self.table.array, separator=', ', prefix=prefix),
-            pad, np.array2string(self.coeffs, separator=', '))
+        prefix = "SparsePauliOp("
+        pad = len(prefix) * " "
+        return "{}{},\n{}coeffs={})".format(
+            prefix,
+            np.array2string(self.table.array, separator=", ", prefix=prefix),
+            pad,
+            np.array2string(self.coeffs, separator=", "),
+        )
 
     def __eq__(self, other):
         """Check if two SparsePauliOp operators are equal"""
-        return (super().__eq__(other)
-                and np.allclose(self.coeffs, other.coeffs)
-                and self.table == other.table)
+        return (
+            super().__eq__(other)
+            and np.allclose(self.coeffs, other.coeffs)
+            and self.table == other.table
+        )
+
+    @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        return {"data": self._table, "coeffs": self._coeffs}
 
     # ---------------------------------------------------------------------
     # Data accessors
@@ -171,7 +182,7 @@ class SparsePauliOp(LinearOp):
 
     def compose(self, other, qargs=None, front=False):
         if qargs is None:
-            qargs = getattr(other, 'qargs', None)
+            qargs = getattr(other, "qargs", None)
 
         if not isinstance(other, SparsePauliOp):
             other = SparsePauliOp(other)
@@ -227,7 +238,7 @@ class SparsePauliOp(LinearOp):
 
     def _add(self, other, qargs=None):
         if qargs is None:
-            qargs = getattr(other, 'qargs', None)
+            qargs = getattr(other, "qargs", None)
 
         if not isinstance(other, SparsePauliOp):
             other = SparsePauliOp(other)
@@ -276,8 +287,12 @@ class SparsePauliOp(LinearOp):
         # Compose with adjoint
         val = self.compose(self.adjoint()).simplify()
         # See if the result is an identity
-        return (val.size == 1 and np.isclose(val.coeffs[0], 1.0, atol=atol, rtol=rtol)
-                and not np.any(val.table.X) and not np.any(val.table.Z))
+        return (
+            val.size == 1
+            and np.isclose(val.coeffs[0], 1.0, atol=atol, rtol=rtol)
+            and not np.any(val.table.X)
+            and not np.any(val.table.Z)
+        )
 
     def simplify(self, atol=None, rtol=None):
         """Simplify PauliTable by combining duplicates and removing zeros.
@@ -297,21 +312,21 @@ class SparsePauliOp(LinearOp):
         if rtol is None:
             rtol = self.rtol
 
-        table, indexes = np.unique(self.table.array,
-                                   return_inverse=True, axis=0)
+        table, indexes = np.unique(self.table.array, return_inverse=True, axis=0)
         coeffs = np.zeros(len(table), dtype=complex)
         for i, val in zip(indexes, self.coeffs):
             coeffs[i] += val
         # Delete zero coefficient rows
         # TODO: Add atol/rtol for zero comparison
-        non_zero = [i for i in range(coeffs.size)
-                    if not np.isclose(coeffs[i], 0, atol=atol, rtol=rtol)]
+        non_zero = [
+            i for i in range(coeffs.size) if not np.isclose(coeffs[i], 0, atol=atol, rtol=rtol)
+        ]
         table = table[non_zero]
         coeffs = coeffs[non_zero]
         # Check edge case that we deleted all Paulis
         # In this case we return an identity Pauli with a zero coefficient
         if coeffs.size == 0:
-            table = np.zeros((1, 2*self.num_qubits), dtype=bool)
+            table = np.zeros((1, 2 * self.num_qubits), dtype=bool)
             coeffs = np.array([0j])
         return SparsePauliOp(table, coeffs)
 
@@ -378,7 +393,7 @@ class SparsePauliOp(LinearOp):
         num_qubits = len(PauliTable._from_label(obj[0][0]))
         size = len(obj)
         coeffs = np.zeros(size, dtype=complex)
-        labels = np.zeros(size, dtype='<U{}'.format(num_qubits))
+        labels = np.zeros(size, dtype=f"<U{num_qubits}")
         for i, item in enumerate(obj):
             labels[i] = item[0]
             coeffs[i] = item[1]
@@ -401,11 +416,9 @@ class SparsePauliOp(LinearOp):
         """
         # Dtype for a structured array with string labels and complex coeffs
         pauli_labels = self.table.to_labels(array=True)
-        labels = np.zeros(self.size,
-                          dtype=[('labels', pauli_labels.dtype),
-                                 ('coeffs', 'c16')])
-        labels['labels'] = pauli_labels
-        labels['coeffs'] = self.coeffs
+        labels = np.zeros(self.size, dtype=[("labels", pauli_labels.dtype), ("coeffs", "c16")])
+        labels["labels"] = pauli_labels
+        labels["coeffs"] = self.coeffs
         if array:
             return labels
         return labels.tolist()
@@ -447,11 +460,12 @@ class SparsePauliOp(LinearOp):
         Returns:
             LabelIterator: label iterator object for the PauliTable.
         """
+
         class LabelIterator(CustomIterator):
             """Label representation iteration and item access."""
+
             def __repr__(self):
-                return "<SparsePauliOp_label_iterator at {}>".format(
-                    hex(id(self)))
+                return f"<SparsePauliOp_label_iterator at {hex(id(self))}>"
 
             def __getitem__(self, key):
                 coeff = self.obj.coeffs[key]
@@ -475,15 +489,16 @@ class SparsePauliOp(LinearOp):
         Returns:
             MatrixIterator: matrix iterator object for the PauliTable.
         """
+
         class MatrixIterator(CustomIterator):
             """Matrix representation iteration and item access."""
+
             def __repr__(self):
-                return "<SparsePauliOp_matrix_iterator at {}>".format(hex(id(self)))
+                return f"<SparsePauliOp_matrix_iterator at {hex(id(self))}>"
 
             def __getitem__(self, key):
                 coeff = self.obj.coeffs[key]
-                mat = PauliTable._to_matrix(self.obj.table.array[key],
-                                            sparse=sparse)
+                mat = PauliTable._to_matrix(self.obj.table.array[key], sparse=sparse)
                 return coeff * mat
 
         return MatrixIterator(self)

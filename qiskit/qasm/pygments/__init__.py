@@ -26,6 +26,7 @@ Qasm Pygments tools (:mod:`qiskit.qasm.pygments`)
 """
 try:
     import pygments
+
     HAS_PYGMENTS = True
 except ImportError:
     HAS_PYGMENTS = False

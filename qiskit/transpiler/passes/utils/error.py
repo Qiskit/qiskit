@@ -23,7 +23,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 class Error(AnalysisPass):
     """Error pass to be called when an error happens."""
 
-    def __init__(self, msg=None, action='raise'):
+    def __init__(self, msg=None, action="raise"):
         """Error pass.
 
         Args:
@@ -38,10 +38,10 @@ class Error(AnalysisPass):
         """
         super().__init__()
         self.msg = msg
-        if action in ['raise', 'warn', 'log']:
+        if action in ["raise", "warn", "log"]:
             self.action = action
         else:
-            raise TranspilerError('Unknown action: %s' % action)
+            raise TranspilerError("Unknown action: %s" % action)
 
     def run(self, _):
         """Run the Error pass on `dag`."""
@@ -50,12 +50,12 @@ class Error(AnalysisPass):
         properties = {prop_name: self.property_set[prop_name] for prop_name in prop_names}
         msg = msg.format(**properties)
 
-        if self.action == 'raise':
+        if self.action == "raise":
             raise TranspilerError(msg)
-        if self.action == 'warn':
+        if self.action == "warn":
             warnings.warn(msg, Warning)
-        elif self.action == 'log':
+        elif self.action == "log":
             logger = logging.getLogger(__name__)
             logger.info(msg)
         else:
-            raise TranspilerError('Unknown action: %s' % self.action)
+            raise TranspilerError("Unknown action: %s" % self.action)

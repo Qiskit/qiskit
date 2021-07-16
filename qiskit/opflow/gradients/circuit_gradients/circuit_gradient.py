@@ -36,14 +36,19 @@ class CircuitGradient(ConverterBase):
 
     # pylint: disable=arguments-differ
     @abstractmethod
-    def convert(self,
-                operator: OperatorBase,
-                params: Optional[Union[ParameterExpression, ParameterVector,
-                                       List[ParameterExpression],
-                                       Tuple[ParameterExpression, ParameterExpression],
-                                       List[Tuple[ParameterExpression, ParameterExpression]]]]
-                = None,
-                ) -> OperatorBase:
+    def convert(
+        self,
+        operator: OperatorBase,
+        params: Optional[
+            Union[
+                ParameterExpression,
+                ParameterVector,
+                List[ParameterExpression],
+                Tuple[ParameterExpression, ParameterExpression],
+                List[Tuple[ParameterExpression, ParameterExpression]],
+            ]
+        ] = None,
+    ) -> OperatorBase:
         r"""
         Args:
             operator: The operator we are taking the gradient of

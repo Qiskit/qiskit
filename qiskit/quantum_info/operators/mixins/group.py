@@ -50,20 +50,23 @@ class GroupMixin(ABC):
         - ``tensor(self, other)``
         - ``expand(self, other)``
     """
+
     @deprecate_function(
-        'Using the `__mul__` operator `A * B` as shorthand for'
-        ' `A.dot(B)` is deprecated as of version 0.17.0 and will be '
-        ' removed no earlier than 3 months after the release date.'
-        ' As an alternative, use the compose operator `B & A`'
-        ' in place of `A * B` as a replacement.')
+        "Using the `__mul__` operator `A * B` as shorthand for"
+        " `A.dot(B)` is deprecated as of version 0.17.0 and will be "
+        " removed no earlier than 3 months after the release date."
+        " As an alternative, use the compose operator `B & A`"
+        " in place of `A * B` as a replacement."
+    )
     def __mul__(self, other):
         return self.dot(other)
 
     @deprecate_function(
-        'Using the `__matmul__` operator `A @ B` as shorthand for'
-        ' `A.compose(B)` is deprecated as of version 0.17.0 and will be '
-        ' removed no earlier than 3 months after the release date.'
-        ' Use the `A & B` instead.')
+        "Using the `__matmul__` operator `A @ B` as shorthand for"
+        " `A.compose(B)` is deprecated as of version 0.17.0 and will be "
+        " removed no earlier than 3 months after the release date."
+        " Use the `A & B` instead."
+    )
     def __matmul__(self, other):
         return self.compose(other)
 

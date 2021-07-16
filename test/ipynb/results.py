@@ -30,14 +30,14 @@ class Results:
         self.exact_match = []
         self.mismatch = []
         self.missing = []
-        datafilename = os.path.join(SWD, directory, 'result_test.json')
+        datafilename = os.path.join(SWD, directory, "result_test.json")
         if os.path.exists(datafilename):
             with open(datafilename) as datafile:
                 self.data = json.load(datafile)
 
     @staticmethod
     def _black_or_b(diff_image, image, reference, opacity=0.85):
-        """Copied from https://stackoverflow.com/a/30307875 """
+        """Copied from https://stackoverflow.com/a/30307875"""
         thresholded_diff = diff_image
         for _ in range(3):
             thresholded_diff = ImageChops.add(thresholded_diff, thresholded_diff)
@@ -55,19 +55,20 @@ class Results:
 
     @staticmethod
     def _get_black_pixels(image):
-        black_and_white_version = image.convert('1')
+        black_and_white_version = image.convert("1")
         black_pixels = black_and_white_version.histogram()[0]
         return black_pixels
 
     @staticmethod
     def _similarity_ratio(current, expected):
-        diff_name = current.split('.')
-        diff_name.insert(-1, 'diff')
-        diff_name = '.'.join(diff_name)
+        diff_name = current.split(".")
+        diff_name.insert(-1, "diff")
+        diff_name = ".".join(diff_name)
+
         current = Image.open(current)
         expected = Image.open(expected)
 
-        diff = ImageChops.difference(expected, current).convert('L')
+        diff = ImageChops.difference(expected, current).convert("L")
         Results._black_or_b(diff, current, expected).save(diff_name, "PNG")
         black_pixels = Results._get_black_pixels(diff)
         total_pixels = diff.size[0] * diff.size[1]
@@ -75,7 +76,7 @@ class Results:
 
     @staticmethod
     def _new_gray(size, color):
-        img = Image.new('L', size)
+        img = Image.new("L", size)
         drawing = ImageDraw.Draw(img)
         drawing.rectangle((0, 0) + size, color)
         return img
@@ -90,22 +91,22 @@ class Results:
     def passed_result_html(result, reference, diff, title):
         """Creates the html for passing tests"""
         ret = '<details><summary style="background-color:lightgreen;"> %s </summary>' % title
-        ret += '<table>'
+        ret += "<table>"
         ret += '<tr><td><img src="%s"</td>' % result
         ret += '<td><img src="%s"</td>' % reference
         ret += '<td><img src="%s"</td>' % diff
-        ret += '</tr></table></details>'
+        ret += "</tr></table></details>"
         return ret
 
     @staticmethod
     def failed_result_html(result, reference, diff, title):
         """Creates the html for failing tests"""
         ret = '<details open><summary style="background-color:lightcoral;"> %s </summary>' % title
-        ret += '<table>'
+        ret += "<table>"
         ret += '<tr><td><img src="%s"</td>' % result
         ret += '<td><img src="%s"</td>' % reference
         ret += '<td><img src="%s"</td>' % diff
-        ret += '</tr></table></details>'
+        ret += "</tr></table></details>"
         return ret
 
     @staticmethod
@@ -113,7 +114,7 @@ class Results:
         """Creates the html for missing-reference tests"""
         ret = '<details><summary style="background-color:lightgrey;"> %s </summary>' % title
         ret += '<table><tr><td><img src="%s"</td>' % result
-        ret += '</tr></table></details>'
+        ret += "</tr></table></details>"
         return ret
 
     def diff_images(self):
@@ -121,13 +122,15 @@ class Results:
         for name in self.names:
             ratio = diff_name = title = None
             fullpath_name = os.path.join(self.directory, name)
-            fullpath_reference = os.path.join(self.directory, 'references', name)
+            fullpath_reference = os.path.join(self.directory, "references", name)
 
             if os.path.exists(os.path.join(SWD, fullpath_reference)):
                 ratio, diff_name = Results._similarity_ratio(fullpath_name, fullpath_reference)
-                title = '<tt><b>%s</b> | %s </tt> | ratio: %s' % (name,
-                                                                  self.data[name]['testname'],
-                                                                  ratio)
+                title = "<tt><b>{}</b> | {} </tt> | ratio: {}".format(
+                    name,
+                    self.data[name]["testname"],
+                    ratio,
+                )
                 if ratio == 1:
                     self.exact_match.append(fullpath_name)
                 else:
@@ -135,23 +138,27 @@ class Results:
             else:
                 self.missing.append(fullpath_name)
 
-            self.data[name]['ratio'] = ratio
-            self.data[name]['diff_name'] = diff_name
-            self.data[name]['title'] = title
+            self.data[name]["ratio"] = ratio
+            self.data[name]["diff_name"] = diff_name
+            self.data[name]["title"] = title
 
     def summary(self):
         """Creates the html for the header"""
-        ret = ''
+        ret = ""
 
         if len(self.mismatch) >= 2:
-            Results._zipfiles(self.mismatch, 'mpl/mismatch.zip')
-            ret += '<div><a href="mpl/mismatch.zip">' \
-                   'Download %s mismatch results as a zip</a></div>' % len(self.mismatch)
+            Results._zipfiles(self.mismatch, "{self.directory}/mismatch.zip")
+            ret += (
+                '<div><a href="{self.directory}/mismatch.zip">'
+                "Download %s mismatch results as a zip</a></div>" % len(self.mismatch)
+            )
 
         if len(self.missing) >= 2:
-            Results._zipfiles(self.missing, 'mpl/missing.zip')
-            ret += '<div><a href="mpl/missing.zip">' \
-                   'Download %s missing results as a zip</a></div>' % len(self.missing)
+            Results._zipfiles(self.missing, "{self.directory}/missing.zip")
+            ret += (
+                '<div><a href="{self.directory}/missing.zip">'
+                "Download %s missing results as a zip</a></div>" % len(self.missing)
+            )
 
         return ret
 
@@ -160,28 +167,45 @@ class Results:
         ret += "<div>"
         for name in self.names:
             fullpath_name = os.path.join(self.directory, name)
-            fullpath_reference = os.path.join(self.directory, 'references', name)
+            fullpath_reference = os.path.join(self.directory, "references", name)
             if os.path.exists(os.path.join(SWD, fullpath_reference)):
-                if self.data[name]['ratio'] == 1:
-                    ret += Results.passed_result_html(fullpath_name, fullpath_reference,
-                                                      self.data[name]['diff_name'],
-                                                      self.data[name]['title'])
+                if self.data[name]["ratio"] == 1:
+                    ret += Results.passed_result_html(
+                        fullpath_name,
+                        fullpath_reference,
+                        self.data[name]["diff_name"],
+                        self.data[name]["title"],
+                    )
                 else:
-                    ret += Results.failed_result_html(fullpath_name, fullpath_reference,
-                                                      self.data[name]['diff_name'],
-                                                      self.data[name]['title'])
+                    ret += Results.failed_result_html(
+                        fullpath_name,
+                        fullpath_reference,
+                        self.data[name]["diff_name"],
+                        self.data[name]["title"],
+                    )
             else:
-                title = 'Download <a download="%s" href="%s">this image</a> to <tt>%s</tt>' \
-                        ' and add/push to the repo</td>' % (name, fullpath_name, fullpath_reference)
+                title = (
+                    'Download <a download="%s" href="%s">this image</a> to <tt>%s</tt>'
+                    " and add/push to the repo</td>" % (name, fullpath_name, fullpath_reference)
+                )
                 ret += Results.no_reference_html(fullpath_name, title)
         ret += "</div>"
         return ret
 
 
-if __name__ == '__main__':
-    RESULT_FILES = []
-    for file in os.listdir(os.path.join(SWD, 'mpl')):
+if __name__ == "__main__":
+    # collect results for circuit tests
+    RESULT_FILES_CIRCUIT = []
+    for file in os.listdir(os.path.join(SWD, "mpl/circuit")):
         if file.endswith(".png") and not file.endswith(".diff.png"):
-            RESULT_FILES.append(file)
-    RESULTS = Results(sorted(RESULT_FILES), 'mpl')
-    RESULTS.diff_images()
+            RESULT_FILES_CIRCUIT.append(file)
+    RESULTS_CIRCUIT = Results(sorted(RESULT_FILES_CIRCUIT), "mpl/circuit")
+    RESULTS_CIRCUIT.diff_images()
+
+    # collect results for graph tests
+    RESULT_FILES_GRAPH = []
+    for file in os.listdir(os.path.join(SWD, "mpl/graph")):
+        if file.endswith(".png") and not file.endswith(".diff.png"):
+            RESULT_FILES_GRAPH.append(file)
+    RESULTS_GRAPH = Results(sorted(RESULT_FILES_GRAPH), "mpl/graph")
+    RESULTS_GRAPH.diff_images()

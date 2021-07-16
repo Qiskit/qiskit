@@ -13,8 +13,6 @@
 Symplectic Stabilizer Table Class
 """
 
-# pylint: disable=abstract-method
-
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -203,16 +201,15 @@ class StabilizerTable(PauliTable, AdjointMixin):
             self._phase = np.ones(self.size, dtype=bool)
         else:
             self._phase = np.asarray(phase, dtype=bool)
-            if self._phase.shape != (self.size, ):
+            if self._phase.shape != (self.size,):
                 raise QiskitError("Phase vector is incorrect shape.")
 
     def __repr__(self):
-        return 'StabilizerTable(\n{},\nphase={})'.format(
-            repr(self._array), repr(self._phase))
+        return f"StabilizerTable(\n{repr(self._array)},\nphase={repr(self._phase)})"
 
     def __str__(self):
         """String representation"""
-        return 'StabilizerTable: {}'.format(self.to_labels())
+        return f"StabilizerTable: {self.to_labels()}"
 
     def __eq__(self, other):
         """Test if two StabilizerTables are equal"""
@@ -222,8 +219,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
 
     def copy(self):
         """Return a copy of the StabilizerTable."""
-        return StabilizerTable(self._array.copy(),
-                               self._phase.copy())
+        return StabilizerTable(self._array.copy(), self._phase.copy())
 
     # ---------------------------------------------------------------------
     # PauliTable and phase access
@@ -295,10 +291,13 @@ class StabilizerTable(PauliTable, AdjointMixin):
         if isinstance(ind, (int, np.integer)):
             ind = [ind]
         if max(ind) >= self.size:
-            raise QiskitError("Indices {} are not all less than the size"
-                              " of the SatbilizerTable ({})".format(ind, self.size))
-        return StabilizerTable(np.delete(self._array, ind, axis=0),
-                               np.delete(self._phase, ind, axis=0))
+            raise QiskitError(
+                "Indices {} are not all less than the size"
+                " of the SatbilizerTable ({})".format(ind, self.size)
+            )
+        return StabilizerTable(
+            np.delete(self._array, ind, axis=0), np.delete(self._phase, ind, axis=0)
+        )
 
     def insert(self, ind, value, qubit=False):
         """Insert stabilizers's into the table.
@@ -435,11 +434,9 @@ class StabilizerTable(PauliTable, AdjointMixin):
                 original array. Only provided if ``return_counts`` is True.
         """
         # Combine array and phases into single array for sorting
-        stack = np.hstack([self._array,
-                           self._phase.reshape((self.size, 1))])
+        stack = np.hstack([self._array, self._phase.reshape((self.size, 1))])
         if return_counts:
-            _, index, counts = np.unique(stack, return_index=True,
-                                         return_counts=True, axis=0)
+            _, index, counts = np.unique(stack, return_index=True, return_counts=True, axis=0)
         else:
             _, index = np.unique(stack, return_index=True, axis=0)
         # Sort the index so we return unique rows in the original array order
@@ -447,11 +444,11 @@ class StabilizerTable(PauliTable, AdjointMixin):
         index = index[sort_inds]
         unique = self[index]
         # Concatenate return tuples
-        ret = (unique, )
+        ret = (unique,)
         if return_index:
-            ret += (index, )
+            ret += (index,)
         if return_counts:
-            ret += (counts[sort_inds], )
+            ret += (counts[sort_inds],)
         if len(ret) == 1:
             return ret[0]
         return ret
@@ -572,7 +569,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
             QiskitError: if other cannot be converted to a StabilizerTable.
         """
         if qargs is None:
-            qargs = getattr(other, 'qargs', None)
+            qargs = getattr(other, "qargs", None)
         if not isinstance(other, StabilizerTable):
             other = StabilizerTable(other)
         if qargs is None and other.num_qubits != self.num_qubits:
@@ -671,26 +668,25 @@ class StabilizerTable(PauliTable, AdjointMixin):
             StabilizerTable: the concatenated table self + other.
         """
         if qargs is None:
-            qargs = getattr(other, 'qargs', None)
+            qargs = getattr(other, "qargs", None)
 
         if not isinstance(other, StabilizerTable):
             other = StabilizerTable(other)
 
         self._op_shape._validate_add(other._op_shape, qargs)
 
-        if qargs is None or (sorted(qargs) == qargs
-                             and len(qargs) == self.num_qubits):
-            return StabilizerTable(np.vstack((self._array, other._array)),
-                                   np.hstack((self._phase, other._phase)))
+        if qargs is None or (sorted(qargs) == qargs and len(qargs) == self.num_qubits):
+            return StabilizerTable(
+                np.vstack((self._array, other._array)), np.hstack((self._phase, other._phase))
+            )
 
         # Pad other with identity and then add
-        padded = StabilizerTable(
-            np.zeros((1, 2 * self.num_qubits), dtype=bool))
+        padded = StabilizerTable(np.zeros((1, 2 * self.num_qubits), dtype=bool))
         padded = padded.compose(other, qargs=qargs)
 
         return StabilizerTable(
-            np.vstack((self._array, padded._array)),
-            np.hstack((self._phase, padded._phase)))
+            np.vstack((self._array, padded._array)), np.hstack((self._phase, padded._phase))
+        )
 
     def _multiply(self, other):
         """Multiply (XOR) phase vector of the StabilizerTable.
@@ -710,8 +706,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
         """
         # Numeric (integer) value case
         if not isinstance(other, bool) and other not in [1, -1]:
-            raise QiskitError(
-                "Can only multiply a Stabilizer value by +1 or -1 phase.")
+            raise QiskitError("Can only multiply a Stabilizer value by +1 or -1 phase.")
 
         # We have to be careful we don't cast True <-> +1 when
         # we store -1 phase as boolen True value
@@ -869,7 +864,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
         Returns:
             list or array: The rows of the StabilizerTable in label form.
         """
-        ret = np.zeros(self.size, dtype='<U{}'.format(1 + self.num_qubits))
+        ret = np.zeros(self.size, dtype=f"<U{1 + self.num_qubits}")
         for i in range(self.size):
             ret[i] = self._to_label(self._array[i], self._phase[i])
         if array:
@@ -945,8 +940,10 @@ class StabilizerTable(PauliTable, AdjointMixin):
         """
         if not array:
             # We return a list of Numpy array matrices
-            return [self._to_matrix(pauli, phase, sparse=sparse) for
-                    pauli, phase in zip(self._array, self._phase)]
+            return [
+                self._to_matrix(pauli, phase, sparse=sparse)
+                for pauli, phase in zip(self._array, self._phase)
+            ]
         # For efficiency we also allow returning a single rank-3
         # array where first index is the Pauli row, and second two
         # indices are the matrix indices
@@ -961,8 +958,8 @@ class StabilizerTable(PauliTable, AdjointMixin):
         """Return the symplectic representation of a Pauli stabilizer string"""
         # Check if first character is '+' or '-'
         phase = False
-        if label[0] in ['-', '+']:
-            phase = (label[0] == '-')
+        if label[0] in ["-", "+"]:
+            phase = label[0] == "-"
             label = label[1:]
         return PauliTable._from_label(label), phase
 
@@ -975,12 +972,12 @@ class StabilizerTable(PauliTable, AdjointMixin):
         # in the symplectic table
         label = PauliTable._to_label(pauli)
         if phase:
-            return '-' + label
-        return '+' + label
+            return "-" + label
+        return "+" + label
 
     @staticmethod
     def _to_matrix(pauli, phase, sparse=False):
-        """"Return the Pauli stabilizer matrix from symplectic representation.
+        """ "Return the Pauli stabilizer matrix from symplectic representation.
 
         Args:
             pauli (array): symplectic Pauli vector.
@@ -1012,14 +1009,16 @@ class StabilizerTable(PauliTable, AdjointMixin):
         Returns:
             LabelIterator: label iterator object for the StabilizerTable.
         """
+
         class LabelIterator(CustomIterator):
             """Label representation iteration and item access."""
+
             def __repr__(self):
-                return "<StabilizerTable_label_iterator at {}>".format(hex(id(self)))
+                return f"<StabilizerTable_label_iterator at {hex(id(self))}>"
 
             def __getitem__(self, key):
-                return self.obj._to_label(self.obj.array[key],
-                                          self.obj.phase[key])
+                return self.obj._to_label(self.obj.array[key], self.obj.phase[key])
+
         return LabelIterator(self)
 
     def matrix_iter(self, sparse=False):
@@ -1037,15 +1036,16 @@ class StabilizerTable(PauliTable, AdjointMixin):
         Returns:
             MatrixIterator: matrix iterator object for the StabilizerTable.
         """
+
         class MatrixIterator(CustomIterator):
             """Matrix representation iteration and item access."""
+
             def __repr__(self):
-                return "<StabilizerTable_matrix_iterator at {}>".format(hex(id(self)))
+                return f"<StabilizerTable_matrix_iterator at {hex(id(self))}>"
 
             def __getitem__(self, key):
-                return self.obj._to_matrix(self.obj.array[key],
-                                           self.obj.phase[key],
-                                           sparse=sparse)
+                return self.obj._to_matrix(self.obj.array[key], self.obj.phase[key], sparse=sparse)
+
         return MatrixIterator(self)
 
 

@@ -24,15 +24,21 @@ logger = logging.getLogger(__name__)
 
 try:
     import nlopt
-    logger.info('NLopt version: %s.%s.%s', nlopt.version_major(),
-                nlopt.version_minor(), nlopt.version_bugfix())
+
+    logger.info(
+        "NLopt version: %s.%s.%s",
+        nlopt.version_major(),
+        nlopt.version_minor(),
+        nlopt.version_bugfix(),
+    )
     _HAS_NLOPT = True
 except ImportError:
     _HAS_NLOPT = False
 
 
 class NLoptOptimizerType(Enum):
-    """ NLopt Valid Optimizer """
+    """NLopt Valid Optimizer"""
+
     GN_CRS2_LM = 1
     GN_DIRECT_L_RAND = 2
     GN_DIRECT_L = 3
@@ -45,7 +51,7 @@ class NLoptOptimizer(Optimizer):
     NLopt global optimizer base class
     """
 
-    _OPTIONS = ['max_evals']
+    _OPTIONS = ["max_evals"]
 
     def __init__(self, max_evals: int = 1000) -> None:  # pylint: disable=unused-argument
         """
@@ -57,11 +63,12 @@ class NLoptOptimizer(Optimizer):
         """
         if not _HAS_NLOPT:
             raise MissingOptionalLibraryError(
-                libname='nlopt',
-                name='NLoptOptimizer',
-                msg='See https://qiskit.org/documentation/apidoc/'
-                    'qiskit.aqua.components.optimizers.nlopts.html'
-                    ' for installation information')
+                libname="nlopt",
+                name="NLoptOptimizer",
+                msg="See https://qiskit.org/documentation/apidoc/"
+                "qiskit.algorithms.optimizers.nlopts.html"
+                " for installation information",
+            )
 
         super().__init__()
         for k, v in list(locals().items()):
@@ -78,34 +85,50 @@ class NLoptOptimizer(Optimizer):
 
     @abstractmethod
     def get_nlopt_optimizer(self) -> NLoptOptimizerType:
-        """ return NLopt optimizer enum type """
+        """return NLopt optimizer enum type"""
         raise NotImplementedError
 
     def get_support_level(self):
-        """ return support level dictionary """
+        """return support level dictionary"""
         return {
-            'gradient': OptimizerSupportLevel.ignored,
-            'bounds': OptimizerSupportLevel.supported,
-            'initial_point': OptimizerSupportLevel.required
+            "gradient": OptimizerSupportLevel.ignored,
+            "bounds": OptimizerSupportLevel.supported,
+            "initial_point": OptimizerSupportLevel.required,
         }
 
-    def optimize(self, num_vars, objective_function, gradient_function=None,
-                 variable_bounds=None, initial_point=None):
-        super().optimize(num_vars, objective_function,
-                         gradient_function, variable_bounds, initial_point)
+    @property
+    def settings(self):
+        return {"max_evals": self._options.get("max_evals", 1000)}
+
+    def optimize(
+        self,
+        num_vars,
+        objective_function,
+        gradient_function=None,
+        variable_bounds=None,
+        initial_point=None,
+    ):
+        super().optimize(
+            num_vars, objective_function, gradient_function, variable_bounds, initial_point
+        )
         if variable_bounds is None:
             variable_bounds = [(None, None)] * num_vars
-        return self._minimize(self._optimizer_names[self.get_nlopt_optimizer()],
-                              objective_function,
-                              variable_bounds,
-                              initial_point, **self._options)
+        return self._minimize(
+            self._optimizer_names[self.get_nlopt_optimizer()],
+            objective_function,
+            variable_bounds,
+            initial_point,
+            **self._options,
+        )
 
-    def _minimize(self,
-                  name: str,
-                  objective_function: Callable,
-                  variable_bounds: Optional[List[Tuple[float, float]]],
-                  initial_point: Optional[np.ndarray] = None,
-                  max_evals: int = 1000) -> Tuple[float, float, int]:
+    def _minimize(
+        self,
+        name: str,
+        objective_function: Callable,
+        variable_bounds: Optional[List[Tuple[float, float]]],
+        initial_point: Optional[np.ndarray] = None,
+        max_evals: int = 1000,
+    ) -> Tuple[float, float, int]:
         """Minimize using objective function
 
         Args:
@@ -145,5 +168,5 @@ class NLoptOptimizer(Optimizer):
         xopt = opt.optimize(initial_point)
         minf = opt.last_optimum_value()
 
-        logger.debug('Global minimize found %s eval count %s', minf, eval_count)
+        logger.debug("Global minimize found %s eval count %s", minf, eval_count)
         return xopt, minf, eval_count

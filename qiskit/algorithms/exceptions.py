@@ -17,4 +17,5 @@ from qiskit.exceptions import QiskitError
 
 class AlgorithmError(QiskitError):
     """For Algorithm specific errors."""
+
     pass

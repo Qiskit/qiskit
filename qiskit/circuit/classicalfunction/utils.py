@@ -12,45 +12,56 @@
 
 """Internal utils for Classical Function Compiler"""
 
-try:
-    from tweedledum.ir import Qubit  # pylint: disable=no-name-in-module
-    from tweedledum.passes import parity_decomp  # pylint: disable=no-name-in-module
-    HAS_TWEEDLEDUM = True
-except Exception:  # pylint: disable=broad-except
-    HAS_TWEEDLEDUM = False
+from tweedledum.ir import Qubit
+from tweedledum.passes import parity_decomp
 
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library.standard_gates import (HGate, SGate, SdgGate, SwapGate, TGate, TdgGate,
-                                                   XGate, YGate, ZGate)
+from qiskit.circuit.library.standard_gates import (
+    HGate,
+    SGate,
+    SdgGate,
+    SwapGate,
+    TGate,
+    TdgGate,
+    XGate,
+    YGate,
+    ZGate,
+)
 
 _QISKIT_OPS = {
-    'std.h': HGate, 'std.s': SGate, 'std.sdg': SdgGate, 'std.swap': SwapGate,
-    'std.t': TGate, 'std.tdg': TdgGate, 'std.x': XGate, 'std.y': YGate,
-    'std.z': ZGate
+    "std.h": HGate,
+    "std.s": SGate,
+    "std.sdg": SdgGate,
+    "std.swap": SwapGate,
+    "std.t": TGate,
+    "std.tdg": TdgGate,
+    "std.x": XGate,
+    "std.y": YGate,
+    "std.z": ZGate,
 }
 
 
 def _convert_tweedledum_operator(op):
     base_gate = _QISKIT_OPS.get(op.kind())
     if base_gate is None:
-        if op.kind() == 'py_operator':
+        if op.kind() == "py_operator":
             return op.py_op()
         else:
-            raise RuntimeError('Unrecognized operator: %s' % op.kind())
+            raise RuntimeError("Unrecognized operator: %s" % op.kind())
 
     # TODO: need to deal with cbits too!
     if op.num_controls() > 0:
         qubits = op.qubits()
-        ctrl_state = ''
-        for qubit in qubits[:op.num_controls()]:
-            ctrl_state += '{}'.format(int(qubit.polarity() == Qubit.Polarity.positive))
+        ctrl_state = ""
+        for qubit in qubits[: op.num_controls()]:
+            ctrl_state += f"{int(qubit.polarity() == Qubit.Polarity.positive)}"
         return base_gate().control(len(ctrl_state), ctrl_state=ctrl_state[::-1])
     return base_gate()
 
 
 def tweedledum2qiskit(tweedledum_circuit, name=None, qregs=None):
-    """ Converts a `Tweedledum <https://github.com/boschmitt/tweedledum>`_
+    """Converts a `Tweedledum <https://github.com/boschmitt/tweedledum>`_
     circuit into a Qiskit circuit.
     Args:
         tweedledum_circuit (tweedledum.ir.Circuit): Tweedledum circuit.

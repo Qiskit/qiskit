@@ -16,6 +16,7 @@ Level 0 pass manager: no explicit optimization other than mapping to backend.
 """
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
+from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passmanager import PassManager
 
 from qiskit.transpiler.passes import Unroller
@@ -44,6 +45,8 @@ from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes import TimeUnitConversion
 from qiskit.transpiler.passes import ALAPSchedule
 from qiskit.transpiler.passes import ASAPSchedule
+from qiskit.transpiler.passes import AlignMeasures
+from qiskit.transpiler.passes import ValidatePulseGates
 from qiskit.transpiler.passes import Error
 
 from qiskit.transpiler import TranspilerError
@@ -75,28 +78,29 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     basis_gates = pass_manager_config.basis_gates
     coupling_map = pass_manager_config.coupling_map
     initial_layout = pass_manager_config.initial_layout
-    layout_method = pass_manager_config.layout_method or 'trivial'
-    routing_method = pass_manager_config.routing_method or 'stochastic'
-    translation_method = pass_manager_config.translation_method or 'translator'
+    layout_method = pass_manager_config.layout_method or "trivial"
+    routing_method = pass_manager_config.routing_method or "stochastic"
+    translation_method = pass_manager_config.translation_method or "translator"
     scheduling_method = pass_manager_config.scheduling_method
     instruction_durations = pass_manager_config.instruction_durations
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
     approximation_degree = pass_manager_config.approximation_degree
+    timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
 
     # 1. Choose an initial layout if not set by user (default: trivial layout)
     _given_layout = SetLayout(initial_layout)
 
     def _choose_layout_condition(property_set):
-        return not property_set['layout']
+        return not property_set["layout"]
 
-    if layout_method == 'trivial':
+    if layout_method == "trivial":
         _choose_layout = TrivialLayout(coupling_map)
-    elif layout_method == 'dense':
+    elif layout_method == "dense":
         _choose_layout = DenseLayout(coupling_map, backend_properties)
-    elif layout_method == 'noise_adaptive':
+    elif layout_method == "noise_adaptive":
         _choose_layout = NoiseAdaptiveLayout(backend_properties)
-    elif layout_method == 'sabre':
+    elif layout_method == "sabre":
         _choose_layout = SabreLayout(coupling_map, max_iterations=1, seed=seed_transpiler)
     else:
         raise TranspilerError("Invalid layout method %s." % layout_method)
@@ -111,31 +115,36 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     _swap_check = CheckMap(coupling_map)
 
     def _swap_condition(property_set):
-        return not property_set['is_swap_mapped']
+        return not property_set["is_swap_mapped"]
 
     _swap = [BarrierBeforeFinalMeasurements()]
-    if routing_method == 'basic':
+    if routing_method == "basic":
         _swap += [BasicSwap(coupling_map)]
-    elif routing_method == 'stochastic':
+    elif routing_method == "stochastic":
         _swap += [StochasticSwap(coupling_map, trials=20, seed=seed_transpiler)]
-    elif routing_method == 'lookahead':
+    elif routing_method == "lookahead":
         _swap += [LookaheadSwap(coupling_map, search_depth=2, search_width=2)]
-    elif routing_method == 'sabre':
-        _swap += [SabreSwap(coupling_map, heuristic='basic', seed=seed_transpiler)]
-    elif routing_method == 'none':
-        _swap += [Error(msg='No routing method selected, but circuit is not routed to device. '
-                            'CheckMap Error: {check_map_msg}', action='raise')]
+    elif routing_method == "sabre":
+        _swap += [SabreSwap(coupling_map, heuristic="basic", seed=seed_transpiler)]
+    elif routing_method == "none":
+        _swap += [
+            Error(
+                msg="No routing method selected, but circuit is not routed to device. "
+                "CheckMap Error: {check_map_msg}",
+                action="raise",
+            )
+        ]
     else:
         raise TranspilerError("Invalid routing method %s." % routing_method)
 
     # 5. Unroll to the basis
-    if translation_method == 'unroller':
+    if translation_method == "unroller":
         _unroll = [Unroller(basis_gates)]
-    elif translation_method == 'translator':
+    elif translation_method == "translator":
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
-        _unroll = [UnrollCustomDefinitions(sel, basis_gates),
-                   BasisTranslator(sel, basis_gates)]
-    elif translation_method == 'synthesis':
+
+        _unroll = [UnrollCustomDefinitions(sel, basis_gates), BasisTranslator(sel, basis_gates)]
+    elif translation_method == "synthesis":
         _unroll = [
             Unroll3qOrMore(),
             Collect2qBlocks(),
@@ -149,7 +158,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     _direction_check = [CheckGateDirection(coupling_map)]
 
     def _direction_condition(property_set):
-        return not property_set['is_direction_mapped']
+        return not property_set["is_direction_mapped"]
 
     _direction = [GateDirection(coupling_map)]
 
@@ -157,12 +166,20 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     # Schedule the circuit only when scheduling_method is supplied
     _scheduling = [TimeUnitConversion(instruction_durations)]
     if scheduling_method:
-        if scheduling_method in {'alap', 'as_late_as_possible'}:
+        if scheduling_method in {"alap", "as_late_as_possible"}:
             _scheduling += [ALAPSchedule(instruction_durations)]
-        elif scheduling_method in {'asap', 'as_soon_as_possible'}:
+        elif scheduling_method in {"asap", "as_soon_as_possible"}:
             _scheduling += [ASAPSchedule(instruction_durations)]
         else:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
+
+    # 8. Call measure alignment. Should come after scheduling.
+    _alignments = [
+        ValidatePulseGates(
+            granularity=timing_constraints.granularity, min_length=timing_constraints.min_length
+        ),
+        AlignMeasures(alignment=timing_constraints.acquire_alignment),
+    ]
 
     # Build pass manager
     pm0 = PassManager()
@@ -179,4 +196,5 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm0.append(_direction, condition=_direction_condition)
         pm0.append(_unroll)
     pm0.append(_scheduling)
+    pm0.append(_alignments)
     return pm0
