@@ -476,6 +476,19 @@ class TestLatexDrawer(QiskitTestCase):
         circuit.h(qr[1]).c_if(cr, 1)
         self.circuit_drawer(circuit, filename="test_meas_condition.png")
 
+    def test_inst_with_cbits(self):
+        """Test custom instructions with classical bits"""
+
+        qinst = QuantumRegister(2, "q")
+        cinst = ClassicalRegister(2, "c")
+        inst = QuantumCircuit(qinst, cinst, name="instruction").to_instruction()
+
+        qr = QuantumRegister(4, "qr")
+        cr = ClassicalRegister(4, "cr")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.append(inst, [qr[1], qr[2]], [cr[2], cr[1]])
+        self.circuit_drawer(circuit, filename="test_inst_with_cbits.png")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)
