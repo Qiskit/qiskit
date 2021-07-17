@@ -17,7 +17,6 @@
 import copy
 import itertools
 import functools
-import warnings
 import numbers
 import multiprocessing as mp
 from collections import OrderedDict, defaultdict
@@ -31,7 +30,7 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.qasm.qasm import Qasm
 from qiskit.qasm.exceptions import QasmError
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.utils.deprecation import deprecate_function, deprecate_arguments
+from qiskit.utils.deprecation import deprecate_function
 from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .classicalregister import ClassicalRegister, Clbit
@@ -667,7 +666,7 @@ class QuantumCircuit:
 
         return self
 
-    def compose(self, other, qubits=None, clbits=None, front=False, inplace=False):
+    def compose(self, other, qubits=None, clbits=None, front=False, inplace=False, wrap=False):
         """Compose circuit with ``other`` circuit or instruction, optionally permuting wires.
 
         ``other`` can be narrower or of equal width to ``self``.
@@ -679,6 +678,8 @@ class QuantumCircuit:
             clbits (list[Clbit|int]): clbits of self to compose onto.
             front (bool): If True, front composition will be performed (not implemented yet).
             inplace (bool): If True, modify the object. Otherwise return composed circuit.
+            wrap (bool): If True, wraps the other circuit into a gate (or instruction, depending on
+                whether it contains only unitary instructions) before composing it onto self.
 
         Returns:
             QuantumCircuit: the composed circuit (returns None if inplace==True).
@@ -715,7 +716,19 @@ class QuantumCircuit:
         else:
             dest = self.copy()
 
+        if wrap:
+            try:
+                other = other.to_gate()
+            except QiskitError:
+                other = other.to_instruction()
+
         if not isinstance(other, QuantumCircuit):
+            if qubits is None:
+                qubits = list(range(other.num_qubits))
+
+            if clbits is None:
+                clbits = list(range(other.num_clbits))
+
             if front:
                 dest.data.insert(0, (other, qubits, clbits))
             else:
@@ -1227,7 +1240,7 @@ class QuantumCircuit:
         if not set(cargs).issubset(self._clbit_set):
             raise CircuitError("cargs not in this circuit")
 
-    def to_instruction(self, parameter_map=None):
+    def to_instruction(self, parameter_map=None, label=None):
         """Create an Instruction out of this circuit.
 
         Args:
@@ -1235,6 +1248,7 @@ class QuantumCircuit:
                parameters in the circuit to parameters to be used in the
                instruction. If None, existing circuit parameters will also
                parameterize the instruction.
+            label (str): Optional gate label.
 
         Returns:
             qiskit.circuit.Instruction: a composite instruction encapsulating this circuit
@@ -1242,7 +1256,7 @@ class QuantumCircuit:
         """
         from qiskit.converters.circuit_to_instruction import circuit_to_instruction
 
-        return circuit_to_instruction(self, parameter_map)
+        return circuit_to_instruction(self, parameter_map, label=label)
 
     def to_gate(self, parameter_map=None, label=None):
         """Create a Gate out of this circuit.
@@ -1262,9 +1276,13 @@ class QuantumCircuit:
 
         return circuit_to_gate(self, parameter_map, label=label)
 
-    def decompose(self):
+    def decompose(self, gates_to_decompose=None):
         """Call a decomposition pass on this circuit,
         to decompose one level (shallow decompose).
+
+        Args:
+            gates_to_decompose (str or list(str)): optional subset of gates to decompose.
+                Defaults to all gates in circuit.
 
         Returns:
             QuantumCircuit: a circuit one level decomposed
@@ -1274,7 +1292,7 @@ class QuantumCircuit:
         from qiskit.converters.circuit_to_dag import circuit_to_dag
         from qiskit.converters.dag_to_circuit import dag_to_circuit
 
-        pass_ = Decompose()
+        pass_ = Decompose(gates_to_decompose=gates_to_decompose)
         decomposed_dag = pass_.run(circuit_to_dag(self))
         return dag_to_circuit(decomposed_dag)
 
@@ -1290,46 +1308,6 @@ class QuantumCircuit:
                             "circuits are not compatible:"
                             f" registers {element1} and {element2} not compatible"
                         )
-
-    @staticmethod
-    def _get_composite_circuit_qasm_from_instruction(instruction):
-        """Returns OpenQASM string composite circuit given an instruction.
-        The given instruction should be the result of composite_circuit.to_instruction()."""
-
-        gate_parameters = ",".join(["param%i" % num for num in range(len(instruction.params))])
-        qubit_parameters = ",".join(["q%i" % num for num in range(instruction.num_qubits)])
-        composite_circuit_gates = ""
-
-        definition = instruction.definition
-        definition_bit_labels = {
-            bit: idx
-            for bits in (definition.qubits, definition.clbits)
-            for idx, bit in enumerate(bits)
-        }
-        for data, qargs, _ in definition:
-            gate_qargs = ",".join(
-                ["q%i" % index for index in [definition_bit_labels[qubit] for qubit in qargs]]
-            )
-            composite_circuit_gates += f"{data.qasm()} {gate_qargs}; "
-
-        if composite_circuit_gates:
-            composite_circuit_gates = composite_circuit_gates.rstrip(" ")
-
-        if gate_parameters:
-            qasm_string = "gate %s(%s) %s { %s }" % (
-                instruction.name,
-                gate_parameters,
-                qubit_parameters,
-                composite_circuit_gates,
-            )
-        else:
-            qasm_string = "gate %s %s { %s }" % (
-                instruction.name,
-                qubit_parameters,
-                composite_circuit_gates,
-            )
-
-        return qasm_string
 
     def qasm(self, formatted=False, filename=None, encoding=None):
         """Return OpenQASM string.
@@ -1352,55 +1330,56 @@ class QuantumCircuit:
                 ``True``.
             QasmError: If circuit has free parameters.
         """
-        from qiskit.circuit.controlledgate import ControlledGate
 
         if self.num_parameters > 0:
             raise QasmError("Cannot represent circuits with unbound parameters in OpenQASM 2.")
 
         existing_gate_names = [
-            "ch",
-            "cp",
+            "barrier",
+            "measure",
+            "reset",
+            "u3",
+            "u2",
+            "u1",
             "cx",
-            "cy",
-            "cz",
-            "crx",
-            "cry",
-            "crz",
-            "ccx",
-            "cswap",
-            "csx",
-            "cu",
-            "cu1",
-            "cu3",
-            "dcx",
-            "h",
-            "i",
             "id",
-            "iden",
-            "iswap",
-            "ms",
+            "u0",
+            "u",
             "p",
-            "r",
-            "rx",
-            "rxx",
-            "ry",
-            "ryy",
-            "rz",
-            "rzx",
-            "rzz",
-            "s",
-            "sdg",
-            "swap",
-            "sx",
             "x",
             "y",
             "z",
+            "h",
+            "s",
+            "sdg",
             "t",
             "tdg",
-            "u",
-            "u1",
-            "u2",
-            "u3",
+            "rx",
+            "ry",
+            "rz",
+            "sx",
+            "sxdg",
+            "cz",
+            "cy",
+            "swap",
+            "ch",
+            "ccx",
+            "cswap",
+            "crx",
+            "cry",
+            "crz",
+            "cu1",
+            "cp",
+            "cu3",
+            "csx",
+            "cu",
+            "rxx",
+            "rzz",
+            "rccx",
+            "rc3x",
+            "c3x",
+            "c3sx",
+            "c4x",
         ]
 
         existing_composite_circuits = []
@@ -1425,8 +1404,6 @@ class QuantumCircuit:
             regless_clbits = [bit for bit in self.clbits if bit not in creg_bits]
             string_temp += "creg %s[%d];\n" % ("regless", len(regless_clbits))
 
-        unitary_gates = []
-
         bit_labels = {
             bit: "%s[%d]" % (reg.name, idx)
             for reg in self.qregs + self.cregs
@@ -1450,55 +1427,33 @@ class QuantumCircuit:
                     bit_labels[qubit],
                     bit_labels[clbit],
                 )
-
-            # If instruction is a root gate or a root instruction (in that case, compositive)
-
-            elif (
-                type(instruction)
-                in [
-                    Gate,
-                    Instruction,
-                ]
-                or (isinstance(instruction, ControlledGate) and instruction._open_ctrl)
-            ):
-                if instruction not in existing_composite_circuits:
-                    if instruction.name in existing_gate_names:
-                        old_name = instruction.name
-                        instruction.name += "_" + str(id(instruction))
-
-                        warnings.warn(
-                            "A gate named {} already exists. "
-                            "We have renamed "
-                            "your gate to {}".format(old_name, instruction.name)
-                        )
-
-                    # Get qasm of composite circuit
-                    qasm_string = self._get_composite_circuit_qasm_from_instruction(instruction)
-
-                    # Insert composite circuit qasm definition right after header and extension lib
-                    string_temp = string_temp.replace(
-                        self.extension_lib, f"{self.extension_lib}\n{qasm_string}"
-                    )
+            else:
+                # decompose gate using definitions if they are not defined in OpenQASM2
+                if (
+                    instruction.name not in existing_gate_names
+                    and instruction not in existing_composite_circuits
+                ):
+                    if instruction.name in [
+                        instruction.name for instruction in existing_composite_circuits
+                    ]:
+                        # append instruction id to name to make it unique
+                        instruction.name += f"_{id(instruction)}"
 
                     existing_composite_circuits.append(instruction)
-                    existing_gate_names.append(instruction.name)
+                    _add_sub_instruction_to_existing_composite_circuits(
+                        instruction, existing_gate_names, existing_composite_circuits
+                    )
 
                 # Insert qasm representation of the original instruction
                 string_temp += "{} {};\n".format(
                     instruction.qasm(),
                     ",".join([bit_labels[j] for j in qargs + cargs]),
                 )
-            else:
-                string_temp += "{} {};\n".format(
-                    instruction.qasm(),
-                    ",".join([bit_labels[j] for j in qargs + cargs]),
-                )
-            if instruction.name == "unitary":
-                unitary_gates.append(instruction)
 
-        # this resets them, so if another call to qasm() is made the gate def is added again
-        for gate in unitary_gates:
-            gate._qasm_def_written = False
+        # insert gate definitions
+        string_temp = _insert_composite_gate_definition_qasm(
+            string_temp, existing_composite_circuits, self.extension_lib
+        )
 
         if filename:
             with open(filename, "w+", encoding=encoding) as file:
@@ -1799,6 +1754,17 @@ class QuantumCircuit:
                 multi_qubit_gates += 1
         return multi_qubit_gates
 
+    def get_instructions(self, name):
+        """Get instructions matching name.
+
+        Args:
+            name (str): The name of instruction to.
+
+        Returns:
+            list(tuple): list of (instruction, qargs, cargs).
+        """
+        return [match for match in self._data if match[0].name == name]
+
     def num_connected_components(self, unitary_only=False):
         """How many non-entangled subcircuits can the circuit be factored to.
 
@@ -1833,8 +1799,11 @@ class QuantumCircuit:
                 # Controls necessarily join all the cbits in the
                 # register that they use.
                 if instr.condition and not unitary_only:
-                    creg = instr.condition[0]
-                    for bit in creg:
+                    if isinstance(instr.condition[0], Clbit):
+                        condition_bits = [instr.condition[0]]
+                    else:
+                        condition_bits = instr.condition[0]
+                    for bit in condition_bits:
                         idx = bit_indices[bit]
                         for k in range(num_sub_graphs):
                             if idx in sub_graphs[k]:
@@ -2124,10 +2093,7 @@ class QuantumCircuit:
 
         return parameters
 
-    @deprecate_arguments({"param_dict": "parameters"})
-    def assign_parameters(
-        self, parameters, inplace=False, param_dict=None
-    ):  # pylint: disable=unused-argument
+    def assign_parameters(self, parameters, inplace=False):
         """Assign parameters to new parameters or values.
 
         The keys of the parameter dictionary must be Parameter instances in the current circuit. The
@@ -2139,11 +2105,9 @@ class QuantumCircuit:
                 parameter values. If a dict, it specifies the mapping from ``current_parameter`` to
                 ``new_parameter``, where ``new_parameter`` can be a new parameter object or a
                 numeric value. If an iterable, the elements are assigned to the existing parameters
-                in the order they were inserted. You can call ``QuantumCircuit.parameters`` to check
-                this order.
+                in the order of ``QuantumCircuit.parameters``.
             inplace (bool): If False, a copy of the circuit with the bound parameters is
                 returned. If True the circuit instance itself is modified.
-            param_dict (dict): Deprecated, use ``parameters`` instead.
 
         Raises:
             CircuitError: If parameters is a dict and contains parameters not present in the
@@ -2234,8 +2198,7 @@ class QuantumCircuit:
                 bound_circuit._assign_parameter(self.parameters[i], value)
         return None if inplace else bound_circuit
 
-    @deprecate_arguments({"value_dict": "values"})
-    def bind_parameters(self, values, value_dict=None):  # pylint: disable=unused-argument
+    def bind_parameters(self, values):
         """Assign numeric parameters to values yielding a new circuit.
 
         To assign new Parameter objects or bind the values in-place, without yielding a new
@@ -2243,7 +2206,6 @@ class QuantumCircuit:
 
         Args:
             values (dict or iterable): {parameter: value, ...} or [value1, value2, ...]
-            value_dict (dict): Deprecated, use ``values`` instead.
 
         Raises:
             CircuitError: If values is a dict and contains parameters not present in the circuit.
@@ -2632,7 +2594,9 @@ class QuantumCircuit:
         from .library.standard_gates.sx import CSXGate
 
         return self.append(
-            CSXGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
+            CSXGate(label=label, ctrl_state=ctrl_state),
+            [control_qubit, target_qubit],
+            [],
         )
 
     def t(self, qubit):  # pylint: disable=invalid-name
@@ -3040,3 +3004,80 @@ def _compare_parameters(param1, param2):
 
     # else sort by name
     return _standard_compare(param1.name, param2.name)
+
+
+def _add_sub_instruction_to_existing_composite_circuits(
+    instruction, existing_gate_names, existing_composite_circuits
+):
+    """Recursively add undefined sub-instructions in the definition of the given
+    instruction to existing_composite_circuit list.
+    """
+    for sub_instruction, _, _ in instruction.definition:
+        if (
+            sub_instruction.name not in existing_gate_names
+            and sub_instruction not in existing_composite_circuits
+        ):
+            existing_composite_circuits.insert(0, sub_instruction)
+            _add_sub_instruction_to_existing_composite_circuits(
+                sub_instruction, existing_gate_names, existing_composite_circuits
+            )
+
+
+def _get_composite_circuit_qasm_from_instruction(instruction):
+    """Returns OpenQASM string composite circuit given an instruction.
+    The given instruction should be the result of composite_circuit.to_instruction()."""
+
+    if instruction.definition is None:
+        raise ValueError(f'Instruction "{instruction.name}" is not defined.')
+
+    gate_parameters = ",".join(["param%i" % num for num in range(len(instruction.params))])
+    qubit_parameters = ",".join(["q%i" % num for num in range(instruction.num_qubits)])
+    composite_circuit_gates = ""
+
+    definition = instruction.definition
+    definition_bit_labels = {
+        bit: idx for bits in (definition.qubits, definition.clbits) for idx, bit in enumerate(bits)
+    }
+    for sub_instruction, qargs, _ in definition:
+        gate_qargs = ",".join(
+            ["q%i" % index for index in [definition_bit_labels[qubit] for qubit in qargs]]
+        )
+        composite_circuit_gates += "%s %s; " % (sub_instruction.qasm(), gate_qargs)
+
+    if composite_circuit_gates:
+        composite_circuit_gates = composite_circuit_gates.rstrip(" ")
+
+    if gate_parameters:
+        qasm_string = "gate %s(%s) %s { %s }" % (
+            instruction.name,
+            gate_parameters,
+            qubit_parameters,
+            composite_circuit_gates,
+        )
+    else:
+        qasm_string = "gate %s %s { %s }" % (
+            instruction.name,
+            qubit_parameters,
+            composite_circuit_gates,
+        )
+
+    return qasm_string
+
+
+def _insert_composite_gate_definition_qasm(string_temp, existing_composite_circuits, extension_lib):
+    """Insert composite gate definition QASM code right after extension library in the header"""
+
+    gate_definition_string = ""
+
+    # Generate gate definition string
+    for instruction in existing_composite_circuits:
+        if hasattr(instruction, "_qasm_definition"):
+            qasm_string = instruction._qasm_definition
+        else:
+            qasm_string = _get_composite_circuit_qasm_from_instruction(instruction)
+        gate_definition_string += "\n" + qasm_string
+
+    string_temp = string_temp.replace(
+        extension_lib, "%s%s" % (extension_lib, gate_definition_string)
+    )
+    return string_temp
