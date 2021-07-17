@@ -393,9 +393,13 @@ class Instruction:
         return inverse_gate
 
     def c_if(self, classical, val):
-        """Add classical condition on register or cbit classical and value val."""
-        if not isinstance(classical, (ClassicalRegister, Clbit)):
-            raise CircuitError("c_if must be used with a classical register or classical bit")
+        """Add classical condition on register or a Clbit or a list of cbits classical and value val."""
+        if not isinstance(classical, (ClassicalRegister, Clbit)) and not all(
+            isinstance(cbit, Clbit) for cbit in classical
+        ):
+            raise CircuitError(
+                "c_if must be used with a classical register, a bit or a list of classical bits"
+            )
         if val < 0:
             raise CircuitError("condition value should be non-negative")
         if isinstance(classical, Clbit):

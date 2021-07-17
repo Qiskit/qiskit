@@ -322,7 +322,8 @@ class DAGCircuit:
 
         Args:
             name (string): used for error reporting
-            condition (tuple or None): a condition tuple (ClassicalRegister, int) or (Clbit, bool)
+            condition (tuple or None): a condition tuple (ClassicalRegister, int)
+              or (Clbit, bool) or (list[Clbit], int)
 
         Raises:
             DAGCircuitError: if conditioning on an invalid register
@@ -330,6 +331,7 @@ class DAGCircuit:
         if (
             condition is not None
             and condition[0] not in self.clbits
+            and any(clbit not in self.clbits for clbit in condition[0])
             and condition[0].name not in self.cregs
         ):
             raise DAGCircuitError("invalid creg in condition for %s" % name)
@@ -355,7 +357,8 @@ class DAGCircuit:
         """Return a list of bits in the given condition.
 
         Args:
-            cond (tuple or None): optional condition (ClassicalRegister, int) or (Clbit, bool)
+            cond (tuple or None): optional condition (ClassicalRegister, int)
+              or (Clbit, bool) or (list[Clbit], int)
 
         Returns:
             list[Clbit]: list of classical bits
@@ -371,6 +374,9 @@ class DAGCircuit:
         elif isinstance(cond[0], Clbit):
             # Returns a singleton list of the conditional cbit.
             return [cond[0]]
+        elif all(isinstance(cbit, Clbit) for cbit in cond[0]):
+            # Returns the list of cbits as is.
+            return cond[0]
         else:
             raise CircuitError("Condition must be used with ClassicalRegister or Clbit.")
 
@@ -566,7 +572,7 @@ class DAGCircuit:
 
         Args:
             wire_map (dict): a map from source wires to destination wires
-            condition (tuple or None): (ClassicalRegister,int)
+            condition (tuple or None): (ClassicalRegister,int) or (Clbit,bool) or (list[Clbit],int)
             target_cregs (list[ClassicalRegister]): List of all cregs in the
               target circuit onto which the condition might possibly be mapped.
         Returns:
@@ -594,38 +600,46 @@ class DAGCircuit:
             bits_in_condcreg = [bit for bit in wire_map if bit in cond_creg]
             for bit in bits_in_condcreg:
                 if is_reg:
-                    try:
-                        candidate_creg = next(
-                            creg for creg in target_cregs if wire_map[bit] in creg
-                        )
-                    except StopIteration as ex:
-                        raise DAGCircuitError(
-                            "Did not find creg containing mapped clbit in conditional."
-                        ) from ex
+                    if new_creg is None:
+                        new_creg = []
+                    new_creg.append(wire_map[bit])
                 else:
-                    # If cond is on a single Clbit then the candidate_creg is
-                    # the target Clbit to which 'bit' is mapped to.
-                    candidate_creg = wire_map[bit]
-                if new_creg is None:
-                    new_creg = candidate_creg
-                elif new_creg != candidate_creg:
-                    # Raise if wire_map maps condition creg on to more than one
-                    # creg in target DAG.
-                    raise DAGCircuitError(
-                        "wire_map maps conditional register onto more than one creg."
-                    )
+                    new_creg = wire_map[bit]
+            new_cond_val = cond_val
+            # for bit in bits_in_condcreg:
+            #     if is_reg:
+            #         try:
+            #             candidate_creg = next(
+            #                 creg for creg in target_cregs if wire_map[bit] in creg
+            #             )
+            #         except StopIteration as ex:
+            #             raise DAGCircuitError(
+            #                 "Did not find creg containing mapped clbit in conditional."
+            #             ) from ex
+            #     else:
+            #         # If cond is on a single Clbit then the candidate_creg is
+            #         # the target Clbit to which 'bit' is mapped to.
+            #         candidate_creg = wire_map[bit]
+            #     if new_creg is None:
+            #         new_creg = candidate_creg
+            #     elif new_creg != candidate_creg:
+            #         # Raise if wire_map maps condition creg on to more than one
+            #         # creg in target DAG.
+            #         raise DAGCircuitError(
+            #             "wire_map maps conditional register onto more than one creg."
+            #         )
 
-                if not is_reg:
-                    # If the cond is on a single Clbit then the new_cond_val is the
-                    # same as the cond_val since the new_creg is also a single Clbit.
-                    new_cond_val = cond_val
-                elif 2 ** (cond_creg[:].index(bit)) & cond_val:
-                    # If the conditional values of the Clbit 'bit' is 1 then the new_cond_val
-                    # is updated such that the conditional value of the Clbit to which 'bit'
-                    # is mapped to in new_creg is 1.
-                    new_cond_val += 2 ** (new_creg[:].index(wire_map[bit]))
-            if new_creg is None:
-                raise DAGCircuitError("Condition registers not found in wire_map.")
+            #     if not is_reg:
+            #         # If the cond is on a single Clbit then the new_cond_val is the
+            #         # same as the cond_val since the new_creg is also a single Clbit.
+            #         new_cond_val = cond_val
+            #     elif 2 ** (cond_creg[:].index(bit)) & cond_val:
+            #         # If the conditional values of the Clbit 'bit' is 1 then the new_cond_val
+            #         # is updated such that the conditional value of the Clbit to which 'bit'
+            #         # is mapped to in new_creg is 1.
+            #         new_cond_val += 2 ** (new_creg[:].index(wire_map[bit]))
+            # if new_creg is None:
+            #     raise DAGCircuitError("Condition registers not found in wire_map.")
             new_condition = (new_creg, new_cond_val)
         return new_condition
 
