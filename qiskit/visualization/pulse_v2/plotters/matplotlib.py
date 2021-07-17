@@ -53,6 +53,8 @@ class Mpl2DPlotter(BasePlotter):
 
         if axis is None:
             fig_h = canvas_height * self.canvas.formatter["general.fig_chart_height"]
+            if fig_h == 0:
+                fig_h = 0.1
             fig_w = self.canvas.formatter["general.fig_width"]
 
             self.figure = plt.figure(figsize=(fig_w, fig_h))
@@ -164,7 +166,10 @@ class Mpl2DPlotter(BasePlotter):
         )
 
         # boundary
-        self.ax.set_xlim(*axis_config.window)
+        if axis_config.window == (0, 0):
+            self.ax.set_xlim(0, 1)
+        else:
+            self.ax.set_xlim(*axis_config.window)
         self.ax.set_ylim(y_min, y_max)
 
         # title
