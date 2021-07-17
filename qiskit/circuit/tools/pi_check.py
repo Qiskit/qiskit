@@ -56,15 +56,13 @@ def pi_check(inpt, eps=1e-6, output="text", ndigits=5):
         for sym in syms:
             if not sym.is_number:
                 continue
-            pi = pi_check(float(sym), eps=eps, output=output, ndigits=ndigits)
+            sym_float = abs(float(sym))
+            sym_str = str(sym_float)
+            pi = pi_check(sym_float, eps=eps, output=output, ndigits=ndigits)
             try:
                 _ = float(pi)
             except (ValueError, TypeError):
-                # Strip leading '-' from pi since must replace with abs(sym)
-                # in order to preserve spacing around minuses in expression
-                if pi[0] == "-":
-                    pi = pi[1:]
-                param_str = param_str.replace(str(abs(float(sym))), pi)
+                param_str = param_str.replace(sym_str, pi)
         return param_str
     elif isinstance(inpt, str):
         return inpt
