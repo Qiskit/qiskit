@@ -403,6 +403,8 @@ class QuantumCircuit:
         circ = QuantumCircuit(
             *reversed(self.qregs),
             *reversed(self.cregs),
+            [*reversed(self.qubits)],
+            [*reversed(self.clbits)],
             name=self.name,
             global_phase=self.global_phase,
         )
