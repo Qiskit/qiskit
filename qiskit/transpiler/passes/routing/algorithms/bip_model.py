@@ -27,9 +27,14 @@ try:
 except ImportError:
     HAS_CPLEX = False
 
+import numpy as np
+
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.transpiler.exceptions import TranspilerError, CouplingError
 from qiskit.transpiler.layout import Layout
+from qiskit.circuit.library.standard_gates import SwapGate
+from qiskit.quantum_info import two_qubit_cnot_decompose
+from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitWeylDecomposition, trace_to_fid
 
 logger = logging.getLogger(__name__)
 
@@ -95,25 +100,52 @@ class BIPMappingModel:
         # Extract layers with 2-qubit gates
         self._to_su4layer = []
         self.su4layers = []
+        self.su4fidelity = []
+        self.su4mfidelity = []
         for lay in dag.layers():
             laygates = []
+            layfidelity = []
+            laymfidelity = []
             subdag = lay["graph"]
             for node in subdag.two_qubit_ops():
                 i1 = self._virtual_to_index[node.qargs[0]]
                 i2 = self._virtual_to_index[node.qargs[1]]
                 laygates.append((i1, i2))
+                # Compute gate fidelity depending on number of CNOTs
+                matrix = node.op.to_matrix()
+                swap = SwapGate().to_matrix()
+                target = TwoQubitWeylDecomposition(matrix)
+                targetm = TwoQubitWeylDecomposition(matrix @ swap)
+                traces = two_qubit_cnot_decompose.traces(target)
+                tracesm = two_qubit_cnot_decompose.traces(targetm)
+                fidelity = [trace_to_fid(traces[i]) for i in range(4)]
+                mfidelity = [trace_to_fid(traces[i]) for i in range(4)]
+                layfidelity.append(fidelity)
+                laymfidelity.append(mfidelity)
             if laygates:
                 self._to_su4layer.append(len(self.su4layers))
                 self.su4layers.append(laygates)
+                self.su4fidelity.append(layfidelity)
+                self.su4mfidelity.append(laymfidelity)
             else:
                 self._to_su4layer.append(-1)
         # Add dummy time steps inbetween su4layers. Dummy time steps can only contain SWAPs.
         self.gates = []  # layered 2q-gates with dummy steps
+        self.gatesfidelity = [] # fidelities of each gate
+        self.gatesmfidelity = [] # fidelities of each gate followed by SWAP
         for k, lay in enumerate(self.su4layers):
             self.gates.append(lay)
+            self.gatesfidelity.append(self.su4fidelity[k])
+            self.gatesmfidelity.append(self.su4mfidelity[k])
             if k == len(self.su4layers) - 1:  # do not add dummy steps after the last layer
                 break
             self.gates.extend([[]] * dummy_timesteps)
+            self.gatesfidelity.extend([[]] * dummy_timesteps)
+            self.gatesmfidelity.extend([[]] * dummy_timesteps)
+
+        # Store CX fidelity. TODO: get this from the backend
+        self.basis_fidelity = 1-6.4e-3
+        self.log_basis_fidelity = np.log(self.basis_fidelity)
 
         logger.info("Num virtual qubits: %d", self.num_vqubits)
         logger.info("Num physical qubits: %d", self.num_pqubits)
@@ -330,25 +362,68 @@ class BIPMappingModel:
                     for (i, j) in self._arcs:
                         objexr += 0.01 * x[t, q, i, j]
             mdl.minimize(objexr)
-        elif objective == "error_rate":
-            self._set_error_rate_obj(mdl)
-        elif objective == "balanced":
-            self._set_balanced_obj(mdl)
+        elif objective == "error_rate" or objective == "balanced":
+            # We multiply error_rate by 10 because the cofficients are
+            # usually very small. We add the depth objective with
+            # coefficient 0.01 if balanced was selected.
+            objexr = 0
+            for t in range(self.depth):
+                used_qubit = [False for i in range(self.num_vqubits)]
+                used_qubit_fidelity = [0] * self.num_vqubits
+                used_qubit_mfidelity = [0] * self.num_vqubits
+                for (h, (p, q)) in enumerate(self.gates[t]):
+                    # Recover fidelity of this gate and its mirrored
+                    # version
+                    used_qubit[p] = True
+                    used_qubit[q] = True
+                    used_qubit_fidelity[p] = self.gatesfidelity[t][h]
+                    used_qubit_fidelity[q] = self.gatesfidelity[t][h]
+                    used_qubit_mfidelity[p] = self.gatesmfidelity[t][h]
+                    used_qubit_mfidelity[q] = self.gatesmfidelity[t][h]
+                    for (i, j) in self._arcs:
+                        # We pay the cost for gate implementation. If
+                        # we are mirroring, another objective function
+                        # coefficient (below) will ensure we pay the
+                        # difference between regular cost and mirrored
+                        # cost.
+                        expected_fidelities = [used_qubit_fidelity[p][k] *
+                                               self.basis_fidelity**k
+                                               for k in range(4)]
+                        pbest_fid = -np.log(np.max(expected_fidelities))
+                        objexr += 10*y[t, p, q, i, j]*pbest_fid
+                if (t < self.depth - 1):
+                    # x variables are only defined for depth up to depth-1
+                    for i in range(self.num_pqubits):
+                        for q in range(self.num_vqubits):
+                            for j in [v for (u, v) in self._arcs if (u == i)]:
+                                # j is any node in the outstar of i
+                                if (not used_qubit[q]):
+                                    # This means we are swapping
+                                    objexr += 10*x[t, q, i, j]*-3/2*self.log_basis_fidelity
+                                else:
+                                    # This is a mirrored gate, so
+                                    # compute the difference between
+                                    # its mirrored cost and the
+                                    # non-mirrored cost
+                                    expected_fidelities = [
+                                        used_qubit_fidelity[q][k] *
+                                        self.basis_fidelity**k
+                                        for k in range(4)]
+                                    expected_fidelitiesm = [
+                                        used_qubit_mfidelity[q][k] *
+                                        self.basis_fidelity**k
+                                        for k in range(4)]
+                                    pbest_fid = -np.log(np.max(expected_fidelities))
+                                    pbest_fidm = -np.log(np.max(expected_fidelitiesm))
+                                    objexr += 10*x[t, q, i, j]*(pbest_fidm - pbest_fid)/2
+            if (objective == "balanced"):
+                objexr += 0.01 * sum(z[t] for t in range(self.depth) if self._is_dummy_step(t))
+            mdl.minimize(objexr)
         else:
             raise TranspilerError(f"Unknown objective type: {objective}")
 
         self.problem = mdl
         logger.info("BIP problem stats: %s", self.problem.statistics)
-
-    @staticmethod
-    def _set_error_rate_obj(model):
-        """Set the minimum error rate objective function."""
-        raise NotImplementedError("objective: 'error_rate' is not implemented")
-
-    @staticmethod
-    def _set_balanced_obj(model):
-        """Set the minimum balanced (weighted sum of error_rate and depth) objective function."""
-        raise NotImplementedError("objective: 'balanced' is not implemented")
 
     def solve_cpx_problem(self, time_limit: float = 60, threads: int = None) -> str:
         """Solve the BIP problem using CPLEX.

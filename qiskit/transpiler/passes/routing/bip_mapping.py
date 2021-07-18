@@ -164,6 +164,7 @@ class BIPMapping(TransformationPass):
 
         status = model.solve_cpx_problem(time_limit=self.time_limit, threads=self.threads)
         if model.solution is None:
+            model.problem.export_as_lp('/home/nannicini/test.lp')
             logger.warning("Failed to solve a BIP problem. Status: %s", status)
             return original_dag
 
