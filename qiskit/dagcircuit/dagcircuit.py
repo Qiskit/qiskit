@@ -144,7 +144,7 @@ class DAGCircuit:
                 elif isinstance(node.wire, Clbit):
                     dag.add_clbits([node.wire])
                 else:
-                    raise DAGCircuitError("unknown node wire type: {}".format(node.wire))
+                    raise DAGCircuitError(f"unknown node wire type: {node.wire}")
             elif node.type == "op":
                 dag.apply_operation_back(node.op.copy(), node.qargs, node.cargs)
         return dag
@@ -315,7 +315,7 @@ class DAGCircuit:
             self.output_map[wire] = outp_node
             self._multi_graph.add_edge(inp_node._node_id, outp_node._node_id, wire)
         else:
-            raise DAGCircuitError("duplicate wire %s" % (wire,))
+            raise DAGCircuitError(f"duplicate wire {wire}")
 
     def _check_condition(self, name, condition):
         """Verify that the condition is valid.
@@ -349,7 +349,7 @@ class DAGCircuit:
         # Check for each wire
         for wire in args:
             if wire not in amap:
-                raise DAGCircuitError("(qu)bit %s not found in %s" % (wire, amap))
+                raise DAGCircuitError(f"(qu)bit {wire} not found in {amap}")
 
     def _bits_in_condition(self, cond):
         """Return a list of bits in the given condition.
@@ -395,6 +395,8 @@ class DAGCircuit:
         target_dag = DAGCircuit()
         target_dag.name = self.name
         target_dag._global_phase = self._global_phase
+        target_dag.duration = self.duration
+        target_dag.unit = self.unit
         target_dag.metadata = self.metadata
 
         target_dag.add_qubits(self.qubits)
@@ -556,7 +558,7 @@ class DAGCircuit:
             # Qubits upon being converted to an Instruction. Until this translation is fixed
             # and Instructions have a concept of ancilla qubits, this fix is required.
             if not (isinstance(k, type(v)) or isinstance(v, type(k))):
-                raise DAGCircuitError("inconsistent wire_map at (%s,%s)" % (k, v))
+                raise DAGCircuitError(f"inconsistent wire_map at ({k},{v})")
 
     @staticmethod
     def _map_condition(wire_map, condition, target_cregs):
@@ -598,20 +600,19 @@ class DAGCircuit:
                         )
                     except StopIteration as ex:
                         raise DAGCircuitError(
-                            "Did not find creg containing " "mapped clbit in conditional."
+                            "Did not find creg containing mapped clbit in conditional."
                         ) from ex
                 else:
                     # If cond is on a single Clbit then the candidate_creg is
                     # the target Clbit to which 'bit' is mapped to.
                     candidate_creg = wire_map[bit]
-
                 if new_creg is None:
                     new_creg = candidate_creg
                 elif new_creg != candidate_creg:
                     # Raise if wire_map maps condition creg on to more than one
                     # creg in target DAG.
                     raise DAGCircuitError(
-                        "wire_map maps conditional " "register onto more than one creg."
+                        "wire_map maps conditional register onto more than one creg."
                     )
 
                 if not is_reg:
@@ -1302,17 +1303,22 @@ class DAGCircuit:
         """Returns iterator of the predecessors of a node as DAGNodes."""
         return iter(self._multi_graph.predecessors(node._node_id))
 
+    def is_successor(self, node, node_succ):
+        """Checks if a second node is in the successors of node."""
+        return self._multi_graph.has_edge(node._node_id, node_succ._node_id)
+
+    def is_predecessor(self, node, node_pred):
+        """Checks if a second node is in the predecessors of node."""
+        return self._multi_graph.has_edge(node_pred._node_id, node._node_id)
+
     def quantum_predecessors(self, node):
         """Returns iterator of the predecessors of a node that are
         connected by a quantum edge as DAGNodes."""
-        for predecessor in self.predecessors(node):
-            if any(
-                isinstance(edge_data, Qubit)
-                for edge_data in self._multi_graph.get_all_edge_data(
-                    predecessor._node_id, node._node_id
-                )
-            ):
-                yield predecessor
+        return iter(
+            self._multi_graph.find_predecessors_by_edge(
+                node._node_id, lambda edge_data: isinstance(edge_data, Qubit)
+            )
+        )
 
     def ancestors(self, node):
         """Returns set of the ancestors of a node as DAGNodes."""
@@ -1332,14 +1338,11 @@ class DAGCircuit:
     def quantum_successors(self, node):
         """Returns iterator of the successors of a node that are
         connected by a quantum edge as DAGNodes."""
-        for successor in self.successors(node):
-            if any(
-                isinstance(edge_data, Qubit)
-                for edge_data in self._multi_graph.get_all_edge_data(
-                    node._node_id, successor._node_id
-                )
-            ):
-                yield successor
+        return iter(
+            self._multi_graph.find_successors_by_edge(
+                node._node_id, lambda edge_data: isinstance(edge_data, Qubit)
+            )
+        )
 
     def remove_op_node(self, node):
         """Remove an operation node n.
@@ -1503,7 +1506,7 @@ class DAGCircuit:
             return node.type == "op" and node.name in namelist and node.op.condition is None
 
         group_list = rx.collect_runs(self._multi_graph, filter_fn)
-        return set(tuple(x) for x in group_list)
+        return {tuple(x) for x in group_list}
 
     def collect_1q_runs(self):
         """Return a set of non-conditional runs of 1q "op" nodes."""

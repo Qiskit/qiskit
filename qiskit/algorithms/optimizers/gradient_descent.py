@@ -12,7 +12,7 @@
 
 """A standard gradient descent optimizer."""
 
-from typing import Iterator, Optional, Union, Callable
+from typing import Iterator, Optional, Union, Callable, Dict, Any
 from functools import partial
 
 import numpy as np
@@ -131,6 +131,23 @@ class GradientDescent(Optimizer):
         self.perturbation = perturbation
         self.tol = tol
         self.callback = callback
+
+    @property
+    def settings(self) -> Dict[str, Any]:
+        # if learning rate or perturbation are custom iterators expand them
+        if callable(self.learning_rate):
+            iterator = self.learning_rate()
+            learning_rate = np.array([next(iterator) for _ in range(self.maxiter)])
+        else:
+            learning_rate = self.learning_rate
+
+        return {
+            "maxiter": self.maxiter,
+            "tol": self.tol,
+            "learning_rate": learning_rate,
+            "perturbation": self.perturbation,
+            "callback": self.callback,
+        }
 
     def _minimize(self, loss, grad, initial_point):
         # set learning rate

@@ -63,7 +63,7 @@ def sequence(scheduled_circuit: QuantumCircuit, schedule_config: ScheduleConfig)
     for circ_pulse_def in circ_pulse_defs:
         active_qubits = [q for q in circ_pulse_def.qubits if q in qubit_time_available]
 
-        start_time = max([qubit_time_available[q] for q in active_qubits], default=0)
+        start_time = max((qubit_time_available[q] for q in active_qubits), default=0)
 
         for q in active_qubits:
             if qubit_time_available[q] != start_time:

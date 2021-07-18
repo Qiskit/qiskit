@@ -20,7 +20,7 @@ import numpy as np
 
 from qiskit.qobj import Qobj
 from qiskit.utils import circuit_utils
-from qiskit.exceptions import QiskitError
+from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 from .backend_utils import (
     is_ibmq_provider,
     is_statevector_backend,
@@ -81,6 +81,7 @@ class QuantumInstance:
         cals_matrix_refresh_period: int = 30,
         measurement_error_mitigation_shots: Optional[int] = None,
         job_callback: Optional[Callable] = None,
+        mit_pattern: Optional[List[List[int]]] = None,
     ) -> None:
         """
         Quantum Instance holds a Qiskit Terra backend as well as configuration for circuit
@@ -114,8 +115,9 @@ class QuantumInstance:
                 processing time during submission to backend.
             measurement_error_mitigation_cls: The approach to mitigate
                 measurement errors. Qiskit Ignis provides fitter classes for this functionality
-                and CompleteMeasFitter from qiskit.ignis.mitigation.measurement module can be used
-                here. (TensoredMeasFitter is not supported).
+                and CompleteMeasFitter or TensoredMeasFitter
+                from qiskit.ignis.mitigation.measurement module can be used here.
+                TensoredMeasFitter doesn't support subset fitter.
             cals_matrix_refresh_period: How often to refresh the calibration
                 matrix in measurement mitigation. in minutes
             measurement_error_mitigation_shots: The number of shots number for
@@ -124,6 +126,10 @@ class QuantumInstance:
                 to monitor job progress as jobs are submitted for processing by an Aqua algorithm.
                 The callback is provided the following arguments: `job_id, job_status,
                 queue_position, job`
+            mit_pattern: Qubits on which to perform the TensoredMeasFitter
+                measurement correction, divided to groups according to tensors.
+                If `None` and `qr` is given then assumed to be performed over the entire
+                `qr` as one group (default `None`).
 
         Raises:
             QiskitError: the shots exceeds the maximum number of shots
@@ -215,6 +221,7 @@ class QuantumInstance:
         self._meas_error_mitigation_method = "least_squares"
         self._cals_matrix_refresh_period = cals_matrix_refresh_period
         self._meas_error_mitigation_shots = measurement_error_mitigation_shots
+        self._mit_pattern = mit_pattern
 
         if self._meas_error_mitigation_cls is not None:
             logger.info(
@@ -251,7 +258,7 @@ class QuantumInstance:
         """
         from qiskit import __version__ as terra_version
 
-        info = "\nQiskit Terra version: {}\n".format(terra_version)
+        info = f"\nQiskit Terra version: {terra_version}\n"
         info += "Backend: '{} ({})', with following setting:\n{}\n{}\n{}\n{}\n{}\n{}".format(
             self.backend_name,
             self._backend.provider(),
@@ -262,7 +269,7 @@ class QuantumInstance:
             self._backend_options,
             self._noise_config,
         )
-        info += "\nMeasurement mitigation: {}".format(self._meas_error_mitigation_cls)
+        info += f"\nMeasurement mitigation: {self._meas_error_mitigation_cls}"
 
         return info
 
@@ -311,6 +318,11 @@ class QuantumInstance:
             circuits (Union['QuantumCircuit', List['QuantumCircuit']]):
                         circuits to execute
             had_transpiled: whether or not circuits had been transpiled
+
+        Raises:
+            QiskitError: Invalid error mitigation fitter class
+            QiskitError: TensoredMeasFitter class doesn't support subset fitter
+            MissingOptionalLibraryError: Ignis not installed
 
         Returns:
             Result: result object
@@ -364,6 +376,9 @@ class QuantumInstance:
                 if circuit_job
                 else get_measured_qubits_from_qobj(qobj)
             )
+            mit_pattern = self._mit_pattern
+            if mit_pattern is None:
+                mit_pattern = [[i] for i in range(len(qubit_index))]
             qubit_index_str = "_".join([str(x) for x in qubit_index]) + "_{}".format(
                 self._meas_error_mitigation_shots or self._run_config.shots
             )
@@ -422,6 +437,7 @@ class QuantumInstance:
                         self._backend,
                         self._backend_config,
                         self._compile_config,
+                        mit_pattern=mit_pattern,
                     )
                     if use_different_shots:
                         cals_result = run_circuits(
@@ -479,6 +495,7 @@ class QuantumInstance:
                         self._backend_config,
                         self._compile_config,
                         temp_run_config,
+                        mit_pattern=mit_pattern,
                     )
                     if use_different_shots or is_aer_qasm(self._backend):
                         cals_result = run_qobj(
@@ -517,9 +534,28 @@ class QuantumInstance:
                         cals_result = result
 
                 logger.info("Building calibration matrix for measurement error mitigation.")
-                meas_error_mitigation_fitter = self._meas_error_mitigation_cls(
-                    cals_result, state_labels, qubit_list=qubit_index, circlabel=circuit_labels
-                )
+                try:
+                    from qiskit.ignis.mitigation.measurement import (
+                        CompleteMeasFitter,
+                        TensoredMeasFitter,
+                    )
+                except ImportError as ex:
+                    raise MissingOptionalLibraryError(
+                        libname="qiskit-ignis",
+                        name="execute",
+                        pip_install="pip install qiskit-ignis",
+                    ) from ex
+                if self._meas_error_mitigation_cls == CompleteMeasFitter:
+                    meas_error_mitigation_fitter = self._meas_error_mitigation_cls(
+                        cals_result, state_labels, qubit_list=qubit_index, circlabel=circuit_labels
+                    )
+                elif self._meas_error_mitigation_cls == TensoredMeasFitter:
+                    meas_error_mitigation_fitter = self._meas_error_mitigation_cls(
+                        cals_result, mit_pattern=state_labels, circlabel=circuit_labels
+                    )
+                else:
+                    raise QiskitError(f"Unknown fitter {self._meas_error_mitigation_cls}")
+
                 self._meas_error_mitigation_fitters[qubit_index_str] = (
                     meas_error_mitigation_fitter,
                     time.time(),
@@ -550,7 +586,18 @@ class QuantumInstance:
 
             if meas_error_mitigation_fitter is not None:
                 logger.info("Performing measurement error mitigation.")
-                skip_num_circuits = len(result.results) - len(circuits)
+                if (
+                    hasattr(self._run_config, "parameterizations")
+                    and len(self._run_config.parameterizations) > 0
+                    and len(self._run_config.parameterizations[0]) > 0
+                    and len(self._run_config.parameterizations[0][0]) > 0
+                ):
+                    num_circuit_templates = len(self._run_config.parameterizations)
+                    num_param_variations = len(self._run_config.parameterizations[0][0])
+                    num_circuits = num_circuit_templates * num_param_variations
+                else:
+                    num_circuits = len(circuits)
+                skip_num_circuits = len(result.results) - num_circuits
                 #  remove the calibration counts from result object to assure the length of
                 #  ExperimentalResult is equal length to input circuits
                 result.results = result.results[skip_num_circuits:]
@@ -560,8 +607,14 @@ class QuantumInstance:
                     tmp_result.results = [result.results[i] for i in c_idx]
                     if curr_qubit_index == qubit_index:
                         tmp_fitter = meas_error_mitigation_fitter
-                    else:
+                    elif isinstance(meas_error_mitigation_fitter, CompleteMeasFitter):
                         tmp_fitter = meas_error_mitigation_fitter.subset_fitter(curr_qubit_index)
+                    else:
+                        raise QiskitError(
+                            "{} doesn't support subset_fitter.".format(
+                                meas_error_mitigation_fitter.__class__.__name__
+                            )
+                        )
                     tmp_result = tmp_fitter.filter.apply(
                         tmp_result, self._meas_error_mitigation_method
                     )
@@ -635,7 +688,7 @@ class QuantumInstance:
                 self._noise_config[k] = v
 
             else:
-                raise ValueError("unknown setting for the key ({}).".format(k))
+                raise ValueError(f"unknown setting for the key ({k}).")
 
     @property
     def time_taken(self) -> float:
@@ -787,7 +840,7 @@ class QuantumInstance:
         """
         shots = self._meas_error_mitigation_shots or self._run_config.shots
         if qubit_index:
-            qubit_index_str = "_".join([str(x) for x in qubit_index]) + "_{}".format(shots)
+            qubit_index_str = "_".join([str(x) for x in qubit_index]) + f"_{shots}"
             fitter, timestamp = self._meas_error_mitigation_fitters.get(qubit_index_str, None)
             if fitter is not None:
                 return fitter.cal_matrix, timestamp

@@ -83,7 +83,7 @@ def circuit_drawer(
             the `mpl`, `latex` and `latex_source` outputs. Defaults to 1.0.
         filename (str): file path to save image to. Defaults to None.
         style (dict or str): dictionary of style or file name of style json file.
-            This option is only used by the `mpl` output type.
+            This option is only used by the `mpl` or `latex` output type.
             If `style` is a str, it is used as the path to a json file
             which contains a style dict. The file will be opened, parsed, and
             then any style elements in the dict will replace the default values
@@ -211,6 +211,7 @@ def circuit_drawer(
             circuit,
             filename=filename,
             scale=scale,
+            style=style,
             plot_barriers=plot_barriers,
             reverse_bits=reverse_bits,
             justify=justify,
@@ -224,6 +225,7 @@ def circuit_drawer(
             circuit,
             filename=filename,
             scale=scale,
+            style=style,
             plot_barriers=plot_barriers,
             reverse_bits=reverse_bits,
             justify=justify,
@@ -306,7 +308,7 @@ def _text_circuit_drawer(
     Returns:
         TextDrawing: An instance that, when printed, draws the circuit in ascii art.
     """
-    qubits, clbits, ops = utils._get_layered_instructions(
+    qubits, clbits, nodes = utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
     )
 
@@ -318,7 +320,8 @@ def _text_circuit_drawer(
     text_drawing = _text.TextDrawing(
         qubits,
         clbits,
-        ops,
+        nodes,
+        reverse_bits=reverse_bits,
         layout=layout,
         initial_state=initial_state,
         cregbundle=cregbundle,
@@ -350,6 +353,7 @@ def _text_circuit_drawer(
 def _latex_circuit_drawer(
     circuit,
     scale=0.7,
+    style=None,
     filename=None,
     plot_barriers=True,
     reverse_bits=False,
@@ -366,6 +370,7 @@ def _latex_circuit_drawer(
     Args:
         circuit (QuantumCircuit): a quantum circuit
         scale (float): scaling factor
+        style (dict or str): dictionary of style or file name of style file
         filename (str): file path to save image to
         reverse_bits (bool): When set to True reverse the bit order inside
             registers for the output visualization.
@@ -397,6 +402,7 @@ def _latex_circuit_drawer(
             circuit,
             filename=tmppath,
             scale=scale,
+            style=style,
             plot_barriers=plot_barriers,
             reverse_bits=reverse_bits,
             justify=justify,
@@ -411,8 +417,8 @@ def _latex_circuit_drawer(
                 [
                     "pdflatex",
                     "-halt-on-error",
-                    "-output-directory={}".format(tmpdirname),
-                    "{}".format(tmpfilename + ".tex"),
+                    f"-output-directory={tmpdirname}",
+                    f"{tmpfilename + '.tex'}",
                 ],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.DEVNULL,
@@ -475,6 +481,7 @@ def _generate_latex_source(
     circuit,
     filename=None,
     scale=0.7,
+    style=None,
     reverse_bits=False,
     plot_barriers=True,
     justify=None,
@@ -488,6 +495,7 @@ def _generate_latex_source(
     Args:
         circuit (QuantumCircuit): a quantum circuit
         scale (float): scaling factor
+        style (dict or str): dictionary of style or file name of style file
         filename (str): optional filename to write latex
         reverse_bits (bool): When set to True reverse the bit order inside
             registers for the output visualization.
@@ -506,7 +514,7 @@ def _generate_latex_source(
     Returns:
         str: Latex string appropriate for writing to file.
     """
-    qubits, clbits, ops = utils._get_layered_instructions(
+    qubits, clbits, nodes = utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
     )
     if with_layout:
@@ -518,8 +526,9 @@ def _generate_latex_source(
     qcimg = _latex.QCircuitImage(
         qubits,
         clbits,
-        ops,
+        nodes,
         scale,
+        style=style,
         reverse_bits=reverse_bits,
         plot_barriers=plot_barriers,
         layout=layout,
@@ -591,7 +600,7 @@ def _matplotlib_circuit_drawer(
             if the ``ax`` kwarg is not set.
     """
 
-    qubits, clbits, ops = utils._get_layered_instructions(
+    qubits, clbits, nodes = utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
     )
     if with_layout:
@@ -606,7 +615,7 @@ def _matplotlib_circuit_drawer(
     qcd = _matplotlib.MatplotlibDrawer(
         qubits,
         clbits,
-        ops,
+        nodes,
         scale=scale,
         style=style,
         reverse_bits=reverse_bits,

@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 # pylint: disable=invalid-name
-# pylint: disable=inconsistent-return-statements,unsubscriptable-object
+# pylint: disable=inconsistent-return-statements
 # pylint: disable=missing-param-doc,missing-type-doc,unused-argument
 
 """
@@ -34,13 +34,16 @@ from qiskit.circuit.tools.pi_check import pi_check
 
 
 @deprecate_arguments({"rho": "state"})
-def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None, *, rho=None):
+def plot_state_hinton(
+    state, title="", figsize=None, ax_real=None, ax_imag=None, *, rho=None, filename=None
+):
     """Plot a hinton diagram for the density matrix of a quantum state.
 
     Args:
         state (Statevector or DensityMatrix or ndarray): An N-qubit quantum state.
         title (str): a string that represents the plot title
         figsize (tuple): Figure size in inches.
+        filename (str): file path to save image to.
         ax_real (matplotlib.axes.Axes): An optional Axes object to be used for
             the visualization output. If none is specified a new matplotlib
             Figure will be created and used. If this is specified without an
@@ -169,7 +172,10 @@ def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None,
     if ax_real is None and ax_imag is None:
         if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
             plt.close(fig)
+    if filename is None:
         return fig
+    else:
+        return fig.savefig(filename)
 
 
 def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartesian"):
@@ -233,7 +239,9 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
 
 
 @deprecate_arguments({"rho": "state"})
-def plot_bloch_multivector(state, title="", figsize=None, *, rho=None, reverse_bits=False):
+def plot_bloch_multivector(
+    state, title="", figsize=None, *, rho=None, reverse_bits=False, filename=None
+):
     """Plot the Bloch sphere.
 
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
@@ -287,15 +295,27 @@ def plot_bloch_multivector(state, title="", figsize=None, *, rho=None, reverse_b
         pos = num - 1 - i if reverse_bits else i
         ax = fig.add_subplot(1, num, i + 1, projection="3d")
         plot_bloch_vector(bloch_data[i], "qubit " + str(pos), ax=ax, figsize=figsize)
-    fig.suptitle(title, fontsize=16)
+    fig.suptitle(title, fontsize=16, y=1.01)
     if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
         plt.close(fig)
-    return fig
+    if filename is None:
+        return fig
+    else:
+        return fig.savefig(filename)
 
 
 @deprecate_arguments({"rho": "state"})
 def plot_state_city(
-    state, title="", figsize=None, color=None, alpha=1, ax_real=None, ax_imag=None, *, rho=None
+    state,
+    title="",
+    figsize=None,
+    color=None,
+    alpha=1,
+    ax_real=None,
+    ax_imag=None,
+    *,
+    rho=None,
+    filename=None,
 ):
     """Plot the cityscape of quantum state.
 
@@ -318,7 +338,7 @@ def plot_state_city(
         ax_imag (matplotlib.axes.Axes): An optional Axes object to be used for
             the visualization output. If none is specified a new matplotlib
             Figure will be created and used. If this is specified without an
-            ax_imag only the real component plot will be generated.
+            ax_real only the imaginary component plot will be generated.
             Additionally, if specified there will be no returned Figure since
             it is redundant.
 
@@ -519,11 +539,16 @@ def plot_state_city(
     if ax_real is None and ax_imag is None:
         if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
             plt.close(fig)
+    if filename is None:
         return fig
+    else:
+        return fig.savefig(filename)
 
 
 @deprecate_arguments({"rho": "state"})
-def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, rho=None):
+def plot_state_paulivec(
+    state, title="", figsize=None, color=None, ax=None, *, rho=None, filename=None
+):
     """Plot the paulivec representation of a quantum state.
 
     Plot a bargraph of the mixed state rho over the pauli matrices
@@ -605,7 +630,10 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, r
     if return_fig:
         if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
             plt.close(fig)
+    if filename is None:
         return fig
+    else:
+        return fig.savefig(filename)
 
 
 def n_choose_k(n, k):
@@ -640,7 +668,7 @@ def lex_index(n, k, lst):
     if len(lst) != k:
         raise VisualizationError("list should have length k")
     comb = list(map(lambda x: n - 1 - x, lst))
-    dualm = sum([n_choose_k(comb[k - 1 - i], i + 1) for i in range(k)])
+    dualm = sum(n_choose_k(comb[k - 1 - i], i + 1) for i in range(k))
     return int(dualm)
 
 
@@ -660,7 +688,7 @@ def phase_to_rgb(complex_number):
     complex_number is phase is first mapped to angle in the range
     [0, 2pi] and then to the HSL color wheel
     """
-    angles = (np.angle(complex_number) + (np.pi * 4)) % (np.pi * 2)
+    angles = (np.angle(complex_number) + (np.pi * 5 / 4)) % (np.pi * 2)
     rgb = colorsys.hls_to_rgb(angles / (np.pi * 2), 0.5, 0.5)
     return rgb
 
@@ -675,6 +703,7 @@ def plot_state_qsphere(
     use_degrees=False,
     *,
     rho=None,
+    filename=None,
 ):
     """Plot the qsphere representation of a quantum state.
     Here, the size of the points is proportional to the probability
@@ -830,8 +859,7 @@ def plot_state_qsphere(
 
                 # get prob and angle - prob will be shade and angle color
                 prob = np.real(np.dot(state[i], state[i].conj()))
-                if prob > 1:  # See https://github.com/Qiskit/qiskit-terra/issues/4666
-                    prob = 1
+                prob = min(prob, 1)  # See https://github.com/Qiskit/qiskit-terra/issues/4666
                 colorstate = phase_to_rgb(state[i])
 
                 alfa = 1
@@ -910,10 +938,11 @@ def plot_state_qsphere(
 
     n = 64
     theta = np.ones(n)
+    colors = sns.hls_palette(n)
 
     ax2 = fig.add_subplot(gs[2:, 2:])
-    ax2.pie(theta, colors=sns.color_palette("hls", n), radius=0.75)
-    ax2.add_artist(Circle((0, 0), 0.5, color=plt.rcParams["figure.facecolor"], zorder=1))
+    ax2.pie(theta, colors=colors[5 * n // 8 :] + colors[: 5 * n // 8], radius=0.75)
+    ax2.add_artist(Circle((0, 0), 0.5, color="white", zorder=1))
     offset = 0.95  # since radius of sphere is one.
 
     if use_degrees:
@@ -938,7 +967,10 @@ def plot_state_qsphere(
     if return_fig:
         if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
             plt.close(fig)
+    if filename is None:
         return fig
+    else:
+        return fig.savefig(filename)
 
 
 def generate_facecolors(x, y, z, dx, dy, dz, color):

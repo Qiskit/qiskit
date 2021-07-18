@@ -13,23 +13,29 @@
 """ Measurement error mitigation """
 
 import copy
-
+from typing import List, Optional, Tuple, Dict, Callable
 from qiskit import compiler
+from qiskit.providers import BaseBackend
+from qiskit.circuit import QuantumCircuit
+from qiskit.qobj import QasmQobj
+from qiskit.assembler.run_config import RunConfig
 from ..exceptions import QiskitError, MissingOptionalLibraryError
 
 # pylint: disable=invalid-name
 
 
-def get_measured_qubits(transpiled_circuits):
+def get_measured_qubits(
+    transpiled_circuits: List[QuantumCircuit],
+) -> Tuple[List[int], Dict[str, List[int]]]:
     """
     Retrieve the measured qubits from transpiled circuits.
 
     Args:
-        transpiled_circuits ([QuantumCircuit]): a list of transpiled circuits
+        transpiled_circuits: a list of transpiled circuits
 
     Returns:
-        list[int]: the used and sorted qubit index
-        dict: key is qubit index str connected by '_',
+        The used and sorted qubit index
+        Key is qubit index str connected by '_',
               value is the experiment index. {str: list[int]}
     Raises:
         QiskitError: invalid qubit mapping
@@ -62,16 +68,16 @@ def get_measured_qubits(transpiled_circuits):
     return sorted(qubit_index), qubit_mappings
 
 
-def get_measured_qubits_from_qobj(qobj):
+def get_measured_qubits_from_qobj(qobj: QasmQobj) -> Tuple[List[int], Dict[str, List[int]]]:
     """
     Retrieve the measured qubits from transpiled circuits.
 
     Args:
-        qobj (QasmObj): qobj
+        qobj: qobj
 
     Returns:
-        list[int]: the used and sorted qubit index
-        dict: key is qubit index str connected by '_',
+        the used and sorted qubit index
+        key is qubit index str connected by '_',
               value is the experiment index. {str: list[int]}
      Raises:
         QiskitError: invalid qubit mapping
@@ -104,19 +110,29 @@ def get_measured_qubits_from_qobj(qobj):
 
 
 def build_measurement_error_mitigation_circuits(
-    qubit_list, fitter_cls, backend, backend_config=None, compile_config=None
-):
+    qubit_list: List[int],
+    fitter_cls: Callable,
+    backend: BaseBackend,
+    backend_config: Optional[Dict] = None,
+    compile_config: Optional[Dict] = None,
+    mit_pattern: Optional[List[List[int]]] = None,
+) -> Tuple[QuantumCircuit, List[str], List[str]]:
     """Build measurement error mitigation circuits
     Args:
-        qubit_list (list[int]): list of ordered qubits used in the algorithm
-        fitter_cls (callable): CompleteMeasFitter or TensoredMeasFitter
-        backend (BaseBackend): backend instance
-        backend_config (dict, optional): configuration for backend
-        compile_config (dict, optional): configuration for compilation
+        qubit_list: list of ordered qubits used in the algorithm
+        fitter_cls: CompleteMeasFitter or TensoredMeasFitter
+        backend: backend instance
+        backend_config: configuration for backend
+        compile_config: configuration for compilation
+        mit_pattern: Qubits on which to perform the
+            measurement correction, divided to groups according to tensors.
+            If `None` and `qr` is given then assumed to be performed over the entire
+            `qr` as one group (default `None`).
+
     Returns:
-        QasmQobj: the Qobj with calibration circuits at the beginning
-        list[str]: the state labels for build MeasFitter
-        list[str]: the labels of the calibration circuits
+        the circuit
+        the state labels for build MeasFitter
+        the labels of the calibration circuits
     Raises:
         QiskitError: when the fitter_cls is not recognizable.
         MissingOptionalLibraryError: Qiskit-Ignis not installed
@@ -124,6 +140,7 @@ def build_measurement_error_mitigation_circuits(
     try:
         from qiskit.ignis.mitigation.measurement import (
             complete_meas_cal,
+            tensored_meas_cal,
             CompleteMeasFitter,
             TensoredMeasFitter,
         )
@@ -144,10 +161,11 @@ def build_measurement_error_mitigation_circuits(
             qubit_list=range(len(qubit_list)), circlabel=circlabel
         )
     elif fitter_cls == TensoredMeasFitter:
-        # TODO support different calibration
-        raise QiskitError("Does not support TensoredMeasFitter yet.")
+        meas_calibs_circuits, state_labels = tensored_meas_cal(
+            mit_pattern=mit_pattern, circlabel=circlabel
+        )
     else:
-        raise QiskitError("Unknown fitter {}".format(fitter_cls))
+        raise QiskitError(f"Unknown fitter {fitter_cls}")
 
     # the provided `qubit_list` would be used as the initial layout to
     # assure the consistent qubit mapping used in the main circuits.
@@ -161,21 +179,31 @@ def build_measurement_error_mitigation_circuits(
 
 
 def build_measurement_error_mitigation_qobj(
-    qubit_list, fitter_cls, backend, backend_config=None, compile_config=None, run_config=None
-):
+    qubit_list: List[int],
+    fitter_cls: Callable,
+    backend: BaseBackend,
+    backend_config: Optional[Dict] = None,
+    compile_config: Optional[Dict] = None,
+    run_config: Optional[RunConfig] = None,
+    mit_pattern: Optional[List[List[int]]] = None,
+) -> Tuple[QasmQobj, List[str], List[str]]:
     """
     Args:
-        qubit_list (list[int]): list of ordered qubits used in the algorithm
-        fitter_cls (callable): CompleteMeasFitter or TensoredMeasFitter
-        backend (BaseBackend): backend instance
-        backend_config (dict, optional): configuration for backend
-        compile_config (dict, optional): configuration for compilation
-        run_config (RunConfig, optional): configuration for running a circuit
+        qubit_list: list of ordered qubits used in the algorithm
+        fitter_cls: CompleteMeasFitter or TensoredMeasFitter
+        backend: backend instance
+        backend_config: configuration for backend
+        compile_config: configuration for compilation
+        run_config: configuration for running a circuit
+        mit_pattern: Qubits on which to perform the
+            measurement correction, divided to groups according to tensors.
+            If `None` and `qr` is given then assumed to be performed over the entire
+            `qr` as one group (default `None`).
 
     Returns:
-        QasmQobj: the Qobj with calibration circuits at the beginning
-        list[str]: the state labels for build MeasFitter
-        list[str]: the labels of the calibration circuits
+        the Qobj with calibration circuits at the beginning
+        the state labels for build MeasFitter
+        the labels of the calibration circuits
 
     Raises:
         QiskitError: when the fitter_cls is not recognizable.
@@ -184,6 +212,7 @@ def build_measurement_error_mitigation_qobj(
     try:
         from qiskit.ignis.mitigation.measurement import (
             complete_meas_cal,
+            tensored_meas_cal,
             CompleteMeasFitter,
             TensoredMeasFitter,
         )
@@ -204,10 +233,11 @@ def build_measurement_error_mitigation_qobj(
             qubit_list=range(len(qubit_list)), circlabel=circlabel
         )
     elif fitter_cls == TensoredMeasFitter:
-        # TODO support different calibration
-        raise QiskitError("Does not support TensoredMeasFitter yet.")
+        meas_calibs_circuits, state_labels = tensored_meas_cal(
+            mit_pattern=mit_pattern, circlabel=circlabel
+        )
     else:
-        raise QiskitError("Unknown fitter {}".format(fitter_cls))
+        raise QiskitError(f"Unknown fitter {fitter_cls}")
 
     # the provided `qubit_list` would be used as the initial layout to
     # assure the consistent qubit mapping used in the main circuits.
