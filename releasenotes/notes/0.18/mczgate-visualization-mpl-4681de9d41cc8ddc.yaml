@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue in :func:`~qiskit.visualization.circuit_drawer` and the
+    :meth:`~qiskit.circuit.QuantumCircuit.draw` method of the
+    :class:`~qiskit.circuit.QuantumCircuit` class when using the ``mpl``
+    output mode, controlled-Z Gates were incorrectly drawn as asymmetrical.
+    Fixed `#5981 <https://github.com/Qiskit/qiskit-terra/issues/5981>`__
