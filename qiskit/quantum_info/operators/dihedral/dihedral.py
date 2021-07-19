@@ -19,7 +19,7 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.operator import Operator
-from qiskit.quantum_info.operators.pauli import Pauli
+from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.synthesis.cnotdihedral_decompose import decompose_cnotdihedral
 from qiskit.quantum_info.operators.mixins import generate_apidocs, AdjointMixin
