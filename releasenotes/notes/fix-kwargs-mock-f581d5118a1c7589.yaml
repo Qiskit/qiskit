@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixed an issue with the mock backends located in ``qiskit.test.mock`` where
+    in some situations (mainly fake backends with stored
+    :class:`~qiskit.providers.models.BackendProperties` running a
+    :class:`~qiskit.circuit.QuantumCircuit` with ``qiskit-aer`` installed)
+    passing run time options to the ``run()`` method of a fake backend object
+    would not actually be passed to the simulator underlying the ``run()``
+    method and not have any effect.
+    Fixed `#6741 <https://github.com/Qiskit/qiskit-terra/issues/6741>`__
