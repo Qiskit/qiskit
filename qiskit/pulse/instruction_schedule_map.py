@@ -27,6 +27,7 @@ An instance of this class is instantiated by Pulse-enabled backends and populate
 
 """
 import inspect
+import functools
 import warnings
 from collections import defaultdict
 from enum import IntEnum
@@ -68,7 +69,12 @@ class InstructionScheduleMap:
     def __init__(self):
         """Initialize a circuit instruction to schedule mapper instance."""
         # The processed and reformatted circuit instruction definitions
-        self._map = defaultdict(lambda: defaultdict(Generator))
+
+        # Do not use lambda function for nested defaultdict, i.e. lambda: defaultdict(Generator).
+        # This crashes qiskit parallel. Note that parallel framework passes args as
+        # pickled object, however lambda function cannot be pickled.
+        self._map = defaultdict(functools.partial(defaultdict, Generator))
+
         # A backwards mapping from qubit to supported instructions
         self._qubit_instructions = defaultdict(set)
 
