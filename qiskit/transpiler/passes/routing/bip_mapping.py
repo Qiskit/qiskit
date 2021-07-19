@@ -81,6 +81,7 @@ class BIPMapping(TransformationPass):
         Args:
             coupling_map (CouplingMap): Directed graph represented a coupling map.
             qubit_subset (list[int]): Sublist of physical qubits to be used in the mapping.
+                If None, all qubits in the coupling_map will be considered.
             objective (str): Type of objective function:
 
                 * ``'error_rate'``: [NotImplemented] Predicted error rate of the circuit
@@ -143,7 +144,7 @@ class BIPMapping(TransformationPass):
 
         if len(dag.qubits) != self.coupling_map.size():
             raise TranspilerError(
-                "BIPMapping requires the number of virtual and physical qubits are the same. "
+                "BIPMapping requires the number of virtual and physical qubits to be the same. "
                 "Supply 'qubit_subset' to specify physical qubits to use."
             )
 
