@@ -23,5 +23,5 @@ warnings.warn(
     "RZXCalibrationBuilder and RZXCalibrationBuilderNoEcho passes are moved to "
     "`qiskit.transpiler.passes.calibration.creators`. "
     "This import path is being deprecated.",
-    DeprecationWarning
+    DeprecationWarning,
 )

@@ -26,8 +26,6 @@ from qiskit.providers.backend import Backend
 from qiskit.providers.models import BackendProperties
 from qiskit.providers.models.backendproperties import Gate
 from qiskit.pulse import Schedule, InstructionScheduleMap
-from qiskit.pulse.instruction_schedule_map import CalibrationPublisher
-from qiskit.pulse.exceptions import PulseError
 from qiskit.tools.parallel import parallel_map
 from qiskit.transpiler import Layout, CouplingMap, PropertySet, PassManager
 from qiskit.transpiler.basepasses import BasePass

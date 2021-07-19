@@ -46,9 +46,9 @@ Generator = NamedTuple(
 class CalibrationPublisher(IntEnum):
     """Defines who defined schedule entry."""
 
-    BackendProvider = 0
-    Qiskit = 1
-    ExperimentService = 2
+    BACKEND_PROVIDER = 0
+    QISKIT = 1
+    EXPERIMENT_SERVICE = 2
 
 
 class InstructionScheduleMap:
@@ -312,7 +312,7 @@ class InstructionScheduleMap:
 
         # add metadata
         if hasattr(schedule, "metadata") and "publisher" not in schedule.metadata:
-            schedule.metadata["publisher"] = CalibrationPublisher.Qiskit
+            schedule.metadata["publisher"] = CalibrationPublisher.QISKIT
 
         self._map[instruction][qubits] = Generator(schedule, signature)
         self._qubit_instructions[qubits].add(instruction)

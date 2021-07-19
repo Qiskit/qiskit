@@ -205,7 +205,7 @@ class PulseDefaults:
         for inst in cmd_def:
             pulse_insts = [self.converter(inst) for inst in inst.sequence]
             schedule = Schedule(*pulse_insts, name=inst.name)
-            schedule.metadata["publisher"] = CalibrationPublisher.BackendProvider
+            schedule.metadata["publisher"] = CalibrationPublisher.BACKEND_PROVIDER
             self.instruction_schedule_map.add(inst.name, inst.qubits, schedule)
 
         if meas_kernel is not None:

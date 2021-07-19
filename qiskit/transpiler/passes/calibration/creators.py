@@ -80,10 +80,10 @@ class CalibrationCreator(TransformationPass):
             if self.supported(node.op, qubits) and not dag.has_calibration_for(node):
                 # calibration can be provided and no user-defined calibration is already provided
                 schedule = self.get_calibration(node.op, qubits)
-                publisher = schedule.metadata.get("publisher", CalibrationPublisher.Qiskit)
+                publisher = schedule.metadata.get("publisher", CalibrationPublisher.QISKIT)
 
                 # add calibration if it is not backend default
-                if publisher != CalibrationPublisher.BackendProvider:
+                if publisher != CalibrationPublisher.BACKEND_PROVIDER:
                     dag.add_calibration(gate=node.op, qubits=qubits, schedule=schedule)
 
         return dag
@@ -208,7 +208,7 @@ class RZXCalibrationBuilder(CalibrationCreator):
 
         cx_sched = self._inst_map.get("cx", qubits=(q1, q2))
         rzx_theta = Schedule(name="rzx(%.3f)" % theta)
-        rzx_theta.metadata["publisher"] = CalibrationPublisher.Qiskit
+        rzx_theta.metadata["publisher"] = CalibrationPublisher.QISKIT
 
         if theta == 0.0:
             return rzx_theta
@@ -370,7 +370,7 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
 
         cx_sched = self._inst_map.get("cx", qubits=(q1, q2))
         rzx_theta = Schedule(name="rzx(%.3f)" % theta)
-        rzx_theta.metadata["publisher"] = CalibrationPublisher.Qiskit
+        rzx_theta.metadata["publisher"] = CalibrationPublisher.QISKIT
 
         if theta == 0.0:
             return rzx_theta
@@ -434,9 +434,10 @@ class PulseGates(CalibrationCreator):
         * [1] OpenQASM 3: A broader and deeper quantum assembly language
           https://arxiv.org/abs/2104.14722
     """
+
     def __init__(
-            self,
-            inst_map: InstructionScheduleMap,
+        self,
+        inst_map: InstructionScheduleMap,
     ):
         """Create new pass.
 
