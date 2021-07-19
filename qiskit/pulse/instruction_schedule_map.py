@@ -311,7 +311,7 @@ class InstructionScheduleMap:
             )
 
         # add metadata
-        if "publisher" not in schedule.metadata:
+        if hasattr(schedule, "metadata") and "publisher" not in schedule.metadata:
             schedule.metadata["publisher"] = CalibrationPublisher.Qiskit
 
         self._map[instruction][qubits] = Generator(schedule, signature)
