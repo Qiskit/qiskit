@@ -25,6 +25,7 @@ from qiskit.circuit import ParameterVector, Gate, ControlledGate
 
 from qiskit.circuit.library import standard_gates
 from qiskit.circuit.library import (
+    BRGGate,
     HGate,
     CHGate,
     IGate,
@@ -76,7 +77,14 @@ class TestGateDefinitions(QiskitTestCase):
     yields the equivalent matrix as the hardcoded matrix definition
     up to a global phase."""
 
-    def test_ch_definition(self):  # TODO: expand this to all gates
+    def test_brg_definition(self):  # TODO: expand this to all gates
+        """Test brg gate matrix and definition."""
+        circ = QuantumCircuit(3)
+        circ.brg(1, 0, 1)
+        decomposed_circ = circ.decompose()
+        self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
+    def test_ch_definition(self):
         """Test ch gate matrix and definition."""
         circ = QuantumCircuit(2)
         circ.ch(0, 1)
@@ -303,6 +311,7 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
     """Standard Extension Test."""
 
     @data(
+        BRDGate,
         HGate,
         CHGate,
         IGate,
