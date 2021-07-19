@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    The function ``qiskit.visualization.plot_gate_mpa()`` has been extended with new parameters.
+    If the backend argument is passed, the corresponding device's gate map will be plotted.
+    If the backend argument is None, three new parameters must be passed; ``num_qubit``,
+    ``qubit_coordinates``, and ``coupling_map``, which define a gate map to be plotted.
+
+

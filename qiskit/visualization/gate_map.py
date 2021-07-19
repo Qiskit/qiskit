@@ -36,11 +36,14 @@ def plot_gate_map(
     qubit_coordinates=None,
     coupling_map=None,
 ):
-    """Plots the gate map of a device.
+    """Plots the gate map of a device (if the backend argument is passed), or a gate map based on
+    user-defined qubit coordinates and coupling map (if the backend argument is None, and the
+    relevant parameters are given).
 
     Args:
-        backend (BaseBackend): A backend instance. If set to None (the default), then the three
-            arguments num_qubits, mpl_data, and cmap must not be None.
+        backend (BaseBackend): If set to a backend instance, it will be used to plot the device gate
+            map, and the three arguments num_qubits, mpl_data, and cmap must be None. Otherwise, if
+            backend is set to None, the aforementioned three arguments must be passed.
         figsize (tuple): Output figure size (wxh) in inches.
         plot_directed (bool): Plot directed coupling map.
         label_qubits (bool): Label the qubits.
