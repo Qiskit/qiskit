@@ -23,6 +23,6 @@ from qiskit.transpiler.passes.calibration.rzx_templates import rzx_templates
 
 warnings.warn(
     "rzx_templates function is moved to `qiskit.transpiler.passes.calibration.rzx_templates`. "
-    "This import pass is being deprecated.",
+    "This import path is being deprecated.",
     DeprecationWarning
 )
