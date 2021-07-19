@@ -15,6 +15,7 @@
 
 import inspect
 
+from test.python.circuit.gate_utils import _get_free_params
 import numpy as np
 from ddt import ddt, data, unpack
 
@@ -68,7 +69,6 @@ from qiskit.circuit.library import (
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
-from test.python.circuit.gate_utils import _get_free_params
 
 
 class TestGateDefinitions(QiskitTestCase):
@@ -76,14 +76,7 @@ class TestGateDefinitions(QiskitTestCase):
     yields the equivalent matrix as the hardcoded matrix definition
     up to a global phase."""
 
-    def test_brg_definition(self):  # TODO: expand this to all gates
-        """Test brg gate matrix and definition."""
-        circ = QuantumCircuit(3)
-        circ.brg(1, 0, 1)
-        decomposed_circ = circ.decompose()
-        self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
-
-    def test_ch_definition(self):
+    def test_ch_definition(self):   # TODO: expand this to all gates
         """Test ch gate matrix and definition."""
         circ = QuantumCircuit(2)
         circ.ch(0, 1)
