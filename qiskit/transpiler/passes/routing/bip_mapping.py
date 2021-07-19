@@ -106,15 +106,10 @@ class BIPMapping(TransformationPass):
                 pip_install="pip install 'qiskit-terra[bip-mapper]'",
             )
         super().__init__()
-        self.global_coupling_map = coupling_map
-        self.coupling_map = copy.deepcopy(coupling_map)  # copy to modify
-        self.global_qubit = qubit_subset
-        if self.coupling_map is not None:
-            if self.global_qubit is None:
-                self.global_qubit = list(range(self.coupling_map.size()))
-            else:
-                self.coupling_map = self.coupling_map.reduce(self.global_qubit)
-            self.coupling_map.make_symmetric()
+        self.coupling_map = coupling_map
+        self.qubit_subset = qubit_subset
+        if self.coupling_map is not None and self.qubit_subset is None:
+            self.qubit_subset = list(range(self.coupling_map.size()))
         self.objective = objective
         self.backend_prop = backend_prop
         self.time_limit = time_limit
@@ -136,13 +131,13 @@ class BIPMapping(TransformationPass):
             TranspilerError: if the number of virtual and physical qubits are not the same.
             AssertionError: if the final layout is not valid.
         """
-        if self.global_coupling_map is None:
+        if self.coupling_map is None:
             return dag
 
-        if len(dag.qubits) > self.coupling_map.size():
+        if len(dag.qubits) > len(self.qubit_subset):
             raise TranspilerError("More virtual qubits exist than physical qubits.")
 
-        if len(dag.qubits) != self.coupling_map.size():
+        if len(dag.qubits) != len(self.qubit_subset):
             raise TranspilerError(
                 "BIPMapping requires the number of virtual and physical qubits to be the same. "
                 "Supply 'qubit_subset' to specify physical qubits to use."
@@ -155,7 +150,10 @@ class BIPMapping(TransformationPass):
             dummy_steps = max(0, self.max_swaps_inbetween_layers - 1)
 
         model = BIPMappingModel(
-            dag=dag, coupling_map=self.coupling_map, dummy_timesteps=dummy_steps
+            dag=dag,
+            coupling_map=self.coupling_map,
+            qubit_subset=self.qubit_subset,
+            dummy_timesteps=dummy_steps,
         )
 
         if len(model.su4layers) == 0:
@@ -176,7 +174,7 @@ class BIPMapping(TransformationPass):
         layout = copy.deepcopy(optimized_layout)
 
         # Construct the mapped circuit
-        canonical_qreg = QuantumRegister(self.global_coupling_map.size(), "q")
+        canonical_qreg = QuantumRegister(self.coupling_map.size(), "q")
         mapped_dag = self._create_empty_dagcircuit(dag, canonical_qreg)
         interval = dummy_steps + 1
         for k, layer in enumerate(dag.layers()):
@@ -189,10 +187,7 @@ class BIPMapping(TransformationPass):
                     for (i, j) in model.get_swaps(t):
                         mapped_dag.apply_operation_back(
                             op=SwapGate(),
-                            qargs=[
-                                canonical_qreg[self.global_qubit[i]],
-                                canonical_qreg[self.global_qubit[j]],
-                            ],
+                            qargs=[canonical_qreg[i], canonical_qreg[j]],
                         )
                         # update layout, swapping physical qubits (i, j)
                         layout.swap(i, j)
@@ -202,7 +197,7 @@ class BIPMapping(TransformationPass):
                 if node.type == "op":
                     mapped_dag.apply_operation_back(
                         op=copy.deepcopy(node.op),
-                        qargs=[canonical_qreg[self.global_qubit[layout[q]]] for q in node.qargs],
+                        qargs=[canonical_qreg[layout[q]] for q in node.qargs],
                         cargs=node.cargs,
                     )
                 # TODO: double check with y values?
@@ -214,8 +209,8 @@ class BIPMapping(TransformationPass):
                 f"Bug: final layout {final_layout} != the layout computed from swaps {layout}"
             )
 
-        self.property_set["layout"] = self._to_global_layout(optimized_layout)
-        self.property_set["final_layout"] = self._to_global_layout(final_layout)
+        self.property_set["layout"] = self._to_full_layout(optimized_layout)
+        self.property_set["final_layout"] = self._to_full_layout(final_layout)
 
         return mapped_dag
 
@@ -232,13 +227,10 @@ class BIPMapping(TransformationPass):
 
         return target_dag
 
-    def _to_global_layout(self, local_layout):
-        layout = local_layout.copy()
-        for k, v in local_layout.get_virtual_bits().items():
-            layout[k] = self.global_qubit[v]
+    def _to_full_layout(self, layout):
         # fill layout with ancilla qubits (required by drawers)
         idle_physical_qubits = [
-            q for q in range(self.global_coupling_map.size()) if q not in layout.get_physical_bits()
+            q for q in range(self.coupling_map.size()) if q not in layout.get_physical_bits()
         ]
         if idle_physical_qubits:
             qreg = QuantumRegister(len(idle_physical_qubits), name="ancilla")
