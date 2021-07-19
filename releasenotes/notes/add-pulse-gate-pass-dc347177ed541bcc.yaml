@@ -24,34 +24,32 @@ features:
     circuits with calibrations of already known schedules.
     Usually end users don't need to take care of this metadata.
 
-    Example:
+    See below code example to learn how to apply custom gate implementation
+    for all circuits under exercution.
 
-    This explains how to apply custom gate implementation for all circuit under exercution.
+    .. code-block:: python
 
-    ```python
+      from qiskit.test.mock import FakeGuadalupe
+      from qiskit import pulse, circuit, transpile
 
-    from qiskit.test.mock import FakeGuadalupe
-    from qiskit import pulse, circuit, transpile
+      backend = FakeGuadalupe()
 
-    backend = FakeGuadalupe()
+      with pulse.build(backend, name="x") as x_q0:
+          pulse.play(pulse.Constant(160, 0.1), pulse.drive_channel(0))
 
-    with pulse.build(backend, name="x") as x_q0:
-        pulse.play(pulse.Constant(160, 0.1), pulse.drive_channel(0))
+      backend.defaults().instruction_schedule_map.add("x", (0,), x_q0)
 
-    backend.defaults().instruction_schedule_map.add("x", (0,), x_q0)
+      circs = []
+      for _ in range(100):
+          circ = circuit.QuantumCircuit(1)
+          circ.sx(0)
+          circ.rz(1.57, 0)
+          circ.x(0)
+          circ.measure_active()
+          circs.append(circ)
 
-    circs = []
-    for _ in range(100):
-        circ = circuit.QuantumCircuit(1)
-        circ.sx(0)
-        circ.rz(1.57, 0)
-        circ.x(0)
-        circ.measure_active()
-        circs.append(circ)
-
-    circs = transpile(circs, backend)
-    circs[0].calibrations  # This returns automatically added calibration only for x gate
-    ```
+      circs = transpile(circs, backend)
+      circs[0].calibrations  # This returns calibration only for x gate
 
 deprecations:
   - |
