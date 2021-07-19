@@ -19,6 +19,7 @@ from qiskit.circuit import EquivalenceLibrary, Parameter, QuantumCircuit, Quantu
 from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
 
 from . import (
+    BRGGate,
     HGate,
     CHGate,
     MSGate,
@@ -62,7 +63,6 @@ from . import (
     ECRGate,
     ZGate,
     CZGate,
-    BRGGate,
 )
 
 _sel = StandardEquivalenceLibrary = EquivalenceLibrary()
