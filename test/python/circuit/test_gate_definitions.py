@@ -68,8 +68,7 @@ from qiskit.circuit.library import (
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
-
-from .gate_utils import _get_free_params
+from test.python.circuit.gate_utils import _get_free_params
 
 
 class TestGateDefinitions(QiskitTestCase):
@@ -311,7 +310,7 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
     """Standard Extension Test."""
 
     @data(
-        BRDGate,
+        BRGGate,
         HGate,
         CHGate,
         IGate,
