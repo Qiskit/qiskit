@@ -147,14 +147,14 @@ class Results:
         ret = ""
 
         if len(self.mismatch) >= 2:
-            Results._zipfiles(self.mismatch, "{self.directory}/mismatch.zip")
+            Results._zipfiles(self.mismatch, f"{self.directory}/mismatch.zip")
             ret += (
                 '<div><a href="{self.directory}/mismatch.zip">'
                 "Download %s mismatch results as a zip</a></div>" % len(self.mismatch)
             )
 
         if len(self.missing) >= 2:
-            Results._zipfiles(self.missing, "{self.directory}/missing.zip")
+            Results._zipfiles(self.missing, f"{self.directory}/missing.zip")
             ret += (
                 '<div><a href="{self.directory}/missing.zip">'
                 "Download %s missing results as a zip</a></div>" % len(self.missing)
