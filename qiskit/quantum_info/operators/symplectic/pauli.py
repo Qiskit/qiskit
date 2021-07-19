@@ -15,8 +15,8 @@ N-qubit Pauli Operator Class
 # pylint: disable=invalid-name
 # pylint: disable=bad-docstring-quotes  # for deprecate_function decorator
 
-from typing import Dict
 import re
+from typing import Dict
 
 import numpy as np
 
@@ -1024,7 +1024,9 @@ class Pauli(BasePauli):
             Pauli: the random pauli
         """
         # pylint: disable=cyclic-import
-        from qiskit.quantum_info.operators.symplectic.random import random_pauli
+        from qiskit.quantum_info.operators.symplectic.random import (
+            random_pauli,
+        )
 
         return random_pauli(num_qubits, group_phase=False, seed=seed)
 
