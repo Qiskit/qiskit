@@ -332,7 +332,7 @@ class Result:
         try:
             return postprocess.format_statevector(self.data(experiment)[_label], decimals=decimals)
         except KeyError as ex:
-            label_text = "" if label is None else (label + " ")
+            label_text = "" if label is None else f'"{label}" '
             raise QiskitError(f'No statevector {label_text}for experiment "{experiment!r}"') from ex
 
     def get_unitary(self, experiment=None, decimals=None):
