@@ -1,5 +1,5 @@
 ---
-features:
+upgrade:
   - |
     The function :func:`~qiskit.visualization.plot_gate_map()` has been extended with new parameters.
     If the ``backend`` argument is passed, the corresponding device's gate map will be plotted.
