@@ -18,6 +18,7 @@ import numpy as np
 
 from qiskit.circuit import Parameter, ParameterVector, QuantumRegister, QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.exceptions import QiskitError
 
 from .blueprintcircuit import BlueprintCircuit
 
@@ -227,7 +228,8 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
                     times.append(parameterset[i])
         times_it = iter(times)
 
-        # build the circuit
+        evolution = QuantumCircuit(*self.qregs, name=self.name)
+
         first = True
         for _ in range(self.reps):
             for is_evolved, circuit in zip(is_evolved_operator, circuits):
@@ -235,17 +237,24 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
                     first = False
                 else:
                     if self._insert_barriers:
-                        self.barrier()
+                        evolution.barrier()
 
                 if is_evolved:
                     bound = circuit.assign_parameters({coeff: next(times_it)})
                 else:
                     bound = circuit
 
-                self.compose(bound, inplace=True)
+                evolution.compose(bound, inplace=True)
 
         if self.initial_state:
-            self.compose(self.initial_state, front=True, inplace=True)
+            evolution.compose(self.initial_state, front=True, inplace=True)
+
+        try:
+            instr = evolution.to_gate()
+        except QiskitError:
+            instr = evolution.to_instruction()
+
+        self.append(instr, self.qubits)
 
 
 def _validate_operators(operators):

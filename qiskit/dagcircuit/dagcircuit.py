@@ -395,6 +395,8 @@ class DAGCircuit:
         target_dag = DAGCircuit()
         target_dag.name = self.name
         target_dag._global_phase = self._global_phase
+        target_dag.duration = self.duration
+        target_dag.unit = self.unit
         target_dag.metadata = self.metadata
 
         target_dag.add_qubits(self.qubits)

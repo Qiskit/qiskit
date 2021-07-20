@@ -1,6 +1,0 @@
----
-
-fixes:
-  - |
-    Fixes an issue where :class:`~qiskit.circuit.library.NLocal` didn't
-    raise a proper exception for ``reps`` parameter that is not an int value.

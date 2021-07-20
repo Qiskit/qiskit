@@ -189,7 +189,7 @@ stages:
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             python setup.py sdist
             pip install -U -c constraints.txt dist/qiskit-terra*.tar.gz
-            pip install -U "qiskit-aer" "z3-solver" -c constraints.txt
+            pip install -U "cplex" "qiskit-aer" "z3-solver" -c constraints.txt
             mkdir -p /tmp/terra-tests
             cp -r test /tmp/terra-tests/.
             cp .stestr.conf /tmp/terra-tests/.

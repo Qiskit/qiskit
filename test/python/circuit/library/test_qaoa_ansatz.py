@@ -29,6 +29,7 @@ class TestQAOAAnsatz(QiskitTestCase):
 
         parameters = circuit.parameters
 
+        circuit = circuit.decompose()
         self.assertEqual(1, len(parameters))
         self.assertIsInstance(circuit.data[0][0], HGate)
         self.assertIsInstance(circuit.data[1][0], RXGate)
@@ -40,6 +41,7 @@ class TestQAOAAnsatz(QiskitTestCase):
         circuit = QAOAAnsatz(initial_state=initial_state, cost_operator=I, reps=1)
 
         parameters = circuit.parameters
+        circuit = circuit.decompose()
         self.assertEqual(1, len(parameters))
         self.assertIsInstance(circuit.data[0][0], YGate)
         self.assertIsInstance(circuit.data[1][0], RXGate)
@@ -56,7 +58,7 @@ class TestQAOAAnsatz(QiskitTestCase):
         reference = QuantumCircuit(4)
         reference.h(range(4))
 
-        self.assertEqual(circuit, reference)
+        self.assertEqual(circuit.decompose(), reference)
 
     def test_custom_circuit_mixer(self):
         """Test circuit with a custom mixer as a circuit"""
@@ -65,6 +67,7 @@ class TestQAOAAnsatz(QiskitTestCase):
         circuit = QAOAAnsatz(cost_operator=I, reps=1, mixer_operator=mixer)
 
         parameters = circuit.parameters
+        circuit = circuit.decompose()
         self.assertEqual(0, len(parameters))
         self.assertIsInstance(circuit.data[0][0], HGate)
         self.assertIsInstance(circuit.data[1][0], RYGate)
@@ -75,6 +78,7 @@ class TestQAOAAnsatz(QiskitTestCase):
         circuit = QAOAAnsatz(cost_operator=I, reps=1, mixer_operator=mixer)
 
         parameters = circuit.parameters
+        circuit = circuit.decompose()
         self.assertEqual(1, len(parameters))
         self.assertIsInstance(circuit.data[0][0], HGate)
         self.assertIsInstance(circuit.data[1][0], RYGate)
@@ -103,6 +107,7 @@ class TestQAOAAnsatz(QiskitTestCase):
         )
 
         parameters = circuit.parameters
+        circuit = circuit.decompose()
         self.assertEqual(2, len(parameters))
         self.assertIsInstance(circuit.data[0][0], YGate)
         self.assertIsInstance(circuit.data[1][0], RZGate)
