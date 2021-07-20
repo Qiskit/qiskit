@@ -8,5 +8,5 @@ features:
       
       from qiskit.quantum_info import PauliList,Pauli
       pauli_list=PauliList([Pauli("IY"), Pauli("XX"),Pauli("YY"),Pauli("YX")])
-      pauli_list.group_subops_pauli_list()
+      pauli_list.group_qubit_wise_commuting()
 

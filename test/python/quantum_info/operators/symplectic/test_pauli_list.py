@@ -2001,57 +2001,39 @@ class TestPauliListMethods(QiskitTestCase):
 
     def test_group_qubit_wise_commuting(self):
         """Test grouping qubit-wise commuting operators"""
-
-        with self.subTest(msg="1-qubit PauliList group subops"):
-            # 1-qubit Pauli
-            pauli = PauliList(["I", "X", "Y", "Z"])
-            groups = pauli.group_qubit_wise_commuting()
-            value = [pl.to_labels() for pl in groups]
-            for group in value:
-                group.sort()
-            value.sort()
-            target = [["I", "X"], ["Y"], ["Z"]]
-            self.assertEqual(value, target)
-
-        with self.subTest(msg="2-qubit PauliList group subops"):
-            # 2-qubit Pauli
-            pauli = PauliList(
-                [
-                    "II",
-                    "IX",
-                    "IY",
-                    "IZ",
-                    "XI",
-                    "XX",
-                    "XY",
-                    "XZ",
-                    "YI",
-                    "YX",
-                    "YY",
-                    "YZ",
-                    "ZI",
-                    "ZX",
-                    "ZY",
-                    "iZZ",
-                ]
-            )
-            groups = pauli.group_qubit_wise_commuting()
-            value = [pl.to_labels() for pl in groups]
-            for group in value:
-                group.sort()
-            value.sort()
-            target = [
-                ["II", "IX", "XI", "XX"],
-                ["IY", "XY"],
-                ["IZ", "XZ"],
-                ["YI", "YX"],
-                ["YY"],
-                ["YZ"],
-                ["ZI", "ZX"],
-                ["ZY"],
-                ["iZZ"],
+        inputPauliLabels=[
+            "IY",
+            "ZX",
+            "XZ",
+            "YI",
+            "YX",
+            "YY",
+            "YZ",
+            "ZI",
+            "ZX",
+            "ZY",
+            "iZZ",
+            "II"
             ]
-            self.assertEqual(value, target)
+        np.random.shuffle(inputPauliLabels)
+        pauli_list=PauliList(inputPauliLabels)
+        groups = pauli_list.group_qubit_wise_commuting()
+
+        #checking that every input Pauli in pauli_list is in a group in the ouput
+        assert(all(((pauli in group) for group in groups) for pauli in pauli_list))
+
+        #checking that for every pair of groups in the output, there is at least one element of
+        #one which does not commute with at least one element of the other
+        mat1 = [np.array(
+        [op.z + 2 * op.x for op in group],
+        dtype=np.int8,
+                ) for group in groups]
+        mat2=[mat[:, None] for mat in mat1]
+
+        #value[i][j] will be False if groups i and j have non-commuting elements, True otherwise
+        value=np.array([[(i*j*(i-j)==0).all(axis=(2,1,0)) for i in mat1] for j in mat2])
+        target=np.diag([True]*len(mat1))
+        assert((value==target).all())
 
 
 if __name__ == "__main__":
