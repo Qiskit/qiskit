@@ -84,9 +84,9 @@ class BIPMapping(TransformationPass):
                 If None, all qubits in the coupling_map will be considered.
             objective (str): Type of objective function:
 
-                * ``'error_rate'``: [NotImplemented] Predicted error rate of the circuit
+                * ``'error_rate'``: Predicted error rate of the circuit
                 * ``'depth'``: [Default] Depth (number of time-steps) of the circuit
-                * ``'balanced'``: [NotImplemented] Weighted sum of ``'error_rate'`` and ``'depth'``
+                * ``'balanced'``: Weighted sum of ``'error_rate'`` and ``'depth'``
 
             backend_prop (BackendProperties): Backend properties object
             time_limit (float): Time limit for solving BIP in seconds
@@ -164,7 +164,6 @@ class BIPMapping(TransformationPass):
 
         status = model.solve_cpx_problem(time_limit=self.time_limit, threads=self.threads)
         if model.solution is None:
-            model.problem.export_as_lp('/home/nannicini/test.lp')
             logger.warning("Failed to solve a BIP problem. Status: %s", status)
             return original_dag
 
