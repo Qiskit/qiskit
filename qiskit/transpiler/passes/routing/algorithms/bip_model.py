@@ -211,7 +211,7 @@ class BIPMappingModel:
                     ctname=f"implement_gate_{p}_{q}_at_{t}",
                 )
         # Gate can be implemented iff both of its qubits are located at the associated nodes
-        for t in range(self.depth-1):
+        for t in range(self.depth - 1):
             for (p, q) in self.gates[t]:
                 for (i, j) in self._arcs:
                     # Apply McCormick to y[t, p, q, i, j] == w[t, p, i] * w[t, q, j]
@@ -219,7 +219,8 @@ class BIPMappingModel:
                         y[t, p, q, i, j] >= w[t, p, i] + w[t, q, j] - 1,
                         ctname=f"McCormickLB_{p}_{q}_{i}_{j}_at_{t}",
                     )
-                    # Stronger version of McCormick: gate (p,q) is implemented at (i, j) if i moves to i or j, and j moves to i or j
+                    # Stronger version of McCormick: gate (p,q) is implemented at (i, j)
+                    # if i moves to i or j, and j moves to i or j
                     mdl.add_constraint(
                         y[t, p, q, i, j] <= x[t, p, i, i] + x[t, p, i, j],
                         ctname=f"McCormickUB1_{p}_{q}_{i}_{j}_at_{t}",
@@ -231,9 +232,11 @@ class BIPMappingModel:
         # For last time step, use regular McCormick
         for (p, q) in self.gates[self.depth - 1]:
             for (i, j) in self._arcs:
-                # Apply McCormick to y[self.depth - 1, p, q, i, j] == w[self.depth - 1, p, i] * w[self.depth - 1, q, j]
+                # Apply McCormick to y[self.depth - 1, p, q, i, j]
+                # == w[self.depth - 1, p, i] * w[self.depth - 1, q, j]
                 mdl.add_constraint(
-                    y[self.depth - 1, p, q, i, j] >= w[self.depth - 1, p, i] + w[self.depth - 1, q, j] - 1,
+                    y[self.depth - 1, p, q, i, j]
+                    >= w[self.depth - 1, p, i] + w[self.depth - 1, q, j] - 1,
                     ctname=f"McCormickLB_{p}_{q}_{i}_{j}_at_last",
                 )
                 mdl.add_constraint(
@@ -243,7 +246,7 @@ class BIPMappingModel:
                 mdl.add_constraint(
                     y[self.depth - 1, p, q, i, j] <= w[self.depth - 1, q, j],
                     ctname=f"McCormickUB2_{p}_{q}_{i}_{j}_at_last",
-                )        
+                )
         # Logical qubit flow-out constraints
         for t in range(self.depth - 1):  # Flow out; skip last time step
             for q in range(self.num_vqubits):
