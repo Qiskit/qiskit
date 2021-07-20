@@ -501,7 +501,13 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions):
     condition_value = instruction[7]
     condition_tuple = None
     if has_condition:
-        condition_tuple = (registers["c"][condition_register], condition_value)
+        # If an invalid register name is used assume it's a single bit
+        # condition and treat the register name as a string of the clbit index
+        if ClassicalRegister.name_format.match(condition_register) is None:
+            conditional_bit = int(condition_register)
+            condition_tuple = (circuit.clbits[conditional_bit], condition_value)
+        else:
+            condition_tuple = (registers["c"][condition_register], condition_value)
     qubit_indices = dict(enumerate(circuit.qubits))
     clbit_indices = dict(enumerate(circuit.clbits))
     # Load Arguments
@@ -696,8 +702,13 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
     condition_value = 0
     if instruction_tuple[0].condition:
         has_condition = True
-        condition_register = instruction_tuple[0].condition[0].name.encode("utf8")
-        condition_value = instruction_tuple[0].condition[1]
+        if isinstance(instruction_tuple[0].condition[0], Clbit):
+            bit_index = index_map["c"][instruction_tuple[0].condition[0]]
+            condition_register = str(bit_index).encode("utf8")
+            condition_value = int(instruction_tuple[0].condition[1])
+        else:
+            condition_register = instruction_tuple[0].condition[0].name.encode("utf8")
+            condition_value = instruction_tuple[0].condition[1]
 
     gate_class_name = gate_class_name.encode("utf8")
     label = getattr(instruction_tuple[0], "label")
