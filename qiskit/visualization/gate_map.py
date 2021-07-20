@@ -42,8 +42,9 @@ def plot_gate_map(
 
     Args:
         backend (BaseBackend): If set to a backend instance, it will be used to plot the device gate
-            map, and the three arguments num_qubits, mpl_data, and cmap must be None. Otherwise, if
-            backend is set to None, the aforementioned three arguments must be passed.
+            map, and the three arguments ``num_qubits``, ``qubit_coordinates``, 
+            and ``coupling_map`` must be None. Otherwise, if ``backend`` is set to None, 
+            the aforementioned three arguments must be passed.
         figsize (tuple): Output figure size (wxh) in inches.
         plot_directed (bool): Plot directed coupling map.
         label_qubits (bool): Label the qubits.
