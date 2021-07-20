@@ -12,7 +12,7 @@
 
 """The evolved operator ansatz."""
 
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Tuple
 
 import numpy as np
 
@@ -69,16 +69,21 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
         self._initial_state = initial_state
         self._parameter_prefix = parameter_prefix
 
+        # a list of which operators are parameterized, used for internal settings
+        self._ops_are_parameterized = None
+
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         if self.operators is None:
             if raise_on_failure:
                 raise ValueError("The operators are not set.")
             return False
 
-        if self.reps < 1:
+        if self.reps is None or self.reps < 0:
             if raise_on_failure:
-                raise ValueError("The reps cannot be smaller than 1.")
-            return False
+                raise ValueError(
+                    "The integer parameter reps, which determines the depth "
+                    f"of the circuit, needs to be >= 0 but has value {self._reps}"
+                )
 
         self._parameter_prefix = _validate_prefix(self._parameter_prefix, self.operators)
 
@@ -189,24 +194,33 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
 
         coeff = Parameter("c")
         circuits = []
-        is_evolved_operator = []
+        is_evolved = []
+        reparameterize = []
         prefixes = []
+
         for op, prefix in zip(self.operators, self._parameter_prefix):
             # if the operator is already the evolved circuit just append it
             if isinstance(op, QuantumCircuit):
                 circuits.append(op)
-                is_evolved_operator.append(False)  # has no time coeff
+                is_evolved.append(False)  # has no time coeff
+                reparameterize.append(False)  # part of final circuit
             else:
                 # check if the operator is just the identity, if yes, skip it
                 if isinstance(op, PauliOp):
                     sig_qubits = np.logical_or(op.primitive.x, op.primitive.z)
                     if sum(sig_qubits) == 0:
+                        is_evolved.append(False)
                         continue
 
                 evolved_op = self.evolution.convert((coeff * op).exp_i()).reduce()
                 circuits.append(evolved_op.to_circuit())
                 prefixes.append(prefix)
-                is_evolved_operator.append(True)  # has time coeff
+                is_evolved.append(True)  # has time coeff
+                reparameterize.append(True)
+
+        # store a list of which operators are parameterized, used for internal settings,
+        # e.g. in the QAOA ansatz
+        self._ops_are_parameterized = is_evolved
 
         # set the registers
         num_qubits = circuits[0].num_qubits
@@ -219,27 +233,28 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
 
         # get the time parameters
         if len(set(prefixes)) == 1:  # check if unique, then use the same for all
-            times = ParameterVector(prefixes[0], self.reps * sum(is_evolved_operator))
+            times = ParameterVector(prefixes[0], self.reps * sum(is_evolved))
         else:
             parameters = [ParameterVector(prefix, self.reps) for prefix in prefixes]
             times = []
             for i in range(self.reps):
                 for parameterset in parameters:
                     times.append(parameterset[i])
+
         times_it = iter(times)
 
         evolution = QuantumCircuit(*self.qregs, name=self.name)
 
         first = True
         for _ in range(self.reps):
-            for is_evolved, circuit in zip(is_evolved_operator, circuits):
+            for assign_parameter, circuit in zip(reparameterize, circuits):
                 if first:
                     first = False
                 else:
                     if self._insert_barriers:
                         evolution.barrier()
 
-                if is_evolved:
+                if assign_parameter:
                     bound = circuit.assign_parameters({coeff: next(times_it)})
                 else:
                     bound = circuit
@@ -270,7 +285,6 @@ def _validate_operators(operators):
 
 
 def _validate_prefix(parameter_prefix, operators):
-    print(parameter_prefix, operators)
     if isinstance(parameter_prefix, str):
         return len(operators) * [parameter_prefix]
     if len(parameter_prefix) != len(operators):

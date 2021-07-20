@@ -53,7 +53,8 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
                 circuit.
             name (str): A name of the circuit, default 'qaoa'
         """
-        super().__init__(parameter_prefix=['β', 'γ'], name=name)
+        super().__init__(parameter_prefix=['γ', 'β'],
+                         name=name)
 
         self._cost_operator = None
         self._reps = reps
@@ -70,25 +71,19 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         valid = True
 
+        super()._check_configuration()
+
         if self.cost_operator is None:
             valid = False
             if raise_on_failure:
-                raise AttributeError(
+                raise ValueError(
                     "The operator representing the cost of the optimization problem is not set"
-                )
-
-        if self.reps is None or self.reps < 0:
-            valid = False
-            if raise_on_failure:
-                raise AttributeError(
-                    "The integer parameter reps, which determines the depth "
-                    "of the circuit, needs to be >= 0 but has value {}".format(self._reps)
                 )
 
         if self.initial_state is not None and self.initial_state.num_qubits != self.num_qubits:
             valid = False
             if raise_on_failure:
-                raise AttributeError(
+                raise ValueError(
                     "The number of qubits of the initial state {} does not match "
                     "the number of qubits of the cost operator {}".format(
                         self.initial_state.num_qubits, self.num_qubits
@@ -98,7 +93,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         if self.mixer_operator is not None and self.mixer_operator.num_qubits != self.num_qubits:
             valid = False
             if raise_on_failure:
-                raise AttributeError(
+                raise ValueError(
                     "The number of qubits of the mixer {} does not match "
                     "the number of qubits of the cost operator {}".format(
                         self.mixer_operator.num_qubits, self.num_qubits
@@ -106,6 +101,45 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
                 )
 
         return valid
+
+    @property
+    def parameter_bounds(self) -> List[Tuple[Optional[float], Optional[float]]]:
+        """The parameter bounds for the unbound parameters in the circuit.
+
+        Returns:
+            A list of pairs indicating the bounds, as (lower, upper). None indicates an unbounded
+            parameter in the corresponding direction. If None is returned, problem is fully
+            unbounded.
+        """
+
+        if self._bounds is not None:
+            return self._bounds
+
+        # make sure circuit is buile and self._ops_are_parameterized is set
+        self._build()
+
+        beta_bounds = (0, 2 * np.pi)
+        gamma_bounds = (None, None)
+        bounds = []
+
+        # due to the naming we first want the mixer operator (parameter name beta) before the
+        # cost operator (parameter name gamma)
+        ops_are_parameterized = self._ops_are_parameterized[::-1]
+
+        for bound, is_parameterized in zip([beta_bounds, gamma_bounds], ops_are_parameterized):
+            if is_parameterized:
+                bounds += self._reps * [bound]
+
+        return bounds
+
+    @parameter_bounds.setter
+    def parameter_bounds(self, bounds: List[Tuple[Optional[float], Optional[float]]]) -> None:
+        """Set the parameter bounds.
+
+        Args:
+            bounds: The new parameter bounds.
+        """
+        self._bounds = bounds
 
     @property
     def num_qubits(self) -> int:
@@ -123,21 +157,6 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         """
         self._build()
         return super().parameters
-
-    @property
-    def parameter_bounds(self) -> List[Tuple[float, float]]:
-        """Parameter bounds.
-
-        Returns: A list of pairs indicating the bounds, as (lower, upper). None indicates
-            an unbounded parameter in the corresponding direction. If None is returned, problem is
-            fully unbounded or is not built yet.
-        """
-        if self._bounds is None:
-            beta_bound = (None, None)
-            gamma_bound = (0, 2 * np.pi)
-            return [beta_bound if p.name[0] == "β" else gamma_bound for p in self.parameters]
-
-        return self._bounds
 
     @property
     def operators(self):

@@ -49,7 +49,7 @@ class TestQAOAAnsatz(QiskitTestCase):
     def test_invalid_reps(self):
         """Test negative reps."""
         circuit = QAOAAnsatz(I, reps=-1)
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(ValueError):
             _ = circuit.count_ops()
 
     def test_zero_reps(self):
@@ -85,16 +85,16 @@ class TestQAOAAnsatz(QiskitTestCase):
 
     def test_parameter_bounds(self):
         """Test the parameter bounds."""
-        circuit = QAOAAnsatz(I, reps=2)
+        circuit = QAOAAnsatz(Z, reps=2)
         bounds = circuit.parameter_bounds
 
         for lower, upper in bounds[:2]:
-            self.assertIsNone(lower)
-            self.assertIsNone(upper)
-
-        for lower, upper in bounds[2:]:
             self.assertAlmostEqual(lower, 0)
             self.assertAlmostEqual(upper, 2 * np.pi)
+
+        for lower, upper in bounds[2:]:
+            self.assertIsNone(lower)
+            self.assertIsNone(upper)
 
     def test_all_custom_parameters(self):
         """Test circuit with all custom parameters."""
@@ -118,7 +118,7 @@ class TestQAOAAnsatz(QiskitTestCase):
         mixer = QuantumCircuit(2)
         circuit = QAOAAnsatz(cost_operator=I, reps=1, mixer_operator=mixer)
 
-        self.assertRaises(AttributeError, lambda: circuit.parameters)
+        self.assertRaises(ValueError, lambda: circuit.parameters)
 
     def test_rebuild(self):
         """Test how a circuit can be rebuilt."""
