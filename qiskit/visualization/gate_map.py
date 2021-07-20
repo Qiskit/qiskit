@@ -36,13 +36,11 @@ def plot_gate_map(
     qubit_coordinates=None,
     coupling_map=None,
 ):
-    """Plots the gate map of a device (if the backend argument is passed), or a gate map based on
-    user-defined qubit coordinates and coupling map (if the backend argument is None, and the
-    relevant parameters are given).
+    """Plots the gate map of a device or a gate map based on user input.
 
     Args:
-        backend (BaseBackend): If set to a backend instance, it will be used to plot the device gate
-            map, and the three arguments ``num_qubits``, ``qubit_coordinates``, 
+        backend (BaseBackend): If set to a backend instance, it will be used to plot the device
+            gate map, and the three arguments ``num_qubits``, ``qubit_coordinates``,
             and ``coupling_map`` must be None. Otherwise, if ``backend`` is set to None, 
             the aforementioned three arguments must be passed.
         figsize (tuple): Output figure size (wxh) in inches.
@@ -60,8 +58,8 @@ def plot_gate_map(
         qubit_coordinates (dict): A dict with the key being the number of qubits. Each entry is a
             list of two-element lists, with entries of each nested list being
             the planar coordinates in a 0-based square grid where each qubit is located.
-        coupling_map (List[List[int]]): A list of two-element lists, with entries of each nested list
-            being the qubit numbers of the bonds to be plotted.
+        coupling_map (List[List[int]]): A list of two-element lists, with entries of each nested
+            list being the qubit numbers of the bonds to be plotted.
 
     Returns:
         Figure: A Matplotlib figure instance.
