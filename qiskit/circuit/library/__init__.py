@@ -96,6 +96,7 @@ Generalized Gates
    GRY
    GRZ
    RVGate
+   PauliGate
 
 Boolean Logic Circuits
 ======================
@@ -349,6 +350,7 @@ from .generalized_gates import (
     GRY,
     GRZ,
     RVGate,
+    PauliGate,
 )
 from .boolean_logic import (
     AND,

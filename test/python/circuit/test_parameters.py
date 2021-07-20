@@ -14,10 +14,10 @@
 import unittest
 import cmath
 import math
-
 import copy
 import pickle
 from operator import add, mul, sub, truediv
+
 from test import combine
 
 import numpy
@@ -811,7 +811,8 @@ class TestParameters(QiskitTestCase):
 
         self.assertTrue(len(job.result().results), 2)
 
-    def test_transpile_across_optimization_levels(self):
+    @data(0, 1, 2, 3)
+    def test_transpile_across_optimization_levels(self, opt_level):
         """Verify parameterized circuits can be transpiled with all default pass managers."""
 
         qc = QuantumCircuit(5, 5)
@@ -826,8 +827,7 @@ class TestParameters(QiskitTestCase):
 
         qc.measure(range(5 - 1), range(5 - 1))
 
-        for i in [0, 1, 2, 3]:
-            transpile(qc, FakeOurense(), optimization_level=i)
+        transpile(qc, FakeOurense(), optimization_level=opt_level)
 
     def test_repeated_gates_to_dag_and_back(self):
         """Verify circuits with repeated parameterized gates can be converted

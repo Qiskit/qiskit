@@ -284,9 +284,10 @@ class TestNLocal(QiskitTestCase):
                     reps=3,
                     skip_unentangled_qubits=True,
                 )
+                decomposed = nlocal.decompose()
 
-                skipped_set = {nlocal.qubits[i] for i in skipped}
-                dag = circuit_to_dag(nlocal)
+                skipped_set = {decomposed.qubits[i] for i in skipped}
+                dag = circuit_to_dag(decomposed)
                 idle = set(dag.idle_wires())
                 self.assertEqual(skipped_set, idle)
 
@@ -414,6 +415,31 @@ class TestNLocal(QiskitTestCase):
         )
 
         self.assertCircuitEqual(nlocal, circuit)
+
+    def test_initial_state_as_circuit_object(self):
+        """Test setting `initial_state` to `QuantumCircuit` object"""
+        ref = QuantumCircuit(2)
+        ref.cx(0, 1)
+        ref.x(0)
+        ref.h(1)
+        ref.x(1)
+        ref.cx(0, 1)
+        ref.x(0)
+        ref.x(1)
+
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.h(1)
+
+        expected = NLocal(
+            num_qubits=2,
+            rotation_blocks=XGate(),
+            entanglement_blocks=CXGate(),
+            initial_state=qc,
+            reps=1,
+        )
+
+        self.assertCircuitEqual(ref, expected)
 
 
 @ddt
@@ -550,7 +576,7 @@ class TestTwoLocal(QiskitTestCase):
         for i in range(3):
             reference.rz(next(param_iter), i)
 
-        self.assertCircuitEqual(circuit, reference)
+        self.assertCircuitEqual(circuit.decompose(), reference)
 
     def test_composing_two(self):
         """Test adding two two-local circuits."""
@@ -754,8 +780,8 @@ class TestTwoLocal(QiskitTestCase):
 
         expected_cx = reps * num_qubits * (num_qubits - 1) / 2
 
-        self.assertEqual(two_np32.count_ops()["cx"], expected_cx)
-        self.assertEqual(two_np64.count_ops()["cx"], expected_cx)
+        self.assertEqual(two_np32.decompose().count_ops()["cx"], expected_cx)
+        self.assertEqual(two_np64.decompose().count_ops()["cx"], expected_cx)
 
 
 if __name__ == "__main__":

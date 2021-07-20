@@ -129,6 +129,11 @@ class PrimitiveOp(OperatorBase):
     def num_qubits(self) -> int:
         raise NotImplementedError
 
+    @property
+    def settings(self) -> Dict:
+        """Return operator settings."""
+        return {"primitive": self._primitive, "coeff": self._coeff}
+
     def primitive_strings(self) -> Set[str]:
         raise NotImplementedError
 

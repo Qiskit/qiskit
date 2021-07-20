@@ -1,9 +1,0 @@
----
-fixes:
-  - |
-    Fix py:func:`~qiskit.pulse.transforms.inline_subroutines` to support subroutines
-    defined in the nested schedules.
-other:
-  - |
-    py:meth:`~qiskit.pulse.Schedule.children` becomes public. This returns tuple of
-    schedule components stored in the schedule. This returns nested schedules without flattening.
