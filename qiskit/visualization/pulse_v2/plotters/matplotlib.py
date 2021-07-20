@@ -50,11 +50,11 @@ class Mpl2DPlotter(BasePlotter):
             if not chart.is_active and not self.canvas.formatter["control.show_empty_channel"]:
                 continue
             canvas_height += chart.vmax - chart.vmin
+        # set min canvas_height size
+        canvas_height = max(canvas_height, 0.1)
 
         if axis is None:
             fig_h = canvas_height * self.canvas.formatter["general.fig_chart_height"]
-            if fig_h == 0:
-                fig_h = 0.1
             fig_w = self.canvas.formatter["general.fig_width"]
 
             self.figure = plt.figure(figsize=(fig_w, fig_h))
