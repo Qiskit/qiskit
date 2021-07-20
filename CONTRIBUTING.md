@@ -79,7 +79,7 @@ updates with no code changes.
 
 Once your PR has the necessary approvals it will be tagged with the `automerge`
 tag. This is a signal to the [mergify bot](https://mergify.io/) that the PR has been approved and is
-ready for merging. The mergify bot will then enqueue the PR onto it's merge
+ready for merging. The mergify bot will then enqueue the PR onto its merge
 queue. At this point the process of updating a PR to the current HEAD of the
 `main` branch is fully automated and once CI passes mergify will merge the PR
 automatically. In an effort to conserve CI resources and maximize throughput
