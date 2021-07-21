@@ -448,10 +448,10 @@ class TestVQE(QiskitAlgorithmsTestCase):
         wrapped_backend = BasicAer.get_backend("qasm_simulator")
         inner_backend = BasicAer.get_backend("statevector_simulator")
 
-        callcount = {'count': 0}
+        callcount = {"count": 0}
 
         def wrapped_run(circuits, **kwargs):
-            kwargs['callcount']['count'] += 1
+            kwargs["callcount"]["count"] += 1
             return inner_backend.run(circuits)
 
         wrapped_backend.run = partial(wrapped_run, callcount=callcount)
@@ -471,7 +471,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
         # + 5 (1 loss + 1 fidelity + 1 blocking) + 1 return loss + 1 VQE eval
         expected = 1 + 1 + 1 + 5 * 3 + 1 + 1
 
-        self.assertEqual(callcount['count'], expected)
+        self.assertEqual(callcount["count"], expected)
 
 
 if __name__ == "__main__":

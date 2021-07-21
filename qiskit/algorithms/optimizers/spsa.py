@@ -287,7 +287,7 @@ class SPSA(Optimizer):
 
         avg_magnitudes = 0
         for i in range(steps):
-            delta = losses[i] - losses[i + 1]
+            delta = losses[2 * i] - losses[2 * i + 1]
             avg_magnitudes += np.abs(delta / (2 * c))
 
         avg_magnitudes /= steps
@@ -313,8 +313,10 @@ class SPSA(Optimizer):
 
     @staticmethod
     def estimate_stddev(
-        loss: Callable[[np.ndarray], float], initial_point: np.ndarray, avg: int = 25,
-        max_evals_grouped: int = 1
+        loss: Callable[[np.ndarray], float],
+        initial_point: np.ndarray,
+        avg: int = 25,
+        max_evals_grouped: int = 1,
     ) -> float:
         """Estimate the standard deviation of the loss function."""
         losses = _batch_evaluate(loss, avg * [initial_point], max_evals_grouped)
@@ -437,7 +439,8 @@ class SPSA(Optimizer):
         # this happens only here because for the calibration the loss function is required
         if self.learning_rate is None and self.perturbation is None:
             get_eta, get_eps = self.calibrate(
-                loss, initial_point, max_evals_grouped=self._max_evals_grouped)
+                loss, initial_point, max_evals_grouped=self._max_evals_grouped
+            )
         else:
             get_eta, get_eps = _validate_pert_and_learningrate(
                 self.perturbation, self.learning_rate
@@ -464,8 +467,9 @@ class SPSA(Optimizer):
 
             self._nfev += 1
             if self.allowed_increase is None:
-                self.allowed_increase = 2 * \
-                    self.estimate_stddev(loss, x, max_evals_grouped=self._max_evals_grouped)
+                self.allowed_increase = 2 * self.estimate_stddev(
+                    loss, x, max_evals_grouped=self._max_evals_grouped
+                )
 
         logger.info("=" * 30)
         logger.info("Starting SPSA optimization")
