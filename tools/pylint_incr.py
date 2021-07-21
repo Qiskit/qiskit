@@ -63,7 +63,7 @@ def _run_pylint(ref, paths, pylint_args):
     if code != 0:
         print(
             f"{__file__}: unable to get list of changed files. Git returncode: {code}\n"
-            f"Git must be installed, and you need to be in a git tree with a ref `{ref}`"
+            f"Git must be installed, and you need to be in a git tree with a ref `{ref}`\n"
             f"{stderr.strip().decode('ascii')}"
         )
         sys.exit(128)
@@ -77,17 +77,19 @@ def _run_pylint(ref, paths, pylint_args):
 
 
 def _main():
-    parser = argparse.ArgumentParser(description="Incremental pylint.")
-    parser.epilog = "Unknown arguments passed through to pylint"
+    parser = argparse.ArgumentParser(
+        description="Incremental pylint.",
+        epilog="Unknown arguments passed through to pylint",
+        allow_abbrev=False,
+    )
     parser.add_argument(
-        "--paths",
+        "--pathspec",
         required=True,
         type=str,
         nargs="+",
-        help="Git paths to check if changed (and pass to pylint if so)",
-    )
+        help="Git <pathspec>s to resolve (and pass any changed files to pylint)",
     args, pylint_args = parser.parse_known_args()
-    _run_pylint("lint_incr_latest", args.paths, pylint_args)
+    _run_pylint("lint_incr_latest", args.pathspec, pylint_args)
 
 
 if __name__ == "__main__":
