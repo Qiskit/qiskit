@@ -187,7 +187,7 @@ utf8 data for the label if one was set on the instruction. Following the label
 bytes if ``has_conditional`` is ``True`` then there are
 ``conditonal_reg_name_size`` bytes of utf8 data for the name of the condtional
 register name. In case of single classical bit conditions the register name
-utf8 data will be prefixed with a null character "\x00" and then a utf8 string
+utf8 data will be prefixed with a null character "\\x00" and then a utf8 string
 integer representing the classical bit index in the circuit that the condition
 is on.
 
