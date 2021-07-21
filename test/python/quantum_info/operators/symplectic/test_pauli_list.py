@@ -2010,7 +2010,7 @@ class TestPauliListMethods(QiskitTestCase):
         assert all(((pauli in group) for group in groups) for pauli in pauli_list)
 
         # checking that for every pair of groups in the output, there is at least one element of
-        # one which does not commute with at least one element of the other
+        # one group which does not commute with at least one element of the other group
         mat1 = [
             np.array(
                 [op.z + 2 * op.x for op in group],
