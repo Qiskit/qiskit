@@ -38,7 +38,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
         self.inst_map = inst_map
         super().__init__()
 
-    def run(self, dag):
+    def run(self, dag: DAGCircuit):
         """Run the EchoRZXWeylDecomposition pass on `dag`.
 
         Rewrites two-qubit gates in an arbitrary circuit in terms of echoed cross-resonance
