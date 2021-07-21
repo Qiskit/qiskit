@@ -17,15 +17,18 @@ Methods to create random operators.
 import numpy as np
 from numpy.random import default_rng
 
-from qiskit.quantum_info.operators import Operator, Stinespring
 from qiskit.exceptions import QiskitError
+from qiskit.quantum_info.operators import Operator, Stinespring
 
 # pylint: disable=unused-import
-from .symplectic.random import random_pauli
-from .symplectic.random import random_clifford
-from .symplectic.random import random_pauli_table
-from .symplectic.random import random_stabilizer_table
 from .dihedral.random import random_cnotdihedral
+from .symplectic.random import (
+    random_clifford,
+    random_pauli,
+    random_pauli_list,
+    random_pauli_table,
+    random_stabilizer_table,
+)
 
 DEFAULT_RNG = default_rng()
 

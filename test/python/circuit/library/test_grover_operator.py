@@ -69,12 +69,27 @@ class TestGroverOperator(QiskitTestCase):
             grover_op, oracle=np.diag((-1) ** mark.data), zero_reflection=diffuse.data
         )
 
+    def test_stateprep_contains_instruction(self):
+        """Test wrapping works if the state preparation is not unitary."""
+        oracle = QuantumCircuit(1)
+        oracle.z(0)
+
+        instr = QuantumCircuit(1)
+        instr.s(0)
+        instr = instr.to_instruction()
+
+        stateprep = QuantumCircuit(1)
+        stateprep.append(instr, [0])
+
+        grover_op = GroverOperator(oracle, stateprep)
+        self.assertEqual(grover_op.num_qubits, 1)
+
     def test_reflection_qubits(self):
         """Test setting idle qubits doesn't apply any operations on these qubits."""
         oracle = QuantumCircuit(4)
         oracle.z(3)
         grover_op = GroverOperator(oracle, reflection_qubits=[0, 3])
-        dag = circuit_to_dag(grover_op)
+        dag = circuit_to_dag(grover_op.decompose())
         self.assertEqual(set(dag.idle_wires()), {dag.qubits[1], dag.qubits[2]})
 
     def test_custom_state_in(self):
@@ -110,7 +125,7 @@ class TestGroverOperator(QiskitTestCase):
             expected.h(0)  # state_in is H
             expected.compose(zero_reflection, inplace=True)
             expected.h(0)
-            self.assertEqual(expected, grover_op)
+            self.assertEqual(expected, grover_op.decompose())
 
     def test_num_mcx_ancillas(self):
         """Test the number of ancilla bits for the mcx gate in zero_reflection."""

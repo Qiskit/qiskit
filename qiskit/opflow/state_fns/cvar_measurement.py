@@ -13,7 +13,7 @@
 """CVaRMeasurement class."""
 
 
-from typing import Callable, Optional, Tuple, Union, cast
+from typing import Callable, Optional, Tuple, Union, cast, Dict
 
 import numpy as np
 
@@ -90,6 +90,11 @@ class CVaRMeasurement(OperatorStateFn):
             The parameter alpha which was given at initialization
         """
         return self._alpha
+
+    @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        return {"primitive": self._primitive, "coeff": self._coeff, "alpha": self._alpha}
 
     def add(self, other: OperatorBase) -> SummedOp:
         return SummedOp([self, other])

@@ -12,7 +12,7 @@
 
 """ SummedOp Class """
 
-from typing import List, Union, cast
+from typing import List, Union, cast, Dict
 
 import numpy as np
 
@@ -51,6 +51,11 @@ class SummedOp(ListOp):
     @property
     def distributive(self) -> bool:
         return True
+
+    @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        return {"oplist": self._oplist, "coeff": self._coeff, "abelian": self._abelian}
 
     def add(self, other: OperatorBase) -> "SummedOp":
         """Return Operator addition of ``self`` and ``other``, overloaded by ``+``.

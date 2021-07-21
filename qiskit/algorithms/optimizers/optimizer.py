@@ -12,6 +12,8 @@
 
 """Optimizer interface"""
 
+from typing import Dict, Any
+
 from enum import IntEnum
 import logging
 from abc import ABC, abstractmethod
@@ -146,6 +148,23 @@ class Optimizer(ABC):
                 params += f"-- {key[1:]}: {value}\n"
         ret += f"{params}"
         return ret
+
+    @property
+    def settings(self) -> Dict[str, Any]:
+        """The optimizer settings in a dictionary format.
+
+        The settings can for instance be used for JSON-serialization (if all settings are
+        serializable, which e.g. doesn't hold per default for callables), such that the
+        optimizer object can be reconstructed as
+
+        .. code-block::
+
+            settings = optimizer.settings
+            # JSON serialize and send to another server
+            optimizer = OptimizerClass(**settings)
+
+        """
+        raise NotImplementedError("The settings method is not implemented per default.")
 
     @abstractmethod
     def optimize(

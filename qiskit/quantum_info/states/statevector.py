@@ -17,6 +17,7 @@ Statevector quantum state class.
 import copy
 import re
 from numbers import Number
+from typing import Dict
 
 import numpy as np
 
@@ -116,6 +117,11 @@ class Statevector(QuantumState, TolerancesMixin):
             pad,
             self._op_shape.dims_l(),
         )
+
+    @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        return {"data": self._data, "dims": self._op_shape.dims_l()}
 
     def draw(self, output=None, **drawer_args):
         """Return a visualization of the Statevector.
