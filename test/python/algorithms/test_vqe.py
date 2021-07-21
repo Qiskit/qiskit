@@ -457,10 +457,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
         wrapped_backend.run = partial(wrapped_run, callcount=callcount)
 
         fidelity = QNSPSA.get_fidelity(ansatz, backend=wrapped_backend)
-        qnspsa = QNSPSA(fidelity, maxiter=5,
-                        learning_rate=0.1,
-                        allowed_increase=0.05,
-                        perturbation=0.1)
+        qnspsa = QNSPSA(fidelity, maxiter=5)
 
         vqe = VQE(
             ansatz=ansatz,
@@ -470,8 +467,9 @@ class TestVQE(QiskitAlgorithmsTestCase):
         )
         _ = vqe.compute_minimum_eigenvalue(Z ^ Z)
 
-        # 1 initial blocking + 5 (1 loss + 1 fidelity + 1 blocking) + 1 return loss + 1 VQE eval
-        expected = 1 + 5 * 3 + 1 + 1
+        # 1 calibration + 1 stddev estimation + 1 initial blocking
+        # + 5 (1 loss + 1 fidelity + 1 blocking) + 1 return loss + 1 VQE eval
+        expected = 1 + 1 + 1 + 5 * 3 + 1 + 1
 
         self.assertEqual(callcount['count'], expected)
 
