@@ -83,8 +83,9 @@ class RZXCalibrationBuilder(CalibrationCreator):
     """
 
     def __init__(
-        self, backend: Optional[BaseBackend] = None,
-            inst_map: Optional[Dict[str, Dict[Tuple[int], Schedule]]] = None
+        self,
+        backend: Optional[BaseBackend] = None,
+        inst_map: Optional[Dict[str, Dict[Tuple[int], Schedule]]] = None,
     ):
         """
         Initializes a RZXGate calibration builder.
@@ -109,10 +110,7 @@ class RZXCalibrationBuilder(CalibrationCreator):
         elif inst_map is not None:
             self._inst_map = inst_map
         else:
-            raise QiskitError(
-                    "Either a backend or an instruction schedule map must be specified.")
-
-        # self._inst_map = inst_map
+            raise QiskitError("Either a backend or an instruction schedule map must be specified.")
 
     def supported(self, node_op: DAGNode) -> bool:
         """

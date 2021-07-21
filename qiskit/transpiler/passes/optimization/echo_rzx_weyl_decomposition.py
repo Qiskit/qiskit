@@ -35,7 +35,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
 
     def __init__(self, inst_map):
         """EchoRZXWeylDecomposition pass."""
-        self.inst_map = inst_map        
+        self.inst_map = inst_map
         super().__init__()
 
     def run(self, dag):

@@ -105,7 +105,7 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
             expected_rzx_number += 2
 
         circuit_rzx_number = QuantumCircuit.count_ops(after)["rzx"]
-    
+
         self.assertEqual(expected_rzx_number, circuit_rzx_number)
 
     def test_weyl_unitaries_random_circuit(self):
