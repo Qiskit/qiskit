@@ -115,6 +115,8 @@ class HRSCumulativeMultiplier(Multiplier):
             self.add_register(qr_h)
 
         # build multiplication circuit
+        circuit = QuantumCircuit(*self.qregs, name=name)
+
         for i in range(num_state_qubits):
             excess_qubits = max(0, num_state_qubits + i + 1 - self.num_result_qubits)
             if excess_qubits == 0:
@@ -131,4 +133,6 @@ class HRSCumulativeMultiplier(Multiplier):
             )
             if num_helper_qubits > 0:
                 qr_list.extend(qr_h[:])
-            self.append(controlled_adder, qr_list)
+            circuit.append(controlled_adder, qr_list)
+
+        self.append(circuit.to_gate(), self.qubits)

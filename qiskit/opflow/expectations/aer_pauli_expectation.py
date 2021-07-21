@@ -13,6 +13,8 @@
 """ AerPauliExpectation Class """
 
 import logging
+from functools import reduce
+from operator import add
 from typing import Union
 
 from qiskit.exceptions import MissingOptionalLibraryError
@@ -25,6 +27,7 @@ from qiskit.opflow.primitive_ops.pauli_op import PauliOp
 from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
 from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
 from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
+from qiskit.quantum_info import SparsePauliOp
 
 logger = logging.getLogger(__name__)
 
@@ -55,14 +58,14 @@ class AerPauliExpectation(ExpectationBase):
     @classmethod
     def _replace_pauli_sums(cls, operator):
         try:
-            from qiskit.providers.aer.extensions import SnapshotExpectationValue
+            from qiskit.providers.aer.library import SaveExpectationValue
         except ImportError as ex:
             raise MissingOptionalLibraryError(
                 libname="qiskit-aer",
                 name="AerPauliExpectation",
                 pip_install="pip install qiskit-aer",
             ) from ex
-        # The 'expval_measurement' label on the snapshot instruction is special - the
+        # The 'expval_measurement' label on the save instruction is special - the
         # CircuitSampler will look for it to know that the circuit is a Expectation
         # measurement, and not simply a
         # circuit to replace with a DictStateFn
@@ -70,10 +73,9 @@ class AerPauliExpectation(ExpectationBase):
             return operator.traverse(cls._replace_pauli_sums)
 
         if isinstance(operator, PauliSumOp):
-            paulis = [(meas[1], meas[0]) for meas in operator.primitive.to_list()]
-            snapshot_instruction = SnapshotExpectationValue("expval_measurement", paulis)
+            save_instruction = SaveExpectationValue(operator.primitive, "expval_measurement")
             return CircuitStateFn(
-                snapshot_instruction, coeff=operator.coeff, is_measurement=True, from_operator=True
+                save_instruction, coeff=operator.coeff, is_measurement=True, from_operator=True
             )
 
         # Change to Pauli representation if necessary
@@ -87,13 +89,18 @@ class AerPauliExpectation(ExpectationBase):
             operator = operator.to_pauli_op(massive=False)
 
         if isinstance(operator, SummedOp):
-            paulis = [[meas.coeff, meas.primitive] for meas in operator.oplist]
-            snapshot_instruction = SnapshotExpectationValue("expval_measurement", paulis)
-            return CircuitStateFn(snapshot_instruction, is_measurement=True, from_operator=True)
+            sparse_pauli = reduce(
+                add, (meas.coeff * SparsePauliOp(meas.primitive) for meas in operator.oplist)
+            )
+            save_instruction = SaveExpectationValue(sparse_pauli, "expval_measurement")
+            return CircuitStateFn(
+                save_instruction, coeff=operator.coeff, is_measurement=True, from_operator=True
+            )
+
         if isinstance(operator, PauliOp):
-            paulis = [[operator.coeff, operator.primitive]]
-            snapshot_instruction = SnapshotExpectationValue("expval_measurement", paulis)
-            return CircuitStateFn(snapshot_instruction, is_measurement=True, from_operator=True)
+            sparse_pauli = operator.coeff * SparsePauliOp(operator.primitive)
+            save_instruction = SaveExpectationValue(sparse_pauli, "expval_measurement")
+            return CircuitStateFn(save_instruction, is_measurement=True, from_operator=True)
 
         raise TypeError(
             f"Conversion of OperatorStateFn of {operator.__class__.__name__} is not defined."
@@ -118,7 +125,7 @@ class AerPauliExpectation(ExpectationBase):
             if isinstance(operator, ComposedOp):
                 return 0.0
             elif isinstance(operator, ListOp):
-                return operator._combo_fn([sum_variance(op) for op in operator.oplist])
+                return operator.combo_fn([sum_variance(op) for op in operator.oplist])
             raise TypeError(f"Variance cannot be computed for {operator.__class__.__name__}.")
 
         return sum_variance(exp_op)

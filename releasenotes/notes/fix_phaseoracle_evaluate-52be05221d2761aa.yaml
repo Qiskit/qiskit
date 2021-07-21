@@ -1,8 +1,0 @@
----
-fixes:
-  - |
-    Fix a bug where the bit-order in
-    :meth:`qiskit.circuit.library.PhaseOracle.evaluate_bitstring` did not agree with the 
-    order of the measured bitstring. This fix also affects the execution of Grover's algorithm
-    if the oracle is specified as :class:`~qiskit.circuit.library.PhaseOracle`, which now
-    correctly identifies the correct bitstring.

@@ -13,6 +13,7 @@
 N-Qubit Sparse Pauli Operator class.
 """
 
+from typing import Dict
 from numbers import Number
 import numpy as np
 
@@ -94,6 +95,11 @@ class SparsePauliOp(LinearOp):
             and np.allclose(self.coeffs, other.coeffs)
             and self.table == other.table
         )
+
+    @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        return {"data": self._table, "coeffs": self._coeffs}
 
     # ---------------------------------------------------------------------
     # Data accessors

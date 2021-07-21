@@ -129,6 +129,13 @@ class CircuitStateFn(StateFn):
         return {"QuantumCircuit"}
 
     @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        data = super().settings
+        data["from_operator"] = self.from_operator
+        return data
+
+    @property
     def num_qubits(self) -> int:
         return self.primitive.num_qubits
 
