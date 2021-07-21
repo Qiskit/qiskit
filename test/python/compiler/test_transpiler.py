@@ -1213,12 +1213,12 @@ class TestTranspile(QiskitTestCase):
         # a -0.5 * theta phase for RZ to P twice, once at theta, and once at 3 pi
         # for the second and third RZ gates in the U3 decomposition.
         expected = QuantumCircuit(
-            1, global_phase=-np.pi / 2 - 0.5 * (0.2 + np.pi) - 0.5 * 3 * np.pi
+            1, global_phase=-np.pi / 2 - 0.5 * (-0.2 + np.pi) - 0.5 * 3 * np.pi
         )
-        expected.sx(0)
-        expected.p(-np.pi + 0.2, 0)
-        expected.sx(0)
         expected.p(-np.pi, 0)
+        expected.sx(0)
+        expected.p(np.pi - 0.2, 0)
+        expected.sx(0)
 
         error_message = (
             f"\nOutput circuit:\n{out!s}\n{Operator(out).data}\n"
