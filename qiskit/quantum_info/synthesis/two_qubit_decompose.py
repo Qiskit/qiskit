@@ -544,7 +544,7 @@ class TwoQubitWeylControlledEquiv(TwoQubitWeylDecomposition):
         self.K2r = np.asarray(RYGate(k2rtheta)) @ np.asarray(RXGate(k2rlambda))
 
 
-class TwoQubitWeylEchoRZX(TwoQubitWeylGeneral):
+class TwoQubitWeylEchoRZX(TwoQubitWeylDecomposition):
     """Decompose two-qubit unitary in terms of echoed cross-resonance gates."""
 
     def __init__(self, unitary, inst_map, qubit_pair: Tuple):
@@ -552,6 +552,8 @@ class TwoQubitWeylEchoRZX(TwoQubitWeylGeneral):
         self.qubit_pair = qubit_pair
         super().__init__(unitary)
 
+    def specialize(self):
+        pass  # Nothing to do
 
     @staticmethod
     def _apply_rzx(circ: QuantumCircuit, angle: float):
