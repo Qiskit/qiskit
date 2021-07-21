@@ -500,34 +500,35 @@ class TemplateSubstitution:
             template_params += template_dag_dep.get_node(t_idx).op.params
 
         # Create the fake binding dict and check
-        equations, symbols, sol, fake_bind = [], set(), {}, {}
-        for t_idx, params in enumerate(template_params):
-            if isinstance(params, ParameterExpression):
+        equations, circ_symbols, temp_symbols, sol, fake_bind = [], [], set(), {}, {}
+        for t_idx, temp_params in enumerate(template_params):
+            if isinstance(temp_params, ParameterExpression):
                 if isinstance(circuit_params[t_idx], ParameterExpression):
                     if len(circuit_params[t_idx].parameters):
-                        for param in circuit_params[t_idx].parameters:
-                            cpn = param.name
+                        for circ_param in circuit_params[t_idx].parameters:
+                            cpn = circ_param.name
                             if '$' in cpn:
                                 psym = sym.symbols(str(cpn.split('$')[1].split('\\')[-1]))
                             else:
                                 psym = sym.Eq(parse_expr(cpn))
 
-                            symbols.add(param)
-                            equations.append(sym.Eq(parse_expr(str(params)), psym))
+                            #circ_symbols.add(circ_param)
+                            #circ_symbols.append(psym)
+                            equations.append(sym.Eq(parse_expr(str(temp_params)), psym))
                     else:
-                        equations.append(sym.Eq(parse_expr(str(params)), circuit_params[t_idx]))
+                        equations.append(sym.Eq(parse_expr(str(temp_params)), circuit_params[t_idx]))
 
                 else:
-                    equations.append(sym.Eq(parse_expr(str(params)), circuit_params[t_idx]))
+                    equations.append(sym.Eq(parse_expr(str(temp_params)), circuit_params[t_idx]))
 
-                for param in params.parameters:
-                    symbols.add(param)
+                for param in temp_params.parameters:
+                    temp_symbols.add(param)
 
-        if not symbols:
+        if not temp_symbols:
             return template_dag_dep
 
         # Check compatibility by solving the resulting equation
-        sym_sol = sym.solve(equations)
+        sym_sol = sym.solve(equations, temp_symbols)
         for key in sym_sol:
             try:
                 sol[str(key)] = float(sym_sol[key])
@@ -538,7 +539,6 @@ class TemplateSubstitution:
         if not sol:
             return None
 
-        import pdb; pdb.set_trace()
         #for param in symbols:
         for param in sol:
             if '$' in str(param):
@@ -548,11 +548,12 @@ class TemplateSubstitution:
 
         for node in template_dag_dep.get_nodes():
             bound_params = []
-
+            import pdb; pdb.set_trace()
             for param in node.op.params:
                 if isinstance(param, ParameterExpression):
                     try:
                         bound_params.append(float(param.bind(fake_bind)))
+                        #bound_params.append(param.bind(fake_bind))
                     except KeyError:
                         return None
                 else:
