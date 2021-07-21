@@ -2001,39 +2001,29 @@ class TestPauliListMethods(QiskitTestCase):
 
     def test_group_qubit_wise_commuting(self):
         """Test grouping qubit-wise commuting operators"""
-        inputPauliLabels=[
-            "IY",
-            "ZX",
-            "XZ",
-            "YI",
-            "YX",
-            "YY",
-            "YZ",
-            "ZI",
-            "ZX",
-            "ZY",
-            "iZZ",
-            "II"
-            ]
-        np.random.shuffle(inputPauliLabels)
-        pauli_list=PauliList(inputPauliLabels)
+        input_labels = ["IY", "ZX", "XZ", "YI", "YX", "YY", "YZ", "ZI", "ZX", "ZY", "iZZ", "II"]
+        np.random.shuffle(input_labels)
+        pauli_list = PauliList(input_labels)
         groups = pauli_list.group_qubit_wise_commuting()
 
-        #checking that every input Pauli in pauli_list is in a group in the ouput
-        assert(all(((pauli in group) for group in groups) for pauli in pauli_list))
+        # checking that every input Pauli in pauli_list is in a group in the ouput
+        assert all(((pauli in group) for group in groups) for pauli in pauli_list)
 
-        #checking that for every pair of groups in the output, there is at least one element of
-        #one which does not commute with at least one element of the other
-        mat1 = [np.array(
-        [op.z + 2 * op.x for op in group],
-        dtype=np.int8,
-                ) for group in groups]
-        mat2=[mat[:, None] for mat in mat1]
+        # checking that for every pair of groups in the output, there is at least one element of
+        # one which does not commute with at least one element of the other
+        mat1 = [
+            np.array(
+                [op.z + 2 * op.x for op in group],
+                dtype=np.int8,
+            )
+            for group in groups
+        ]
+        mat2 = [mat[:, None] for mat in mat1]
 
-        #value[i][j] will be False if groups i and j have non-commuting elements, True otherwise
-        value=np.array([[(i*j*(i-j)==0).all(axis=(2,1,0)) for i in mat1] for j in mat2])
-        target=np.diag([True]*len(mat1))
-        assert((value==target).all())
+        # value[i][j] will be False if groups i and j have non-commuting elements, True otherwise
+        value = np.array([[(i * j * (i - j) == 0).all(axis=(2, 1, 0)) for i in mat1] for j in mat2])
+        target = np.diag([True] * len(mat1))
+        assert (value == target).all()
 
 
 if __name__ == "__main__":
