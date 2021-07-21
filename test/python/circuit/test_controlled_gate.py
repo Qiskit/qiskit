@@ -1349,11 +1349,9 @@ class TestParameterCtrlState(QiskitTestCase):
         """Test controlled gates with ctrl_state
         See https://github.com/Qiskit/qiskit-terra/pull/4025
         """
-        self.assertEqual(gate.control(1, ctrl_state="1"), controlled_gate)
-        # TODO: once https://github.com/Qiskit/qiskit-terra/issues/3304 is fixed
-        # TODO: move this test to
-        # self.assertEqual(Operator(gate.control(1, ctrl_state='1')),
-        # Operator(controlled_gate.to_matrix()))
+        self.assertEqual(
+            Operator(gate.control(1, ctrl_state="1")), Operator(controlled_gate.to_matrix())
+        )
 
 
 @ddt

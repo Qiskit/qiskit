@@ -764,7 +764,7 @@ def _write_custom_instruction(file_obj, name, instruction):
         file_obj.write(data)
 
 
-def dump(file_obj, circuits):
+def dump(circuits, file_obj):
     """Write QPY binary data to a file
 
     This function is used to save a circuit to a file for later use or transfer
@@ -788,24 +788,24 @@ def dump(file_obj, circuits):
     .. code-block:: python
 
         with open('bell.qpy', 'wb') as fd:
-            qpy_serialization.dump(fd, qc)
+            qpy_serialization.dump(qc, fd)
 
-    or a gzip compressed filed:
+    or a gzip compressed file:
 
     .. code-block:: python
 
         import gzip
 
         with gzip.open('bell.qpy.gz', 'wb') as fd:
-            qpy_serialization.dump(fd, qc)
+            qpy_serialization.dump(qc, fd)
 
     Which will save the qpy serialized circuit to the provided file.
 
     Args:
-        file_obj (file): The file like object to write the QPY data too
         circuits (list or QuantumCircuit): The quantum circuit object(s) to
             store in the specified file like object. This can either be a
             single QuantumCircuit object or a list of QuantumCircuits.
+        file_obj (file): The file like object to write the QPY data too
     """
     if isinstance(circuits, QuantumCircuit):
         circuits = [circuits]
@@ -935,7 +935,7 @@ def load(file_obj):
             "file, %s, is newer than the current qiskit version %s. "
             "This may result in an error if the QPY file uses "
             "instructions not present in this current qiskit "
-            "version" % (".".join(header_version_parts), __version__)
+            "version" % (".".join([str(x) for x in header_version_parts]), __version__)
         )
     circuits = []
     for _ in range(file_header[5]):

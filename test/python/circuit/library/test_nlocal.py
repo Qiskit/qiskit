@@ -415,6 +415,31 @@ class TestNLocal(QiskitTestCase):
 
         self.assertCircuitEqual(nlocal, circuit)
 
+    def test_initial_state_as_circuit_object(self):
+        """Test setting `initial_state` to `QuantumCircuit` object"""
+        ref = QuantumCircuit(2)
+        ref.cx(0, 1)
+        ref.x(0)
+        ref.h(1)
+        ref.x(1)
+        ref.cx(0, 1)
+        ref.x(0)
+        ref.x(1)
+
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.h(1)
+
+        expected = NLocal(
+            num_qubits=2,
+            rotation_blocks=XGate(),
+            entanglement_blocks=CXGate(),
+            initial_state=qc,
+            reps=1,
+        )
+
+        self.assertCircuitEqual(ref, expected)
+
 
 @ddt
 class TestTwoLocal(QiskitTestCase):

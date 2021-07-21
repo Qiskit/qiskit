@@ -14,6 +14,7 @@
 
 from typing import Union, Optional, List, Any, Tuple, Sequence, Set, Callable
 from itertools import combinations
+import warnings
 
 import numpy
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -677,7 +678,20 @@ class NLocal(BlueprintCircuit):
         self._initial_state = initial_state
 
         # construct the circuit of the initial state
-        self._initial_state_circuit = initial_state.construct_circuit(mode="circuit")
+        # if initial state is an instance of QuantumCircuit do not call construct circuit
+        if isinstance(self._initial_state, QuantumCircuit):
+            self._initial_state_circuit = self._initial_state.copy()
+        else:
+            warnings.warn(
+                "The initial_state argument of the NLocal class "
+                "should be a QuantumCircuit. Passing any other type is "
+                "deprecated as of Qiskit Terra 0.18.0, and "
+                "will be removed no earlier than 3 months after that "
+                "release date.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self._initial_state_circuit = initial_state.construct_circuit(mode="circuit")
 
         # the initial state dictates the number of qubits since we do not have information
         # about on which qubits the initial state acts
@@ -933,9 +947,12 @@ class NLocal(BlueprintCircuit):
         if self.num_qubits == 0:
             return
 
-        # use the initial state circuit if it is not None
+        # use the initial state as starting circuit, if it is set
         if self._initial_state:
-            circuit = self._initial_state.construct_circuit("circuit", register=self.qregs[0])
+            if isinstance(self._initial_state, QuantumCircuit):
+                circuit = self._initial_state.copy()
+            else:
+                circuit = self._initial_state.construct_circuit("circuit", register=self.qregs[0])
             self.compose(circuit, inplace=True)
 
         param_iter = iter(self.ordered_parameters)

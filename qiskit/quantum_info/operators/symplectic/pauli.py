@@ -146,6 +146,8 @@ class Pauli(BasePauli):
     # Set the max Pauli string size before truncation
     __truncate__ = 50
 
+    _VALID_LABEL_PATTERN = re.compile(r"^[+-]?1?[ij]?[IXYZ]+$")
+
     def __init__(self, data=None, x=None, *, z=None, label=None):
         """Initialize the Pauli.
 
@@ -157,6 +159,11 @@ class Pauli(BasePauli):
             data (str or tuple or Pauli or ScalarOp): input data for Pauli. If input is
                 a tuple it must be of the form ``(z, x)`` or (z, x, phase)`` where
                 ``z`` and ``x`` are boolean Numpy arrays, and phase is an integer from Z_4.
+                If input is a string, it must be a concatenation of a phase and a Pauli string
+                (e.g. 'XYZ', '-iZIZ') where a phase string is a combination of at most three
+                characters from ['+', '-', ''], ['1', ''], and ['i', 'j', ''] in this order,
+                e.g. '', '-1j' while a Pauli string is 1 or more characters of 'I', 'X', 'Y' or 'Z',
+                e.g. 'Z', 'XIYY'.
             x (np.ndarray): DEPRECATED, symplectic x vector.
             z (np.ndarray): DEPRECATED, symplectic z vector.
             label (str): DEPRECATED, string label.
@@ -623,15 +630,14 @@ class Pauli(BasePauli):
         Raises:
             QiskitError: if Pauli string is not valid.
         """
+        if Pauli._VALID_LABEL_PATTERN.match(label) is None:
+            raise QiskitError(f'Pauli string label "{label}" is not valid.')
+
         # Split string into coefficient and Pauli
-        span = re.search(r"[IXYZ]+", label).span()
         pauli, coeff = _split_pauli_label(label)
-        coeff = label[: span[0]]
 
         # Convert coefficient to phase
         phase = 0 if not coeff else _phase_from_label(coeff)
-        if phase is None:
-            raise QiskitError("Pauli string is not valid.")
 
         # Convert to Symplectic representation
         num_qubits = len(pauli)
@@ -1086,8 +1092,8 @@ def _phase_from_label(label):
     label = label.replace("+", "", 1).replace("1", "", 1).replace("j", "i", 1)
     phases = {"": 0, "-i": 1, "-": 2, "i": 3}
     if label not in phases:
-        raise QiskitError(f"Invalid Pauli phase label '{label}'")
-    return phases.get(label)
+        raise QiskitError("Invalid Pauli phase label '{}'".format(label))
+    return phases[label]
 
 
 # Update docstrings for API docs

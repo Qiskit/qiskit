@@ -830,8 +830,7 @@ def plot_state_qsphere(
 
                 # get prob and angle - prob will be shade and angle color
                 prob = np.real(np.dot(state[i], state[i].conj()))
-                if prob > 1:  # See https://github.com/Qiskit/qiskit-terra/issues/4666
-                    prob = 1
+                prob = min(prob, 1)  # See https://github.com/Qiskit/qiskit-terra/issues/4666
                 colorstate = phase_to_rgb(state[i])
 
                 alfa = 1

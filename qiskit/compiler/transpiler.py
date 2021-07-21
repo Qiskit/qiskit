@@ -598,10 +598,21 @@ def _parse_coupling_map(coupling_map, backend, num_circuits):
             if hasattr(configuration, "coupling_map") and configuration.coupling_map:
                 faulty_map = _create_faulty_qubits_map(backend)
                 if faulty_map:
+                    faulty_edges = [gate.qubits for gate in backend.properties().faulty_gates()]
+                    functional_gates = [
+                        edge for edge in configuration.coupling_map if edge not in faulty_edges
+                    ]
                     coupling_map = CouplingMap()
-                    for qubit1, qubit2 in configuration.coupling_map:
+                    for qubit1, qubit2 in functional_gates:
                         if faulty_map[qubit1] is not None and faulty_map[qubit2] is not None:
                             coupling_map.add_edge(faulty_map[qubit1], faulty_map[qubit2])
+                    if configuration.n_qubits != coupling_map.size():
+                        warnings.warn(
+                            "The backend has currently some qubits/edges out of service."
+                            " This temporarily reduces the backend size from "
+                            f"{configuration.n_qubits} to {coupling_map.size()}",
+                            UserWarning,
+                        )
                 else:
                     coupling_map = CouplingMap(configuration.coupling_map)
 
