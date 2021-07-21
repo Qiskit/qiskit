@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fixes bug where a CompleteMeasFitter class wasn't imported before usage in QuantumInstance.
