@@ -1,0 +1,46 @@
+---
+features:
+  - |
+    Added three new classes,
+    :class:`~qiskit.circuit.library.CDKMRippleCarryAdder`,
+    :class:`~qiskit.circuit.library.ClassicalAdder` and
+    :class:`~qiskit.circuit.library.DraperQFTAdder`, to the
+    :mod:`qiskit.circuit.library` module. These new circuit classes are used to
+    perform classical addition of two equally-sized qubit registers. For two
+    registers :math:`|a\rangle_n` and :math:`|b\rangle_n` on :math:`n`
+    qubits, the three new classes perform the operation:
+
+    .. math::
+
+      |a\rangle_n |b\rangle_n \mapsto |a\rangle_n |a + b\rangle_{n + 1}.
+
+    For example::
+
+      from qiskit.circuit import QuantumCircuit
+      from qiskit.circuit.library import CDKMRippleCarryAdder
+      from qiskit.quantum_info import Statevector
+
+      # a encodes |01> = 1
+      a = QuantumCircuit(2)
+      a.x(0)
+
+      # b encodes |10> = 2
+      b = QuantumCircuit(2)
+      b.x(1)
+
+      # adder on 2-bit numbers
+      adder = CDKMRippleCarryAdder(2)
+
+      # add the state preparations to the front of the circuit
+      adder.compose(a, [0, 1], inplace=True, front=True)
+      adder.compose(b, [2, 3], inplace=True, front=True)
+
+      # simulate and get the state of all qubits
+      sv = Statevector(adder)
+      counts = sv.probabilities_dict()
+      state = list(counts.keys())[0]  # we only have a single state
+
+      # skip the input carry (first bit) and the register |a> (last two bits)
+      result = state[1:-2]
+      print(result)  # '011' = 3 = 1 + 2
+

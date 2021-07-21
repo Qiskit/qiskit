@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    Previously when creating :class:`~qiskit.quantum_info.Pauli` with an invalid
-    string label, an uninformative `AttributeError` was raised. This fix changes
-    the error type to `QiskitError` and makes the error message informative.
