@@ -160,7 +160,7 @@ class BIPMapping(TransformationPass):
             logger.info("BIPMapping is skipped due to no 2q-gates.")
             return original_dag
 
-        model.create_cpx_problem(objective=self.objective)
+        model.create_cpx_problem(objective=self.objective, backend_prop=self.backend_prop)
 
         status = model.solve_cpx_problem(time_limit=self.time_limit, threads=self.threads)
         if model.solution is None:
