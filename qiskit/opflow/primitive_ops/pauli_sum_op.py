@@ -18,7 +18,7 @@ from typing import Dict, List, Optional, Set, Tuple, Union, cast
 import numpy as np
 from scipy.sparse import spmatrix
 
-from qiskit.circuit import Instruction, ParameterExpression
+from qiskit.circuit import Instruction, ParameterExpression, Gate
 from qiskit.opflow.exceptions import OpflowError
 from qiskit.opflow.list_ops.summed_op import SummedOp
 from qiskit.opflow.list_ops.tensored_op import TensoredOp
@@ -334,6 +334,9 @@ class PauliSumOp(PrimitiveOp):
 
     def to_instruction(self) -> Instruction:
         return self.to_matrix_op().to_circuit().to_instruction()  # type: ignore
+
+    def to_gate(self) -> Gate:
+        return self.to_matrix_op().to_circuit().to_gate()
 
     def to_pauli_op(self, massive: bool = False) -> Union[PauliOp, SummedOp]:
         def to_native(x):

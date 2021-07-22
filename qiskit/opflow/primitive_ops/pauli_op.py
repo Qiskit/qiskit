@@ -18,7 +18,7 @@ import numpy as np
 from scipy.sparse import spmatrix
 
 from qiskit import QuantumCircuit
-from qiskit.circuit import Instruction, ParameterExpression
+from qiskit.circuit import Instruction, ParameterExpression, Gate
 from qiskit.circuit.library import IGate, RXGate, RYGate, RZGate, XGate, YGate, ZGate
 from qiskit.opflow.exceptions import OpflowError
 from qiskit.opflow.list_ops.summed_op import SummedOp
@@ -332,6 +332,9 @@ class PauliOp(PrimitiveOp):
         # return PrimitiveOp(self.primitive.to_instruction(), coeff=self.coeff).reduce()
 
         return self.to_circuit().to_instruction()
+
+    def to_gate(self) -> Gate:
+        return self.to_circuit().to_gate()
 
     def to_pauli_op(self, massive: bool = False) -> "PauliOp":
         return self

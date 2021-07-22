@@ -18,7 +18,7 @@ import numpy as np
 from scipy.sparse import spmatrix
 
 from qiskit import QuantumCircuit
-from qiskit.circuit import Instruction, ParameterExpression
+from qiskit.circuit import Instruction, ParameterExpression, Gate
 from qiskit.extensions.hamiltonian_gate import HamiltonianGate
 from qiskit.opflow.exceptions import OpflowError
 from qiskit.opflow.list_ops.summed_op import SummedOp
@@ -229,3 +229,6 @@ class MatrixOp(PrimitiveOp):
 
     def to_instruction(self) -> Instruction:
         return (self.coeff * self.primitive).to_instruction()
+
+    def to_gate(self) -> Gate:
+        return self.exp_i().to_gate()

@@ -19,7 +19,7 @@ import scipy.linalg
 from scipy.sparse import spmatrix
 
 from qiskit import QuantumCircuit
-from qiskit.circuit import Instruction, ParameterExpression
+from qiskit.circuit import Instruction, ParameterExpression, Gate
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.quantum_info import Operator, Pauli, SparsePauliOp, Statevector
 
@@ -271,6 +271,10 @@ class PrimitiveOp(OperatorBase):
 
     def to_instruction(self) -> Instruction:
         """Returns an ``Instruction`` equivalent to this Operator."""
+        raise NotImplementedError
+
+    def to_gate(self) -> Gate:
+        """Returns an ``Gate`` equivalent to this Operator."""
         raise NotImplementedError
 
     def to_circuit(self) -> QuantumCircuit:
