@@ -10,21 +10,17 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=method-hidden,arguments-differ
+# pylint: disable=arguments-differ
 
 """Module providing definitions of QASM Qobj classes."""
 
 import copy
 import pprint
-import json
 from types import SimpleNamespace
-import warnings
-
-import numpy
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.qobj.pulse_qobj import PulseQobjInstruction, PulseLibraryItem
-from qiskit.qobj.common import QobjDictField, QobjHeader, validator
+from qiskit.qobj.common import QobjDictField, QobjHeader
 
 
 class QasmQobjInstruction:
@@ -155,9 +151,9 @@ class QasmQobjInstruction:
             attr_val = getattr(self, attr, None)
             if attr_val is not None:
                 if isinstance(attr_val, str):
-                    out += ', %s="%s"' % (attr, attr_val)
+                    out += f', {attr}="{attr_val}"'
                 else:
-                    out += ", %s=%s" % (attr, attr_val)
+                    out += f", {attr}={attr_val}"
         out += ")"
         return out
 
@@ -177,7 +173,7 @@ class QasmQobjInstruction:
             "snapshot_type",
         ]:
             if hasattr(self, attr):
-                out += "\t\t%s: %s\n" % (attr, getattr(self, attr))
+                out += f"\t\t{attr}: {getattr(self, attr)}\n"
         return out
 
     @classmethod
@@ -222,7 +218,7 @@ class QasmQobjExperiment:
     def __repr__(self):
         instructions_str = [repr(x) for x in self.instructions]
         instructions_repr = "[" + ", ".join(instructions_str) + "]"
-        out = "QasmQobjExperiment(config=%s, header=%s, instructions=%s)" % (
+        out = "QasmQobjExperiment(config={}, header={}, instructions={})".format(
             repr(self.config),
             repr(self.header),
             instructions_repr,
@@ -577,24 +573,10 @@ class QasmQobj:
         self.type = "QASM"
         self.schema_version = "1.3.0"
 
-    def _validate_json_schema(self, out_dict):
-        class QobjEncoder(json.JSONEncoder):
-            """A json encoder for qobj"""
-
-            def default(self, obj):
-                if isinstance(obj, numpy.ndarray):
-                    return obj.tolist()
-                if isinstance(obj, complex):
-                    return (obj.real, obj.imag)
-                return json.JSONEncoder.default(self, obj)
-
-        json_str = json.dumps(out_dict, cls=QobjEncoder)
-        validator(json.loads(json_str))
-
     def __repr__(self):
         experiments_str = [repr(x) for x in self.experiments]
         experiments_repr = "[" + ", ".join(experiments_str) + "]"
-        out = "QasmQobj(qobj_id='%s', config=%s, experiments=%s, header=%s)" % (
+        out = "QasmQobj(qobj_id='{}', config={}, experiments={}, header={})".format(
             self.qobj_id,
             repr(self.config),
             experiments_repr,
@@ -613,7 +595,7 @@ class QasmQobj:
             out += "%s" % str(experiment)
         return out
 
-    def to_dict(self, validate=False):
+    def to_dict(self):
         """Return a dictionary format representation of the QASM Qobj.
 
         Note this dict is not in the json wire format expected by IBMQ and qobj
@@ -637,11 +619,6 @@ class QasmQobj:
 
             json.dumps(qobj.to_dict(), cls=QobjEncoder)
 
-
-        Args:
-            validate (bool): When set to true validate the output dictionary
-                against the jsonschema for qobj spec.
-
         Returns:
             dict: A dictionary representation of the QasmQobj object
         """
@@ -653,17 +630,6 @@ class QasmQobj:
             "type": "QASM",
             "experiments": [x.to_dict() for x in self.experiments],
         }
-        if validate:
-            warnings.warn(
-                "The jsonschema validation included in qiskit-terra is "
-                "deprecated and will be removed in a future release. "
-                "If you're relying on this schema validation you should "
-                "pull the schemas from the Qiskit/ibmq-schemas and directly "
-                "validate your payloads with that",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            self._validate_json_schema(out_dict)
         return out_dict
 
     @classmethod

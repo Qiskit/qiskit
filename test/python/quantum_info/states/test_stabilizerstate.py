@@ -252,7 +252,7 @@ class TestStabilizerState(QiskitTestCase):
 
         for _ in range(self.samples):
             for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
-                with self.subTest(msg="reset (qargs={})".format(qargs)):
+                with self.subTest(msg=f"reset (qargs={qargs})"):
                     stab = StabilizerState(qc)
                     res = stab.reset(qargs)
                     value = res.measure()[0]
@@ -281,7 +281,7 @@ class TestStabilizerState(QiskitTestCase):
 
         for _ in range(self.samples):
             for qargs in [[0, 1], [1, 0]]:
-                with self.subTest(msg="reset (qargs={})".format(qargs)):
+                with self.subTest(msg=f"reset (qargs={qargs})"):
                     stab = StabilizerState(qc)
                     res = stab.reset(qargs)
                     value = res.measure()[0]
@@ -289,7 +289,7 @@ class TestStabilizerState(QiskitTestCase):
 
         for _ in range(self.samples):
             for qargs in [[0, 2], [2, 0]]:
-                with self.subTest(msg="reset (qargs={})".format(qargs)):
+                with self.subTest(msg=f"reset (qargs={qargs})"):
                     stab = StabilizerState(qc)
                     res = stab.reset(qargs)
                     value = res.measure()[0]
@@ -297,7 +297,7 @@ class TestStabilizerState(QiskitTestCase):
 
         for _ in range(self.samples):
             for qargs in [[1, 2], [2, 1]]:
-                with self.subTest(msg="reset (qargs={})".format(qargs)):
+                with self.subTest(msg=f"reset (qargs={qargs})"):
                     stab = StabilizerState(qc)
                     res = stab.reset(qargs)
                     value = res.measure()[0]
@@ -479,7 +479,7 @@ class TestStabilizerState(QiskitTestCase):
 
         # 3-qubit qargs
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
-            with self.subTest(msg="P({})".format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 probs = stab.probabilities_dict(qargs)
                 target = {"000": 0.5, "111": 0.5}
                 self.assertDictAlmostEqual(probs, target)
@@ -489,7 +489,7 @@ class TestStabilizerState(QiskitTestCase):
 
         # 2-qubit qargs
         for qargs in [[0, 1], [2, 1], [1, 0], [1, 2]]:
-            with self.subTest(msg="P({})".format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 probs = stab.probabilities_dict(qargs)
                 target = {"00": 0.5, "11": 0.5}
                 self.assertDictAlmostEqual(probs, target)
@@ -499,7 +499,7 @@ class TestStabilizerState(QiskitTestCase):
 
         # 1-qubit qargs
         for qargs in [[0], [1], [2]]:
-            with self.subTest(msg="P({})".format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 probs = stab.probabilities_dict(qargs)
                 target = {"0": 0.5, "1": 0.5}
                 self.assertDictAlmostEqual(probs, target)
@@ -534,7 +534,7 @@ class TestStabilizerState(QiskitTestCase):
         stab = StabilizerState(qc)
         pairs = [("Z", 1), ("X", 0), ("Y", 0), ("I", 1)]
         for label, target in pairs:
-            with self.subTest(msg="<{}>".format(label)):
+            with self.subTest(msg=f"<{label}>"):
                 op = Pauli(label)
                 expval = stab.expectation_value(op)
                 self.assertEqual(expval, target)
@@ -544,7 +544,7 @@ class TestStabilizerState(QiskitTestCase):
         stab = StabilizerState(qc)
         pairs = [("Z", -1), ("X", 0), ("Y", 0), ("I", 1)]
         for label, target in pairs:
-            with self.subTest(msg="<{}>".format(label)):
+            with self.subTest(msg=f"<{label}>"):
                 op = Pauli(label)
                 expval = stab.expectation_value(op)
                 self.assertEqual(expval, target)
@@ -554,7 +554,7 @@ class TestStabilizerState(QiskitTestCase):
         stab = StabilizerState(qc)
         pairs = [("Z", 0), ("X", 1), ("Y", 0), ("I", 1)]
         for label, target in pairs:
-            with self.subTest(msg="<{}>".format(label)):
+            with self.subTest(msg=f"<{label}>"):
                 op = Pauli(label)
                 expval = stab.expectation_value(op)
                 self.assertEqual(expval, target)
@@ -579,7 +579,7 @@ class TestStabilizerState(QiskitTestCase):
             ("YZ", 0),
         ]
         for label, target in pairs:
-            with self.subTest(msg="<{}>".format(label)):
+            with self.subTest(msg=f"<{label}>"):
                 op = Pauli(label)
                 expval = stab.expectation_value(op)
                 self.assertEqual(expval, target)
@@ -601,7 +601,7 @@ class TestStabilizerState(QiskitTestCase):
             ("YZ", 0),
         ]
         for label, target in pairs:
-            with self.subTest(msg="<{}>".format(label)):
+            with self.subTest(msg=f"<{label}>"):
                 op = Pauli(label)
                 expval = stab.expectation_value(op)
                 self.assertEqual(expval, target)
@@ -623,7 +623,7 @@ class TestStabilizerState(QiskitTestCase):
             ("YZ", 0),
         ]
         for label, target in pairs:
-            with self.subTest(msg="<{}>".format(label)):
+            with self.subTest(msg=f"<{label}>"):
                 op = Pauli(label)
                 expval = stab.expectation_value(op)
                 self.assertEqual(expval, target)
@@ -645,7 +645,7 @@ class TestStabilizerState(QiskitTestCase):
             ("YZ", 0),
         ]
         for label, target in pairs:
-            with self.subTest(msg="<{}>".format(label)):
+            with self.subTest(msg=f"<{label}>"):
                 op = Pauli(label)
                 expval = stab.expectation_value(op)
                 self.assertEqual(expval, target)
@@ -667,7 +667,7 @@ class TestStabilizerState(QiskitTestCase):
             ("YZ", 0),
         ]
         for label, target in pairs:
-            with self.subTest(msg="<{}>".format(label)):
+            with self.subTest(msg=f"<{label}>"):
                 op = Pauli(label)
                 expval = stab.expectation_value(op)
                 self.assertEqual(expval, target)
@@ -690,7 +690,7 @@ class TestStabilizerState(QiskitTestCase):
             ("YZ", 0),
         ]
         for label, target in pairs:
-            with self.subTest(msg="<{}>".format(label)):
+            with self.subTest(msg=f"<{label}>"):
                 op = Pauli(label)
                 expval = stab.expectation_value(op)
                 self.assertEqual(expval, target)
@@ -716,7 +716,7 @@ class TestStabilizerState(QiskitTestCase):
             ("YZ", 0),
         ]
         for label, target in pairs:
-            with self.subTest(msg="<{}>".format(label)):
+            with self.subTest(msg=f"<{label}>"):
                 op = Pauli(label)
                 expval = stab.expectation_value(op)
                 self.assertEqual(expval, target)
@@ -786,11 +786,11 @@ class TestStabilizerState(QiskitTestCase):
         # 3-qubit qargs
         target = {"000": self.shots / 2, "111": self.shots / 2}
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
-            with self.subTest(msg="counts (qargs={})".format(qargs)):
+            with self.subTest(msg=f"counts (qargs={qargs})"):
                 counts = stab.sample_counts(self.shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, self.threshold)
 
-            with self.subTest(msg="memory (qargs={})".format(qargs)):
+            with self.subTest(msg=f"memory (qargs={qargs})"):
                 memory = stab.sample_memory(self.shots, qargs=qargs)
                 self.assertEqual(len(memory), self.shots)
                 self.assertEqual(set(memory), set(target))
@@ -798,11 +798,11 @@ class TestStabilizerState(QiskitTestCase):
         # 2-qubit qargs
         target = {"00": self.shots / 2, "11": self.shots / 2}
         for qargs in [[0, 1], [2, 1], [1, 2], [1, 0]]:
-            with self.subTest(msg="counts (qargs={})".format(qargs)):
+            with self.subTest(msg=f"counts (qargs={qargs})"):
                 counts = stab.sample_counts(self.shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, self.threshold)
 
-            with self.subTest(msg="memory (qargs={})".format(qargs)):
+            with self.subTest(msg=f"memory (qargs={qargs})"):
                 memory = stab.sample_memory(self.shots, qargs=qargs)
                 self.assertEqual(len(memory), self.shots)
                 self.assertEqual(set(memory), set(target))
@@ -810,11 +810,11 @@ class TestStabilizerState(QiskitTestCase):
         # 1-qubit qargs
         target = {"0": self.shots / 2, "1": self.shots / 2}
         for qargs in [[0], [1], [2]]:
-            with self.subTest(msg="counts (qargs={})".format(qargs)):
+            with self.subTest(msg=f"counts (qargs={qargs})"):
                 counts = stab.sample_counts(self.shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, self.threshold)
 
-            with self.subTest(msg="memory (qargs={})".format(qargs)):
+            with self.subTest(msg=f"memory (qargs={qargs})"):
                 memory = stab.sample_memory(self.shots, qargs=qargs)
                 self.assertEqual(len(memory), self.shots)
                 self.assertEqual(set(memory), set(target))
@@ -841,11 +841,11 @@ class TestStabilizerState(QiskitTestCase):
             "111": self.shots / 8,
         }
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
-            with self.subTest(msg="counts (qargs={})".format(qargs)):
+            with self.subTest(msg=f"counts (qargs={qargs})"):
                 counts = stab.sample_counts(self.shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, self.threshold)
 
-            with self.subTest(msg="memory (qargs={})".format(qargs)):
+            with self.subTest(msg=f"memory (qargs={qargs})"):
                 memory = stab.sample_memory(self.shots, qargs=qargs)
                 self.assertEqual(len(memory), self.shots)
                 self.assertEqual(set(memory), set(target))
@@ -858,11 +858,11 @@ class TestStabilizerState(QiskitTestCase):
             "11": self.shots / 4,
         }
         for qargs in [[0, 1], [2, 1], [1, 2], [1, 0]]:
-            with self.subTest(msg="counts (qargs={})".format(qargs)):
+            with self.subTest(msg=f"counts (qargs={qargs})"):
                 counts = stab.sample_counts(self.shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, self.threshold)
 
-            with self.subTest(msg="memory (qargs={})".format(qargs)):
+            with self.subTest(msg=f"memory (qargs={qargs})"):
                 memory = stab.sample_memory(self.shots, qargs=qargs)
                 self.assertEqual(len(memory), self.shots)
                 self.assertEqual(set(memory), set(target))
@@ -870,11 +870,11 @@ class TestStabilizerState(QiskitTestCase):
         # 1-qubit qargs
         target = {"0": self.shots / 2, "1": self.shots / 2}
         for qargs in [[0], [1], [2]]:
-            with self.subTest(msg="counts (qargs={})".format(qargs)):
+            with self.subTest(msg=f"counts (qargs={qargs})"):
                 counts = stab.sample_counts(self.shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, self.threshold)
 
-            with self.subTest(msg="memory (qargs={})".format(qargs)):
+            with self.subTest(msg=f"memory (qargs={qargs})"):
                 memory = stab.sample_memory(self.shots, qargs=qargs)
                 self.assertEqual(len(memory), self.shots)
                 self.assertEqual(set(memory), set(target))

@@ -374,7 +374,7 @@ def run_qobj(
                 if not res.success:
                     msg += ", " + res.status
                     break
-        raise QiskitError("Circuit execution failed: {}".format(msg))
+        raise QiskitError(f"Circuit execution failed: {msg}")
 
     if not hasattr(result, "time_taken"):
         setattr(result, "time_taken", 0.0)
@@ -590,7 +590,7 @@ def run_circuits(
                 if not res.success:
                     msg += ", " + res.status
                     break
-        raise QiskitError("Circuit execution failed: {}".format(msg))
+        raise QiskitError(f"Circuit execution failed: {msg}")
 
     if not hasattr(result, "time_taken"):
         setattr(result, "time_taken", 0.0)

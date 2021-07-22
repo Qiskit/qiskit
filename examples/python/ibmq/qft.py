@@ -27,14 +27,14 @@ def input_state(circ, n):
     """n-qubit input state for QFT that produces output 1."""
     for j in range(n):
         circ.h(j)
-        circ.p(-math.pi/float(2**(j)), j)
+        circ.p(-math.pi / float(2 ** (j)), j)
 
 
 def qft(circ, n):
     """n-qubit QFT on q in circ."""
     for j in range(n):
         for k in range(j):
-            circ.cp(math.pi/float(2**(j-k)), j, k)
+            circ.cp(math.pi / float(2 ** (j - k)), j, k)
         circ.h(j)
 
 
@@ -74,8 +74,8 @@ provider = IBMQ.load_account()
 
 # Second version: real device
 least_busy_device = least_busy(
-    provider.backends(simulator=False,
-                      filters=lambda x: x.configuration().n_qubits > 4))
+    provider.backends(simulator=False, filters=lambda x: x.configuration().n_qubits > 4)
+)
 print("Running on current least busy device: ", least_busy_device)
 job = execute([qft3, qft4, qft5], least_busy_device, shots=1024)
 result = job.result()

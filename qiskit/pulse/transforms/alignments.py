@@ -254,7 +254,7 @@ class AlignEquispaced(AlignmentKind):
         """
         instruction_duration_validation(self.duration)
 
-        total_duration = sum([child.duration for _, child in schedule.children])
+        total_duration = sum(child.duration for _, child in schedule.children)
         if self.duration < total_duration:
             return schedule
 

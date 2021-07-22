@@ -61,19 +61,22 @@ class LookaheadSwap(TransformationPass):
     https://medium.com/qiskit/improving-a-quantum-compiler-48410d7a7084
     """
 
-    def __init__(self, coupling_map, search_depth=4, search_width=4):
+    def __init__(self, coupling_map, search_depth=4, search_width=4, fake_run=False):
         """LookaheadSwap initializer.
 
         Args:
             coupling_map (CouplingMap): CouplingMap of the target backend.
             search_depth (int): lookahead tree depth when ranking best SWAP options.
             search_width (int): lookahead tree width when ranking best SWAP options.
+            fake_run (bool): if true, it only pretend to do routing, i.e., no
+                swap is effectively added.
         """
 
         super().__init__()
         self.coupling_map = coupling_map
         self.search_depth = search_depth
         self.search_width = search_width
+        self.fake_run = fake_run
 
     def run(self, dag):
         """Run the LookaheadSwap pass on `dag`.
@@ -133,6 +136,10 @@ class LookaheadSwap(TransformationPass):
             gates_remaining = best_step["gates_remaining"]
 
             mapped_gates.extend(gates_mapped)
+
+        if self.fake_run:
+            self.property_set["final_layout"] = current_layout
+            return dag
 
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
         mapped_dag = dag._copy_circuit_metadata()
@@ -287,7 +294,7 @@ def _map_free_gates(layout, gates, coupling_map):
         elif len(qubits) == 1:
             mapped_gate = _transform_gate_for_layout(gate, layout)
             mapped_gates.append(mapped_gate)
-        elif coupling_map.distance(*[layout[q] for q in qubits]) == 1:
+        elif coupling_map.distance(*(layout[q] for q in qubits)) == 1:
             mapped_gate = _transform_gate_for_layout(gate, layout)
             mapped_gates.append(mapped_gate)
         else:
@@ -305,7 +312,7 @@ def _calc_layout_distance(gates, coupling_map, layout, max_gates=None):
         max_gates = 50 + 10 * len(coupling_map.physical_qubits)
 
     return sum(
-        coupling_map.distance(*[layout[q] for q in gate["partition"][0]])
+        coupling_map.distance(*(layout[q] for q in gate["partition"][0]))
         for gate in gates[:max_gates]
         if gate["partition"] and len(gate["partition"][0]) == 2
     )

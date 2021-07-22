@@ -83,7 +83,7 @@ class Parameter(ParameterExpression):
         return self
 
     def __repr__(self):
-        return "{}({})".format(self.__class__.__name__, self.name)
+        return f"{self.__class__.__name__}({self.name})"
 
     def __eq__(self, other):
         if isinstance(other, Parameter):
