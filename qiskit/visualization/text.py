@@ -18,6 +18,7 @@ from warnings import warn
 from shutil import get_terminal_size
 import sys
 
+from qiskit.circuit import Clbit
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import Reset
 from qiskit.circuit import Measure
@@ -451,6 +452,63 @@ class OpenBullet(DirectOnQuWire):
         self.mid_bck = "─"
 
 
+class DirectOnClWire(DrawElement):
+    """
+    Element to the classical wire (without the box).
+    """
+
+    def __init__(self, label=""):
+        super().__init__(label)
+        self.top_format = " %s "
+        self.mid_format = "═%s═"
+        self.bot_format = " %s "
+        self._mid_padding = self.mid_bck = "═"
+        self.top_connector = {"│": "│"}
+        self.bot_connector = {"│": "│"}
+
+
+class ClBullet(DirectOnClWire):
+    """Draws a bullet on classical wire (usually with a connector). E.g. the top part of a CX gate.
+
+    ::
+
+        top:
+        mid: ═■═  ═══■═══
+        bot:  │      │
+    """
+
+    def __init__(self, top_connect="", bot_connect="", conditional=False, label=None, bottom=False):
+        super().__init__("■")
+        self.top_connect = top_connect
+        self.bot_connect = "║" if conditional else bot_connect
+        if label and bottom:
+            self.bot_connect = label
+        elif label:
+            self.top_connect = label
+        self.mid_bck = "═"
+
+
+class ClOpenBullet(DirectOnClWire):
+    """Draws an open bullet on classical wire (usually with a connector). E.g. the top part of a CX gate.
+
+    ::
+
+        top:
+        mid: ═o═  ═══o═══
+        bot:  │      │
+    """
+
+    def __init__(self, top_connect="", bot_connect="", conditional=False, label=None, bottom=False):
+        super().__init__("o")
+        self.top_connect = top_connect
+        self.bot_connect = "║" if conditional else bot_connect
+        if label and bottom:
+            self.bot_connect = label
+        elif label:
+            self.top_connect = label
+        self.mid_bck = "═"
+
+
 class EmptyWire(DrawElement):
     """This element is just the wire, with no operations."""
 
@@ -532,6 +590,7 @@ class TextDrawing:
         qubits,
         clbits,
         nodes,
+        reverse_bits=False,
         plotbarriers=True,
         line_length=None,
         vertical_compression="high",
@@ -548,6 +607,7 @@ class TextDrawing:
         self.qregs = qregs
         self.cregs = cregs
         self.nodes = nodes
+        self.reverse_bits = reverse_bits
         self.layout = layout
         self.initial_state = initial_state
         self.cregbundle = cregbundle
@@ -980,8 +1040,8 @@ class TextDrawing:
 
         if op.condition is not None:
             # conditional
-            cllabel = TextDrawing.label_for_conditional(node)
-            layer.set_cl_multibox(op.condition[0], cllabel, top_connect="╨")
+            op_cond = op.condition
+            layer.set_cl_multibox(op_cond[0], op_cond[1], top_connect="╨")
             conditional = True
 
         # add in a gate that operates over multiple qubits
@@ -1107,7 +1167,7 @@ class TextDrawing:
         layers = [InputWire.fillup_layer(wire_names)]
 
         for node_layer in self.nodes:
-            layer = Layer(self.qubits, self.clbits, self.cregbundle, self.cregs)
+            layer = Layer(self.qubits, self.clbits, self.reverse_bits, self.cregbundle, self.cregs)
 
             for node in node_layer:
                 layer, current_connections, connection_label = self._node_to_gate(node, layer)
@@ -1122,7 +1182,7 @@ class TextDrawing:
 class Layer:
     """A layer is the "column" of the circuit."""
 
-    def __init__(self, qubits, clbits, cregbundle=False, cregs=None):
+    def __init__(self, qubits, clbits, reverse_bits=False, cregbundle=False, cregs=None):
         cregs = [] if cregs is None else cregs
 
         self.qubits = qubits
@@ -1149,6 +1209,7 @@ class Layer:
         self.qubit_layer = [None] * len(qubits)
         self.connections = []
         self.clbit_layer = [None] * len(clbits)
+        self.reverse_bits = reverse_bits
         self.cregbundle = cregbundle
 
     @property
@@ -1307,19 +1368,53 @@ class Layer:
             )
         return bit_index
 
-    def set_cl_multibox(self, creg, label, top_connect="┴"):
+    def set_cl_multibox(self, creg, val, top_connect="┴"):
         """Sets the multi clbit box.
 
         Args:
             creg (string): The affected classical register.
-            label (string): The label for the multi clbit box.
+            val (int): The value of the condition.
             top_connect (char): The char to connect the box on the top.
         """
         if self.cregbundle:
-            self.set_clbit(creg[0], BoxOnClWire(label=label, top_connect=top_connect))
+            if isinstance(creg, Clbit):
+                bit_reg = self._clbit_locations[creg]["register"]
+                bit_index = self._clbit_locations[creg]["index"]
+                label_bool = "= T" if val is True else "= F"
+                label = "%s_%s %s" % (bit_reg.name, bit_index, label_bool)
+                self.set_clbit(creg, BoxOnClWire(label=label, top_connect=top_connect))
+            else:
+                label = "= %s" % val
+                self.set_clbit(creg[0], BoxOnClWire(label=label, top_connect=top_connect))
         else:
-            clbit = [bit for bit in self.clbits if self._clbit_locations[bit]["register"] == creg]
-            self._set_multibox(label, clbits=clbit, top_connect=top_connect)
+            if isinstance(creg, Clbit):
+                clbit = [creg]
+                cond_bin = "1" if val is True else "0"
+                self.set_cond_bullets(cond_bin, clbit)
+            else:
+                clbit = [
+                    bit for bit in self.clbits if self._clbit_locations[bit]["register"] == creg
+                ]
+                cond_bin = bin(val)[2:].zfill(len(clbit))
+                self.set_cond_bullets(cond_bin, clbits=clbit)
+
+    def set_cond_bullets(self, val, clbits):
+        """Sets bullets for classical conditioning when cregbundle=False.
+
+        Args:
+            val (int): The condition value.
+            clbits (list[Clbit]): The list of classical bits on
+                which the instruction is conditioned.
+        """
+        vlist = list(val) if self.reverse_bits else list(val[::-1])
+        for i, bit in enumerate(clbits):
+            bot_connect = " "
+            if bit == clbits[-1]:
+                bot_connect = "=%s" % str(int(val, 2))
+            if vlist[i] == "1":
+                self.set_clbit(bit, ClBullet(top_connect="║", bot_connect=bot_connect))
+            elif vlist[i] == "0":
+                self.set_clbit(bit, ClOpenBullet(top_connect="║", bot_connect=bot_connect))
 
     def set_qu_multibox(
         self,
