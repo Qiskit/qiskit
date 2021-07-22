@@ -857,7 +857,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.ryy(0.5, 0, 1)
         qc2 = qc.translate()
-        self.assertEqual(qc2.count_ops().keys(), {'u', 'cx'})
+        self.assertEqual(qc2.count_ops().keys(), {"u", "cx"})
 
 
 class TestCircuitBuilding(QiskitTestCase):
