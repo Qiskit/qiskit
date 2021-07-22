@@ -106,11 +106,9 @@ class Mpl2DPlotter(BasePlotter):
                         self.ax.plot(x, y, **data.styles)
                 elif isinstance(data, drawings.TextData):
                     # text object
-                    text = r"${s}$".format(s=data.latex) if data.latex else data.text
+                    text = fr"${data.latex}$" if data.latex else data.text
                     # replace dynamic text
-                    text = text.replace(
-                        types.DynamicString.SCALE, "{val:.1f}".format(val=chart.scale)
-                    )
+                    text = text.replace(types.DynamicString.SCALE, f"{chart.scale:.1f}")
                     self.ax.text(x=x[0], y=y[0], s=text, **data.styles)
                 elif isinstance(data, drawings.BoxData):
                     xy = x[0], y[0]

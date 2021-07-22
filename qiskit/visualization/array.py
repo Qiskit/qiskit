@@ -17,6 +17,8 @@ import math
 from fractions import Fraction
 import numpy as np
 
+from qiskit.exceptions import MissingOptionalLibraryError
+
 
 def _num_to_latex(num, precision=5):
     """Takes a complex number as input and returns a latex representation
@@ -222,7 +224,7 @@ def array_to_latex(array, precision=5, prefix="", source=False, max_size=8):
     Raises:
         TypeError: If array can not be interpreted as a numerical numpy array.
         ValueError: If the dimension of array is not 1 or 2.
-        ImportError: If ``source`` is ``False`` and ``IPython.display.Latex`` cannot be
+        MissingOptionalLibraryError: If ``source`` is ``False`` and ``IPython.display.Latex`` cannot be
                      imported.
     """
     try:
@@ -245,9 +247,10 @@ def array_to_latex(array, precision=5, prefix="", source=False, max_size=8):
         try:
             from IPython.display import Latex
         except ImportError as err:
-            raise ImportError(
-                str(err) + ". Try `pip install ipython` (If you just want the LaTeX"
-                " source string, set `source=True`)."
+            raise MissingOptionalLibraryError(
+                libname="IPython",
+                name="array_to_latex",
+                pip_install="pip install ipython",
             ) from err
         return Latex(f"$${outstr}$$")
     else:

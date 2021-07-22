@@ -40,7 +40,7 @@ class TestCommutationAnalysis(QiskitTestCase):
                 continue
             result_to_compare[qbit] = []
             for commutation_set in sets:
-                result_to_compare[qbit].append(sorted([node._node_id for node in commutation_set]))
+                result_to_compare[qbit].append(sorted(node._node_id for node in commutation_set))
 
         for qbit, sets in expected.items():
             for commutation_set in sets:

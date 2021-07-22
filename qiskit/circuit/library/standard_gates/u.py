@@ -52,7 +52,7 @@ class UGate(Gate):
 
     .. math::
 
-        U\left(\theta, -\frac{\pi}{2}, \frac{pi}{2}\right) = RX(\theta)
+        U\left(\theta, -\frac{\pi}{2}, \frac{\pi}{2}\right) = RX(\theta)
 
     .. math::
 
@@ -97,7 +97,7 @@ class UGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the U gate."""
-        theta, phi, lam = [float(param) for param in self.params]
+        theta, phi, lam = (float(param) for param in self.params)
         return numpy.array(
             [
                 [numpy.cos(theta / 2), -numpy.exp(1j * lam) * numpy.sin(theta / 2)],
@@ -221,7 +221,7 @@ class CUGate(ControlledGate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CU gate."""
-        theta, phi, lam, gamma = [float(param) for param in self.params]
+        theta, phi, lam, gamma = (float(param) for param in self.params)
         cos = numpy.cos(theta / 2)
         sin = numpy.sin(theta / 2)
         a = numpy.exp(1j * gamma) * cos

@@ -17,6 +17,7 @@ from collections import namedtuple
 
 import retworkx as rx
 
+from qiskit.exceptions import MissingOptionalLibraryError
 from .exceptions import CircuitError
 from .parameterexpression import ParameterExpression
 
@@ -147,7 +148,7 @@ class EquivalenceLibrary:
                 IPython SVG if in a jupyter notebook, or as a PIL.Image otherwise.
 
         Raises:
-            ImportError: when pydot or pillow are not installed.
+            MissingOptionalLibraryError: when pydot or pillow are not installed.
         """
         try:
             import pydot
@@ -163,14 +164,16 @@ class EquivalenceLibrary:
             has_pil = False
 
         if not has_pydot:
-            raise ImportError(
-                "EquivalenceLibrary.draw requires pydot. "
-                "You can use 'pip install pydot' to install"
+            raise MissingOptionalLibraryError(
+                libname="pydot",
+                name="EquivalenceLibrary.draw",
+                pip_install="pip install pydot",
             )
         if not has_pil and not filename:
-            raise ImportError(
-                "EquivalenceLibrary.draw requires pillow. "
-                "You can use 'pip install pillow' to install"
+            raise MissingOptionalLibraryError(
+                libname="pillow",
+                name="EquivalenceLibrary.draw",
+                pip_install="pip install pillow",
             )
 
         try:
@@ -204,10 +207,10 @@ class EquivalenceLibrary:
             name, num_qubits = key
             equivalences = self._get_equivalences(key)
 
-            basis = frozenset(["{}/{}".format(name, num_qubits)])
+            basis = frozenset([f"{name}/{num_qubits}"])
             for params, decomp in equivalences:
                 decomp_basis = frozenset(
-                    "{}/{}".format(name, num_qubits)
+                    f"{name}/{num_qubits}"
                     for name, num_qubits in {
                         (inst.name, inst.num_qubits) for inst, _, __ in decomp.data
                     }
@@ -221,7 +224,7 @@ class EquivalenceLibrary:
                     )
                     node_map[decomp_basis] = decomp_basis_node
 
-                label = "%s\n%s" % (str(params), str(decomp) if num_qubits <= 5 else "...")
+                label = "{}\n{}".format(str(params), str(decomp) if num_qubits <= 5 else "...")
                 graph.add_edge(
                     node_map[basis],
                     node_map[decomp_basis],

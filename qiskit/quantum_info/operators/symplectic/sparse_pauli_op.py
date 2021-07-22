@@ -13,6 +13,7 @@
 N-Qubit Sparse Pauli Operator class.
 """
 
+from typing import Dict
 from numbers import Number
 import numpy as np
 
@@ -94,6 +95,11 @@ class SparsePauliOp(LinearOp):
             and np.allclose(self.coeffs, other.coeffs)
             and self.table == other.table
         )
+
+    @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        return {"data": self._table, "coeffs": self._coeffs}
 
     # ---------------------------------------------------------------------
     # Data accessors
@@ -387,7 +393,7 @@ class SparsePauliOp(LinearOp):
         num_qubits = len(PauliTable._from_label(obj[0][0]))
         size = len(obj)
         coeffs = np.zeros(size, dtype=complex)
-        labels = np.zeros(size, dtype="<U{}".format(num_qubits))
+        labels = np.zeros(size, dtype=f"<U{num_qubits}")
         for i, item in enumerate(obj):
             labels[i] = item[0]
             coeffs[i] = item[1]
@@ -459,7 +465,7 @@ class SparsePauliOp(LinearOp):
             """Label representation iteration and item access."""
 
             def __repr__(self):
-                return "<SparsePauliOp_label_iterator at {}>".format(hex(id(self)))
+                return f"<SparsePauliOp_label_iterator at {hex(id(self))}>"
 
             def __getitem__(self, key):
                 coeff = self.obj.coeffs[key]
@@ -488,7 +494,7 @@ class SparsePauliOp(LinearOp):
             """Matrix representation iteration and item access."""
 
             def __repr__(self):
-                return "<SparsePauliOp_matrix_iterator at {}>".format(hex(id(self)))
+                return f"<SparsePauliOp_matrix_iterator at {hex(id(self))}>"
 
             def __getitem__(self, key):
                 coeff = self.obj.coeffs[key]

@@ -47,7 +47,7 @@ class PauliGate(Gate):
 
         gates = {"I": IGate, "X": XGate, "Y": YGate, "Z": ZGate}
         q = QuantumRegister(len(self.params[0]), "q")
-        qc = QuantumCircuit(q, name="{}({})".format(self.name, self.params[0]))
+        qc = QuantumCircuit(q, name=f"{self.name}({self.params[0]})")
 
         rules = [(gates[p](), [q[i]], []) for (i, p) in enumerate(reversed(self.params[0]))]
         qc._data = rules

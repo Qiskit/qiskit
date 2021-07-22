@@ -14,11 +14,10 @@
 
 from typing import Optional
 
-from scipy.optimize import minimize
-from .optimizer import Optimizer, OptimizerSupportLevel
+from .scipy_optimizer import SciPyOptimizer
 
 
-class COBYLA(Optimizer):
+class COBYLA(SciPyOptimizer):
     """
     Constrained Optimization By Linear Approximation optimizer.
 
@@ -39,6 +38,8 @@ class COBYLA(Optimizer):
         disp: bool = False,
         rhobeg: float = 1.0,
         tol: Optional[float] = None,
+        options: Optional[dict] = None,
+        **kwargs,
     ) -> None:
         """
         Args:
@@ -47,34 +48,12 @@ class COBYLA(Optimizer):
             rhobeg: Reasonable initial changes to the variables.
             tol: Final accuracy in the optimization (not precisely guaranteed).
                  This is a lower bound on the size of the trust region.
+            options: A dictionary of solver options.
+            kwargs: additional kwargs for scipy.optimize.minimize.
         """
-        super().__init__()
+        if options is None:
+            options = {}
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
-                self._options[k] = v
-        self._tol = tol
-
-    def get_support_level(self):
-        """Return support level dictionary"""
-        return {
-            "gradient": OptimizerSupportLevel.ignored,
-            "bounds": OptimizerSupportLevel.ignored,
-            "initial_point": OptimizerSupportLevel.required,
-        }
-
-    def optimize(
-        self,
-        num_vars,
-        objective_function,
-        gradient_function=None,
-        variable_bounds=None,
-        initial_point=None,
-    ):
-        super().optimize(
-            num_vars, objective_function, gradient_function, variable_bounds, initial_point
-        )
-
-        res = minimize(
-            objective_function, initial_point, tol=self._tol, method="COBYLA", options=self._options
-        )
-        return res.x, res.fun, res.nfev
+                options[k] = v
+        super().__init__(method="COBYLA", options=options, tol=tol, **kwargs)

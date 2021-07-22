@@ -129,6 +129,11 @@ class PrimitiveOp(OperatorBase):
     def num_qubits(self) -> int:
         raise NotImplementedError
 
+    @property
+    def settings(self) -> Dict:
+        """Return operator settings."""
+        return {"primitive": self._primitive, "coeff": self._coeff}
+
     def primitive_strings(self) -> Set[str]:
         raise NotImplementedError
 
@@ -180,14 +185,6 @@ class PrimitiveOp(OperatorBase):
 
         return ComposedOp([new_self, other])
 
-    def power(self, exponent: int) -> OperatorBase:
-        if not isinstance(exponent, int) or exponent <= 0:
-            raise TypeError("power can only take positive int arguments")
-        temp = PrimitiveOp(self.primitive, coeff=self.coeff)  # type: OperatorBase
-        for _ in range(exponent - 1):
-            temp = temp.compose(self)
-        return temp
-
     def _expand_dim(self, num_qubits: int) -> OperatorBase:
         raise NotImplementedError
 
@@ -219,7 +216,7 @@ class PrimitiveOp(OperatorBase):
         raise NotImplementedError
 
     def __repr__(self) -> str:
-        return "{}({}, coeff={})".format(type(self).__name__, repr(self.primitive), self.coeff)
+        return f"{type(self).__name__}({repr(self.primitive)}, coeff={self.coeff})"
 
     def eval(
         self,

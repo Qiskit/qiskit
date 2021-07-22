@@ -24,6 +24,7 @@ from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.dagcircuit.exceptions import DAGDependencyError
 from qiskit.dagcircuit.dagdepnode import DAGDepNode
 from qiskit.quantum_info.operators import Operator
+from qiskit.exceptions import MissingOptionalLibraryError
 
 
 class DAGDependency:
@@ -141,9 +142,10 @@ class DAGDependency:
         try:
             import networkx as nx
         except ImportError as ex:
-            raise ImportError(
-                "Networkx is needed to use to_networkx(). It "
-                "can be installed with 'pip install networkx'"
+            raise MissingOptionalLibraryError(
+                libname="Networkx",
+                name="DAG dependency",
+                pip_install="pip install networkx",
             ) from ex
         dag_networkx = nx.MultiDiGraph()
 
@@ -610,9 +612,14 @@ def _does_commute(node1, node2):
     qarg1 = [qarg.index(q) for q in node1.qargs]
     qarg2 = [qarg.index(q) for q in node2.qargs]
 
-    id_op = Operator(np.eye(2 ** qbit_num))
+    dim = 2 ** qbit_num
+    id_op = np.reshape(np.eye(dim), (2, 2) * qbit_num)
 
-    op12 = id_op.compose(node1.op, qargs=qarg1).compose(node2.op, qargs=qarg2)
-    op21 = id_op.compose(node2.op, qargs=qarg2).compose(node1.op, qargs=qarg1)
+    op1 = np.reshape(node1.op.to_matrix(), (2, 2) * len(qarg1))
+    op2 = np.reshape(node2.op.to_matrix(), (2, 2) * len(qarg2))
 
-    return op12 == op21
+    op = Operator._einsum_matmul(id_op, op1, qarg1)
+    op12 = Operator._einsum_matmul(op, op2, qarg2, right_mul=False)
+    op21 = Operator._einsum_matmul(op, op2, qarg2, shift=qbit_num, right_mul=True)
+
+    return np.allclose(op12, op21)

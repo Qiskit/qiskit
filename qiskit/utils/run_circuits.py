@@ -374,7 +374,7 @@ def run_qobj(
                 if not res.success:
                     msg += ", " + res.status
                     break
-        raise QiskitError("Circuit execution failed: {}".format(msg))
+        raise QiskitError(f"Circuit execution failed: {msg}")
 
     if not hasattr(result, "time_taken"):
         setattr(result, "time_taken", 0.0)
@@ -590,7 +590,7 @@ def run_circuits(
                 if not res.success:
                     msg += ", " + res.status
                     break
-        raise QiskitError("Circuit execution failed: {}".format(msg))
+        raise QiskitError(f"Circuit execution failed: {msg}")
 
     if not hasattr(result, "time_taken"):
         setattr(result, "time_taken", 0.0)
@@ -672,4 +672,24 @@ def _run_circuits_on_backend(
     run_config: Dict,
 ) -> BaseJob:
     """run on backend"""
-    return backend.run(circuits, **backend_options, **noise_config, **run_config)
+    run_kwargs = {}
+    if is_aer_provider(backend) or is_basicaer_provider(backend):
+        for key, value in backend_options.items():
+            if key == "backend_options":
+                for k, v in value.items():
+                    run_kwargs[k] = v
+            else:
+                run_kwargs[key] = value
+    else:
+        run_kwargs.update(backend_options)
+
+    run_kwargs.update(noise_config)
+    run_kwargs.update(run_config)
+
+    if is_basicaer_provider(backend):
+        # BasicAer emits warning if option is not in its list
+        for key in list(run_kwargs.keys()):
+            if not hasattr(backend.options, key):
+                del run_kwargs[key]
+
+    return backend.run(circuits, **run_kwargs)

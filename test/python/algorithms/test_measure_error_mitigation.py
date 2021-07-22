@@ -15,6 +15,7 @@
 import unittest
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
+from ddt import ddt, data
 from qiskit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.utils import QuantumInstance, algorithm_globals
@@ -23,18 +24,27 @@ from qiskit.opflow import I, X, Z
 from qiskit.algorithms.optimizers import SPSA
 from qiskit.circuit.library import EfficientSU2
 
+try:
+    from qiskit.ignis.mitigation.measurement import CompleteMeasFitter, TensoredMeasFitter
+    from qiskit import Aer
+    from qiskit.providers.aer import noise
 
+    _ERROR_MITIGATION_IMPORT_ERROR = None
+except ImportError as ex:
+    _ERROR_MITIGATION_IMPORT_ERROR = str(ex)
+
+
+@ddt
 class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
     """Test measurement error mitigation."""
 
-    def test_measurement_error_mitigation_with_diff_qubit_order(self):
+    @data("CompleteMeasFitter", "TensoredMeasFitter")
+    def test_measurement_error_mitigation_with_diff_qubit_order(self, fitter_str):
         """measurement error mitigation with different qubit order"""
-        try:
-            from qiskit.ignis.mitigation.measurement import CompleteMeasFitter
-            from qiskit import Aer
-            from qiskit.providers.aer import noise
-        except ImportError as ex:
-            self.skipTest("Package doesn't appear to be installed. Error: '{}'".format(str(ex)))
+        if _ERROR_MITIGATION_IMPORT_ERROR is not None:
+            self.skipTest(
+                f"Package doesn't appear to be installed. Error: '{_ERROR_MITIGATION_IMPORT_ERROR}'"
+            )
             return
 
         algorithm_globals.random_seed = 0
@@ -44,14 +54,17 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         read_err = noise.errors.readout_error.ReadoutError([[0.9, 0.1], [0.25, 0.75]])
         noise_model.add_all_qubit_readout_error(read_err)
 
-        backend = Aer.get_backend("qasm_simulator")
+        fitter_cls = (
+            CompleteMeasFitter if fitter_str == "CompleteMeasFitter" else TensoredMeasFitter
+        )
+        backend = Aer.get_backend("aer_simulator")
         quantum_instance = QuantumInstance(
             backend=backend,
             seed_simulator=1679,
             seed_transpiler=167,
             shots=1000,
             noise_model=noise_model,
-            measurement_error_mitigation_cls=CompleteMeasFitter,
+            measurement_error_mitigation_cls=fitter_cls,
             cals_matrix_refresh_period=0,
         )
         # circuit
@@ -66,8 +79,17 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         qc2.measure(1, 0)
         qc2.measure(0, 1)
 
-        # this should run smoothly
-        quantum_instance.execute([qc1, qc2])
+        if fitter_cls == TensoredMeasFitter:
+            self.assertRaisesRegex(
+                QiskitError,
+                "TensoredMeasFitter doesn't support subset_fitter.",
+                quantum_instance.execute,
+                [qc1, qc2],
+            )
+        else:
+            # this should run smoothly
+            quantum_instance.execute([qc1, qc2])
+
         self.assertGreater(quantum_instance.time_taken, 0.0)
         quantum_instance.reset_execution_results()
 
@@ -80,16 +102,16 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
 
         self.assertRaises(QiskitError, quantum_instance.execute, [qc1, qc3])
 
-    def test_measurement_error_mitigation_with_vqe(self):
+    @data(("CompleteMeasFitter", None), ("TensoredMeasFitter", [[0], [1]]))
+    def test_measurement_error_mitigation_with_vqe(self, config):
         """measurement error mitigation test with vqe"""
-        try:
-            from qiskit.ignis.mitigation.measurement import CompleteMeasFitter
-            from qiskit import Aer
-            from qiskit.providers.aer import noise
-        except ImportError as ex:
-            self.skipTest("Package doesn't appear to be installed. Error: '{}'".format(str(ex)))
+        if _ERROR_MITIGATION_IMPORT_ERROR is not None:
+            self.skipTest(
+                f"Package doesn't appear to be installed. Error: '{_ERROR_MITIGATION_IMPORT_ERROR}'"
+            )
             return
 
+        fitter_str, mit_pattern = config
         algorithm_globals.random_seed = 0
 
         # build noise model
@@ -97,14 +119,17 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         read_err = noise.errors.readout_error.ReadoutError([[0.9, 0.1], [0.25, 0.75]])
         noise_model.add_all_qubit_readout_error(read_err)
 
-        backend = Aer.get_backend("qasm_simulator")
-
+        fitter_cls = (
+            CompleteMeasFitter if fitter_str == "CompleteMeasFitter" else TensoredMeasFitter
+        )
+        backend = Aer.get_backend("aer_simulator")
         quantum_instance = QuantumInstance(
             backend=backend,
             seed_simulator=167,
             seed_transpiler=167,
             noise_model=noise_model,
-            measurement_error_mitigation_cls=CompleteMeasFitter,
+            measurement_error_mitigation_cls=fitter_cls,
+            mit_pattern=mit_pattern,
         )
 
         h2_hamiltonian = (
