@@ -2007,7 +2007,8 @@ class TestPauliListMethods(QiskitTestCase):
         groups = pauli_list.group_qubit_wise_commuting()
 
         # checking that every input Pauli in pauli_list is in a group in the ouput
-        assert all(((pauli in group) for group in groups) for pauli in pauli_list)
+        output_labels = [pauli.to_label() for group in groups for pauli in group]
+        assert sorted(output_labels) == sorted(input_labels)
 
         # checking that for every pair of groups in the output, there is at least one element of
         # one group which does not commute with at least one element of the other group
