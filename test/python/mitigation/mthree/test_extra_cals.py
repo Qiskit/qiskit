@@ -12,9 +12,14 @@
 # pylint: disable=c-extension-no-member
 
 """Test M3 extra cals"""
+
+import json
+import os
+import shutil
+import tempfile
 import unittest
+
 import numpy as np
-import orjson
 
 from qiskit import QuantumCircuit, transpile
 from qiskit.test import QiskitTestCase
@@ -24,6 +29,11 @@ from qiskit.test.mock import FakeAthens
 
 class TestM3ExtraCals(QiskitTestCase):
     """Test methods"""
+
+    def setUp(self):
+        super().setUp()
+        self.tmp_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.tmp_dir)
 
     def test_missing_qubit_cal(self):
         """Test if missing calibration is retrived at apply_correcton."""
@@ -69,21 +79,19 @@ class TestM3ExtraCals(QiskitTestCase):
 
         assert not any(mit.single_qubit_cals[kk] is None for kk in range(5))
 
-    @unittest.skip("Need to figure out path.")
-    def test_save_cals(self, tmp_path):
+    def test_save_cals(self):
         """Test if passing a calibration file saves the correct JSON."""
         backend = FakeAthens()
-        cal_file = tmp_path / "cal.json"
+        cal_file = os.path.join(self.tmp_dir, "cal.json")
         mit = M3Mitigation(backend)
         mit.tensored_cals_from_system(counts_file=cal_file)
         with open(cal_file, "r") as fd:
-            cals = np.array(orjson.loads(fd.read()))
+            cals = np.array(json.loads(fd.read()))
         self.assertTrue(np.array_equal(mit.single_qubit_cals, cals))
 
-    @unittest.skip("Need to figure out path.")
-    def test_load_cals(self, tmp_path):
+    def test_load_cals(self):
         """Test if loading a calibration JSON file correctly loads the cals."""
-        cal_file = tmp_path / "cal.json"
+        cal_file = os.path.join(self.tmp_dir, "cal.json")
         backend = FakeAthens()
         mit = M3Mitigation(backend)
         mit.tensored_cals_from_system(counts_file=cal_file)

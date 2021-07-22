@@ -12,6 +12,7 @@
 # pylint: disable=no-name-in-module, invalid-name, c-extension-no-member
 """Main M3 mitigation module"""
 
+import json
 import warnings
 from time import perf_counter
 
@@ -19,7 +20,6 @@ import psutil
 import numpy as np
 import scipy.linalg as la
 import scipy.sparse.linalg as spla
-import orjson
 
 from qiskit import transpile
 from qiskit.exceptions import QiskitError
@@ -27,6 +27,16 @@ from .matrix import _reduced_cal_matrix, sdd_check
 from .utils import counts_to_vector, vector_to_quasiprobs
 from .norms import ainv_onenorm_est_lu, ainv_onenorm_est_iter
 from .matvec import M3MatVec
+
+
+class M3Encoder(json.JSONEncoder):
+    """A json encoder for m3 cal data"""
+
+    def default(self, o):
+        # Convert numpy arrays:
+        if hasattr(o, "tolist"):
+            return o.tolist()
+        return json.JSONEncoder.default(self, o)
 
 
 def _tensor_meas_states(qubit, num_qubits):
@@ -119,8 +129,8 @@ class M3Mitigation:
             qubits = range(self.num_qubits)
         self._grab_additional_cals(qubits, shots)
         if counts_file:
-            with open(counts_file, "wb") as fd:
-                fd.write(orjson.dumps(self.single_qubit_cals, option=orjson.OPT_SERIALIZE_NUMPY))
+            with open(counts_file, "w") as fd:
+                json.dump(self.single_qubit_cals, fd, cls=M3Encoder)
 
     def tensored_cals_from_file(self, counts_file):
         """Generated the tensored calibration data from a previous runs output
@@ -129,7 +139,7 @@ class M3Mitigation:
             earlier run.
         """
         with open(counts_file, "r") as fd:
-            self.single_qubit_cals = np.array(orjson.loads(fd.read()))
+            self.single_qubit_cals = np.array(json.load(fd))
 
     def _grab_additional_cals(self, qubits, shots=4096):
         """Grab missing calibration data from backend.
