@@ -402,7 +402,8 @@ class BIPMappingModel:
         )
 
     def _cx_fidelity(self, i, j) -> float:
-        return 1.0 - self.bprop.gate_error([i, j])
+        # fidelity of cx on global physical qubits
+        return 1.0 - self.bprop.gate_error([self.global_qubit[i], self.global_qubit[j]])
 
     @staticmethod
     @lru_cache()
