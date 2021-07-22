@@ -35,14 +35,14 @@ def _minimal_ext_cmd(cmd):
     env["LANGUAGE"] = "C"
     env["LANG"] = "C"
     env["LC_ALL"] = "C"
-    proc = subprocess.Popen(
+    with subprocess.Popen(
         cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         env=env,
         cwd=os.path.join(os.path.dirname(ROOT_DIR)),
-    )
-    stdout, stderr = proc.communicate()
+    ) as proc:
+        stdout, stderr = proc.communicate()
     return proc.returncode, stdout, stderr
 
 
@@ -83,13 +83,14 @@ def _main():
         allow_abbrev=False,
     )
     parser.add_argument(
-        "--pathspec",
+        "--paths",
         required=True,
         type=str,
         nargs="+",
         help="Git <pathspec>s to resolve (and pass any changed files to pylint)",
+    )
     args, pylint_args = parser.parse_known_args()
-    _run_pylint("lint_incr_latest", args.pathspec, pylint_args)
+    _run_pylint("lint_incr_latest", args.paths, pylint_args)
 
 
 if __name__ == "__main__":
