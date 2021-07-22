@@ -852,6 +852,13 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertFalse(qc1 == qc2)
 
+    def test_translate(self):
+        """Test translate method of circuit."""
+        qc = QuantumCircuit(2)
+        qc.ryy(0.5, 0, 1)
+        qc2 = qc.translate()
+        self.assertEqual(qc2.count_ops().keys(), {'u', 'cx'})
+
 
 class TestCircuitBuilding(QiskitTestCase):
     """QuantumCircuit tests."""

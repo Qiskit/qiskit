@@ -1296,6 +1296,25 @@ class QuantumCircuit:
         decomposed_dag = pass_.run(circuit_to_dag(self))
         return dag_to_circuit(decomposed_dag)
 
+    def translate(self, basis=['u', 'cx']):
+        """Call a basis translation pass on this circuit to translate to
+        a desired gate set.
+
+        Args:
+            basis (list(str)): List of target gates.
+
+        Returns:
+            QuantumCircuit: translated circuit
+        """
+        from qiskit.transpiler.passes.basis.basis_translator import BasisTranslator
+        from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel        
+        from qiskit.converters.circuit_to_dag import circuit_to_dag
+        from qiskit.converters.dag_to_circuit import dag_to_circuit
+
+        pass_ = BasisTranslator(sel, basis)
+        translated_dag = pass_.run(circuit_to_dag(self))
+        return dag_to_circuit(translated_dag)
+
     def _check_compatible_regs(self, rhs):
         """Raise exception if the circuits are defined on incompatible registers"""
         list1 = self.qregs + self.cregs
