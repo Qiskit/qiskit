@@ -17,6 +17,8 @@ import argparse
 import random
 import sys
 
+import numpy as np
+
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.quantumregister import Qubit
@@ -25,11 +27,11 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.qpy_serialization import dump, load
 from qiskit.opflow import X, Y, Z
 from qiskit.quantum_info.random import random_unitary
-from qiskit.circuit.library import U1Gate, U2Gate, U3Gate
+from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, QFT
 
 
-def generate_circuits():
-    """Generate reference circuits."""
+def generate_full_circuit():
+    """Generate a multiregister circuit with name, metadata, phase."""
     qr_a = QuantumRegister(4, "a")
     qr_b = QuantumRegister(4, "b")
     cr_c = ClassicalRegister(4, "c")
@@ -49,20 +51,36 @@ def generate_circuits():
     full_circuit.barrier(qr_b)
     full_circuit.measure(qr_a, cr_c)
     full_circuit.measure(qr_b, cr_d)
+    return full_circuit
 
+
+def generate_unitary_gate_circuit():
+    """Generate a circuit with a unitary gate."""
     unitary_circuit = QuantumCircuit(5)
     unitary_circuit.unitary(random_unitary(32, seed=100), [0, 1, 2, 3, 4])
     unitary_circuit.measure_all()
+    return unitary_circuit
 
+
+def generate_random_circuits():
+    """Generate multiple random circuits."""
     random_circuits = []
     for i in range(10):
         random_circuits.append(
             random_circuit(10, 10, measure=True, conditional=True, reset=True, seed=42 + i)
         )
+    return random_circuits
 
-    string_parameters = (X ^ Y ^ Z).to_circuit_op().to_circuit()
 
+def generate_string_parameters():
+    """Generate a circuit from pauli tensor opflow."""
+    return (X ^ Y ^ Z).to_circuit_op().to_circuit()
+
+
+def generate_register_edge_cases():
+    """Generate register edge case circuits."""
     register_edge_cases = []
+    # Circuit with shared bits in a register
     qubits = [Qubit() for _ in range(5)]
     shared_qc = QuantumCircuit()
     shared_qc.add_bits(qubits)
@@ -75,6 +93,8 @@ def generate_circuits():
     shared_qc.cx(0, 4)
     shared_qc.measure_all()
     register_edge_cases.append(shared_qc)
+    # Circuit with registers that have a mix of standalone and shared register
+    # bits
     qr = QuantumRegister(5, "foo")
     qr = QuantumRegister(name="bar", bits=qr[:3] + [Qubit(), Qubit()])
     cr = ClassicalRegister(5, "foo")
@@ -87,6 +107,7 @@ def generate_circuits():
     hybrid_qc.cx(0, 4)
     hybrid_qc.measure(qr, cr)
     register_edge_cases.append(hybrid_qc)
+    # Circuit with mixed standalone and shared registers
     qubits = [Qubit() for _ in range(5)]
     clbits = [Clbit() for _ in range(5)]
     mixed_qc = QuantumCircuit()
@@ -105,6 +126,7 @@ def generate_circuits():
     mixed_qc.measure(qr, cr)
     mixed_qc.measure(qr_standalone, cr_standalone)
     register_edge_cases.append(mixed_qc)
+    # Circuit with out of order register bits
     qr_standalone = QuantumRegister(2, "standalone")
     qubits = [Qubit() for _ in range(5)]
     clbits = [Clbit() for _ in range(5)]
@@ -129,7 +151,11 @@ def generate_circuits():
     ooo_qc.measure(qr, cr)
     ooo_qc.measure(qr_standalone, cr_standalone)
     register_edge_cases.append(ooo_qc)
+    return register_edge_cases
 
+
+def generate_parameterized_circuit():
+    """Generate a circuit with parameters and parameter expressions."""
     param_circuit = QuantumCircuit(1)
     theta = Parameter("theta")
     lam = Parameter("λ")
@@ -138,15 +164,54 @@ def generate_circuits():
     param_circuit.append(U3Gate(theta, theta_pi, lam), [0])
     param_circuit.append(U1Gate(pe), [0])
     param_circuit.append(U2Gate(theta_pi, lam), [0])
+    return param_circuit
 
-    return {
-        "full.qpy": [full_circuit],
-        "unitary.qpy": [unitary_circuit],
-        "multiple.qpy": random_circuits,
-        "string_parameters.qpy": [string_parameters],
-        "register_edge_cases.qpy": register_edge_cases,
-        "parameterized.qpy": [param_circuit],
+
+def generate_qft_circuit():
+    """Generate a QFT circuit with initialization."""
+    k = 5
+    state = (1 / np.sqrt(8)) * np.array(
+        [
+            np.exp(-1j * 2 * np.pi * k * (0) / 8),
+            np.exp(-1j * 2 * np.pi * k * (1) / 8),
+            np.exp(-1j * 2 * np.pi * k * (2) / 8),
+            np.exp(-1j * 2 * np.pi * k * 3 / 8),
+            np.exp(-1j * 2 * np.pi * k * 4 / 8),
+            np.exp(-1j * 2 * np.pi * k * 5 / 8),
+            np.exp(-1j * 2 * np.pi * k * 6 / 8),
+            np.exp(-1j * 2 * np.pi * k * 7 / 8),
+        ]
+    )
+
+    qubits = 3
+    qft_circ = QuantumCircuit(qubits, qubits)
+    qft_circ.initialize(state)
+    qft_circ.append(QFT(qubits), range(qubits))
+    qft_circ.measure(range(qubits), range(qubits))
+    return qft_circ
+
+
+def generate_circuits(version_str=None):
+    """Generate reference circuits."""
+    version_parts = None
+    if version_str:
+        version_parts = tuple(int(x) for x in version_str.split("."))
+
+    output_circuits = {
+        "full.qpy": [generate_full_circuit()],
+        "unitary.qpy": [generate_unitary_gate_circuit()],
+        "multiple.qpy": generate_random_circuits(),
+        "string_parameters.qpy": [generate_string_parameters()],
+        "register_edge_cases.qpy": generate_register_edge_cases(),
+        "parameterized.qpy": [generate_parameterized_circuit()],
     }
+    if version_parts is None:
+        return output_circuits
+
+    if version_parts >= (0, 18, 1):
+        output_circuits["qft_circuit.qpy"] = [generate_qft_circuit()]
+
+    return output_circuits
 
 
 def assert_equal(reference, qpy, count, bind=None):
@@ -195,8 +260,15 @@ def load_qpy(qpy_files):
 def _main():
     parser = argparse.ArgumentParser(description="Test QPY backwards compatibilty")
     parser.add_argument("command", choices=["generate", "load"])
+    parser.add_argument(
+        "--version",
+        "-v",
+        help="Optionally specify the version being tested. "
+        "This will enable additional circuit features "
+        "to test generating and loading QPY.",
+    )
     args = parser.parse_args()
-    qpy_files = generate_circuits()
+    qpy_files = generate_circuits(args.version)
     if args.command == "generate":
         generate_qpy(qpy_files)
     else:

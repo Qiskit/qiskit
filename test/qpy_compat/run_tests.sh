@@ -26,8 +26,8 @@ for version in $(git tag --sort=-creatordate) ; do
     python -m venv $version
     ./$version/bin/pip install "qiskit-terra==$version"
     echo "Generating qpy files with qiskit-terra $version"
-    ./$version/bin/python test_qpy.py generate
+    ./$version/bin/python test_qpy.py generate --version=$version
     echo "Loading qpy files from $version with dev qiskit-terra"
-    qiskit_venv/bin/python test_qpy.py load
+    qiskit_venv/bin/python test_qpy.py load --version=$version
     rm *qpy
 done
