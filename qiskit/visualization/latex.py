@@ -242,12 +242,12 @@ class QCircuitImage:
             else:
                 if self.layout is None:
                     if register.size > 1:
-                        label = " {{ {{{}}}_{{{}}} : ".format(
+                        label = " {{{}}}_{{{}}} : ".format(
                             self.bit_locations[self.ordered_bits[i]]["register"].name,
                             self.bit_locations[self.ordered_bits[i]]["index"],
                         )
                     else:
-                        label = " {{ {{{}}} : ".format(
+                        label = " {{{}}} : ".format(
                             self.bit_locations[self.ordered_bits[i]]["register"].name,
                         )
                 else:
