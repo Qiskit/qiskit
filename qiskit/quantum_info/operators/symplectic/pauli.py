@@ -518,9 +518,11 @@ class Pauli(BasePauli):
 
     def commutes(self, other, qargs=None):
         """Return True if the Pauli commutes with other.
+
         Args:
             other (Pauli or PauliList): another Pauli operator.
             qargs (list): qubits to apply dot product on (default: None).
+
         Returns:
             bool: True if Pauli's commute, False if they anti-commute.
         """

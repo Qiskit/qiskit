@@ -12,9 +12,12 @@
 """
 Optimized list of Pauli operators
 """
+
 from collections import defaultdict
+
 import numpy as np
 import retworkx as rx
+
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 from qiskit.quantum_info.operators.mixins import GroupMixin, LinearMixin
