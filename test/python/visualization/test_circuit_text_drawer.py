@@ -2522,7 +2522,6 @@ class TestTextConditional(QiskitTestCase):
                 "qr_1: |0>─────────■─────────",
                 "                  ║         ",
                 "qr_2: |0>─────────╫─────────",
-
                 "                  ║         ",
                 "   cr: 0 ═════════■═════════",
                 "                  =1        ",
@@ -3778,7 +3777,7 @@ class TestTextOpenControlledGate(QiskitTestCase):
 
     def test_ch_bot(self):
         """Open controlled H (bottom)"""
-        #fmt: off
+        # fmt: off
         expected = "\n".join(
             ["             ",
              "q_0: |0>──o──",
@@ -3786,7 +3785,7 @@ class TestTextOpenControlledGate(QiskitTestCase):
              "q_1: |0>┤ H ├",
              "        └───┘"]
         )
-        #fmt: on
+        # fmt: on
         qr = QuantumRegister(2, "q")
         circuit = QuantumCircuit(qr)
         circuit.append(HGate().control(1, ctrl_state=0), [qr[0], qr[1]])

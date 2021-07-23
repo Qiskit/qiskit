@@ -623,10 +623,10 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
     def test_one_bit_regs(self):
         """Test registers with only one bit display without number"""
-        qr1 = QuantumRegister(1, 'qr1')
-        qr2 = QuantumRegister(2, 'qr2')
-        cr1 = ClassicalRegister(1, 'cr1')
-        cr2 = ClassicalRegister(2, 'cr2')
+        qr1 = QuantumRegister(1, "qr1")
+        qr2 = QuantumRegister(2, "qr2")
+        cr1 = ClassicalRegister(1, "cr1")
+        cr2 = ClassicalRegister(2, "cr2")
         circuit = QuantumCircuit(qr1, qr2, cr1, cr2)
         circuit.h(0)
         circuit.measure(0, 0)

@@ -1111,7 +1111,6 @@ class MatplotlibDrawer:
                     param = get_param_str(op, "mpl", ndigits=3)
                     if op.name == "initialize":
                         param = f"[{param}]"
-                    param = f"${param}$"
                     raw_param_width = self._get_text_width(param, fontsize=sfs, param=True)
                     param_width = raw_param_width + 0.08
                 else:
