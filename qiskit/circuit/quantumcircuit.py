@@ -1296,7 +1296,7 @@ class QuantumCircuit:
         decomposed_dag = pass_.run(circuit_to_dag(self))
         return dag_to_circuit(decomposed_dag)
 
-    def translate(self, basis=["u", "cx"]):
+    def translate(self, basis):
         """Call a basis translation pass on this circuit to translate to
         a desired gate set.
 
@@ -1306,6 +1306,7 @@ class QuantumCircuit:
         Returns:
             QuantumCircuit: translated circuit
         """
+        # pylint: disable=cyclic-import        
         from qiskit.transpiler.passes.basis.basis_translator import BasisTranslator
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
         from qiskit.converters.circuit_to_dag import circuit_to_dag
