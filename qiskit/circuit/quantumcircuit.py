@@ -400,9 +400,21 @@ class QuantumCircuit:
             q_1: ┤ H ├─────■──────
                  └───┘
         """
+
+        qreg_bits = {bit for reg in self.qregs for bit in reg}
+        creg_bits = {bit for reg in self.cregs for bit in reg}
+        regless_qubits = []
+        regless_clbits = []
+
+        if set(self.qubits) != qreg_bits:
+            regless_qubits = [bit for bit in self.qubits if bit not in qreg_bits]
+
+        if set(self.clbits) != creg_bits:
+            regless_clbits = [bit for bit in self.clbits if bit not in creg_bits]
+
         circ = QuantumCircuit(
-            [*reversed(self.qubits)],
-            [*reversed(self.clbits)],
+            [*reversed(regless_qubits)],
+            [*reversed(regless_clbits)],
             *reversed(self.qregs),
             *reversed(self.cregs),
             name=self.name,
