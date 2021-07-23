@@ -31,3 +31,8 @@ for version in $(git tag --sort=-creatordate) ; do
     qiskit_venv/bin/python test_qpy.py load --version=$version
     rm *qpy
 done
+
+# Test dev compatibility
+dev_version=`qiskit_venv/bin/python -c 'import qiskit;print(qiskit.__version__)'`
+qiskit_venv/bin/python test_qpy.py generate --version=$dev_version
+qiskit_venv/bin/python test_qpy.py load --version=$dev_version
