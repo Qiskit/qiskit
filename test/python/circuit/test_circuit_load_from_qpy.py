@@ -512,4 +512,4 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qaoa, new_circ)
-        # self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
