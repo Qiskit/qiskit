@@ -23,6 +23,7 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.library.standard_gates import SGate
 from qiskit.quantum_info import Operator
+from qiskit.circuit import Qubit
 
 
 @ddt
@@ -801,7 +802,6 @@ class TestCircuitOperations(QiskitTestCase):
 
     def test_reverse_bits_isolated_qubits(self):
         """Test reversing order of bits when QuantumCircuit is made with isolated Qubits (not in a register)."""
-        from qiskit.circuit import Qubit
         qubit1 = Qubit()
         qubit2 = Qubit()
         qc = QuantumCircuit([qubit1, qubit2])
