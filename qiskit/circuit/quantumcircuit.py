@@ -401,10 +401,10 @@ class QuantumCircuit:
                  └───┘
         """
         circ = QuantumCircuit(
-            *reversed(self.qregs),
-            *reversed(self.cregs),
             [*reversed(self.qubits)],
             [*reversed(self.clbits)],
+            *reversed(self.qregs),
+            *reversed(self.cregs),
             name=self.name,
             global_phase=self.global_phase,
         )
