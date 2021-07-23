@@ -2004,7 +2004,7 @@ class TestPauliListMethods(QiskitTestCase):
     def test_group_qubit_wise_commuting(self):
         """Test grouping qubit-wise commuting operators"""
 
-        def qubitwise_commutes(left: Pauli, right: Pauli):
+        def qubitwise_commutes(left: Pauli, right: Pauli) -> bool:
             return len(left) == len(right) and all(a.commutes(b) for a, b in zip(left, right))
 
         input_labels = ["IY", "ZX", "XZ", "YI", "YX", "YY", "YZ", "ZI", "ZX", "ZY", "iZZ", "II"]
@@ -2016,18 +2016,19 @@ class TestPauliListMethods(QiskitTestCase):
         output_labels = [pauli.to_label() for group in groups for pauli in group]
         assert sorted(output_labels) == sorted(input_labels)
 
+        # Within each group, every operator qubit-wise commutes with every other operator.
         for group in groups:
             assert all(
                 qubitwise_commutes(pauli1, pauli2)
                 for pauli1, pauli2 in itertools.combinations(group, 2)
             )
-            # For every pair of groups, at least one element from one does not commute with at least one
-            # element of the other.
-            for group1, group2 in itertools.combinations(groups, 2):
-                assert not all(
-                    qubitwise_commutes(group1_pauli, group2_pauli)
-                    for group1_pauli, group2_pauli in itertools.product(group1, group2)
-                )
+        # For every pair of groups, at least one element from one does not qubit-wise commute with
+        # at least one element of the other.
+        for group1, group2 in itertools.combinations(groups, 2):
+            assert not all(
+                qubitwise_commutes(group1_pauli, group2_pauli)
+                for group1_pauli, group2_pauli in itertools.product(group1, group2)
+            )
 
 
 if __name__ == "__main__":
