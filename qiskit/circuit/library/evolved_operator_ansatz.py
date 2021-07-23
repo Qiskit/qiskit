@@ -16,7 +16,7 @@ from typing import Optional
 
 import numpy as np
 
-from qiskit.circuit import Parameter, ParameterVector, QuantumRegister, QuantumCircuit
+from qiskit.circuit import Parameter, ParameterVector, QuantumRegister, QuantumCircuit, ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.exceptions import QiskitError
 
@@ -232,6 +232,15 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
 
         if self.initial_state:
             evolution.compose(self.initial_state, front=True, inplace=True)
+
+        # cast global phase to float if it has no free parameters
+        if isinstance(evolution.global_phase, ParameterExpression):
+            # no free parameters
+            if len(evolution.global_phase.parameters) == 0:
+                evolution.global_phase = float(evolution.global_phase)
+            # parameters sum up to 0 (but ParameterExpression still contains free parameters)
+            if evolution.global_phase._symbol_expr == 0:
+                evolution.global_phase = 0.
 
         try:
             instr = evolution.to_gate()
