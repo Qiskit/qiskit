@@ -19,7 +19,7 @@ qiskit_venv/bin/pip install ../..
 
 for version in $(git tag --sort=-creatordate) ; do
     parts=( ${version//./ } )
-    if [[ ${parts[1]} < 18 ]] ; then
+    if [[ ${parts[1]} -lt 18 ]] ; then
         break
     fi
     echo "Building venv for qiskit-terra $version"
