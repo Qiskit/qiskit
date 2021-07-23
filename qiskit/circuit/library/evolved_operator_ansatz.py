@@ -240,11 +240,12 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
             evolution.compose(self.initial_state, front=True, inplace=True)
 
         # cast global phase to float if it has no free parameters
-        try:
-            evolution.global_phase = float(evolution.global_phase._symbol_expr)
-        except RuntimeError:
-            # expression contains free parameters
-            pass
+        if isinstance(evolution.global_phase, ParameterExpression):
+            try:
+                evolution.global_phase = float(evolution.global_phase._symbol_expr)
+            except RuntimeError:
+                # expression contains free parameters
+                pass
 
         try:
             instr = evolution.to_gate()
