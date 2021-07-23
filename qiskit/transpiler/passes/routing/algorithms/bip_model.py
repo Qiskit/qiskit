@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """Integer programming model for quantum circuit compilation."""
-
+import copy
 import logging
 
 try:
@@ -28,7 +28,7 @@ except ImportError:
     HAS_CPLEX = False
 
 from qiskit.exceptions import MissingOptionalLibraryError
-from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.exceptions import TranspilerError, CouplingError
 from qiskit.transpiler.layout import Layout
 
 logger = logging.getLogger(__name__)
@@ -44,9 +44,12 @@ class BIPMappingModel:
             the solution will be stored in :attr:`solution`). None if it's not yet set.
     """
 
-    def __init__(self, dag, coupling_map, dummy_timesteps=None):
+    def __init__(self, dag, coupling_map, qubit_subset, dummy_timesteps=None):
         """
         Args:
+            dag (DAGCircuit): DAG circuit to be mapped
+            coupling_map (CouplingMap): Coupling map of the device on which the `dag` is mapped.
+            qubit_subset (list[int]): Sublist of physical qubits to be used in the mapping.
             dummy_timesteps (int):
                 Number of dummy time steps, after each real layer of gates, to
                 allow arbitrary swaps between neighbors.
@@ -63,17 +66,16 @@ class BIPMappingModel:
                 pip_install="pip install docplex",
             )
 
-        if len(dag.qubits) != coupling_map.size():
-            raise TranspilerError(
-                "BIPMappingModel assumes the same size of virtual and physical qubits."
-            )
-        if not coupling_map.is_symmetric:
-            raise TranspilerError(
-                "BIPMappingModel assumes the coupling_map is symmetric (bidirectional)."
-            )
-
         self._dag = dag
-        self._coupling = coupling_map
+        self._coupling = copy.deepcopy(coupling_map)  # reduced coupling map
+        try:
+            self._coupling = self._coupling.reduce(qubit_subset)
+        except CouplingError as err:
+            raise TranspilerError(
+                "The 'coupling_map' reduced by 'qubit_subset' must be connected."
+            ) from err
+        self._coupling.make_symmetric()
+        self.global_qubit = qubit_subset  # the map from reduced qubit index to global qubit index
 
         self.problem = None
         self.solution = None
@@ -81,10 +83,13 @@ class BIPMappingModel:
         self.num_pqubits = self._coupling.size()
         self._arcs = self._coupling.get_edges()
 
-        # pylint: disable=unnecessary-comprehension
-        initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
-        self._virtual_to_index = {v: i for i, v in enumerate(initial_layout.get_virtual_bits())}
-        self._index_to_virtual = {i: v for i, v in enumerate(initial_layout.get_virtual_bits())}
+        if self.num_vqubits != self.num_pqubits:
+            raise TranspilerError(
+                "BIPMappingModel assumes the same size of virtual and physical qubits."
+            )
+
+        self._index_to_virtual = dict(enumerate(dag.qubits))
+        self._virtual_to_index = {v: i for i, v in self._index_to_virtual.items()}
 
         # Construct internal circuit model
         # Extract layers with 2-qubit gates
@@ -211,7 +216,7 @@ class BIPMappingModel:
                     ctname=f"implement_gate_{p}_{q}_at_{t}",
                 )
         # Gate can be implemented iff both of its qubits are located at the associated nodes
-        for t in range(self.depth):
+        for t in range(self.depth - 1):
             for (p, q) in self.gates[t]:
                 for (i, j) in self._arcs:
                     # Apply McCormick to y[t, p, q, i, j] == w[t, p, i] * w[t, q, j]
@@ -219,14 +224,34 @@ class BIPMappingModel:
                         y[t, p, q, i, j] >= w[t, p, i] + w[t, q, j] - 1,
                         ctname=f"McCormickLB_{p}_{q}_{i}_{j}_at_{t}",
                     )
+                    # Stronger version of McCormick: gate (p,q) is implemented at (i, j)
+                    # if i moves to i or j, and j moves to i or j
                     mdl.add_constraint(
-                        y[t, p, q, i, j] <= w[t, p, i],
+                        y[t, p, q, i, j] <= x[t, p, i, i] + x[t, p, i, j],
                         ctname=f"McCormickUB1_{p}_{q}_{i}_{j}_at_{t}",
                     )
                     mdl.add_constraint(
-                        y[t, p, q, i, j] <= w[t, q, j],
+                        y[t, p, q, i, j] <= x[t, q, j, i] + x[t, q, j, j],
                         ctname=f"McCormickUB2_{p}_{q}_{i}_{j}_at_{t}",
                     )
+        # For last time step, use regular McCormick
+        for (p, q) in self.gates[self.depth - 1]:
+            for (i, j) in self._arcs:
+                # Apply McCormick to y[self.depth - 1, p, q, i, j]
+                # == w[self.depth - 1, p, i] * w[self.depth - 1, q, j]
+                mdl.add_constraint(
+                    y[self.depth - 1, p, q, i, j]
+                    >= w[self.depth - 1, p, i] + w[self.depth - 1, q, j] - 1,
+                    ctname=f"McCormickLB_{p}_{q}_{i}_{j}_at_last",
+                )
+                mdl.add_constraint(
+                    y[self.depth - 1, p, q, i, j] <= w[self.depth - 1, p, i],
+                    ctname=f"McCormickUB1_{p}_{q}_{i}_{j}_at_last",
+                )
+                mdl.add_constraint(
+                    y[self.depth - 1, p, q, i, j] <= w[self.depth - 1, q, j],
+                    ctname=f"McCormickUB2_{p}_{q}_{i}_{j}_at_last",
+                )
         # Logical qubit flow-out constraints
         for t in range(self.depth - 1):  # Flow out; skip last time step
             for q in range(self.num_vqubits):
@@ -371,7 +396,7 @@ class BIPMappingModel:
         for q in range(self.num_vqubits):
             for i in range(self.num_pqubits):
                 if self.solution.get_value(f"w_{t}_{q}_{i}") > 0.5:
-                    dic[self._index_to_virtual[q]] = i
+                    dic[self._index_to_virtual[q]] = self.global_qubit[i]
         layout = Layout(dic)
         for reg in self._dag.qregs.values():
             layout.add_register(reg)
@@ -392,5 +417,5 @@ class BIPMappingModel:
                 continue
             for q in range(self.num_vqubits):
                 if self.solution.get_value(f"x_{t}_{q}_{i}_{j}") > 0.5:
-                    swaps.append((i, j))
+                    swaps.append((self.global_qubit[i], self.global_qubit[j]))
         return swaps
