@@ -13,6 +13,7 @@
 """Exceptions for errors raised by Qiskit."""
 
 from typing import Optional
+import warnings
 
 
 class QiskitError(Exception):
@@ -31,7 +32,14 @@ class QiskitError(Exception):
 class QiskitIndexError(QiskitError, IndexError):
     """Raised when a sequence subscript is out of range."""
 
-    pass
+    def __init__(self, *args):
+        """Set the error message."""
+        warnings.warn(
+            "QiskitIndexError class is being deprecated and it is going to be remove in the future",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        super().__init__(*args)
 
 
 class QiskitUserConfigError(QiskitError):

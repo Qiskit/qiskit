@@ -116,7 +116,7 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
 
         # Small test to see if execution results are accessible
         for composed_op in sampled:
-            self.assertIn("counts", composed_op[0].execution_results)
+            self.assertTrue(hasattr(composed_op[0], "execution_results"))
 
         np.testing.assert_array_almost_equal(sampled.eval(), [0, 0, 1, -1], decimal=1)
 
@@ -249,11 +249,6 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
         self.assertIsInstance(observable, ListOp)
         self.assertIsInstance(observable[0], CircuitStateFn)
         self.assertTrue(observable[0].is_measurement)
-
-    def test_pauli_expectation_non_hermite_op(self):
-        """Test PauliExpectation for non hermitian operator"""
-        exp = ~StateFn(1j * Z) @ One
-        self.assertEqual(self.sampler.convert(self.expect.convert(exp)).eval(), 1j)
 
     def test_expectation_with_coeff(self):
         """Test AerPauliExpectation with coefficients."""

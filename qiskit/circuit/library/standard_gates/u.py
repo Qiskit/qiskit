@@ -52,7 +52,7 @@ class UGate(Gate):
 
     .. math::
 
-        U\left(\theta, -\frac{\pi}{2}, \frac{pi}{2}\right) = RX(\theta)
+        U\left(\theta, -\frac{\pi}{2}, \frac{\pi}{2}\right) = RX(\theta)
 
     .. math::
 

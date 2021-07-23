@@ -189,7 +189,7 @@ stages:
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             python setup.py sdist
             pip install -U -c constraints.txt dist/qiskit-terra*.tar.gz
-            pip install -U "qiskit-aer" "z3-solver" -c constraints.txt
+            pip install -U "cplex" "qiskit-aer" "z3-solver" -c constraints.txt
             mkdir -p /tmp/terra-tests
             cp -r test /tmp/terra-tests/.
             cp .stestr.conf /tmp/terra-tests/.
@@ -272,8 +272,8 @@ stages:
         - bash: |
             set -e
             source test-job/bin/activate
-            black --check qiskit test tools
-            pylint -rn qiskit test
+            black --check qiskit test tools examples setup.py
+            pylint -rn qiskit test tools
             tools/verify_headers.py qiskit test
             python tools/find_optional_imports.py
             reno lint
@@ -762,8 +762,7 @@ stages:
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
-            # TODO: Remove aqua and ignis from source after next aqua release
-            pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" "git+https://github.com/Qiskit/qiskit-ignis" "git+https://github.com/Qiskit/qiskit-aqua" "pyscf<1.7.4" "matplotlib<3.3.0" sphinx nbsphinx sphinx_rtd_theme cvxpy -c constraints.txt
+            pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" "qiskit-ignis" "matplotlib<3.3.0" sphinx nbsphinx sphinx_rtd_theme cvxpy -c constraints.txt
             python setup.py build_ext --inplace
             sudo apt install -y graphviz pandoc
             pip check
