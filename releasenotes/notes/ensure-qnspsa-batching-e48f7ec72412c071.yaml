@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Ensure that the :class:`~qiskit.algorithms.optimizers.SPSA` and 
+    :class:`~qiskit.algorithms.optimizers.QNSPSA` optimizers batch as many circuit
+    evaluations as possible for both the iterations and the initial calibrations.
