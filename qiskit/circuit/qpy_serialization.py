@@ -41,7 +41,7 @@ For example::
         qpy_serialization.dump(qc, fd)
 
     with open('bell.qpy', 'rb') as fd:
-        new_qc = qpy_serialization.load(fd)
+        new_qc = qpy_serialization.load(fd)[0]
 
 API documentation
 -----------------
