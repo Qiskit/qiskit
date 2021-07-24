@@ -19,10 +19,38 @@ QPY serialization (:mod:`qiskit.circuit.qpy_serialization`)
 
 .. currentmodule:: qiskit.circuit.qpy_serialization
 
-.. autosummary::
+Using QPY
+=========
 
-    load
-    dump
+Using QPY is defined to be straightforward and mirror the user API of the
+serializers in Python's standard library, ``pickle`` and ``json``. There are
+2 user facing functions: :func:`qiskit.circuit.qpy_serialization.dump` and
+:func:`qiskit.circuit.qpy_serialization.load` which are used to dump QPY data
+to a file object and load circuits from QPY data in a file object respectively.
+For example::
+
+    from qiskit.circuit import QuantumCircuit
+    from qiskit.circuit import qpy_serialization
+
+    qc = QuantumCircuit(2, name='Bell', metadata={'test': True})
+    qc.h(0)
+    qc.cx(0, 1)
+    qc.measure_all()
+
+    with open('bell.qpy', 'wb') as fd:
+        qpy_serialization.dump(qc, fd)
+
+    with open('bell.qpy', 'rb') as fd:
+        new_qc = qpy_serialization.load(fd)[0]
+
+API documentation
+-----------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   load
+   dump
 
 QPY Format
 ==========
@@ -217,16 +245,16 @@ The contents of each INSTRUCTION_PARAM is:
     }
 
 After each INSTRUCTION_PARAM the next ``size`` bytes are the parameter's data.
-The ``type`` field can be ``'i'``, ``'f'``, ``'p'``, ``'e'``, ``'s'``,
+The ``type`` field can be ``'i'``, ``'f'``, ``'p'``, ``'e'``, ``'s'``, ``'c'``
 or ``'n'`` which dictate the format. For ``'i'`` it's an integer, ``'f'`` it's
-a double, ``'s'`` if it's a string (encoded as utf8), ``'p'`` defines a
-:class:`~qiskit.circuit.Parameter` object  which is represented by a PARAM
-struct (see below), ``e`` defines a :class:`~qiskit.circuit.ParameterExpression`
-object (that's not a :class:`~qiskit.circuit.Paramter`) which is represented by
-a PARAM_EXPR struct (see below), and ``'n'`` represents an object from numpy
-(either an ``ndarray`` or a numpy type) which means the data is .npy
-format [#f2]_ data.
-
+a double, ``'s'`` if it's a string (encoded as utf8), ``'c'`` is a complex and
+the data is represented by the struct format in the :ref:`param_expr` section.
+``'p'`` defines a :class:`~qiskit.circuit.Parameter` object  which is
+represented by a PARAM struct (see below), ``e`` defines a
+:class:`~qiskit.circuit.ParameterExpression` object (that's not a
+:class:`~qiskit.circuit.Paramter`) which is represented by a PARAM_EXPR struct
+(see below), and ``'n'`` represents an object from numpy (either an ``ndarray``
+or a numpy type) which means the data is .npy format [#f2]_ data.
 
 PARAMETER
 ---------
@@ -243,6 +271,8 @@ a INSTRUCTION_PARAM. The contents of the PARAMETER are defined as:
 
 which is immediately followed by ``name_size`` utf8 bytes representing the
 parameter name.
+
+.. _param_expr:
 
 PARAMETER_EXPR
 --------------
@@ -952,9 +982,10 @@ def load(file_obj):
         file_obj (File): A file like object that contains the QPY binary
             data for a circuit
     Returns:
-        list: A list of the QuantumCircuit objects from the QPY data. A list
-            is always returned, even if there is only 1 circuit in the QPY
-            data.
+        list: List of ``QuantumCircuit``
+            The list of :class:`~qiskit.circuit.QuantumCircuit` objects
+            contained in the QPY data. A list is always returned, even if there
+            is only 1 circuit in the QPY data.
     Raises:
         QiskitError: if ``file_obj`` is not a valid QPY file
     """
