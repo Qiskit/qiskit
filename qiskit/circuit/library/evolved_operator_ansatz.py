@@ -243,7 +243,8 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
         if isinstance(evolution.global_phase, ParameterExpression):
             try:
                 evolution.global_phase = float(evolution.global_phase._symbol_expr)
-            except RuntimeError:
+            # RuntimeError is raised if symengine is used, for SymPy it is a TypeError
+            except (RuntimeError, TypeError):
                 # expression contains free parameters
                 pass
 
