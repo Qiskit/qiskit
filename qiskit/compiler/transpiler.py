@@ -134,7 +134,9 @@ def transpile(
             on a qubit resource. (alias: ``'asap'``)
             * ``'as_late_as_possible'``: Schedule instructions late, i.e. keeping qubits
             in the ground state when possible. (alias: ``'alap'``)
-            If ``None``, no scheduling will be done.
+            If ``None`` and ``instruction_durations`` is specified, the ``as_late_as_possible``
+            scheduling method will be applied by default.
+            Otherwise, if ``None``, no scheduling will be done.
         instruction_durations: Durations of instructions.
             The gate lengths defined in ``backend.properties`` are used as default.
             They are overwritten if this ``instruction_durations`` is specified.
@@ -264,6 +266,9 @@ def transpile(
             " 'instruction_durations' should be usually provided.",
             UserWarning,
         )
+
+    if scheduling_method is None and instruction_durations:
+        scheduling_method = "as_late_as_possible"
 
     # Get transpile_args to configure the circuit transpilation job(s)
     transpile_args = _parse_transpile_args(
