@@ -134,7 +134,7 @@ class TwoQubitWeylDecomposition:
         )
 
     @staticmethod
-    def __new__(cls, unitary_matrix, *, fidelity=(1.0 - 1.0e-9), inst_map=None, qubit_pair=None):
+    def __new__(cls, unitary_matrix, *, fidelity=(1.0 - 1.0e-9), is_native=None):
         """Perform the Weyl chamber decomposition, and optionally choose a specialized subclass.
 
         The flip into the Weyl Chamber is described in B. Kraus and J. I. Cirac, Phys. Rev. A 63,
