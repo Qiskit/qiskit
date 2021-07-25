@@ -324,6 +324,7 @@ class TemplateSubstitution:
 
             # Fake bind any parameters in the template
             template = self._attempt_bind(template_sublist, circuit_sublist)
+            import pdb; pdb.set_trace()
 
             if template is None:
                 continue
@@ -503,28 +504,14 @@ class TemplateSubstitution:
         equations, circ_dict, temp_symbols, sol, fake_bind = [], {}, set(), {}, {}
         for t_idx, temp_params in enumerate(template_params):
             if isinstance(temp_params, ParameterExpression):
-                if isinstance(circuit_params[t_idx], ParameterExpression):
-                    #if len(circuit_params[t_idx].parameters):
-                    for circ_param in circuit_params[t_idx].parameters:
-                        # firgure out how to parse using parse_expr
-                        import pdb; pdb.set_trace()
-                        cpn = circ_param.name
-                        if '$' in cpn:
-                            psym = sym.symbols(str(cpn.split('$')[1].split('\\')[-1]))
-                        else:
-                            psym = sym.Eq(parse_expr(cpn))
-
-                        #circ_symbols.add(circ_param)
-                        circ_dict[str(psym)] = circ_param
-                        equations.append(sym.Eq(parse_expr(str(temp_params)), psym))
-                    else:
-                        equations.append(sym.Eq(parse_expr(str(temp_params)), circuit_params[t_idx]))
-
-                else:
-                    equations.append(sym.Eq(parse_expr(str(temp_params)), circuit_params[t_idx]))
+                circ_param = ''.join(''.join(str(circuit_params[t_idx]).split('$')).split('\\'))
+                equations.append(sym.Eq(parse_expr(str(temp_params)), parse_expr(circ_param)))
 
                 for param in temp_params.parameters:
                     temp_symbols.add(param)
+                if isinstance(circuit_params[t_idx], ParameterExpression):
+                    for param in circuit_params[t_idx].parameters:
+                        circ_dict[param] = str(param)
 
         if not temp_symbols:
             return template_dag_dep
@@ -533,29 +520,24 @@ class TemplateSubstitution:
         sym_sol = sym.solve(equations, temp_symbols)
         for key in sym_sol:
             try:
-                sol[str(key)] = float(sym_sol[key])
+                sol[str(key)] = ParameterExpression(circ_dict, str(sym_sol[key]))
             except TypeError:
-                sol[str(key)] = sym_sol[key]
-                #return None
+                return None
 
         if not sol:
             return None
 
         for param in temp_symbols:
-            if '$' in str(param):
-                fake_bind[param] = sol[str(param).split('$')[1].split('\\')[-1]]
-            else:
-                fake_bind[param] = sol[str(param)]
+            fake_bind[param] = sol[str(param)]
 
         for node in template_dag_dep.get_nodes():
             bound_params = []
-            import pdb; pdb.set_trace()
             for param in node.op.params:
                 if isinstance(param, ParameterExpression):
                     try:
                         #bound_params.append(float(param.bind(fake_bind)))
                         for key in fake_bind:
-                            bound_params.append(param.assign(key, circ_dict[str(fake_bind[key])]))
+                            bound_params.append(param.assign(key, fake_bind[key]))
                     except KeyError:
                         return None
                 else:
