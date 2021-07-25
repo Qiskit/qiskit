@@ -547,9 +547,13 @@ class TwoQubitWeylControlledEquiv(TwoQubitWeylDecomposition):
 class TwoQubitWeylEchoRZX(TwoQubitWeylDecomposition):
     """Decompose two-qubit unitary in terms of echoed cross-resonance gates."""
 
-    def __init__(self, unitary, inst_map, qubit_pair: Tuple):
-        self.inst_map = inst_map
-        self.qubit_pair = qubit_pair
+    def __init__(self, unitary, is_native: bool):
+        """Initialize the KAK decomposition.
+        
+        Args:
+            is_native: If True then the CX schedule on qubits (q0, q1) is shorter than the schedule on (q1, q0).
+        """
+        self.is_native = is_native
         super().__init__(unitary)
 
     def specialize(self):
