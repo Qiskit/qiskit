@@ -149,9 +149,15 @@ class TestCircuitRegisters(QiskitTestCase):
         self.assertEqual(qubits[2], qr1[0])
 
     def test_circuit_without_classical_register(self):
-        """Test qubits() method."""
+        """Test QuantumCircuit constructor."""
         qc = QuantumCircuit(2, 0)
         self.assertEqual(qc.cregs, [])
+
+    def test_circuit_without_quantum_register(self):
+        """Test QuantumCircuit constructor."""
+        qc = QuantumCircuit(0, 1)
+        self.assertEqual(qc.qregs, [])
+        self.assertEqual(qc.cregs.size, 1)
 
     def test_clbits(self):
         """Test clbits() method."""
