@@ -117,12 +117,14 @@ def get_param_str(op, drawer, ndigits=3):
         param_list = []
         param_str = ""
         param_str_len = 0
-        for param in op.params:
+        for count, param in enumerate(op.params):
             # Latex drawer will cause an xy-pic error and mpl drawer will overwrite
             # the right edge, and text drawer will result in a very wide
             # figure if param string is too long, so limit params.
 
-            if param_str_len > 30:
+            # Adding 'count' to param_str_len to account for the commas while
+            # truncating
+            if param_str_len + count > 35:
                 param_list.append("...")
                 break
             try:
