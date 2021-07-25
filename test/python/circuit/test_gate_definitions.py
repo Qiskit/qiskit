@@ -76,7 +76,7 @@ class TestGateDefinitions(QiskitTestCase):
     yields the equivalent matrix as the hardcoded matrix definition
     up to a global phase."""
 
-    def test_ch_definition(self):   # TODO: expand this to all gates
+    def test_ch_definition(self):  # TODO: expand this to all gates
         """Test ch gate matrix and definition."""
         circ = QuantumCircuit(2)
         circ.ch(0, 1)
