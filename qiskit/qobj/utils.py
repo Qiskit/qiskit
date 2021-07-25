@@ -44,7 +44,6 @@ class MeasLevel(IntEnum):
 
 def validate_qobj_against_schema(qobj):
     """Validates a QObj against the .json schema.
-
     Args:
         qobj (Qobj): Qobj to be validated.
 
