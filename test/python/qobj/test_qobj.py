@@ -15,8 +15,6 @@
 
 import copy
 
-import jsonschema
-
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler import assemble
 
@@ -35,7 +33,6 @@ from qiskit.qobj import (
     QasmExperimentCalibrations,
     GateCalibration,
 )
-from qiskit.qobj import validate_qobj_against_schema
 
 from qiskit.test import QiskitTestCase
 
@@ -77,13 +74,6 @@ class TestQASMQobj(QiskitTestCase):
 
         self.bad_qobj = copy.deepcopy(self.valid_qobj)
         self.bad_qobj.experiments = []
-
-    def test_to_dict_against_schema(self):
-        """Test dictionary representation of Qobj against its schema."""
-        try:
-            validate_qobj_against_schema(self.valid_qobj)
-        except jsonschema.ValidationError as validation_error:
-            self.fail(str(validation_error))
 
     def test_from_dict_per_class(self):
         """Test Qobj and its subclass representations given a dictionary."""
@@ -130,7 +120,7 @@ class TestQASMQobj(QiskitTestCase):
                 )
             ],
         )
-        res = valid_qobj.to_dict(validate=True)
+        res = valid_qobj.to_dict()
         expected_dict = {
             "qobj_id": "12345",
             "type": "QASM",
@@ -245,7 +235,7 @@ class TestQASMQobj(QiskitTestCase):
                 )
             ],
         )
-        res = valid_qobj.to_dict(validate=True)
+        res = valid_qobj.to_dict()
         expected_dict = {
             "qobj_id": "12345",
             "type": "QASM",
@@ -363,13 +353,6 @@ class TestPulseQobj(QiskitTestCase):
                 }
             ],
         }
-
-    def test_to_dict_against_schema(self):
-        """Test dictionary representation of Qobj against its schema."""
-        try:
-            validate_qobj_against_schema(self.valid_qobj)
-        except jsonschema.ValidationError as validation_error:
-            self.fail(str(validation_error))
 
     def test_from_dict_per_class(self):
         """Test converting to Qobj and its subclass representations given a dictionary."""

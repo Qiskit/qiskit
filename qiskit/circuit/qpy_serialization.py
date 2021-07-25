@@ -19,10 +19,38 @@ QPY serialization (:mod:`qiskit.circuit.qpy_serialization`)
 
 .. currentmodule:: qiskit.circuit.qpy_serialization
 
-.. autosummary::
+Using QPY
+=========
 
-    load
-    dump
+Using QPY is defined to be straightforward and mirror the user API of the
+serializers in Python's standard library, ``pickle`` and ``json``. There are
+2 user facing functions: :func:`qiskit.circuit.qpy_serialization.dump` and
+:func:`qiskit.circuit.qpy_serialization.load` which are used to dump QPY data
+to a file object and load circuits from QPY data in a file object respectively.
+For example::
+
+    from qiskit.circuit import QuantumCircuit
+    from qiskit.circuit import qpy_serialization
+
+    qc = QuantumCircuit(2, name='Bell', metadata={'test': True})
+    qc.h(0)
+    qc.cx(0, 1)
+    qc.measure_all()
+
+    with open('bell.qpy', 'wb') as fd:
+        qpy_serialization.dump(qc, fd)
+
+    with open('bell.qpy', 'rb') as fd:
+        new_qc = qpy_serialization.load(fd)[0]
+
+API documentation
+-----------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   load
+   dump
 
 QPY Format
 ==========
@@ -217,16 +245,16 @@ The contents of each INSTRUCTION_PARAM is:
     }
 
 After each INSTRUCTION_PARAM the next ``size`` bytes are the parameter's data.
-The ``type`` field can be ``'i'``, ``'f'``, ``'p'``, ``'e'``, ``'s'``,
+The ``type`` field can be ``'i'``, ``'f'``, ``'p'``, ``'e'``, ``'s'``, ``'c'``
 or ``'n'`` which dictate the format. For ``'i'`` it's an integer, ``'f'`` it's
-a double, ``'s'`` if it's a string (encoded as utf8), ``'p'`` defines a
-:class:`~qiskit.circuit.Parameter` object  which is represented by a PARAM
-struct (see below), ``e`` defines a :class:`~qiskit.circuit.ParameterExpression`
-object (that's not a :class:`~qiskit.circuit.Paramter`) which is represented by
-a PARAM_EXPR struct (see below), and ``'n'`` represents an object from numpy
-(either an ``ndarray`` or a numpy type) which means the data is .npy
-format [#f2]_ data.
-
+a double, ``'s'`` if it's a string (encoded as utf8), ``'c'`` is a complex and
+the data is represented by the struct format in the :ref:`param_expr` section.
+``'p'`` defines a :class:`~qiskit.circuit.Parameter` object  which is
+represented by a PARAM struct (see below), ``e`` defines a
+:class:`~qiskit.circuit.ParameterExpression` object (that's not a
+:class:`~qiskit.circuit.Paramter`) which is represented by a PARAM_EXPR struct
+(see below), and ``'n'`` represents an object from numpy (either an ``ndarray``
+or a numpy type) which means the data is .npy format [#f2]_ data.
 
 PARAMETER
 ---------
@@ -243,6 +271,8 @@ a INSTRUCTION_PARAM. The contents of the PARAMETER are defined as:
 
 which is immediately followed by ``name_size`` utf8 bytes representing the
 parameter name.
+
+.. _param_expr:
 
 PARAMETER_EXPR
 --------------
@@ -528,6 +558,8 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions):
             param = struct.unpack("<q", data)[0]
         elif type_str == "f":
             param = struct.unpack("<d", data)[0]
+        elif type_str == "c":
+            param = complex(*struct.unpack(COMPLEX_PACK, data))
         elif type_str == "n":
             container = io.BytesIO(data)
             param = np.load(container)
@@ -551,6 +583,13 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions):
             inst_obj.label = label
         circuit._append(inst_obj, qargs, cargs)
         return
+    elif gate_name in custom_instructions:
+        inst_obj = _parse_custom_instruction(custom_instructions, gate_name, params)
+        inst_obj.condition = condition_tuple
+        if label_size > 0:
+            inst_obj.label = label
+        circuit._append(inst_obj, qargs, cargs)
+        return
     elif hasattr(library, gate_name):
         gate_class = getattr(library, gate_name)
     elif hasattr(circuit_mod, gate_name):
@@ -559,22 +598,21 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions):
         gate_class = getattr(extensions, gate_name)
     elif hasattr(quantum_initializer, gate_name):
         gate_class = getattr(quantum_initializer, gate_name)
-    elif gate_name in custom_instructions:
-        inst_obj = _parse_custom_instruction(custom_instructions, gate_name, params)
-        inst_obj.condition = condition_tuple
-        if label_size > 0:
-            inst_obj.label = label
-        circuit._append(inst_obj, qargs, cargs)
-        return
     else:
         raise AttributeError("Invalid instruction type: %s" % gate_name)
-    if gate_name == "Barrier":
-        params = [len(qargs)]
-    gate = gate_class(*params)
+    if gate_name == "Initialize":
+        gate = gate_class(params)
+    else:
+        if gate_name == "Barrier":
+            params = [len(qargs)]
+        gate = gate_class(*params)
     gate.condition = condition_tuple
     if label_size > 0:
         gate.label = label
-    circuit._append(gate, qargs, cargs)
+    if not isinstance(gate, Instruction):
+        circuit.append(gate, qargs, cargs)
+    else:
+        circuit._append(gate, qargs, cargs)
 
 
 def _parse_custom_instruction(custom_instructions, gate_name, params):
@@ -677,6 +715,7 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
         )
         or gate_class_name == "Gate"
         or gate_class_name == "Instruction"
+        or isinstance(instruction_tuple[0], library.BlueprintCircuit)
     ):
         if instruction_tuple[0].name not in custom_instructions:
             custom_instructions[instruction_tuple[0].name] = instruction_tuple[0]
@@ -745,7 +784,11 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
             container.seek(0)
             data = container.read()
             size = len(data)
-        elif isinstance(param, (np.integer, np.floating, np.ndarray)):
+        elif isinstance(param, complex):
+            type_key = "c"
+            data = struct.pack(COMPLEX_PACK, param.real, param.imag)
+            size = struct.calcsize(COMPLEX_PACK)
+        elif isinstance(param, (np.integer, np.floating, np.ndarray, np.complexfloating)):
             type_key = "n"
             np.save(container, param)
             container.seek(0)
@@ -939,9 +982,10 @@ def load(file_obj):
         file_obj (File): A file like object that contains the QPY binary
             data for a circuit
     Returns:
-        list: A list of the QuantumCircuit objects from the QPY data. A list
-            is always returned, even if there is only 1 circuit in the QPY
-            data.
+        list: List of ``QuantumCircuit``
+            The list of :class:`~qiskit.circuit.QuantumCircuit` objects
+            contained in the QPY data. A list is always returned, even if there
+            is only 1 circuit in the QPY data.
     Raises:
         QiskitError: if ``file_obj`` is not a valid QPY file
     """
