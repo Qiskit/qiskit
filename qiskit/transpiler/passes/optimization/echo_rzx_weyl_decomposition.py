@@ -77,7 +77,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
                 physical_q0 = trivial_layout[control]
                 physical_q1 = trivial_layout[target]
 
-                qubit_pair = (physical_q0, physical_q1)
+                is_native= self._is_native((physical_q0, physical_q1))
 
                 unitary = qi.Operator(node.op).data
                 dag_weyl = circuit_to_dag(
