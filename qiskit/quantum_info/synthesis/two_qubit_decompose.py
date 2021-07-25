@@ -28,7 +28,7 @@ import math
 import io
 import base64
 import warnings
-from typing import ClassVar, Optional, Tuple
+from typing import ClassVar, Optional
 
 import logging
 
@@ -129,8 +129,10 @@ class TwoQubitWeylDecomposition:
 
         Make explicitly-instantiated subclass __new__  call base __new__ with fidelity=None"""
         super().__init_subclass__(**kwargs)
-        cls.__new__ = lambda cls, *a, fidelity=None, is_native=None, **k: TwoQubitWeylDecomposition.__new__(
-            cls, *a, fidelity=None, is_native=None, **k
+        cls.__new__ = (
+            lambda cls, *a, fidelity=None, is_native=None, **k: TwoQubitWeylDecomposition.__new__(
+                cls, *a, fidelity=None, is_native=None, **k
+            )
         )
 
     @staticmethod
@@ -549,7 +551,7 @@ class TwoQubitWeylEchoRZX(TwoQubitWeylDecomposition):
 
     def __init__(self, unitary, is_native: bool):
         """Initialize the KAK decomposition.
-        
+
         Args:
             is_native: If True then the CX schedule on qubits (q0, q1) is shorter than the schedule on (q1, q0).
         """
@@ -578,7 +580,6 @@ class TwoQubitWeylEchoRZX(TwoQubitWeylDecomposition):
         circ.x(1)
         circ.h(0)
         circ.h(1)
-
 
     def _weyl_gate(self, simplify, circ: QuantumCircuit, atol):
         """Appends Ud(a, b, c) to the circuit."""

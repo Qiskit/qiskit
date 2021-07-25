@@ -290,6 +290,7 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
     def _filter_control(inst: (int, Union["Schedule", Instruction])) -> bool:
         """
         Looks for Gaussian square pulses applied to control channels.
+
         Args:
             inst: Instructions to be filtered.
         Returns:
@@ -308,6 +309,7 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
     def _filter_drive(inst: (int, Union["Schedule", Instruction])) -> bool:
         """
         Looks for Gaussian square pulses applied to drive channels.
+
         Args:
             inst: Instructions to be filtered.
         Returns:
@@ -325,6 +327,7 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
     def get_calibration(self, params: List, qubits: List) -> Schedule:
         """
         Builds the calibration schedule for the RZXGate(theta) without echos.
+
         Args:
             params: Parameters of the RZXGate(theta). I.e. params[0] is theta.
             qubits: List of qubits for which to get the schedules. The first qubit is

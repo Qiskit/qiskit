@@ -12,6 +12,8 @@
 
 """Weyl decomposition of two-qubit gates in terms of echoed cross-resonance gates."""
 
+from typing import Tuple
+
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
@@ -77,13 +79,11 @@ class EchoRZXWeylDecomposition(TransformationPass):
                 physical_q0 = trivial_layout[control]
                 physical_q1 = trivial_layout[target]
 
-                is_native= self._is_native((physical_q0, physical_q1))
+                is_native = self._is_native((physical_q0, physical_q1))
 
                 unitary = qi.Operator(node.op).data
                 dag_weyl = circuit_to_dag(
-                    TwoQubitWeylEchoRZX(
-                        unitary, is_native=is_native
-                    ).circuit()
+                    TwoQubitWeylEchoRZX(unitary, is_native=is_native).circuit()
                 )
                 dag.substitute_node_with_dag(node, dag_weyl)
 
