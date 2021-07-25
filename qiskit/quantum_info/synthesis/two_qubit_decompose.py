@@ -594,7 +594,7 @@ class TwoQubitWeylEchoRZX(TwoQubitWeylDecomposition):
         circ.h(0)
         circ.sdg(1)
         if abs(self.b) > atol:
-            if self.is_native_cx(self.qubit_pair):
+            if self.is_native:
                 self._apply_rzx(circ, self.b)
             else:
                 self._apply_reverse_rzx(circ, self.b)
