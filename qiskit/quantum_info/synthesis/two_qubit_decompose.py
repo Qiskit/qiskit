@@ -129,8 +129,8 @@ class TwoQubitWeylDecomposition:
 
         Make explicitly-instantiated subclass __new__  call base __new__ with fidelity=None"""
         super().__init_subclass__(**kwargs)
-        cls.__new__ = lambda cls, *a, fidelity=None, inst_map=None, qubit_pair=None, **k: TwoQubitWeylDecomposition.__new__(
-            cls, *a, fidelity=None, inst_map=None, qubit_pair=None, **k
+        cls.__new__ = lambda cls, *a, fidelity=None, is_native=None, **k: TwoQubitWeylDecomposition.__new__(
+            cls, *a, fidelity=None, is_native=None, **k
         )
 
     @staticmethod
