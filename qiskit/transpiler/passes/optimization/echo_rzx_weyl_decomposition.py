@@ -82,7 +82,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
                 unitary = qi.Operator(node.op).data
                 dag_weyl = circuit_to_dag(
                     TwoQubitWeylEchoRZX(
-                        unitary, inst_map=self.inst_map, qubit_pair=qubit_pair
+                        unitary, is_native=is_native
                     ).circuit()
                 )
                 dag.substitute_node_with_dag(node, dag_weyl)
