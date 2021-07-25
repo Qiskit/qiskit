@@ -239,3 +239,31 @@ class TestBIPMapping(QiskitTestCase):
         coupling = CouplingMap.from_line(5)
         with self.assertRaises(TranspilerError):
             BIPMapping(coupling)(circuit)
+
+    def test_qubit_subset(self):
+        """Test if `qubit_subset` option works as expected."""
+        circuit = QuantumCircuit(3)
+        circuit.cx(0, 1)
+        circuit.cx(1, 2)
+        circuit.cx(0, 2)
+
+        coupling = CouplingMap([(0, 1), (1, 3), (3, 2)])
+        qubit_subset = [0, 1, 3]
+        actual = BIPMapping(coupling, qubit_subset=qubit_subset)(circuit)
+        # all used qubits are in qubit_subset
+        bit_indices = {bit: index for index, bit in enumerate(actual.qubits)}
+        for _, qargs, _ in actual.data:
+            for q in qargs:
+                self.assertTrue(bit_indices[q] in qubit_subset)
+        # ancilla qubits are set in the resulting qubit
+        idle = QuantumRegister(1, name="ancilla")
+        self.assertEqual(idle[0], actual._layout[2])
+
+    def test_unconnected_qubit_subset(self):
+        """Fails if qubits in `qubit_subset` are not connected."""
+        circuit = QuantumCircuit(3)
+        circuit.cx(0, 1)
+
+        coupling = CouplingMap([(0, 1), (1, 3), (3, 2)])
+        with self.assertRaises(TranspilerError):
+            BIPMapping(coupling, qubit_subset=[0, 1, 2])(circuit)

@@ -1,0 +1,35 @@
+---
+features:
+  - |
+    Introduced a new option ``qubit_subset`` to the constructor of
+    :class:`qiskit.transpiler.passes.BIPMapping`.
+    The option enables us to specify physical qubits to be used
+    (in ``coupling_map`` of the device) during the mapping in one line:
+
+    .. code-block:: python
+
+      mapped_circ = BIPMapping(
+          coupling_map=CouplingMap([[0, 1], [1, 2], [1, 3], [3, 4]]),
+          qubit_subset=[1, 3, 4]
+      )(circ)
+
+    Previously, to do the same thing, we had to supply a reduced ``coupling_map``
+    which contains only the qubits to be used, embed the resulting circuit onto
+    the original ``coupling_map`` and update the ``QuantumCircuit._layout`` accordingly:
+
+    .. code-block:: python
+
+      reduced_coupling = coupling_map.reduce(qubit_to_use)
+      mapped = BIPMapping(reduced_coupling)(circ)
+      # skip the definition of fill_with_ancilla()
+      # recover circuit on original coupling map
+      layout = Layout({q: qubit_to_use[i] for i, q in enumerate(mapped.qubits)})
+      for reg in mapped.qregs:
+          layout.add_register(reg)
+      property_set = {"layout": fill_with_ancilla(layout)}
+      recovered = ApplyLayout()(mapped, property_set)
+      # recover layout
+      overall_layout = Layout({v: qubit_to_use[q] for v, q in mapped._layout.get_virtual_bits().items()})
+      for reg in mapped.qregs:
+          overall_layout.add_register(reg)
+      recovered._layout = fill_with_ancilla(overall_layout)
