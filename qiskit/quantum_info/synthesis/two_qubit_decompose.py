@@ -575,11 +575,6 @@ class TwoQubitWeylEchoRZX(TwoQubitWeylDecomposition):
         circ.h(0)
         circ.h(1)
 
-    def is_native_cx(self, qubit_pair: Tuple) -> bool:
-        """Check that a CX for a qubit pair is native."""
-        cx1 = self.inst_map.get("cx", qubit_pair)
-        cx2 = self.inst_map.get("cx", qubit_pair[::-1])
-        return cx1.duration < cx2.duration
 
     def _weyl_gate(self, simplify, circ: QuantumCircuit, atol):
         """Appends Ud(a, b, c) to the circuit."""
