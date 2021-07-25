@@ -278,7 +278,9 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
     """
     Creates calibrations for RZXGate(theta) by stretching and compressing
     Gaussian square pulses in the CX gate.
-    The RZXCalibrationBuilderNoEcho is a variation of the RZXCalibrationBuilder
+
+    The ``RZXCalibrationBuilderNoEcho`` is a variation of the
+    :class:`~qiskit.transpiler.passes.RZXCalibrationBuilder` pass
     as it creates calibrations for the cross-resonance pulses without inserting
     the echo pulses in the pulse schedule. This enables exposing the echo in
     the cross-resonance sequence as gates so that the transpiler can simplify them.
@@ -293,6 +295,7 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
 
         Args:
             inst: Instructions to be filtered.
+
         Returns:
             match: True if the instruction is a Play instruction with
             a Gaussian square pulse on the ControlChannel.
@@ -312,6 +315,7 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
 
         Args:
             inst: Instructions to be filtered.
+
         Returns:
             match: True if the instruction is a Play instruction with
             a Gaussian square pulse on the DriveChannel.
@@ -332,15 +336,16 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
             params: Parameters of the RZXGate(theta). I.e. params[0] is theta.
             qubits: List of qubits for which to get the schedules. The first qubit is
                 the control and the second is the target.
+
         Returns:
             schedule: The calibration schedule for the RZXGate(theta).
+
         Raises:
             QiskitError: If the control and target qubits cannot be identified, or the backend
                 does not support a cx gate between the qubits, or the backend does not natively
                 support the specified direction of the cx.
         """
         theta = params[0]
-
         q1, q2 = qubits[0], qubits[1]
 
         if not self._inst_map.has("cx", qubits):
