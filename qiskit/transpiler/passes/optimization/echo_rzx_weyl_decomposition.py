@@ -38,6 +38,12 @@ class EchoRZXWeylDecomposition(TransformationPass):
         self.inst_map = inst_map
         super().__init__()
 
+    def _is_native(self, qubit_pair: Tuple) -> bool:
+        """Return the direction of the qubit pair that is native, i.e. with the shortest schedule."""
+        cx1 = self.inst_map.get("cx", qubit_pair)
+        cx2 = self.inst_map.get("cx", qubit_pair[::-1])
+        return cx1.duration < cx2.duration
+
     def run(self, dag: DAGCircuit):
         """Run the EchoRZXWeylDecomposition pass on `dag`.
 
