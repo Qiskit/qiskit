@@ -178,7 +178,7 @@ def _trim(image):
     diff = PIL.ImageChops.difference(image, background)
     diff = PIL.ImageChops.add(diff, diff, 2.0, -100)
     bbox = diff.getbbox()
-    bbox = (bbox[0]-3, bbox[1]-3, bbox[2]+3, bbox[3]+3)
+    bbox = (bbox[0] - 3, bbox[1] - 3, bbox[2] + 3, bbox[3] + 3)
     if bbox:
         image = image.crop(bbox)
     return image

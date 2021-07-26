@@ -194,34 +194,36 @@ class Results:
 
 
 def test_mpl_circuit_drawer():
-    # collect results for circuit tests
-    RESULT_FILES_CIRCUIT = []
+    """Collects and returns the similarity results for MPL circuit tests."""
+    result_files_circuit = []
     for file in os.listdir(os.path.join(SWD, "mpl/circuit")):
         if file.endswith(".png") and not file.endswith(".diff.png"):
-            RESULT_FILES_CIRCUIT.append(file)
-    RESULTS_CIRCUIT = Results(sorted(RESULT_FILES_CIRCUIT), "mpl/circuit")
-    RESULTS_CIRCUIT.diff_images()
+            result_files_circuit.append(file)
+    results_circuit = Results(sorted(result_files_circuit), "mpl/circuit")
+    results_circuit.diff_images()
 
-    return RESULTS_CIRCUIT
+    return results_circuit
+
 
 def test_mpl_graph_drawer():
-    # collect results for graph tests
-    RESULT_FILES_GRAPH = []
+    """Collects and returns the similarity results for MPL graph tests."""
+    result_files_graph = []
     for file in os.listdir(os.path.join(SWD, "mpl/graph")):
         if file.endswith(".png") and not file.endswith(".diff.png"):
-            RESULT_FILES_GRAPH.append(file)
-    RESULTS_GRAPH = Results(sorted(RESULT_FILES_GRAPH), "mpl/graph")
-    RESULTS_GRAPH.diff_images()
+            result_files_graph.append(file)
+    results_graph = Results(sorted(result_files_graph), "mpl/graph")
+    results_graph.diff_images()
 
-    return RESULTS_GRAPH
+    return results_graph
+
 
 def test_latex_drawer():
-    # collect results for latex tests
-    RESULT_FILES_LATEX = []
+    """Collects and returns the similarity results for Latex tests."""
+    result_files_latex = []
     for file in os.listdir(os.path.join(SWD, "latex")):
         if file.endswith(".png") and not file.endswith(".diff.png"):
-            RESULT_FILES_LATEX.append(file)
-    RESULTS_LATEX = Results(sorted(RESULT_FILES_LATEX), "latex")
-    RESULTS_LATEX.diff_images()
+            result_files_latex.append(file)
+    results_latex = Results(sorted(result_files_latex), "latex")
+    results_latex.diff_images()
 
-    return RESULTS_LATEX
+    return results_latex
