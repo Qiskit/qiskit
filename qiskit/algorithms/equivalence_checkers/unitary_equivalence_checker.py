@@ -26,8 +26,9 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
     The comparison can either ignore or not ignore global phase.
     """
 
-    def __init__(self, simulator, phase, external_backend=None,
-                 transpiler_options=None, backend_options=None):
+    def __init__(
+        self, simulator, phase, external_backend=None, transpiler_options=None, backend_options=None
+    ):
         """
         Args:
             simulator (str): The type of simulator to compute the unitary.
@@ -52,32 +53,33 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
         self.transpiler_options = transpiler_options if transpiler_options is not None else {}
         self.backend_options = backend_options if backend_options is not None else {}
 
-        if phase == 'equal':
+        if phase == "equal":
             self.ignore_phase = False
-        elif phase == 'up_to_global':
+        elif phase == "up_to_global":
             self.ignore_phase = True
         else:
-            raise QiskitError('Unrecognized phase criterion: ' + str(phase))
+            raise QiskitError("Unrecognized phase criterion: " + str(phase))
 
-        if simulator not in ['quantum_info', 'aer', 'external', 'automatic']:
-            raise QiskitError('Unrecognized simulator option: ' + str(self.simulator))
+        if simulator not in ["quantum_info", "aer", "external", "automatic"]:
+            raise QiskitError("Unrecognized simulator option: " + str(self.simulator))
 
-        if simulator == 'external':
+        if simulator == "external":
             self.backend = external_backend
 
-        if simulator in ['aer', 'automatic']:
+        if simulator in ["aer", "automatic"]:
             try:
                 from qiskit.providers.aer import UnitarySimulator
+
                 self.backend = UnitarySimulator()
                 self.backend.set_options(**self.backend_options)
-                if simulator == 'automatic':
-                    self.simulator = 'aer'
+                if simulator == "automatic":
+                    self.simulator = "aer"
             except ImportError as no_aer:
-                if simulator == 'aer':
-                    raise QiskitError('Could not import the Aer simulator') from no_aer
-                self.simulator = 'quantum_info'
+                if simulator == "aer":
+                    raise QiskitError("Could not import the Aer simulator") from no_aer
+                self.simulator = "quantum_info"
 
-        if self.simulator == 'quantum_info':
+        if self.simulator == "quantum_info":
             self.backend = None
 
     # pylint: disable=arguments-differ
@@ -112,11 +114,12 @@ class UnitaryEquivalenceChecker(BaseEquivalenceChecker):
             # Optimize the circuit before creating the unitary
             circ = transpile(circ, self.backend, **self.transpiler_options)
 
-            if self.simulator == 'quantum_info':
+            if self.simulator == "quantum_info":
                 op = Operator(circ)
             else:
-                backend_res = self.backend.run(assemble(circ), shots=1,
-                                               **self.backend_options).result()
+                backend_res = self.backend.run(
+                    assemble(circ), shots=1, **self.backend_options
+                ).result()
                 if backend_res.results[0].success:
                     op = backend_res.get_unitary(circ)
                 else:

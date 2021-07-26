@@ -34,8 +34,8 @@ def equivalence_checker(circ1, circ2, method, **options):
         ValueError: if `method` is not one of a set of recognized methods
     """
 
-    if method == 'unitary':
+    if method == "unitary":
         checker = UnitaryEquivalenceChecker(**options)
         return checker.run(circ1, circ2)
     else:
-        raise ValueError('Unknown checker method: ' + method)
+        raise ValueError("Unknown checker method: " + method)
