@@ -91,6 +91,7 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
         self.assertRZXgates(unitary_circuit, after)
 
     def assertRZXgates(self, unitary_circuit, after):
+        """Check the number of rzx gates"""
         alpha = TwoQubitWeylDecomposition(unitary_circuit).a
         beta = TwoQubitWeylDecomposition(unitary_circuit).b
         gamma = TwoQubitWeylDecomposition(unitary_circuit).c
@@ -183,7 +184,9 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
         rzx_beta = TwoQubitWeylEchoRZX(unitary_circuit, is_native=False).b
         rzx_gamma = TwoQubitWeylEchoRZX(unitary_circuit, is_native=False).c
 
-        self.assertEqual((alpha, beta, gamma), (rzx_alpha, rzx_beta, rzx_gamma))
+        self.assertAlmostEqual(alpha, rzx_alpha)
+        self.assertAlmostEqual(beta, rzx_beta)
+        self.assertAlmostEqual(gamma, rzx_gamma)
 
 
 if __name__ == "__main__":
