@@ -41,7 +41,10 @@ from qiskit.circuit.library.standard_gates import CXGate, RXGate, RYGate, RZGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.synthesis.weyl import weyl_coordinates
-from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer, DEFAULT_ATOL
+from qiskit.quantum_info.synthesis.one_qubit_decompose import (
+    OneQubitEulerDecomposer,
+    DEFAULT_ATOL,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -129,10 +132,8 @@ class TwoQubitWeylDecomposition:
 
         Make explicitly-instantiated subclass __new__  call base __new__ with fidelity=None"""
         super().__init_subclass__(**kwargs)
-        cls.__new__ = (
-            lambda cls, *a, fidelity=None, **k: TwoQubitWeylDecomposition.__new__(
-                cls, *a, fidelity=None, **k
-            )
+        cls.__new__ = lambda cls, *a, fidelity=None, **k: TwoQubitWeylDecomposition.__new__(
+            cls, *a, fidelity=None, **k
         )
 
     @staticmethod
@@ -562,9 +563,7 @@ class TwoQubitWeylEchoRZX:
 
         self.decomposer = TwoQubitWeylDecomposition(unitary)
 
-    def circuit(
-        self, *, euler_basis: Optional[str] = None, atol=DEFAULT_ATOL
-    ) -> QuantumCircuit:
+    def circuit(self, *, euler_basis: Optional[str] = None, atol=DEFAULT_ATOL) -> QuantumCircuit:
         """Returns Weyl decomposition in circuit form.
 
         simplify, atol arguments are passed to OneQubitEulerDecomposer"""
@@ -573,7 +572,12 @@ class TwoQubitWeylEchoRZX:
         oneq_decompose = OneQubitEulerDecomposer(euler_basis)
         c1l, c1r, c2l, c2r = (
             oneq_decompose(k, atol=atol)
-            for k in (self.decomposer.K1l, self.decomposer.K1r, self.decomposer.K2l, self.decomposer.K2r)
+            for k in (
+                self.decomposer.K1l,
+                self.decomposer.K1r,
+                self.decomposer.K2l,
+                self.decomposer.K2r,
+            )
         )
         circ = QuantumCircuit(2, global_phase=self.decomposer.global_phase)
         circ.compose(c2r, [0], inplace=True)
