@@ -4766,9 +4766,11 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
         circuit = self.sample_circuit()
         with self.assertRaises(ValueError) as ve:
             _text_circuit_drawer(circuit, filename="file.spooky")
-            self.assertEqual(str(ve.exception), "ERROR: Filename extension is not .txt. "
-                             "Please use a .txt file extension to save in text format."
-                             )
+            self.assertEqual(
+                str(ve.exception),
+                "ERROR: Filename extension is not .txt. "
+                "Please use a .txt file extension to save in text format.",
+            )
 
 
 if __name__ == "__main__":

@@ -38,6 +38,12 @@ try:
 except ImportError:
     HAS_PIL = False
 
+try:
+    subprocess.run("pdflatex", check=True)
+except OSError as ex:
+    HAS_PDFLATEX = False
+
+
 from qiskit import user_config
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.visualization.exceptions import VisualizationError
