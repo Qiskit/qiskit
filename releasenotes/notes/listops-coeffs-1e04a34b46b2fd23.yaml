@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    opflow.ListOp class now supports a property method `coeffs` which returns
+    a list of the coefficients of the operator list, with the overall
+    coefficient (`ListOp.coeff`) distributed multiplicatively into the list. 
+    Note that `ListOp` objects may be nested (contained in `oplist` of a  
+    `ListOp` object), and in these cases an exception is raised if the 
+    `coeffs` method is called.
+    The `ListOp.coeffs` method conveniently duck-types against the
+    `coeffs` property method of the non-nesting `PauliSumOp` class.
