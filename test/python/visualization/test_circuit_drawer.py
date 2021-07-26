@@ -76,6 +76,9 @@ class TestCircuitDrawer(QiskitTestCase):
                 out = visualization.circuit_drawer(circuit)
                 self.assertIsInstance(out, text.TextDrawing)
 
+    @unittest.skipUnless(
+        visualization.HAS_PYLATEX and visualization.HAS_PIL, "Skipped because PIL and pylatex is not available"
+    )
     def test_unsupported_image_format_error_message(self):
         with patch("qiskit.user_config.get_config", return_value={"circuit_drawer": "latex"}):
             circuit = QuantumCircuit()
@@ -85,6 +88,9 @@ class TestCircuitDrawer(QiskitTestCase):
                                  "Please change file extension to a supported image format."
                                  )
 
+    @unittest.skipUnless(
+        visualization.HAS_PYLATEX and visualization.HAS_PIL, "Skipped because PIL and pylatex is not available"
+    )
     def test_output_file_correct_format(self):
         with patch("qiskit.user_config.get_config", return_value={"circuit_drawer": "latex"}):
             circuit = QuantumCircuit()

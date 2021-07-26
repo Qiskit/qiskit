@@ -126,11 +126,11 @@ from qiskit.visualization.state_visualization import (
 from qiskit.visualization.transition_visualization import visualize_transition
 from qiskit.visualization.array import array_to_latex
 
-from .circuit_visualization import circuit_drawer
+from .circuit_visualization import circuit_drawer, HAS_PIL
 from .dag_visualization import dag_drawer
 from .exceptions import VisualizationError
 from .gate_map import plot_gate_map, plot_circuit_layout, plot_error_map
-from .matplotlib import HAS_MATPLOTLIB
+from .matplotlib import HAS_MATPLOTLIB, HAS_PYLATEX
 from .pass_manager_visualization import pass_manager_drawer
 from .pulse.interpolation import step_wise, linear, cubic_spline
 from .pulse.qcstyle import PulseStyle, SchedStyle
