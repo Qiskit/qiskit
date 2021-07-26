@@ -16,14 +16,13 @@ import unittest
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.circuit import Barrier
-from qiskit.circuit.library.standard_gates import SwapGate
+from qiskit.circuit.library.standard_gates import SwapGate, CXGate, DCXGate
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import CouplingMap, Layout
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import BIPMapping
 from qiskit.transpiler.passes import CheckMap
-from qiskit.transpiler.passes.routing.algorithms.bip_model import BIPMappingModel
 from qiskit.transpiler.passes.routing.algorithms.bip_model import HAS_CPLEX, HAS_DOCPLEX
 
 
@@ -274,38 +273,51 @@ class TestBIPMapping(QiskitTestCase):
         with self.assertRaises(TranspilerError):
             BIPMapping(coupling_map=CouplingMap.from_line(3), objective="error_rate")
 
+    def test_objective_function(self):
+        """Test if ``objective`` functions priorities metrics correctly."""
 
-@unittest.skipUnless(HAS_CPLEX, "cplex is required to run the BIPMappingModel tests")
-@unittest.skipUnless(HAS_DOCPLEX, "docplex is required to run the BIPMappingModel tests")
-class TestBIPMappingModel(QiskitTestCase):
-    """Tests the BIPMappingModel pass."""
-
-    def test_optimal_objective_values_unchanged(self):
-        """Test the optimal values are unchanged for each objective type."""
-        expected_dic = {
-            "depth": 1.02,
-            "error_rate": 0.4494397462045886,
-            "balanced": 0.4594397462045886,
-        }
-
-        class _DummyBackendProperties:
+        class _DummyBackendProp:
             # pylint: disable=missing-function-docstring
             def gate_error(self, qubits):  # pylint: disable=unused-argument
-                return 6.4e-3
+                return 0.01
 
-        circuit = QuantumCircuit(4)
-        circuit.cx(0, 1)
-        circuit.cx(2, 3)
-        circuit.cx(0, 3)
-        circuit.cx(1, 2)
+        def simplify_concesutive_cxs(qc):
+            newqc = QuantumCircuit(*qc.qregs)
+            simplified = False
+            for i, (inst, qargs, _) in enumerate(qc.data):
+                if simplified:
+                    simplified = False
+                    continue
+                next_inst = None
+                if i < len(qc.data) - 1:
+                    next_inst, next_qargs, _ = qc.data[i + 1]
+                if isinstance(next_inst, SwapGate) and set(qargs) == set(next_qargs):
+                    if isinstance(inst, DCXGate):
+                        newqc.append(CXGate(), qargs)
+                        simplified = True
+                    elif isinstance(inst, CXGate):
+                        newqc.append(DCXGate(), qargs)
+                        simplified = True
+                if not simplified:
+                    newqc.append(inst, qargs)
+            return newqc
 
-        model = BIPMappingModel(
-            dag=circuit_to_dag(circuit),
-            coupling_map=CouplingMap([(0, 1), (1, 2), (2, 3)]),
-            qubit_subset=[0, 1, 2, 3],
-            dummy_timesteps=1,
-        )
-        for objective, expected in expected_dic.items():
-            model.create_cpx_problem(objective=objective, backend_prop=_DummyBackendProperties())
-            model.solve_cpx_problem()
-            self.assertAlmostEqual(expected, model.solution.get_objective_value())
+        def cx_counts(qc):
+            counts = qc.count_ops()
+            return counts.get("cx", 0) + 2 * counts.get("dcx", 0) + 3 * counts.get("swap", 0)
+
+        qc = QuantumCircuit(4)
+        qc.dcx(0, 1)
+        qc.cx(2, 3)
+        qc.dcx(0, 2)
+        qc.cx(1, 3)
+        qc.dcx(0, 1)
+        qc.cx(2, 3)
+
+        coupling = CouplingMap([(0, 1), (1, 2), (2, 3)])
+        dep_opt = BIPMapping(coupling, objective="depth")(qc)
+        err_opt = BIPMapping(coupling, objective="error_rate", backend_prop=_DummyBackendProp())(qc)
+        dep_opt = simplify_concesutive_cxs(dep_opt)
+        err_opt = simplify_concesutive_cxs(err_opt)
+        self.assertLessEqual(dep_opt.depth(), err_opt.depth())
+        self.assertGreater(cx_counts(dep_opt), cx_counts(err_opt))

@@ -85,9 +85,9 @@ class BIPMapping(TransformationPass):
             objective (str): Type of objective function to be minimized:
 
                 * ``'error_rate'``: Approximate error rate of the circuit, which is given as the sum of
-                negative logarithm of 2q-gate fidelities in the circuit. It takes into account only the
-                2q-gate (CNOT) errors reported in ``backend_prop`` and ignores the other errors in
-                1q-gates, SPAMs and idle times.
+                    negative logarithm of 2q-gate fidelities in the circuit. It takes into account only
+                    the 2q-gate (CNOT) errors reported in ``backend_prop`` and ignores the other errors
+                    in such as 1q-gates, SPAMs and idle times.
                 * ``'depth'``: [Default] Depth (number of layers) of the circuit.
                 * ``'balanced'``: Weighted sum of ``'error_rate'`` and ``'depth'``
 
