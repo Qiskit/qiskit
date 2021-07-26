@@ -242,7 +242,7 @@ stages:
             pushd test/qpy_compat
             ./run_tests.sh
             popd
-            displayName: 'Run QPY backwards compat tests'
+          displayName: 'Run QPY backwards compat tests'
         - bash: |
             set -e
             virtualenv image_tests
