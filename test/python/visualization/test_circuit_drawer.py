@@ -17,7 +17,7 @@ import os
 from unittest.mock import patch
 from PIL import Image
 
-from qiskit import QuantumCircuit, circuit
+from qiskit import QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit import visualization
 from qiskit.visualization import text

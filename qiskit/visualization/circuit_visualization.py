@@ -38,12 +38,6 @@ try:
 except ImportError:
     HAS_PIL = False
 
-try:
-    subprocess.run("pdflatex", check=True)
-except OSError as ex:
-    HAS_PDFLATEX = False
-
-
 from qiskit import user_config
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.visualization.exceptions import VisualizationError
@@ -51,6 +45,11 @@ from qiskit.visualization import latex as _latex
 from qiskit.visualization import text as _text
 from qiskit.visualization import utils
 from qiskit.visualization import matplotlib as _matplotlib
+
+try:
+    subprocess.run("pdflatex", check=True)
+except OSError as ex:
+    HAS_PDFLATEX = False
 
 logger = logging.getLogger(__name__)
 
@@ -313,6 +312,9 @@ def _text_circuit_drawer(
 
     Returns:
         TextDrawing: An instance that, when printed, draws the circuit in ascii art.
+
+    Raises:
+        ValueError: When the filename extenstion is not .txt.
     """
     qubits, clbits, nodes = utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
@@ -399,6 +401,7 @@ def _latex_circuit_drawer(
                  missing.
         CalledProcessError: usually points to errors during diagram creation.
         MissingOptionalLibraryError: if pillow is not installed
+        ValueError: If unsupported image format is given as filename extension.
     """
     tmpfilename = "circuit"
     with tempfile.TemporaryDirectory() as tmpdirname:
