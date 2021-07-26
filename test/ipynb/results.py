@@ -147,16 +147,16 @@ class Results:
         ret = ""
 
         if len(self.mismatch) >= 2:
-            Results._zipfiles(self.mismatch, "{self.directory}/mismatch.zip")
+            Results._zipfiles(self.mismatch, f"{self.directory}/mismatch.zip")
             ret += (
-                '<div><a href="{self.directory}/mismatch.zip">'
+                f'<div><a href="{self.directory}/mismatch.zip">'
                 "Download %s mismatch results as a zip</a></div>" % len(self.mismatch)
             )
 
         if len(self.missing) >= 2:
-            Results._zipfiles(self.missing, "{self.directory}/missing.zip")
+            Results._zipfiles(self.missing, f"{self.directory}/missing.zip")
             ret += (
-                '<div><a href="{self.directory}/missing.zip">'
+                f'<div><a href="{self.directory}/missing.zip">'
                 "Download %s missing results as a zip</a></div>" % len(self.missing)
             )
 
@@ -193,7 +193,7 @@ class Results:
         return ret
 
 
-if __name__ == "__main__":
+def test_mpl_circuit_drawer():
     # collect results for circuit tests
     RESULT_FILES_CIRCUIT = []
     for file in os.listdir(os.path.join(SWD, "mpl/circuit")):
@@ -202,6 +202,9 @@ if __name__ == "__main__":
     RESULTS_CIRCUIT = Results(sorted(RESULT_FILES_CIRCUIT), "mpl/circuit")
     RESULTS_CIRCUIT.diff_images()
 
+    return RESULTS_CIRCUIT
+
+def test_mpl_graph_drawer():
     # collect results for graph tests
     RESULT_FILES_GRAPH = []
     for file in os.listdir(os.path.join(SWD, "mpl/graph")):
@@ -209,3 +212,16 @@ if __name__ == "__main__":
             RESULT_FILES_GRAPH.append(file)
     RESULTS_GRAPH = Results(sorted(RESULT_FILES_GRAPH), "mpl/graph")
     RESULTS_GRAPH.diff_images()
+
+    return RESULTS_GRAPH
+
+def test_latex_drawer():
+    # collect results for latex tests
+    RESULT_FILES_LATEX = []
+    for file in os.listdir(os.path.join(SWD, "latex")):
+        if file.endswith(".png") and not file.endswith(".diff.png"):
+            RESULT_FILES_LATEX.append(file)
+    RESULTS_LATEX = Results(sorted(RESULT_FILES_LATEX), "latex")
+    RESULTS_LATEX.diff_images()
+
+    return RESULTS_LATEX
