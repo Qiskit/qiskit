@@ -324,7 +324,6 @@ class TemplateSubstitution:
 
             # Fake bind any parameters in the template
             template = self._attempt_bind(template_sublist, circuit_sublist)
-            import pdb; pdb.set_trace()
 
             if template is None:
                 continue
@@ -504,8 +503,8 @@ class TemplateSubstitution:
         equations, circ_dict, temp_symbols, sol, fake_bind = [], {}, set(), {}, {}
         for t_idx, temp_params in enumerate(template_params):
             if isinstance(temp_params, ParameterExpression):
-                circ_param = ''.join(''.join(str(circuit_params[t_idx]).split('$')).split('\\'))
-                equations.append(sym.Eq(parse_expr(str(temp_params)), parse_expr(circ_param)))
+                circ_param_str = ''.join(''.join(str(circuit_params[t_idx]).split('$')).split('\\'))
+                equations.append(sym.Eq(parse_expr(str(temp_params)), parse_expr(circ_param_str)))
 
                 for param in temp_params.parameters:
                     temp_symbols.add(param)
@@ -534,12 +533,8 @@ class TemplateSubstitution:
             bound_params = []
             for param in node.op.params:
                 if isinstance(param, ParameterExpression):
-                    try:
-                        #bound_params.append(float(param.bind(fake_bind)))
-                        for key in fake_bind:
-                            bound_params.append(param.assign(key, fake_bind[key]))
-                    except KeyError:
-                        return None
+                    for key in fake_bind:
+                        bound_params.append(param.assign(key, fake_bind[key]))
                 else:
                     bound_params.append(param)
 
