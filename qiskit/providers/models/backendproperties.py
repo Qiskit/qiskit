@@ -30,6 +30,7 @@ class Nduv:
         unit: unit.
         value: value.
     """
+
     def __init__(self, date, name, unit, value):
         """Initialize a new name-date-unit-value object
 
@@ -59,16 +60,16 @@ class Nduv:
         return cls(**data)
 
     def to_dict(self):
-        """Return a dictionary format representation of the BackendStatus.
+        """Return a dictionary format representation of the object.
 
         Returns:
             dict: The dictionary form of the Nduv.
         """
         out_dict = {
-            'date': self.date,
-            'name': self.name,
-            'unit': self.unit,
-            'value': self.value,
+            "date": self.date,
+            "name": self.name,
+            "unit": self.unit,
+            "value": self.value,
         }
         return out_dict
 
@@ -79,17 +80,16 @@ class Nduv:
         return False
 
     def __repr__(self):
-        return "Nduv(%s, %s, %s, %s)" % (repr(self.date), self.name, self.unit,
-                                         self.value)
+        return f"Nduv({repr(self.date)}, {self.name}, {self.unit}, {self.value})"
 
 
 class Gate:
     """Class representing a gate's properties
 
-          Attributes:
-          qubits: qubits.
-          gate: gate.
-          parameters: parameters.
+    Attributes:
+    qubits: qubits.
+    gate: gate.
+    parameters: parameters.
     """
 
     _data = {}
@@ -114,7 +114,7 @@ class Gate:
         try:
             return self._data[name]
         except KeyError as ex:
-            raise AttributeError(f'Attribute {name} is not defined') from ex
+            raise AttributeError(f"Attribute {name} is not defined") from ex
 
     @classmethod
     def from_dict(cls, data):
@@ -130,9 +130,9 @@ class Gate:
         """
         in_data = copy.copy(data)
         nduvs = []
-        for nduv in in_data.pop('parameters'):
+        for nduv in in_data.pop("parameters"):
             nduvs.append(Nduv.from_dict(nduv))
-        in_data['parameters'] = nduvs
+        in_data["parameters"] = nduvs
         return cls(**in_data)
 
     def to_dict(self):
@@ -142,9 +142,9 @@ class Gate:
             dict: The dictionary form of the Gate.
         """
         out_dict = {}
-        out_dict['qubits'] = self.qubits
-        out_dict['gate'] = self.gate
-        out_dict['parameters'] = [x.to_dict() for x in self.parameters]
+        out_dict["qubits"] = self.qubits
+        out_dict["gate"] = self.gate
+        out_dict["parameters"] = [x.to_dict() for x in self.parameters]
         out_dict.update(self._data)
         return out_dict
 
@@ -165,8 +165,9 @@ class BackendProperties:
 
     _data = {}
 
-    def __init__(self, backend_name, backend_version, last_update_date, qubits,
-                 gates, general, **kwargs):
+    def __init__(
+        self, backend_name, backend_version, last_update_date, qubits, gates, general, **kwargs
+    ):
         """Initialize a BackendProperties instance.
 
         Args:
@@ -215,7 +216,7 @@ class BackendProperties:
         try:
             return self._data[name]
         except KeyError as ex:
-            raise AttributeError(f'Attribute {name} is not defined') from ex
+            raise AttributeError(f"Attribute {name} is not defined") from ex
 
     @classmethod
     def from_dict(cls, data):
@@ -231,19 +232,20 @@ class BackendProperties:
                                dictionary.
         """
         in_data = copy.copy(data)
-        backend_name = in_data.pop('backend_name')
-        backend_version = in_data.pop('backend_version')
-        last_update_date = in_data.pop('last_update_date')
+        backend_name = in_data.pop("backend_name")
+        backend_version = in_data.pop("backend_version")
+        last_update_date = in_data.pop("last_update_date")
         qubits = []
-        for qubit in in_data.pop('qubits'):
+        for qubit in in_data.pop("qubits"):
             nduvs = []
             for nduv in qubit:
                 nduvs.append(Nduv.from_dict(nduv))
             qubits.append(nduvs)
-        gates = [Gate.from_dict(x) for x in in_data.pop('gates')]
-        general = [Nduv.from_dict(x) for x in in_data.pop('general')]
-        return cls(backend_name, backend_version, last_update_date,
-                   qubits, gates, general, **in_data)
+        gates = [Gate.from_dict(x) for x in in_data.pop("gates")]
+        general = [Nduv.from_dict(x) for x in in_data.pop("general")]
+        return cls(
+            backend_name, backend_version, last_update_date, qubits, gates, general, **in_data
+        )
 
     def to_dict(self):
         """Return a dictionary format representation of the BackendProperties.
@@ -252,18 +254,18 @@ class BackendProperties:
             dict: The dictionary form of the BackendProperties.
         """
         out_dict = {
-            'backend_name': self.backend_name,
-            'backend_version': self.backend_version,
-            'last_update_date': self.last_update_date
+            "backend_name": self.backend_name,
+            "backend_version": self.backend_version,
+            "last_update_date": self.last_update_date,
         }
-        out_dict['qubits'] = []
+        out_dict["qubits"] = []
         for qubit in self.qubits:
             qubit_props = []
             for item in qubit:
                 qubit_props.append(item.to_dict())
-            out_dict['qubits'].append(qubit_props)
-        out_dict['gates'] = [x.to_dict() for x in self.gates]
-        out_dict['general'] = [x.to_dict() for x in self.general]
+            out_dict["qubits"].append(qubit_props)
+        out_dict["gates"] = [x.to_dict() for x in self.gates]
+        out_dict["general"] = [x.to_dict() for x in self.general]
         out_dict.update(self._data)
         return out_dict
 
@@ -273,10 +275,9 @@ class BackendProperties:
                 return True
         return False
 
-    def gate_property(self,
-                      gate: str,
-                      qubits: Union[int, Iterable[int]] = None,
-                      name: str = None) -> Tuple[Any, datetime.datetime]:
+    def gate_property(
+        self, gate: str, qubits: Union[int, Iterable[int]] = None, name: str = None
+    ) -> Tuple[Any, datetime.datetime]:
         """
         Return the property of the given gate.
 
@@ -301,15 +302,13 @@ class BackendProperties:
                 if name:
                     result = result[name]
             elif name:
-                raise BackendPropertyError("Provide qubits to get {n} of {g}".format(n=name,
-                                                                                     g=gate))
+                raise BackendPropertyError(f"Provide qubits to get {name} of {gate}")
         except KeyError as ex:
             raise BackendPropertyError(f"Could not find the desired property for {gate}") from ex
         return result
 
     def faulty_qubits(self):
-        """Return a list of faulty qubits.
-        """
+        """Return a list of faulty qubits."""
         faulty = []
         for qubit in self._qubits:
             if not self.is_qubit_operational(qubit):
@@ -317,17 +316,14 @@ class BackendProperties:
         return faulty
 
     def faulty_gates(self):
-        """Return a list of faulty gates.
-        """
+        """Return a list of faulty gates."""
         faulty = []
         for gate in self.gates:
             if not self.is_gate_operational(gate.gate, gate.qubits):
                 faulty.append(gate)
         return faulty
 
-    def is_gate_operational(self,
-                            gate: str,
-                            qubits: Union[int, Iterable[int]] = None) -> bool:
+    def is_gate_operational(self, gate: str, qubits: Union[int, Iterable[int]] = None) -> bool:
         """
         Return the operational status of the given gate.
 
@@ -340,8 +336,8 @@ class BackendProperties:
             False otherwise.
         """
         properties = self.gate_property(gate, qubits)
-        if 'operational' in properties:
-            return bool(properties['operational'][0])
+        if "operational" in properties:
+            return bool(properties["operational"][0])
         return True  # if property operational not existent, then True.
 
     def gate_error(self, gate: str, qubits: Union[int, Iterable[int]]) -> float:
@@ -355,8 +351,7 @@ class BackendProperties:
         Returns:
             Gate error of the given gate and qubit(s).
         """
-        return self.gate_property(gate, qubits,
-                                  'gate_error')[0]  # Throw away datetime at index 1
+        return self.gate_property(gate, qubits, "gate_error")[0]  # Throw away datetime at index 1
 
     def gate_length(self, gate: str, qubits: Union[int, Iterable[int]]) -> float:
         """
@@ -369,12 +364,9 @@ class BackendProperties:
         Returns:
             Gate length of the given gate and qubit(s).
         """
-        return self.gate_property(gate, qubits,
-                                  'gate_length')[0]  # Throw away datetime at index 1
+        return self.gate_property(gate, qubits, "gate_length")[0]  # Throw away datetime at index 1
 
-    def qubit_property(self,
-                       qubit: int,
-                       name: str = None) -> Tuple[Any, datetime.datetime]:
+    def qubit_property(self, qubit: int, name: str = None) -> Tuple[Any, datetime.datetime]:
         """
         Return the property of the given qubit.
 
@@ -393,9 +385,10 @@ class BackendProperties:
             if name is not None:
                 result = result[name]
         except KeyError as ex:
-            raise BackendPropertyError("Couldn't find the propert{name} for qubit "
-                                       "{qubit}.".format(name="y '" + name + "'" if name else "ies",
-                                                         qubit=qubit)) from ex
+            raise BackendPropertyError(
+                "Couldn't find the propert{name} for qubit "
+                "{qubit}.".format(name="y '" + name + "'" if name else "ies", qubit=qubit)
+            ) from ex
         return result
 
     def t1(self, qubit: int) -> float:  # pylint: disable=invalid-name
@@ -408,7 +401,7 @@ class BackendProperties:
         Returns:
             T1 time of the given qubit.
         """
-        return self.qubit_property(qubit, 'T1')[0]  # Throw away datetime at index 1
+        return self.qubit_property(qubit, "T1")[0]  # Throw away datetime at index 1
 
     def t2(self, qubit: int) -> float:  # pylint: disable=invalid-name
         """
@@ -420,7 +413,7 @@ class BackendProperties:
         Returns:
             T2 time of the given qubit.
         """
-        return self.qubit_property(qubit, 'T2')[0]  # Throw away datetime at index 1
+        return self.qubit_property(qubit, "T2")[0]  # Throw away datetime at index 1
 
     def frequency(self, qubit: int) -> float:
         """
@@ -432,7 +425,7 @@ class BackendProperties:
         Returns:
             Frequency of the given qubit.
         """
-        return self.qubit_property(qubit, 'frequency')[0]  # Throw away datetime at index 1
+        return self.qubit_property(qubit, "frequency")[0]  # Throw away datetime at index 1
 
     def readout_error(self, qubit: int) -> float:
         """
@@ -444,7 +437,7 @@ class BackendProperties:
         Return:
             Readout error of the given qubit.
         """
-        return self.qubit_property(qubit, 'readout_error')[0]  # Throw away datetime at index 1
+        return self.qubit_property(qubit, "readout_error")[0]  # Throw away datetime at index 1
 
     def readout_length(self, qubit: int) -> float:
         """
@@ -456,7 +449,7 @@ class BackendProperties:
         Return:
             Readout length of the given qubit.
         """
-        return self.qubit_property(qubit, 'readout_length')[0]  # Throw away datetime at index 1
+        return self.qubit_property(qubit, "readout_length")[0]  # Throw away datetime at index 1
 
     def is_qubit_operational(self, qubit: int) -> bool:
         """
@@ -469,8 +462,8 @@ class BackendProperties:
             Operational status of the given qubit.
         """
         properties = self.qubit_property(qubit)
-        if 'operational' in properties:
-            return bool(properties['operational'][0])
+        if "operational" in properties:
+            return bool(properties["operational"][0])
         return True  # if property operational not existent, then True.
 
     def _apply_prefix(self, value: float, unit: str) -> float:

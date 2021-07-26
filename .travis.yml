@@ -53,7 +53,7 @@ jobs:
         - coveralls || true
         - coverage xml || true
         - pip install diff-cover || true
-        - diff-cover --compare-branch master coverage.xml || true
+        - diff-cover --compare-branch main coverage.xml || true
 
     # Randomized testing
     - name: Randomized tests

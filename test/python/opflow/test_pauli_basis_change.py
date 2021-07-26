@@ -27,7 +27,7 @@ class TestPauliCoB(QiskitOpflowTestCase):
     """Pauli Change of Basis Converter tests."""
 
     def test_pauli_cob_singles(self):
-        """ from to file test """
+        """from to file test"""
         singles = [X, Y, Z]
         dests = [None, Y]
         for pauli, dest in itertools.product(singles, dests):
@@ -36,26 +36,30 @@ class TestPauliCoB(QiskitOpflowTestCase):
             inst, dest = converter.get_cob_circuit(pauli.primitive)
             cob = converter.convert(pauli)
             np.testing.assert_array_almost_equal(
-                pauli.to_matrix(), inst.adjoint().to_matrix() @ dest.to_matrix() @ inst.to_matrix())
+                pauli.to_matrix(), inst.adjoint().to_matrix() @ dest.to_matrix() @ inst.to_matrix()
+            )
             np.testing.assert_array_almost_equal(pauli.to_matrix(), cob.to_matrix())
             np.testing.assert_array_almost_equal(
-                inst.compose(pauli).compose(inst.adjoint()).to_matrix(), dest.to_matrix())
+                inst.compose(pauli).compose(inst.adjoint()).to_matrix(), dest.to_matrix()
+            )
 
     def test_pauli_cob_two_qubit(self):
-        """ pauli cob two qubit test """
+        """pauli cob two qubit test"""
         multis = [Y ^ X, Z ^ Y, I ^ Z, Z ^ I, X ^ X, I ^ X]
         for pauli, dest in itertools.product(multis, reversed(multis)):
             converter = PauliBasisChange(destination_basis=dest)
             inst, dest = converter.get_cob_circuit(pauli.primitive)
             cob = converter.convert(pauli)
             np.testing.assert_array_almost_equal(
-                pauli.to_matrix(), inst.adjoint().to_matrix() @ dest.to_matrix() @ inst.to_matrix())
+                pauli.to_matrix(), inst.adjoint().to_matrix() @ dest.to_matrix() @ inst.to_matrix()
+            )
             np.testing.assert_array_almost_equal(pauli.to_matrix(), cob.to_matrix())
             np.testing.assert_array_almost_equal(
-                inst.compose(pauli).compose(inst.adjoint()).to_matrix(), dest.to_matrix())
+                inst.compose(pauli).compose(inst.adjoint()).to_matrix(), dest.to_matrix()
+            )
 
     def test_pauli_cob_multiqubit(self):
-        """ pauli cob multi qubit test """
+        """pauli cob multi qubit test"""
         # Helpful prints for debugging commented out below.
         multis = [Y ^ X ^ I ^ I, I ^ Z ^ Y ^ X, X ^ Y ^ I ^ Z, I ^ I ^ I ^ X, X ^ X ^ X ^ X]
         for pauli, dest in itertools.product(multis, reversed(multis)):
@@ -68,13 +72,15 @@ class TestPauliCoB(QiskitOpflowTestCase):
             # print(pauli.to_matrix())
             # print(np.round(inst.adjoint().to_matrix() @ cob.to_matrix()))
             np.testing.assert_array_almost_equal(
-                pauli.to_matrix(), inst.adjoint().to_matrix() @ dest.to_matrix() @ inst.to_matrix())
+                pauli.to_matrix(), inst.adjoint().to_matrix() @ dest.to_matrix() @ inst.to_matrix()
+            )
             np.testing.assert_array_almost_equal(pauli.to_matrix(), cob.to_matrix())
             np.testing.assert_array_almost_equal(
-                inst.compose(pauli).compose(inst.adjoint()).to_matrix(), dest.to_matrix())
+                inst.compose(pauli).compose(inst.adjoint()).to_matrix(), dest.to_matrix()
+            )
 
     def test_pauli_cob_traverse(self):
-        """ pauli cob traverse test """
+        """pauli cob traverse test"""
         # Helpful prints for debugging commented out below.
         multis = [(X ^ Y) + (I ^ Z) + (Z ^ Z), (Y ^ X ^ I ^ I) + (I ^ Z ^ Y ^ X)]
         dests = [Y ^ Y, I ^ I ^ I ^ Z]
@@ -96,7 +102,7 @@ class TestPauliCoB(QiskitOpflowTestCase):
             np.testing.assert_array_almost_equal(paulis.to_matrix(), sum(cob_mat))
 
     def test_grouped_pauli(self):
-        """ grouped pauli test """
+        """grouped pauli test"""
         pauli = 2 * (I ^ I) + (X ^ I) + 3 * (X ^ Y)
         grouped_pauli = PauliSumOp(pauli.primitive, grouping_type="TPB")
 
@@ -109,14 +115,16 @@ class TestPauliCoB(QiskitOpflowTestCase):
         origin_pauli = Pauli((origin_z, origin_x))
         inst, dest = converter.get_cob_circuit(origin_pauli)
         self.assertEqual(str(dest), "ZZ")
-        expected_inst = np.array([
-            [0.5, -0.5j, 0.5, -0.5j],
-            [0.5, 0.5j, 0.5, 0.5j],
-            [0.5, -0.5j, -0.5, 0.5j],
-            [0.5, 0.5j, -0.5, -0.5j]
-        ])
+        expected_inst = np.array(
+            [
+                [0.5, -0.5j, 0.5, -0.5j],
+                [0.5, 0.5j, 0.5, 0.5j],
+                [0.5, -0.5j, -0.5, 0.5j],
+                [0.5, 0.5j, -0.5, -0.5j],
+            ]
+        )
         np.testing.assert_array_almost_equal(inst.to_matrix(), expected_inst)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

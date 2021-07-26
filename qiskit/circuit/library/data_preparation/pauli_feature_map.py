@@ -103,16 +103,18 @@ class PauliFeatureMap(NLocal):
            `arXiv:1804.11326 <https://arxiv.org/abs/1804.11326>`_
     """
 
-    def __init__(self,
-                 feature_dimension: Optional[int] = None,
-                 reps: int = 2,
-                 entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = 'full',
-                 alpha: float = 2.0,
-                 paulis: Optional[List[str]] = None,
-                 data_map_func: Optional[Callable[[np.ndarray], float]] = None,
-                 parameter_prefix: str = 'x',
-                 insert_barriers: bool = False,
-                 ) -> None:
+    def __init__(
+        self,
+        feature_dimension: Optional[int] = None,
+        reps: int = 2,
+        entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = "full",
+        alpha: float = 2.0,
+        paulis: Optional[List[str]] = None,
+        data_map_func: Optional[Callable[[np.ndarray], float]] = None,
+        parameter_prefix: str = "x",
+        insert_barriers: bool = False,
+        name: str = "PauliFeatureMap",
+    ) -> None:
         """Create a new Pauli expansion circuit.
 
         Args:
@@ -131,20 +133,24 @@ class PauliFeatureMap(NLocal):
 
         """
 
-        super().__init__(num_qubits=feature_dimension,
-                         reps=reps,
-                         rotation_blocks=HGate(),
-                         entanglement=entanglement,
-                         parameter_prefix=parameter_prefix,
-                         insert_barriers=insert_barriers,
-                         skip_final_rotation_layer=True)
+        super().__init__(
+            num_qubits=feature_dimension,
+            reps=reps,
+            rotation_blocks=HGate(),
+            entanglement=entanglement,
+            parameter_prefix=parameter_prefix,
+            insert_barriers=insert_barriers,
+            skip_final_rotation_layer=True,
+            name=name,
+        )
 
         self._data_map_func = data_map_func or self_product
-        self._paulis = paulis or ['Z', 'ZZ']
+        self._paulis = paulis or ["Z", "ZZ"]
         self._alpha = alpha
 
-    def _parameter_generator(self, rep: int, block: int, indices: List[int]
-                             ) -> Optional[List[Parameter]]:
+    def _parameter_generator(
+        self, rep: int, block: int, indices: List[int]
+    ) -> Optional[List[Parameter]]:
         """If certain blocks should use certain parameters this method can be overriden."""
         params = [self.ordered_parameters[i] for i in indices]
         return params
@@ -219,13 +225,13 @@ class PauliFeatureMap(NLocal):
         self.num_qubits = feature_dimension
 
     def _extract_data_for_rotation(self, pauli, x):
-        where_non_i = np.where(np.asarray(list(pauli[::-1])) != 'I')[0]
+        where_non_i = np.where(np.asarray(list(pauli[::-1])) != "I")[0]
         x = np.asarray(x)
         return x[where_non_i]
 
     def pauli_block(self, pauli_string):
         """Get the Pauli block for the feature map circuit."""
-        params = ParameterVector('_', length=len(pauli_string))
+        params = ParameterVector("_", length=len(pauli_string))
         time = self._data_map_func(np.asarray(params))
         return self.pauli_evolution(pauli_string, time)
 
@@ -238,7 +244,7 @@ class PauliFeatureMap(NLocal):
         trimmed = []
         indices = []
         for i, pauli in enumerate(pauli_string):
-            if pauli != 'I':
+            if pauli != "I":
                 trimmed += [pauli]
                 indices += [i]
 
@@ -249,9 +255,9 @@ class PauliFeatureMap(NLocal):
 
         def basis_change(circuit, inverse=False):
             for i, pauli in enumerate(pauli_string):
-                if pauli == 'X':
+                if pauli == "X":
                     circuit.h(i)
-                elif pauli == 'Y':
+                elif pauli == "Y":
                     circuit.rx(-np.pi / 2 if inverse else np.pi / 2, i)
 
         def cx_chain(circuit, inverse=False):

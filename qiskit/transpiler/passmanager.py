@@ -27,10 +27,7 @@ from .runningpassmanager import RunningPassManager, FlowController
 class PassManager:
     """Manager for a set of Passes and their scheduling during transpilation."""
 
-    def __init__(
-            self,
-            passes: Union[BasePass, List[BasePass]] = None,
-            max_iteration: int = 1000):
+    def __init__(self, passes: Union[BasePass, List[BasePass]] = None, max_iteration: int = 1000):
         """Initialize an empty `PassManager` object (with no passes scheduled).
 
         Args:
@@ -49,10 +46,10 @@ class PassManager:
         self.property_set = None
 
     def append(
-            self,
-            passes: Union[BasePass, List[BasePass]],
-            max_iteration: int = None,
-            **flow_controller_conditions: Any
+        self,
+        passes: Union[BasePass, List[BasePass]],
+        max_iteration: int = None,
+        **flow_controller_conditions: Any,
     ) -> None:
         """Append a Pass Set to the schedule of passes.
 
@@ -78,14 +75,14 @@ class PassManager:
             self.max_iteration = max_iteration
 
         passes = PassManager._normalize_passes(passes)
-        self._pass_sets.append({'passes': passes, 'flow_controllers': flow_controller_conditions})
+        self._pass_sets.append({"passes": passes, "flow_controllers": flow_controller_conditions})
 
     def replace(
-            self,
-            index: int,
-            passes: Union[BasePass, List[BasePass]],
-            max_iteration: int = None,
-            **flow_controller_conditions: Any
+        self,
+        index: int,
+        passes: Union[BasePass, List[BasePass]],
+        max_iteration: int = None,
+        **flow_controller_conditions: Any,
     ) -> None:
         """Replace a particular pass in the scheduler.
 
@@ -110,10 +107,12 @@ class PassManager:
         passes = PassManager._normalize_passes(passes)
 
         try:
-            self._pass_sets[index] = {'passes': passes,
-                                      'flow_controllers': flow_controller_conditions}
+            self._pass_sets[index] = {
+                "passes": passes,
+                "flow_controllers": flow_controller_conditions,
+            }
         except IndexError as ex:
-            raise TranspilerError(f'Index to replace {index} does not exists') from ex
+            raise TranspilerError(f"Index to replace {index} does not exists") from ex
 
     def remove(self, index: int) -> None:
         """Removes a particular pass in the scheduler.
@@ -127,7 +126,7 @@ class PassManager:
         try:
             del self._pass_sets[index]
         except IndexError as ex:
-            raise TranspilerError(f'Index to replace {index} does not exists') from ex
+            raise TranspilerError(f"Index to replace {index} does not exists") from ex
 
     def __setitem__(self, index, item):
         self.replace(index, item)
@@ -156,26 +155,27 @@ class PassManager:
                 return new_passmanager
             except TranspilerError as ex:
                 raise TypeError(
-                    f'unsupported operand type + for {self.__class__} and {other.__class__}'
+                    f"unsupported operand type + for {self.__class__} and {other.__class__}"
                 ) from ex
 
     @staticmethod
-    def _normalize_passes(passes: Union[BasePass, List[BasePass], FlowController])\
-            -> List[BasePass]:
+    def _normalize_passes(
+        passes: Union[BasePass, List[BasePass], FlowController]
+    ) -> List[BasePass]:
         if isinstance(passes, FlowController):
             return passes
         if isinstance(passes, BasePass):
             passes = [passes]
         for pass_ in passes:
             if not isinstance(pass_, BasePass):
-                raise TranspilerError('%s is not a pass instance' % pass_.__class__)
+                raise TranspilerError("%s is not a pass instance" % pass_.__class__)
         return passes
 
     def run(
-            self,
-            circuits: Union[QuantumCircuit, List[QuantumCircuit]],
-            output_name: str = None,
-            callback: Callable = None
+        self,
+        circuits: Union[QuantumCircuit, List[QuantumCircuit]],
+        output_name: str = None,
+        callback: Callable = None,
     ) -> Union[QuantumCircuit, List[QuantumCircuit]]:
         """Run all the passes on the specified ``circuits``.
 
@@ -222,7 +222,7 @@ class PassManager:
     def _create_running_passmanager(self) -> RunningPassManager:
         running_passmanager = RunningPassManager(self.max_iteration)
         for pass_set in self._pass_sets:
-            running_passmanager.append(pass_set['passes'], **pass_set['flow_controllers'])
+            running_passmanager.append(pass_set["passes"], **pass_set["flow_controllers"])
         return running_passmanager
 
     @staticmethod
@@ -233,10 +233,7 @@ class PassManager:
         return result
 
     def _run_several_circuits(
-            self,
-            circuits: List[QuantumCircuit],
-            output_name: str = None,
-            callback: Callable = None
+        self, circuits: List[QuantumCircuit], output_name: str = None, callback: Callable = None
     ) -> List[QuantumCircuit]:
         """Run all the passes on the specified ``circuits``.
 
@@ -253,14 +250,12 @@ class PassManager:
         del output_name
         del callback
 
-        return parallel_map(PassManager._in_parallel, circuits,
-                            task_kwargs={'pm_dill': dill.dumps(self)})
+        return parallel_map(
+            PassManager._in_parallel, circuits, task_kwargs={"pm_dill": dill.dumps(self)}
+        )
 
     def _run_single_circuit(
-            self,
-            circuit: QuantumCircuit,
-            output_name: str = None,
-            callback: Callable = None
+        self, circuit: QuantumCircuit, output_name: str = None, callback: Callable = None
     ) -> QuantumCircuit:
         """Run all the passes on a ``circuit``.
 
@@ -310,10 +305,10 @@ class PassManager:
         """
         ret = []
         for pass_set in self._pass_sets:
-            item = {'passes': pass_set['passes']}
-            if pass_set['flow_controllers']:
-                item['flow_controllers'] = set(pass_set['flow_controllers'].keys())
+            item = {"passes": pass_set["passes"]}
+            if pass_set["flow_controllers"]:
+                item["flow_controllers"] = set(pass_set["flow_controllers"].keys())
             else:
-                item['flow_controllers'] = {}
+                item["flow_controllers"] = {}
             ret.append(item)
         return ret

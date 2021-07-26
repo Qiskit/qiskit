@@ -54,7 +54,7 @@ def is_aer_provider_available():
         bool: True if simulator executable is available
     """
     # TODO: HACK FROM THE DEPTHS OF DESPAIR AS AER DOES NOT WORK ON MAC
-    if sys.platform == 'darwin':
+    if sys.platform == "darwin":
         return False
     try:
         import qiskit.providers.aer  # pylint: disable=unused-import
@@ -72,7 +72,7 @@ def requires_aer_provider(test_item):
     Returns:
         callable: the decorated function.
     """
-    reason = 'Aer provider not found, skipping test'
+    reason = "Aer provider not found, skipping test"
     return unittest.skipIf(not is_aer_provider_available(), reason)(test_item)
 
 
@@ -88,9 +88,9 @@ def slow_test(func):
 
     @functools.wraps(func)
     def _wrapper(*args, **kwargs):
-        skip_slow = not TEST_OPTIONS['run_slow']
+        skip_slow = not TEST_OPTIONS["run_slow"]
         if skip_slow:
-            raise unittest.SkipTest('Skipping slow tests')
+            raise unittest.SkipTest("Skipping slow tests")
 
         return func(*args, **kwargs)
 
@@ -107,17 +107,18 @@ def _get_credentials():
         SkipTest: when credentials can't be found
     """
     try:
-        from qiskit.providers.ibmq.credentials import (Credentials,
-                                                       discover_credentials)
+        from qiskit.providers.ibmq.credentials import Credentials, discover_credentials
     except ImportError as ex:
-        raise unittest.SkipTest('qiskit-ibmq-provider could not be found, '
-                                'and is required for executing online tests. '
-                                'To install, run "pip install qiskit-ibmq-provider" '
-                                'or check your installation.') from ex
+        raise unittest.SkipTest(
+            "qiskit-ibmq-provider could not be found, "
+            "and is required for executing online tests. "
+            'To install, run "pip install qiskit-ibmq-provider" '
+            "or check your installation."
+        ) from ex
 
-    if os.getenv('IBMQ_TOKEN') and os.getenv('IBMQ_URL'):
-        return Credentials(os.getenv('IBMQ_TOKEN'), os.getenv('IBMQ_URL'))
-    elif os.getenv('QISKIT_TESTS_USE_CREDENTIALS_FILE'):
+    if os.getenv("IBMQ_TOKEN") and os.getenv("IBMQ_URL"):
+        return Credentials(os.getenv("IBMQ_TOKEN"), os.getenv("IBMQ_URL"))
+    elif os.getenv("QISKIT_TESTS_USE_CREDENTIALS_FILE"):
         # Attempt to read the standard credentials.
         discovered_credentials = discover_credentials()
 
@@ -127,29 +128,31 @@ def _get_credentials():
                 raise unittest.SkipTest(
                     "More than 1 credential set found, use: "
                     "IBMQ_TOKEN and IBMQ_URL env variables to "
-                    "set credentials explicitly")
+                    "set credentials explicitly"
+                )
 
             # Use the first available credentials.
             return list(discovered_credentials.values())[0]
     raise unittest.SkipTest(
-        'No IBMQ credentials found for running the test. This is required for '
-        'running online tests.')
+        "No IBMQ credentials found for running the test. This is required for "
+        "running online tests."
+    )
 
 
 def requires_qe_access(func):
     """Deprecated in favor of `online_test`"""
-    warn("`requires_qe_access` is going to be replaced in favor of `online_test`",
-         DeprecationWarning)
+    warn(
+        "`requires_qe_access` is going to be replaced in favor of `online_test`", DeprecationWarning
+    )
 
     @functools.wraps(func)
     def _wrapper(self, *args, **kwargs):
-        if TEST_OPTIONS['skip_online']:
-            raise unittest.SkipTest('Skipping online tests')
+        if TEST_OPTIONS["skip_online"]:
+            raise unittest.SkipTest("Skipping online tests")
 
         credentials = _get_credentials()
         self.using_ibmq_credentials = credentials.is_ibmq()
-        kwargs.update({'qe_token': credentials.token,
-                       'qe_url': credentials.url})
+        kwargs.update({"qe_token": credentials.token, "qe_url": credentials.url})
 
         return func(self, *args, **kwargs)
 
@@ -182,19 +185,18 @@ def online_test(func):
         # To avoid checking the connection in each test
         global HAS_NET_CONNECTION  # pylint: disable=global-statement
 
-        if TEST_OPTIONS['skip_online']:
-            raise unittest.SkipTest('Skipping online tests')
+        if TEST_OPTIONS["skip_online"]:
+            raise unittest.SkipTest("Skipping online tests")
 
         if HAS_NET_CONNECTION is None:
-            HAS_NET_CONNECTION = _has_connection('qiskit.org', 443)
+            HAS_NET_CONNECTION = _has_connection("qiskit.org", 443)
 
         if not HAS_NET_CONNECTION:
             raise unittest.SkipTest("Test requires internet connection.")
 
         credentials = _get_credentials()
         self.using_ibmq_credentials = credentials.is_ibmq()
-        kwargs.update({'qe_token': credentials.token,
-                       'qe_url': credentials.url})
+        kwargs.update({"qe_token": credentials.token, "qe_url": credentials.url})
 
         return func(self, *args, **kwargs)
 

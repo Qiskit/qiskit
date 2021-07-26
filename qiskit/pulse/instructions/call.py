@@ -27,12 +27,16 @@ class Call(instruction.Instruction):
     The ``Call`` instruction represents the calling of a referenced subroutine (schedule).
     It enables code reuse both within the pulse representation and hardware (if supported).
     """
-    # Prefix to use for auto naming.
-    prefix = 'call'
 
-    def __init__(self, subroutine,
-                 value_dict: Optional[Dict[ParameterExpression, ParameterValueType]] = None,
-                 name: Optional[str] = None):
+    # Prefix to use for auto naming.
+    prefix = "call"
+
+    def __init__(
+        self,
+        subroutine,
+        value_dict: Optional[Dict[ParameterExpression, ParameterValueType]] = None,
+        name: Optional[str] = None,
+    ):
         """Define new subroutine.
 
         .. note:: Inline subroutine is mutable. This requires special care for modification.
@@ -49,25 +53,25 @@ class Call(instruction.Instruction):
         from qiskit.pulse.schedule import ScheduleBlock, Schedule
 
         if not isinstance(subroutine, (ScheduleBlock, Schedule)):
-            raise PulseError(f'Subroutine type {subroutine.__class__.__name__} cannot be called.')
+            raise PulseError(f"Subroutine type {subroutine.__class__.__name__} cannot be called.")
 
         value_dict = value_dict or dict()
 
         # initialize parameter template
         # TODO remove self._parameter_table
-        self._arguments = dict()
         if subroutine.is_parameterized():
-            for param in subroutine.parameters:
-                self._arguments[param] = value_dict.get(param, param)
+            self._arguments = {par: value_dict.get(par, par) for par in subroutine.parameters}
+            assigned_subroutine = subroutine.assign_parameters(
+                value_dict=self.arguments, inplace=False
+            )
+        else:
+            self._arguments = dict()
+            assigned_subroutine = subroutine
 
         # create cache data of parameter-assigned subroutine
-        assigned_subroutine = subroutine.assign_parameters(
-            value_dict=self.arguments,
-            inplace=False
-        )
         self._assigned_cache = tuple((self._get_arg_hash(), assigned_subroutine))
 
-        super().__init__(operands=(subroutine, ), name=name or f"{self.prefix}_{subroutine.name}")
+        super().__init__(operands=(subroutine,), name=name or f"{self.prefix}_{subroutine.name}")
 
     @property
     def duration(self) -> Union[int, ParameterExpression]:
@@ -102,10 +106,7 @@ class Call(instruction.Instruction):
             program (Union[Schedule, ScheduleBlock]): Attached program.
         """
         if self._get_arg_hash() != self._assigned_cache[0]:
-            subroutine = self.subroutine.assign_parameters(
-                value_dict=self.arguments,
-                inplace=False
-            )
+            subroutine = self.subroutine.assign_parameters(value_dict=self.arguments, inplace=False)
             # update cache data
             self._assigned_cache = tuple((self._get_arg_hash(), subroutine))
         else:
@@ -113,8 +114,7 @@ class Call(instruction.Instruction):
 
         return subroutine
 
-    def _initialize_parameter_table(self,
-                                    operands: Tuple[Any]):
+    def _initialize_parameter_table(self, operands: Tuple[Any]):
         """A helper method to initialize parameter table.
 
         The behavior of the parameter table of the ``Call`` instruction is slightly different from
@@ -136,9 +136,9 @@ class Call(instruction.Instruction):
                 self._parameter_table[value] = value
 
     @deprecated_functionality
-    def assign_parameters(self,
-                          value_dict: Dict[ParameterExpression, ParameterValueType]
-                          ) -> 'Call':
+    def assign_parameters(
+        self, value_dict: Dict[ParameterExpression, ParameterValueType]
+    ) -> "Call":
         """Store parameters which will be later assigned to the subroutine.
 
         Parameter values are not immediately assigned. The subroutine with parameters
@@ -195,10 +195,12 @@ class Call(instruction.Instruction):
         """
         # validation
         if new_arguments.keys() != self._arguments.keys():
-            new_arg_names = ', '.join(map(repr, new_arguments.keys()))
-            old_arg_names = ', '.join(map(repr, self.arguments.keys()))
-            raise PulseError('Key mismatch between new arguments and existing arguments. '
-                             f'{new_arg_names} != {old_arg_names}')
+            new_arg_names = ", ".join(map(repr, new_arguments.keys()))
+            old_arg_names = ", ".join(map(repr, self.arguments.keys()))
+            raise PulseError(
+                "Key mismatch between new arguments and existing arguments. "
+                f"{new_arg_names} != {old_arg_names}"
+            )
 
         self._arguments = new_arguments
 
@@ -206,7 +208,7 @@ class Call(instruction.Instruction):
         """A helper function to generate hash of parameters."""
         return hash(tuple(self.arguments.items()))
 
-    def __eq__(self, other: 'Instruction') -> bool:
+    def __eq__(self, other: "Instruction") -> bool:
         """Check if this instruction is equal to the `other` instruction.
 
         Instructions are equal if they share the same type, operands, and channels.
@@ -220,3 +222,6 @@ class Call(instruction.Instruction):
             return False
 
         return True
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.assigned_subroutine()}, name='{self.name}')"

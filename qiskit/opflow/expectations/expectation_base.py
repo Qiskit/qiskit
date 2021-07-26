@@ -39,7 +39,7 @@ class ExpectationBase(ConverterBase):
 
     @abstractmethod
     def convert(self, operator: OperatorBase) -> OperatorBase:
-        """ Accept an Operator and return a new Operator with the measurements replaced by
+        """Accept an Operator and return a new Operator with the measurements replaced by
         alternate methods to compute the expectation value.
 
         Args:
@@ -52,7 +52,7 @@ class ExpectationBase(ConverterBase):
 
     @abstractmethod
     def compute_variance(self, exp_op: OperatorBase) -> Union[list, complex, np.ndarray]:
-        """ Compute the variance of the expectation estimator.
+        """Compute the variance of the expectation estimator.
 
         Args:
             exp_op: The full expectation value Operator after sampling.

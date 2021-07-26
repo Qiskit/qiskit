@@ -18,10 +18,9 @@ from github import Github
 
 
 class CIFailureReporter:
-    """Instances of this class can report to GitHub that the CI is failing.
+    """Instances of this class can report to GitHub that the CI is failing."""
 
-    """
-    stable_branch_regex = re.compile(r'^stable/\d+\.\d+')
+    stable_branch_regex = re.compile(r"^stable/\d+\.\d+")
 
     def __init__(self, repository, token):
         """
@@ -47,8 +46,8 @@ class CIFailureReporter:
                 build logs.
             job_name (str): name of the failed ci job.
         """
-        if branch != 'master' and not self.stable_branch_regex.search(branch):
-            return None
+        if branch != "main" and not self.stable_branch_regex.search(branch):
+            return
         key_label = self._key_label(branch, job_name)
         issue_number = self._get_report_issue_number(key_label)
         if issue_number:
@@ -57,20 +56,19 @@ class CIFailureReporter:
             self._report_as_issue(branch, commit, infourl, job_name)
 
     def _key_label(self, branch_name, job_name):
-        if job_name == 'Randomized tests':
-            return 'randomized test'
-        elif job_name == 'Benchmarks':
-            return 'benchmarks failing'
-        elif branch_name == 'master':
-            return 'master failing'
-        elif branch_name.startswith('stable/'):
-            return 'stable failing'
+        if job_name == "Randomized tests":
+            return "randomized test"
+        elif job_name == "Benchmarks":
+            return "benchmarks failing"
+        elif branch_name == "main":
+            return "main failing"
+        elif branch_name.startswith("stable/"):
+            return "stable failing"
         else:
-            return ''
+            return ""
 
     def _get_report_issue_number(self, key_label):
-        query = 'state:open label:"{}" repo:{}'.format(
-            key_label, self._repo)
+        query = f'state:open label:"{key_label}" repo:{self._repo}'
         results = self._api.search_issues(query=query)
         try:
             return results[0].number
@@ -82,7 +80,7 @@ class CIFailureReporter:
         report_exists = self._check_report_existence(issue_number, stamp)
         if not report_exists:
             _, body = _branch_is_failing_template(branch, commit, infourl)
-            message_body = '{}\n{}'.format(stamp, body)
+            message_body = f"{stamp}\n{body}"
             self._post_new_comment(issue_number, message_body)
 
     def _check_report_existence(self, issue_number, target):
@@ -101,9 +99,8 @@ class CIFailureReporter:
         repo = self._api.get_repo(self._repo)
         stamp = _branch_is_failing_stamp(branch, commit)
         title, body = _branch_is_failing_template(branch, commit, infourl)
-        message_body = '{}\n{}'.format(stamp, body)
-        repo.create_issue(title=title, body=message_body,
-                          labels=[key_label])
+        message_body = f"{stamp}\n{body}"
+        repo.create_issue(title=title, body=message_body, labels=[key_label])
 
     def _post_new_comment(self, issue_number, body):
         repo = self._api.get_repo(self._repo)
@@ -112,51 +109,50 @@ class CIFailureReporter:
 
 
 def _branch_is_failing_template(branch, commit, infourl):
-    title = 'Branch `{}` is failing'.format(branch)
-    body = 'Trying to build `{}` at commit {} failed.'.format(branch, commit)
+    title = f"Branch `{branch}` is failing"
+    body = f"Trying to build `{branch}` at commit {commit} failed."
     if infourl:
-        body += '\nMore info at: {}'.format(infourl)
+        body += f"\nMore info at: {infourl}"
     return title, body
 
 
 def _branch_is_failing_stamp(branch, commit):
-    return '<!-- commit {}@{} -->'.format(commit, branch)
+    return f"<!-- commit {commit}@{branch} -->"
 
 
-_REPOSITORY = 'Qiskit/qiskit-terra'
-_GH_TOKEN = os.getenv('GH_TOKEN')
+_REPOSITORY = "Qiskit/qiskit-terra"
+_GH_TOKEN = os.getenv("GH_TOKEN")
 
 
 def _get_repo_name():
-    return os.getenv('TRAVIS_REPO_SLUG') or os.getenv('APPVEYOR_REPO_NAME')
+    return os.getenv("TRAVIS_REPO_SLUG") or os.getenv("APPVEYOR_REPO_NAME")
 
 
 def _get_branch_name():
-    return os.getenv('TRAVIS_BRANCH') or os.getenv('APPVEYOR_REPO_BRANCH')
+    return os.getenv("TRAVIS_BRANCH") or os.getenv("APPVEYOR_REPO_BRANCH")
 
 
 def _get_commit_hash():
-    return os.getenv('TRAVIS_COMMIT') or os.getenv('APPVEYOR_REPO_COMMIT')
+    return os.getenv("TRAVIS_COMMIT") or os.getenv("APPVEYOR_REPO_COMMIT")
 
 
 def _get_job_name():
-    return os.getenv('TRAVIS_JOB_NAME') or os.getenv('APPVEYOR_JOB_NAME')
+    return os.getenv("TRAVIS_JOB_NAME") or os.getenv("APPVEYOR_JOB_NAME")
 
 
 def _get_info_url():
-    if os.getenv('TRAVIS'):
-        job_id = os.getenv('TRAVIS_JOB_ID')
-        return 'https://travis-ci.com/{}/jobs/{}'.format(_REPOSITORY, job_id)
+    if os.getenv("TRAVIS"):
+        job_id = os.getenv("TRAVIS_JOB_ID")
+        return f"https://travis-ci.com/{_REPOSITORY}/jobs/{job_id}"
 
-    if os.getenv('APPVEYOR'):
-        build_id = os.getenv('APPVEYOR_BUILD_ID')
-        return 'https://ci.appveyor.com/project/{}/build/{}'.format(_REPOSITORY, build_id)
+    if os.getenv("APPVEYOR"):
+        build_id = os.getenv("APPVEYOR_BUILD_ID")
+        return f"https://ci.appveyor.com/project/{_REPOSITORY}/build/{build_id}"
 
     return None
 
 
-if __name__ == '__main__':
-    if os.getenv('TRAVIS_EVENT_TYPE', '') == 'push':
+if __name__ == "__main__":
+    if os.getenv("TRAVIS_EVENT_TYPE", "") == "push":
         _REPORTER = CIFailureReporter(_get_repo_name(), _GH_TOKEN)
-        _REPORTER.report(_get_branch_name(), _get_commit_hash(),
-                         _get_info_url(), _get_job_name())
+        _REPORTER.report(_get_branch_name(), _get_commit_hash(), _get_info_url(), _get_job_name())

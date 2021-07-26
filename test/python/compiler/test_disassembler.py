@@ -18,53 +18,74 @@ import numpy as np
 from numpy.testing import assert_allclose
 
 from qiskit import pulse
+from qiskit.compiler.assembler import assemble
 from qiskit.assembler.disassemble import disassemble
 from qiskit.assembler.run_config import RunConfig
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.circuit import Instruction
-from qiskit.compiler.assembler import assemble
+from qiskit.circuit import Gate, Instruction, Parameter
+
+from qiskit.circuit.library import RXGate
+from qiskit.pulse.transforms import target_qobj_transform
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 import qiskit.quantum_info as qi
+
+
+def _parametric_to_waveforms(schedule):
+    instructions = list(schedule.instructions)
+    for i, time_instruction_tuple in enumerate(schedule.instructions):
+        time, instruction = time_instruction_tuple
+        if not isinstance(instruction.pulse, pulse.library.Waveform):
+            new_inst = pulse.Play(instruction.pulse.get_waveform(), instruction.channel)
+            instructions[i] = (time, new_inst)
+    return tuple(instructions)
 
 
 class TestQuantumCircuitDisassembler(QiskitTestCase):
     """Tests for disassembling circuits to qobj."""
 
     def test_disassemble_single_circuit(self):
-        """Test disassembling a single circuit.
-        """
-        qr = QuantumRegister(2, name='q')
-        cr = ClassicalRegister(2, name='c')
-        circ = QuantumCircuit(qr, cr, name='circ')
+        """Test disassembling a single circuit."""
+        qr = QuantumRegister(2, name="q")
+        cr = ClassicalRegister(2, name="c")
+        circ = QuantumCircuit(qr, cr, name="circ")
         circ.h(qr[0])
         circ.cx(qr[0], qr[1])
         circ.measure(qr, cr)
 
-        qobj = assemble(circ, shots=2000, memory=True)
+        qubit_lo_freq = [5e9, 5e9]
+        meas_lo_freq = [6.7e9, 6.7e9]
+        qobj = assemble(
+            circ,
+            shots=2000,
+            memory=True,
+            qubit_lo_freq=qubit_lo_freq,
+            meas_lo_freq=meas_lo_freq,
+        )
         circuits, run_config_out, headers = disassemble(qobj)
         run_config_out = RunConfig(**run_config_out)
         self.assertEqual(run_config_out.n_qubits, 2)
         self.assertEqual(run_config_out.memory_slots, 2)
         self.assertEqual(run_config_out.shots, 2000)
         self.assertEqual(run_config_out.memory, True)
+        self.assertEqual(run_config_out.qubit_lo_freq, qubit_lo_freq)
+        self.assertEqual(run_config_out.meas_lo_freq, meas_lo_freq)
         self.assertEqual(len(circuits), 1)
         self.assertEqual(circuits[0], circ)
         self.assertEqual({}, headers)
 
     def test_disassemble_multiple_circuits(self):
-        """Test disassembling multiple circuits, all should have the same config.
-        """
-        qr0 = QuantumRegister(2, name='q0')
-        qc0 = ClassicalRegister(2, name='c0')
-        circ0 = QuantumCircuit(qr0, qc0, name='circ0')
+        """Test disassembling multiple circuits, all should have the same config."""
+        qr0 = QuantumRegister(2, name="q0")
+        qc0 = ClassicalRegister(2, name="c0")
+        circ0 = QuantumCircuit(qr0, qc0, name="circ0")
         circ0.h(qr0[0])
         circ0.cx(qr0[0], qr0[1])
         circ0.measure(qr0, qc0)
 
-        qr1 = QuantumRegister(3, name='q1')
-        qc1 = ClassicalRegister(3, name='c1')
-        circ1 = QuantumCircuit(qr1, qc1, name='circ0')
+        qr1 = QuantumRegister(3, name="q1")
+        qc1 = ClassicalRegister(3, name="c1")
+        circ1 = QuantumCircuit(qr1, qc1, name="circ0")
         circ1.h(qr1[0])
         circ1.cx(qr1[0], qr1[1])
         circ1.cx(qr1[0], qr1[2])
@@ -84,11 +105,10 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         self.assertEqual({}, headers)
 
     def test_disassemble_no_run_config(self):
-        """Test disassembling with no run_config, relying on default.
-        """
-        qr = QuantumRegister(2, name='q')
-        qc = ClassicalRegister(2, name='c')
-        circ = QuantumCircuit(qr, qc, name='circ')
+        """Test disassembling with no run_config, relying on default."""
+        qr = QuantumRegister(2, name="q")
+        qc = ClassicalRegister(2, name="c")
+        circ = QuantumCircuit(qr, qc, name="circ")
         circ.h(qr[0])
         circ.cx(qr[0], qr[1])
         circ.measure(qr, qc)
@@ -103,11 +123,10 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         self.assertEqual({}, headers)
 
     def test_disassemble_initialize(self):
-        """Test disassembling a circuit with an initialize.
-        """
-        q = QuantumRegister(2, name='q')
-        circ = QuantumCircuit(q, name='circ')
-        circ.initialize([1/np.sqrt(2), 0, 0, 1/np.sqrt(2)], q[:])
+        """Test disassembling a circuit with an initialize."""
+        q = QuantumRegister(2, name="q")
+        circ = QuantumCircuit(q, name="circ")
+        circ.initialize([1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)], q[:])
 
         qobj = assemble(circ)
         circuits, run_config_out, header = disassemble(qobj)
@@ -119,10 +138,9 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         self.assertEqual({}, header)
 
     def test_disassemble_isometry(self):
-        """Test disassembling a circuit with an isometry.
-        """
-        q = QuantumRegister(2, name='q')
-        circ = QuantumCircuit(q, name='circ')
+        """Test disassembling a circuit with an isometry."""
+        q = QuantumRegister(2, name="q")
+        circ = QuantumCircuit(q, name="circ")
         circ.iso(qi.random_unitary(4).data, circ.qubits, [])
         qobj = assemble(circ)
         circuits, run_config_out, header = disassemble(qobj)
@@ -140,11 +158,10 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
 
     def test_opaque_instruction(self):
         """Test the disassembler handles opaque instructions correctly."""
-        opaque_inst = Instruction(name='my_inst', num_qubits=4,
-                                  num_clbits=2, params=[0.5, 0.4])
-        q = QuantumRegister(6, name='q')
-        c = ClassicalRegister(4, name='c')
-        circ = QuantumCircuit(q, c, name='circ')
+        opaque_inst = Instruction(name="my_inst", num_qubits=4, num_clbits=2, params=[0.5, 0.4])
+        q = QuantumRegister(6, name="q")
+        c = ClassicalRegister(4, name="c")
+        circ = QuantumCircuit(q, c, name="circ")
         circ.append(opaque_inst, [q[0], q[2], q[5], q[3]], [c[3], c[0]])
         qobj = assemble(circ)
         circuits, run_config_out, header = disassemble(qobj)
@@ -188,6 +205,21 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         self.assertEqual(circuits[0], qc)
         self.assertEqual({}, header)
 
+    def test_circuit_with_mcx(self):
+        """Verify disassemble handles mcx gate - #6271."""
+        qr = QuantumRegister(5)
+        cr = ClassicalRegister(5)
+        qc = QuantumCircuit(qr, cr)
+        qc.mcx([0, 1, 2], 4)
+        qobj = assemble(qc)
+        circuits, run_config_out, header = disassemble(qobj)
+        run_config_out = RunConfig(**run_config_out)
+        self.assertEqual(run_config_out.n_qubits, 5)
+        self.assertEqual(run_config_out.memory_slots, 5)
+        self.assertEqual(len(circuits), 1)
+        self.assertEqual(circuits[0], qc)
+        self.assertEqual({}, header)
+
     def test_multiple_conditionals_multiple_registers(self):
         """Verify disassemble handles multiple conditionals and registers."""
         qr = QuantumRegister(3)
@@ -211,6 +243,137 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         self.assertEqual(circuits[0], qc)
         self.assertEqual({}, header)
 
+    def assertCircuitCalibrationsEqual(self, in_circuits, out_circuits):
+        """Verify circuit calibrations are equivalent pre-assembly and post-disassembly"""
+        self.assertEqual(len(in_circuits), len(out_circuits))
+        for in_qc, out_qc in zip(in_circuits, out_circuits):
+            in_cals = in_qc.calibrations
+            out_cals = out_qc.calibrations
+            self.assertEqual(in_cals.keys(), out_cals.keys())
+            for gate_name in in_cals:
+                self.assertEqual(in_cals[gate_name].keys(), out_cals[gate_name].keys())
+                for gate_params, in_sched in in_cals[gate_name].items():
+                    out_sched = out_cals[gate_name][gate_params]
+                    self.assertEqual(*map(_parametric_to_waveforms, (in_sched, out_sched)))
+
+    def test_single_circuit_calibrations(self):
+        """Test that disassembler parses single circuit QOBJ calibrations (from QOBJ-level)."""
+        theta = Parameter("theta")
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.rx(np.pi, 0)
+        qc.rx(theta, 1)
+        qc = qc.assign_parameters({theta: np.pi})
+
+        with pulse.build() as h_sched:
+            pulse.play(pulse.library.Drag(1, 0.15, 4, 2), pulse.DriveChannel(0))
+
+        with pulse.build() as x180:
+            pulse.play(pulse.library.Gaussian(1, 0.2, 5), pulse.DriveChannel(0))
+
+        qc.add_calibration("h", [0], h_sched)
+        qc.add_calibration(RXGate(np.pi), [0], x180)
+
+        qobj = assemble(qc, FakeOpenPulse2Q())
+        output_circuits, _, _ = disassemble(qobj)
+
+        self.assertCircuitCalibrationsEqual([qc], output_circuits)
+
+    def test_parametric_pulse_circuit_calibrations(self):
+        """Test that disassembler parses parametric pulses back to pulse gates."""
+        with pulse.build() as h_sched:
+            pulse.play(pulse.library.Drag(50, 0.15, 4, 2), pulse.DriveChannel(0))
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.add_calibration("h", [0], h_sched)
+
+        backend = FakeOpenPulse2Q()
+        backend.configuration().parametric_pulses = ["drag"]
+
+        qobj = assemble(qc, backend)
+        output_circuits, _, _ = disassemble(qobj)
+        out_qc = output_circuits[0]
+
+        self.assertCircuitCalibrationsEqual([qc], output_circuits)
+        self.assertTrue(
+            all(
+                qc_sched.instructions == out_qc_sched.instructions
+                for (_, qc_gate), (_, out_qc_gate) in zip(
+                    qc.calibrations.items(), out_qc.calibrations.items()
+                )
+                for qc_sched, out_qc_sched in zip(qc_gate.values(), out_qc_gate.values())
+            ),
+        )
+
+    def test_multi_circuit_uncommon_calibrations(self):
+        """Test that disassembler parses uncommon calibrations (stored at QOBJ experiment-level)."""
+        with pulse.build() as sched:
+            pulse.play(pulse.library.Drag(50, 0.15, 4, 2), pulse.DriveChannel(0))
+
+        qc_0 = QuantumCircuit(2)
+        qc_0.h(0)
+        qc_0.append(RXGate(np.pi), [1])
+        qc_0.add_calibration("h", [0], sched)
+        qc_0.add_calibration(RXGate(np.pi), [1], sched)
+
+        qc_1 = QuantumCircuit(2)
+        qc_1.h(0)
+
+        circuits = [qc_0, qc_1]
+        qobj = assemble(circuits, FakeOpenPulse2Q())
+        output_circuits, _, _ = disassemble(qobj)
+
+        self.assertCircuitCalibrationsEqual(circuits, output_circuits)
+
+    def test_multi_circuit_common_calibrations(self):
+        """Test that disassembler parses common calibrations (stored at QOBJ-level)."""
+        with pulse.build() as sched:
+            pulse.play(pulse.library.Drag(1, 0.15, 4, 2), pulse.DriveChannel(0))
+
+        qc_0 = QuantumCircuit(2)
+        qc_0.h(0)
+        qc_0.append(RXGate(np.pi), [1])
+        qc_0.add_calibration("h", [0], sched)
+        qc_0.add_calibration(RXGate(np.pi), [1], sched)
+
+        qc_1 = QuantumCircuit(2)
+        qc_1.h(0)
+        qc_1.add_calibration(RXGate(np.pi), [1], sched)
+
+        circuits = [qc_0, qc_1]
+        qobj = assemble(circuits, FakeOpenPulse2Q())
+        output_circuits, _, _ = disassemble(qobj)
+
+        self.assertCircuitCalibrationsEqual(circuits, output_circuits)
+
+    def test_single_circuit_delay_calibrations(self):
+        """Test that disassembler parses delay instruction back to delay gate."""
+        qc = QuantumCircuit(2)
+        qc.append(Gate("test", 1, []), [0])
+        test_sched = pulse.Delay(64, pulse.DriveChannel(0)) + pulse.Delay(
+            160, pulse.DriveChannel(0)
+        )
+
+        qc.add_calibration("test", [0], test_sched)
+
+        qobj = assemble(qc, FakeOpenPulse2Q())
+        output_circuits, _, _ = disassemble(qobj)
+
+        self.assertEqual(len(qc.calibrations), len(output_circuits[0].calibrations))
+        self.assertEqual(qc.calibrations.keys(), output_circuits[0].calibrations.keys())
+        self.assertTrue(
+            all(
+                qc_cal.keys() == out_qc_cal.keys()
+                for qc_cal, out_qc_cal in zip(
+                    qc.calibrations.values(), output_circuits[0].calibrations.values()
+                )
+            )
+        )
+        self.assertEqual(
+            qc.calibrations["test"][((0,), ())], output_circuits[0].calibrations["test"][((0,), ())]
+        )
+
 
 class TestPulseScheduleDisassembler(QiskitTestCase):
     """Tests for disassembling pulse schedules to qobj."""
@@ -219,13 +382,10 @@ class TestPulseScheduleDisassembler(QiskitTestCase):
         super().setUp()
         self.backend = FakeOpenPulse2Q()
         self.backend_config = self.backend.configuration()
-        self.backend_config.parametric_pulses = [
-            'constant', 'gaussian', 'gaussian_square', 'drag'
-        ]
+        self.backend_config.parametric_pulses = ["constant", "gaussian", "gaussian_square", "drag"]
 
     def test_disassemble_single_schedule(self):
-        """Test disassembling a single schedule.
-        """
+        """Test disassembling a single schedule."""
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
         with pulse.build(self.backend) as sched:
@@ -251,11 +411,10 @@ class TestPulseScheduleDisassembler(QiskitTestCase):
         self.assertEqual(run_config_out.qubit_lo_freq, self.backend.defaults().qubit_freq_est)
         self.assertEqual(run_config_out.rep_time, 99)
         self.assertEqual(len(scheds), 1)
-        self.assertEqual(scheds[0], sched)
+        self.assertEqual(scheds[0], target_qobj_transform(sched))
 
     def test_disassemble_multiple_schedules(self):
-        """Test disassembling multiple schedules, all should have the same config.
-        """
+        """Test disassembling multiple schedules, all should have the same config."""
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
         with pulse.build(self.backend) as sched0:
@@ -273,7 +432,7 @@ class TestPulseScheduleDisassembler(QiskitTestCase):
         with pulse.build(self.backend) as sched1:
             with pulse.align_right():
                 pulse.play(pulse.library.Constant(8, 0.1), d0)
-                pulse.play(pulse.library.Waveform([0., 1.]), d1)
+                pulse.play(pulse.library.Waveform([0.0, 1.0]), d1)
                 pulse.set_phase(1.1, d0)
                 pulse.shift_phase(3.5, d0)
                 pulse.set_frequency(2e9, d0)
@@ -290,12 +449,11 @@ class TestPulseScheduleDisassembler(QiskitTestCase):
         self.assertEqual(run_config_out.shots, 2000)
         self.assertEqual(run_config_out.memory, False)
         self.assertEqual(len(scheds), 2)
-        self.assertEqual(scheds[0], sched0)
-        self.assertEqual(scheds[1], sched1)
+        self.assertEqual(scheds[0], target_qobj_transform(sched0))
+        self.assertEqual(scheds[1], target_qobj_transform(sched1))
 
     def test_disassemble_parametric_pulses(self):
-        """Test disassembling multiple schedules all should have the same config.
-        """
+        """Test disassembling multiple schedules all should have the same config."""
         d0 = pulse.DriveChannel(0)
         with pulse.build(self.backend) as sched:
             with pulse.align_right():
@@ -306,7 +464,7 @@ class TestPulseScheduleDisassembler(QiskitTestCase):
 
         qobj = assemble(sched, backend=self.backend, shots=2000)
         scheds, _, _ = disassemble(qobj)
-        self.assertEqual(scheds[0], sched)
+        self.assertEqual(scheds[0], target_qobj_transform(sched))
 
     def test_disassemble_schedule_los(self):
         """Test disassembling schedule los."""
@@ -319,9 +477,9 @@ class TestPulseScheduleDisassembler(QiskitTestCase):
         sched1 = pulse.Schedule()
 
         schedule_los = [
-                        {d0: 4.5e9, d1: 5e9, m0: 6e9, m1: 7e9},
-                        {d0: 5e9, d1: 4.5e9, m0: 7e9, m1: 6e9}
-                        ]
+            {d0: 4.5e9, d1: 5e9, m0: 6e9, m1: 7e9},
+            {d0: 5e9, d1: 4.5e9, m0: 7e9, m1: 6e9},
+        ]
         qobj = assemble([sched0, sched1], backend=self.backend, schedule_los=schedule_los)
         _, run_config_out, _ = disassemble(qobj)
         run_config_out = RunConfig(**run_config_out)
@@ -329,5 +487,5 @@ class TestPulseScheduleDisassembler(QiskitTestCase):
         self.assertEqual(run_config_out.schedule_los, schedule_los)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main(verbosity=2)

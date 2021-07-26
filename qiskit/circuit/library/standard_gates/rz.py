@@ -56,7 +56,7 @@ class RZGate(Gate):
 
     def __init__(self, phi, label=None):
         """Create new RZ gate."""
-        super().__init__('rz', 1, [phi], label=label)
+        super().__init__("rz", 1, [phi], label=label)
 
     def _define(self):
         """
@@ -65,12 +65,11 @@ class RZGate(Gate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
-        q = QuantumRegister(1, 'q')
+
+        q = QuantumRegister(1, "q")
         theta = self.params[0]
         qc = QuantumCircuit(q, name=self.name, global_phase=-theta / 2)
-        rules = [
-            (U1Gate(theta), [q[0]], [])
-        ]
+        rules = [(U1Gate(theta), [q[0]], [])]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 
@@ -104,9 +103,9 @@ class RZGate(Gate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the RZ gate."""
         import numpy as np
+
         ilam2 = 0.5j * float(self.params[0])
-        return np.array([[np.exp(-ilam2), 0],
-                         [0, np.exp(ilam2)]], dtype=dtype)
+        return np.array([[np.exp(-ilam2), 0], [0, np.exp(ilam2)]], dtype=dtype)
 
 
 class CRZGate(ControlledGate):
@@ -172,8 +171,15 @@ class CRZGate(ControlledGate):
 
     def __init__(self, theta, label=None, ctrl_state=None):
         """Create new CRZ gate."""
-        super().__init__('crz', 2, [theta], num_ctrl_qubits=1, label=label,
-                         ctrl_state=ctrl_state, base_gate=RZGate(theta))
+        super().__init__(
+            "crz",
+            2,
+            [theta],
+            num_ctrl_qubits=1,
+            label=label,
+            ctrl_state=ctrl_state,
+            base_gate=RZGate(theta),
+        )
 
     def _define(self):
         """
@@ -185,13 +191,14 @@ class CRZGate(ControlledGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate
-        q = QuantumRegister(2, 'q')
+
+        q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
             (RZGate(self.params[0] / 2), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
             (RZGate(-self.params[0] / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], [])
+            (CXGate(), [q[0], q[1]], []),
         ]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
@@ -205,16 +212,15 @@ class CRZGate(ControlledGate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the CRZ gate."""
         import numpy
+
         arg = 1j * float(self.params[0]) / 2
         if self.ctrl_state:
-            return numpy.array([[1, 0, 0, 0],
-                                [0, numpy.exp(-arg), 0, 0],
-                                [0, 0, 1, 0],
-                                [0, 0, 0, numpy.exp(arg)]],
-                               dtype=dtype)
+            return numpy.array(
+                [[1, 0, 0, 0], [0, numpy.exp(-arg), 0, 0], [0, 0, 1, 0], [0, 0, 0, numpy.exp(arg)]],
+                dtype=dtype,
+            )
         else:
-            return numpy.array([[numpy.exp(-arg), 0, 0, 0],
-                                [0, 1, 0, 0],
-                                [0, 0, numpy.exp(arg), 0],
-                                [0, 0, 0, 1]],
-                               dtype=dtype)
+            return numpy.array(
+                [[numpy.exp(-arg), 0, 0, 0], [0, 1, 0, 0], [0, 0, numpy.exp(arg), 0], [0, 0, 0, 1]],
+                dtype=dtype,
+            )

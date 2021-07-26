@@ -47,7 +47,7 @@ class SGate(Gate):
 
     def __init__(self, label=None):
         """Create new S gate."""
-        super().__init__('s', 1, [], label=label)
+        super().__init__("s", 1, [], label=label)
 
     def _define(self):
         """
@@ -56,11 +56,10 @@ class SGate(Gate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
-        q = QuantumRegister(1, 'q')
+
+        q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (U1Gate(pi / 2), [q[0]], [])
-        ]
+        rules = [(U1Gate(pi / 2), [q[0]], [])]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 
@@ -72,8 +71,7 @@ class SGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the S gate."""
-        return numpy.array([[1, 0],
-                            [0, 1j]], dtype=dtype)
+        return numpy.array([[1, 0], [0, 1j]], dtype=dtype)
 
 
 class SdgGate(Gate):
@@ -105,7 +103,7 @@ class SdgGate(Gate):
 
     def __init__(self, label=None):
         """Create new Sdg gate."""
-        super().__init__('sdg', 1, [], label=label)
+        super().__init__("sdg", 1, [], label=label)
 
     def _define(self):
         """
@@ -114,11 +112,10 @@ class SdgGate(Gate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
-        q = QuantumRegister(1, 'q')
+
+        q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (U1Gate(-pi / 2), [q[0]], [])
-        ]
+        rules = [(U1Gate(-pi / 2), [q[0]], [])]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 
@@ -130,5 +127,4 @@ class SdgGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the Sdg gate."""
-        return numpy.array([[1, 0],
-                            [0, -1j]], dtype=dtype)
+        return numpy.array([[1, 0], [0, -1j]], dtype=dtype)

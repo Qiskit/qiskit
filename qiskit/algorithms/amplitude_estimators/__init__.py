@@ -20,15 +20,15 @@ from .mlae import MaximumLikelihoodAmplitudeEstimation, MaximumLikelihoodAmplitu
 from .estimation_problem import EstimationProblem
 
 __all__ = [
-    'AmplitudeEstimator',
-    'AmplitudeEstimatorResult',
-    'AmplitudeEstimation',
-    'AmplitudeEstimationResult',
-    'FasterAmplitudeEstimation',
-    'FasterAmplitudeEstimationResult',
-    'IterativeAmplitudeEstimation',
-    'IterativeAmplitudeEstimationResult',
-    'MaximumLikelihoodAmplitudeEstimation',
-    'MaximumLikelihoodAmplitudeEstimationResult',
-    'EstimationProblem',
+    "AmplitudeEstimator",
+    "AmplitudeEstimatorResult",
+    "AmplitudeEstimation",
+    "AmplitudeEstimationResult",
+    "FasterAmplitudeEstimation",
+    "FasterAmplitudeEstimationResult",
+    "IterativeAmplitudeEstimation",
+    "IterativeAmplitudeEstimationResult",
+    "MaximumLikelihoodAmplitudeEstimation",
+    "MaximumLikelihoodAmplitudeEstimationResult",
+    "EstimationProblem",
 ]

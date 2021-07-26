@@ -36,7 +36,7 @@ class Measure(Instruction):
             for each_carg in carg:
                 yield qarg, [each_carg]
         else:
-            raise CircuitError('register size error')
+            raise CircuitError("register size error")
 
 
 def measure(self, qubit, cbit):

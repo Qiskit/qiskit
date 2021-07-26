@@ -84,14 +84,14 @@ class Operator(LinearOp):
             # conditional gates, measure, or reset will cause an
             # exception to be raised.
             self._data = self._init_instruction(data).data
-        elif hasattr(data, 'to_operator'):
+        elif hasattr(data, "to_operator"):
             # If the data object has a 'to_operator' attribute this is given
             # higher preference than the 'to_matrix' method for initializing
             # an Operator object.
             data = data.to_operator()
             self._data = data.data
             op_shape = data._op_shape
-        elif hasattr(data, 'to_matrix'):
+        elif hasattr(data, "to_matrix"):
             # If no 'to_operator' attribute exists we next look for a
             # 'to_matrix' attribute to a matrix that will be cast into
             # a complex numpy matrix.
@@ -99,10 +99,12 @@ class Operator(LinearOp):
         else:
             raise QiskitError("Invalid input data format for Operator")
 
-        super().__init__(op_shape=op_shape,
-                         input_dims=input_dims,
-                         output_dims=output_dims,
-                         shape=self._data.shape)
+        super().__init__(
+            op_shape=op_shape,
+            input_dims=input_dims,
+            output_dims=output_dims,
+            shape=self._data.shape,
+        )
 
     def __array__(self, dtype=None):
         if dtype:
@@ -110,24 +112,35 @@ class Operator(LinearOp):
         return self.data
 
     def __repr__(self):
-        prefix = 'Operator('
-        pad = len(prefix) * ' '
-        return '{}{},\n{}input_dims={}, output_dims={})'.format(
-            prefix, np.array2string(
-                self.data, separator=', ', prefix=prefix),
-            pad, self.input_dims(), self.output_dims())
+        prefix = "Operator("
+        pad = len(prefix) * " "
+        return "{}{},\n{}input_dims={}, output_dims={})".format(
+            prefix,
+            np.array2string(self.data, separator=", ", prefix=prefix),
+            pad,
+            self.input_dims(),
+            self.output_dims(),
+        )
 
     def __eq__(self, other):
         """Test if two Operators are equal."""
         if not super().__eq__(other):
             return False
-        return np.allclose(
-            self.data, other.data, rtol=self.rtol, atol=self.atol)
+        return np.allclose(self.data, other.data, rtol=self.rtol, atol=self.atol)
 
     @property
     def data(self):
         """Return data."""
         return self._data
+
+    @property
+    def settings(self):
+        """Return operator settings."""
+        return {
+            "data": self._data,
+            "input_dims": self.input_dims(),
+            "output_dims": self.output_dims(),
+        }
 
     @classmethod
     def from_label(cls, label):
@@ -162,27 +175,27 @@ class Operator(LinearOp):
         """
         # Check label is valid
         label_mats = {
-            'I': IGate().to_matrix(),
-            'X': XGate().to_matrix(),
-            'Y': YGate().to_matrix(),
-            'Z': ZGate().to_matrix(),
-            'H': HGate().to_matrix(),
-            'S': SGate().to_matrix(),
-            'T': TGate().to_matrix(),
-            '0': np.array([[1, 0], [0, 0]], dtype=complex),
-            '1': np.array([[0, 0], [0, 1]], dtype=complex),
-            '+': np.array([[0.5, 0.5], [0.5, 0.5]], dtype=complex),
-            '-': np.array([[0.5, -0.5], [-0.5, 0.5]], dtype=complex),
-            'r': np.array([[0.5, -0.5j], [0.5j, 0.5]], dtype=complex),
-            'l': np.array([[0.5, 0.5j], [-0.5j, 0.5]], dtype=complex),
+            "I": IGate().to_matrix(),
+            "X": XGate().to_matrix(),
+            "Y": YGate().to_matrix(),
+            "Z": ZGate().to_matrix(),
+            "H": HGate().to_matrix(),
+            "S": SGate().to_matrix(),
+            "T": TGate().to_matrix(),
+            "0": np.array([[1, 0], [0, 0]], dtype=complex),
+            "1": np.array([[0, 0], [0, 1]], dtype=complex),
+            "+": np.array([[0.5, 0.5], [0.5, 0.5]], dtype=complex),
+            "-": np.array([[0.5, -0.5], [-0.5, 0.5]], dtype=complex),
+            "r": np.array([[0.5, -0.5j], [0.5j, 0.5]], dtype=complex),
+            "l": np.array([[0.5, 0.5j], [-0.5j, 0.5]], dtype=complex),
         }
-        if re.match(r'^[IXYZHST01rl\-+]+$', label) is None:
-            raise QiskitError('Label contains invalid characters.')
+        if re.match(r"^[IXYZHST01rl\-+]+$", label) is None:
+            raise QiskitError("Label contains invalid characters.")
         # Initialize an identity matrix and apply each gate
         num_qubits = len(label)
         op = Operator(np.eye(2 ** num_qubits, dtype=complex))
         for qubit, char in enumerate(reversed(label)):
-            if char != 'I':
+            if char != "I":
                 op = op.compose(label_mats[char], qargs=[qubit])
         return op
 
@@ -202,6 +215,7 @@ class Operator(LinearOp):
         """Convert to a UnitaryGate instruction."""
         # pylint: disable=cyclic-import
         from qiskit.extensions.unitary import UnitaryGate
+
         return UnitaryGate(self.data)
 
     def conjugate(self):
@@ -219,7 +233,7 @@ class Operator(LinearOp):
 
     def compose(self, other, qargs=None, front=False):
         if qargs is None:
-            qargs = getattr(other, 'qargs', None)
+            qargs = getattr(other, "qargs", None)
         if not isinstance(other, Operator):
             other = Operator(other)
 
@@ -261,8 +275,8 @@ class Operator(LinearOp):
         indices = [num_indices - 1 - qubit for qubit in qargs]
         final_shape = [np.product(output_dims), np.product(input_dims)]
         data = np.reshape(
-            Operator._einsum_matmul(tensor, mat, indices, shift, right_mul),
-            final_shape)
+            Operator._einsum_matmul(tensor, mat, indices, shift, right_mul), final_shape
+        )
         ret = Operator(data, input_dims, output_dims)
         ret._op_shape = new_shape
         return ret
@@ -325,7 +339,7 @@ class Operator(LinearOp):
         from qiskit.quantum_info.operators.scalar_op import ScalarOp
 
         if qargs is None:
-            qargs = getattr(other, 'qargs', None)
+            qargs = getattr(other, "qargs", None)
 
         if not isinstance(other, Operator):
             other = Operator(other)
@@ -377,8 +391,7 @@ class Operator(LinearOp):
             atol = self.atol
         if rtol is None:
             rtol = self.rtol
-        return matrix_equal(self.data, other.data, ignore_phase=True,
-                            rtol=rtol, atol=atol)
+        return matrix_equal(self.data, other.data, ignore_phase=True, rtol=rtol, atol=atol)
 
     def reverse_qargs(self):
         r"""Return an Operator with reversed subsystem ordering.
@@ -395,9 +408,10 @@ class Operator(LinearOp):
         ret = copy.copy(self)
         axes = tuple(range(self._op_shape._num_qargs_l - 1, -1, -1))
         axes = axes + tuple(len(axes) + i for i in axes)
-        ret._data = np.reshape(np.transpose(
-            np.reshape(self.data, self._op_shape.tensor_shape), axes),
-                               self._op_shape.shape)
+        ret._data = np.reshape(
+            np.transpose(np.reshape(self.data, self._op_shape.tensor_shape), axes),
+            self._op_shape.shape,
+        )
         ret._op_shape = self._op_shape.reverse()
         return ret
 
@@ -422,8 +436,7 @@ class Operator(LinearOp):
         rank = tensor.ndim
         rank_mat = mat.ndim
         if rank_mat % 2 != 0:
-            raise QiskitError(
-                "Contracted matrix must have an even number of indices.")
+            raise QiskitError("Contracted matrix must have an even number of indices.")
         # Get einsum indices for tensor
         indices_tensor = list(range(rank))
         for j, index in enumerate(indices):
@@ -441,7 +454,7 @@ class Operator(LinearOp):
     def _init_instruction(cls, instruction):
         """Convert a QuantumCircuit or Instruction to an Operator."""
         # Initialize an identity operator of the correct size of the circuit
-        if hasattr(instruction, '__array__'):
+        if hasattr(instruction, "__array__"):
             return Operator(np.array(instruction, dtype=complex))
 
         dimension = 2 ** instruction.num_qubits
@@ -456,9 +469,9 @@ class Operator(LinearOp):
     def _instruction_to_matrix(cls, obj):
         """Return Operator for instruction if defined or None otherwise."""
         if not isinstance(obj, Instruction):
-            raise QiskitError('Input is not an instruction.')
+            raise QiskitError("Input is not an instruction.")
         mat = None
-        if hasattr(obj, 'to_matrix'):
+        if hasattr(obj, "to_matrix"):
             # If instruction is a gate first we see if it has a
             # `to_matrix` definition and if so use that.
             try:
@@ -485,27 +498,33 @@ class Operator(LinearOp):
             # circuit decomposition definition if it exists, otherwise we
             # cannot compose this gate and raise an error.
             if obj.definition is None:
-                raise QiskitError('Cannot apply Instruction: {}'.format(obj.name))
+                raise QiskitError(f"Cannot apply Instruction: {obj.name}")
             if not isinstance(obj.definition, QuantumCircuit):
-                raise QiskitError('Instruction "{}" '
-                                  'definition is {} but expected QuantumCircuit.'.format(
-                                      obj.name, type(obj.definition)))
+                raise QiskitError(
+                    'Instruction "{}" '
+                    "definition is {} but expected QuantumCircuit.".format(
+                        obj.name, type(obj.definition)
+                    )
+                )
             if obj.definition.global_phase:
                 dimension = 2 ** obj.num_qubits
                 op = self.compose(
                     ScalarOp(dimension, np.exp(1j * float(obj.definition.global_phase))),
-                    qargs=qargs)
+                    qargs=qargs,
+                )
                 self._data = op.data
             flat_instr = obj.definition
-            bit_indices = {bit: index
-                           for bits in [flat_instr.qubits, flat_instr.clbits]
-                           for index, bit in enumerate(bits)}
+            bit_indices = {
+                bit: index
+                for bits in [flat_instr.qubits, flat_instr.clbits]
+                for index, bit in enumerate(bits)
+            }
 
             for instr, qregs, cregs in flat_instr:
                 if cregs:
                     raise QiskitError(
-                        'Cannot apply instruction with classical registers: {}'.format(
-                            instr.name))
+                        f"Cannot apply instruction with classical registers: {instr.name}"
+                    )
                 # Get the integer position of the flat register
                 if qargs is None:
                     new_qargs = [bit_indices[tup] for tup in qregs]

@@ -13,3 +13,4 @@
 """Mock bogota backend"""
 
 from .fake_bogota import FakeBogota
+from .fake_bogota import FakeLegacyBogota

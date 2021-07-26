@@ -39,14 +39,16 @@ class Acquire(Instruction):
      * the discriminator to classify kerneled IQ points.
     """
 
-    def __init__(self,
-                 duration: Union[int, ParameterExpression],
-                 channel: AcquireChannel,
-                 mem_slot: Optional[MemorySlot] = None,
-                 reg_slot: Optional[RegisterSlot] = None,
-                 kernel: Optional[Kernel] = None,
-                 discriminator: Optional[Discriminator] = None,
-                 name: Optional[str] = None):
+    def __init__(
+        self,
+        duration: Union[int, ParameterExpression],
+        channel: AcquireChannel,
+        mem_slot: Optional[MemorySlot] = None,
+        reg_slot: Optional[RegisterSlot] = None,
+        kernel: Optional[Kernel] = None,
+        discriminator: Optional[Discriminator] = None,
+        name: Optional[str] = None,
+    ):
         """Create a new Acquire instruction.
 
         Args:
@@ -65,11 +67,13 @@ class Acquire(Instruction):
                         does not equal the number of channels.
         """
         if isinstance(channel, list) or isinstance(mem_slot, list) or isinstance(reg_slot, list):
-            raise PulseError("The Acquire instruction takes only one AcquireChannel and one "
-                             "classical memory destination for the measurement result.")
+            raise PulseError(
+                "The Acquire instruction takes only one AcquireChannel and one "
+                "classical memory destination for the measurement result."
+            )
 
         if not (mem_slot or reg_slot):
-            raise PulseError('Neither MemorySlots nor RegisterSlots were supplied.')
+            raise PulseError("Neither MemorySlots nor RegisterSlots were supplied.")
 
         self._kernel = kernel
         self._discriminator = discriminator
@@ -130,8 +134,9 @@ class Acquire(Instruction):
         return "{}({}{}{}{}{}{})".format(
             self.__class__.__name__,
             self.duration,
-            ', ' + str(self.channel),
-            ', ' + str(self.mem_slot) if self.mem_slot else '',
-            ', ' + str(self.reg_slot) if self.reg_slot else '',
-            ', ' + str(self.kernel) if self.kernel else '',
-            ', ' + str(self.discriminator) if self.discriminator else '')
+            ", " + str(self.channel),
+            ", " + str(self.mem_slot) if self.mem_slot else "",
+            ", " + str(self.reg_slot) if self.reg_slot else "",
+            ", " + str(self.kernel) if self.kernel else "",
+            ", " + str(self.discriminator) if self.discriminator else "",
+        )

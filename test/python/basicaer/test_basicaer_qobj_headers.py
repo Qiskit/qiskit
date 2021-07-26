@@ -38,19 +38,19 @@ class TestBasicAerQobj(QiskitTestCase):
         super().setUp()
         logger = getLogger()
         self.addCleanup(logger.setLevel, logger.level)
-        logger.setLevel('DEBUG')
+        logger.setLevel("DEBUG")
 
         self.output = io.StringIO()
         logger.addHandler(StreamHandlerRaiseException(self.output))
 
         qr = QuantumRegister(1)
         cr = ClassicalRegister(1)
-        self.qc1 = QuantumCircuit(qr, cr, name='circuit0')
+        self.qc1 = QuantumCircuit(qr, cr, name="circuit0")
         self.qc1.h(qr[0])
 
     def test_qobj_headers_in_result(self):
         """Test that the qobj headers are passed onto the results."""
-        custom_qobj_header = {'x': 1, 'y': [1, 2, 3], 'z': {'a': 4}}
+        custom_qobj_header = {"x": 1, "y": [1, 2, 3], "z": {"a": 4}}
 
         for backend in BasicAer.backends():
             with self.subTest(backend=backend):
@@ -60,8 +60,8 @@ class TestBasicAerQobj(QiskitTestCase):
                 # Update the Qobj header.
                 qobj.header = QobjHeader.from_dict(custom_qobj_header)
                 # Update the Qobj.experiment header.
-                qobj.experiments[0].header.some_field = 'extra info'
+                qobj.experiments[0].header.some_field = "extra info"
 
                 result = backend.run(qobj).result()
                 self.assertEqual(result.header.to_dict(), custom_qobj_header)
-                self.assertEqual(result.results[0].header.some_field, 'extra info')
+                self.assertEqual(result.results[0].header.some_field, "extra info")

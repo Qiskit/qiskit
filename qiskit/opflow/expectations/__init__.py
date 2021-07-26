@@ -63,9 +63,11 @@ from .aer_pauli_expectation import AerPauliExpectation
 from .matrix_expectation import MatrixExpectation
 from .cvar_expectation import CVaRExpectation
 
-__all__ = ['ExpectationBase',
-           'ExpectationFactory',
-           'PauliExpectation',
-           'AerPauliExpectation',
-           'CVaRExpectation',
-           'MatrixExpectation']
+__all__ = [
+    "ExpectationBase",
+    "ExpectationFactory",
+    "PauliExpectation",
+    "AerPauliExpectation",
+    "CVaRExpectation",
+    "MatrixExpectation",
+]

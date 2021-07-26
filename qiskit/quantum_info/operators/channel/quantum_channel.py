@@ -48,19 +48,21 @@ class QuantumChannel(LinearOp):
         super().__init__(num_qubits=num_qubits, op_shape=op_shape)
 
     def __repr__(self):
-        prefix = '{}('.format(self._channel_rep)
-        pad = len(prefix) * ' '
-        return '{}{},\n{}input_dims={}, output_dims={})'.format(
-            prefix, np.array2string(
-                np.asarray(self.data), separator=', ', prefix=prefix),
-            pad, self.input_dims(), self.output_dims())
+        prefix = f"{self._channel_rep}("
+        pad = len(prefix) * " "
+        return "{}{},\n{}input_dims={}, output_dims={})".format(
+            prefix,
+            np.array2string(np.asarray(self.data), separator=", ", prefix=prefix),
+            pad,
+            self.input_dims(),
+            self.output_dims(),
+        )
 
     def __eq__(self, other):
         """Test if two QuantumChannels are equal."""
         if not super().__eq__(other):
             return False
-        return np.allclose(
-            self.data, other.data, rtol=self.rtol, atol=self.atol)
+        return np.allclose(self.data, other.data, rtol=self.rtol, atol=self.atol)
 
     @property
     def data(self):
@@ -141,16 +143,16 @@ class QuantumChannel(LinearOp):
             raise QiskitError("Can only take power with input_dim = output_dim.")
         rep = self._channel_rep
         input_dim, output_dim = self.dim
-        superop = _transform_rep(rep, 'SuperOp', self._data, input_dim, output_dim)
+        superop = _transform_rep(rep, "SuperOp", self._data, input_dim, output_dim)
         superop = np.linalg.matrix_power(superop, n)
 
         # Convert back to original representation
         ret = copy.copy(self)
-        ret._data = _transform_rep('SuperOp', rep, superop, input_dim, output_dim)
+        ret._data = _transform_rep("SuperOp", rep, superop, input_dim, output_dim)
         return ret
 
     def __sub__(self, other):
-        qargs = getattr(other, 'qargs', None)
+        qargs = getattr(other, "qargs", None)
         if not isinstance(other, type(self)):
             other = type(self)(other)
         return self._add(-other, qargs=qargs)
@@ -184,8 +186,7 @@ class QuantumChannel(LinearOp):
     def is_cptp(self, atol=None, rtol=None):
         """Return True if completely-positive trace-preserving (CPTP)."""
         choi = _to_choi(self._channel_rep, self._data, *self.dim)
-        return self._is_cp_helper(choi, atol, rtol) and self._is_tp_helper(
-            choi, atol, rtol)
+        return self._is_cp_helper(choi, atol, rtol) and self._is_tp_helper(choi, atol, rtol)
 
     def is_tp(self, atol=None, rtol=None):
         """Test if a channel is trace-preserving (TP)"""
@@ -223,16 +224,15 @@ class QuantumChannel(LinearOp):
             QiskitError: if input data is not an N-qubit CPTP quantum channel.
         """
         from qiskit.circuit.instruction import Instruction
+
         # Check if input is an N-qubit CPTP channel.
         num_qubits = int(np.log2(self._input_dim))
-        if self._input_dim != self._output_dim or 2**num_qubits != self._input_dim:
+        if self._input_dim != self._output_dim or 2 ** num_qubits != self._input_dim:
             raise QiskitError(
-                'Cannot convert QuantumChannel to Instruction: channel is not an N-qubit channel.'
+                "Cannot convert QuantumChannel to Instruction: channel is not an N-qubit channel."
             )
         if not self.is_cptp():
-            raise QiskitError(
-                'Cannot convert QuantumChannel to Instruction: channel is not CPTP.'
-            )
+            raise QiskitError("Cannot convert QuantumChannel to Instruction: channel is not CPTP.")
         # Next we convert to the Kraus representation. Since channel is CPTP we know
         # that there is only a single set of Kraus operators
         kraus, _ = _to_kraus(self._channel_rep, self._data, *self.dim)
@@ -241,7 +241,7 @@ class QuantumChannel(LinearOp):
         # converting to an Operator and using its to_instruction method
         if len(kraus) == 1:
             return Operator(kraus[0]).to_instruction()
-        return Instruction('kraus', num_qubits, 0, kraus)
+        return Instruction("kraus", num_qubits, 0, kraus)
 
     def _is_cp_helper(self, choi, atol, rtol):
         """Test if a channel is completely-positive (CP)"""
@@ -259,8 +259,7 @@ class QuantumChannel(LinearOp):
             rtol = self.rtol
         # Check if the partial trace is the identity matrix
         d_in, d_out = self.dim
-        mat = np.trace(
-            np.reshape(choi, (d_in, d_out, d_in, d_out)), axis1=1, axis2=3)
+        mat = np.trace(np.reshape(choi, (d_in, d_out, d_in, d_out)), axis1=1, axis2=3)
         tp_cond = np.linalg.eigvalsh(mat - np.eye(len(mat)))
         zero = np.isclose(tp_cond, 0, atol=atol, rtol=rtol)
         return np.all(zero)
@@ -271,11 +270,11 @@ class QuantumChannel(LinearOp):
         shape = state.shape
         ndim = state.ndim
         if ndim > 2:
-            raise QiskitError('Input state is not a vector or matrix.')
+            raise QiskitError("Input state is not a vector or matrix.")
         # Flatten column-vector to vector
         if ndim == 2:
             if shape[1] != 1 and shape[1] != shape[0]:
-                raise QiskitError('Input state is not a vector or matrix.')
+                raise QiskitError("Input state is not a vector or matrix.")
             if shape[1] == 1:
                 # flatten column-vector to vector
                 state = np.reshape(state, shape[0])
@@ -310,13 +309,13 @@ class QuantumChannel(LinearOp):
         # the original object
         if isinstance(data, QuantumChannel):
             return data
-        if hasattr(data, 'to_quantumchannel'):
+        if hasattr(data, "to_quantumchannel"):
             # If the data object is not a QuantumChannel it will give
             # preference to a 'to_quantumchannel' attribute that allows
             # an arbitrary object to define its own conversion to any
             # quantum channel subclass.
             return data.to_quantumchannel()
-        if hasattr(data, 'to_channel'):
+        if hasattr(data, "to_channel"):
             # TODO: this 'to_channel' method is the same case as the above
             # but is used by current version of Aer. It should be removed
             # once Aer is nupdated to use `to_quantumchannel`

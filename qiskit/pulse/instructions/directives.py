@@ -34,9 +34,7 @@ class Directive(instruction.Instruction, ABC):
 class RelativeBarrier(Directive):
     """Pulse ``RelativeBarrier`` directive."""
 
-    def __init__(self,
-                 *channels: chans.Channel,
-                 name: Optional[str] = None):
+    def __init__(self, *channels: chans.Channel, name: Optional[str] = None):
         """Create a relative barrier directive.
 
         The barrier directive blocks instructions within the same schedule
@@ -56,5 +54,4 @@ class RelativeBarrier(Directive):
 
     def __eq__(self, other):
         """Verify two barriers are equivalent."""
-        return (isinstance(other, type(self)) and
-                set(self.channels) == set(other.channels))
+        return isinstance(other, type(self)) and set(self.channels) == set(other.channels)

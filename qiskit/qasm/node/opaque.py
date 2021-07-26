@@ -28,7 +28,7 @@ class Opaque(Node):
 
     def __init__(self, children):
         """Create the opaque gate node."""
-        super().__init__('opaque', children, None)
+        super().__init__("opaque", children, None)
         self.id = children[0]  # pylint: disable=invalid-name
         # The next three fields are required by the symbtab
         self.name = self.id.name
@@ -54,8 +54,11 @@ class Opaque(Node):
     def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
         if prec is not None:
-            warnings.warn('Parameter \'Opaque.qasm(..., prec)\' is no longer used and is being '
-                          'deprecated.', DeprecationWarning, 2)
+            warnings.warn(
+                "Parameter 'Opaque.qasm(..., prec)' is no longer used and is being " "deprecated.",
+                DeprecationWarning,
+                2,
+            )
         string = "opaque %s" % self.name
         if self.arguments is not None:
             string += "(" + self.arguments.qasm() + ")"

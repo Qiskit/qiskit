@@ -89,8 +89,8 @@ class MatrixFunctional(LinearSystemObservable):
         Returns:
             The observable as a list of sums of Pauli strings.
         """
-        zero_op = ((I + Z) / 2)
-        one_op = ((I - Z) / 2)
+        zero_op = (I + Z) / 2
+        one_op = (I - Z) / 2
         observables = []
         # First we measure the norm of x
         observables.append(I ^ num_qubits)
@@ -100,8 +100,10 @@ class MatrixFunctional(LinearSystemObservable):
             # TODO this if can be removed once the bug in Opflow is fixed where
             # TensoredOp([X, TensoredOp([])]).eval() ends up in infinite recursion
             if i > 0:
-                observables += [(I ^ j) ^ zero_op ^ TensoredOp(i * [one_op]),
-                                (I ^ j) ^ one_op ^ TensoredOp(i * [one_op])]
+                observables += [
+                    (I ^ j) ^ zero_op ^ TensoredOp(i * [one_op]),
+                    (I ^ j) ^ one_op ^ TensoredOp(i * [one_op]),
+                ]
             else:
                 observables += [(I ^ j) ^ zero_op, (I ^ j) ^ one_op]
 
@@ -128,9 +130,9 @@ class MatrixFunctional(LinearSystemObservable):
 
         return qcs
 
-    def post_processing(self, solution: Union[float, List[float]],
-                        num_qubits: int,
-                        scaling: float = 1) -> float:
+    def post_processing(
+        self, solution: Union[float, List[float]], num_qubits: int, scaling: float = 1
+    ) -> float:
         """Evaluates the matrix functional on the solution to the linear system.
 
         Args:
@@ -167,7 +169,10 @@ class MatrixFunctional(LinearSystemObservable):
         if isinstance(solution, QuantumCircuit):
             solution = Statevector(solution).data
 
-        matrix = diags([self._off_diag, self._main_diag, self._off_diag], [-1, 0, 1],
-                       shape=(len(solution), len(solution))).toarray()
+        matrix = diags(
+            [self._off_diag, self._main_diag, self._off_diag],
+            [-1, 0, 1],
+            shape=(len(solution), len(solution)),
+        ).toarray()
 
         return np.dot(solution.transpose(), np.dot(matrix, solution))
