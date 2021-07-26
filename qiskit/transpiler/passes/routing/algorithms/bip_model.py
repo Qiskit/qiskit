@@ -170,11 +170,13 @@ class BIPMappingModel:
 
         Args:
             objective:
-                Type of objective function:
+                Type of objective function to be minimized:
 
-                * ``'error_rate'``: predicted error rate of the circuit
-                * ``'depth'``: depth (number of timesteps) of the circuit
-                * ``'balanced'``: weighted sum of error_rate and depth
+                * ``'error_rate'``: Approximate error rate of the circuit, which is given as the sum of
+                negative logarithm of CNOT gate fidelities in the circuit. It takes into account only the
+                CNOT gate errors reported in ``backend_prop``.
+                * ``'depth'``: Depth (number of timesteps) of the circuit
+                * ``'balanced'``: Weighted sum of error_rate and depth
 
             backend_prop:
                 Backend properties storing gate errors, which are required in computing certain

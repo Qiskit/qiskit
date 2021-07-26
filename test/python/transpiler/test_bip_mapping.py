@@ -269,13 +269,18 @@ class TestBIPMapping(QiskitTestCase):
         with self.assertRaises(TranspilerError):
             BIPMapping(coupling, qubit_subset=[0, 1, 2])(circuit)
 
+    def test_initialize_error_rate_objective_without_backend_prop(self):
+        """Fails if ``objective`` that requires ``backend_prop`` is specified but it is not supplied."""
+        with self.assertRaises(TranspilerError):
+            BIPMapping(coupling_map=CouplingMap.from_line(3), objective="error_rate")
+
 
 @unittest.skipUnless(HAS_CPLEX, "cplex is required to run the BIPMappingModel tests")
 @unittest.skipUnless(HAS_DOCPLEX, "docplex is required to run the BIPMappingModel tests")
 class TestBIPMappingModel(QiskitTestCase):
     """Tests the BIPMappingModel pass."""
 
-    def test_objective_values(self):
+    def test_optimal_objective_values_unchanged(self):
         """Test the optimal values are unchanged for each objective type."""
         expected_dic = {
             "depth": 1.02,
