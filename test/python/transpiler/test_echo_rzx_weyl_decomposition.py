@@ -160,9 +160,9 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
         gamma = TwoQubitWeylDecomposition(unitary_circuit).c
 
         # RZX Weyl parameters (rzx_alpha, rzx_beta, rzx_gamma)
-        rzx_alpha = TwoQubitWeylEchoRZX(unitary_circuit, is_native=True).a
-        rzx_beta = TwoQubitWeylEchoRZX(unitary_circuit, is_native=True).b
-        rzx_gamma = TwoQubitWeylEchoRZX(unitary_circuit, is_native=True).c
+        rzx_alpha = TwoQubitWeylEchoRZX(unitary_circuit, is_native=True).decomposer.a
+        rzx_beta = TwoQubitWeylEchoRZX(unitary_circuit, is_native=True).decomposer.b
+        rzx_gamma = TwoQubitWeylEchoRZX(unitary_circuit, is_native=True).decomposer.c
 
         self.assertEqual((alpha, beta, gamma), (rzx_alpha, rzx_beta, rzx_gamma))
 
@@ -180,9 +180,9 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
         gamma = TwoQubitWeylDecomposition(unitary_circuit).c
 
         # RZX Weyl parameters (rzx_alpha, rzx_beta, rzx_gamma)
-        rzx_alpha = TwoQubitWeylEchoRZX(unitary_circuit, is_native=False).a
-        rzx_beta = TwoQubitWeylEchoRZX(unitary_circuit, is_native=False).b
-        rzx_gamma = TwoQubitWeylEchoRZX(unitary_circuit, is_native=False).c
+        rzx_alpha = TwoQubitWeylEchoRZX(unitary_circuit, is_native=False).decomposer.a
+        rzx_beta = TwoQubitWeylEchoRZX(unitary_circuit, is_native=False).decomposer.b
+        rzx_gamma = TwoQubitWeylEchoRZX(unitary_circuit, is_native=False).decomposer.c
 
         self.assertAlmostEqual(alpha, rzx_alpha)
         self.assertAlmostEqual(beta, rzx_beta)

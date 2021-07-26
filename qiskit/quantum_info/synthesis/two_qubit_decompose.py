@@ -130,13 +130,13 @@ class TwoQubitWeylDecomposition:
         Make explicitly-instantiated subclass __new__  call base __new__ with fidelity=None"""
         super().__init_subclass__(**kwargs)
         cls.__new__ = (
-            lambda cls, *a, fidelity=None, is_native=None, **k: TwoQubitWeylDecomposition.__new__(
-                cls, *a, fidelity=None, is_native=None, **k
+            lambda cls, *a, fidelity=None, **k: TwoQubitWeylDecomposition.__new__(
+                cls, *a, fidelity=None, **k
             )
         )
 
     @staticmethod
-    def __new__(cls, unitary_matrix, *, fidelity=(1.0 - 1.0e-9), is_native=None):
+    def __new__(cls, unitary_matrix, *, fidelity=(1.0 - 1.0e-9)):
         """Perform the Weyl chamber decomposition, and optionally choose a specialized subclass.
 
         The flip into the Weyl Chamber is described in B. Kraus and J. I. Cirac, Phys. Rev. A 63,
@@ -546,8 +546,10 @@ class TwoQubitWeylControlledEquiv(TwoQubitWeylDecomposition):
         self.K2r = np.asarray(RYGate(k2rtheta)) @ np.asarray(RXGate(k2rlambda))
 
 
-class TwoQubitWeylEchoRZX(TwoQubitWeylDecomposition):
+class TwoQubitWeylEchoRZX:
     """Decompose two-qubit unitary in terms of echoed cross-resonance gates."""
+
+    _default_1q_basis = "XYX"
 
     def __init__(self, unitary, is_native: bool):
         """Initialize the KAK decomposition.
@@ -557,10 +559,29 @@ class TwoQubitWeylEchoRZX(TwoQubitWeylDecomposition):
             is shorter than the schedule on (q1, q0).
         """
         self.is_native = is_native
-        super().__init__(unitary)
 
-    def specialize(self):
-        pass  # Nothing to do
+        self.decomposer = TwoQubitWeylDecomposition(unitary)
+
+    def circuit(
+        self, *, euler_basis: Optional[str] = None, atol=DEFAULT_ATOL
+    ) -> QuantumCircuit:
+        """Returns Weyl decomposition in circuit form.
+
+        simplify, atol arguments are passed to OneQubitEulerDecomposer"""
+        if euler_basis is None:
+            euler_basis = self._default_1q_basis
+        oneq_decompose = OneQubitEulerDecomposer(euler_basis)
+        c1l, c1r, c2l, c2r = (
+            oneq_decompose(k, atol=atol)
+            for k in (self.decomposer.K1l, self.decomposer.K1r, self.decomposer.K2l, self.decomposer.K2r)
+        )
+        circ = QuantumCircuit(2, global_phase=self.decomposer.global_phase)
+        circ.compose(c2r, [0], inplace=True)
+        circ.compose(c2l, [1], inplace=True)
+        self._weyl_gate(circ, atol)
+        circ.compose(c1r, [0], inplace=True)
+        circ.compose(c1l, [1], inplace=True)
+        return circ
 
     @staticmethod
     def _apply_rzx(circ: QuantumCircuit, angle: float):
@@ -582,33 +603,32 @@ class TwoQubitWeylEchoRZX(TwoQubitWeylDecomposition):
         circ.h(0)
         circ.h(1)
 
-    def _weyl_gate(self, simplify, circ: QuantumCircuit, atol):
+    def _weyl_gate(self, circ: QuantumCircuit, atol=1.0e-13):
         """Appends Ud(a, b, c) to the circuit."""
-        del simplify
         circ.h(0)
-        if abs(self.a) > atol:
+        if abs(self.decomposer.a) > atol:
             if self.is_native:
-                self._apply_rzx(circ, self.a)
+                self._apply_rzx(circ, self.decomposer.a)
             else:
-                self._apply_reverse_rzx(circ, self.a)
+                self._apply_reverse_rzx(circ, self.decomposer.a)
         circ.h(0)
         circ.sdg(0)
         circ.h(0)
         circ.sdg(1)
-        if abs(self.b) > atol:
+        if abs(self.decomposer.b) > atol:
             if self.is_native:
-                self._apply_rzx(circ, self.b)
+                self._apply_rzx(circ, self.decomposer.b)
             else:
-                self._apply_reverse_rzx(circ, self.b)
+                self._apply_reverse_rzx(circ, self.decomposer.b)
         circ.h(0)
         circ.s(0)
         circ.s(1)
         circ.h(1)
-        if abs(self.c) > atol:
+        if abs(self.decomposer.c) > atol:
             if self.is_native:
-                self._apply_rzx(circ, self.c)
+                self._apply_rzx(circ, self.decomposer.c)
             else:
-                self._apply_reverse_rzx(circ, self.c)
+                self._apply_reverse_rzx(circ, self.decomposer.c)
         circ.h(1)
 
 
