@@ -1215,7 +1215,7 @@ class MatplotlibDrawer:
 
                 # conditional gate
                 if op.condition:
-                    c_xy = [
+                    cond_xy = [
                         c_anchors[ii].plot_coord(this_anc, layer_width, self._x_offset)
                         for ii in self._clbit_dict
                     ]
@@ -1225,7 +1225,7 @@ class MatplotlibDrawer:
                             mask |= 1 << index
                     val = op.condition[1]
                     # cbit list to consider
-                    fmt_c = f"{{:0{len(c_xy)}b}}"
+                    fmt_c = f"{{:0{len(cond_xy)}b}}"
                     cmask = list(fmt_c.format(mask))[::-1]
                     # value
                     fmt_v = f"{{:0{cmask.count('1')}b}}"
@@ -1236,7 +1236,7 @@ class MatplotlibDrawer:
                     # plot conditionals
                     v_ind = 0
                     xy_plot = []
-                    for xy, m in zip(c_xy, cmask):
+                    for xy, m in zip(cond_xy, cmask):
                         if m == "1":
                             if xy not in xy_plot:
                                 if vlist[v_ind] == "1" or self._cregbundle:

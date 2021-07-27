@@ -395,6 +395,10 @@ class QCircuitImage:
             for node in layer:
                 op = node.op
                 num_cols_op = 1
+                wire_list = [self.img_regs[qarg] for qarg in node.qargs]
+                if op.condition:
+                    self._add_condition(op, wire_list, column)
+
                 if isinstance(op, Measure):
                     self._build_measure(node, column)
 
@@ -405,14 +409,10 @@ class QCircuitImage:
                     gate_text, _, _ = get_gate_ctrl_text(op, "latex", style=self._style)
                     gate_text += get_param_str(op, "latex", ndigits=4)
                     gate_text = generate_latex_label(gate_text)
-                    wire_list = [self.img_regs[qarg] for qarg in node.qargs]
                     if node.cargs:
                         cwire_list = [self.img_regs[carg] for carg in node.cargs]
                     else:
                         cwire_list = []
-
-                    if op.condition:
-                        self._add_condition(op, wire_list, column)
 
                     if len(wire_list) == 1 and not node.cargs:
                         self._latex[wire_list[0]][column] = "\\gate{%s}" % gate_text
@@ -532,8 +532,6 @@ class QCircuitImage:
 
     def _build_measure(self, node, col):
         """Build a meter and the lines to the creg"""
-        if node.op.condition:
-            raise exceptions.VisualizationError("If controlled measures currently not supported.")
 
         wire1 = self.img_regs[node.qargs[0]]
         if self.cregbundle:
