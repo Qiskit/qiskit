@@ -115,9 +115,6 @@ class CouplingMap:
         """
         subcoupling = CouplingMap()
         subcoupling.graph = self.graph.subgraph(nodelist)
-        for node in nodelist:
-            if node not in subcoupling.physical_qubits:
-                subcoupling.add_physical_qubit(node)
         return subcoupling
 
     @property
