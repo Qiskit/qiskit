@@ -247,8 +247,7 @@ stages:
             set -e
             virtualenv image_tests
             image_tests/bin/pip install -U -r requirements.txt -c constraints.txt
-            image_tests/bin/pip install -U -c constraints.txt -e .
-            image_tests/bin/pip install -U "matplotlib<3.3.0" pylatexenc pillow
+            image_tests/bin/pip install -U -c constraints.txt -e ".[visualization]"
             image_tests/bin/python setup.py build_ext --inplace
             sudo apt install -y graphviz pandoc
             image_tests/bin/pip check
