@@ -337,7 +337,7 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
         with self.subTest(msg="check constructed dictionary"):
             self.assertDictEqual(settings, expected)
 
-        reconstructed = QNSPSA(**settings)
+        reconstructed = QNSPSA(**settings)  # pylint: disable=unexpected-keyword-arg
         with self.subTest(msg="test reconstructed optimizer"):
             self.assertDictEqual(reconstructed.settings, expected)
 
