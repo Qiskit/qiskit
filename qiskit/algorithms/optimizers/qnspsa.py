@@ -99,7 +99,8 @@ class QNSPSA(SPSA):
         r"""
         Args:
             fidelity: A function to compute the fidelity of the ansatz state with itself for
-                two different sets of parameters.
+                two different sets of parameters. Note that for usage with Qiskit Runtime,
+                this argument can be set to a placeholder callable (or None).
             maxiter: The maximum number of iterations. Note that this is not the maximal number
                 of function evaluations.
             blocking: If True, only accepts updates that improve the loss (up to some allowed
@@ -191,17 +192,10 @@ class QNSPSA(SPSA):
 
     @property
     def settings(self) -> Dict[str, Any]:
-        """The optimizer settings in a dictionary format.
-
-        .. note::
-
-            The ``fidelity`` property cannot be serialized and will not be contained
-            in the dictionary. To construct a ``QNSPSA`` object from a dictionary you
-            have to add it manually with the key ``"fidelity"``.
-
-        """
+        """The optimizer settings in a dictionary format."""
         # re-use serialization from SPSA
         settings = super().settings
+        settings.update({"fidelity": self.fidelity})
 
         # remove SPSA-specific arguments not in QNSPSA
         settings.pop("trust_region")

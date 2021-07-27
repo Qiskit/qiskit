@@ -333,20 +333,10 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
 
         settings = spsa.settings
         expected = options.copy()
-        expected.pop("fidelity")  # fidelity cannot be serialized
 
         with self.subTest(msg="check constructed dictionary"):
             self.assertDictEqual(settings, expected)
 
-        # no idea why pylint complains about unexpected args (like "second_order") which are
-        # definitely not in the settings dict
-        # pylint: disable=unexpected-keyword-arg
-        with self.subTest(msg="fidelity missing"):
-            # fidelity cannot be serialized, so it must be added back in
-            with self.assertRaises(TypeError):
-                _ = QNSPSA(**settings)
-
-        settings["fidelity"] = fidelity
         reconstructed = QNSPSA(**settings)
         with self.subTest(msg="test reconstructed optimizer"):
             self.assertDictEqual(reconstructed.settings, expected)
