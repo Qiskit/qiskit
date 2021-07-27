@@ -16,13 +16,13 @@ import unittest
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.circuit import Barrier
-from qiskit.circuit.library.standard_gates import SwapGate, CXGate, DCXGate
+from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.transpiler import CouplingMap, Layout
+from qiskit.transpiler import CouplingMap, Layout, PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import BIPMapping
-from qiskit.transpiler.passes import CheckMap
+from qiskit.transpiler.passes import CheckMap, Collect2qBlocks, ConsolidateBlocks, UnitarySynthesis
 from qiskit.transpiler.passes.routing.algorithms.bip_model import HAS_CPLEX, HAS_DOCPLEX
 
 
@@ -281,31 +281,6 @@ class TestBIPMapping(QiskitTestCase):
             def gate_error(self, qubits):  # pylint: disable=unused-argument
                 return 0.01
 
-        def simplify_concesutive_cxs(qc):
-            newqc = QuantumCircuit(*qc.qregs)
-            simplified = False
-            for i, (inst, qargs, _) in enumerate(qc.data):
-                if simplified:
-                    simplified = False
-                    continue
-                next_inst = None
-                if i < len(qc.data) - 1:
-                    next_inst, next_qargs, _ = qc.data[i + 1]
-                if isinstance(next_inst, SwapGate) and set(qargs) == set(next_qargs):
-                    if isinstance(inst, DCXGate):
-                        newqc.append(CXGate(), qargs)
-                        simplified = True
-                    elif isinstance(inst, CXGate):
-                        newqc.append(DCXGate(), qargs)
-                        simplified = True
-                if not simplified:
-                    newqc.append(inst, qargs)
-            return newqc
-
-        def cx_counts(qc):
-            counts = qc.count_ops()
-            return counts.get("cx", 0) + 2 * counts.get("dcx", 0) + 3 * counts.get("swap", 0)
-
         qc = QuantumCircuit(4)
         qc.dcx(0, 1)
         qc.cx(2, 3)
@@ -313,11 +288,15 @@ class TestBIPMapping(QiskitTestCase):
         qc.cx(1, 3)
         qc.dcx(0, 1)
         qc.cx(2, 3)
-
         coupling = CouplingMap([(0, 1), (1, 2), (2, 3)])
         dep_opt = BIPMapping(coupling, objective="depth")(qc)
         err_opt = BIPMapping(coupling, objective="error_rate", backend_prop=_DummyBackendProp())(qc)
-        dep_opt = simplify_concesutive_cxs(dep_opt)
-        err_opt = simplify_concesutive_cxs(err_opt)
+        # depth = number of su4 layers (mirrored gates have to be consolidated as single su4 gates)
+        pm_ = PassManager([Collect2qBlocks(), ConsolidateBlocks(basis_gates=["cx"])])
+        dep_opt = pm_.run(dep_opt)
+        err_opt = pm_.run(err_opt)
         self.assertLessEqual(dep_opt.depth(), err_opt.depth())
-        self.assertGreater(cx_counts(dep_opt), cx_counts(err_opt))
+        # count CNOTs after synthesized
+        dep_opt = UnitarySynthesis(basis_gates=["cx"])(dep_opt)
+        err_opt = UnitarySynthesis(basis_gates=["cx"])(err_opt)
+        self.assertGreater(dep_opt.count_ops()["cx"], err_opt.count_ops()["cx"])
