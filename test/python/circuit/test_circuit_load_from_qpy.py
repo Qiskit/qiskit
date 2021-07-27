@@ -23,11 +23,11 @@ from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.library import XGate, QFT
+from qiskit.circuit.library import XGate, QFT, QAOAAnsatz
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
 from qiskit.extensions import UnitaryGate
-from qiskit.opflow import X, Y, Z
+from qiskit.opflow import I, X, Y, Z
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.qpy_serialization import dump, load
 from qiskit.quantum_info.random import random_unitary
@@ -518,3 +518,14 @@ class TestLoadFromQPY(QiskitTestCase):
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
         self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+
+    def test_qaoa(self):
+        """Test loading a QAOA circuit works."""
+        cost_operator = Z ^ I ^ I ^ Z
+        qaoa = QAOAAnsatz(cost_operator)
+        qpy_file = io.BytesIO()
+        dump(qaoa, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qaoa, new_circ)
+        self.assertEqual([x[0].label for x in qaoa.data], [x[0].label for x in new_circ.data])
