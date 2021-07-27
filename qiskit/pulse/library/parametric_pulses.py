@@ -67,10 +67,8 @@ class ParametricPulse(Pulse):
             duration: Pulse length in terms of the the sampling period `dt`.
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
-                             waveform to 1. By default it is ``True`` and the
-                             amplitude is constrained to 1. This restriction
-                             can be overruled via this argument. Passed to
-                             parent Pulse.
+                             waveform to 1. The default is ``True`` and the
+                             amplitude is constrained to 1.
         """
         super().__init__(duration=duration, name=name, limit_amplitude=limit_amplitude)
         self.validate_parameters()
@@ -162,10 +160,8 @@ class Gaussian(ParametricPulse):
                    in the class docstring.
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
-                             waveform to 1. By default it is ``True`` and the
-                             amplitude is constrained to 1. This restriction
-                             can be overruled via this argument. Passed to
-                             parent ParametricPulse.
+                             waveform to 1. The default is ``True`` and the
+                             amplitude is constrained to 1.
         """
         if not _is_parameterized(amp):
             amp = complex(amp)
@@ -264,10 +260,8 @@ class GaussianSquare(ParametricPulse):
             risefall_sigma_ratio: The ratio of each risefall duration to sigma.
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
-                             waveform to 1. By default it is ``True`` and the
-                             amplitude is constrained to 1. This restriction
-                             can be overruled via this argument. Passed to
-                             parent ParametricPulse.
+                             waveform to 1. The default is ``True`` and the
+                             amplitude is constrained to 1.
         """
         if not _is_parameterized(amp):
             amp = complex(amp)
@@ -416,10 +410,8 @@ class Drag(ParametricPulse):
             beta: The correction amplitude.
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
-                             waveform to 1. By default it is ``True`` and the
-                             amplitude is constrained to 1. This restriction
-                             can be overruled via this argument. Passed to
-                             parent ParametricPulse.
+                             waveform to 1. The default is ``True`` and the
+                             amplitude is constrained to 1.
         """
         if not _is_parameterized(amp):
             amp = complex(amp)
@@ -530,10 +522,8 @@ class Constant(ParametricPulse):
             amp: The amplitude of the constant square pulse.
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
-                             waveform to 1. By default it is ``True`` and the
-                             amplitude is constrained to 1. This restriction
-                             can be overruled via this argument. Passed to
-                             parent ParametricPulse.
+                             waveform to 1. The default is ``True`` and the
+                             amplitude is constrained to 1.
         """
         if not _is_parameterized(amp):
             amp = complex(amp)
