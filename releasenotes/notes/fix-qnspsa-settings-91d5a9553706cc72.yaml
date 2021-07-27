@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fix the :meth:`qiskit.algorithms.optimizers.QNSPSA.settings` method which was missing the
+    ``fidelity`` argument.
