@@ -237,6 +237,24 @@ stages:
           inputs:
             testResultsFiles: '**/test-*.xml'
             testRunTitle: 'Test results for Linux Python $(python.version)'
+        - bash: |
+            set -e
+            pushd test/qpy_compat
+            ./run_tests.sh
+            popd
+          displayName: 'Run QPY backwards compat tests'
+        - bash: |
+            set -e
+            virtualenv image_tests
+            image_tests/bin/pip install -U -r requirements.txt -c constraints.txt
+            image_tests/bin/pip install -U -c constraints.txt -e .
+            image_tests/bin/pip install -U "matplotlib<3.3.0" pylatexenc pillow
+            image_tests/bin/python setup.py build_ext --inplace
+            sudo apt install -y graphviz pandoc
+            image_tests/bin/pip check
+          displayName: 'Install dependencies'
+        - bash: image_tests/bin/python -m unittest discover -v test/ipynb
+          displayName: 'Run image test'
     - job: 'Lint'
       pool: {vmImage: 'ubuntu-latest'}
       strategy:
@@ -786,37 +804,3 @@ stages:
             artifactName: 'html_tutorials'
             Parallel: true
             ParallelCount: 8
-    - job: 'Image_tests'
-      pool: {vmImage: 'ubuntu-latest'}
-      strategy:
-        matrix:
-          Python38:
-            python.version: '3.8'
-      variables:
-        QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
-        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
-      steps:
-        - task: UsePythonVersion@0
-          inputs:
-            versionSpec: '$(python.version)'
-          displayName: 'Use Python $(python.version)'
-        - task: Cache@2
-          inputs:
-            key: 'pip | "$(Agent.OS)" | "$(python.version)"'
-            restoreKeys: |
-              pip | "$(Agent.OS)"
-              pip
-            path: $(PIP_CACHE_DIR)
-          displayName: Cache pip
-        - bash: |
-            set -e
-            python -m pip install --upgrade pip
-            pip install -U -r requirements.txt -c constraints.txt
-            pip install -U -c constraints.txt -e .
-            pip install -U "matplotlib<3.3.0" pylatexenc pillow
-            python setup.py build_ext --inplace
-            sudo apt install -y graphviz pandoc
-            pip check
-          displayName: 'Install dependencies'
-        - bash: python -m unittest discover -v test/ipynb
-          displayName: 'Run image test'
