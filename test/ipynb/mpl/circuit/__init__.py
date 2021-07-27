@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Image comparison test for MPL graph drawer.
+"""Image comparison test for MPL circuit drawer.
 You can generate the image references with Binder
 in https://mybinder.org/v2/gh/<user>/<repo>/<branch>?urlpath=apps/test/ipynb/mpl_tester.ipynb
 """
