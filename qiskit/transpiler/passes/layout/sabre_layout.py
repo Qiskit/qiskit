@@ -87,6 +87,8 @@ class SabreLayout(AnalysisPass):
 
         if self.routing_pass is None:
             self.routing_pass = SabreSwap(self.coupling_map, "decay", seed=self.seed, fake_run=True)
+        else:
+            self.routing_pass.fake_run = True
 
         # Do forward-backward iterations.
         circ = dag_to_circuit(dag)
@@ -112,6 +114,7 @@ class SabreLayout(AnalysisPass):
             initial_layout.add_register(qreg)
 
         self.property_set["layout"] = initial_layout
+        self.routing_pass.fake_run = False
 
     def _layout_and_route_passmanager(self, initial_layout):
         """Return a passmanager for a full layout and routing.

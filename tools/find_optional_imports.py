@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2021
@@ -11,12 +11,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-import os
+"""Utility to check that slow imports are not used in the default path."""
+
 import subprocess
 import sys
 
+# This is not unused: importing it sets up sys.modules
+import qiskit  # pylint: disable=unused-import
 
-def main():
+
+def _main():
     optional_imports = [
         "networkx",
         "sympy",
@@ -71,4 +75,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    _main()

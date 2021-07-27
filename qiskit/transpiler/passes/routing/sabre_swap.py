@@ -276,7 +276,7 @@ class SabreSwap(TransformationPass):
         """
         extended_set = list()
         incremented = list()
-        tmp_front_layer = deepcopy(front_layer)
+        tmp_front_layer = front_layer
         done = False
         while tmp_front_layer and not done:
             new_tmp_front_layer = list()
@@ -317,6 +317,12 @@ class SabreSwap(TransformationPass):
 
         return candidate_swaps
 
+    def _compute_cost(self, layer, layout):
+        cost = 0
+        for node in layer:
+            cost += self.coupling_map.distance(layout[node.qargs[0]], layout[node.qargs[1]])
+        return cost
+
     def _score_heuristic(self, heuristic, front_layer, extended_set, layout, swap_qubits=None):
         """Return a heuristic score for a trial layout.
 
@@ -324,32 +330,25 @@ class SabreSwap(TransformationPass):
         to it. The goodness of a layout is evaluated based on how viable it makes
         the remaining virtual gates that must be applied.
         """
+        first_cost = self._compute_cost(front_layer, layout)
         if heuristic == "basic":
-            if len(front_layer) > 1:
-                return self.coupling_map.distance_matrix[
-                    tuple(zip(*([layout[q] for q in node.qargs] for node in front_layer)))
-                ].sum()
-            elif len(front_layer) == 1:
-                return self.coupling_map.distance(*(layout[q] for q in list(front_layer)[0].qargs))
-            else:
-                return 0
+            return first_cost
 
-        elif heuristic == "lookahead":
-            first_cost = self._score_heuristic("basic", front_layer, [], layout)
-            first_cost /= len(front_layer)
+        first_cost /= len(front_layer)
+        second_cost = 0
+        if extended_set:
+            second_cost = self._compute_cost(extended_set, layout) / len(extended_set)
+        total_cost = first_cost + EXTENDED_SET_WEIGHT * second_cost
+        if heuristic == "lookahead":
+            return total_cost
 
-            second_cost = self._score_heuristic("basic", extended_set, [], layout)
-            second_cost = 0.0 if not extended_set else second_cost / len(extended_set)
+        if heuristic == "decay":
+            return (
+                max(self.qubits_decay[swap_qubits[0]], self.qubits_decay[swap_qubits[1]])
+                * total_cost
+            )
 
-            return first_cost + EXTENDED_SET_WEIGHT * second_cost
-
-        elif heuristic == "decay":
-            return max(
-                self.qubits_decay[swap_qubits[0]], self.qubits_decay[swap_qubits[1]]
-            ) * self._score_heuristic("lookahead", front_layer, extended_set, layout)
-
-        else:
-            raise TranspilerError("Heuristic %s not recognized." % heuristic)
+        raise TranspilerError("Heuristic %s not recognized." % heuristic)
 
 
 def _transform_gate_for_layout(op_node, layout, device_qreg):

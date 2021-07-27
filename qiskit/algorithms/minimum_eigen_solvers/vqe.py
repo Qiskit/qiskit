@@ -644,6 +644,7 @@ queried as VQEResult.eigenvector."""
 
         return state
 
+    @property
     @deprecate_function(
         """
 The VQE.optimal_params property is deprecated as of Qiskit Terra 0.18.0
@@ -651,7 +652,6 @@ and will be removed no sooner than 3 months after the releasedate.
 This information is part of the returned result object and can be
 queried as VQEResult.optimal_point."""
     )
-    @property
     def optimal_params(self) -> np.ndarray:
         """The optimal parameters for the ansatz."""
         if self._ret.optimal_point is None:

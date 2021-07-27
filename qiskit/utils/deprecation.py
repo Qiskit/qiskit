@@ -31,7 +31,7 @@ def _filter_deprecation_warnings():
     [2] https://www.python.org/dev/peps/pep-0565/
     """
     deprecation_filter = (
-        "always",
+        "default",
         None,
         DeprecationWarning,
         re.compile(r"^qiskit\.*", re.UNICODE),

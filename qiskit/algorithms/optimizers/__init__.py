@@ -59,6 +59,7 @@ Local Optimizers
    SPSA
    QNSPSA
    TNC
+   SciPyOptimizer
 
 Qiskit also provides the following optimizers, which are built-out using the optimizers from
 the `scikit-quant` package. The `scikit-quant` package is not installed by default but must be

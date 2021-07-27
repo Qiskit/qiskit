@@ -1,0 +1,36 @@
+---
+upgrade:
+  - |
+    The deprecated ``qiskit.schemas`` module and the ``qiskit.validation``
+    module which build jsonschema validator from the schemas have been removed.
+    This was deprecated in the 0.17.0 release and has been replaced with a
+    dedicated repository for the IBM Quantum API payload schemas:
+
+    https://github.com/Qiskit/ibm-quantum-schemas
+
+    If you were relying on the schema files previously packaged in
+    ``qiskit.schemas`` or the validators built on them you should use that
+    repository and create validators from the schema files it contains.
+  - |
+    The functions ``qiskit.qobj.validate_qobj_against_schema`` and
+    ``qiskit.qobj.common.validator`` along with the ``validate`` kwarg of
+    the methods :meth:`qiskit.qobj.QasmQobj.to_dict`,
+    :meth:`qiskit.qobj.PulseQobj.to_dict`, and :meth:`qiskit.qobj.Qobj.to_dict`
+    have been removed. These were deprecated in the 0.17.0 release. If you were
+    using these function you will have to manually build jsonschema validation
+    functions for ``Qobj`` objects using the jsonschema files from:
+    https://github.com/Qiskit/ibm-quantum-schemas
+  - |
+    The ``fastjsonschema`` and ``jsonschema`` are no longer in the requirements
+    list for qiskit-terra. The internal use of jsonschema has been removed and
+    they are no longer required to use qiskit-terra.
+  - |
+    The exception raised by the :func:`qiskit.compiler.assemble` function when
+    invalid parameters are passed in for constructing a
+    :class:`~qiskit.qobj.PulseQobj` have changed from a ``SchemaValidationError`
+    to a :class:`qiskit.execeptions.QiskitError`. This was necessary because
+    the ``SchemaValidationError`` class was removed along with the rest of
+    the deprecated ``qiskit.schemas`` and ``qiskit.validation``. This also
+    makes it more consistent with other error conditions from
+    :func:`~qiskit.compiler.assemble` which were already raising a
+    :class:`qiskit.execeptions.QiskitError`.

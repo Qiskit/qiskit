@@ -865,7 +865,7 @@ class TestControlledGate(QiskitTestCase):
         ref_circuit.append(U3Gate(np.pi, 0, np.pi), [0])
         self.assertEqual(uqc, ref_circuit)
 
-    def test_open_control_cxx_unrolling(self):
+    def test_open_control_ccx_unrolling(self):
         """test unrolling of open control gates when gate is in basis"""
         qreg = QuantumRegister(3)
         qc = QuantumCircuit(qreg)
@@ -883,6 +883,19 @@ class TestControlledGate(QiskitTestCase):
         ref_circuit.x(qreg[1])
         ref_dag = circuit_to_dag(ref_circuit)
         self.assertEqual(unrolled_dag, ref_dag)
+
+    def test_ccx_ctrl_state_consistency(self):
+        """Test the consistency of parameters ctrl_state in CCX
+        See issue: https://github.com/Qiskit/qiskit-terra/issues/6465
+        """
+        qreg = QuantumRegister(3)
+        qc = QuantumCircuit(qreg)
+        qc.ccx(qreg[0], qreg[1], qreg[2], ctrl_state=0)
+
+        ref_circuit = QuantumCircuit(qreg)
+        ccx = CCXGate(ctrl_state=0)
+        ref_circuit.append(ccx, [qreg[0], qreg[1], qreg[2]])
+        self.assertEqual(qc, ref_circuit)
 
     def test_open_control_composite_unrolling(self):
         """test unrolling of open control gates when gate is in basis"""
@@ -1336,11 +1349,9 @@ class TestParameterCtrlState(QiskitTestCase):
         """Test controlled gates with ctrl_state
         See https://github.com/Qiskit/qiskit-terra/pull/4025
         """
-        self.assertEqual(gate.control(1, ctrl_state="1"), controlled_gate)
-        # TODO: once https://github.com/Qiskit/qiskit-terra/issues/3304 is fixed
-        # TODO: move this test to
-        # self.assertEqual(Operator(gate.control(1, ctrl_state='1')),
-        # Operator(controlled_gate.to_matrix()))
+        self.assertEqual(
+            Operator(gate.control(1, ctrl_state="1")), Operator(controlled_gate.to_matrix())
+        )
 
 
 @ddt

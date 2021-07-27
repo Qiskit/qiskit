@@ -133,6 +133,15 @@ class Operator(LinearOp):
         """Return data."""
         return self._data
 
+    @property
+    def settings(self):
+        """Return operator settings."""
+        return {
+            "data": self._data,
+            "input_dims": self.input_dims(),
+            "output_dims": self.output_dims(),
+        }
+
     @classmethod
     def from_label(cls, label):
         """Return a tensor product of single-qubit operators.
