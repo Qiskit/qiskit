@@ -29,6 +29,9 @@ except ImportError:
     HAS_SYMENGINE = False
 
 
+# This type is redefined at the bottom to insert the full reference to "ParameterExpression", so it
+# can safely be used by runtime type-checkers like Sphinx.  Mypy does not need this because it
+# handles the references by static analysis.
 ParameterValueType = Union["ParameterExpression", float]
 
 
@@ -510,3 +513,8 @@ class ParameterExpression:
             else:
                 return False
         return True
+
+
+# Redefine the type so external imports get an evaluated reference; Sphinx needs this to understand
+# the type hints.
+ParameterValueType = Union[ParameterExpression, float]
