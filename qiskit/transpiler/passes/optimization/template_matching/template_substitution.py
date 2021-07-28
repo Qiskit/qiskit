@@ -270,9 +270,9 @@ class TemplateSubstitution:
         remove_list = []
 
         # First remove any scenarios that have parameters in the template.
-        for scenario in self.substitution_list:
-            if scenario.has_parameters():
-                remove_list.append(scenario)
+        #for scenario in self.substitution_list:
+        #    if scenario.has_parameters():
+        #        remove_list.append(scenario)
 
         # Initialize predecessors for each group of matches.
         for scenario in self.substitution_list:
@@ -346,6 +346,8 @@ class TemplateSubstitution:
                     current_clbit,
                 )
                 self.substitution_list.append(config)
+
+        import pdb; pdb.set_trace()
 
         # Remove incompatible matches.
         self._remove_impossible()
