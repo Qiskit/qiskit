@@ -564,9 +564,10 @@ class TwoQubitWeylEchoRZX:
         self.decomposer = TwoQubitWeylDecomposition(unitary)
 
     def circuit(self, *, euler_basis: Optional[str] = None, atol=DEFAULT_ATOL) -> QuantumCircuit:
-        """Returns Weyl decomposition in circuit form.
+        """Returns the Weyl decomposition in circuit form.
 
-        simplify, atol arguments are passed to OneQubitEulerDecomposer"""
+        Note: atol ist passed to OneQubitEulerDecomposer.
+        """
         if euler_basis is None:
             euler_basis = self._default_1q_basis
         oneq_decompose = OneQubitEulerDecomposer(euler_basis)
