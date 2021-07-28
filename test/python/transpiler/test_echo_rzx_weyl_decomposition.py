@@ -91,7 +91,7 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
         self.assertRZXgates(unitary_circuit, after)
 
     def assertRZXgates(self, unitary_circuit, after):
-        """"Check the number of rzx gates"""
+        """ "Check the number of rzx gates"""
         alpha = TwoQubitWeylDecomposition(unitary_circuit).a
         beta = TwoQubitWeylDecomposition(unitary_circuit).b
         gamma = TwoQubitWeylDecomposition(unitary_circuit).c
@@ -136,7 +136,9 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
 
         # for each pair of rzx gates four hadamard gates have to be added in
         # the case of a non-hardware native directed gate.
-        self.assertEqual((circuit_rzx_number / 2) * 4, circuit_non_native_h_number - circuit_h_number)
+        self.assertEqual(
+            (circuit_rzx_number / 2) * 4, circuit_non_native_h_number - circuit_h_number
+        )
 
     def test_h_number_non_native_weyl_decomposition_2(self):
         """Check the number of added Hadamard gates for a swap gate"""
@@ -164,7 +166,9 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
 
         # for each pair of rzx gates four hadamard gates have to be added in
         # the case of a non-hardware native directed gate.
-        self.assertEqual((circuit_rzx_number / 2) * 4, circuit_non_native_h_number - circuit_h_number)
+        self.assertEqual(
+            (circuit_rzx_number / 2) * 4, circuit_non_native_h_number - circuit_h_number
+        )
 
     def test_weyl_unitaries_random_circuit(self):
         """Weyl decomposition for random two-qubit circuit."""
