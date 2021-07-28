@@ -98,7 +98,7 @@ class TestFinalPermutation(QiskitTestCase):
 
         self.assertTrue(np.allclose(perm1, perm2))
 
-    def test_subcircuit(self):
+    def test_multireg(self):
         """Test multiple registers"""
 
         qr1 = QuantumRegister(2, "qr1")
