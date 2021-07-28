@@ -98,6 +98,30 @@ class TestFinalPermutation(QiskitTestCase):
 
         self.assertTrue(np.allclose(perm1, perm2))
 
+    def test_subcircuit(self):
+        """Test multiple registers"""
+
+        qr1 = QuantumRegister(2, "qr1")
+        qr2 = QuantumRegister(2, "qr2")
+
+        qc = QuantumCircuit(qr1, qr2)
+        qc.h(0)
+        qc.cx(0, 2)
+        qc.measure_all()
+        qc.draw()
+
+        trans_qc = transpile(
+            qc,
+            basis_gates=["sx", "rz", "cx"],
+            coupling_map=[[0, 1], [1, 0], [1, 2], [2, 1], [2, 3], [3, 2], [3, 4], [4, 3]],
+            initial_layout=[0, 3, 4, 1],
+            seed_transpiler=124,
+        )
+
+        self.assertTrue(
+            np.allclose(trans_qc.metadata["final_permutation"], np.array([3, 0, 2, 4, 1]))
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
