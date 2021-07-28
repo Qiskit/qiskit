@@ -63,7 +63,6 @@ class UnitarySynthesis(TransformationPass):
     """Synthesize gates according to their basis gates."""
 
     def __init__(
-        self, basis_gates: List[str], approximation_degree: float = 1, 
         self,
         basis_gates: List[str],
         approximation_degree: float = 1,
@@ -72,7 +71,7 @@ class UnitarySynthesis(TransformationPass):
         pulse_optimize: Union[bool, None] = None,
         natural_direction: Union[bool, None] = None,
         synth_gates: Union[List[str], None] = None,
-        min_qubits: int = None
+        min_qubits: int = None,
     ):
         """Synthesize unitaries over some basis gates.
 
@@ -163,7 +162,7 @@ class UnitarySynthesis(TransformationPass):
         for node in dag.named_nodes(*self._synth_gates):
             if self._min_qubits is not None and len(node.qargs) < self._min_qubits:
                 continue
-    
+
             if self._basis_gates and node.name in self._basis_gates:
                 continue
             synth_dag = None
