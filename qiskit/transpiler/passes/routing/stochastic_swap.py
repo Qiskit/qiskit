@@ -70,6 +70,7 @@ class StochasticSwap(TransformationPass):
         self.rng = None
         self.trivial_layout = None
         self._qubit_indices = None
+        self._final_perm = None
 
     def run(self, dag):
         """Run the StochasticSwap pass on `dag`.
@@ -95,6 +96,10 @@ class StochasticSwap(TransformationPass):
         self.trivial_layout = Layout.generate_trivial_layout(canonical_register)
         self._qubit_indices = {bit: idx for idx, bit in enumerate(dag.qubits)}
 
+        self._final_perm = np.zeros(len(dag.qubits), dtype=int)
+        for key, val in self.property_set["layout"]._p2v.items():
+            self._final_perm[key] = val._index
+
         self.qregs = dag.qregs
         if self.seed is None:
             self.seed = np.random.randint(0, np.iinfo(np.int32).max)
@@ -102,6 +107,7 @@ class StochasticSwap(TransformationPass):
         logger.debug("StochasticSwap default_rng seeded with seed=%s", self.seed)
 
         new_dag = self._mapper(dag, self.coupling_map, trials=self.trials)
+        self.property_set["final_permutation"] = self._final_perm
         return new_dag
 
     def _layer_permutation(self, layer_partition, layout, qubit_subset, coupling, trials):
@@ -232,6 +238,10 @@ class StochasticSwap(TransformationPass):
             swap_src = self.trivial_layout[edges[2 * idx]]
             swap_tgt = self.trivial_layout[edges[2 * idx + 1]]
             trial_circuit.apply_operation_back(SwapGate(), [swap_src, swap_tgt], [])
+            # record permutation
+            temp = self._final_perm[edges[2 * idx + 1]]
+            self._final_perm[edges[2 * idx + 1]] = self._final_perm[edges[2 * idx]]
+            self._final_perm[edges[2 * idx]] = temp
         best_circuit = trial_circuit
 
         # Otherwise, we return our result for this layer
