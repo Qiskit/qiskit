@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds the ability to get the final qubit permutation from the StochasticSwap mapper.
+    This is stored in the circuits metadata attribute.
