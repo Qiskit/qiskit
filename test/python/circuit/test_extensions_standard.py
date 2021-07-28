@@ -120,6 +120,20 @@ class TestStandard1Q(QiskitTestCase):
         self.assertRaises(CircuitError, qc.ch, self.cr, self.qr)
         self.assertRaises(CircuitError, qc.ch, "a", self.qr[1])
 
+    def test_cif_reg(self):
+        self.circuit.h(self.qr[0]).c_if(self.cr, 7)
+        op, qargs, _ = self.circuit[0]
+        self.assertEqual(op.name, "h")
+        self.assertEqual(qargs, [self.qr[0]])
+        self.assertEqual(op.condition, (self.cr, 7))
+
+    def test_cif_single_bit(self):
+        self.circuit.h(self.qr[0]).c_if(self.cr[0], True)
+        op, qargs, _ = self.circuit[0]
+        self.assertEqual(op.name, "h")
+        self.assertEqual(qargs, [self.qr[0]])
+        self.assertEqual(op.condition, (self.cr[0], True))
+
     def test_crz(self):
         self.circuit.crz(1, self.qr[0], self.qr[1])
         op, qargs, _ = self.circuit[0]

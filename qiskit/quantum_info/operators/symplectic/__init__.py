@@ -16,6 +16,7 @@ Symplectic Operators
 
 from .pauli import Pauli
 from .pauli_table import PauliTable
+from .pauli_list import PauliList
 from .pauli_utils import pauli_basis
 from .stabilizer_table import StabilizerTable
 from .clifford import Clifford

@@ -307,7 +307,9 @@ class HHL(LinearSolver):
         return result, expectation_results
 
     def construct_circuit(
-        self, matrix: Union[np.ndarray, QuantumCircuit], vector: Union[np.ndarray, QuantumCircuit]
+        self,
+        matrix: Union[List, np.ndarray, QuantumCircuit],
+        vector: Union[List, np.ndarray, QuantumCircuit],
     ) -> QuantumCircuit:
         """Construct the HHL circuit.
 
@@ -326,7 +328,9 @@ class HHL(LinearSolver):
         if isinstance(vector, QuantumCircuit):
             nb = vector.num_qubits
             vector_circuit = vector
-        elif isinstance(vector, np.ndarray):
+        elif isinstance(vector, (list, np.ndarray)):
+            if isinstance(vector, list):
+                vector = np.array(vector)
             nb = int(np.log2(len(vector)))
             vector_circuit = QuantumCircuit(nb)
             vector_circuit.isometry(vector / np.linalg.norm(vector), list(range(nb)), None)
@@ -469,8 +473,8 @@ class HHL(LinearSolver):
 
     def solve(
         self,
-        matrix: Union[np.ndarray, QuantumCircuit],
-        vector: Union[np.ndarray, QuantumCircuit],
+        matrix: Union[List, np.ndarray, QuantumCircuit],
+        vector: Union[List, np.ndarray, QuantumCircuit],
         observable: Optional[
             Union[
                 LinearSystemObservable,

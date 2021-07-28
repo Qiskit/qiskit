@@ -12,13 +12,8 @@
 
 """Internal utils for Classical Function Compiler"""
 
-try:
-    from tweedledum.ir import Qubit  # pylint: disable=no-name-in-module
-    from tweedledum.passes import parity_decomp  # pylint: disable=no-name-in-module
-
-    HAS_TWEEDLEDUM = True
-except Exception:  # pylint: disable=broad-except
-    HAS_TWEEDLEDUM = False
+from tweedledum.ir import Qubit
+from tweedledum.passes import parity_decomp
 
 
 from qiskit.circuit import QuantumCircuit
@@ -60,7 +55,7 @@ def _convert_tweedledum_operator(op):
         qubits = op.qubits()
         ctrl_state = ""
         for qubit in qubits[: op.num_controls()]:
-            ctrl_state += "{}".format(int(qubit.polarity() == Qubit.Polarity.positive))
+            ctrl_state += f"{int(qubit.polarity() == Qubit.Polarity.positive)}"
         return base_gate().control(len(ctrl_state), ctrl_state=ctrl_state[::-1])
     return base_gate()
 

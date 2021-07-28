@@ -96,6 +96,7 @@ Generalized Gates
    GRY
    GRZ
    RVGate
+   PauliGate
 
 Boolean Logic Circuits
 ======================
@@ -146,7 +147,19 @@ Adders
 .. autosummary::
    :toctree: ../stubs/
 
+   DraperQFTAdder
+   CDKMRippleCarryAdder
+   VBERippleCarryAdder
    WeightedAdder
+
+Multipliers
++++++++++++
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   HRSCumulativeMultiplier
+   RGQFTMultiplier
 
 Comparators
 +++++++++++
@@ -186,6 +199,7 @@ Particular Quantum Circuits
    PhaseEstimation
    GroverOperator
    PhaseOracle
+   EvolvedOperatorAnsatz
 
 Probability distributions
 =========================
@@ -336,6 +350,7 @@ from .generalized_gates import (
     GRY,
     GRZ,
     RVGate,
+    PauliGate,
 )
 from .boolean_logic import (
     AND,
@@ -354,8 +369,14 @@ from .arithmetic import (
     WeightedAdder,
     QuadraticForm,
     LinearAmplitudeFunction,
+    VBERippleCarryAdder,
+    CDKMRippleCarryAdder,
+    DraperQFTAdder,
     PiecewiseChebyshev,
+    HRSCumulativeMultiplier,
+    RGQFTMultiplier,
 )
+
 from .n_local import (
     NLocal,
     TwoLocal,
@@ -379,3 +400,4 @@ from .iqp import IQP
 from .phase_estimation import PhaseEstimation
 from .grover_operator import GroverOperator
 from .phase_oracle import PhaseOracle
+from .evolved_operator_ansatz import EvolvedOperatorAnsatz

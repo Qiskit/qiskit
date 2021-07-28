@@ -28,6 +28,7 @@ from qiskit.pulse import Waveform, ParametricPulse, Schedule, ScheduleBlock
 from qiskit.pulse.channels import Channel
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import core, device_info, stylesheet, types
+from qiskit.exceptions import MissingOptionalLibraryError
 
 
 def draw(
@@ -371,7 +372,7 @@ def draw(
         without modifying the codebase.
 
     Raises:
-        ImportError: When required visualization package is not installed.
+        MissingOptionalLibraryError: When required visualization package is not installed.
         VisualizationError: When invalid plotter API or invalid time range is specified.
     """
     temp_style = stylesheet.QiskitPulseStyle()
@@ -435,11 +436,14 @@ def draw(
         try:
             from qiskit.visualization.pulse_v2.plotters import Mpl2DPlotter
         except ImportError as ex:
-            raise ImportError("Must have Matplotlib installed.") from ex
-
+            raise MissingOptionalLibraryError(
+                libname="Matplotlib",
+                name="plot_histogram",
+                pip_install="pip install matplotlib",
+            ) from ex
         plotter_api = Mpl2DPlotter(canvas=canvas, axis=axis)
         plotter_api.draw()
     else:
-        raise VisualizationError("Plotter API {name} is not supported.".format(name=plotter))
+        raise VisualizationError(f"Plotter API {plotter} is not supported.")
 
     return plotter_api.get_image()

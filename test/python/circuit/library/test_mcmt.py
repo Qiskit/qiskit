@@ -140,7 +140,7 @@ class TestMCMT(QiskitTestCase):
                         h_tot = np.kron(h_tot, h_i)
                     vec_exp = np.dot(h_tot, vec_exp)
             else:
-                raise ValueError("Test not implement for gate: {}".format(cgate))
+                raise ValueError(f"Test not implement for gate: {cgate}")
 
             # append the remaining part of the state
             vec_exp = np.concatenate(
