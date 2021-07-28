@@ -92,7 +92,8 @@ class StochasticSwap(TransformationPass):
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError("StochasticSwap runs on physical circuits only")
 
-        if len(dag.qubits) > len(self.coupling_map.physical_qubits):
+        num_qubits = len(dag.qubits)
+        if num_qubits > len(self.coupling_map.physical_qubits):
             raise TranspilerError("The layout does not match the amount of qubits in the DAG")
 
         canonical_register = dag.qregs["q"]
@@ -100,10 +101,21 @@ class StochasticSwap(TransformationPass):
         self._qubit_indices = {bit: idx for idx, bit in enumerate(dag.qubits)}
 
         # Grab the intial layout and set as the starting permutation.
-        self._final_perm = np.arange(len(dag.qubits))
+        self._final_perm = np.arange(num_qubits)
+        print(self.property_set["layout"]._p2v)
+        unused = list(range(num_qubits))
         if self.property_set["layout"] is not None:
             for key, val in self.property_set["layout"]._p2v.items():
-                self._final_perm[key] = val._index
+                if val._register.name != "ancilla":
+                    self._final_perm[key] = val._index
+                    unused.remove(val._index)
+                else:
+                    self._final_perm[key] = -1
+        idx = 0
+        for kk in range(self._final_perm.shape[0]):
+            if self._final_perm[kk] == -1:
+                self._final_perm[kk] = unused[idx]
+                idx += 1
 
         self.qregs = dag.qregs
         if self.seed is None:
