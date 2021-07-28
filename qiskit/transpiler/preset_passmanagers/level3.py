@@ -18,6 +18,7 @@ gate cancellation using commutativity rules and unitary synthesis.
 
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
+from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passmanager import PassManager
 
 from qiskit.transpiler.passes import Unroller
@@ -55,6 +56,8 @@ from qiskit.transpiler.passes import CheckGateDirection
 from qiskit.transpiler.passes import TimeUnitConversion
 from qiskit.transpiler.passes import ALAPSchedule
 from qiskit.transpiler.passes import ASAPSchedule
+from qiskit.transpiler.passes import AlignMeasures
+from qiskit.transpiler.passes import ValidatePulseGates
 from qiskit.transpiler.passes import Error
 
 from qiskit.transpiler import TranspilerError
@@ -98,6 +101,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
     approximation_degree = pass_manager_config.approximation_degree
+    timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
 
     # 1. Unroll to 1q or 2q gates
     _unroll3q = [
@@ -206,7 +210,12 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             Unroll3qOrMore(),
             Collect2qBlocks(),
             ConsolidateBlocks(basis_gates=basis_gates),
-            UnitarySynthesis(basis_gates, approximation_degree=approximation_degree),
+            UnitarySynthesis(
+                basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                backend_props=backend_properties,
+            ),
         ]
     else:
         raise TranspilerError("Invalid translation method %s." % translation_method)
@@ -233,7 +242,12 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     _opt = [
         Collect2qBlocks(),
         ConsolidateBlocks(basis_gates=basis_gates),
-        UnitarySynthesis(basis_gates, approximation_degree=approximation_degree),
+        UnitarySynthesis(
+            basis_gates,
+            approximation_degree=approximation_degree,
+            coupling_map=coupling_map,
+            backend_props=backend_properties,
+        ),
         Optimize1qGatesDecomposition(basis_gates),
         CommutativeCancellation(),
     ]
@@ -248,6 +262,14 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             _scheduling += [ASAPSchedule(instruction_durations)]
         else:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
+
+    # 10. Call measure alignment. Should come after scheduling.
+    _alignments = [
+        ValidatePulseGates(
+            granularity=timing_constraints.granularity, min_length=timing_constraints.min_length
+        ),
+        AlignMeasures(alignment=timing_constraints.acquire_alignment),
+    ]
 
     # Build pass manager
     pm3 = PassManager()
@@ -268,5 +290,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     pm3.append(_reset)
     pm3.append(_depth_check + _opt + _unroll, do_while=_opt_control)
     pm3.append(_scheduling)
+    pm3.append(_alignments)
 
     return pm3

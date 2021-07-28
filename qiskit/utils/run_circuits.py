@@ -106,8 +106,8 @@ def _maybe_split_qobj_by_gates(qobjs: List[QasmQobj], qobj: QasmQobj) -> List[Qa
     if MAX_GATES_PER_JOB is not None:
         max_gates_per_job = int(MAX_GATES_PER_JOB)
         total_num_gates = 0
-        for j in range(len(qobj.experiments)):
-            total_num_gates += len(qobj.experiments[j].instructions)
+        for experiment in qobj.experiments:
+            total_num_gates += len(experiment.instructions)
         # split by gates if total number of gates in a qobj exceed MAX_GATES_PER_JOB
         if total_num_gates > max_gates_per_job:
             qobj_template = QasmQobj(
@@ -117,17 +117,17 @@ def _maybe_split_qobj_by_gates(qobjs: List[QasmQobj], qobj: QasmQobj) -> List[Qa
             temp_qobj.qobj_id = str(uuid.uuid4())
             temp_qobj.experiments = []
             num_gates = 0
-            for i in range(len(qobj.experiments)):
-                num_gates += len(qobj.experiments[i].instructions)
+            for experiment in qobj.experiments:
+                num_gates += len(experiment.instructions)
                 if num_gates <= max_gates_per_job:
-                    temp_qobj.experiments.append(qobj.experiments[i])
+                    temp_qobj.experiments.append(experiment)
                 else:
                     qobjs.append(temp_qobj)
                     # Initialize for next temp_qobj
                     temp_qobj = copy.deepcopy(qobj_template)
                     temp_qobj.qobj_id = str(uuid.uuid4())
-                    temp_qobj.experiments.append(qobj.experiments[i])
-                    num_gates = len(qobj.experiments[i].instructions)
+                    temp_qobj.experiments.append(experiment)
+                    num_gates = len(experiment.instructions)
 
             qobjs.append(temp_qobj)
         else:
@@ -374,7 +374,7 @@ def run_qobj(
                 if not res.success:
                     msg += ", " + res.status
                     break
-        raise QiskitError("Circuit execution failed: {}".format(msg))
+        raise QiskitError(f"Circuit execution failed: {msg}")
 
     if not hasattr(result, "time_taken"):
         setattr(result, "time_taken", 0.0)
@@ -590,7 +590,7 @@ def run_circuits(
                 if not res.success:
                     msg += ", " + res.status
                     break
-        raise QiskitError("Circuit execution failed: {}".format(msg))
+        raise QiskitError(f"Circuit execution failed: {msg}")
 
     if not hasattr(result, "time_taken"):
         setattr(result, "time_taken", 0.0)
@@ -672,4 +672,24 @@ def _run_circuits_on_backend(
     run_config: Dict,
 ) -> BaseJob:
     """run on backend"""
-    return backend.run(circuits, **backend_options, **noise_config, **run_config)
+    run_kwargs = {}
+    if is_aer_provider(backend) or is_basicaer_provider(backend):
+        for key, value in backend_options.items():
+            if key == "backend_options":
+                for k, v in value.items():
+                    run_kwargs[k] = v
+            else:
+                run_kwargs[key] = value
+    else:
+        run_kwargs.update(backend_options)
+
+    run_kwargs.update(noise_config)
+    run_kwargs.update(run_config)
+
+    if is_basicaer_provider(backend):
+        # BasicAer emits warning if option is not in its list
+        for key in list(run_kwargs.keys()):
+            if not hasattr(backend.options, key):
+                del run_kwargs[key]
+
+    return backend.run(circuits, **run_kwargs)

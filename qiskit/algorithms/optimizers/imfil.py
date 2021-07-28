@@ -12,6 +12,8 @@
 
 """IMplicit FILtering (IMFIL) optimizer."""
 
+from typing import Any, Dict
+
 from qiskit.exceptions import MissingOptionalLibraryError
 from .optimizer import Optimizer, OptimizerSupportLevel
 
@@ -60,6 +62,12 @@ class IMFIL(Optimizer):
             "gradient": OptimizerSupportLevel.ignored,
             "bounds": OptimizerSupportLevel.required,
             "initial_point": OptimizerSupportLevel.required,
+        }
+
+    @property
+    def settings(self) -> Dict[str, Any]:
+        return {
+            "maxiter": self._maxiter,
         }
 
     def optimize(

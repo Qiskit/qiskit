@@ -71,8 +71,8 @@ class TestVisualizationUtils(QiskitTestCase):
         exp = [
             [("cx", [self.qr2[0], self.qr2[1]], []), ("cx", [self.qr1[0], self.qr1[1]], [])],
             [("measure", [self.qr2[0]], [self.cr2[0]])],
-            [("measure", [self.qr1[0]], [self.cr1[0]])],
-            [("cx", [self.qr2[1], self.qr2[0]], []), ("cx", [self.qr1[1], self.qr1[0]], [])],
+            [("measure", [self.qr1[0]], [self.cr1[0]]), ("cx", [self.qr2[1], self.qr2[0]], [])],
+            [("cx", [self.qr1[1], self.qr1[0]], [])],
             [("measure", [self.qr2[1]], [self.cr2[1]])],
             [("measure", [self.qr1[1]], [self.cr1[1]])],
         ]

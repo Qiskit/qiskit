@@ -47,7 +47,7 @@ class ScalarOp(LinearOp):
             QiskitError: If the optional coefficient is invalid.
         """
         if not isinstance(coeff, Number):
-            QiskitError("coeff {} must be a number.".format(coeff))
+            QiskitError(f"coeff {coeff} must be a number.")
         self._coeff = coeff
         super().__init__(input_dims=dims, output_dims=dims)
 
@@ -57,7 +57,7 @@ class ScalarOp(LinearOp):
         return self.to_matrix()
 
     def __repr__(self):
-        return "ScalarOp({}, coeff={})".format(self.input_dims(), self.coeff)
+        return f"ScalarOp({self.input_dims()}, coeff={self.coeff})"
 
     @property
     def coeff(self):
@@ -226,7 +226,7 @@ class ScalarOp(LinearOp):
             QiskitError: if other is not a valid complex number.
         """
         if not isinstance(other, Number):
-            raise QiskitError("other ({}) is not a number".format(other))
+            raise QiskitError(f"other ({other}) is not a number")
         ret = self.copy()
         ret._coeff = other * self.coeff
         return ret

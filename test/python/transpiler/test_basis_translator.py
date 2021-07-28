@@ -12,7 +12,7 @@
 
 
 """Test the BasisTranslator pass"""
-
+import os
 
 from numpy import pi
 
@@ -26,7 +26,6 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.basis import BasisTranslator, UnrollCustomDefinitions
-from qiskit.test.mock import FakeAthens
 
 
 from qiskit.circuit.library.standard_gates.equivalence_library import (
@@ -816,42 +815,21 @@ class TestBasisExamples(QiskitTestCase):
         expected.cx(0, 1)
         expected.measure(1, 1)
         expected.u2(0, pi, 0).c_if(cr, 1)
+
         self.assertEqual(circ_transpiled, expected)
 
     def test_skip_target_basis_equivalences_1(self):
         """Test that BasisTranslator skips gates in the target_basis - #6085"""
-
-        qstr = 'OPENQASM 2.0; \
-        include "qelib1.inc"; \
-        qreg q[5]; \
-        cu1(4.1564508) q[2],q[3]; \
-        ccx q[0],q[1],q[4]; \
-        rzz(0.48622471) q[0],q[2]; \
-        ccx q[3],q[4],q[1]; \
-        ch q[2],q[0]; \
-        y q[3]; \
-        cu3(2.5787688,1.3265772,3.1398664) q[1],q[4]; \
-        id q[0]; \
-        y q[1]; \
-        t q[2]; \
-        t q[3]; \
-        tdg q[4]; \
-        cz q[0],q[1]; \
-        ccx q[2],q[4],q[3]; \
-        rx(5.976651) q[1]; \
-        u3(4.8520889,3.6025647,5.7475542) q[2]; \
-        cswap q[0],q[3],q[4]; \
-        rz(2.1885681) q[2]; \
-        cu3(2.7675189,4.5725211,2.9940136) q[0],q[3]; \
-        cx q[1],q[4];'
         circ = QuantumCircuit()
-        circ = circ.from_qasm_str(qstr)
-
+        qasm_file = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "qasm",
+            "TestBasisTranslator_skip_target.qasm",
+        )
+        circ = circ.from_qasm_file(qasm_file)
         circ_transpiled = transpile(
             circ,
-            backend=FakeAthens(),
             basis_gates=["id", "rz", "sx", "x", "cx"],
-            routing_method="sabre",
             seed_transpiler=42,
         )
         self.assertEqual(circ_transpiled.count_ops(), {"cx": 91, "rz": 66, "sx": 22})

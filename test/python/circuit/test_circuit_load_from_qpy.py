@@ -14,16 +14,23 @@
 """Test cases for the circuit qasm_file and qasm_string method."""
 
 import io
+import random
 
 import numpy as np
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.circuit.classicalregister import Clbit
+from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.library import XGate, QFT, QAOAAnsatz
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
+from qiskit.extensions import UnitaryGate
+from qiskit.opflow import I, X, Y, Z
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.qpy_serialization import dump, load
+from qiskit.quantum_info.random import random_unitary
 
 
 class TestLoadFromQPY(QiskitTestCase):
@@ -51,7 +58,7 @@ class TestLoadFromQPY(QiskitTestCase):
         q_circuit.measure(qr_a, cr_c)
         q_circuit.measure(qr_b, cr_d)
         qpy_file = io.BytesIO()
-        dump(qpy_file, q_circuit)
+        dump(q_circuit, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(q_circuit, new_circ)
@@ -64,7 +71,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(1, 1)
         qc.x(0).c_if(qc.cregs[0], 1)
         qpy_file = io.BytesIO()
-        dump(qpy_file, qc)
+        dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
@@ -74,7 +81,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.rx(3, 0)
         qpy_file = io.BytesIO()
-        dump(qpy_file, qc)
+        dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
@@ -84,7 +91,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.rx(3.14, 0)
         qpy_file = io.BytesIO()
-        dump(qpy_file, qc)
+        dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
@@ -94,7 +101,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.rx(np.float32(3.14), 0)
         qpy_file = io.BytesIO()
-        dump(qpy_file, qc)
+        dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
@@ -104,7 +111,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.rx(np.int16(3), 0)
         qpy_file = io.BytesIO()
-        dump(qpy_file, qc)
+        dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
@@ -115,7 +122,7 @@ class TestLoadFromQPY(QiskitTestCase):
         unitary = np.array([[0, 1], [1, 0]])
         qc.unitary(unitary, 0)
         qpy_file = io.BytesIO()
-        dump(qpy_file, qc)
+        dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
@@ -126,7 +133,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.append(custom_gate, [0])
         qpy_file = io.BytesIO()
-        dump(qpy_file, qc)
+        dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
@@ -137,7 +144,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.append(custom_gate, [0])
         qpy_file = io.BytesIO()
-        dump(qpy_file, qc)
+        dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
@@ -154,7 +161,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.append(custom_gate, [0])
         qpy_file = io.BytesIO()
-        dump(qpy_file, qc)
+        dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
@@ -171,7 +178,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.append(custom_gate, [0])
         qpy_file = io.BytesIO()
-        dump(qpy_file, qc)
+        dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
@@ -194,7 +201,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc.measure(0, 0)
 
         qpy_file = io.BytesIO()
-        dump(qpy_file, qc)
+        dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
@@ -218,7 +225,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc.assign_parameters({theta: 3.14})
 
         qpy_file = io.BytesIO()
-        dump(qpy_file, qc)
+        dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
@@ -244,10 +251,19 @@ class TestLoadFromQPY(QiskitTestCase):
         qc.measure(0, 0)
 
         qpy_file = io.BytesIO()
-        dump(qpy_file, qc)
+        dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circuit = load(qpy_file)[0]
         self.assertEqual(qc, new_circuit)
+
+    def test_string_parameter(self):
+        """Test a PauliGate instruction that has string parameters."""
+        circ = (X ^ Y ^ Z).to_circuit_op().to_circuit()
+        qpy_file = io.BytesIO()
+        dump(circ, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(circ, new_circuit)
 
     def test_multiple_circuits(self):
         """Test multiple circuits can be serialized together."""
@@ -257,7 +273,243 @@ class TestLoadFromQPY(QiskitTestCase):
                 random_circuit(10, 10, measure=True, conditional=True, reset=True, seed=42 + i)
             )
         qpy_file = io.BytesIO()
-        dump(qpy_file, circuits)
+        dump(circuits, qpy_file)
         qpy_file.seek(0)
         new_circs = load(qpy_file)
         self.assertEqual(circuits, new_circs)
+
+    def test_shared_bit_register(self):
+        """Test a circuit with shared bit registers."""
+        qubits = [Qubit() for _ in range(5)]
+        qc = QuantumCircuit()
+        qc.add_bits(qubits)
+        qr = QuantumRegister(bits=qubits)
+        qc.add_register(qr)
+        qc.h(qr)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+        qc.measure_all()
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_qc = load(qpy_file)[0]
+        self.assertEqual(qc, new_qc)
+
+    def test_hybrid_standalone_register(self):
+        """Test qpy serialization with registers that mix bit types"""
+        qr = QuantumRegister(5, "foo")
+        qr = QuantumRegister(name="bar", bits=qr[:3] + [Qubit(), Qubit()])
+        cr = ClassicalRegister(5, "foo")
+        cr = ClassicalRegister(name="classical_bar", bits=cr[:3] + [Clbit(), Clbit()])
+        qc = QuantumCircuit(qr, cr)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+        qc.measure(qr, cr)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+
+    def test_mixed_registers(self):
+        """Test circuit with mix of standalone and shared registers."""
+        qubits = [Qubit() for _ in range(5)]
+        clbits = [Clbit() for _ in range(5)]
+        qc = QuantumCircuit()
+        qc.add_bits(qubits)
+        qc.add_bits(clbits)
+        qr = QuantumRegister(bits=qubits)
+        cr = ClassicalRegister(bits=clbits)
+        qc.add_register(qr)
+        qc.add_register(cr)
+        qr_standalone = QuantumRegister(2, "standalone")
+        qc.add_register(qr_standalone)
+        cr_standalone = ClassicalRegister(2, "classical_standalone")
+        qc.add_register(cr_standalone)
+        qc.unitary(random_unitary(32, seed=42), qr)
+        qc.unitary(random_unitary(4, seed=100), qr_standalone)
+        qc.measure(qr, cr)
+        qc.measure(qr_standalone, cr_standalone)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+
+    def test_standalone_and_shared_out_of_order(self):
+        """Test circuit with register bits inserted out of order."""
+        qr_standalone = QuantumRegister(2, "standalone")
+        qubits = [Qubit() for _ in range(5)]
+        clbits = [Clbit() for _ in range(5)]
+        qc = QuantumCircuit()
+        qc.add_bits(qubits)
+        qc.add_bits(clbits)
+        random.shuffle(qubits)
+        random.shuffle(clbits)
+        qr = QuantumRegister(bits=qubits)
+        cr = ClassicalRegister(bits=clbits)
+        qc.add_register(qr)
+        qc.add_register(cr)
+        qr_standalone = QuantumRegister(2, "standalone")
+        cr_standalone = ClassicalRegister(2, "classical_standalone")
+        qc.add_bits([qr_standalone[1], qr_standalone[0]])
+        qc.add_bits([cr_standalone[1], cr_standalone[0]])
+        qc.add_register(qr_standalone)
+        qc.add_register(cr_standalone)
+        qc.unitary(random_unitary(32, seed=42), qr)
+        qc.unitary(random_unitary(4, seed=100), qr_standalone)
+        qc.measure(qr, cr)
+        qc.measure(qr_standalone, cr_standalone)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+
+    def test_unitary_gate_with_label(self):
+        """Test that numpy array parameters are correctly serialized with a label"""
+        qc = QuantumCircuit(1)
+        unitary = np.array([[0, 1], [1, 0]])
+        unitary_gate = UnitaryGate(unitary, "My Special unitary")
+        qc.append(unitary_gate, [0])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+
+    def test_opaque_gate_with_label(self):
+        """Test that custom opaque gate is correctly serialized with a label"""
+        custom_gate = Gate("black_box", 1, [])
+        custom_gate.label = "My Special Black Box"
+        qc = QuantumCircuit(1)
+        qc.append(custom_gate, [0])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+
+    def test_opaque_instruction_with_label(self):
+        """Test that custom opaque instruction is correctly serialized with a label"""
+        custom_gate = Instruction("black_box", 1, 0, [])
+        custom_gate.label = "My Special Black Box Instruction"
+        qc = QuantumCircuit(1)
+        qc.append(custom_gate, [0])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+
+    def test_custom_gate_with_label(self):
+        """Test that custom  gate is correctly serialized with a label"""
+        custom_gate = Gate("black_box", 1, [])
+        custom_definition = QuantumCircuit(1)
+        custom_definition.h(0)
+        custom_definition.rz(1.5, 0)
+        custom_definition.sdg(0)
+        custom_gate.definition = custom_definition
+        custom_gate.label = "My special black box with a definition"
+
+        qc = QuantumCircuit(1)
+        qc.append(custom_gate, [0])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+        self.assertEqual(qc.decompose(), new_circ.decompose())
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+
+    def test_custom_instruction_with_label(self):
+        """Test that custom instruction is correctly serialized with a label"""
+        custom_gate = Instruction("black_box", 1, 0, [])
+        custom_definition = QuantumCircuit(1)
+        custom_definition.h(0)
+        custom_definition.rz(1.5, 0)
+        custom_definition.sdg(0)
+        custom_gate.definition = custom_definition
+        custom_gate.label = "My Special Black Box Instruction with a definition"
+        qc = QuantumCircuit(1)
+        qc.append(custom_gate, [0])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+        self.assertEqual(qc.decompose(), new_circ.decompose())
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+
+    def test_standard_gate_with_label(self):
+        """Test a standard gate with a label."""
+        qc = QuantumCircuit(1)
+        gate = XGate()
+        gate.label = "My special X gate"
+        qc.append(gate, [0])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+
+    def test_circuit_with_conditional_with_label(self):
+        """Test that instructions with conditions are correctly serialized."""
+        qc = QuantumCircuit(1, 1)
+        gate = XGate(label="My conditional x gate")
+        gate.c_if(qc.cregs[0], 1)
+        qc.append(gate, [0])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+
+    def test_initialize_qft(self):
+        """Test that initialize with a complex statevector and qft work."""
+        k = 5
+        state = (1 / np.sqrt(8)) * np.array(
+            [
+                np.exp(-1j * 2 * np.pi * k * (0) / 8),
+                np.exp(-1j * 2 * np.pi * k * (1) / 8),
+                np.exp(-1j * 2 * np.pi * k * (2) / 8),
+                np.exp(-1j * 2 * np.pi * k * 3 / 8),
+                np.exp(-1j * 2 * np.pi * k * 4 / 8),
+                np.exp(-1j * 2 * np.pi * k * 5 / 8),
+                np.exp(-1j * 2 * np.pi * k * 6 / 8),
+                np.exp(-1j * 2 * np.pi * k * 7 / 8),
+            ]
+        )
+
+        qubits = 3
+        qc = QuantumCircuit(qubits, qubits)
+        qc.initialize(state)
+        qc.append(QFT(qubits), range(qubits))
+        qc.measure(range(qubits), range(qubits))
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+
+    def test_qaoa(self):
+        """Test loading a QAOA circuit works."""
+        cost_operator = Z ^ I ^ I ^ Z
+        qaoa = QAOAAnsatz(cost_operator)
+        qpy_file = io.BytesIO()
+        dump(qaoa, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qaoa, new_circ)
+        self.assertEqual([x[0].label for x in qaoa.data], [x[0].label for x in new_circ.data])

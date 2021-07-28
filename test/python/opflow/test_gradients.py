@@ -37,7 +37,7 @@ from qiskit.opflow import I, X, Y, Z, StateFn, CircuitStateFn, ListOp, CircuitSa
 from qiskit.opflow.gradients import Gradient, NaturalGradient, Hessian
 from qiskit.opflow.gradients.qfi import QFI
 from qiskit.opflow.gradients.circuit_qfis import LinCombFull, OverlapBlockDiag, OverlapDiag
-from qiskit.circuit import Parameter, ParameterExpression
+from qiskit.circuit import Parameter
 from qiskit.circuit import ParameterVector
 from qiskit.circuit.library import RealAmplitudes
 
@@ -686,8 +686,8 @@ class TestGradients(QiskitOpflowTestCase):
             return grad
 
         qc = RealAmplitudes(2, reps=1)
-        grad_op = ListOp([StateFn(qc)], combo_fn=combo_fn, grad_combo_fn=grad_combo_fn)
-        grad = Gradient(grad_method=method).convert(grad_op, qc.ordered_parameters)
+        grad_op = ListOp([StateFn(qc.decompose())], combo_fn=combo_fn, grad_combo_fn=grad_combo_fn)
+        grad = Gradient(grad_method=method).convert(grad_op)
         value_dict = dict(zip(qc.ordered_parameters, np.random.rand(len(qc.ordered_parameters))))
         correct_values = [
             [(-0.16666259133549044 + 0j)],
@@ -718,7 +718,9 @@ class TestGradients(QiskitOpflowTestCase):
 
         try:
             qc = RealAmplitudes(2, reps=1)
-            grad_op = ListOp([StateFn(qc)], combo_fn=combo_fn, grad_combo_fn=grad_combo_fn)
+            grad_op = ListOp(
+                [StateFn(qc.decompose())], combo_fn=combo_fn, grad_combo_fn=grad_combo_fn
+            )
             grad = NaturalGradient(grad_method="lin_comb", regularization="ridge").convert(
                 grad_op, qc.ordered_parameters
             )
@@ -925,7 +927,9 @@ class TestGradients(QiskitOpflowTestCase):
 
         shots = 8000
         backend = BasicAer.get_backend(backend_type)
-        q_instance = QuantumInstance(backend=backend, shots=shots)
+        q_instance = QuantumInstance(
+            backend=backend, shots=shots, seed_simulator=2, seed_transpiler=2
+        )
         if method == "fin_diff":
             np.random.seed(8)
             prob_grad = Gradient(grad_method=method, epsilon=shots ** (-1 / 6.0)).gradient_wrapper(
@@ -948,6 +952,49 @@ class TestGradients(QiskitOpflowTestCase):
 
             self.assertTrue(np.allclose(result[0], correct_values[i][0], atol=0.1))
             self.assertTrue(np.allclose(result[1], correct_values[i][1], atol=0.1))
+
+    @data(("statevector_simulator", 1e-7), ("qasm_simulator", 2e-1))
+    @unpack
+    def test_gradient_wrapper2(self, backend_type, atol):
+        """Test the gradient wrapper for gradients checking that statevector and qasm gives the
+           same results
+
+        dp0/da = cos(a)sin(b) / 2
+        dp1/da = - cos(a)sin(b) / 2
+        dp0/db = sin(a)cos(b) / 2
+        dp1/db = - sin(a)cos(b) / 2
+        """
+        method = "lin_comb"
+        a = Parameter("a")
+        b = Parameter("b")
+        params = [a, b]
+
+        qc = QuantumCircuit(2)
+        qc.h(1)
+        qc.h(0)
+        qc.sdg(1)
+        qc.cz(0, 1)
+        qc.ry(params[0], 0)
+        qc.rz(params[1], 0)
+        qc.h(1)
+
+        obs = (Z ^ X) - (Y ^ Y)
+        op = StateFn(obs, is_measurement=True) @ CircuitStateFn(primitive=qc)
+
+        shots = 8192 if backend_type == "qasm_simulator" else 1
+
+        values = [[0, np.pi / 2], [np.pi / 4, np.pi / 4], [np.pi / 3, np.pi / 9]]
+        correct_values = [[-4.0, 0], [-2.0, -4.82842712], [-0.68404029, -7.01396121]]
+        for i, value in enumerate(values):
+            backend = BasicAer.get_backend(backend_type)
+            q_instance = QuantumInstance(
+                backend=backend, shots=shots, seed_simulator=2, seed_transpiler=2
+            )
+            grad = NaturalGradient(grad_method=method).gradient_wrapper(
+                operator=op, bind_params=params, backend=q_instance
+            )
+            result = grad(value)
+            self.assertTrue(np.allclose(result, correct_values[i], atol=atol))
 
     @slow_test
     def test_vqe(self):
@@ -1020,26 +1067,26 @@ class TestParameterGradients(QiskitOpflowTestCase):
         with self.subTest("linear"):
             expr = 2 * x + y
 
-            grad = Gradient.parameter_expression_grad(expr, x)
+            grad = expr.gradient(x)
             self.assertEqual(grad, 2)
 
-            grad = Gradient.parameter_expression_grad(expr, y)
+            grad = expr.gradient(y)
             self.assertEqual(grad, 1)
 
         with self.subTest("polynomial"):
             expr = x * x * x - x * y + y * y
 
-            grad = Gradient.parameter_expression_grad(expr, x)
+            grad = expr.gradient(x)
             self.assertEqual(grad, 3 * x * x - y)
 
-            grad = Gradient.parameter_expression_grad(expr, y)
+            grad = expr.gradient(y)
             self.assertEqual(grad, -1 * x + 2 * y)
 
     def test_converted_to_float_if_bound(self):
         """Test the gradient is a float when no free symbols are left."""
         x = Parameter("x")
         expr = 2 * x + 1
-        grad = Gradient.parameter_expression_grad(expr, x)
+        grad = expr.gradient(x)
         self.assertIsInstance(grad, float)
 
 
