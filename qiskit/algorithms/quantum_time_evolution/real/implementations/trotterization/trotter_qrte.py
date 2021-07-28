@@ -9,15 +9,14 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+import numbers
 from collections import defaultdict
 from typing import Union, Optional
 
-from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations\
-    .trotter_mode_enum import (
+from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations.trotter_mode_enum import (
     TrotterModeEnum,
 )
-from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations\
-    .trotterization_factory import (
+from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations.trotterization_factory import (
     TrotterizationFactory,
 )
 from qiskit.algorithms.quantum_time_evolution.real.qrte import Qrte
@@ -112,32 +111,41 @@ class TrotterQrte(Qrte):
             )
 
         self._validate_hamiltonian_form(hamiltonian)
+        param_set = set(gradient_params)
+        if t_param is not None:
+            param_set.add(t_param)
 
-        if t_param in gradient_params:
-            finite_difference = self._calc_time_gradient_finite_diff(
-                hamiltonian, hamiltonian_value_dict, initial_state, observable, t_param, time
-            )
-            return finite_difference.eval()
-        elif set(gradient_params) == set(hamiltonian.parameters):
+        if param_set.issubset(set(hamiltonian.parameters)):
             gradients = defaultdict(float)
             if isinstance(hamiltonian, SummedOp):
-                for gradient_param in gradient_params:
+                for gradient_param in param_set:
                     for hamiltonian_term in hamiltonian.oplist:
                         if gradient_param in hamiltonian_term.parameters:
-                            gradient = self._calc_term_gradient(
-                                hamiltonian,
-                                hamiltonian_term,
-                                initial_state,
-                                observable,
-                                t_param,
-                                time,
-                                hamiltonian_value_dict,
-                            )
-                            gradients[gradient_param] += gradient
+                            if gradient_param == t_param:
+                                finite_difference = self._calc_time_gradient_finite_diff(
+                                    hamiltonian,
+                                    hamiltonian_value_dict,
+                                    initial_state,
+                                    observable,
+                                    t_param,
+                                    time,
+                                )
+                                gradients[gradient_param] += finite_difference.eval()
+                            else:
+                                gradient = self._calc_term_gradient(
+                                    hamiltonian,
+                                    hamiltonian_term,
+                                    initial_state,
+                                    observable,
+                                    t_param,
+                                    time,
+                                    hamiltonian_value_dict,
+                                )
+                                gradients[gradient_param] += gradient
 
             return gradients
 
-        elif any(gradient_params) not in (hamiltonian.parameters or [t_param]):
+        else:
             raise ValueError(
                 "gradient_params provided that are not found in hamiltonian.params "
                 "and not a t_param."
@@ -170,7 +178,11 @@ class TrotterQrte(Qrte):
         hamiltonian = self._try_binding_params(hamiltonian, hamiltonian_value_dict)
 
         evolved_state = self.evolve(
-            hamiltonian, time, initial_state, t_param, hamiltonian_value_dict=hamiltonian_value_dict
+            hamiltonian,
+            time,
+            initial_state,
+            t_param=t_param,
+            hamiltonian_value_dict=hamiltonian_value_dict,
         )
 
         gradient = ~StateFn(custom_observable) @ evolved_state
@@ -196,7 +208,7 @@ class TrotterQrte(Qrte):
 
     def _is_linear_with_single_param(self, operator: OperatorBase):
         if (
-                not isinstance(operator.coeff, ParameterExpression)
+            not isinstance(operator.coeff, ParameterExpression)
             and not isinstance(operator.coeff, Parameter)
             or len(operator.coeff.parameters) == 0
         ):
@@ -209,4 +221,4 @@ class TrotterQrte(Qrte):
         single_parameter_expression = operator.coeff
         parameter = list(single_parameter_expression.parameters)[0]
         gradient = single_parameter_expression.gradient(parameter)
-        return isinstance(gradient, float)
+        return isinstance(gradient, numbers.Number)

@@ -15,7 +15,6 @@ import unittest
 import numpy as np
 from numpy.testing import assert_raises
 
-from qiskit import QiskitError
 from qiskit.algorithms.quantum_time_evolution.builders.implementations.trotterizations.trotter_mode_enum import (
     TrotterModeEnum,
 )
@@ -34,7 +33,6 @@ from qiskit.opflow import (
     StateFn,
     MatrixOp,
     I,
-    PauliSumOp,
     Y,
 )
 
@@ -153,7 +151,7 @@ class TestTrotterQrte(QiskitOpflowTestCase):
             _ = trotter_qrte.evolve(operator, 1, initial_state)
 
     def test_trotter_qrte_gradient_summed_op_qdrift(self):
-        """Test for trotter qrte gradient with SummedOp and QDrift."""
+        """Test for trotter qrte gradient with SummedOp and QDrift with commuting operators."""
         theta1 = Parameter("theta1")
         theta2 = Parameter("theta2")
         operator = theta1 * (I ^ Z ^ I) + theta2 * (Z ^ I ^ I)
@@ -176,6 +174,85 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         expected_gradient = {theta1: 0j, theta2: 0j}
         np.testing.assert_equal(gradient, expected_gradient)
 
+    # TODO fails due to Terra bug
+    def test_trotter_qrte_gradient_summed_op_qdrift_2(self):
+        """Test for trotter qrte gradient with SummedOp and QDrift with commuting operators."""
+        theta1 = Parameter("theta1")
+        theta2 = Parameter("theta2")
+        operator = theta1 * (-1j * (Y ^ Z ^ Y)) + theta2 * (Z ^ X ^ X)
+        mode = TrotterModeEnum.QDRIFT
+        trotter_qrte = TrotterQrte(mode)
+        initial_state = Zero
+        time = 5
+        gradient_object = None
+        observable = X ^ Y ^ Z
+        value_dict = {theta1: 2, theta2: 3}
+        gradient = trotter_qrte.gradient(
+            operator,
+            time,
+            initial_state,
+            gradient_object,
+            observable,
+            hamiltonian_value_dict=value_dict,
+            gradient_params=[theta1, theta2],
+        )
+        expected_gradient = {theta1: 0j, theta2: 0j}
+        print(gradient)
+        # np.testing.assert_equal(gradient, expected_gradient)
+
+    # TODO fails due to Terra bug
+    def test_trotter_qrte_gradient_summed_op_qdrift_3(self):
+        """Test for trotter qrte gradient with SummedOp and QDrift with commuting operators."""
+        theta1 = Parameter("theta1")
+        theta2 = Parameter("theta2")
+        operator = theta1 * (-1j * (Y ^ Z ^ Y)) + theta2 * (Z ^ X ^ X)
+        mode = TrotterModeEnum.QDRIFT
+        trotter_qrte = TrotterQrte(mode)
+        initial_state = Zero
+        time = 5
+        gradient_object = None
+        observable = -1j * (X ^ Y ^ Z)
+        value_dict = {theta1: 2, theta2: 3}
+        gradient = trotter_qrte.gradient(
+            operator,
+            time,
+            initial_state,
+            gradient_object,
+            observable,
+            hamiltonian_value_dict=value_dict,
+            gradient_params=[theta1, theta2],
+        )
+        expected_gradient = {theta1: 0j, theta2: 0j}
+        print(gradient)
+        # np.testing.assert_equal(gradient, expected_gradient)
+
+    # TODO fails due to Terra bug
+    def test_trotter_qrte_gradient_summed_op_qdrift_4(self):
+        """Test for trotter qrte gradient with SummedOp and QDrift with commuting operators
+        with complex parameter binding."""
+        theta1 = Parameter("theta1")
+        theta2 = Parameter("theta2")
+        operator = theta1 * (Z) + theta2 * (Y)
+        mode = TrotterModeEnum.QDRIFT
+        trotter_qrte = TrotterQrte(mode)
+        initial_state = Zero
+        time = 5
+        gradient_object = None
+        observable = X
+        value_dict = {theta1: 2, theta2: 3}
+        gradient = trotter_qrte.gradient(
+            operator,
+            time,
+            initial_state,
+            gradient_object,
+            observable,
+            hamiltonian_value_dict=value_dict,
+            gradient_params=[theta1, theta2],
+        )
+        expected_gradient = {theta1: 0j, theta2: 0j}
+        print(gradient)
+        # np.testing.assert_equal(gradient, expected_gradient)
+
     def test_trotter_qrte_gradient_summed_op_qdrift_no_param(self):
         """Test for trotter qrte gradient with SummedOp and QDrift; missing param."""
         theta1 = Parameter("theta1")
@@ -188,19 +265,20 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         observable = Z
         value_dict = {theta1: 2}
         gradient = trotter_qrte.gradient(
-                operator,
-                time,
-                initial_state,
-                gradient_object,
-                observable,
-                hamiltonian_value_dict=value_dict,
-                gradient_params=[theta1],
-            )
+            operator,
+            time,
+            initial_state,
+            gradient_object,
+            observable,
+            hamiltonian_value_dict=value_dict,
+            gradient_params=[theta1],
+        )
         expected_gradient = {theta1: 0j}
         np.testing.assert_equal(gradient, expected_gradient)
 
     def test_trotter_qrte_gradient_summed_op_qdrift_t_param_grad(self):
-        """Test for trotter qrte gradient with SummedOp and QDrift; missing param."""
+        """Test for trotter qrte gradient with SummedOp and QDrift; gradient not on all
+        parameters."""
         t_param = Parameter("t_param")
         theta1 = Parameter("theta1")
         operator = t_param * (I ^ Z ^ I) + theta1 * (Z ^ I ^ I)
@@ -222,8 +300,36 @@ class TestTrotterQrte(QiskitOpflowTestCase):
             gradient_params=[t_param],
         )
 
-        expected_gradient = 4.7628567756419216e-12 + 0j
+        expected_gradient = {t_param: (4.7628567756419216e-12 + 0j)}
         np.testing.assert_equal(gradient, expected_gradient)
+
+    def test_trotter_qrte_gradient_summed_op_qdrift_t_param_theta(self):
+        """Test for trotter qrte gradient with SummedOp and QDrift; gradient on t_param and
+        another parameter."""
+        t_param = Parameter("t_param")
+        theta1 = Parameter("theta1")
+        operator = t_param * (I ^ Z ^ I) + theta1 * (Z ^ I ^ I)
+        mode = TrotterModeEnum.QDRIFT
+        trotter_qrte = TrotterQrte(mode)
+        initial_state = Zero
+        time = 5
+        gradient_object = None
+        observable = Z
+        value_dict = {theta1: 2, t_param: 5}
+        gradient = trotter_qrte.gradient(
+            operator,
+            time,
+            initial_state,
+            gradient_object,
+            observable,
+            t_param=t_param,
+            hamiltonian_value_dict=value_dict,
+            gradient_params=[t_param, theta1],
+        )
+
+        # expected_gradient = {t_param: (4.7628567756419216e-12+0j)}
+        # np.testing.assert_equal(gradient, expected_gradient)
+        print(gradient)
 
 
 if __name__ == "__main__":
