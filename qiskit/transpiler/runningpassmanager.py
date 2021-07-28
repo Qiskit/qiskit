@@ -128,10 +128,10 @@ class RunningPassManager:
         else:
             circuit.name = name
         circuit._layout = self.property_set["layout"]
-        if 'final_permutation' in self.property_set:
+        if "final_permutation" in self.property_set:
             if circuit.metadata is None:
                 circuit.metadata = {}
-            circuit.metadata['final_permutation'] = self.property_set['final_permutation']
+            circuit.metadata["final_permutation"] = self.property_set["final_permutation"]
 
         return circuit
 
