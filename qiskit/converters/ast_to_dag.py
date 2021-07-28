@@ -24,6 +24,7 @@ from qiskit.qasm.node.real import Real
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
 from qiskit.circuit.barrier import Barrier
+from qiskit.circuit.delay import Delay
 from qiskit.circuit.library.standard_gates.x import CCXGate
 from qiskit.circuit.library.standard_gates.swap import CSwapGate
 from qiskit.circuit.library.standard_gates.x import CXGate
@@ -140,6 +141,7 @@ class AstInterpreter:
         "cu3": CU3Gate,
         "ccx": CCXGate,
         "cswap": CSwapGate,
+        "delay": Delay,
     }
 
     def __init__(self, dag):

@@ -131,7 +131,7 @@ class Schedule:
         if name is None:
             name = self.prefix + str(next(self.instances_counter))
             if sys.platform != "win32" and not is_main_process():
-                name += "-{}".format(mp.current_process().pid)
+                name += f"-{mp.current_process().pid}"
 
         self._name = name
         self._parameter_manager = ParameterManager()
@@ -604,7 +604,7 @@ class Schedule:
         for channel in schedule.channels:
 
             if channel not in self._timeslots:
-                raise PulseError("The channel {} is not present in the schedule".format(channel))
+                raise PulseError(f"The channel {channel} is not present in the schedule")
 
             channel_timeslots = self._timeslots[channel]
             other_timeslots = _get_timeslots(schedule)
@@ -822,7 +822,7 @@ class Schedule:
         instructions = ", ".join([repr(instr) for instr in self.instructions[:50]])
         if len(self.instructions) > 25:
             instructions += ", ..."
-        return '{}({}, name="{}")'.format(self.__class__.__name__, instructions, name)
+        return f'{self.__class__.__name__}({instructions}, name="{name}")'
 
 
 def _require_schedule_conversion(function: Callable) -> Callable:
@@ -850,36 +850,36 @@ class ScheduleBlock:
     ``ScheduleBlock`` s should be initialized with one of the following alignment contexts:
 
     - :class:`~qiskit.pulse.transforms.AlignLeft`: Align instructions in the
-        `as-soon-as-possible` manner. Instructions are scheduled at the earliest
-        possible time on the channel.
+      `as-soon-as-possible` manner. Instructions are scheduled at the earliest
+      possible time on the channel.
 
     - :class:`~qiskit.pulse.transforms.AlignRight`: Align instructions in the
-        `as-late-as-possible` manner. Instructions are scheduled at the latest
-        possible time on the channel.
+      `as-late-as-possible` manner. Instructions are scheduled at the latest
+      possible time on the channel.
 
     - :class:`~qiskit.pulse.transforms.AlignSequential`: Align instructions sequentially
-        even though they are allocated in different channels.
+      even though they are allocated in different channels.
 
     - :class:`~qiskit.pulse.transforms.AlignEquispaced`: Align instructions with
-        equal interval within a specified duration. Instructions on different channels
-        are aligned sequentially.
+      equal interval within a specified duration. Instructions on different channels
+      are aligned sequentially.
 
     - :class:`~qiskit.pulse.transforms.AlignFunc`: Align instructions with
-        arbitrary position within the given duration. The position is specified by
-        a callback function taking a pulse index ``j`` and returning a
-        fractional coordinate in [0, 1].
+      arbitrary position within the given duration. The position is specified by
+      a callback function taking a pulse index ``j`` and returning a
+      fractional coordinate in [0, 1].
 
     The ``ScheduleBlock`` defaults to the ``AlignLeft`` alignment.
     The timing overlap constraint of instructions is not immediately evaluated,
     and thus we can assign a parameter object to the instruction duration.
     Instructions are implicitly scheduled at optimum time when the program is executed.
 
-    Note that ``ScheduleBlock`` can contain :class:`~qiskit.pulse.instructions.Instruction`s
-    and other ``ScheduleBlock``s to build an experimental program, but ``Schedule`` is not
+    Note that ``ScheduleBlock`` can contain :class:`~qiskit.pulse.instructions.Instruction`
+    and other ``ScheduleBlock`` to build an experimental program, but ``Schedule`` is not
     supported. This should be added as a :class:`~qiskit.pulse.instructions.Call` instruction.
     This conversion is automatically performed with the pulse builder.
 
-    By using ``ScheduleBlock`` representation we can fully parametrize pulse waveform.
+    By using ``ScheduleBlock`` representation we can fully parametrize pulse waveforms.
     For example, Rabi schedule generator can be defined as
 
     .. code-block:: python
@@ -932,7 +932,7 @@ class ScheduleBlock:
         if name is None:
             name = self.prefix + str(next(self.instances_counter))
             if sys.platform != "win32" and not is_main_process():
-                name += "-{}".format(mp.current_process().pid)
+                name += f"-{mp.current_process().pid}"
 
         self._name = name
         self._parameter_manager = ParameterManager()
@@ -1456,7 +1456,7 @@ class ParameterizedSchedule:
             elif isinstance(schedule, Schedule):
                 full_schedules.append(schedule)
             else:
-                raise PulseError("Input type: {} not supported".format(type(schedule)))
+                raise PulseError(f"Input type: {type(schedule)} not supported")
 
         self._parameterized = tuple(parameterized)
         self._schedules = tuple(full_schedules)
@@ -1710,9 +1710,7 @@ def _interval_index(intervals: List[Interval], interval: Interval) -> int:
     index = _locate_interval_index(intervals, interval)
     found_interval = intervals[index]
     if found_interval != interval:
-        raise PulseError(
-            "The interval: {} does not exist in intervals: {}".format(interval, intervals)
-        )
+        raise PulseError(f"The interval: {interval} does not exist in intervals: {intervals}")
     return index
 
 
@@ -1801,6 +1799,6 @@ def _get_timeslots(schedule: ScheduleComponent) -> TimeSlots:
     elif isinstance(schedule, Schedule):
         timeslots = schedule.timeslots
     else:
-        raise PulseError("Invalid schedule type {} is specified.".format(type(schedule)))
+        raise PulseError(f"Invalid schedule type {type(schedule)} is specified.")
 
     return timeslots

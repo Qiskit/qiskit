@@ -417,7 +417,6 @@ class FullQiskitTestCase(BaseQiskitTestCase):
 
         warnings.filterwarnings("error", category=DeprecationWarning)
         allow_DeprecationWarning_modules = [
-            "test.ipynb.mpl.test_circuit_matplotlib_drawer",
             "test.python.pulse.test_parameters",
             "test.python.pulse.test_transforms",
             "test.python.circuit.test_gate_power",
@@ -521,7 +520,7 @@ def dicts_almost_equal(dict1, dict2, delta=None, places=None, default_value=0):
         val1 = dict1.get(key, default_value)
         val2 = dict2.get(key, default_value)
         if not valid_comparison(abs(val1 - val2)):
-            error_msg += "(%s: %s != %s), " % (safe_repr(key), safe_repr(val1), safe_repr(val2))
+            error_msg += f"({safe_repr(key)}: {safe_repr(val1)} != {safe_repr(val2)}), "
 
     if error_msg:
         return error_msg[:-2] + msg_suffix

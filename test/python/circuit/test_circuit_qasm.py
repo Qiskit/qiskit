@@ -163,9 +163,9 @@ measure qr[1] -> cr[1];\n"""
 
         expected_qasm = """OPENQASM 2.0;
 include "qelib1.inc";
-gate my_gate_{0} q0 {{ x q0; }}
-gate my_gate_{1} q0 {{ x q0; }}
 gate my_gate q0 {{ h q0; }}
+gate my_gate_{1} q0 {{ x q0; }}
+gate my_gate_{0} q0 {{ x q0; }}
 qreg qr[1];
 my_gate qr[0];
 my_gate_{1} qr[0];
@@ -173,6 +173,35 @@ my_gate_{0} qr[0];\n""".format(
             my_gate_inst3_id, my_gate_inst2_id
         )
         self.assertEqual(circuit.qasm(), expected_qasm)
+
+    def test_circuit_qasm_with_composite_circuit_with_children_composite_circuit(self):
+        """Test circuit qasm() method when composite circuits with children
+        composite circuits in the definitions are added to the circuit"""
+
+        child_circ = QuantumCircuit(2, name="child_circ")
+        child_circ.h(0)
+        child_circ.cx(0, 1)
+
+        parent_circ = QuantumCircuit(3, name="parent_circ")
+        parent_circ.append(child_circ, range(2))
+        parent_circ.h(2)
+
+        grandparent_circ = QuantumCircuit(4, name="grandparent_circ")
+        grandparent_circ.append(parent_circ, range(3))
+        grandparent_circ.x(3)
+
+        qc = QuantumCircuit(4)
+        qc.append(grandparent_circ, range(4))
+
+        expected_qasm = """OPENQASM 2.0;
+include "qelib1.inc";
+gate child_circ q0,q1 { h q0; cx q0,q1; }
+gate parent_circ q0,q1,q2 { child_circ q0,q1; h q2; }
+gate grandparent_circ q0,q1,q2,q3 { parent_circ q0,q1,q2; x q3; }
+qreg q[4];
+grandparent_circ q[0],q[1],q[2],q[3];\n"""
+
+        self.assertEqual(qc.qasm(), expected_qasm)
 
     def test_circuit_qasm_pi(self):
         """Test circuit qasm() method with pi params."""
@@ -229,3 +258,45 @@ nG0(pi,pi/2) q[0],r[0];\n"""
         qc.ch(0, 1, ctrl_state=0)
         qasm_str = qc.qasm()
         self.assertEqual(Operator(qc), Operator(QuantumCircuit.from_qasm_str(qasm_str)))
+
+    def test_circuit_qasm_with_mcx_gate(self):
+        """Test circuit qasm() method with MCXGate
+        See https://github.com/Qiskit/qiskit-terra/issues/4943
+        """
+        qc = QuantumCircuit(4)
+        qc.mcx([0, 1, 2], 3)
+
+        # qasm output doesn't support parameterized gate yet.
+        # param0 for "gate mcuq(param0) is not used inside the definition
+        expected_qasm = """OPENQASM 2.0;
+include "qelib1.inc";
+gate mcx q0,q1,q2,q3 { h q3; p(pi/8) q0; p(pi/8) q1; p(pi/8) q2; p(pi/8) q3; cx q0,q1; p(-pi/8) q1; cx q0,q1; cx q1,q2; p(-pi/8) q2; cx q0,q2; p(pi/8) q2; cx q1,q2; p(-pi/8) q2; cx q0,q2; cx q2,q3; p(-pi/8) q3; cx q1,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q0,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q1,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q0,q3; h q3; }
+qreg q[4];
+mcx q[0],q[1],q[2],q[3];\n"""
+        self.assertEqual(qc.qasm(), expected_qasm)
+
+    def test_circuit_qasm_with_mcx_gate_variants(self):
+        """Test circuit qasm() method with MCXGrayCode, MCXRecursive, MCXVChain"""
+        import qiskit.circuit.library as cl
+
+        n = 5
+        qc = QuantumCircuit(2 * n - 1)
+        qc.append(cl.MCXGrayCode(n), range(n + 1))
+        qc.append(cl.MCXRecursive(n), range(n + 2))
+        qc.append(cl.MCXVChain(n), range(2 * n - 1))
+
+        # qasm output doesn't support parameterized gate yet.
+        # param0 for "gate mcuq(param0) is not used inside the definition
+        expected_qasm = """OPENQASM 2.0;
+include "qelib1.inc";
+gate mcx q0,q1,q2,q3 { h q3; p(pi/8) q0; p(pi/8) q1; p(pi/8) q2; p(pi/8) q3; cx q0,q1; p(-pi/8) q1; cx q0,q1; cx q1,q2; p(-pi/8) q2; cx q0,q2; p(pi/8) q2; cx q1,q2; p(-pi/8) q2; cx q0,q2; cx q2,q3; p(-pi/8) q3; cx q1,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q0,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q1,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q0,q3; h q3; }
+gate mcu1(param0) q0,q1,q2,q3,q4,q5 { cu1(pi/16) q4,q5; cx q4,q3; cu1(-pi/16) q3,q5; cx q4,q3; cu1(pi/16) q3,q5; cx q3,q2; cu1(-pi/16) q2,q5; cx q4,q2; cu1(pi/16) q2,q5; cx q3,q2; cu1(-pi/16) q2,q5; cx q4,q2; cu1(pi/16) q2,q5; cx q2,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q3,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q2,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q3,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q1,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q2,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q1,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q2,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; }
+gate mcx_gray q0,q1,q2,q3,q4,q5 { h q5; mcu1(pi) q0,q1,q2,q3,q4,q5; h q5; }
+gate mcx_recursive q0,q1,q2,q3,q4,q5,q6 { mcx q0,q1,q2,q6; mcx q3,q4,q6,q5; mcx q0,q1,q2,q6; mcx q3,q4,q6,q5; }
+gate mcx_vchain q0,q1,q2,q3,q4,q5,q6,q7,q8 { rccx q0,q1,q6; rccx q2,q6,q7; rccx q3,q7,q8; ccx q4,q8,q5; rccx q3,q7,q8; rccx q2,q6,q7; rccx q0,q1,q6; }
+qreg q[9];
+mcx_gray q[0],q[1],q[2],q[3],q[4],q[5];
+mcx_recursive q[0],q[1],q[2],q[3],q[4],q[5],q[6];
+mcx_vchain q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8];\n"""
+
+        self.assertEqual(qc.qasm(), expected_qasm)

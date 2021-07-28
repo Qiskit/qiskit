@@ -98,10 +98,8 @@ class PauliExpectation(ExpectationBase):
                 measurement = operator.oplist[0]
                 average = measurement.eval(sfdict)
                 variance = sum(
-                    [
-                        (v * (measurement.eval(b) - average)) ** 2
-                        for (b, v) in sfdict.primitive.items()
-                    ]
+                    (v * (measurement.eval(b) - average)) ** 2
+                    for (b, v) in sfdict.primitive.items()
                 )
                 return operator.coeff * variance
 

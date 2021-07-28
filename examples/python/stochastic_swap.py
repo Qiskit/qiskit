@@ -18,8 +18,8 @@ from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 
 coupling = CouplingMap([[0, 1], [1, 2], [1, 3]])
-qr = QuantumRegister(4, 'q')
-cr = ClassicalRegister(4, 'c')
+qr = QuantumRegister(4, "q")
+cr = ClassicalRegister(4, "c")
 circ = QuantumCircuit(qr, cr)
 circ.cx(qr[1], qr[2])
 circ.cx(qr[0], qr[3])

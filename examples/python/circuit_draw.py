@@ -25,6 +25,7 @@ def build_bell_circuit():
     qc.measure([0, 1], [0, 1])
     return qc
 
+
 # Create the circuit
 bell_circuit = build_bell_circuit()
 

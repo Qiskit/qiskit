@@ -68,6 +68,22 @@ synthesis. An example plugin class would look something like::
         def supports_approximation_degree(self):
             return False
 
+        @property
+        def supports_natural_direction(self):
+            return False
+
+        @property
+        def supports_pulse_optimize(self):
+            return False
+
+        @property
+        def supports_gate_lengths(self):
+            return False
+
+        @property
+        def supports_gate_errors(self):
+            return False
+
         def run(self, unitary, **options):
             basis_gates = options['basis_gates']
             dag_circuit = generate_dag_circuit_from_matrix(unitary, basis_gates)
@@ -144,20 +160,73 @@ class UnitarySynthesisPlugin(abc.ABC):
     @property
     @abc.abstractmethod
     def supports_basis_gates(self):
-        """Return whether the plugin supports taking basis_gates"""
+        """Return whether the plugin supports taking ``basis_gates``"""
         pass
 
     @property
     @abc.abstractmethod
     def supports_coupling_map(self):
-        """Return whether the plugin supports taking coupling_map"""
+        """Return whether the plugin supports taking ``coupling_map``"""
         pass
 
     @property
     @abc.abstractmethod
     def supports_approximation_degree(self):
-        """Return whether the plugin supports taking approximation_degree"""
+        """Return whether the plugin supports taking ``approximation_degree``"""
         pass
+
+    @property
+    @abc.abstractmethod
+    def supports_natural_direction(self):
+        """Return whether the plugin supports a toggle for considering
+        directionality of 2-qubit gates as ``natural_direction``.
+
+        Refer to the documentation for :class:`~qiskit.transpiler.passes.UnitarySynthesis`
+        for the possible values and meaning of these values.
+        """
+        pass
+
+    @property
+    @abc.abstractmethod
+    def supports_pulse_optimize(self):
+        """Return whether the plugin supports a toggle to optimize pulses
+        during synthesis as ``pulse_optimize``.
+
+        Refer to the documentation for :class:`~qiskit.transpiler.passes.UnitarySynthesis`
+        for the possible values and meaning of these values.
+        """
+        pass
+
+    @property
+    @abc.abstractmethod
+    def supports_gate_lengths(self):
+        """Return whether the plugin supports taking ``gate_lengths``
+
+        ``gate_lengths`` will be a dictionary in the form of
+        ``{gate_name: {(qubit_1, qubit_2): length}}``. For example::
+
+            {
+            'sx': {(0,): 0.0006149355812506126, (1,): 0.0006149355812506126},
+            'cx': {(0, 1): 0.012012477900732316, (1, 0): 5.191111111111111e-07}
+            }
+        """
+        pass
+
+    @property
+    @abc.abstractmethod
+    def supports_gate_errors(self):
+        """Return whether the plugin supports taking ``gate_errors``
+
+        ``gate_errors`` will be a dictionary in the form of
+        ``{gate_name: {(qubit_1, qubit_2): error}}``. For example::
+
+            {
+            'sx': {(0,): 0.0006149355812506126, (1,): 0.0006149355812506126},
+            'cx': {(0, 1): 0.012012477900732316, (1, 0): 5.191111111111111e-07}
+            }
+        """
+        pass
+
 
     @abc.abstractmethod
     def run(self, unitary, **options):
@@ -180,7 +249,11 @@ class UnitarySynthesisPlugin(abc.ABC):
                 a float for the approximation value will be passed.
 
         Returns:
-            DAGCircuit: The dag circuit representation of the unitary
+            DAGCircuit: The dag circuit representation of the unitary. Alternatively,
+                you can return a tuple of the form (dag, wires) where dag is the dag
+                circuit representation of the circuit representation of the unitary
+                and wires is the mapping wires to use for
+                :meth:`qiskit.dagcircuit.DAGCircuit.substitute_node_with_dag`.
         """
         pass
 

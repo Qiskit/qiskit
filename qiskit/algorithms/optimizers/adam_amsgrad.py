@@ -12,7 +12,7 @@
 
 """The Adam and AMSGRAD optimizers."""
 
-from typing import Optional, Callable, Tuple, List
+from typing import Any, Optional, Callable, Dict, Tuple, List
 import os
 
 import csv
@@ -120,6 +120,20 @@ class ADAM(Optimizer):
                 writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
                 writer.writeheader()
 
+    @property
+    def settings(self) -> Dict[str, Any]:
+        return {
+            "maxiter": self._maxiter,
+            "tol": self._tol,
+            "lr": self._lr,
+            "beta_1": self._beta_1,
+            "beta_2": self._beta_2,
+            "noise_factor": self._noise_factor,
+            "eps": self._eps,
+            "amsgrad": self._amsgrad,
+            "snapshot_dir": self._snapshot_dir,
+        }
+
     def get_support_level(self):
         """Return support level dictionary"""
         return {
@@ -156,7 +170,7 @@ class ADAM(Optimizer):
         Args:
             load_dir: The directory containing ``adam_params.csv``.
         """
-        with open(os.path.join(load_dir, "adam_params.csv"), mode="r") as csv_file:
+        with open(os.path.join(load_dir, "adam_params.csv")) as csv_file:
             if self._amsgrad:
                 fieldnames = ["v", "v_eff", "m", "t"]
             else:

@@ -444,6 +444,6 @@ def draw(
         plotter_api = Mpl2DPlotter(canvas=canvas, axis=axis)
         plotter_api.draw()
     else:
-        raise VisualizationError("Plotter API {name} is not supported.".format(name=plotter))
+        raise VisualizationError(f"Plotter API {plotter} is not supported.")
 
     return plotter_api.get_image()
