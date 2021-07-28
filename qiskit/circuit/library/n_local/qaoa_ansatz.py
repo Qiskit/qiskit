@@ -15,8 +15,9 @@
 from typing import Optional, Set, List, Tuple
 import numpy as np
 
-from qiskit.circuit.library.evolved_operator_ansatz import EvolvedOperatorAnsatz
+from qiskit.circuit.library.evolved_operator_ansatz import EvolvedOperatorAnsatz, _is_pauli_identity
 from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.parametervector import ParameterVector
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 
@@ -53,7 +54,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
                 circuit.
             name (str): A name of the circuit, default 'qaoa'
         """
-        super().__init__(parameter_prefix=["γ", "β"], name=name)
+        super().__init__(reps=reps, name=name)
 
         self._cost_operator = None
         self._reps = reps
@@ -61,7 +62,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         self._mixer = mixer_operator
 
         # set this circuit as a not-built circuit
-        self._num_parameters = 0
+        # self._num_parameters = 0
         self._bounds = None
 
         # store cost operator and set the registers if the operator is not None
@@ -110,24 +111,22 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
             parameter in the corresponding direction. If None is returned, problem is fully
             unbounded.
         """
-
         if self._bounds is not None:
             return self._bounds
 
-        # make sure circuit is buile and self._ops_are_parameterized is set
-        self._build()
+        # if the mixer is a circuit, we set no bounds
+        if isinstance(self.mixer_operator, QuantumCircuit):
+            return None
 
+        # default bounds: None for gamma (cost operator), [0, 2pi] for gamma (mixer operator)
         beta_bounds = (0, 2 * np.pi)
         gamma_bounds = (None, None)
         bounds = []
+        if not _is_pauli_identity(self.cost_operator):
+            bounds += self.reps * [gamma_bounds]
 
-        # due to the naming we first want the mixer operator (parameter name beta) before the
-        # cost operator (parameter name gamma)
-        ops_are_parameterized = self._ops_are_parameterized[::-1]
-
-        for bound, is_parameterized in zip([beta_bounds, gamma_bounds], ops_are_parameterized):
-            if is_parameterized:
-                bounds += self._reps * [bound]
+        if not _is_pauli_identity(self.mixer_operator):
+            bounds += self.reps * [beta_bounds]
 
         return bounds
 
@@ -139,23 +138,6 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
             bounds: The new parameter bounds.
         """
         self._bounds = bounds
-
-    @property
-    def num_qubits(self) -> int:
-        """Return the number of qubits, specified by the size of the cost operator."""
-        if self.cost_operator is not None:
-            return self.cost_operator.num_qubits
-        return 0
-
-    @property
-    def parameters(self) -> Set[Parameter]:
-        """Get the :class:`~qiskit.circuit.Parameter` objects in the circuit.
-
-        Returns:
-            A set containing the unbound circuit parameters.
-        """
-        self._build()
-        return super().parameters
 
     @property
     def operators(self):
@@ -231,15 +213,16 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
             return self._mixer
 
         # if no mixer is passed and we know the number of qubits, then initialize it.
-        if self.num_qubits > 0:
+        if self.cost_operator is not None:
             # local imports to avoid circular imports
             from qiskit.opflow import I, X
+
+            num_qubits = self.cost_operator.num_qubits
 
             # Mixer is just a sum of single qubit X's on each qubit. Evolving by this operator
             # will simply produce rx's on each qubit.
             mixer_terms = [
-                (I ^ left) ^ X ^ (I ^ (self.num_qubits - left - 1))
-                for left in range(self.num_qubits)
+                (I ^ left) ^ X ^ (I ^ (num_qubits - left - 1)) for left in range(num_qubits)
             ]
             mixer = sum(mixer_terms)
             return mixer
@@ -257,3 +240,33 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         """
         self._mixer = mixer_operator
         self._invalidate()
+
+    def _build(self):
+        if self._data is not None:
+            return
+
+        super()._build()
+
+        # keep old parameter order: first cost operator, then mixer operators
+        num_cost = 0 if _is_pauli_identity(self.cost_operator) else 1
+        if isinstance(self.mixer_operator, QuantumCircuit):
+            num_mixer = self.mixer_operator.num_parameters
+        else:
+            num_mixer = 0 if _is_pauli_identity(self.mixer_operator) else 1
+
+        num_parameters = self.reps * (num_cost + num_mixer)
+        theta = ParameterVector("th", num_parameters)
+
+        # 0 3 1 4 2 5
+        # 0 4 5 1 6 7 3
+        # first the cost operator parameters then mixer operators
+        reordered = [None] * num_parameters
+        theta_iter = iter(theta)
+
+        reordered = [next(theta_iter) for _ in range(self.reps * num_cost)]
+
+        for i in range(self.reps):
+            start_idx = i * num_mixer + (i + 1) * num_cost
+            reordered[start_idx:start_idx] = [next(theta_iter) for _ in range(num_mixer)]
+
+        self.assign_parameters(dict(zip(self.ordered_parameters, reordered)), inplace=True)

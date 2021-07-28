@@ -68,9 +68,8 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
 
     def test_invalid_reps(self):
         """Test setting an invalid number of reps."""
-        evo = EvolvedOperatorAnsatz(X, reps=-1)
         with self.assertRaises(ValueError):
-            _ = evo.count_ops()
+            _ = EvolvedOperatorAnsatz(X, reps=-1)
 
     def test_insert_barriers(self):
         """Test using insert_barriers."""
@@ -78,9 +77,7 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
         ref = QuantumCircuit(1)
         for parameter in evo.parameters:
             ref.rz(2.0 * parameter, 0)
-            # ref.rx(2.0 * parameter, 0)
-            if parameter != evo.parameters[-1]:
-                ref.barrier()
+            ref.barrier()
 
         self.assertEqual(evo.decompose(), ref)
 

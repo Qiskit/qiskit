@@ -698,7 +698,7 @@ class NLocal(BlueprintCircuit):
         # about on which qubits the initial state acts
         if (
             self._num_qubits is not None
-            and self._initial_state_circuit.num_qubits != self._num_qubits
+            and self._initial_state_circuit.num_qubits != self.num_qubits
         ):
             raise ValueError("Mismatching number of qubits in initial state and n-local circuit.")
 
@@ -818,35 +818,6 @@ class NLocal(BlueprintCircuit):
         if self._data is None:
             self._build()
 
-        if not isinstance(parameters, dict):
-            if len(parameters) != self.num_parameters:
-                raise AttributeError(
-                    "If the parameters are provided as list, the size must match "
-                    "the number of parameters ({}), but {} are given.".format(
-                        self.num_parameters, len(parameters)
-                    )
-                )
-            unbound_parameters = [
-                param
-                for param in self._ordered_parameters
-                if isinstance(param, ParameterExpression)
-            ]
-
-            # to get a sorted list of unique parameters, keep track of the already used parameters
-            # in a set and add the parameters to the unique list only if not existing in the set
-            used = set()
-            unbound_unique_parameters = []
-            for param in unbound_parameters:
-                if param not in used:
-                    unbound_unique_parameters.append(param)
-                    used.add(param)
-
-            parameters = dict(zip(unbound_unique_parameters, parameters))
-
-        if inplace:
-            new = [parameters.get(param, param) for param in self.ordered_parameters]
-            self._ordered_parameters = new
-
         return super().assign_parameters(parameters, inplace=inplace)
 
     def _parameterize_block(
@@ -951,11 +922,11 @@ class NLocal(BlueprintCircuit):
         circuit = QuantumCircuit(*self.qregs, name=self.name)
 
         # use the initial state as starting circuit, if it is set
-        if self._initial_state:
-            if isinstance(self._initial_state, QuantumCircuit):
-                initial = self._initial_state.copy()
+        if self.initial_state:
+            if isinstance(self.initial_state, QuantumCircuit):
+                initial = self.initial_state.copy()
             else:
-                initial = self._initial_state.construct_circuit("circuit", register=self.qregs[0])
+                initial = self.initial_state.construct_circuit("circuit", register=self.qregs[0])
             circuit.compose(initial, inplace=True)
 
         param_iter = iter(self.ordered_parameters)

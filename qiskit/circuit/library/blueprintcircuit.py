@@ -93,6 +93,16 @@ class BlueprintCircuit(QuantumCircuit, ABC):
             self._build()
         return super().data
 
+    def decompose(self):
+        if self._data is None:
+            self._build()
+        return super().decompose()
+
+    def draw(self, *args, **kwargs):
+        if self._data is None:
+            self._build()
+        return super().draw(*args, **kwargs)
+
     @property
     def num_parameters(self) -> int:
         if self._data is None:
