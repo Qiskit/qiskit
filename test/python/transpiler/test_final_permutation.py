@@ -11,8 +11,8 @@
 # that they have been altered from the originals.
 
 """Final perutation testing"""
-import numpy as np
 import unittest
+import numpy as np
 
 from qiskit import QuantumCircuit, transpile
 from qiskit.test import QiskitTestCase
@@ -65,7 +65,7 @@ class TestFinalPermutation(QiskitTestCase):
         )
 
     def test_subcircuit(self):
-        "Test that subcircuit permutations are correct"
+        """Test that subcircuit permutations are correct"""
         qc = QuantumCircuit(5)
         qc.h(0)
         qc.cx(0, 1)
