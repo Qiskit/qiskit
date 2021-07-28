@@ -53,8 +53,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
                 circuit.
             name (str): A name of the circuit, default 'qaoa'
         """
-        super().__init__(parameter_prefix=['γ', 'β'],
-                         name=name)
+        super().__init__(parameter_prefix=["γ", "β"], name=name)
 
         self._cost_operator = None
         self._reps = reps
