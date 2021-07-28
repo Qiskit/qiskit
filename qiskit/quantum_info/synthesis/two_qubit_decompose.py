@@ -557,7 +557,7 @@ class TwoQubitWeylEchoRZX:
 
         Args:
             is_native: If True then the CX schedule on qubits (q0, q1)
-            is shorter than the schedule on (q1, q0).
+                is shorter than the schedule on (q1, q0).
         """
         self.is_native = is_native
 
