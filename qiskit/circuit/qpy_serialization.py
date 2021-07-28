@@ -87,6 +87,7 @@ There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
 
+.. _version_2:
 
 Version 2
 =========
