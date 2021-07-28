@@ -96,6 +96,7 @@ class StochasticSwap(TransformationPass):
         self.trivial_layout = Layout.generate_trivial_layout(canonical_register)
         self._qubit_indices = {bit: idx for idx, bit in enumerate(dag.qubits)}
 
+        # Grab the intial layout and set as the starting permutation.
         self._final_perm = np.zeros(len(dag.qubits), dtype=int)
         for key, val in self.property_set["layout"]._p2v.items():
             self._final_perm[key] = val._index
