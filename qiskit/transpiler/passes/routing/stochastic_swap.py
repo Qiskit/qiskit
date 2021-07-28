@@ -100,7 +100,7 @@ class StochasticSwap(TransformationPass):
         self._qubit_indices = {bit: idx for idx, bit in enumerate(dag.qubits)}
 
         # Grab the intial layout and set as the starting permutation.
-        self._final_perm = np.arange(len(dag.qubits), dtype=int)
+        self._final_perm = np.arange(len(dag.qubits))
         if self.property_set["layout"] is not None:
             for key, val in self.property_set["layout"]._p2v.items():
                 self._final_perm[key] = val._index
