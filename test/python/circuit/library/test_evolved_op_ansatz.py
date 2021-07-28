@@ -68,7 +68,7 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
 
     def test_invalid_reps(self):
         """Test setting an invalid number of reps."""
-        evo = EvolvedOperatorAnsatz(X, reps=0)
+        evo = EvolvedOperatorAnsatz(X, reps=-1)
         with self.assertRaises(ValueError):
             _ = evo.count_ops()
 
