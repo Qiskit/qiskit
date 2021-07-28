@@ -41,6 +41,7 @@ from .register import Register
 from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData
 from .delay import Delay
+from .measure import Measure
 
 try:
     import pygments
@@ -1922,6 +1923,21 @@ class QuantumCircuit:
         else:
             new_qreg = QuantumRegister(length, name)
         return new_qreg
+
+    def measure(self, qubit, cbit):
+        """Measure quantum bit into classical bit (tuples).
+
+        Args:
+            qubit: qubit to measure.
+            cbit: classical bit to place the measurement in.
+
+        Returns:
+            qiskit.circuit.InstructionSet: handle to the added instructions.
+
+        Raises:
+            CircuitError: if arguments have bad format.
+        """
+        return self.append(Measure(), [qubit], [cbit])
 
     def measure_active(self, inplace=True):
         """Adds measurement to all non-idle qubits. Creates a new ClassicalRegister with
