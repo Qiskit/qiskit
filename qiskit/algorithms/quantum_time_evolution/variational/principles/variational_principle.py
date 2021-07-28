@@ -9,8 +9,29 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from abc import ABC
+from abc import ABC, abstractmethod
 
 
 class VariationalPrinciple(ABC):
-    pass
+    def __init__(self, raw_metric_tensor, raw_evolution_grad, is_error_supported: bool):
+        self._is_error_supported = is_error_supported
+        self._metric_tensor = self._calc_metric_tensor(raw_metric_tensor)
+        self._evolution_grad = self._calc_evolution_grad(raw_evolution_grad)
+
+    @staticmethod
+    @abstractmethod
+    def _calc_metric_tensor(raw_metric_tensor):
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def _calc_evolution_grad(raw_evolution_grad):
+        pass
+
+    @property
+    def metric_tensor(self):
+        return self._metric_tensor
+
+    @property
+    def evolution_grad(self):
+        return self._evolution_grad

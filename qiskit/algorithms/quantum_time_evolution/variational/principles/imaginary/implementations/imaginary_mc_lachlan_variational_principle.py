@@ -9,23 +9,23 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from abc import abstractmethod
+import numpy as np
 
-from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
-    VariationalPrinciple,
-)
+from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary\
+    .imaginary_variational_principle import \
+    ImaginaryVariationalPrinciple
 
 
-class ImaginaryVariationalPrinciple(VariationalPrinciple):
+class ImaginaryMcLachlanVariationalPrinciple(ImaginaryVariationalPrinciple):
+
     def __init__(self, raw_metric_tensor, raw_evolution_grad, is_error_supported: bool):
         super().__init__(raw_metric_tensor, raw_evolution_grad, is_error_supported)
 
     @staticmethod
-    @abstractmethod
     def _calc_metric_tensor(raw_metric_tensor):
-        pass
+        return np.real(raw_metric_tensor)
 
     @staticmethod
-    @abstractmethod
     def _calc_evolution_grad(raw_evolution_grad):
-        pass
+        return -np.real(raw_evolution_grad)
+
