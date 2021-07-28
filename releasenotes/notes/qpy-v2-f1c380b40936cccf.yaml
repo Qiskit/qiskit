@@ -5,7 +5,7 @@ features:
     :attr:`~qiskit.circuit.QuantumCircuit.global_phase` attributes of a
     :class:`~qiskit.circuit.QuantumCircuit` object that are a ``int``,
     :class:`~qiskit.circuit.Parameter` object, or
-    :class:`~qiskit.circuit.ParameterExpression object`. Previous versions of
+    :class:`~qiskit.circuit.ParameterExpression` object. Previous versions of
     QPY would only accept a :attr:`~qiskit.circuit.QuantumCircuit.global_phase`
     that were ``float``s.
 

@@ -104,9 +104,9 @@ The contents of HEADER are defined as a C struct are:
 .. code-block:: c
 
     struct {
-        unit16_t name_size;
+        uint16_t name_size;
         char global_phase_type;
-        unit16_t global_phase_size;
+        uint16_t global_phase_size;
         uint32_t num_qubits;
         uint32_t num_clbits;
         uint64_t metadata_size;
@@ -122,7 +122,7 @@ value of ``global_phase_type``. If it's ``'f'`` the data is a float and is the
 size of a ``double``. If it's ``'p'`` defines a :class:`~qiskit.circuit.Parameter`
 object  which is represented by a PARAM struct (see below), ``e`` defines a
 :class:`~qiskit.circuit.ParameterExpression` object (that's not a
-:class:`~qiskit.circuit.Paramter`) which is represented by a PARAM_EXPR struct
+:class:`~qiskit.circuit.Parameter`) which is represented by a PARAM_EXPR struct
 (see below).
 
 .. _version_1:
