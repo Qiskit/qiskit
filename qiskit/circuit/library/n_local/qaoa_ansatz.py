@@ -255,7 +255,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
             num_mixer = 0 if _is_pauli_identity(self.mixer_operator) else 1
 
         num_parameters = self.reps * (num_cost + num_mixer)
-        theta = ParameterVector("th", num_parameters)
+        theta = ParameterVector("θ", num_parameters)
 
         # 0 3 1 4 2 5
         # 0 4 5 1 6 7 3

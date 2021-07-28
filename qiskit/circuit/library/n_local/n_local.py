@@ -956,6 +956,15 @@ class NLocal(BlueprintCircuit):
         # add the appended layers
         self._build_additional_layers(circuit, "appended")
 
+        # cast global phase to float if it has no free parameters
+        if isinstance(circuit.global_phase, ParameterExpression):
+            try:
+                circuit.global_phase = float(circuit.global_phase._symbol_expr)
+            # RuntimeError is raised if symengine is used, for SymPy it is a TypeError
+            except (RuntimeError, TypeError):
+                # expression contains free parameters
+                pass
+
         try:
             block = circuit.to_gate()
         except QiskitError:
