@@ -102,7 +102,6 @@ class StochasticSwap(TransformationPass):
 
         # Grab the intial layout and set as the starting permutation.
         self._final_perm = np.arange(num_qubits)
-        print(self.property_set["layout"]._p2v)
         unused = list(range(num_qubits))
         if self.property_set["layout"] is not None:
             for key, val in self.property_set["layout"]._p2v.items():
