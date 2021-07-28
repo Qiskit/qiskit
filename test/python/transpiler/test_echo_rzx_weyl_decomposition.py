@@ -41,7 +41,7 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
         self.inst_map = self.backend.defaults().instruction_schedule_map
 
     def test_rzx_number_native_weyl_decomposition(self):
-        """Check the number of RZX gates for a hardware-native CX"""
+        """Check the number of RZX gates for a hardware-native cx"""
         qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
@@ -54,25 +54,11 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
 
         self.assertTrue(np.allclose(unitary_circuit, unitary_after))
 
-        alpha = TwoQubitWeylDecomposition(unitary_circuit).a
-        beta = TwoQubitWeylDecomposition(unitary_circuit).b
-        gamma = TwoQubitWeylDecomposition(unitary_circuit).c
-
         # check whether after circuit has correct number of rzx gates
-        expected_rzx_number = 0
-        if not alpha == 0:
-            expected_rzx_number += 2
-        if not beta == 0:
-            expected_rzx_number += 2
-        if not gamma == 0:
-            expected_rzx_number += 2
-
-        circuit_rzx_number = after.count_ops()["rzx"]
-
-        self.assertEqual(expected_rzx_number, circuit_rzx_number)
+        self.assertRZXgates(unitary_circuit, after)
 
     def test_non_native_weyl_decomposition(self):
-        """The RZZ is not in the hardware-native direction"""
+        """Check the number of RZX gates for a non-hardware-native rzz"""
         theta = pi / 9
         qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
@@ -88,10 +74,11 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
 
         self.assertTrue(np.allclose(unitary_circuit, unitary_after))
 
+        # check whether after circuit has correct number of rzx gates
         self.assertRZXgates(unitary_circuit, after)
 
     def assertRZXgates(self, unitary_circuit, after):
-        """ "Check the number of rzx gates"""
+        """Check the number of rzx gates"""
         alpha = TwoQubitWeylDecomposition(unitary_circuit).a
         beta = TwoQubitWeylDecomposition(unitary_circuit).b
         gamma = TwoQubitWeylDecomposition(unitary_circuit).c
@@ -135,7 +122,7 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
         circuit_non_native_h_number = QuantumCircuit.count_ops(after_non_native)["h"]
 
         # for each pair of rzx gates four hadamard gates have to be added in
-        # the case of a non-hardware native directed gate.
+        # the case of a non-hardware-native directed gate.
         self.assertEqual(
             (circuit_rzx_number / 2) * 4, circuit_non_native_h_number - circuit_h_number
         )
@@ -165,7 +152,7 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
         circuit_non_native_h_number = QuantumCircuit.count_ops(after_non_native)["h"]
 
         # for each pair of rzx gates four hadamard gates have to be added in
-        # the case of a non-hardware native directed gate.
+        # the case of a non-hardware-native directed gate.
         self.assertEqual(
             (circuit_rzx_number / 2) * 4, circuit_non_native_h_number - circuit_h_number
         )
@@ -205,7 +192,7 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
         self.assertTrue(np.allclose(unitary_circuit, unitary_after))
 
     def test_weyl_parameters(self):
-        """Computation of the correct RZX Weyl parameters"""
+        """Check whether rzx Weyl parameters are correct"""
         theta = pi / 3
         qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
@@ -228,7 +215,7 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
         self.assertEqual((alpha, beta, gamma), (rzx_alpha, rzx_beta, rzx_gamma))
 
     def test_non_native_weyl_parameters(self):
-        """Weyl parameters for non-hardware-native CX direction"""
+        """Weyl parameters for non-hardware-native cx direction"""
         qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
         qubit_pair = (qr[1], qr[0])
