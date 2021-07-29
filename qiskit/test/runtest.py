@@ -33,6 +33,8 @@ try:
 except ImportError:
     HAS_TESTTOOLS = False
 
+from qiskit.exceptions import MissingOptionalLibraryError
+
 
 class MultipleExceptions(Exception):
     """Represents many exceptions raised from some operation.
@@ -78,12 +80,13 @@ class RunTest:
                 raised - aborting the test run as this is inside the runner
                 machinery rather than the confined context of the test.
         Raises:
-            ImportError: If test requirements aren't installed
+            MissingOptionalLibraryError: If test requirements aren't installed
         """
         if not HAS_TESTTOOLS:
-            raise ImportError(
-                "Test runner requirements testtools and fixtures are missing. "
-                "Install them with 'pip install testtools fixtures'"
+            raise MissingOptionalLibraryError(
+                libname="testtools",
+                name="test runner",
+                pip_install="pip install testtools",
             )
         self.case = case
         self.handlers = handlers or []

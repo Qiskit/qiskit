@@ -33,7 +33,7 @@ class TestUniformDistribution(QiskitTestCase):
         expected = QuantumCircuit(3)
         expected.h([0, 1, 2])
 
-        self.assertEqual(circuit, expected)
+        self.assertEqual(circuit.decompose(), expected)
 
 
 @ddt
@@ -58,13 +58,13 @@ class TestNormalDistribution(QiskitTestCase):
 
         # compute the points
         meshgrid = np.meshgrid(
-            *[
+            *(
                 np.linspace(bound[0], bound[1], num=2 ** num_qubits[i])
                 for i, bound in enumerate(bounds)
-            ],
+            ),
             indexing="ij",
         )
-        x = list(zip(*[grid.flatten() for grid in meshgrid]))
+        x = list(zip(*(grid.flatten() for grid in meshgrid)))
 
         # compute the normalized, truncated probabilities
         probabilities = multivariate_normal.pdf(x, mu, sigma)
@@ -163,13 +163,13 @@ class TestLogNormalDistribution(QiskitTestCase):
 
         # compute the points
         meshgrid = np.meshgrid(
-            *[
+            *(
                 np.linspace(bound[0], bound[1], num=2 ** num_qubits[i])
                 for i, bound in enumerate(bounds)
-            ],
+            ),
             indexing="ij",
         )
-        x = list(zip(*[grid.flatten() for grid in meshgrid]))
+        x = list(zip(*(grid.flatten() for grid in meshgrid)))
 
         # compute the normalized, truncated probabilities
         probabilities = []

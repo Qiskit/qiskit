@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,wrong-import-position
-
+# pylint: disable=wrong-import-position
 
 """Main Qiskit public functionality."""
 
@@ -21,7 +20,7 @@ import warnings
 import os
 
 # qiskit errors operator
-from qiskit.exceptions import QiskitError
+from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 
 # The main qiskit operators
 from qiskit.circuit import ClassicalRegister
@@ -91,12 +90,10 @@ class AerWrapper:
                 from qiskit.providers import aer
 
                 self.aer = aer.Aer
-            except ImportError as exc:
-                raise ImportError(
-                    "Could not import the Aer provider from the "
-                    "qiskit-aer package. Install qiskit-aer or "
-                    "check your installation."
-                ) from exc
+            except ImportError as ex:
+                raise MissingOptionalLibraryError(
+                    "qiskit-aer", "Aer provider", "pip install qiskit-aer"
+                ) from ex
         return getattr(self.aer, attr)
 
 
@@ -122,13 +119,10 @@ class IBMQWrapper:
                 from qiskit.providers import ibmq
 
                 self.ibmq = ibmq.IBMQ
-            except ImportError as exc:
-                raise ImportError(
-                    "Could not import the IBMQ provider from the "
-                    "qiskit-ibmq-provider package. Install "
-                    "qiskit-ibmq-provider or check your  "
-                    "installation."
-                ) from exc
+            except ImportError as ex:
+                raise MissingOptionalLibraryError(
+                    "qiskit-ibmq-provider", "IBMQ provider", "pip install qiskit-ibmq-provider"
+                ) from ex
         return getattr(self.ibmq, attr)
 
 

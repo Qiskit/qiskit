@@ -13,7 +13,6 @@
 """Standard gates."""
 
 
-# pylint: disable=invalid-name
 import warnings
 from qiskit.qasm import pi
 from qiskit.circuit import EquivalenceLibrary, Parameter, QuantumCircuit, QuantumRegister

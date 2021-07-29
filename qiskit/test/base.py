@@ -40,6 +40,7 @@ try:
 except ImportError:
     HAS_FIXTURES = False
 
+from qiskit.exceptions import MissingOptionalLibraryError
 from .runtest import RunTest, MultipleExceptions
 from .utils import Path, setup_test_logging
 
@@ -167,9 +168,10 @@ class FullQiskitTestCase(BaseQiskitTestCase):
     def __init__(self, *args, **kwargs):
         """Construct a TestCase."""
         if not HAS_FIXTURES:
-            raise ImportError(
-                "Test runner requirements testtools and fixtures are missing. "
-                "Install them with 'pip install testtools fixtures'"
+            raise MissingOptionalLibraryError(
+                libname="testtools",
+                name="test runner",
+                pip_install="pip install testtools",
             )
         super().__init__(*args, **kwargs)
         self.__RunTest = self.run_tests_with
@@ -415,7 +417,6 @@ class FullQiskitTestCase(BaseQiskitTestCase):
 
         warnings.filterwarnings("error", category=DeprecationWarning)
         allow_DeprecationWarning_modules = [
-            "test.ipynb.mpl.test_circuit_matplotlib_drawer",
             "test.python.pulse.test_parameters",
             "test.python.pulse.test_transforms",
             "test.python.circuit.test_gate_power",
@@ -519,7 +520,7 @@ def dicts_almost_equal(dict1, dict2, delta=None, places=None, default_value=0):
         val1 = dict1.get(key, default_value)
         val2 = dict2.get(key, default_value)
         if not valid_comparison(abs(val1 - val2)):
-            error_msg += "(%s: %s != %s), " % (safe_repr(key), safe_repr(val1), safe_repr(val2))
+            error_msg += f"({safe_repr(key)}: {safe_repr(val1)} != {safe_repr(val2)}), "
 
     if error_msg:
         return error_msg[:-2] + msg_suffix
@@ -527,7 +528,7 @@ def dicts_almost_equal(dict1, dict2, delta=None, places=None, default_value=0):
         return ""
 
 
-if not HAS_FIXTURES and not os.environ.get("QISKIT_TEST_CAPTURE_STREAMS"):
+if not HAS_FIXTURES or not os.environ.get("QISKIT_TEST_CAPTURE_STREAMS"):
     QiskitTestCase = BasicQiskitTestCase
 else:
     QiskitTestCase = FullQiskitTestCase

@@ -142,7 +142,7 @@ class Plotter(str, Enum):
 DataTypes = NewType("DataType", Union[BoxType, LabelType, LineType, SymbolType])
 
 # convenient type to represent union of values to represent a coordinate
-Coordinate = NewType("Coordinate", Union[int, float, AbstractCoordinate])
+Coordinate = NewType("Coordinate", Union[float, AbstractCoordinate])
 
 # Valid bit objects
 Bits = NewType("Bits", Union[circuit.Qubit, circuit.Clbit])

@@ -63,7 +63,7 @@ def raise_if_dagcircuit_invalid(dag):
         elif node.type == "op":
             continue
         else:
-            raise DAGCircuitError("Found node of unexpected type: {}".format(node.type))
+            raise DAGCircuitError(f"Found node of unexpected type: {node.type}")
 
     # Shape of node.op should match shape of node.
     for node in dag.op_nodes():
@@ -120,7 +120,7 @@ def raise_if_dagcircuit_invalid(dag):
 
         all_bits = node_qubits | node_clbits | node_cond_bits
 
-        assert in_wires == all_bits, "In-edge wires {} != node bits {}".format(in_wires, all_bits)
+        assert in_wires == all_bits, f"In-edge wires {in_wires} != node bits {all_bits}"
         assert out_wires == all_bits, "Out-edge wires {} != node bits {}".format(
             out_wires, all_bits
         )
@@ -515,6 +515,20 @@ class TestDagNodeSelection(QiskitTestCase):
             or (successor2.type == "out" and isinstance(successor1.op, Reset))
         )
 
+    def test_is_successor(self):
+        """The method dag.is_successor(A, B) checks if node B is a successor of A"""
+        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(Reset(), [self.qubit0], [])
+
+        measure_node = self.dag.named_nodes("measure")[0]
+        cx_node = self.dag.named_nodes("cx")[0]
+        reset_node = self.dag.named_nodes("reset")[0]
+
+        self.assertTrue(self.dag.is_successor(measure_node, cx_node))
+        self.assertFalse(self.dag.is_successor(measure_node, reset_node))
+        self.assertTrue(self.dag.is_successor(cx_node, reset_node))
+
     def test_quantum_predecessors(self):
         """The method dag.quantum_predecessors() returns predecessors connected by quantum edges"""
 
@@ -549,6 +563,21 @@ class TestDagNodeSelection(QiskitTestCase):
             (predecessor1.type == "in" and isinstance(predecessor2.op, Reset))
             or (predecessor2.type == "in" and isinstance(predecessor1.op, Reset))
         )
+
+    def test_is_predecessor(self):
+        """The method dag.is_predecessor(A, B) checks if node B is a predecessor of A"""
+
+        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(Reset(), [self.qubit0], [])
+
+        measure_node = self.dag.named_nodes("measure")[0]
+        cx_node = self.dag.named_nodes("cx")[0]
+        reset_node = self.dag.named_nodes("reset")[0]
+
+        self.assertTrue(self.dag.is_predecessor(cx_node, measure_node))
+        self.assertFalse(self.dag.is_predecessor(reset_node, measure_node))
+        self.assertTrue(self.dag.is_predecessor(reset_node, cx_node))
 
     def test_get_gates_nodes(self):
         """The method dag.gate_nodes() returns all gate nodes"""

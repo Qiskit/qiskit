@@ -136,7 +136,7 @@ class CommonUtilitiesMixin:
 
     def assertResult(self, result, circuit):
         """Fetches the QASM in circuit.name file and compares it with result."""
-        qasm_name = "%s_%s.qasm" % (type(self).__name__, circuit.name)
+        qasm_name = f"{type(self).__name__}_{circuit.name}.qasm"
         qasm_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "qasm")
         filename = os.path.join(qasm_dir, qasm_name)
 

@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 # pylint: disable=invalid-name
-# pylint: disable=inconsistent-return-statements,unsubscriptable-object
+# pylint: disable=inconsistent-return-statements
 # pylint: disable=missing-param-doc,missing-type-doc,unused-argument
 
 """
@@ -24,6 +24,7 @@ import colorsys
 import numpy as np
 from scipy import linalg
 from qiskit import user_config
+from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 from qiskit.visualization.array import array_to_latex
 from qiskit.utils.deprecation import deprecate_arguments
@@ -34,13 +35,16 @@ from qiskit.circuit.tools.pi_check import pi_check
 
 
 @deprecate_arguments({"rho": "state"})
-def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None, *, rho=None):
+def plot_state_hinton(
+    state, title="", figsize=None, ax_real=None, ax_imag=None, *, rho=None, filename=None
+):
     """Plot a hinton diagram for the density matrix of a quantum state.
 
     Args:
         state (Statevector or DensityMatrix or ndarray): An N-qubit quantum state.
         title (str): a string that represents the plot title
         figsize (tuple): Figure size in inches.
+        filename (str): file path to save image to.
         ax_real (matplotlib.axes.Axes): An optional Axes object to be used for
             the visualization output. If none is specified a new matplotlib
             Figure will be created and used. If this is specified without an
@@ -60,7 +64,7 @@ def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None,
             neither ax_real or ax_imag is set.
 
     Raises:
-        ImportError: Requires matplotlib.
+        MissingOptionalLibraryError: Requires matplotlib.
         VisualizationError: if input is not a valid N-qubit state.
 
     Example:
@@ -79,8 +83,10 @@ def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None,
             plot_state_hinton(state, title="New Hinton Plot")
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError(
-            "Must have Matplotlib installed. To install, run " '"pip install matplotlib".'
+        raise MissingOptionalLibraryError(
+            libname="Matplotlib",
+            name="plot_state_hinton",
+            pip_install="pip install matplotlib",
         )
     from matplotlib import pyplot as plt
     from matplotlib import get_backend
@@ -167,7 +173,10 @@ def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None,
     if ax_real is None and ax_imag is None:
         if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
             plt.close(fig)
+    if filename is None:
         return fig
+    else:
+        return fig.savefig(filename)
 
 
 def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartesian"):
@@ -196,8 +205,12 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
         Figure: A matplotlib figure instance if ``ax = None``.
 
     Raises:
+<<<<<<< HEAD
         ImportError: Requires matplotlib.
         TypeError: bloch[] has wrong size.
+=======
+        MissingOptionalLibraryError: Requires matplotlib.
+>>>>>>> be0ed5f7b1c3b4057af941be65a8ff84b90a16e4
 
     Example:
         .. jupyter-execute::
@@ -208,8 +221,10 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
            plot_bloch_vector([0,1,0], title="New Bloch Sphere")
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError(
-            "Must have Matplotlib installed. To install, run " '"pip install matplotlib".'
+        raise MissingOptionalLibraryError(
+            libname="Matplotlib",
+            name="plot_bloch_vector",
+            pip_install="pip install matplotlib",
         )
     from qiskit.visualization.bloch import Bloch
     from matplotlib import get_backend
@@ -273,7 +288,9 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
 
 
 @deprecate_arguments({"rho": "state"})
-def plot_bloch_multivector(state, title="", figsize=None, *, rho=None, reverse_bits=False):
+def plot_bloch_multivector(
+    state, title="", figsize=None, *, rho=None, reverse_bits=False, filename=None
+):
     """Plot the Bloch sphere.
 
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
@@ -289,7 +306,7 @@ def plot_bloch_multivector(state, title="", figsize=None, *, rho=None, reverse_b
             A matplotlib figure instance.
 
     Raises:
-        ImportError: Requires matplotlib.
+        MissingOptionalLibraryError: Requires matplotlib.
         VisualizationError: if input is not a valid N-qubit state.
 
     Example:
@@ -308,8 +325,10 @@ def plot_bloch_multivector(state, title="", figsize=None, *, rho=None, reverse_b
             plot_bloch_multivector(state, title="New Bloch Multivector", reverse_bits=False)
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError(
-            "Must have Matplotlib installed. To install, run " '"pip install matplotlib".'
+        raise MissingOptionalLibraryError(
+            libname="Matplotlib",
+            name="plot_bloch_multivector",
+            pip_install="pip install matplotlib",
         )
     from matplotlib import get_backend
     from matplotlib import pyplot as plt
@@ -325,15 +344,27 @@ def plot_bloch_multivector(state, title="", figsize=None, *, rho=None, reverse_b
         pos = num - 1 - i if reverse_bits else i
         ax = fig.add_subplot(1, num, i + 1, projection="3d")
         plot_bloch_vector(bloch_data[i], "qubit " + str(pos), ax=ax, figsize=figsize)
-    fig.suptitle(title, fontsize=16)
+    fig.suptitle(title, fontsize=16, y=1.01)
     if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
         plt.close(fig)
-    return fig
+    if filename is None:
+        return fig
+    else:
+        return fig.savefig(filename)
 
 
 @deprecate_arguments({"rho": "state"})
 def plot_state_city(
-    state, title="", figsize=None, color=None, alpha=1, ax_real=None, ax_imag=None, *, rho=None
+    state,
+    title="",
+    figsize=None,
+    color=None,
+    alpha=1,
+    ax_real=None,
+    ax_imag=None,
+    *,
+    rho=None,
+    filename=None,
 ):
     """Plot the cityscape of quantum state.
 
@@ -356,7 +387,7 @@ def plot_state_city(
         ax_imag (matplotlib.axes.Axes): An optional Axes object to be used for
             the visualization output. If none is specified a new matplotlib
             Figure will be created and used. If this is specified without an
-            ax_imag only the real component plot will be generated.
+            ax_real only the imaginary component plot will be generated.
             Additionally, if specified there will be no returned Figure since
             it is redundant.
 
@@ -366,7 +397,7 @@ def plot_state_city(
             ``ax_real`` and ``ax_imag`` kwargs are not set
 
     Raises:
-        ImportError: Requires matplotlib.
+        MissingOptionalLibraryError: Requires matplotlib.
         ValueError: When 'color' is not a list of len=2.
         VisualizationError: if input is not a valid N-qubit state.
 
@@ -387,8 +418,10 @@ def plot_state_city(
                 title="New State City")
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError(
-            "Must have Matplotlib installed. To install, run " '"pip install matplotlib".'
+        raise MissingOptionalLibraryError(
+            libname="Matplotlib",
+            name="plot_state_city",
+            pip_install="pip install matplotlib",
         )
     from matplotlib import get_backend
     from matplotlib import pyplot as plt
@@ -555,11 +588,16 @@ def plot_state_city(
     if ax_real is None and ax_imag is None:
         if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
             plt.close(fig)
+    if filename is None:
         return fig
+    else:
+        return fig.savefig(filename)
 
 
 @deprecate_arguments({"rho": "state"})
-def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, rho=None):
+def plot_state_paulivec(
+    state, title="", figsize=None, color=None, ax=None, *, rho=None, filename=None
+):
     """Plot the paulivec representation of a quantum state.
 
     Plot a bargraph of the mixed state rho over the pauli matrices
@@ -580,7 +618,7 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, r
             ``ax`` kwarg is not set
 
     Raises:
-        ImportError: Requires matplotlib.
+        MissingOptionalLibraryError: Requires matplotlib.
         VisualizationError: if input is not a valid N-qubit state.
 
     Example:
@@ -600,8 +638,10 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, r
                 title="New PauliVec plot")
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError(
-            "Must have Matplotlib installed. To install, run " '"pip install matplotlib".'
+        raise MissingOptionalLibraryError(
+            libname="Matplotlib",
+            name="plot_state_paulivec",
+            pip_install="pip install matplotlib",
         )
     from matplotlib import get_backend
     from matplotlib import pyplot as plt
@@ -639,7 +679,10 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, r
     if return_fig:
         if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
             plt.close(fig)
+    if filename is None:
         return fig
+    else:
+        return fig.savefig(filename)
 
 
 def n_choose_k(n, k):
@@ -674,7 +717,7 @@ def lex_index(n, k, lst):
     if len(lst) != k:
         raise VisualizationError("list should have length k")
     comb = list(map(lambda x: n - 1 - x, lst))
-    dualm = sum([n_choose_k(comb[k - 1 - i], i + 1) for i in range(k)])
+    dualm = sum(n_choose_k(comb[k - 1 - i], i + 1) for i in range(k))
     return int(dualm)
 
 
@@ -694,7 +737,7 @@ def phase_to_rgb(complex_number):
     complex_number is phase is first mapped to angle in the range
     [0, 2pi] and then to the HSL color wheel
     """
-    angles = (np.angle(complex_number) + (np.pi * 4)) % (np.pi * 2)
+    angles = (np.angle(complex_number) + (np.pi * 5 / 4)) % (np.pi * 2)
     rgb = colorsys.hls_to_rgb(angles / (np.pi * 2), 0.5, 0.5)
     return rgb
 
@@ -709,6 +752,7 @@ def plot_state_qsphere(
     use_degrees=False,
     *,
     rho=None,
+    filename=None,
 ):
     """Plot the qsphere representation of a quantum state.
     Here, the size of the points is proportional to the probability
@@ -733,7 +777,7 @@ def plot_state_qsphere(
         Figure: A matplotlib figure instance if the ``ax`` kwarg is not set
 
     Raises:
-        ImportError: Requires matplotlib.
+        MissingOptionalLibraryError: Requires matplotlib.
         VisualizationError: if input is not a valid N-qubit state.
 
         QiskitError: Input statevector does not have valid dimensions.
@@ -754,8 +798,10 @@ def plot_state_qsphere(
            plot_state_qsphere(state)
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError(
-            "Must have Matplotlib installed. To install, run " '"pip install matplotlib".'
+        raise MissingOptionalLibraryError(
+            libname="Matplotlib",
+            name="plot_state_qsphere",
+            pip_install="pip install matplotlib",
         )
 
     import matplotlib.gridspec as gridspec
@@ -767,9 +813,10 @@ def plot_state_qsphere(
     try:
         import seaborn as sns
     except ImportError as ex:
-        raise ImportError(
-            "Must have seaborn installed to use "
-            'plot_state_qsphere. To install, run "pip install seaborn".'
+        raise MissingOptionalLibraryError(
+            libname="seaborn",
+            name="plot_state_qsphere",
+            pip_install="pip install seaborn",
         ) from ex
     rho = DensityMatrix(state)
     num = rho.num_qubits
@@ -861,8 +908,7 @@ def plot_state_qsphere(
 
                 # get prob and angle - prob will be shade and angle color
                 prob = np.real(np.dot(state[i], state[i].conj()))
-                if prob > 1:  # See https://github.com/Qiskit/qiskit-terra/issues/4666
-                    prob = 1
+                prob = min(prob, 1)  # See https://github.com/Qiskit/qiskit-terra/issues/4666
                 colorstate = phase_to_rgb(state[i])
 
                 alfa = 1
@@ -941,10 +987,11 @@ def plot_state_qsphere(
 
     n = 64
     theta = np.ones(n)
+    colors = sns.hls_palette(n)
 
     ax2 = fig.add_subplot(gs[2:, 2:])
-    ax2.pie(theta, colors=sns.color_palette("hls", n), radius=0.75)
-    ax2.add_artist(Circle((0, 0), 0.5, color=plt.rcParams["figure.facecolor"], zorder=1))
+    ax2.pie(theta, colors=colors[5 * n // 8 :] + colors[: 5 * n // 8], radius=0.75)
+    ax2.add_artist(Circle((0, 0), 0.5, color="white", zorder=1))
     offset = 0.95  # since radius of sphere is one.
 
     if use_degrees:
@@ -969,7 +1016,10 @@ def plot_state_qsphere(
     if return_fig:
         if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
             plt.close(fig)
+    if filename is None:
         return fig
+    else:
+        return fig.savefig(filename)
 
 
 def generate_facecolors(x, y, z, dx, dy, dz, color):
@@ -989,11 +1039,13 @@ def generate_facecolors(x, y, z, dx, dy, dz, color):
     Returns:
         list: Shaded colors for bars.
     Raises:
-        ImportError: If matplotlib is not installed
+        MissingOptionalLibraryError: If matplotlib is not installed
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError(
-            "Must have Matplotlib installed. To install, run " '"pip install matplotlib".'
+        raise MissingOptionalLibraryError(
+            libname="Matplotlib",
+            name="plot_state_city",
+            pip_install="pip install matplotlib",
         )
     import matplotlib.colors as mcolors
 
@@ -1116,8 +1168,10 @@ def _shade_colors(color, normals, lightsource=None):
     *color* can also be an array of the same length as *normals*.
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError(
-            "Must have Matplotlib installed. To install, run " '"pip install matplotlib".'
+        raise MissingOptionalLibraryError(
+            libname="Matplotlib",
+            name="plot_state_city",
+            pip_install="pip install matplotlib",
         )
 
     from matplotlib.colors import Normalize, LightSource
@@ -1255,7 +1309,7 @@ def state_drawer(state, output=None, **drawer_args):
         Drawing of the state.
 
     Raises:
-        ImportError: when `output` is `latex` and IPython is not installed.
+        MissingOptionalLibraryError: when `output` is `latex` and IPython is not installed.
         ValueError: when `output` is not a valid selection.
     """
     config = user_config.get_config()
@@ -1281,10 +1335,11 @@ def state_drawer(state, output=None, **drawer_args):
         try:
             from IPython.display import Latex
         except ImportError as err:
-            raise ImportError(
-                "IPython is not installed, to install run: "
-                "\"pip install ipython\", or set output='latex_source' "
-                "instead for an ASCII string."
+            raise MissingOptionalLibraryError(
+                libname="IPython",
+                name="state_drawer",
+                pip_install="\"pip install ipython\", or set output='latex_source' "
+                "instead for an ASCII string.",
             ) from err
         else:
             draw_func = drawers["latex_source"]

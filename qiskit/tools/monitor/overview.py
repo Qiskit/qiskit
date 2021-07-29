@@ -14,7 +14,7 @@
 """
 
 import math
-from qiskit.exceptions import QiskitError
+from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 
 
 def get_unique_backends():
@@ -25,15 +25,15 @@ def get_unique_backends():
 
     Raises:
         QiskitError: No backends available.
-        ImportError: If qiskit-ibmq-provider is not installed
+        MissingOptionalLibraryError: If qiskit-ibmq-provider is not installed
     """
     try:
         from qiskit.providers.ibmq import IBMQ
     except ImportError as ex:
-        raise ImportError(
-            "The IBMQ provider is necessary for this function "
-            " to work. Please ensure it's installed before "
-            "using this function"
+        raise MissingOptionalLibraryError(
+            libname="qiskit-ibmq-provider",
+            name="get_unique_backends",
+            pip_install="pip install qiskit-ibmq-provider",
         ) from ex
     backends = []
     for provider in IBMQ.providers():
@@ -57,15 +57,15 @@ def backend_monitor(backend):
         backend (IBMQBackend): Backend to monitor.
     Raises:
         QiskitError: Input is not a IBMQ backend.
-        ImportError: If qiskit-ibmq-provider is not installed
+        MissingOptionalLibraryError: If qiskit-ibmq-provider is not installed
     """
     try:
         from qiskit.providers.ibmq import IBMQBackend
     except ImportError as ex:
-        raise ImportError(
-            "The IBMQ provider is necessary for this function "
-            " to work. Please ensure it's installed before "
-            "using this function"
+        raise MissingOptionalLibraryError(
+            libname="qiskit-ibmq-provider",
+            name="backend_monitor",
+            pip_install="pip install qiskit-ibmq-provider",
         ) from ex
 
     if not isinstance(backend, IBMQBackend):
@@ -155,7 +155,7 @@ def backend_monitor(backend):
             error = format(props.gate_error(gate.gate, qubits), ".5f")
         except QiskitError:
             pass
-        mstr = sep.join(["{}{}_{}".format(ttype, qubits[0], qubits[1]), ttype, str(error)])
+        mstr = sep.join([f"{ttype}{qubits[0]}_{qubits[1]}", ttype, str(error)])
         print(offset + mstr)
 
 
@@ -215,16 +215,16 @@ def backend_overview():
 
             str_list[6] += " " * (max_len - len(str_list[6])) + offset
             str_list[6] += "Avg. T1:      %s" % round(
-                sum([q[0]["value"] for q in props["qubits"]]) / num_qubits, 1
+                sum(q[0]["value"] for q in props["qubits"]) / num_qubits, 1
             )
             str_list[7] += " " * (max_len - len(str_list[7])) + offset
             str_list[7] += "Avg. T2:      %s" % round(
-                sum([q[1]["value"] for q in props["qubits"]]) / num_qubits, 1
+                sum(q[1]["value"] for q in props["qubits"]) / num_qubits, 1
             )
             count += 1
             if count == num_backends:
                 break
-            max_len = max([len(s) for s in str_list])
+            max_len = max(len(s) for s in str_list)
 
         print("\n".join(str_list))
         print("\n" * 2)

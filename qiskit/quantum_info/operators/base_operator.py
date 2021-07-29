@@ -23,7 +23,6 @@ from qiskit.quantum_info.operators.op_shape import OpShape
 from .mixins import GroupMixin
 
 
-# pylint: disable = abstract-method
 class BaseOperator(GroupMixin, ABC):
     """Abstract operator base class."""
 
@@ -97,6 +96,11 @@ class BaseOperator(GroupMixin, ABC):
     def _output_dim(self):
         """Return the total input dimension."""
         return self._op_shape._dim_l
+
+    @property
+    def settings(self):
+        """Return operator settings."""
+        return {"op_shape": self._op_shape}
 
     def reshape(self, input_dims=None, output_dims=None, num_qubits=None):
         """Return a shallow copy with reshaped input and output subsystem dimensions.

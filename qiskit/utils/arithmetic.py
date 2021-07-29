@@ -59,7 +59,7 @@ def is_power(num, return_decomposition=False):
             m = int((a + c) / 2)
 
             if (m ** b) < (num + 1):
-                p = int((m ** b))
+                p = int(m ** b)
             else:
                 p = int(num + 1)
 
