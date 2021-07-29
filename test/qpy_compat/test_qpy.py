@@ -191,6 +191,17 @@ def generate_qft_circuit():
     return qft_circ
 
 
+def generate_single_clbit_condition_teleportation():
+    qr = QuantumRegister(1)
+    cr = ClassicalRegister(2, name="name")
+    teleport_qc = QuantumCircuit(qr, cr, name="Reset Test")
+    teleport_qc.x(0)
+    teleport_qc.measure(0, cr[0])
+    teleport_qc.x(0).c_if(cr[0], 1)
+    teleport_qc.measure(0, cr[1])
+    return teleport_qc
+
+
 def generate_circuits(version_str=None):
     """Generate reference circuits."""
     version_parts = None
@@ -210,6 +221,7 @@ def generate_circuits(version_str=None):
 
     if version_parts >= (0, 18, 1):
         output_circuits["qft_circuit.qpy"] = [generate_qft_circuit()]
+        output_circuits["teleport.qpy"] = [generate_single_clbit_condition_teleportation()]
 
     return output_circuits
 
