@@ -75,7 +75,8 @@ class Instruction:
             duration (int or float): instruction's duration. it must be integer if ``unit`` is 'dt'
             unit (str): time unit of duration
             label (str or None): An optional label for identifying the instruction.
-            condition (tuple[ClassicalRegister, int] or None: classical condition of instruction.
+            condition (tuple[ClassicalRegister or Clbit, int] or None: classical
+                condition of instruction.
 
         Raises:
             CircuitError: when the register is not in the correct format.
@@ -99,6 +100,7 @@ class Instruction:
             self._label = label
         # tuple (ClassicalRegister, int), tuple (Clbit, bool) or tuple (Clbit, int)
         # when the instruction has a conditional ("if")
+        self._cl_condition = None  # note: "_condition" was taken by the "assemble" method
         self.condition = condition
         # list of instructions (and their contexts) that this instruction is composed of
         # empty definition means opaque or fundamental instruction
@@ -324,6 +326,41 @@ class Instruction:
         else:
             raise TypeError("label expects a string or None")
 
+    @property
+    def condition(self) -> tuple:
+        """Get the classical condition of the instruction.
+
+        Returns:
+            tuple(ClassicalRegister or Clbit, int) or None: classical condition.
+        """
+        return self._cl_condition
+
+    @condition.setter
+    def condition(self, setting):
+        """Set classical condition of instruction.
+
+        Args:
+            setting (tuple(ClassicalRegister or Clbit, int)): where the first
+                element are the bits and the second is the value.
+        Raises:
+            CircuitError: type/value errors.
+        """
+        if setting is None:
+            return
+        classical, value = setting
+        if not isinstance(classical, (ClassicalRegister, Clbit)):
+            breakpoint()
+            raise CircuitError(
+                "condition must be used with a classical register or " "classical bit"
+            )
+        if value < 0:
+            raise CircuitError("condition valueue should be non-negative")
+        if isinstance(classical, Clbit):
+            # Casting the conditional valueue as Boolean when
+            # the classical condition is on a classical bit.
+            value = bool(value)
+        self._cl_condition = (classical, value)
+
     def mirror(self):
         """DEPRECATED: use instruction.reverse_ops().
 
@@ -408,14 +445,6 @@ class Instruction:
 
     def c_if(self, classical, val):
         """Add classical condition on register or cbit classical and value val."""
-        if not isinstance(classical, (ClassicalRegister, Clbit)):
-            raise CircuitError("c_if must be used with a classical register or classical bit")
-        if val < 0:
-            raise CircuitError("condition value should be non-negative")
-        if isinstance(classical, Clbit):
-            # Casting the conditional value as Boolean when
-            # the classical condition is on a classical bit.
-            val = bool(val)
         self.condition = (classical, val)
         return self
 

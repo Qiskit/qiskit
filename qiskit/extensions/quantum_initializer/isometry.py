@@ -65,7 +65,9 @@ class Isometry(Instruction):
     # finally, we convert the labels back to the qubit numbering used in Qiskit
     # (using: _get_qubits_by_label)
 
-    def __init__(self, isometry, num_ancillas_zero, num_ancillas_dirty, epsilon=_EPS):
+    def __init__(
+        self, isometry, num_ancillas_zero, num_ancillas_dirty, epsilon=_EPS, condition=None
+    ):
         # Convert to numpy array in case not already an array
         isometry = np.array(isometry, dtype=complex)
 
@@ -100,7 +102,7 @@ class Isometry(Instruction):
 
         num_qubits = int(n) + num_ancillas_zero + num_ancillas_dirty
 
-        super().__init__("isometry", num_qubits, 0, [isometry])
+        super().__init__("isometry", num_qubits, 0, [isometry], condition=condition)
 
     def _define(self):
         # TODO The inverse().inverse() is because there is code to uncompute (_gates_to_uncompute)

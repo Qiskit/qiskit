@@ -40,6 +40,8 @@ class Gate(Instruction):
             num_qubits: The number of qubits the gate acts on.
             params: A list of parameters.
             label: An optional label for the gate.
+            condition (tuple[ClassicalRegister or Clbit, int] or None: classical
+                condition of instruction.
         """
         self.definition = None
         super().__init__(name, num_qubits, 0, params, label=label, condition=condition)

@@ -42,7 +42,7 @@ class Initialize(Instruction):
     which is not unitary.
     """
 
-    def __init__(self, params, num_qubits=None):
+    def __init__(self, params, num_qubits=None, condition=None):
         """Create new initialize composite.
 
         params (str, list, int or Statevector):
@@ -93,7 +93,7 @@ class Initialize(Instruction):
 
             num_qubits = int(num_qubits)
 
-        super().__init__("initialize", num_qubits, 0, params)
+        super().__init__("initialize", num_qubits, 0, params, condition=condition)
 
     def _define(self):
         if self._from_label:
