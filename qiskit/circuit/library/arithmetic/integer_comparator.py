@@ -17,7 +17,7 @@ from typing import List, Optional
 import warnings
 import numpy as np
 
-from qiskit.circuit import QuantumRegister, AncillaRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
 from qiskit.circuit.exceptions import CircuitError
 from ..boolean_logic import OR
 from ..blueprintcircuit import BlueprintCircuit
@@ -153,7 +153,7 @@ class IntegerComparator(BlueprintCircuit):
              The 2's complement of ``self.value``.
         """
         twos_complement = pow(2, self.num_state_qubits) - int(np.ceil(self.value))
-        twos_complement = "{:b}".format(twos_complement).rjust(self.num_state_qubits, "0")
+        twos_complement = f"{twos_complement:b}".rjust(self.num_state_qubits, "0")
         twos_complement = [
             1 if twos_complement[i] == "1" else 0 for i in reversed(range(len(twos_complement)))
         ]
@@ -189,9 +189,11 @@ class IntegerComparator(BlueprintCircuit):
         q_compare = self.qubits[self.num_state_qubits]
         qr_ancilla = self.qubits[self.num_state_qubits + 1 :]
 
+        circuit = QuantumCircuit(*self.qregs, name=self.name)
+
         if self.value <= 0:  # condition always satisfied for non-positive values
             if self._geq:  # otherwise the condition is never satisfied
-                self.x(q_compare)
+                circuit.x(q_compare)
         # condition never satisfied for values larger than or equal to 2^n
         elif self.value < pow(2, self.num_state_qubits):
 
@@ -200,49 +202,51 @@ class IntegerComparator(BlueprintCircuit):
                 for i in range(self.num_state_qubits):
                     if i == 0:
                         if twos[i] == 1:
-                            self.cx(qr_state[i], qr_ancilla[i])
+                            circuit.cx(qr_state[i], qr_ancilla[i])
                     elif i < self.num_state_qubits - 1:
                         if twos[i] == 1:
-                            self.compose(
+                            circuit.compose(
                                 OR(2), [qr_state[i], qr_ancilla[i - 1], qr_ancilla[i]], inplace=True
                             )
                         else:
-                            self.ccx(qr_state[i], qr_ancilla[i - 1], qr_ancilla[i])
+                            circuit.ccx(qr_state[i], qr_ancilla[i - 1], qr_ancilla[i])
                     else:
                         if twos[i] == 1:
                             # OR needs the result argument as qubit not register, thus
                             # access the index [0]
-                            self.compose(
+                            circuit.compose(
                                 OR(2), [qr_state[i], qr_ancilla[i - 1], q_compare], inplace=True
                             )
                         else:
-                            self.ccx(qr_state[i], qr_ancilla[i - 1], q_compare)
+                            circuit.ccx(qr_state[i], qr_ancilla[i - 1], q_compare)
 
                 # flip result bit if geq flag is false
                 if not self._geq:
-                    self.x(q_compare)
+                    circuit.x(q_compare)
 
                 # uncompute ancillas state
                 for i in reversed(range(self.num_state_qubits - 1)):
                     if i == 0:
                         if twos[i] == 1:
-                            self.cx(qr_state[i], qr_ancilla[i])
+                            circuit.cx(qr_state[i], qr_ancilla[i])
                     else:
                         if twos[i] == 1:
-                            self.compose(
+                            circuit.compose(
                                 OR(2), [qr_state[i], qr_ancilla[i - 1], qr_ancilla[i]], inplace=True
                             )
                         else:
-                            self.ccx(qr_state[i], qr_ancilla[i - 1], qr_ancilla[i])
+                            circuit.ccx(qr_state[i], qr_ancilla[i - 1], qr_ancilla[i])
             else:
 
                 # num_state_qubits == 1 and value == 1:
-                self.cx(qr_state[0], q_compare)
+                circuit.cx(qr_state[0], q_compare)
 
                 # flip result bit if geq flag is false
                 if not self._geq:
-                    self.x(q_compare)
+                    circuit.x(q_compare)
 
         else:
             if not self._geq:  # otherwise the condition is never satisfied
-                self.x(q_compare)
+                circuit.x(q_compare)
+
+        self.append(circuit.to_gate(), self.qubits)

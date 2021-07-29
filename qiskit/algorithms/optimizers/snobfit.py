@@ -12,6 +12,8 @@
 
 """Stable Noisy Optimization by Branch and FIT algorithm (SNOBFIT) optimizer."""
 
+from typing import Any, Dict
+
 import numpy as np
 from qiskit.exceptions import MissingOptionalLibraryError
 from .optimizer import Optimizer, OptimizerSupportLevel
@@ -82,6 +84,15 @@ class SNOBFIT(Optimizer):
             "gradient": OptimizerSupportLevel.ignored,
             "bounds": OptimizerSupportLevel.required,
             "initial_point": OptimizerSupportLevel.required,
+        }
+
+    @property
+    def settings(self) -> Dict[str, Any]:
+        return {
+            "maxiter": self._maxiter,
+            "maxfail": self._maxfail,
+            "maxmp": self._maxmp,
+            "verbose": self._verbose,
         }
 
     def optimize(

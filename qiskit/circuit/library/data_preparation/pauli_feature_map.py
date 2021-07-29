@@ -113,6 +113,7 @@ class PauliFeatureMap(NLocal):
         data_map_func: Optional[Callable[[np.ndarray], float]] = None,
         parameter_prefix: str = "x",
         insert_barriers: bool = False,
+        name: str = "PauliFeatureMap",
     ) -> None:
         """Create a new Pauli expansion circuit.
 
@@ -140,6 +141,7 @@ class PauliFeatureMap(NLocal):
             parameter_prefix=parameter_prefix,
             insert_barriers=insert_barriers,
             skip_final_rotation_layer=True,
+            name=name,
         )
 
         self._data_map_func = data_map_func or self_product

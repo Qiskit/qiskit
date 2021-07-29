@@ -13,8 +13,10 @@
 """Unit tests for pulse waveforms."""
 
 import unittest
+from unittest.mock import patch
 import numpy as np
 
+import qiskit
 from qiskit.pulse.library import (
     Waveform,
     Constant,
@@ -79,6 +81,17 @@ class TestWaveform(QiskitTestCase):
         with self.assertRaises(PulseError):
             Waveform(invalid_const * np.exp(1j * 2 * np.pi * np.linspace(0, 1, 1000)))
 
+        invalid_const = 1.1
+        Waveform.limit_amplitude = False
+        wave = Waveform(invalid_const * np.exp(1j * 2 * np.pi * np.linspace(0, 1, 1000)))
+        self.assertGreater(np.max(np.abs(wave.samples)), 1.0)
+        with self.assertRaises(PulseError):
+            wave = Waveform(
+                invalid_const * np.exp(1j * 2 * np.pi * np.linspace(0, 1, 1000)),
+                limit_amplitude=True,
+            )
+        Waveform.limit_amplitude = True
+
         # Test case where data is converted to python types with complex as a list
         # with form [re, im] and back to a numpy array.
         # This is how the transport layer handles samples in the qobj so it is important
@@ -104,6 +117,7 @@ class TestParametricPulses(QiskitTestCase):
         """Test that parametric pulses can be constructed without error."""
         Gaussian(duration=25, sigma=4, amp=0.5j)
         GaussianSquare(duration=150, amp=0.2, sigma=8, width=140)
+        GaussianSquare(duration=150, amp=0.2, sigma=8, risefall_sigma_ratio=2.5)
         Constant(duration=150, amp=0.1 + 0.4j)
         Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4)
 
@@ -118,6 +132,13 @@ class TestParametricPulses(QiskitTestCase):
     def test_gaussian_square_pulse(self):
         """Test that GaussianSquare sample pulse matches the pulse library."""
         gauss_sq = GaussianSquare(duration=125, sigma=4, amp=0.5j, width=100)
+        sample_pulse = gauss_sq.get_waveform()
+        self.assertIsInstance(sample_pulse, Waveform)
+        pulse_lib_gauss_sq = gaussian_square(
+            duration=125, sigma=4, amp=0.5j, width=100, zero_ends=True
+        ).samples
+        np.testing.assert_almost_equal(sample_pulse.samples, pulse_lib_gauss_sq)
+        gauss_sq = GaussianSquare(duration=125, sigma=4, amp=0.5j, risefall_sigma_ratio=3.125)
         sample_pulse = gauss_sq.get_waveform()
         self.assertIsInstance(sample_pulse, Waveform)
         pulse_lib_gauss_sq = gaussian_square(
@@ -191,6 +212,12 @@ class TestParametricPulses(QiskitTestCase):
         self.assertEqual(const.get_waveform().samples[0], 0.1 + 0.4j)
         self.assertEqual(len(const.get_waveform().samples), 150)
 
+        with self.assertRaises(PulseError):
+            const = Constant(duration=150, amp=1.1 + 0.4j)
+
+        with patch("qiskit.pulse.library.parametric_pulses.Pulse.limit_amplitude", new=False):
+            const = qiskit.pulse.library.parametric_pulses.Constant(duration=150, amp=0.1 + 0.4j)
+
     def test_parameters(self):
         """Test that the parameters can be extracted as a dict through the `parameters`
         attribute."""
@@ -207,6 +234,10 @@ class TestParametricPulses(QiskitTestCase):
         self.assertEqual(
             repr(gaus_square), "GaussianSquare(duration=20, amp=(1+0j), sigma=30, width=3)"
         )
+        gaus_square = GaussianSquare(duration=20, sigma=30, amp=1.0, risefall_sigma_ratio=0.1)
+        self.assertEqual(
+            repr(gaus_square), "GaussianSquare(duration=20, amp=(1+0j), sigma=30, width=14.0)"
+        )
         drag = Drag(duration=5, amp=0.5, sigma=7, beta=1)
         self.assertEqual(repr(drag), "Drag(duration=5, amp=(0.5+0j), sigma=7, beta=1)")
         const = Constant(duration=150, amp=0.1 + 0.4j)
@@ -222,7 +253,13 @@ class TestParametricPulses(QiskitTestCase):
         with self.assertRaises(PulseError):
             Gaussian(duration=25, sigma=0, amp=0.5j)
         with self.assertRaises(PulseError):
+            GaussianSquare(duration=150, amp=0.2, sigma=8)
+        with self.assertRaises(PulseError):
+            GaussianSquare(duration=150, amp=0.2, sigma=8, width=100, risefall_sigma_ratio=5)
+        with self.assertRaises(PulseError):
             GaussianSquare(duration=150, amp=0.2, sigma=8, width=160)
+        with self.assertRaises(PulseError):
+            GaussianSquare(duration=150, amp=0.2, sigma=8, risefall_sigma_ratio=10)
         with self.assertRaises(PulseError):
             Constant(duration=150, amp=0.9 + 0.8j)
         with self.assertRaises(PulseError):

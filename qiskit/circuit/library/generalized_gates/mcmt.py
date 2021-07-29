@@ -79,7 +79,7 @@ class MCMT(QuantumCircuit):
         super().__init__(num_qubits, name="mcmt")
 
         if label is None:
-            self.label = "{}-{}".format(num_target_qubits, self.gate.name.capitalize())
+            self.label = f"{num_target_qubits}-{self.gate.name.capitalize()}"
         else:
             self.label = label
 
@@ -139,7 +139,7 @@ class MCMT(QuantumCircuit):
             elif isinstance(gate, str):
                 name = gate
             else:
-                raise AttributeError("Invalid gate specified: {}".format(gate))
+                raise AttributeError(f"Invalid gate specified: {gate}")
             base_gate = valid_gates[name]
 
         return base_gate

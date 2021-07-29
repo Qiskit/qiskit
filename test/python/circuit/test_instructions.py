@@ -350,6 +350,17 @@ class TestInstructions(QiskitTestCase):
         gate_inverse = circ.to_instruction()
         self.assertEqual(gate.inverse().definition, gate_inverse.definition)
 
+    def test_inverse_with_label(self):
+        """test inverting gate initialized with label attribute."""
+        q = QuantumRegister(2)
+        qc = QuantumCircuit(q, name="circ")
+        qc.cx(0, 1)
+        qc_gate = qc.to_gate()
+        qc_gate_inverse = qc_gate.inverse()
+        self.assertEqual(qc_gate.name + "_dg", qc_gate_inverse.name)
+        qc_gate_inverse_inverse = qc_gate_inverse.inverse()
+        self.assertEqual(qc_gate_inverse_inverse.name, qc_gate.name)
+
     def test_no_broadcast(self):
         """See https://github.com/Qiskit/qiskit-terra/issues/2777
         When creating custom instructions, do not broadcast parameters"""
