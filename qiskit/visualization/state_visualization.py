@@ -205,12 +205,8 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
             Figure: A matplotlib figure instance if ``ax = None``.
 
         Raises:
-    <<<<<<< HEAD
-            ImportError: Requires matplotlib.
             TypeError: bloch[] has wrong size.
-    =======
             MissingOptionalLibraryError: Requires matplotlib.
-    >>>>>>> be0ed5f7b1c3b4057af941be65a8ff84b90a16e4
 
         Example:
             .. jupyter-execute::
