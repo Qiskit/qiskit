@@ -96,7 +96,6 @@ z3_requirements = [
 
 bip_requirements = ["cplex", "docplex"]
 
->>>>>>> be0ed5f7b1c3b4057af941be65a8ff84b90a16e4
 
 setup(
     name="qiskit-terra",
