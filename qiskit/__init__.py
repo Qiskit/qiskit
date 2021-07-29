@@ -59,7 +59,7 @@ from .version import QiskitVersion  # noqa
 __qiskit_version__ = QiskitVersion()
 
 
-if sys.version_info[0] == 3 and sys.version_info[1] == 6:
+if sys.version_info < (3, 7):
     warnings.warn(
         "Using Qiskit with Python 3.6 is deprecated as of the 0.17.0 release. "
         "Support for running Qiskit with Python 3.6 will be removed in Terra 0.20.0.",
