@@ -122,6 +122,27 @@ class TestFinalPermutation(QiskitTestCase):
             np.allclose(trans_qc.metadata["final_permutation"], np.array([3, 0, 2, 4, 1]))
         )
 
+    def test_disjoint(self):
+        """Test disjoint initial layout"""
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+
+        trans_qc = transpile(
+            qc,
+            basis_gates=["sx", "rz", "cx"],
+            coupling_map=[[0, 1], [1, 0], [1, 2], [2, 1], [2, 3], [3, 2], [3, 4], [4, 3]],
+            initial_layout=[0, 4],
+            seed_transpiler=124,
+            optimization_level=0,
+        )
+
+        self.assertTrue(
+            np.allclose(trans_qc.metadata["final_permutation"], np.array([2, 0, 1, 3, 4]))
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
