@@ -40,7 +40,7 @@ class BRGGate(Gate):
 
     ..Note::
 
-    The bridge gate is used as a transformation rule in mapping.
+        The bridge gate is used as a transformation rule in mapping.
     """
 
     def __init__(self, label=None):
