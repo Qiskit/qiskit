@@ -503,6 +503,22 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(qc, new_circ)
         self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
 
+    def test_single_bit_teleportation(self):
+        """Test a teleportation circuit with single bit conditions."""
+        qr = QuantumRegister(1)
+        cr = ClassicalRegister(2, name="name")
+        qc = QuantumCircuit(qr, cr, name="Reset Test")
+        qc.x(0)
+        qc.measure(0, cr[0])
+        qc.x(0).c_if(cr[0], 1)
+        qc.measure(0, cr[1])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+
     def test_qaoa(self):
         """Test loading a QAOA circuit works."""
         cost_operator = Z ^ I ^ I ^ Z

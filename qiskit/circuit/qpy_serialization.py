@@ -259,7 +259,10 @@ instruction name. Following the ``name`` bytes there are ``label_size`` bytes of
 utf8 data for the label if one was set on the instruction. Following the label
 bytes if ``has_conditional`` is ``True`` then there are
 ``conditonal_reg_name_size`` bytes of utf8 data for the name of the condtional
-register name.
+register name. In case of single classical bit conditions the register name
+utf8 data will be prefixed with a null character "\\x00" and then a utf8 string
+integer representing the classical bit index in the circuit that the condition
+is on.
 
 This is immediately followed by the INSTRUCTION_ARG structs for the list of
 arguments of that instruction. These are in the order of all quantum arguments
@@ -629,7 +632,21 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions):
     condition_value = instruction[7]
     condition_tuple = None
     if has_condition:
-        condition_tuple = (registers["c"][condition_register], condition_value)
+        # If an invalid register name is used assume it's a single bit
+        # condition and treat the register name as a string of the clbit index
+        if ClassicalRegister.name_format.match(condition_register) is None:
+            # If invalid register prefixed with null character it's a clbit
+            # index for single bit condition
+            if condition_register[0] == "\x00":
+                conditional_bit = int(condition_register[1:])
+                condition_tuple = (circuit.clbits[conditional_bit], condition_value)
+            else:
+                raise ValueError(
+                    f"Invalid register name: {condition_register} for condition register of "
+                    f"instruction: {gate_name}"
+                )
+        else:
+            condition_tuple = (registers["c"][condition_register], condition_value)
     qubit_indices = dict(enumerate(circuit.qubits))
     clbit_indices = dict(enumerate(circuit.clbits))
     # Load Arguments
@@ -824,8 +841,13 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
     condition_value = 0
     if instruction_tuple[0].condition:
         has_condition = True
-        condition_register = instruction_tuple[0].condition[0].name.encode("utf8")
-        condition_value = instruction_tuple[0].condition[1]
+        if isinstance(instruction_tuple[0].condition[0], Clbit):
+            bit_index = index_map["c"][instruction_tuple[0].condition[0]]
+            condition_register = b"\x00" + str(bit_index).encode("utf8")
+            condition_value = int(instruction_tuple[0].condition[1])
+        else:
+            condition_register = instruction_tuple[0].condition[0].name.encode("utf8")
+            condition_value = instruction_tuple[0].condition[1]
 
     gate_class_name = gate_class_name.encode("utf8")
     label = getattr(instruction_tuple[0], "label")
