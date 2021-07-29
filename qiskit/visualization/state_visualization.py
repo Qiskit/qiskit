@@ -182,43 +182,43 @@ def plot_state_hinton(
 def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartesian"):
     """Plot the Bloch sphere.
 
-    Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
+        Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
 
-    Args:
-        bloch (list[double]): array of either three elements
-            where [<x>, <y>, <z>] (Cartesian)
-            or [<r>, <theta>, <phi>] (spherical in radians)
-            <theta> is inclination angle from +z direction
-            <phi> is azimuth from +x direction,
-            or two elements [<α> , <β>] where α and β are complex numbers,
-            and coefficients of the qubit wave function ∣ψ⟩ = α∣0⟩ + β∣1⟩
-            title (str): a string that represents the plot title
-            ax (matplotlib.axes.Axes): An Axes to use for rendering the bloch
-            sphere.
-        figsize (tuple): Figure size in inches. Has no effect is passing ``ax``.
-        coord_type (str): a string that specifies coordinate type for bloch
-            (Cartesian, spherical or wave), default is
-            Cartesian if length of bloch[] is 3,
-            Wave if length of bloch[] is 2.
+        Args:
+            bloch (list[double]): array of either three elements
+                where [<x>, <y>, <z>] (Cartesian)
+                or [<r>, <theta>, <phi>] (spherical in radians)
+                <theta> is inclination angle from +z direction
+                <phi> is azimuth from +x direction,
+                or two elements [<α> , <β>] where α and β are complex numbers,
+                and coefficients of the qubit wave function ∣ψ⟩ = α∣0⟩ + β∣1⟩
+                title (str): a string that represents the plot title
+                ax (matplotlib.axes.Axes): An Axes to use for rendering the bloch
+                sphere.
+            figsize (tuple): Figure size in inches. Has no effect is passing ``ax``.
+            coord_type (str): a string that specifies coordinate type for bloch
+                (Cartesian, spherical or wave), default is
+                Cartesian if length of bloch[] is 3,
+                Wave if length of bloch[] is 2.
 
-    Returns:
-        Figure: A matplotlib figure instance if ``ax = None``.
+        Returns:
+            Figure: A matplotlib figure instance if ``ax = None``.
 
-    Raises:
-<<<<<<< HEAD
-        ImportError: Requires matplotlib.
-        TypeError: bloch[] has wrong size.
-=======
-        MissingOptionalLibraryError: Requires matplotlib.
->>>>>>> be0ed5f7b1c3b4057af941be65a8ff84b90a16e4
+        Raises:
+    <<<<<<< HEAD
+            ImportError: Requires matplotlib.
+            TypeError: bloch[] has wrong size.
+    =======
+            MissingOptionalLibraryError: Requires matplotlib.
+    >>>>>>> be0ed5f7b1c3b4057af941be65a8ff84b90a16e4
 
-    Example:
-        .. jupyter-execute::
+        Example:
+            .. jupyter-execute::
 
-           from qiskit.visualization import plot_bloch_vector
-           %matplotlib inline
+               from qiskit.visualization import plot_bloch_vector
+               %matplotlib inline
 
-           plot_bloch_vector([0,1,0], title="New Bloch Sphere")
+               plot_bloch_vector([0,1,0], title="New Bloch Sphere")
     """
     if not HAS_MATPLOTLIB:
         raise MissingOptionalLibraryError(
