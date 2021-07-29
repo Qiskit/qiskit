@@ -99,8 +99,7 @@ class QNSPSA(SPSA):
         r"""
         Args:
             fidelity: A function to compute the fidelity of the ansatz state with itself for
-                two different sets of parameters. Note that for usage with Qiskit Runtime,
-                this argument can be set to a placeholder callable (or None).
+                two different sets of parameters.
             maxiter: The maximum number of iterations. Note that this is not the maximal number
                 of function evaluations.
             blocking: If True, only accepts updates that improve the loss (up to some allowed
