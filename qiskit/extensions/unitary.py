@@ -36,7 +36,7 @@ _DECOMPOSER1Q = OneQubitEulerDecomposer("U3")
 class UnitaryGate(Gate):
     """Class for representing unitary gates"""
 
-    def __init__(self, data, label=None):
+    def __init__(self, data, label=None, condition=None):
         """Create a gate from a numeric unitary matrix.
 
         Args:
@@ -69,7 +69,7 @@ class UnitaryGate(Gate):
         self._qasm_name = None
         self._qasm_definition = None
         # Store instruction params
-        super().__init__("unitary", num_qubits, [data], label=label)
+        super().__init__("unitary", num_qubits, [data], label=label, condition=condition)
 
     def __eq__(self, other):
         if not isinstance(other, UnitaryGate):

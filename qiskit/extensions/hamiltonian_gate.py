@@ -32,7 +32,7 @@ class HamiltonianGate(Gate):
     resolves to a UnitaryGate U(t) = exp(-1j * t * H), which can be decomposed into basis gates if
     it is 2 qubits or less, or simulated directly in Aer for more qubits."""
 
-    def __init__(self, data, time, label=None):
+    def __init__(self, data, time, label=None, condition=None):
         """Create a gate from a hamiltonian operator and evolution time parameter t
 
         Args:
@@ -66,7 +66,7 @@ class HamiltonianGate(Gate):
             raise ExtensionError("Input matrix is not an N-qubit operator.")
 
         # Store instruction params
-        super().__init__("hamiltonian", num_qubits, [data, time], label=label)
+        super().__init__("hamiltonian", num_qubits, [data, time], label=label, condition=condition)
 
     def __eq__(self, other):
         if not isinstance(other, HamiltonianGate):

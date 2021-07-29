@@ -45,7 +45,7 @@ class UCPauliRotGate(Gate):
                (currently, 'X', 'Y' and 'Z' are supported)
     """
 
-    def __init__(self, angle_list, rot_axis):
+    def __init__(self, angle_list, rot_axis, condition=None):
         self.rot_axes = rot_axis
         # Check if angle_list has type "list"
         if not isinstance(angle_list, list):
@@ -67,7 +67,7 @@ class UCPauliRotGate(Gate):
             raise QiskitError("Rotation axis is not supported.")
         # Create new gate.
         num_qubits = int(num_contr) + 1
-        super().__init__("ucr" + rot_axis.lower(), num_qubits, angle_list)
+        super().__init__("ucr" + rot_axis.lower(), num_qubits, angle_list, condition=condition)
 
     def _define(self):
         ucr_circuit = self._dec_ucrot()

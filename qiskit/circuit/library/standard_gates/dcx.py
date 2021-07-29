@@ -44,9 +44,9 @@ class DCXGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self):
+    def __init__(self, condition=None):
         """Create new DCX gate."""
-        super().__init__("dcx", 2, [])
+        super().__init__("dcx", 2, [], condition=condition)
 
     def _define(self):
         """

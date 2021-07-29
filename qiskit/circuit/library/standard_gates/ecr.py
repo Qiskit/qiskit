@@ -76,9 +76,9 @@ class ECRGate(Gate):
                 \end{pmatrix}
     """
 
-    def __init__(self):
+    def __init__(self, condition=None):
         """Create new ECR gate."""
-        super().__init__("ecr", 2, [])
+        super().__init__("ecr", 2, [], condition=condition)
 
     def _define(self):
         """

@@ -38,7 +38,7 @@ class DiagonalGate(Gate):
     least two entries.
     """
 
-    def __init__(self, diag):
+    def __init__(self, diag, condition=None):
         """Check types"""
         # Check if diag has type "list"
         if not isinstance(diag, list):
@@ -58,7 +58,7 @@ class DiagonalGate(Gate):
             if not np.abs(z) - 1 < _EPS:
                 raise QiskitError("A diagonal entry has not absolute value one.")
         # Create new gate.
-        super().__init__("diagonal", int(num_action_qubits), diag)
+        super().__init__("diagonal", int(num_action_qubits), diag, condition=condition)
 
     def _define(self):
         diag_circuit = self._dec_diag()

@@ -37,7 +37,7 @@ class ControlledGate(Gate):
         definition: Optional["QuantumCircuit"] = None,
         ctrl_state: Optional[Union[int, str]] = None,
         base_gate: Optional[Gate] = None,
-        condition: Optional[Tuple] = None,
+        condition: Optional[Tuple[Union["ClassicalRegister", "Clbit"], int]] = None
     ):
         """Create a new ControlledGate. In the new gate the first ``num_ctrl_qubits``
         of the gate are the controls.

@@ -57,7 +57,7 @@ class UCGate(Gate):
     The decomposition is based on: https://arxiv.org/pdf/quant-ph/0410066.pdf.
     """
 
-    def __init__(self, gate_list, up_to_diagonal=False):
+    def __init__(self, gate_list, up_to_diagonal=False, condition=None):
         """UCGate Gate initializer.
 
         Args:
@@ -94,7 +94,7 @@ class UCGate(Gate):
                 raise QiskitError("A controlled gate is not unitary.")
 
         # Create new gate.
-        super().__init__("multiplexer", int(num_contr) + 1, gate_list)
+        super().__init__("multiplexer", int(num_contr) + 1, gate_list, condition=condition)
         self.up_to_diagonal = up_to_diagonal
 
     def inverse(self):

@@ -107,9 +107,9 @@ class MSGate(Gate):
     and is thus reduced to the RXXGate.
     """
 
-    def __init__(self, num_qubits, theta, label=None):
+    def __init__(self, num_qubits, theta, label=None, condition=None):
         """Create new MS gate."""
-        super().__init__("ms", num_qubits, [theta], label=label)
+        super().__init__("ms", num_qubits, [theta], label=label, condition=condition)
 
     def _define(self):
         theta = self.params[0]

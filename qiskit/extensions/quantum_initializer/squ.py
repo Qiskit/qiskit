@@ -44,7 +44,7 @@ class SingleQubitUnitary(Gate):
 
     # pylint: disable=unused-argument
     @deprecate_arguments({"u": "unitary_matrix"})
-    def __init__(self, unitary_matrix, mode="ZYZ", up_to_diagonal=False, u=None):
+    def __init__(self, unitary_matrix, mode="ZYZ", up_to_diagonal=False, u=None, condition=None):
         """Create a new single qubit gate based on the unitary ``u``."""
         if mode not in ["ZYZ"]:
             raise QiskitError("The decomposition mode is not known.")
@@ -59,7 +59,7 @@ class SingleQubitUnitary(Gate):
         self._diag = None
 
         # Create new gate
-        super().__init__("unitary", 1, [unitary_matrix])
+        super().__init__("unitary", 1, [unitary_matrix], condition=condition)
 
     def inverse(self):
         """Return the inverse.
