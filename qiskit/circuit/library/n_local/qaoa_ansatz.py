@@ -11,14 +11,15 @@
 # that they have been altered from the originals.
 
 """A generalized QAOA quantum circuit with a support of custom initial states and mixers."""
+
 # pylint: disable=cyclic-import
-from typing import Optional, Set, List, Tuple
+from typing import Optional, List, Tuple
 import numpy as np
 
 from qiskit.circuit.library.evolved_operator_ansatz import EvolvedOperatorAnsatz, _is_pauli_identity
-from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class QAOAAnsatz(EvolvedOperatorAnsatz):
@@ -166,6 +167,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
             cost_operator (OperatorBase, optional): cost operator to set.
         """
         self._cost_operator = cost_operator
+        self.qregs = [QuantumRegister(self.num_qubits, name="q")]
         self._invalidate()
 
     @property

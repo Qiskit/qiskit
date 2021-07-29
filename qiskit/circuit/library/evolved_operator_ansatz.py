@@ -56,9 +56,6 @@ class EvolvedOperatorAnsatz(NLocal):
 
             evolution = PauliTrotterEvolution()
 
-        if operators is not None:
-            operators = _validate_operators(operators)
-
         super().__init__(
             initial_state=initial_state,
             parameter_prefix=parameter_prefix,
@@ -66,7 +63,10 @@ class EvolvedOperatorAnsatz(NLocal):
             insert_barriers=insert_barriers,
             name=name,
         )
-        self._operators = operators
+        self._operators = None
+        if operators is not None:
+            self.operators = operators
+
         self._evolution = evolution
 
         # a list of which operators are parameterized, used for internal settings
@@ -132,6 +132,7 @@ class EvolvedOperatorAnsatz(NLocal):
         operators = _validate_operators(operators)
         self._invalidate()
         self._operators = operators
+        self.qregs = [QuantumRegister(self.num_qubits, name="q")]
 
     # TODO: the `preferred_init_points`-implementation can (and should!) be improved!
     @property
@@ -152,8 +153,6 @@ class EvolvedOperatorAnsatz(NLocal):
     def _build(self):
         if self._data is not None:
             return
-
-        self.qregs = [QuantumRegister(self.num_qubits, name="q")]
 
         coeff = Parameter("c")
         circuits = []
