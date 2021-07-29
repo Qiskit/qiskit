@@ -35,8 +35,8 @@ class PauliGate(Gate):
     the pauli gates sequentially using standard Qiskit gates
     """
 
-    def __init__(self, label):
-        super().__init__("pauli", len(label), [label])
+    def __init__(self, label, condition=None):
+        super().__init__("pauli", len(label), [label], condition=condition)
 
     def _define(self):
         """
@@ -55,7 +55,7 @@ class PauliGate(Gate):
 
     def inverse(self):
         r"""Return inverted pauli gate (itself)."""
-        return PauliGate(self.params[0])  # self-inverse
+        return PauliGate(self.params[0], condition=self.condition)  # self-inverse
 
     def __array__(self, dtype=None):
         """Return a Numpy.array for the pauli gate.

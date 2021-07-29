@@ -1377,7 +1377,7 @@ class TestStandardMethods(QiskitTestCase):
                 # gate_class is abstract
                 continue
             sig = signature(gate_class)
-            free_params = len(set(sig.parameters) - {"label"})
+            free_params = len(set(sig.parameters) - {"label", "condition"})
             try:
                 if gate_class == PauliGate:
                     # special case due to PauliGate using string parameters
@@ -1427,7 +1427,7 @@ class TestStandardMethods(QiskitTestCase):
                 # n_qubits argument is no longer supported.
                 free_params = 2
             else:
-                free_params = len(set(sig.parameters) - {"label"})
+                free_params = len(set(sig.parameters) - {"label", "condition"})
             try:
                 if gate_class == PauliGate:
                     # special case due to PauliGate using string parameters

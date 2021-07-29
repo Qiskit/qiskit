@@ -46,9 +46,9 @@ class TGate(Gate):
     Equivalent to a :math:`\pi/4` radian rotation about the Z axis.
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label=None, condition=None):
         """Create new T gate."""
-        super().__init__("t", 1, [], label=label)
+        super().__init__("t", 1, [], label=label, condition=condition)
 
     def _define(self):
         """
@@ -68,7 +68,7 @@ class TGate(Gate):
 
     def inverse(self):
         """Return inverse T gate (i.e. Tdg)."""
-        return TdgGate()
+        return TdgGate(condition=self.condition)
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the T gate."""
@@ -102,9 +102,9 @@ class TdgGate(Gate):
     Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label=None, condition=None):
         """Create new Tdg gate."""
-        super().__init__("tdg", 1, [], label=label)
+        super().__init__("tdg", 1, [], label=label, condition=condition)
 
     def _define(self):
         """
@@ -124,7 +124,7 @@ class TdgGate(Gate):
 
     def inverse(self):
         """Return inverse Tdg gate (i.e. T)."""
-        return TGate()
+        return TGate(condition=self.condition)
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the inverse T gate."""

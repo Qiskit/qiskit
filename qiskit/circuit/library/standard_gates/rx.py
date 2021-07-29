@@ -44,9 +44,9 @@ class RXGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, theta, label=None):
+    def __init__(self, theta, label=None, condition=None):
         """Create new RX gate."""
-        super().__init__("rx", 1, [theta], label=label)
+        super().__init__("rx", 1, [theta], label=label, condition=condition)
 
     def _define(self):
         """
@@ -87,7 +87,7 @@ class RXGate(Gate):
 
         :math:`RX(\lambda)^{\dagger} = RX(-\lambda)`
         """
-        return RXGate(-self.params[0])
+        return RXGate(-self.params[0], condition=self.condition)
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the RX gate."""
@@ -151,7 +151,7 @@ class CRXGate(ControlledGate):
                 \end{pmatrix}
     """
 
-    def __init__(self, theta, label=None, ctrl_state=None):
+    def __init__(self, theta, label=None, ctrl_state=None, condition=None):
         """Create new CRX gate."""
         super().__init__(
             "crx",
@@ -161,6 +161,7 @@ class CRXGate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=RXGate(theta),
+            condition=condition,
         )
 
     def _define(self):
@@ -195,7 +196,7 @@ class CRXGate(ControlledGate):
 
     def inverse(self):
         """Return inverse CRX gate (i.e. with the negative rotation angle)."""
-        return CRXGate(-self.params[0], ctrl_state=self.ctrl_state)
+        return CRXGate(-self.params[0], ctrl_state=self.ctrl_state, condition=self.condition)
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CRX gate."""

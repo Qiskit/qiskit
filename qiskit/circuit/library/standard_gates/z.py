@@ -62,9 +62,9 @@ class ZGate(Gate):
         |1\rangle \rightarrow -|1\rangle
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label=None, condition=None):
         """Create new Z gate."""
-        super().__init__("z", 1, [], label=label)
+        super().__init__("z", 1, [], label=label, condition=condition)
 
     def _define(self):
         # pylint: disable=cyclic-import
@@ -101,7 +101,7 @@ class ZGate(Gate):
 
     def inverse(self):
         """Return inverted Z gate (itself)."""
-        return ZGate()  # self-inverse
+        return ZGate(condition=self.condition)  # self-inverse
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the Z gate."""
@@ -138,10 +138,17 @@ class CZGate(ControlledGate):
     the target qubit if the control qubit is in the :math:`|1\rangle` state.
     """
 
-    def __init__(self, label=None, ctrl_state=None):
+    def __init__(self, label=None, ctrl_state=None, condition=None):
         """Create new CZ gate."""
         super().__init__(
-            "cz", 2, [], label=label, num_ctrl_qubits=1, ctrl_state=ctrl_state, base_gate=ZGate()
+            "cz",
+            2,
+            [],
+            label=label,
+            num_ctrl_qubits=1,
+            ctrl_state=ctrl_state,
+            base_gate=ZGate(),
+            condition=condition,
         )
 
     def _define(self):
@@ -163,7 +170,7 @@ class CZGate(ControlledGate):
 
     def inverse(self):
         """Return inverted CZ gate (itself)."""
-        return CZGate(ctrl_state=self.ctrl_state)  # self-inverse
+        return CZGate(ctrl_state=self.ctrl_state, condition=self.condition)  # self-inverse
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CZ gate."""

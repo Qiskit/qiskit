@@ -42,7 +42,7 @@ class RVGate(Gate):
                 \end{pmatrix}
     """
 
-    def __init__(self, v_x, v_y, v_z, basis="U"):
+    def __init__(self, v_x, v_y, v_z, basis="U", condition=None):
         """Create new rv single-qubit gate.
 
         Args:
@@ -55,7 +55,7 @@ class RVGate(Gate):
         # pylint: disable=cyclic-import
         from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
 
-        super().__init__("rv", 1, [v_x, v_y, v_z])
+        super().__init__("rv", 1, [v_x, v_y, v_z], condition=condition)
         self._decomposer = OneQubitEulerDecomposer(basis=basis)
 
     def _define(self):
@@ -69,7 +69,7 @@ class RVGate(Gate):
     def inverse(self):
         """Invert this gate."""
         vx, vy, vz = self.params
-        return RVGate(-vx, -vy, -vz)
+        return RVGate(-vx, -vy, -vz, condition=self.condition)
 
     def to_matrix(self):
         """Return a numpy.array for the R(v) gate."""

@@ -58,9 +58,9 @@ class U2Gate(Gate):
         using two X90 pulses.
     """
 
-    def __init__(self, phi, lam, label=None):
+    def __init__(self, phi, lam, label=None, condition=None):
         """Create new U2 gate."""
-        super().__init__("u2", 1, [phi, lam], label=label)
+        super().__init__("u2", 1, [phi, lam], label=label, condition=condition)
 
     def _define(self):
         # pylint: disable=cyclic-import
@@ -80,7 +80,7 @@ class U2Gate(Gate):
 
         :math:`U2(\phi, \lambda)^{\dagger} =U2(-\lambda-\pi, -\phi+\pi)`)
         """
-        return U2Gate(-self.params[1] - pi, -self.params[0] + pi)
+        return U2Gate(-self.params[1] - pi, -self.params[0] + pi, condition=self.condition)
 
     def __array__(self, dtype=None):
         """Return a Numpy.array for the U2 gate."""

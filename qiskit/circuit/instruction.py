@@ -53,7 +53,17 @@ class Instruction:
     # NOTE: Using this attribute may change in the future (See issue # 5811)
     _directive = False
 
-    def __init__(self, name, num_qubits, num_clbits, params, duration=None, unit="dt", label=None):
+    def __init__(
+        self,
+        name,
+        num_qubits,
+        num_clbits,
+        params,
+        duration=None,
+        unit="dt",
+        label=None,
+        condition=None,
+    ):
         """Create a new instruction.
 
         Args:
@@ -65,6 +75,7 @@ class Instruction:
             duration (int or float): instruction's duration. it must be integer if ``unit`` is 'dt'
             unit (str): time unit of duration
             label (str or None): An optional label for identifying the instruction.
+            condition (tupple[ClassicalRegister, int] or None: classical condition of instruction.
 
         Raises:
             CircuitError: when the register is not in the correct format.
@@ -88,7 +99,7 @@ class Instruction:
             self._label = label
         # tuple (ClassicalRegister, int), tuple (Clbit, bool) or tuple (Clbit, int)
         # when the instruction has a conditional ("if")
-        self.condition = None
+        self.condition = condition
         # list of instructions (and their contexts) that this instruction is composed of
         # empty definition means opaque or fundamental instruction
         self._definition = None
@@ -108,13 +119,15 @@ class Instruction:
         Returns:
             bool: are self and other equal.
         """
-        if (
+        neq_cond = bool(
             type(self) is not type(other)
             or self.name != other.name
             or self.num_qubits != other.num_qubits
             or self.num_clbits != other.num_clbits
             or self.definition != other.definition
-        ):
+            or self.condition != other.condition
+        )
+        if neq_cond:
             return False
 
         for self_param, other_param in zip_longest(self.params, other.params):
@@ -376,6 +389,7 @@ class Instruction:
                 num_qubits=self.num_qubits,
                 num_clbits=self.num_clbits,
                 params=self.params.copy(),
+                condition=self.condition,
             )
 
         else:

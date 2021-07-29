@@ -50,9 +50,9 @@ class SwapGate(Gate):
         |a, b\rangle \rightarrow |b, a\rangle
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label=None, condition=None):
         """Create new SWAP gate."""
-        super().__init__("swap", 2, [], label=label)
+        super().__init__("swap", 2, [], label=label, condition=condition)
 
     def _define(self):
         """
@@ -96,7 +96,7 @@ class SwapGate(Gate):
 
     def inverse(self):
         """Return inverse Swap gate (itself)."""
-        return SwapGate()  # self-inverse
+        return SwapGate(condition=self.condition)  # self-inverse
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the SWAP gate."""
@@ -201,7 +201,7 @@ class CSwapGate(ControlledGate):
         ]
     )
 
-    def __init__(self, label=None, ctrl_state=None):
+    def __init__(self, label=None, ctrl_state=None, condition=None):
         """Create new CSWAP gate."""
         super().__init__(
             "cswap",
@@ -211,6 +211,7 @@ class CSwapGate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=SwapGate(),
+            condition=condition,
         )
 
     def _define(self):
@@ -239,7 +240,7 @@ class CSwapGate(ControlledGate):
 
     def inverse(self):
         """Return inverse CSwap gate (itself)."""
-        return CSwapGate(ctrl_state=self.ctrl_state)  # self-inverse
+        return CSwapGate(ctrl_state=self.ctrl_state, condition=self.condition)  # self-inverse
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the Fredkin (CSWAP) gate."""

@@ -852,6 +852,22 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertFalse(qc1 == qc2)
 
+    def test_circuit_inverse_c_if(self):
+        """Test inverse of classically conditioned circuit"""
+        qr = QuantumRegister(1)
+        cr = ClassicalRegister(1)
+        qc = QuantumCircuit(qr, cr)
+        qc.s(0).c_if(cr, 0)
+        qc.h(0)
+        qc.x(0).c_if(cr, 1)
+        qc_inv = qc.inverse()
+
+        qc_ref = QuantumCircuit(qr, cr)
+        qc_ref.x(0).c_if(cr, 1)
+        qc_ref.h(0)
+        qc_ref.sdg(0).c_if(cr, 0)
+        self.assertEqual(qc_inv, qc_ref)
+
 
 class TestCircuitBuilding(QiskitTestCase):
     """QuantumCircuit tests."""

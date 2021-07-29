@@ -1409,10 +1409,10 @@ class TestConditional(QiskitTestCase):
         self.circuit.h(self.qreg[0]).c_if(self.creg, 1)
         self.dag = circuit_to_dag(self.circuit)
         gate_node = self.dag.gate_nodes()[0]
-        self.assertEqual(gate_node.op, HGate())
+        self.assertEqual(gate_node.op, HGate(condition=(self.creg, 1)))
         self.assertEqual(gate_node.qargs, [self.qreg[0]])
         self.assertEqual(gate_node.cargs, [])
-        self.assertEqual(gate_node.condition, (self.creg, 1))
+        self.assertEqual(gate_node.op.condition, (self.creg, 1))
         self.assertEqual(
             sorted(self.dag._multi_graph.in_edges(gate_node._node_id)),
             sorted(
@@ -1441,7 +1441,7 @@ class TestConditional(QiskitTestCase):
         self.circuit.h(self.qreg[0]).c_if(self.creg[0], 1)
         self.dag = circuit_to_dag(self.circuit)
         gate_node = self.dag.gate_nodes()[0]
-        self.assertEqual(gate_node.op, HGate())
+        self.assertEqual(gate_node.op, HGate(condition=(self.creg[0], 1)))
         self.assertEqual(gate_node.qargs, [self.qreg[0]])
         self.assertEqual(gate_node.cargs, [])
         self.assertEqual(gate_node.condition, (self.creg[0], 1))

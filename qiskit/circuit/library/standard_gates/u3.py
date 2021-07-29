@@ -58,16 +58,16 @@ class U3Gate(Gate):
         U3(\theta, 0, 0) = RY(\theta)
     """
 
-    def __init__(self, theta, phi, lam, label=None):
+    def __init__(self, theta, phi, lam, label=None, condition=None):
         """Create new U3 gate."""
-        super().__init__("u3", 1, [theta, phi, lam], label=label)
+        super().__init__("u3", 1, [theta, phi, lam], label=label, condition=condition)
 
     def inverse(self):
         r"""Return inverted U3 gate.
 
         :math:`U3(\theta,\phi,\lambda)^{\dagger} =U3(-\theta,-\lambda,-\phi)`)
         """
-        return U3Gate(-self.params[0], -self.params[2], -self.params[1])
+        return U3Gate(-self.params[0], -self.params[2], -self.params[1], condition=self.condition)
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (multi-)controlled-U3 gate.
@@ -169,7 +169,7 @@ class CU3Gate(ControlledGate):
                 \end{pmatrix}
     """
 
-    def __init__(self, theta, phi, lam, label=None, ctrl_state=None):
+    def __init__(self, theta, phi, lam, label=None, ctrl_state=None, condition=None):
         """Create new CU3 gate."""
         super().__init__(
             "cu3",
@@ -179,6 +179,7 @@ class CU3Gate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=U3Gate(theta, phi, lam),
+            condition=condition,
         )
 
     def _define(self):
@@ -218,7 +219,11 @@ class CU3Gate(ControlledGate):
         :math:`CU3(\theta,\phi,\lambda)^{\dagger} =CU3(-\theta,-\phi,-\lambda)`)
         """
         return CU3Gate(
-            -self.params[0], -self.params[2], -self.params[1], ctrl_state=self.ctrl_state
+            -self.params[0],
+            -self.params[2],
+            -self.params[1],
+            ctrl_state=self.ctrl_state,
+            condition=self.condition,
         )
 
     def __array__(self, dtype=None):

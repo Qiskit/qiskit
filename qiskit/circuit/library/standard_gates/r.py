@@ -43,9 +43,9 @@ class RGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, theta, phi):
+    def __init__(self, theta, phi, *, condition=None):
         """Create new r single-qubit gate."""
-        super().__init__("r", 1, [theta, phi])
+        super().__init__("r", 1, [theta, phi], condition=condition)
 
     def _define(self):
         """
@@ -70,7 +70,7 @@ class RGate(Gate):
 
         r(θ, φ)^dagger = r(-θ, φ)
         """
-        return RGate(-self.params[0], self.params[1])
+        return RGate(-self.params[0], self.params[1], condition=self.condition)
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the R gate."""

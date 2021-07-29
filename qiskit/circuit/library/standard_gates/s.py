@@ -45,9 +45,9 @@ class SGate(Gate):
     Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label=None, condition=None):
         """Create new S gate."""
-        super().__init__("s", 1, [], label=label)
+        super().__init__("s", 1, [], label=label, condition=condition)
 
     def _define(self):
         """
@@ -67,7 +67,7 @@ class SGate(Gate):
 
     def inverse(self):
         """Return inverse of S (SdgGate)."""
-        return SdgGate()
+        return SdgGate(condition=self.condition)
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the S gate."""
@@ -101,9 +101,9 @@ class SdgGate(Gate):
     Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label=None, condition=None):
         """Create new Sdg gate."""
-        super().__init__("sdg", 1, [], label=label)
+        super().__init__("sdg", 1, [], label=label, condition=condition)
 
     def _define(self):
         """
@@ -123,7 +123,7 @@ class SdgGate(Gate):
 
     def inverse(self):
         """Return inverse of Sdg (SGate)."""
-        return SGate()
+        return SGate(condition=self.condition)
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the Sdg gate."""

@@ -112,9 +112,9 @@ class RZXGate(Gate):
                                     \end{pmatrix}
     """
 
-    def __init__(self, theta):
+    def __init__(self, theta, condition=None):
         """Create new RZX gate."""
-        super().__init__("rzx", 2, [theta])
+        super().__init__("rzx", 2, [theta], condition=condition)
 
     def _define(self):
         """
@@ -143,7 +143,7 @@ class RZXGate(Gate):
 
     def inverse(self):
         """Return inverse RZX gate (i.e. with the negative rotation angle)."""
-        return RZXGate(-self.params[0])
+        return RZXGate(-self.params[0], condition=self.condition)
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the RZX gate."""

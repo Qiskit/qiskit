@@ -13,7 +13,7 @@
 """Controlled unitary gate."""
 
 import copy
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Tuple
 
 from qiskit.circuit.exceptions import CircuitError
 
@@ -37,6 +37,7 @@ class ControlledGate(Gate):
         definition: Optional["QuantumCircuit"] = None,
         ctrl_state: Optional[Union[int, str]] = None,
         base_gate: Optional[Gate] = None,
+        condition: Optional[Tuple] = None,
     ):
         """Create a new ControlledGate. In the new gate the first ``num_ctrl_qubits``
         of the gate are the controls.
@@ -55,6 +56,8 @@ class ControlledGate(Gate):
                 must equal num_ctrl_qubits, MSB on left. If None, use
                 2**num_ctrl_qubits-1.
             base_gate: Gate object to be controlled.
+            condition: tuple (ClassicalRegister, int), tuple (Clbit, bool) or
+                tuple (Clbit, int) for classically conditioned gate.
 
         Raises:
             CircuitError: If ``num_ctrl_qubits`` >= ``num_qubits``.

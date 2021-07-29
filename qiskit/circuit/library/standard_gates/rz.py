@@ -54,9 +54,9 @@ class RZGate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
-    def __init__(self, phi, label=None):
+    def __init__(self, phi, label=None, condition=None):
         """Create new RZ gate."""
-        super().__init__("rz", 1, [phi], label=label)
+        super().__init__("rz", 1, [phi], label=label, condition=condition)
 
     def _define(self):
         """
@@ -98,7 +98,7 @@ class RZGate(Gate):
 
         :math:`RZ(\lambda){\dagger} = RZ(-\lambda)`
         """
-        return RZGate(-self.params[0])
+        return RZGate(-self.params[0], condition=self.condition)
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the RZ gate."""
@@ -169,7 +169,7 @@ class CRZGate(ControlledGate):
         phase difference.
     """
 
-    def __init__(self, theta, label=None, ctrl_state=None):
+    def __init__(self, theta, label=None, ctrl_state=None, condition=None):
         """Create new CRZ gate."""
         super().__init__(
             "crz",
@@ -179,6 +179,7 @@ class CRZGate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=RZGate(theta),
+            condition=condition,
         )
 
     def _define(self):
@@ -207,7 +208,7 @@ class CRZGate(ControlledGate):
 
     def inverse(self):
         """Return inverse CRZ gate (i.e. with the negative rotation angle)."""
-        return CRZGate(-self.params[0], ctrl_state=self.ctrl_state)
+        return CRZGate(-self.params[0], ctrl_state=self.ctrl_state, condition=self.condition)
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CRZ gate."""

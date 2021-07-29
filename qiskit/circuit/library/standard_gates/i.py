@@ -39,13 +39,13 @@ class IGate(Gate):
              └───┘
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label=None, condition=None):
         """Create new Identity gate."""
-        super().__init__("id", 1, [], label=label)
+        super().__init__("id", 1, [], label=label, condition=condition)
 
     def inverse(self):
         """Invert this gate."""
-        return IGate()  # self-inverse
+        return IGate(condition=self.condition)  # self-inverse
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the identity gate."""

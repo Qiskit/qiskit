@@ -69,9 +69,9 @@ class PhaseGate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
-    def __init__(self, theta, label=None):
+    def __init__(self, theta, label=None, condition=None):
         """Create new Phase gate."""
-        super().__init__("p", 1, [theta], label=label)
+        super().__init__("p", 1, [theta], label=label, condition=condition)
 
     def _define(self):
         # pylint: disable=cyclic-import
@@ -108,7 +108,7 @@ class PhaseGate(Gate):
 
     def inverse(self):
         r"""Return inverted Phase gate (:math:`Phase(\lambda){\dagger} = Phase(-\lambda)`)"""
-        return PhaseGate(-self.params[0])
+        return PhaseGate(-self.params[0], condition=self.condition)
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the Phase gate."""
@@ -153,7 +153,7 @@ class CPhaseGate(ControlledGate):
         phase difference.
     """
 
-    def __init__(self, theta, label=None, ctrl_state=None):
+    def __init__(self, theta, label=None, ctrl_state=None, condition=None):
         """Create new CPhase gate."""
         super().__init__(
             "cp",
@@ -163,6 +163,7 @@ class CPhaseGate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=PhaseGate(theta),
+            condition=condition,
         )
 
     def _define(self):
@@ -205,7 +206,7 @@ class CPhaseGate(ControlledGate):
 
     def inverse(self):
         r"""Return inverted CPhase gate (:math:`CPhase(\lambda){\dagger} = CPhase(-\lambda)`)"""
-        return CPhaseGate(-self.params[0], ctrl_state=self.ctrl_state)
+        return CPhaseGate(-self.params[0], ctrl_state=self.ctrl_state, condition=self.condition)
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CPhase gate."""
@@ -242,7 +243,7 @@ class MCPhaseGate(ControlledGate):
         The singly-controlled-version of this gate.
     """
 
-    def __init__(self, lam, num_ctrl_qubits, label=None):
+    def __init__(self, lam, num_ctrl_qubits, label=None, condition=None):
         """Create new MCPhase gate."""
         super().__init__(
             "mcphase",
@@ -251,6 +252,7 @@ class MCPhaseGate(ControlledGate):
             num_ctrl_qubits=num_ctrl_qubits,
             label=label,
             base_gate=PhaseGate(lam),
+            condition=condition,
         )
 
     def _define(self):
@@ -295,4 +297,4 @@ class MCPhaseGate(ControlledGate):
 
     def inverse(self):
         r"""Return inverted MCU1 gate (:math:`MCU1(\lambda){\dagger} = MCU1(-\lambda)`)"""
-        return MCPhaseGate(-self.params[0], self.num_ctrl_qubits)
+        return MCPhaseGate(-self.params[0], self.num_ctrl_qubits, condition=self.condition)

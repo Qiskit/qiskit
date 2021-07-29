@@ -74,9 +74,9 @@ class U1Gate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
-    def __init__(self, theta, label=None):
+    def __init__(self, theta, label=None, condition=None):
         """Create new U1 gate."""
-        super().__init__("u1", 1, [theta], label=label)
+        super().__init__("u1", 1, [theta], label=label, condition=condition)
 
     def _define(self):
         # pylint: disable=cyclic-import
@@ -116,7 +116,7 @@ class U1Gate(Gate):
 
     def inverse(self):
         r"""Return inverted U1 gate (:math:`U1(\lambda){\dagger} = U1(-\lambda)`)"""
-        return U1Gate(-self.params[0])
+        return U1Gate(-self.params[0], condition=self.condition)
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the U1 gate."""
@@ -161,7 +161,7 @@ class CU1Gate(ControlledGate):
         phase difference.
     """
 
-    def __init__(self, theta, label=None, ctrl_state=None):
+    def __init__(self, theta, label=None, ctrl_state=None, condition=None):
         """Create new CU1 gate."""
         super().__init__(
             "cu1",
@@ -171,6 +171,7 @@ class CU1Gate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=U1Gate(theta),
+            condition=condition,
         )
 
     def _define(self):
@@ -219,7 +220,7 @@ class CU1Gate(ControlledGate):
 
     def inverse(self):
         r"""Return inverted CU1 gate (:math:`CU1(\lambda){\dagger} = CU1(-\lambda)`)"""
-        return CU1Gate(-self.params[0], ctrl_state=self.ctrl_state)
+        return CU1Gate(-self.params[0], ctrl_state=self.ctrl_state, condition=self.condition)
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CU1 gate."""
@@ -259,7 +260,7 @@ class MCU1Gate(ControlledGate):
         The singly-controlled-version of this gate.
     """
 
-    def __init__(self, lam, num_ctrl_qubits, label=None, ctrl_state=None):
+    def __init__(self, lam, num_ctrl_qubits, label=None, ctrl_state=None, condition=None):
         """Create new MCU1 gate."""
         super().__init__(
             "mcu1",
@@ -269,6 +270,7 @@ class MCU1Gate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=U1Gate(lam),
+            condition=condition,
         )
 
     def _define(self):
@@ -317,4 +319,4 @@ class MCU1Gate(ControlledGate):
 
     def inverse(self):
         r"""Return inverted MCU1 gate (:math:`MCU1(\lambda){\dagger} = MCU1(-\lambda)`)"""
-        return MCU1Gate(-self.params[0], self.num_ctrl_qubits)
+        return MCU1Gate(-self.params[0], self.num_ctrl_qubits, condition=self.condition)

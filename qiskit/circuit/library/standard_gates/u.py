@@ -59,16 +59,16 @@ class UGate(Gate):
         U(\theta, 0, 0) = RY(\theta)
     """
 
-    def __init__(self, theta, phi, lam, label=None):
+    def __init__(self, theta, phi, lam, label=None, condition=None):
         """Create new U gate."""
-        super().__init__("u", 1, [theta, phi, lam], label=label)
+        super().__init__("u", 1, [theta, phi, lam], label=label, condition=condition)
 
     def inverse(self):
         r"""Return inverted U gate.
 
         :math:`U(\theta,\phi,\lambda)^{\dagger} =U(-\theta,-\lambda,-\phi)`)
         """
-        return UGate(-self.params[0], -self.params[2], -self.params[1])
+        return UGate(-self.params[0], -self.params[2], -self.params[1], condition=self.condition)
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (multi-)controlled-U gate.
@@ -168,7 +168,7 @@ class CUGate(ControlledGate):
                 \end{pmatrix}
     """
 
-    def __init__(self, theta, phi, lam, gamma, label=None, ctrl_state=None):
+    def __init__(self, theta, phi, lam, gamma, label=None, ctrl_state=None, condition=None):
         """Create new CU gate."""
         super().__init__(
             "cu",
@@ -178,6 +178,7 @@ class CUGate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=UGate(theta, phi, lam),
+            condition=condition,
         )
 
     def _define(self):
@@ -217,6 +218,7 @@ class CUGate(ControlledGate):
             -self.params[1],
             -self.params[3],
             ctrl_state=self.ctrl_state,
+            condition=self.condition,
         )
 
     def __array__(self, dtype=None):

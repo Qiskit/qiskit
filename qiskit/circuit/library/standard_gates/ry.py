@@ -44,9 +44,9 @@ class RYGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, theta, label=None):
+    def __init__(self, theta, label=None, condition=None):
         """Create new RY gate."""
-        super().__init__("ry", 1, [theta], label=label)
+        super().__init__("ry", 1, [theta], label=label, condition=condition)
 
     def _define(self):
         """
@@ -87,7 +87,7 @@ class RYGate(Gate):
 
         :math:`RY(\lambda){\dagger} = RY(-\lambda)`
         """
-        return RYGate(-self.params[0])
+        return RYGate(-self.params[0], condition=self.condition)
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the RY gate."""
@@ -151,7 +151,7 @@ class CRYGate(ControlledGate):
                 \end{pmatrix}
     """
 
-    def __init__(self, theta, label=None, ctrl_state=None):
+    def __init__(self, theta, label=None, ctrl_state=None, condition=None):
         """Create new CRY gate."""
         super().__init__(
             "cry",
@@ -161,6 +161,7 @@ class CRYGate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=RYGate(theta),
+            condition=condition,
         )
 
     def _define(self):
@@ -189,7 +190,7 @@ class CRYGate(ControlledGate):
 
     def inverse(self):
         """Return inverse CRY gate (i.e. with the negative rotation angle)."""
-        return CRYGate(-self.params[0], ctrl_state=self.ctrl_state)
+        return CRYGate(-self.params[0], ctrl_state=self.ctrl_state, condition=self.condition)
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CRY gate."""

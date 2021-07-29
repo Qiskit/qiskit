@@ -54,9 +54,9 @@ class SXGate(Gate):
 
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label=None, condition=None):
         """Create new SX gate."""
-        super().__init__("sx", 1, [], label=label)
+        super().__init__("sx", 1, [], label=label, condition=condition)
 
     def _define(self):
         """
@@ -75,7 +75,7 @@ class SXGate(Gate):
 
     def inverse(self):
         """Return inverse SX gate (i.e. SXdg)."""
-        return SXdgGate()
+        return SXdgGate(condition=self.condition)
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return a (multi-)controlled-SX gate.
@@ -128,9 +128,9 @@ class SXdgGate(Gate):
 
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label=None, condition=None):
         """Create new SXdg gate."""
-        super().__init__("sxdg", 1, [], label=label)
+        super().__init__("sxdg", 1, [], label=label, condition=condition)
 
     def _define(self):
         """
@@ -149,7 +149,7 @@ class SXdgGate(Gate):
 
     def inverse(self):
         """Return inverse SXdg gate (i.e. SX)."""
-        return SXGate()
+        return SXGate(condition=self.condition)
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the SXdg gate."""
@@ -226,10 +226,17 @@ class CSXGate(ControlledGate):
         ]
     )
 
-    def __init__(self, label=None, ctrl_state=None):
+    def __init__(self, label=None, ctrl_state=None, condition=None):
         """Create new CSX gate."""
         super().__init__(
-            "csx", 2, [], num_ctrl_qubits=1, label=label, ctrl_state=ctrl_state, base_gate=SXGate()
+            "csx",
+            2,
+            [],
+            num_ctrl_qubits=1,
+            label=label,
+            ctrl_state=ctrl_state,
+            base_gate=SXGate(),
+            condition=condition,
         )
 
     def _define(self):

@@ -313,18 +313,11 @@ class TestInstructions(QiskitTestCase):
         inst = circ.to_instruction()
         self.assertRaises(CircuitError, inst.inverse)
 
-    def test_inverse_instruction_with_conditional(self):
-        """test inverting instruction with conditionals fails"""
-        q = QuantumRegister(4)
-        c = ClassicalRegister(4)
-        circ = QuantumCircuit(q, c, name="circ")
-        circ.t(q[1])
-        circ.u(0.1, 0.2, -0.2, q[0])
-        circ.barrier()
-        circ.measure(q[0], c[0])
-        circ.rz(0.8, q[0]).c_if(c, 6)
-        inst = circ.to_instruction()
-        self.assertRaises(CircuitError, inst.inverse)
+    def test_set_instruction_with_conditional_argument(self):
+        """test inverting instruction with conditional"""
+        cr = ClassicalRegister(1)
+        cif_instr = Instruction("c_if_instr", 1, 1, [], condition=(cr, 1))
+        self.assertEqual(cif_instr.condition, (cr, 1))
 
     def test_inverse_opaque(self):
         """test inverting opaque gate fails"""

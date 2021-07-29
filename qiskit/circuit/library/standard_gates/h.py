@@ -47,9 +47,9 @@ class HGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label=None, condition=None):
         """Create new H gate."""
-        super().__init__("h", 1, [], label=label)
+        super().__init__("h", 1, [], label=label, condition=condition)
 
     def _define(self):
         """
@@ -89,7 +89,7 @@ class HGate(Gate):
 
     def inverse(self):
         r"""Return inverted H gate (itself)."""
-        return HGate()  # self-inverse
+        return HGate(condition=self.condition)  # self-inverse
 
     def __array__(self, dtype=None):
         """Return a Numpy.array for the H gate."""
@@ -158,10 +158,17 @@ class CHGate(ControlledGate):
         dtype=complex,
     )
 
-    def __init__(self, label=None, ctrl_state=None):
+    def __init__(self, label=None, ctrl_state=None, condition=None):
         """Create new CH gate."""
         super().__init__(
-            "ch", 2, [], num_ctrl_qubits=1, label=label, ctrl_state=ctrl_state, base_gate=HGate()
+            "ch",
+            2,
+            [],
+            num_ctrl_qubits=1,
+            label=label,
+            ctrl_state=ctrl_state,
+            base_gate=HGate(),
+            condition=condition,
         )
 
     def _define(self):
@@ -198,7 +205,7 @@ class CHGate(ControlledGate):
 
     def inverse(self):
         """Return inverted CH gate (itself)."""
-        return CHGate(ctrl_state=self.ctrl_state)  # self-inverse
+        return CHGate(ctrl_state=self.ctrl_state, condition=self.condition)  # self-inverse
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CH gate."""

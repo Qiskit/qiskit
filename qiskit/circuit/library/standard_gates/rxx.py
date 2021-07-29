@@ -66,9 +66,9 @@ class RXXGate(Gate):
                                     \end{pmatrix}
     """
 
-    def __init__(self, theta):
+    def __init__(self, theta, condition=None):
         """Create new RXX gate."""
-        super().__init__("rxx", 2, [theta])
+        super().__init__("rxx", 2, [theta], condition=condition)
 
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
@@ -97,7 +97,7 @@ class RXXGate(Gate):
 
     def inverse(self):
         """Return inverse RXX gate (i.e. with the negative rotation angle)."""
-        return RXXGate(-self.params[0])
+        return RXXGate(-self.params[0], condition=self.condition)
 
     def __array__(self, dtype=None):
         """Return a Numpy.array for the RXX gate."""
