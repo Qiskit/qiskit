@@ -30,17 +30,12 @@ with open("requirements.txt") as f:
 
 # Add Cython extensions here
 CYTHON_EXTS = {
-<<<<<<< HEAD
-    "qiskit/transpiler/passes/routing/cython/stochastic_swap/utils": "qiskit.transpiler.passes.routing.cython.stochastic_swap.utils",
-    "qiskit/transpiler/passes/routing/cython/stochastic_swap/swap_trial": "qiskit.transpiler.passes.routing.cython.stochastic_swap.swap_trial",
-=======
     "qiskit/transpiler/passes/routing/cython/stochastic_swap/utils": (
         "qiskit.transpiler.passes.routing.cython.stochastic_swap.utils"
     ),
     "qiskit/transpiler/passes/routing/cython/stochastic_swap/swap_trial": (
         "qiskit.transpiler.passes.routing.cython.stochastic_swap.swap_trial"
     ),
->>>>>>> be0ed5f7b1c3b4057af941be65a8ff84b90a16e4
     "qiskit/quantum_info/states/cython/exp_value": "qiskit.quantum_info.states.cython.exp_value",
 }
 
@@ -81,8 +76,6 @@ with open(README_PATH) as readme_file:
         readme_file.read(),
         flags=re.S | re.M,
     )
-<<<<<<< HEAD
-=======
 
 
 visualization_extras = [
@@ -137,25 +130,10 @@ setup(
     include_package_data=True,
     python_requires=">=3.6",
     extras_require={
-<<<<<<< HEAD
-        "visualization": [
-            "matplotlib>=2.1",
-            "ipywidgets>=7.3.0",
-            "pydot",
-            "pillow>=4.2.1",
-            "pylatexenc>=1.4",
-            "seaborn>=0.9.0",
-            "pygments>=2.4",
-        ],
-        "classical-function-compiler": ["tweedledum>=1.0,<2.0"],
-        "full-featured-simulators": ["qiskit-aer>=0.1"],
-        "crosstalk-pass": ["z3-solver>=4.7"],
-=======
         "visualization": visualization_extras,
         "bip-mapper": bip_requirements,
         "crosstalk-pass": z3_requirements,
         "all": visualization_extras + z3_requirements + bip_requirements,
->>>>>>> be0ed5f7b1c3b4057af941be65a8ff84b90a16e4
     },
     project_urls={
         "Bug Tracker": "https://github.com/Qiskit/qiskit-terra/issues",
