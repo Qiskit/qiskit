@@ -191,17 +191,10 @@ class QNSPSA(SPSA):
 
     @property
     def settings(self) -> Dict[str, Any]:
-        """The optimizer settings in a dictionary format.
-
-        .. note::
-
-            The ``fidelity`` property cannot be serialized and will not be contained
-            in the dictionary. To construct a ``QNSPSA`` object from a dictionary you
-            have to add it manually with the key ``"fidelity"``.
-
-        """
+        """The optimizer settings in a dictionary format."""
         # re-use serialization from SPSA
         settings = super().settings
+        settings.update({"fidelity": self.fidelity})
 
         # remove SPSA-specific arguments not in QNSPSA
         settings.pop("trust_region")

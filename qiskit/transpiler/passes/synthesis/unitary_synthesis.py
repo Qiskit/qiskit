@@ -17,6 +17,7 @@ from typing import List, Union
 from copy import deepcopy
 
 from qiskit.converters import circuit_to_dag
+from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
@@ -65,7 +66,7 @@ class UnitarySynthesis(TransformationPass):
         self,
         basis_gates: List[str],
         approximation_degree: float = 1,
-        coupling_map: List = None,
+        coupling_map: CouplingMap = None,
         backend_props: BackendProperties = None,
         pulse_optimize: Union[bool, None] = None,
         natural_direction: Union[bool, None] = None,
@@ -79,17 +80,23 @@ class UnitarySynthesis(TransformationPass):
         exactly.
 
         Args:
-            basis_gates: List of gate names to target.
-            approximation_degree: Closeness of approximation
+            basis_gates (list[str]): List of gate names to target.
+            approximation_degree (float): Closeness of approximation
                 (0: lowest, 1: highest).
-            backend_props: Properties of a backend to synthesize for
-                (e.g. gate fidelities).
-            pulse_optimize: Whether to optimize pulses during
+            coupling_map (CouplingMap): the coupling map of the backend
+                in case synthesis is done on a physical circuit. The
+                directionality of the coupling_map will be taken into
+                account if pulse_optimize is True/None and natural_direction
+                is True/None.
+            backend_props (BackendProperties): Properties of a backend to
+                synthesize for (e.g. gate fidelities).
+            pulse_optimize (bool): Whether to optimize pulses during
                 synthesis. A value of None will attempt it but fall
-                back if it doesn't succeed.
-            natural_direction: Whether to apply synthesis considering
+                back if it doesn't succeed. A value of True will raise
+                an error if pulse-optimized synthesis does not succeed.
+            natural_direction (bool): Whether to apply synthesis considering
                 directionality of 2-qubit gates. Only applies when
-                `pulse_optimize` == True. The natural direction is
+                `pulse_optimize` is True or None. The natural direction is
                 determined by first checking to see whether the
                 coupling map is unidirectional.  If there is no
                 coupling map or the coupling map is bidirectional,
@@ -99,7 +106,7 @@ class UnitarySynthesis(TransformationPass):
                 determined, raises TranspileError. If set to None, no
                 exception will be raised if a natural direction can
                 not be determined.
-            synth_gates: List of gates to synthesize. If None and
+            synth_gates (list[str]): List of gates to synthesize. If None and
                 `pulse_optimize` is False or None, default to
                 ['unitary']. If None and `pulse_optimzie` == True,
                 default to ['unitary', 'swap']
