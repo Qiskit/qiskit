@@ -1087,7 +1087,7 @@ class TestParameterGradients(QiskitOpflowTestCase):
         x = Parameter("x")
         expr = 2 * x + 1
         grad = expr.gradient(x)
-        self.assertIsInstance(grad, float)
+        self.assertIsInstance(grad, complex)
 
 
 @ddt

@@ -2063,7 +2063,7 @@ class QuantumCircuit:
             self._global_phase = angle
         else:
             # Set the phase to the [0, 2π) interval
-            angle = float(angle)
+            angle = complex(angle).real
             if not angle:
                 self._global_phase = 0
             else:
