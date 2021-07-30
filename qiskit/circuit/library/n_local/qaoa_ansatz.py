@@ -63,7 +63,6 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         self._mixer = mixer_operator
 
         # set this circuit as a not-built circuit
-        # self._num_parameters = 0
         self._bounds = None
 
         # store cost operator and set the registers if the operator is not None
