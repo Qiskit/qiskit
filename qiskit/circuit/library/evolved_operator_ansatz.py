@@ -73,7 +73,8 @@ class EvolvedOperatorAnsatz(NLocal):
         self._ops_are_parameterized = None
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
-        super()._check_configuration()
+        if not super()._check_configuration(raise_on_failure):
+            return False
 
         if self.operators is None:
             if raise_on_failure:
