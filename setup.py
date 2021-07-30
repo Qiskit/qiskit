@@ -87,28 +87,10 @@ visualization_extras = [
     "seaborn>=0.9.0",
     "pygments>=2.4",
 ]
-
-
 z3_requirements = [
     "z3-solver>=4.7",
 ]
-
-
-# Only add the constraints so that 'pip install qiskit-terra[all]' ignores bip-mapper on those
-# versions. If the user attempts to explicitly install 'pip install qiskit-terra[bip-mapper]', we
-# want to force pip to either degrade Terra or emit an error.
-bip_requirements = [
-    ("cplex", 'python_version>"3.6" and python_version<"3.9"'),
-    ("docplex", ""),
-]
-
-all_requirements = visualization_extras + z3_requirements
-all_requirements.extend(
-    [
-        f"{requirement}; {constraint}" if constraint else requirement
-        for requirement, constraint in bip_requirements
-    ]
-)
+bip_requirements = ["cplex", "docplex"]
 
 
 setup(
@@ -144,9 +126,12 @@ setup(
     python_requires=">=3.6",
     extras_require={
         "visualization": visualization_extras,
-        "bip-mapper": [requirement for requirement, constraint in bip_requirements],
+        "bip-mapper": bip_requirements,
         "crosstalk-pass": z3_requirements,
-        "all": all_requirements,
+        # Note: 'all' does not include 'bip-mapper' because cplex is too fiddly and too little
+        # supported on various Python versions and OSes compared to Terra.  You have to ask for it
+        # explicitly.
+        "all": visualization_extras + z3_requirements,
     },
     project_urls={
         "Bug Tracker": "https://github.com/Qiskit/qiskit-terra/issues",
