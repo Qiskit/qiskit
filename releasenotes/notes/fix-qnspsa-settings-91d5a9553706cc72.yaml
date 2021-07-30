@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed an issue with :attr:`qiskit.algorithms.optimizers.QNSPSA.settings`
+    attribute which was missing the ``fidelity`` argument from the output.
+    This is now correctly included in the attribute's output.
