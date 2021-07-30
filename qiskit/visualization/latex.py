@@ -547,7 +547,11 @@ class QCircuitImage:
 
         self._latex[wire1][col] = "\\meter"
         if self.cregbundle:
-            self._latex[wire2][col] = "\\dstick{_{_{%s}}} \\cw \\cwx[-%s]" % (
+            if node.op.condition is not None:
+                self._latex[wire2][col] = "\\dstick{_{_{\\hspace{1.5em}"
+            else:
+                self._latex[wire2][col] = "\\dstick{_{_{"
+            self._latex[wire2][col] += "%s}}} \\cw \\cwx[-%s]" % (
                 str(cregindex),
                 str(wire2 - wire1),
             )
@@ -612,7 +616,11 @@ class QCircuitImage:
         gap = cwire - max(wire_list)
         if self.cregbundle:
             # Print the condition value at the bottom
-            self._latex[cwire][col] = "\\dstick{_{_{=%s}}} \\cw \\cwx[-%s]" % (
+            if isinstance(op, Measure):
+                self._latex[cwire][col] = "\\dstick{_{_{\\hspace{1.5em}"
+            else:
+                self._latex[cwire][col] = "\\dstick{_{_{"
+            self._latex[cwire][col] += "=%s}}} \\cw \\cwx[-%s]" % (
                 str(op.condition[1]),
                 str(gap),
             )

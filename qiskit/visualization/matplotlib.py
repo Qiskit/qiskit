@@ -1247,6 +1247,8 @@ class MatplotlibDrawer:
                             v_ind += 1
                     clbit_b = sorted(xy_plot, key=lambda xy: xy[1])[0]
                     xpos, ypos = clbit_b
+                    if op.name == "measure":
+                        xpos += 0.3
                     self._ax.text(
                         xpos,
                         ypos - 0.3 * HIG,
