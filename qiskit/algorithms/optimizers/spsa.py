@@ -30,6 +30,7 @@ from .optimizer import Optimizer, OptimizerSupportLevel
 
 # number of function evaluations, parameters, loss, stepsize, accepted
 CALLBACK = Callable[[int, np.ndarray, float, float, bool], None]
+TERMINATION_CALLBACK = Callable[np.ndarray, float, bool]
 
 logger = logging.getLogger(__name__)
 
@@ -142,6 +143,7 @@ class SPSA(Optimizer):
         lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
         initial_hessian: Optional[np.ndarray] = None,
         callback: Optional[CALLBACK] = None,
+        termination_callback: Optional[TERMINATION_CALLBACK] = None,
     ) -> None:
         r"""
         Args:
@@ -190,6 +192,9 @@ class SPSA(Optimizer):
             callback: A callback function passed information in each iteration step. The
                 information is, in this order: the number of function evaluations, the parameters,
                 the function value, the stepsize, whether the step was accepted.
+            termination_callback: A callback function executed at the end of each iteration step. The
+                arguments are, in this order: current parameters, estimate of the objective
+                If the callback returns True, the optimization is aborted
 
         Raises:
             ValueError: If ``learning_rate`` or ``perturbation`` is an array with less elements
@@ -201,6 +206,7 @@ class SPSA(Optimizer):
         self.maxiter = maxiter
         self.trust_region = trust_region
         self.callback = callback
+        self.termination_callback = termination_callback
 
         # if learning rate and perturbation are arrays, check they are sufficiently long
         for attr, name in zip([learning_rate, perturbation], ["learning_rate", "perturbation"]):
@@ -368,11 +374,12 @@ class SPSA(Optimizer):
             rank_one = np.outer(delta1, delta2)
             hessian_sample = diff * (rank_one + rank_one.T) / 2
 
-        return gradient_sample, hessian_sample
+        return np.mean(values), gradient_sample, hessian_sample
 
     def _point_estimate(self, loss, x, eps, num_samples):
         """The gradient estimate at point x."""
         # set up variables to store averages
+        value_estimate = 0
         gradient_estimate = np.zeros(x.size)
         hessian_estimate = np.zeros((x.size, x.size))
 
@@ -392,13 +399,20 @@ class SPSA(Optimizer):
             delta1 = deltas1[i]
             delta2 = deltas2[i] if self.second_order else None
 
-            gradient_sample, hessian_sample = self._point_sample(loss, x, eps, delta1, delta2)
+            value_sample, gradient_sample, hessian_sample = self._point_sample(
+                loss, x, eps, delta1, delta2
+            )
+            value_estimate += value_sample
             gradient_estimate += gradient_sample
 
             if self.second_order:
                 hessian_estimate += hessian_sample
 
-        return gradient_estimate / num_samples, hessian_estimate / num_samples
+        return (
+            value_estimate / num_samples,
+            gradient_estimate / num_samples,
+            hessian_estimate / num_samples,
+        )
 
     def _compute_update(self, loss, x, k, eps, lse_solver):
         # compute the perturbations
@@ -408,7 +422,7 @@ class SPSA(Optimizer):
             num_samples = self.resamplings
 
         # accumulate the number of samples
-        gradient, hessian = self._point_estimate(loss, x, eps, num_samples)
+        value, gradient, hessian = self._point_estimate(loss, x, eps, num_samples)
 
         # precondition gradient with inverse Hessian, if specified
         if self.second_order:
@@ -421,7 +435,7 @@ class SPSA(Optimizer):
                 # solve for the gradient update
                 gradient = np.real(lse_solver(spd_hessian, gradient))
 
-        return gradient
+        return value, gradient
 
     def _minimize(self, loss, initial_point):
         # ensure learning rate and perturbation are correctly set: either none or both
@@ -466,7 +480,7 @@ class SPSA(Optimizer):
         for k in range(1, self.maxiter + 1):
             iteration_start = time()
             # compute update
-            update = self._compute_update(loss, x, k, next(eps), lse_solver)
+            f_estimate, update = self._compute_update(loss, x, k, next(eps), lse_solver)
 
             # trust region
             if self.trust_region:
@@ -528,6 +542,11 @@ class SPSA(Optimizer):
                 last_steps.append(x_next)
                 if len(last_steps) > self.last_avg:
                     last_steps.popleft()
+
+            if self.termination_callback is not None:
+                if self.termination_callback(x, f_estimate):
+                    logger.info("aborting optimization at {k}/{self.maxiter")
+                    break
 
         logger.info("SPSA finished in %s", time() - start)
         logger.info("=" * 30)

@@ -132,6 +132,29 @@ class TestSPSA(QiskitAlgorithmsTestCase):
 
         self.assertAlmostEqual(np.linalg.norm(result), 2, places=2)
 
+    def test_termination_callback(self):
+        """Test the termination_callback"""
+
+        def objective(x):
+            return np.random.rand(1)
+
+        class TerminationCallback:
+            def __init__(self):
+                self.values = []
+
+            def __call__(self, parameters, value) -> bool:
+                self.values.append(value)
+
+                if len(self.values) > 10:
+                    return True
+                return False
+
+        maxiter = 400
+        spsa = SPSA(maxiter=maxiter, termination_callback=TerminationCallback())
+        result, _, niter = spsa.optimize(2, objective, initial_point=np.array([0.5, 0.5]))
+
+        self.assertLess(niter, maxiter)
+
     def test_callback(self):
         """Test using the callback."""
 
