@@ -672,16 +672,12 @@ class NLocal(BlueprintCircuit):
             ValueError: If the number of qubits has been set before and the initial state
                 does not match the number of qubits.
         """
+        self._initial_state = initial_state
+
         # If there is an initial state object, check that the number of qubits is compatible
         # construct the circuit immediately. If the InitialState could modify the number of qubits
         # we could also do this later at circuit construction.
-        self._initial_state = initial_state
-
-        # construct the circuit of the initial state
-        # if initial state is an instance of QuantumCircuit do not call construct circuit
-        if isinstance(self._initial_state, QuantumCircuit):
-            self._initial_state_circuit = self._initial_state.copy()
-        else:
+        if not isinstance(self._initial_state, QuantumCircuit):
             warnings.warn(
                 "The initial_state argument of the NLocal class "
                 "should be a QuantumCircuit. Passing any other type is "
@@ -691,15 +687,14 @@ class NLocal(BlueprintCircuit):
                 DeprecationWarning,
                 stacklevel=2,
             )
-            self._initial_state_circuit = initial_state.construct_circuit(mode="circuit")
+            initial_state_circuit = initial_state.construct_circuit(mode="circuit")
 
-        # the initial state dictates the number of qubits since we do not have information
-        # about on which qubits the initial state acts
-        if (
-            self._num_qubits is not None
-            and self._initial_state_circuit.num_qubits != self.num_qubits
-        ):
-            raise ValueError("Mismatching number of qubits in initial state and n-local circuit.")
+            # the initial state dictates the number of qubits since we do not have information
+            # about on which qubits the initial state acts
+            if self._num_qubits is not None and initial_state_circuit.num_qubits != self.num_qubits:
+                raise ValueError(
+                    "Mismatching number of qubits in initial state and n-local circuit."
+                )
 
         self._invalidate()
 

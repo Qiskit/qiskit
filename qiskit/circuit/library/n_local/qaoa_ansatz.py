@@ -72,7 +72,8 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         valid = True
 
-        super()._check_configuration()
+        if not super()._check_configuration(raise_on_failure):
+            return False
 
         if self.cost_operator is None:
             valid = False
@@ -104,7 +105,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         return valid
 
     @property
-    def parameter_bounds(self) -> List[Tuple[Optional[float], Optional[float]]]:
+    def parameter_bounds(self) -> Optional[List[Tuple[Optional[float], Optional[float]]]]:
         """The parameter bounds for the unbound parameters in the circuit.
 
         Returns:
@@ -132,7 +133,9 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         return bounds
 
     @parameter_bounds.setter
-    def parameter_bounds(self, bounds: List[Tuple[Optional[float], Optional[float]]]) -> None:
+    def parameter_bounds(
+        self, bounds: Optional[List[Tuple[Optional[float], Optional[float]]]]
+    ) -> None:
         """Set the parameter bounds.
 
         Args:
@@ -259,16 +262,17 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         num_parameters = self.reps * (num_cost + num_mixer)
         theta = ParameterVector("θ", num_parameters)
 
-        # 0 3 1 4 2 5
-        # 0 4 5 1 6 7 3
-        # first the cost operator parameters then mixer operators
-        reordered = [None] * num_parameters
-        theta_iter = iter(theta)
+        # Create a permutation to take us from (cost_1, mixer_1, cost_2, mixer_2, ...)
+        # to (cost_1, cost_2, ..., mixer_1, mixer_2, ...), or if the mixer is a circuit
+        # with more than 1 parameters, from (cost_1, mixer_1a, mixer_1b, cost_2, ...)
+        # to (cost_1, cost_2, ..., mixer_1a, mixer_1b, mixer_2a, mixer_2b, ...)
+        total_cost = self.reps * num_cost
 
-        reordered = [next(theta_iter) for _ in range(self.reps * num_cost)]
-
-        for i in range(self.reps):
-            start_idx = i * num_mixer + (i + 1) * num_cost
-            reordered[start_idx:start_idx] = [next(theta_iter) for _ in range(num_mixer)]
+        reordered = []
+        for rep in range(self.reps):
+            reordered.extend(theta[rep * num_cost : (rep + 1) * num_cost])
+            reordered.extend(
+                theta[total_cost + rep * num_mixer : total_cost + (rep + 1) * num_mixer]
+            )
 
         self.assign_parameters(dict(zip(self.ordered_parameters, reordered)), inplace=True)
