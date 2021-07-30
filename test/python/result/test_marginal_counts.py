@@ -14,12 +14,11 @@
 
 """Test marginal_counts function."""
 
-import unittest
-
 from qiskit.result.utils import marginal_counts
+from qiskit.test import QiskitTestCase
 
 
-class TestMarginalCounts(unittest.TestCase):
+class TestMarginalCounts(QiskitTestCase):
     def test_default(self):
         raw_counts = {"00":11, "11": 12}
         expected = raw_counts.copy()
