@@ -104,6 +104,7 @@ class BIPMapping(TransformationPass):
                 libname="bip-mapper",
                 name="BIP-based mapping pass",
                 pip_install="pip install 'qiskit-terra[bip-mapper]'",
+                msg="This may not be possible for Python 3.6 or 3.9",
             )
         super().__init__()
         self.coupling_map = coupling_map
