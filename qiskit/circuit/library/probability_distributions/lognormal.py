@@ -16,6 +16,7 @@ from typing import Tuple, List, Union, Optional
 import warnings
 import numpy as np
 from qiskit.circuit import QuantumCircuit
+from qiskit.exceptions import QiskitError
 from .normal import _check_bounds_valid, _check_dimensions_match
 
 
@@ -178,7 +179,13 @@ class LogNormalDistribution(QuantumCircuit):
             circuit.compose(distribution, inplace=True)
 
         super().__init__(*circuit.qregs, name=name)
-        self.compose(circuit.to_instruction(), qubits=self.qubits, inplace=True)
+
+        try:
+            instr = circuit.to_gate()
+        except QiskitError:
+            instr = circuit.to_instruction()
+
+        self.compose(instr, qubits=self.qubits, inplace=True)
 
     @property
     def values(self) -> np.ndarray:
