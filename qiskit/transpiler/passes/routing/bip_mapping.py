@@ -103,6 +103,7 @@ class BIPMapping(TransformationPass):
                 libname="bip-mapper",
                 name="BIP-based mapping pass",
                 pip_install="pip install 'qiskit-terra[bip-mapper]'",
+                msg="This may not be possible for all Python versions and OSes",
             )
         super().__init__()
         self.coupling_map = copy.deepcopy(coupling_map)  # save a copy to modify
