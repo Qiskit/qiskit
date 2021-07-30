@@ -1,10 +1,13 @@
 ---
 fixes:
   - |
-    Fix ``pip install qiskit-terra[all]`` on Python 3.6 and 3.9.  On these
-    versions, the ``bip-mapper`` target constraints cannot be satisfied due to
-    the ``cplex`` package only supporting Python 3.7 and 3.8.  Requesting the
-    ``all`` target on these versions will now not attempt to install the
-    unsolvable dependency, though you can still attempt to install the
-    ``bip-mapper`` extra directly if you want to force pip to try and resolve
-    the package.
+    Fixed ``pip install qiskit-terra[all]`` so that it will successfully install
+    when running on Python 3.6 and 3.9.  Previously, these Python versions would
+    fail to install the ``all`` target because the ``bip-mapper`` extra
+    requirements could not be satisfied due to the ``cplex`` package only
+    supporting Python 3.7 and 3.8.  Requesting the ``all`` target on these
+    Python versions will now no longer attempt to install the unsolvable
+    dependency (ie ``cplex`` will not longer be attempted to installed). The
+    ``bip-mapper`` extra will still attempt to install the
+    ``cplex`` and ``docplex`` packages on Python 3.6 and 3.9 (and likely fail as
+    ``cplex`` isn't available).
