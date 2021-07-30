@@ -21,10 +21,10 @@ from qiskit.circuit.exceptions import CircuitError
 from .quantumcircuit import QuantumCircuit
 from .gate import Gate
 from .quantumregister import QuantumRegister
+from ._utils import _ctrl_state_to_int
 
 if TYPE_CHECKING:
     import qiskit.circuit.classicalregister as classicalregister
-from ._utils import _ctrl_state_to_int
 
 
 class ControlledGate(Gate):
