@@ -87,7 +87,13 @@ class RXGate(Gate):
 
         :math:`RX(\lambda)^{\dagger} = RX(-\lambda)`
         """
-        return RXGate(-self.params[0])
+
+        ### ntb: TERRIBLE HACK:
+        from qiskit.circuit import ParameterExpression
+        if isinstance(self.params[0], ParameterExpression):
+            return RXGate(-float(self.params[0]._symbol_expr))
+        else:
+            return RXGate(-self.params[0])
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the RX gate."""

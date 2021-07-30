@@ -347,8 +347,6 @@ class TemplateSubstitution:
                 )
                 self.substitution_list.append(config)
 
-        import pdb; pdb.set_trace()
-
         # Remove incompatible matches.
         self._remove_impossible()
 
@@ -435,6 +433,7 @@ class TemplateSubstitution:
                     node = group.template_dag_dep.get_node(index)
                     inst = node.op.copy()
 
+                    #import pdb; pdb.set_trace()
                     dag_dep_opt.add_op_node(inst.inverse(), qargs, cargs)
 
             # Add the unmatched gates.
