@@ -136,9 +136,11 @@ class TestSPSA(QiskitAlgorithmsTestCase):
         """Test the termination_callback"""
 
         def objective(x):
-            return np.random.rand(1)
+            return np.linalg.norm(x) + np.random.rand(1)
 
         class TerminationCallback:
+            """Example termination callback"""
+
             def __init__(self):
                 self.values = []
 
