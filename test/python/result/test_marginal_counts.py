@@ -20,19 +20,19 @@ from qiskit.test import QiskitTestCase
 
 class TestMarginalCounts(QiskitTestCase):
     def test_default(self):
-        raw_counts = {"00":11, "11": 12}
+        raw_counts = {"00": 11, "11": 12}
         expected = raw_counts.copy()
         result = marginal_counts(raw_counts)
         self.assertEqual(expected, result)
 
     def test_1qubit(self):
-        raw_counts = {"00":11, "11": 12}
+        raw_counts = {"00": 11, "11": 12}
         expected = {"0": 11, "1": 12}
         result = marginal_counts(raw_counts, [0])
         self.assertEqual(expected, result)
 
     def test_1qubit_sum(self):
-        raw_counts = {"01":11, "11": 12}
+        raw_counts = {"01": 11, "11": 12}
         expected = {"1": 23}
         result = marginal_counts(raw_counts, [0])
         self.assertEqual(expected, result)
