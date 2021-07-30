@@ -21,6 +21,7 @@ from qiskit.circuit.exceptions import CircuitError
 from .quantumcircuit import QuantumCircuit
 from .gate import Gate
 from .quantumregister import QuantumRegister
+import classicalregister
 from ._utils import _ctrl_state_to_int
 
 
@@ -37,7 +38,8 @@ class ControlledGate(Gate):
         definition: Optional["QuantumCircuit"] = None,
         ctrl_state: Optional[Union[int, str]] = None,
         base_gate: Optional[Gate] = None,
-        condition: Optional[Tuple[Union["ClassicalRegister", "Clbit"], int]] = None,
+        condition: Optional[Tuple[Union["classicalregister.ClassicalRegister",
+                                        "classicalregister.Clbit"], int]] = None,
     ):
         """Create a new ControlledGate. In the new gate the first ``num_ctrl_qubits``
         of the gate are the controls.
