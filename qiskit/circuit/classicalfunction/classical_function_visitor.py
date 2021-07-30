@@ -14,10 +14,10 @@
 This module is used internally by ``qiskit.transpiler.classicalfunction.ClassicalFunction``.
 """
 
-from tweedledum.classical import LogicNetwork
-
 import ast
 import _ast
+
+from tweedledum.classical import LogicNetwork
 
 from .exceptions import ClassicalFunctionParseError, ClassicalFunctionCompilerTypeError
 
