@@ -2,8 +2,8 @@
 name: Wheel Builds
 on:
   push:
-    tags:
-      - '*'
+    pull_request:
+      branches: [ main ]
 jobs:
   build_wheels_aarch64:
     name: Build wheels on ${{ matrix.os }}
@@ -39,8 +39,8 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           path: ./wheelhouse/*.whl
-      - name: Upload to PyPI
-        run: twine upload ./wheelhouse/*.whl
-        env:
-          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
-          TWINE_USERNAME: qiskit
+#      - name: Upload to PyPI
+#        run: twine upload ./wheelhouse/*.whl
+#        env:
+#          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
+#          TWINE_USERNAME: qiskit
