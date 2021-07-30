@@ -30,7 +30,7 @@ from .optimizer import Optimizer, OptimizerSupportLevel
 
 # number of function evaluations, parameters, loss, stepsize, accepted
 CALLBACK = Callable[[int, np.ndarray, float, float, bool], None]
-TERMINATION_CALLBACK = Callable[np.ndarray, float, bool]
+TERMINATION_CALLBACK = Callable[[np.ndarray, float], bool]
 
 logger = logging.getLogger(__name__)
 
