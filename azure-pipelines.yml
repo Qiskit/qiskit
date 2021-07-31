@@ -237,6 +237,23 @@ stages:
           inputs:
             testResultsFiles: '**/test-*.xml'
             testRunTitle: 'Test results for Linux Python $(python.version)'
+        - bash: |
+            set -e
+            pushd test/qpy_compat
+            ./run_tests.sh
+            popd
+          displayName: 'Run QPY backwards compat tests'
+        - bash: |
+            set -e
+            virtualenv image_tests
+            image_tests/bin/pip install -U -r requirements.txt -c constraints.txt
+            image_tests/bin/pip install -U -c constraints.txt -e ".[visualization]"
+            image_tests/bin/python setup.py build_ext --inplace
+            sudo apt install -y graphviz pandoc
+            image_tests/bin/pip check
+          displayName: 'Install dependencies'
+        - bash: image_tests/bin/python -m unittest discover -v test/ipynb
+          displayName: 'Run image test'
     - job: 'Lint'
       pool: {vmImage: 'ubuntu-latest'}
       strategy:

@@ -191,17 +191,10 @@ class QNSPSA(SPSA):
 
     @property
     def settings(self) -> Dict[str, Any]:
-        """The optimizer settings in a dictionary format.
-
-        .. note::
-
-            The ``fidelity`` property cannot be serialized and will not be contained
-            in the dictionary. To construct a ``QNSPSA`` object from a dictionary you
-            have to add it manually with the key ``"fidelity"``.
-
-        """
+        """The optimizer settings in a dictionary format."""
         # re-use serialization from SPSA
         settings = super().settings
+        settings.update({"fidelity": self.fidelity})
 
         # remove SPSA-specific arguments not in QNSPSA
         settings.pop("trust_region")
@@ -260,10 +253,20 @@ class QNSPSA(SPSA):
         else:
             sampler = CircuitSampler(backend)
 
-            def fidelity(values_x, values_y):
-                value_dict = dict(
-                    zip(params_x[:] + params_y[:], values_x.tolist() + values_y.tolist())
-                )
+            def fidelity(values_x, values_y=None):
+                if values_y is not None:  # no batches
+                    value_dict = dict(
+                        zip(params_x[:] + params_y[:], values_x.tolist() + values_y.tolist())
+                    )
+                else:
+                    value_dict = {p: [] for p in params_x[:] + params_y[:]}
+                    for values_xy in values_x:
+                        for value_x, param_x in zip(values_xy[0, :], params_x):
+                            value_dict[param_x].append(value_x)
+
+                        for value_y, param_y in zip(values_xy[1, :], params_y):
+                            value_dict[param_y].append(value_y)
+
                 return np.abs(sampler.convert(expression, params=value_dict).eval()) ** 2
 
         return fidelity
