@@ -249,7 +249,7 @@ stages:
             image_tests/bin/pip install -U -r requirements.txt -c constraints.txt
             image_tests/bin/pip install -U -c constraints.txt -e ".[visualization]"
             image_tests/bin/python setup.py build_ext --inplace
-            sudo apt install -y graphviz pandoc
+            sudo apt install -y graphviz pandoc $(cat apt.txt)
             image_tests/bin/pip check
           displayName: 'Install dependencies'
         - bash: image_tests/bin/python -m unittest discover -v test/ipynb
