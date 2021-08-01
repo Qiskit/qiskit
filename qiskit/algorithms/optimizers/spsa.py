@@ -15,7 +15,7 @@
 This implementation allows both, standard first-order as well as second-order SPSA.
 """
 
-from typing import Iterator, Optional, Union, Callable, Tuple, Dict
+from typing import Iterator, Optional, Union, Callable, Tuple, Dict, Any
 import logging
 import warnings
 from time import time
@@ -318,7 +318,8 @@ class SPSA(Optimizer):
         return np.std(losses)
 
     @property
-    def settings(self):
+    def settings(self) -> Dict[str, Any]:
+        """Return dictonary containing the settings of the optimizer"""
         # if learning rate or perturbation are custom iterators expand them
         if callable(self.learning_rate):
             iterator = self.learning_rate()
@@ -347,6 +348,7 @@ class SPSA(Optimizer):
             "lse_solver": self.lse_solver,
             "initial_hessian": self.initial_hessian,
             "callback": self.callback,
+            "termination_callback": self.termination_callback,
         }
 
     def _point_sample(self, loss, x, eps, delta1, delta2):
