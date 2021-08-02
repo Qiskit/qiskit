@@ -523,7 +523,7 @@ class ListOp(OperatorBase):
                 return ListOp([self.assign_parameters(param_dict) for param_dict in unrolled_dict])
             if self.coeff.parameters <= set(unrolled_dict.keys()):
                 binds = {param: unrolled_dict[param] for param in self.coeff.parameters}
-                param_value = complex(self.coeff.bind(binds))
+                param_value = float(self.coeff.bind(binds))
         return self.traverse(lambda x: x.assign_parameters(param_dict), coeff=param_value)
 
     def reduce(self) -> OperatorBase:

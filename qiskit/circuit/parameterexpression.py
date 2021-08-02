@@ -299,8 +299,12 @@ class ParameterExpression:
         # If the gradient corresponds to a parameter expression then return the new expression.
         if len(parameter_symbols) > 0:
             return ParameterExpression(parameter_symbols, expr=expr_grad)
-        # If no free symbols left, return a complex number corresponding to the gradient.
-        return complex(expr_grad)
+        # If no free symbols left, return a complex or float gradient
+        expr_grad_cplx = complex(expr_grad)
+        if expr_grad_cplx.imag != 0j:
+            return expr_grad_cplx
+        else:
+            return float(expr_grad)
 
     def __add__(self, other):
         return self._apply_operation(operator.add, other)
