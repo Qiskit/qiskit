@@ -1,3 +1,10 @@
+from qiskit.transpiler.basepasses import TransformationPass
+
+
+
+
+
+
 class Cancellation(TransformationPass):
     """Cancel back-to-back `gates`in dag."""
     
