@@ -56,15 +56,14 @@ def pi_check(inpt, eps=1e-6, output="text", ndigits=5):
         for sym in syms:
             if not sym.is_number:
                 continue
-            pi = pi_check(float(sym), eps=eps, output=output, ndigits=ndigits)
+            pi = pi_check(abs(float(sym)), eps=eps, output=output, ndigits=ndigits)
             try:
                 _ = float(pi)
             except (ValueError, TypeError):
-                # Strip leading '-' from pi since must replace with abs(sym)
-                # in order to preserve spacing around minuses in expression
-                if pi[0] == "-":
-                    pi = pi[1:]
-                param_str = param_str.replace(str(abs(sym)), pi)
+                from sympy import sstr
+
+                sym_str = sstr(abs(sym), full_prec=False)
+                param_str = param_str.replace(sym_str, pi)
         return param_str
     elif isinstance(inpt, str):
         return inpt
@@ -92,12 +91,12 @@ def pi_check(inpt, eps=1e-6, output="text", ndigits=5):
             if abs(abs(val) - abs(round(val))) < eps:
                 val = int(abs(round(val)))
                 if abs(val) == 1:
-                    str_out = "{}{}".format(neg_str, pi)
+                    str_out = f"{neg_str}{pi}"
                 else:
                     if output == "qasm":
-                        str_out = "{}{}*{}".format(neg_str, val, pi)
+                        str_out = f"{neg_str}{val}*{pi}"
                     else:
-                        str_out = "{}{}{}".format(neg_str, val, pi)
+                        str_out = f"{neg_str}{val}{pi}"
                 return str_out
 
         # Second is a check for powers of pi
@@ -107,11 +106,11 @@ def pi_check(inpt, eps=1e-6, output="text", ndigits=5):
                 if output == "qasm":
                     str_out = "{:.{}g}".format(single_inpt, ndigits)
                 elif output == "latex":
-                    str_out = "{}{}^{}".format(neg_str, pi, power[0][0] + 2)
+                    str_out = f"{neg_str}{pi}^{power[0][0] + 2}"
                 elif output == "mpl":
-                    str_out = "{}{}$^{}$".format(neg_str, pi, power[0][0] + 2)
+                    str_out = f"{neg_str}{pi}$^{power[0][0] + 2}$"
                 else:
-                    str_out = "{}{}**{}".format(neg_str, pi, power[0][0] + 2)
+                    str_out = f"{neg_str}{pi}**{power[0][0] + 2}"
                 return str_out
 
         # Third is a check for a number larger than MAX_FRAC * pi, not a
@@ -128,7 +127,7 @@ def pi_check(inpt, eps=1e-6, output="text", ndigits=5):
             if output == "latex":
                 str_out = "\\frac{%s%s}{%s}" % (neg_str, pi, val)
             else:
-                str_out = "{}{}/{}".format(neg_str, pi, val)
+                str_out = f"{neg_str}{pi}/{val}"
             return str_out
 
         # Fifth check is for fractions where the numer > 1*pi and numer
@@ -141,9 +140,9 @@ def pi_check(inpt, eps=1e-6, output="text", ndigits=5):
             if output == "latex":
                 str_out = "\\frac{%s%s%s}{%s}" % (neg_str, numer, pi, denom)
             elif output == "qasm":
-                str_out = "{}{}*{}/{}".format(neg_str, numer, pi, denom)
+                str_out = f"{neg_str}{numer}*{pi}/{denom}"
             else:
-                str_out = "{}{}{}/{}".format(neg_str, numer, pi, denom)
+                str_out = f"{neg_str}{numer}{pi}/{denom}"
             return str_out
 
         # Sixth check is for fractions where the numer > 1 and numer
@@ -158,9 +157,9 @@ def pi_check(inpt, eps=1e-6, output="text", ndigits=5):
             if output == "latex":
                 str_out = "\\frac{%s%s}{%s%s}" % (neg_str, numer, denom, pi)
             elif output == "qasm":
-                str_out = "{}{}/({}*{})".format(neg_str, numer, denom, pi)
+                str_out = f"{neg_str}{numer}/({denom}*{pi})"
             else:
-                str_out = "{}{}/{}{}".format(neg_str, numer, denom, pi)
+                str_out = f"{neg_str}{numer}/{denom}{pi}"
             return str_out
 
         # Nothing found
@@ -178,7 +177,7 @@ def pi_check(inpt, eps=1e-6, output="text", ndigits=5):
         # Remove + if imag negative except for latex fractions
         if complex_inpt.imag < 0 and (output != "latex" or "\\frac" not in imag):
             op_str = ""
-        str_out = "{}{}{}{}".format(real, op_str, imag, jstr)
+        str_out = f"{real}{op_str}{imag}{jstr}"
     else:
         str_out = real
     return str_out

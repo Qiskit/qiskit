@@ -39,7 +39,7 @@ def stab_mat(label):
         elif i == "Z":
             mat = np.kron(mat, np.array([[1, 0], [0, -1]]))
         else:
-            raise QiskitError("Invalid stabilizer string {}".format(i))
+            raise QiskitError(f"Invalid stabilizer string {i}")
     return mat
 
 
@@ -717,13 +717,13 @@ class TestStabilizerTableMethods(QiskitTestCase):
             target0 = StabilizerTable.from_labels([l_mi, l_px])
             target1 = StabilizerTable.from_labels([l_px, l_mi])
 
-            with self.subTest(msg="single row from str ({})".format(j)):
+            with self.subTest(msg=f"single row from str ({j})"):
                 value0 = stab.insert(0, l_mi)
                 self.assertEqual(value0, target0)
                 value1 = stab.insert(1, l_mi)
                 self.assertEqual(value1, target1)
 
-            with self.subTest(msg="single row from StabilizerTable ({})".format(j)):
+            with self.subTest(msg=f"single row from StabilizerTable ({j})"):
                 value0 = stab.insert(0, StabilizerTable(l_mi))
                 self.assertEqual(value0, target0)
                 value1 = stab.insert(1, StabilizerTable(l_mi))
@@ -736,7 +736,7 @@ class TestStabilizerTableMethods(QiskitTestCase):
             target0 = insert + stab
             target1 = stab + insert
 
-            with self.subTest(msg="multiple-rows from StabilizerTable ({})".format(j)):
+            with self.subTest(msg=f"multiple-rows from StabilizerTable ({j})"):
                 value0 = stab.insert(0, insert)
                 self.assertEqual(value0, target0)
                 value1 = stab.insert(1, insert)

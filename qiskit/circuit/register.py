@@ -149,8 +149,7 @@ class Register:
             key is int. If key is a slice, returns a list of these instances.
 
         Raises:
-            CircuitError: if the `key` is not an integer.
-            QiskitIndexError: if the `key` is not in the range `(0, self.size)`.
+            CircuitError: if the `key` is not an integer or not in the range `(0, self.size)`.
         """
         if not isinstance(key, (int, np.integer, slice, list)):
             raise CircuitError("expected integer or slice index into register")

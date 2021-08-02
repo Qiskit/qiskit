@@ -1529,9 +1529,7 @@ def acquire(
             instructions.Acquire(duration, qubit_or_channel, reg_slot=register, **metadata)
         )
     else:
-        raise exceptions.PulseError(
-            'Register of type: "{}" is not supported'.format(type(register))
-        )
+        raise exceptions.PulseError(f'Register of type: "{type(register)}" is not supported')
 
 
 def set_frequency(frequency: float, channel: chans.PulseChannel, name: Optional[str] = None):

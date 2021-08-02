@@ -372,8 +372,8 @@ def plot_gate_map(
             ax.axis("off")
             return fig
 
-    x_max = max([d[1] for d in grid_data])
-    y_max = max([d[0] for d in grid_data])
+    x_max = max(d[1] for d in grid_data)
+    y_max = max(d[0] for d in grid_data)
     max_dim = max(x_max, y_max)
 
     if figsize is None:
@@ -734,11 +734,11 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
         single_cb.locator = tick_locator
         single_cb.update_ticks()
         single_cb.update_ticks()
-        bleft_ax.set_title("H error rate (%) [Avg. = {}]".format(round(avg_1q_err, 3)))
+        bleft_ax.set_title(f"H error rate (%) [Avg. = {round(avg_1q_err, 3)}]")
 
     if cmap is None:
         bleft_ax.axis("off")
-        bleft_ax.set_title("H error rate (%) = {}".format(round(avg_1q_err, 3)))
+        bleft_ax.set_title(f"H error rate (%) = {round(avg_1q_err, 3)}")
 
     if cmap:
         cx_cb = matplotlib.colorbar.ColorbarBase(
@@ -747,7 +747,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
         tick_locator = ticker.MaxNLocator(nbins=5)
         cx_cb.locator = tick_locator
         cx_cb.update_ticks()
-        bright_ax.set_title("CNOT error rate (%) [Avg. = {}]".format(round(avg_cx_err, 3)))
+        bright_ax.set_title(f"CNOT error rate (%) [Avg. = {round(avg_cx_err, 3)}]")
 
     if num_qubits < 10:
         num_left = num_qubits
@@ -787,7 +787,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
         spine.set_visible(False)
 
     if show_title:
-        fig.suptitle("{name} Error Map".format(name=backend.name()), fontsize=24, y=0.9)
+        fig.suptitle(f"{backend.name()} Error Map", fontsize=24, y=0.9)
     if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
         plt.close(fig)
     return fig

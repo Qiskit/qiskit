@@ -135,7 +135,7 @@ class InstructionDurations:
         inst: Union[str, Instruction],
         qubits: Union[int, List[int], Qubit, List[Qubit]],
         unit: str = "dt",
-    ) -> Union[float, int]:
+    ) -> float:
         """Get the duration of the instruction with the name and the qubits.
 
         Args:
@@ -180,7 +180,7 @@ class InstructionDurations:
                 f"Duration of {inst_name} on qubits {qubits} is not found."
             ) from ex
 
-    def _get(self, name: str, qubits: List[int], to_unit: str) -> Union[float, int]:
+    def _get(self, name: str, qubits: List[int], to_unit: str) -> float:
         """Get the duration of the instruction with the name and the qubits."""
         if name == "barrier":
             return 0
@@ -191,11 +191,11 @@ class InstructionDurations:
         elif name in self.duration_by_name:
             duration, unit = self.duration_by_name[name]
         else:
-            raise TranspilerError("No value is found for key={}".format(key))
+            raise TranspilerError(f"No value is found for key={key}")
 
         return self._convert_unit(duration, unit, to_unit)
 
-    def _convert_unit(self, duration: float, from_unit: str, to_unit: str) -> Union[float, int]:
+    def _convert_unit(self, duration: float, from_unit: str, to_unit: str) -> float:
         if from_unit.endswith("s") and from_unit != "s":
             duration = apply_prefix(duration, from_unit)
             from_unit = "s"
@@ -206,7 +206,7 @@ class InstructionDurations:
 
         if self.dt is None:
             raise TranspilerError(
-                "dt is necessary to convert durations from '{}' to '{}'".format(from_unit, to_unit)
+                f"dt is necessary to convert durations from '{from_unit}' to '{to_unit}'"
             )
         if from_unit == "s" and to_unit == "dt":
             if isinstance(duration, ParameterExpression):
@@ -215,9 +215,7 @@ class InstructionDurations:
         elif from_unit == "dt" and to_unit == "s":
             return duration * self.dt
         else:
-            raise TranspilerError(
-                "Conversion from '{}' to '{}' is not supported".format(from_unit, to_unit)
-            )
+            raise TranspilerError(f"Conversion from '{from_unit}' to '{to_unit}' is not supported")
 
     def units_used(self) -> Set[str]:
         """Get the set of all units used in this instruction durations.
@@ -234,8 +232,8 @@ class InstructionDurations:
 
 
 InstructionDurationsType = Union[
-    List[Tuple[str, Optional[Iterable[int]], Union[float, int], str]],
-    List[Tuple[str, Optional[Iterable[int]], Union[float, int]]],
+    List[Tuple[str, Optional[Iterable[int]], float, str]],
+    List[Tuple[str, Optional[Iterable[int]], float]],
     InstructionDurations,
 ]
 """List of tuples representing (instruction name, qubits indices, duration)."""

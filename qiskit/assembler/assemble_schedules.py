@@ -150,7 +150,7 @@ def _assemble_experiments(
             qobj.PulseLibraryItem(name=name, samples=samples)
             for name, samples in user_pulselib.items()
         ],
-        "memory_slots": max([exp.header.memory_slots for exp in experiments]),
+        "memory_slots": max(exp.header.memory_slots for exp in experiments),
     }
 
     return experiments, experiment_config

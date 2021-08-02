@@ -13,8 +13,10 @@
 """Unit tests for pulse waveforms."""
 
 import unittest
+from unittest.mock import patch
 import numpy as np
 
+import qiskit
 from qiskit.pulse.library import (
     Waveform,
     Constant,
@@ -78,6 +80,17 @@ class TestWaveform(QiskitTestCase):
         invalid_const = 1.1
         with self.assertRaises(PulseError):
             Waveform(invalid_const * np.exp(1j * 2 * np.pi * np.linspace(0, 1, 1000)))
+
+        invalid_const = 1.1
+        Waveform.limit_amplitude = False
+        wave = Waveform(invalid_const * np.exp(1j * 2 * np.pi * np.linspace(0, 1, 1000)))
+        self.assertGreater(np.max(np.abs(wave.samples)), 1.0)
+        with self.assertRaises(PulseError):
+            wave = Waveform(
+                invalid_const * np.exp(1j * 2 * np.pi * np.linspace(0, 1, 1000)),
+                limit_amplitude=True,
+            )
+        Waveform.limit_amplitude = True
 
         # Test case where data is converted to python types with complex as a list
         # with form [re, im] and back to a numpy array.
@@ -198,6 +211,12 @@ class TestParametricPulses(QiskitTestCase):
         const = Constant(duration=150, amp=0.1 + 0.4j)
         self.assertEqual(const.get_waveform().samples[0], 0.1 + 0.4j)
         self.assertEqual(len(const.get_waveform().samples), 150)
+
+        with self.assertRaises(PulseError):
+            const = Constant(duration=150, amp=1.1 + 0.4j)
+
+        with patch("qiskit.pulse.library.parametric_pulses.Pulse.limit_amplitude", new=False):
+            const = qiskit.pulse.library.parametric_pulses.Constant(duration=150, amp=0.1 + 0.4j)
 
     def test_parameters(self):
         """Test that the parameters can be extracted as a dict through the `parameters`

@@ -73,7 +73,7 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
 
     gate = Gate(
         name=circuit.name,
-        num_qubits=sum([qreg.size for qreg in circuit.qregs]),
+        num_qubits=sum(qreg.size for qreg in circuit.qregs),
         params=[*parameter_dict.values()],
         label=label,
     )

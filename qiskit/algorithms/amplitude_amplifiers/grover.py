@@ -13,7 +13,6 @@
 """Grover's search algorithm."""
 
 import itertools
-import logging
 import operator
 from typing import Iterator, List, Optional, Union
 
@@ -25,8 +24,6 @@ from qiskit.quantum_info import partial_trace
 from qiskit.utils import QuantumInstance
 from .amplification_problem import AmplificationProblem
 from .amplitude_amplifier import AmplitudeAmplifier, AmplitudeAmplifierResult
-
-logger = logging.getLogger(__name__)
 
 
 class Grover(AmplitudeAmplifier):
@@ -105,7 +102,7 @@ class Grover(AmplitudeAmplifier):
 
     def __init__(
         self,
-        iterations: Optional[Union[int, List[int], Iterator[int], float]] = None,
+        iterations: Optional[Union[List[int], Iterator[int], int]] = None,
         growth_rate: Optional[float] = None,
         sample_from_iterations: bool = False,
         quantum_instance: Optional[Union[QuantumInstance, Backend, BaseBackend]] = None,

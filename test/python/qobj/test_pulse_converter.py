@@ -220,7 +220,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         """Test converted qobj from ParametricInstruction without label."""
         base_str = "gaussian_[('amp', (-0.5+0.2j)), ('duration', 25), ('sigma', 15)]"
         short_pulse_id = hashlib.md5(base_str.encode("utf-8")).hexdigest()[:4]
-        pulse_name = "gaussian_{}".format(short_pulse_id)
+        pulse_name = f"gaussian_{short_pulse_id}"
 
         qobj = PulseQobjInstruction(
             name="parametric_pulse",

@@ -29,7 +29,6 @@ from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.pulse.channels import PulseChannel
 from qiskit.qobj import QobjHeader, Qobj
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
-from qiskit.validation.jsonschema import SchemaValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -268,9 +267,7 @@ def _parse_common_args(
         n_qubits = backend_config.n_qubits
         # check for memory flag applied to backend that does not support memory
         if memory and not backend_config.memory:
-            raise QiskitError(
-                "memory not supported by backend {}".format(backend_config.backend_name)
-            )
+            raise QiskitError(f"memory not supported by backend {backend_config.backend_name}")
 
         # try to set defaults for pulse, other leave as None
         if backend_config.open_pulse:
@@ -389,7 +386,7 @@ def _check_lo_freqs(
         for i, freq in enumerate(lo_freq):
             freq_range = lo_range[i]
             if not (isinstance(freq_range, list) and len(freq_range) == 2):
-                raise QiskitError("Each element of {} LO range must be a 2d list.".format(lo_type))
+                raise QiskitError(f"Each element of {lo_type} LO range must be a 2d list.")
             if freq < freq_range[0] or freq > freq_range[1]:
                 raise QiskitError(
                     "Qubit {} {} LO frequency is {}. The range is [{}, {}].".format(
@@ -415,7 +412,7 @@ def _parse_pulse_args(
         RunConfig: a run config, which is a standardized object that configures the qobj
             and determines the runtime environment.
     Raises:
-        SchemaValidationError: If the given meas_level is not allowed for the given `backend`.
+        QiskitError: If the given meas_level is not allowed for the given `backend`.
     """
     # grab relevant info from backend if it exists
     backend_config = None
@@ -423,7 +420,7 @@ def _parse_pulse_args(
         backend_config = backend.configuration()
 
         if meas_level not in getattr(backend_config, "meas_levels", [MeasLevel.CLASSIFIED]):
-            raise SchemaValidationError(
+            raise QiskitError(
                 ("meas_level = {} not supported for backend {}, only {} is supported").format(
                     meas_level, backend_config.backend_name, backend_config.meas_levels
                 )
@@ -503,7 +500,7 @@ def _parse_rep_delay(
         rep_delay_range: Backend list defining allowable range of rep delays.
 
     Raises:
-        SchemaValidationError: If rep_delay is not in the backend rep_delay_range.
+        QiskitError: If rep_delay is not in the backend rep_delay_range.
     Returns:
         float: Modified rep delay after parsing.
     """
@@ -514,13 +511,13 @@ def _parse_rep_delay(
         # check that rep_delay is in rep_delay_range
         if rep_delay_range is not None and isinstance(rep_delay_range, list):
             if len(rep_delay_range) != 2:
-                raise SchemaValidationError(
+                raise QiskitError(
                     "Backend rep_delay_range {} must be a list with two entries.".format(
                         rep_delay_range
                     )
                 )
             if not rep_delay_range[0] <= rep_delay <= rep_delay_range[1]:
-                raise SchemaValidationError(
+                raise QiskitError(
                     "Supplied rep delay {} not in the supported "
                     "backend range {}".format(rep_delay, rep_delay_range)
                 )
