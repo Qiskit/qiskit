@@ -73,9 +73,10 @@ except Exception:  # pylint: disable=broad-except
 S = TypeVar("S")
 T = TypeVar("T")
 
+# Type of the elements of QuantumCircuit._data.
 DataElement = Tuple[Instruction, List[Qubit], List[Clbit]]
-DataElement.__doc__ = "Type of the elements of QuantumCircuit._data."
 
+# Types that can be coerced to a valid Qubit specifier in a circuit.
 QubitSpecifier = Union[
     Qubit,
     QuantumRegister,
@@ -83,8 +84,8 @@ QubitSpecifier = Union[
     slice,
     Sequence[Union[Qubit, int]],
 ]
-QubitSpecifier.__doc__ = "Types that can be coerced to a valid Qubit specifier in a circuit."
 
+# Types that can be coerced to a valid Clbit specifier in a circuit.
 ClbitSpecifier = Union[
     Clbit,
     ClassicalRegister,
@@ -92,13 +93,10 @@ ClbitSpecifier = Union[
     slice,
     Sequence[Union[Clbit, int]],
 ]
-ClbitSpecifier.__doc__ = "Types that can be coerced to a valid Clbit specifier in a circuit."
 
+# Generic type which is either :obj:`~Qubit` or :obj:`~Clbit`, used to specify types of functions
+# which operate on either type of bit, but not both at the same time.
 BitType = TypeVar("BitType", Qubit, Clbit)
-BitType.__doc__ = """
-    Generic type which is either :obj:`~Qubit` or :obj:`~Clbit`, used to specify types of functions
-    which operate on either type of bit, but not both at the same time.
-    """
 
 
 class QuantumCircuit:
