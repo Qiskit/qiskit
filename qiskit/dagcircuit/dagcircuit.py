@@ -792,10 +792,10 @@ class DAGCircuit:
         for wire in self._wires:
             nodes = [
                 node
-                for node in self.nodes_on_wire(wire, only_ops=False)
-                if ((not isinstance(node, DAGOpNode) or node.op.name not in ignore))
+                for node in self.nodes_on_wire(wire, only_ops=True)
+                if node.op.name not in ignore
             ]
-            if len(nodes) == 2:
+            if len(nodes) == 0:
                 yield wire
 
     def size(self):
