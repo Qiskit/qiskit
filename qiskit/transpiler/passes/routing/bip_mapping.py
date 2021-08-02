@@ -84,16 +84,16 @@ class BIPMapping(TransformationPass):
                 If None, all qubits in the coupling_map will be considered.
             objective (str): Type of objective function to be minimized:
 
-                * ``'error_rate'``: Approximate error rate of the circuit, which is given as the sum of
+                * ``'gate_error'``: Approximate gate error of the circuit, which is given as the sum of
                     negative logarithm of 2q-gate fidelities in the circuit. It takes into account only
                     the 2q-gate (CNOT) errors reported in ``backend_prop`` and ignores the other errors
                     in such as 1q-gates, SPAMs and idle times.
-                * ``'depth'``: [Default] Depth (number of layers) of the circuit.
-                * ``'balanced'``: Weighted sum of ``'error_rate'`` and ``'depth'``
+                * ``'depth'``: [Default] Depth (number of 2q-gate layers) of the circuit.
+                * ``'balanced'``: Weighted sum of ``'gate_error'`` and ``'depth'``
 
             backend_prop (BackendProperties): Backend properties object containing 2q-gate gate errors,
                 which are required in computing certain types of objective function
-                such as ``'error_rate'`` or ``'balanced'``.
+                such as ``'gate_error'`` or ``'balanced'``.
             time_limit (float): Time limit for solving BIP in seconds
             threads (int): Number of threads to be allowed for CPLEX to solve BIP
             max_swaps_inbetween_layers (int):
@@ -112,7 +112,7 @@ class BIPMapping(TransformationPass):
                 pip_install="pip install 'qiskit-terra[bip-mapper]'",
                 msg="This may not be possible for all Python versions and OSes",
             )
-        if backend_prop is None and objective in ("error_rate", "balanced"):
+        if backend_prop is None and objective in ("gate_error", "balanced"):
             raise TranspilerError(f"'backend_prop' is required for '{objective}' objective")
         super().__init__()
         self.coupling_map = coupling_map

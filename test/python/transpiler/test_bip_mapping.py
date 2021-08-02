@@ -269,10 +269,10 @@ class TestBIPMapping(QiskitTestCase):
         with self.assertRaises(TranspilerError):
             BIPMapping(coupling, qubit_subset=[0, 1, 2])(circuit)
 
-    def test_initialize_error_rate_objective_without_backend_prop(self):
+    def test_initialize_gate_error_objective_without_backend_prop(self):
         """Fails if ``objective`` that requires ``backend_prop`` is specified but it is not supplied."""
         with self.assertRaises(TranspilerError):
-            BIPMapping(coupling_map=CouplingMap.from_line(3), objective="error_rate")
+            BIPMapping(coupling_map=CouplingMap.from_line(3), objective="gate_error")
 
     def test_objective_function(self):
         """Test if ``objective`` functions priorities metrics correctly."""
@@ -287,7 +287,7 @@ class TestBIPMapping(QiskitTestCase):
         dep_opt = BIPMapping(coupling, objective="depth", qubit_subset=[0, 1, 3, 4])(qc)
         err_opt = BIPMapping(
             coupling,
-            objective="error_rate",
+            objective="gate_error",
             qubit_subset=[0, 1, 3, 4],
             backend_prop=FakeLima().properties(),
         )(qc)

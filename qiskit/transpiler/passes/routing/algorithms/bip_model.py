@@ -172,15 +172,15 @@ class BIPMappingModel:
             objective:
                 Type of objective function to be minimized:
 
-                * ``'error_rate'``: Approximate error rate of the circuit, which is given as the sum of
+                * ``'gate_error'``: Approximate gate error of the circuit, which is given as the sum of
                     negative logarithm of CNOT gate fidelities in the circuit. It takes into account
                     only the CNOT gate errors reported in ``backend_prop``.
                 * ``'depth'``: Depth (number of timesteps) of the circuit
-                * ``'balanced'``: Weighted sum of error_rate and depth
+                * ``'balanced'``: Weighted sum of gate_error and depth
 
             backend_prop:
                 Backend properties storing gate errors, which are required in computing certain
-                types of objective function such as ``'error_rate'`` or ``'balanced'``.
+                types of objective function such as ``'gate_error'`` or ``'balanced'``.
 
             line_symm:
                 Use symmetry breaking constrainst for line topology. Should
@@ -189,7 +189,7 @@ class BIPMappingModel:
         Raises:
             TranspilerError: if unknow objective type is specified or invalid options are specified.
         """
-        if backend_prop is None and objective in ("error_rate", "balanced"):
+        if backend_prop is None and objective in ("gate_error", "balanced"):
             raise TranspilerError(f"'backend_prop' is required for '{objective}' objective")
 
         self.bprop = backend_prop
@@ -354,8 +354,8 @@ class BIPMappingModel:
                     for (i, j) in self._arcs:
                         objexr += 0.01 * x[t, q, i, j]
             mdl.minimize(objexr)
-        elif objective in ("error_rate", "balanced"):
-            # We multiply error_rate by 10 because the cofficients are usually very small.
+        elif objective in ("gate_error", "balanced"):
+            # We multiply gate_error by 10 because the cofficients are usually very small.
             # We add the depth objective with coefficient 0.01 if balanced was selected.
             objexr = 0
             for t in range(self.depth - 1):
