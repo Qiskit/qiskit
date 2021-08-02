@@ -13,10 +13,11 @@
 """Test Qiskit's QuantumCircuit class."""
 
 from math import pi
+import re
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import Parameter
+from qiskit.circuit import Parameter, Qubit, Clbit
 from qiskit.qasm.exceptions import QasmError
 
 
@@ -300,3 +301,32 @@ mcx_recursive q[0],q[1],q[2],q[3],q[4],q[5],q[6];
 mcx_vchain q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8];\n"""
 
         self.assertEqual(qc.qasm(), expected_qasm)
+
+    def test_circuit_qasm_with_registerless_bits(self):
+        """Test that registerless bits do not have naming collisions in their registers."""
+        initial_registers = [QuantumRegister(2), ClassicalRegister(2)]
+        qc = QuantumCircuit(*initial_registers, [Qubit(), Clbit()])
+        # Match a 'qreg identifier[3];'-like QASM register declaration.
+        register_regex = re.compile(r"\s*[cq]reg\s+(\w+)\s*\[\d+\]\s*", re.M)
+        qasm_register_names = set()
+        for statement in qc.qasm().split(";"):
+            match = register_regex.match(statement)
+            if match:
+                qasm_register_names.add(match.group(1))
+        self.assertEqual(len(qasm_register_names), 4)
+
+        # Check that no additional registers were added to the circuit.
+        self.assertEqual(len(qc.qregs), 1)
+        self.assertEqual(len(qc.cregs), 1)
+
+        # Check that the registerless-register names are recalculated after adding more registers,
+        # to avoid naming clashes in this case.
+        generated_names = qasm_register_names - {register.name for register in initial_registers}
+        for generated_name in generated_names:
+            qc.add_register(QuantumRegister(1, name=generated_name))
+        qasm_register_names = set()
+        for statement in qc.qasm().split(";"):
+            match = register_regex.match(statement)
+            if match:
+                qasm_register_names.add(match.group(1))
+        self.assertEqual(len(qasm_register_names), 6)
