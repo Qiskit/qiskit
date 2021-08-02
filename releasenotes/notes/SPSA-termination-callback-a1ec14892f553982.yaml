@@ -5,6 +5,7 @@ features:
     This allows the user to implement a custom termination criterium.
     
     .. code-block:: python
+    
         import numpy as np
         from qiskit.algorithms.optimizers import SPSA
         
@@ -25,12 +26,12 @@ features:
                 """
                 self.values.append(value)
                 
-                if len(self.values)>self.N:
+                if len(self.values) > self.N:
                     last_values = self.values[-self.N:]
-                    pp=np.polyfit(range(self.N), last_values, 1)
-                    slope=pp[0] / self.N 
+                    pp = np.polyfit(range(self.N), last_values, 1)
+                    slope = pp[0] / self.N 
                     
-                    if slope>0:
+                    if slope > 0:
                         return True
                 return False
         
