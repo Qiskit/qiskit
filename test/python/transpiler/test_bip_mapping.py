@@ -19,6 +19,7 @@ from qiskit.circuit import Barrier
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
+from qiskit.test.mock.backends import FakeLima
 from qiskit.transpiler import CouplingMap, Layout, PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import BIPMapping
@@ -275,12 +276,6 @@ class TestBIPMapping(QiskitTestCase):
 
     def test_objective_function(self):
         """Test if ``objective`` functions priorities metrics correctly."""
-
-        class _DummyBackendProp:
-            # pylint: disable=missing-function-docstring
-            def gate_error(self, qubits):  # pylint: disable=unused-argument
-                return 0.01
-
         qc = QuantumCircuit(4)
         qc.dcx(0, 1)
         qc.cx(2, 3)
@@ -288,9 +283,14 @@ class TestBIPMapping(QiskitTestCase):
         qc.cx(1, 3)
         qc.dcx(0, 1)
         qc.cx(2, 3)
-        coupling = CouplingMap([(0, 1), (1, 2), (2, 3)])
-        dep_opt = BIPMapping(coupling, objective="depth")(qc)
-        err_opt = BIPMapping(coupling, objective="error_rate", backend_prop=_DummyBackendProp())(qc)
+        coupling = CouplingMap(FakeLima().configuration().coupling_map)
+        dep_opt = BIPMapping(coupling, objective="depth", qubit_subset=[0, 1, 3, 4])(qc)
+        err_opt = BIPMapping(
+            coupling,
+            objective="error_rate",
+            qubit_subset=[0, 1, 3, 4],
+            backend_prop=FakeLima().properties(),
+        )(qc)
         # depth = number of su4 layers (mirrored gates have to be consolidated as single su4 gates)
         pm_ = PassManager([Collect2qBlocks(), ConsolidateBlocks(basis_gates=["cx"])])
         dep_opt = pm_.run(dep_opt)
