@@ -7,3 +7,7 @@ deprecations:
     and :class:`qiskit.dagcircuit.dagnode.DAGOutNode`. As part of this deprecation, the
     following kwargs and associated attributes in DAGNode are being deprecated - ``type``,
     ``op``, and ``wire``.
+
+    The previously deprecated `condition` kwarg has been removed from
+    :method:`qiskit.dagcircuit.dagcircuit.apply_operation_back` and
+    :method:`qiskit.dagcircuit.dagcircuit.apply_operation_front`.

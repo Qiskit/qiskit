@@ -417,7 +417,7 @@ class DAGCircuit:
             qargs (list[Qubit]): qubits that op will be applied to
             cargs (list[Clbit]): cbits that op will be applied to
         Returns:
-            DAGOpNode or DAGOutNode: the current max node
+            DAGOpNode: the node for the op that was added to the dag
 
         Raises:
             DAGCircuitError: if a leaf node is connected to multiple outputs
@@ -453,7 +453,7 @@ class DAGCircuit:
             qargs (list[Qubit]): qubits that op will be applied to
             cargs (list[Clbit]): cbits that op will be applied to
         Returns:
-            DAGOpNode or DAGOutNode: the current max node
+            DAGOpNode: the node for the op that was added to the dag
 
         Raises:
             DAGCircuitError: if initial nodes connected to multiple out edges
@@ -1000,7 +1000,6 @@ class DAGCircuit:
             DAGCircuitError: if met with unexpected predecessor/successors
         """
         in_dag = input_dag
-        # condition = None if not isinstance(node, DAGOpNode) else node.op.condition
 
         # the dag must be amended if used in a
         # conditional context. delete the op nodes and replay
@@ -1314,9 +1313,8 @@ class DAGCircuit:
 
     def bfs_successors(self, node):
         """
-        Returns an iterator of tuples of (DAGOpNode, DAGInNode, or DAGOutNode, [DAGOpNode or DAGOutNode])
-        where the DAGOpNode, DAGInNode, or DAGOutNode is the current node and
-        [DAGOpNode or DAGOutNode] is its successors in BFS order.
+        Returns an iterator of tuples of (DAGNode, [DAGNodes]) where the DAGNode is the current node
+        and [DAGNode] is its successors in  BFS order.
         """
         return iter(rx.bfs_successors(self._multi_graph, node._node_id))
 
