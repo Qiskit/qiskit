@@ -138,7 +138,6 @@ class QiskitTestCase(unittest.TestCase):
 
         warnings.filterwarnings("error", category=DeprecationWarning)
         allow_DeprecationWarning_modules = [
-            "test.ipynb.mpl.test_circuit_matplotlib_drawer",
             "test.python.pulse.test_parameters",
             "test.python.pulse.test_transforms",
             "test.python.circuit.test_gate_power",

@@ -242,6 +242,7 @@ class SPSA(Optimizer):
         alpha: float = 0.602,
         gamma: float = 0.101,
         modelspace: bool = False,
+        max_evals_grouped: int = 1,
     ) -> Tuple[Iterator[float], Iterator[float]]:
         r"""Calibrate SPSA parameters with a powerseries as learning rate and perturbation coeffs.
 
@@ -262,6 +263,8 @@ class SPSA(Optimizer):
             gamma: The exponent of the perturbation powerseries.
             modelspace: Whether the target magnitude is the difference of parameter values
                 or function values (= model space).
+            max_evals_grouped: The number of grouped evaluations supported by the loss function.
+                Defaults to 1, i.e. no grouping.
 
         Returns:
             tuple(generator, generator): A tuple of powerseries generators, the first one for the
@@ -274,12 +277,17 @@ class SPSA(Optimizer):
 
         # compute the average magnitude of the first step
         steps = 25
-        avg_magnitudes = 0
+        points = []
         for _ in range(steps):
             # compute the random directon
             pert = bernoulli_perturbation(dim)
-            delta = loss(initial_point + c * pert) - loss(initial_point - c * pert)
+            points += [initial_point + c * pert, initial_point - c * pert]
 
+        losses = _batch_evaluate(loss, points, max_evals_grouped)
+
+        avg_magnitudes = 0
+        for i in range(steps):
+            delta = losses[2 * i] - losses[2 * i + 1]
             avg_magnitudes += np.abs(delta / (2 * c))
 
         avg_magnitudes /= steps
@@ -305,10 +313,13 @@ class SPSA(Optimizer):
 
     @staticmethod
     def estimate_stddev(
-        loss: Callable[[np.ndarray], float], initial_point: np.ndarray, avg: int = 25
+        loss: Callable[[np.ndarray], float],
+        initial_point: np.ndarray,
+        avg: int = 25,
+        max_evals_grouped: int = 1,
     ) -> float:
         """Estimate the standard deviation of the loss function."""
-        losses = [loss(initial_point) for _ in range(avg)]
+        losses = _batch_evaluate(loss, avg * [initial_point], max_evals_grouped)
         return np.std(losses)
 
     @property
@@ -427,7 +438,9 @@ class SPSA(Optimizer):
         # ensure learning rate and perturbation are correctly set: either none or both
         # this happens only here because for the calibration the loss function is required
         if self.learning_rate is None and self.perturbation is None:
-            get_eta, get_eps = self.calibrate(loss, initial_point)
+            get_eta, get_eps = self.calibrate(
+                loss, initial_point, max_evals_grouped=self._max_evals_grouped
+            )
         else:
             get_eta, get_eps = _validate_pert_and_learningrate(
                 self.perturbation, self.learning_rate
@@ -454,7 +467,9 @@ class SPSA(Optimizer):
 
             self._nfev += 1
             if self.allowed_increase is None:
-                self.allowed_increase = 2 * self.estimate_stddev(loss, x)
+                self.allowed_increase = 2 * self.estimate_stddev(
+                    loss, x, max_evals_grouped=self._max_evals_grouped
+                )
 
         logger.info("=" * 30)
         logger.info("Starting SPSA optimization")
