@@ -110,6 +110,7 @@ class BIPMapping(TransformationPass):
                 libname="bip-mapper",
                 name="BIP-based mapping pass",
                 pip_install="pip install 'qiskit-terra[bip-mapper]'",
+                msg="This may not be possible for all Python versions and OSes",
             )
         if backend_prop is None and objective in ("error_rate", "balanced"):
             raise TranspilerError(f"'backend_prop' is required for '{objective}' objective")
