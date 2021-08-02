@@ -194,11 +194,47 @@ class SPSA(Optimizer):
                 the function value, the stepsize, whether the step was accepted.
             termination_callback: A callback function executed at the end of each iteration step. The
                 arguments are, in this order: current parameters, estimate of the objective
-                If the callback returns True, the optimization is aborted
+                If the callback returns True, the optimization is aborted.
+                To prevent additional evaluations of the objective method, objective is estimated by
+                taking the mean of the objective evaluations used in the estimate of the gradient.
 
         Raises:
             ValueError: If ``learning_rate`` or ``perturbation`` is an array with less elements
                 than the number of iterations.
+
+        Example:
+            .. jupyter-execute::
+
+                import numpy as np
+                from qiskit.algorithms.optimizers import SPSA
+
+                def objective(x):
+                    return np.linalg.norm(x) + .04*np.random.rand(1)
+
+                class TerminationCallback:
+
+                    def __init__(self, N : int):
+                        self.N = N
+                        self.values = []
+
+                    def __call__(self, parameters, value) -> bool:
+                        self.values.append(value)
+
+                        if len(self.values) > self.N:
+                            last_values = self.values[-self.N:]
+                            pp = np.polyfit(range(self.N), last_values, 1)
+                            slope = pp[0] / self.N
+
+                            if slope > 0:
+                                return True
+                        return False
+
+                spsa = SPSA(maxiter=200, termination_callback=TerminationCallback(10))
+                parameters, value, niter = spsa.optimize(2, objective, initial_point=[0.5, 0.5])
+                print(f'SPSA completed after {niter} iterations')
+
+
+
         """
         super().__init__()
 

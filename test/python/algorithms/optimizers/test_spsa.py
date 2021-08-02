@@ -153,7 +153,7 @@ class TestSPSA(QiskitAlgorithmsTestCase):
 
         maxiter = 400
         spsa = SPSA(maxiter=maxiter, termination_callback=TerminationCallback())
-        _, _, niter = spsa.optimize(2, objective, initial_point=np.array([0.5, 0.5]))
+        _, _, niter = spsa.optimize(2, objective, initial_point=[0.5, 0.5])
 
         self.assertLess(niter, maxiter)
 
