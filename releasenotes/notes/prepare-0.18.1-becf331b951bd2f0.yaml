@@ -1,0 +1,5 @@
+---
+prelude: >
+    This bugfix release fixes a few minor issues and regressions in the 0.18.0
+    release.  There is also a minor change to how ``pip`` handles the ``[all]``
+    extra when installing ``qiskit-terra`` directly, compared to 0.18.0.
