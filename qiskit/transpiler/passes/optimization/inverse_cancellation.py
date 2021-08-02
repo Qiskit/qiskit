@@ -1,17 +1,29 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2020.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"""
+A generic gate-inverse cancellation pass for a broad set of gate-inverse pairs.
+"""
+
 from qiskit.transpiler.basepasses import TransformationPass
-
-
-
-
 
 
 class Cancellation(TransformationPass):
     """Cancel back-to-back `gates`in dag."""
-    
-    def __init__(self, gate_cancel): 
+
+    def __init__(self, gate_cancel):
         """Initialize gate_cancel"""
         self.gate_cancel = gate_cancel
-        print (self.gate_cancel)
+        print(self.gate_cancel)
         super().__init__()
 
     def run(self, dag):
@@ -24,7 +36,7 @@ class Cancellation(TransformationPass):
             DAGCircuit: Transformed DAG.
         """
         gate_cancel_runs = dag.collect_runs(self.gate_cancel)
-        """Generalize input using self.gate_cancel"""
+        # Generalize input using self.gate_cancel
         for gate_cancel_run in gate_cancel_runs:
             # Partition the cx_run into chunks with equal gate arguments
             partition = []
