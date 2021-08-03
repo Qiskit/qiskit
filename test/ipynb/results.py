@@ -198,7 +198,7 @@ def get_results(type):
 
     Args:
         type (str): The type of test results to retrieve. This can be "circuit", "graph" or "latex"
-    
+
     """
     result_type = type if type == "latex" else f"mpl/{type}"
     result_files = []
