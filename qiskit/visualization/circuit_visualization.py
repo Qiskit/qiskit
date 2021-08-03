@@ -47,7 +47,7 @@ from qiskit.visualization import utils
 from qiskit.visualization import matplotlib as _matplotlib
 
 try:
-    subprocess.run("pdflatex", check=True)
+    subprocess.run("pdflatex -v", check=True)
 except OSError as ex:
     HAS_PDFLATEX = False
 
@@ -470,11 +470,11 @@ def _latex_circuit_drawer(
                     else:
                         try:
                             image.save(filename)
-                        except ValueError:
+                        except ValueError as ve:
                             raise ValueError(
                                 "ERROR: This image format is not supported. "
                                 "Please change file extension to a supported image format."
-                            )
+                            ) from ve
             except (OSError, subprocess.CalledProcessError) as ex:
                 logger.warning(
                     "WARNING: Unable to convert pdf to image. "
