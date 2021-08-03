@@ -18,6 +18,7 @@ import inspect
 import os
 import socket
 import sys
+from typing import Union, Callable, Type, Iterable
 import unittest
 from warnings import warn
 
@@ -206,7 +207,7 @@ def online_test(func):
 
 class _WrappedMethodCall:
     """Method call with extra functionality before and after.  This is returned by
-    ``_WrappedMethod`` when accessed as an atrribute."""
+    :obj:`~_WrappedMethod` when accessed as an atrribute."""
 
     def __init__(self, descriptor, obj, objtype):
         self.descriptor = descriptor
@@ -279,33 +280,33 @@ def _wrap_method(cls, name, before=None, after=None):
     setattr(cls, name, _WrappedMethod(cls, name, before, after))
 
 
-def enforce_subclasses_call(methods, attr="_enforce_subclasses_call_cache"):
+def enforce_subclasses_call(
+    methods: Union[str, Iterable[str]], attr: str = "_enforce_subclasses_call_cache"
+) -> Callable[[Type], Type]:
     """Class decorator which enforces that if any subclasses define on of the ``methods``, they must
-    call ``super().<method>()`` or face a ``ValueError`` at runtime.  This is unlikely to be useful
-    for concrete test classes, who are not normally subclassed.  It should not be used on
-    user-facing code, because it prevents subclasses from being free to override parent-class
-    behavior, even when the parent-class behavior is not needed.
+    call ``super().<method>()`` or face a ``ValueError`` at runtime.
+
+    This is unlikely to be useful for concrete test classes, who are not normally subclassed.  It
+    should not be used on user-facing code, because it prevents subclasses from being free to
+    override parent-class behavior, even when the parent-class behavior is not needed.
 
     This adds behavior to the ``__init__`` and ``__init_subclass__`` methods of the class, in
     addition to the named methods of this class and all subclasses.  The checks could be averted in
     grandchildren if a child class overrides ``__init_subclass__`` without up-calling the decorated
     class's method, though this would typically break inheritance principles.
 
-    Parameters
-    ----------
-    methods: str or iterable of str
-        Names of the methods to add the enforcement to.  These do not necessarily need to be defined
-        in the class body, provided they are somewhere in the method-resolution tree.
+    Arguments:
+        methods:
+            Names of the methods to add the enforcement to.  These do not necessarily need to be
+            defined in the class body, provided they are somewhere in the method-resolution tree.
 
-    attr: str, optional
-        The attribute which will be added to all instances of this class and subclasses, in order to
-        manage the call enforcement.  This can be changed to avoid clashes.
+        attr:
+            The attribute which will be added to all instances of this class and subclasses, in
+            order to manage the call enforcement.  This can be changed to avoid clashes.
 
-    Returns
-    -------
-    type
-        The class with the relevant methods modified to include checks, and injection code in the
-        ``__init_subclass__`` method.
+    Returns:
+        A decorator, which returns its input class with the class with the relevant methods modified
+        to include checks, and injection code in the ``__init_subclass__`` method.
     """
 
     methods = {methods} if isinstance(methods, str) else set(methods)
