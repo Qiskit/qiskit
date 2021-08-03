@@ -64,6 +64,9 @@ class M3Mitigation:
         Attributes:
             system (BaseBackend): The target system.
             single_qubit_cals (list): 1Q calibration matrices
+
+        Notes:
+            .. versionadded:: 0.19.0
         """
         self.system = system
         self.single_qubit_cals = None
