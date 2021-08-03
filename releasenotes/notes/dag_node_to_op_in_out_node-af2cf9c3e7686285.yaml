@@ -9,5 +9,5 @@ deprecations:
     ``op``, and ``wire``.
 
     The previously deprecated `condition` kwarg has been removed from
-    :method:`qiskit.dagcircuit.dagcircuit.apply_operation_back` and
-    :method:`qiskit.dagcircuit.dagcircuit.apply_operation_front`.
+    :meth:`qiskit.dagcircuit.dagcircuit.apply_operation_back` and
+    :meth:`qiskit.dagcircuit.dagcircuit.apply_operation_front`.
