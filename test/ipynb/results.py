@@ -193,14 +193,17 @@ class Results:
         return ret
 
 
-def get_results(type):
+def get_results(vis_type) -> Results:
     """Collects and returns the similarity results for snapshot tests.
 
     Args:
-        type (str): The type of test results to retrieve. This can be "circuit", "graph" or "latex"
+        vis_type (str): The type of test results to retrieve. This can be "circuit", "graph" or "latex"
+
+    Returns:
+        list of Results diffs
 
     """
-    result_type = type if type == "latex" else f"mpl/{type}"
+    result_type = vis_type if vis_type == "latex" else f"mpl/{vis_type}"
     result_files = []
     for file in os.listdir(os.path.join(SWD, result_type)):
         if file.endswith(".png") and not file.endswith(".diff.png"):
