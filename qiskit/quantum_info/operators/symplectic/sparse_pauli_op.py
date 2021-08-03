@@ -86,7 +86,7 @@ class SparsePauliOp(LinearOp):
         pad = len(prefix) * " "
         return "{}{},\n{}coeffs={})".format(
             prefix,
-            np.array2string(self.table.array, separator=", ", prefix=prefix),
+            self.paulis.to_labels(),
             pad,
             np.array2string(self.coeffs, separator=", "),
         )
@@ -117,25 +117,23 @@ class SparsePauliOp(LinearOp):
         """Return the size."""
         return self.size
 
+    # pylint: disable=bad-docstring-quotes
+
     @property
     @deprecate_function(
-        """
-The SparsePauliOp.table method is deprecated as of Qiskit Terra 0.19.0
-and will be removed no sooner than 3 months after the releasedate.
-Use SparsePauliOp.list method instead.
-"""
+        "The SparsePauliOp.table method is deprecated as of Qiskit Terra 0.19.0 "
+        "and will be removed no sooner than 3 months after the releasedate. "
+        "Use SparsePauliOp.paulis method instead."
     )
     def table(self):
-        """Return the the PauliTable."""
+        """DEPRECATED - Return the the PauliTable."""
         return PauliTable(np.column_stack((self.paulis.x, self.paulis.z)))
 
     @table.setter
     @deprecate_function(
-        """
-The SparsePauliOp.table method is deprecated as of Qiskit Terra 0.19.0
-and will be removed no sooner than 3 months after the releasedate.
-Use SparsePauliOp.list method instead.
-"""
+        "The SparsePauliOp.table method is deprecated as of Qiskit Terra 0.19.0 "
+        "and will be removed no sooner than 3 months after the releasedate. "
+        "Use SparsePauliOp.paulis method instead."
     )
     def table(self, value):
         if not isinstance(value, PauliTable):
@@ -165,7 +163,7 @@ Use SparsePauliOp.list method instead.
 
     def __getitem__(self, key):
         """Return a view of the SparsePauliOp."""
-        # Returns a view of specified rows of the PauliTable
+        # Returns a view of specified rows of the PauliList
         # This supports all slicing operations the underlying array supports.
         if isinstance(key, (int, np.integer)):
             key = [key]
@@ -173,10 +171,10 @@ Use SparsePauliOp.list method instead.
 
     def __setitem__(self, key, value):
         """Update SparsePauliOp."""
-        # Modify specified rows of the PauliTable
+        # Modify specified rows of the PauliList
         if not isinstance(value, SparsePauliOp):
             value = SparsePauliOp(value)
-        self.table[key] = value.table
+        self.paulis[key] = value.paulis
         self.coeffs[key] = value.coeffs
 
     # ---------------------------------------------------------------------
@@ -197,7 +195,7 @@ Use SparsePauliOp.list method instead.
         # Hence we need to multiply coeffs by -1 for rows with an
         # odd number of Y terms.
         ret = self.copy()
-        minus = (-1) ** np.mod(np.sum(ret.table.X & ret.table.Z, axis=1), 2)
+        minus = (-1) ** np.mod(np.sum(ret.paulis.x & ret.paulis.z, axis=1), 2)
         ret._coeffs *= minus
         return ret
 
@@ -260,9 +258,9 @@ Use SparsePauliOp.list method instead.
 
     @classmethod
     def _tensor(cls, a, b):
-        table = a.table.tensor(b.table)
+        paulis = a.paulis.tensor(b.paulis)
         coeffs = np.kron(a.coeffs, b.coeffs)
-        return SparsePauliOp(table, coeffs)
+        return SparsePauliOp(paulis, coeffs)
 
     def _add(self, other, qargs=None):
         if qargs is None:
@@ -273,9 +271,9 @@ Use SparsePauliOp.list method instead.
 
         self._op_shape._validate_add(other._op_shape, qargs)
 
-        table = self.table._add(other.table, qargs=qargs)
+        paulis = self.paulis._add(other.paulis, qargs=qargs)
         coeffs = np.hstack((self.coeffs, other.coeffs))
-        ret = SparsePauliOp(table, coeffs)
+        ret = SparsePauliOp(paulis, coeffs)
         return ret
 
     def _multiply(self, other):
@@ -284,11 +282,14 @@ Use SparsePauliOp.list method instead.
         if other == 0:
             # Check edge case that we deleted all Paulis
             # In this case we return an identity Pauli with a zero coefficient
-            table = np.zeros((1, 2 * self.num_qubits), dtype=bool)
+            paulis = PauliList.from_symplectic(
+                np.zeros((1, self.num_qubits), dtype=bool),
+                np.zeros((1, self.num_qubits), dtype=bool),
+            )
             coeffs = np.array([0j])
-            return SparsePauliOp(table, coeffs)
+            return SparsePauliOp(paulis, coeffs)
         # Otherwise we just update the phases
-        return SparsePauliOp(self.table, other * self.coeffs)
+        return SparsePauliOp(self.paulis, other * self.coeffs)
 
     # ---------------------------------------------------------------------
     # Utility Methods
@@ -318,8 +319,8 @@ Use SparsePauliOp.list method instead.
         return (
             val.size == 1
             and np.isclose(val.coeffs[0], 1.0, atol=atol, rtol=rtol)
-            and not np.any(val.table.X)
-            and not np.any(val.table.Z)
+            and not np.any(val.paulis.x)
+            and not np.any(val.paulis.z)
         )
 
     def simplify(self, atol=None, rtol=None):
@@ -417,23 +418,23 @@ Use SparsePauliOp.list method instead.
             if not np.isclose(coeff, 0, atol=atol, rtol=rtol):
                 inds.append(i)
                 coeffs.append(coeff)
-        # Get Non-zero coeff PauliTable terms
-        table = basis[inds]
-        return SparsePauliOp(table, coeffs)
+        # Get Non-zero coeff PauliList terms
+        paulis = basis[inds]
+        return SparsePauliOp(paulis, coeffs)
 
     @staticmethod
     def from_list(obj):
         """Construct from a list [(pauli_str, coeffs)]"""
         obj = list(obj)  # To convert zip or other iterable
-        num_qubits = len(PauliTable._from_label(obj[0][0]))
+        num_qubits = len(obj[0][0])
         size = len(obj)
         coeffs = np.zeros(size, dtype=complex)
         labels = np.zeros(size, dtype=f"<U{num_qubits}")
         for i, item in enumerate(obj):
             labels[i] = item[0]
             coeffs[i] = item[1]
-        table = PauliTable.from_labels(labels)
-        return SparsePauliOp(table, coeffs)
+        paulis = PauliList(labels)
+        return SparsePauliOp(paulis, coeffs)
 
     def to_list(self, array=False):
         """Convert to a list Pauli string labels and coefficients.
@@ -447,10 +448,10 @@ Use SparsePauliOp.list method instead.
                           return a list (Default: False).
 
         Returns:
-            list or array: List of pairs (label, coeff) for rows of the PauliTable.
+            list or array: List of pairs (label, coeff) for rows of the PauliList.
         """
         # Dtype for a structured array with string labels and complex coeffs
-        pauli_labels = self.table.to_labels(array=True)
+        pauli_labels = self.paulis.to_labels(array=True)
         labels = np.zeros(self.size, dtype=[("labels", pauli_labels.dtype), ("coeffs", "c16")])
         labels["labels"] = pauli_labels
         labels["coeffs"] = self.coeffs
@@ -504,7 +505,7 @@ Use SparsePauliOp.list method instead.
 
             def __getitem__(self, key):
                 coeff = self.obj.coeffs[key]
-                pauli = PauliTable._to_label(self.obj.table.array[key])
+                pauli = self.obj.paulis.label_iter()[key]
                 return (pauli, coeff)
 
         return LabelIterator(self)
@@ -522,7 +523,7 @@ Use SparsePauliOp.list method instead.
                            (Default: False)
 
         Returns:
-            MatrixIterator: matrix iterator object for the PauliTable.
+            MatrixIterator: matrix iterator object for the PauliList.
         """
 
         class MatrixIterator(CustomIterator):
@@ -533,7 +534,7 @@ Use SparsePauliOp.list method instead.
 
             def __getitem__(self, key):
                 coeff = self.obj.coeffs[key]
-                mat = PauliTable._to_matrix(self.obj.table.array[key], sparse=sparse)
+                mat = self.obj.paulis[key].to_matrix(sparse)
                 return coeff * mat
 
         return MatrixIterator(self)
