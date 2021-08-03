@@ -19,7 +19,7 @@ import math
 
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.library.standard_gates import SwapGate
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.transpiler import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -203,7 +203,7 @@ class BIPMapping(TransformationPass):
 
             # map gates in k-th layer
             for node in layer["graph"].nodes():
-                if node.type == "op":
+                if isinstance(node, DAGOpNode):
                     mapped_dag.apply_operation_back(
                         op=copy.deepcopy(node.op),
                         qargs=[canonical_qreg[layout[q]] for q in node.qargs],
