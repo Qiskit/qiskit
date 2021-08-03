@@ -22,6 +22,7 @@ Standard Gates
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    Barrier
    C3XGate
@@ -85,6 +86,7 @@ Generalized Gates
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    Diagonal
    MCMT
@@ -103,6 +105,7 @@ Boolean Logic Circuits
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    AND
    OR
@@ -114,6 +117,7 @@ Basis Change Circuits
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    QFT
 
@@ -125,6 +129,7 @@ Amplitude Functions
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    LinearAmplitudeFunction
 
@@ -133,6 +138,7 @@ Functional Pauli Rotations
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    FunctionalPauliRotations
    LinearPauliRotations
@@ -146,6 +152,7 @@ Adders
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    DraperQFTAdder
    CDKMRippleCarryAdder
@@ -157,6 +164,7 @@ Multipliers
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    HRSCumulativeMultiplier
    RGQFTMultiplier
@@ -166,6 +174,7 @@ Comparators
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    IntegerComparator
 
@@ -174,6 +183,7 @@ Functions on binary variables
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    QuadraticForm
 
@@ -182,6 +192,7 @@ Amplitude Functions
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    LinearAmplitudeFunction
 
@@ -190,6 +201,7 @@ Particular Quantum Circuits
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    FourierChecking
    GraphState
@@ -206,6 +218,7 @@ Probability distributions
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    UniformDistribution
    NormalDistribution
@@ -217,6 +230,7 @@ N-local circuits
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    NLocal
    TwoLocal
@@ -232,6 +246,7 @@ Data encoding circuits
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    PauliFeatureMap
    ZFeatureMap

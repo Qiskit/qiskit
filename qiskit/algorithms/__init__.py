@@ -11,8 +11,9 @@
 # that they have been altered from the originals.
 
 """
+=====================================
 Algorithms (:mod:`qiskit.algorithms`)
-==========================================
+=====================================
 It contains a collection of quantum algorithms, for use with quantum computers, to
 carry out research and investigate how to solve problems in different domains on
 near-term quantum devices with short depth circuits.
@@ -134,7 +135,7 @@ Optimizers
 Classical optimizers for use by quantum variational algorithms.
 
 .. autosummary::
-   :toctree:
+   :toctree: ../stubs/
 
    optimizers
 

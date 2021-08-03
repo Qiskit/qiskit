@@ -11,8 +11,9 @@
 # that they have been altered from the originals.
 
 r"""
+================================
 Operators (:mod:`qiskit.opflow`)
-========================================
+================================
 
 .. currentmodule:: qiskit.opflow
 
@@ -71,12 +72,14 @@ enforces the presence and consistency of methods to manipulate these objects con
 
 .. autosummary::
    :toctree: ../stubs/
-   :nosignatures:
+   :template: autosummary/class_no_inherited_members.rst
 
    OperatorBase
 
+
 Operator Globals
 ================
+
 The :mod:`operator_globals` is a set of immutable Operator instances that are convenient building
 blocks to reach for while working with the Operator flow.
 
@@ -99,11 +102,12 @@ The Operators submodules include the PrimitiveOp, ListOp, and StateFn class grou
 represent the primary Operator modules.
 
 .. autosummary::
-   :toctree:
+    :toctree: ../stubs/
 
-   primitive_ops
-   list_ops
-   state_fns
+    primitive_ops
+    list_ops
+    state_fns
+
 
 Converters
 ++++++++++
@@ -116,15 +120,16 @@ diagonalizing circuits following by :class:`~.state_fns.OperatorStateFn` measure
 only diagonal Paulis.
 
 .. autosummary::
-   :toctree:
+    :toctree: ../stubs/
 
-   converters
-   evolutions
-   expectations
-   gradients
+    converters
+    evolutions
+    expectations
+    gradients
+
 
 Utility functions
-===================
+=================
 
 .. autosummary::
    :toctree: ../stubs/
@@ -132,6 +137,7 @@ Utility functions
    commutator
    anti_commutator
    double_commutator
+
 
 Exceptions
 ==========

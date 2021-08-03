@@ -3,9 +3,8 @@
 {%+ endif -%}
 
 {#
-   The general principle of this is that we manually document attributes here in
-   the same file, but give all methods their own page.  By default, we document
-   all methods, including those defined by parent classes.
+   This is very similar to the default class template, except this one is used
+   when we don't want to generate any inherited methods.
 -#}
 
 {{ objname | escape | underline }}
@@ -31,13 +30,13 @@
    Methods all get their own separate page, with their names and the first lines
    of their docstrings tabulated.
 -#}
-{% block methods_summary %}{% if methods %}
-   .. rubric:: Methods
+{% block methods_summary %}{% set wanted_methods = (methods | reject('in', inherited_members)) %}{% if wanted_methods %}
+   .. rubric:: Methods Defined Here
 
    .. autosummary::
       :nosignatures:
       :toctree: ../stubs/
-{% for item in methods %}
+{% for item in wanted_methods %}
       ~{{ name }}.{{ item }}
 {%- endfor %}
 {% endif %}{% endblock %}
