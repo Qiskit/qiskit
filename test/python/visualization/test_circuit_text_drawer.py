@@ -45,8 +45,8 @@ from qiskit.circuit.library import (
     CPhaseGate,
 )
 from qiskit.transpiler.passes import ApplyLayout
-from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
 from qiskit.visualization.exceptions import VisualizationError
+from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
 
 
 class TestTextDrawerElement(QiskitTestCase):
