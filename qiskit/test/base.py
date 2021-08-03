@@ -90,8 +90,11 @@ def gather_details(source_dict, target_dict):
 
 
 @enforce_subclasses_call(["setUp", "setUpClass", "tearDown", "tearDownClass"])
-class QiskitTestCase(unittest.TestCase):
-    """Common extra functionality on top of unittest."""
+class BaseQiskitTestCase(unittest.TestCase):
+    """Additions for test cases for all Qiskit-family packages.
+
+    The additions here are intended for all packages, not just Terra.  Terra-specific logic should
+    be in the Terra-specific classes."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -119,6 +122,59 @@ class QiskitTestCase(unittest.TestCase):
                 "call the base tearDown." % (sys.modules[self.__class__.__module__].__file__,)
             )
         self.__teardown_called = True
+
+    @staticmethod
+    def _get_resource_path(filename, path=Path.TEST):
+        """Get the absolute path to a resource.
+
+        Args:
+            filename (string): filename or relative path to the resource.
+            path (Path): path used as relative to the filename.
+
+        Returns:
+            str: the absolute path to the resource.
+        """
+        return os.path.normpath(os.path.join(path.value, filename))
+
+    def assertDictAlmostEqual(
+        self, dict1, dict2, delta=None, msg=None, places=None, default_value=0
+    ):
+        """Assert two dictionaries with numeric values are almost equal.
+
+        Fail if the two dictionaries are unequal as determined by
+        comparing that the difference between values with the same key are
+        not greater than delta (default 1e-8), or that difference rounded
+        to the given number of decimal places is not zero. If a key in one
+        dictionary is not in the other the default_value keyword argument
+        will be used for the missing value (default 0). If the two objects
+        compare equal then they will automatically compare almost equal.
+
+        Args:
+            dict1 (dict): a dictionary.
+            dict2 (dict): a dictionary.
+            delta (number): threshold for comparison (defaults to 1e-8).
+            msg (str): return a custom message on failure.
+            places (int): number of decimal places for comparison.
+            default_value (number): default value for missing keys.
+
+        Raises:
+            TypeError: if the arguments are not valid (both `delta` and
+                `places` are specified).
+            AssertionError: if the dictionaries are not almost equal.
+        """
+
+        error_msg = dicts_almost_equal(dict1, dict2, delta, places, default_value)
+
+        if error_msg:
+            msg = self._formatMessage(msg, error_msg)
+            raise self.failureException(msg)
+
+
+class QiskitTestCase(BaseQiskitTestCase):
+    """Terra-specific extra functionality for test cases."""
+
+    def tearDown(self):
+        super().tearDown()
         # Reset the default providers, as in practice they acts as a singleton
         # due to importing the instances from the top-level qiskit namespace.
         from qiskit.providers.basicaer import BasicAer
@@ -189,55 +245,14 @@ class QiskitTestCase(unittest.TestCase):
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
 
-    @staticmethod
-    def _get_resource_path(filename, path=Path.TEST):
-        """Get the absolute path to a resource.
-
-        Args:
-            filename (string): filename or relative path to the resource.
-            path (Path): path used as relative to the filename.
-
-        Returns:
-            str: the absolute path to the resource.
-        """
-        return os.path.normpath(os.path.join(path.value, filename))
-
-    def assertDictAlmostEqual(
-        self, dict1, dict2, delta=None, msg=None, places=None, default_value=0
-    ):
-        """Assert two dictionaries with numeric values are almost equal.
-
-        Fail if the two dictionaries are unequal as determined by
-        comparing that the difference between values with the same key are
-        not greater than delta (default 1e-8), or that difference rounded
-        to the given number of decimal places is not zero. If a key in one
-        dictionary is not in the other the default_value keyword argument
-        will be used for the missing value (default 0). If the two objects
-        compare equal then they will automatically compare almost equal.
-
-        Args:
-            dict1 (dict): a dictionary.
-            dict2 (dict): a dictionary.
-            delta (number): threshold for comparison (defaults to 1e-8).
-            msg (str): return a custom message on failure.
-            places (int): number of decimal places for comparison.
-            default_value (number): default value for missing keys.
-
-        Raises:
-            TypeError: if the arguments are not valid (both `delta` and
-                `places` are specified).
-            AssertionError: if the dictionaries are not almost equal.
-        """
-
-        error_msg = dicts_almost_equal(dict1, dict2, delta, places, default_value)
-
-        if error_msg:
-            msg = self._formatMessage(msg, error_msg)
-            raise self.failureException(msg)
-
 
 class FullQiskitTestCase(QiskitTestCase):
-    """Helper class that contains common functionality that captures streams."""
+    """Terra-specific further additions for test cases, if ``testtools`` is available.
+
+    It is not normally safe to derive from this class by name; on import, Terra checks if the
+    necessary packages are available, and binds this class to the name :obj:`~QiskitTestCase` if so.
+    If you derive directly from it, you may try and instantiate the class without satisfying its
+    dependencies."""
 
     run_tests_with = RunTest
 
@@ -502,6 +517,9 @@ def dicts_almost_equal(dict1, dict2, delta=None, places=None, default_value=0):
     else:
         return ""
 
+
+# Maintain naming backwards compatibility for downstream packages.
+BasicQiskitTestCase = QiskitTestCase
 
 if HAS_FIXTURES:
     QiskitTestCase = FullQiskitTestCase
