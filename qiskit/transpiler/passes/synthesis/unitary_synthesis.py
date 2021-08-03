@@ -28,7 +28,6 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitBasisDecom
 from qiskit.circuit.library.standard_gates import iSwapGate, CXGate, CZGate, RXXGate, ECRGate
 from qiskit.transpiler.passes.synthesis import plugin
 from qiskit.providers.models import BackendProperties
-from qiskit.providers.exceptions import BackendPropertyError
 
 
 def _choose_kak_gate(basis_gates):
@@ -237,15 +236,6 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         return True
 
     def run(self, unitary, **options):
-        """
-        Raises:
-            TranspilerError:
-                1. pulse_optimize is True but pulse optimal decomposition is not known
-                   for requested basis.
-                2. pulse_optimize is True and natural_direction is True but a preferred
-                   gate direction can't be determined from the coupling map or the
-                   relative gate lengths.
-        """
         basis_gates = options["basis_gates"]
         approximation_degree = options["approximation_degree"]
         coupling_map = options["coupling_map"]
