@@ -119,30 +119,35 @@ class SparsePauliOp(LinearOp):
         return self.size
 
     # pylint: disable=bad-docstring-quotes
+    _warn_deprecation_table = False
 
     @property
     def table(self):
         """DEPRECATED - Return the the PauliTable."""
-        warnings.simplefilter("once", category=DeprecationWarning)
-        warnings.warn(
-            "The SparsePauliOp.table method is deprecated as of Qiskit Terra 0.19.0 "
-            "and will be removed no sooner than 3 months after the releasedate. "
-            "Use SparsePauliOp.paulis method instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
+        if not self._warn_deprecation_table:
+            SparsePauliOp._warn_deprecation_table = True
+            warnings.simplefilter("once", category=DeprecationWarning)
+            warnings.warn(
+                "The SparsePauliOp.table method is deprecated as of Qiskit Terra 0.19.0 "
+                "and will be removed no sooner than 3 months after the releasedate. "
+                "Use SparsePauliOp.paulis method instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         return PauliTable(np.column_stack((self.paulis.x, self.paulis.z)))
 
     @table.setter
     def table(self, value):
-        warnings.simplefilter("once", category=DeprecationWarning)
-        warnings.warn(
-            "The SparsePauliOp.table method is deprecated as of Qiskit Terra 0.19.0 "
-            "and will be removed no sooner than 3 months after the releasedate. "
-            "Use SparsePauliOp.paulis method instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
+        if not self._warn_deprecation_table:
+            SparsePauliOp._warn_deprecation_table = True
+            warnings.simplefilter("once", category=DeprecationWarning)
+            warnings.warn(
+                "The SparsePauliOp.table method is deprecated as of Qiskit Terra 0.19.0 "
+                "and will be removed no sooner than 3 months after the releasedate. "
+                "Use SparsePauliOp.paulis method instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         if not isinstance(value, PauliTable):
             value = PauliTable(value)
         self._pauli_list = PauliList(value)
