@@ -10,5 +10,24 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Mitigation routines
+"""Error mitigation routines
+
+===========================================
+Error mitigation (:mod:`qiskit.mitigation`)
+===========================================
+
+.. versionadded:: 0.19.0
+
+.. currentmodule:: qiskit.mitigation
+
+Measurement mitigation
+======================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   M3Mitigation
+
 """
+
+from .mthree import M3Mitigation
