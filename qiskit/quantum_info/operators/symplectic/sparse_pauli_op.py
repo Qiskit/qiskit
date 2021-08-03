@@ -129,7 +129,7 @@ class SparsePauliOp(LinearOp):
             "and will be removed no sooner than 3 months after the releasedate. "
             "Use SparsePauliOp.paulis method instead.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         return PauliTable(np.column_stack((self.paulis.x, self.paulis.z)))
 
@@ -141,7 +141,7 @@ class SparsePauliOp(LinearOp):
             "and will be removed no sooner than 3 months after the releasedate. "
             "Use SparsePauliOp.paulis method instead.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         if not isinstance(value, PauliTable):
             value = PauliTable(value)
