@@ -13,7 +13,7 @@
 cimport cython
 from libcpp.map cimport map
 from libcpp.string cimport string
-from cython.operator cimport dereference, preincrement
+from cython.operator cimport dereference, postincrement
 
 @cython.boundscheck(False)
 @cython.cdivision(True)
@@ -43,7 +43,7 @@ cdef void counts_to_internal(map[string, double] * counts_map,
         for letter in range(num_bits):
             vec[start+letter] = <unsigned char>temp[letter]-48
         idx += 1
-        preincrement(it)
+        postincrement(it)
 
 
 @cython.boundscheck(False)
@@ -65,4 +65,4 @@ cdef void internal_to_probs(map[string, double] * counts_map,
     while it != end:
         dereference(it).second = probs[idx]
         idx += 1
-        preincrement(it)
+        postincrement(it)

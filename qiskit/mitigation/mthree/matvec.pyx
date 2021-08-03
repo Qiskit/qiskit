@@ -18,7 +18,7 @@ from libc.stdlib cimport malloc, free
 from libcpp cimport bool
 from libcpp.map cimport map
 from libcpp.string cimport string
-from cython.operator cimport dereference, preincrement
+from cython.operator cimport dereference, postincrement
 
 from qiskit.mitigation.mthree.compute cimport (within_distance, compute_element,
                                                compute_col_norms)
@@ -182,4 +182,4 @@ cdef void counts_to_bitstrings(map[string, double] * counts_map,
         for letter in range(num_bits):
             bitstrings[start+letter] = <unsigned char>temp[letter]-48
         idx += 1
-        preincrement(it)
+        postincrement(it)
