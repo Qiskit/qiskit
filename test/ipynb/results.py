@@ -193,37 +193,19 @@ class Results:
         return ret
 
 
-def test_mpl_circuit_drawer():
-    """Collects and returns the similarity results for MPL circuit tests."""
-    result_files_circuit = []
-    for file in os.listdir(os.path.join(SWD, "mpl/circuit")):
+def get_results(type):
+    """Collects and returns the similarity results for snapshot tests.
+
+    Args:
+        type (str): The type of test results to retrieve. This can be "circuit", "graph" or "latex"
+    
+    """
+    result_type = type if type == "latex" else f"mpl/{type}"
+    result_files = []
+    for file in os.listdir(os.path.join(SWD, result_type)):
         if file.endswith(".png") and not file.endswith(".diff.png"):
-            result_files_circuit.append(file)
-    results_circuit = Results(sorted(result_files_circuit), "mpl/circuit")
-    results_circuit.diff_images()
+            result_files.append(file)
+    results = Results(sorted(result_files), result_type)
+    results.diff_images()
 
-    return results_circuit
-
-
-def test_mpl_graph_drawer():
-    """Collects and returns the similarity results for MPL graph tests."""
-    result_files_graph = []
-    for file in os.listdir(os.path.join(SWD, "mpl/graph")):
-        if file.endswith(".png") and not file.endswith(".diff.png"):
-            result_files_graph.append(file)
-    results_graph = Results(sorted(result_files_graph), "mpl/graph")
-    results_graph.diff_images()
-
-    return results_graph
-
-
-def test_latex_drawer():
-    """Collects and returns the similarity results for Latex tests."""
-    result_files_latex = []
-    for file in os.listdir(os.path.join(SWD, "latex")):
-        if file.endswith(".png") and not file.endswith(".diff.png"):
-            result_files_latex.append(file)
-    results_latex = Results(sorted(result_files_latex), "latex")
-    results_latex.diff_images()
-
-    return results_latex
+    return results
