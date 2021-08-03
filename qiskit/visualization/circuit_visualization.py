@@ -344,9 +344,7 @@ def _text_circuit_drawer(
 
     if filename:
         if not filename.endswith(".txt"):
-            raise VisualizationError(
-                "ERROR: filename parameter does not use .txt extension."
-            )
+            raise VisualizationError("ERROR: filename parameter does not use .txt extension.")
         text_drawing.dump(filename, encoding=encoding)
     return text_drawing
 

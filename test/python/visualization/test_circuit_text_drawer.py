@@ -46,6 +46,7 @@ from qiskit.circuit.library import (
 )
 from qiskit.transpiler.passes import ApplyLayout
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
+from qiskit.visualization.exceptions import VisualizationError
 
 
 class TestTextDrawerElement(QiskitTestCase):
@@ -4764,12 +4765,11 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
     def test_filename_extension_error_message(self):
         """Test that the error message shown for wrong file extension is correct."""
         circuit = self.sample_circuit()
-        with self.assertRaises(ValueError) as ve:
+        with self.assertRaises(VisualizationError) as ve:
             _text_circuit_drawer(circuit, filename="file.spooky")
             self.assertEqual(
                 str(ve.exception),
-                "ERROR: Filename extension is not .txt. "
-                "Please use a .txt file extension to save in text format.",
+                "ERROR: filename parameter does not use .txt extension.",
             )
 
 
