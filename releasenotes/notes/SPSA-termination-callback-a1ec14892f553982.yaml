@@ -22,7 +22,7 @@ features:
             def __call__(self, parameters, value) -> bool:
                 """ 
                 Returns:
-                    True if the optimization loop should be aborted 
+                    True if the optimization loop should be terminated 
                 """
                 self.values.append(value)
                 

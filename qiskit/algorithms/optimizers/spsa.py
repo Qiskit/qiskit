@@ -193,8 +193,8 @@ class SPSA(Optimizer):
                 information is, in this order: the number of function evaluations, the parameters,
                 the function value, the stepsize, whether the step was accepted.
             termination_callback: A callback function executed at the end of each iteration step. The
-                arguments are, in this order: current parameters, estimate of the objective
-                If the callback returns True, the optimization is aborted.
+                arguments are, in this order: current parameters, estimate of the objective.
+                If the callback returns True, the optimization is terminated.
                 To prevent additional evaluations of the objective method, objective is estimated by
                 taking the mean of the objective evaluations used in the estimate of the gradient.
 
@@ -598,7 +598,7 @@ class SPSA(Optimizer):
 
             if self.termination_callback is not None:
                 if self.termination_callback(x, f_estimate):
-                    logger.info("aborting optimization at {k}/{self.maxiter")
+                    logger.info("terminated optimization at {k}/{self.maxiter} iterations")
                     break
 
         logger.info("SPSA finished in %s", time() - start)

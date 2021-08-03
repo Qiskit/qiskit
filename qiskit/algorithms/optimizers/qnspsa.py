@@ -141,7 +141,10 @@ class QNSPSA(SPSA):
                 of function evaluations, the stepsize, whether the step was accepted.
             termination_callback: A callback function executed at the end of each iteration step. The
                 arguments are, in this order: current parameters, estimate of the objective
-                If the callback returns True, the optimization is aborted
+                If the callback returns True, the optimization is terminated.
+                To prevent additional evaluations of the objective method, objective is estimated by
+                taking the mean of the objective evaluations used in the estimate of the gradient.
+
         """
         super().__init__(
             maxiter,
