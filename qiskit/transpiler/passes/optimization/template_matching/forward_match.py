@@ -198,7 +198,7 @@ class ForwardMatch:
             successor_id (int): successor id to remove.
 
         Returns:
-            DAGNode: DAGNode with updated attribute 'SuccessorToVisit'.
+            DAGOpNode or DAGOutNode: Node with updated attribute 'SuccessorToVisit'.
         """
         node_update = node
         node_update.successorstovisit.pop(successor_id)
@@ -208,7 +208,7 @@ class ForwardMatch:
         """
         Return the successor for a given node and id.
         Args:
-            node (DAGNode): current node.
+            node (DAGOpNode or DAGOutNode): current node.
             list_id (int): id in the list for the successor to get.
 
         Returns:
