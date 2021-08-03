@@ -1,0 +1,11 @@
+---
+upgrade:
+  - |
+    ``pip install qiskit-terra[all]`` will no longer attempt to install the
+    ``bip-mapper`` extra.  This is because the dependency ``cplex`` is not well
+    supported on the range of Python versions and OSes that Terra supports, and
+    a failed extra dependency would fail the entire package resolution.  If you
+    are using Python 3.7 or 3.8 and are on Linux-x64 or -ppc64le, macOS-x64 or
+    Windows-x64 you should be able to install ``qiskit-terra[bip-mapper]``
+    explicitly, if desired, while other combinations of OS, platform
+    architectures and Python versions will likely fail.
