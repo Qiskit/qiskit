@@ -314,7 +314,7 @@ def _text_circuit_drawer(
         TextDrawing: An instance that, when printed, draws the circuit in ascii art.
 
     Raises:
-        ValueError: When the filename extenstion is not .txt.
+        VisualizationError: When the filename extenstion is not .txt.
     """
     qubits, clbits, nodes = utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
@@ -344,9 +344,8 @@ def _text_circuit_drawer(
 
     if filename:
         if not filename.endswith(".txt"):
-            raise ValueError(
-                "ERROR: Filename extension is not .txt. "
-                "Please use a .txt file extension to save in text format."
+            raise VisualizationError(
+                "ERROR: filename parameter does not use .txt extension."
             )
         text_drawing.dump(filename, encoding=encoding)
     return text_drawing
