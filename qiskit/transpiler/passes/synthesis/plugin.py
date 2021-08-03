@@ -227,7 +227,6 @@ class UnitarySynthesisPlugin(abc.ABC):
         """
         pass
 
-
     @abc.abstractmethod
     def run(self, unitary, **options):
         """Run synthesis for the given unitary matrix
