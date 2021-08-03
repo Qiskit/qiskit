@@ -1313,7 +1313,7 @@ class QuantumCircuit:
         from qiskit.converters.dag_to_circuit import dag_to_circuit
 
         pass_ = BasisTranslator(sel, basis)
-        translated_dag = pass_.run(circuit_to_dag(self))
+        translated_dag = pass_.run(circuit_to_dag(self.decompose()))
         return dag_to_circuit(translated_dag)
 
     def _check_compatible_regs(self, rhs):

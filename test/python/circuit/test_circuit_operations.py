@@ -859,6 +859,44 @@ class TestCircuitOperations(QiskitTestCase):
         qc2 = qc.translate(["u", "cx"])
         self.assertEqual(qc2.count_ops().keys(), {"u", "cx"})
 
+    def test_translate_unitary(self):
+        """Test translate method of circuit with unitary gate"""
+        qc = QuantumCircuit(1)
+        qc.unitary(SGate().to_matrix() * np.exp(1j * np.pi / 3), [0])
+        qc2 = qc.translate(["u", "cx"])
+        self.assertEqual(qc2.count_ops().keys(), {"u"})
+
+    def test_translate_custom(self):
+        """Test translate method of circuit with custom gate"""
+
+        class MYGate(Gate):
+            """Create custom gate."""
+
+            def __init__(self, label=None):
+                super().__init__("mygate", 1, [], label=label)
+
+            def _define(self):
+                qr = QuantumRegister(1)
+                circ = QuantumCircuit(qr)
+                circ.h(qr)
+                circ.rz(0.2, qr)
+                self.definition = circ
+
+        qc = QuantumCircuit(1)
+        qc.append(MYGate(), [0])
+        qc2 = qc.translate(["u", "cx"])
+        self.assertEqual(qc2.count_ops().keys(), {"u"})
+
+    def test_translate_opaque(self):
+        """Test translate method of circuit with custom gate"""
+        qr = QuantumRegister(2)
+        qc = QuantumCircuit(qr)
+        opaque_gate = Gate(name="crz_2", num_qubits=2, params=[0.5])
+        qc.append(opaque_gate, [qr[0], qr[1]])
+        qc.h(qr[0])
+        qc2 = qc.translate(["u", "crz_2"])
+        self.assertEqual(qc2.count_ops().keys(), {"u", "crz_2"})
+
 
 class TestCircuitBuilding(QiskitTestCase):
     """QuantumCircuit tests."""
