@@ -19,10 +19,38 @@ QPY serialization (:mod:`qiskit.circuit.qpy_serialization`)
 
 .. currentmodule:: qiskit.circuit.qpy_serialization
 
-.. autosummary::
+Using QPY
+=========
 
-    load
-    dump
+Using QPY is defined to be straightforward and mirror the user API of the
+serializers in Python's standard library, ``pickle`` and ``json``. There are
+2 user facing functions: :func:`qiskit.circuit.qpy_serialization.dump` and
+:func:`qiskit.circuit.qpy_serialization.load` which are used to dump QPY data
+to a file object and load circuits from QPY data in a file object respectively.
+For example::
+
+    from qiskit.circuit import QuantumCircuit
+    from qiskit.circuit import qpy_serialization
+
+    qc = QuantumCircuit(2, name='Bell', metadata={'test': True})
+    qc.h(0)
+    qc.cx(0, 1)
+    qc.measure_all()
+
+    with open('bell.qpy', 'wb') as fd:
+        qpy_serialization.dump(qc, fd)
+
+    with open('bell.qpy', 'rb') as fd:
+        new_qc = qpy_serialization.load(fd)[0]
+
+API documentation
+-----------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   load
+   dump
 
 QPY Format
 ==========
@@ -186,7 +214,10 @@ instruction name. Following the ``name`` bytes there are ``label_size`` bytes of
 utf8 data for the label if one was set on the instruction. Following the label
 bytes if ``has_conditional`` is ``True`` then there are
 ``conditonal_reg_name_size`` bytes of utf8 data for the name of the condtional
-register name.
+register name. In case of single classical bit conditions the register name
+utf8 data will be prefixed with a null character "\\x00" and then a utf8 string
+integer representing the classical bit index in the circuit that the condition
+is on.
 
 This is immediately followed by the INSTRUCTION_ARG structs for the list of
 arguments of that instruction. These are in the order of all quantum arguments
@@ -217,16 +248,16 @@ The contents of each INSTRUCTION_PARAM is:
     }
 
 After each INSTRUCTION_PARAM the next ``size`` bytes are the parameter's data.
-The ``type`` field can be ``'i'``, ``'f'``, ``'p'``, ``'e'``, ``'s'``,
+The ``type`` field can be ``'i'``, ``'f'``, ``'p'``, ``'e'``, ``'s'``, ``'c'``
 or ``'n'`` which dictate the format. For ``'i'`` it's an integer, ``'f'`` it's
-a double, ``'s'`` if it's a string (encoded as utf8), ``'p'`` defines a
-:class:`~qiskit.circuit.Parameter` object  which is represented by a PARAM
-struct (see below), ``e`` defines a :class:`~qiskit.circuit.ParameterExpression`
-object (that's not a :class:`~qiskit.circuit.Paramter`) which is represented by
-a PARAM_EXPR struct (see below), and ``'n'`` represents an object from numpy
-(either an ``ndarray`` or a numpy type) which means the data is .npy
-format [#f2]_ data.
-
+a double, ``'s'`` if it's a string (encoded as utf8), ``'c'`` is a complex and
+the data is represented by the struct format in the :ref:`param_expr` section.
+``'p'`` defines a :class:`~qiskit.circuit.Parameter` object  which is
+represented by a PARAM struct (see below), ``e`` defines a
+:class:`~qiskit.circuit.ParameterExpression` object (that's not a
+:class:`~qiskit.circuit.Paramter`) which is represented by a PARAM_EXPR struct
+(see below), and ``'n'`` represents an object from numpy (either an ``ndarray``
+or a numpy type) which means the data is .npy format [#f2]_ data.
 
 PARAMETER
 ---------
@@ -243,6 +274,8 @@ a INSTRUCTION_PARAM. The contents of the PARAMETER are defined as:
 
 which is immediately followed by ``name_size`` utf8 bytes representing the
 parameter name.
+
+.. _param_expr:
 
 PARAMETER_EXPR
 --------------
@@ -501,7 +534,21 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions):
     condition_value = instruction[7]
     condition_tuple = None
     if has_condition:
-        condition_tuple = (registers["c"][condition_register], condition_value)
+        # If an invalid register name is used assume it's a single bit
+        # condition and treat the register name as a string of the clbit index
+        if ClassicalRegister.name_format.match(condition_register) is None:
+            # If invalid register prefixed with null character it's a clbit
+            # index for single bit condition
+            if condition_register[0] == "\x00":
+                conditional_bit = int(condition_register[1:])
+                condition_tuple = (circuit.clbits[conditional_bit], condition_value)
+            else:
+                raise ValueError(
+                    f"Invalid register name: {condition_register} for condition register of "
+                    f"instruction: {gate_name}"
+                )
+        else:
+            condition_tuple = (registers["c"][condition_register], condition_value)
     qubit_indices = dict(enumerate(circuit.qubits))
     clbit_indices = dict(enumerate(circuit.clbits))
     # Load Arguments
@@ -696,8 +743,13 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
     condition_value = 0
     if instruction_tuple[0].condition:
         has_condition = True
-        condition_register = instruction_tuple[0].condition[0].name.encode("utf8")
-        condition_value = instruction_tuple[0].condition[1]
+        if isinstance(instruction_tuple[0].condition[0], Clbit):
+            bit_index = index_map["c"][instruction_tuple[0].condition[0]]
+            condition_register = b"\x00" + str(bit_index).encode("utf8")
+            condition_value = int(instruction_tuple[0].condition[1])
+        else:
+            condition_register = instruction_tuple[0].condition[0].name.encode("utf8")
+            condition_value = instruction_tuple[0].condition[1]
 
     gate_class_name = gate_class_name.encode("utf8")
     label = getattr(instruction_tuple[0], "label")
@@ -952,9 +1004,10 @@ def load(file_obj):
         file_obj (File): A file like object that contains the QPY binary
             data for a circuit
     Returns:
-        list: A list of the QuantumCircuit objects from the QPY data. A list
-            is always returned, even if there is only 1 circuit in the QPY
-            data.
+        list: List of ``QuantumCircuit``
+            The list of :class:`~qiskit.circuit.QuantumCircuit` objects
+            contained in the QPY data. A list is always returned, even if there
+            is only 1 circuit in the QPY data.
     Raises:
         QiskitError: if ``file_obj`` is not a valid QPY file
     """
