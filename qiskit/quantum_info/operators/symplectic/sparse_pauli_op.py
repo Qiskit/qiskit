@@ -27,7 +27,6 @@ from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 from qiskit.quantum_info.operators.symplectic.pauli_utils import pauli_basis
-from qiskit.utils.deprecation import deprecate_function
 
 
 class SparsePauliOp(LinearOp):
