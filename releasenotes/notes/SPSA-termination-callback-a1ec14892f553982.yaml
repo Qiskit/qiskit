@@ -2,7 +2,7 @@
 features:
   - |
     Add `termination_callback` argument to :class:`qiskit.algorithms.optimizers.spsa.SPSA` optimizer.
-    This allows the user to implement a custom termination criterium.
+    This allows the user to implement a custom termination criterion.
     
     .. code-block:: python
     
