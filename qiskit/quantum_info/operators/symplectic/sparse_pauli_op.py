@@ -117,7 +117,6 @@ class SparsePauliOp(LinearOp):
         """Return the size."""
         return self.size
 
-    # pylint: disable=bad-docstring-quotes
     _warn_deprecation_table = False
 
     @property
