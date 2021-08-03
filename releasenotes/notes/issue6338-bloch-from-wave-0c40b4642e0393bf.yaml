@@ -8,7 +8,9 @@ upgrade:
     * The value of ``coord_type`` can now be case insensitive.
     * The ``coord_type`` can be set to "wave", which supports entering
       two imaginary numbers as arguments, as follows
+
     .. code-block:: python
+
         a = 5 + 6j
         b = 1 - 2j
         plot_bloch_vector([a,b],coord_type="wave")
