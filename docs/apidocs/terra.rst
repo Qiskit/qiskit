@@ -35,3 +35,4 @@ Qiskit Terra API Reference
    visualization
    opflow
    algorithms
+   mitigation
