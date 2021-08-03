@@ -15,7 +15,7 @@ features:
         class TerminationCallback:
             
             def __init__(self, N : int):
-                """ Callback to terminate optmization when the average decrease over the last N data points is smaller than the specified tolerance """ 
+                """ Callback to terminate optimization when the average decrease over the last N data points is smaller than the specified tolerance """ 
                 self.N = N
                 self.values = []
             
