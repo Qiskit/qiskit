@@ -16,7 +16,7 @@ from typing import Dict, Optional, Tuple, List, Callable, Any
 import numpy as np
 
 from qiskit.utils import algorithm_globals
-from .optimizer import Optimizer, OptimizerSupportLevel
+from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
 
 class GSLS(Optimizer):
@@ -101,6 +101,33 @@ class GSLS(Optimizer):
     def settings(self) -> Dict[str, Any]:
         return {key: self._options.get(key, None) for key in self._OPTIONS}
 
+    def minimize(
+        self,
+        fun: Callable[[POINT], float],
+        x0: POINT,
+        jac: Optional[Callable[[POINT], POINT]] = None,
+        bounds: Optional[List[Tuple[float, float]]] = None,
+    ) -> OptimizerResult:
+        if not isinstance(x0, np.ndarray):
+            x0 = np.asarray(x0)
+
+        if bounds is None:
+            var_lb = np.array([-np.inf] * x0.size)
+            var_ub = np.array([np.inf] * x0.size)
+        else:
+            var_lb = np.array([l for (l, _) in bounds])
+            var_ub = np.array([u for (_, u) in bounds])
+
+        x, fun, nfev, njev = self.ls_optimize(x0.size, fun, x0, var_lb, var_ub)
+
+        result = OptimizerResult()
+        result.x = x
+        result.fun = fun
+        result.nfev = nfev
+        result.njev = njev
+
+        return result
+
     def optimize(
         self,
         num_vars: int,
@@ -117,18 +144,11 @@ class GSLS(Optimizer):
         else:
             initial_point = np.array(initial_point)
 
-        if variable_bounds is None:
-            var_lb = np.array([-np.inf] * num_vars)
-            var_ub = np.array([np.inf] * num_vars)
-        else:
-            var_lb = np.array([l for (l, _) in variable_bounds])
-            var_ub = np.array([u for (_, u) in variable_bounds])
-
-        x, x_value, n_evals, _ = self.ls_optimize(
-            num_vars, objective_function, initial_point, var_lb, var_ub
+        result = self.minimize(
+            objective_function, initial_point, gradient_function, variable_bounds
         )
 
-        return x, x_value, n_evals
+        return result.x, result.fun, result.nfev
 
     def ls_optimize(
         self,

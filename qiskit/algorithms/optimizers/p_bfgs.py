@@ -16,13 +16,14 @@ import logging
 import multiprocessing
 import platform
 import warnings
-from typing import Optional
+from typing import Optional, List, Tuple, Callable
 
 import numpy as np
 
 from qiskit.utils import algorithm_globals
 from qiskit.utils.validation import validate_min
 
+from .optimizer import OptimizerResult, POINT
 from .scipy_optimizer import SciPyOptimizer
 
 logger = logging.getLogger(__name__)
@@ -110,6 +111,28 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
         variable_bounds=None,
         initial_point=None,
     ):
+        warnings.warn(
+            "The P_BFGS.optimize method is deprecated as of Qiskit Terra "
+            "0.19.0 and will be removed no sooner than 3 months after the release date. "
+            "Instead, use the P_BFGS.minimize method, which mimics the "
+            "signature of scipy.optimize.minimize.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        result = self.minimize(
+            objective_function, initial_point, gradient_function, variable_bounds
+        )
+        return result.x, result.fun, result.nfev
+
+    def minimize(
+        self,
+        fun: Callable[[POINT], float],
+        x0: POINT,
+        jac: Optional[Callable[[POINT], POINT]] = None,
+        bounds: Optional[List[Tuple[float, float]]] = None,
+    ) -> OptimizerResult:
+        x0 = np.asarray(x0)
+
         num_procs = multiprocessing.cpu_count() - 1
         num_procs = (
             num_procs if self._max_processes is None else min(num_procs, self._max_processes)
@@ -135,17 +158,19 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
             )
 
         queue = multiprocessing.Queue()
+
+        # TODO: are automatic bounds a good idea? What if the circuit parameters are not
+        # just from plain Pauli rotations but have a coefficient?
+
         # bounds for additional initial points in case bounds has any None values
         threshold = 2 * np.pi
-        if variable_bounds is None:
-            variable_bounds = [(-threshold, threshold)] * num_vars
-        low = [(l if l is not None else -threshold) for (l, u) in variable_bounds]
-        high = [(u if u is not None else threshold) for (l, u) in variable_bounds]
+        if bounds is None:
+            bounds = [(-threshold, threshold)] * x0.size
+        low = [(l if l is not None else -threshold) for (l, u) in bounds]
+        high = [(u if u is not None else threshold) for (l, u) in bounds]
 
         def optimize_runner(_queue, _i_pt):  # Multi-process sampling
-            _sol, _opt, _nfev = self._optimize(
-                num_vars, objective_function, gradient_function, variable_bounds, _i_pt
-            )
+            _sol, _opt, _nfev = self._optimize(fun, _i_pt, jac, bounds)
             _queue.put((_sol, _opt, _nfev))
 
         # Start off as many other processes running the optimize (can be 0)
@@ -159,9 +184,7 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
         # While the one optimize in this process below runs the other processes will
         # be running too. This one runs
         # with the supplied initial point. The process ones have their own random one
-        sol, opt, nfev = self._optimize(
-            num_vars, objective_function, gradient_function, variable_bounds, initial_point
-        )
+        sol, opt, nfev = self._optimize(fun, x0, jac, bounds)
 
         for proc in processes:
             # For each other process we wait now for it to finish and see if it has
@@ -172,16 +195,21 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
                 sol, opt = p_sol, p_opt
             nfev += p_nfev
 
-        return sol, opt, nfev
+        result = OptimizerResult()
+        result.x = sol
+        result.fun = opt
+        result.nfev = nfev
+
+        return result
 
     def _optimize(
         self,
-        num_vars,
         objective_function,
+        initial_point,
         gradient_function=None,
         variable_bounds=None,
-        initial_point=None,
     ):
-        return super().optimize(
-            num_vars, objective_function, gradient_function, variable_bounds, initial_point
+        result = super().minimize(
+            objective_function, initial_point, gradient_function, variable_bounds
         )
+        return result.x, result.fun, result.nfev
