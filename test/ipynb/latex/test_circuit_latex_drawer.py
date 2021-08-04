@@ -100,7 +100,7 @@ class TestLatexDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename="test_normal_circuit.png")
 
-    def test_4597(self):
+    def test_conditional_cregbundle(self):
         """Test cregbundle and conditional gates.
         See: https://github.com/Qiskit/qiskit-terra/pull/4597"""
         qr = QuantumRegister(3, "q")
@@ -108,7 +108,7 @@ class TestLatexDrawer(QiskitTestCase):
         circuit = QuantumCircuit(qr, cr)
         circuit.x(qr[2]).c_if(cr, 2)
 
-        self.circuit_drawer(circuit, filename="test_4597.png")
+        self.circuit_drawer(circuit, filename="test_conditional_cregbundle.png")
 
     def test_deep_circuit(self):
         """Test draw deep circuit."""

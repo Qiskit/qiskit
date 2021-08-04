@@ -327,12 +327,12 @@ we used in our CI systems more closely.
 
 ### Snapshot Testing for Visualizations
 
-If you are working on code that makes changes to any matplotlib visualisations
-you will need to check that your changes don't break any snapshot tests, and add
+If you are working on code that makes changes to any matplotlib or latex visualisations 
+you will need to check that your changes don't break any snapshot tests, and add 
 new tests where necessary. You can do this as follows:
 
 1. Make sure you have pushed your latest changes to your remote branch.
-2. Go to link: `https://mybinder.org/v2/gh/<github_user>/<repo>/<branch>?urlpath=apps/test/ipynb/mpl_tester.ipynb`. For example, if your GitHub username is `username`, your forked repo has the same name the original, and your branch is `my_awesome_new_feature`, you should visit https://mybinder.org/v2/gh/username/qiskit-terra/my_awesome_new_feature?urlpath=apps/test/ipynb/mpl_tester.ipynb.
+2. Go to link: `https://mybinder.org/v2/gh/<github_user>/<repo>/<branch>?urlpath=apps/test/ipynb/snapshot_tester.ipynb`. For example, if your GitHub username is `username`, your forked repo has the same name the original, and your branch is `my_awesome_new_feature`, you should visit https://mybinder.org/v2/gh/username/qiskit-terra/my_awesome_new_feature?urlpath=apps/test/ipynb/snapshot_tester.ipynb
 This opens a Jupyter Notebook application running in the cloud that automatically runs
 the snapshot tests (note this may take some time to finish loading).
 3. Each test result provides a set of 3 images (left: reference image, middle: your test result, right: differences). In the list of tests the passed tests are collapsed and failed tests are expanded. If a test fails, you will see a situation like this:
@@ -343,12 +343,17 @@ can sometimes result in minor changes elsewhere to spacing etc. In these cases
 you just need to update the reference images as follows:
     - download the mismatched images (link at top of Jupyter Notebook output)
     - unzip the folder
-    - copy and paste the new images into `qiskit-terra/test/ipynb/mpl/references`,
-  replacing the existing reference images
+    - copy and paste the new images into `references` folder in `qiskit-terra/test/ipynb/latex`
+      for latex, in `qiskit-terra/test/ipynb/mpl/circuit` for matplotlib circuit and in
+      `qiskit-terra/test/ipynb/mpl/graph` for matplotlib graph visualisations, replacing
+      the existing reference images
     - add, commit and push your changes, then restart the Jupyter Notebook app in your browser. The
   tests should now pass.
 5. Add new snapshot tests covering your new features, extensions, or bugfixes.
-    - add your new snapshot tests to `test/ipynb/mpl/test_circuit_matplotlib_drawer.py`
+    - add your new snapshot tests to 
+	    - `qiskit-terra/test/ipynb/mpl/circuit/test_circuit_matplotlib_drawer.py` for changes covering matplotlib visualisation of circuits.
+	    - `qiskit-terra/test/ipynb/mpl/graph/test_graph_matplotlib_drawer.py` for changes covering matplotlib visualisation of graphs.
+	    - `qiskit-terra/test/ipynb/latex/test_circuit_latex_drawer.py` for changes covering latex visualisation.
     , where you can also find existing tests to use as a guide.
     - commit and push your changes, restart the Jupyter Notebook app in your browser.
     As this is the first time you run your new tests there won't be any reference
@@ -357,11 +362,13 @@ you just need to update the reference images as follows:
 
     <img width="1002" alt="Screenshot_2021-03-26_at_15 38 31" src="https://user-images.githubusercontent.com/23662430/112665215-b9c3a000-8e52-11eb-89e7-b18550718522.png">
 
-    - download the new images, then copy and paste into `qiskit-terra/test/ipynb/mpl/references`
-    - add, commit and push your changes, restart the Jupyter Notebook app in your browser. The
+    - download the new images, then copy and paste into `references` folder in `qiskit-terra/test/ipynb/latex`
+      for latex, in `qiskit-terra/test/ipynb/mpl/circuit` for matplotlib circuit and in
+      `qiskit-terra/test/ipynb/mpl/graph` for matplotlib graph visualisations.
+    - add, commit and push your changes, restart the Jupyter Notebook app in your browser. The 
     new tests should now pass.
 
-Note: If you have run `test/ipynb/mpl_tester.ipynb` locally it is possible some file metadata has changed, **please do not commit and push changes to this file unless they were intentional**.
+Note: If you have run `test/ipynb/snapshot_tester.ipynb` locally it is possible some file metadata has changed, **please do not commit and push changes to this file unless they were intentional**.
 
 ## Style and lint
 
