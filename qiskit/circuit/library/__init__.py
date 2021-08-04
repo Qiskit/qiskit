@@ -125,7 +125,7 @@ Arithmetic Circuits
 ===================
 
 Amplitude Functions
-+++++++++++++++++++
+-------------------
 
 .. autosummary::
    :toctree: ../stubs/
@@ -134,7 +134,7 @@ Amplitude Functions
    LinearAmplitudeFunction
 
 Functional Pauli Rotations
-++++++++++++++++++++++++++
+--------------------------
 
 .. autosummary::
    :toctree: ../stubs/
@@ -148,7 +148,7 @@ Functional Pauli Rotations
    PiecewiseChebyshev
 
 Adders
-++++++
+------
 
 .. autosummary::
    :toctree: ../stubs/
@@ -160,7 +160,7 @@ Adders
    WeightedAdder
 
 Multipliers
-+++++++++++
+-----------
 
 .. autosummary::
    :toctree: ../stubs/
@@ -170,7 +170,7 @@ Multipliers
    RGQFTMultiplier
 
 Comparators
-+++++++++++
+-----------
 
 .. autosummary::
    :toctree: ../stubs/
@@ -179,7 +179,7 @@ Comparators
    IntegerComparator
 
 Functions on binary variables
-+++++++++++++++++++++++++++++
+-----------------------------
 
 .. autosummary::
    :toctree: ../stubs/

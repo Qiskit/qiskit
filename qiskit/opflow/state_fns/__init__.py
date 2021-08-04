@@ -38,7 +38,7 @@ Note:
 .. currentmodule:: qiskit.opflow.state_fns
 
 State Functions
-+++++++++++++++
+---------------
 
 .. autosummary::
    :toctree: ../stubs/

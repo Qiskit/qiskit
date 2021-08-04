@@ -96,7 +96,7 @@ Submodules
 ==========
 
 Operators
-+++++++++
+---------
 
 The Operators submodules include the PrimitiveOp, ListOp, and StateFn class groups which
 represent the primary Operator modules.
@@ -110,7 +110,7 @@ represent the primary Operator modules.
 
 
 Converters
-++++++++++
+----------
 
 The Converter submodules include objects which manipulate Operators, usually recursing over an
 Operator structure and changing certain Operators' representation. For example, the

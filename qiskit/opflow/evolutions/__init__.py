@@ -35,7 +35,7 @@ Note:
     equivalent to e^iHt.
 
 Evolution Base Class
-++++++++++++++++++++
+--------------------
 
 The EvolutionBase class gives an interface for algorithms to ask for Evolutions as
 execution settings. For example, if an algorithm contains an Operator evolution step within it,
@@ -49,7 +49,7 @@ to pass an EvolutionBase of their choice to be used in that evolution step.
    EvolutionBase
 
 Evolutions
-++++++++++
+----------
 
 .. autosummary::
    :toctree: ../stubs/
@@ -61,7 +61,7 @@ Evolutions
    PauliTrotterEvolution
 
 Trotterizations
-+++++++++++++++
+---------------
 
 .. autosummary::
    :toctree: ../stubs/

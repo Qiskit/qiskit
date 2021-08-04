@@ -127,7 +127,7 @@ callable and are thus compatible with the optimizers.
 .. currentmodule:: qiskit.opflow.gradients
 
 Base Classes
-++++++++++++
+------------
 
 .. autosummary::
    :toctree: ../stubs/
@@ -139,7 +139,7 @@ Base Classes
    QFIBase
 
 Converters
-++++++++++
+----------
 
 .. autosummary::
    :toctree: ../stubs/
@@ -149,7 +149,7 @@ Converters
    CircuitQFI
 
 Derivatives
-+++++++++++
+-----------
 
 .. autosummary::
    :toctree: ../stubs/

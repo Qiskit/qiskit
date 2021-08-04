@@ -29,7 +29,7 @@ a :class:`~qiskit.opflow.converters.CircuitSampler`. All in all, this would be:
 ``my_sampler.convert(my_expect.convert(~StateFn(o)) @ my_state).eval()``.
 
 Expectation Base Class
-++++++++++++++++++++++
+----------------------
 
 The ExpectationBase class gives an interface for algorithms to ask for Expectations as
 execution settings. For example, if an algorithm contains an expectation value step within it,
@@ -43,7 +43,7 @@ to pass an ExpectationBase of their choice to be used in that expectation value 
    ExpectationBase
 
 Expectations
-++++++++++++
+------------
 
 .. autosummary::
    :toctree: ../stubs/

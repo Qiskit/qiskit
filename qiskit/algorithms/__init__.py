@@ -38,8 +38,9 @@ Algorithms
 It contains a variety of quantum algorithms and these have been grouped by logical function such
 as minimum eigensolvers and amplitude amplifiers.
 
+
 Amplitude Amplifiers
-++++++++++++++++++++
+--------------------
 
 .. autosummary::
    :toctree: ../stubs/
@@ -49,8 +50,9 @@ Amplitude Amplifiers
    Grover
    GroverResult
 
+
 Amplitude Estimators
-++++++++++++++++++++
+--------------------
 
 .. autosummary::
    :toctree: ../stubs/
@@ -68,8 +70,10 @@ Amplitude Estimators
    MaximumLikelihoodAmplitudeEstimation
    MaximumLikelihoodAmplitudeEstimationResult
 
+
 Eigensolvers
-++++++++++++
+------------
+
 Algorithms to find eigenvalues of an operator. For chemistry these can be used to find excited
 states of a molecule and qiskit.chemistry has some algorithms that leverage chemistry specific
 knowledge to do this in that application domain.
@@ -87,8 +91,10 @@ knowledge to do this in that application domain.
 
    NumPyEigensolver
 
+
 Factorizers
-+++++++++++
+-----------
+
 Algorithms to find factors of a number.
 
 .. autosummary::
@@ -98,8 +104,10 @@ Algorithms to find factors of a number.
    Shor
    ShorResult
 
+
 Linear Solvers
-++++++++++++++
+--------------
+
 Algorithms to solve linear systems of equations.
 
 .. autosummary::
@@ -111,8 +119,10 @@ Algorithms to solve linear systems of equations.
    LinearSolver
    LinearSolverResult
 
+
 Minimum Eigensolvers
-++++++++++++++++++++
+--------------------
+
 Algorithms that can find the minimum eigenvalue of an operator.
 
 .. autosummary::
@@ -130,8 +140,10 @@ Algorithms that can find the minimum eigenvalue of an operator.
    QAOA
    VQE
 
+
 Optimizers
-++++++++++
+----------
+
 Classical optimizers for use by quantum variational algorithms.
 
 .. autosummary::
@@ -139,8 +151,10 @@ Classical optimizers for use by quantum variational algorithms.
 
    optimizers
 
+
 Phase Estimators
-++++++++++++++++
+----------------
+
 Algorithms that estimate the phases of eigenstates of a unitary.
 
 .. autosummary::
