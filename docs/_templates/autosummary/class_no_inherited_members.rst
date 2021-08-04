@@ -1,7 +1,3 @@
-{%+ if referencefile %}
-.. include:: {{ referencefile }}
-{%+ endif -%}
-
 {#
    This is very similar to the default class template, except this one is used
    when we don't want to generate any inherited methods.
@@ -18,19 +14,11 @@
 #}
    :no-members:
    :show-inheritance:
-{% block attributes_summary %}{% if attributes %}
-   .. rubric:: Attributes
-{# Attributes should all be summarized directly on the same page. -#}
-{% for item in attributes %}
-   .. autoattribute:: {{ item }}
-{%- endfor %}
-{% endif %}{% endblock -%}
-
 {#
    Methods all get their own separate page, with their names and the first lines
    of their docstrings tabulated.
 -#}
-{% block methods_summary %}{% set wanted_methods = (methods | reject('in', inherited_members)) %}{% if wanted_methods %}
+{% block methods_summary %}{% set wanted_methods = (methods | reject('in', inherited_members) | reject('==', ['__init__'])) %}{% if wanted_methods %}
    .. rubric:: Methods Defined Here
 
    .. autosummary::
@@ -40,3 +28,11 @@
       ~{{ name }}.{{ item }}
 {%- endfor %}
 {% endif %}{% endblock %}
+
+{% block attributes_summary %}{% if attributes %}
+   .. rubric:: Attributes
+{# Attributes should all be summarized directly on the same page. -#}
+{% for item in attributes %}
+   .. autoattribute:: {{ item }}
+{%- endfor %}
+{% endif %}{% endblock -%}
