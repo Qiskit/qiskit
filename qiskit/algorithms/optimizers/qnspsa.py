@@ -10,9 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""A generalized SPSA optimizer including support for Hessians."""
+"""The QN-SPSA optimizer."""
 
-from typing import Iterator, Optional, Union, Callable, Dict
+from typing import Any, Iterator, Optional, Union, Callable, Dict
 
 import numpy as np
 from qiskit.providers import Backend
@@ -189,6 +189,19 @@ class QNSPSA(SPSA):
 
         return gradient_estimate, hessian_estimate
 
+    @property
+    def settings(self) -> Dict[str, Any]:
+        """The optimizer settings in a dictionary format."""
+        # re-use serialization from SPSA
+        settings = super().settings
+        settings.update({"fidelity": self.fidelity})
+
+        # remove SPSA-specific arguments not in QNSPSA
+        settings.pop("trust_region")
+        settings.pop("second_order")
+
+        return settings
+
     @staticmethod
     def get_fidelity(
         circuit: QuantumCircuit,
@@ -240,10 +253,20 @@ class QNSPSA(SPSA):
         else:
             sampler = CircuitSampler(backend)
 
-            def fidelity(values_x, values_y):
-                value_dict = dict(
-                    zip(params_x[:] + params_y[:], values_x.tolist() + values_y.tolist())
-                )
+            def fidelity(values_x, values_y=None):
+                if values_y is not None:  # no batches
+                    value_dict = dict(
+                        zip(params_x[:] + params_y[:], values_x.tolist() + values_y.tolist())
+                    )
+                else:
+                    value_dict = {p: [] for p in params_x[:] + params_y[:]}
+                    for values_xy in values_x:
+                        for value_x, param_x in zip(values_xy[0, :], params_x):
+                            value_dict[param_x].append(value_x)
+
+                        for value_y, param_y in zip(values_xy[1, :], params_y):
+                            value_dict[param_y].append(value_y)
+
                 return np.abs(sampler.convert(expression, params=value_dict).eval()) ** 2
 
         return fidelity

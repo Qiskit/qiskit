@@ -61,7 +61,7 @@ class MatrixExpectation(ExpectationBase):
             if isinstance(operator, ComposedOp):
                 return 0.0
             elif isinstance(operator, ListOp):
-                return operator._combo_fn([sum_variance(op) for op in operator.oplist])
+                return operator.combo_fn([sum_variance(op) for op in operator.oplist])
             else:
                 return 0.0
 

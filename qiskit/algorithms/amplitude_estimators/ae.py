@@ -382,7 +382,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
         if kind in ["observed_fisher", "observed_information", "oi"]:
             return _fisher_confint(result, alpha, observed=True)
 
-        raise NotImplementedError("CI `{}` is not implemented.".format(kind))
+        raise NotImplementedError(f"CI `{kind}` is not implemented.")
 
 
 class AmplitudeEstimationResult(AmplitudeEstimatorResult):
