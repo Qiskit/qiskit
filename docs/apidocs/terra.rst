@@ -32,6 +32,7 @@ Qiskit Terra API Reference
    transpiler_passes
    transpiler_preset
    utils
+   utils_mitigation
    visualization
    opflow
    algorithms
