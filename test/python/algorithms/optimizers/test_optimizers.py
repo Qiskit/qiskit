@@ -15,6 +15,7 @@
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
+from typing import Optional, List, Tuple
 from ddt import ddt, data, unpack
 import numpy as np
 from scipy.optimize import rosen, rosen_der
@@ -25,7 +26,10 @@ from qiskit.algorithms.optimizers import (
     BOBYQA,
     IMFIL,
     CG,
+    CRS,
     COBYLA,
+    DIRECT_L,
+    DIRECT_L_RAND,
     GSLS,
     GradientDescent,
     L_BFGS_B,
@@ -40,6 +44,7 @@ from qiskit.algorithms.optimizers import (
     SciPyOptimizer,
 )
 from qiskit.circuit.library import RealAmplitudes
+from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.utils import algorithm_globals
 
 try:
@@ -50,6 +55,7 @@ except ImportError:
     _HAS_SKQUANT = False
 
 
+@ddt
 class TestOptimizers(QiskitAlgorithmsTestCase):
     """Test Optimizers"""
 
@@ -57,13 +63,20 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
         super().setUp()
         algorithm_globals.random_seed = 52
 
-    def run_optimizer(self, optimizer: Optimizer, max_nfev: int, grad: bool = False):
+    def run_optimizer(
+        self,
+        optimizer: Optimizer,
+        max_nfev: int,
+        grad: bool = False,
+        bounds: Optional[List[Tuple[float, float]]] = None,
+    ):
         """Test the optimizer.
 
         Args:
             optimizer: The optimizer instance to test.
             max_nfev: The maximal allowed number of function evaluations.
             grad: Whether to pass the gradient function as input.
+            bounds: Optimizer bounds.
         """
         x_0 = [1.3, 0.7, 0.8, 1.9, 1.2]
         jac = rosen_der if grad else None
@@ -73,11 +86,11 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
             with self.subTest(test_deprecation=test_deprecation):
                 if test_deprecation:
                     with self.assertWarns(DeprecationWarning):
-                        res = optimizer.optimize(len(x_0), rosen, jac, initial_point=x_0)
+                        res = optimizer.optimize(len(x_0), rosen, jac, bounds, initial_point=x_0)
                     x_opt = res[0]
                     nfev = res[2]
                 else:
-                    res = optimizer.minimize(rosen, x_0, jac)
+                    res = optimizer.minimize(rosen, x_0, jac, bounds)
                     x_opt = res.x
                     nfev = res.nfev
 
@@ -150,11 +163,23 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
             min_step_size=1.0e-12,
         )
         x_0 = [1.3, 0.7, 0.8, 1.9, 1.2]
-        _, x_value, n_evals = optimizer.optimize(len(x_0), rosen, initial_point=x_0)
+        for test_deprecation in [True, False]:
+            # GSLS is volatile so we need to set the seeds for both executions
+            algorithm_globals.random_seed = 1
+            with self.subTest(test_deprecation=test_deprecation):
+                if test_deprecation:
+                    with self.assertWarns(DeprecationWarning):
+                        res = optimizer.optimize(len(x_0), rosen, initial_point=x_0)
+                    x_value = res[1]
+                    n_evals = res[2]
+                else:
+                    res = optimizer.minimize(rosen, x_0)
+                    x_value = res.fun
+                    n_evals = res.nfev
 
-        # Ensure value is near-optimal
-        self.assertLessEqual(x_value, 0.01)
-        self.assertLessEqual(n_evals, 10000)
+                # Ensure value is near-optimal
+                self.assertLessEqual(x_value, 0.01)
+                self.assertLessEqual(n_evals, 10000)
 
     def test_scipy_optimizer(self):
         """scipy_optimizer test"""
@@ -171,6 +196,25 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
         optimizer = SciPyOptimizer("BFGS", options={"maxiter": 1000}, callback=callback)
         self.run_optimizer(optimizer, max_nfev=10000)
         self.assertTrue(values)  # Check the list is nonempty.
+
+    @data(
+        (CRS, True),
+        (DIRECT_L, True),
+        (DIRECT_L_RAND, True),
+        (CRS, False),
+        (DIRECT_L, False),
+        (DIRECT_L_RAND, False),
+    )
+    @unpack
+    def test_nlopt(self, optimizer_cls, use_bound):
+        """NLopt test"""
+        bounds = [(-6, 6)] * 5 if use_bound else None
+        try:
+            optimizer = optimizer_cls()
+            optimizer.set_options(**{"max_evals": 50000})
+            self.run_optimizer(optimizer, max_nfev=50000, bounds=bounds)
+        except MissingOptionalLibraryError as ex:
+            self.skipTest(str(ex))
 
 
 @ddt
