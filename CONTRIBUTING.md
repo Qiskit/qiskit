@@ -350,11 +350,10 @@ you just need to update the reference images as follows:
     - add, commit and push your changes, then restart the Jupyter Notebook app in your browser. The
   tests should now pass.
 5. Add new snapshot tests covering your new features, extensions, or bugfixes.
-    - add your new snapshot tests to 
+    - add your new snapshot tests to the following folders where you can also find existing tests to use as a guide
 	    - `qiskit-terra/test/ipynb/mpl/circuit/test_circuit_matplotlib_drawer.py` for changes covering matplotlib visualisation of circuits.
 	    - `qiskit-terra/test/ipynb/mpl/graph/test_graph_matplotlib_drawer.py` for changes covering matplotlib visualisation of graphs.
 	    - `qiskit-terra/test/ipynb/latex/test_circuit_latex_drawer.py` for changes covering latex visualisation.
-    , where you can also find existing tests to use as a guide.
     - commit and push your changes, restart the Jupyter Notebook app in your browser.
     As this is the first time you run your new tests there won't be any reference
     images to compare to. Instead you should see an option in the list of tests
