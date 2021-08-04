@@ -13,7 +13,7 @@
 """The Eigensolver interface"""
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import Dict, Optional, Any
 
 import numpy as np
 from qiskit.opflow import OperatorBase
@@ -30,7 +30,7 @@ class Eigensolver(ABC):
 
     @abstractmethod
     def compute_eigenvalues(
-        self, operator: OperatorBase, aux_operators: Optional[List[Optional[OperatorBase]]] = None
+        self, operator: OperatorBase, aux_operators: Optional[Dict[str, Optional[OperatorBase]]] = None
     ) -> "EigensolverResult":
         """
         Computes eigenvalues. Operator and aux_operators can be supplied here and

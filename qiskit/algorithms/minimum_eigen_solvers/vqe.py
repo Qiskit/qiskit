@@ -411,32 +411,33 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     def _eval_aux_ops(
         self,
         parameters: np.ndarray,
-        aux_operators: List[OperatorBase],
+        aux_operators: Dict[str, OperatorBase],
         expectation: ExpectationBase,
         threshold: float = 1e-12,
     ) -> np.ndarray:
         # Create new CircuitSampler to avoid breaking existing one's caches.
         sampler = CircuitSampler(self.quantum_instance)
 
-        aux_op_meas = expectation.convert(StateFn(ListOp(aux_operators), is_measurement=True))
+        # Assumption is made that the order of operators in ListOp does not affect the measurement results
+        aux_op_meas = expectation.convert(StateFn(ListOp(list(aux_operators.values())), is_measurement=True))
         aux_op_expect = aux_op_meas.compose(CircuitStateFn(self.ansatz.bind_parameters(parameters)))
         values = np.real(sampler.convert(aux_op_expect).eval())
 
         # Discard values below threshold
-        aux_op_results = values * (np.abs(values) > threshold)
+        clean_values = values * (np.abs(values) > threshold)
+        aux_op_results = {key: value for key, value in zip(aux_operators, clean_values)}
         # Deal with the aux_op behavior where there can be Nones or Zero qubit Paulis in the list
-        _aux_op_nones = [op is None for op in aux_operators]
-        aux_operator_eigenvalues = [
-            None if is_none else [result]
-            for (is_none, result) in zip(_aux_op_nones, aux_op_results)
-        ]
+        aux_operator_eigenvalues = {
+            key: None if aux_operators[key] is None else result
+            for key, result in aux_op_results.items()
+        }
         # As this has mixed types, since it can included None, it needs to explicitly pass object
         # data type to avoid numpy 1.19 warning message about implicit conversion being deprecated
         aux_operator_eigenvalues = np.array([aux_operator_eigenvalues], dtype=object)
         return aux_operator_eigenvalues
 
     def compute_minimum_eigenvalue(
-        self, operator: OperatorBase, aux_operators: Optional[List[Optional[OperatorBase]]] = None
+        self, operator: OperatorBase, aux_operators: Optional[Dict[str, Optional[OperatorBase]]] = None
     ) -> MinimumEigensolverResult:
         super().compute_minimum_eigenvalue(operator, aux_operators)
 
@@ -458,15 +459,15 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         # We need to handle the array entries being Optional i.e. having value None
         if aux_operators:
             zero_op = I.tensorpower(operator.num_qubits) * 0.0
-            converted = []
-            for op in aux_operators:
+            converted = {}
+            for key, op in aux_operators.items():
                 if op is None:
-                    converted.append(zero_op)
+                    converted[key] = zero_op
                 else:
-                    converted.append(op)
+                    converted[key] = op
 
             # For some reason Chemistry passes aux_ops with 0 qubits and paulis sometimes.
-            aux_operators = [zero_op if op == 0 else op for op in converted]
+            aux_operators = {key: zero_op if op == 0 else op for key, op in converted.items()}
         else:
             aux_operators = None
 
@@ -517,7 +518,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         if aux_operators is not None:
             aux_values = self._eval_aux_ops(opt_params, aux_operators, expectation=expectation)
-            result.aux_operator_eigenvalues = aux_values[0]
+            result.aux_operator_eigenvalues = aux_values
 
         return result
 
