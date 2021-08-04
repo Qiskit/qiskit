@@ -13,7 +13,6 @@
 N-Qubit Sparse Pauli Operator class.
 """
 
-import warnings
 from numbers import Number
 from typing import Dict
 
@@ -27,6 +26,7 @@ from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 from qiskit.quantum_info.operators.symplectic.pauli_utils import pauli_basis
+from qiskit.utils.deprecation import deprecate_function
 
 
 class SparsePauliOp(LinearOp):
@@ -117,35 +117,25 @@ class SparsePauliOp(LinearOp):
         """Return the size."""
         return self.size
 
-    _warn_deprecation_table = False
+    # pylint: disable=bad-docstring-quotes
 
     @property
+    @deprecate_function(
+        "The SparsePauliOp.table method is deprecated as of Qiskit Terra 0.19.0 "
+        "and will be removed no sooner than 3 months after the releasedate. "
+        "Use SparsePauliOp.paulis method instead.",
+    )
     def table(self):
         """DEPRECATED - Return the the PauliTable."""
-        if not self._warn_deprecation_table:
-            SparsePauliOp._warn_deprecation_table = True
-            warnings.simplefilter("once", category=DeprecationWarning)
-            warnings.warn(
-                "The SparsePauliOp.table method is deprecated as of Qiskit Terra 0.19.0 "
-                "and will be removed no sooner than 3 months after the releasedate. "
-                "Use SparsePauliOp.paulis method instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
         return PauliTable(np.column_stack((self.paulis.x, self.paulis.z)))
 
     @table.setter
+    @deprecate_function(
+        "The SparsePauliOp.table method is deprecated as of Qiskit Terra 0.19.0 "
+        "and will be removed no sooner than 3 months after the releasedate. "
+        "Use SparsePauliOp.paulis method instead.",
+    )
     def table(self, value):
-        if not self._warn_deprecation_table:
-            SparsePauliOp._warn_deprecation_table = True
-            warnings.simplefilter("once", category=DeprecationWarning)
-            warnings.warn(
-                "The SparsePauliOp.table method is deprecated as of Qiskit Terra 0.19.0 "
-                "and will be removed no sooner than 3 months after the releasedate. "
-                "Use SparsePauliOp.paulis method instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
         if not isinstance(value, PauliTable):
             value = PauliTable(value)
         self._pauli_list = PauliList(value)

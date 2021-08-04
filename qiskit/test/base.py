@@ -241,6 +241,7 @@ class QiskitTestCase(BaseQiskitTestCase):
             r"The QuantumCircuit.u. method.*",
             r"The QuantumCircuit.cu.",
             r"The CXDirection pass has been deprecated",
+            r"The SparsePauliOp.table method",
         ]
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
