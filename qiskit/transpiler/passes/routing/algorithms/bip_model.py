@@ -12,6 +12,9 @@
 """Integer programming model for quantum circuit compilation."""
 import copy
 import logging
+from functools import lru_cache
+
+import numpy as np
 
 try:
     from docplex.mp.model import Model
@@ -30,6 +33,13 @@ except ImportError:
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.transpiler.exceptions import TranspilerError, CouplingError
 from qiskit.transpiler.layout import Layout
+from qiskit.circuit.library.standard_gates import SwapGate
+from qiskit.providers.models import BackendProperties
+from qiskit.quantum_info import two_qubit_cnot_decompose
+from qiskit.quantum_info.synthesis.two_qubit_decompose import (
+    TwoQubitWeylDecomposition,
+    trace_to_fid,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -97,11 +107,10 @@ class BIPMappingModel:
         self.su4layers = []
         for lay in dag.layers():
             laygates = []
-            subdag = lay["graph"]
-            for node in subdag.two_qubit_ops():
+            for node in lay["graph"].two_qubit_ops():
                 i1 = self._virtual_to_index[node.qargs[0]]
                 i2 = self._virtual_to_index[node.qargs[1]]
-                laygates.append((i1, i2))
+                laygates.append(((i1, i2), node))
             if laygates:
                 self._to_su4layer.append(len(self.su4layers))
                 self.su4layers.append(laygates)
@@ -114,6 +123,8 @@ class BIPMappingModel:
             if k == len(self.su4layers) - 1:  # do not add dummy steps after the last layer
                 break
             self.gates.extend([[]] * dummy_timesteps)
+
+        self.bprop = None  # Backend properties to compute cx fidelities (set later if necessary)
 
         logger.info("Num virtual qubits: %d", self.num_vqubits)
         logger.info("Num physical qubits: %d", self.num_pqubits)
@@ -152,24 +163,37 @@ class BIPMappingModel:
         """Check if the time-step t is a dummy step or not."""
         return len(self.gates[t]) == 0
 
-    def create_cpx_problem(self, objective: str, line_symm: bool = False):
+    def create_cpx_problem(
+        self, objective: str, backend_prop: BackendProperties = None, line_symm: bool = False
+    ):
         """Create integer programming model to compile a circuit.
 
         Args:
             objective:
-                Type of objective function:
+                Type of objective function to be minimized:
 
-                * ``'error_rate'``: [Not implemented] predicted error rate of the circuit
-                * ``'depth'``: depth (number of timesteps) of the circuit
-                * ``'balanced'``: [Not implemented] weighted sum of error_rate and depth
+                * ``'gate_error'``: Approximate gate error of the circuit, which is given as the sum of
+                    negative logarithm of CNOT gate fidelities in the circuit. It takes into account
+                    only the CNOT gate errors reported in ``backend_prop``.
+                * ``'depth'``: Depth (number of timesteps) of the circuit
+                * ``'balanced'``: Weighted sum of gate_error and depth
+
+            backend_prop:
+                Backend properties storing gate errors, which are required in computing certain
+                types of objective function such as ``'gate_error'`` or ``'balanced'``.
 
             line_symm:
                 Use symmetry breaking constrainst for line topology. Should
                 only be True if the hardware graph is a chain/line/path.
 
         Raises:
-            TranspilerError: if unknow objective type is specified.
+            TranspilerError: if unknow objective type is specified or invalid options are specified.
         """
+        if backend_prop is None and objective in ("gate_error", "balanced"):
+            raise TranspilerError(f"'backend_prop' is required for '{objective}' objective")
+
+        self.bprop = backend_prop
+
         mdl = Model()
 
         # *** Define main variables ***
@@ -182,7 +206,7 @@ class BIPMappingModel:
         # Add y variables
         y = {}
         for t in range(self.depth):
-            for (p, q) in self.gates[t]:
+            for ((p, q), _) in self.gates[t]:
                 for (i, j) in self._arcs:
                     y[t, p, q, i, j] = mdl.binary_var(name=f"y_{t}_{p}_{q}_{i}_{j}")
         # Add x variables
@@ -210,14 +234,14 @@ class BIPMappingModel:
                 )
         # Each gate must be implemented
         for t in range(self.depth):
-            for (p, q) in self.gates[t]:
+            for ((p, q), _) in self.gates[t]:
                 mdl.add_constraint(
                     sum(y[t, p, q, i, j] for (i, j) in self._arcs) == 1,
                     ctname=f"implement_gate_{p}_{q}_at_{t}",
                 )
         # Gate can be implemented iff both of its qubits are located at the associated nodes
         for t in range(self.depth - 1):
-            for (p, q) in self.gates[t]:
+            for ((p, q), _) in self.gates[t]:
                 for (i, j) in self._arcs:
                     # Apply McCormick to y[t, p, q, i, j] == w[t, p, i] * w[t, q, j]
                     mdl.add_constraint(
@@ -235,7 +259,7 @@ class BIPMappingModel:
                         ctname=f"McCormickUB2_{p}_{q}_{i}_{j}_at_{t}",
                     )
         # For last time step, use regular McCormick
-        for (p, q) in self.gates[self.depth - 1]:
+        for ((p, q), _) in self.gates[self.depth - 1]:
             for (i, j) in self._arcs:
                 # Apply McCormick to y[self.depth - 1, p, q, i, j]
                 # == w[self.depth - 1, p, i] * w[self.depth - 1, q, j]
@@ -273,7 +297,7 @@ class BIPMappingModel:
                     )
         # If a gate is implemented, involved qubits cannot swap with other positions
         for t in range(self.depth - 1):
-            for (p, q) in self.gates[t]:
+            for ((p, q), _) in self.gates[t]:
                 for (i, j) in self._arcs:
                     mdl.add_constraint(
                         x[t, p, i, j] == x[t, q, j, i], ctname=f"swap_{p}_{q}_{i}_{j}_at_{t}"
@@ -281,7 +305,7 @@ class BIPMappingModel:
         # Qubit not in gates can flip with their neighbors
         for t in range(self.depth - 1):
             q_no_gate = list(range(self.num_vqubits))
-            for (p, q) in self.gates[t]:
+            for ((p, q), _) in self.gates[t]:
                 q_no_gate.remove(p)
                 q_no_gate.remove(q)
             for (i, j) in self._arcs:
@@ -330,25 +354,75 @@ class BIPMappingModel:
                     for (i, j) in self._arcs:
                         objexr += 0.01 * x[t, q, i, j]
             mdl.minimize(objexr)
-        elif objective == "error_rate":
-            self._set_error_rate_obj(mdl)
-        elif objective == "balanced":
-            self._set_balanced_obj(mdl)
+        elif objective in ("gate_error", "balanced"):
+            # We multiply gate_error by 10 because the cofficients are usually very small.
+            # We add the depth objective with coefficient 0.01 if balanced was selected.
+            objexr = 0
+            for t in range(self.depth - 1):
+                for (p, q), node in self.gates[t]:
+                    for (i, j) in self._arcs:
+                        # We pay the cost for gate implementation.
+                        pbest_fid = -np.log(self._max_expected_fidelity(node, i, j))
+                        objexr += 10 * y[t, p, q, i, j] * pbest_fid
+                        # If a gate is mirrored (followed by a swap on the same qubit pair),
+                        # its cost should be replaced with the cost of the combined (mirrored) gate.
+                        pbest_fidm = -np.log(self._max_expected_mirroed_fidelity(node, i, j))
+                        objexr += 10 * x[t, q, i, j] * (pbest_fidm - pbest_fid) / 2
+                # Cost of swaps on unused qubits
+                for q in range(self.num_vqubits):
+                    used_qubits = {q for (pair, _) in self.gates[t] for q in pair}
+                    if q not in used_qubits:
+                        for i in range(self.num_pqubits):
+                            for j in self._coupling.neighbors(i):
+                                objexr += (
+                                    10 * x[t, q, i, j] * -3 / 2 * np.log(self._cx_fidelity(i, j))
+                                )
+            # Cost for the last layer (x variables are not defined for depth-1)
+            for (p, q), node in self.gates[self.depth - 1]:
+                for (i, j) in self._arcs:
+                    pbest_fid = -np.log(self._max_expected_fidelity(node, i, j))
+                    objexr += 10 * y[self.depth - 1, p, q, i, j] * pbest_fid
+            if objective == "balanced":
+                objexr += 0.01 * sum(z[t] for t in range(self.depth) if self._is_dummy_step(t))
+            mdl.minimize(objexr)
         else:
             raise TranspilerError(f"Unknown objective type: {objective}")
 
         self.problem = mdl
         logger.info("BIP problem stats: %s", self.problem.statistics)
 
-    @staticmethod
-    def _set_error_rate_obj(model):
-        """Set the minimum error rate objective function."""
-        raise NotImplementedError("objective: 'error_rate' is not implemented")
+    def _max_expected_fidelity(self, node, i, j):
+        return max(
+            gfid * self._cx_fidelity(i, j) ** k
+            for k, gfid in enumerate(self._gate_fidelities(node))
+        )
+
+    def _max_expected_mirroed_fidelity(self, node, i, j):
+        return max(
+            gfid * self._cx_fidelity(i, j) ** k
+            for k, gfid in enumerate(self._mirrored_gate_fidelities(node))
+        )
+
+    def _cx_fidelity(self, i, j) -> float:
+        # fidelity of cx on global physical qubits
+        return 1.0 - self.bprop.gate_error("cx", [self.global_qubit[i], self.global_qubit[j]])
 
     @staticmethod
-    def _set_balanced_obj(model):
-        """Set the minimum balanced (weighted sum of error_rate and depth) objective function."""
-        raise NotImplementedError("objective: 'balanced' is not implemented")
+    @lru_cache()
+    def _gate_fidelities(node):
+        matrix = node.op.to_matrix()
+        target = TwoQubitWeylDecomposition(matrix)
+        traces = two_qubit_cnot_decompose.traces(target)
+        return [trace_to_fid(traces[i]) for i in range(4)]
+
+    @staticmethod
+    @lru_cache()
+    def _mirrored_gate_fidelities(node):
+        matrix = node.op.to_matrix()
+        swap = SwapGate().to_matrix()
+        targetm = TwoQubitWeylDecomposition(matrix @ swap)
+        tracesm = two_qubit_cnot_decompose.traces(targetm)
+        return [trace_to_fid(tracesm[i]) for i in range(4)]
 
     def solve_cpx_problem(self, time_limit: float = 60, threads: int = None) -> str:
         """Solve the BIP problem using CPLEX.

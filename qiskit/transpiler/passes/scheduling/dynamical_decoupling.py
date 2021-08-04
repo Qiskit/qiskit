@@ -18,6 +18,7 @@ import numpy as np
 from qiskit.circuit.delay import Delay
 from qiskit.circuit.reset import Reset
 from qiskit.circuit.library.standard_gates import IGate, UGate, U3Gate
+from qiskit.dagcircuit import DAGOpNode, DAGInNode
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.synthesis import OneQubitEulerDecomposer
 from qiskit.transpiler.passes.optimization import Optimize1qGates
@@ -191,7 +192,7 @@ class DynamicalDecoupling(TransformationPass):
             pred = next(dag.predecessors(nd))
             succ = next(dag.successors(nd))
             if self._skip_reset_qubits:  # discount initial delays
-                if pred.type == "in" or isinstance(pred.op, Reset):
+                if isinstance(pred, DAGInNode) or isinstance(pred.op, Reset):
                     new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
                     continue
 
@@ -205,14 +206,14 @@ class DynamicalDecoupling(TransformationPass):
                 u_inv = self._dd_sequence[0].inverse().to_matrix()
                 theta, phi, lam, phase = OneQubitEulerDecomposer().angles_and_phase(u_inv)
                 # absorb the inverse into the successor (from left in circuit)
-                if succ.type == "op" and isinstance(succ.op, (UGate, U3Gate)):
+                if isinstance(succ, DAGOpNode) and isinstance(succ.op, (UGate, U3Gate)):
                     theta_r, phi_r, lam_r = succ.op.params
                     succ.op.params = Optimize1qGates.compose_u3(
                         theta_r, phi_r, lam_r, theta, phi, lam
                     )
                     sequence_gphase += phase
                 # absorb the inverse into the predecessor (from right in circuit)
-                elif pred.type == "op" and isinstance(pred.op, (UGate, U3Gate)):
+                elif isinstance(pred, DAGOpNode) and isinstance(pred.op, (UGate, U3Gate)):
                     theta_l, phi_l, lam_l = pred.op.params
                     pred.op.params = Optimize1qGates.compose_u3(
                         theta, phi, lam, theta_l, phi_l, lam_l

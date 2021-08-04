@@ -41,6 +41,7 @@ except ImportError:
     HAS_FIXTURES = False
 
 from qiskit.exceptions import MissingOptionalLibraryError
+from .decorators import enforce_subclasses_call
 from .runtest import RunTest, MultipleExceptions
 from .utils import Path, setup_test_logging
 
@@ -88,8 +89,39 @@ def gather_details(source_dict, target_dict):
         target_dict[name] = _copy_content(content_object)
 
 
+@enforce_subclasses_call(["setUp", "setUpClass", "tearDown", "tearDownClass"])
 class BaseQiskitTestCase(unittest.TestCase):
-    """Common extra functionality on top of unittest."""
+    """Additions for test cases for all Qiskit-family packages.
+
+    The additions here are intended for all packages, not just Terra.  Terra-specific logic should
+    be in the Terra-specific classes."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__setup_called = False
+        self.__teardown_called = False
+
+    def setUp(self):
+        super().setUp()
+        if self.__setup_called:
+            raise ValueError(
+                "In File: %s\n"
+                "TestCase.setUp was already called. Do not explicitly call "
+                "setUp from your tests. In your own setUp, use super to call "
+                "the base setUp." % (sys.modules[self.__class__.__module__].__file__,)
+            )
+        self.__setup_called = True
+
+    def tearDown(self):
+        super().tearDown()
+        if self.__teardown_called:
+            raise ValueError(
+                "In File: %s\n"
+                "TestCase.tearDown was already called. Do not explicitly call "
+                "tearDown from your tests. In your own tearDown, use super to "
+                "call the base tearDown." % (sys.modules[self.__class__.__module__].__file__,)
+            )
+        self.__teardown_called = True
 
     @staticmethod
     def _get_resource_path(filename, path=Path.TEST):
@@ -138,30 +170,89 @@ class BaseQiskitTestCase(unittest.TestCase):
             raise self.failureException(msg)
 
 
-class BasicQiskitTestCase(BaseQiskitTestCase):
-    """Helper class that contains common functionality."""
-
-    @classmethod
-    def setUpClass(cls):
-        # Determines if the TestCase is using IBMQ credentials.
-        cls.using_ibmq_credentials = False
-
-        # Set logging to file and stdout if the LOG_LEVEL envar is set.
-        cls.log = logging.getLogger(cls.__name__)
-        if os.getenv("LOG_LEVEL"):
-            filename = "%s.log" % os.path.splitext(inspect.getfile(cls))[0]
-            setup_test_logging(cls.log, os.getenv("LOG_LEVEL"), filename)
+class QiskitTestCase(BaseQiskitTestCase):
+    """Terra-specific extra functionality for test cases."""
 
     def tearDown(self):
+        super().tearDown()
         # Reset the default providers, as in practice they acts as a singleton
         # due to importing the instances from the top-level qiskit namespace.
         from qiskit.providers.basicaer import BasicAer
 
         BasicAer._backends = BasicAer._verify_backends()
 
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        # Determines if the TestCase is using IBMQ credentials.
+        cls.using_ibmq_credentials = False
+        # Set logging to file and stdout if the LOG_LEVEL envar is set.
+        cls.log = logging.getLogger(cls.__name__)
+        if os.getenv("LOG_LEVEL"):
+            filename = "%s.log" % os.path.splitext(inspect.getfile(cls))[0]
+            setup_test_logging(cls.log, os.getenv("LOG_LEVEL"), filename)
 
-class FullQiskitTestCase(BaseQiskitTestCase):
-    """Helper class that contains common functionality that captures streams."""
+        warnings.filterwarnings("error", category=DeprecationWarning)
+        allow_DeprecationWarning_modules = [
+            "test.python.pulse.test_parameters",
+            "test.python.pulse.test_transforms",
+            "test.python.circuit.test_gate_power",
+            "test.python.pulse.test_builder",
+            "test.python.pulse.test_block",
+            "test.python.quantum_info.operators.symplectic.test_legacy_pauli",
+            "qiskit.quantum_info.operators.pauli",
+            "pybobyqa",
+            "numba",
+            "qiskit.utils.measurement_error_mitigation",
+            "qiskit.circuit.library.standard_gates.x",
+            "qiskit.pulse.schedule",
+            "qiskit.pulse.instructions.instruction",
+            "qiskit.pulse.instructions.play",
+            "qiskit.pulse.library.parametric_pulses",
+            "qiskit.quantum_info.operators.symplectic.pauli",
+            "test.python.dagcircuit.test_dagcircuit",
+            "test.python.quantum_info.operators.test_operator",
+            "test.python.quantum_info.operators.test_scalar_op",
+            "test.python.quantum_info.operators.test_superop",
+            "test.python.quantum_info.operators.channel.test_kraus",
+            "test.python.quantum_info.operators.channel.test_choi",
+            "test.python.quantum_info.operators.channel.test_chi",
+            "test.python.quantum_info.operators.channel.test_superop",
+            "test.python.quantum_info.operators.channel.test_stinespring",
+            "test.python.quantum_info.operators.symplectic.test_sparse_pauli_op",
+            "test.python.quantum_info.operators.channel.test_ptm",
+        ]
+        for mod in allow_DeprecationWarning_modules:
+            warnings.filterwarnings("default", category=DeprecationWarning, module=mod)
+        allow_DeprecationWarning_message = [
+            r".*LogNormalDistribution.*",
+            r".*NormalDistribution.*",
+            r".*UniformDistribution.*",
+            r".*QuantumCircuit\.combine.*",
+            r".*QuantumCircuit\.__add__.*",
+            r".*QuantumCircuit\.__iadd__.*",
+            r".*QuantumCircuit\.extend.*",
+            r".*psi @ U.*",
+            r".*qiskit\.circuit\.library\.standard_gates\.ms import.*",
+            r"elementwise comparison failed.*",
+            r"The jsonschema validation included in qiskit-terra.*",
+            r"The DerivativeBase.parameter_expression_grad method.*",
+            r"Back-references to from Bit instances.*",
+            r"The QuantumCircuit.u. method.*",
+            r"The QuantumCircuit.cu.",
+            r"The CXDirection pass has been deprecated",
+        ]
+        for msg in allow_DeprecationWarning_message:
+            warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
+
+
+class FullQiskitTestCase(QiskitTestCase):
+    """Terra-specific further additions for test cases, if ``testtools`` is available.
+
+    It is not normally safe to derive from this class by name; on import, Terra checks if the
+    necessary packages are available, and binds this class to the name :obj:`~QiskitTestCase` if so.
+    If you derive directly from it, you may try and instantiate the class without satisfying its
+    dependencies."""
 
     run_tests_with = RunTest
 
@@ -191,8 +282,6 @@ class FullQiskitTestCase(BaseQiskitTestCase):
         # Generators to ensure unique traceback ids.  Maps traceback label to
         # iterators.
         self._traceback_id_gens = {}
-        self.__setup_called = False
-        self.__teardown_called = False
         self.__details = None
 
     def onException(self, exc_info, tb_label="traceback"):
@@ -208,14 +297,6 @@ class FullQiskitTestCase(BaseQiskitTestCase):
     def _run_teardown(self, result):
         """Run the tearDown function for this test."""
         self.tearDown()
-        if not self.__teardown_called:
-            raise ValueError(
-                "In File: %s\n"
-                "TestCase.tearDown was not called. Have you upcalled all the "
-                "way up the hierarchy from your tearDown? e.g. Call "
-                "super(%s, self).tearDown() from your tearDown()."
-                % (sys.modules[self.__class__.__module__].__file__, self.__class__.__name__)
-            )
 
     def _get_test_method(self):
         method_name = getattr(self, "_testMethodName")
@@ -278,14 +359,6 @@ class FullQiskitTestCase(BaseQiskitTestCase):
     def _run_setup(self, result):
         """Run the setUp function for this test."""
         self.setUp()
-        if not self.__setup_called:
-            raise ValueError(
-                "In File: %s\n"
-                "TestCase.setUp was not called. Have you upcalled all the "
-                "way up the hierarchy from your setUp? e.g. Call "
-                "super(%s, self).setUp() from your setUp()."
-                % (sys.modules[self.__class__.__module__].__file__, self.__class__.__name__)
-            )
 
     def _add_reason(self, reason):
         self.addDetail("reason", content.text_content(reason))
@@ -342,36 +415,12 @@ class FullQiskitTestCase(BaseQiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        if self.__setup_called:
-            raise ValueError(
-                "In File: %s\n"
-                "TestCase.setUp was already called. Do not explicitly call "
-                "setUp from your tests. In your own setUp, use super to call "
-                "the base setUp." % (sys.modules[self.__class__.__module__].__file__,)
-            )
-        self.__setup_called = True
         if os.environ.get("QISKIT_TEST_CAPTURE_STREAMS"):
             stdout = self.useFixture(fixtures.StringStream("stdout")).stream
             self.useFixture(fixtures.MonkeyPatch("sys.stdout", stdout))
             stderr = self.useFixture(fixtures.StringStream("stderr")).stream
             self.useFixture(fixtures.MonkeyPatch("sys.stderr", stderr))
             self.useFixture(fixtures.LoggerFixture(nuke_handlers=False, level=None))
-
-    def tearDown(self):
-        super().tearDown()
-        if self.__teardown_called:
-            raise ValueError(
-                "In File: %s\n"
-                "TestCase.tearDown was already called. Do not explicitly call "
-                "tearDown from your tests. In your own tearDown, use super to "
-                "call the base tearDown." % (sys.modules[self.__class__.__module__].__file__,)
-            )
-        self.__teardown_called = True
-        # Reset the default providers, as in practice they acts as a singleton
-        # due to importing the instances from the top-level qiskit namespace.
-        from qiskit.providers.basicaer import BasicAer
-
-        BasicAer._backends = BasicAer._verify_backends()
 
     def addDetail(self, name, content_object):
         """Add a detail to be reported with this test's outcome.
@@ -408,65 +457,6 @@ class FullQiskitTestCase(BaseQiskitTestCase):
         if self.__details is None:
             self.__details = {}
         return self.__details
-
-    @classmethod
-    def setUpClass(cls):
-        # Determines if the TestCase is using IBMQ credentials.
-        cls.using_ibmq_credentials = False
-        cls.log = logging.getLogger(cls.__name__)
-
-        warnings.filterwarnings("error", category=DeprecationWarning)
-        allow_DeprecationWarning_modules = [
-            "test.python.pulse.test_parameters",
-            "test.python.pulse.test_transforms",
-            "test.python.circuit.test_gate_power",
-            "test.python.pulse.test_builder",
-            "test.python.pulse.test_block",
-            "test.python.quantum_info.operators.symplectic.test_legacy_pauli",
-            "qiskit.quantum_info.operators.pauli",
-            "pybobyqa",
-            "numba",
-            "qiskit.utils.measurement_error_mitigation",
-            "qiskit.circuit.library.standard_gates.x",
-            "qiskit.pulse.schedule",
-            "qiskit.pulse.instructions.instruction",
-            "qiskit.pulse.instructions.play",
-            "qiskit.pulse.library.parametric_pulses",
-            "qiskit.quantum_info.operators.symplectic.pauli",
-            "test.python.dagcircuit.test_dagcircuit",
-            "test.python.quantum_info.operators.test_operator",
-            "test.python.quantum_info.operators.test_scalar_op",
-            "test.python.quantum_info.operators.test_superop",
-            "test.python.quantum_info.operators.channel.test_kraus",
-            "test.python.quantum_info.operators.channel.test_choi",
-            "test.python.quantum_info.operators.channel.test_chi",
-            "test.python.quantum_info.operators.channel.test_superop",
-            "test.python.quantum_info.operators.channel.test_stinespring",
-            "test.python.quantum_info.operators.symplectic.test_sparse_pauli_op",
-            "test.python.quantum_info.operators.channel.test_ptm",
-        ]
-        for mod in allow_DeprecationWarning_modules:
-            warnings.filterwarnings("default", category=DeprecationWarning, module=mod)
-        allow_DeprecationWarning_message = [
-            r".*LogNormalDistribution.*",
-            r".*NormalDistribution.*",
-            r".*UniformDistribution.*",
-            r".*QuantumCircuit\.combine.*",
-            r".*QuantumCircuit\.__add__.*",
-            r".*QuantumCircuit\.__iadd__.*",
-            r".*QuantumCircuit\.extend.*",
-            r".*psi @ U.*",
-            r".*qiskit\.circuit\.library\.standard_gates\.ms import.*",
-            r"elementwise comparison failed.*",
-            r"The jsonschema validation included in qiskit-terra.*",
-            r"The DerivativeBase.parameter_expression_grad method.*",
-            r"Back-references to from Bit instances.*",
-            r"The QuantumCircuit.u. method.*",
-            r"The QuantumCircuit.cu.",
-            r"The CXDirection pass has been deprecated",
-        ]
-        for msg in allow_DeprecationWarning_message:
-            warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
 
 
 def dicts_almost_equal(dict1, dict2, delta=None, places=None, default_value=0):
@@ -528,7 +518,8 @@ def dicts_almost_equal(dict1, dict2, delta=None, places=None, default_value=0):
         return ""
 
 
-if not HAS_FIXTURES or not os.environ.get("QISKIT_TEST_CAPTURE_STREAMS"):
-    QiskitTestCase = BasicQiskitTestCase
-else:
+# Maintain naming backwards compatibility for downstream packages.
+BasicQiskitTestCase = QiskitTestCase
+
+if HAS_FIXTURES:
     QiskitTestCase = FullQiskitTestCase
