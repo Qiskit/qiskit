@@ -444,9 +444,7 @@ class SPSA(Optimizer):
         # ensure learning rate and perturbation are correctly set: either none or both
         # this happens only here because for the calibration the loss function is required
         if self.learning_rate is None and self.perturbation is None:
-            get_eta, get_eps = self.calibrate(
-                fun, x0, max_evals_grouped=self._max_evals_grouped
-            )
+            get_eta, get_eps = self.calibrate(fun, x0, max_evals_grouped=self._max_evals_grouped)
         else:
             get_eta, get_eps = _validate_pert_and_learningrate(
                 self.perturbation, self.learning_rate

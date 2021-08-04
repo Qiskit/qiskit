@@ -77,7 +77,7 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
         def objective(x):
             return np.linalg.norm(x)
 
-        _ = optimizer.optimize(2, objective, initial_point=np.array([1, -1]))
+        _ = optimizer.minimize(objective, np.array([1, -1]))
 
         self.assertEqual(len(history), 1)
         self.assertIsInstance(history[0][0], int)  # nfevs
