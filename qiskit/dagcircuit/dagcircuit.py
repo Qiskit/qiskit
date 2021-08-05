@@ -1519,12 +1519,12 @@ class DAGCircuit:
             to_qid[qubit] = i
 
         def filter_fn(node):
-            if node.type == "op":
+            if isinstance(node, DAGOpNode):
                 return (
-                    isinstance(node._op, Gate)
-                    and len(node._qargs) <= 2
-                    and not node._op.condition
-                    and not node._op.is_parameterized()
+                    isinstance(node.op, Gate)
+                    and len(node.qargs) <= 2
+                    and not node.op.condition
+                    and not node.op.is_parameterized()
                 )
             else:
                 return None
