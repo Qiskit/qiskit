@@ -32,7 +32,10 @@ Qiskit Terra API Reference
    transpiler_passes
    transpiler_preset
    utils
+<<<<<<< HEAD
    validation
    visualization
+=======
+>>>>>>> 0cdacec2e (Optimise documentation build (#6865))
    opflow
    algorithms
