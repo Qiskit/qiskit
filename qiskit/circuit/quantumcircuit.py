@@ -3003,24 +3003,22 @@ class QuantumCircuit:
         Returns:
             dict: Mapping of qubits to classical bits for final measurements.
         """
-        num_qubits = qc.num_qubits
-        num_clbits = qc.num_clbits
-        active_qubits = list(range(num_qubits))
-        active_cbits = list(range(num_clbits))
+        active_qubits = list(range(self.num_qubits))
+        active_cbits = list(range(self.num_clbits))
 
         # Map registers to ints
         qint_map = {}
-        for idx, qq in enumerate(qc.qubits):
+        for idx, qq in enumerate(self.qubits):
             qint_map[qq] = idx
 
         cint_map = {}
-        for idx, qq in enumerate(qc.clbits):
+        for idx, qq in enumerate(self.clbits):
             cint_map[qq] = idx
 
         # Find final measurements starting in back
         qmap = []
         cmap = []
-        for item in qc._data[::-1]:
+        for item in self._data[::-1]:
             if item[0].name == "measure":
                 cbit = cint_map[item[2][0]]
                 qbit = qint_map[item[1][0]]
@@ -3035,7 +3033,7 @@ class QuantumCircuit:
                     if _temp_qubit in active_qubits:
                         active_qubits.remove(_temp_qubit)
 
-            if not len(active_cbits) or not len(active_qubits):
+            if not active_cbits or not active_qubits:
                 break
         mapping = {}
         if cmap and qmap:
