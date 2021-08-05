@@ -21,7 +21,7 @@
    automatically included in the standard class documentation, so we don't want
    to repeat it.
 -#}
-{% block methods_summary %}{% set wanted_methods = (methods | reject('==', '__init__')) %}{% if wanted_methods %}
+{% block methods_summary %}{% set wanted_methods = (methods | reject('==', '__init__') | list) %}{% if wanted_methods %}
    .. rubric:: Methods
 
    .. autosummary::
