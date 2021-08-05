@@ -139,7 +139,7 @@ class QNSPSA(SPSA):
             callback: A callback function passed information in each iteration step. The
                 information is, in this order: the parameters, the function value, the number
                 of function evaluations, the stepsize, whether the step was accepted.
-            termination_callback: A callback function executed at the end of each iteration step. The
+            termination_checker: A callback function executed at the end of each iteration step. The
                 arguments are, in this order: current parameters, estimate of the objective and the
                 optimizer. If the callback returns True, the optimization is terminated.
                 To prevent additional evaluations of the objective method, objective is estimated by
@@ -162,7 +162,7 @@ class QNSPSA(SPSA):
             regularization=regularization,
             perturbation_dims=perturbation_dims,
             initial_hessian=initial_hessian,
-            termination_callback=termination_callback,
+            termination_checker=termination_checker,
         )
 
         self.fidelity = fidelity
