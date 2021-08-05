@@ -30,7 +30,7 @@ from .optimizer import Optimizer, OptimizerSupportLevel
 
 # number of function evaluations, parameters, loss, stepsize, accepted
 CALLBACK = Callable[[int, np.ndarray, float, float, bool], None]
-TERMINATIONCALLBACK = Callable[[np.ndarray, float], bool]
+TERMINATIONCHECKER = Callable[[np.ndarray, float, Optimizer], bool]
 
 logger = logging.getLogger(__name__)
 
@@ -143,7 +143,7 @@ class SPSA(Optimizer):
         lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
         initial_hessian: Optional[np.ndarray] = None,
         callback: Optional[CALLBACK] = None,
-        termination_callback: Optional[TERMINATIONCALLBACK] = None,
+        termination_checker: Optional[TERMINATIONCHECKER] = None,
     ) -> None:
         r"""
         Args:
@@ -192,9 +192,9 @@ class SPSA(Optimizer):
             callback: A callback function passed information in each iteration step. The
                 information is, in this order: the number of function evaluations, the parameters,
                 the function value, the stepsize, whether the step was accepted.
-            termination_callback: A callback function executed at the end of each iteration step. The
-                arguments are, in this order: current parameters, estimate of the objective.
-                If the callback returns True, the optimization is terminated.
+            termination_checker: A callback function executed at the end of each iteration step. The
+                arguments are, in this order: current parameters, estimate of the objective and the
+                optimizer. If the callback returns True, the optimization is terminated.
                 To prevent additional evaluations of the objective method, objective is estimated by
                 taking the mean of the objective evaluations used in the estimate of the gradient.
 
@@ -211,13 +211,13 @@ class SPSA(Optimizer):
                 def objective(x):
                     return np.linalg.norm(x) + .04*np.random.rand(1)
 
-                class TerminationCallback:
+                class TerminationChecker:
 
                     def __init__(self, N : int):
                         self.N = N
                         self.values = []
 
-                    def __call__(self, parameters, value) -> bool:
+                    def __call__(self, parameters, value, optimizer) -> bool:
                         self.values.append(value)
 
                         if len(self.values) > self.N:
@@ -229,7 +229,7 @@ class SPSA(Optimizer):
                                 return True
                         return False
 
-                spsa = SPSA(maxiter=200, termination_callback=TerminationCallback(10))
+                spsa = SPSA(maxiter=200, termination_checker=TerminationChecker(10))
                 parameters, value, niter = spsa.optimize(2, objective, initial_point=[0.5, 0.5])
                 print(f'SPSA completed after {niter} iterations')
 
@@ -242,7 +242,7 @@ class SPSA(Optimizer):
         self.maxiter = maxiter
         self.trust_region = trust_region
         self.callback = callback
-        self.termination_callback = termination_callback
+        self.termination_checker = termination_checker
 
         # if learning rate and perturbation are arrays, check they are sufficiently long
         for attr, name in zip([learning_rate, perturbation], ["learning_rate", "perturbation"]):
@@ -395,7 +395,7 @@ class SPSA(Optimizer):
             "lse_solver": self.lse_solver,
             "initial_hessian": self.initial_hessian,
             "callback": self.callback,
-            "termination_callback": self.termination_callback,
+            "termination_checker": self.termination_checker,
         }
 
     def _point_sample(self, loss, x, eps, delta1, delta2):
@@ -596,8 +596,8 @@ class SPSA(Optimizer):
                 if len(last_steps) > self.last_avg:
                     last_steps.popleft()
 
-            if self.termination_callback is not None:
-                if self.termination_callback(x, f_estimate):
+            if self.termination_checker is not None:
+                if self.termination_checker(x, f_estimate, optimizer=self):
                     logger.info("terminated optimization at {k}/{self.maxiter} iterations")
                     break
 
