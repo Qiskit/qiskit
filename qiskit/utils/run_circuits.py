@@ -106,8 +106,8 @@ def _maybe_split_qobj_by_gates(qobjs: List[QasmQobj], qobj: QasmQobj) -> List[Qa
     if MAX_GATES_PER_JOB is not None:
         max_gates_per_job = int(MAX_GATES_PER_JOB)
         total_num_gates = 0
-        for j in range(len(qobj.experiments)):
-            total_num_gates += len(qobj.experiments[j].instructions)
+        for experiment in qobj.experiments:
+            total_num_gates += len(experiment.instructions)
         # split by gates if total number of gates in a qobj exceed MAX_GATES_PER_JOB
         if total_num_gates > max_gates_per_job:
             qobj_template = QasmQobj(
@@ -117,17 +117,17 @@ def _maybe_split_qobj_by_gates(qobjs: List[QasmQobj], qobj: QasmQobj) -> List[Qa
             temp_qobj.qobj_id = str(uuid.uuid4())
             temp_qobj.experiments = []
             num_gates = 0
-            for i in range(len(qobj.experiments)):
-                num_gates += len(qobj.experiments[i].instructions)
+            for experiment in qobj.experiments:
+                num_gates += len(experiment.instructions)
                 if num_gates <= max_gates_per_job:
-                    temp_qobj.experiments.append(qobj.experiments[i])
+                    temp_qobj.experiments.append(experiment)
                 else:
                     qobjs.append(temp_qobj)
                     # Initialize for next temp_qobj
                     temp_qobj = copy.deepcopy(qobj_template)
                     temp_qobj.qobj_id = str(uuid.uuid4())
-                    temp_qobj.experiments.append(qobj.experiments[i])
-                    num_gates = len(qobj.experiments[i].instructions)
+                    temp_qobj.experiments.append(experiment)
+                    num_gates = len(experiment.instructions)
 
             qobjs.append(temp_qobj)
         else:
@@ -374,7 +374,7 @@ def run_qobj(
                 if not res.success:
                     msg += ", " + res.status
                     break
-        raise QiskitError("Circuit execution failed: {}".format(msg))
+        raise QiskitError(f"Circuit execution failed: {msg}")
 
     if not hasattr(result, "time_taken"):
         setattr(result, "time_taken", 0.0)
@@ -457,81 +457,126 @@ def run_circuits(
     run_config = run_config or {}
     with_autorecover = not is_simulator_backend(backend)
 
-    job, job_id = _safe_submit_circuits(
-        circuits,
-        backend,
-        qjob_config=qjob_config,
-        backend_options=backend_options,
-        noise_config=noise_config,
-        run_config=run_config,
-    )
-    result = None
-    if with_autorecover:
-        logger.info("Backend status: %s", backend.status())
-        logger.info("There is one jobs are submitted: id: %s", job_id)
-        while True:
-            logger.info("Running job id: %s", job_id)
-            # try to get result if possible
-            while True:
-                job_status = _safe_get_job_status(job, job_id)
-                queue_position = 0
-                if job_status in JOB_FINAL_STATES:
-                    # do callback again after the job is in the final states
-                    if job_callback is not None:
-                        job_callback(job_id, job_status, queue_position, job)
-                    break
-                if job_status == JobStatus.QUEUED and hasattr(job, queue_position):
-                    queue_position = job.queue_position()
-                    logger.info("Job id: %s is queued at position %s", job_id, queue_position)
-                else:
-                    logger.info("Job id: %s, status: %s", job_id, job_status)
-                if job_callback is not None:
-                    job_callback(job_id, job_status, queue_position, job)
-                time.sleep(qjob_config["wait"])
+    if MAX_CIRCUITS_PER_JOB is not None:
+        max_circuits_per_job = int(MAX_CIRCUITS_PER_JOB)
+    else:
+        if is_local_backend(backend):
+            max_circuits_per_job = sys.maxsize
+        else:
+            max_circuits_per_job = backend.configuration().max_experiments
 
-            # get result after the status is DONE
-            if job_status == JobStatus.DONE:
-                while True:
-                    result = job.result()
-                    if result.success:
-                        logger.info("COMPLETED: job id: %s", job_id)
-                        break
-
-                    logger.warning("FAILURE: Job id: %s", job_id)
-                    logger.warning(
-                        "Job (%s) is completed anyway, retrieve result " "from backend again.",
-                        job_id,
-                    )
-                    job = backend.retrieve_job(job_id)
-                break
-            # for other cases, resubmit the circuit until the result is available.
-            # since if there is no result returned, there is no way algorithm can do any process
-            if job_status == JobStatus.CANCELLED:
-                logger.warning("FAILURE: Job id: %s is cancelled. Re-submit the circuits.", job_id)
-            elif job_status == JobStatus.ERROR:
-                logger.warning(
-                    "FAILURE: Job id: %s encounters the error. "
-                    "Error is : %s. Re-submit the circuits.",
-                    job_id,
-                    job.error_message(),
-                )
-            else:
-                logging.warning(
-                    "FAILURE: Job id: %s. Unknown status: %s. " "Re-submit the circuits.",
-                    job_id,
-                    job_status,
-                )
-
+    if len(circuits) > max_circuits_per_job:
+        jobs = []
+        job_ids = []
+        split_circuits = []
+        count = 0
+        while count < len(circuits):
+            some_circuits = circuits[count : count + max_circuits_per_job]
+            split_circuits.append(some_circuits)
             job, job_id = _safe_submit_circuits(
-                circuits,
+                some_circuits,
                 backend,
                 qjob_config=qjob_config,
                 backend_options=backend_options,
                 noise_config=noise_config,
                 run_config=run_config,
             )
+            jobs.append(job)
+            job_ids.append(job_id)
+            count += max_circuits_per_job
     else:
-        result = job.result()
+        job, job_id = _safe_submit_circuits(
+            circuits,
+            backend,
+            qjob_config=qjob_config,
+            backend_options=backend_options,
+            noise_config=noise_config,
+            run_config=run_config,
+        )
+        jobs = [job]
+        job_ids = [job_id]
+        split_circuits = [circuits]
+    results = []
+    if with_autorecover:
+        logger.info("Backend status: %s", backend.status())
+        logger.info("There are %s jobs are submitted.", len(jobs))
+        logger.info("All job ids:\n%s", job_ids)
+        for idx, _ in enumerate(jobs):
+            result = None
+            logger.info("Backend status: %s", backend.status())
+            logger.info("There is one jobs are submitted: id: %s", job_id)
+            job = jobs[idx]
+            job_id = job_ids[idx]
+            while True:
+                logger.info("Running job id: %s", job_id)
+                # try to get result if possible
+                while True:
+                    job_status = _safe_get_job_status(job, job_id)
+                    queue_position = 0
+                    if job_status in JOB_FINAL_STATES:
+                        # do callback again after the job is in the final states
+                        if job_callback is not None:
+                            job_callback(job_id, job_status, queue_position, job)
+                        break
+                    if job_status == JobStatus.QUEUED and hasattr(job, "queue_position"):
+                        queue_position = job.queue_position()
+                        logger.info("Job id: %s is queued at position %s", job_id, queue_position)
+                    else:
+                        logger.info("Job id: %s, status: %s", job_id, job_status)
+                    if job_callback is not None:
+                        job_callback(job_id, job_status, queue_position, job)
+                    time.sleep(qjob_config["wait"])
+
+                # get result after the status is DONE
+                if job_status == JobStatus.DONE:
+                    while True:
+                        result = job.result()
+                        if result.success:
+                            results.append(result)
+                            logger.info("COMPLETED the %s-th job, job id: %s", idx, job_id)
+                            break
+
+                        logger.warning("FAILURE: Job id: %s", job_id)
+                        logger.warning(
+                            "Job (%s) is completed anyway, retrieve result " "from backend again.",
+                            job_id,
+                        )
+                        job = backend.retrieve_job(job_id)
+                    break
+                # for other cases, resubmit the circuit until the result is available.
+                # since if there is no result returned, there is no way algorithm can do any process
+                if job_status == JobStatus.CANCELLED:
+                    logger.warning(
+                        "FAILURE: Job id: %s is cancelled. Re-submit the circuits.", job_id
+                    )
+                elif job_status == JobStatus.ERROR:
+                    logger.warning(
+                        "FAILURE: Job id: %s encounters the error. "
+                        "Error is : %s. Re-submit the circuits.",
+                        job_id,
+                        job.error_message(),
+                    )
+                else:
+                    logging.warning(
+                        "FAILURE: Job id: %s. Unknown status: %s. " "Re-submit the circuits.",
+                        job_id,
+                        job_status,
+                    )
+
+                job, job_id = _safe_submit_circuits(
+                    split_circuits[idx],
+                    backend,
+                    qjob_config=qjob_config,
+                    backend_options=backend_options,
+                    noise_config=noise_config,
+                    run_config=run_config,
+                )
+    else:
+        results = []
+        for job in jobs:
+            results.append(job.result())
+
+    result = _combine_result_objects(results) if results else None
 
     # If result was not successful then raise an exception with either the status msg or
     # extra information if this was an Aer partial result return
@@ -545,7 +590,7 @@ def run_circuits(
                 if not res.success:
                     msg += ", " + res.status
                     break
-        raise QiskitError("Circuit execution failed: {}".format(msg))
+        raise QiskitError(f"Circuit execution failed: {msg}")
 
     if not hasattr(result, "time_taken"):
         setattr(result, "time_taken", 0.0)
@@ -627,4 +672,24 @@ def _run_circuits_on_backend(
     run_config: Dict,
 ) -> BaseJob:
     """run on backend"""
-    return backend.run(circuits, **backend_options, **noise_config, **run_config)
+    run_kwargs = {}
+    if is_aer_provider(backend) or is_basicaer_provider(backend):
+        for key, value in backend_options.items():
+            if key == "backend_options":
+                for k, v in value.items():
+                    run_kwargs[k] = v
+            else:
+                run_kwargs[key] = value
+    else:
+        run_kwargs.update(backend_options)
+
+    run_kwargs.update(noise_config)
+    run_kwargs.update(run_config)
+
+    if is_basicaer_provider(backend):
+        # BasicAer emits warning if option is not in its list
+        for key in list(run_kwargs.keys()):
+            if not hasattr(backend.options, key):
+                del run_kwargs[key]
+
+    return backend.run(circuits, **run_kwargs)

@@ -31,7 +31,7 @@ class CustomIterator(ABC):
         pass
 
     def __repr__(self):
-        return "<{}_iterator at {}>".format(type(self.obj), hex(id(self)))
+        return f"<{type(self.obj)}_iterator at {hex(id(self))}>"
 
     def __len__(self):
         return len(self.obj)

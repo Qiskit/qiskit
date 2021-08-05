@@ -52,24 +52,24 @@ class OpShape:
 
     def __repr__(self):
         if self._dims_l:
-            left = "dims_l={}".format(self._dims_l)
+            left = f"dims_l={self._dims_l}"
         elif self._num_qargs_l:
-            left = "num_qargs_l={}".format(self._num_qargs_l)
+            left = f"num_qargs_l={self._num_qargs_l}"
         else:
             left = ""
         if self._dims_r:
-            right = "dims_r={}".format(self._dims_r)
+            right = f"dims_r={self._dims_r}"
         elif self._num_qargs_r:
-            right = "num_qargs_r={}".format(self._num_qargs_r)
+            right = f"num_qargs_r={self._num_qargs_r}"
         else:
             right = ""
         if left and right:
-            inner = "{}, {}".format(left, right)
+            inner = f"{left}, {right}"
         elif left:
             inner = left
         else:
             inner = right
-        return "OpShape({})".format(inner)
+        return f"OpShape({inner})"
 
     def __eq__(self, other):
         """Check types and subsystem dimensions are equal"""
@@ -171,9 +171,7 @@ class OpShape:
         ndim = len(shape)
         if ndim > 2:
             if raise_exception:
-                raise QiskitError(
-                    "Input shape is not 1 or 2-dimensional (shape = {})".format(shape)
-                )
+                raise QiskitError(f"Input shape is not 1 or 2-dimensional (shape = {shape})")
             return False
 
         if self._dims_l:

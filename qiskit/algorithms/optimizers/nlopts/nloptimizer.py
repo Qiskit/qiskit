@@ -66,7 +66,7 @@ class NLoptOptimizer(Optimizer):
                 libname="nlopt",
                 name="NLoptOptimizer",
                 msg="See https://qiskit.org/documentation/apidoc/"
-                "qiskit.aqua.components.optimizers.nlopts.html"
+                "qiskit.algorithms.optimizers.nlopts.html"
                 " for installation information",
             )
 
@@ -95,6 +95,10 @@ class NLoptOptimizer(Optimizer):
             "bounds": OptimizerSupportLevel.supported,
             "initial_point": OptimizerSupportLevel.required,
         }
+
+    @property
+    def settings(self):
+        return {"max_evals": self._options.get("max_evals", 1000)}
 
     def optimize(
         self,

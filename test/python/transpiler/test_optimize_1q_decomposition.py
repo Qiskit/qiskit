@@ -23,6 +23,7 @@ from qiskit.circuit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.circuit.library.standard_gates import UGate, SXGate, PhaseGate
 from qiskit.circuit.library.standard_gates import U3Gate, U2Gate, U1Gate
 from qiskit.circuit.random import random_circuit
+from qiskit.compiler import transpile
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import BasisTranslator
@@ -354,6 +355,48 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         # assert optimization pass doesn't use it.
         self.assertEqual(circuit, result, f"Circuit:\n{circuit}\nResult:\n{result}")
 
+    def test_euler_decomposition_worse_2(self):
+        """Ensure we don't decompose to a deeper circuit in an edge case."""
+        circuit = QuantumCircuit(1)
+        circuit.rz(0.13, 0)
+        circuit.ry(-0.14, 0)
+        basis = ["ry", "rz"]
+        passmanager = PassManager()
+        passmanager.append(BasisTranslator(sel, basis))
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(circuit)
+        self.assertEqual(circuit, result, f"Circuit:\n{circuit}\nResult:\n{result}")
+
+    def test_euler_decomposition_zsx(self):
+        """Ensure we don't decompose to a deeper circuit in the ZSX basis."""
+        circuit = QuantumCircuit(1)
+        circuit.rz(0.3, 0)
+        circuit.sx(0)
+        circuit.rz(0.2, 0)
+        circuit.sx(0)
+
+        basis = ["sx", "rz"]
+        passmanager = PassManager()
+        passmanager.append(BasisTranslator(sel, basis))
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(circuit)
+        self.assertEqual(circuit, result, f"Circuit:\n{circuit}\nResult:\n{result}")
+
+    def test_euler_decomposition_zsx_2(self):
+        """Ensure we don't decompose to a deeper circuit in the ZSX basis."""
+        circuit = QuantumCircuit(1)
+        circuit.sx(0)
+        circuit.rz(0.2, 0)
+        circuit.sx(0)
+        circuit.rz(0.3, 0)
+
+        basis = ["sx", "rz"]
+        passmanager = PassManager()
+        passmanager.append(BasisTranslator(sel, basis))
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(circuit)
+        self.assertEqual(circuit, result, f"Circuit:\n{circuit}\nResult:\n{result}")
+
     def test_optimize_u_to_phase_gate(self):
         """U(0, 0, pi/4) ->  p(pi/4). Basis [p, sx]."""
         qr = QuantumRegister(2, "qr")
@@ -438,9 +481,66 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(qc)
         expected = QuantumCircuit(1)
-        expected.x(0)
         expected.rz(-np.pi, 0)
-        expected.global_phase += np.pi
+        expected.x(0)
+        msg = f"expected:\n{expected}\nresult:\n{result}"
+        self.assertEqual(expected, result, msg=msg)
+
+    def test_short_string(self):
+        """Test that a shorter-than-universal string is still rewritten."""
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        qc.ry(np.pi / 2, 0)
+        basis = ["sx", "rz"]
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(qc)
+        expected = QuantumCircuit(1)
+        expected.sx(0)
+        expected.sx(0)
+        msg = f"expected:\n{expected}\nresult:\n{result}"
+        self.assertEqual(expected, result, msg=msg)
+
+    def test_u_rewrites_to_rz(self):
+        """Test that a phase-like U-gate gets rewritten into an RZ gate."""
+        qc = QuantumCircuit(1)
+        qc.u(0, 0, np.pi / 6, 0)
+        basis = ["sx", "rz"]
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(qc)
+        expected = QuantumCircuit(1, global_phase=np.pi / 12)
+        expected.rz(np.pi / 6, 0)
+        msg = f"expected:\n{expected}\nresult:\n{result}"
+        self.assertEqual(expected, result, msg=msg)
+
+    def test_u_rewrites_to_phase(self):
+        """Test that a phase-like U-gate gets rewritten into an RZ gate."""
+        qc = QuantumCircuit(1)
+        qc.u(0, 0, np.pi / 6, 0)
+        basis = ["sx", "p"]
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(qc)
+        expected = QuantumCircuit(1)
+        expected.p(np.pi / 6, 0)
+        msg = f"expected:\n{expected}\nresult:\n{result}"
+        self.assertEqual(expected, result, msg=msg)
+
+    def test_no_warning_on_hadamard(self):
+        """
+        Test Hadamards don't trigger the inefficiency warning when they're part of the basis.
+
+        See #6848.
+        """
+        qc = QuantumCircuit(2)
+        qc.cz(0, 1)
+        basis = ["h", "cx", "rz", "sx", "x"]
+        result = transpile(qc, basis_gates=basis)
+        expected = QuantumCircuit(2)
+        expected.h(1)
+        expected.cx(0, 1)
+        expected.h(1)
         msg = f"expected:\n{expected}\nresult:\n{result}"
         self.assertEqual(expected, result, msg=msg)
 

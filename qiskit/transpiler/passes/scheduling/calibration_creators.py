@@ -13,14 +13,23 @@
 """Calibration creators."""
 
 import math
-from typing import List
+from typing import List, Union
 from abc import abstractmethod
 import numpy as np
 
-from qiskit.pulse import Play, ShiftPhase, Schedule, ControlChannel, DriveChannel, GaussianSquare
+from qiskit.pulse import (
+    Play,
+    Delay,
+    ShiftPhase,
+    Schedule,
+    ControlChannel,
+    DriveChannel,
+    GaussianSquare,
+)
+from qiskit.pulse.instructions.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.providers import basebackend
-from qiskit.dagcircuit import DAGNode
+from qiskit.dagcircuit import DAGOpNode
 from qiskit.circuit.library.standard_gates import RZXGate
 from qiskit.transpiler.basepasses import TransformationPass
 
@@ -29,7 +38,7 @@ class CalibrationCreator(TransformationPass):
     """Abstract base class to inject calibrations into circuits."""
 
     @abstractmethod
-    def supported(self, node_op: DAGNode) -> bool:
+    def supported(self, node_op: DAGOpNode) -> bool:
         """Determine if a given name supports the calibration."""
 
     @abstractmethod
@@ -48,7 +57,7 @@ class CalibrationCreator(TransformationPass):
         bit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
 
         for node in dag.nodes():
-            if node.type == "op":
+            if isinstance(node, DAGOpNode):
                 if self.supported(node.op):
                     params = node.op.params
                     qubits = [bit_indices[qarg] for qarg in node.qargs]
@@ -87,14 +96,14 @@ class RZXCalibrationBuilder(CalibrationCreator):
         if not backend.configuration().open_pulse:
             raise QiskitError(
                 "Calibrations can only be added to Pulse-enabled backends, "
-                "but {0} is not enabled with Pulse.".format(backend.name())
+                "but {} is not enabled with Pulse.".format(backend.name())
             )
 
         self._inst_map = backend.defaults().instruction_schedule_map
         self._config = backend.configuration()
         self._channel_map = backend.configuration().qubit_channel_mapping
 
-    def supported(self, node_op: DAGNode) -> bool:
+    def supported(self, node_op: DAGOpNode) -> bool:
         """
         Args:
             node_op: The node from the dag dep.
@@ -254,3 +263,124 @@ class RZXCalibrationBuilder(CalibrationCreator):
             h_sched = h_sched.insert(sxc.duration, rzt)
             rzx_theta = h_sched.append(rzx_theta)
             return rzx_theta.append(h_sched)
+
+
+class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
+    """
+    Creates calibrations for RZXGate(theta) by stretching and compressing
+    Gaussian square pulses in the CX gate.
+
+    The ``RZXCalibrationBuilderNoEcho`` is a variation of the
+    :class:`~qiskit.transpiler.passes.RZXCalibrationBuilder` pass
+    that creates calibrations for the cross-resonance pulses without inserting
+    the echo pulses in the pulse schedule. This enables exposing the echo in
+    the cross-resonance sequence as gates so that the transpiler can simplify them.
+    The ``RZXCalibrationBuilderNoEcho`` only supports the hardware-native direction
+    of the CX gate.
+    """
+
+    @staticmethod
+    def _filter_control(inst: (int, Union["Schedule", Instruction])) -> bool:
+        """
+        Looks for Gaussian square pulses applied to control channels.
+
+        Args:
+            inst: Instructions to be filtered.
+
+        Returns:
+            match: True if the instruction is a Play instruction with
+                a Gaussian square pulse on the ControlChannel.
+        """
+        if isinstance(inst[1], Play):
+            if isinstance(inst[1].pulse, GaussianSquare) and isinstance(
+                inst[1].channel, ControlChannel
+            ):
+                return True
+
+        return False
+
+    @staticmethod
+    def _filter_drive(inst: (int, Union["Schedule", Instruction])) -> bool:
+        """
+        Looks for Gaussian square pulses applied to drive channels.
+
+        Args:
+            inst: Instructions to be filtered.
+
+        Returns:
+            match: True if the instruction is a Play instruction with
+                a Gaussian square pulse on the DriveChannel.
+        """
+        if isinstance(inst[1], Play):
+            if isinstance(inst[1].pulse, GaussianSquare) and isinstance(
+                inst[1].channel, DriveChannel
+            ):
+                return True
+
+        return False
+
+    def get_calibration(self, params: List, qubits: List) -> Schedule:
+        """
+        Builds the calibration schedule for the RZXGate(theta) without echos.
+
+        Args:
+            params: Parameters of the RZXGate(theta). I.e. params[0] is theta.
+            qubits: List of qubits for which to get the schedules. The first qubit is
+                the control and the second is the target.
+
+        Returns:
+            schedule: The calibration schedule for the RZXGate(theta).
+
+        Raises:
+            QiskitError: If the control and target qubits cannot be identified, or the backend
+                does not support a cx gate between the qubits, or the backend does not natively
+                support the specified direction of the cx.
+        """
+        theta = params[0]
+        q1, q2 = qubits[0], qubits[1]
+
+        if not self._inst_map.has("cx", qubits):
+            raise QiskitError(
+                "This transpilation pass requires the backend to support cx "
+                "between qubits %i and %i." % (q1, q2)
+            )
+
+        cx_sched = self._inst_map.get("cx", qubits=(q1, q2))
+        rzx_theta = Schedule(name="rzx(%.3f)" % theta)
+
+        if theta == 0.0:
+            return rzx_theta
+
+        control, target = None, None
+
+        for _, inst in cx_sched.instructions:
+            # Identify the compensation tones.
+            if isinstance(inst.channel, DriveChannel) and isinstance(inst, Play):
+                if isinstance(inst.pulse, GaussianSquare):
+                    target = inst.channel.index
+                    control = q1 if target == q2 else q2
+
+        if control is None:
+            raise QiskitError("Control qubit is None.")
+        if target is None:
+            raise QiskitError("Target qubit is None.")
+
+        if control != qubits[0]:
+            raise QiskitError(
+                "RZXCalibrationBuilderNoEcho only supports hardware-native RZX gates."
+            )
+
+        # Get the filtered Schedule instructions for the CR gates and compensation tones.
+        crs = cx_sched.filter(*[self._filter_control]).instructions
+        rotaries = cx_sched.filter(*[self._filter_drive]).instructions
+
+        # Stretch/compress the CR gates and compensation tones.
+        cr = self.rescale_cr_inst(crs[0][1], 2 * theta)
+        rot = self.rescale_cr_inst(rotaries[0][1], 2 * theta)
+
+        # Build the schedule for the RZXGate without the echos.
+        rzx_theta = rzx_theta.insert(0, cr)
+        rzx_theta = rzx_theta.insert(0, rot)
+        rzx_theta = rzx_theta.insert(0, Delay(cr.duration, DriveChannel(control)))
+
+        return rzx_theta

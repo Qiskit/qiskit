@@ -20,7 +20,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit import QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.library import XGate, RZGate, CSwapGate, SwapGate
-from qiskit.dagcircuit import DAGNode
+from qiskit.dagcircuit import DAGOpNode
 from qiskit.quantum_info import Statevector
 
 
@@ -293,20 +293,58 @@ class TestHoareOptimizer(QiskitTestCase):
 
         self.assertEqual(result, circuit_to_dag(expected))
 
+    def test_control_removal(self):
+        """Should replace CX by X and CZ by Z."""
+        circuit = QuantumCircuit(2)
+        circuit.x(0)
+        circuit.cx(0, 1)
+
+        expected = QuantumCircuit(2)
+        expected.x(0)
+        expected.x(1)
+
+        stv = Statevector.from_label("0" * circuit.num_qubits)
+        self.assertEqual(stv @ circuit, stv @ expected)
+
+        pass_ = HoareOptimizer(size=5)
+        result = pass_.run(circuit_to_dag(circuit))
+
+        self.assertEqual(result, circuit_to_dag(expected))
+
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.x(1)
+        circuit.cz(0, 1)
+        circuit.h(0)
+
+        expected = QuantumCircuit(2)
+        expected.h(0)
+        expected.x(1)
+        expected.z(0)
+        expected.h(0)
+
+        stv = Statevector.from_label("0" * circuit.num_qubits)
+        self.assertEqual(stv @ circuit, stv @ expected)
+
+        pass_ = HoareOptimizer(size=5)
+        result = pass_.run(circuit_to_dag(circuit))
+
+        self.assertEqual(result, circuit_to_dag(expected))
+
     def test_is_identity(self):
         """The is_identity function determines whether a pair of gates
         forms the identity, when ignoring control qubits.
         """
-        seq = [DAGNode(type="op", op=XGate().control()), DAGNode(type="op", op=XGate().control(2))]
+        seq = [DAGOpNode(op=XGate().control()), DAGOpNode(op=XGate().control(2))]
         self.assertTrue(HoareOptimizer()._is_identity(seq))
 
         seq = [
-            DAGNode(type="op", op=RZGate(-pi / 2).control()),
-            DAGNode(type="op", op=RZGate(pi / 2).control(2)),
+            DAGOpNode(op=RZGate(-pi / 2).control()),
+            DAGOpNode(op=RZGate(pi / 2).control(2)),
         ]
         self.assertTrue(HoareOptimizer()._is_identity(seq))
 
-        seq = [DAGNode(type="op", op=CSwapGate()), DAGNode(type="op", op=SwapGate())]
+        seq = [DAGOpNode(op=CSwapGate()), DAGOpNode(op=SwapGate())]
         self.assertTrue(HoareOptimizer()._is_identity(seq))
 
     def test_multiple_pass(self):

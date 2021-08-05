@@ -46,7 +46,7 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
     def test_simple(self):
         """test AQGD optimizer with the parameters as single values."""
         q_instance = QuantumInstance(
-            Aer.get_backend("statevector_simulator"),
+            Aer.get_backend("aer_simulator_statevector"),
             seed_simulator=algorithm_globals.random_seed,
             seed_transpiler=algorithm_globals.random_seed,
         )
@@ -64,7 +64,7 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
     def test_list(self):
         """test AQGD optimizer with the parameters as lists."""
         q_instance = QuantumInstance(
-            Aer.get_backend("statevector_simulator"),
+            Aer.get_backend("aer_simulator_statevector"),
             seed_simulator=algorithm_globals.random_seed,
             seed_transpiler=algorithm_globals.random_seed,
         )
@@ -82,7 +82,7 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
     def test_int_values(self):
         """test AQGD with int values passed as eta and momentum."""
         q_instance = QuantumInstance(
-            Aer.get_backend("statevector_simulator"),
+            Aer.get_backend("aer_simulator_statevector"),
             seed_simulator=algorithm_globals.random_seed,
             seed_transpiler=algorithm_globals.random_seed,
         )

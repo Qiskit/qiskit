@@ -34,7 +34,7 @@ def summarize_circuits(circuits):
     if not isinstance(circuits, list):
         circuits = [circuits]
     ret = ""
-    ret += "Submitting {} circuits.\n".format(len(circuits))
+    ret += f"Submitting {len(circuits)} circuits.\n"
     ret += "============================================================================\n"
     stats = np.zeros(4)
     for i, circuit in enumerate(circuits):

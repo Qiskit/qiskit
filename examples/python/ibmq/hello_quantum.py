@@ -30,7 +30,7 @@ qc.measure([0, 1], [0, 1])
 
 # See a list of available local simulators
 print("BasicAer backends: ", BasicAer.backends())
-backend_sim = BasicAer.get_backend('qasm_simulator')
+backend_sim = BasicAer.get_backend("qasm_simulator")
 
 # Compile and run the Quantum circuit on a simulator backend
 job_sim = execute(qc, backend_sim)
@@ -43,9 +43,11 @@ print(result_sim.get_counts(qc))
 try:
     provider = IBMQ.load_account()
 except:
-    print("""WARNING: No valid IBMQ credentials found on disk.
+    print(
+        """WARNING: No valid IBMQ credentials found on disk.
              You must store your credentials using IBMQ.save_account(token, url).
-             For now, there's only access to local simulator backends...""")
+             For now, there's only access to local simulator backends..."""
+    )
     exit(0)
 
 # see a list of available remote backends
@@ -55,16 +57,17 @@ print("Remote backends: ", ibmq_backends)
 # Compile and run the Quantum Program on a real device backend
 # select those with at least 2 qubits
 try:
-    least_busy_device = least_busy(provider.backends(
-        filters=lambda x: x.configuration().n_qubits >= 2, simulator=False))
+    least_busy_device = least_busy(
+        provider.backends(filters=lambda x: x.configuration().n_qubits >= 2, simulator=False)
+    )
 except:
     print("All devices are currently unavailable.")
 
 print("Running on current least busy device: ", least_busy_device)
 
-#running the job
+# running the job
 job_exp = execute(qc, least_busy_device, shots=1024, max_credits=10)
 result_exp = job_exp.result()
 
 # Show the results
-print('Counts: ', result_exp.get_counts(qc))
+print("Counts: ", result_exp.get_counts(qc))
