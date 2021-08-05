@@ -87,11 +87,11 @@ class TestQAOAAnsatz(QiskitTestCase):
         circuit = QAOAAnsatz(Z, reps=2)
         bounds = circuit.parameter_bounds
 
-        for lower, upper in bounds[2:]:
+        for lower, upper in bounds[:2]:
             self.assertAlmostEqual(lower, 0)
             self.assertAlmostEqual(upper, 2 * np.pi)
 
-        for lower, upper in bounds[:2]:
+        for lower, upper in bounds[2:]:
             self.assertIsNone(lower)
             self.assertIsNone(upper)
 
