@@ -223,14 +223,14 @@ class QFT(BlueprintCircuit):
             name = self.name + "_dg"
 
         inverted = self.copy(name=name)
+        super(QFT, inverted)._invalidate()
+
+        # data consists of the QFT gate only
+        iqft = self._data[0][0].inverse()
+        iqft.name = name
+
         inverted._data = []
-
-        from qiskit.circuit.parametertable import ParameterTable
-
-        inverted._parameter_table = ParameterTable()
-
-        for inst, qargs, cargs in reversed(self._data):
-            inverted._append(inst.inverse(), qargs, cargs)
+        inverted._append(iqft, inverted.qubits, [])
 
         inverted._inverse = not self._inverse
         return inverted
