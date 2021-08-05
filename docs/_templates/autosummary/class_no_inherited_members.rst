@@ -18,7 +18,7 @@
    Methods all get their own separate page, with their names and the first lines
    of their docstrings tabulated.
 -#}
-{% block methods_summary %}{% set wanted_methods = (methods | reject('in', inherited_members) | reject('==', ['__init__'])) %}{% if wanted_methods %}
+{% block methods_summary %}{% set wanted_methods = (methods | reject('in', inherited_members) | reject('==', '__init__')) %}{% if wanted_methods %}
    .. rubric:: Methods Defined Here
 
    .. autosummary::
