@@ -961,7 +961,7 @@ class DAGCircuit:
             for input_node in in_dag.op_nodes():
                 in_dag.remove_op_node(input_node)
             for replay_node in to_replay:
-                in_dag.apply_operation_back(replay_node._op, replay_node.qargs, replay_node.cargs)
+                in_dag.apply_operation_back(replay_node.op, replay_node.qargs, replay_node.cargs)
 
         if in_dag.global_phase:
             self.global_phase += in_dag.global_phase
@@ -1025,7 +1025,7 @@ class DAGCircuit:
                 self._multi_graph.add_edge(pred._node_id, succ._node_id, self_wire)
 
         def filter_fn(node):
-            if node.type != "op":
+            if not isinstance(node, DAGOpNode):
                 return False
             for qarg in node.qargs:
                 if qarg not in wire_set:
@@ -1039,14 +1039,14 @@ class DAGCircuit:
                 wire_id = in_dag.output_map[wire]._node_id
                 out_index = in_dag._multi_graph.predecessor_indices(wire_id)[0]
                 # Edge from input to output don't map (handled already)
-                if in_dag._multi_graph[out_index].type != "op":
+                if not isinstance(in_dag._multi_graph[out_index], DAGOpNode):
                     return None
             # predecessor edge
             else:
                 wire_id = in_dag.input_map[wire]._node_id
                 out_index = in_dag._multi_graph.successor_indices(wire_id)[0]
                 # Edge from input to output don't map (handled already)
-                if in_dag._multi_graph[out_index].type != "op":
+                if not isinstance(in_dag._multi_graph[out_index], DAGOpNode):
                     return None
             return out_index
 
@@ -1062,13 +1062,12 @@ class DAGCircuit:
             # update node attributes
             new_node_index = node_map[old_node_index]
             old_node = in_dag._multi_graph[old_node_index]
-            condition = self._map_condition(wire_map, old_node._op.condition, self.cregs.values())
+            condition = self._map_condition(wire_map, old_node.op.condition, self.cregs.values())
             m_qargs = list(map(lambda x: wire_map.get(x, x), old_node.qargs))
             m_cargs = list(map(lambda x: wire_map.get(x, x), old_node.cargs))
-            new_node = DAGNode(
-                "op", op=old_node._op, qargs=m_qargs, cargs=m_cargs, nid=new_node_index
-            )
-            new_node._op.condition = condition
+            new_node = DAGOpNode(old_node.op, qargs=m_qargs, cargs=m_cargs)
+            new_node._node_id = new_node_index
+            new_node.op.condition = condition
             self._multi_graph[new_node_index] = new_node
 
     def substitute_node(self, node, op, inplace=False):
