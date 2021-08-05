@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds the ability to obtain the final measurement mapping of a circuit
+    using :meth:`QuantumCircuit.final_measurement_mapping`.
