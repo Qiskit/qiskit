@@ -25,6 +25,19 @@ class TestCircuitMeasMapping(QiskitTestCase):
         qc = QuantumCircuit()
         self.assertEqual(qc.final_measurement_mapping(), {})
 
+    def test_simple_circ(self):
+        """Empty circuit has no mapping"""
+        qc = QuantumCircuit(5)
+        qc.measure_all()
+        self.assertEqual(qc.final_measurement_mapping(), {0: 0, 1: 1, 2: 2, 3: 3, 4: 4})
+
+    def test_simple2_circ(self):
+        """Empty circuit has no mapping"""
+        qc = QuantumCircuit(5)
+        qc.measure_all()
+        qc.h(range(5))
+        self.assertEqual(qc.final_measurement_mapping(), {})
+
     def test_multi_qreg(self):
         """Test multiple qregs"""
         qr1 = QuantumRegister(2, "q1")
