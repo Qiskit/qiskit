@@ -398,7 +398,7 @@ def _latex_circuit_drawer(
                  missing.
         CalledProcessError: usually points to errors during diagram creation.
         MissingOptionalLibraryError: if pillow is not installed
-        ValueError: If unsupported image format is given as filename extension.
+        VisualizationError: If unsupported image format is given as filename extension.
     """
     tmpfilename = "circuit"
     with tempfile.TemporaryDirectory() as tmpdirname:
@@ -467,10 +467,9 @@ def _latex_circuit_drawer(
                     else:
                         try:
                             image.save(filename)
-                        except ValueError as ve:
-                            raise ValueError(
-                                "ERROR: This image format is not supported. "
-                                "Please change file extension to a supported image format."
+                        except VisualizationError as ve:
+                            raise VisualizationError(
+                                "ERROR: filename parameter does not use a supported extension."
                             ) from ve
             except (OSError, subprocess.CalledProcessError) as ex:
                 logger.warning(
