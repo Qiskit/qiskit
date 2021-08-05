@@ -1,7 +1,39 @@
 \documentclass[border=2px]{standalone}
         
 \usepackage[braket, qm]{qcircuit}
+<<<<<<< HEAD
 \usepackage{graphicx}
+||||||| merged common ancestors
+\usepackage{amsmath}
+\pdfmapfile{+sansmathaccent.map}
+% \usepackage[landscape]{geometry}
+% Comment out the above line if using the beamer documentclass.
+\begin{document}
+
+\begin{equation*}
+    \Qcircuit @C=1.0em @R=0.2em @!R {
+	 	\lstick{ {q}_{0} : \ket{{0}} } & \gate{\mathrm{X}} & \gate{\mathrm{H}} & \qw & \qw\\
+	 	\lstick{ {q}_{1} : \ket{{0}} } & \gate{\mathrm{X}} & \qw & \qw & \qw\\
+	 	\lstick{c:0} & \lstick{/_{_{2}}} \cw & \cw & \cw & \cw\\
+	 }
+\end{equation*}
+=======
+\usepackage{amsmath}
+\pdfmapfile{+sansmathaccent.map}
+% \usepackage[landscape]{geometry}
+% Comment out the above line if using the beamer documentclass.
+\begin{document}
+% Delete the command below if there are no CP, CU1, RZZ in the circuit.
+\newlength{\glen}
+
+\begin{equation*}
+    \Qcircuit @C=1.0em @R=0.2em @!R {
+	 	\lstick{ {q}_{0} : \ket{{0}} } & \gate{\mathrm{X}} & \gate{\mathrm{H}} & \qw & \qw\\
+	 	\lstick{ {q}_{1} : \ket{{0}} } & \gate{\mathrm{X}} & \qw & \qw & \qw\\
+	 	\lstick{c:0} & \lstick{/_{_{2}}} \cw & \cw & \cw & \cw\\
+	 }
+\end{equation*}
+>>>>>>> 795491a4b721d0398dded88c5002a8781801b0bb
 
 \begin{document} 
 \scalebox{1.0}{

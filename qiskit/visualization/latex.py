@@ -167,6 +167,8 @@ class QCircuitImage:
 \usepackage{graphicx}
 
 \begin{document} 
+% Delete the command below if there are no CP, CU1, RZZ in the circuit.
+\newlength{\glen}
 """
         header_scale = "\\scalebox{{{}}}".format(self.scale) + "{"
 
@@ -328,7 +330,7 @@ class QCircuitImage:
                 # which take 4 columns
                 base_type = None if not hasattr(op, "base_gate") else op.base_gate
                 if isinstance(op, RZZGate) or isinstance(base_type, (U1Gate, PhaseGate, RZZGate)):
-                    column_width = 4
+                    column_width = 5
             max_column_widths.append(current_max)
             columns += column_width
 
@@ -527,8 +529,11 @@ class QCircuitImage:
         )
         self._latex[wire_last][col] = "\\control \\qw"
         # Put side text to the right between bottom wire in wire_list and the one above it
-        self._latex[wire_max - 1][col + 1] = "\\dstick{\\hspace{2.0em}%s} \\qw" % gate_text
-        return 4  # num_cols for side text gates
+        # \settowidth allows redefining \glen to the width of the gate. This avoids overlapping.
+        self._latex[wire_max][col] += (" \\cds{-1}{\\settowidth{\\glen}{\\ensuremath{%s}}"
+                                       " \\hspace{0.5em}\\hspace{\\glen}\\ensuremath{%s}}"
+                                       % (gate_text, gate_text))
+        return 5    # num_cols for side text gates
 
     def _build_measure(self, node, col):
         """Build a meter and the lines to the creg"""

@@ -1,7 +1,37 @@
 \documentclass[border=2px]{standalone}
         
 \usepackage[braket, qm]{qcircuit}
+<<<<<<< HEAD
 \usepackage{graphicx}
+||||||| merged common ancestors
+\usepackage{amsmath}
+\pdfmapfile{+sansmathaccent.map}
+% \usepackage[landscape]{geometry}
+% Comment out the above line if using the beamer documentclass.
+\begin{document}
+
+\begin{equation*}
+    \Qcircuit @C=1.0em @R=1.0em @!R {
+	 	\lstick{ {q}_{0} :  } & \gate{|\psi\rangle\,\mathrm{(}\mathrm{0},\mathrm{1}\mathrm{)}} & \multigate{1}{|\psi\rangle\,\mathrm{(}\mathrm{0},\mathrm{1},\mathrm{0},\mathrm{0}\mathrm{)}} & \qw & \qw\\
+	 	\lstick{ {q}_{1} :  } & \gate{\left|0\right\rangle} & \ghost{|\psi\rangle\,\mathrm{(}\mathrm{0},\mathrm{1},\mathrm{0},\mathrm{0}\mathrm{)}} & \qw & \qw\\
+	 }
+\end{equation*}
+=======
+\usepackage{amsmath}
+\pdfmapfile{+sansmathaccent.map}
+% \usepackage[landscape]{geometry}
+% Comment out the above line if using the beamer documentclass.
+\begin{document}
+% Delete the command below if there are no CP, CU1, RZZ in the circuit.
+\newlength{\glen}
+
+\begin{equation*}
+    \Qcircuit @C=1.0em @R=1.0em @!R {
+	 	\lstick{ {q}_{0} :  } & \gate{|\psi\rangle\,\mathrm{(}\mathrm{0},\mathrm{1}\mathrm{)}} & \multigate{1}{|\psi\rangle\,\mathrm{(}\mathrm{0},\mathrm{1},\mathrm{0},\mathrm{0}\mathrm{)}} & \qw & \qw\\
+	 	\lstick{ {q}_{1} :  } & \gate{\left|0\right\rangle} & \ghost{|\psi\rangle\,\mathrm{(}\mathrm{0},\mathrm{1},\mathrm{0},\mathrm{0}\mathrm{)}} & \qw & \qw\\
+	 }
+\end{equation*}
+>>>>>>> 795491a4b721d0398dded88c5002a8781801b0bb
 
 \begin{document} 
 \scalebox{1.0}{
