@@ -21,6 +21,15 @@ Measurement Mitigation Utils (:mod:`qiskit.utils.mitigation`)
 
 .. currentmodule:: qiskit.utils.mitigation
 
+.. warning::
+
+    The user facing API stability of this module is not guaranteed except for
+    their use with the :class:`~qiskit.utils.QuantumInstance` (ie using the
+    :class:`~qiskit.utils.mitigation.CompleteMeasFitter` or
+    :class:`~qiskit.utils.mitigation.TensoredMeasFitter` class as values for the
+    ``meas_error_mitigation_cls``). The rest of this module should be treated as
+    an internal private API that can not be relied upon.
+
 Measurement correction
 ======================
 
@@ -31,15 +40,6 @@ From these calibrations, it is possible to correct the average results
 of another experiment of interest. These tools are intended for use solely
 with the :class:`~qiskit.utils.QuantumInstance` class as part of
 :mod:`qiskit.algorithms` and :mod:`qiskit.opflow`.
-
-.. warning::
-
-    The user facing API stability of this module is not guaranteed except for
-    their use with the :class:`~qiskit.utils.QuantumInstance` (ie using the
-    :class:`~qiskit.utils.mitigation.CompleteMeasFitter` or
-    :class:`~qiskit.utils.mitigation.TensoredMeasFitter` class as values for the
-    ``meas_error_mitigation_cls``). The rest of this module should be treated as
-    an internal private API that can not be relied upon.
 
 .. autosummary::
    :toctree: ../stubs/
