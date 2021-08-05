@@ -142,15 +142,14 @@ class Register:
         """
         Arg:
             bit_type (Qubit or Clbit): a constructor type return element/s.
-            key (int or slice or list): index of the clbit to be retrieved.
+            key (int or slice or list): index of the bit to be retrieved.
 
         Returns:
             Qubit or Clbit or list(Qubit) or list(Clbit): a Qubit or Clbit instance if
             key is int. If key is a slice, returns a list of these instances.
 
         Raises:
-            CircuitError: if the `key` is not an integer.
-            QiskitIndexError: if the `key` is not in the range `(0, self.size)`.
+            CircuitError: if the `key` is not an integer or not in the range `(0, self.size)`.
         """
         if not isinstance(key, (int, np.integer, slice, list)):
             raise CircuitError("expected integer or slice index into register")

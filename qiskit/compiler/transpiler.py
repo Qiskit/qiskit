@@ -14,7 +14,7 @@
 import logging
 import warnings
 from time import time
-from typing import List, Union, Dict, Callable, Any, Optional, Tuple
+from typing import List, Union, Dict, Callable, Any, Optional, Tuple, Iterable
 
 from qiskit import user_config
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -33,6 +33,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations, InstructionDurationsType
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
+from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.preset_passmanagers import (
     level_0_pass_manager,
     level_1_pass_manager,
@@ -57,6 +58,7 @@ def transpile(
     instruction_durations: Optional[InstructionDurationsType] = None,
     dt: Optional[float] = None,
     approximation_degree: Optional[float] = None,
+    timing_constraints: Optional[Dict[str, int]] = None,
     seed_transpiler: Optional[int] = None,
     optimization_level: Optional[int] = None,
     pass_manager: Optional[PassManager] = None,
@@ -147,6 +149,25 @@ def transpile(
             If ``None`` (default), ``backend.configuration().dt`` is used.
         approximation_degree (float): heuristic dial used for circuit approximation
             (1.0=no approximation, 0.0=maximal approximation)
+        timing_constraints: An optional control hardware restriction on instruction time resolution.
+            A quantum computer backend may report a set of restrictions, namely:
+
+            - granularity: An integer value representing minimum pulse gate
+              resolution in units of ``dt``. A user-defined pulse gate should have
+              duration of a multiple of this granularity value.
+            - min_length: An integer value representing minimum pulse gate
+              length in units of ``dt``. A user-defined pulse gate should be longer
+              than this length.
+            - pulse_alignment: An integer value representing a time resolution of gate
+              instruction starting time. Gate instruction should start at time which
+              is a multiple of the alignment value.
+            - acquire_alignment: An integer value representing a time resolution of measure
+              instruction starting time. Measure instruction should start at time which
+              is a multiple of the alignment value.
+
+            This information will be provided by the backend configuration.
+            If the backend doesn't have any restriction on the instruction time allocation,
+            then ``timing_constraints`` is None and no adjustment will be performed.
         seed_transpiler: Sets random seed for the stochastic parts of the transpiler
         optimization_level: How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,
@@ -263,6 +284,7 @@ def transpile(
         optimization_level,
         callback,
         output_name,
+        timing_constraints,
     )
 
     _check_circuits_coupling_map(circuits, transpile_args, backend)
@@ -443,6 +465,7 @@ def _parse_transpile_args(
     optimization_level,
     callback,
     output_name,
+    timing_constraints,
 ) -> List[Dict]:
     """Resolve the various types of args allowed to the transpile() function through
     duck typing, overriding args, etc. Refer to the transpile() docstring for details on
@@ -480,6 +503,7 @@ def _parse_transpile_args(
     callback = _parse_callback(callback, num_circuits)
     durations = _parse_instruction_durations(backend, instruction_durations, dt, circuits)
     scheduling_method = _parse_scheduling_method(scheduling_method, num_circuits)
+    timing_constraints = _parse_timing_constraints(backend, timing_constraints, num_circuits)
     if scheduling_method and any(d is None for d in durations):
         raise TranspilerError(
             "Transpiling a circuit with a scheduling method"
@@ -487,43 +511,47 @@ def _parse_transpile_args(
         )
 
     list_transpile_args = []
-    for args in zip(
-        basis_gates,
-        coupling_map,
-        backend_properties,
-        initial_layout,
-        layout_method,
-        routing_method,
-        translation_method,
-        scheduling_method,
-        durations,
-        approximation_degree,
-        seed_transpiler,
-        optimization_level,
-        output_name,
-        callback,
-        backend_num_qubits,
-        faulty_qubits_map,
+    for kwargs in _zip_dict(
+        {
+            "basis_gates": basis_gates,
+            "coupling_map": coupling_map,
+            "backend_properties": backend_properties,
+            "initial_layout": initial_layout,
+            "layout_method": layout_method,
+            "routing_method": routing_method,
+            "translation_method": translation_method,
+            "scheduling_method": scheduling_method,
+            "durations": durations,
+            "approximation_degree": approximation_degree,
+            "timing_constraints": timing_constraints,
+            "seed_transpiler": seed_transpiler,
+            "optimization_level": optimization_level,
+            "output_name": output_name,
+            "callback": callback,
+            "backend_num_qubits": backend_num_qubits,
+            "faulty_qubits_map": faulty_qubits_map,
+        }
     ):
         transpile_args = {
             "pass_manager_config": PassManagerConfig(
-                basis_gates=args[0],
-                coupling_map=args[1],
-                backend_properties=args[2],
-                initial_layout=args[3],
-                layout_method=args[4],
-                routing_method=args[5],
-                translation_method=args[6],
-                scheduling_method=args[7],
-                instruction_durations=args[8],
-                approximation_degree=args[9],
-                seed_transpiler=args[10],
+                basis_gates=kwargs["basis_gates"],
+                coupling_map=kwargs["coupling_map"],
+                backend_properties=kwargs["backend_properties"],
+                initial_layout=kwargs["initial_layout"],
+                layout_method=kwargs["layout_method"],
+                routing_method=kwargs["routing_method"],
+                translation_method=kwargs["translation_method"],
+                scheduling_method=kwargs["scheduling_method"],
+                instruction_durations=kwargs["durations"],
+                approximation_degree=kwargs["approximation_degree"],
+                timing_constraints=kwargs["timing_constraints"],
+                seed_transpiler=kwargs["seed_transpiler"],
             ),
-            "optimization_level": args[11],
-            "output_name": args[12],
-            "callback": args[13],
-            "backend_num_qubits": args[14],
-            "faulty_qubits_map": args[15],
+            "optimization_level": kwargs["optimization_level"],
+            "output_name": kwargs["output_name"],
+            "callback": kwargs["callback"],
+            "backend_num_qubits": kwargs["backend_num_qubits"],
+            "faulty_qubits_map": kwargs["faulty_qubits_map"],
         }
         list_transpile_args.append(transpile_args)
 
@@ -585,10 +613,21 @@ def _parse_coupling_map(coupling_map, backend, num_circuits):
             if hasattr(configuration, "coupling_map") and configuration.coupling_map:
                 faulty_map = _create_faulty_qubits_map(backend)
                 if faulty_map:
+                    faulty_edges = [gate.qubits for gate in backend.properties().faulty_gates()]
+                    functional_gates = [
+                        edge for edge in configuration.coupling_map if edge not in faulty_edges
+                    ]
                     coupling_map = CouplingMap()
-                    for qubit1, qubit2 in configuration.coupling_map:
+                    for qubit1, qubit2 in functional_gates:
                         if faulty_map[qubit1] is not None and faulty_map[qubit2] is not None:
                             coupling_map.add_edge(faulty_map[qubit1], faulty_map[qubit2])
+                    if configuration.n_qubits != coupling_map.size():
+                        warnings.warn(
+                            "The backend has currently some qubits/edges out of service."
+                            " This temporarily reduces the backend size from "
+                            f"{configuration.n_qubits} to {coupling_map.size()}",
+                            UserWarning,
+                        )
                 else:
                     coupling_map = CouplingMap(configuration.coupling_map)
 
@@ -822,3 +861,24 @@ def _parse_output_name(output_name, circuits):
             )
     else:
         return [circuit.name for circuit in circuits]
+
+
+def _parse_timing_constraints(backend, timing_constraints, num_circuits):
+
+    if backend is None and timing_constraints is None:
+        timing_constraints = TimingConstraints()
+    else:
+        if timing_constraints is None:
+            # get constraints from backend
+            timing_constraints = getattr(backend.configuration(), "timing_constraints", {})
+        timing_constraints = TimingConstraints(**timing_constraints)
+
+    return [timing_constraints] * num_circuits
+
+
+def _zip_dict(mapping: Dict[Any, Iterable]) -> Iterable[Dict]:
+    """Zip a dictionary where all the values are iterables of the same length into an iterable of
+    dictionaries with the same keys.  This has the same semantics as zip with regard to laziness
+    (over the iterables; there must be a finite number of keys!) and unequal lengths."""
+    keys, iterables = zip(*mapping.items())
+    return (dict(zip(keys, values)) for values in zip(*iterables))

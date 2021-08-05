@@ -77,9 +77,25 @@ with open(README_PATH) as readme_file:
         flags=re.S | re.M,
     )
 
+
+visualization_extras = [
+    "matplotlib>=2.1",
+    "ipywidgets>=7.3.0",
+    "pydot",
+    "pillow>=4.2.1",
+    "pylatexenc>=1.4",
+    "seaborn>=0.9.0",
+    "pygments>=2.4",
+]
+z3_requirements = [
+    "z3-solver>=4.7",
+]
+bip_requirements = ["cplex", "docplex"]
+
+
 setup(
     name="qiskit-terra",
-    version="0.18.0",
+    version="0.19.0",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -109,18 +125,13 @@ setup(
     include_package_data=True,
     python_requires=">=3.6",
     extras_require={
-        "visualization": [
-            "matplotlib>=2.1",
-            "ipywidgets>=7.3.0",
-            "pydot",
-            "pillow>=4.2.1",
-            "pylatexenc>=1.4",
-            "seaborn>=0.9.0",
-            "pygments>=2.4",
-        ],
-        "classical-function-compiler": ["tweedledum>=1.0,<2.0"],
-        "full-featured-simulators": ["qiskit-aer>=0.1"],
-        "crosstalk-pass": ["z3-solver>=4.7"],
+        "visualization": visualization_extras,
+        "bip-mapper": bip_requirements,
+        "crosstalk-pass": z3_requirements,
+        # Note: 'all' does not include 'bip-mapper' because cplex is too fiddly and too little
+        # supported on various Python versions and OSes compared to Terra.  You have to ask for it
+        # explicitly.
+        "all": visualization_extras + z3_requirements,
     },
     project_urls={
         "Bug Tracker": "https://github.com/Qiskit/qiskit-terra/issues",

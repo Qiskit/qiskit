@@ -1,7 +1,0 @@
----
-
-fixes:
-  - |
-    Fixes an issue where :class:`~qiskit.circuit.library.TwoLocal` did not
-    support numpy integers as input for ``entanglement``. This has
-    been resolved by casting numpy integers to integers.
