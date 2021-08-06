@@ -29,7 +29,7 @@ from qiskit.pulse import (
 from qiskit.pulse.instructions.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.providers import basebackend
-from qiskit.dagcircuit import DAGNode
+from qiskit.dagcircuit import DAGOpNode
 from qiskit.circuit.library.standard_gates import RZXGate
 from qiskit.transpiler.basepasses import TransformationPass
 
@@ -38,7 +38,7 @@ class CalibrationCreator(TransformationPass):
     """Abstract base class to inject calibrations into circuits."""
 
     @abstractmethod
-    def supported(self, node_op: DAGNode) -> bool:
+    def supported(self, node_op: DAGOpNode) -> bool:
         """Determine if a given name supports the calibration."""
 
     @abstractmethod
@@ -57,7 +57,7 @@ class CalibrationCreator(TransformationPass):
         bit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
 
         for node in dag.nodes():
-            if node.type == "op":
+            if isinstance(node, DAGOpNode):
                 if self.supported(node.op):
                     params = node.op.params
                     qubits = [bit_indices[qarg] for qarg in node.qargs]
@@ -103,7 +103,7 @@ class RZXCalibrationBuilder(CalibrationCreator):
         self._config = backend.configuration()
         self._channel_map = backend.configuration().qubit_channel_mapping
 
-    def supported(self, node_op: DAGNode) -> bool:
+    def supported(self, node_op: DAGOpNode) -> bool:
         """
         Args:
             node_op: The node from the dag dep.
