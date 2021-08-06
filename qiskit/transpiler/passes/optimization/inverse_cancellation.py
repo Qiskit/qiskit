@@ -18,12 +18,11 @@ from qiskit.transpiler.basepasses import TransformationPass
 
 
 class Cancellation(TransformationPass):
-    """Cancel back-to-back `gates`in dag."""
+    """Cancel back-to-back `gates` in dag."""
 
     def __init__(self, gate_cancel):
         """Initialize gate_cancel"""
         self.gate_cancel = gate_cancel
-        print(self.gate_cancel)
         super().__init__()
 
     def run(self, dag):
@@ -38,7 +37,7 @@ class Cancellation(TransformationPass):
         gate_cancel_runs = dag.collect_runs(self.gate_cancel)
         # Generalize input using self.gate_cancel
         for gate_cancel_run in gate_cancel_runs:
-            # Partition the cx_run into chunks with equal gate arguments
+            # Partition the gate_cancel_run into chunks with equal gate arguments
             partition = []
             chunk = []
             for i in range(len(gate_cancel_run) - 1):
