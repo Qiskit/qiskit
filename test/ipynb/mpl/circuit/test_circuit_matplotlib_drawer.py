@@ -560,7 +560,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
             filename="style_custom_gates.png",
         )
 
-    def test_ctrl_phase_color(self):
+    def test_ctrl_phase_style(self):
         """Tests controlled-phase gate style
         See https://github.com/Qiskit/qiskit-terra/issues/6095"""
         circuit = QuantumCircuit(2)
@@ -570,7 +570,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         self.circuit_drawer(
             circuit,
             style={"displaycolor": {"cp": ("#A27486", "#000000"), "h": ("#A27486", "#000000")}},
-            filename="ctrl_phase_color.png",
+            filename="ctrl_phase_style.png",
         )
 
     def test_instruction_1q_1c(self):
