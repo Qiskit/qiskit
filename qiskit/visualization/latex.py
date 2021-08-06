@@ -164,7 +164,7 @@ class QCircuitImage:
         header_2 = r"""
 \usepackage[braket, qm]{qcircuit}
 \usepackage{graphicx}
-
+\newcommand{\arrow}{*+<0em,.1em>-=-<.25em>{\bigtriangledown}}
 \begin{document} 
 """
         header_scale = "\\scalebox{{{}}}".format(self.scale) + "{"
@@ -556,7 +556,7 @@ class QCircuitImage:
                 str(wire2 - wire1),
             )
         else:
-            self._latex[wire2][col] = "\\control \\cw \\cwx[-" + str(wire2 - wire1) + "]"
+            self._latex[wire2][col] = "\\arrow \\cw \\cwx[-" + str(wire2 - wire1) + "]"
 
     def _build_barrier(self, node, col):
         """Build a partial or full barrier if plot_barriers set"""
