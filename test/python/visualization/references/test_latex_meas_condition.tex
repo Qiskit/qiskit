@@ -2,12 +2,12 @@
         
 \usepackage[braket, qm]{qcircuit}
 \usepackage{graphicx}
-\newcommand{\arrow}{*+<0em,.1em>-=-<.25em>{\bigtriangledown}}
+
 \begin{document} 
 \scalebox{1.0}{
 \Qcircuit @C=1.0em @R=0.2em @!R { \\
 	 	\nghost{ {qr}_{0} :  } & \lstick{ {qr}_{0} :  } & \gate{\mathrm{H}} & \meter & \qw & \qw & \qw\\ 
 	 	\nghost{ {qr}_{1} :  } & \lstick{ {qr}_{1} :  } & \qw & \qw & \gate{\mathrm{H}} & \qw & \qw\\ 
-	 	\nghost{cr:} & \lstick{cr:} & \lstick{/_{_{2}}} \cw & \dstick{_{_{0}}} \cw \cwx[-2] & \dstick{_{_{=1}}} \cw \cwx[-1] & \cw & \cw\\ 
+	 	\nghost{cr:} & \lstick{cr:} & \lstick{/_{_{2}}} \cw & \dstick{_{_{0}}} \cw \ar @{<=} [-2, 0] & \dstick{_{_{=1}}} \cw \cwx[-1] & \cw & \cw\\ 
 \\ }}
 \end{document}
