@@ -82,9 +82,10 @@ The global optimizers here all use NLopt for their core function and can only be
 used if their dependent NLopt package is manually installed. See the following
 section for installation instructions.
 
-.. toctree::
+.. autosummary::
+    :toctree: ../stubs/
 
-   qiskit.algorithms.optimizers.nlopts
+    nlopts
 
 The global optimizers are as follows:
 
