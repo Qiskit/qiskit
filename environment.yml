@@ -1,9 +1,0 @@
-  
-channels:
-    - conda-forge
-dependencies:
-    - pip
-    - jupyterlab
-    - pip:
-      - jupyterlab_latex
-      - pdflatex

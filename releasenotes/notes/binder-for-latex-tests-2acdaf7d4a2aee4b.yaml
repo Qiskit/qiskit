@@ -1,6 +1,0 @@
----
-other:
-  - |
-    The latex drawer tests are now performed in binder. This improves the latex
-    drawer testing and allows for a more visual test for the drawer. See `#6450
-    <https://github.com/Qiskit/qiskit-terra/pull/6450>`__ for more information.
