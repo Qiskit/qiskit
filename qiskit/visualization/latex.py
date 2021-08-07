@@ -618,19 +618,19 @@ class QCircuitImage:
             )
         else:
             # Add the open and closed buttons to indicate the condition value
-            for i in range(creg_size - 1):
+            for i in range(creg_size):
                 control = "\\control" if if_value[i] == "1" else "\\controlo"
-                self._latex[cwire + i][col] = f"{control} \\cw \\cwx[-" + str(gap) + "]"
-                gap = 1
-            # Add (= condition value) below the last cwire
-            control = "\\control" if if_value[creg_size - 1] == "1" else "\\controlo"
-            self._latex[cwire + creg_size - 1][
-                col
-            ] = f"{control}" + " \\cw^(%s){^{=%s}} \\cwx[-%s]" % (
-                meas_offset,
-                str(op.condition[1]),
-                str(creg_size - 1),
-            )
+                self._latex[cwire + i][col] = f"{control} \\cw"
+                if i < creg_size - 1:
+                    self._latex[cwire + i][col] += " \\cwx[-" + str(gap) + "]"
+                    gap = 1
+                else:
+                    # Add (= condition value) below the last cwire
+                    self._latex[cwire + i][col] += "^(%s){^{=%s}} \\cwx[-%s]" % (
+                        meas_offset,
+                        str(op.condition[1]),
+                        str(creg_size - 1),
+                    )
 
     def _truncate_float(self, matchobj, ndigits=4):
         """Truncate long floats."""
