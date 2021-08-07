@@ -13,14 +13,14 @@
 """The Eigensolver algorithm."""
 
 import logging
-from typing import List, Optional, Union, Tuple, Callable, Dict
+from typing import List, Optional, Union, Tuple, Callable, Dict, Any, TypeVar
 
 import numpy as np
 from scipy import sparse as scisparse
 
 from qiskit.opflow import OperatorBase, I, StateFn, ListOp
 from qiskit.utils.validation import validate_min
-from .eigen_solver import Eigensolver, EigensolverResult
+from .eigen_solver import Eigensolver, EigensolverResult, ListOrDict
 from ..exceptions import AlgorithmError
 
 logger = logging.getLogger(__name__)
@@ -46,7 +46,7 @@ class NumPyEigensolver(Eigensolver):
         self,
         k: int = 1,
         filter_criterion: Callable[
-            [Union[List, np.ndarray], float, Optional[Dict[str, float]]], bool
+            [Union[List, np.ndarray], float, Optional[ListOrDict[float]]], bool
         ] = None,
     ) -> None:
         """
@@ -84,7 +84,7 @@ class NumPyEigensolver(Eigensolver):
     @property
     def filter_criterion(
         self,
-    ) -> Optional[Callable[[Union[List, np.ndarray], float, Optional[List[float]]], bool]]:
+    ) -> Optional[Callable[[Union[List, np.ndarray], float, Optional[ListOrDict[float]]], bool]]:
         """returns the filter criterion if set"""
         return self._filter_criterion
 
@@ -92,7 +92,7 @@ class NumPyEigensolver(Eigensolver):
     def filter_criterion(
         self,
         filter_criterion: Optional[
-            Callable[[Union[List, np.ndarray], float, Optional[Dict[str, float]]], bool]
+            Callable[[Union[List, np.ndarray], float, Optional[ListOrDict[float]]], bool]
         ],
     ) -> None:
         """set the filter criterion"""
@@ -141,7 +141,7 @@ class NumPyEigensolver(Eigensolver):
             self._solve(operator)
 
     def _get_energies(
-        self, operator: OperatorBase, aux_operators: Optional[Dict[str, OperatorBase]]
+        self, operator: OperatorBase, aux_operators: Optional[ListOrDict[OperatorBase]]
     ) -> None:
         if self._ret.eigenvalues is None or self._ret.eigenstates is None:
             self._solve(operator)
@@ -156,12 +156,19 @@ class NumPyEigensolver(Eigensolver):
 
     @staticmethod
     def _eval_aux_operators(
-        aux_operators: Dict[str, OperatorBase], wavefn, threshold: float = 1e-12
-    ) -> Dict[str, Optional[Tuple[float, int]]]:
-        values = {}  # type: Dict[str, Optional[Tuple[float, int]]]
-        for key, operator in aux_operators.items():
+        aux_operators: ListOrDict[OperatorBase], wavefn, threshold: float = 1e-12
+    ) -> ListOrDict[Tuple[float, int]]:
+
+        # If aux_operators is a list, it can contain None operators for which None values are returned.
+        # If aux_operators is a dict, the None operators have been dropped in compute_eigenvalues.
+        if isinstance(aux_operators, list):
+            values = [None] * len(aux_operators)  # type: ListOrDict[Tuple[float, int]]
+            key_op_iterator = enumerate(aux_operators)
+        else:
+            values = {}
+            key_op_iterator = aux_operators.items()
+        for key, operator in key_op_iterator:
             if operator is None:
-                values[key] = None
                 continue
             value = 0.0
             if operator.coeff != 0:
@@ -178,7 +185,7 @@ class NumPyEigensolver(Eigensolver):
         return values
 
     def compute_eigenvalues(
-        self, operator: OperatorBase, aux_operators: Optional[Dict[str, Optional[OperatorBase]]] = None
+        self, operator: OperatorBase, aux_operators: Optional[ListOrDict[OperatorBase]] = None
     ) -> EigensolverResult:
         super().compute_eigenvalues(operator, aux_operators)
 
@@ -186,10 +193,12 @@ class NumPyEigensolver(Eigensolver):
             raise AlgorithmError("Operator was never provided")
 
         self._check_set_k(operator)
-        if aux_operators:
+        if isinstance(aux_operators, list):
             zero_op = I.tensorpower(operator.num_qubits) * 0.0
             # For some reason Chemistry passes aux_ops with 0 qubits and paulis sometimes.
-            aux_operators = {key: zero_op if op == 0 else op for key, op in aux_operators.items()}
+            aux_operators = [zero_op if op == 0 else op for key, op in aux_operators]
+        elif isinstance(aux_operators, dict):
+            aux_operators = {key: op for key, op in aux_operators.items() if not op}
         else:
             aux_operators = None
 
