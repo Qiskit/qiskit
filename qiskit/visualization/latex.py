@@ -531,8 +531,8 @@ class QCircuitImage:
 
     def _build_measure(self, node, col):
         """Build a meter and the lines to the creg"""
-
         wire1 = self.img_regs[node.qargs[0]]
+        self._latex[wire1][col] = "\\meter"
         if self.cregbundle:
             wire2 = len(self.qubit_list)
             cregindex = self.img_regs[node.cargs[0]] - wire2
@@ -542,20 +542,14 @@ class QCircuitImage:
                     wire2 += 1
                 else:
                     break
-        else:
-            wire2 = self.img_regs[node.cargs[0]]
-
-        self._latex[wire1][col] = "\\meter"
-        if self.cregbundle:
-            if node.op.condition is not None:
-                self._latex[wire2][col] = "\\dstick{_{_{\\hspace{1.5em}"
-            else:
-                self._latex[wire2][col] = "\\dstick{_{_{"
-            self._latex[wire2][col] += "%s}}} \\cw \\ar @{<=} [-%s,0]" % (
+            cond_offset = 1.5 if node.op.condition else 0.0
+            self._latex[wire2][col] = "\\dstick{_{_{\\hspace{%sem}%s}}} \\cw \\ar @{<=} [-%s,0]" % (
+                cond_offset,
                 str(cregindex),
                 str(wire2 - wire1),
             )
         else:
+            wire2 = self.img_regs[node.cargs[0]]
             self._latex[wire2][col] = "\\cw \\ar @{<=} [-" + str(wire2 - wire1) + ",0]"
 
     def _build_barrier(self, node, col):
@@ -614,22 +608,27 @@ class QCircuitImage:
             cwire += 1
 
         gap = cwire - max(wire_list)
+        meas_offset = -0.25 if isinstance(op, Measure) else 0.0
         if self.cregbundle:
             # Print the condition value at the bottom
-            if isinstance(op, Measure):
-                self._latex[cwire][col] = "\\dstick{_{_{\\hspace{1.5em}"
-            else:
-                self._latex[cwire][col] = "\\dstick{_{_{"
-            self._latex[cwire][col] += "=%s}}} \\cw \\cwx[-%s]" % (
+            self._latex[cwire][col] = "\\control \\cw^(%s){^{=%s}} \\cwx[-%s]" % (
+                meas_offset,
                 str(op.condition[1]),
                 str(gap),
             )
         else:
             # Add the open and closed buttons to indicate the condition value
-            for i in range(creg_size):
+            for i in range(creg_size - 1):
                 control = "\\control" if if_value[i] == "1" else "\\controlo"
                 self._latex[cwire + i][col] = f"{control} \\cw \\cwx[-" + str(gap) + "]"
                 gap = 1
+            # Add (= condition value) below the last cwire
+            control = "\\control" if if_value[creg_size - 1] == "1" else "\\controlo"
+            self._latex[cwire + creg_size - 1][col] = f"{control}" + " \\cw^(%s){^{=%s}} \\cwx[-%s]" % (
+                meas_offset,
+                str(op.condition[1]),
+                str(creg_size - 1),
+            )
 
     def _truncate_float(self, matchobj, ndigits=4):
         """Truncate long floats."""
