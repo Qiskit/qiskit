@@ -624,7 +624,9 @@ class QCircuitImage:
                 gap = 1
             # Add (= condition value) below the last cwire
             control = "\\control" if if_value[creg_size - 1] == "1" else "\\controlo"
-            self._latex[cwire + creg_size - 1][col] = f"{control}" + " \\cw^(%s){^{=%s}} \\cwx[-%s]" % (
+            self._latex[cwire + creg_size - 1][
+                col
+            ] = f"{control}" + " \\cw^(%s){^{=%s}} \\cwx[-%s]" % (
                 meas_offset,
                 str(op.condition[1]),
                 str(creg_size - 1),
