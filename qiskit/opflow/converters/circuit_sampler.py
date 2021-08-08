@@ -297,10 +297,10 @@ class CircuitSampler(ConverterBase):
 
             try:
                 self._transpiled_circ_cache = self.quantum_instance.transpile(circuits)
-            except QiskitError:
+            except Exception as ex:
                 logger.debug(
                     r"CircuitSampler failed to transpile circuits with unbound "
-                    r"parameters. Attempting to transpile only when circuits are bound "
+                    f"parameters ({ex}). Attempting to transpile only when circuits are bound "
                     r"now, but this can hurt performance due to repeated transpilation."
                 )
                 self._transpile_before_bind = False
