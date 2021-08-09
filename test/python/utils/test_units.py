@@ -75,7 +75,7 @@ class TestUnitConversion(QiskitTestCase):
 
     def test_detach_prefix_with_zero(self):
         """Test detach prefix by input zero."""
-        self.assertTupleEqual(detach_prefix(0.), (0., ""))
+        self.assertTupleEqual(detach_prefix(0.0), (0.0, ""))
 
     def test_detach_prefix_with_negative(self):
         """Test detach prefix by input negative values."""
