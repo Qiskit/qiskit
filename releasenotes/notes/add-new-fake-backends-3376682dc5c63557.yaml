@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    New fake backend classes are available under ``qiskit.test.mock`. These
+    included mocked versions of ``ibmq_brooklyn``, ``ibmq_manila``,
+    ``ibmq_jakarta``, and ``ibmq_lagos``. As with the other fake backends, these
+    include snapshots of calibration data  (i.e. ``backend.defaults()``) and
+    error data (i.e. ``backend.properties()``) taken from the real system, and 
+    can be used for local testing, compilation and simulation.
