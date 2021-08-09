@@ -626,6 +626,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         import matplotlib.pyplot as plt
 
         fig = plt.figure(1, figsize=(6, 4))
+        fig.patch.set_facecolor("white")
         ax1 = fig.add_subplot(1, 2, 1)
 
         circuit = QuantumCircuit(2)
@@ -665,7 +666,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.measure(1, cr2[0]).c_if(cr1, 1)
         circuit.h(0).c_if(cr2, 3)
         self.circuit_drawer(circuit, cregbundle=False, filename="measure_cond_false.png")
-        self.circuit_drawer(circuit, cregbundle=True, filename="measuere_cond_true.png")
+        self.circuit_drawer(circuit, cregbundle=True, filename="measure_cond_true.png")
 
 
 if __name__ == "__main__":
