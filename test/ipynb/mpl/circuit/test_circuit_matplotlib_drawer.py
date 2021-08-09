@@ -621,6 +621,42 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.initialize(initial_state)
         self.circuit_drawer(circuit, filename="wide_params.png")
 
+    def test_user_ax_subplot(self):
+        """Test for when user supplies ax for a subplot"""
+        import matplotlib.pyplot as plt
+
+        fig = plt.figure(1, figsize=(6, 4))
+        ax1 = fig.add_subplot(1, 2, 1)
+
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.draw('mpl', ax=ax1)
+
+        ax2 = fig.add_subplot(1, 2, 2)
+
+        circuit = QuantumCircuit(4)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.h(1)
+        circuit.cx(1, 2)
+        plt.close(fig)
+        self.circuit_drawer(circuit, ax=ax2, filename="user_ax.png")
+
+    def test_measures_with_conditions(self):
+        """Test that a measure containing a condition displays"""
+        qr = QuantumRegister(2, "qr")
+        cr1 = ClassicalRegister(2, "cr1")
+        cr2 = ClassicalRegister(2, "cr2")
+        circuit = QuantumCircuit(qr, cr1, cr2)
+        circuit.h(0)
+        circuit.h(1)
+        circuit.measure(0, cr1[1])
+        circuit.measure(1, cr2[0]).c_if(cr1, 1)
+        circuit.h(0).c_if(cr2, 3)
+        self.circuit_drawer(circuit, cregbundle=False, filename="measure_cond_false.png")
+        self.circuit_drawer(circuit, cregbundle=True, filename="measuere_cond_true.png")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)
