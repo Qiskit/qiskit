@@ -12,8 +12,10 @@
 
 """SI unit utilities"""
 
-import numpy as np
+import warnings
 from typing import Tuple
+
+import numpy as np
 
 
 def apply_prefix(value: float, unit: str) -> float:
@@ -64,17 +66,25 @@ def detach_prefix(value: float) -> Tuple[float, str]:
     Returns:
         A tuple of scaled value and prefix.
     """
-    up_factors = ["k", "M", "G", "T"]
-    down_factors = ["p", "n", "μ", "m"]
+    downfactors = ["p", "n", "μ", "m"]
+    upfactors = ["k", "M", "G", "T"]
 
-    fixed_point_3n = int(np.floor(np.log10(value) / 3))
-    if fixed_point_3n != 0:
-        if fixed_point_3n > 0:
-            prefix = up_factors[fixed_point_3n - 1]
+    if not value:
+        return 0.0, ""
+
+    try:
+        fixed_point_3n = int(np.floor(np.log10(np.abs(value)) / 3))
+        if fixed_point_3n != 0:
+            if fixed_point_3n > 0:
+                prefix = upfactors[fixed_point_3n - 1]
+            else:
+                prefix = downfactors[fixed_point_3n]
+            scale = 10 ** (-3 * fixed_point_3n)
         else:
-            prefix = down_factors[fixed_point_3n]
-        scale = 10 ** (-3 * fixed_point_3n)
-    else:
+            prefix = ""
+            scale = 1.0
+    except IndexError:
+        warnings.warn(f"The value {value} is out of range. Raw value is returned.", UserWarning)
         prefix = ""
         scale = 1.0
 

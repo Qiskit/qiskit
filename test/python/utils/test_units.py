@@ -72,3 +72,21 @@ class TestUnitConversion(QiskitTestCase):
 
         for arg, ref_rets in ref_values:
             self.assertTupleEqual(detach_prefix(arg), ref_rets)
+
+    def test_detach_prefix_with_zero(self):
+        """Test detach prefix by input zero."""
+        self.assertTupleEqual(detach_prefix(0.), (0., ""))
+
+    def test_detach_prefix_with_negative(self):
+        """Test detach prefix by input negative values."""
+        self.assertTupleEqual(detach_prefix(-1.234e7), (-12.34, "M"))
+
+    def test_detach_prefix_with_value_too_large(self):
+        """Test detach prefix by input too large value."""
+        with self.assertWarns(UserWarning):
+            self.assertTupleEqual(detach_prefix(1e20), (1e20, ""))
+
+    def test_detach_prefix_with_value_too_small(self):
+        """Test detach prefix by input too small value."""
+        with self.assertWarns(UserWarning):
+            self.assertTupleEqual(detach_prefix(1e-20), (1e-20, ""))
