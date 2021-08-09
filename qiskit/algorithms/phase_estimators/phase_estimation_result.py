@@ -16,7 +16,7 @@ from typing import Dict, Union
 import numpy
 
 from qiskit.utils.deprecation import deprecate_function
-from qiskit.result import Result
+from qiskit.result import Result, Counts
 from .phase_estimator import PhaseEstimatorResult
 
 
@@ -88,7 +88,7 @@ class PhaseEstimationResult(PhaseEstimatorResult):
         1.0 corresponds to a phase of :math:`2\pi`. This selects the phase corresponding
         to the bit string with the highesest probability. This is the most likely phase.
         """
-        if isinstance(self.phases, dict):
+        if isinstance(self.phases, (dict, Counts)):
             binary_phase_string = max(self.phases, key=self.phases.get)
         else:
             # numpy.argmax ignores complex part of number. But, we take abs anyway
