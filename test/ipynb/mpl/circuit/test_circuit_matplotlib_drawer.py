@@ -643,6 +643,16 @@ class TestMatplotlibDrawer(QiskitTestCase):
         plt.close(fig)
         self.circuit_drawer(circuit, ax=ax2, filename="user_ax.png")
 
+    def test_figwidth(self):
+        """Test style dict 'figwidth'"""
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.x(1)
+        circuit.cx(1, 2)
+        circuit.x(2)
+        self.circuit_drawer(circuit, style={"figwidth": 5}, filename="figwidth.png")
+
     def test_measures_with_conditions(self):
         """Test that a measure containing a condition displays"""
         qr = QuantumRegister(2, "qr")
