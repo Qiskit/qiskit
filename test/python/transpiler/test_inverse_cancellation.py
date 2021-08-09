@@ -108,3 +108,9 @@ class TestCancellation(QiskitTestCase):
         new_circ = pm.run(qc)
         gates_after = new_circ.count_ops()
         self.assertNotIn("p", gates_after)
+
+    # TODO: add tests with operations across multiple qubits
+    # h(0)
+    # h(1)
+    # h(0)
+    # h(1)
