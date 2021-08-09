@@ -232,7 +232,7 @@ class QCircuitImage:
                     label = self.bit_locations[self.ordered_bits[i]]["register"].name + "_{"
                     label += str(self.bit_locations[self.ordered_bits[i]]["index"]) + "}:"
                 else:
-                    label = self.bit_locations[self.ordered_bits[i]]["register"].name + "}:"
+                    label = self.bit_locations[self.ordered_bits[i]]["register"].name + ":"
 
                 if self.initial_state:
                     label += "0"

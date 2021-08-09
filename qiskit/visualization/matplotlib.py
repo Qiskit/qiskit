@@ -462,7 +462,7 @@ class MatplotlibDrawer:
             index = self._bit_locations[reg]["index"]
 
             # show register name and number if more than 1 register
-            if len(self._qubit) > 1:
+            if register.size > 1:
                 if self._layout is None:
                     qubit_name = f"${{{register.name}}}_{{{index}}}$"
                 else:
@@ -485,7 +485,7 @@ class MatplotlibDrawer:
                     else:
                         qubit_name = f"${{{index}}}$"
             else:
-                qubit_name = f"{register.name}"
+                qubit_name = f"${{{register.name}}}$"
 
             qubit_name = _fix_double_script(qubit_name) + initial_qbit
             text_width = self._get_text_width(qubit_name, self._fs) * 1.15
@@ -516,6 +516,8 @@ class MatplotlibDrawer:
                 # else math name and number
                 if self._cregbundle:
                     clbit_name = f"{register.name}"
+                elif register.size == 1:
+                    clbit_name = f"${register.name}$"
                 else:
                     clbit_name = f"${register.name}_{index}$"
                 clbit_name = _fix_double_script(clbit_name) + initial_cbit
