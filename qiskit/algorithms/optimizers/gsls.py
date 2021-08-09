@@ -12,7 +12,7 @@
 
 """Line search with Gaussian-smoothed samples on a sphere."""
 
-from typing import Dict, Optional, Tuple, List, Callable
+from typing import Dict, Optional, Tuple, List, Callable, Any
 import numpy as np
 
 from qiskit.utils import algorithm_globals
@@ -25,6 +25,12 @@ class GSLS(Optimizer):
     An implementation of the line search algorithm described in
     https://arxiv.org/pdf/1905.01332.pdf, using gradient approximation
     based on Gaussian-smoothed samples on a sphere.
+
+    .. note::
+
+        This component has some function that is normally random. If you want to reproduce behavior
+        then you should set the random number generator seed in the algorithm_globals
+        (``qiskit.utils.algorithm_globals.random_seed = seed``).
     """
 
     _OPTIONS = [
@@ -91,6 +97,10 @@ class GSLS(Optimizer):
             "initial_point": OptimizerSupportLevel.required,
         }
 
+    @property
+    def settings(self) -> Dict[str, Any]:
+        return {key: self._options.get(key, None) for key in self._OPTIONS}
+
     def optimize(
         self,
         num_vars: int,
@@ -102,7 +112,6 @@ class GSLS(Optimizer):
         super().optimize(
             num_vars, objective_function, gradient_function, variable_bounds, initial_point
         )
-
         if initial_point is None:
             initial_point = algorithm_globals.random.normal(size=num_vars)
         else:
@@ -199,13 +208,11 @@ class GSLS(Optimizer):
 
             # Print information
             if self._options["disp"]:
-                print("Iter {:d}".format(iter_count))
-                print("Point {} obj {}".format(x, x_value))
-                print("Gradient {}".format(grad))
-                print(
-                    "Grad norm {} new_x_value {} step_size {}".format(grad_norm, new_x_value, alpha)
-                )
-                print("Direction {}".format(directions))
+                print(f"Iter {iter_count:d}")
+                print(f"Point {x} obj {x_value}")
+                print(f"Gradient {grad}")
+                print(f"Grad norm {grad_norm} new_x_value {new_x_value} step_size {alpha}")
+                print(f"Direction {directions}")
 
             # Test Armijo condition for sufficient decrease
             if new_x_value <= x_value - self._options["armijo_parameter"] * alpha * grad_norm:

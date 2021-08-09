@@ -23,3 +23,4 @@ from .quadratic_form import QuadraticForm
 from .linear_amplitude_function import LinearAmplitudeFunction
 from .adders import VBERippleCarryAdder, CDKMRippleCarryAdder, DraperQFTAdder
 from .piecewise_chebyshev import PiecewiseChebyshev
+from .multipliers import HRSCumulativeMultiplier, RGQFTMultiplier

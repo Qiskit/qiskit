@@ -22,6 +22,7 @@ Standard Gates
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    Barrier
    C3XGate
@@ -85,6 +86,7 @@ Generalized Gates
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    Diagonal
    MCMT
@@ -96,12 +98,14 @@ Generalized Gates
    GRY
    GRZ
    RVGate
+   PauliGate
 
 Boolean Logic Circuits
 ======================
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    AND
    OR
@@ -113,6 +117,7 @@ Basis Change Circuits
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    QFT
 
@@ -120,18 +125,20 @@ Arithmetic Circuits
 ===================
 
 Amplitude Functions
-+++++++++++++++++++
+-------------------
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    LinearAmplitudeFunction
 
 Functional Pauli Rotations
-++++++++++++++++++++++++++
+--------------------------
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    FunctionalPauliRotations
    LinearPauliRotations
@@ -141,29 +148,42 @@ Functional Pauli Rotations
    PiecewiseChebyshev
 
 Adders
-++++++
+------
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    DraperQFTAdder
    CDKMRippleCarryAdder
    VBERippleCarryAdder
    WeightedAdder
 
-Comparators
-+++++++++++
+Multipliers
+-----------
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+   HRSCumulativeMultiplier
+   RGQFTMultiplier
+
+Comparators
+-----------
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    IntegerComparator
 
 Functions on binary variables
-+++++++++++++++++++++++++++++
+-----------------------------
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    QuadraticForm
 
@@ -172,6 +192,7 @@ Amplitude Functions
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    LinearAmplitudeFunction
 
@@ -180,6 +201,7 @@ Particular Quantum Circuits
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    FourierChecking
    GraphState
@@ -196,6 +218,7 @@ Probability distributions
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    UniformDistribution
    NormalDistribution
@@ -207,6 +230,7 @@ N-local circuits
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    NLocal
    TwoLocal
@@ -222,6 +246,7 @@ Data encoding circuits
 
 .. autosummary::
    :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
 
    PauliFeatureMap
    ZFeatureMap
@@ -340,6 +365,7 @@ from .generalized_gates import (
     GRY,
     GRZ,
     RVGate,
+    PauliGate,
 )
 from .boolean_logic import (
     AND,
@@ -362,6 +388,8 @@ from .arithmetic import (
     CDKMRippleCarryAdder,
     DraperQFTAdder,
     PiecewiseChebyshev,
+    HRSCumulativeMultiplier,
+    RGQFTMultiplier,
 )
 
 from .n_local import (

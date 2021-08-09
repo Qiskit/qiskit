@@ -177,7 +177,7 @@ class ConfigurableFakeBackend(FakeBackend):
                     gates.append(
                         Gate(
                             gate=gate,
-                            name="{}_{}".format(gate, i),
+                            name=f"{gate}_{i}",
                             qubits=[i],
                             parameters=parameters,
                         )
@@ -187,7 +187,7 @@ class ConfigurableFakeBackend(FakeBackend):
                     gates.append(
                         Gate(
                             gate=gate,
-                            name="{gate}{q1}_{q2}".format(gate=gate, q1=qubit1, q2=qubit2),
+                            name=f"{gate}{qubit1}_{qubit2}",
                             qubits=[qubit1, qubit2],
                             parameters=parameters,
                         )
@@ -209,12 +209,8 @@ class ConfigurableFakeBackend(FakeBackend):
     def _build_conf(self) -> PulseBackendConfiguration:
         """Build configuration for backend."""
         h_str = [
-            ",".join(
-                ["_SUM[i,0,{n_qubits}".format(n_qubits=self.n_qubits), "wq{i}/2*(I{i}-Z{i})]"]
-            ),
-            ",".join(
-                ["_SUM[i,0,{n_qubits}".format(n_qubits=self.n_qubits), "omegad{i}*X{i}||D{i}]"]
-            ),
+            ",".join([f"_SUM[i,0,{self.n_qubits}", "wq{i}/2*(I{i}-Z{i})]"]),
+            ",".join([f"_SUM[i,0,{self.n_qubits}", "omegad{i}*X{i}||D{i}]"]),
         ]
         variables = []
         for (qubit1, qubit2) in self.coupling_map:
@@ -223,14 +219,14 @@ class ConfigurableFakeBackend(FakeBackend):
                 "jq{q1}q{q2}*Sm{q1}*Sp{q2}".format(q1=qubit1, q2=qubit2),
             ]
 
-            variables.append(("jq{q1}q{q2}".format(q1=qubit1, q2=qubit2), 0))
+            variables.append((f"jq{qubit1}q{qubit2}", 0))
         for i, (qubit1, qubit2) in enumerate(self.coupling_map):
-            h_str.append("omegad{}*X{}||U{}".format(qubit1, qubit2, i))
+            h_str.append(f"omegad{qubit1}*X{qubit2}||U{i}")
         for i in range(self.n_qubits):
-            variables += [("omegad{}".format(i), 0), ("wq{}".format(i), 0)]
+            variables += [(f"omegad{i}", 0), (f"wq{i}", 0)]
         hamiltonian = {
             "h_str": h_str,
-            "description": "Hamiltonian description for {} qubits backend.".format(self.n_qubits),
+            "description": f"Hamiltonian description for {self.n_qubits} qubits backend.",
             "qub": {i: 2 for i in range(self.n_qubits)},
             "vars": dict(variables),
         }
@@ -297,7 +293,7 @@ class ConfigurableFakeBackend(FakeBackend):
             ).to_dict()
         ]
         measure_command_sequence += [
-            PulseQobjInstruction(name="test_pulse_1", ch="m{}".format(i), t0=0).to_dict()
+            PulseQobjInstruction(name="test_pulse_1", ch=f"m{i}", t0=0).to_dict()
             for i in range(self.n_qubits)
         ]
 
@@ -320,10 +316,10 @@ class ConfigurableFakeBackend(FakeBackend):
                             "qubits": [i],
                             "sequence": [
                                 PulseQobjInstruction(
-                                    name="fc", ch="d{}".format(i), t0=0, phase="-P0"
+                                    name="fc", ch=f"d{i}", t0=0, phase="-P0"
                                 ).to_dict(),
                                 PulseQobjInstruction(
-                                    name="test_pulse_3", ch="d{}".format(i), t0=0
+                                    name="test_pulse_3", ch=f"d{i}", t0=0
                                 ).to_dict(),
                             ],
                         }
@@ -338,16 +334,16 @@ class ConfigurableFakeBackend(FakeBackend):
                         "qubits": [qubit1, qubit2],
                         "sequence": [
                             PulseQobjInstruction(
-                                name="test_pulse_1", ch="d{}".format(qubit1), t0=0
+                                name="test_pulse_1", ch=f"d{qubit1}", t0=0
                             ).to_dict(),
                             PulseQobjInstruction(
-                                name="test_pulse_2", ch="u{}".format(qubit1), t0=10
+                                name="test_pulse_2", ch=f"u{qubit1}", t0=10
                             ).to_dict(),
                             PulseQobjInstruction(
-                                name="test_pulse_1", ch="d{}".format(qubit2), t0=20
+                                name="test_pulse_1", ch=f"d{qubit2}", t0=20
                             ).to_dict(),
                             PulseQobjInstruction(
-                                name="fc", ch="d{}".format(qubit2), t0=20, phase=2.1
+                                name="fc", ch=f"d{qubit2}", t0=20, phase=2.1
                             ).to_dict(),
                         ],
                     }

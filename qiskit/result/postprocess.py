@@ -30,7 +30,7 @@ def _bin_to_hex(bitstring):
 def _pad_zeros(bitstring, memory_slots):
     """If the bitstring is truncated, pad extra zeros to make its
     length equal to memory_slots"""
-    return format(int(bitstring, 2), "0{}b".format(memory_slots))
+    return format(int(bitstring, 2), f"0{memory_slots}b")
 
 
 def _separate_bitstring(bitstring, creg_sizes):

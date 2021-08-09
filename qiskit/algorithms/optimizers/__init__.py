@@ -50,6 +50,7 @@ Local Optimizers
    COBYLA
    L_BFGS_B
    GSLS
+   GradientDescent
    NELDER_MEAD
    NFT
    P_BFGS
@@ -58,6 +59,7 @@ Local Optimizers
    SPSA
    QNSPSA
    TNC
+   SciPyOptimizer
 
 Qiskit also provides the following optimizers, which are built-out using the optimizers from
 the `scikit-quant` package. The `scikit-quant` package is not installed by default but must be
@@ -80,9 +82,10 @@ The global optimizers here all use NLopt for their core function and can only be
 used if their dependent NLopt package is manually installed. See the following
 section for installation instructions.
 
-.. toctree::
+.. autosummary::
+    :toctree: ../stubs/
 
-   qiskit.algorithms.optimizers.nlopts
+    nlopts
 
 The global optimizers are as follows:
 
@@ -104,6 +107,7 @@ from .bobyqa import BOBYQA
 from .cg import CG
 from .cobyla import COBYLA
 from .gsls import GSLS
+from .gradient_descent import GradientDescent
 from .imfil import IMFIL
 from .l_bfgs_b import L_BFGS_B
 from .nelder_mead import NELDER_MEAD
@@ -131,6 +135,7 @@ __all__ = [
     "CG",
     "COBYLA",
     "GSLS",
+    "GradientDescent",
     "L_BFGS_B",
     "NELDER_MEAD",
     "NFT",
