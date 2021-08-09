@@ -12,6 +12,9 @@
 
 """SI unit utilities"""
 
+import numpy as np
+from typing import Tuple
+
 
 def apply_prefix(value: float, unit: str) -> float:
     """
@@ -29,8 +32,9 @@ def apply_prefix(value: float, unit: str) -> float:
         Exception: If the units aren't recognized.
     """
     downfactors = {"p": 1e12, "n": 1e9, "u": 1e6, "µ": 1e6, "m": 1e3}
-    upfactors = {"k": 1e3, "M": 1e6, "G": 1e9}
-    if not unit:
+    upfactors = {"k": 1e3, "M": 1e6, "G": 1e9, "T": 1e12}
+    if not unit or len(unit) == 1:
+        # "m" can represent meter
         return value
     if unit[0] in downfactors:
         return value / downfactors[unit[0]]
@@ -38,3 +42,40 @@ def apply_prefix(value: float, unit: str) -> float:
         return value * upfactors[unit[0]]
     else:
         raise Exception(f"Could not understand units: {unit}")
+
+
+def detach_prefix(value: float) -> Tuple[float, str]:
+    """
+    Given a SI unit value, find the most suitable auxiliary unit to scale the value.
+
+    For example, the ``value = 1.3e8`` will be converted into a tuple of ``(130.0, "M")``,
+    which represents a scaled value and auxiliary unit that may be used to display the value.
+    In above example, that value might be displayed as ``130 MHz`` (unit is arbitrary here).
+
+    Example:
+
+        >>> value, prefix = detach_prefix(1e4)
+        >>> print(f"{value} {prefix}Hz")
+        10 kHz
+
+    Args:
+        value: The number to find prefix.
+
+    Returns:
+        A tuple of scaled value and prefix.
+    """
+    up_factors = ["k", "M", "G", "T"]
+    down_factors = ["p", "n", "μ", "m"]
+
+    fixed_point_3n = int(np.floor(np.log10(value) / 3))
+    if fixed_point_3n != 0:
+        if fixed_point_3n > 0:
+            prefix = up_factors[fixed_point_3n - 1]
+        else:
+            prefix = down_factors[fixed_point_3n]
+        scale = 10 ** (-3 * fixed_point_3n)
+    else:
+        prefix = ""
+        scale = 1.0
+
+    return scale * value, prefix
