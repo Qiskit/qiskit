@@ -632,7 +632,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(2)
         circuit.h(0)
         circuit.cx(0, 1)
-        circuit.draw('mpl', ax=ax1)
+        circuit.draw("mpl", ax=ax1)
 
         ax2 = fig.add_subplot(1, 2, 2)
 
