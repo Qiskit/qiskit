@@ -44,14 +44,13 @@ class Cancellation(TransformationPass):
         #     otherwise add to inverse pairs. Check that there are exactly two items
         # EXAMPLE self_inverse_gates = ["h", "cx"]
         # EXAMPLE inverse_gate_pairs = [(RXGate(theta), RXGate(-theta))]
-        return self._run_on_self_inverse(dag, self.gates_to_cancel)
-        # return self._run_on_inverse_pairs(dag, inverse_gate_pairs)
+        dag = self._run_on_self_inverse(dag, self_inverse_gates)
+        return self._run_on_inverse_pairs(dag, inverse_gate_pairs)
 
     def _run_on_self_inverse(self, dag, self_inverse_gates):
         """
         TODO
         """
-        import ipdb; ipdb.set_trace()
         # EXAMPLE ["h", "jfdlsj", "fjdsjd", "fjdsf", "jkdjsk"]
         gate_cancel_runs = dag.collect_runs(self.gates_to_cancel)
         # Generalize input using self.gates_to_cancel
