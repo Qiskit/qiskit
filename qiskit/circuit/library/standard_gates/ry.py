@@ -43,6 +43,8 @@ class RYGate(Gate):
                 \sin{\th} & \cos{\th}
             \end{pmatrix}
     """
+    name = "ry"
+    num_params = 1
 
     def __init__(self, theta, label=None):
         """Create new RY gate."""
@@ -150,6 +152,8 @@ class CRYGate(ControlledGate):
                     0 & 0 & \sin{\th} & \cos{\th}
                 \end{pmatrix}
     """
+    name = "cry"
+    num_params = 1
 
     def __init__(self, theta, label=None, ctrl_state=None):
         """Create new CRY gate."""

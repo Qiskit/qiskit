@@ -29,6 +29,8 @@ class MSGate(Gate):
     In the two-qubit case, this is equivalent to an XX(theta) interaction,
     and is thus reduced to the RXXGate.
     """
+    name = "ms"
+    num_params = 1
 
     def __init__(self, num_qubits, theta, label=None):
         """Create new MS gate."""

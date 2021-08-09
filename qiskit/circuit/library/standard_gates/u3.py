@@ -57,6 +57,8 @@ class U3Gate(Gate):
 
         U3(\theta, 0, 0) = RY(\theta)
     """
+    name = "u3"
+    num_params = 3
 
     def __init__(self, theta, phi, lam, label=None):
         """Create new U3 gate."""
@@ -168,6 +170,8 @@ class CU3Gate(ControlledGate):
                     0 & 0   & e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)}\cos(\th)
                 \end{pmatrix}
     """
+    name = "cu3"
+    num_params = 3
 
     def __init__(self, theta, phi, lam, label=None, ctrl_state=None):
         """Create new CU3 gate."""

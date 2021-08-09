@@ -43,6 +43,8 @@ class RXGate(Gate):
                 -i\sin{\th} & \cos{\th}
             \end{pmatrix}
     """
+    name = "rx"
+    num_params = 1
 
     def __init__(self, theta, label=None):
         """Create new RX gate."""
@@ -150,6 +152,8 @@ class CRXGate(ControlledGate):
                     0 & 0 & -i\sin{\th} & \cos{\th}
                 \end{pmatrix}
     """
+    name = "crx"
+    num_params = 1
 
     def __init__(self, theta, label=None, ctrl_state=None):
         """Create new CRX gate."""

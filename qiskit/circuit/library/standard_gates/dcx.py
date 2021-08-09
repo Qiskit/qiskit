@@ -43,6 +43,8 @@ class DCXGate(Gate):
                 0 & 0 & 1 & 0
             \end{pmatrix}
     """
+    name = "dcx"
+    num_params = 0
 
     def __init__(self):
         """Create new DCX gate."""

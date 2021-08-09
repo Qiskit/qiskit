@@ -63,6 +63,8 @@ class YGate(Gate):
         |0\rangle \rightarrow i|1\rangle \\
         |1\rangle \rightarrow -i|0\rangle
     """
+    name = "y"
+    num_params = 0
 
     def __init__(self, label=None):
         """Create new Y gate."""
@@ -165,6 +167,8 @@ class CYGate(ControlledGate):
     # Define class constants. This saves future allocation time.
     _matrix1 = numpy.array([[1, 0, 0, 0], [0, 0, 0, -1j], [0, 0, 1, 0], [0, 1j, 0, 0]])
     _matrix0 = numpy.array([[0, 0, -1j, 0], [0, 1, 0, 0], [1j, 0, 0, 0], [0, 0, 0, 1]])
+    name = "cy"
+    num_params = 0
 
     def __init__(self, label=None, ctrl_state=None):
         """Create new CY gate."""

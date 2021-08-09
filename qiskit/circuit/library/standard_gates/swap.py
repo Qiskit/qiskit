@@ -49,6 +49,8 @@ class SwapGate(Gate):
 
         |a, b\rangle \rightarrow |b, a\rangle
     """
+    name = "swap"
+    num_params = 0
 
     def __init__(self, label=None):
         """Create new SWAP gate."""
@@ -200,6 +202,8 @@ class CSwapGate(ControlledGate):
             [0, 0, 0, 0, 0, 0, 0, 1],
         ]
     )
+    name = "cswap"
+    num_params = 0
 
     def __init__(self, label=None, ctrl_state=None):
         """Create new CSWAP gate."""

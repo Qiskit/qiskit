@@ -45,6 +45,8 @@ class TGate(Gate):
 
     Equivalent to a :math:`\pi/4` radian rotation about the Z axis.
     """
+    name = "t"
+    num_params = 0
 
     def __init__(self, label=None):
         """Create new T gate."""
@@ -101,6 +103,8 @@ class TdgGate(Gate):
 
     Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
     """
+    name = "tdg"
+    num_params = 0
 
     def __init__(self, label=None):
         """Create new Tdg gate."""

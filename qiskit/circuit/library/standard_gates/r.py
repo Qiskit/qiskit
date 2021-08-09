@@ -42,6 +42,8 @@ class RGate(Gate):
                 -i e^{i \phi} \sin{\th} & \cos{\th}
             \end{pmatrix}
     """
+    name = "r"
+    num_params = 2
 
     def __init__(self, theta, phi):
         """Create new r single-qubit gate."""
