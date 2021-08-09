@@ -29,26 +29,8 @@ class CXCancellation(TransformationPass):
         """
         cx_runs = dag.collect_runs(["cx"])
         for cx_run in cx_runs:
-            # Partition the cx_run into chunks with equal gate arguments
-            partition = []
-            chunk = []
-            for i in range(len(cx_run) - 1):
-                chunk.append(cx_run[i])
-
-                qargs0 = cx_run[i].qargs
-                qargs1 = cx_run[i + 1].qargs
-
-                if qargs0 != qargs1:
-                    partition.append(chunk)
-                    chunk = []
-            chunk.append(cx_run[-1])
-            partition.append(chunk)
-            # Simplify each chunk in the partition
-            for chunk in partition:
-                if len(chunk) % 2 == 0:
-                    for n in chunk:
-                        dag.remove_op_node(n)
-                else:
-                    for n in chunk[1:]:
-                        dag.remove_op_node(n)
+            if len(cx_run) % 2 == 0:
+                dag.remove_op_node(cx_run[0])
+            for node in cx_run[1:]:
+                dag.remove_op_node(node)
         return dag

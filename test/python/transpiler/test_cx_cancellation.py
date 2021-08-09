@@ -45,3 +45,46 @@ class TestCXCancellation(QiskitTestCase):
         resources_after = out_circuit.count_ops()
 
         self.assertNotIn("cx", resources_after)
+
+    def test_pass_cx_cancellation(self):
+        """Test the cx cancellation pass.
+
+        It should cancel consecutive cx pairs on same qubits.
+        """
+        qr = QuantumRegister(4)
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr[0])
+        circuit.h(qr[1])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[2], qr[3])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[2], qr[3])
+
+        pass_manager = PassManager()
+        pass_manager.append(CXCancellation())
+        out_circuit = pass_manager.run(circuit)
+        resources_after = out_circuit.count_ops()
+
+        self.assertNotIn("cx", resources_after)
+
+    def test_pass_cx_cancellation(self):
+        """Test the cx cancellation pass.
+
+        It should cancel consecutive cx pairs on same qubits.
+        """
+        qr = QuantumRegister(4)
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr[0])
+        circuit.h(qr[1])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[1], qr[2])
+        circuit.cx(qr[2], qr[3])
+        circuit.cx(qr[2], qr[3])
+
+        pass_manager = PassManager()
+        pass_manager.append(CXCancellation())
+        out_circuit = pass_manager.run(circuit)
+        resources_after = out_circuit.count_ops()
+
+        self.assertIn("cx", resources_after)
+        self.assertEqual(resources_after["cx"], 2)
