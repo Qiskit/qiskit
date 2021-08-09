@@ -628,13 +628,8 @@ class TestMatplotlibDrawer(QiskitTestCase):
         fig = plt.figure(1, figsize=(6, 4))
         fig.patch.set_facecolor("white")
         ax1 = fig.add_subplot(1, 2, 1)
-
-        circuit = QuantumCircuit(2)
-        circuit.h(0)
-        circuit.cx(0, 1)
-        circuit.draw("mpl", ax=ax1)
-
         ax2 = fig.add_subplot(1, 2, 2)
+        ax1.plot([1, 2, 3])
 
         circuit = QuantumCircuit(4)
         circuit.h(0)
