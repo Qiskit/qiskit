@@ -19,6 +19,7 @@ from qiskit.compiler import transpile
 from qiskit.test import QiskitTestCase
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import CXGate
+from qiskit.dagcircuit import DAGOpNode
 from qiskit.transpiler import TranspilerError
 from ..providers.faulty_backends import (
     FakeOurenseFaultyQ1,
@@ -291,7 +292,7 @@ class TestFaultyQ1(TestFaultyBackendCase):
         physical_qubits = QuantumRegister(5, "q")
         nodes = circuit_to_dag(circuit).nodes_on_wire(physical_qubits[1])
         for node in nodes:
-            if node.type == "op":
+            if isinstance(node, DAGOpNode):
                 raise AssertionError("Faulty Qubit Q1 not totally idle")
 
     @data(0, 1, 2, 3)
