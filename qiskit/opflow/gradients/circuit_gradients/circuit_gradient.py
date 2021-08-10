@@ -39,17 +39,17 @@ class CircuitGradient(ConverterBase):
     # pylint: disable=arguments-differ
     @abstractmethod
     def convert(
-            self,
-            operator: OperatorBase,
-            params: Optional[
-                Union[
-                    ParameterExpression,
-                    ParameterVector,
-                    List[ParameterExpression],
-                    Tuple[ParameterExpression, ParameterExpression],
-                    List[Tuple[ParameterExpression, ParameterExpression]],
-                ]
-            ] = None,
+        self,
+        operator: OperatorBase,
+        params: Optional[
+            Union[
+                ParameterExpression,
+                ParameterVector,
+                List[ParameterExpression],
+                Tuple[ParameterExpression, ParameterExpression],
+                List[Tuple[ParameterExpression, ParameterExpression]],
+            ]
+        ] = None,
     ) -> OperatorBase:
         r"""
         Args:
@@ -70,8 +70,9 @@ class CircuitGradient(ConverterBase):
         raise NotImplementedError
 
     @staticmethod
-    def _unroll_to_supported_operations(circuit: QuantumCircuit,
-                                        supported_gates: Set[str]) -> QuantumCircuit:
+    def _unroll_to_supported_operations(
+        circuit: QuantumCircuit, supported_gates: Set[str]
+    ) -> QuantumCircuit:
         """Unroll the given circuit into a gate set for which the gradients may be computed.
 
         Args:
@@ -89,5 +90,6 @@ class CircuitGradient(ConverterBase):
             except Exception:
                 raise Exception(
                     f"Could not unroll the circuit provided {circuit} into supported gates "
-                    f"{supported_gates}.")
+                    f"{supported_gates}."
+                )
         return circuit

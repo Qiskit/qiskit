@@ -76,15 +76,15 @@ class LinComb(CircuitGradient):
 
     # pylint: disable=signature-differs
     def convert(
-            self,
-            operator: OperatorBase,
-            params: Union[
-                ParameterExpression,
-                ParameterVector,
-                List[ParameterExpression],
-                Tuple[ParameterExpression, ParameterExpression],
-                List[Tuple[ParameterExpression, ParameterExpression]],
-            ],
+        self,
+        operator: OperatorBase,
+        params: Union[
+            ParameterExpression,
+            ParameterVector,
+            List[ParameterExpression],
+            Tuple[ParameterExpression, ParameterExpression],
+            List[Tuple[ParameterExpression, ParameterExpression]],
+        ],
     ) -> OperatorBase:
         """Convert ``operator`` into an operator that represents the gradient w.r.t. ``params``.
 
@@ -106,15 +106,15 @@ class LinComb(CircuitGradient):
 
     # pylint: disable=too-many-return-statements
     def _prepare_operator(
-            self,
-            operator: OperatorBase,
-            params: Union[
-                ParameterExpression,
-                ParameterVector,
-                List[ParameterExpression],
-                Tuple[ParameterExpression, ParameterExpression],
-                List[Tuple[ParameterExpression, ParameterExpression]],
-            ],
+        self,
+        operator: OperatorBase,
+        params: Union[
+            ParameterExpression,
+            ParameterVector,
+            List[ParameterExpression],
+            Tuple[ParameterExpression, ParameterExpression],
+            List[Tuple[ParameterExpression, ParameterExpression]],
+        ],
     ) -> OperatorBase:
         """Traverse ``operator`` to get back the adapted operator representing the gradient.
 
@@ -162,16 +162,16 @@ class LinComb(CircuitGradient):
                             "The StateFn representing the quantum state could not be" "extracted."
                         )
                     if isinstance(params, (ParameterExpression, ParameterVector)) or (
-                            isinstance(params, list)
-                            and all(isinstance(param, ParameterExpression) for param in params)
+                        isinstance(params, list)
+                        and all(isinstance(param, ParameterExpression) for param in params)
                     ):
 
                         return self._gradient_states(
                             state_op, meas_op=(2 * ~StateFn(Z) ^ operator[0]), target_params=params
                         )
                     elif isinstance(params, tuple) or (
-                            isinstance(params, list)
-                            and all(isinstance(param, tuple) for param in params)
+                        isinstance(params, list)
+                        and all(isinstance(param, tuple) for param in params)
                     ):
                         return self._hessian_states(
                             state_op,
@@ -192,8 +192,8 @@ class LinComb(CircuitGradient):
                         )
 
                     if isinstance(params, (ParameterExpression, ParameterVector)) or (
-                            isinstance(params, list)
-                            and all(isinstance(param, ParameterExpression) for param in params)
+                        isinstance(params, list)
+                        and all(isinstance(param, ParameterExpression) for param in params)
                     ):
                         return state_op.traverse(
                             partial(
@@ -203,8 +203,8 @@ class LinComb(CircuitGradient):
                             )
                         )
                     elif isinstance(params, tuple) or (
-                            isinstance(params, list)
-                            and all(isinstance(param, tuple) for param in params)
+                        isinstance(params, list)
+                        and all(isinstance(param, tuple) for param in params)
                     ):
                         return state_op.traverse(
                             partial(
@@ -227,13 +227,12 @@ class LinComb(CircuitGradient):
                 return operator.traverse(partial(self._prepare_operator, params=params))
             else:
                 if isinstance(params, (ParameterExpression, ParameterVector)) or (
-                        isinstance(params, list)
-                        and all(isinstance(param, ParameterExpression) for param in params)
+                    isinstance(params, list)
+                    and all(isinstance(param, ParameterExpression) for param in params)
                 ):
                     return self._gradient_states(operator, target_params=params)
                 elif isinstance(params, tuple) or (
-                        isinstance(params, list) and all(
-                    isinstance(param, tuple) for param in params)
+                    isinstance(params, list) and all(isinstance(param, tuple) for param in params)
                 ):
                     return self._hessian_states(operator, target_params=params)  # type: ignore
                 else:
@@ -446,14 +445,14 @@ class LinComb(CircuitGradient):
 
     @staticmethod
     def apply_grad_gate(
-            circuit,
-            gate,
-            param_index,
-            grad_gate,
-            grad_coeff,
-            qr_superpos,
-            open_ctrl=False,
-            trim_after_grad_gate=False,
+        circuit,
+        gate,
+        param_index,
+        grad_gate,
+        grad_coeff,
+        qr_superpos,
+        open_ctrl=False,
+        trim_after_grad_gate=False,
     ):
         """Util function to apply a gradient gate for the linear combination of unitaries method.
 
@@ -567,17 +566,17 @@ class LinComb(CircuitGradient):
             out._parameter_table = table
 
         else:
-            out._data[gate_idx: gate_idx + 1] = replacement
+            out._data[gate_idx : gate_idx + 1] = replacement
 
         return out
 
     def _gradient_states(
-            self,
-            state_op: StateFn,
-            meas_op: Union[OperatorBase, bool] = True,
-            target_params: Optional[Union[Parameter, List[Parameter]]] = None,
-            open_ctrl: bool = False,
-            trim_after_grad_gate: bool = False,
+        self,
+        state_op: StateFn,
+        meas_op: Union[OperatorBase, bool] = True,
+        target_params: Optional[Union[Parameter, List[Parameter]]] = None,
+        open_ctrl: bool = False,
+        trim_after_grad_gate: bool = False,
     ) -> ListOp:
         """Generate the gradient states.
 
@@ -657,15 +656,15 @@ class LinComb(CircuitGradient):
         return ListOp(oplist) if len(oplist) > 1 else oplist[0]
 
     def _hessian_states(
-            self,
-            state_op: StateFn,
-            meas_op: Optional[OperatorBase] = None,
-            target_params: Optional[
-                Union[
-                    Tuple[ParameterExpression, ParameterExpression],
-                    List[Tuple[ParameterExpression, ParameterExpression]],
-                ]
-            ] = None,
+        self,
+        state_op: StateFn,
+        meas_op: Optional[OperatorBase] = None,
+        target_params: Optional[
+            Union[
+                Tuple[ParameterExpression, ParameterExpression],
+                List[Tuple[ParameterExpression, ParameterExpression]],
+            ]
+        ] = None,
     ) -> OperatorBase:
         """Generate the operator states whose evaluation returns the Hessian (items).
 
@@ -750,7 +749,7 @@ class LinComb(CircuitGradient):
                                 # Chain Rule Parameter Expression
                                 param_grad = 1
                                 for gate, idx, param in zip(
-                                        [gate_a, gate_b], [idx_a, idx_b], [param_a, param_b]
+                                    [gate_a, gate_b], [idx_a, idx_b], [param_a, param_b]
                                 ):
                                     param_expression = gate.params[idx]
                                     if param_expression != param:  # need to apply chain rule
