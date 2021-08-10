@@ -72,7 +72,7 @@ class LinComb(CircuitGradient):
     see e.g. https://arxiv.org/pdf/1811.11184.pdf
     """
 
-    SUPPORTED_GATES = {"rx", "ry", "rz", "rzx", "rzz", "ryy", "rxx", "p", "u", "cx", "cy", "cz", "controlledgate"}
+    SUPPORTED_GATES = {"rx", "ry", "rz", "rzx", "rzz", "ryy", "rxx", "p", "u", "controlledgate"}
 
     # pylint: disable=signature-differs
     def convert(

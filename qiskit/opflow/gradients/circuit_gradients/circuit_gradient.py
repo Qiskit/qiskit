@@ -18,7 +18,6 @@ from typing import List, Union, Optional, Tuple, Set
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterExpression, ParameterVector
 from qiskit.transpiler.passes import Unroller
-from ... import OpflowError
 from ...converters.converter_base import ConverterBase
 from ...operator_base import OperatorBase
 
@@ -88,7 +87,7 @@ class CircuitGradient(ConverterBase):
                 unroller = Unroller(list(supported_gates))
                 circuit = unroller(circuit)
             except Exception:
-                raise OpflowError(
+                raise Exception(
                     f"Could not unroll the circuit provided {circuit} into supported gates "
                     f"{supported_gates}.")
         return circuit
