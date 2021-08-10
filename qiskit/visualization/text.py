@@ -18,6 +18,7 @@ from warnings import warn
 from shutil import get_terminal_size
 import sys
 
+from qiskit.circuit import Clbit
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import Reset
 from qiskit.circuit import Measure
@@ -776,35 +777,26 @@ class TextDrawing:
         qubit_labels = []
         if self.layout is None:
             for bit in self.qubits:
-                # check the size of register
-                if len(self.qubits) > 1:
-                    label = "{name}_{index}: " + initial_qubit_value
-                    index = self.bit_locations[bit]["index"]
-                else:
-                    label = "{name}: " + initial_qubit_value
-
+                register = self.bit_locations[bit]["register"]
+                label = "{name}_{index}: " + initial_qubit_value
                 if self.bit_locations[bit]["register"] is not None:
-                    # different format for non-singleton register
-                    if len(self.qubits) > 1:
+                    if register.size > 1:
                         qubit_labels.append(
-                            label.format(
+                            ("{name}_{index}: " + initial_qubit_value).format(
                                 name=self.bit_locations[bit]["register"].name,
-                                index=index,
-                                physical="",
+                                index=self.bit_locations[bit]["index"],
                             )
                         )
                     else:
                         qubit_labels.append(
-                            label.format(
+                            ("{name}: " + initial_qubit_value).format(
                                 name=self.bit_locations[bit]["register"].name,
-                                physical="",
                             )
                         )
                 else:
-                    if len(self.qubits) > 1:
-                        qubit_labels.append(label.format(name="", index=index, physical=""))
-                    else:
-                        qubit_labels.append(label.format(name="", physical=""))
+                    qubit_labels.append(
+                        label.format(name="", index=self.bit_locations[bit]["index"], physical="")
+                    )
 
         else:
             for bit in self.qubits:
@@ -816,24 +808,14 @@ class TextDrawing:
                             for reg in self.layout.get_registers()
                             if self.layout[bit_index] in reg
                         )
-                        if len(self.qubits) > 1:
-                            label = "{name}_{index} -> {physical} " + initial_qubit_value
-                            index = layout_reg[:].index(self.layout[bit_index])
-                            qubit_labels.append(
-                                label.format(
-                                    name=layout_reg.name,
-                                    index=index,
-                                    physical=bit_index,
-                                )
+                        label = "{name}_{index} -> {physical} " + initial_qubit_value
+                        qubit_labels.append(
+                            label.format(
+                                name=layout_reg.name,
+                                index=layout_reg[:].index(self.layout[bit_index]),
+                                physical=bit_index,
                             )
-                        else:
-                            label = "{name} -> {physical} " + initial_qubit_value
-                            qubit_labels.append(
-                                label.format(
-                                    name=layout_reg.name,
-                                    physical=bit_index,
-                                )
-                            )
+                        )
                     except StopIteration:
                         label = "{name} -> {physical} " + initial_qubit_value
                         qubit_labels.append(label.format(name="", physical=bit_index))
@@ -844,12 +826,7 @@ class TextDrawing:
         previous_creg = None
         for bit in self.clbits:
             register = self.bit_locations[bit]["register"]
-
-            if len(self.clbits) > 1:
-                index = self.bit_locations[bit]["index"]
-            else:
-                index = ""
-
+            index = self.bit_locations[bit]["index"]
             if self.cregbundle and register is not None:
                 if previous_creg and previous_creg == register:
                     continue
@@ -860,19 +837,17 @@ class TextDrawing:
                         name=register.name, initial_value=initial_clbit_value, size=register.size
                     )
                 )
+            elif register.size > 1:
+                label = "{name}_{index}: " + initial_clbit_value
+                clbit_labels.append(
+                    label.format(name=register.name if register is not None else "", index=index)
+                )
             else:
-                if len(self.clbits) > 1:
-                    label = "{name}_{index}: " + initial_clbit_value
-                    clbit_labels.append(
-                        label.format(
-                            name=register.name if register is not None else "", index=index
-                        )
-                    )
-                else:
-                    label = "{name}: " + initial_clbit_value
-                    clbit_labels.append(
-                        label.format(name=register.name if register is not None else "")
-                    )
+                label = "{name}: " + initial_clbit_value
+                clbit_labels.append(
+                    label.format(name=register.name if register is not None else "")
+                )
+
         return qubit_labels + clbit_labels
 
     def should_compress(self, top_line, bot_line):
@@ -1416,12 +1391,26 @@ class Layer:
             top_connect (char): The char to connect the box on the top.
         """
         if self.cregbundle:
-            label = "= %s" % val
-            self.set_clbit(creg[0], BoxOnClWire(label=label, top_connect=top_connect))
+            if isinstance(creg, Clbit):
+                bit_reg = self._clbit_locations[creg]["register"]
+                bit_index = self._clbit_locations[creg]["index"]
+                label_bool = "= T" if val is True else "= F"
+                label = "%s_%s %s" % (bit_reg.name, bit_index, label_bool)
+                self.set_clbit(creg, BoxOnClWire(label=label, top_connect=top_connect))
+            else:
+                label = "= %s" % val
+                self.set_clbit(creg[0], BoxOnClWire(label=label, top_connect=top_connect))
         else:
-            clbit = [bit for bit in self.clbits if self._clbit_locations[bit]["register"] == creg]
-            cond_bin = bin(val)[2:].zfill(len(clbit))
-            self.set_cond_bullets(cond_bin, clbits=clbit)
+            if isinstance(creg, Clbit):
+                clbit = [creg]
+                cond_bin = "1" if val is True else "0"
+                self.set_cond_bullets(cond_bin, clbit)
+            else:
+                clbit = [
+                    bit for bit in self.clbits if self._clbit_locations[bit]["register"] == creg
+                ]
+                cond_bin = bin(val)[2:].zfill(len(clbit))
+                self.set_cond_bullets(cond_bin, clbits=clbit)
 
     def set_cond_bullets(self, val, clbits):
         """Sets bullets for classical conditioning when cregbundle=False.
