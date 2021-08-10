@@ -223,7 +223,7 @@ Each custom instruction is defined with a CUSTOM_INSTRUCTION block defined as:
         uint16_t name_size;
         char type;
         _Bool custom_definition;
-        uint64_t size
+        uint64_t size;
     }
 
 Immediately following the CUSTOM_INSTRUCTION struct is the utf8 encoded name
@@ -231,7 +231,7 @@ of size ``name_size``.
 
 If ``custom_definition`` is ``True`` that means that the immediately following
 ``size`` bytes contains a QPY circuit data which can be used for the custom
-definition of that gate. If ``custom_definition`` is ``False`` than the
+definition of that gate. If ``custom_definition`` is ``False`` then the
 instruction can be considered opaque (ie no definition).
 
 INSTRUCTIONS
@@ -247,7 +247,7 @@ The contents of INSTRUCTIONS is a list of INSTRUCTION metadata objects
         uint16_t num_parameters;
         uint32_t num_qargs;
         uint32_t num_cargs;
-        _Bool has_conditional
+        _Bool has_conditional;
         uint16_t conditional_reg_name_size;
         long long conditional_value;
     }
@@ -334,8 +334,8 @@ The PARAMETER_EXPR data starts with a header:
 .. code-block:: c
 
     struct {
-        uint64_t map_elements,
-        uint64_t expr_size,
+        uint64_t map_elements;
+        uint64_t expr_size;
     }
 
 Immediately following the header is ``expr_size`` bytes of utf8 data containing
