@@ -203,8 +203,7 @@ the register ``qr`` would be a standalone register. While something like::
 CUSTOM_DEFINITIONS
 ------------------
 
-If the circuit contains custom definitions for any of the instructions in the circuit.
-this section
+This section specifies custom definitions for any of the instructions in the circuit.
 
 CUSTOM_DEFINITION_HEADER contents are defined as:
 
