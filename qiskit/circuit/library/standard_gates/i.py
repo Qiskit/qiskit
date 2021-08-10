@@ -38,7 +38,7 @@ class IGate(Gate):
         q_0: ┤ I ├
              └───┘
     """
-    name = "id"
+    gate_name = "id"
     num_params = 0
 
     def __init__(self, label=None):

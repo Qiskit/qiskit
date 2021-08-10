@@ -53,7 +53,7 @@ class SXGate(Gate):
                     = e^{-i pi/4} \sqrt{X}
 
     """
-    name = "sx"
+    gate_name = "sx"
     num_params = 0
 
     def __init__(self, label=None):
@@ -129,7 +129,7 @@ class SXdgGate(Gate):
                     = e^{-i pi/4} \sqrt{X}^{\dagger}
 
     """
-    name = "sxdg"
+    gate_name = "sxdg"
     num_params = 0
 
     def __init__(self, label=None):
@@ -229,7 +229,7 @@ class CSXGate(ControlledGate):
             [0, 0, 0, 1],
         ]
     )
-    name = "csx"
+    gate_name = "csx"
     num_params = 0
 
     def __init__(self, label=None, ctrl_state=None):

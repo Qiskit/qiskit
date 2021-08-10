@@ -75,7 +75,7 @@ class ECRGate(Gate):
                     -i  & 1   &  0  & 0
                 \end{pmatrix}
     """
-    name = "ecr"
+    gate_name = "ecr"
     num_params = 0
 
     def __init__(self):

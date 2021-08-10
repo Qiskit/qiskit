@@ -73,7 +73,7 @@ class U1Gate(Gate):
         Reference for virtual Z gate implementation:
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
-    name = "u1"
+    gate_name = "u1"
     num_params = 1
 
     def __init__(self, theta, label=None):
@@ -162,7 +162,7 @@ class CU1Gate(ControlledGate):
         of U1 and RZ, CU1 and CRZ are different gates with a relative
         phase difference.
     """
-    name = "cu1"
+    gate_name = "cu1"
     num_params = 1
 
     def __init__(self, theta, label=None, ctrl_state=None):
@@ -262,7 +262,7 @@ class MCU1Gate(ControlledGate):
         :class:`~qiskit.circuit.library.standard_gates.CU1Gate`:
         The singly-controlled-version of this gate.
     """
-    name = "mcu1"
+    gate_name = "mcu1"
     num_params = 1
 
     def __init__(self, lam, num_ctrl_qubits, label=None, ctrl_state=None):
