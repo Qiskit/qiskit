@@ -39,3 +39,5 @@ deprecations:
     now being returned by the pulse builder  doesn't support the ``.insert`` method
     (and there is no insert syntax in the builder). The use of timeslot placeholders
     to block the insertion of other instructions is no longer necessary.
+    The returned :class:`~qiskit.pulse.ScheduleBlock` can be converted to
+    a :class:`~qiskit.pulse.Schedule` using :func:`qiskit.pulse.transforms.block_to_schedule`.
