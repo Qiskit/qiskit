@@ -68,10 +68,10 @@ file header. The contents of the file header as defined as a C struct are:
 .. code-block:: c
 
     struct {
-        unsigned char qpy_version;
-        unsigned char qiskit_major_version;
-        unsigned char qiskit_minor_version;
-        unsigned char qiskit_patch_version;
+        uint8_t qpy_version;
+        uint8_t qiskit_major_version;
+        uint8_t qiskit_minor_version;
+        uint8_t qiskit_patch_version;
         uint64_t num_circuits;
     }
 
@@ -248,7 +248,7 @@ The contents of INSTRUCTIONS is a list of INSTRUCTION metadata objects
         uint32_t num_cargs;
         _Bool has_conditional;
         uint16_t conditional_reg_name_size;
-        long long conditional_value;
+        int64_t conditional_value;
     }
 
 This metadata object is immediately followed by ``name_size`` bytes of utf8 bytes
