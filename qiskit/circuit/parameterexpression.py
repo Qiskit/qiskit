@@ -107,6 +107,7 @@ class ParameterExpression:
         self._raise_if_passed_unknown_parameters(parameter_values.keys())
         self._raise_if_passed_nan(parameter_values)
 
+        #import pdb; pdb.set_trace()
         symbol_values = {}
         for parameter, value in parameter_values.items():
             param_expr = self._parameter_symbols[parameter]
@@ -177,7 +178,6 @@ class ParameterExpression:
 
         # If new_param is an expr, we'll need to construct a matching sympy expr
         # but with our sympy symbols instead of theirs.
-
         symbol_map = {
             self._parameter_symbols[old_param]: new_param._symbol_expr
             for old_param, new_param in parameter_map.items()

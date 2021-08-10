@@ -347,6 +347,8 @@ class TemplateSubstitution:
                 )
                 self.substitution_list.append(config)
 
+        #import pdb; pdb.set_trace()
+
         # Remove incompatible matches.
         self._remove_impossible()
 
@@ -433,7 +435,6 @@ class TemplateSubstitution:
                     node = group.template_dag_dep.get_node(index)
                     inst = node.op.copy()
 
-                    #import pdb; pdb.set_trace()
                     dag_dep_opt.add_op_node(inst.inverse(), qargs, cargs)
 
             # Add the unmatched gates.
@@ -502,16 +503,17 @@ class TemplateSubstitution:
 
         # Create the fake binding dict and check
         equations, circ_dict, temp_symbols, sol, fake_bind = [], {}, set(), {}, {}
+        import pdb; pdb.set_trace()
         for t_idx, temp_params in enumerate(template_params):
             if isinstance(temp_params, ParameterExpression):
-                circ_param_str = ''.join(''.join(str(circuit_params[t_idx]).split('$')).split('\\'))
+                circ_param_str = str(circuit_params[t_idx])
                 equations.append(sym.Eq(parse_expr(str(temp_params)), parse_expr(circ_param_str)))
 
                 for param in temp_params.parameters:
                     temp_symbols.add(param)
                 if isinstance(circuit_params[t_idx], ParameterExpression):
                     for param in circuit_params[t_idx].parameters:
-                        circ_dict[param] = str(param)
+                        circ_dict[param] = sym.Symbol(str(param))
 
         if not temp_symbols:
             return template_dag_dep
@@ -520,7 +522,7 @@ class TemplateSubstitution:
         sym_sol = sym.solve(equations, temp_symbols)
         for key in sym_sol:
             try:
-                sol[str(key)] = ParameterExpression(circ_dict, str(sym_sol[key]))
+                sol[str(key)] = ParameterExpression(circ_dict, sym_sol[key])
             except TypeError:
                 return None
 
