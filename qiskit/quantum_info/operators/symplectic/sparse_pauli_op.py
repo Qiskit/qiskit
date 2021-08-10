@@ -50,7 +50,7 @@ class SparsePauliOp(LinearOp):
         """Initialize an operator object.
 
         Args:
-            data (Paulilist, SparsePauliOp): Pauli list of terms.
+            data (Paulilist, SparsePauliOp, PauliTable): Pauli list of terms.
             coeffs (np.ndarray): complex coefficients for Pauli terms.
 
         Raises:
