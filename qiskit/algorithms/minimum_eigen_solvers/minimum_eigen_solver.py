@@ -20,8 +20,8 @@ from qiskit.opflow import OperatorBase
 from ..algorithm_result import AlgorithmResult
 
 # Introduced new type to maintain readability.
-T = TypeVar('T')
-ListOrDict = Union[List[Optional[T]], Dict[Any, T]]
+_T = TypeVar("_T")  # Pylint does not allow single character class names.
+ListOrDict = Union[List[Optional[_T]], Dict[Any, _T]]
 
 
 class MinimumEigensolver(ABC):

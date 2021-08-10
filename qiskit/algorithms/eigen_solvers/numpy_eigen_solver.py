@@ -13,7 +13,7 @@
 """The Eigensolver algorithm."""
 
 import logging
-from typing import List, Optional, Union, Tuple, Callable, Dict, Any, TypeVar
+from typing import List, Optional, Union, Tuple, Callable
 
 import numpy as np
 from scipy import sparse as scisparse
@@ -159,8 +159,8 @@ class NumPyEigensolver(Eigensolver):
         aux_operators: ListOrDict[OperatorBase], wavefn, threshold: float = 1e-12
     ) -> ListOrDict[Tuple[float, int]]:
 
-        # If aux_operators is a list, it can contain None operators for which None values are returned.
-        # If aux_operators is a dict, the None operators have been dropped in compute_eigenvalues.
+        # As a list, aux_operators can contain None operators for which None values are returned.
+        # As a dict, the None operators in aux_operators have been dropped in compute_eigenvalues.
         if isinstance(aux_operators, list):
             values = [None] * len(aux_operators)  # type: ListOrDict[Tuple[float, int]]
             key_op_iterator = enumerate(aux_operators)
@@ -198,7 +198,7 @@ class NumPyEigensolver(Eigensolver):
             # For some reason Chemistry passes aux_ops with 0 qubits and paulis sometimes.
             aux_operators = [zero_op if op == 0 else op for op in aux_operators]
         elif isinstance(aux_operators, dict) and len(aux_operators) > 0:
-            aux_operators = {key: op for key, op in aux_operators.items() if not op}
+            aux_operators = {key: op for key, op in aux_operators.items() if op}
         else:
             aux_operators = None
 

@@ -12,7 +12,7 @@
 
 """The Numpy Minimum Eigensolver algorithm."""
 
-from typing import List, Optional, Union, Callable, Dict
+from typing import List, Optional, Union, Callable
 import logging
 import numpy as np
 

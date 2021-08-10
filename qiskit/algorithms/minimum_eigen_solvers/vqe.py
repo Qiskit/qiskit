@@ -431,7 +431,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         aux_op_results = values * (np.abs(values) > threshold)
 
         # Return None eigenvalues for None operators if aux_operators is a list.
-        # If aux_operators is a dict, the None operators should have been dropped in compute_minimum_eigenvalue
+        # None operators are already dropped in compute_minimum_eigenvalue if aux_operators is a dict.
         if isinstance(aux_operators, list):
             aux_operator_eigenvalues = [None] * len(aux_operators)
             key_value_iterator = enumerate(aux_op_results)
@@ -475,7 +475,8 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         if aux_operators:
             zero_op = I.tensorpower(operator.num_qubits) * 0.0
 
-            # Convert the None operators when aux_operators is a list. Drop them is aux_operators is a dict.
+            # Convert the None operators when aux_operators is a list.
+            # Drop None operators when aux_operators is a dict.
             if isinstance(aux_operators, list):
                 key_op_iterator = enumerate(aux_operators)
                 converted = [zero_op] * len(aux_operators)
