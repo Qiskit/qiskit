@@ -13,9 +13,12 @@
 """CircuitGradient Class """
 
 from abc import abstractmethod
-from typing import List, Union, Optional, Tuple
+from typing import List, Union, Optional, Tuple, Set
 
+from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterExpression, ParameterVector
+from qiskit.transpiler.passes import Unroller
+from ... import OpflowError
 from ...converters.converter_base import ConverterBase
 from ...operator_base import OperatorBase
 
@@ -37,17 +40,17 @@ class CircuitGradient(ConverterBase):
     # pylint: disable=arguments-differ
     @abstractmethod
     def convert(
-        self,
-        operator: OperatorBase,
-        params: Optional[
-            Union[
-                ParameterExpression,
-                ParameterVector,
-                List[ParameterExpression],
-                Tuple[ParameterExpression, ParameterExpression],
-                List[Tuple[ParameterExpression, ParameterExpression]],
-            ]
-        ] = None,
+            self,
+            operator: OperatorBase,
+            params: Optional[
+                Union[
+                    ParameterExpression,
+                    ParameterVector,
+                    List[ParameterExpression],
+                    Tuple[ParameterExpression, ParameterExpression],
+                    List[Tuple[ParameterExpression, ParameterExpression]],
+                ]
+            ] = None,
     ) -> OperatorBase:
         r"""
         Args:
@@ -66,3 +69,26 @@ class CircuitGradient(ConverterBase):
             ValueError: If ``params`` contains a parameter not present in ``operator``.
         """
         raise NotImplementedError
+
+    @staticmethod
+    def _unroll_to_supported_operations(circuit: QuantumCircuit,
+                                        supported_gates: Set[str]) -> QuantumCircuit:
+        """Unroll the given circuit into a gate set for which the gradients may be computed.
+
+        Args:
+            circuit: Quantum circuit to be unrolled into supported operations.
+
+        Returns:
+            Quantum circuit which is unrolled into supported operations.
+
+        """
+        unique_ops = set(circuit.count_ops().keys())
+        if not unique_ops.issubset(supported_gates):
+            try:
+                unroller = Unroller(list(supported_gates))
+                circuit = unroller(circuit)
+            except Exception:
+                raise OpflowError(
+                    f"Could not unroll the circuit provided {circuit} into supported gates "
+                    f"{supported_gates}.")
+        return circuit

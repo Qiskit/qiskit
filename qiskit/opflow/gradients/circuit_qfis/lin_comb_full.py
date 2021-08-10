@@ -95,6 +95,7 @@ class LinCombFull(CircuitQFI):
         state_qc = QuantumCircuit(*operator.primitive.qregs, qr_work)
         state_qc.h(qr_work)
         state_qc.compose(operator.primitive, inplace=True)
+        state_qc = LinComb._unroll_to_supported_operations(state_qc, LinComb.SUPPORTED_GATES)
 
         # Get the circuits needed to compute〈∂iψ|∂jψ〉
         for i, param_i in enumerate(params):  # loop over parameters
