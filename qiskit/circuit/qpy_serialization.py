@@ -274,7 +274,7 @@ The contents of each INSTRUCTION_ARG is:
 
     struct {
         char type;
-        unsigned int index;
+        uint32_t index;
     }
 
 ``type`` can be ``'q'`` or ``'c'``.
