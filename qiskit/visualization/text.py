@@ -796,7 +796,9 @@ class TextDrawing:
                         )
                 else:
                     qubit_labels.append(
-                        label.format(name="", index="_" + str(self.bit_locations[bit]["index"]), physical="")
+                        label.format(
+                            name="", index="_" + str(self.bit_locations[bit]["index"]), physical=""
+                        )
                     )
 
         else:
