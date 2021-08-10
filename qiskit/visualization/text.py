@@ -778,24 +778,25 @@ class TextDrawing:
         if self.layout is None:
             for bit in self.qubits:
                 register = self.bit_locations[bit]["register"]
-                label = "{name}_{index}: " + initial_qubit_value
+                label = "{name}{index}: " + initial_qubit_value
                 if self.bit_locations[bit]["register"] is not None:
                     if register.size > 1:
                         qubit_labels.append(
-                            ("{name}_{index}: " + initial_qubit_value).format(
+                            label.format(
                                 name=self.bit_locations[bit]["register"].name,
-                                index=self.bit_locations[bit]["index"],
+                                index="_" + str(self.bit_locations[bit]["index"]),
                             )
                         )
                     else:
                         qubit_labels.append(
-                            ("{name}: " + initial_qubit_value).format(
+                            label.format(
                                 name=self.bit_locations[bit]["register"].name,
+                                index="",
                             )
                         )
                 else:
                     qubit_labels.append(
-                        label.format(name="", index=self.bit_locations[bit]["index"], physical="")
+                        label.format(name="", index="_" + str(self.bit_locations[bit]["index"]), physical="")
                     )
 
         else:

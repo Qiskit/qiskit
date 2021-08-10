@@ -86,6 +86,14 @@ class TestPiCheck(QiskitTestCase):
         result = pi_check(input_number)
         self.assertEqual(result, expected_string)
 
+    def test_params_str(self):
+        """Test pi/2 displays properly in ParameterExpression - #6758"""
+        x = Parameter("x")
+        input_number = x + pi / 2
+        expected_string = "x + π/2"
+        result = pi_check(input_number)
+        self.assertEqual(result, expected_string)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

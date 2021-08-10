@@ -43,6 +43,30 @@ class TestCircuitToInstruction(QiskitTestCase):
         self.assertEqual(inst.definition[1][1], [q[7]])
         self.assertEqual(inst.definition[1][2], [c[4]])
 
+    def test_flatten_registers_of_circuit_single_bit_cond(self):
+        """Check correct mapping of registers gates conditioned on single classical bits."""
+        qr1 = QuantumRegister(2, "qr1")
+        qr2 = QuantumRegister(3, "qr2")
+        cr1 = ClassicalRegister(3, "cr1")
+        cr2 = ClassicalRegister(3, "cr2")
+        circ = QuantumCircuit(qr1, qr2, cr1, cr2)
+        circ.h(qr1[0]).c_if(cr1[1], True)
+        circ.h(qr2[1]).c_if(cr2[0], False)
+        circ.cx(qr1[1], qr2[2]).c_if(cr2[2], True)
+        circ.measure(qr2[2], cr2[0])
+
+        inst = circuit_to_instruction(circ)
+        q = QuantumRegister(5, "q")
+        c = ClassicalRegister(6, "c")
+
+        self.assertEqual(inst.definition[0][1], [q[0]])
+        self.assertEqual(inst.definition[1][1], [q[3]])
+        self.assertEqual(inst.definition[2][1], [q[1], q[4]])
+
+        self.assertEqual(inst.definition[0][0].condition, (c[1], True))
+        self.assertEqual(inst.definition[1][0].condition, (c[3], False))
+        self.assertEqual(inst.definition[2][0].condition, (c[5], True))
+
     def test_flatten_parameters(self):
         """Verify parameters from circuit are moved to instruction.params"""
         qr = QuantumRegister(3, "qr")
