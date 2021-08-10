@@ -127,10 +127,9 @@ class QFT(BlueprintCircuit):
         if num_qubits != self.num_qubits:
             self._invalidate()
 
-            if num_qubits:
+            self.qregs: List[QuantumRegister] = []
+            if num_qubits is not None and num_qubits > 0:
                 self.qregs = [QuantumRegister(num_qubits, name="q")]
-            else:
-                self.qregs = []
 
     @property
     def approximation_degree(self) -> int:
