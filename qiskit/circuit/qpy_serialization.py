@@ -299,7 +299,7 @@ the data is represented by the struct format in the :ref:`param_expr` section.
 ``'p'`` defines a :class:`~qiskit.circuit.Parameter` object  which is
 represented by a PARAM struct (see below), ``e`` defines a
 :class:`~qiskit.circuit.ParameterExpression` object (that's not a
-:class:`~qiskit.circuit.Paramter`) which is represented by a PARAM_EXPR struct
+:class:`~qiskit.circuit.Parameter`) which is represented by a PARAM_EXPR struct
 (see below), and ``'n'`` represents an object from numpy (either an ``ndarray``
 or a numpy type) which means the data is .npy format [#f2]_ data.
 
