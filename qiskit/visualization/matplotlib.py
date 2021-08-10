@@ -350,7 +350,11 @@ class MatplotlibDrawer:
         if not self._user_ax:
             from matplotlib import get_backend
 
-            if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
+            if get_backend() in [
+                "module://ipykernel.pylab.backend_inline",
+                "module://matplotlib_inline.backend_inline",
+                "nbAgg",
+            ]:
                 self._plt_mod.close(self._figure)
             return self._figure
 
