@@ -10,15 +10,21 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 from abc import abstractmethod
+from typing import Union
 
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
 )
+from qiskit.opflow import CircuitQFI, CircuitGradient
 
 
 class RealVariationalPrinciple(VariationalPrinciple):
-    def __init__(self, raw_metric_tensor, raw_evolution_grad , is_error_supported: bool):
-        super().__init__(raw_metric_tensor, raw_evolution_grad, is_error_supported)
+    def __init__(self, observable, ansatz, parameters,
+                 qfi_method: Union[str, CircuitQFI] = 'lin_comb_full',
+                 grad_method: Union[str, CircuitGradient] = 'lin_comb',
+                 is_error_supported: bool = False):
+        super().__init__(observable, ansatz, parameters, qfi_method, grad_method,
+                         is_error_supported)
 
     @staticmethod
     @abstractmethod

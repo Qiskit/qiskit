@@ -10,11 +10,22 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 from abc import ABC, abstractmethod
+from typing import Union
+
+from qiskit.algorithms.quantum_time_evolution.variational.principles import metric_tensor_calculator, \
+    evolution_grad_calculator
+from qiskit.opflow import CircuitQFI, CircuitGradient
 
 
 class VariationalPrinciple(ABC):
-    def __init__(self, raw_metric_tensor, raw_evolution_grad, is_error_supported: bool):
+    def __init__(self, observable, ansatz, parameters,
+                 qfi_method: Union[str, CircuitQFI] = 'lin_comb_full',
+                 grad_method: Union[str, CircuitGradient] = 'lin_comb',
+                 is_error_supported: bool = False):
         self._is_error_supported = is_error_supported
+        raw_metric_tensor = metric_tensor_calculator.build(observable, ansatz, parameters, qfi_method)
+        raw_evolution_grad = evolution_grad_calculator.build(observable, ansatz, parameters,
+                                                             grad_method)
         self._metric_tensor = self._calc_metric_tensor(raw_metric_tensor)
         self._evolution_grad = self._calc_evolution_grad(raw_evolution_grad)
 
