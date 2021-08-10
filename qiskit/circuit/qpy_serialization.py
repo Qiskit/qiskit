@@ -63,7 +63,7 @@ file format is as follows:
 
 A QPY file (or memory object) always starts with the following 7
 byte UTF8 string: ``QISKIT`` which is immediately followed by the overall
-file header. The contents of thie file header as defined as a C struct are:
+file header. The contents of the file header as defined as a C struct are:
 
 .. code-block:: c
 
@@ -138,7 +138,7 @@ The contents of HEADER as defined as a C struct are:
 .. code-block:: c
 
     struct {
-        unit16_t name_size;
+        uint16_t name_size;
         double global_phase;
         uint32_t num_qubits;
         uint32_t num_clbits;
@@ -172,7 +172,7 @@ as:
         char type;
         _Bool standalone;
         uint32_t size;
-        unit16_t name_size;
+        uint16_t name_size;
     }
 
 ``type`` can be ``'q'`` or ``'c'``.
@@ -203,7 +203,7 @@ the register ``qr`` would be a standalone register. While something like::
 CUSTOM_DEFINITIONS
 ------------------
 
-If the circuit contains custom defitions for any of the instruction in the circuit.
+If the circuit contains custom definitions for any of the instructions in the circuit.
 this section
 
 CUSTOM_DEFINITION_HEADER contents are defined as:
@@ -247,8 +247,8 @@ The contents of INSTRUCTIONS is a list of INSTRUCTION metadata objects
         uint16_t num_parameters;
         uint32_t num_qargs;
         uint32_t num_cargs;
-        _Bool has_conditionl
-        uint16_t conditonal_reg_name_size;
+        _Bool has_conditional
+        uint16_t conditional_reg_name_size;
         long long conditional_value;
     }
 
@@ -258,7 +258,7 @@ class if it's defined in Qiskit. Otherwise it falls back to the custom
 instruction name. Following the ``name`` bytes there are ``label_size`` bytes of
 utf8 data for the label if one was set on the instruction. Following the label
 bytes if ``has_conditional`` is ``True`` then there are
-``conditonal_reg_name_size`` bytes of utf8 data for the name of the condtional
+``conditional_reg_name_size`` bytes of utf8 data for the name of the conditional
 register name. In case of single classical bit conditions the register name
 utf8 data will be prefixed with a null character "\\x00" and then a utf8 string
 integer representing the classical bit index in the circuit that the condition
@@ -275,7 +275,7 @@ The contents of each INSTRUCTION_ARG is:
 
     struct {
         char type;
-        unisgned int index;
+        unsigned int index;
     }
 
 ``type`` can be ``'q'`` or ``'c'``.
