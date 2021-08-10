@@ -775,8 +775,10 @@ class MatplotlibDrawer:
             for node in layer:
                 op = node.op
                 self._get_colors(node)
+
                 if verbose:
                     print(op)
+
                 # add conditional
                 if op.condition:
                     cond_xy = [
@@ -784,6 +786,7 @@ class MatplotlibDrawer:
                         for ii in self._clbit_dict
                     ]
                     self._condition(node, cond_xy)
+
                 # draw measure
                 if isinstance(op, Measure):
                     self._measure(node)
