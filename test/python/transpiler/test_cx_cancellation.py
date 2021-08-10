@@ -46,11 +46,8 @@ class TestCXCancellation(QiskitTestCase):
 
         self.assertNotIn("cx", resources_after)
 
-    def test_pass_cx_cancellation(self):
-        """Test the cx cancellation pass.
-
-        It should cancel consecutive cx pairs on same qubits.
-        """
+    def test_pass_cx_cancellation_intermixed_ops(self):
+        """Cancellation shouldn't be effected by the order of ops on different qubits."""
         qr = QuantumRegister(4)
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
@@ -67,17 +64,15 @@ class TestCXCancellation(QiskitTestCase):
 
         self.assertNotIn("cx", resources_after)
 
-    def test_pass_cx_cancellation(self):
-        """Test the cx cancellation pass.
-
-        It should cancel consecutive cx pairs on same qubits.
-        """
+    def test_pass_cx_cancellation_chained_cx(self):
+        """Include a test were not all operations can be cancelled."""
         qr = QuantumRegister(4)
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
         circuit.h(qr[1])
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[1], qr[2])
+        circuit.cx(qr[0], qr[1])
         circuit.cx(qr[2], qr[3])
         circuit.cx(qr[2], qr[3])
 
@@ -87,4 +82,4 @@ class TestCXCancellation(QiskitTestCase):
         resources_after = out_circuit.count_ops()
 
         self.assertIn("cx", resources_after)
-        self.assertEqual(resources_after["cx"], 2)
+        self.assertEqual(resources_after["cx"], 3)
