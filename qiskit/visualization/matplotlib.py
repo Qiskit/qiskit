@@ -40,7 +40,11 @@ from qiskit.circuit.library.standard_gates import (
 )
 from qiskit.extensions import Initialize
 from qiskit.visualization.qcstyle import load_style
-from qiskit.visualization.utils import get_gate_ctrl_text, get_param_str
+from qiskit.visualization.utils import (
+    get_gate_ctrl_text,
+    get_param_str,
+    matplotlib_close_if_inline,
+)
 from qiskit.circuit.tools.pi_check import pi_check
 from qiskit.exceptions import MissingOptionalLibraryError
 
@@ -348,14 +352,7 @@ class MatplotlibDrawer:
                 facecolor=self._figure.get_facecolor(),
             )
         if not self._user_ax:
-            from matplotlib import get_backend
-
-            if get_backend() in [
-                "module://ipykernel.pylab.backend_inline",
-                "module://matplotlib_inline.backend_inline",
-                "nbAgg",
-            ]:
-                self._plt_mod.close(self._figure)
+            matplotlib_close_if_inline(self._figure)
             return self._figure
 
     def _get_layer_widths(self):
