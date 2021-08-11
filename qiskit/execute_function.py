@@ -49,7 +49,7 @@ def execute(
     qobj_id=None,
     qobj_header=None,
     shots=None,  # common run options
-    memory=False,
+    memory=None,
     max_credits=None,
     seed_simulator=None,
     default_qubit_los=None,
@@ -315,6 +315,8 @@ def execute(
         # assembling the circuits into a qobj to be run on the backend
         if shots is None:
             shots = 1024
+        if memory is None:
+            memory = False
         if max_credits is None:
             max_credits = 10
         if meas_level is None:
