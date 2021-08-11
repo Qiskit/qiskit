@@ -52,10 +52,8 @@ API documentation
    load
    dump
 
-<<<<<<< HEAD
-=======
 QPY Compatibility
-=================
+-----------------
 
 The QPY format is designed to be backwards compatible moving forward. This means
 you should be able to load a QPY with any newer Qiskit version than the one
@@ -67,8 +65,6 @@ load that QPY file with qiskit-terra 0.19.0 and a hypothetical qiskit-terra
 0.29.0. However, loading that QPY file with 0.18.0 is not supported and may not
 work.
 
-**********
->>>>>>> bd537b161 (Add compatibility details to QPY documentation (#6893))
 QPY Format
 ==========
 
