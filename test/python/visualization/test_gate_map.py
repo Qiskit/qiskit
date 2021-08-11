@@ -70,6 +70,23 @@ class TestGateMap(QiskitVisualizationTestCase):
             self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.1)
         plt.close(fig)
 
+    @unittest.skipIf(not HAS_MATPLOTLIB, "matplotlib not available.")
+    def test_plot_gate_map_no_backend(self):
+        """tests plotting of gate map without a device"""
+        n_qubits = 8
+        coupling_map = [[0, 1], [1, 2], [2, 3], [3, 5], [4, 5], [5, 6], [2, 4], [6, 7]]
+        qubit_coordinates = {8: [[0, 1], [1, 1], [1, 0], [1, 2], [2, 0],
+                             [2, 2], [2, 1], [3, 1]]}
+        img_ref = path_to_diagram_reference(str(n_qubits) + "qubits.png")
+        fig = plot_gate_map(num_qubits = n_qubits, qubit_coordinates = qubit_coordinates,
+			  coupling_map = coupling_map)
+        with BytesIO() as img_buffer:
+            fig.savefig(img_buffer, format="png")
+            img_buffer.seek(0)
+            self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.2)
+        plt.close(fig)
+
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
