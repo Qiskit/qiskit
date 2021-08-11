@@ -482,7 +482,6 @@ class TemplateSubstitution:
                 the parameters bound. If no binding satisfies the
                 parameter constraints, returns None.
         """
-        from qiskit.circuit import Parameter
         import sympy as sym
         from sympy.parsing.sympy_parser import parse_expr
 
