@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    QPY serialization is now capable of representing
+    :attr:`~qiskit.circuit.QuantumCircuit.global_phase` attributes of a
+    :class:`~qiskit.circuit.QuantumCircuit` object that are a ``int``,
+    :class:`~qiskit.circuit.Parameter` object, or
+    :class:`~qiskit.circuit.ParameterExpression` object. Previous versions of
+    QPY would only accept a :attr:`~qiskit.circuit.QuantumCircuit.global_phase`
+    that was a ``float``.
+
+    This requires the QPY format :ref:`version_2` which was introduced in
+    this release to represent the additional types.
