@@ -46,6 +46,11 @@ from qiskit.visualization import text as _text
 from qiskit.visualization import utils
 from qiskit.visualization import matplotlib as _matplotlib
 
+try:
+    subprocess.run("pdflatex -v", check=True)
+except OSError as ex:
+    HAS_PDFLATEX = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -307,6 +312,9 @@ def _text_circuit_drawer(
 
     Returns:
         TextDrawing: An instance that, when printed, draws the circuit in ascii art.
+
+    Raises:
+        VisualizationError: When the filename extenstion is not .txt.
     """
     qubits, clbits, nodes = utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
@@ -335,6 +343,8 @@ def _text_circuit_drawer(
     text_drawing.vertical_compression = vertical_compression
 
     if filename:
+        if not filename.endswith(".txt"):
+            raise VisualizationError("ERROR: filename parameter does not use .txt extension.")
         text_drawing.dump(filename, encoding=encoding)
     return text_drawing
 
@@ -388,6 +398,7 @@ def _latex_circuit_drawer(
                  missing.
         CalledProcessError: usually points to errors during diagram creation.
         MissingOptionalLibraryError: if pillow is not installed
+        VisualizationError: If unsupported image format is given as filename extension.
     """
     tmpfilename = "circuit"
     with tempfile.TemporaryDirectory() as tmpdirname:
@@ -454,7 +465,12 @@ def _latex_circuit_drawer(
                     if filename.endswith(".pdf"):
                         os.rename(base + ".pdf", filename)
                     else:
-                        image.save(filename, "PNG")
+                        try:
+                            image.save(filename)
+                        except VisualizationError as ve:
+                            raise VisualizationError(
+                                "ERROR: filename parameter does not use a supported extension."
+                            ) from ve
             except (OSError, subprocess.CalledProcessError) as ex:
                 logger.warning(
                     "WARNING: Unable to convert pdf to image. "
