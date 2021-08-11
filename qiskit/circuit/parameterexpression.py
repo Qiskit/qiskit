@@ -177,7 +177,7 @@ class ParameterExpression:
 
         # If new_param is an expr, we'll need to construct a matching sympy expr
         # but with our sympy symbols instead of theirs.
-        
+
         symbol_map = {
             self._parameter_symbols[old_param]: new_param._symbol_expr
             for old_param, new_param in parameter_map.items()

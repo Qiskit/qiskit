@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    The Parameter class is now allowed in template optimization. It has been
+    removed from the _remove_impossible() method for scenarios that are
+    incompatible with template optimization. Inversion of gates is currently
+    only implemented for the RXGate().
+issues:
+  - |
+    Currently Parameters with names written as LaTeX (i.e., contain dollar
+    signs '$') are incompatible with the parse_expr() method used by Sympy. 
+    Currently the only gate that can be inverted (as done in the template 
+    optimization algorithm) with a Parameter is the RXGate().

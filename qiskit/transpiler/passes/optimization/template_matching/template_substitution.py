@@ -482,6 +482,7 @@ class TemplateSubstitution:
                 the parameters bound. If no binding satisfies the
                 parameter constraints, returns None.
         """
+        from qiskit.circuit import Parameter
         import sympy as sym
         from sympy.parsing.sympy_parser import parse_expr
 
@@ -495,16 +496,15 @@ class TemplateSubstitution:
             template_params += template_dag_dep.get_node(t_idx).op.params
 
         # Create the fake binding dict and check
-        equations, circ_dict, temp_symbols, sol, fake_bind = [], {}, set(), {}, {}
-        import pdb; pdb.set_trace()
+        equations, circ_dict, temp_symbols, sol, fake_bind = [], {}, {}, {}, {}
         for t_idx, temp_params in enumerate(template_params):
             if isinstance(temp_params, ParameterExpression):
                 circ_param_str = str(circuit_params[t_idx])
                 equations.append(sym.Eq(parse_expr(str(temp_params)), parse_expr(circ_param_str)))
 
                 for param in temp_params.parameters:
-                    temp_symbols.add(param)
-                    
+                    temp_symbols[param] = sym.Symbol(str(param))
+
                 if isinstance(circuit_params[t_idx], ParameterExpression):
                     for param in circuit_params[t_idx].parameters:
                         circ_dict[param] = sym.Symbol(str(param))
@@ -513,7 +513,7 @@ class TemplateSubstitution:
             return template_dag_dep
 
         # Check compatibility by solving the resulting equation
-        sym_sol = sym.solve(equations, temp_symbols)
+        sym_sol = sym.solve(equations, set(temp_symbols.values()))
         for key in sym_sol:
             try:
                 sol[str(key)] = ParameterExpression(circ_dict, sym_sol[key])
@@ -523,8 +523,8 @@ class TemplateSubstitution:
         if not sol:
             return None
 
-        for param in temp_symbols:
-            fake_bind[param] = sol[str(param)]
+        for key in temp_symbols:
+            fake_bind[key] = sol[str(key)]
 
         for node in template_dag_dep.get_nodes():
             bound_params = []
