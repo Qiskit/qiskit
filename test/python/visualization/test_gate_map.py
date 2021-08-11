@@ -78,8 +78,8 @@ class TestGateMap(QiskitVisualizationTestCase):
         qubit_coordinates = {8: [[0, 1], [1, 1], [1, 0], [1, 2], [2, 0],
                              [2, 2], [2, 1], [3, 1]]}
         img_ref = path_to_diagram_reference(str(n_qubits) + "qubits.png")
-        fig = plot_gate_map(num_qubits = n_qubits, qubit_coordinates = qubit_coordinates,
-			  coupling_map = coupling_map)
+        fig = plot_gate_map(num_qubits=n_qubits, qubit_coordinates=qubit_coordinates,
+			  coupling_map=coupling_map)
         with BytesIO() as img_buffer:
             fig.savefig(img_buffer, format="png")
             img_buffer.seek(0)
