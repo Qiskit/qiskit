@@ -76,15 +76,15 @@ file format is as follows:
 
 A QPY file (or memory object) always starts with the following 7
 byte UTF8 string: ``QISKIT`` which is immediately followed by the overall
-file header. The contents of thie file header as defined as a C struct are:
+file header. The contents of the file header as defined as a C struct are:
 
 .. code-block:: c
 
     struct {
-        unsigned char qpy_version;
-        unsigned char qiskit_major_version;
-        unsigned char qiskit_minor_version;
-        unsigned char qiskit_patch_version;
+        uint8_t qpy_version;
+        uint8_t qiskit_major_version;
+        uint8_t qiskit_minor_version;
+        uint8_t qiskit_patch_version;
         uint64_t num_circuits;
     }
 
@@ -151,7 +151,7 @@ The contents of HEADER as defined as a C struct are:
 .. code-block:: c
 
     struct {
-        unit16_t name_size;
+        uint16_t name_size;
         double global_phase;
         uint32_t num_qubits;
         uint32_t num_clbits;
@@ -185,7 +185,7 @@ as:
         char type;
         _Bool standalone;
         uint32_t size;
-        unit16_t name_size;
+        uint16_t name_size;
     }
 
 ``type`` can be ``'q'`` or ``'c'``.
@@ -216,8 +216,7 @@ the register ``qr`` would be a standalone register. While something like::
 CUSTOM_DEFINITIONS
 ------------------
 
-If the circuit contains custom defitions for any of the instruction in the circuit.
-this section
+This section specifies custom definitions for any of the instructions in the circuit.
 
 CUSTOM_DEFINITION_HEADER contents are defined as:
 
@@ -236,7 +235,7 @@ Each custom instruction is defined with a CUSTOM_INSTRUCTION block defined as:
         uint16_t name_size;
         char type;
         _Bool custom_definition;
-        uint64_t size
+        uint64_t size;
     }
 
 Immediately following the CUSTOM_INSTRUCTION struct is the utf8 encoded name
@@ -244,7 +243,7 @@ of size ``name_size``.
 
 If ``custom_definition`` is ``True`` that means that the immediately following
 ``size`` bytes contains a QPY circuit data which can be used for the custom
-definition of that gate. If ``custom_definition`` is ``False`` than the
+definition of that gate. If ``custom_definition`` is ``False`` then the
 instruction can be considered opaque (ie no definition).
 
 INSTRUCTIONS
@@ -260,9 +259,9 @@ The contents of INSTRUCTIONS is a list of INSTRUCTION metadata objects
         uint16_t num_parameters;
         uint32_t num_qargs;
         uint32_t num_cargs;
-        _Bool has_conditionl
-        uint16_t conditonal_reg_name_size;
-        long long conditional_value;
+        _Bool has_conditional;
+        uint16_t conditional_reg_name_size;
+        int64_t conditional_value;
     }
 
 This metadata object is immediately followed by ``name_size`` bytes of utf8 bytes
@@ -271,7 +270,7 @@ class if it's defined in Qiskit. Otherwise it falls back to the custom
 instruction name. Following the ``name`` bytes there are ``label_size`` bytes of
 utf8 data for the label if one was set on the instruction. Following the label
 bytes if ``has_conditional`` is ``True`` then there are
-``conditonal_reg_name_size`` bytes of utf8 data for the name of the condtional
+``conditional_reg_name_size`` bytes of utf8 data for the name of the conditional
 register name. In case of single classical bit conditions the register name
 utf8 data will be prefixed with a null character "\\x00" and then a utf8 string
 integer representing the classical bit index in the circuit that the condition
@@ -288,7 +287,7 @@ The contents of each INSTRUCTION_ARG is:
 
     struct {
         char type;
-        unisgned int index;
+        uint32_t index;
     }
 
 ``type`` can be ``'q'`` or ``'c'``.
@@ -313,7 +312,7 @@ the data is represented by the struct format in the :ref:`param_expr` section.
 ``'p'`` defines a :class:`~qiskit.circuit.Parameter` object  which is
 represented by a PARAM struct (see below), ``e`` defines a
 :class:`~qiskit.circuit.ParameterExpression` object (that's not a
-:class:`~qiskit.circuit.Paramter`) which is represented by a PARAM_EXPR struct
+:class:`~qiskit.circuit.Parameter`) which is represented by a PARAM_EXPR struct
 (see below), and ``'n'`` represents an object from numpy (either an ``ndarray``
 or a numpy type) which means the data is .npy format [#f2]_ data.
 
@@ -347,8 +346,8 @@ The PARAMETER_EXPR data starts with a header:
 .. code-block:: c
 
     struct {
-        uint64_t map_elements,
-        uint64_t expr_size,
+        uint64_t map_elements;
+        uint64_t expr_size;
     }
 
 Immediately following the header is ``expr_size`` bytes of utf8 data containing
