@@ -165,7 +165,7 @@ class TwoQubitWeylDecomposition:
         # eigenvectors.  Instead, since `M2` is complex-symmetric,
         #   M2 = A + iB
         # for real-symmetric `A` and `B`, and as
-        #   M2^+ @ M2 = A^2 + B^2 - 2 i [A, B] = 1
+        #   M2^+ @ M2 = A^2 + B^2 + i [A, B] = 1
         # we must have `A` and `B` commute, and consequently they are simultaneously diagonalizable.
         # Mixing them together _should_ account for any degeneracy problems, but it's not
         # guaranteed, so we repeat it a little bit.  The fixed seed is to make failures
