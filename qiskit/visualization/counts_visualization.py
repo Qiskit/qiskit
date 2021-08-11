@@ -21,6 +21,7 @@ import numpy as np
 from qiskit.exceptions import MissingOptionalLibraryError
 from .matplotlib import HAS_MATPLOTLIB
 from .exceptions import VisualizationError
+from .utils import matplotlib_close_if_inline
 
 
 def hamming_distance(str1, str2):
@@ -54,6 +55,7 @@ def plot_histogram(
     bar_labels=True,
     title=None,
     ax=None,
+    filename=None,
 ):
     """Plot a histogram of data.
 
@@ -78,6 +80,7 @@ def plot_histogram(
             the visualization output. If none is specified a new matplotlib
             Figure will be created and used. Additionally, if specified there
             will be no returned Figure since it is redundant.
+        filename (str): file path to save image to.
 
     Returns:
         matplotlib.Figure:
@@ -111,7 +114,6 @@ def plot_histogram(
             name="plot_histogram",
             pip_install="pip install matplotlib",
         )
-    from matplotlib import get_backend
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator
 
@@ -238,9 +240,11 @@ def plot_histogram(
             fontsize=12,
         )
     if fig:
-        if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
-            plt.close(fig)
-    return fig
+        matplotlib_close_if_inline(fig)
+    if filename is None:
+        return fig
+    else:
+        return fig.savefig(filename)
 
 
 def _plot_histogram_data(data, labels, number_to_keep):

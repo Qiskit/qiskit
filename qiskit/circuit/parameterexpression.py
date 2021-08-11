@@ -265,7 +265,7 @@ class ParameterExpression:
 
         return ParameterExpression(parameter_symbols, expr)
 
-    def gradient(self, param) -> Union["ParameterExpression", float]:
+    def gradient(self, param) -> Union["ParameterExpression", complex]:
         """Get the derivative of a parameter expression w.r.t. a specified parameter expression.
 
         Args:
@@ -273,6 +273,7 @@ class ParameterExpression:
 
         Returns:
             ParameterExpression representing the gradient of param_expr w.r.t. param
+            or complex or float number
         """
         # Check if the parameter is contained in the parameter expression
         if param not in self._parameter_symbols.keys():
@@ -299,8 +300,12 @@ class ParameterExpression:
         # If the gradient corresponds to a parameter expression then return the new expression.
         if len(parameter_symbols) > 0:
             return ParameterExpression(parameter_symbols, expr=expr_grad)
-        # If no free symbols left, return a float corresponding to the gradient.
-        return float(expr_grad)
+        # If no free symbols left, return a complex or float gradient
+        expr_grad_cplx = complex(expr_grad)
+        if expr_grad_cplx.imag != 0:
+            return expr_grad_cplx
+        else:
+            return float(expr_grad)
 
     def __add__(self, other):
         return self._apply_operation(operator.add, other)
@@ -410,9 +415,9 @@ class ParameterExpression:
         return f"{self.__class__.__name__}({str(self)})"
 
     def __str__(self):
-        from sympy import sympify
+        from sympy import sympify, sstr
 
-        return str(sympify(self._symbol_expr))
+        return sstr(sympify(self._symbol_expr), full_prec=False)
 
     def __float__(self):
         if self.parameters:
