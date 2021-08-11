@@ -21,6 +21,7 @@ import numpy as np
 from qiskit.exceptions import MissingOptionalLibraryError
 from .matplotlib import HAS_MATPLOTLIB
 from .exceptions import VisualizationError
+from .utils import matplotlib_close_if_inline
 
 
 def hamming_distance(str1, str2):
@@ -111,7 +112,6 @@ def plot_histogram(
             name="plot_histogram",
             pip_install="pip install matplotlib",
         )
-    from matplotlib import get_backend
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator
 
@@ -238,9 +238,17 @@ def plot_histogram(
             fontsize=12,
         )
     if fig:
+<<<<<<< HEAD
         if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
             plt.close(fig)
     return fig
+=======
+        matplotlib_close_if_inline(fig)
+    if filename is None:
+        return fig
+    else:
+        return fig.savefig(filename)
+>>>>>>> cdea7de13 (Fix mpl circuit drawing duplication in ipykernel 6 (#6890))
 
 
 def _plot_histogram_data(data, labels, number_to_keep):

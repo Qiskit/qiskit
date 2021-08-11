@@ -29,7 +29,11 @@ from qiskit.visualization.array import array_to_latex
 from qiskit.utils.deprecation import deprecate_arguments
 from qiskit.visualization.matplotlib import HAS_MATPLOTLIB
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.utils import _bloch_multivector_data, _paulivec_data
+from qiskit.visualization.utils import (
+    _bloch_multivector_data,
+    _paulivec_data,
+    matplotlib_close_if_inline,
+)
 from qiskit.circuit.tools.pi_check import pi_check
 
 
@@ -85,7 +89,6 @@ def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None,
             pip_install="pip install matplotlib",
         )
     from matplotlib import pyplot as plt
-    from matplotlib import get_backend
 
     # Figure data
     rho = DensityMatrix(state)
@@ -167,8 +170,13 @@ def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None,
     if title:
         fig.suptitle(title, fontsize=16)
     if ax_real is None and ax_imag is None:
+<<<<<<< HEAD
         if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
             plt.close(fig)
+=======
+        matplotlib_close_if_inline(fig)
+    if filename is None:
+>>>>>>> cdea7de13 (Fix mpl circuit drawing duplication in ipykernel 6 (#6890))
         return fig
 
 
@@ -210,8 +218,6 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
             pip_install="pip install matplotlib",
         )
     from qiskit.visualization.bloch import Bloch
-    from matplotlib import get_backend
-    from matplotlib import pyplot as plt
 
     if figsize is None:
         figsize = (5, 5)
@@ -226,8 +232,7 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
     if ax is None:
         fig = B.fig
         fig.set_size_inches(figsize[0], figsize[1])
-        if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
-            plt.close(fig)
+        matplotlib_close_if_inline(fig)
         return fig
     return None
 
@@ -273,7 +278,6 @@ def plot_bloch_multivector(state, title="", figsize=None, *, rho=None, reverse_b
             name="plot_bloch_multivector",
             pip_install="pip install matplotlib",
         )
-    from matplotlib import get_backend
     from matplotlib import pyplot as plt
 
     # Data
@@ -287,10 +291,19 @@ def plot_bloch_multivector(state, title="", figsize=None, *, rho=None, reverse_b
         pos = num - 1 - i if reverse_bits else i
         ax = fig.add_subplot(1, num, i + 1, projection="3d")
         plot_bloch_vector(bloch_data[i], "qubit " + str(pos), ax=ax, figsize=figsize)
+<<<<<<< HEAD
     fig.suptitle(title, fontsize=16)
     if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
         plt.close(fig)
     return fig
+=======
+    fig.suptitle(title, fontsize=16, y=1.01)
+    matplotlib_close_if_inline(fig)
+    if filename is None:
+        return fig
+    else:
+        return fig.savefig(filename)
+>>>>>>> cdea7de13 (Fix mpl circuit drawing duplication in ipykernel 6 (#6890))
 
 
 @deprecate_arguments({"rho": "state"})
@@ -354,7 +367,6 @@ def plot_state_city(
             name="plot_state_city",
             pip_install="pip install matplotlib",
         )
-    from matplotlib import get_backend
     from matplotlib import pyplot as plt
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
@@ -517,8 +529,13 @@ def plot_state_city(
 
     fig.suptitle(title, fontsize=16)
     if ax_real is None and ax_imag is None:
+<<<<<<< HEAD
         if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
             plt.close(fig)
+=======
+        matplotlib_close_if_inline(fig)
+    if filename is None:
+>>>>>>> cdea7de13 (Fix mpl circuit drawing duplication in ipykernel 6 (#6890))
         return fig
 
 
@@ -569,7 +586,6 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, r
             name="plot_state_paulivec",
             pip_install="pip install matplotlib",
         )
-    from matplotlib import get_backend
     from matplotlib import pyplot as plt
 
     labels, values = _paulivec_data(state)
@@ -603,8 +619,13 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, r
         tick.label.set_fontsize(14)
     ax.set_title(title, fontsize=16)
     if return_fig:
+<<<<<<< HEAD
         if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
             plt.close(fig)
+=======
+        matplotlib_close_if_inline(fig)
+    if filename is None:
+>>>>>>> cdea7de13 (Fix mpl circuit drawing duplication in ipykernel 6 (#6890))
         return fig
 
 
@@ -729,7 +750,6 @@ def plot_state_qsphere(
     import matplotlib.gridspec as gridspec
     from matplotlib import pyplot as plt
     from matplotlib.patches import Circle
-    from matplotlib import get_backend
     from qiskit.visualization.bloch import Arrow3D
 
     try:
@@ -936,8 +956,13 @@ def plot_state_qsphere(
     )
 
     if return_fig:
+<<<<<<< HEAD
         if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
             plt.close(fig)
+=======
+        matplotlib_close_if_inline(fig)
+    if filename is None:
+>>>>>>> cdea7de13 (Fix mpl circuit drawing duplication in ipykernel 6 (#6890))
         return fig
 
 

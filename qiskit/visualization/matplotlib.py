@@ -31,7 +31,16 @@ except ImportError:
 
 from qiskit.circuit import ControlledGate
 from qiskit.visualization.qcstyle import load_style
+<<<<<<< HEAD
 from qiskit.visualization.utils import get_gate_ctrl_text, get_param_str
+=======
+from qiskit.visualization.utils import (
+    get_gate_ctrl_text,
+    get_param_str,
+    matplotlib_close_if_inline,
+)
+from qiskit.circuit.tools.pi_check import pi_check
+>>>>>>> cdea7de13 (Fix mpl circuit drawing duplication in ipykernel 6 (#6890))
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.circuit.tools.pi_check import pi_check
 
@@ -302,6 +311,7 @@ class MatplotlibDrawer:
             "}": (0.1896, 0.1188),
         }
 
+<<<<<<< HEAD
     def _registers(self, clbit, qubit):
         self._clbit = []
         for r in clbit:
@@ -313,6 +323,102 @@ class MatplotlibDrawer:
     def _set_cregbundle(self):
         """Sets the cregbundle to False if there is any instruction that
         needs access to individual clbit."""
+=======
+    def draw(self, filename=None, verbose=False):
+        """Main entry point to 'matplotlib' ('mpl') drawer. Called from
+        ``visualization.circuit_drawer`` and from ``QuantumCircuit.draw`` through circuit_drawer.
+        """
+        # All information for the drawing is first loaded into self._data for the gates and into
+        # self._qubit_dict and self._clbit_dict for the qubits, clbits, and wires,
+        # followed by the coordinates for each gate.
+
+        # get layer widths
+        self._get_layer_widths()
+
+        # load the _qubit_dict and _clbit_dict with register info
+        n_lines = self._get_reg_names_and_numbers()
+
+        # load the coordinates for each gate and compute number of folds
+        max_anc = self._get_coords(n_lines)
+        num_folds = max(0, max_anc - 1) // self._fold if self._fold > 0 else 0
+
+        # The window size limits are computed, followed by one of the four possible ways
+        # of scaling the drawing.
+
+        # compute the window size
+        if max_anc > self._fold > 0:
+            xmax = self._fold + self._x_offset + 0.1
+            ymax = (num_folds + 1) * (n_lines + 1) - 1
+        else:
+            x_incr = 0.4 if not self._nodes else 0.9
+            xmax = max_anc + 1 + self._x_offset - x_incr
+            ymax = n_lines
+
+        xl = -self._style["margin"][0]
+        xr = xmax + self._style["margin"][1]
+        yb = -ymax - self._style["margin"][2] + 0.5
+        yt = self._style["margin"][3] + 0.5
+        self._ax.set_xlim(xl, xr)
+        self._ax.set_ylim(yb, yt)
+
+        # update figure size and, for backward compatibility,
+        # need to scale by a default value equal to (self._fs * 3.01 / 72 / 0.65)
+        base_fig_w = (xr - xl) * 0.8361111
+        base_fig_h = (yt - yb) * 0.8361111
+        scale = self._scale
+
+        # if user passes in an ax, this size takes priority over any other settings
+        if self._user_ax:
+            # from stackoverflow #19306510, get the bbox size for the ax and then reset scale
+            bbox = self._ax.get_window_extent().transformed(self._figure.dpi_scale_trans.inverted())
+            scale = bbox.width / base_fig_w / 0.8361111
+
+        # if scale not 1.0, use this scale factor
+        elif self._scale != 1.0:
+            self._figure.set_size_inches(base_fig_w * self._scale, base_fig_h * self._scale)
+
+        # if "figwidth" style param set, use this to scale
+        elif self._style["figwidth"] > 0.0:
+            # in order to get actual inches, need to scale by factor
+            adj_fig_w = self._style["figwidth"] * 1.282736
+            self._figure.set_size_inches(adj_fig_w, adj_fig_w * base_fig_h / base_fig_w)
+            scale = adj_fig_w / base_fig_w
+
+        # otherwise, display default size
+        else:
+            self._figure.set_size_inches(base_fig_w, base_fig_h)
+
+        # drawing will scale with 'set_size_inches', but fonts and linewidths do not
+        if scale != 1.0:
+            self._fs *= scale
+            self._sfs *= scale
+            self._lwidth1 = 1.0 * scale
+            self._lwidth15 = 1.5 * scale
+            self._lwidth2 = 2.0 * scale
+
+        # Once the scaling factor has been determined, the global phase, register names
+        # and numbers, wires, and gates are drawn
+        if self._global_phase:
+            self._plt_mod.text(
+                xl, yt, "Global Phase: %s" % pi_check(self._global_phase, output="mpl")
+            )
+        self._draw_regs_wires(num_folds, xmax, n_lines, max_anc)
+        self._draw_ops(verbose)
+
+        if filename:
+            self._figure.savefig(
+                filename,
+                dpi=self._style["dpi"],
+                bbox_inches="tight",
+                facecolor=self._figure.get_facecolor(),
+            )
+        if not self._user_ax:
+            matplotlib_close_if_inline(self._figure)
+            return self._figure
+
+    def _get_layer_widths(self):
+        """Compute the layer_widths for the layers"""
+>>>>>>> cdea7de13 (Fix mpl circuit drawing duplication in ipykernel 6 (#6890))
         for layer in self._nodes:
             for node in layer:
                 if node.cargs and node.op.name != "measure":
