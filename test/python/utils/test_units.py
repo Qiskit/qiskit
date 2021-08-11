@@ -59,9 +59,9 @@ class TestUnitConversion(QiskitTestCase):
             (0.1, (100.0, "m")),
             (0.01, (10.0, "m")),
             (1e-3, (1.0, "m")),
-            (1e-4, (100.0, "μ")),
-            (1e-5, (10.0, "μ")),
-            (1e-6, (1.0, "μ")),
+            (1e-4, (100.0, "µ")),
+            (1e-5, (10.0, "µ")),
+            (1e-6, (1.0, "µ")),
             (1e-7, (100.0, "n")),
             (1e-8, (10.0, "n")),
             (1e-9, (1.0, "n")),
@@ -83,10 +83,21 @@ class TestUnitConversion(QiskitTestCase):
 
     def test_detach_prefix_with_value_too_large(self):
         """Test detach prefix by input too large value."""
-        with self.assertWarns(UserWarning):
+        with self.assertRaises(Exception):
             self.assertTupleEqual(detach_prefix(1e20), (1e20, ""))
 
     def test_detach_prefix_with_value_too_small(self):
         """Test detach prefix by input too small value."""
-        with self.assertWarns(UserWarning):
+        with self.assertRaises(Exception):
             self.assertTupleEqual(detach_prefix(1e-20), (1e-20, ""))
+
+    def test_rounding(self):
+        """Test detach prefix with decimal specification."""
+        ret = detach_prefix(999_999.991)
+        self.assertTupleEqual(ret, (999.999991, "k"))
+
+        ret = detach_prefix(999_999.991, decimal=4)
+        self.assertTupleEqual(ret, (1.0, "M"))
+
+        ret = detach_prefix(999_999.991, decimal=5)
+        self.assertTupleEqual(ret, (999.99999, "k"))
