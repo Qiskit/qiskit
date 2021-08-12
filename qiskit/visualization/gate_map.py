@@ -436,7 +436,6 @@ def plot_coupling_map(
             name="plot_coupling_map",
             pip_install="pip install matplotlib",
         )
-    from matplotlib import get_backend
     import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
 
