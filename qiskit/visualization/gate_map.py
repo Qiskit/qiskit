@@ -78,6 +78,12 @@ def plot_gate_map(
            backend = accountProvider.get_backend('ibmq_vigo')
            plot_gate_map(backend)
     """
+    if not HAS_MATPLOTLIB:
+        raise MissingOptionalLibraryError(
+            libname="Matplotlib",
+            name="plot_gate_map",
+            pip_install="pip install matplotlib",
+        )
     if backend.configuration().simulator:
         raise QiskitError("Requires a device backend, not simulator.")
 
@@ -424,7 +430,7 @@ def plot_coupling_map(
     if not HAS_MATPLOTLIB:
         raise MissingOptionalLibraryError(
             libname="Matplotlib",
-            name="plot_gate_map",
+            name="plot_coupling_map",
             pip_install="pip install matplotlib",
         )
     from matplotlib import get_backend
