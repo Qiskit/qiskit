@@ -608,12 +608,12 @@ class QCircuitImage:
             cwire += 1
 
         gap = cwire - max(wire_list)
-        meas_offset = -0.25 if isinstance(op, Measure) else 0.0
+        meas_offset = -0.3 if isinstance(op, Measure) else 0.0
         if self.cregbundle:
             # Print the condition value at the bottom and put bullet on creg line
-            self._latex[cwire][col] = "\\control \\cw^(%s){^{=%s}} \\cwx[-%s]" % (
+            self._latex[cwire][col] = "\\control \\cw^(%s){^{%s}} \\cwx[-%s]" % (
                 meas_offset,
-                str(op.condition[1]),
+                str(hex(op.condition[1])),
                 str(gap),
             )
         else:
@@ -622,13 +622,13 @@ class QCircuitImage:
                 control = "\\control" if if_value[i] == "1" else "\\controlo"
                 self._latex[cwire + i][col] = f"{control} \\cw \\cwx[-" + str(gap) + "]"
                 gap = 1
-            # Add (= condition value) below the last cwire
+            # Add (hex condition value) below the last cwire
             control = "\\control" if if_value[creg_size - 1] == "1" else "\\controlo"
             self._latex[creg_size + cwire - 1][col] = (
-                f"{control}" + " \\cw^(%s){^{=%s}} \\cwx[-%s]"
+                f"{control}" + " \\cw^(%s){^{%s}} \\cwx[-%s]"
             ) % (
                 meas_offset,
-                str(op.condition[1]),
+                str(hex(op.condition[1])),
                 str(gap),
             )
 
