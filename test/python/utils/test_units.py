@@ -12,10 +12,13 @@
 
 """Test for unit conversion functions."""
 
+from ddt import ddt, data
+
 from qiskit.test import QiskitTestCase
 from qiskit.utils import apply_prefix, detach_prefix
 
 
+@ddt
 class TestUnitConversion(QiskitTestCase):
     """Test the unit conversion utilities."""
 
@@ -101,3 +104,24 @@ class TestUnitConversion(QiskitTestCase):
 
         ret = detach_prefix(999_999.991, decimal=5)
         self.assertTupleEqual(ret, (999.99999, "k"))
+
+    @data(
+        -20.791378538739863,
+        9.242757760406565,
+        2.7366806276451543,
+        9.183776167253349,
+        7.658091886606501,
+        -12.21553566621071,
+        8.914055281578145,
+        1.2518807770035825,
+        -6.652899195646036,
+        -4.647159596697976,
+    )
+    def test_get_same_value_after_attach_detach(self, value: float):
+        """Test if same value can be obtained."""
+        unit = "Hz"
+
+        for prefix in ["P", "T", "G", "k", "m", "u", "n", "p", "f"]:
+            scaled_val = apply_prefix(value, prefix + unit)
+            test_val, _ = detach_prefix(scaled_val)
+            self.assertAlmostEqual(test_val, value)
