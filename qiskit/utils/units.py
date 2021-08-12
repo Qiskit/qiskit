@@ -12,7 +12,6 @@
 
 """SI unit utilities"""
 
-from decimal import Decimal
 from typing import Tuple, Optional, Union
 
 import numpy as np
@@ -37,8 +36,7 @@ def apply_prefix(value: Union[float, ParameterExpression], unit: str) -> float:
         See https://docs.python.org/3/tutorial/floatingpoint.html for details.
 
     Raises:
-        Exception: If the ``units`` aren't recognized.
-        TypeError: If the ``value`` is not a number.
+        ValueError: If the ``units`` aren't recognized.
     """
     prefactors = {
         "f": -15,
@@ -59,19 +57,15 @@ def apply_prefix(value: Union[float, ParameterExpression], unit: str) -> float:
         return value
 
     if unit[0] not in prefactors:
-        raise Exception(f"Could not understand unit: {unit}")
+        raise ValueError(f"Could not understand unit: {unit}")
 
-    try:
-        value = float(value)
-    except TypeError as ex:
-        if isinstance(value, ParameterExpression) and value.parameters:
-            return pow(10, prefactors[unit[0]]) * value
-        raise TypeError(f"Input value {value} is not a number.") from ex
+    pow10 = prefactors[unit[0]]
 
     # to avoid round-off error of prefactor
-    _value = Decimal.from_float(value).scaleb(prefactors[unit[0]])
+    if pow10 < 0:
+        return value / 10 ** np.abs(pow10)
 
-    return float(_value)
+    return value * 10 ** pow10
 
 
 def detach_prefix(value: float, decimal: Optional[int] = None) -> Tuple[float, str]:
@@ -103,9 +97,8 @@ def detach_prefix(value: float, decimal: Optional[int] = None) -> Tuple[float, s
         See https://docs.python.org/3/tutorial/floatingpoint.html for details.
 
     Raises:
-        Exception: If the ``value`` is out of range.
+        ValueError: If the ``value`` is out of range.
         ValueError: If the ``value`` is not real number.
-        TypeError: If the ``value`` is not a number.
     """
     prefactors = {
         -15: "f",
@@ -121,11 +114,6 @@ def detach_prefix(value: float, decimal: Optional[int] = None) -> Tuple[float, s
         15: "P",
     }
 
-    try:
-        value = float(value)
-    except TypeError as ex:
-        raise TypeError(f"Input value {value} is not a number.") from ex
-
     if not np.isreal(value):
         raise ValueError(f"Input should be real number. Cannot convert {value}.")
 
@@ -135,7 +123,10 @@ def detach_prefix(value: float, decimal: Optional[int] = None) -> Tuple[float, s
         pow10 = 0
 
     # to avoid round-off error of prefactor
-    mant = float(Decimal.from_float(value).scaleb(-pow10))
+    if pow10 > 0:
+        mant = value / 10 ** pow10
+    else:
+        mant = value * 10 ** np.abs(pow10)
 
     if decimal is not None:
         # Corner case handling
