@@ -115,8 +115,8 @@ Configuration
    InstructionScheduleMap
 
 
-Schedule Transforms
-===================
+Schedule Transforms (:mod:`qiskit.pulse.transforms`)
+====================================================
 
 Schedule transforms take :class:`Schedule` s as input and return modified
 :class:`Schedule` s.
