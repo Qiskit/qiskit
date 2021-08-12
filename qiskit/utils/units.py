@@ -13,12 +13,14 @@
 """SI unit utilities"""
 
 from decimal import Decimal
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Union
+
+from qiskit.circuit.parameterexpression import ParameterExpression
 
 import numpy as np
 
 
-def apply_prefix(value: float, unit: str) -> float:
+def apply_prefix(value: Union[float, ParameterExpression], unit: str) -> float:
     """
     Given a SI unit prefix and value, apply the prefix to convert to
     standard SI unit.
@@ -52,17 +54,19 @@ def apply_prefix(value: float, unit: str) -> float:
         "P": 15,
     }
 
-    try:
-        value = float(value)
-    except TypeError as ex:
-        raise TypeError(f"Input value {value} is not a number.") from ex
-
     if not unit or len(unit) == 1:
         # for example, "m" can represent meter
         return value
 
     if unit[0] not in prefactors:
         raise Exception(f"Could not understand unit: {unit}")
+
+    try:
+        value = float(value)
+    except TypeError as ex:
+        if isinstance(value, ParameterExpression) and value.parameters:
+            return pow(10, prefactors[unit[0]]) * value
+        raise TypeError(f"Input value {value} is not a number.") from ex
 
     # to avoid round-off error of prefactor
     _value = Decimal.from_float(value).scaleb(prefactors[unit[0]])
