@@ -13,14 +13,15 @@
 # pylint: disable=invalid-name,too-many-boolean-expressions,redundant-keyword-arg
 
 """
-===========================================================
+###########################################################
 QPY serialization (:mod:`qiskit.circuit.qpy_serialization`)
-===========================================================
+###########################################################
 
 .. currentmodule:: qiskit.circuit.qpy_serialization
 
+*********
 Using QPY
-=========
+*********
 
 Using QPY is defined to be straightforward and mirror the user API of the
 serializers in Python's standard library, ``pickle`` and ``json``. There are
@@ -44,7 +45,7 @@ For example::
         new_qc = qpy_serialization.load(fd)[0]
 
 API documentation
------------------
+=================
 
 .. autosummary::
    :toctree: ../stubs/
@@ -52,8 +53,22 @@ API documentation
    load
    dump
 
+QPY Compatibility
+=================
+
+The QPY format is designed to be backwards compatible moving forward. This means
+you should be able to load a QPY with any newer Qiskit version than the one
+that generated it. However, loading a QPY file with an older Qiskit version is
+not supported and may not work.
+
+For example, if you generated a QPY file using qiskit-terra 0.18.1 you could
+load that QPY file with qiskit-terra 0.19.0 and a hypothetical qiskit-terra
+0.29.0. However, loading that QPY file with 0.18.0 is not supported and may not
+work.
+
+**********
 QPY Format
-==========
+**********
 
 The QPY serialization format is a portable cross-platform binary
 serialization format for :class:`~qiskit.circuit.QuantumCircuit` objects in Qiskit. The basic
@@ -61,15 +76,15 @@ file format is as follows:
 
 A QPY file (or memory object) always starts with the following 7
 byte UTF8 string: ``QISKIT`` which is immediately followed by the overall
-file header. The contents of thie file header as defined as a C struct are:
+file header. The contents of the file header as defined as a C struct are:
 
 .. code-block:: c
 
     struct {
-        unsigned char qpy_version;
-        unsigned char qiskit_major_version;
-        unsigned char qiskit_minor_version;
-        unsigned char qiskit_patch_version;
+        uint8_t qpy_version;
+        uint8_t qiskit_major_version;
+        uint8_t qiskit_minor_version;
+        uint8_t qiskit_patch_version;
         uint64_t num_circuits;
     }
 
@@ -85,6 +100,49 @@ There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
 
+.. _version_2:
+
+Version 2
+=========
+
+Version 2 of the QPY format is identical to version 1 except for the HEADER
+section is slightly different. You can refer to the :ref:`version_1` section
+for the details on the rest of the payload format.
+
+HEADER
+------
+
+The contents of HEADER are defined as a C struct are:
+
+.. code-block:: c
+
+    struct {
+        uint16_t name_size;
+        char global_phase_type;
+        uint16_t global_phase_size;
+        uint32_t num_qubits;
+        uint32_t num_clbits;
+        uint64_t metadata_size;
+        uint32_t num_registers;
+        uint64_t num_instructions;
+        uint64_t num_custom_gates;
+    }
+
+This is immediately followed by ``name_size`` bytes of utf8 data for the name
+of the circuit. Following this is immediately ``global_phase_size`` bytes
+representing the global phase. The content of that data is dictated by the
+value of ``global_phase_type``. If it's ``'f'`` the data is a float and is the
+size of a ``double``. If it's ``'p'`` defines a :class:`~qiskit.circuit.Parameter`
+object  which is represented by a PARAM struct (see below), ``e`` defines a
+:class:`~qiskit.circuit.ParameterExpression` object (that's not a
+:class:`~qiskit.circuit.Parameter`) which is represented by a PARAM_EXPR struct
+(see below).
+
+.. _version_1:
+
+Version 1
+=========
+
 HEADER
 ------
 
@@ -93,7 +151,7 @@ The contents of HEADER as defined as a C struct are:
 .. code-block:: c
 
     struct {
-        unit16_t name_size;
+        uint16_t name_size;
         double global_phase;
         uint32_t num_qubits;
         uint32_t num_clbits;
@@ -127,7 +185,7 @@ as:
         char type;
         _Bool standalone;
         uint32_t size;
-        unit16_t name_size;
+        uint16_t name_size;
     }
 
 ``type`` can be ``'q'`` or ``'c'``.
@@ -158,8 +216,7 @@ the register ``qr`` would be a standalone register. While something like::
 CUSTOM_DEFINITIONS
 ------------------
 
-If the circuit contains custom defitions for any of the instruction in the circuit.
-this section
+This section specifies custom definitions for any of the instructions in the circuit.
 
 CUSTOM_DEFINITION_HEADER contents are defined as:
 
@@ -178,7 +235,7 @@ Each custom instruction is defined with a CUSTOM_INSTRUCTION block defined as:
         uint16_t name_size;
         char type;
         _Bool custom_definition;
-        uint64_t size
+        uint64_t size;
     }
 
 Immediately following the CUSTOM_INSTRUCTION struct is the utf8 encoded name
@@ -186,7 +243,7 @@ of size ``name_size``.
 
 If ``custom_definition`` is ``True`` that means that the immediately following
 ``size`` bytes contains a QPY circuit data which can be used for the custom
-definition of that gate. If ``custom_definition`` is ``False`` than the
+definition of that gate. If ``custom_definition`` is ``False`` then the
 instruction can be considered opaque (ie no definition).
 
 INSTRUCTIONS
@@ -202,9 +259,9 @@ The contents of INSTRUCTIONS is a list of INSTRUCTION metadata objects
         uint16_t num_parameters;
         uint32_t num_qargs;
         uint32_t num_cargs;
-        _Bool has_conditionl
-        uint16_t conditonal_reg_name_size;
-        long long conditional_value;
+        _Bool has_conditional;
+        uint16_t conditional_reg_name_size;
+        int64_t conditional_value;
     }
 
 This metadata object is immediately followed by ``name_size`` bytes of utf8 bytes
@@ -213,7 +270,7 @@ class if it's defined in Qiskit. Otherwise it falls back to the custom
 instruction name. Following the ``name`` bytes there are ``label_size`` bytes of
 utf8 data for the label if one was set on the instruction. Following the label
 bytes if ``has_conditional`` is ``True`` then there are
-``conditonal_reg_name_size`` bytes of utf8 data for the name of the condtional
+``conditional_reg_name_size`` bytes of utf8 data for the name of the conditional
 register name. In case of single classical bit conditions the register name
 utf8 data will be prefixed with a null character "\\x00" and then a utf8 string
 integer representing the classical bit index in the circuit that the condition
@@ -230,7 +287,7 @@ The contents of each INSTRUCTION_ARG is:
 
     struct {
         char type;
-        unisgned int index;
+        uint32_t index;
     }
 
 ``type`` can be ``'q'`` or ``'c'``.
@@ -255,7 +312,7 @@ the data is represented by the struct format in the :ref:`param_expr` section.
 ``'p'`` defines a :class:`~qiskit.circuit.Parameter` object  which is
 represented by a PARAM struct (see below), ``e`` defines a
 :class:`~qiskit.circuit.ParameterExpression` object (that's not a
-:class:`~qiskit.circuit.Paramter`) which is represented by a PARAM_EXPR struct
+:class:`~qiskit.circuit.Parameter`) which is represented by a PARAM_EXPR struct
 (see below), and ``'n'`` represents an object from numpy (either an ``ndarray``
 or a numpy type) which means the data is .npy format [#f2]_ data.
 
@@ -289,8 +346,8 @@ The PARAMETER_EXPR data starts with a header:
 .. code-block:: c
 
     struct {
-        uint64_t map_elements,
-        uint64_t expr_size,
+        uint64_t map_elements;
+        uint64_t expr_size;
     }
 
 Immediately following the header is ``expr_size`` bytes of utf8 data containing
@@ -370,6 +427,22 @@ FILE_HEADER_PACK = "!6sBBBBQ"
 FILE_HEADER_SIZE = struct.calcsize(FILE_HEADER_PACK)
 
 # HEADER binary format
+HEADER_V2 = namedtuple(
+    "HEADER",
+    [
+        "name_size",
+        "global_phase_type",
+        "global_phase_size",
+        "num_qubits",
+        "num_clbits",
+        "metadata_size",
+        "num_registers",
+        "num_instructions",
+    ],
+)
+HEADER_V2_PACK = "!H1cHIIQIQ"
+HEADER_V2_SIZE = struct.calcsize(HEADER_V2_PACK)
+
 HEADER = namedtuple(
     "HEADER",
     [
@@ -447,11 +520,48 @@ COMPLEX_PACK = "!dd"
 COMPLEX_SIZE = struct.calcsize(COMPLEX_PACK)
 
 
+def _read_header_v2(file_obj):
+    header_raw = struct.unpack(HEADER_V2_PACK, file_obj.read(HEADER_V2_SIZE))
+    header_tuple = HEADER_V2._make(header_raw)
+    name = file_obj.read(header_tuple[0]).decode("utf8")
+    global_phase_type_str = header_tuple[1].decode("utf8")
+    data = file_obj.read(header_tuple[2])
+    if global_phase_type_str == "f":
+        global_phase = struct.unpack("!d", data)[0]
+    elif global_phase_type_str == "i":
+        global_phase = struct.unpack("!q", data)[0]
+    elif global_phase_type_str == "p":
+        container = io.BytesIO(data)
+        global_phase = _read_parameter(container)
+    elif global_phase_type_str == "e":
+        container = io.BytesIO(data)
+        global_phase = _read_parameter_expression(container)
+    else:
+        raise TypeError("Invalid global phase type: %s" % global_phase_type_str)
+    header = {
+        "global_phase": global_phase,
+        "num_qubits": header_tuple[3],
+        "num_clbits": header_tuple[4],
+        "num_registers": header_tuple[6],
+        "num_instructions": header_tuple[7],
+    }
+    metadata_raw = file_obj.read(header_tuple[5])
+    metadata = json.loads(metadata_raw)
+    return header, name, metadata
+
+
 def _read_header(file_obj):
     header_raw = struct.unpack(HEADER_PACK, file_obj.read(HEADER_SIZE))
-    header = HEADER._make(header_raw)
-    name = file_obj.read(header[0]).decode("utf8")
-    metadata_raw = file_obj.read(header[4])
+    header_tuple = HEADER._make(header_raw)
+    name = file_obj.read(header_tuple[0]).decode("utf8")
+    header = {
+        "global_phase": header_tuple[1],
+        "num_qubits": header_tuple[2],
+        "num_clbits": header_tuple[3],
+        "num_registers": header_tuple[5],
+        "num_instructions": header_tuple[6],
+    }
+    metadata_raw = file_obj.read(header_tuple[4])
     metadata = json.loads(metadata_raw)
     return header, name, metadata
 
@@ -646,7 +756,7 @@ def _parse_custom_instruction(custom_instructions, gate_name, params):
     return inst_obj
 
 
-def _read_custom_instructions(file_obj):
+def _read_custom_instructions(file_obj, version):
     custom_instructions = {}
     custom_definition_header_raw = file_obj.read(CUSTOM_DEFINITION_HEADER_SIZE)
     custom_definition_header = struct.unpack(
@@ -669,7 +779,7 @@ def _read_custom_instructions(file_obj):
             definition_circuit = None
             if has_custom_definition:
                 definition_buffer = io.BytesIO(file_obj.read(size))
-                definition_circuit = _read_circuit(definition_buffer)
+                definition_circuit = _read_circuit(definition_buffer, version)
             custom_instructions[name] = (type_str, num_qubits, num_clbits, definition_circuit)
     return custom_instructions
 
@@ -909,7 +1019,7 @@ def dump(circuits, file_obj):
     header = struct.pack(
         FILE_HEADER_PACK,
         b"QISKIT",
-        1,
+        2,
         version_parts[0],
         version_parts[1],
         version_parts[2],
@@ -926,18 +1036,40 @@ def _write_circuit(file_obj, circuit):
     num_registers = len(circuit.qregs) + len(circuit.cregs)
     num_instructions = len(circuit)
     circuit_name = circuit.name.encode("utf8")
-    header_raw = HEADER(
+    if isinstance(circuit.global_phase, float):
+        global_phase_type = b"f"
+        global_phase_data = struct.pack("!d", circuit.global_phase)
+    elif isinstance(circuit.global_phase, int):
+        global_phase_type = b"i"
+        global_phase_data = struct.pack("!q", circuit.global_phase)
+    elif isinstance(circuit.global_phase, Parameter):
+        container = io.BytesIO()
+        global_phase_type = b"p"
+        _write_parameter(container, circuit.global_phase)
+        container.seek(0)
+        global_phase_data = container.read()
+    elif isinstance(circuit.global_phase, ParameterExpression):
+        global_phase_type = b"e"
+        container = io.BytesIO()
+        _write_parameter_expression(container, circuit.global_phase)
+        container.seek(0)
+        global_phase_data = container.read()
+    else:
+        raise TypeError("unsupported global phase type %s" % type(circuit.global_phase))
+    header_raw = HEADER_V2(
         name_size=len(circuit_name),
-        global_phase=circuit.global_phase,
+        global_phase_type=global_phase_type,
+        global_phase_size=len(global_phase_data),
         num_qubits=circuit.num_qubits,
         num_clbits=circuit.num_clbits,
         metadata_size=metadata_size,
         num_registers=num_registers,
         num_instructions=num_instructions,
     )
-    header = struct.pack(HEADER_PACK, *header_raw)
+    header = struct.pack(HEADER_V2_PACK, *header_raw)
     file_obj.write(header)
     file_obj.write(circuit_name)
+    file_obj.write(global_phase_data)
     file_obj.write(metadata_raw)
     qubit_indices = {bit: index for index, bit in enumerate(circuit.qubits)}
     clbit_indices = {bit: index for index, bit in enumerate(circuit.clbits)}
@@ -1015,6 +1147,7 @@ def load(file_obj):
     file_header = struct.unpack(FILE_HEADER_PACK, file_header_raw)
     if file_header[0].decode("utf8") != "QISKIT":
         raise QiskitError("Input file is not a valid QPY file")
+    qpy_version = file_header[1]
     version_parts = [int(x) for x in __version__.split(".")[0:3]]
     header_version_parts = [file_header[2], file_header[3], file_header[4]]
     if (
@@ -1038,21 +1171,20 @@ def load(file_obj):
         )
     circuits = []
     for _ in range(file_header[5]):
-        circuits.append(_read_circuit(file_obj))
+        circuits.append(_read_circuit(file_obj, qpy_version))
     return circuits
 
 
-def _read_circuit(file_obj):
-    header, name, metadata = _read_header(file_obj)
-    (
-        name_size,  # pylint: disable=unused-variable
-        global_phase,
-        num_qubits,
-        num_clbits,
-        metadata_size,  # pylint: disable=unused-variable
-        num_registers,
-        num_instructions,
-    ) = header
+def _read_circuit(file_obj, version):
+    if version < 2:
+        header, name, metadata = _read_header(file_obj)
+    else:
+        header, name, metadata = _read_header_v2(file_obj)
+    global_phase = header["global_phase"]
+    num_qubits = header["num_qubits"]
+    num_clbits = header["num_clbits"]
+    num_registers = header["num_registers"]
+    num_instructions = header["num_instructions"]
     out_registers = {"q": {}, "c": {}}
     if num_registers > 0:
         circ = QuantumCircuit(name=name, global_phase=global_phase, metadata=metadata)
@@ -1146,7 +1278,7 @@ def _read_circuit(file_obj):
             global_phase=global_phase,
             metadata=metadata,
         )
-    custom_instructions = _read_custom_instructions(file_obj)
+    custom_instructions = _read_custom_instructions(file_obj, version)
     for _instruction in range(num_instructions):
         _read_instruction(file_obj, circ, out_registers, custom_instructions)
 
