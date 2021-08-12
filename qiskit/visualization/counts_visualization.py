@@ -238,17 +238,8 @@ def plot_histogram(
             fontsize=12,
         )
     if fig:
-<<<<<<< HEAD
-        if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
-            plt.close(fig)
-    return fig
-=======
         matplotlib_close_if_inline(fig)
-    if filename is None:
-        return fig
-    else:
-        return fig.savefig(filename)
->>>>>>> cdea7de13 (Fix mpl circuit drawing duplication in ipykernel 6 (#6890))
+    return fig
 
 
 def _plot_histogram_data(data, labels, number_to_keep):
