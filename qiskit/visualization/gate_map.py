@@ -14,13 +14,14 @@
 
 import math
 import numpy as np
+from typing import List
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 from .matplotlib import HAS_MATPLOTLIB
 from .exceptions import VisualizationError
 
 
 def plot_gate_map(
-    backend=None,
+    backend,
     figsize=None,
     plot_directed=False,
     label_qubits=True,
@@ -32,17 +33,12 @@ def plot_gate_map(
     line_color=None,
     font_color="w",
     ax=None,
-    num_qubits=None,
-    qubit_coordinates=None,
-    coupling_map=None,
 ):
-    """Plots the gate map of a device or a gate map based on user input.
+    """Plots the gate map of a device.
 
     Args:
-        backend (BaseBackend): If set to a backend instance, it will be used to plot the device
-            gate map, and the three arguments ``num_qubits``, ``qubit_coordinates``,
-            and ``coupling_map`` must be None. Otherwise, if ``backend`` is set to None,
-            the aforementioned three arguments must be passed.
+        backend (BaseBackend): The backend instance that will be used to plot the device
+            gate map.
         figsize (tuple): Output figure size (wxh) in inches.
         plot_directed (bool): Plot directed coupling map.
         label_qubits (bool): Label the qubits.
@@ -54,12 +50,6 @@ def plot_gate_map(
         line_color (list): A list of colors for each line from coupling_map.
         font_color (str): The font color for the qubit labels.
         ax (Axes): A Matplotlib axes instance.
-        num_qubits (int): The number of qubits defined and plotted.
-        qubit_coordinates (dict): A dict with the key being the number of qubits. Each entry is a
-            list of two-element lists, with entries of each nested list being
-            the planar coordinates in a 0-based square grid where each qubit is located.
-        coupling_map (List[List[int]]): A list of two-element lists, with entries of each nested
-            list being the qubit numbers of the bonds to be plotted.
 
     Returns:
         Figure: A Matplotlib figure instance.
@@ -88,278 +78,348 @@ def plot_gate_map(
            backend = accountProvider.get_backend('ibmq_vigo')
            plot_gate_map(backend)
     """
-    if backend is not None:
-        if backend.configuration().simulator:
-            raise QiskitError("Requires a device backend, not simulator.")
+    if backend.configuration().simulator:
+        raise QiskitError("Requires a device backend, not simulator.")
 
-        if num_qubits is not None or qubit_coordinates is not None or coupling_map is not None:
-            raise QiskitError(
-                "When the argument backend is used (not set to None), "
-                "num_qubits, qubit_coordinates and coupling_map must all be set to None."
-            )
+    qubit_coordinates_map = {}
 
-        qubit_coordinates = {}
+    qubit_coordinates_map[1] = [[0, 0]]
 
-        qubit_coordinates[1] = [[0, 0]]
+    qubit_coordinates_map[5] = [[1, 0], [0, 1], [1, 1], [1, 2], [2, 1]]
 
-        qubit_coordinates[5] = [[1, 0], [0, 1], [1, 1], [1, 2], [2, 1]]
+    qubit_coordinates_map[7] = [[0, 0], [0, 1], [0, 2], [1, 1], [2, 0], [2, 1], [2, 2]]
 
-        qubit_coordinates[7] = [[0, 0], [0, 1], [0, 2], [1, 1], [2, 0], [2, 1], [2, 2]]
+    qubit_coordinates_map[20] = [
+        [0, 0],
+        [0, 1],
+        [0, 2],
+        [0, 3],
+        [0, 4],
+        [1, 0],
+        [1, 1],
+        [1, 2],
+        [1, 3],
+        [1, 4],
+        [2, 0],
+        [2, 1],
+        [2, 2],
+        [2, 3],
+        [2, 4],
+        [3, 0],
+        [3, 1],
+        [3, 2],
+        [3, 3],
+        [3, 4],
+    ]
 
-        qubit_coordinates[20] = [
-            [0, 0],
-            [0, 1],
-            [0, 2],
-            [0, 3],
-            [0, 4],
-            [1, 0],
-            [1, 1],
-            [1, 2],
-            [1, 3],
-            [1, 4],
-            [2, 0],
-            [2, 1],
-            [2, 2],
-            [2, 3],
-            [2, 4],
-            [3, 0],
-            [3, 1],
-            [3, 2],
-            [3, 3],
-            [3, 4],
-        ]
+    qubit_coordinates_map[15] = [
+        [0, 0],
+        [0, 1],
+        [0, 2],
+        [0, 3],
+        [0, 4],
+        [0, 5],
+        [0, 6],
+        [1, 7],
+        [1, 6],
+        [1, 5],
+        [1, 4],
+        [1, 3],
+        [1, 2],
+        [1, 1],
+        [1, 0],
+    ]
 
-        qubit_coordinates[15] = [
-            [0, 0],
-            [0, 1],
-            [0, 2],
-            [0, 3],
-            [0, 4],
-            [0, 5],
-            [0, 6],
-            [1, 7],
-            [1, 6],
-            [1, 5],
-            [1, 4],
-            [1, 3],
-            [1, 2],
-            [1, 1],
-            [1, 0],
-        ]
+    qubit_coordinates_map[16] = [
+        [1, 0],
+        [1, 1],
+        [2, 1],
+        [3, 1],
+        [1, 2],
+        [3, 2],
+        [0, 3],
+        [1, 3],
+        [3, 3],
+        [4, 3],
+        [1, 4],
+        [3, 4],
+        [1, 5],
+        [2, 5],
+        [3, 5],
+        [1, 6],
+    ]
 
-        qubit_coordinates[16] = [
-            [1, 0],
-            [1, 1],
-            [2, 1],
-            [3, 1],
-            [1, 2],
-            [3, 2],
-            [0, 3],
-            [1, 3],
-            [3, 3],
-            [4, 3],
-            [1, 4],
-            [3, 4],
-            [1, 5],
-            [2, 5],
-            [3, 5],
-            [1, 6],
-        ]
+    qubit_coordinates_map[27] = [
+        [1, 0],
+        [1, 1],
+        [2, 1],
+        [3, 1],
+        [1, 2],
+        [3, 2],
+        [0, 3],
+        [1, 3],
+        [3, 3],
+        [4, 3],
+        [1, 4],
+        [3, 4],
+        [1, 5],
+        [2, 5],
+        [3, 5],
+        [1, 6],
+        [3, 6],
+        [0, 7],
+        [1, 7],
+        [3, 7],
+        [4, 7],
+        [1, 8],
+        [3, 8],
+        [1, 9],
+        [2, 9],
+        [3, 9],
+        [3, 10],
+    ]
 
-        qubit_coordinates[27] = [
-            [1, 0],
-            [1, 1],
-            [2, 1],
-            [3, 1],
-            [1, 2],
-            [3, 2],
-            [0, 3],
-            [1, 3],
-            [3, 3],
-            [4, 3],
-            [1, 4],
-            [3, 4],
-            [1, 5],
-            [2, 5],
-            [3, 5],
-            [1, 6],
-            [3, 6],
-            [0, 7],
-            [1, 7],
-            [3, 7],
-            [4, 7],
-            [1, 8],
-            [3, 8],
-            [1, 9],
-            [2, 9],
-            [3, 9],
-            [3, 10],
-        ]
+    qubit_coordinates_map[28] = [
+        [0, 2],
+        [0, 3],
+        [0, 4],
+        [0, 5],
+        [0, 6],
+        [1, 2],
+        [1, 6],
+        [2, 0],
+        [2, 1],
+        [2, 2],
+        [2, 3],
+        [2, 4],
+        [2, 5],
+        [2, 6],
+        [2, 7],
+        [2, 8],
+        [3, 0],
+        [3, 4],
+        [3, 8],
+        [4, 0],
+        [4, 1],
+        [4, 2],
+        [4, 3],
+        [4, 4],
+        [4, 5],
+        [4, 6],
+        [4, 7],
+        [4, 8],
+    ]
 
-        qubit_coordinates[28] = [
-            [0, 2],
-            [0, 3],
-            [0, 4],
-            [0, 5],
-            [0, 6],
-            [1, 2],
-            [1, 6],
-            [2, 0],
-            [2, 1],
-            [2, 2],
-            [2, 3],
-            [2, 4],
-            [2, 5],
-            [2, 6],
-            [2, 7],
-            [2, 8],
-            [3, 0],
-            [3, 4],
-            [3, 8],
-            [4, 0],
-            [4, 1],
-            [4, 2],
-            [4, 3],
-            [4, 4],
-            [4, 5],
-            [4, 6],
-            [4, 7],
-            [4, 8],
-        ]
+    qubit_coordinates_map[53] = [
+        [0, 2],
+        [0, 3],
+        [0, 4],
+        [0, 5],
+        [0, 6],
+        [1, 2],
+        [1, 6],
+        [2, 0],
+        [2, 1],
+        [2, 2],
+        [2, 3],
+        [2, 4],
+        [2, 5],
+        [2, 6],
+        [2, 7],
+        [2, 8],
+        [3, 0],
+        [3, 4],
+        [3, 8],
+        [4, 0],
+        [4, 1],
+        [4, 2],
+        [4, 3],
+        [4, 4],
+        [4, 5],
+        [4, 6],
+        [4, 7],
+        [4, 8],
+        [5, 2],
+        [5, 6],
+        [6, 0],
+        [6, 1],
+        [6, 2],
+        [6, 3],
+        [6, 4],
+        [6, 5],
+        [6, 6],
+        [6, 7],
+        [6, 8],
+        [7, 0],
+        [7, 4],
+        [7, 8],
+        [8, 0],
+        [8, 1],
+        [8, 2],
+        [8, 3],
+        [8, 4],
+        [8, 5],
+        [8, 6],
+        [8, 7],
+        [8, 8],
+        [9, 2],
+        [9, 6],
+    ]
 
-        qubit_coordinates[53] = [
-            [0, 2],
-            [0, 3],
-            [0, 4],
-            [0, 5],
-            [0, 6],
-            [1, 2],
-            [1, 6],
-            [2, 0],
-            [2, 1],
-            [2, 2],
-            [2, 3],
-            [2, 4],
-            [2, 5],
-            [2, 6],
-            [2, 7],
-            [2, 8],
-            [3, 0],
-            [3, 4],
-            [3, 8],
-            [4, 0],
-            [4, 1],
-            [4, 2],
-            [4, 3],
-            [4, 4],
-            [4, 5],
-            [4, 6],
-            [4, 7],
-            [4, 8],
-            [5, 2],
-            [5, 6],
-            [6, 0],
-            [6, 1],
-            [6, 2],
-            [6, 3],
-            [6, 4],
-            [6, 5],
-            [6, 6],
-            [6, 7],
-            [6, 8],
-            [7, 0],
-            [7, 4],
-            [7, 8],
-            [8, 0],
-            [8, 1],
-            [8, 2],
-            [8, 3],
-            [8, 4],
-            [8, 5],
-            [8, 6],
-            [8, 7],
-            [8, 8],
-            [9, 2],
-            [9, 6],
-        ]
+    qubit_coordinates_map[65] = [
+        [0, 0],
+        [0, 1],
+        [0, 2],
+        [0, 3],
+        [0, 4],
+        [0, 5],
+        [0, 6],
+        [0, 7],
+        [0, 8],
+        [0, 9],
+        [1, 0],
+        [1, 4],
+        [1, 8],
+        [2, 0],
+        [2, 1],
+        [2, 2],
+        [2, 3],
+        [2, 4],
+        [2, 5],
+        [2, 6],
+        [2, 7],
+        [2, 8],
+        [2, 9],
+        [2, 10],
+        [3, 2],
+        [3, 6],
+        [3, 10],
+        [4, 0],
+        [4, 1],
+        [4, 2],
+        [4, 3],
+        [4, 4],
+        [4, 5],
+        [4, 6],
+        [4, 7],
+        [4, 8],
+        [4, 9],
+        [4, 10],
+        [5, 0],
+        [5, 4],
+        [5, 8],
+        [6, 0],
+        [6, 1],
+        [6, 2],
+        [6, 3],
+        [6, 4],
+        [6, 5],
+        [6, 6],
+        [6, 7],
+        [6, 8],
+        [6, 9],
+        [6, 10],
+        [7, 2],
+        [7, 6],
+        [7, 10],
+        [8, 1],
+        [8, 2],
+        [8, 3],
+        [8, 4],
+        [8, 5],
+        [8, 6],
+        [8, 7],
+        [8, 8],
+        [8, 9],
+        [8, 10],
+    ]
 
-        qubit_coordinates[65] = [
-            [0, 0],
-            [0, 1],
-            [0, 2],
-            [0, 3],
-            [0, 4],
-            [0, 5],
-            [0, 6],
-            [0, 7],
-            [0, 8],
-            [0, 9],
-            [1, 0],
-            [1, 4],
-            [1, 8],
-            [2, 0],
-            [2, 1],
-            [2, 2],
-            [2, 3],
-            [2, 4],
-            [2, 5],
-            [2, 6],
-            [2, 7],
-            [2, 8],
-            [2, 9],
-            [2, 10],
-            [3, 2],
-            [3, 6],
-            [3, 10],
-            [4, 0],
-            [4, 1],
-            [4, 2],
-            [4, 3],
-            [4, 4],
-            [4, 5],
-            [4, 6],
-            [4, 7],
-            [4, 8],
-            [4, 9],
-            [4, 10],
-            [5, 0],
-            [5, 4],
-            [5, 8],
-            [6, 0],
-            [6, 1],
-            [6, 2],
-            [6, 3],
-            [6, 4],
-            [6, 5],
-            [6, 6],
-            [6, 7],
-            [6, 8],
-            [6, 9],
-            [6, 10],
-            [7, 2],
-            [7, 6],
-            [7, 10],
-            [8, 1],
-            [8, 2],
-            [8, 3],
-            [8, 4],
-            [8, 5],
-            [8, 6],
-            [8, 7],
-            [8, 8],
-            [8, 9],
-            [8, 10],
-        ]
+    config = backend.configuration()
+    num_qubits = config.n_qubits
+    coupling_map = config.coupling_map
+    qubit_coordinates = None
+    if num_qubits in qubit_coordinates_map.keys():
+        qubit_coordinates = qubit_coordinates_map[num_qubits]
+    return plot_coupling_map(
+        num_qubits,
+        qubit_coordinates,
+        coupling_map,
+        figsize,
+        plot_directed,
+        label_qubits,
+        qubit_size,
+        line_width,
+        font_size,
+        qubit_color,
+        qubit_labels,
+        line_color,
+        font_color,
+        ax,
+    )
 
-        config = backend.configuration()
-        num_qubits = config.n_qubits
-        coupling_map = config.coupling_map
-    else:  # backend is None, so num_qubits, qubit_coordinates and coupling_map must not be None
-        if num_qubits is None or qubit_coordinates is None or coupling_map is None:
-            raise QiskitError(
-                "When the argument backend is None, "
-                "num_qubits, qubit_coordinates and coupling_map must all be set."
-            )
+
+def plot_coupling_map(
+    num_qubits: int,
+    qubit_coordinates: List[List[int]],
+    coupling_map: List[List[int]],
+    figsize=None,
+    plot_directed=False,
+    label_qubits=True,
+    qubit_size=None,
+    line_width=4,
+    font_size=None,
+    qubit_color=None,
+    qubit_labels=None,
+    line_color=None,
+    font_color="w",
+    ax=None,
+):
+    """Plots an arbitrary coupling map of qubits (embedded in a plane).
+
+    Args:
+        num_qubits (int): The number of qubits defined and plotted.
+        qubit_coordinates (List[List[int]]): A list of two-element lists, with entries of each nested
+            list being the planar coordinates in a 0-based square grid where each qubit is located.
+        coupling_map (List[List[int]]): A list of two-element lists, with entries of each nested
+            list being the qubit numbers of the bonds to be plotted.
+        figsize (tuple): Output figure size (wxh) in inches.
+        plot_directed (bool): Plot directed coupling map.
+        label_qubits (bool): Label the qubits.
+        qubit_size (float): Size of qubit marker.
+        line_width (float): Width of lines.
+        font_size (int): Font size of qubit labels.
+        qubit_color (list): A list of colors for the qubits
+        qubit_labels (list): A list of qubit labels
+        line_color (list): A list of colors for each line from coupling_map.
+        font_color (str): The font color for the qubit labels.
+        ax (Axes): A Matplotlib axes instance.
+
+    Returns:
+        Figure: A Matplotlib figure instance.
+
+    Raises:
+        MissingOptionalLibraryError: if matplotlib not installed.
+
+    Example:
+        .. jupyter-execute::
+            :hide-code:
+            :hide-output:
+
+            from qiskit.test.ibmq_mock import mock_get_backend
+            mock_get_backend('FakeVigo')
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit, execute, IBMQ
+            from qiskit.visualization import plot_coupling_map
+            %matplotlib inline
+
+            num_qubits = 8
+            coupling_map = [[0, 1], [1, 2], [2, 3], [3, 5], [4, 5], [5, 6], [2, 4], [6, 7]]
+            qubit_coordinates = [[0, 1], [1, 1], [1, 0], [1, 2], [2, 0],
+                                 [2, 2], [2, 1], [3, 1]]
+            plot_gate_map(num_qubits, coupling_map, qubit_coordinates)
+    """
 
     if not HAS_MATPLOTLIB:
         raise MissingOptionalLibraryError(
@@ -390,8 +450,8 @@ def plot_gate_map(
         if len(qubit_labels) != num_qubits:
             raise QiskitError("Length of qubit labels " "does not equal number " "of qubits.")
 
-    if num_qubits in qubit_coordinates.keys():
-        grid_data = qubit_coordinates[num_qubits]
+    if qubit_coordinates is not None:
+        grid_data = qubit_coordinates
     else:
         if not input_axes:
             fig, ax = plt.subplots(figsize=(5, 5))
