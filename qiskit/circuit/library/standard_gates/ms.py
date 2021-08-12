@@ -30,9 +30,6 @@ class MSGate(Gate):
     and is thus reduced to the RXXGate.
     """
 
-    gate_name = "ms"
-    num_params = 1
-
     def __init__(self, num_qubits, theta, label=None):
         """Create new MS gate."""
         warnings.warn(

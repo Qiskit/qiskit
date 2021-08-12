@@ -247,6 +247,7 @@ class MCPhaseGate(ControlledGate):
     """
     gate_name = "mcphase"
     num_params = 1
+    num_int_params = 1
 
     def __init__(self, lam, num_ctrl_qubits, label=None):
         """Create new MCPhase gate."""

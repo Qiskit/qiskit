@@ -873,6 +873,7 @@ class MCXGate(ControlledGate):
 
     gate_name = "mcx"
     num_params = 0
+    num_int_params = 1
 
     def __new__(cls, num_ctrl_qubits=None, label=None, ctrl_state=None):
         """Create a new MCX instance.

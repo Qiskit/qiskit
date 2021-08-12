@@ -264,6 +264,7 @@ class MCU1Gate(ControlledGate):
     """
     gate_name = "mcu1"
     num_params = 1
+    num_int_params = 1
 
     def __init__(self, lam, num_ctrl_qubits, label=None, ctrl_state=None):
         """Create new MCU1 gate."""
