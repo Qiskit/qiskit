@@ -13,8 +13,8 @@
 """A module for visualizing device coupling maps"""
 
 import math
-import numpy as np
 from typing import List
+import numpy as np
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 from .matplotlib import HAS_MATPLOTLIB
 from .exceptions import VisualizationError
@@ -405,6 +405,7 @@ def plot_coupling_map(
 
     Raises:
         MissingOptionalLibraryError: if matplotlib not installed.
+        QiskitError: If length of qubit labels does not match number of qubits.
 
     Example:
         .. jupyter-execute::
