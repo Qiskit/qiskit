@@ -15,9 +15,9 @@
 from decimal import Decimal
 from typing import Tuple, Optional, Union
 
-from qiskit.circuit.parameterexpression import ParameterExpression
-
 import numpy as np
+
+from qiskit.circuit.parameterexpression import ParameterExpression
 
 
 def apply_prefix(value: Union[float, ParameterExpression], unit: str) -> float:
