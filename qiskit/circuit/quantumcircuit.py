@@ -1430,7 +1430,8 @@ class QuantumCircuit:
             name = "".join(parts)
             if name not in used:
                 return prefix + name
-        assert False, "Unreachable."
+        # This isn't actually reachable because the above loop is infinite.
+        return prefix
 
     def qasm(
         self,
@@ -1528,19 +1529,18 @@ class QuantumCircuit:
         regless_qubits = set(self.qubits) - {bit for reg in self.qregs for bit in reg}
         regless_clbits = set(self.clbits) - {bit for reg in self.cregs for bit in reg}
 
-        if regless_qubits or regless_clbits:
-            if regless_qubits:
-                register_name = self._unique_register_name("qregless_")
-                string_temp += f"qreg {register_name}[{len(regless_qubits)}];\n"
-                bit_labels.update(
-                    {bit: f"{register_name}[{idx}]" for idx, bit in enumerate(regless_qubits)}
-                )
-            if regless_clbits:
-                register_name = self._unique_register_name("cregless_")
-                string_temp += f"creg {register_name}[{len(regless_clbits)}];\n"
-                bit_labels.update(
-                    {bit: f"{register_name}[{idx}]" for idx, bit in enumerate(regless_clbits)}
-                )
+        if regless_qubits:
+            register_name = self._unique_register_name("qregless_")
+            string_temp += f"qreg {register_name}[{len(regless_qubits)}];\n"
+            bit_labels.update(
+                {bit: f"{register_name}[{idx}]" for idx, bit in enumerate(regless_qubits)}
+            )
+        if regless_clbits:
+            register_name = self._unique_register_name("cregless_")
+            string_temp += f"creg {register_name}[{len(regless_clbits)}];\n"
+            bit_labels.update(
+                {bit: f"{register_name}[{idx}]" for idx, bit in enumerate(regless_clbits)}
+            )
 
         for instruction, qargs, cargs in self._data:
             if instruction.name == "measure":
