@@ -19,9 +19,9 @@ import itertools
 import functools
 import numbers
 import multiprocessing as mp
+import string
 from collections import OrderedDict, defaultdict
 from typing import Union
-import zlib
 
 import numpy as np
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
@@ -1311,16 +1311,26 @@ class QuantumCircuit:
                             f" registers {element1} and {element2} not compatible"
                         )
 
-    def _qasm_register_name_entropy(self, prefix="qiskitgenerated_") -> str:
+    def _unique_register_name(self, prefix="") -> str:
         """Generate some random entropy to use as, or as part of, an identifier of a QASM register.
 
         The output of this function depends on all the registers contained in this class, in order
         to avoid possible naming collisions."""
-        entropy = 0
-        for register in itertools.chain(self.qregs, self.cregs):
-            # Not using `id` or `hash` or similar because we want to be deterministic across runs.
-            entropy = zlib.crc32(register.name.encode("utf-8") + b",", entropy)
-        return prefix + hex(entropy)[2:]
+        used = {
+            reg.name[len(prefix) :]
+            for reg in itertools.chain(self.qregs, self.cregs)
+            if reg.name.startswith(prefix)
+        }
+        alphabet = string.ascii_lowercase + string.ascii_uppercase
+        if prefix:
+            alphabet = string.digits + alphabet
+        for parts in itertools.chain.from_iterable(
+            itertools.product(alphabet, repeat=n) for n in itertools.count(1)
+        ):
+            name = "".join(parts)
+            if name not in used:
+                return prefix + name
+        assert False, "Unreachable."
 
     def qasm(self, formatted=False, filename=None, encoding=None):
         """Return OpenQASM string.
@@ -1414,18 +1424,17 @@ class QuantumCircuit:
         regless_clbits = set(self.clbits) - {bit for reg in self.cregs for bit in reg}
 
         if regless_qubits or regless_clbits:
-            _name_entropy = self._qasm_register_name_entropy()
             if regless_qubits:
-                regless_name = "qregless_" + _name_entropy
-                string_temp += f"qreg {regless_name}[{len(regless_qubits)}];\n"
+                register_name = self._unique_register_name("qregless_")
+                string_temp += f"qreg {register_name}[{len(regless_qubits)}];\n"
                 bit_labels.update(
-                    {bit: f"{regless_name}[{idx}]" for idx, bit in enumerate(regless_qubits)}
+                    {bit: f"{register_name}[{idx}]" for idx, bit in enumerate(regless_qubits)}
                 )
             if regless_clbits:
-                regless_name = "cregless_" + _name_entropy
-                string_temp += f"creg {regless_name}[{len(regless_clbits)}];\n"
+                register_name = self._unique_register_name("cregless_")
+                string_temp += f"creg {register_name}[{len(regless_clbits)}];\n"
                 bit_labels.update(
-                    {bit: f"{regless_name}[{idx}]" for idx, bit in enumerate(regless_clbits)}
+                    {bit: f"{register_name}[{idx}]" for idx, bit in enumerate(regless_clbits)}
                 )
 
         for instruction, qargs, cargs in self._data:
