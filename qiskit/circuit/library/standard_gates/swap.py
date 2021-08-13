@@ -12,6 +12,7 @@
 
 """Swap gate."""
 
+from typing import Optional, Union
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
@@ -50,7 +51,7 @@ class SwapGate(Gate):
         |a, b\rangle \rightarrow |b, a\rangle
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label: Optional[str] = None):
         """Create new SWAP gate."""
         super().__init__("swap", 2, [], label=label)
 
@@ -74,7 +75,12 @@ class SwapGate(Gate):
 
         self.definition = qc
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Return a (multi-)controlled-SWAP gate.
 
         One control returns a CSWAP (Fredkin) gate.
@@ -201,7 +207,7 @@ class CSwapGate(ControlledGate):
         ]
     )
 
-    def __init__(self, label=None, ctrl_state=None):
+    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CSWAP gate."""
         super().__init__(
             "cswap",

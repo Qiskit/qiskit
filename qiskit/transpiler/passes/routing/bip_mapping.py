@@ -19,7 +19,7 @@ import math
 
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.library.standard_gates import SwapGate
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.transpiler import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -82,13 +82,18 @@ class BIPMapping(TransformationPass):
             coupling_map (CouplingMap): Directed graph represented a coupling map.
             qubit_subset (list[int]): Sublist of physical qubits to be used in the mapping.
                 If None, all qubits in the coupling_map will be considered.
-            objective (str): Type of objective function:
+            objective (str): Type of objective function to be minimized:
 
-                * ``'error_rate'``: [NotImplemented] Predicted error rate of the circuit
-                * ``'depth'``: [Default] Depth (number of time-steps) of the circuit
-                * ``'balanced'``: [NotImplemented] Weighted sum of ``'error_rate'`` and ``'depth'``
+                * ``'gate_error'``: Approximate gate error of the circuit, which is given as the sum of
+                    negative logarithm of 2q-gate fidelities in the circuit. It takes into account only
+                    the 2q-gate (CNOT) errors reported in ``backend_prop`` and ignores the other errors
+                    in such as 1q-gates, SPAMs and idle times.
+                * ``'depth'``: [Default] Depth (number of 2q-gate layers) of the circuit.
+                * ``'balanced'``: Weighted sum of ``'gate_error'`` and ``'depth'``
 
-            backend_prop (BackendProperties): Backend properties object
+            backend_prop (BackendProperties): Backend properties object containing 2q-gate gate errors,
+                which are required in computing certain types of objective function
+                such as ``'gate_error'`` or ``'balanced'``.
             time_limit (float): Time limit for solving BIP in seconds
             threads (int): Number of threads to be allowed for CPLEX to solve BIP
             max_swaps_inbetween_layers (int):
@@ -98,6 +103,7 @@ class BIPMapping(TransformationPass):
 
         Raises:
             MissingOptionalLibraryError: if cplex or docplex are not installed.
+            TranspilerError: if invalid options are specified.
         """
         if not HAS_DOCPLEX or not HAS_CPLEX:
             raise MissingOptionalLibraryError(
@@ -106,6 +112,8 @@ class BIPMapping(TransformationPass):
                 pip_install="pip install 'qiskit-terra[bip-mapper]'",
                 msg="This may not be possible for all Python versions and OSes",
             )
+        if backend_prop is None and objective in ("gate_error", "balanced"):
+            raise TranspilerError(f"'backend_prop' is required for '{objective}' objective")
         super().__init__()
         self.coupling_map = coupling_map
         self.qubit_subset = qubit_subset
@@ -161,7 +169,7 @@ class BIPMapping(TransformationPass):
             logger.info("BIPMapping is skipped due to no 2q-gates.")
             return original_dag
 
-        model.create_cpx_problem(objective=self.objective)
+        model.create_cpx_problem(objective=self.objective, backend_prop=self.backend_prop)
 
         status = model.solve_cpx_problem(time_limit=self.time_limit, threads=self.threads)
         if model.solution is None:
@@ -195,7 +203,7 @@ class BIPMapping(TransformationPass):
 
             # map gates in k-th layer
             for node in layer["graph"].nodes():
-                if node.type == "op":
+                if isinstance(node, DAGOpNode):
                     mapped_dag.apply_operation_back(
                         op=copy.deepcopy(node.op),
                         qargs=[canonical_qreg[layout[q]] for q in node.qargs],
