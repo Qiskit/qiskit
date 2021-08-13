@@ -1412,10 +1412,7 @@ class QuantumCircuit:
                         )
 
     def _unique_register_name(self, prefix: str = "") -> str:
-        """Generate some random entropy to use as, or as part of, an identifier of a QASM register.
-
-        The output of this function depends on all the registers contained in this class, in order
-        to avoid possible naming collisions."""
+        """Generate a register name with the given prefix, which is unique within this circuit."""
         used = {
             reg.name[len(prefix) :]
             for reg in itertools.chain(self.qregs, self.cregs)
