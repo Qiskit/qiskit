@@ -72,7 +72,8 @@ class LinComb(CircuitGradient):
     see e.g. https://arxiv.org/pdf/1811.11184.pdf
     """
 
-    SUPPORTED_GATES = {"rx", "ry", "rz", "rzx", "rzz", "ryy", "rxx", "p", "u", "controlledgate"}
+    SUPPORTED_GATES = {"rx", "ry", "rz", "rzx", "rzz", "ryy", "rxx", "p", "u", "controlledgate",
+                       "cx", "cy", "cz", "ccx", "swap", "iswap", "t", "s", "sdg", "x", "y", "z"}
 
     # pylint: disable=signature-differs
     def convert(
@@ -600,8 +601,12 @@ class LinComb(CircuitGradient):
         qr_superpos = QuantumRegister(1)
         state_qc = QuantumCircuit(*state_op.primitive.qregs, qr_superpos)
         state_qc.h(qr_superpos)
-        state_qc.compose(state_op.primitive, inplace=True)
-        state_qc = CircuitGradient._unroll_to_supported_operations(state_qc, self.SUPPORTED_GATES)
+        # unroll separately from the H gate since we need the H gate to be the first
+        # operation in the data attributes of the circuit
+        unrolled = CircuitGradient._unroll_to_supported_operations(
+            state_op.primitive, self.SUPPORTED_GATES)
+        state_qc.compose(unrolled, inplace=True)
+
         # Define the working qubit to realize the linear combination of unitaries
         if not isinstance(target_params, (list, np.ndarray)):
             target_params = [target_params]
