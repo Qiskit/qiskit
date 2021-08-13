@@ -31,7 +31,7 @@ except ImportError:
 
 from qiskit.circuit import ControlledGate
 from qiskit.visualization.qcstyle import load_style
-from qiskit.visualization.utils import get_gate_ctrl_text, get_param_str
+from qiskit.visualization.utils import get_gate_ctrl_text, get_param_str, matplotlib_close_if_inline
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.circuit.tools.pi_check import pi_check
 
@@ -839,10 +839,7 @@ class MatplotlibDrawer:
                 facecolor=self._figure.get_facecolor(),
             )
         if self._return_fig:
-            from matplotlib import get_backend
-
-            if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
-                self.plt_mod.close(self._figure)
+            matplotlib_close_if_inline(self._figure)
             return self._figure
 
     def _draw_regs(self):
