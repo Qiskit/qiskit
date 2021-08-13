@@ -362,7 +362,7 @@ def plot_gate_map(
         qubit_labels = list(range(num_qubits))
     else:
         if len(qubit_labels) != num_qubits:
-            raise QiskitError("Length of qubit labels " "does not equal number " "of qubits.")
+            raise QiskitError("Length of qubit labels does not equal number of qubits.")
 
     if num_qubits in mpl_data.keys():
         grid_data = mpl_data[num_qubits]
@@ -530,7 +530,7 @@ def plot_circuit_layout(circuit, backend, view="virtual"):
             plot_circuit_layout(new_circ_lv3, backend)
     """
     if circuit._layout is None:
-        raise QiskitError("Circuit has no layout. " "Perhaps it has not been transpiled.")
+        raise QiskitError("Circuit has no layout. Perhaps it has not been transpiled.")
 
     num_qubits = backend.configuration().n_qubits
 

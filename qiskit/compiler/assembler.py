@@ -46,7 +46,7 @@ def assemble(
         Schedule,
         List[Schedule],
         ScheduleBlock,
-        Union[ScheduleBlock],
+        ScheduleBlock,
     ],
     backend: Optional[Union[Backend, BaseBackend]] = None,
     qobj_id: Optional[str] = None,
@@ -214,9 +214,7 @@ def assemble(
         )
 
     else:
-        raise QiskitError(
-            "bad input to assemble() function; " "must be either circuits or schedules"
-        )
+        raise QiskitError("bad input to assemble() function; must be either circuits or schedules")
 
 
 # TODO: rework to return a list of RunConfigs (one for each experiments), and a global one

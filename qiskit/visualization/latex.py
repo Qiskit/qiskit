@@ -168,7 +168,7 @@ class QCircuitImage:
 
 \begin{document} 
 """
-        header_scale = "\\scalebox{{{}}}".format(self.scale) + "{"
+        header_scale = f"\\scalebox{{{self.scale}}}" + "{"
 
         qcircuit_line = r"""
 \Qcircuit @C=%.1fem @R=%.1fem @!R { \\
@@ -441,7 +441,7 @@ class QCircuitImage:
                 wire_max = max(cwire_list)
             wire_ind = wire_list.index(wire_min)
             self._latex[wire_min][col] = (
-                "\\multigate{%s}{%s}_" % (wire_max - wire_min, gate_text)
+                f"\\multigate{{{wire_max - wire_min}}}{{{gate_text}}}_"
                 + "<" * (len(str(wire_ind)) + 2)
                 + "{%s}" % wire_ind
             )
@@ -550,7 +550,7 @@ class QCircuitImage:
 
         self._latex[wire1][col] = "\\meter"
         if self.cregbundle:
-            self._latex[wire2][col] = "\\dstick{_{_{%s}}} \\cw \\cwx[-%s]" % (
+            self._latex[wire2][col] = "\\dstick{{_{{_{{{}}}}}}} \\cw \\cwx[-{}]".format(
                 str(cregindex),
                 str(wire2 - wire1),
             )
@@ -615,7 +615,7 @@ class QCircuitImage:
         gap = cwire - max(wire_list)
         if self.cregbundle:
             # Print the condition value at the bottom
-            self._latex[cwire][col] = "\\dstick{_{_{=%s}}} \\cw \\cwx[-%s]" % (
+            self._latex[cwire][col] = "\\dstick{{_{{_{{={}}}}}}} \\cw \\cwx[-{}]".format(
                 str(op.condition[1]),
                 str(gap),
             )

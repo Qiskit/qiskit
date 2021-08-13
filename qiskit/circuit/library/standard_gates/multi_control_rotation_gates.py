@@ -158,7 +158,7 @@ def mcry(self, theta, q_controls, q_target, q_ancillae=None, mode=None, use_basi
         control_qubits = q_controls
     else:
         raise QiskitError(
-            "The mcry gate needs a list of qubits or a quantum " "register for controls."
+            "The mcry gate needs a list of qubits or a quantum register for controls."
         )
 
     # check target
@@ -176,7 +176,7 @@ def mcry(self, theta, q_controls, q_target, q_ancillae=None, mode=None, use_basi
         ancillary_qubits = q_ancillae
     else:
         raise QiskitError(
-            "The mcry gate needs None or a list of qubits or a " "quantum register for ancilla."
+            "The mcry gate needs None or a list of qubits or a quantum register for ancilla."
         )
 
     all_qubits = control_qubits + [target_qubit] + ancillary_qubits

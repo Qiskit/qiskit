@@ -78,8 +78,6 @@ def pauli_group(number_of_qubits, case="weight"):
                 temp_set.append(Pauli(z, x))
             return temp_set
         else:
-            raise QiskitError(
-                "Only support 'weight' or 'tensor' cases " "but you have {}.".format(case)
-            )
+            raise QiskitError(f"Only support 'weight' or 'tensor' cases but you have {case}.")
 
     raise QiskitError("Only support number of qubits is less than 5")
