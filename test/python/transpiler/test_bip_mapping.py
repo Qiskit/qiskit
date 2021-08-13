@@ -19,10 +19,11 @@ from qiskit.circuit import Barrier
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.transpiler import CouplingMap, Layout
+from qiskit.test.mock.backends import FakeLima
+from qiskit.transpiler import CouplingMap, Layout, PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import BIPMapping
-from qiskit.transpiler.passes import CheckMap
+from qiskit.transpiler.passes import CheckMap, Collect2qBlocks, ConsolidateBlocks, UnitarySynthesis
 from qiskit.transpiler.passes.routing.algorithms.bip_model import HAS_CPLEX, HAS_DOCPLEX
 
 
@@ -267,3 +268,35 @@ class TestBIPMapping(QiskitTestCase):
         coupling = CouplingMap([(0, 1), (1, 3), (3, 2)])
         with self.assertRaises(TranspilerError):
             BIPMapping(coupling, qubit_subset=[0, 1, 2])(circuit)
+
+    def test_initialize_gate_error_objective_without_backend_prop(self):
+        """Fails if ``objective`` that requires ``backend_prop`` is specified but it is not supplied."""
+        with self.assertRaises(TranspilerError):
+            BIPMapping(coupling_map=CouplingMap.from_line(3), objective="gate_error")
+
+    def test_objective_function(self):
+        """Test if ``objective`` functions priorities metrics correctly."""
+        qc = QuantumCircuit(4)
+        qc.dcx(0, 1)
+        qc.cx(2, 3)
+        qc.dcx(0, 2)
+        qc.cx(1, 3)
+        qc.dcx(0, 1)
+        qc.cx(2, 3)
+        coupling = CouplingMap(FakeLima().configuration().coupling_map)
+        dep_opt = BIPMapping(coupling, objective="depth", qubit_subset=[0, 1, 3, 4])(qc)
+        err_opt = BIPMapping(
+            coupling,
+            objective="gate_error",
+            qubit_subset=[0, 1, 3, 4],
+            backend_prop=FakeLima().properties(),
+        )(qc)
+        # depth = number of su4 layers (mirrored gates have to be consolidated as single su4 gates)
+        pm_ = PassManager([Collect2qBlocks(), ConsolidateBlocks(basis_gates=["cx"])])
+        dep_opt = pm_.run(dep_opt)
+        err_opt = pm_.run(err_opt)
+        self.assertLessEqual(dep_opt.depth(), err_opt.depth())
+        # count CNOTs after synthesized
+        dep_opt = UnitarySynthesis(basis_gates=["cx"])(dep_opt)
+        err_opt = UnitarySynthesis(basis_gates=["cx"])(err_opt)
+        self.assertGreater(dep_opt.count_ops()["cx"], err_opt.count_ops()["cx"])
