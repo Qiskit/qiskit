@@ -46,7 +46,7 @@ def assemble(
         Schedule,
         List[Schedule],
         ScheduleBlock,
-        ScheduleBlock,
+        List[ScheduleBlock],
     ],
     backend: Optional[Union[Backend, BaseBackend]] = None,
     qobj_id: Optional[str] = None,

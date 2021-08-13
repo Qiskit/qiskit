@@ -166,7 +166,7 @@ class QCircuitImage:
 \usepackage[braket, qm]{qcircuit}
 \usepackage{graphicx}
 
-\begin{document} 
+\begin{document}
 """
         header_scale = f"\\scalebox{{{self.scale}}}" + "{"
 
@@ -550,7 +550,7 @@ class QCircuitImage:
 
         self._latex[wire1][col] = "\\meter"
         if self.cregbundle:
-            self._latex[wire2][col] = "\\dstick{{_{{_{{{}}}}}}} \\cw \\cwx[-{}]".format(
+            self._latex[wire2][col] = "\\dstick{_{_{%s}}} \\cw \\cwx[-%s]" % (
                 str(cregindex),
                 str(wire2 - wire1),
             )
@@ -615,7 +615,7 @@ class QCircuitImage:
         gap = cwire - max(wire_list)
         if self.cregbundle:
             # Print the condition value at the bottom
-            self._latex[cwire][col] = "\\dstick{{_{{_{{={}}}}}}} \\cw \\cwx[-{}]".format(
+            self._latex[cwire][col] = "\\dstick{_{_{=%s}}} \\cw \\cwx[-%s]" % (
                 str(op.condition[1]),
                 str(gap),
             )

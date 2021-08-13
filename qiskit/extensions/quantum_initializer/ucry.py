@@ -73,7 +73,7 @@ def ucry(self, angle_list, q_controls, q_target):
             q_target = q_target[0]
         else:
             raise QiskitError(
-                "The target qubit is a QuantumRegister containing more than one qubits."
+                "The target qubit is a QuantumRegister containing more than one qubit."
             )
     # Check if q_controls has type "list"
     if not isinstance(angle_list, list):

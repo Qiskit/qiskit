@@ -194,7 +194,7 @@ def squ(self, unitary_matrix, qubit, mode="ZYZ", up_to_diagonal=False, *, u=None
             qubit = qubit[0]
         else:
             raise QiskitError(
-                "The target qubit is a QuantumRegister containing more than one qubits."
+                "The target qubit is a QuantumRegister containing more than one qubit."
             )
     # Check if there is one target qubit provided
     if not isinstance(qubit, Qubit):

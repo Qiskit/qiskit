@@ -157,7 +157,7 @@ class LinComb(CircuitGradient):
                     state_op = operator[1]
                     if not isinstance(state_op, StateFn):
                         raise TypeError(
-                            "The StateFn representing the quantum state could not beextracted."
+                            "The StateFn representing the quantum state could not be extracted."
                         )
                     if isinstance(params, (ParameterExpression, ParameterVector)) or (
                         isinstance(params, list)
@@ -186,7 +186,7 @@ class LinComb(CircuitGradient):
                     state_op.oplist.pop(0)
                     if not isinstance(state_op, StateFn):
                         raise TypeError(
-                            "The StateFn representing the quantum state could not beextracted."
+                            "The StateFn representing the quantum state could not be extracted."
                         )
 
                     if isinstance(params, (ParameterExpression, ParameterVector)) or (
