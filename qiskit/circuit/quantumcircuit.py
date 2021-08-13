@@ -18,6 +18,7 @@ import copy
 import itertools
 import functools
 import multiprocessing as mp
+import string
 from collections import OrderedDict, defaultdict
 from typing import (
     Union,
@@ -1410,6 +1411,23 @@ class QuantumCircuit:
                             f" registers {element1} and {element2} not compatible"
                         )
 
+    def _unique_register_name(self, prefix: str = "") -> str:
+        """Generate a register name with the given prefix, which is unique within this circuit."""
+        used = {
+            reg.name[len(prefix) :]
+            for reg in itertools.chain(self.qregs, self.cregs)
+            if reg.name.startswith(prefix)
+        }
+        characters = (string.digits + string.ascii_letters) if prefix else string.ascii_letters
+        for parts in itertools.chain.from_iterable(
+            itertools.product(characters, repeat=n) for n in itertools.count(1)
+        ):
+            name = "".join(parts)
+            if name not in used:
+                return prefix + name
+        # This isn't actually reachable because the above loop is infinite.
+        return prefix
+
     def qasm(
         self,
         formatted: bool = False,
@@ -1497,32 +1515,27 @@ class QuantumCircuit:
         for register in self.cregs:
             string_temp += register.qasm() + "\n"
 
-        qreg_bits = {bit for reg in self.qregs for bit in reg}
-        creg_bits = {bit for reg in self.cregs for bit in reg}
-        regless_qubits = []
-        regless_clbits = []
-
-        if set(self.qubits) != qreg_bits:
-            regless_qubits = [bit for bit in self.qubits if bit not in qreg_bits]
-            string_temp += "qreg %s[%d];\n" % ("regless", len(regless_qubits))
-
-        if set(self.clbits) != creg_bits:
-            regless_clbits = [bit for bit in self.clbits if bit not in creg_bits]
-            string_temp += "creg %s[%d];\n" % ("regless", len(regless_clbits))
-
         bit_labels = {
             bit: "%s[%d]" % (reg.name, idx)
             for reg in self.qregs + self.cregs
             for (idx, bit) in enumerate(reg)
         }
 
-        bit_labels.update(
-            {
-                bit: "regless[%d]" % idx
-                for reg in (regless_qubits, regless_clbits)
-                for idx, bit in enumerate(reg)
-            }
-        )
+        regless_qubits = set(self.qubits) - {bit for reg in self.qregs for bit in reg}
+        regless_clbits = set(self.clbits) - {bit for reg in self.cregs for bit in reg}
+
+        if regless_qubits:
+            register_name = self._unique_register_name("qregless_")
+            string_temp += f"qreg {register_name}[{len(regless_qubits)}];\n"
+            bit_labels.update(
+                {bit: f"{register_name}[{idx}]" for idx, bit in enumerate(regless_qubits)}
+            )
+        if regless_clbits:
+            register_name = self._unique_register_name("cregless_")
+            string_temp += f"creg {register_name}[{len(regless_clbits)}];\n"
+            bit_labels.update(
+                {bit: f"{register_name}[{idx}]" for idx, bit in enumerate(regless_clbits)}
+            )
 
         for instruction, qargs, cargs in self._data:
             if instruction.name == "measure":
