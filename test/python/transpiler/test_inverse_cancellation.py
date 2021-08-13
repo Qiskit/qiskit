@@ -15,12 +15,13 @@ Testing inverse_cancellation
 """
 
 from qiskit import QuantumCircuit
+from qiskit.exceptions import TranspilerError
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes import CXCancellation, Cancellation
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
 from numpy import pi
-from qiskit.circuit.library import RXGate, PhaseGate 
+from qiskit.circuit.library import RXGate, HGate, CXGate, PhaseGate 
 
 class TestCancellation(QiskitTestCase): 
 
@@ -28,7 +29,7 @@ class TestCancellation(QiskitTestCase):
         qc = QuantumCircuit(2,2)
         qc.h(0)
         qc.h(0)
-        pass_ = Cancellation(["h"])
+        pass_ = Cancellation([HGate()])
         pm = PassManager(pass_)
         new_circ = pm.run(qc)
         gates_after = new_circ.count_ops()
@@ -39,7 +40,7 @@ class TestCancellation(QiskitTestCase):
         qc.h(0)
         qc.h(0)
         qc.h(0)
-        pass_ = Cancellation(["h"])
+        pass_ = Cancellation([HGate()])
         pm = PassManager(pass_)
         new_circ = pm.run(qc)
         gates_after = new_circ.count_ops()
@@ -50,7 +51,7 @@ class TestCancellation(QiskitTestCase):
         qc = QuantumCircuit(2,2)
         qc.cx(0,1)
         qc.cx(0,1)
-        pass_ = Cancellation(["cx"])
+        pass_ = Cancellation([CXGate()])
         pm = PassManager(pass_)
         new_circ = pm.run(qc)
         gates_after = new_circ.count_ops()
@@ -81,8 +82,8 @@ class TestCancellation(QiskitTestCase):
         qc = QuantumCircuit(2,2)
         qc.rx(pi/2, 0)
         qc.rx(pi/4, 0)
-        with self.assertRaises(RuntimeError):
-            pass_ = Cancellation(["rx"])
+        with self.assertRaises(TranspilerError):
+            pass_ = Cancellation([RXGate(0.5)])
 
     def test_inverse_cancellation_hcx(self):
         qc = QuantumCircuit(2,2)
@@ -92,7 +93,7 @@ class TestCancellation(QiskitTestCase):
         qc.cx(0, 1)
         qc.cx(0, 1)
         qc.h(0)
-        pass_ = Cancellation(["h", "cx"])
+        pass_ = Cancellation([HGate(), CXGate()])
         pm = PassManager(pass_)
         new_circ = pm.run(qc)
         gates_after = new_circ.count_ops()
