@@ -54,6 +54,7 @@ from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData
 from .delay import Delay
 from .measure import Measure
+from .reset import Reset
 
 try:
     import pygments
@@ -2032,6 +2033,17 @@ class QuantumCircuit:
         else:
             new_qreg = QuantumRegister(length, name)
         return new_qreg
+
+    def reset(self, qubit: QubitSpecifier) -> InstructionSet:
+        """Reset the quantum bit(s) to their default state.
+
+        Args:
+            qubit: qubit(s) to reset.
+
+        Returns:
+            qiskit.circuit.InstructionSet: handle to the added instruction.
+        """
+        return self.append(Reset(), [qubit], [])
 
     def measure(self, qubit: QubitSpecifier, cbit: ClbitSpecifier) -> InstructionSet:
         """Measure quantum bit into classical bit (tuples).
