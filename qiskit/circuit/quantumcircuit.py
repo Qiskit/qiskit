@@ -1418,11 +1418,9 @@ class QuantumCircuit:
             for reg in itertools.chain(self.qregs, self.cregs)
             if reg.name.startswith(prefix)
         }
-        alphabet = string.ascii_lowercase + string.ascii_uppercase
-        if prefix:
-            alphabet = string.digits + alphabet
+        characters = (string.digits + string.ascii_letters) if prefix else string.ascii_letters
         for parts in itertools.chain.from_iterable(
-            itertools.product(alphabet, repeat=n) for n in itertools.count(1)
+            itertools.product(characters, repeat=n) for n in itertools.count(1)
         ):
             name = "".join(parts)
             if name not in used:
