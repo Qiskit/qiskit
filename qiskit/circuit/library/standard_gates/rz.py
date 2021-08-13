@@ -12,9 +12,11 @@
 
 """Rotation around the Z axis."""
 
+from typing import Optional, Union
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.parameterexpression import ParameterValueType
 
 
 class RZGate(Gate):
@@ -54,7 +56,7 @@ class RZGate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
-    def __init__(self, phi, label=None):
+    def __init__(self, phi: ParameterValueType, label: Optional[str] = None):
         """Create new RZ gate."""
         super().__init__("rz", 1, [phi], label=label)
 
@@ -75,7 +77,12 @@ class RZGate(Gate):
 
         self.definition = qc
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Return a (multi-)controlled-RZ gate.
 
         Args:
@@ -169,7 +176,12 @@ class CRZGate(ControlledGate):
         phase difference.
     """
 
-    def __init__(self, theta, label=None, ctrl_state=None):
+    def __init__(
+        self,
+        theta: ParameterValueType,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Create new CRZ gate."""
         super().__init__(
             "crz",
