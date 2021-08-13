@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fix naming collisions of implicit registers in :obj:`.QuantumCircuit.qasm`
+    when dealing with registerless qubits and clbits.  Previously, registerless
+    qubits and clbits were put into corresponding ``qreg`` and ``creg`` both
+    called ``regless``, despite the collision.  They will now have separate,
+    deterministically generated names, which will not clash with any
+    user-defined register names in the circuit.
