@@ -321,9 +321,7 @@ def run_qobj(
             found_job = False
             while trials < 10:
                 trials += 1
-                logger.info(
-                    "Running %s-th qobj, job id: %s", idx, job_id
-                )
+                logger.info("Running %s-th qobj, job id: %s", idx, job_id)
                 # try to get result if possible
                 # needs to be while True as we are checking the status
                 # of job (it may be in a very long queue)
@@ -367,9 +365,7 @@ def run_qobj(
                         job = backend.retrieve_job(job_id)
                     if not result_found:
                         raise QiskitError(
-                            "Job with id {} failed. Please submit job set again.".format(
-                                job_id
-                            )
+                            "Job with id {} failed. Please submit job set again.".format(job_id)
                         )
                     found_job = True
                     break
@@ -401,9 +397,7 @@ def run_qobj(
 
             if not found_job:
                 raise QiskitError(
-                    "Job with id {} failed to. Please submit the job set again.".format(
-                        job_id
-                    )
+                    "Job with id {} failed to. Please submit the job set again.".format(job_id)
                 )
     else:
         results = []
