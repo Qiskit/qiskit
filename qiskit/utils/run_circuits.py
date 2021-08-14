@@ -146,8 +146,15 @@ def _safe_submit_qobj(
     skip_qobj_validation: bool,
 ) -> Tuple[BaseJob, str]:
     # assure get job ids
-    while True:
+
+    # add a trial count variable
+    try_count = 0
+    job_run = False
+
+    while try_count < 10:
+        try_count += 1
         try:
+            # added
             job = run_on_backend(
                 backend,
                 qobj,
@@ -156,6 +163,7 @@ def _safe_submit_qobj(
                 skip_qobj_validation=skip_qobj_validation,
             )
             job_id = job.job_id()
+            job_run = True
             break
         except QiskitError as ex:
             failure_warn = True
@@ -185,7 +193,7 @@ def _safe_submit_qobj(
                             oldest_running.wait_for_final_state(timeout=300)
                         except Exception:  # pylint: disable=broad-except
                             # If the wait somehow fails or times out, we'll just re-try
-                            # the job submit and see if it works now.
+                            # the job submit and see if it works now ( but a finite number of times now )
                             pass
             if failure_warn:
                 logger.warning(
@@ -197,15 +205,23 @@ def _safe_submit_qobj(
             logger.warning(
                 "FAILURE: Can not get job id, Resubmit the qobj to get job id." "Error: %s ", ex
             )
+    if not job_run:
+        # means we had to break with a failure.
+        raise QiskitError("FAILURE: Can not submit qobj correctly. Please resubmit the qobj.")
 
     return job, job_id
 
 
 def _safe_get_job_status(job: BaseJob, job_id: str) -> JobStatus:
+    # add a variable for status checking
+    status_checks = 0
+    status_found = False
 
-    while True:
+    while status_checks < 10:
+        status_checks += 1
         try:
             job_status = job.status()
+            status_found = True
             break
         except JobError as ex:
             logger.warning(
@@ -220,6 +236,12 @@ def _safe_get_job_status(job: BaseJob, job_id: str) -> JobStatus:
                 "status: 'FAIL_TO_GET_STATUS' "
                 "Unknown error: ({})".format(job_id, ex)
             ) from ex
+
+    if not status_found:
+        raise QiskitError(
+            "FAILURE: job id {}, failed to get the status. Please re-submit job set".format(job_id)
+        )
+
     return job_status
 
 
@@ -294,9 +316,17 @@ def run_qobj(
         for idx, _ in enumerate(jobs):
             job = jobs[idx]
             job_id = job_ids[idx]
-            while True:
-                logger.info("Running %s-th qobj, job id: %s", idx, job_id)
+            # keep counts and a flag for one job
+            trials = 0
+            found_job = False
+            while trials < 10:
+                trials += 1
+                # added
+                logger.info(
+                    "Running %s-th qobj, job id: %s", idx, job_id, " for the", trials, "time"
+                )
                 # try to get result if possible
+                # needs to be while True as we are checking the status of job (it may be in a very long queue)
                 while True:
                     job_status = _safe_get_job_status(job, job_id)
                     queue_position = 0
@@ -316,11 +346,17 @@ def run_qobj(
 
                 # get result after the status is DONE
                 if job_status == JobStatus.DONE:
-                    while True:
+                    # again try to get the job result
+                    # only a finite num of times
+                    result_check = 0
+                    result_found = False
+                    while result_check < 10:
+                        result_check += 1
                         result = job.result(**qjob_config)
                         if result.success:
                             results.append(result)
                             logger.info("COMPLETED the %s-th qobj, job id: %s", idx, job_id)
+                            result_found = True
                             break
 
                         logger.warning("FAILURE: Job id: %s", job_id)
@@ -329,9 +365,17 @@ def run_qobj(
                             job_id,
                         )
                         job = backend.retrieve_job(job_id)
+                    if not result_found:
+                        raise QiskitError(
+                            "Job with id {} failed to return the result. Please submit job set again.".format(
+                                job_id
+                            )
+                        )
+                    else:
+                        found_job = True
                     break
                 # for other cases, resubmit the qobj until the result is available.
-                # since if there is no result returned, there is no way algorithm can do any process
+                # since if there is no result returned, there is no way algorithm can do any processing
                 # get back the qobj first to avoid for job is consumed
                 qobj = job.qobj()
                 if job_status == JobStatus.CANCELLED:
@@ -355,6 +399,13 @@ def run_qobj(
                 )
                 jobs[idx] = job
                 job_ids[idx] = job_id
+
+            if not found_job:
+                raise QiskitError(
+                    "Job with id {} failed to run correctly. Please submit the job set again.".format(
+                        job_id
+                    )
+                )
     else:
         results = []
         for job in jobs:
@@ -497,6 +548,7 @@ def run_circuits(
         job_ids = [job_id]
         split_circuits = [circuits]
     results = []
+
     if with_autorecover:
         logger.info("Backend status: %s", backend.status())
         logger.info("There are %s jobs are submitted.", len(jobs))
@@ -507,11 +559,17 @@ def run_circuits(
             logger.info("There is one jobs are submitted: id: %s", job_id)
             job = jobs[idx]
             job_id = job_ids[idx]
-            while True:
+            # keep counts and a flag
+            trials = 0
+            found_job = False
+            while trials < 10:
+                trials += 1
                 logger.info("Running job id: %s", job_id)
                 # try to get result if possible
                 while True:
-                    job_status = _safe_get_job_status(job, job_id)
+                    job_status = _safe_get_job_status(
+                        job, job_id
+                    )  # if the status was broken, an Exception would be raised anyway
                     queue_position = 0
                     if job_status in JOB_FINAL_STATES:
                         # do callback again after the job is in the final states
@@ -529,11 +587,15 @@ def run_circuits(
 
                 # get result after the status is DONE
                 if job_status == JobStatus.DONE:
-                    while True:
+                    result_checks = 0
+                    result_found = False
+                    while result_checks < 10:
+                        result_checks += 1
                         result = job.result()
                         if result.success:
                             results.append(result)
                             logger.info("COMPLETED the %s-th job, job id: %s", idx, job_id)
+                            result_found = True
                             break
 
                         logger.warning("FAILURE: Job id: %s", job_id)
@@ -542,6 +604,14 @@ def run_circuits(
                             job_id,
                         )
                         job = backend.retrieve_job(job_id)
+                    if not result_found:
+                        raise Exception(
+                            "Job with id {} failed to return the result. Please submit job set again.".format(
+                                job_id
+                            )
+                        )
+                    else:
+                        found_job = True
                     break
                 # for other cases, resubmit the circuit until the result is available.
                 # since if there is no result returned, there is no way algorithm can do any process
@@ -570,6 +640,12 @@ def run_circuits(
                     backend_options=backend_options,
                     noise_config=noise_config,
                     run_config=run_config,
+                )
+            if not found_job:
+                raise QiskitError(
+                    "Job with id {} failed to run correctly. Please submit the job set again.".format(
+                        job_id
+                    )
                 )
     else:
         results = []
@@ -607,7 +683,11 @@ def _safe_submit_circuits(
     run_config: Dict,
 ) -> Tuple[BaseJob, str]:
     # assure get job ids
-    while True:
+    submits = 0
+    job_is_run = False
+
+    while submits < 10:
+        submits += 1
         try:
             job = _run_circuits_on_backend(
                 backend,
@@ -617,6 +697,7 @@ def _safe_submit_circuits(
                 run_config=run_config,
             )
             job_id = job.job_id()
+            job_is_run = True
             break
         except QiskitError as ex:
             failure_warn = True
@@ -660,7 +741,12 @@ def _safe_submit_circuits(
             logger.warning(
                 "FAILURE: Can not get job id, Resubmit the qobj to get job id." "Error: %s ", ex
             )
-
+    # added
+    if not job_is_run:
+        raise QiskitError(
+            "FAILURE: Can not run qobj correctly. Resubmit the qobj to get the job id."
+        )
+    # added
     return job, job_id
 
 
