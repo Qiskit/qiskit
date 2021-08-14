@@ -321,12 +321,12 @@ def run_qobj(
             found_job = False
             while trials < 10:
                 trials += 1
-                # added
                 logger.info(
-                    "Running %s-th qobj, job id: %s", idx, job_id, " for the", trials, "time"
+                    "Running %s-th qobj, job id: %s", idx, job_id
                 )
                 # try to get result if possible
-                # needs to be while True as we are checking the status of job (it may be in a very long queue)
+                # needs to be while True as we are checking the status
+                # of job (it may be in a very long queue)
                 while True:
                     job_status = _safe_get_job_status(job, job_id)
                     queue_position = 0
@@ -367,12 +367,11 @@ def run_qobj(
                         job = backend.retrieve_job(job_id)
                     if not result_found:
                         raise QiskitError(
-                            "Job with id {} failed to return the result. Please submit job set again.".format(
+                            "Job with id {} failed. Please submit job set again.".format(
                                 job_id
                             )
                         )
-                    else:
-                        found_job = True
+                    found_job = True
                     break
                 # for other cases, resubmit the qobj until the result is available.
                 # since if there is no result returned, there is no way algorithm can do any processing
@@ -402,7 +401,7 @@ def run_qobj(
 
             if not found_job:
                 raise QiskitError(
-                    "Job with id {} failed to run correctly. Please submit the job set again.".format(
+                    "Job with id {} failed to. Please submit the job set again.".format(
                         job_id
                     )
                 )
@@ -610,8 +609,7 @@ def run_circuits(
                                 job_id
                             )
                         )
-                    else:
-                        found_job = True
+                    found_job = True
                     break
                 # for other cases, resubmit the circuit until the result is available.
                 # since if there is no result returned, there is no way algorithm can do any process
