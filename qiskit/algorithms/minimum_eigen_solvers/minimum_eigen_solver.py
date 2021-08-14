@@ -98,11 +98,11 @@ class MinimumEigensolverResult(AlgorithmResult):
         self._eigenstate = value
 
     @property
-    def aux_operator_eigenvalues(self) -> Optional[np.ndarray]:
+    def aux_operator_eigenvalues(self) -> Optional[ListOrDict[Union[float, complex]]]:
         """return aux operator eigen values"""
         return self._aux_operator_eigenvalues
 
     @aux_operator_eigenvalues.setter
-    def aux_operator_eigenvalues(self, value: np.ndarray) -> None:
+    def aux_operator_eigenvalues(self, value: ListOrDict[Union[float, complex]]) -> None:
         """set aux operator eigen values"""
         self._aux_operator_eigenvalues = value

@@ -414,7 +414,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         aux_operators: ListOrDict[OperatorBase],
         expectation: ExpectationBase,
         threshold: float = 1e-12,
-    ) -> np.ndarray:
+    ) -> ListOrDict[complex]:
         # Create new CircuitSampler to avoid breaking existing one's caches.
         sampler = CircuitSampler(self.quantum_instance)
 
@@ -440,16 +440,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             key_value_iterator = zip(aux_operators.keys(), aux_op_results)
 
         for key, value in key_value_iterator:
-            if aux_operators[key] is not None:
+            if aux_operators[key]:
                 aux_operator_eigenvalues[key] = value
-        # # Deal with the aux_op behavior where there can be Nones or Zero qubit Paulis in the list
-        # aux_operator_eigenvalues = {
-        #     key: None if aux_operators[key] is None else result
-        #     for key, result in aux_op_results.items()
-        # }
-        # As this has mixed types, since it can included None, it needs to explicitly pass object
-        # data type to avoid numpy 1.19 warning message about implicit conversion being deprecated
-        aux_operator_eigenvalues = np.array([aux_operator_eigenvalues], dtype=object)
+
         return aux_operator_eigenvalues
 
     def compute_minimum_eigenvalue(
@@ -471,12 +464,12 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         initial_point = _validate_initial_point(self.initial_point, self.ansatz)
 
         bounds = _validate_bounds(self.ansatz)
-        # We need to handle the array entries being Optional i.e. having value None
+        # We need to handle the array entries being zero or Optional i.e. having value None
         if aux_operators:
             zero_op = I.tensorpower(operator.num_qubits) * 0.0
 
-            # Convert the None operators when aux_operators is a list.
-            # Drop None operators when aux_operators is a dict.
+            # Convert the None and zero values when aux_operators is a list.
+            # Drop None and zero values when aux_operators is a dict.
             if isinstance(aux_operators, list):
                 key_op_iterator = enumerate(aux_operators)
                 converted = [zero_op] * len(aux_operators)
@@ -484,7 +477,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
                 key_op_iterator = aux_operators.items()
                 converted = {}
             for key, op in key_op_iterator:
-                if op is not None:
+                if op:
                     converted[key] = op
 
             aux_operators = converted
