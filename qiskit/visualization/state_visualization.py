@@ -29,18 +29,25 @@ from qiskit.visualization.array import array_to_latex
 from qiskit.utils.deprecation import deprecate_arguments
 from qiskit.visualization.matplotlib import HAS_MATPLOTLIB
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.utils import _bloch_multivector_data, _paulivec_data
+from qiskit.visualization.utils import (
+    _bloch_multivector_data,
+    _paulivec_data,
+    matplotlib_close_if_inline,
+)
 from qiskit.circuit.tools.pi_check import pi_check
 
 
 @deprecate_arguments({"rho": "state"})
-def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None, *, rho=None):
+def plot_state_hinton(
+    state, title="", figsize=None, ax_real=None, ax_imag=None, *, rho=None, filename=None
+):
     """Plot a hinton diagram for the density matrix of a quantum state.
 
     Args:
         state (Statevector or DensityMatrix or ndarray): An N-qubit quantum state.
         title (str): a string that represents the plot title
         figsize (tuple): Figure size in inches.
+        filename (str): file path to save image to.
         ax_real (matplotlib.axes.Axes): An optional Axes object to be used for
             the visualization output. If none is specified a new matplotlib
             Figure will be created and used. If this is specified without an
@@ -85,7 +92,6 @@ def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None,
             pip_install="pip install matplotlib",
         )
     from matplotlib import pyplot as plt
-    from matplotlib import get_backend
 
     # Figure data
     rho = DensityMatrix(state)
@@ -167,9 +173,11 @@ def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None,
     if title:
         fig.suptitle(title, fontsize=16)
     if ax_real is None and ax_imag is None:
-        if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
-            plt.close(fig)
+        matplotlib_close_if_inline(fig)
+    if filename is None:
         return fig
+    else:
+        return fig.savefig(filename)
 
 
 def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartesian"):
@@ -210,8 +218,6 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
             pip_install="pip install matplotlib",
         )
     from qiskit.visualization.bloch import Bloch
-    from matplotlib import get_backend
-    from matplotlib import pyplot as plt
 
     if figsize is None:
         figsize = (5, 5)
@@ -226,14 +232,15 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
     if ax is None:
         fig = B.fig
         fig.set_size_inches(figsize[0], figsize[1])
-        if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
-            plt.close(fig)
+        matplotlib_close_if_inline(fig)
         return fig
     return None
 
 
 @deprecate_arguments({"rho": "state"})
-def plot_bloch_multivector(state, title="", figsize=None, *, rho=None, reverse_bits=False):
+def plot_bloch_multivector(
+    state, title="", figsize=None, *, rho=None, reverse_bits=False, filename=None
+):
     """Plot the Bloch sphere.
 
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
@@ -273,7 +280,6 @@ def plot_bloch_multivector(state, title="", figsize=None, *, rho=None, reverse_b
             name="plot_bloch_multivector",
             pip_install="pip install matplotlib",
         )
-    from matplotlib import get_backend
     from matplotlib import pyplot as plt
 
     # Data
@@ -287,15 +293,26 @@ def plot_bloch_multivector(state, title="", figsize=None, *, rho=None, reverse_b
         pos = num - 1 - i if reverse_bits else i
         ax = fig.add_subplot(1, num, i + 1, projection="3d")
         plot_bloch_vector(bloch_data[i], "qubit " + str(pos), ax=ax, figsize=figsize)
-    fig.suptitle(title, fontsize=16)
-    if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
-        plt.close(fig)
-    return fig
+    fig.suptitle(title, fontsize=16, y=1.01)
+    matplotlib_close_if_inline(fig)
+    if filename is None:
+        return fig
+    else:
+        return fig.savefig(filename)
 
 
 @deprecate_arguments({"rho": "state"})
 def plot_state_city(
-    state, title="", figsize=None, color=None, alpha=1, ax_real=None, ax_imag=None, *, rho=None
+    state,
+    title="",
+    figsize=None,
+    color=None,
+    alpha=1,
+    ax_real=None,
+    ax_imag=None,
+    *,
+    rho=None,
+    filename=None,
 ):
     """Plot the cityscape of quantum state.
 
@@ -354,7 +371,6 @@ def plot_state_city(
             name="plot_state_city",
             pip_install="pip install matplotlib",
         )
-    from matplotlib import get_backend
     from matplotlib import pyplot as plt
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
@@ -517,13 +533,17 @@ def plot_state_city(
 
     fig.suptitle(title, fontsize=16)
     if ax_real is None and ax_imag is None:
-        if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
-            plt.close(fig)
+        matplotlib_close_if_inline(fig)
+    if filename is None:
         return fig
+    else:
+        return fig.savefig(filename)
 
 
 @deprecate_arguments({"rho": "state"})
-def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, rho=None):
+def plot_state_paulivec(
+    state, title="", figsize=None, color=None, ax=None, *, rho=None, filename=None
+):
     """Plot the paulivec representation of a quantum state.
 
     Plot a bargraph of the mixed state rho over the pauli matrices
@@ -569,7 +589,6 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, r
             name="plot_state_paulivec",
             pip_install="pip install matplotlib",
         )
-    from matplotlib import get_backend
     from matplotlib import pyplot as plt
 
     labels, values = _paulivec_data(state)
@@ -603,9 +622,11 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, r
         tick.label.set_fontsize(14)
     ax.set_title(title, fontsize=16)
     if return_fig:
-        if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
-            plt.close(fig)
+        matplotlib_close_if_inline(fig)
+    if filename is None:
         return fig
+    else:
+        return fig.savefig(filename)
 
 
 def n_choose_k(n, k):
@@ -675,6 +696,7 @@ def plot_state_qsphere(
     use_degrees=False,
     *,
     rho=None,
+    filename=None,
 ):
     """Plot the qsphere representation of a quantum state.
     Here, the size of the points is proportional to the probability
@@ -729,7 +751,6 @@ def plot_state_qsphere(
     import matplotlib.gridspec as gridspec
     from matplotlib import pyplot as plt
     from matplotlib.patches import Circle
-    from matplotlib import get_backend
     from qiskit.visualization.bloch import Arrow3D
 
     try:
@@ -936,9 +957,11 @@ def plot_state_qsphere(
     )
 
     if return_fig:
-        if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
-            plt.close(fig)
+        matplotlib_close_if_inline(fig)
+    if filename is None:
         return fig
+    else:
+        return fig.savefig(filename)
 
 
 def generate_facecolors(x, y, z, dx, dy, dz, color):

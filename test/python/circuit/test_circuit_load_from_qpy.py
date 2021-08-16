@@ -23,11 +23,11 @@ from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.library import XGate
+from qiskit.circuit.library import XGate, QFT, QAOAAnsatz
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
 from qiskit.extensions import UnitaryGate
-from qiskit.opflow import X, Y, Z
+from qiskit.opflow import I, X, Y, Z
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.qpy_serialization import dump, load
 from qiskit.quantum_info.random import random_unitary
@@ -474,3 +474,97 @@ class TestLoadFromQPY(QiskitTestCase):
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
         self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+
+    def test_initialize_qft(self):
+        """Test that initialize with a complex statevector and qft work."""
+        k = 5
+        state = (1 / np.sqrt(8)) * np.array(
+            [
+                np.exp(-1j * 2 * np.pi * k * (0) / 8),
+                np.exp(-1j * 2 * np.pi * k * (1) / 8),
+                np.exp(-1j * 2 * np.pi * k * (2) / 8),
+                np.exp(-1j * 2 * np.pi * k * 3 / 8),
+                np.exp(-1j * 2 * np.pi * k * 4 / 8),
+                np.exp(-1j * 2 * np.pi * k * 5 / 8),
+                np.exp(-1j * 2 * np.pi * k * 6 / 8),
+                np.exp(-1j * 2 * np.pi * k * 7 / 8),
+            ]
+        )
+
+        qubits = 3
+        qc = QuantumCircuit(qubits, qubits)
+        qc.initialize(state)
+        qc.append(QFT(qubits), range(qubits))
+        qc.measure(range(qubits), range(qubits))
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+
+    def test_single_bit_teleportation(self):
+        """Test a teleportation circuit with single bit conditions."""
+        qr = QuantumRegister(1)
+        cr = ClassicalRegister(2, name="name")
+        qc = QuantumCircuit(qr, cr, name="Reset Test")
+        qc.x(0)
+        qc.measure(0, cr[0])
+        qc.x(0).c_if(cr[0], 1)
+        qc.measure(0, cr[1])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+
+    def test_qaoa(self):
+        """Test loading a QAOA circuit works."""
+        cost_operator = Z ^ I ^ I ^ Z
+        qaoa = QAOAAnsatz(cost_operator)
+        qpy_file = io.BytesIO()
+        dump(qaoa, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qaoa, new_circ)
+        self.assertEqual([x[0].label for x in qaoa.data], [x[0].label for x in new_circ.data])
+
+    def test_parameter_expression_global_phase(self):
+        """Test a circuit with a parameter expression global_phase."""
+        theta = Parameter("theta")
+        phi = Parameter("phi")
+        sum_param = theta + phi
+        qc = QuantumCircuit(5, 1, global_phase=sum_param)
+        qc.h(0)
+        for i in range(4):
+            qc.cx(i, i + 1)
+
+        qc.barrier()
+        qc.rz(sum_param, range(3))
+        qc.rz(phi, 3)
+        qc.rz(theta, 4)
+        qc.barrier()
+        for i in reversed(range(4)):
+            qc.cx(i, i + 1)
+        qc.h(0)
+        qc.measure(0, 0)
+
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
+    def test_parameter_global_phase(self):
+        """Test a circuit with a parameter expression global_phase."""
+        theta = Parameter("theta")
+        qc = QuantumCircuit(2, global_phase=theta)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
