@@ -1162,6 +1162,14 @@ class TestParameterGradients(QiskitOpflowTestCase):
         grad = expr.gradient(x)
         self.assertIsInstance(grad, float)
 
+    def test_converted_to_complex_if_bound(self):
+        """Test the gradient is a complex when no free symbols are left."""
+        x = Parameter("x")
+        x2 = 1j * x
+        expr = 2 * x2 + 1
+        grad = expr.gradient(x)
+        self.assertIsInstance(grad, complex)
+
 
 @ddt
 class TestQFI(QiskitOpflowTestCase):
