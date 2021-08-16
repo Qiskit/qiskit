@@ -90,9 +90,9 @@ class CircuitGradient(ConverterBase):
             try:
                 unroller = Unroller(list(supported_gates))
                 circuit = unroller(circuit)
-            except Exception as e:
+            except Exception as exc:
                 raise QiskitError(
                     f"Could not unroll the circuit provided {circuit} into supported gates "
                     f"{supported_gates}."
-                ) from e
+                ) from exc
         return circuit
