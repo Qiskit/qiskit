@@ -13,15 +13,16 @@
 """
 Testing inverse_cancellation
 """
+from numpy import pi
 
 from qiskit import QuantumCircuit
-from qiskit.exceptions import TranspilerError
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import CXCancellation, Cancellation
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
-from numpy import pi
+from qiskit.test import QiskitTestCase
 from qiskit.circuit.library import RXGate, HGate, CXGate, PhaseGate 
+
 
 class TestCancellation(QiskitTestCase): 
 
@@ -110,8 +111,14 @@ class TestCancellation(QiskitTestCase):
         gates_after = new_circ.count_ops()
         self.assertNotIn("p", gates_after)
 
-    # TODO: add tests with operations across multiple qubits
-    # h(0)
-    # h(1)
-    # h(0)
-    # h(1)
+    def test_inverse_cancellation_h4(self):
+        qc = QuantumCircuit(2,2)
+        qc.h(0)
+        qc.h(1)
+        qc.h(0)
+        qc.h(1)
+        pass_ = Cancellation([HGate()])
+        pm = PassManager(pass_)
+        new_circ = pm.run(qc)
+        gates_after = new_circ.count_ops()
+        self.assertNotIn("h", gates_after)

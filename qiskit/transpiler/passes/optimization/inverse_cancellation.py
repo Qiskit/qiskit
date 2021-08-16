@@ -17,8 +17,8 @@ from typing import List, Tuple, Union
 
 from qiskit.circuit import Gate
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.exceptions import TranspilerError
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.exceptions import TranspilerError
 
 
 class Cancellation(TransformationPass):
@@ -28,11 +28,23 @@ class Cancellation(TransformationPass):
         """Initialize gates_to_cancel.
 
         Args:
-            gates_to_cancel: TODO
+            gates_to_cancel: list of gates to cancel 
         """
-        # TODO: iterate through each item in the input
-        #       if it's a single item: check if self inverse
-        #       else: check if they multiply to identity
+        for gates in gates_to_cancel:
+            if isinstance(gates, Gate):
+                
+                if gates != gates.inverse():
+                    raise TranspilerError('Gates are not self inverse')
+            else: 
+                if isinstance(gates, tuple):
+                    if len(gates) != 2:
+                        raise TranspilerError('Too many or too few inputs')
+                    else:
+                        if gates[0] != gates[1].inverse():
+                            raise TranspilerError('Gates are not inverse')
+                else:
+                    raise TranspilerError('Argument does not take input type')
+
         self.gates_to_cancel = gates_to_cancel
         super().__init__()
 
@@ -63,7 +75,7 @@ class Cancellation(TransformationPass):
 
         Args:
             dag: the directed acyclic graph to run on.
-            self_inverse_gates: TODO
+            self_inverse_gates: list of gates who cancel themeselves in pairs
 
         Returns:
             DAGCircuit: Transformed DAG.
@@ -82,7 +94,7 @@ class Cancellation(TransformationPass):
         
         Args:
             dag: the directed acyclic graph to run on.
-            inverse_gate_pairs: TODO
+            inverse_gate_pairs: list of gates with inverse angles that cancel each other.
 
         Returns:
             DAGCircuit: Transformed DAG.
