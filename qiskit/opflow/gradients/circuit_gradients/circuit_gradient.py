@@ -15,7 +15,7 @@
 from abc import abstractmethod
 from typing import List, Union, Optional, Tuple, Set
 
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, QiskitError
 from qiskit.circuit import ParameterExpression, ParameterVector
 from qiskit.transpiler.passes import Unroller
 from ...converters.converter_base import ConverterBase
@@ -88,7 +88,7 @@ class CircuitGradient(ConverterBase):
                 unroller = Unroller(list(supported_gates))
                 circuit = unroller(circuit)
             except Exception:
-                raise Exception(
+                raise QiskitError(
                     f"Could not unroll the circuit provided {circuit} into supported gates "
                     f"{supported_gates}."
                 )

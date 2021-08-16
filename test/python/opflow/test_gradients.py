@@ -192,7 +192,6 @@ class TestGradients(QiskitOpflowTestCase):
 
         state_grad = Gradient(method).convert(operator, parameters)
         for i, value_dict in enumerate(values_dict):
-            print(state_grad.assign_parameters(value_dict).eval())
             np.testing.assert_array_almost_equal(
                 state_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
             )
