@@ -317,7 +317,8 @@ class TestTemplateMatching(QiskitTestCase):
         np.testing.assert_almost_equal(Operator(circuit_in).data, Operator(circuit_out).data)
 
     @unittest.skip(
-        "Skipping because the inverse gate is defined as a UnitaryGate that is currently cast to a complex numpy array"
+        "Skipping because the inverse gate is defined as a UnitaryGate that is \
+        currently cast to a complex numpy array"
     )
     def test_unbound_parameters(self):
         """
