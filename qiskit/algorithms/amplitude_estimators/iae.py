@@ -15,6 +15,7 @@
 from typing import Optional, Union, List, Tuple, Dict, cast
 import numpy as np
 from scipy.stats import beta
+from collections.abc import Mapping
 
 from qiskit import ClassicalRegister, QuantumCircuit
 from qiskit.providers import BaseBackend, Backend
@@ -257,7 +258,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
             If a dict is given, return (#one-counts, #one-counts/#all-counts),
             otherwise Pr(measure '1' in the last qubit).
         """
-        if isinstance(counts_or_statevector, dict):
+        if isinstance(counts_or_statevector, (Mapping, dict)):
             one_counts = 0
             for state, counts in counts_or_statevector.items():
                 if problem.is_good_state(state):

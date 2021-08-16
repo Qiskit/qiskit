@@ -14,6 +14,7 @@
 
 from typing import Optional, Union, List, Tuple, Dict
 from collections import OrderedDict
+from collections.abc import Mapping
 import numpy as np
 from scipy.stats import chi2, norm
 from scipy.optimize import bisect
@@ -169,7 +170,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
                 y measurements with respective probabilities, in this order.
         """
         # compute grid sample and measurement dicts
-        if isinstance(circuit_results, dict):
+        if isinstance(circuit_results, (dict, Mapping)):
             samples, measurements = self._evaluate_count_results(circuit_results)
         else:
             samples, measurements = self._evaluate_statevector_results(circuit_results)
