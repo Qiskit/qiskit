@@ -13,13 +13,13 @@
 """A container class for counts from a circuit execution."""
 
 import re
-from collections.abc import Mapping
+from collections import UserDict
 
 from qiskit.result import postprocess
 from qiskit import exceptions
 
 
-class Counts(Mapping):
+class Counts(UserDict):
     """A class to store a counts result from a circuit execution."""
 
     bitstring_regex = re.compile(r"^[01\s]+$")
@@ -105,7 +105,7 @@ class Counts(Mapping):
                 header={"creg_sizes": creg_sizes, "memory_slots": memory_slots},
             )
 
-        self.bin_data = bin_data
+        self.bin_data = self.data = bin_data
 
         if not memory_slots:
             if creg_sizes:
@@ -117,18 +117,15 @@ class Counts(Mapping):
         self.memory_slots = memory_slots
         self.time_taken = time_taken
 
-    def __getitem__(self, key):
-        try:
-            return self.bin_data[key]
-        except KeyError as keyerror:
-            if isinstance(key, int):
-                key = hex(key)
-            key = key.replace(" ", "")
-            if not self.bitstring_regex.search(key):
-                key = postprocess.format_counts_memory(key, {"memory_slots": self.memory_slots})
-            if self.memory_slots == len(key):
-                return 0
-            raise KeyError from keyerror
+    def __missing__(self, key):
+        if isinstance(key, int):
+            key = hex(key)
+        key = key.replace(" ", "")
+        if not self.bitstring_regex.search(key):
+            key = postprocess.format_counts_memory(key, {"memory_slots": self.memory_slots})
+        if self.memory_slots == len(key):
+            return 0
+        raise KeyError
 
     def most_frequent(self):
         """Return the most frequent count
