@@ -503,7 +503,11 @@ class QuantumCircuit:
         Returns:
             QuantumCircuit: A circuit implementing this circuit raised to the power of ``power``.
         """
+<<<<<<< HEAD
         if power >= 0 and isinstance(power, numbers.Integral) and not matrix_power:
+=======
+        if power >= 0 and isinstance(power, (int, np.integer)) and not matrix_power:
+>>>>>>> 1bdc6f0e6 (allow numpy.integer to use `repeat` for `QuantumCircuit.power` (#6910))
             return self.repeat(power)
 
         # attempt conversion to gate
