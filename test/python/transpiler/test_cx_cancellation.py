@@ -99,3 +99,19 @@ class TestCXCancellation(QiskitTestCase):
 
         self.assertIn("cx", resources_after)
         self.assertEqual(resources_after["cx"], 2)
+
+    def test_inverted_cx(self):
+        """Test that CX order dependence is respected."""
+        qr = QuantumRegister(4)
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[1], qr[0])
+        circuit.cx(qr[0], qr[1])
+
+        pass_manager = PassManager()
+        pass_manager.append(CXCancellation())
+        out_circuit = pass_manager.run(circuit)
+        resources_after = out_circuit.count_ops()
+
+        self.assertIn("cx", resources_after)
+        self.assertEqual(resources_after["cx"], 3)
