@@ -13,8 +13,8 @@
 """Result of running PhaseEstimation"""
 
 from typing import Dict, Union
-import numpy
 from collections.abc import Mapping
+import numpy
 
 from qiskit.utils.deprecation import deprecate_function
 from qiskit.result import Result
