@@ -81,15 +81,18 @@ class CircuitGradient(ConverterBase):
         Returns:
             Quantum circuit which is unrolled into supported operations.
 
+        Raises:
+            QiskitError: when circuit unrolling fails.
+
         """
         unique_ops = set(circuit.count_ops().keys())
         if not unique_ops.issubset(supported_gates):
             try:
                 unroller = Unroller(list(supported_gates))
                 circuit = unroller(circuit)
-            except Exception:
+            except Exception as e:
                 raise QiskitError(
                     f"Could not unroll the circuit provided {circuit} into supported gates "
                     f"{supported_gates}."
-                )
+                ) from e
         return circuit
