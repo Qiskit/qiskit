@@ -12,8 +12,9 @@
 """
 Look-up table for variable parameters in QuantumCircuit.
 """
-import warnings
 import functools
+import numbers
+import warnings
 from collections.abc import MutableMapping, MappingView
 
 from .instruction import Instruction
@@ -43,11 +44,21 @@ class ParameterTable(MutableMapping):
             parameter (Parameter): the parameter to set
             instr_params (list): List of (Instruction, int) tuples. Int is the
               parameter index at which the parameter appears in the instruction.
+
+        Raises:
+            TypeError: if the instructions and indices in ``instr_params`` are of invalid types.
         """
 
-        for instruction, param_index in instr_params:
-            assert isinstance(instruction, Instruction)
-            assert isinstance(param_index, int)
+        for i, (instruction, param_index) in enumerate(instr_params):
+            if not isinstance(instruction, Instruction):
+                raise TypeError(
+                    f"instructions must be of type Instruction, but position {i} had"
+                    f" '{instruction}'."
+                )
+            if not isinstance(param_index, numbers.Integral):
+                raise TypeError(
+                    f"parameter indices must be integers, but position {i} had '{param_index}'."
+                )
         self._table[parameter] = instr_params
         self._keys.add(parameter)
         self._names.add(parameter.name)

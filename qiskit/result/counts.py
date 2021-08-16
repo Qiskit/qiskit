@@ -12,6 +12,7 @@
 
 """A container class for counts from a circuit execution."""
 
+import numbers
 import re
 
 from qiskit.result import postprocess
@@ -68,7 +69,7 @@ class Counts(dict):
             bin_data = {}
         else:
             first_key = next(iter(data.keys()))
-            if isinstance(first_key, int):
+            if isinstance(first_key, numbers.Integral):
                 self.int_raw = data
                 self.hex_raw = {hex(key): value for key, value in self.int_raw.items()}
             elif isinstance(first_key, str):

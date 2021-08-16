@@ -13,6 +13,7 @@
 """Grover's search algorithm."""
 
 import itertools
+import numbers
 import operator
 from typing import Iterator, List, Optional, Union
 
@@ -142,7 +143,7 @@ class Grover(AmplitudeAmplifier):
         if growth_rate is not None:
             # yield iterations ** 1, iterations ** 2, etc. and casts to int
             self._iterations = map(lambda x: int(growth_rate ** x), itertools.count(1))
-        elif isinstance(iterations, int):
+        elif isinstance(iterations, numbers.Integral):
             self._iterations = [iterations]
         else:
             self._iterations = iterations

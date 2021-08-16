@@ -16,6 +16,7 @@
 """Module providing definitions of Pulse Qobj classes."""
 
 import copy
+import numbers
 import pprint
 from typing import Union, List
 
@@ -260,8 +261,8 @@ def _to_complex(value: Union[List[float], complex]) -> complex:
     """
     if isinstance(value, list) and len(value) == 2:
         return complex(value[0], value[1])
-    elif isinstance(value, complex):
-        return value
+    elif isinstance(value, numbers.Complex):
+        return complex(value)
 
     raise TypeError(f"{value} is not in a valid complex number format.")
 

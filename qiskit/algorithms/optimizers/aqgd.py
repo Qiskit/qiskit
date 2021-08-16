@@ -13,6 +13,7 @@
 """Analytical Quantum Gradient Descent (AQGD) optimizer."""
 
 import logging
+import numbers
 from typing import Callable, Tuple, List, Dict, Union, Any
 
 import numpy as np
@@ -75,11 +76,11 @@ class AQGD(Optimizer):
             AlgorithmError: If the length of ``maxiter``, `momentum``, and ``eta`` is not the same.
         """
         super().__init__()
-        if isinstance(maxiter, int):
+        if isinstance(maxiter, numbers.Integral):
             maxiter = [maxiter]
-        if isinstance(eta, (int, float)):
+        if isinstance(eta, numbers.Real):
             eta = [eta]
-        if isinstance(momentum, (int, float)):
+        if isinstance(momentum, numbers.Real):
             momentum = [momentum]
         if len(maxiter) != len(eta) or len(maxiter) != len(momentum):
             raise AlgorithmError(

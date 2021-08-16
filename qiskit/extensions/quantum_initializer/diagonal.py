@@ -22,6 +22,7 @@ Decomposes a diagonal matrix into elementary gates using the method described in
 """
 import cmath
 import math
+import numbers
 
 import numpy as np
 
@@ -71,7 +72,7 @@ class DiagonalGate(Gate):
     def validate_parameter(self, parameter):
         """Diagonal Gate parameter should accept complex
         (in addition to the Gate parameter types) and always return build-in complex."""
-        if isinstance(parameter, complex):
+        if isinstance(parameter, numbers.Complex):
             return complex(parameter)
         else:
             return complex(super().validate_parameter(parameter))

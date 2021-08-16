@@ -14,6 +14,7 @@
 
 import copy
 import datetime
+import numbers
 from typing import Any, Iterable, Tuple, Union
 import dateutil.parser
 
@@ -296,7 +297,7 @@ class BackendProperties:
         try:
             result = self._gates[gate]
             if qubits is not None:
-                if isinstance(qubits, int):
+                if isinstance(qubits, numbers.Integral):
                     qubits = tuple([qubits])
                 result = result[tuple(qubits)]
                 if name:

@@ -15,6 +15,7 @@ Initialize qubit registers to desired arbitrary state.
 """
 
 import math
+import numbers
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -64,7 +65,7 @@ class Initialize(Instruction):
         if isinstance(params, Statevector):
             params = params.data
 
-        if not isinstance(params, int) and num_qubits is not None:
+        if not isinstance(params, numbers.Integral) and num_qubits is not None:
             raise QiskitError(
                 "The num_qubits parameter to Initialize should only be"
                 " used when params is an integer"
@@ -75,11 +76,11 @@ class Initialize(Instruction):
         if isinstance(params, str):
             self._from_label = True
             num_qubits = len(params)
-        elif isinstance(params, int):
+        elif isinstance(params, numbers.Integral):
             self._from_int = True
             if num_qubits is None:
                 num_qubits = int(math.log2(params)) + 1
-            params = [params]
+            params = [int(params)]
         else:
             num_qubits = math.log2(len(params))
 
@@ -356,10 +357,8 @@ class Initialize(Instruction):
             )
 
         # Initialize instruction parameter can be int, float, and complex.
-        if isinstance(parameter, (int, float, complex)):
+        if isinstance(parameter, numbers.Complex):
             return complex(parameter)
-        elif isinstance(parameter, np.number):
-            return complex(parameter.item())
         else:
             raise CircuitError(
                 "invalid param type {} for instruction  " "{}".format(type(parameter), self.name)
@@ -451,11 +450,11 @@ def initialize(self, params, qubits=None):
     if qubits is None:
         qubits = self.qubits
     else:
-        if isinstance(qubits, int):
+        if isinstance(qubits, numbers.Integral):
             qubits = [qubits]
         qubits = self._bit_argument_conversion(qubits, self.qubits)
 
-    num_qubits = None if not isinstance(params, int) else len(qubits)
+    num_qubits = None if not isinstance(params, numbers.Integral) else len(qubits)
     return self.append(Initialize(params, num_qubits), qubits)
 
 

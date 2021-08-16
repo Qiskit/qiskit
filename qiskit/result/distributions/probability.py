@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 """Class for probability distributions."""
 
+import numbers
 import re
 
 # NOTE: A dict subclass should not overload any dunder methods like __getitem__
@@ -46,7 +47,7 @@ class ProbDistribution(dict):
         self.shots = shots
         if data:
             first_key = next(iter(data.keys()))
-            if isinstance(first_key, int):
+            if isinstance(first_key, numbers.Integral):
                 pass
             elif isinstance(first_key, str):
                 if first_key.startswith("0x"):

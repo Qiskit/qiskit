@@ -18,6 +18,7 @@ import copy
 import itertools
 import functools
 import multiprocessing as mp
+import numbers
 import string
 from collections import OrderedDict, defaultdict
 from typing import (
@@ -559,7 +560,7 @@ class QuantumCircuit:
         Returns:
             QuantumCircuit: A circuit implementing this circuit raised to the power of ``power``.
         """
-        if power >= 0 and isinstance(power, (int, np.integer)) and not matrix_power:
+        if power >= 0 and isinstance(power, numbers.Integral) and not matrix_power:
             return self.repeat(power)
 
         # attempt conversion to gate
@@ -828,7 +829,7 @@ class QuantumCircuit:
             )
         else:
             qubit_map = {
-                other.qubits[i]: (self.qubits[q] if isinstance(q, int) else q)
+                other.qubits[i]: (q if isinstance(q, Qubit) else self.qubits[q])
                 for i, q in enumerate(qubits)
             }
         if clbits is None:
@@ -840,7 +841,7 @@ class QuantumCircuit:
             )
         else:
             clbit_map = {
-                other.clbits[i]: (self.clbits[c] if isinstance(c, int) else c)
+                other.clbits[i]: (c if isinstance(c, Clbit) else self.clbits[c])
                 for i, c in enumerate(clbits)
             }
 
@@ -1246,12 +1247,12 @@ class QuantumCircuit:
         if not regs:
             return
 
-        if any(isinstance(reg, int) for reg in regs):
+        if any(isinstance(reg, numbers.Integral) for reg in regs):
             # QuantumCircuit defined without registers
-            if len(regs) == 1 and isinstance(regs[0], int):
+            if len(regs) == 1 and isinstance(regs[0], numbers.Integral):
                 # QuantumCircuit with anonymous quantum wires e.g. QuantumCircuit(2)
                 regs = (QuantumRegister(regs[0], "q"),)
-            elif len(regs) == 2 and all(isinstance(reg, int) for reg in regs):
+            elif len(regs) == 2 and all(isinstance(reg, numbers.Integral) for reg in regs):
                 # QuantumCircuit with anonymous wires e.g. QuantumCircuit(2, 3)
                 regs = (QuantumRegister(regs[0], "q"), ClassicalRegister(regs[1], "c"))
             else:
@@ -3928,7 +3929,7 @@ class QuantumCircuit:
                     )
             return 0
 
-        qubits = [self.qubits[q] if isinstance(q, int) else q for q in qubits]
+        qubits = [q if isinstance(q, Qubit) else self.qubits[q] for q in qubits]
 
         starts = {q: 0 for q in qubits}
         dones = {q: False for q in qubits}
@@ -3970,7 +3971,7 @@ class QuantumCircuit:
                     )
             return 0
 
-        qubits = [self.qubits[q] if isinstance(q, int) else q for q in qubits]
+        qubits = [q if isinstance(q, Qubit) else self.qubits[q] for q in qubits]
 
         stops = {q: self.duration for q in qubits}
         dones = {q: False for q in qubits}

@@ -21,9 +21,8 @@ channel types can be created. Then, they must be supported in the PulseQobj sche
 assembler.
 """
 from abc import ABCMeta
-from typing import Any, Set, Union
-
-import numpy as np
+import numbers
+from typing import Any, Set, Union, Optional
 
 from qiskit.circuit import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
@@ -67,8 +66,7 @@ class Channel(metaclass=ABCMeta):
         Args:
             index: Index of channel.
         """
-        self._validate_index(index)
-        self._index = index
+        self._index = self._validate_index(index)
         self._hash = hash((self.__class__.__name__, self._index))
 
         self._parameters = set()
@@ -83,23 +81,28 @@ class Channel(metaclass=ABCMeta):
         """
         return self._index
 
-    def _validate_index(self, index: Any) -> None:
+    def _validate_index(self, index: Any) -> Union[ParameterExpression, int]:
         """Raise a PulseError if the channel index is invalid, namely, if it's not a positive
         integer.
+
+        Returns:
+            The input ``index`` in canonical form; either a Python ``int`` or a
+            :obj:`~ParameterExpression` with unbound parameters.
 
         Raises:
             PulseError: If ``index`` is not a nonnegative integer.
         """
         if isinstance(index, ParameterExpression) and index.parameters:
             # Parameters are unbound
-            return
+            return index
         elif isinstance(index, ParameterExpression):
             index = float(index)
             if index.is_integer():
                 index = int(index)
 
-        if not isinstance(index, (int, np.integer)) and index < 0:
+        if not isinstance(index, numbers.Integral) and index < 0:
             raise PulseError("Channel index must be a nonnegative integer")
+        return int(index)
 
     @property
     def parameters(self) -> Set:
@@ -133,8 +136,7 @@ class Channel(metaclass=ABCMeta):
 
         new_index = self.index.assign(parameter, value)
         if not new_index.parameters:
-            self._validate_index(new_index)
-            new_index = int(new_index)
+            new_index = self._validate_index(new_index)
 
         return type(self)(new_index)
 

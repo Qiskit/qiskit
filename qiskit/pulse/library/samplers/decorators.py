@@ -127,6 +127,7 @@ still seeing the signature for the continuous pulse function and all of its argu
 """
 
 import functools
+import numbers
 from typing import Callable
 import textwrap
 import pydoc
@@ -151,7 +152,7 @@ def functional_pulse(func: Callable) -> Callable:
     @functools.wraps(func)
     def to_pulse(duration, *args, name=None, **kwargs):
         """Return Waveform."""
-        if isinstance(duration, (int, np.integer)) and duration > 0:
+        if isinstance(duration, numbers.Integral) and duration > 0:
             samples = func(duration, *args, **kwargs)
             samples = np.asarray(samples, dtype=np.complex128)
             return Waveform(samples=samples, name=name)

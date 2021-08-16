@@ -12,6 +12,7 @@
 
 """ PrimitiveOp Class """
 
+import numbers
 from typing import Dict, List, Optional, Set, Union, cast
 
 import numpy as np
@@ -147,7 +148,7 @@ class PrimitiveOp(OperatorBase):
         raise NotImplementedError
 
     def mul(self, scalar: Union[complex, ParameterExpression]) -> OperatorBase:
-        if not isinstance(scalar, (int, float, complex, ParameterExpression)):
+        if not isinstance(scalar, (numbers.Number, ParameterExpression)):
             raise ValueError(
                 "Operators can only be scalar multiplied by float or complex, not "
                 "{} of type {}.".format(scalar, type(scalar))
@@ -162,7 +163,7 @@ class PrimitiveOp(OperatorBase):
         # Hack to make Z^(I^0) work as intended.
         if other == 0:
             return 1
-        if not isinstance(other, int) or other < 0:
+        if not isinstance(other, numbers.Integral) or other < 0:
             raise TypeError("Tensorpower can only take positive int arguments")
         temp = PrimitiveOp(self.primitive, coeff=self.coeff)  # type: OperatorBase
         for _ in range(other - 1):

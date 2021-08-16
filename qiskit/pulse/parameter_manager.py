@@ -50,6 +50,7 @@ as the data amount scales.
 Note that we don't need to write any parameter management logic for each object,
 and thus this parameter framework gives greater scalability to the pulse module.
 """
+import numbers
 from copy import deepcopy, copy
 from typing import List, Dict, Set, Any, Union
 
@@ -199,7 +200,7 @@ class ParameterSetter(NodeVisitor):
 
             # validate
             if not isinstance(new_index, ParameterExpression):
-                if not isinstance(new_index, int) or new_index < 0:
+                if not isinstance(new_index, numbers.Integral) or new_index < 0:
                     raise PulseError("Channel index must be a nonnegative integer")
 
             # return new instance to prevent accidentally override timeslots without evaluation

@@ -12,6 +12,7 @@
 
 """The n-local circuit class."""
 
+import numbers
 from typing import Union, Optional, List, Any, Tuple, Sequence, Set, Callable
 from itertools import combinations
 import warnings
@@ -596,7 +597,7 @@ class NLocal(BlueprintCircuit):
             return get_entangler_map(n, self.num_qubits, entanglement[i % num_i], offset=i)
 
         # entanglement is List[int]
-        if all(isinstance(en, (int, numpy.integer)) for en in entanglement):
+        if all(isinstance(en, numbers.Integral) for en in entanglement):
             return [[int(en) for en in entanglement]]
 
         # check if entanglement is List[List]
@@ -611,7 +612,7 @@ class NLocal(BlueprintCircuit):
             )
 
         # entanglement is List[List[int]]
-        if all(isinstance(e2, (int, numpy.int32, numpy.int64)) for en in entanglement for e2 in en):
+        if all(isinstance(e2, numbers.Integral) for en in entanglement for e2 in en):
             for ind, en in enumerate(entanglement):
                 entanglement[ind] = tuple(map(int, en))
             return entanglement
@@ -621,12 +622,7 @@ class NLocal(BlueprintCircuit):
             raise ValueError(f"Invalid value of entanglement: {entanglement}")
 
         # entanglement is List[List[List[int]]]
-        if all(
-            isinstance(e3, (int, numpy.int32, numpy.int64))
-            for en in entanglement
-            for e2 in en
-            for e3 in e2
-        ):
+        if all(isinstance(e3, numbers.Integral) for en in entanglement for e2 in en for e3 in e2):
             for en in entanglement:
                 for ind, e2 in enumerate(en):
                     en[ind] = tuple(map(int, e2))
@@ -638,7 +634,7 @@ class NLocal(BlueprintCircuit):
 
         # entanglement is List[List[List[List[int]]]]
         if all(
-            isinstance(e4, (int, numpy.int32, numpy.int64))
+            isinstance(e4, numbers.Integral)
             for en in entanglement
             for e2 in en
             for e3 in e2

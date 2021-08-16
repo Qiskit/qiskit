@@ -15,6 +15,7 @@ Arbitrary unitary circuit instruction.
 """
 
 from collections import OrderedDict
+import numbers
 import numpy
 
 from qiskit.circuit import Gate, ControlledGate
@@ -220,7 +221,7 @@ def unitary(self, obj, qubits, label=None):
         qubits = qubits[:]
     # for single qubit unitary gate, allow an 'int' or a 'list of ints' as qubits.
     if gate.num_qubits == 1:
-        if isinstance(qubits, (int, Qubit)) or len(qubits) > 1:
+        if isinstance(qubits, (numbers.Integral, Qubit)) or len(qubits) > 1:
             qubits = [qubits]
     return self.append(gate, qubits, [])
 

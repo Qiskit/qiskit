@@ -12,6 +12,7 @@
 
 """ StateFn Class """
 
+import numbers
 from typing import Callable, Dict, List, Optional, Set, Tuple, Union
 
 import numpy as np
@@ -199,7 +200,7 @@ class StateFn(OperatorBase):
         # Will return NotImplementedError if not supported
 
     def mul(self, scalar: Union[complex, ParameterExpression]) -> OperatorBase:
-        if not isinstance(scalar, (int, float, complex, ParameterExpression)):
+        if not isinstance(scalar, (numbers.Number, ParameterExpression)):
             raise ValueError(
                 "Operators can only be scalar multiplied by float or complex, not "
                 "{} of type {}.".format(scalar, type(scalar))
@@ -240,7 +241,7 @@ class StateFn(OperatorBase):
         raise NotImplementedError
 
     def tensorpower(self, other: int) -> Union[OperatorBase, int]:
-        if not isinstance(other, int) or other <= 0:
+        if not isinstance(other, numbers.Integral) or other <= 0:
             raise TypeError("Tensorpower can only take positive int arguments")
         temp = StateFn(
             self.primitive, coeff=self.coeff, is_measurement=self.is_measurement

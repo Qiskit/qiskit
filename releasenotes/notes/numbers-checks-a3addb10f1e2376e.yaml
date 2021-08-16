@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Many functions across qiskit-terra will now be more permissive in the types
+    of numeric input they accept; instead of rejecting integers of type
+    ``numpy.int64`` (such as those taken from Numpy arrays), they should now
+    work as expected.

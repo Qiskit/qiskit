@@ -13,6 +13,7 @@
 """Assemble function for converting a list of circuits into a qobj"""
 import copy
 import logging
+import numbers
 import uuid
 import warnings
 from time import time
@@ -298,13 +299,16 @@ def _parse_common_args(
             shots = min(1024, max_shots)
         else:
             shots = 1024
-    elif not isinstance(shots, int):
+    elif not isinstance(shots, numbers.Integral):
         raise QiskitError("Argument 'shots' should be of type 'int'")
     elif max_shots and max_shots < shots:
         raise QiskitError(
             "Number of shots specified: %s exceeds max_shots property of the "
             "backend: %s." % (shots, max_shots)
         )
+    else:
+        # Unify all `numbers.Integral` types to `int`.
+        shots = int(shots)
 
     dynamic_reprate_enabled = getattr(backend_config, "dynamic_reprate_enabled", False)
     if dynamic_reprate_enabled:

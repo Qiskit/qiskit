@@ -12,6 +12,7 @@
 
 """ Suzuki Class """
 
+import numbers
 from typing import List, Union, cast
 
 from numpy import isreal
@@ -58,7 +59,7 @@ class Suzuki(TrotterizationBase):
         if not isinstance(operator, (SummedOp, PauliSumOp)):
             raise TypeError("Trotterization converters can only convert SummedOp or PauliSumOp.")
 
-        if isinstance(operator.coeff, (float, ParameterExpression)):
+        if isinstance(operator.coeff, (numbers.Real, ParameterExpression)):
             coeff = operator.coeff
         else:
             if isreal(operator.coeff):

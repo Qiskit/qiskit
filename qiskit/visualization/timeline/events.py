@@ -69,7 +69,7 @@ class BitEvents:
             VisualizationError: When the circuit is not transpiled with duration.
         """
         t0 = 0
-        tf = scheduled_circuit.qubit_stop_time(bit)
+        tf = scheduled_circuit.qubit_stop_time(bit) if isinstance(bit, circuit.Qubit) else 0
 
         instructions = []
         for inst, qargs, cargs in scheduled_circuit.data:

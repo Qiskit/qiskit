@@ -13,7 +13,7 @@
 """ ListOp Operator Class """
 
 from functools import reduce
-from numbers import Number
+import numbers
 from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Sequence, Union, cast
 
 import numpy as np
@@ -250,7 +250,7 @@ class ListOp(OperatorBase):
     __array_priority__ = 10000
 
     def mul(self, scalar: Union[complex, ParameterExpression]) -> "ListOp":
-        if not isinstance(scalar, (int, float, complex, ParameterExpression)):
+        if not isinstance(scalar, (numbers.Number, ParameterExpression)):
             raise ValueError(
                 "Operators can only be scalar multiplied by float or complex, not "
                 "{} of type {}.".format(scalar, type(scalar))
@@ -270,7 +270,7 @@ class ListOp(OperatorBase):
         # Hack to make op1^(op2^0) work as intended.
         if other == 0:
             return 1
-        if not isinstance(other, int) or other <= 0:
+        if not isinstance(other, numbers.Integral) or other <= 0:
             raise TypeError("Tensorpower can only take positive int arguments")
 
         # Avoid circular dependency
@@ -344,7 +344,7 @@ class ListOp(OperatorBase):
         return ComposedOp([new_self, other])
 
     def power(self, exponent: int) -> OperatorBase:
-        if not isinstance(exponent, int) or exponent <= 0:
+        if not isinstance(exponent, numbers.Integral) or exponent <= 0:
             raise TypeError("power can only take positive int arguments")
 
         # Avoid circular dependency
@@ -367,7 +367,7 @@ class ListOp(OperatorBase):
         )
         # Note: As ComposedOp has a combo function of inner product we can end up here not with
         # a matrix (array) but a scalar. In which case we make a single element array of it.
-        if isinstance(mat, Number):
+        if isinstance(mat, numbers.Number):
             mat = [mat]
         return np.asarray(mat, dtype=complex)
 
@@ -616,7 +616,7 @@ class ListOp(OperatorBase):
             The ``OperatorBase`` at index ``offset`` of ``oplist``,
             or another ListOp with the same properties as this one if offset is a slice.
         """
-        if isinstance(offset, int):
+        if isinstance(offset, numbers.Integral):
             return self.oplist[offset]
 
         if self.__class__ == ListOp:

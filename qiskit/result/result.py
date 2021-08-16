@@ -13,6 +13,7 @@
 """Model for schema-conformant Results."""
 
 import copy
+import numbers
 import warnings
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -375,7 +376,7 @@ class Result:
         if isinstance(key, (QuantumCircuit, Schedule)):
             key = key.name
         # Key is an integer: return result by index.
-        if isinstance(key, int):
+        if isinstance(key, numbers.Integral):
             try:
                 exp = self.results[key]
             except IndexError as ex:

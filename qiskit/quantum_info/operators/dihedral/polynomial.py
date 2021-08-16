@@ -17,6 +17,7 @@ import itertools
 from itertools import combinations
 import copy
 from functools import reduce
+import numbers
 from operator import mul
 import numpy as np
 
@@ -78,7 +79,7 @@ class SpecialPolynomial:
         if not isinstance(other, SpecialPolynomial):
             other = int(other)
         result = SpecialPolynomial(self.n_vars)
-        if isinstance(other, int):
+        if isinstance(other, numbers.Integral):
             result.weight_0 = (self.weight_0 * other) % 8
             result.weight_1 = (self.weight_1 * other) % 8
             result.weight_2 = (self.weight_2 * other) % 8
@@ -128,7 +129,7 @@ class SpecialPolynomial:
         """
         if len(xval) != self.n_vars:
             raise QiskitError("Evaluate on wrong number of variables.")
-        check_int = list(map(lambda x: isinstance(x, int), xval))
+        check_int = list(map(lambda x: isinstance(x, numbers.Integral), xval))
         check_poly = list(map(lambda x: isinstance(x, SpecialPolynomial), xval))
         if False in check_int and False in check_poly:
             raise QiskitError("Evaluate on a wrong type.")
@@ -157,7 +158,7 @@ class SpecialPolynomial:
             if value != 0:
                 newterm = reduce(mul, [xval[j] for j in term], start)
                 result = result + value * newterm
-        if isinstance(result, int):
+        if isinstance(result, numbers.Integral):
             result = result % 8
         return result
 

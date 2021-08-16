@@ -20,6 +20,7 @@ onto a device with this coupling.
 """
 
 import io
+import numbers
 import warnings
 
 import numpy as np
@@ -86,7 +87,7 @@ class CouplingMap:
         Raises:
             CouplingError: if trying to add duplicate qubit
         """
-        if not isinstance(physical_qubit, int):
+        if not isinstance(physical_qubit, numbers.Integral):
             raise CouplingError("Physical qubits should be integers.")
         if physical_qubit in self.physical_qubits:
             raise CouplingError(

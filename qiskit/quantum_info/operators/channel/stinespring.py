@@ -14,7 +14,7 @@ Stinespring representation of a Quantum Channel.
 """
 
 import copy
-from numbers import Number
+import numbers
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -259,14 +259,14 @@ class Stinespring(QuantumChannel):
         return Stinespring(Choi(self)._add(other, qargs=qargs))
 
     def _multiply(self, other):
-        if not isinstance(other, Number):
+        if not isinstance(other, numbers.Number):
             raise QiskitError("other is not a number")
 
         ret = copy.copy(self)
         # If the number is complex or negative we need to convert to
         # general Stinespring representation so we first convert to
         # the Choi representation
-        if isinstance(other, complex) or other < 1:
+        if not isinstance(other, numbers.Real) or other < 1:
             # Convert to Choi-matrix
             ret._data = Stinespring(Choi(self)._multiply(other))._data
             return ret

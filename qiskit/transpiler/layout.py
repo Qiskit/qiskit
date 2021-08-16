@@ -18,9 +18,10 @@ Virtual (qu)bits are tuples, e.g. `(QuantumRegister(3, 'qr'), 2)` or simply `qr[
 Physical (qu)bits are integers.
 """
 
+import numbers
+
 from qiskit.circuit.quantumregister import Qubit, QuantumRegister
 from qiskit.transpiler.exceptions import LayoutError
-from qiskit.converters import isinstanceint
 
 
 class Layout:
@@ -84,10 +85,10 @@ class Layout:
     @staticmethod
     def order_based_on_type(value1, value2):
         """decides which one is physical/virtual based on the type. Returns (virtual, physical)"""
-        if isinstanceint(value1) and isinstance(value2, (Qubit, type(None))):
+        if isinstance(value1, numbers.Integral) and isinstance(value2, (Qubit, type(None))):
             physical = int(value1)
             virtual = value2
-        elif isinstanceint(value2) and isinstance(value1, (Qubit, type(None))):
+        elif isinstance(value2, numbers.Integral) and isinstance(value1, (Qubit, type(None))):
             physical = int(value2)
             virtual = value1
         else:
@@ -122,7 +123,7 @@ class Layout:
             self._v2p[virtual] = physical
 
     def __delitem__(self, key):
-        if isinstance(key, int):
+        if isinstance(key, numbers.Integral):
             del self._v2p[self._p2v[key]]
             del self._p2v[key]
         elif isinstance(key, Qubit):
@@ -301,7 +302,7 @@ class Layout:
         Raises:
             LayoutError: Invalid input layout.
         """
-        if not all(isinstanceint(i) for i in int_list):
+        if not all(isinstance(i, numbers.Integral) for i in int_list):
             raise LayoutError("Expected a list of ints")
         if len(int_list) != len(set(int_list)):
             raise LayoutError("Duplicate values not permitted; Layout is bijective.")

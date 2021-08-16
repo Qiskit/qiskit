@@ -12,6 +12,7 @@
 
 """Unitary gate."""
 
+import numbers
 from warnings import warn
 from typing import List, Optional, Union, Tuple
 import numpy as np
@@ -223,11 +224,12 @@ class Gate(Instruction):
                 msg = f"Bound parameter expression is complex in gate {self.name}"
                 raise CircuitError(msg)
             return parameter  # per default assume parameters must be real when bound
-        if isinstance(parameter, (int, float)):
-            return parameter
-        elif isinstance(parameter, (np.integer, np.floating)):
-            return parameter.item()
-        elif isinstance(parameter, np.ndarray):
+        # Normalize to builtin Python types from (e.g.) numpy.int32 and friends.
+        if isinstance(parameter, numbers.Integral):
+            return int(parameter)
+        if isinstance(parameter, numbers.Real):
+            return float(parameter)
+        if isinstance(parameter, np.ndarray):
             warn(
                 "Gate param type %s is being deprecated as of 0.16.0, and will be removed "
                 "no earlier than 3 months after that release date. "
@@ -237,5 +239,4 @@ class Gate(Instruction):
                 3,
             )
             return parameter
-        else:
-            raise CircuitError(f"Invalid param type {type(parameter)} for gate {self.name}.")
+        raise CircuitError(f"Invalid param type {type(parameter)} for gate {self.name}.")

@@ -12,6 +12,7 @@
 
 """The Amplification problem class."""
 
+import numbers
 from typing import Optional, Callable, Any, Union, List
 
 from qiskit.circuit import QuantumCircuit
@@ -142,7 +143,7 @@ class AmplificationProblem:
         if self._objective_qubits is None:
             return list(range(self.oracle.num_qubits))
 
-        if isinstance(self._objective_qubits, int):
+        if isinstance(self._objective_qubits, numbers.Integral):
             return [self._objective_qubits]
 
         return self._objective_qubits

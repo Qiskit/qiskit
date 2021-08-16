@@ -695,7 +695,7 @@ class DAGCircuit:
             )
         else:
             qubit_map = {
-                other.qubits[i]: (self.qubits[q] if isinstance(q, int) else q)
+                other.qubits[i]: (q if isinstance(q, Qubit) else self.qubits[q])
                 for i, q in enumerate(qubits)
             }
         if clbits is None:
@@ -707,7 +707,7 @@ class DAGCircuit:
             )
         else:
             clbit_map = {
-                other.clbits[i]: (self.clbits[c] if isinstance(c, int) else c)
+                other.clbits[i]: (c if isinstance(c, Clbit) else self.clbits[c])
                 for i, c in enumerate(clbits)
             }
         edge_map = edge_map or {**qubit_map, **clbit_map} or None

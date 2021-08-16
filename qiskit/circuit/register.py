@@ -15,9 +15,9 @@
 """
 Base register reference object.
 """
-import re
 import itertools
-import numpy as np
+import numbers
+import re
 
 from qiskit.circuit.exceptions import CircuitError
 
@@ -151,7 +151,7 @@ class Register:
         Raises:
             CircuitError: if the `key` is not an integer or not in the range `(0, self.size)`.
         """
-        if not isinstance(key, (int, np.integer, slice, list)):
+        if not isinstance(key, (numbers.Integral, slice, list)):
             raise CircuitError("expected integer or slice index into register")
         if isinstance(key, slice):
             return self._bits[key]

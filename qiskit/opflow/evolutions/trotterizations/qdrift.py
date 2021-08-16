@@ -15,6 +15,7 @@ QDrift Class
 
 """
 
+import numbers
 from typing import List, Union, cast
 
 import numpy as np
@@ -47,7 +48,7 @@ class QDrift(TrotterizationBase):
         if not isinstance(operator, (SummedOp, PauliSumOp)):
             raise TypeError("Trotterization converters can only convert SummedOp or PauliSumOp.")
 
-        if not isinstance(operator.coeff, (float, int)):
+        if not isinstance(operator.coeff, numbers.Real):
             raise TypeError(
                 "Trotterization converters can only convert operators with real coefficients."
             )

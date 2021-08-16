@@ -12,6 +12,7 @@
 """Quasidistribution class"""
 
 from math import sqrt
+import numbers
 import re
 
 from .probability import ProbDistribution
@@ -50,7 +51,7 @@ class QuasiDistribution(dict):
         self.shots = shots
         if data:
             first_key = next(iter(data.keys()))
-            if isinstance(first_key, int):
+            if isinstance(first_key, numbers.Integral):
                 pass
             elif isinstance(first_key, str):
                 if first_key.startswith("0x"):

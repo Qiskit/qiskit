@@ -15,6 +15,7 @@ N-qubit Pauli Operator Class
 # pylint: disable=invalid-name
 # pylint: disable=bad-docstring-quotes  # for deprecate_function decorator
 
+import numbers
 from typing import Dict
 import re
 
@@ -302,7 +303,7 @@ class Pauli(BasePauli):
     def __getitem__(self, qubits):
         """Return the unsigned Pauli group Pauli for subset of qubits."""
         # Set group phase to 0 so returned Pauli is always +1 coeff
-        if isinstance(qubits, (int, np.integer)):
+        if isinstance(qubits, numbers.Integral):
             qubits = [qubits]
         return Pauli((self.z[qubits], self.x[qubits]))
 
@@ -328,7 +329,7 @@ class Pauli(BasePauli):
             QiskitError: if ind is out of bounds for the array size or
                          number of qubits.
         """
-        if isinstance(qubits, (int, np.integer)):
+        if isinstance(qubits, numbers.Integral):
             qubits = [qubits]
         if max(qubits) > self.num_qubits - 1:
             raise QiskitError(
@@ -360,7 +361,7 @@ class Pauli(BasePauli):
         # Initialize empty operator
         ret_qubits = self.num_qubits + value.num_qubits
         ret = Pauli((np.zeros(ret_qubits, dtype=bool), np.zeros(ret_qubits, dtype=bool)))
-        if isinstance(qubits, (int, np.integer)):
+        if isinstance(qubits, numbers.Integral):
             if value.num_qubits == 1:
                 qubits = [qubits]
             else:

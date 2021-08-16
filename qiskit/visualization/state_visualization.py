@@ -19,6 +19,7 @@ Visualization functions for quantum states.
 """
 
 from functools import reduce
+import numbers
 import colorsys
 import numpy as np
 from scipy import linalg
@@ -1191,7 +1192,7 @@ class TextMatrix:
         self.dims = dims
         self.prefix = prefix
         self.suffix = suffix
-        if isinstance(max_size, int):
+        if isinstance(max_size, numbers.Integral):
             self.max_size = max_size
         elif isinstance(state, DensityMatrix):
             # density matrices are square, so threshold for

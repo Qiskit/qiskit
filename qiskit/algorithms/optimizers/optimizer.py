@@ -12,6 +12,7 @@
 
 """Optimizer interface"""
 
+import numbers
 from typing import Dict, Any
 
 from enum import IntEnum
@@ -113,7 +114,7 @@ class Optimizer(ABC):
         for chunk in chunks:  # eval the chunks in order
             parallel_parameters = np.concatenate(chunk)
             todos_results = f(parallel_parameters)  # eval the points in a chunk (order preserved)
-            if isinstance(todos_results, float):
+            if isinstance(todos_results, numbers.Real):
                 grad.append((todos_results - forig) / epsilon)
             else:
                 for todor in todos_results:

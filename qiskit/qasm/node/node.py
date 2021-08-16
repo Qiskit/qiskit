@@ -12,6 +12,8 @@
 
 """Base node object for the OPENQASM syntax tree."""
 
+import numbers
+
 
 class Node:
     """Base node object for the OPENQASM syntax tree."""
@@ -51,9 +53,7 @@ class Node:
                 print(self.children)
             if isinstance(children, str):
                 print(ind, children)
-            elif isinstance(children, int):
-                print(ind, str(children))
-            elif isinstance(children, float):
+            elif isinstance(children, numbers.Real):
                 print(ind, str(children))
             else:
                 children.to_string(indent)

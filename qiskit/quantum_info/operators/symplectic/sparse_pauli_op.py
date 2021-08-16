@@ -14,7 +14,7 @@ N-Qubit Sparse Pauli Operator class.
 """
 
 from typing import Dict
-from numbers import Number
+import numbers
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -139,7 +139,7 @@ class SparsePauliOp(LinearOp):
         """Return a view of the SparsePauliOp."""
         # Returns a view of specified rows of the PauliTable
         # This supports all slicing operations the underlying array supports.
-        if isinstance(key, (int, np.integer)):
+        if isinstance(key, numbers.Integral):
             key = [key]
         return SparsePauliOp(self.table[key], self.coeffs[key])
 
@@ -251,7 +251,7 @@ class SparsePauliOp(LinearOp):
         return ret
 
     def _multiply(self, other):
-        if not isinstance(other, Number):
+        if not isinstance(other, numbers.Number):
             raise QiskitError("other is not a number")
         if other == 0:
             # Check edge case that we deleted all Paulis

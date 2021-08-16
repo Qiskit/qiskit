@@ -13,6 +13,7 @@
 """
 Delay instruction (for circuit module).
 """
+import numbers
 import numpy as np
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
@@ -68,13 +69,13 @@ class Delay(Instruction):
 
     def validate_parameter(self, parameter):
         """Delay parameter (i.e. duration) must be int, float or ParameterExpression."""
-        if isinstance(parameter, int):
+        if isinstance(parameter, numbers.Integral):
             if parameter < 0:
                 raise CircuitError(
                     f"Duration for Delay instruction must be positive. Found {parameter}"
                 )
-            return parameter
-        elif isinstance(parameter, float):
+            return int(parameter)
+        elif isinstance(parameter, numbers.Real):
             if parameter < 0:
                 raise CircuitError(
                     f"Duration for Delay instruction must be positive. Found {parameter}"
@@ -84,7 +85,7 @@ class Delay(Instruction):
                 if parameter != parameter_int:
                     raise CircuitError("Integer duration is expected for 'dt' unit.")
                 return parameter_int
-            return parameter
+            return float(parameter)
         elif isinstance(parameter, ParameterExpression):
             if len(parameter.parameters) > 0:
                 return parameter  # expression has free parameters, we cannot validate it

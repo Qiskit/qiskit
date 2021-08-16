@@ -12,6 +12,7 @@
 
 """The Estimation problem class."""
 
+import numbers
 import warnings
 from typing import Optional, List, Callable, Union
 import numpy
@@ -83,7 +84,7 @@ class EstimationProblem:
         Returns:
             The criterion as list of qubit indices.
         """
-        if isinstance(self._objective_qubits, int):
+        if isinstance(self._objective_qubits, numbers.Integral):
             return [self._objective_qubits]
 
         return self._objective_qubits

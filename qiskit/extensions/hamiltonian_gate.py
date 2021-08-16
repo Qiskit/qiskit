@@ -14,7 +14,7 @@
 Gate described by the time evolution of a Hermitian Hamiltonian operator.
 """
 
-from numbers import Number
+import numbers
 import numpy
 import scipy.linalg
 
@@ -57,7 +57,7 @@ class HamiltonianGate(Gate):
         # Check input is unitary
         if not is_hermitian_matrix(data):
             raise ExtensionError("Input matrix is not Hermitian.")
-        if isinstance(time, Number) and time != numpy.real(time):
+        if isinstance(time, numbers.Number) and time != numpy.real(time):
             raise ExtensionError("Evolution time is not real.")
         # Check input is N-qubit matrix
         input_dim, output_dim = data.shape
@@ -117,7 +117,7 @@ class HamiltonianGate(Gate):
 
     def validate_parameter(self, parameter):
         """Hamiltonian parameter has to be an ndarray, operator or float."""
-        if isinstance(parameter, (float, int, numpy.ndarray)):
+        if isinstance(parameter, (numbers.Real, numpy.ndarray)):
             return parameter
         elif isinstance(parameter, ParameterExpression) and len(parameter.parameters) == 0:
             return float(parameter)

@@ -15,7 +15,7 @@ Kraus representation of a Quantum Channel.
 """
 
 import copy
-from numbers import Number
+import numbers
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -299,13 +299,13 @@ class Kraus(QuantumChannel):
         return Kraus(Choi(self)._add(other, qargs=qargs))
 
     def _multiply(self, other):
-        if not isinstance(other, Number):
+        if not isinstance(other, numbers.Number):
             raise QiskitError("other is not a number")
 
         ret = copy.copy(self)
         # If the number is complex we need to convert to general
         # kraus channel so we multiply via Choi representation
-        if isinstance(other, complex) or other < 0:
+        if not isinstance(other, numbers.Real) or other < 0:
             # Convert to Choi-matrix
             ret._data = Kraus(Choi(self)._multiply(other))._data
             return ret

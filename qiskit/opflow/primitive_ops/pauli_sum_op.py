@@ -13,6 +13,7 @@
 """PauliSumOp Class """
 
 from collections import defaultdict
+import numbers
 from typing import Dict, List, Optional, Set, Tuple, Union, cast
 
 import numpy as np
@@ -139,7 +140,7 @@ class PauliSumOp(PrimitiveOp):
         return SummedOp([self, other])
 
     def mul(self, scalar: Union[complex, ParameterExpression]) -> OperatorBase:
-        if isinstance(scalar, (int, float, complex)) and scalar != 0:
+        if isinstance(scalar, numbers.Number) and scalar != 0:
             return PauliSumOp(scalar * self.primitive, coeff=self.coeff)
 
         return PauliSumOp(self.primitive, coeff=self.coeff * scalar)
@@ -262,7 +263,7 @@ class PauliSumOp(PrimitiveOp):
 
         def format_number(x):
             x = format_sign(x)
-            if isinstance(x, (int, float)) and x < 0:
+            if isinstance(x, numbers.Real) and x < 0:
                 return f"- {-x}"
             return f"+ {x}"
 
@@ -270,7 +271,7 @@ class PauliSumOp(PrimitiveOp):
         prim_list = self.primitive.to_list()
         if prim_list:
             first = prim_list[0]
-            if isinstance(first[1], (int, float)) and first[1] < 0:
+            if isinstance(first[1], numbers.Real) and first[1] < 0:
                 main_string = indent + f"- {-first[1].real} * {first[0]}"
             else:
                 main_string = indent + f"{format_sign(first[1])} * {first[0]}"
@@ -406,7 +407,7 @@ class PauliSumOp(PrimitiveOp):
         Returns:
             The simplified ``PauliSumOp``.
         """
-        if isinstance(self.coeff, (int, float, complex)):
+        if isinstance(self.coeff, numbers.Complex):
             primitive = self.coeff * self.primitive
             return PauliSumOp(primitive.simplify(atol=atol, rtol=rtol))
         return PauliSumOp(self.primitive.simplify(atol=atol, rtol=rtol), self.coeff)

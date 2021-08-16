@@ -13,6 +13,7 @@
 """PauliOp Class """
 
 from math import pi
+import numbers
 from typing import Dict, List, Optional, Set, Union, cast
 
 import numpy as np
@@ -70,15 +71,15 @@ class PauliOp(PrimitiveOp):
 
         if (
             isinstance(other, PauliOp)
-            and isinstance(self.coeff, (int, float, complex))
-            and isinstance(other.coeff, (int, float, complex))
+            and isinstance(self.coeff, numbers.Complex)
+            and isinstance(other.coeff, numbers.Complex)
         ):
             return PauliSumOp(
                 SparsePauliOp(self.primitive, coeffs=[self.coeff])
                 + SparsePauliOp(other.primitive, coeffs=[other.coeff])
             )
 
-        if isinstance(other, PauliSumOp) and isinstance(self.coeff, (int, float, complex)):
+        if isinstance(other, PauliSumOp) and isinstance(self.coeff, numbers.Complex):
             return PauliSumOp(SparsePauliOp(self.primitive, coeffs=[self.coeff])) + other
 
         return SummedOp([self, other])

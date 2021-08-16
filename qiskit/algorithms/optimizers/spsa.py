@@ -17,6 +17,7 @@ This implementation allows both, standard first-order as well as second-order SP
 
 from typing import Iterator, Optional, Union, Callable, Tuple, Dict
 import logging
+import numbers
 import warnings
 from time import time
 
@@ -637,7 +638,7 @@ def _validate_pert_and_learningrate(perturbation, learning_rate):
     if learning_rate is None or perturbation is None:
         raise ValueError("If one of learning rate or perturbation is set, both must be set.")
 
-    if isinstance(perturbation, float):
+    if isinstance(perturbation, numbers.Real):
 
         def get_eps():
             return constant(perturbation)
@@ -650,7 +651,7 @@ def _validate_pert_and_learningrate(perturbation, learning_rate):
     else:
         get_eps = perturbation
 
-    if isinstance(learning_rate, float):
+    if isinstance(learning_rate, numbers.Real):
 
         def get_eta():
             return constant(learning_rate)

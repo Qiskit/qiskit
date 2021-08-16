@@ -196,6 +196,7 @@ import collections
 import contextvars
 import functools
 import itertools
+import numbers
 import warnings
 from contextlib import contextmanager
 from typing import (
@@ -815,7 +816,7 @@ def _qubits_to_channels(*channels_or_qubits: Union[int, chans.Channel]) -> Set[c
     """Returns the unique channels of the input qubits."""
     channels = set()
     for channel_or_qubit in channels_or_qubits:
-        if isinstance(channel_or_qubit, int):
+        if isinstance(channel_or_qubit, numbers.Integral):
             channels |= qubit_channels(channel_or_qubit)
         elif isinstance(channel_or_qubit, chans.Channel):
             channels.add(channel_or_qubit)
@@ -1517,7 +1518,7 @@ def acquire(
     Raises:
         exceptions.PulseError: If the register type is not supported.
     """
-    if isinstance(qubit_or_channel, int):
+    if isinstance(qubit_or_channel, numbers.Integral):
         qubit_or_channel = chans.AcquireChannel(qubit_or_channel)
 
     if isinstance(register, chans.MemorySlot):

@@ -37,6 +37,7 @@ by following the existing pattern:
         new_supported_pulse_name = library.YourPulseWaveformClass
 """
 from abc import abstractmethod
+import numbers
 from typing import Any, Dict, Optional, Union
 
 import math
@@ -427,7 +428,7 @@ class Drag(ParametricPulse):
             )
         if not _is_parameterized(self.sigma) and self.sigma <= 0:
             raise PulseError("Sigma must be greater than 0.")
-        if not _is_parameterized(self.beta) and isinstance(self.beta, complex):
+        if not _is_parameterized(self.beta) and not isinstance(self.beta, numbers.Real):
             raise PulseError("Beta must be real.")
         # Check if beta is too large: the amplitude norm must be <=1 for all points
         if (

@@ -12,6 +12,7 @@
 
 """A circuit that encodes a discretized normal probability distribution in qubit amplitudes."""
 
+import numbers
 from typing import Tuple, Union, List, Optional
 import warnings
 import numpy as np
@@ -165,7 +166,7 @@ class NormalDistribution(QuantumCircuit):
         _check_bounds_valid(bounds)
 
         # set default arguments
-        dim = 1 if isinstance(num_qubits, int) else len(num_qubits)
+        dim = 1 if isinstance(num_qubits, numbers.Integral) else len(num_qubits)
         if mu is None:
             mu = 0 if dim == 1 else [0] * dim
 

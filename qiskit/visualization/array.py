@@ -14,6 +14,7 @@ Tools to create LaTeX arrays.
 """
 
 import math
+import numbers
 from fractions import Fraction
 import numpy as np
 
@@ -237,7 +238,7 @@ def array_to_latex(array, precision=5, prefix="", source=False, max_size=8):
         ) from err
 
     if array.ndim <= 2:
-        if isinstance(max_size, int):
+        if isinstance(max_size, numbers.Integral):
             max_size = (max_size, max_size)
         outstr = _matrix_to_latex(array, precision=precision, prefix=prefix, max_size=max_size)
     else:

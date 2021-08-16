@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Durations of instructions, one of transpiler configurations."""
+import numbers
 import warnings
 from typing import Optional, List, Tuple, Union, Iterable, Set
 
@@ -120,7 +121,7 @@ class InstructionDurations:
                     )
 
             for name, qubits, duration, unit in inst_durations:
-                if isinstance(qubits, int):
+                if isinstance(qubits, numbers.Integral):
                     qubits = [qubits]
 
                 if qubits is None:
@@ -159,7 +160,7 @@ class InstructionDurations:
         else:
             inst_name = inst
 
-        if isinstance(qubits, (int, Qubit)):
+        if isinstance(qubits, (numbers.Integral, Qubit)):
             qubits = [qubits]
 
         if isinstance(qubits[0], Qubit):

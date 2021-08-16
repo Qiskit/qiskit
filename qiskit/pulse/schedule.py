@@ -21,6 +21,7 @@ import abc
 import copy
 import functools
 import itertools
+import numbers
 import multiprocessing as mp
 import sys
 import warnings
@@ -366,7 +367,7 @@ class Schedule:
         Raises:
             PulseError: if ``time`` is not an integer.
         """
-        if not isinstance(time, int):
+        if not isinstance(time, numbers.Integral):
             raise PulseError("Schedule start time must be an integer.")
 
         timeslots = {}
@@ -598,7 +599,7 @@ class Schedule:
         Raises:
             PulseError: If timeslots overlap or an invalid start time is provided.
         """
-        if not isinstance(time, int):
+        if not isinstance(time, numbers.Integral):
             raise PulseError("Schedule start time must be an integer.")
 
         for channel in schedule.channels:
@@ -1024,7 +1025,7 @@ class ScheduleBlock:
                 if not block.is_schedulable():
                     return False
             else:
-                if not isinstance(block.duration, int):
+                if not isinstance(block.duration, numbers.Integral):
                     return False
         return True
 

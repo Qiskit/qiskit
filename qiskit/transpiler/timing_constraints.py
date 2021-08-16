@@ -12,6 +12,8 @@
 
 """Timing Constraints class."""
 
+import numbers
+
 from qiskit.transpiler.exceptions import TranspilerError
 
 
@@ -53,7 +55,7 @@ class TimingConstraints:
         self.acquire_alignment = acquire_alignment
 
         for key, value in self.__dict__.items():
-            if not isinstance(value, int) or value < 1:
+            if not isinstance(value, numbers.Integral) or value < 1:
                 raise TranspilerError(
                     f"Timing constraint {key} should be nonzero integer. Not {value}."
                 )

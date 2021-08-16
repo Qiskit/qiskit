@@ -14,6 +14,7 @@ Symplectic Pauli Table Class
 """
 # pylint: disable=invalid-name
 
+import numbers
 from typing import Dict
 
 import numpy as np
@@ -248,7 +249,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         """Return a view of the PauliTable."""
         # Returns a view of specified rows of the PauliTable
         # This supports all slicing operations the underlying array supports.
-        if isinstance(key, (int, np.integer)):
+        if isinstance(key, numbers.Integral):
             key = [key]
         return PauliTable(self._array[key])
 
@@ -277,7 +278,7 @@ class PauliTable(BaseOperator, AdjointMixin):
             QiskitError: if ind is out of bounds for the array size or
                          number of qubits.
         """
-        if isinstance(ind, (int, np.integer)):
+        if isinstance(ind, numbers.Integral):
             ind = [ind]
 
         # Row deletion
@@ -316,7 +317,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         Raises:
             QiskitError: if the insertion index is invalid.
         """
-        if not isinstance(ind, (int, np.integer)):
+        if not isinstance(ind, numbers.Integral):
             raise QiskitError("Insert index must be an integer.")
 
         if not isinstance(value, PauliTable):

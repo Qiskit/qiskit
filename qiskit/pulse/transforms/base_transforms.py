@@ -13,6 +13,7 @@
 
 # TODO: replace this with proper pulse transformation passes. Qiskit-terra/#6121
 
+import numbers
 from typing import Union, Iterable, Tuple
 
 from qiskit.pulse.instructions import Instruction
@@ -62,7 +63,7 @@ def _format_schedule_component(sched: Union[InstructionSched, Iterable[Instructi
     try:
         sched = list(sched)
         # (t0, inst), or list of it
-        if isinstance(sched[0], int):
+        if isinstance(sched[0], numbers.Integral):
             # (t0, inst) tuple
             return [tuple(sched)]
         else:

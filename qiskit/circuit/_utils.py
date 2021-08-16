@@ -13,6 +13,7 @@
 This module contains utility functions for circuits.
 """
 
+import numbers
 import numpy
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
@@ -50,7 +51,7 @@ def _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=None):
         ctrl_state = ctrl_dim - 1
     elif isinstance(ctrl_state, str):
         ctrl_state = int(ctrl_state, 2)
-    if isinstance(ctrl_state, int):
+    if isinstance(ctrl_state, numbers.Integral):
         if not 0 <= ctrl_state < ctrl_dim:
             raise QiskitError("Invalid control state value specified.")
     else:
@@ -85,7 +86,7 @@ def _ctrl_state_to_int(ctrl_state, num_ctrl_qubits):
             raise CircuitError("invalid control bit string: " + ctrl_state) from ex
         except AssertionError as ex:
             raise CircuitError("invalid control bit string: length != " "num_ctrl_qubits") from ex
-    if isinstance(ctrl_state, int):
+    if isinstance(ctrl_state, numbers.Integral):
         if 0 <= ctrl_state < 2 ** num_ctrl_qubits:
             ctrl_state_std = ctrl_state
         else:

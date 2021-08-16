@@ -12,6 +12,7 @@
 
 """The Maximum Likelihood Amplitude Estimation algorithm."""
 
+import numbers
 from typing import Optional, List, Union, Tuple, Dict, Callable
 import numpy as np
 from scipy.optimize import brute
@@ -77,7 +78,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
         self.quantum_instance = quantum_instance
 
         # get parameters
-        if isinstance(evaluation_schedule, int):
+        if isinstance(evaluation_schedule, numbers.Integral):
             if evaluation_schedule < 0:
                 raise ValueError("The evaluation schedule cannot be < 0.")
 

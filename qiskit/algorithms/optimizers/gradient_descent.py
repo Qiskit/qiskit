@@ -12,6 +12,7 @@
 
 """A standard gradient descent optimizer."""
 
+import numbers
 from typing import Iterator, Optional, Union, Callable, Dict, Any
 from functools import partial
 
@@ -151,7 +152,7 @@ class GradientDescent(Optimizer):
 
     def _minimize(self, loss, grad, initial_point):
         # set learning rate
-        if isinstance(self.learning_rate, float):
+        if isinstance(self.learning_rate, numbers.Real):
             eta = constant(self.learning_rate)
         else:
             eta = self.learning_rate()

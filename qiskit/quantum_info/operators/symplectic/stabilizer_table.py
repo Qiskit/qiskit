@@ -13,6 +13,8 @@
 Symplectic Stabilizer Table Class
 """
 
+import numbers
+
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -251,7 +253,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
 
     def __getitem__(self, key):
         """Return a view of StabilizerTable"""
-        if isinstance(key, (int, np.integer)):
+        if isinstance(key, numbers.Integral):
             key = [key]
         return StabilizerTable(self._array[key], self._phase[key])
 
@@ -288,7 +290,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
             table = super().delete(ind, True)
             return StabilizerTable(table, self._phase)
 
-        if isinstance(ind, (int, np.integer)):
+        if isinstance(ind, numbers.Integral):
             ind = [ind]
         if max(ind) >= self.size:
             raise QiskitError(
@@ -319,7 +321,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
         Raises:
             QiskitError: if the insertion index is invalid.
         """
-        if not isinstance(ind, (int, np.integer)):
+        if not isinstance(ind, numbers.Integral):
             raise QiskitError("Insert index must be an integer.")
         if not isinstance(value, StabilizerTable):
             value = StabilizerTable(value)

@@ -12,6 +12,7 @@
 
 """Module for common pulse programming utilities."""
 import functools
+import numbers
 import warnings
 from typing import List, Dict, Union
 
@@ -94,7 +95,7 @@ def instruction_duration_validation(duration: int):
             "".format(repr(duration))
         )
 
-    if not isinstance(duration, (int, np.integer)) or duration < 0:
+    if not isinstance(duration, numbers.Integral) or duration < 0:
         raise QiskitError(
             "Instruction duration must be a non-negative integer, "
             "got {} instead.".format(duration)

@@ -14,6 +14,7 @@ Optimized list of Pauli operators
 """
 
 from collections import defaultdict
+import numbers
 
 import numpy as np
 import retworkx as rx
@@ -290,7 +291,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
                 raise IndexError("Invalid PauliList index {}".format(index))
 
         # Row-only indexing
-        if isinstance(index, (int, np.integer)):
+        if isinstance(index, numbers.Integral):
             # Single Pauli
             return Pauli(
                 BasePauli(
@@ -346,7 +347,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             QiskitError: if ind is out of bounds for the array size or
                          number of qubits.
         """
-        if isinstance(ind, int):
+        if isinstance(ind, numbers.Integral):
             ind = [ind]
 
         # Row deletion
@@ -392,7 +393,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         Raises:
             QiskitError: if the insertion index is invalid.
         """
-        if not isinstance(ind, int):
+        if not isinstance(ind, numbers.Integral):
             raise QiskitError("Insert index must be an integer.")
 
         if not isinstance(value, PauliList):

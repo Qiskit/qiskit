@@ -12,6 +12,7 @@
 
 """Circuit transpile function"""
 import logging
+import numbers
 import warnings
 from time import time
 from typing import List, Union, Dict, Callable, Any, Optional, Tuple, Iterable
@@ -19,7 +20,7 @@ from typing import List, Union, Dict, Callable, Any, Optional, Tuple, Iterable
 from qiskit import user_config
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import Qubit
-from qiskit.converters import isinstanceint, isinstancelist, dag_to_circuit, circuit_to_dag
+from qiskit.converters import isinstancelist, dag_to_circuit, circuit_to_dag
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.providers import BaseBackend
 from qiskit.providers.backend import Backend
@@ -699,7 +700,7 @@ def _parse_initial_layout(initial_layout, circuits):
         if initial_layout is None or isinstance(initial_layout, Layout):
             return initial_layout
         elif isinstancelist(initial_layout):
-            if all(isinstanceint(elem) for elem in initial_layout):
+            if all(isinstance(elem, numbers.Integral) for elem in initial_layout):
                 initial_layout = Layout.from_intlist(initial_layout, *circuit.qregs)
             elif all(elem is None or isinstance(elem, Qubit) for elem in initial_layout):
                 initial_layout = Layout.from_qubit_list(initial_layout, *circuit.qregs)

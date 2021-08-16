@@ -12,6 +12,7 @@
 
 """Post-processing of raw result."""
 
+import numbers
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -187,7 +188,7 @@ def format_statevector(vec, decimals=None):
             return np.around(vec, decimals=decimals)
         return vec
     num_basis = len(vec)
-    if vec and isinstance(vec[0], complex):
+    if vec and isinstance(vec[0], numbers.Complex):
         vec_complex = np.array(vec, dtype=complex)
     else:
         vec_complex = np.zeros(num_basis, dtype=complex)

@@ -14,6 +14,7 @@
 
 
 from typing import Callable, Optional, Tuple, Union, cast, Dict
+import numbers
 
 import numpy as np
 
@@ -111,7 +112,7 @@ class CVaRMeasurement(OperatorStateFn):
         raise OpflowError("Adjoint of a CVaR measurement not defined")
 
     def mul(self, scalar: Union[complex, ParameterExpression]) -> "CVaRMeasurement":
-        if not isinstance(scalar, (int, float, complex, ParameterExpression)):
+        if not isinstance(scalar, (numbers.Number, ParameterExpression)):
             raise ValueError(
                 "Operators can only be scalar multiplied by float or complex, not "
                 "{} of type {}.".format(scalar, type(scalar))

@@ -31,6 +31,7 @@ field, which is a result of measurements for each shot.
 import uuid
 import time
 import logging
+import numbers
 import warnings
 
 from math import log2
@@ -522,7 +523,7 @@ class QasmSimulatorPy(BackendV1):
             self._classical_register = 0
             for operation in experiment.instructions:
                 conditional = getattr(operation, "conditional", None)
-                if isinstance(conditional, int):
+                if isinstance(conditional, numbers.Integral):
                     conditional_bit_set = (self._classical_register >> conditional) & 1
                     if not conditional_bit_set:
                         continue
