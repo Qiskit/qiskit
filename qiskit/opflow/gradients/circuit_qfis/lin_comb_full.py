@@ -97,7 +97,8 @@ class LinCombFull(CircuitQFI):
         # unroll separately from the H gate since we need the H gate to be the first
         # operation in the data attributes of the circuit
         unrolled = LinComb._unroll_to_supported_operations(
-            operator.primitive, LinComb.SUPPORTED_GATES)
+            operator.primitive, LinComb.SUPPORTED_GATES
+        )
         state_qc.compose(unrolled, inplace=True)
 
         # Get the circuits needed to compute〈∂iψ|∂jψ〉
