@@ -783,7 +783,6 @@ class TextDrawing:
                         label.format(
                             name=self.bit_locations[bit]["register"].name,
                             index=self.bit_locations[bit]["index"],
-                            physical="",
                         )
                     )
                 else:
