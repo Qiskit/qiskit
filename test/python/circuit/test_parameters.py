@@ -71,9 +71,7 @@ def raise_if_parameter_table_invalid(circuit):  # pylint: disable=invalid-name
     for parameter, instr_list in table.items():
         for instr, param_index in instr_list:
             if instr not in circuit_instructions:
-                raise CircuitError(
-                    "ParameterTable instruction not present " "in circuit: {}.".format(instr)
-                )
+                raise CircuitError(f"ParameterTable instruction not present in circuit: {instr}.")
 
             if not isinstance(instr.params[param_index], ParameterExpression):
                 raise CircuitError(
@@ -1422,7 +1420,7 @@ class TestParameterExpressions(QiskitTestCase):
         try:
             qc.decompose()
         except TypeError:
-            self.fail("failed to decompose cu3 gate with negated parameter " "expression")
+            self.fail("failed to decompose cu3 gate with negated parameter expression")
 
     def test_name_collision(self):
         """Verify Expressions of distinct Parameters of shared name raises."""
