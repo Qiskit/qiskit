@@ -159,16 +159,15 @@ class QCircuitImage:
 
         self._initialize_latex_array()
         self._build_latex_array()
-        header_1 = r"""\documentclass[border=2px]{standalone}
-        """
+        header_1 = r"\documentclass[border=2px]{standalone}" + "\n"
 
         header_2 = r"""
 \usepackage[braket, qm]{qcircuit}
 \usepackage{graphicx}
 
-\begin{document} 
+\begin{document}
 """
-        header_scale = "\\scalebox{{{}}}".format(self.scale) + "{"
+        header_scale = f"\\scalebox{{{self.scale}}}" + "{"
 
         qcircuit_line = r"""
 \Qcircuit @C=%.1fem @R=%.1fem @!R { \\
@@ -190,7 +189,7 @@ class QCircuitImage:
                 if j != self.img_depth:
                     output.write(" & ")
                 else:
-                    output.write(r"\\ " + "\n")
+                    output.write(r"\\" + "\n")
         output.write(r"\\ " + "}}\n")
         output.write("\\end{document}")
         contents = output.getvalue()
@@ -441,7 +440,7 @@ class QCircuitImage:
                 wire_max = max(cwire_list)
             wire_ind = wire_list.index(wire_min)
             self._latex[wire_min][col] = (
-                "\\multigate{%s}{%s}_" % (wire_max - wire_min, gate_text)
+                f"\\multigate{{{wire_max - wire_min}}}{{{gate_text}}}_"
                 + "<" * (len(str(wire_ind)) + 2)
                 + "{%s}" % wire_ind
             )

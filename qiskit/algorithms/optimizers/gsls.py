@@ -333,7 +333,7 @@ class GSLS(Optimizer):
             # If we still do not have enough sampling points, we have failed.
             if len(accepted) < num_points:
                 raise RuntimeError(
-                    "Could not generate enough samples " "within bounds; try smaller radius."
+                    "Could not generate enough samples within bounds; try smaller radius."
                 )
 
             return (
