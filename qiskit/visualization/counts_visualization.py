@@ -17,6 +17,7 @@ Visualization functions for measurement counts.
 from collections import Counter, OrderedDict
 import functools
 import numpy as np
+from collections.abc import Mapping
 
 from qiskit.exceptions import MissingOptionalLibraryError
 from .matplotlib import HAS_MATPLOTLIB
@@ -127,7 +128,7 @@ def plot_histogram(
         err_msg = "Must define target_string when using distance measure."
         raise VisualizationError(err_msg)
 
-    if isinstance(data, dict):
+    if isinstance(data, Mapping):
         data = [data]
 
     if legend and len(legend) != len(data):
