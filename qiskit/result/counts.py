@@ -196,12 +196,6 @@ class Counts(UserDict):
         """Removes all spaces and underscores from bitstring"""
         return int(bitstring.replace(" ", "").replace("_", ""), 2)
 
-    def __iter__(self):
-        return iter(self.bin_data)
-
-    def __len__(self):
-        return len(self.bin_data)
-
     def __eq__(self, other):
         if not isinstance(other, Counts):
             other = Counts(other)
