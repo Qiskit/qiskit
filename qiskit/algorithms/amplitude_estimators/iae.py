@@ -258,7 +258,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
             If a dict is given, return (#one-counts, #one-counts/#all-counts),
             otherwise Pr(measure '1' in the last qubit).
         """
-        if isinstance(counts_or_statevector, (Mapping, dict)):
+        if isinstance(counts_or_statevector, Mapping):
             one_counts = 0
             for state, counts in counts_or_statevector.items():
                 if problem.is_good_state(state):

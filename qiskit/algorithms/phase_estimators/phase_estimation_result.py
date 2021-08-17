@@ -89,7 +89,7 @@ class PhaseEstimationResult(PhaseEstimatorResult):
         1.0 corresponds to a phase of :math:`2\pi`. This selects the phase corresponding
         to the bit string with the highesest probability. This is the most likely phase.
         """
-        if isinstance(self.phases, (dict, Mapping)):
+        if isinstance(self.phases, Mapping):
             binary_phase_string = max(self.phases, key=self.phases.get)
         else:
             # numpy.argmax ignores complex part of number. But, we take abs anyway
