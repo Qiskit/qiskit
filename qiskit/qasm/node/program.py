@@ -30,7 +30,7 @@ class Program(Node):
         """Return the corresponding OPENQASM string."""
         if prec is not None:
             warnings.warn(
-                "Parameter 'Program.qasm(..., prec)' is no longer used and is being " "deprecated.",
+                "Parameter 'Program.qasm(..., prec)' is no longer used and is being deprecated.",
                 DeprecationWarning,
                 2,
             )

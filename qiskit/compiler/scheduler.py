@@ -69,12 +69,12 @@ def schedule(
     if inst_map is None:
         if backend is None:
             raise QiskitError(
-                "Must supply either a backend or InstructionScheduleMap for " "scheduling passes."
+                "Must supply either a backend or InstructionScheduleMap for scheduling passes."
             )
         defaults = backend.defaults()
         if defaults is None:
             raise QiskitError(
-                "The backend defaults are unavailable. The backend may not " "support pulse."
+                "The backend defaults are unavailable. The backend may not support pulse."
             )
         inst_map = defaults.instruction_schedule_map
     if meas_map is None:
