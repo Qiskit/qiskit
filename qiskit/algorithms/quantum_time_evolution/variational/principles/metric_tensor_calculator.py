@@ -14,7 +14,7 @@ from typing import Union
 from qiskit.opflow import StateFn, QFI, CircuitQFI
 
 
-def build(observable, ansatz, parameters, qfi_method: Union[str, CircuitQFI] = 'lin_comb_full'):
+def build(observable, ansatz, parameters, qfi_method: Union[str, CircuitQFI] = "lin_comb_full"):
     operator = ~StateFn(observable) @ StateFn(ansatz)
     # TODO why?
     operator = operator.oplist[-1]

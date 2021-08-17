@@ -13,25 +13,33 @@ from typing import Union
 
 import numpy as np
 
-from qiskit.algorithms.quantum_time_evolution.variational.principles.real \
-    .real_variational_principle import \
-    RealVariationalPrinciple
-from qiskit.opflow import CircuitQFI, CircuitGradient
+from qiskit.algorithms.quantum_time_evolution.variational.principles.real.real_variational_principle import (
+    RealVariationalPrinciple,
+)
+from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
+    VariationalPrinciple,
+)
+from qiskit.opflow import CircuitQFI, CircuitGradient, OperatorBase
 
 
 class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):
-
-    def __init__(self, observable, ansatz, parameters,
-                 qfi_method: Union[str, CircuitQFI] = 'lin_comb_full',
-                 grad_method: Union[str, CircuitGradient] = 'lin_comb',
-                 is_error_supported: bool = False):
-        super().__init__(observable, ansatz, parameters, qfi_method, grad_method,
-                         is_error_supported)
+    def __init__(
+        self,
+        observable,
+        ansatz,
+        parameters,
+        qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
+        grad_method: Union[str, CircuitGradient] = "lin_comb",
+        is_error_supported: bool = False,
+    ):
+        super().__init__(
+            observable, ansatz, parameters, qfi_method, grad_method, is_error_supported
+        )
 
     @staticmethod
-    def _calc_metric_tensor(raw_metric_tensor):
-        return np.imag(raw_metric_tensor)
+    def _calc_metric_tensor(raw_metric_tensor: OperatorBase) -> OperatorBase:
+        return VariationalPrinciple.op_imag_part(raw_metric_tensor)
 
     @staticmethod
-    def _calc_evolution_grad(raw_evolution_grad):
-        return -np.real(raw_evolution_grad)
+    def _calc_evolution_grad(raw_evolution_grad: OperatorBase) -> OperatorBase:
+        return -VariationalPrinciple.op_real_part(raw_evolution_grad)

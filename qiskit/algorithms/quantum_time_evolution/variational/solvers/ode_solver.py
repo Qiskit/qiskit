@@ -16,7 +16,6 @@ import numpy as np
 
 
 class OdeSolver:
-
     def __init__(self, t: float, init_params: Union[List, np.ndarray]):
         """
         Initialize ODE Solver
@@ -44,18 +43,18 @@ class OdeSolver:
                 if self._snapshot_dir is not None and self._ode_solver.t <= t:
                     self._store_now = True
                     _ = self._ode_solver.fun(self._ode_solver.t, self._ode_solver.y)
-                print('ode time', self._ode_solver.t)
+                print("ode time", self._ode_solver.t)
                 param_values = self._ode_solver.y[:-1]
-                print('ode parameters', self._ode_solver.y[:-1])
-                print('ode error', self._ode_solver.y[-1])
-                print('ode step size', self._ode_solver.step_size)
-                if self._ode_solver.status == 'finished':
+                print("ode parameters", self._ode_solver.y[:-1])
+                print("ode error", self._ode_solver.y[-1])
+                print("ode step size", self._ode_solver.step_size)
+                if self._ode_solver.status == "finished":
                     break
-                elif self._ode_solver.status == 'failed':
-                    raise Warning('ODESolver failed')
+                elif self._ode_solver.status == "failed":
+                    raise Warning("ODESolver failed")
 
         else:
-            raise TypeError('Please provide a scipy ODESolver or ode type object.')
-        print('Parameter Values ', param_values)
+            raise TypeError("Please provide a scipy ODESolver or ode type object.")
+        print("Parameter Values ", param_values)
 
         return param_values

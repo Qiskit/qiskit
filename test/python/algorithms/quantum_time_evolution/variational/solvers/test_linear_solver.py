@@ -13,9 +13,9 @@ import unittest
 
 import numpy as np
 
-from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.implementations \
-    .imaginary_mc_lachlan_variational_principle import \
-    ImaginaryMcLachlanVariationalPrinciple
+from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
+    ImaginaryMcLachlanVariationalPrinciple,
+)
 from qiskit.algorithms.quantum_time_evolution.variational.solvers.linear_solver import LinearSolver
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import SummedOp, X, Y, I, Z
@@ -23,17 +23,22 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 
 
 class TestLinearSolver(QiskitAlgorithmsTestCase):
-
     def test_solve_sle_no_backend_not_faster(self):
         linear_solver = LinearSolver()
         raw_metric_tensor = np.arange(4).reshape(2, 2)
         raw_evolution_grad = np.arange(4).reshape(2, 2)
 
-
         # Define the Hamiltonian for the simulation
-        observable = SummedOp([0.2252 * (I ^ I), 0.5716 * (Z ^ Z), 0.3435 * (I ^ Z),
-                               -0.4347 * (Z ^ I), 0.091 * (Y ^ Y),
-                               0.091 * (X ^ X)]).reduce()
+        observable = SummedOp(
+            [
+                0.2252 * (I ^ I),
+                0.5716 * (Z ^ Z),
+                0.3435 * (I ^ Z),
+                -0.4347 * (Z ^ I),
+                0.091 * (Y ^ Y),
+                0.091 * (X ^ X),
+            ]
+        ).reduce()
         # Define Ansatz
         # ansatz = RealAmplitudes(observable.num_qubits, reps=d)
         d = 2
@@ -50,6 +55,7 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
         print(param_dict)
         sol = linear_solver._solve_sle(var_principle, param_dict)
         print(sol)
+
 
 if __name__ == "__main__":
     unittest.main()

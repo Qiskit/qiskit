@@ -14,6 +14,6 @@ from typing import Union
 from qiskit.opflow import StateFn, Gradient, CircuitGradient
 
 
-def build(observable, ansatz, parameters, grad_method: Union[str, CircuitGradient] = 'lin_comb'):
+def build(observable, ansatz, parameters, grad_method: Union[str, CircuitGradient] = "lin_comb"):
     operator = ~StateFn(observable) @ StateFn(ansatz)
     return Gradient(grad_method).convert(operator, parameters)

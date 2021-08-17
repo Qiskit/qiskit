@@ -15,23 +15,29 @@ from typing import Union
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
 )
-from qiskit.opflow import CircuitQFI, CircuitGradient
+from qiskit.opflow import CircuitQFI, CircuitGradient, OperatorBase
 
 
 class ImaginaryVariationalPrinciple(VariationalPrinciple):
-    def __init__(self, observable, ansatz, parameters,
-                 qfi_method: Union[str, CircuitQFI] = 'lin_comb_full',
-                 grad_method: Union[str, CircuitGradient] = 'lin_comb',
-                 is_error_supported: bool = False):
-        super().__init__(observable, ansatz, parameters, qfi_method, grad_method,
-                         is_error_supported)
+    def __init__(
+        self,
+        observable,
+        ansatz,
+        parameters,
+        qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
+        grad_method: Union[str, CircuitGradient] = "lin_comb",
+        is_error_supported: bool = False,
+    ):
+        super().__init__(
+            observable, ansatz, parameters, qfi_method, grad_method, is_error_supported
+        )
 
     @staticmethod
     @abstractmethod
-    def _calc_metric_tensor(raw_metric_tensor):
+    def _calc_metric_tensor(raw_metric_tensor: OperatorBase) -> OperatorBase:
         pass
 
     @staticmethod
     @abstractmethod
-    def _calc_evolution_grad(raw_evolution_grad):
+    def _calc_evolution_grad(raw_evolution_grad: OperatorBase) -> OperatorBase:
         pass

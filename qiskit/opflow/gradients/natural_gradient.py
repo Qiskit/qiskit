@@ -47,11 +47,13 @@ class NaturalGradient(GradientBase):
     where R(x) represents the penalization term.
     """
 
-    def __init__(self,
-                 grad_method: Union[str, CircuitGradient] = 'lin_comb',
-                 qfi_method: Union[str, CircuitQFI] = 'lin_comb_full',
-                 regularization: Optional[Union[str, Callable]] = None,
-                 **kwargs):
+    def __init__(
+        self,
+        grad_method: Union[str, CircuitGradient] = "lin_comb",
+        qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
+        regularization: Optional[Union[str, Callable]] = None,
+        **kwargs,
+    ):
         r"""
         Args:
             grad_method: The method used to compute the state gradient. Can be either
@@ -131,9 +133,9 @@ class NaturalGradient(GradientBase):
         c = x[0]
         a = x[1]
         if any(np.abs(np.imag(c_item)) > 1e-8 for c_item in c):
-            raise Warning('The imaginary part of the gradient are non-negligible.')
+            raise Warning("The imaginary part of the gradient are non-negligible.")
         if np.any([[np.abs(np.imag(a_item)) > 1e-8 for a_item in a_row] for a_row in a]):
-            raise Warning('The imaginary part of the gradient are non-negligible.')
+            raise Warning("The imaginary part of the gradient are non-negligible.")
         c = np.real(c)
         a = np.real(a)
 
@@ -141,17 +143,18 @@ class NaturalGradient(GradientBase):
             # If a regularization method is chosen then use a regularized solver to
             # construct the natural gradient.
 
-            nat_grad = NaturalGradient._regularized_sle_solver(
-                a, c, regularization=regularization)
+            nat_grad = NaturalGradient._regularized_sle_solver(a, c, regularization=regularization)
         else:
             # Check if numerical instabilities lead to a metric which is not positive semidefinite
             while True:
                 w, v = np.linalg.eigh(a)
 
                 if not all(ew >= -1e-8 for ew in w):
-                    raise Warning('The underlying metric has ein Eigenvalue < ', -1e-8,
-                                  '. Please use a regularized least-square solver for this '
-                                  'problem.')
+                    raise Warning(
+                        "The underlying metric has ein Eigenvalue < ",
+                        -1e-8,
+                        ". Please use a regularized least-square solver for this " "problem.",
+                    )
                 if not all(ew >= 0 for ew in w):
                     # If not all eigenvalues are non-negative, set them to a small positive
                     # value
@@ -166,7 +169,7 @@ class NaturalGradient(GradientBase):
             # except np.linalg.LinAlgError:
             nat_grad = np.linalg.lstsq(a, c, rcond=1e-2)[0]
             # try:
-                #             # Try to solve the system of linear equations Ax = C.
+            #             # Try to solve the system of linear equations Ax = C.
             #     nat_grad = np.linalg.solve(a, c)
             #
             #     if np.linalg.norm(nat_grad) > 1e2:
@@ -445,14 +448,16 @@ class NaturalGradient(GradientBase):
         return lambda_mc, x_mc
 
     @staticmethod
-    def _regularized_sle_solver(a: np.ndarray,
-                                c: np.ndarray,
-                                regularization: Union[str, Callable] = 'perturb_diag',
-                                lambda1: float = 1e-3,
-                                lambda4: float = 1.,
-                                alpha: float = 0.,
-                                tol_norm_x: Tuple[float, float] = (1e-8, 5.),
-                                tol_cond_a: float = 1000.) -> np.ndarray:
+    def _regularized_sle_solver(
+        a: np.ndarray,
+        c: np.ndarray,
+        regularization: Union[str, Callable] = "perturb_diag",
+        lambda1: float = 1e-3,
+        lambda4: float = 1.0,
+        alpha: float = 0.0,
+        tol_norm_x: Tuple[float, float] = (1e-8, 5.0),
+        tol_cond_a: float = 1000.0,
+    ) -> np.ndarray:
         """
         Solve a linear system of equations with a regularization method and automatic lambda fitting
         Args:
@@ -478,7 +483,7 @@ class NaturalGradient(GradientBase):
                 alpha *= 10
             # include perturbation in A to avoid singularity
             x, _, _, _ = np.linalg.lstsq(a + alpha * np.diag(a), c, rcond=None)
-        elif regularization == 'perturb_diag':
+        elif regularization == "perturb_diag":
             # l2 - regularization
             alpha = 1e-7
             while np.linalg.cond(a + alpha * np.eye(len(c))) > tol_cond_a:
@@ -486,8 +491,10 @@ class NaturalGradient(GradientBase):
             # include perturbation in A to avoid singularity
             x, _, _, _ = np.linalg.lstsq(a + alpha * np.eye(len(c)), c, rcond=None)
         elif isinstance(regularization, Callable):
+
             def argmin_fun(dt_omega):
                 return np.linalg.norm(np.dot(a, dt_omega) - c) - regularization(dt_omega)
+
             x = least_squares(argmin_fun, x0=NaturalGradient._ridge(a, c, lambda1=lambda1)[1]).x
         else:
             # include perturbation in A to avoid singularity
