@@ -50,7 +50,7 @@ class TestCXCancellation(QiskitTestCase):
         self.assertEqual(out_circuit, expected)
 
     def test_pass_cx_cancellation_intermixed_ops(self):
-        """Cancellation shouldn't be effected by the order of ops on different qubits."""
+        """Cancellation shouldn't be affected by the order of ops on different qubits."""
         qr = QuantumRegister(4)
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
