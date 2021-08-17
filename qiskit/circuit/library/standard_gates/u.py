@@ -272,7 +272,7 @@ class CUGate(ControlledGate):
             # CU has one additional parameter to the U base gate
             return self.base_gate.params + self._params
         else:
-            raise CircuitError("Controlled gate does not define base gate " "for extracting params")
+            raise CircuitError("Controlled gate does not define base gate for extracting params")
 
     @params.setter
     def params(self, parameters):
@@ -289,4 +289,4 @@ class CUGate(ControlledGate):
         if self.base_gate:
             self.base_gate.params = parameters[:-1]
         else:
-            raise CircuitError("Controlled gate does not define base gate " "for extracting params")
+            raise CircuitError("Controlled gate does not define base gate for extracting params")

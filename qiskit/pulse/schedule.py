@@ -1438,7 +1438,7 @@ class ParameterizedSchedule:
     ):
 
         warnings.warn(
-            "ParameterizedSchedule is deprecated. Use Schedule with " "circuit.Parameter objects.",
+            "ParameterizedSchedule is deprecated. Use Schedule with circuit.Parameter objects.",
             DeprecationWarning,
         )
 
@@ -1778,9 +1778,7 @@ def _check_nonnegative_timeslot(timeslots: TimeSlots):
     for chan, chan_timeslots in timeslots.items():
         if chan_timeslots:
             if chan_timeslots[0][0] < 0:
-                raise PulseError(
-                    "An instruction on {} has a negative " " starting time.".format(chan)
-                )
+                raise PulseError(f"An instruction on {chan} has a negative starting time.")
 
 
 def _get_timeslots(schedule: ScheduleComponent) -> TimeSlots:
