@@ -13,9 +13,9 @@
 """The Iterative Quantum Amplitude Estimation Algorithm."""
 
 from typing import Optional, Union, List, Tuple, Dict, cast
-from scipy.stats import beta
 import numpy as np
 from collections.abc import Mapping
+from scipy.stats import beta
 
 from qiskit import ClassicalRegister, QuantumCircuit
 from qiskit.providers import BaseBackend, Backend
