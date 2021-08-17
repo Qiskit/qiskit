@@ -31,7 +31,7 @@ class Barrier(Node):
         """Return the corresponding OPENQASM string."""
         if prec is not None:
             warnings.warn(
-                "Parameter 'Barrier.qasm(..., prec)' is no longer used and is being " "deprecated.",
+                "Parameter 'Barrier.qasm(..., prec)' is no longer used and is being deprecated.",
                 DeprecationWarning,
                 2,
             )

@@ -223,7 +223,7 @@ class ParameterExpression:
         }
         if conflicting_names:
             raise CircuitError(
-                "Name conflict applying operation for parameters: " "{}".format(conflicting_names)
+                f"Name conflict applying operation for parameters: {conflicting_names}"
             )
 
     def _apply_operation(
