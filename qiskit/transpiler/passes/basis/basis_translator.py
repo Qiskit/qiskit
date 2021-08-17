@@ -87,9 +87,14 @@ class BasisTranslator(TransformationPass):
         target_basis = set(self._target_basis).union(basic_instrs)
 
         source_basis = set()
+
+        save_states = {"save_statevector", "save_state", "save_statevector_dict"}
+        invalid_save_states = save_states.difference(target_basis)
+
         for node in dag.op_nodes():
             if not dag.has_calibration_for(node):
-                source_basis.add((node.name, node.op.num_qubits))
+                if node.name not in invalid_save_states:
+                    source_basis.add((node.name, node.op.num_qubits))
 
         logger.info(
             "Begin BasisTranslator from source basis %s to target " "basis %s.",
@@ -129,6 +134,13 @@ class BasisTranslator(TransformationPass):
         replace_start_time = time.time()
         for node in dag.op_nodes():
             if node.name in target_basis:
+                continue
+
+            if node.name in invalid_save_states:
+                logger.info(
+                    "Skipping {} instruction as it is not "
+                    "supported by the current backend.".format(node.name)
+                )
                 continue
 
             if dag.has_calibration_for(node):
