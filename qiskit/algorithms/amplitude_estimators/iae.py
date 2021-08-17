@@ -14,8 +14,8 @@
 
 from typing import Optional, Union, List, Tuple, Dict, cast
 from scipy.stats import beta
-from collections.abc import Mapping
 import numpy as np
+from collections.abc import Mapping
 
 from qiskit import ClassicalRegister, QuantumCircuit
 from qiskit.providers import BaseBackend, Backend

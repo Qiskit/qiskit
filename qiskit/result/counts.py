@@ -105,8 +105,6 @@ class Counts(UserDict):
                 header={"creg_sizes": creg_sizes, "memory_slots": memory_slots},
             )
 
-        self.bin_data = self.data = bin_data
-
         if not memory_slots:
             if creg_sizes:
                 memory_slots = sum((i[1] for i in creg_sizes))
@@ -116,6 +114,8 @@ class Counts(UserDict):
         self.creg_sizes = creg_sizes
         self.memory_slots = memory_slots
         self.time_taken = time_taken
+        self.bin_data = bin_data
+        super().__init__(bin_data)
 
     def __missing__(self, key):
         if isinstance(key, int):
