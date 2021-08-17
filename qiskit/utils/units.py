@@ -63,9 +63,9 @@ def apply_prefix(value: Union[float, ParameterExpression], unit: str) -> float:
 
     # to avoid round-off error of prefactor
     if pow10 < 0:
-        return value / 10 ** np.abs(pow10)
+        return value / pow(10, -pow10)
 
-    return value * 10 ** pow10
+    return value * pow(10, pow10)
 
 
 def detach_prefix(value: float, decimal: Optional[int] = None) -> Tuple[float, str]:
@@ -124,9 +124,9 @@ def detach_prefix(value: float, decimal: Optional[int] = None) -> Tuple[float, s
 
     # to avoid round-off error of prefactor
     if pow10 > 0:
-        mant = value / 10 ** pow10
+        mant = value / pow(10, pow10)
     else:
-        mant = value * 10 ** np.abs(pow10)
+        mant = value * pow(10, -pow10)
 
     if decimal is not None:
         # Corner case handling
@@ -137,6 +137,6 @@ def detach_prefix(value: float, decimal: Optional[int] = None) -> Tuple[float, s
             pow10 += 3
 
     if pow10 not in prefactors:
-        raise Exception(f"Value is out of range: {value}")
+        raise ValueError(f"Value is out of range: {value}")
 
     return mant, prefactors[pow10]
