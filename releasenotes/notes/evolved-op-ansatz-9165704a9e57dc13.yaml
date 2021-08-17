@@ -1,8 +1,0 @@
----
-features:
-  - |
-    Add the :class:`~qiskit.circuit.library.EvolvedOperatorAnsatz` library circuit, which
-    has previously been located in Qiskit Nature. This library circuit can be used to
-    construct ansatz circuits that consist of time-evolved operators, where the evolution time
-    is a variational parameter. Examples of such ansatz circuits include UCCSD in chemistry or
-    QAOA in optimization.

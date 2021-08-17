@@ -17,6 +17,7 @@ import numpy as np
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 from .matplotlib import HAS_MATPLOTLIB
 from .exceptions import VisualizationError
+from .utils import matplotlib_close_if_inline
 
 
 def plot_gate_map(
@@ -81,7 +82,6 @@ def plot_gate_map(
             name="plot_gate_map",
             pip_install="pip install matplotlib",
         )
-    from matplotlib import get_backend
     import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
 
@@ -478,8 +478,7 @@ def plot_gate_map(
     ax.set_ylim([-(y_max + 1), 1])
     ax.set_aspect("equal")
     if not input_axes:
-        if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
-            plt.close(fig)
+        matplotlib_close_if_inline(fig)
         return fig
     return None
 
@@ -629,7 +628,6 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
             pip_install="pip install matplotlib",
         )
     import matplotlib
-    from matplotlib import get_backend
     import matplotlib.pyplot as plt
     import matplotlib.gridspec as gridspec
     from matplotlib import ticker
@@ -788,6 +786,5 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
 
     if show_title:
         fig.suptitle(f"{backend.name()} Error Map", fontsize=24, y=0.9)
-    if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
-        plt.close(fig)
+    matplotlib_close_if_inline(fig)
     return fig

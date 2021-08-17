@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    Fixes the problem that when users convert a ListOp of PauliSumOp using
-    PauliExpectation and AerPauliExpectation, it will convert it to ListOp
-    of SummedOp of PauliOp and users will get a warning.
-    The new version will convert it as PauliSumOp, that is more efficient.

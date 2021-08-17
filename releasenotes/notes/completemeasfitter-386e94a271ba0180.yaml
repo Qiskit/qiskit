@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed an issue where the :class:`~qiskit.utils.QuantumInstance` class would potentially
+    try to use the :class:`~qiskit.ignis.mitigation.CompleteMeasFitter` class
+    before it was imported resulting in an error.
+    Fixed `#6774 <https://github.com/Qiskit/qiskit-terra/issues/6774>`__
