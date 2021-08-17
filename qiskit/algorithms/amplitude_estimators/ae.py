@@ -170,7 +170,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
                 y measurements with respective probabilities, in this order.
         """
         # compute grid sample and measurement dicts
-        if isinstance(circuit_results, (dict, Mapping)):
+        if isinstance(circuit_results, Mapping):
             samples, measurements = self._evaluate_count_results(circuit_results)
         else:
             samples, measurements = self._evaluate_statevector_results(circuit_results)
