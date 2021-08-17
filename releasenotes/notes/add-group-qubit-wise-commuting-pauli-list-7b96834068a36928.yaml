@@ -1,0 +1,12 @@
+---
+
+features:
+  - |
+    Added a new function,  `group_qubit_wise_commuting()`, which partitions a 
+    ``PauliList`` into sets of mutually qubit-wise commuting ``Pauli`` strings.
+    for example::
+      
+      from qiskit.quantum_info import PauliList,Pauli
+      pauli_list=PauliList([Pauli("IY"), Pauli("XX"),Pauli("YY"),Pauli("YX")])
+      pauli_list.group_qubit_wise_commuting()
+

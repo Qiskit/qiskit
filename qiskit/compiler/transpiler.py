@@ -14,7 +14,7 @@
 import logging
 import warnings
 from time import time
-from typing import List, Union, Dict, Callable, Any, Optional, Tuple
+from typing import List, Union, Dict, Callable, Any, Optional, Tuple, Iterable
 
 from qiskit import user_config
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -512,45 +512,47 @@ def _parse_transpile_args(
         )
 
     list_transpile_args = []
-    for args in zip(
-        basis_gates,
-        coupling_map,
-        backend_properties,
-        initial_layout,
-        layout_method,
-        routing_method,
-        translation_method,
-        scheduling_method,
-        durations,
-        approximation_degree,
-        timing_constraints,
-        seed_transpiler,
-        optimization_level,
-        output_name,
-        callback,
-        backend_num_qubits,
-        faulty_qubits_map,
+    for kwargs in _zip_dict(
+        {
+            "basis_gates": basis_gates,
+            "coupling_map": coupling_map,
+            "backend_properties": backend_properties,
+            "initial_layout": initial_layout,
+            "layout_method": layout_method,
+            "routing_method": routing_method,
+            "translation_method": translation_method,
+            "scheduling_method": scheduling_method,
+            "durations": durations,
+            "approximation_degree": approximation_degree,
+            "timing_constraints": timing_constraints,
+            "seed_transpiler": seed_transpiler,
+            "optimization_level": optimization_level,
+            "output_name": output_name,
+            "callback": callback,
+            "backend_num_qubits": backend_num_qubits,
+            "faulty_qubits_map": faulty_qubits_map,
+        }
     ):
         transpile_args = {
             "pass_manager_config": PassManagerConfig(
-                basis_gates=args[0],
-                coupling_map=args[1],
-                backend_properties=args[2],
-                initial_layout=args[3],
-                layout_method=args[4],
-                routing_method=args[5],
-                translation_method=args[6],
-                scheduling_method=args[7],
-                instruction_durations=args[8],
-                approximation_degree=args[9],
-                timing_constraints=args[10],
-                seed_transpiler=args[11],
+                basis_gates=kwargs["basis_gates"],
+                coupling_map=kwargs["coupling_map"],
+                backend_properties=kwargs["backend_properties"],
+                initial_layout=kwargs["initial_layout"],
+                layout_method=kwargs["layout_method"],
+                routing_method=kwargs["routing_method"],
+                translation_method=kwargs["translation_method"],
+                scheduling_method=kwargs["scheduling_method"],
+                instruction_durations=kwargs["durations"],
+                approximation_degree=kwargs["approximation_degree"],
+                timing_constraints=kwargs["timing_constraints"],
+                seed_transpiler=kwargs["seed_transpiler"],
             ),
-            "optimization_level": args[12],
-            "output_name": args[13],
-            "callback": args[14],
-            "backend_num_qubits": args[15],
-            "faulty_qubits_map": args[16],
+            "optimization_level": kwargs["optimization_level"],
+            "output_name": kwargs["output_name"],
+            "callback": kwargs["callback"],
+            "backend_num_qubits": kwargs["backend_num_qubits"],
+            "faulty_qubits_map": kwargs["faulty_qubits_map"],
         }
         list_transpile_args.append(transpile_args)
 
@@ -873,3 +875,11 @@ def _parse_timing_constraints(backend, timing_constraints, num_circuits):
         timing_constraints = TimingConstraints(**timing_constraints)
 
     return [timing_constraints] * num_circuits
+
+
+def _zip_dict(mapping: Dict[Any, Iterable]) -> Iterable[Dict]:
+    """Zip a dictionary where all the values are iterables of the same length into an iterable of
+    dictionaries with the same keys.  This has the same semantics as zip with regard to laziness
+    (over the iterables; there must be a finite number of keys!) and unequal lengths."""
+    keys, iterables = zip(*mapping.items())
+    return (dict(zip(keys, values)) for values in zip(*iterables))

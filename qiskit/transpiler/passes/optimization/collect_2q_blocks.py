@@ -39,12 +39,12 @@ class Collect2qBlocks(AnalysisPass):
         for i, qubit in enumerate(dag.qubits):
             to_qid[qubit] = i
         for node in dag.topological_op_nodes():
-            qids = [to_qid[q] for q in node._qargs]
+            qids = [to_qid[q] for q in node.qargs]
             if (
-                not isinstance(node._op, Gate)
+                not isinstance(node.op, Gate)
                 or len(qids) > 2
-                or node._op.condition
-                or node._op.is_parameterized()
+                or node.op.condition
+                or node.op.is_parameterized()
             ):
                 for qid in qids:
                     if block_id[qid] > 0:
