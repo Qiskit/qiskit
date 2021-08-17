@@ -16,6 +16,7 @@
 
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Gate
+from qiskit.dagcircuit import DAGOpNode
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.synthesis import TwoQubitBasisDecomposer
 from qiskit.extensions import UnitaryGate
@@ -83,7 +84,7 @@ class ConsolidateBlocks(TransformationPass):
         for node in dag.topological_op_nodes():
             if node not in all_block_nodes:
                 # need to add this node to find out where in the list it goes
-                preds = [nd for nd in dag.predecessors(node) if nd.type == "op"]
+                preds = [nd for nd in dag.predecessors(node) if isinstance(nd, DAGOpNode)]
 
                 block_count = 0
                 while preds:
@@ -97,7 +98,7 @@ class ConsolidateBlocks(TransformationPass):
                         # nodes before this one topologically had been added
                         # so not all predecessors were removed
                         raise TranspilerError(
-                            "Not all predecessors removed due to error" " in topological order"
+                            "Not all predecessors removed due to error in topological order"
                         )
 
                     block_count += 1
@@ -112,7 +113,7 @@ class ConsolidateBlocks(TransformationPass):
             if len(block) == 1 and block[0].name != basis_gate_name:
                 # pylint: disable=too-many-boolean-expressions
                 if (
-                    block[0].type == "op"
+                    isinstance(block[0], DAGOpNode)
                     and self.basis_gates
                     and block[0].name not in self.basis_gates
                     and len(block[0].cargs) == 0
@@ -133,7 +134,7 @@ class ConsolidateBlocks(TransformationPass):
                 block_cargs = set()
                 for nd in block:
                     block_qargs |= set(nd.qargs)
-                    if nd.type == "op" and nd.op.condition:
+                    if isinstance(nd, DAGOpNode) and nd.op.condition:
                         block_cargs |= set(nd.op.condition[0])
                 # convert block to a sub-circuit, then simulate unitary and add
                 q = QuantumRegister(len(block_qargs))

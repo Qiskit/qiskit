@@ -55,7 +55,7 @@ class Opaque(Node):
         """Return the corresponding OPENQASM string."""
         if prec is not None:
             warnings.warn(
-                "Parameter 'Opaque.qasm(..., prec)' is no longer used and is being " "deprecated.",
+                "Parameter 'Opaque.qasm(..., prec)' is no longer used and is being deprecated.",
                 DeprecationWarning,
                 2,
             )

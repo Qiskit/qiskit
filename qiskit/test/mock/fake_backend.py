@@ -132,8 +132,7 @@ class FakeBackend(BackendV1):
         if pulse_job is None:
             raise QiskitError(
                 "Invalid input object %s, must be either a "
-                "QuantumCircuit, Schedule, or a list of "
-                "either" % circuits
+                "QuantumCircuit, Schedule, or a list of either" % circuits
             )
         if HAS_AER:
             if pulse_job:
@@ -153,7 +152,7 @@ class FakeBackend(BackendV1):
                     job = sim.run(circuits, **kwargs)
         else:
             if pulse_job:
-                raise QiskitError("Unable to run pulse schedules without " "qiskit-aer installed")
+                raise QiskitError("Unable to run pulse schedules without qiskit-aer installed")
             warnings.warn("Aer not found using BasicAer and no noise", RuntimeWarning)
             sim = basicaer.BasicAer.get_backend("qasm_simulator")
             job = sim.run(circuits, **kwargs)
@@ -246,7 +245,7 @@ class FakeLegacyBackend(BaseBackend):
             out_job._future = job._future
         else:
             if qobj.type == "PULSE":
-                raise QiskitError("Unable to run pulse schedules without " "qiskit-aer installed")
+                raise QiskitError("Unable to run pulse schedules without qiskit-aer installed")
             warnings.warn("Aer not found using BasicAer and no noise", RuntimeWarning)
 
             def run_job():

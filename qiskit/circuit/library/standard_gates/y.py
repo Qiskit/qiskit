@@ -12,6 +12,7 @@
 
 """Y and CY gates."""
 
+from typing import Optional, Union
 import numpy
 from qiskit.qasm import pi
 
@@ -64,7 +65,7 @@ class YGate(Gate):
         |1\rangle \rightarrow -i|0\rangle
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label: Optional[str] = None):
         """Create new Y gate."""
         super().__init__("y", 1, [], label=label)
 
@@ -81,7 +82,12 @@ class YGate(Gate):
 
         self.definition = qc
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Return a (multi-)controlled-Y gate.
 
         One control returns a CY gate.
@@ -166,7 +172,7 @@ class CYGate(ControlledGate):
     _matrix1 = numpy.array([[1, 0, 0, 0], [0, 0, 0, -1j], [0, 0, 1, 0], [0, 1j, 0, 0]])
     _matrix0 = numpy.array([[0, 0, -1j, 0], [0, 1, 0, 0], [1j, 0, 0, 0], [0, 0, 0, 1]])
 
-    def __init__(self, label=None, ctrl_state=None):
+    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CY gate."""
         super().__init__(
             "cy", 2, [], num_ctrl_qubits=1, label=label, ctrl_state=ctrl_state, base_gate=YGate()
