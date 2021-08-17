@@ -42,9 +42,12 @@ class TestCXCancellation(QiskitTestCase):
         pass_manager = PassManager()
         pass_manager.append(CXCancellation())
         out_circuit = pass_manager.run(circuit)
-        resources_after = out_circuit.count_ops()
 
-        self.assertNotIn("cx", resources_after)
+        expected = QuantumCircuit(qr)
+        expected.h(qr[0])
+        expected.h(qr[0])
+
+        self.assertEqual(out_circuit, expected)
 
     def test_pass_cx_cancellation_intermixed_ops(self):
         """Cancellation shouldn't be effected by the order of ops on different qubits."""
@@ -60,9 +63,12 @@ class TestCXCancellation(QiskitTestCase):
         pass_manager = PassManager()
         pass_manager.append(CXCancellation())
         out_circuit = pass_manager.run(circuit)
-        resources_after = out_circuit.count_ops()
 
-        self.assertNotIn("cx", resources_after)
+        expected = QuantumCircuit(qr)
+        expected.h(qr[0])
+        expected.h(qr[1])
+
+        self.assertEqual(out_circuit, expected)
 
     def test_pass_cx_cancellation_chained_cx(self):
         """Include a test were not all operations can be cancelled."""
@@ -79,10 +85,15 @@ class TestCXCancellation(QiskitTestCase):
         pass_manager = PassManager()
         pass_manager.append(CXCancellation())
         out_circuit = pass_manager.run(circuit)
-        resources_after = out_circuit.count_ops()
 
-        self.assertIn("cx", resources_after)
-        self.assertEqual(resources_after["cx"], 3)
+        expected = QuantumCircuit(qr)
+        expected.h(qr[0])
+        expected.h(qr[1])
+        expected.cx(qr[0], qr[1])
+        expected.cx(qr[1], qr[2])
+        expected.cx(qr[0], qr[1])
+
+        self.assertEqual(out_circuit, expected)
 
     def test_swapped_cx(self):
         """Test that CX isn't cancelled if there are intermediary ops."""
@@ -95,10 +106,7 @@ class TestCXCancellation(QiskitTestCase):
         pass_manager = PassManager()
         pass_manager.append(CXCancellation())
         out_circuit = pass_manager.run(circuit)
-        resources_after = out_circuit.count_ops()
-
-        self.assertIn("cx", resources_after)
-        self.assertEqual(resources_after["cx"], 2)
+        self.assertEqual(out_circuit, circuit)
 
     def test_inverted_cx(self):
         """Test that CX order dependence is respected."""
@@ -111,7 +119,4 @@ class TestCXCancellation(QiskitTestCase):
         pass_manager = PassManager()
         pass_manager.append(CXCancellation())
         out_circuit = pass_manager.run(circuit)
-        resources_after = out_circuit.count_ops()
-
-        self.assertIn("cx", resources_after)
-        self.assertEqual(resources_after["cx"], 3)
+        self.assertEqual(out_circuit, circuit)
