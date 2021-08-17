@@ -15,9 +15,9 @@ Visualization functions for measurement counts.
 """
 
 from collections import Counter, OrderedDict
+from collections.abc import Mapping
 import functools
 import numpy as np
-from collections.abc import Mapping
 
 from qiskit.exceptions import MissingOptionalLibraryError
 from .matplotlib import HAS_MATPLOTLIB
