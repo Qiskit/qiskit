@@ -16,5 +16,4 @@ from qiskit.opflow import StateFn, Gradient, CircuitGradient
 
 def build(observable, ansatz, parameters, grad_method: Union[str, CircuitGradient] = 'lin_comb'):
     operator = ~StateFn(observable) @ StateFn(ansatz)
-    print(operator)
     return Gradient(grad_method).convert(operator, parameters)

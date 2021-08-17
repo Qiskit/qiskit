@@ -11,7 +11,10 @@
 # that they have been altered from the originals.
 import unittest
 
-from qiskit.algorithms.quantum_time_evolution.variational.principles.evolution_grad_calculator import \
+import numpy as np
+
+from qiskit.algorithms.quantum_time_evolution.variational.principles.evolution_grad_calculator \
+    import \
     build
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import SummedOp, X, Y, I, Z
@@ -31,7 +34,31 @@ class TestEvolutionGradBuilder(QiskitAlgorithmsTestCase):
         # Define a set of initial parameters
         parameters = ansatz.ordered_parameters
         evolution_grad = build(observable, ansatz, parameters)
-        print(evolution_grad)
+
+        values_dict = [
+            {param: np.pi / 4 for param in parameters},
+            {param: np.pi / 2 for param in parameters},
+        ]
+
+        correct_values = [[(-0.38617868191914206 + 0j), (-0.014055349300198364 + 0j),
+                           (-0.06385049040183734 + 0j), (0.13620629212619334 + 0j),
+                           (-0.15180743339043595 + 0j), (-0.2378393653877069 + 0j),
+                           (0.0024060546876464237 + 0j), (0.09977051760912459 + 0j),
+                           (0.40357721595080603 + 0j), (0.010453846462186653 + 0j),
+                           (-0.04578581127401049 + 0j), (0.04578581127401063 + 0j)],
+
+                          [(0.4346999999999997 + 0j), (-1.506822e-16 + 0j), (2.382098e-16 + 0j),
+                           (0.6625999999999991 + 0j),
+                           (1.2198439999999998e-16 + 0j), (-3.84024e-17 + 0j),
+                           (-0.34349999999999986 + 0j),
+                           (-1.5190600000000002e-16 + 0j), (1.314352e-16 + 0j),
+                           (-1.1215120000000001e-16 + 0j),
+                           (-4.69858e-17 + 0j), (-8.13302e-17 + 0j)]]
+
+        for i, value_dict in enumerate(values_dict):
+            np.testing.assert_array_almost_equal(
+                evolution_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
+            )
 
 
 if __name__ == "__main__":
