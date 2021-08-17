@@ -159,8 +159,7 @@ class QCircuitImage:
 
         self._initialize_latex_array()
         self._build_latex_array()
-        header_1 = r"""\documentclass[border=2px]{standalone}
-        """
+        header_1 = r"\documentclass[border=2px]{standalone}" + "\n"
 
         header_2 = r"""
 \usepackage[braket, qm]{qcircuit}
@@ -190,7 +189,7 @@ class QCircuitImage:
                 if j != self.img_depth:
                     output.write(" & ")
                 else:
-                    output.write(r"\\ " + "\n")
+                    output.write(r"\\" + "\n")
         output.write(r"\\ " + "}}\n")
         output.write("\\end{document}")
         contents = output.getvalue()
