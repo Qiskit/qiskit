@@ -13,7 +13,7 @@
 """
 Testing inverse_cancellation
 """
-from numpy import pi
+import numpy as np 
 
 from qiskit import QuantumCircuit
 from qiskit.transpiler.basepasses import TransformationPass
@@ -60,9 +60,9 @@ class TestCancellation(QiskitTestCase):
     
     def test_inverse_cancellation_rx1(self):
         qc = QuantumCircuit(2,2)
-        qc.rx(pi/4, 0)
-        qc.rx(-pi/4, 0)
-        pass_ = Cancellation([(RXGate(pi/4), RXGate(-pi/4))])
+        qc.rx(np.pi/4, 0)
+        qc.rx(-np.pi/4, 0)
+        pass_ = Cancellation([(RXGate(np.pi/4), RXGate(-np.pi/4))])
         pm = PassManager(pass_)
         new_circ = pm.run(qc)
         gates_after = new_circ.count_ops()
@@ -70,9 +70,9 @@ class TestCancellation(QiskitTestCase):
 
     def test_inverse_cancellation_rx2(self):
         qc = QuantumCircuit(2,2)
-        qc.rx(pi/4, 0)
-        qc.rx(pi/4, 0)
-        pass_ = Cancellation([(RXGate(pi/4), RXGate(-pi/4))])
+        qc.rx(np.pi/4, 0)
+        qc.rx(np.pi/4, 0)
+        pass_ = Cancellation([(RXGate(np.pi/4), RXGate(-np.pi/4))])
         pm = PassManager(pass_)
         new_circ = pm.run(qc)
         gates_after = new_circ.count_ops()
@@ -81,8 +81,8 @@ class TestCancellation(QiskitTestCase):
     
     def test_inverse_cancellation_rx3(self):
         qc = QuantumCircuit(2,2)
-        qc.rx(pi/2, 0)
-        qc.rx(pi/4, 0)
+        qc.rx(np.pi/2, 0)
+        qc.rx(np.pi/4, 0)
         with self.assertRaises(TranspilerError):
             pass_ = Cancellation([RXGate(0.5)])
 
@@ -103,9 +103,9 @@ class TestCancellation(QiskitTestCase):
 
     def test_inverse_cancellation_p(self):
         qc = QuantumCircuit(2,2)
-        qc.p(pi/4, 0)
-        qc.p(-pi/4, 0)
-        pass_ = Cancellation([(PhaseGate(pi/4), PhaseGate(-pi/4))])
+        qc.p(np.pi/4, 0)
+        qc.p(-np.pi/4, 0)
+        pass_ = Cancellation([(PhaseGate(np.pi/4), PhaseGate(-np.pi/4))])
         pm = PassManager(pass_)
         new_circ = pm.run(qc)
         gates_after = new_circ.count_ops()

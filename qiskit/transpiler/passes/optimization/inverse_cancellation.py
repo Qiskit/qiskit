@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-A generic gate-inverse cancellation pass for a broad set of gate-inverse pairs.
+A generic gate-inverse cancellation pass for any set of gate-inverse pairs.
 """
 from typing import List, Tuple, Union
 
@@ -22,28 +22,29 @@ from qiskit.transpiler.exceptions import TranspilerError
 
 
 class Cancellation(TransformationPass):
-    """Cancel back-to-back `gates` in dag."""
+    """Cancel specific Gates which are inverses of each other when they occur back-to-
+    back."""
 
     def __init__(self, gates_to_cancel: List[Union[Gate, Tuple[Gate, Gate]]]):
-        """Initialize gates_to_cancel.
+        """Initialize Cancellation pass.
+
+        Cancellation: Only cancels back-to-back self-inverse gates passed as a Gate or 
+        back-to-back gate-inverse pairs with two angle inputs that are inverse. 
 
         Args:
             gates_to_cancel: list of gates to cancel 
         """
+
         for gates in gates_to_cancel:
-            if isinstance(gates, Gate):
-                
-                if gates != gates.inverse():
-                    raise TranspilerError('Gates are not self inverse')
-            else: 
-                if isinstance(gates, tuple):
-                    if len(gates) != 2:
-                        raise TranspilerError('Too many or too few inputs')
-                    else:
-                        if gates[0] != gates[1].inverse():
-                            raise TranspilerError('Gates are not inverse')
-                else:
-                    raise TranspilerError('Argument does not take input type')
+            if isinstance(gates, Gate) and gates != gates.inverse():
+                    raise TranspilerError("Gates are not self inverse")
+            elif isinstance(gates, tuple):
+                if len(gates) != 2:
+                        raise TranspilerError("Too many or too few inputs. Only two allowed.")
+                elif gates[0] != gates[1].inverse():
+                            raise TranspilerError("Gates are not inverse. Gate angles must be inverse.")
+            else:
+                raise TranspilerError("Argument does not take input type. Input must be a Gate.")
 
         self.gates_to_cancel = gates_to_cancel
         super().__init__()
@@ -82,11 +83,21 @@ class Cancellation(TransformationPass):
         """
         gate_cancel_runs = dag.collect_runs([gate.name for gate in self_inverse_gates])
         for gate_cancel_run in gate_cancel_runs:
-            if len(gate_cancel_run) % 2 == 0:
-                dag.remove_op_node(gate_cancel_run[0])
-            for node in gate_cancel_run[1:]:
-                dag.remove_op_node(node)
-        return dag
+            partitions = []
+            chunk = []
+            for i in range(len(gate_cancel_run) - 1):
+                chunk.append(gate_cancel_run[i])
+                if cx_run[i].qargs != gate_cancel_run[i + 1].qargs:
+                    partitions.append(chunk)
+                    chunk = []
+            chunk.append(gate_cancel_run[-1])
+            partitions.append(chunk)
+            # Remove an even number of gates from each chunk
+            for chunk in partitions:
+                if len(chunk) % 2 == 0:
+                    dag.remove_op_node(chunk[0])
+                for node in chunk[1:]:
+                    dag.remove_op_node(node)
 
     def _run_on_inverse_pairs(self, dag: DAGCircuit, inverse_gate_pairs: List[Tuple[Gate, Gate]]):
         """
@@ -101,13 +112,13 @@ class Cancellation(TransformationPass):
         """
         for pair in inverse_gate_pairs:
             gate_cancel_runs = dag.collect_runs([pair[0].name]) 
-            for dag_node in gate_cancel_runs:
-                for i in range(len(dag_node) - 1):
-                    if dag_node[i].op == pair[0] and dag_node[i + 1].op == pair[1]:
-                        dag.remove_op_node(dag_node[i])
-                        dag.remove_op_node(dag_node[i + 1])
-                    elif dag_node[i].op == pair[1] and dag_node[i + 1].op == pair[0]:
-                        dag.remove_op_node(dag_node[i])
-                        dag.remove_op_node(dag_node[i + 1])
+            for dag_nodes in gate_cancel_runs:
+                for i in range(len(dag_nodes) - 1):
+                    if dag_nodes[i].op == pair[0] and dag_nodes[i + 1].op == pair[1]:
+                        dag.remove_op_node(dag_nodes[i])
+                        dag.remove_op_node(dag_nodes[i + 1])
+                    elif dag_nodes[i].op == pair[1] and dag_nodes[i + 1].op == pair[0]:
+                        dag.remove_op_node(dag_nodes[i])
+                        dag.remove_op_node(dag_nodes[i + 1])
 
         return dag

@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Introduced a new feature ``Cancellation`` that generalizes the ``CXCancellation`` 
+    pass to cancel any self-inverse gates or gate-inverse pairs. It can be used by 
+    initializing ``Cancellation`` and passing a gate to cancel, for example::
+
+      from qiskit.transpiler.passes import Cancellation
+      from qiskit.circuit.library import HGate
+      Cancellation([HGate])
+
