@@ -20,7 +20,7 @@ from qiskit.qasm import pi
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 
 
 class RXGate(Gate):
@@ -95,8 +95,6 @@ class RXGate(Gate):
 
         :math:`RX(\lambda)^{\dagger} = RX(-\lambda)`
         """
-        from qiskit.circuit import ParameterExpression
-
         if isinstance(self.params[0], ParameterExpression):
             if self.params[0].parameters:
                 return RXGate(
