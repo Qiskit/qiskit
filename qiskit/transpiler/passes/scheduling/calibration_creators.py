@@ -31,6 +31,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.providers import basebackend
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.circuit.library.standard_gates import RZXGate
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.transpiler.basepasses import TransformationPass
 
 
@@ -174,7 +175,11 @@ class RZXCalibrationBuilder(CalibrationCreator):
             QiskitError: if the control and target qubits cannot be identified or the backend
                 does not support cx between the qubits.
         """
-        theta = params[0]
+        if isinstance(params[0], ParameterExpression):
+            theta = float(params[0]._symbol_expr)
+        else:
+            theta = params[0]
+
         q1, q2 = qubits[0], qubits[1]
 
         if not self._inst_map.has("cx", qubits):
