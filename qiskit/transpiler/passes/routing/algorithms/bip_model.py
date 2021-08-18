@@ -341,7 +341,7 @@ class BIPMappingModel:
             for h in range(1, self.num_vqubits):
                 mdl.add_constraint(
                     sum(w[0, p, 0] for p in range(h))
-                    + sum([w[0, q, self.num_pqubits - 1] for q in range(h, self.num_vqubits)])
+                    + sum(w[0, q, self.num_pqubits - 1] for q in range(h, self.num_vqubits))
                     >= 1,
                     ctname=f"sym_break_line_{h}",
                 )

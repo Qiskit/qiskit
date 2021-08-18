@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    A new function :func:`~qiskit.visualization.plot_coupling_map()` has been introduced, which
+    extends the functionality of the existing function
+    :func:`~qiskit.visualization.plot_gate_map()`, by accepting three parameters; ``num_qubit``,
+    ``qubit_coordinates``, and ``coupling_map`` (instead of ``backend``) to allow an arbitrary
+    qubit coupling map to be plotted.

@@ -1064,12 +1064,12 @@ class MatplotlibDrawer:
             return
 
         c_xy = self._data[node]["c_xy"]
-        xpos = min([x[0] for x in xy])
-        ypos = min([y[1] for y in xy])
-        ypos_max = max([y[1] for y in xy])
+        xpos = min(x[0] for x in xy)
+        ypos = min(y[1] for y in xy)
+        ypos_max = max(y[1] for y in xy)
         if c_xy:
-            cxpos = min([x[0] for x in c_xy])
-            cypos = min([y[1] for y in c_xy])
+            cxpos = min(x[0] for x in c_xy)
+            cypos = min(y[1] for y in c_xy)
             ypos = min(ypos, cypos)
 
         wid = max(self._data[node]["width"] + 0.21, WID)
