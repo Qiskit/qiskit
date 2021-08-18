@@ -20,7 +20,7 @@ from qiskit import exceptions
 
 
 class Counts(UserDict, dict):
-    # TODO Remove dict subclassing when ignis get removed, since ignis check for the type
+    # TODO Remove dict subclassing when ignis get removed, since ignis `isinstance(.., dict)`
     # https://github.com/Qiskit/qiskit-ignis/blob/master/qiskit/ignis/mitigation/measurement/filters.py#L111
     """A class to store a counts result from a circuit execution."""
 
