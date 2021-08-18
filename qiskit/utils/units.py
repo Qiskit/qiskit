@@ -31,7 +31,8 @@ def apply_prefix(value: Union[float, ParameterExpression], unit: str) -> float:
     Returns:
         Converted value.
 
-    Note:
+    .. note::
+
         This may induce tiny value error due to internal representation of float object.
         See https://docs.python.org/3/tutorial/floatingpoint.html for details.
 
