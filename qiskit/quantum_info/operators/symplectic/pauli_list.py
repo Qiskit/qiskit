@@ -287,7 +287,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             if len(index) == 1:
                 index = index[0]
             elif len(index) > 2:
-                raise IndexError("Invalid PauliList index {}".format(index))
+                raise IndexError(f"Invalid PauliList index {index}")
 
         # Row-only indexing
         if isinstance(index, (int, np.integer)):
@@ -312,7 +312,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             if len(index) == 1:
                 index = index[0]
             elif len(index) > 2:
-                raise IndexError("Invalid PauliList index {}".format(index))
+                raise IndexError(f"Invalid PauliList index {index}")
 
         # Modify specified rows of the PauliList
         if not isinstance(value, PauliList):
@@ -1011,7 +1011,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             """Label representation iteration and item access."""
 
             def __repr__(self):
-                return "<PauliList_label_iterator at {}>".format(hex(id(self)))
+                return f"<PauliList_label_iterator at {hex(id(self))}>"
 
             def __getitem__(self, key):
                 return self.obj._to_label(self.obj._z[key], self.obj._x[key], self.obj._phase[key])
@@ -1038,7 +1038,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             """Matrix representation iteration and item access."""
 
             def __repr__(self):
-                return "<PauliList_matrix_iterator at {}>".format(hex(id(self)))
+                return f"<PauliList_matrix_iterator at {hex(id(self))}>"
 
             def __getitem__(self, key):
                 return self.obj._to_matrix(

@@ -174,7 +174,7 @@ class DrawerCanvas:
 
             if t0b < t0 and t1b > t1:
                 raise VisualizationError(
-                    "Axis break is greater than time window. " "Nothing will be drawn."
+                    "Axis break is greater than time window. Nothing will be drawn."
                 )
             if t0b < t0 < t1b:
                 if t1b - t0 > self.formatter["axis_break.length"]:
@@ -357,7 +357,7 @@ class DrawerCanvas:
                 t_end = int(np.round(t_end / self.device.dt))
             else:
                 raise VisualizationError(
-                    "Setting time range with SI units requires " "backend `dt` information."
+                    "Setting time range with SI units requires backend `dt` information."
                 )
         self.time_range = (t_start, t_end)
 
