@@ -290,13 +290,11 @@ class AmplitudeEstimation(AmplitudeEstimator):
         # check if A factory or state_preparation has been set
         if estimation_problem.state_preparation is None:
             raise ValueError(
-                "The state_preparation property of the estimation problem must be " "set."
+                "The state_preparation property of the estimation problem must be set."
             )
 
         if estimation_problem.objective_qubits is None:
-            raise ValueError(
-                "The objective_qubits property of the estimation problem must be " "set."
-            )
+            raise ValueError("The objective_qubits property of the estimation problem must be set.")
 
         result = AmplitudeEstimationResult()
         result.num_evaluation_qubits = self._m

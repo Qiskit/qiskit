@@ -225,7 +225,7 @@ class QuantumCircuit:
             self._name_update()
         elif not isinstance(name, str):
             raise CircuitError(
-                "The circuit name should be a string " "(or None to auto-generate a name)."
+                "The circuit name should be a string (or None to auto-generate a name)."
             )
         else:
             self._base_name = name
@@ -559,7 +559,7 @@ class QuantumCircuit:
         Returns:
             QuantumCircuit: A circuit implementing this circuit raised to the power of ``power``.
         """
-        if power >= 0 and isinstance(power, int) and not matrix_power:
+        if power >= 0 and isinstance(power, (int, np.integer)) and not matrix_power:
             return self.repeat(power)
 
         # attempt conversion to gate
@@ -812,7 +812,7 @@ class QuantumCircuit:
 
         if other.num_qubits > self.num_qubits or other.num_clbits > self.num_clbits:
             raise CircuitError(
-                "Trying to compose with another QuantumCircuit " "which has more 'in' edges."
+                "Trying to compose with another QuantumCircuit which has more 'in' edges."
             )
 
         # number of qubits and clbits must match number in circuit or None
@@ -1149,7 +1149,7 @@ class QuantumCircuit:
                 )
 
             raise CircuitError(
-                "Object to append must be an Instruction or " "have a to_instruction() method."
+                "Object to append must be an Instruction or have a to_instruction() method."
             )
         if not isinstance(instruction, Instruction) and hasattr(instruction, "to_instruction"):
             instruction = instruction.to_instruction()
@@ -1289,9 +1289,7 @@ class QuantumCircuit:
         """Add Bits to the circuit."""
         duplicate_bits = set(self.qubits + self.clbits).intersection(bits)
         if duplicate_bits:
-            raise CircuitError(
-                "Attempted to add bits found already in circuit: " "{}".format(duplicate_bits)
-            )
+            raise CircuitError(f"Attempted to add bits found already in circuit: {duplicate_bits}")
 
         for bit in bits:
             if isinstance(bit, AncillaQubit):
@@ -3924,7 +3922,7 @@ class QuantumCircuit:
             for inst, _, _ in self.data:
                 if not isinstance(inst, Delay):
                     raise CircuitError(
-                        "qubit_start_time undefined. " "Circuit must be scheduled first."
+                        "qubit_start_time undefined. Circuit must be scheduled first."
                     )
             return 0
 
@@ -3966,7 +3964,7 @@ class QuantumCircuit:
             for inst, _, _ in self.data:
                 if not isinstance(inst, Delay):
                     raise CircuitError(
-                        "qubit_stop_time undefined. " "Circuit must be scheduled first."
+                        "qubit_stop_time undefined. Circuit must be scheduled first."
                     )
             return 0
 
@@ -4054,20 +4052,20 @@ def _get_composite_circuit_qasm_from_instruction(instruction: Instruction) -> st
         gate_qargs = ",".join(
             ["q%i" % index for index in [definition_bit_labels[qubit] for qubit in qargs]]
         )
-        composite_circuit_gates += "%s %s; " % (sub_instruction.qasm(), gate_qargs)
+        composite_circuit_gates += f"{sub_instruction.qasm()} {gate_qargs}; "
 
     if composite_circuit_gates:
         composite_circuit_gates = composite_circuit_gates.rstrip(" ")
 
     if gate_parameters:
-        qasm_string = "gate %s(%s) %s { %s }" % (
+        qasm_string = "gate {}({}) {} {{ {} }}".format(
             instruction.name,
             gate_parameters,
             qubit_parameters,
             composite_circuit_gates,
         )
     else:
-        qasm_string = "gate %s %s { %s }" % (
+        qasm_string = "gate {} {} {{ {} }}".format(
             instruction.name,
             qubit_parameters,
             composite_circuit_gates,
@@ -4091,7 +4089,5 @@ def _insert_composite_gate_definition_qasm(
             qasm_string = _get_composite_circuit_qasm_from_instruction(instruction)
         gate_definition_string += "\n" + qasm_string
 
-    string_temp = string_temp.replace(
-        extension_lib, "%s%s" % (extension_lib, gate_definition_string)
-    )
+    string_temp = string_temp.replace(extension_lib, f"{extension_lib}{gate_definition_string}")
     return string_temp
