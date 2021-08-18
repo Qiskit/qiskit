@@ -293,7 +293,7 @@ def _parse_common_args(
     max_shots = getattr(backend_config, "max_shots", None)
     if shots is None:
         if max_shots:
-            shots = min(1024, max_shots)
+            shots = min(backend._options.shots, max_shots)
         else:
             shots = 1024
     elif not isinstance(shots, int):
