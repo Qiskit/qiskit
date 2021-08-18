@@ -93,7 +93,8 @@ def detach_prefix(value: float, decimal: Optional[int] = None) -> Tuple[float, s
     Returns:
         A tuple of scaled value and prefix.
 
-    Note:
+    .. note::
+
         This may induce tiny value error due to internal representation of float object.
         See https://docs.python.org/3/tutorial/floatingpoint.html for details.
 
