@@ -121,7 +121,13 @@ class TestUnitConversion(QiskitTestCase):
         """Test if same value can be obtained."""
         unit = "Hz"
 
-        for prefix in ["P", "T", "G", "k", "m", "u", "n", "p", "f"]:
+        for prefix in ["P", "T", "G", "k", "m", "µ", "n", "p", "f"]:
             scaled_val = apply_prefix(value, prefix + unit)
-            test_val, _ = detach_prefix(scaled_val)
+            test_val, ret_prefix = detach_prefix(scaled_val)
             self.assertAlmostEqual(test_val, value)
+            self.assertEqual(prefix, ret_prefix)
+
+    def test_get_symbol_mu(self):
+        """Test if µ is returned rather than u."""
+        _, prefix = detach_prefix(3e-6)
+        self.assertEqual(prefix, "µ")
