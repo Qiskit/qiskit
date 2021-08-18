@@ -1,9 +1,9 @@
 \documentclass[border=2px]{standalone}
-        
+
 \usepackage[braket, qm]{qcircuit}
 \usepackage{graphicx}
 
-\begin{document} 
+\begin{document}
 \scalebox{1.0}{
 \Qcircuit @C=1.0em @R=0.2em @!R { \\
 	 	\nghost{ {q}_{0} :  } & \lstick{ {q}_{0} :  } & \gate{\mathrm{U}\,(\mathrm{0.3,0.2,0.1})} & \qw \barrier[0em]{2} & \qw & \ctrl{1} & \gate{\mathrm{H}} & \meter & \qw & \qw & \qw & \qw & \qw\\ 

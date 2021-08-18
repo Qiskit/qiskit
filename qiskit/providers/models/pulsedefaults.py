@@ -282,7 +282,7 @@ class PulseDefaults:
         meas_freqs = [freq / 1e9 for freq in self.meas_freq_est]
         qfreq = f"Qubit Frequencies [GHz]\n{qubit_freqs}"
         mfreq = f"Measurement Frequencies [GHz]\n{meas_freqs} "
-        return "<{name}({insts}{qfreq}\n{mfreq})>" "".format(
+        return "<{name}({insts}{qfreq}\n{mfreq})>".format(
             name=self.__class__.__name__,
             insts=str(self.instruction_schedule_map),
             qfreq=qfreq,
