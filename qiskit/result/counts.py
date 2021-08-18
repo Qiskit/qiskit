@@ -19,7 +19,9 @@ from qiskit.result import postprocess
 from qiskit import exceptions
 
 
-class Counts(UserDict):
+class Counts(UserDict, dict):
+    # TODO Remove dict subclassing when ignis get removed, since ignis check for the type
+    # https://github.com/Qiskit/qiskit-ignis/blob/master/qiskit/ignis/mitigation/measurement/filters.py#L111
     """A class to store a counts result from a circuit execution."""
 
     bitstring_regex = re.compile(r"^[01\s]+$")
