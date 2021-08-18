@@ -12,9 +12,9 @@
 from abc import ABC, abstractmethod
 from typing import Union
 
-from qiskit.algorithms.quantum_time_evolution.variational.principles import (
-    metric_tensor_calculator,
+from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
     evolution_grad_calculator,
+    metric_tensor_calculator,
 )
 from qiskit.opflow import CircuitQFI, CircuitGradient, OperatorBase
 
@@ -29,11 +29,14 @@ class VariationalPrinciple(ABC):
         grad_method: Union[str, CircuitGradient] = "lin_comb",
         is_error_supported: bool = False,
     ):
+        self._observable = observable
+        self._ansatz = ansatz
+
         self._is_error_supported = is_error_supported
-        raw_metric_tensor = metric_tensor_calculator.build(
+        raw_metric_tensor = metric_tensor_calculator.calculate(
             observable, ansatz, parameters, qfi_method
         )
-        raw_evolution_grad = evolution_grad_calculator.build(
+        raw_evolution_grad = evolution_grad_calculator.calculate(
             observable, ansatz, parameters, grad_method
         )
         self._metric_tensor = self._calc_metric_tensor(raw_metric_tensor)

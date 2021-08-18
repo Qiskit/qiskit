@@ -13,29 +13,36 @@ from typing import Union, List, Dict
 
 import numpy as np
 
+from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
+    natural_gradient_calculator,
+)
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
 )
-from qiskit.opflow import NaturalGradient, CircuitSampler, OperatorBase
+from qiskit.opflow import NaturalGradient, CircuitSampler, CircuitQFI, CircuitGradient
 
 
 class LinearSolver:
-    def __init__(self, regularization=None, backend=None):
+    def __init__(
+        self,
+        grad_method: Union[str, CircuitGradient] = "lin_comb",
+        qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
+        regularization=None,
+        backend=None,
+    ):
         self._backend = backend
         self._regularization = regularization
         self._grad_circ_sampler = None
         self._metric_circ_sampler = None
+        self._grad_method = grad_method
+        self._qfi_method = qfi_method
         if backend is not None:
             self._grad_circ_sampler = CircuitSampler(self._backend)
             self._metric_circ_sampler = CircuitSampler(self._backend)
 
     # TODO better name for faster, possibly move nat_grad elsewhere
     def _solve_sle(
-        self,
-        var_principle: VariationalPrinciple,
-        param_dict: Dict,
-        faster=False,
-        nat_grad: OperatorBase = None,
+        self, var_principle: VariationalPrinciple, param_dict: Dict, faster=False
     ) -> (Union[List, np.ndarray], Union[List, np.ndarray], np.ndarray):
         """
         Solve the system of linear equations underlying McLachlan's variational principle
@@ -50,15 +57,7 @@ class LinearSolver:
         grad_res = self._eval_evolution_grad(evolution_grad, param_dict)
         metric_res = self._eval_metric_tensor(metric_tensor, param_dict)
 
-        if any(np.abs(np.imag(grad_res_item)) > 1e-3 for grad_res_item in grad_res):
-            raise Warning("The imaginary part of the gradient are non-negligible.")
-        if np.any(
-            [
-                [np.abs(np.imag(metric_res_item)) > 1e-3 for metric_res_item in metric_res_row]
-                for metric_res_row in metric_res
-            ]
-        ):
-            raise Warning("The imaginary part of the metric are non-negligible.")
+        self._inspect_imaginary_parts(grad_res, metric_res)
 
         metric_res = np.real(metric_res)
         grad_res = np.real(grad_res)
@@ -71,18 +70,35 @@ class LinearSolver:
             nat_grad_result = NaturalGradient.nat_grad_combo_fn(
                 x=[grad_res * 0.5, metric_res], regularization=self._regularization
             )
-        elif self._backend is not None:
-            nat_grad_circ_sampler = CircuitSampler(self._backend, caching="all")
-            nat_grad_result = nat_grad_circ_sampler.convert(nat_grad, params=param_dict).eval()
         else:
-            nat_grad_result = nat_grad.assign_parameters(param_dict).eval()
 
-        if any(np.abs(np.imag(nat_grad_item)) > 1e-8 for nat_grad_item in nat_grad_result):
-            raise Warning("The imaginary part of the gradient are non-negligible.")
+            nat_grad = natural_gradient_calculator.calculate(
+                var_principle, param_dict, self._regularization, self._grad_method, self._qfi_method
+            )
 
-        print("nat grad result", nat_grad_result)
+            if self._backend is not None:
+                nat_grad_circ_sampler = CircuitSampler(self._backend, caching="all")
+                nat_grad_result = nat_grad_circ_sampler.convert(nat_grad, params=param_dict).eval()
+            else:
+                nat_grad_result = nat_grad.assign_parameters(param_dict).eval()
+
+            if any(np.abs(np.imag(nat_grad_item)) > 1e-8 for nat_grad_item in nat_grad_result):
+                raise Warning("The imaginary part of the gradient are non-negligible.")
+
+            print("nat grad result", nat_grad_result)
 
         return np.real(nat_grad_result), grad_res, metric_res
+
+    def _inspect_imaginary_parts(self, grad_res, metric_res):
+        if any(np.abs(np.imag(grad_res_item)) > 1e-3 for grad_res_item in grad_res):
+            raise Warning("The imaginary part of the gradient are non-negligible.")
+        if np.any(
+            [
+                [np.abs(np.imag(metric_res_item)) > 1e-3 for metric_res_item in metric_res_row]
+                for metric_res_row in metric_res
+            ]
+        ):
+            raise Warning("The imaginary part of the metric are non-negligible.")
 
     def _check_and_fix_metric_psd(self, metric_res):
         while True:

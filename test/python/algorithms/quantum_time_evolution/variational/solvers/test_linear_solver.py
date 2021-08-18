@@ -25,8 +25,6 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 class TestLinearSolver(QiskitAlgorithmsTestCase):
     def test_solve_sle_no_backend_not_faster(self):
         linear_solver = LinearSolver()
-        raw_metric_tensor = np.arange(4).reshape(2, 2)
-        raw_evolution_grad = np.arange(4).reshape(2, 2)
 
         # Define the Hamiltonian for the simulation
         observable = SummedOp(

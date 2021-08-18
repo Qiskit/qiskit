@@ -9,13 +9,3 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from typing import Union
-
-from qiskit.opflow import StateFn, QFI, CircuitQFI
-
-
-def build(observable, ansatz, parameters, qfi_method: Union[str, CircuitQFI] = "lin_comb_full"):
-    operator = ~StateFn(observable) @ StateFn(ansatz)
-    # TODO why?
-    operator = operator.oplist[-1]
-    return QFI(qfi_method).convert(operator, parameters)

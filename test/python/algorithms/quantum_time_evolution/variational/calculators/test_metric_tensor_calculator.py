@@ -13,16 +13,16 @@ import unittest
 
 import numpy as np
 
-from qiskit.algorithms.quantum_time_evolution.variational.principles.metric_tensor_calculator import (
-    build,
+from qiskit.algorithms.quantum_time_evolution.variational.calculators.metric_tensor_calculator import (
+    calculate,
 )
 from qiskit.circuit.library import EfficientSU2
-from qiskit.opflow import SummedOp, X, Y, I, Z, Gradient
+from qiskit.opflow import SummedOp, X, Y, I, Z
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 
-class TestMetricTensorBuilder(QiskitAlgorithmsTestCase):
-    def test_build(self):
+class TestMetricTensorCalculator(QiskitAlgorithmsTestCase):
+    def test_calculate(self):
 
         observable = SummedOp(
             [
@@ -40,7 +40,7 @@ class TestMetricTensorBuilder(QiskitAlgorithmsTestCase):
 
         # Define a set of initial parameters
         parameters = ansatz.ordered_parameters
-        metric_tensor = build(observable, ansatz, parameters)
+        metric_tensor = calculate(observable, ansatz, parameters)
 
         values_dict = [
             {param: np.pi / 4 for param in parameters},
@@ -392,7 +392,7 @@ class TestMetricTensorBuilder(QiskitAlgorithmsTestCase):
 
         for i, value_dict in enumerate(values_dict):
             np.testing.assert_array_almost_equal(
-                metric_tensor.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
+                metric_tensor.assign_parameters(value_dict).eval(), correct_values[i]
             )
 
 

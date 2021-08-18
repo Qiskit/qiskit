@@ -9,11 +9,3 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from typing import Union
-
-from qiskit.opflow import StateFn, Gradient, CircuitGradient
-
-
-def build(observable, ansatz, parameters, grad_method: Union[str, CircuitGradient] = "lin_comb"):
-    operator = ~StateFn(observable) @ StateFn(ansatz)
-    return Gradient(grad_method).convert(operator, parameters)

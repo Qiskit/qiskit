@@ -13,16 +13,16 @@ import unittest
 
 import numpy as np
 
-from qiskit.algorithms.quantum_time_evolution.variational.principles.evolution_grad_calculator import (
-    build,
+from qiskit.algorithms.quantum_time_evolution.variational.calculators.evolution_grad_calculator import (
+    calculate,
 )
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import SummedOp, X, Y, I, Z
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 
-class TestEvolutionGradBuilder(QiskitAlgorithmsTestCase):
-    def test_build(self):
+class TestEvolutionGradCalculator(QiskitAlgorithmsTestCase):
+    def test_calculate(self):
         observable = SummedOp(
             [
                 0.2252 * (I ^ I),
@@ -39,7 +39,7 @@ class TestEvolutionGradBuilder(QiskitAlgorithmsTestCase):
 
         # Define a set of initial parameters
         parameters = ansatz.ordered_parameters
-        evolution_grad = build(observable, ansatz, parameters)
+        evolution_grad = calculate(observable, ansatz, parameters)
 
         values_dict = [
             {param: np.pi / 4 for param in parameters},
@@ -79,7 +79,7 @@ class TestEvolutionGradBuilder(QiskitAlgorithmsTestCase):
 
         for i, value_dict in enumerate(values_dict):
             np.testing.assert_array_almost_equal(
-                evolution_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
+                evolution_grad.assign_parameters(value_dict).eval(), correct_values[i]
             )
 
 
