@@ -24,11 +24,11 @@ from qiskit.opflow import NaturalGradient, CircuitSampler, CircuitQFI, CircuitGr
 
 class LinearSolver:
     def __init__(
-            self,
-            grad_method: Union[str, CircuitGradient] = "lin_comb",
-            qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
-            regularization=None,
-            backend=None,
+        self,
+        grad_method: Union[str, CircuitGradient] = "lin_comb",
+        qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
+        regularization=None,
+        backend=None,
     ):
         self._backend = backend
         self._regularization = regularization
@@ -42,7 +42,7 @@ class LinearSolver:
 
     # TODO better name for faster
     def _solve_sle(
-            self, var_principle: VariationalPrinciple, param_dict: Dict, faster=False
+        self, var_principle: VariationalPrinciple, param_dict: Dict, faster=False
     ) -> (Union[List, np.ndarray], Union[List, np.ndarray], np.ndarray):
         """
         Solve the system of linear equations underlying McLachlan's variational principle
@@ -65,8 +65,9 @@ class LinearSolver:
         # Check if numerical instabilities lead to a metric which is not positive semidefinite
         metric_res = self._check_and_fix_metric_psd(metric_res)
 
-        nat_grad_result = self._calc_nat_grad_result(faster, grad_res, metric_res, param_dict,
-                                                     var_principle)
+        nat_grad_result = self._calc_nat_grad_result(
+            faster, grad_res, metric_res, param_dict, var_principle
+        )
 
         return np.real(nat_grad_result), grad_res, metric_res
 
@@ -99,10 +100,10 @@ class LinearSolver:
         if any(np.abs(np.imag(grad_res_item)) > 1e-3 for grad_res_item in grad_res):
             raise Warning("The imaginary part of the gradient are non-negligible.")
         if np.any(
-                [
-                    [np.abs(np.imag(metric_res_item)) > 1e-3 for metric_res_item in metric_res_row]
-                    for metric_res_row in metric_res
-                ]
+            [
+                [np.abs(np.imag(metric_res_item)) > 1e-3 for metric_res_item in metric_res_row]
+                for metric_res_row in metric_res
+            ]
         ):
             raise Warning("The imaginary part of the metric are non-negligible.")
 
@@ -131,9 +132,8 @@ class LinearSolver:
         if self._backend is not None:
             # Get the QFI/4
             metric_res = (
-                    np.array(
-                        self._metric_circ_sampler.convert(metric_tensor, params=param_dict).eval())
-                    * 0.25
+                np.array(self._metric_circ_sampler.convert(metric_tensor, params=param_dict).eval())
+                * 0.25
             )
         else:
             # Get the QFI/4
