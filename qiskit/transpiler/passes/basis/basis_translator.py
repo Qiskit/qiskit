@@ -138,8 +138,8 @@ class BasisTranslator(TransformationPass):
 
             if node.name in invalid_save_states:
                 logger.info(
-                    "Skipping {} instruction as it is not "
-                    "supported by the current backend.".format(node.name)
+                    "Skipping %s instruction as it is not " "supported by the current backend.",
+                    node.name,
                 )
                 continue
 
