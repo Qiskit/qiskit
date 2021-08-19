@@ -131,7 +131,7 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
         elif platform.system() == "Windows":
             num_procs = 0
             logger.warning(
-                "For Windows, using only current process. " "Multiple core use not supported."
+                "For Windows, using only current process. Multiple core use not supported."
             )
 
         queue = multiprocessing.Queue()

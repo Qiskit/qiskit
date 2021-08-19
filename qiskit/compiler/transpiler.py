@@ -441,7 +441,7 @@ def _remap_layout_faulty_backend(layout, faulty_qubits_map):
     for virtual, physical in layout.get_virtual_bits().items():
         if faulty_qubits_map[physical] is None:
             raise TranspilerError(
-                "The initial_layout parameter refers to faulty" " or disconnected qubits"
+                "The initial_layout parameter refers to faulty or disconnected qubits"
             )
         new_layout[virtual] = faulty_qubits_map[physical]
     return new_layout

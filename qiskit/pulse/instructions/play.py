@@ -48,7 +48,7 @@ class Play(Instruction):
             raise PulseError("The `pulse` argument to `Play` must be of type `library.Pulse`.")
         if not isinstance(channel, PulseChannel):
             raise PulseError(
-                "The `channel` argument to `Play` must be of type " "`channels.PulseChannel`."
+                "The `channel` argument to `Play` must be of type `channels.PulseChannel`."
             )
         if name is None:
             name = pulse.name
