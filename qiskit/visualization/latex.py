@@ -526,9 +526,11 @@ class QCircuitImage:
         )
         self._latex[wire_last][col] = "\\control \\qw"
         # Put side text to the right between bottom wire in wire_list and the one above it
-        self._latex[wire_max][col] += (
-            " \\cds{-1}{\\hspace{0.5em}\\hphantom{\\ensuremath{%s}}"
-            "\\ensuremath{%s}}" % (gate_text, gate_text)
+        self._latex[wire_max][
+            col
+        ] += " \\cds{-1}{\\hspace{0.5em}\\hphantom{\\ensuremath{%s}}" "\\ensuremath{%s}}" % (
+            gate_text,
+            gate_text,
         )
         return 5  # num_cols for side text gates
 
