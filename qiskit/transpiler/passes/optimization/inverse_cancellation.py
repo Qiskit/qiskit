@@ -28,23 +28,32 @@ class Cancellation(TransformationPass):
     def __init__(self, gates_to_cancel: List[Union[Gate, Tuple[Gate, Gate]]]):
         """Initialize Cancellation pass.
 
-        Cancellation: Only cancels back-to-back self-inverse gates passed as a Gate or 
-        back-to-back gate-inverse pairs with two angle inputs that are inverse. 
-
         Args:
-            gates_to_cancel: list of gates to cancel 
-        """
+            gates_to_cancel: list of gates to cancel
 
+        Raises:
+            TranspilerError:
+                Initalization raises an error when the input is not a self-inverse gate
+                or a two-tuple gate.
+        """
         for gates in gates_to_cancel:
-            if isinstance(gates, Gate) and gates != gates.inverse():
-                    raise TranspilerError("Gates are not self inverse")
+            if isinstance(gates, Gate):
+                if gates != gates.inverse():
+                    raise TranspilerError("Gate {} is not self-inverse".format(gates.name))
             elif isinstance(gates, tuple):
                 if len(gates) != 2:
-                        raise TranspilerError("Too many or too few inputs. Only two allowed.")
+                    raise TranspilerError(
+                        "Too many or too few inputs: {}. Only two are allowed.".format(gates)
+                    )
                 elif gates[0] != gates[1].inverse():
-                            raise TranspilerError("Gates are not inverse. Gate angles must be inverse.")
+                    raise TranspilerError(
+                        "Gate {} and {} are not inverse.".format(gates[0].name, gates[1].name)
+                    )
             else:
-                raise TranspilerError("Argument does not take input type. Input must be a Gate.")
+                raise TranspilerError(
+                    "Cancellation pass does not take input type {}. Input must be"
+                    " a Gate.".format(type(gates))
+                )
 
         self.gates_to_cancel = gates_to_cancel
         super().__init__()
@@ -87,7 +96,7 @@ class Cancellation(TransformationPass):
             chunk = []
             for i in range(len(gate_cancel_run) - 1):
                 chunk.append(gate_cancel_run[i])
-                if cx_run[i].qargs != gate_cancel_run[i + 1].qargs:
+                if gate_cancel_run[i].qargs != gate_cancel_run[i + 1].qargs:
                     partitions.append(chunk)
                     chunk = []
             chunk.append(gate_cancel_run[-1])
@@ -98,11 +107,12 @@ class Cancellation(TransformationPass):
                     dag.remove_op_node(chunk[0])
                 for node in chunk[1:]:
                     dag.remove_op_node(node)
+        return dag
 
     def _run_on_inverse_pairs(self, dag: DAGCircuit, inverse_gate_pairs: List[Tuple[Gate, Gate]]):
         """
         Run inverse gate pairs on `dag`.
-        
+
         Args:
             dag: the directed acyclic graph to run on.
             inverse_gate_pairs: list of gates with inverse angles that cancel each other.
@@ -111,7 +121,7 @@ class Cancellation(TransformationPass):
             DAGCircuit: Transformed DAG.
         """
         for pair in inverse_gate_pairs:
-            gate_cancel_runs = dag.collect_runs([pair[0].name]) 
+            gate_cancel_runs = dag.collect_runs([pair[0].name])
             for dag_nodes in gate_cancel_runs:
                 for i in range(len(dag_nodes) - 1):
                     if dag_nodes[i].op == pair[0] and dag_nodes[i + 1].op == pair[1]:
