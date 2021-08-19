@@ -13,13 +13,12 @@
 """
 Testing inverse_cancellation
 """
-from qiskit.circuit.library.standard_gates import h
+
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes import CXCancellation, Cancellation
+from qiskit.transpiler.passes import Cancellation
 from qiskit.transpiler import PassManager
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.library import RXGate, HGate, CXGate, PhaseGate

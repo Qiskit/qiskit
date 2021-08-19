@@ -6,5 +6,12 @@ features:
     initializing ``Cancellation`` and passing a gate to cancel, for example::
 
       from qiskit.transpiler.passes import Cancellation
+      from qiskit import QuantumCircuit
       from qiskit.circuit.library import HGate
-      Cancellation([HGate])
+      from qiskit.transpiler import PassManager
+      qc = QuantumCircuit(2, 2)
+      qc.h(0)
+      qc.h(0)
+      pass_ = Cancellation([HGate()])
+      pm = PassManager(pass_)
+      new_circ = pm.run(qc)

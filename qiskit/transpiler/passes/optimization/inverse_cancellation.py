@@ -34,7 +34,7 @@ class Cancellation(TransformationPass):
         Raises:
             TranspilerError:
                 Initalization raises an error when the input is not a self-inverse gate
-                or a two-tuple gate.
+                or a two-tuple of inverse gates.
         """
         for gates in gates_to_cancel:
             if isinstance(gates, Gate):
