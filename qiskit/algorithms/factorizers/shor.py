@@ -429,7 +429,7 @@ class Shor:
 
         if self.quantum_instance is None:
             raise AlgorithmError(
-                "A QuantumInstance or Backend " "must be supplied to run the quantum algorithm."
+                "A QuantumInstance or Backend must be supplied to run the quantum algorithm."
             )
 
         result = ShorResult()

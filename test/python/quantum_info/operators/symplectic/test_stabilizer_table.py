@@ -749,15 +749,13 @@ class TestStabilizerTableMethods(QiskitTestCase):
                 target0 = StabilizerTable.from_labels([sgn + "X" + i, sgn + "Y" + i, sgn + "Z" + i])
                 target1 = StabilizerTable.from_labels([sgn + i + "X", sgn + i + "Y", sgn + i + "Z"])
 
-                with self.subTest(msg="single-column single-val from str" " {}".format(sgn + i)):
+                with self.subTest(msg=f"single-column single-val from str {sgn + i}"):
                     value = stab.insert(0, sgn + i, qubit=True)
                     self.assertEqual(value, target0)
                     value = stab.insert(1, sgn + i, qubit=True)
                     self.assertEqual(value, target1)
 
-                with self.subTest(
-                    msg="single-column single-val from" " StabilizerTable {}".format(sgn + i)
-                ):
+                with self.subTest(msg=f"single-column single-val from StabilizerTable {sgn + i}"):
                     value = stab.insert(0, StabilizerTable(sgn + i), qubit=True)
                     self.assertEqual(value, target0)
                     value = stab.insert(1, StabilizerTable(sgn + i), qubit=True)
