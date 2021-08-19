@@ -36,9 +36,7 @@ from qiskit.tools.visualization import HAS_MATPLOTLIB
 if HAS_MATPLOTLIB:
     from matplotlib.pyplot import close as mpl_close
 else:
-    raise ImportError(
-        "Must have Matplotlib installed. To install, run " '"pip install matplotlib".'
-    )
+    raise ImportError('Must have Matplotlib installed. To install, run "pip install matplotlib".')
 
 
 RESULTDIR = os.path.dirname(os.path.abspath(__file__))
@@ -620,6 +618,33 @@ class TestMatplotlibDrawer(QiskitTestCase):
         initial_state[5] = 1
         circuit.initialize(initial_state)
         self.circuit_drawer(circuit, filename="wide_params.png")
+
+    def test_user_ax_subplot(self):
+        """Test for when user supplies ax for a subplot"""
+        import matplotlib.pyplot as plt
+
+        fig = plt.figure(1, figsize=(6, 4))
+        fig.patch.set_facecolor("white")
+        fig.add_subplot(1, 2, 1)
+        ax2 = fig.add_subplot(1, 2, 2)
+
+        circuit = QuantumCircuit(4)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.h(1)
+        circuit.cx(1, 2)
+        plt.close(fig)
+        self.circuit_drawer(circuit, ax=ax2, filename="user_ax.png")
+
+    def test_figwidth(self):
+        """Test style dict 'figwidth'"""
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.x(1)
+        circuit.cx(1, 2)
+        circuit.x(2)
+        self.circuit_drawer(circuit, style={"figwidth": 5}, filename="figwidth.png")
 
 
 if __name__ == "__main__":

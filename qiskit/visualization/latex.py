@@ -159,18 +159,15 @@ class QCircuitImage:
 
         self._initialize_latex_array()
         self._build_latex_array()
-        header_1 = r"""\documentclass[border=2px]{standalone}
-        """
+        header_1 = r"\documentclass[border=2px]{standalone}" + "\n"
 
         header_2 = r"""
 \usepackage[braket, qm]{qcircuit}
 \usepackage{graphicx}
 
-\begin{document} 
-% Delete the command below if there are no CP, CU1, RZZ in the circuit.
-\newlength{\glen}
+\begin{document}
 """
-        header_scale = "\\scalebox{{{}}}".format(self.scale) + "{"
+        header_scale = f"\\scalebox{{{self.scale}}}" + "{"
 
         qcircuit_line = r"""
 \Qcircuit @C=%.1fem @R=%.1fem @!R { \\
@@ -192,7 +189,7 @@ class QCircuitImage:
                 if j != self.img_depth:
                     output.write(" & ")
                 else:
-                    output.write(r"\\ " + "\n")
+                    output.write(r"\\" + "\n")
         output.write(r"\\ " + "}}\n")
         output.write("\\end{document}")
         contents = output.getvalue()
@@ -443,7 +440,7 @@ class QCircuitImage:
                 wire_max = max(cwire_list)
             wire_ind = wire_list.index(wire_min)
             self._latex[wire_min][col] = (
-                "\\multigate{%s}{%s}_" % (wire_max - wire_min, gate_text)
+                f"\\multigate{{{wire_max - wire_min}}}{{{gate_text}}}_"
                 + "<" * (len(str(wire_ind)) + 2)
                 + "{%s}" % wire_ind
             )
@@ -529,10 +526,9 @@ class QCircuitImage:
         )
         self._latex[wire_last][col] = "\\control \\qw"
         # Put side text to the right between bottom wire in wire_list and the one above it
-        # \settowidth allows redefining \glen to the width of the gate. This avoids overlapping.
         self._latex[wire_max][col] += (
-            " \\cds{-1}{\\settowidth{\\glen}{\\ensuremath{%s}}"
-            " \\hspace{0.5em}\\hspace{\\glen}\\ensuremath{%s}}" % (gate_text, gate_text)
+            " \\cds{-1}{\\hspace{0.5em}\\hphantom{\\ensuremath{%s}}"
+            "\\ensuremath{%s}}" % (gate_text, gate_text)
         )
         return 5  # num_cols for side text gates
 
