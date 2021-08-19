@@ -92,7 +92,7 @@ class BasisTranslator(TransformationPass):
                 source_basis.add((node.name, node.op.num_qubits))
 
         logger.info(
-            "Begin BasisTranslator from source basis %s to target " "basis %s.",
+            "Begin BasisTranslator from source basis %s to target basis %s.",
             source_basis,
             target_basis,
         )

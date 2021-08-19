@@ -29,9 +29,7 @@ from qiskit.visualization.counts_visualization import plot_histogram
 if HAS_MATPLOTLIB:
     from matplotlib.pyplot import close as mpl_close
 else:
-    raise ImportError(
-        "Must have Matplotlib installed. To install, run " '"pip install matplotlib".'
-    )
+    raise ImportError('Must have Matplotlib installed. To install, run "pip install matplotlib".')
 
 
 RESULTDIR = os.path.dirname(os.path.abspath(__file__))

@@ -1100,7 +1100,7 @@ class TextDrawing:
                 gates.append(Bullet(conditional=conditional))
             elif base_gate.name in ["u1", "p"]:
                 # cu1
-                connection_label = "%s%s" % (base_gate.name.upper(), params)
+                connection_label = f"{base_gate.name.upper()}{params}"
                 gates.append(Bullet(conditional=conditional))
             elif base_gate.name == "swap":
                 # cswap
@@ -1381,7 +1381,7 @@ class Layer:
                 bit_reg = self._clbit_locations[creg]["register"]
                 bit_index = self._clbit_locations[creg]["index"]
                 label_bool = "= T" if val is True else "= F"
-                label = "%s_%s %s" % (bit_reg.name, bit_index, label_bool)
+                label = f"{bit_reg.name}_{bit_index} {label_bool}"
                 self.set_clbit(creg, BoxOnClWire(label=label, top_connect=top_connect))
             else:
                 label = "= %s" % val
