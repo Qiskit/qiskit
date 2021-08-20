@@ -27,6 +27,7 @@ from qiskit.pulse import (
     ShiftPhase,
     Constant,
 )
+from qiskit.pulse.instruction_schedule_map import CalibrationPublisher
 from qiskit.pulse.channels import DriveChannel
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
@@ -520,6 +521,25 @@ class TestInstructionScheduleMap(QiskitTestCase):
         inst_map.add("my_gate2", (0,), test_callable_sched2, ["par_b"])
         ret_sched = inst_map.get("my_gate2", (0,), par_b=0.1)
         self.assertEqual(ret_sched, ref_sched)
+
+    def test_check_backend_provider_cals(self):
+        """Test if schedules provided by backend provider is distinguishable."""
+        instmap = FakeOpenPulse2Q().defaults().instruction_schedule_map
+        publisher = instmap.get("u1", (0,), P0=0).metadata["publisher"]
+
+        self.assertEqual(publisher, CalibrationPublisher.BACKEND_PROVIDER)
+
+    def test_check_user_cals(self):
+        """Test if schedules provided by user is distinguishable."""
+        instmap = FakeOpenPulse2Q().defaults().instruction_schedule_map
+
+        test_u1 = Schedule()
+        test_u1 += ShiftPhase(Parameter("P0"), DriveChannel(0))
+
+        instmap.add("u1", (0,), test_u1, arguments=["P0"])
+        publisher = instmap.get("u1", (0,), P0=0).metadata["publisher"]
+
+        self.assertEqual(publisher, CalibrationPublisher.QISKIT)
 
     def test_has_custom_gate(self):
         """Test method to check custom gate."""
