@@ -36,9 +36,7 @@ from qiskit.tools.visualization import HAS_MATPLOTLIB
 if HAS_MATPLOTLIB:
     from matplotlib.pyplot import close as mpl_close
 else:
-    raise ImportError(
-        "Must have Matplotlib installed. To install, run " '"pip install matplotlib".'
-    )
+    raise ImportError('Must have Matplotlib installed. To install, run "pip install matplotlib".')
 
 
 RESULTDIR = os.path.dirname(os.path.abspath(__file__))
@@ -282,21 +280,6 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename="pauli_clifford.png")
 
-    def test_u_gates(self):
-        """Test U 1, 2, & 3 gates"""
-        from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate
-
-        qr = QuantumRegister(4, "q")
-        circuit = QuantumCircuit(qr)
-        circuit.append(U1Gate(3 * pi / 2), [0])
-        circuit.append(U2Gate(3 * pi / 2, 2 * pi / 3), [1])
-        circuit.append(U3Gate(3 * pi / 2, 4.5, pi / 4), [2])
-        circuit.append(CU1Gate(pi / 4), [0, 1])
-        circuit.append(U2Gate(pi / 2, 3 * pi / 2).control(1), [2, 3])
-        circuit.append(CU3Gate(3 * pi / 2, -3 * pi / 4, -pi / 2), [0, 1])
-
-        self.circuit_drawer(circuit, filename="u_gates.png")
-
     def test_creg_initial(self):
         """Test cregbundle and initial state options"""
         qr = QuantumRegister(2, "q")
@@ -333,7 +316,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         qr = QuantumRegister(4, "q")
         circuit = QuantumCircuit(qr)
         circuit.cy(1, 0, label="Bottom Y label")
-        circuit.cy(2, 3, label="Top Y label")
+        circuit.cu(pi / 2, pi / 2, pi / 2, 0, 2, 3, label="Top U label")
         circuit.ch(0, 1, label="Top H label")
         circuit.append(
             HGate(label="H gate label").control(3, label="H control label", ctrl_state="010"),
@@ -391,6 +374,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         transpiled = transpile(
             circuit,
             backend=FakeTenerife(),
+            basis_gates=["id", "cx", "rz", "sx", "x"],
             optimization_level=0,
             initial_layout=[1, 2, 0],
             seed_transpiler=0,
@@ -433,14 +417,12 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.t(4)
         circuit.tdg(4)
         circuit.p(pi / 2, 4)
-        circuit.u1(pi / 2, 4)
         circuit.cz(5, 6)
-        circuit.cu1(pi / 2, 5, 6)
         circuit.cp(pi / 2, 5, 6)
         circuit.y(5)
         circuit.rx(pi / 3, 5)
         circuit.rzx(pi / 2, 5, 6)
-        circuit.u2(pi / 2, pi / 2, 5)
+        circuit.u(pi / 2, pi / 2, pi / 2, 5)
         circuit.barrier(5, 6)
         circuit.reset(5)
 
@@ -488,14 +470,12 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.t(4)
         circuit.tdg(4)
         circuit.p(pi / 2, 4)
-        circuit.u1(pi / 2, 4)
         circuit.cz(5, 6)
-        circuit.cu1(pi / 2, 5, 6)
         circuit.cp(pi / 2, 5, 6)
         circuit.y(5)
         circuit.rx(pi / 3, 5)
         circuit.rzx(pi / 2, 5, 6)
-        circuit.u2(pi / 2, pi / 2, 5)
+        circuit.u(pi / 2, pi / 2, pi / 2, 5)
         circuit.barrier(5, 6)
         circuit.reset(5)
 
@@ -638,6 +618,33 @@ class TestMatplotlibDrawer(QiskitTestCase):
         initial_state[5] = 1
         circuit.initialize(initial_state)
         self.circuit_drawer(circuit, filename="wide_params.png")
+
+    def test_user_ax_subplot(self):
+        """Test for when user supplies ax for a subplot"""
+        import matplotlib.pyplot as plt
+
+        fig = plt.figure(1, figsize=(6, 4))
+        fig.patch.set_facecolor("white")
+        fig.add_subplot(1, 2, 1)
+        ax2 = fig.add_subplot(1, 2, 2)
+
+        circuit = QuantumCircuit(4)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.h(1)
+        circuit.cx(1, 2)
+        plt.close(fig)
+        self.circuit_drawer(circuit, ax=ax2, filename="user_ax.png")
+
+    def test_figwidth(self):
+        """Test style dict 'figwidth'"""
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.x(1)
+        circuit.cx(1, 2)
+        circuit.x(2)
+        self.circuit_drawer(circuit, style={"figwidth": 5}, filename="figwidth.png")
 
 
 if __name__ == "__main__":
