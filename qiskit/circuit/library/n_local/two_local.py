@@ -12,7 +12,7 @@
 
 """The two-local gate circuit."""
 
-from typing import Union, Optional, List, Callable, Any, Type, String
+from typing import Union, Optional, List, Callable, Any, Type
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit import Gate, Instruction, Parameter
@@ -241,7 +241,7 @@ class TwoLocal(NLocal):
             return []
         return super().get_entangler_map(rep_num, block_num, num_block_qubits)
 
-    def _get_gate_instance(self, val: Union[String, Type[Gate]]) -> Gate:
+    def _get_gate_instance(self, val: Union[str, Type[Gate]]) -> Gate:
         """Iterate over the standard gates library and return an instance of required gate"""
         instance = None
         # dictionary of standard gates
@@ -253,10 +253,10 @@ class TwoLocal(NLocal):
             # Check if gate is in standard gate library and has required static attributes
             if (hasattr(gate, "gate_name") and gate.gate_name == val) or (gate == val):
                 if hasattr(gate, "num_params"):
-                    for i in range(gate.num_params):
+                    for _ in range(gate.num_params):
                         params.append(Parameter("θ"))
                 if hasattr(gate, "num_int_params"):
-                    for i in range(gate.num_int_params):
+                    for _ in range(gate.num_int_params):
                         params.append(1)
                 # instantiate gate with appropriate params
                 instance = gate(*params)
