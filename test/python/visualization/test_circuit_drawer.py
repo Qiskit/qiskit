@@ -78,7 +78,7 @@ class TestCircuitDrawer(QiskitTestCase):
                 self.assertIsInstance(out, text.TextDrawing)
 
     @unittest.skipUnless(
-        visualization.HAS_PYLATEX and visualization.HAS_PIL and visualization.HAS_PDFLATEX,
+        visualization.HAS_PYLATEX and visualization.HAS_PIL,
         "Skipped because PIL and pylatex is not available",
     )
     def test_unsupported_image_format_error_message(self):
@@ -92,7 +92,7 @@ class TestCircuitDrawer(QiskitTestCase):
                 )
 
     @unittest.skipUnless(
-        visualization.HAS_PYLATEX and visualization.HAS_PIL and visualization.HAS_PDFLATEX,
+        visualization.HAS_PYLATEX and visualization.HAS_PIL,
         "Skipped because PIL and pylatex is not available",
     )
     def test_output_file_correct_format(self):
