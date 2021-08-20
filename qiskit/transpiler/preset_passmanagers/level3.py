@@ -290,7 +290,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm3.append(_direction, condition=_direction_condition)
     pm3.append(_reset)
     pm3.append(_depth_check + _opt + _unroll, do_while=_opt_control)
-    if inst_map and inst_map.inst_map.has_custom_gate():
+    if inst_map and inst_map.has_custom_gate():
         pm3.append(_calibrations)
     pm3.append(_scheduling)
     pm3.append(_alignments)
