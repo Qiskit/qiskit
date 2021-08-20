@@ -78,6 +78,16 @@ class InstructionScheduleMap:
         # A backwards mapping from qubit to supported instructions
         self._qubit_instructions = defaultdict(set)
 
+    def has_custom_gate(self) -> bool:
+        """Return ``True`` if the map has user provided instruction."""
+        for qubit_inst in self._map.values():
+            for inst in qubit_inst.values():
+                metadata = getattr(inst, "metadata", {})
+                publisher = metadata.get("publisher", CalibrationPublisher.QISKIT)
+                if publisher != CalibrationPublisher.BACKEND_PROVIDER:
+                    return True
+        return False
+
     @property
     def instructions(self) -> List[str]:
         """Return all instructions which have definitions.
