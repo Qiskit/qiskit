@@ -21,6 +21,7 @@ from qiskit.quantum_info.states import DensityMatrix
 from qiskit.quantum_info.operators.symplectic import PauliTable, SparsePauliOp
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.circuit import Measure, ControlledGate, Gate, Instruction, Delay, BooleanExpression
+from qiskit.circuit import Clbit
 from qiskit.circuit.tools import pi_check
 from qiskit.exceptions import MissingOptionalLibraryError
 
@@ -270,11 +271,6 @@ def _get_gate_span(qubits, node, reverse_bits):
         else:
             return qubits[min_index : len(qubits)]
 
-    if node.cargs:
-        return qubits[min_index:]
-    if node.op.condition:
-        return qubits[min_index:]
-
     return qubits[min_index : max_index + 1]
 
 
@@ -298,6 +294,7 @@ class _LayerSpooler(list):
         self.qubits = dag.qubits
         self.justification = justification
         self.measure_map = measure_map
+        self.cregs = [self.dag.cregs[reg] for reg in self.dag.cregs]
         self.reverse_bits = reverse_bits
 
         if self.justification == "left":
@@ -347,7 +344,11 @@ class _LayerSpooler(list):
             last_insertable_index = -1
             index_stop = -1
             if node.op.condition:
-                index_stop = self.measure_map[node.op.condition[0]]
+                if isinstance(node.op.condition[0], Clbit):
+                    cond_reg = [creg for creg in self.cregs if node.op.condition[0] in creg]
+                    index_stop = self.measure_map[cond_reg[0]]
+                else:
+                    index_stop = self.measure_map[node.op.condition[0]]
             elif node.cargs:
                 for carg in node.cargs:
                     try:
@@ -474,3 +475,23 @@ def _paulivec_data(state):
     if rho.num_qubits is None:
         raise VisualizationError("Input is not a multi-qubit quantum state.")
     return rho.table.to_labels(), np.real(rho.coeffs)
+
+
+MATPLOTLIB_INLINE_BACKENDS = {
+    "module://ipykernel.pylab.backend_inline",
+    "module://matplotlib_inline.backend_inline",
+    "nbAgg",
+}
+
+
+def matplotlib_close_if_inline(figure):
+    """Close the given matplotlib figure if the backend in use draws figures inline.
+
+    If the backend does not draw figures inline, this does nothing.  This function is to prevent
+    duplicate images appearing; the inline backends will capture the figure in preparation and
+    display it as well, whereas the drawers want to return the figure to be displayed."""
+    # This can only called if figure has already been created, so matplotlib must exist.
+    import matplotlib.pyplot
+
+    if matplotlib.get_backend() in MATPLOTLIB_INLINE_BACKENDS:
+        matplotlib.pyplot.close(figure)

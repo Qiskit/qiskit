@@ -398,9 +398,7 @@ def draw(
         elif time_unit == types.TimeUnits.NS.value:
             canvas.set_time_range(*time_range, seconds=True)
         else:
-            raise VisualizationError(
-                "Invalid time unit {unit} is " "specified.".format(unit=time_unit)
-            )
+            raise VisualizationError(f"Invalid time unit {time_unit} is specified.")
 
     # channels not shown
     if disable_channels:
