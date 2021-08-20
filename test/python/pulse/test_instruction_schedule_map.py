@@ -520,3 +520,16 @@ class TestInstructionScheduleMap(QiskitTestCase):
         inst_map.add("my_gate2", (0,), test_callable_sched2, ["par_b"])
         ret_sched = inst_map.get("my_gate2", (0,), par_b=0.1)
         self.assertEqual(ret_sched, ref_sched)
+
+    def test_has_custom_gate(self):
+        """Test method to check custom gate."""
+        backend = FakeOpenPulse2Q()
+        instmap = backend.defaults().instruction_schedule_map
+
+        self.assertFalse(instmap.has_custom_gate())
+
+        # add something
+        some_sched = Schedule()
+        instmap.add("u3", (0, ), some_sched)
+
+        self.assertTrue(instmap.has_custom_gate())

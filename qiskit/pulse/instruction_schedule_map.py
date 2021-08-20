@@ -81,8 +81,8 @@ class InstructionScheduleMap:
     def has_custom_gate(self) -> bool:
         """Return ``True`` if the map has user provided instruction."""
         for qubit_inst in self._map.values():
-            for inst in qubit_inst.values():
-                metadata = getattr(inst, "metadata", {})
+            for generator in qubit_inst.values():
+                metadata = getattr(generator.function, "metadata", {})
                 publisher = metadata.get("publisher", CalibrationPublisher.QISKIT)
                 if publisher != CalibrationPublisher.BACKEND_PROVIDER:
                     return True
