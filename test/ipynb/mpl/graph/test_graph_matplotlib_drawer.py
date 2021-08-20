@@ -17,18 +17,11 @@ import unittest
 import json
 import os
 from contextlib import contextmanager
-import math
-import numpy as np
-from numpy import pi
 
 from qiskit.visualization.state_visualization import state_drawer
 from qiskit import BasicAer, execute
-from qiskit.quantum_info import DensityMatrix
-from qiskit import *
 from qiskit.test import QiskitTestCase
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
-from qiskit.test.mock import FakeTenerife
-from qiskit.quantum_info.random import random_unitary
+from qiskit import QuantumCircuit
 from qiskit.tools.visualization import HAS_MATPLOTLIB
 from qiskit.visualization.counts_visualization import plot_histogram
 
@@ -36,9 +29,7 @@ from qiskit.visualization.counts_visualization import plot_histogram
 if HAS_MATPLOTLIB:
     from matplotlib.pyplot import close as mpl_close
 else:
-    raise ImportError(
-        "Must have Matplotlib installed. To install, run " '"pip install matplotlib".'
-    )
+    raise ImportError('Must have Matplotlib installed. To install, run "pip install matplotlib".')
 
 
 RESULTDIR = os.path.dirname(os.path.abspath(__file__))
@@ -159,7 +150,8 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
 
     def test_plot_histogram(self):
         """for testing the plot_histogram"""
-        # specifing counts because we do not want oscillation of result until a changes is made to plot_histogram
+        # specifing counts because we do not want oscillation of
+        # result until a changes is made to plot_histogram
 
         counts = {"11": 500, "00": 500}
 

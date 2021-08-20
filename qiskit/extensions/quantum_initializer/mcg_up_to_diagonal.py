@@ -135,6 +135,4 @@ class MCGupDiag(Gate):
         if isinstance(parameter, np.ndarray):
             return parameter
         else:
-            raise CircuitError(
-                "invalid param type {} in gate " "{}".format(type(parameter), self.name)
-            )
+            raise CircuitError(f"invalid param type {type(parameter)} in gate {self.name}")

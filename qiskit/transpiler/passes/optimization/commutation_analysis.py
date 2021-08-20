@@ -17,6 +17,7 @@ import numpy as np
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.quantum_info.operators import Operator
+from qiskit.dagcircuit import DAGOpNode
 
 _CUTOFF_PRECISION = 1e-10
 
@@ -88,7 +89,7 @@ class CommutationAnalysis(AnalysisPass):
 
 def _commute(node1, node2, cache):
 
-    if node1.type != "op" or node2.type != "op":
+    if not isinstance(node1, DAGOpNode) or not isinstance(node2, DAGOpNode):
         return False
 
     for nd in [node1, node2]:

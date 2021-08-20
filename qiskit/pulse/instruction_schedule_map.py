@@ -166,9 +166,7 @@ class InstructionScheduleMap:
                         inst=instruction, qubits=self.qubits_with_instruction(instruction)
                     )
                 )
-            raise PulseError(
-                "Operation '{inst}' is not defined for this " "system.".format(inst=instruction)
-            )
+            raise PulseError(f"Operation '{instruction}' is not defined for this system.")
 
     def get(
         self,
@@ -393,7 +391,7 @@ class InstructionScheduleMap:
             else:
                 multi_q_insts += f"  {qubits}: {insts}\n"
         instructions = single_q_insts + multi_q_insts
-        return "<{name}({insts})>" "".format(name=self.__class__.__name__, insts=instructions)
+        return f"<{self.__class__.__name__}({instructions})>"
 
 
 def _to_tuple(values: Union[int, Iterable[int]]) -> Tuple[int, ...]:
@@ -419,5 +417,5 @@ def _get_instruction_string(inst: Union[str, Instruction]):
             return inst.name
         except AttributeError as ex:
             raise PulseError(
-                'Input "inst" has no attribute "name".' 'This should be a circuit "Instruction".'
+                'Input "inst" has no attribute "name". This should be a circuit "Instruction".'
             ) from ex
