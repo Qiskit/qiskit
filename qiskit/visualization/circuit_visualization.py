@@ -47,8 +47,9 @@ from qiskit.visualization import utils
 from qiskit.visualization import matplotlib as _matplotlib
 
 try:
-    subprocess.run("pdflatex -v", check=True)
-except OSError as ex:
+    subprocess.run("pdflatex -version", check=True)
+    HAS_PDFLATEX = True
+except (OSError, subprocess.SubprocessError) as ex:
     HAS_PDFLATEX = False
 
 logger = logging.getLogger(__name__)
