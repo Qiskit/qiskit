@@ -18,6 +18,7 @@ from qiskit.test.mock import FakeAthens
 
 
 class TestPulseGate(QiskitTestCase):
+    """Integration test of pulse gate pass with custom backend."""
 
     def setUp(self):
         super().setUp()
@@ -79,8 +80,8 @@ class TestPulseGate(QiskitTestCase):
 
         ref_calibration = {
             "sx": {
-                ((0, ), ()): self.custom_sx_q0,
-                ((1, ), ()): self.custom_sx_q1,
+                ((0,), ()): self.custom_sx_q0,
+                ((1,), ()): self.custom_sx_q1,
             }
         }
         self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
@@ -105,8 +106,8 @@ class TestPulseGate(QiskitTestCase):
 
         ref_calibration = {
             "sx": {
-                ((0, ), ()): self.custom_sx_q0,
-                ((1, ), ()): self.custom_sx_q1,
+                ((0,), ()): self.custom_sx_q0,
+                ((1,), ()): self.custom_sx_q1,
             }
         }
         self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
@@ -132,8 +133,8 @@ class TestPulseGate(QiskitTestCase):
 
         ref_calibration = {
             "my_gate": {
-                ((0, ), (1.0, )): my_gate_q0_1_0,
-                ((1, ), (2.0, )): my_gate_q1_2_0,
+                ((0,), (1.0,)): my_gate_q0_1_0,
+                ((1,), (2.0,)): my_gate_q1_2_0,
             }
         }
         self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
@@ -145,7 +146,7 @@ class TestPulseGate(QiskitTestCase):
             "my_gate", (0,), self.my_gate_q0, arguments=["P0"]
         )
 
-        params = [0., 1., 2., 3.]
+        params = [0.0, 1.0, 2.0, 3.0]
         circs = []
         for param in params:
             qc = circuit.QuantumCircuit(1)

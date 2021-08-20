@@ -550,6 +550,6 @@ class TestInstructionScheduleMap(QiskitTestCase):
 
         # add something
         some_sched = Schedule()
-        instmap.add("u3", (0, ), some_sched)
+        instmap.add("u3", (0,), some_sched)
 
         self.assertTrue(instmap.has_custom_gate())
