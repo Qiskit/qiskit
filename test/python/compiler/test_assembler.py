@@ -1318,6 +1318,36 @@ class TestPulseAssembler(QiskitTestCase):
         qobj_insts = qobj.experiments[0].instructions
         self.assertFalse(hasattr(qobj_insts[0], "pulse_shape"))
 
+    def test_assemble_parametric_pulse_kwarg_with_backend_setting(self):
+        """Test that parametric pulses respect the kwarg over backend"""
+        backend = FakeAlmaden()
+
+        qc = QuantumCircuit(1, 1)
+        qc.x(0)
+        qc.measure(0, 0)
+        with pulse.build(backend, name="x") as x_q0:
+            pulse.play(pulse.Gaussian(duration=128, amp=0.1, sigma=16), pulse.drive_channel(0))
+
+        qc.add_calibration("x", (0,), x_q0)
+
+        qobj = assemble(qc, backend, parametric_pulses=["gaussian"])
+        self.assertEqual(qobj.config.parametric_pulses, ["gaussian"])
+
+    def test_assemble_parametric_pulse_kwarg_empty_list_with_backend_setting(self):
+        """Test that parametric pulses respect the kwarg as empty list over backend"""
+        backend = FakeAlmaden()
+
+        qc = QuantumCircuit(1, 1)
+        qc.x(0)
+        qc.measure(0, 0)
+        with pulse.build(backend, name="x") as x_q0:
+            pulse.play(pulse.Gaussian(duration=128, amp=0.1, sigma=16), pulse.drive_channel(0))
+
+        qc.add_calibration("x", (0,), x_q0)
+
+        qobj = assemble(qc, backend, parametric_pulses=[])
+        self.assertEqual(qobj.config.parametric_pulses, [])
+
     def test_init_qubits_default(self):
         """Check that the init_qubits=None assemble option is passed on to the qobj."""
         qobj = assemble(self.schedule, self.backend)
