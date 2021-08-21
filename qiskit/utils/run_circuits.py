@@ -208,7 +208,6 @@ def _safe_get_job_status(job: BaseJob, job_id: str) -> JobStatus:
     for attempt in range(10):
         try:
             job_status = job.status()
-            status_found = True
             break
         except JobError as ex:
             logger.warning(
@@ -360,14 +359,13 @@ def run_qobj(
                         job_id,
                         job_status,
                     )
-
-                job, job_id = _safe_submit_qobj(
-                    qobj, backend, backend_options, noise_config, skip_qobj_validation
-                )
                 if trial == 9:
                     raise QiskitError(
                         "Job with id {} failed. Please submit the job set again.".format(job_id)
                     )
+                job, job_id = _safe_submit_qobj(
+                    qobj, backend, backend_options, noise_config, skip_qobj_validation
+                )
                 jobs[idx] = job
                 job_ids[idx] = job_id
     else:
@@ -512,7 +510,6 @@ def run_circuits(
         job_ids = [job_id]
         split_circuits = [circuits]
     results = []
-
     if with_autorecover:
         logger.info("Backend status: %s", backend.status())
         logger.info("There are %s jobs are submitted.", len(jobs))
@@ -604,7 +601,6 @@ def run_circuits(
             results.append(job.result())
 
     result = _combine_result_objects(results) if results else None
-
     # If result was not successful then raise an exception with either the status msg or
     # extra information if this was an Aer partial result return
     if not result.success:
