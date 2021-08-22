@@ -82,9 +82,9 @@ class Register:
             )
         size = int(size)  # cast to int
 
-        if size <= 0:
+        if size < 0:
             raise CircuitError(
-                "Register size must be positive (%s '%s' was provided)"
+                "Register size must be non-negative (%s '%s' was provided)"
                 % (type(size).__name__, size)
             )
 
