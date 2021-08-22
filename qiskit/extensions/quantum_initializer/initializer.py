@@ -361,9 +361,7 @@ class Initialize(Instruction):
         elif isinstance(parameter, np.number):
             return complex(parameter.item())
         else:
-            raise CircuitError(
-                "invalid param type {} for instruction  " "{}".format(type(parameter), self.name)
-            )
+            raise CircuitError(f"invalid param type {type(parameter)} for instruction  {self.name}")
 
 
 def initialize(self, params, qubits=None):

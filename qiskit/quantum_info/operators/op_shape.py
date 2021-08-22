@@ -487,7 +487,7 @@ class OpShape:
         if qargs:
             if self._num_qargs_l != self._num_qargs_r:
                 raise QiskitError(
-                    "Cannot add using qargs if number of left and right " "qargs are not equal."
+                    "Cannot add using qargs if number of left and right qargs are not equal."
                 )
             if self.dims_l(qargs) != other.dims_l():
                 raise QiskitError(

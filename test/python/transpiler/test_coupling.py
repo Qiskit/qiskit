@@ -198,7 +198,8 @@ class CouplingTest(QiskitTestCase):
 
     def test_subgraph(self):
         coupling = CouplingMap.from_line(6, bidirectional=False)
-        subgraph = coupling.subgraph([4, 2, 3, 5])
+        with self.assertWarns(DeprecationWarning):
+            subgraph = coupling.subgraph([4, 2, 3, 5])
         self.assertEqual(subgraph.size(), 4)
         self.assertEqual([0, 1, 2, 3], subgraph.physical_qubits)
         edge_list = subgraph.get_edges()

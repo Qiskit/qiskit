@@ -114,7 +114,7 @@ class BackendV1(Backend, ABC):
         """
         for field in fields:
             if not hasattr(self._options, field):
-                raise AttributeError("Options field %s is not valid for this " "backend" % field)
+                raise AttributeError("Options field %s is not valid for this backend" % field)
         self._options.update_options(**fields)
 
     def configuration(self):
