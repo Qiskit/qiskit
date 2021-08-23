@@ -50,6 +50,30 @@ from qiskit.visualization import matplotlib as _matplotlib
 logger = logging.getLogger(__name__)
 
 
+class HasPdfLatexWrapper:
+    """Wrapper to lazily detect presence of the pdflatex command."""
+
+    has_pdflatex = False
+
+    # pylint: disable=unused-import
+    def __bool__(self):
+        if not self.has_pdflatex:
+            try:
+                subprocess.run(
+                    ["pdflatex", "-version"],
+                    check=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                self.has_pdflatex = True
+            except (OSError, subprocess.SubprocessError):
+                self.has_pdflatex = False
+        return self.has_pdflatex
+
+
+HAS_PDFLATEX = HasPdfLatexWrapper()
+
+
 def circuit_drawer(
     circuit,
     scale=None,
