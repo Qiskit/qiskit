@@ -48,6 +48,7 @@ class PassManager:
     def append(
         self,
         passes: Union[BasePass, List[BasePass]],
+        
         max_iteration: int = None,
         **flow_controller_conditions: Any,
     ) -> None:
@@ -73,7 +74,7 @@ class PassManager:
         if max_iteration:
             # TODO remove this argument from append
             self.max_iteration = max_iteration
-
+        
         passes = PassManager._normalize_passes(passes)
         self._pass_sets.append({"passes": passes, "flow_controllers": flow_controller_conditions})
 
@@ -168,7 +169,13 @@ class PassManager:
             passes = [passes]
         for pass_ in passes:
             if not isinstance(pass_, BasePass):
-                raise TranspilerError("%s is not a pass instance" % pass_.__class__)
+                if not isinstance(pass_,FlowController):
+                    raise TranspilerError("%s is not a pass instance" % pass_.__class__)
+                else:
+                    #Check if they are all BasePasses in FlowController
+                    flow_pass_check=PassManager._normalize_passes(pass_.passes)
+                    if not flow_pass_check:
+                        raise TranspilerError("%s is not a pass instance" % pass_.__class__)
         return passes
 
     def run(

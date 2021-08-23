@@ -23,6 +23,7 @@ from qiskit.converters import circuit_to_dag, dag_to_circuit
 from .propertyset import PropertySet
 from .fencedobjs import FencedPropertySet, FencedDAGCircuit
 from .exceptions import TranspilerError
+from qiskit.transpiler.basepasses import BasePass
 
 logger = logging.getLogger(__name__)
 
@@ -150,12 +151,20 @@ class RunningPassManager:
             dag = self._do_pass(required_pass, dag, options)
 
         # Run the pass itself, if not already run
-        if pass_ not in self.valid_passes:
-            dag = self._run_this_pass(pass_, dag)
+        if isinstance(pass_,BasePass):
+            if pass_ not in self.valid_passes:
+                dag = self._run_this_pass(pass_, dag)
 
-            # update the valid_passes property
-            self._update_valid_passes(pass_)
-
+                # update the valid_passes property
+                self._update_valid_passes(pass_)
+        elif isinstance(pass_,FlowController):
+            
+            if not(isinstance(pass_.condition,partial)):
+                pass_.condition = partial(pass_.condition,self.fenced_property_set)
+            
+            for _pass in pass_:
+                self._do_pass(_pass,dag,pass_.options)
+                
         return dag
 
     def _run_this_pass(self, pass_, dag):

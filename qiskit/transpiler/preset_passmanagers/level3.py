@@ -59,6 +59,8 @@ from qiskit.transpiler.passes import ASAPSchedule
 from qiskit.transpiler.passes import AlignMeasures
 from qiskit.transpiler.passes import ValidatePulseGates
 from qiskit.transpiler.passes import Error
+from qiskit.transpiler.passes import GatesInBasis
+from qiskit.transpiler.runningpassmanager import ConditionalController
 
 from qiskit.transpiler import TranspilerError
 
@@ -231,6 +233,12 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _opt_control(property_set):
         return not property_set["depth_fixed_point"]
 
+    #Check if the gates are in the basis to determine whether to run _unroll passes
+    _unroll_check=[GatesInBasis(basis_gates)]
+
+    def _unroll_condition(property_set):
+        return not property_set["all_gates_in_basis"]
+
     _reset = [RemoveResetInZeroState()]
 
     _meas = [OptimizeSwapBeforeMeasure(), RemoveDiagonalGatesBeforeMeasure()]
@@ -267,6 +275,8 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         AlignMeasures(alignment=timing_constraints.acquire_alignment),
     ]
 
+    cc=[ConditionalController(_unroll_check+_unroll,condition=_unroll_condition)]
+   
     # Build pass manager
     pm3 = PassManager()
     pm3.append(_unroll3q)
@@ -284,7 +294,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm3.append(_direction_check)
         pm3.append(_direction, condition=_direction_condition)
     pm3.append(_reset)
-    pm3.append(_depth_check + _opt + _unroll, do_while=_opt_control)
+    pm3.append(_depth_check + _opt + cc, do_while=_opt_control)
     pm3.append(_scheduling)
     pm3.append(_alignments)
 
