@@ -780,7 +780,7 @@ class TextDrawing:
             register = self.bit_locations[reg]["register"]
             index = self.bit_locations[reg]["index"]
             qubit_label = get_bit_label("text", register, index, qubit=True, layout=self.layout)
-            qubit_label = qubit_label + ": " if self.layout is None else qubit_label + " "
+            qubit_label += ": " if self.layout is None else " "
             qubit_labels.append(qubit_label + initial_qubit_value)
 
         # classical register
@@ -792,7 +792,8 @@ class TextDrawing:
                 index = self.bit_locations[reg]["index"]
                 clbit_label = get_bit_label("text", register, index, qubit=False, cregbundle=self.cregbundle)
                 if not self.cregbundle or prev_creg != register:
-                    clbit_labels.append(clbit_label + ": " + initial_clbit_value)
+                    cregb_add = str(register.size) + "/" if self.cregbundle else ""
+                    clbit_labels.append(clbit_label + ": " + initial_clbit_value + cregb_add)
                 prev_creg = register
 
         return qubit_labels + clbit_labels

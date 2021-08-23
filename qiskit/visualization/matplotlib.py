@@ -463,7 +463,7 @@ class MatplotlibDrawer:
             register = self._bit_locations[reg]["register"]
             index = self._bit_locations[reg]["index"]
             qubit_label = get_bit_label("mpl", register, index, qubit=True, layout=self._layout)
-            qubit_label = _fix_double_script(qubit_label) + initial_qbit
+            qubit_label = "$" + _fix_double_script(qubit_label) + initial_qbit + "$"
 
             text_width = self._get_text_width(qubit_label, self._fs) * 1.15
             if text_width > longest_bit_label_width:
@@ -491,7 +491,7 @@ class MatplotlibDrawer:
 
                 prev_creg = register
                 clbit_label = get_bit_label("mpl", register, index, qubit=False, cregbundle=self._cregbundle)
-                clbit_label = _fix_double_script(clbit_label) + initial_cbit
+                clbit_label = "$" + _fix_double_script(clbit_label) + initial_cbit + "$"
 
                 text_width = self._get_text_width(register.name, self._fs) * 1.15
                 if text_width > longest_bit_label_width:

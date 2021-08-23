@@ -140,15 +140,15 @@ def get_param_str(op, drawer, ndigits=3):
 
 def get_bit_label(drawer, register, index, qubit=True, layout=None, cregbundle=True):
     """ Get the bit labels to display to the left of the wires."""
-    index_str = f"{index}" if drawer == "text" else f"${{{index}}}$"
+    index_str = f"{index}" if drawer == "text" else f"{{{index}}}"
 
     if register is not None:
         if drawer == 'text':
             reg_name = f"{register.name}"
             reg_name_index = f"{register.name}_{index}"
         else:
-            reg_name = f"${{{register.name}}}$"
-            reg_name_index = f"${{{register.name}}}_{{{index}}}$"
+            reg_name = f"{{{register.name}}}"
+            reg_name_index = f"{{{register.name}}}_{{{index}}}"
 
         if not qubit and cregbundle:
             bit_label = f"{register.name}"
@@ -169,13 +169,13 @@ def get_bit_label(drawer, register, index, qubit=True, layout=None, cregbundle=T
                             if drawer == "text":
                                 bit_label = f"{virt_reg.name}_{virt_reg[:].index(virt_bit)} -> {index}"
                             else:
-                                bit_label = f"${{{virt_reg.name}}}_{{{virt_reg[:].index(virt_bit)}}} \\mapsto {{{index}}}$"
+                                bit_label = f"{{{virt_reg.name}}}_{{{virt_reg[:].index(virt_bit)}}} \\mapsto {{{index}}}"
 
                         except StopIteration:
                             if drawer == "text":
                                 bit_label = f"{virt_bit} -> {index}"
                             else:
-                                bit_label = f"${{{virt_bit}}} \\mapsto {{{index}}}$"
+                                bit_label = f"{{{virt_bit}}} \\mapsto {{{index}}}"
                     else:
                         bit_label = index_str
 
