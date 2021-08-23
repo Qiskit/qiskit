@@ -83,6 +83,10 @@ def assemble(
     to create ``Qobj`` "experiments". It further annotates the experiment payload with
     header and configurations.
 
+    NOTE: Backend.options is not used within assemble. The required values
+    (previously given by backend.set_options) should be manually extracted
+    from options and supplied directly when calling.
+
     Args:
         experiments: Circuit(s) or pulse schedule(s) to execute
         backend: If set, some runtime options are automatically grabbed from
