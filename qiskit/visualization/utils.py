@@ -138,6 +138,57 @@ def get_param_str(op, drawer, ndigits=3):
     return param_str
 
 
+def get_bit_label(drawer, register, index, qubit=True, layout=None, cregbundle=True):
+    """ Get the bit labels to display to the left of the wires."""
+    index_str = f"{index}" if drawer == "text" else f"${{{index}}}$"
+
+    if register is not None:
+        if drawer == 'text':
+            reg_name = f"{register.name}"
+            reg_name_index = f"{register.name}_{index}"
+        else:
+            reg_name = f"${{{register.name}}}$"
+            reg_name_index = f"${{{register.name}}}_{{{index}}}$"
+
+        if not qubit and cregbundle:
+            bit_label = f"{register.name}"
+            return bit_label
+
+        if register.size > 1:
+            if qubit:
+                if layout is None:
+                    bit_label = reg_name_index
+                else:
+                    print('5')
+                    if layout[index]:
+                        virt_bit = layout[index]
+                        try:
+                            virt_reg = next(
+                                reg for reg in layout.get_registers() if virt_bit in reg
+                            )
+                            if drawer == "text":
+                                bit_label = f"{virt_reg.name}_{virt_reg[:].index(virt_bit)} -> {index}"
+                            else:
+                                bit_label = f"${{{virt_reg.name}}}_{{{virt_reg[:].index(virt_bit)}}} \\mapsto {{{index}}}$"
+
+                        except StopIteration:
+                            if drawer == "text":
+                                bit_label = f"{virt_bit} -> {index}"
+                            else:
+                                bit_label = f"${{{virt_bit}}} \\mapsto {{{index}}}$"
+                    else:
+                        bit_label = index_str
+
+            else: # Clbits
+                bit_label = reg_name_index
+        else: # One-bit register
+            bit_label = reg_name
+    else: # Registerless bit
+        bit_label = index_str
+
+    return bit_label
+
+
 def generate_latex_label(label):
     """Convert a label to a valid latex string."""
     if not HAS_PYLATEX:

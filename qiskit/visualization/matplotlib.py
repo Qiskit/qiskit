@@ -43,6 +43,7 @@ from qiskit.visualization.qcstyle import load_style
 from qiskit.visualization.utils import (
     get_gate_ctrl_text,
     get_param_str,
+    get_bit_label,
     matplotlib_close_if_inline,
 )
 from qiskit.circuit.tools.pi_check import pi_check
@@ -461,36 +462,10 @@ class MatplotlibDrawer:
         for ii, reg in enumerate(self._qubit):
             register = self._bit_locations[reg]["register"]
             index = self._bit_locations[reg]["index"]
-
-            # show register name and number if more than 1 register
-            if len(self._qubit) > 1:
-                if self._layout is None:
-                    qubit_name = f"${{{register.name}}}_{{{index}}}$"
-                else:
-                    if self._layout[index]:
-                        virt_bit = self._layout[index]
-                        try:
-                            virt_reg = next(
-                                reg for reg in self._layout.get_registers() if virt_bit in reg
-                            )
-                            qubit_name = "${{{name}}}_{{{index}}} \\mapsto {{{physical}}}$".format(
-                                name=virt_reg.name,
-                                index=virt_reg[:].index(virt_bit),
-                                physical=index,
-                            )
-
-                        except StopIteration:
-                            qubit_name = "${{{name}}} \\mapsto {{{physical}}}$".format(
-                                name=virt_bit, physical=index
-                            )
-                    else:
-                        qubit_name = f"${{{index}}}$"
-            else:
-                qubit_name = f"{register.name}"
-
+            qubit_name = get_bit_label("mpl", register, index, qubit=True, layout=self._layout)
             qubit_name = _fix_double_script(qubit_name) + initial_qbit
-            text_width = self._get_text_width(qubit_name, self._fs) * 1.15
 
+            text_width = self._get_text_width(qubit_name, self._fs) * 1.15
             if text_width > longest_reg_name_width:
                 longest_reg_name_width = text_width
             pos = -ii
@@ -504,22 +479,18 @@ class MatplotlibDrawer:
 
         # classical register
         if self._clbit:
-            n_clbit = self._clbit.copy()
-            n_clbit.pop(0)
+            prev_creg = self._bit_locations[self._clbit[0]]["register"]
             idx = 0
             y_off = -len(self._qubit)
-            for ii, (reg, nreg) in enumerate(itertools.zip_longest(self._clbit, n_clbit)):
+            for ii, reg in enumerate(self._clbit):
+                if self._cregbundle and ii == 0:
+                    continue
                 pos = y_off - idx
                 register = self._bit_locations[reg]["register"]
                 index = self._bit_locations[reg]["index"]
-
-                # if cregbundle show non-math reg name, if only 1 clbit, show math name
-                # else math name and number
-                if self._cregbundle:
-                    clbit_name = f"{register.name}"
-                else:
-                    clbit_name = f"${register.name}_{index}$"
+                clbit_name = get_bit_label("mpl", register, index, qubit=False, cregbundle=self._cregbundle)
                 clbit_name = _fix_double_script(clbit_name) + initial_cbit
+
                 text_width = self._get_text_width(register.name, self._fs) * 1.15
                 if text_width > longest_reg_name_width:
                     longest_reg_name_width = text_width
@@ -529,11 +500,10 @@ class MatplotlibDrawer:
                     "index": index,
                     "group": register,
                 }
-                if self._cregbundle and not (
-                    not nreg or register != self._bit_locations[nreg]["register"]
-                ):
+                if self._cregbundle and prev_creg != self._bit_locations[self._clbit[0]]["register"] and prev_creg == register:
                     continue
 
+                prev_creg = register
                 n_lines += 1
                 idx += 1
 

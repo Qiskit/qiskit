@@ -24,7 +24,7 @@ from qiskit.circuit.measure import Measure
 from qiskit.visualization.qcstyle import load_style
 from qiskit.visualization import exceptions
 from qiskit.circuit.tools.pi_check import pi_check
-from .utils import get_gate_ctrl_text, get_param_str, generate_latex_label
+from .utils import get_gate_ctrl_text, get_param_str, get_bit_label, generate_latex_label
 
 
 class QCircuitImage:
@@ -215,23 +215,28 @@ class QCircuitImage:
             for j in range(self.img_width)
         ]
         self._latex.append([" "] * (self.img_depth + 1))
-        if self.cregbundle:
-            offset = 0
+        #if self.cregbundle:
+        offset = 0
         for i in range(self.img_width):
+            print('i', i, offset)
+            register = self.bit_locations[self.ordered_bits[i + offset]]["register"]
+            index = self.bit_locations[self.ordered_bits[i + offset]]["index"]
             if isinstance(self.ordered_bits[i], Clbit):
+                bit_label = get_bit_label("latex", register, index, qubit=False, cregbundle=self.cregbundle)
                 if self.cregbundle:
-                    reg = self.bit_locations[self.ordered_bits[i + offset]]["register"]
-                    label = reg.name + ":"
-                    clbitsize = self.cregs[reg]
+                    clbitsize = self.cregs[register]
                     self._latex[i][1] = "\\lstick{/_{_{" + str(clbitsize) + "}}} \\cw"
                     offset += clbitsize - 1
-                else:
+                """else:
                     label = self.bit_locations[self.ordered_bits[i]]["register"].name + "_{"
                     label += str(self.bit_locations[self.ordered_bits[i]]["index"]) + "}:"
+                """
                 if self.initial_state:
-                    label += "0"
-                label += "}"
-                self._latex[i][0] = "\\nghost{" + label + " & " + "\\lstick{" + label
+                    bit_label += "0"
+                bit_label += "}"
+                self._latex[i][0] = "\\nghost{" + bit_label + " & " + "\\lstick{" + bit_label
+                if i + offset > self.img_width:
+                    break
             else:
                 if self.layout is None:
                     label = " {{{}}}_{{{}}} : ".format(
