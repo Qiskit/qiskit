@@ -1250,10 +1250,21 @@ class QuantumCircuit:
             # QuantumCircuit defined without registers
             if len(regs) == 1 and isinstance(regs[0], int):
                 # QuantumCircuit with anonymous quantum wires e.g. QuantumCircuit(2)
-                regs = (QuantumRegister(regs[0], "q"),)
+                if regs[0] == 0:
+                    regs = tuple()
+                else:
+                    regs = (QuantumRegister(regs[0], "q"),)
             elif len(regs) == 2 and all(isinstance(reg, int) for reg in regs):
                 # QuantumCircuit with anonymous wires e.g. QuantumCircuit(2, 3)
-                regs = (QuantumRegister(regs[0], "q"), ClassicalRegister(regs[1], "c"))
+                if regs[0] == 0:
+                    qregs = tuple()
+                else:
+                    qregs = (QuantumRegister(regs[0], "q"),)
+                if regs[1] == 0:
+                    cregs = tuple()
+                else:
+                    cregs = (ClassicalRegister(regs[1], "c"),)
+                regs = qregs + cregs
             else:
                 raise CircuitError(
                     "QuantumCircuit parameters can be Registers or Integers."
