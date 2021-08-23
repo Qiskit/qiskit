@@ -18,12 +18,14 @@
 Visualization functions for quantum states.
 """
 
+from typing import Optional, List, Union
 from functools import reduce
 import colorsys
 import numpy as np
 from scipy import linalg
 from qiskit import user_config
 from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.quantum_info.states.statevector import Statevector
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 from qiskit.visualization.array import array_to_latex
 from qiskit.utils.deprecation import deprecate_arguments
@@ -1147,18 +1149,23 @@ def _shade_colors(color, normals, lightsource=None):
     return colors
 
 
-def state_to_latex(state, dims=None, **args):
+def state_to_latex(
+    state: Union[Statevector, DensityMatrix], dims: bool = None, convention: str = "ket", **args
+) -> str:
     """Return a Latex representation of a state. Wrapper function
-    for `qiskit.visualization.array_to_latex` to add dims if necessary.
+    for `qiskit.visualization.array_to_latex` for convention 'vector'.
+    Adds dims if necessary.
     Intended for use within `state_drawer`.
 
     Args:
-        state (`Statevector` or `DensityMatrix`): State to be drawn
+        state: State to be drawn
         dims (bool): Whether to display the state's `dims`
-        *args: Arguments to be passed directly to `array_to_latex`
+        convention (str): Either 'vector' or 'ket'. For 'ket' plot the state in the ket-notation.
+                Otherwise plot as a vector
+        **args: Arguments to be passed directly to `array_to_latex` for convention 'ket'
 
     Returns:
-        `str`: Latex representation of the state
+        Latex representation of the state
     """
     if dims is None:  # show dims if state is not only qubits
         if set(state.dims()) == {2}:
@@ -1172,8 +1179,142 @@ def state_to_latex(state, dims=None, **args):
         prefix = "\\begin{align}\n"
         dims_str = state._op_shape.dims_l()
         suffix = f"\\\\\n\\text{{dims={dims_str}}}\n\\end{{align}}"
-    latex_str = array_to_latex(state._data, source=True, **args)
+
+    operator_shape = state._op_shape
+    # we only use the ket convetion for qubit statevectors
+    # this means the operator shape should hve no input dimensions and all output dimensions equal to 2
+    is_qubit_statevector = len(operator_shape.dims_r()) == 0 and set(operator_shape.dims_l()) == {2}
+    if convention == "ket" and is_qubit_statevector:
+        latex_str = _state_to_latex_ket(state._data)
+    else:
+        latex_str = array_to_latex(state._data, source=True, **args)
     return prefix + latex_str + suffix
+
+
+def _round_if_close(data):
+    """Round real and imaginary parts of complex number of close to zero"""
+    data = np.real_if_close(data)
+    data = -1j * np.real_if_close(data * 1j)
+    return data
+
+
+def num_to_latex_ket(raw_value: complex, first_term: bool) -> Optional[str]:
+    """Convert a complex number to latex code suitable for a ket expression
+
+    Args:
+        raw_value: Value to convert
+        first_term: If True then generate latex code for the first term in an expression
+    Returns:
+        String with latex code or None if no term is required
+    """
+    import sympy  # runtime import
+
+    if raw_value == 0:
+        value = 0
+        real_value = 0
+        imag_value = 0
+    else:
+        raw_value = _round_if_close(raw_value)
+        value = sympy.nsimplify(raw_value, constants=(sympy.pi,), rational=False)
+        real_value = float(sympy.re(value))
+        imag_value = float(sympy.im(value))
+
+    element = ""
+    if np.abs(value) > 0:
+        latex_element = sympy.latex(value, full_prec=False)
+        two_term = real_value != 0 and imag_value != 0
+        if isinstance(value, sympy.core.Add):
+            # can happen for expressions like 1 + sqrt(2)
+            two_term = True
+        if two_term:
+            if first_term:
+                element = f"({latex_element})"
+            else:
+                element = f"+ ({latex_element})"
+        else:
+            if first_term:
+                if np.isreal(complex(value)) and value > 0:
+                    element = latex_element
+                else:
+                    element = latex_element
+                if element == "1":
+                    element = ""
+                elif element == "-1":
+                    element = "-"
+            else:
+
+                if imag_value == 0 and real_value > 0:
+                    element = "+" + latex_element
+                elif real_value == 0 and imag_value > 0:
+                    element = "+" + latex_element
+                else:
+                    element = latex_element
+                if element == "+1":
+                    element = "+"
+                elif element == "-1":
+                    element = "-"
+
+        return element
+    else:
+        return None
+
+
+def numbers_to_latex_terms(numbers: List[complex]) -> List[str]:
+    """Convert a list of numbers to latex formatted terms
+
+    The first non-zero term is treated differently. For this term a leading + is suppressed.
+
+    Args:
+        numbers: List of numbers to format
+    Returns:
+        List of formatted terms
+    """
+    first_term = True
+    terms = []
+    for number in numbers:
+        term = num_to_latex_ket(number, first_term)
+        if term is not None:
+            first_term = False
+        terms.append(term)
+    return terms
+
+
+def _state_to_latex_ket(data: List[complex], max_size: int = 12) -> str:
+    """Convert state vector to latex representation
+
+    Args:
+        data: State vector
+        max_size: Maximum number of non-zero terms in the expression. If the number of
+                 non-zero terms is larger than the max_size, then the representation is truncated.
+
+    Returns:
+        String with LaTeX representation of the state vector
+    """
+    num = int(np.log2(len(data)))
+
+    def ket_name(i):
+        return bin(i)[2:].zfill(num)
+
+    data = _round_if_close(data)
+    nonzero_indices = np.where(data != 0)[0].tolist()
+    if len(nonzero_indices) > max_size:
+        nonzero_indices = (
+            nonzero_indices[: max_size // 2] + [0] + nonzero_indices[-max_size // 2 + 1 :]
+        )
+        latex_terms = numbers_to_latex_terms(data[nonzero_indices])
+        nonzero_indices[max_size // 2] = None
+    else:
+        latex_terms = numbers_to_latex_terms(data[nonzero_indices])
+
+    latex_str = ""
+    for idx, ket_idx in enumerate(nonzero_indices):
+        if ket_idx is None:
+            latex_str += r" + \ldots "
+        else:
+            term = latex_terms[idx]
+            ket = ket_name(ket_idx)
+            latex_str += f"{term} |{ket}\\rangle"
+    return latex_str
 
 
 class TextMatrix:
