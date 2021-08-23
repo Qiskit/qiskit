@@ -671,7 +671,7 @@ class DAGCircuit:
 
         if len(other.qubits) > len(self.qubits) or len(other.clbits) > len(self.clbits):
             raise DAGCircuitError(
-                "Trying to compose with another DAGCircuit " "which has more 'in' edges."
+                "Trying to compose with another DAGCircuit which has more 'in' edges."
             )
 
         if edge_map is not None:
@@ -915,7 +915,7 @@ class DAGCircuit:
                 full_pred_map[w] = self._multi_graph.predecessors(self.output_map[w])[0]
                 if len(self._multi_graph.predecessors(self.output_map[w])) != 1:
                     raise DAGCircuitError(
-                        "too many predecessors for %s[%d] " "output node" % (w.register, w.index)
+                        "too many predecessors for %s[%d] output node" % (w.register, w.index)
                     )
 
         return full_pred_map, full_succ_map
@@ -1062,7 +1062,7 @@ class DAGCircuit:
 
                 if condition_bits & mapped_cargs:
                     raise DAGCircuitError(
-                        "Mapped DAG would alter clbits " "on which it would be conditioned."
+                        "Mapped DAG would alter clbits on which it would be conditioned."
                     )
 
         # Now that we know the connections, delete node

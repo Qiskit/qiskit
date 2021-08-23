@@ -405,14 +405,14 @@ class TestCNOTDihedral(unittest.TestCase):
                 test_circ = elem.to_circuit()
                 self.assertTrue(
                     test_circ,
-                    "Error: cannot decompose a random " "CNOTDihedral element to a circuit",
+                    "Error: cannot decompose a random CNOTDihedral element to a circuit",
                 )
                 test_elem = CNOTDihedral(test_circ)
 
                 self.assertEqual(
                     elem,
                     test_elem,
-                    "Error: decomposed circuit is not equal " "to the original circuit",
+                    "Error: decomposed circuit is not equal to the original circuit",
                 )
                 # Test that _is_valid fails if linear part is wrong
                 test_elem.linear = np.zeros((num_qubits, num_qubits))
@@ -424,7 +424,7 @@ class TestCNOTDihedral(unittest.TestCase):
                 self.assertIsInstance(
                     test_gates,
                     Gate,
-                    "Error: cannot decompose a random " "CNOTDihedral element to a Gate",
+                    "Error: cannot decompose a random CNOTDihedral element to a Gate",
                 )
                 self.assertEqual(
                     test_gates.num_qubits,
@@ -435,7 +435,7 @@ class TestCNOTDihedral(unittest.TestCase):
                 self.assertEqual(
                     elem,
                     test_elem1,
-                    "Error: decomposed gates are not equal " "to the original gates",
+                    "Error: decomposed gates are not equal to the original gates",
                 )
 
     def test_init_circuit_decompose(self):
@@ -454,7 +454,7 @@ class TestCNOTDihedral(unittest.TestCase):
                 self.assertEqual(
                     elem,
                     test_elem,
-                    "Error: decomposed gates are not equal " "to the original gates",
+                    "Error: decomposed gates are not equal to the original gates",
                 )
 
                 # Test of to_instruction and _from_circuit methods
@@ -465,7 +465,7 @@ class TestCNOTDihedral(unittest.TestCase):
                 self.assertEqual(
                     elem,
                     test_elem,
-                    "Error: decomposed gates are not equal " "to the original gates",
+                    "Error: decomposed gates are not equal to the original gates",
                 )
 
     def test_compose_method(self):

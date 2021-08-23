@@ -193,9 +193,7 @@ class ConfigurableFakeBackend(FakeBackend):
                         )
                     )
             else:
-                raise QiskitError(
-                    "{gate} is not supported by fake backend builder." "".format(gate=gate)
-                )
+                raise QiskitError(f"{gate} is not supported by fake backend builder.")
 
         return BackendProperties(
             backend_name=self.name,
