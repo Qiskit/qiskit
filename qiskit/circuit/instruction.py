@@ -144,15 +144,14 @@ class Instruction:
 
         return True
 
-    def __str__(self) -> str:
-        """Generates the representation string for an Instruction object
-
+    def __repr__(self) -> str:
+        """Generates a representation of the Intruction object instance
         Returns:
-            str: A representation of the Instruction instance with the number of
-                 qubits, name of Instruction and number of classical bits
+            str: A representation of the Instruction instance with the name,
+                 number of qubits, classical bits and params( if any )
         """
-        return "Instruction named {} with {} qubits and {} classical bits".format(
-            self.name, self.num_qubits, self.num_clbits
+        return "Instruction(name = '{}', num_qubits = {}, num_clbits = {}, params = {})".format(
+            self.name, self.num_qubits, self.num_clbits, self.params
         )
 
     def soft_compare(self, other: "Instruction") -> bool:
