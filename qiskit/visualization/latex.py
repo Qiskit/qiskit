@@ -218,7 +218,6 @@ class QCircuitImage:
         #if self.cregbundle:
         offset = 0
         for i in range(self.img_width):
-            print('i', i, offset)
             register = self.bit_locations[self.ordered_bits[i + offset]]["register"]
             index = self.bit_locations[self.ordered_bits[i + offset]]["index"]
             if isinstance(self.ordered_bits[i], Clbit):
@@ -227,10 +226,6 @@ class QCircuitImage:
                     clbitsize = self.cregs[register]
                     self._latex[i][1] = "\\lstick{/_{_{" + str(clbitsize) + "}}} \\cw"
                     offset += clbitsize - 1
-                """else:
-                    label = self.bit_locations[self.ordered_bits[i]]["register"].name + "_{"
-                    label += str(self.bit_locations[self.ordered_bits[i]]["index"]) + "}:"
-                """
                 if self.initial_state:
                     bit_label += "0"
                 bit_label += "}"
@@ -239,10 +234,15 @@ class QCircuitImage:
                     break
             else:
                 if self.layout is None:
-                    label = " {{{}}}_{{{}}} : ".format(
-                        self.bit_locations[self.ordered_bits[i]]["register"].name,
-                        self.bit_locations[self.ordered_bits[i]]["index"],
-                    )
+                    if register.size > 1:
+                        label = " {{{}}}_{{{}}} : ".format(
+                            self.bit_locations[self.ordered_bits[i]]["register"].name,
+                            self.bit_locations[self.ordered_bits[i]]["index"],
+                        )
+                    else:
+                        label = " {{{}}} : ".format(
+                            self.bit_locations[self.ordered_bits[i]]["register"].name,
+                        )
                 else:
                     bit_location = self.bit_locations[self.ordered_bits[i]]
                     if bit_location and self.layout[bit_location["index"]]:
@@ -258,6 +258,7 @@ class QCircuitImage:
                             label = "  {{{}}} : ".format(bit_location["index"])
                     else:
                         label = " {{{}}} : ".format(bit_location["index"])
+
                 if self.initial_state:
                     label += "\\ket{{0}}"
                 label += " }"
