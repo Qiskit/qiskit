@@ -12,6 +12,7 @@
 
 """The circuit library module on generalized gates."""
 
+from .bridge import BridgeGate
 from .diagonal import Diagonal
 from .permutation import Permutation
 from .mcmt import MCMT, MCMTVChain

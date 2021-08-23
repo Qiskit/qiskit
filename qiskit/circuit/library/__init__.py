@@ -24,7 +24,6 @@ Standard Gates
    :toctree: ../stubs/
 
    Barrier
-   BRGGate
    C3XGate
    C3SXGate
    C4XGate
@@ -87,6 +86,7 @@ Generalized Gates
 .. autosummary::
    :toctree: ../stubs/
 
+   BridgeGate
    Diagonal
    MCMT
    MCMTVChain

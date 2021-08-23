@@ -26,7 +26,6 @@ from qiskit.circuit import ParameterVector, Gate, ControlledGate
 
 from qiskit.circuit.library import standard_gates
 from qiskit.circuit.library import (
-    BRGGate,
     HGate,
     CHGate,
     IGate,
@@ -303,7 +302,6 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
     """Standard Extension Test."""
 
     @data(
-        BRGGate,
         HGate,
         CHGate,
         IGate,

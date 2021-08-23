@@ -19,7 +19,6 @@ from qiskit.circuit import EquivalenceLibrary, Parameter, QuantumCircuit, Quantu
 from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
 
 from . import (
-    BRGGate,
     HGate,
     CHGate,
     MSGate,
@@ -757,16 +756,3 @@ h_to_rr.append(RGate(theta=pi / 2, phi=pi / 2), [q[0]])
 h_to_rr.append(RGate(theta=pi, phi=0), [q[0]])
 h_to_rr.global_phase = pi / 2
 _sel.add_equivalence(HGate(), h_to_rr)
-
-# BRGGate
-
-q = QuantumRegister(3, "q")
-def_brg = QuantumCircuit(q)
-for inst, qargs, cargs in [
-    (CXGate(), [q[1], q[2]], []),
-    (CXGate(), [q[0], q[1]], []),
-    (CXGate(), [q[1], q[2]], []),
-    (CXGate(), [q[0], q[1]], []),
-]:
-    def_brg.append(inst, qargs, cargs)
-_sel.add_equivalence(BRGGate(), def_brg)
