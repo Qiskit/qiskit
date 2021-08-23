@@ -30,7 +30,7 @@ class Reset(Node):
         """Return the corresponding OPENQASM string."""
         if prec is not None:
             warnings.warn(
-                "Parameter 'Reset.qasm(..., prec)' is no longer used and is being " "deprecated.",
+                "Parameter 'Reset.qasm(..., prec)' is no longer used and is being deprecated.",
                 DeprecationWarning,
                 2,
             )
