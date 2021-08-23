@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-A generic gate-inverse cancellation pass for any set of gate-inverse pairs.
+A generic InverseCancellation pass for any set of gate-inverse pairs.
 """
 from typing import List, Tuple, Union
 
@@ -21,12 +21,12 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
 
-class Cancellation(TransformationPass):
+class InverseCancellation(TransformationPass):
     """Cancel specific Gates which are inverses of each other when they occur back-to-
     back."""
 
     def __init__(self, gates_to_cancel: List[Union[Gate, Tuple[Gate, Gate]]]):
-        """Initialize Cancellation pass.
+        """Initialize InverseCancellation pass.
 
         Args:
             gates_to_cancel: list of gates to cancel
@@ -36,6 +36,7 @@ class Cancellation(TransformationPass):
                 Initalization raises an error when the input is not a self-inverse gate
                 or a two-tuple of inverse gates.
         """
+
         for gates in gates_to_cancel:
             if isinstance(gates, Gate):
                 if gates != gates.inverse():
@@ -51,22 +52,13 @@ class Cancellation(TransformationPass):
                     )
             else:
                 raise TranspilerError(
-                    "Cancellation pass does not take input type {}. Input must be"
+                    "InverseCancellation pass does not take input type {}. Input must be"
                     " a Gate.".format(type(gates))
                 )
 
         self.gates_to_cancel = gates_to_cancel
         super().__init__()
 
-    def run(self, dag: DAGCircuit):
-        """Run the Cancellation pass on `dag`.
-
-        Args:
-            dag: the directed acyclic graph to run on.
-
-        Returns:
-            DAGCircuit: Transformed DAG.
-        """
         self_inverse_gates = []
         inverse_gate_pairs = []
 
@@ -75,6 +67,16 @@ class Cancellation(TransformationPass):
                 self_inverse_gates.append(gates)
             else:
                 inverse_gate_pairs.append(gates)
+
+    def run(self, dag: DAGCircuit):
+        """Run the InverseCancellation pass on `dag`.
+
+        Args:
+            dag: the directed acyclic graph to run on.
+
+        Returns:
+            DAGCircuit: Transformed DAG.
+        """
 
         dag = self._run_on_self_inverse(dag, self_inverse_gates)
         return self._run_on_inverse_pairs(dag, inverse_gate_pairs)
@@ -90,7 +92,7 @@ class Cancellation(TransformationPass):
         Returns:
             DAGCircuit: Transformed DAG.
         """
-        gate_cancel_runs = dag.collect_runs([gate.name for gate in self_inverse_gates])
+        gate_cancel_runs = [dag.collect_runs([gate.name]) for gate in self_inverse_gates]
         for gate_cancel_run in gate_cancel_runs:
             partitions = []
             chunk = []
