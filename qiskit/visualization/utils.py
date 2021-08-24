@@ -159,7 +159,6 @@ def get_bit_label(drawer, register, index, qubit=True, layout=None, cregbundle=T
                 if layout is None:
                     bit_label = reg_name_index
                 else:
-                    print('5')
                     if layout[index]:
                         virt_bit = layout[index]
                         try:
