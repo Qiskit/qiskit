@@ -4686,6 +4686,37 @@ class TestTextPhase(QiskitTestCase):
 
         self.assertEqual(circuit.draw(output="text").single_string(), expected)
 
+    def test_registerless_one_bit(self):
+        """Text circuit with one-bit registers and registerless bits."""
+        from qiskit.circuit import Qubit, Clbit
+
+        # fmt: off
+        expected = "\n".join(["       ",
+                              "qrx_0: ",
+                              "       ",
+                              "qrx_1: ",
+                              "       ",
+                              "    2: ",
+                              "       ",
+                              "    3: ",
+                              "       ",
+                              "  qry: ",
+                              "       ",
+                              "    0: ",
+                              "       ",
+                              "    1: ",
+                              "       ",
+                              "crx: 2/",
+                              "       "])
+        # fmt: on
+
+        qrx = QuantumRegister(2, "qrx")
+        qry = QuantumRegister(1, "qry")
+        crx = ClassicalRegister(2, "crx")
+        circuit = QuantumCircuit(qrx, [Qubit(), Qubit()], qry, [Clbit(), Clbit()], crx)
+
+        self.assertEqual(circuit.draw(output="text").single_string(), expected)
+
 
 class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
     """Tests utf8 and cp437 encoding."""

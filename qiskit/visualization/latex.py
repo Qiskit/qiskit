@@ -147,8 +147,9 @@ class QCircuitImage:
         self.cregs_bits = [self.bit_locations[bit]["register"] for bit in clbits]
         self.img_regs = {bit: ind for ind, bit in enumerate(self.ordered_bits)}
 
+        num_reg_bits = sum([reg.size for reg in self.cregs])
         if self.cregbundle:
-            self.img_width = len(qubits) + len(self.cregs)
+            self.img_width = len(qubits) + len(clbits) - (num_reg_bits - len(self.cregs))
         else:
             self.img_width = len(self.img_regs)
         self.global_phase = global_phase
@@ -238,7 +239,7 @@ class QCircuitImage:
                 clbit_label = get_bit_label(
                     "latex", register, index, qubit=False, cregbundle=self.cregbundle
                 )
-                if self.cregbundle:
+                if self.cregbundle and register is not None:
                     self._latex[ii][1] = "\\lstick{/_{_{" + str(register.size) + "}}} \\cw"
                     offset += register.size - 1
                 clbit_label += " : "

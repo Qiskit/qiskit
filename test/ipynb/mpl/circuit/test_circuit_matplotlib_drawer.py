@@ -657,6 +657,17 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.x(2)
         self.circuit_drawer(circuit, style={"figwidth": 5}, filename="figwidth.png")
 
+    def test_registerless_one_bit(self):
+        """Text circuit with one-bit registers and registerless bits."""
+        from qiskit.circuit import Qubit, Clbit
+
+        filename = self._get_resource_path("test_latex_registerless_one_bit.tex")
+        qrx = QuantumRegister(2, "qrx")
+        qry = QuantumRegister(1, "qry")
+        crx = ClassicalRegister(2, "crx")
+        circuit = QuantumCircuit(qrx, [Qubit(), Qubit()], qry, [Clbit(), Clbit()], crx)
+        self.circuit_drawer(circuit, filename="registerless_one_bit.png")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)

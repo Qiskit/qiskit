@@ -793,8 +793,10 @@ class TextDrawing:
                 clbit_label = get_bit_label(
                     "text", register, index, qubit=False, cregbundle=self.cregbundle
                 )
-                if not self.cregbundle or prev_creg != register:
-                    cregb_add = str(register.size) + "/" if self.cregbundle else ""
+                if register is None or not self.cregbundle or prev_creg != register:
+                    cregb_add = (
+                        str(register.size) + "/" if self.cregbundle and register is not None else ""
+                    )
                     clbit_labels.append(clbit_label + ": " + initial_clbit_value + cregb_add)
                 prev_creg = register
 

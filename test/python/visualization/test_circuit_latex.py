@@ -548,6 +548,19 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    def test_registerless_one_bit(self):
+        """Text circuit with one-bit registers and registerless bits."""
+        from qiskit.circuit import Qubit, Clbit
+
+        filename = self._get_resource_path("test_latex_registerless_one_bit.tex")
+        qrx = QuantumRegister(2, "qrx")
+        qry = QuantumRegister(1, "qry")
+        crx = ClassicalRegister(2, "crx")
+        circuit = QuantumCircuit(qrx, [Qubit(), Qubit()], qry, [Clbit(), Clbit()], crx)
+        circuit_drawer(circuit, filename=filename, output="latex_source")
+
+        self.assertEqualToReference(filename)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

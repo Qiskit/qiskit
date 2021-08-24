@@ -485,7 +485,7 @@ class MatplotlibDrawer:
             for ii, reg in enumerate(self._clbit):
                 register = self._bit_locations[reg]["register"]
                 index = self._bit_locations[reg]["index"]
-                if not self._cregbundle or prev_creg != register:
+                if register is None or not self._cregbundle or prev_creg != register:
                     n_lines += 1
                     idx += 1
 
@@ -495,7 +495,7 @@ class MatplotlibDrawer:
                 )
                 clbit_label = "$" + _fix_double_script(clbit_label) + initial_cbit + "$"
 
-                text_width = self._get_text_width(register.name, self._fs) * 1.15
+                text_width = self._get_text_width(clbit_label, self._fs) * 1.15
                 if text_width > longest_bit_label_width:
                     longest_bit_label_width = text_width
                 pos = y_off - idx
