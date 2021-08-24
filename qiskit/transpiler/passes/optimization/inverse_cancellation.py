@@ -78,8 +78,8 @@ class InverseCancellation(TransformationPass):
             DAGCircuit: Transformed DAG.
         """
 
-        dag = self._run_on_self_inverse(dag, self_inverse_gates)
-        return self._run_on_inverse_pairs(dag, inverse_gate_pairs)
+        dag = self._run_on_self_inverse(dag, self.self_inverse_gates)
+        return self._run_on_inverse_pairs(dag, self.inverse_gate_pairs)
 
     def _run_on_self_inverse(self, dag: DAGCircuit, self_inverse_gates: List[Gate]):
         """

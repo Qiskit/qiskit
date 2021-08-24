@@ -37,7 +37,7 @@ class TestInverseCancellation(QiskitTestCase):
         self.assertNotIn("h", gates_after)
 
     def test_odd_number_self_inverse(self):
-        """Test that an odd number of self-inverse gates leaves one gate remaining."""""
+        """Test that an odd number of self-inverse gates leaves one gate remaining.""" ""
         qc = QuantumCircuit(2, 2)
         qc.h(0)
         qc.h(0)
@@ -84,7 +84,7 @@ class TestInverseCancellation(QiskitTestCase):
         self.assertEqual(gates_after["rx"], 2)
 
     def test_non_inverse_raise_error(self):
-        """Test that non-inverse gate inputs raise an error. """
+        """Test that non-inverse gate inputs raise an error."""
         qc = QuantumCircuit(2, 2)
         qc.rx(np.pi / 2, 0)
         qc.rx(np.pi / 4, 0)
@@ -132,7 +132,7 @@ class TestInverseCancellation(QiskitTestCase):
         self.assertNotIn("h", gates_after)
 
     def test_non_gate_inverse_raise_error(self):
-        """Test that non-inverse gate inputs raise an error. """
+        """Test that non-inverse gate inputs raise an error."""
         qc = QuantumCircuit(2, 2)
         qc.rx(np.pi / 4, 0)
         qc.rx(np.pi / 4, 0)
