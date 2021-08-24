@@ -139,11 +139,11 @@ def get_param_str(op, drawer, ndigits=3):
 
 
 def get_bit_label(drawer, register, index, qubit=True, layout=None, cregbundle=True):
-    """ Get the bit labels to display to the left of the wires."""
+    """Get the bit labels to display to the left of the wires."""
     index_str = f"{index}" if drawer == "text" else f"{{{index}}}"
 
     if register is not None:
-        if drawer == 'text':
+        if drawer == "text":
             reg_name = f"{register.name}"
             reg_name_index = f"{register.name}_{index}"
         else:
@@ -166,9 +166,14 @@ def get_bit_label(drawer, register, index, qubit=True, layout=None, cregbundle=T
                                 reg for reg in layout.get_registers() if virt_bit in reg
                             )
                             if drawer == "text":
-                                bit_label = f"{virt_reg.name}_{virt_reg[:].index(virt_bit)} -> {index}"
+                                bit_label = (
+                                    f"{virt_reg.name}_{virt_reg[:].index(virt_bit)} -> {index}"
+                                )
                             else:
-                                bit_label = f"{{{virt_reg.name}}}_{{{virt_reg[:].index(virt_bit)}}} \\mapsto {{{index}}}"
+                                bit_label = (
+                                    f"{{{virt_reg.name}}}_{{{virt_reg[:].index(virt_bit)}}}"
+                                    f" \\mapsto {{{index}}}"
+                                )
 
                         except StopIteration:
                             if drawer == "text":
@@ -178,11 +183,11 @@ def get_bit_label(drawer, register, index, qubit=True, layout=None, cregbundle=T
                     else:
                         bit_label = index_str
 
-            else: # Clbits
+            else:  # Clbits
                 bit_label = reg_name_index
-        else: # One-bit register
+        else:  # One-bit register
             bit_label = reg_name
-    else: # Registerless bit
+    else:  # Registerless bit
         bit_label = index_str
 
     return bit_label

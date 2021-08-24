@@ -225,17 +225,19 @@ class QCircuitImage:
             qubit_label += " : "
             if self.initial_state:
                 qubit_label += "\\ket{{0}}"
-            qubit_label += ' }'
+            qubit_label += " }"
             self._latex[ii][0] = "\\nghost{" + qubit_label + " & " + "\\lstick{" + qubit_label
 
         # classical register
         clbit_labels = []
         offset = 0
         if self.clbit_list:
-           for ii in range(len(self.qubit_list), self.img_width):
+            for ii in range(len(self.qubit_list), self.img_width):
                 register = self.bit_locations[self.ordered_bits[ii + offset]]["register"]
                 index = self.bit_locations[self.ordered_bits[ii + offset]]["index"]
-                clbit_label = get_bit_label("latex", register, index, qubit=False, cregbundle=self.cregbundle)
+                clbit_label = get_bit_label(
+                    "latex", register, index, qubit=False, cregbundle=self.cregbundle
+                )
                 if self.cregbundle:
                     self._latex[ii][1] = "\\lstick{/_{_{" + str(register.size) + "}}} \\cw"
                     offset += register.size - 1

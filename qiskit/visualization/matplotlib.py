@@ -490,7 +490,9 @@ class MatplotlibDrawer:
                     idx += 1
 
                 prev_creg = register
-                clbit_label = get_bit_label("mpl", register, index, qubit=False, cregbundle=self._cregbundle)
+                clbit_label = get_bit_label(
+                    "mpl", register, index, qubit=False, cregbundle=self._cregbundle
+                )
                 clbit_label = "$" + _fix_double_script(clbit_label) + initial_cbit + "$"
 
                 text_width = self._get_text_width(register.name, self._fs) * 1.15
