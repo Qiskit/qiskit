@@ -553,7 +553,7 @@ class TwoQubitControlledUDecomposer:
 
     _default_1q_basis = "ZYZ"
 
-    def __init__(self, unitary, rxx_equivalent_gate: Type[Gate]):
+    def __init__(self, rxx_equivalent_gate: Type[Gate]):
         """Initialize the KAK decomposition.
 
         Args:
