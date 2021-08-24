@@ -10,19 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 from abc import abstractmethod
-from typing import Union, Dict, List, Iterable, Tuple, Any
+from typing import Union, List, Tuple, Any
 
-import warnings
 import numpy as np
-from scipy.linalg import expm
-from scipy.integrate import OdeSolver, ode
-
-from qiskit.algorithms.quantum_time_evolution.variational.calculators.distance_energy_calculator import (
-    _inner_prod,
-)
-from qiskit.quantum_info import state_fidelity
-
-from qiskit.opflow import StateFn, CircuitStateFn, ComposedOp, PauliExpectation
 
 
 class ErrorCalculator:
@@ -63,13 +53,7 @@ class ErrorCalculator:
         ng_res: Union[List, np.ndarray],
         grad_res: Union[List, np.ndarray],
         metric: Union[List, np.ndarray],
-    ) -> Tuple[
-        int,
-        Union[np.ndarray, int, float, complex],
-        Union[np.ndarray, complex, float],
-        Union[Union[complex, float], Any],
-        float,
-    ]:
+    ) -> Tuple[int, Union[np.ndarray, complex, float], Union[Union[complex, float], Any],]:
 
         """
         Evaluate the l2 norm of the error for a single time step of VarQITE.
@@ -99,3 +83,11 @@ class ErrorCalculator:
             square root of the l2 norm of the error
         """
         raise NotImplementedError
+
+    def _validate_epsilon_squared(self, eps_squared):
+        if eps_squared < 0:
+            if np.abs(eps_squared) < 1e-3:
+                eps_squared = 0
+            else:
+                raise Warning("Propagation failed")
+        return eps_squared

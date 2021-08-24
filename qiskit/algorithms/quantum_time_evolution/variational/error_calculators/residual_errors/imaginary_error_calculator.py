@@ -15,41 +15,32 @@ import numpy as np
 from qiskit.algorithms.quantum_time_evolution.variational.calculators.distance_energy_calculator import (
     _inner_prod,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.error_calculator import (
+from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.residual_errors.error_calculator import (
     ErrorCalculator,
 )
+
 
 # TODO used by variational principle
 class ImaginaryErrorCalculator(ErrorCalculator):
     def __init__(
         self,
         h_squared,
-        h_cubed,
         exp_operator,
         h_squared_sampler,
-        h_cubed_sampler,
         exp_operator_sampler,
         param_dict,
         backend=None,
     ):
-        super(ErrorCalculator, self).__init__(
+        super().__init__(
             h_squared, exp_operator, h_squared_sampler, exp_operator_sampler, param_dict, backend
         )
-        self._h_cubed = self._bind_or_sample_operator(h_cubed, h_cubed_sampler, param_dict, backend)
-        self._h_cubed_sampler = h_cubed_sampler
 
     def _calc_single_step_error(
         self,
         ng_res: Union[List, np.ndarray],
         grad_res: Union[List, np.ndarray],
         metric: Union[List, np.ndarray],
-    ) -> Tuple[
-        int,
-        Union[np.ndarray, int, float, complex],
-        Union[np.ndarray, complex, float],
-        Union[Union[complex, float], Any],
-        float,
-    ]:
+    ) -> Tuple[int, Union[np.ndarray, complex, float], Union[Union[complex, float], Any]]:
 
         """
         Evaluate the l2 norm of the error for a single time step of VarQITE.
@@ -73,13 +64,9 @@ class ImaginaryErrorCalculator(ErrorCalculator):
         regrad2 = _inner_prod(grad_res, ng_res)
         eps_squared += regrad2
 
-        if eps_squared < 0:
-            if np.abs(eps_squared) < 1e-3:
-                eps_squared = 0
-            else:
-                raise Warning("Propagation failed")
+        eps_squared = self._validate_epsilon_squared(eps_squared)
 
-        return np.real(eps_squared), self._h_squared, dtdt_state, regrad2 * 0.5, self._h_cubed
+        return np.real(eps_squared), dtdt_state, regrad2 * 0.5
 
     def _calc_single_step_error_gradient(
         self,

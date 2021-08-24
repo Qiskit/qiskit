@@ -11,6 +11,9 @@
 # that they have been altered from the originals.
 from typing import Union
 
+from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.residual_errors.imaginary_error_calculator import (
+    ImaginaryErrorCalculator,
+)
 from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
 )
@@ -26,12 +29,19 @@ class ImaginaryMcLachlanVariationalPrinciple(ImaginaryVariationalPrinciple):
         observable,
         ansatz,
         parameters,
+        error_calculator: ImaginaryErrorCalculator,
         qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
         grad_method: Union[str, CircuitGradient] = "lin_comb",
         is_error_supported: bool = False,
     ):
         super().__init__(
-            observable, ansatz, parameters, qfi_method, grad_method, is_error_supported
+            observable,
+            ansatz,
+            parameters,
+            error_calculator,
+            qfi_method,
+            grad_method,
+            is_error_supported,
         )
 
     @staticmethod

@@ -44,7 +44,7 @@ class TestNaturalGradientCalculator(QiskitAlgorithmsTestCase):
         parameters = ansatz.ordered_parameters
         params_dict = {param: np.pi / 4 for param in parameters}
 
-        var_principle = ImaginaryMcLachlanVariationalPrinciple(observable, ansatz, parameters)
+        var_principle = ImaginaryMcLachlanVariationalPrinciple(observable, ansatz, parameters, None)
 
         correct_values = [
             -0.8842908,
@@ -85,7 +85,7 @@ class TestNaturalGradientCalculator(QiskitAlgorithmsTestCase):
         parameters = ansatz.ordered_parameters
         params_dict = {param: np.pi / 4 for param in parameters}
 
-        var_principle = ImaginaryMcLachlanVariationalPrinciple(observable, ansatz, parameters)
+        var_principle = ImaginaryMcLachlanVariationalPrinciple(observable, ansatz, parameters, None)
 
         correct_values = [
             -0.8842908,

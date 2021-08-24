@@ -29,14 +29,14 @@ def calculate(
     variational_principle: VariationalPrinciple,
     param_dict,
     regularization=None,
-    grad_method: Union[str, CircuitGradient] = "lin_comb",
-    qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
 ):
     # TODO consider passing operator immediately, also in evolution_grad and metric_tensor
     observable = variational_principle._observable
     ansatz = variational_principle._ansatz
     operator = ~StateFn(observable) @ StateFn(ansatz)
-    parameters = list(param_dict)
+    parameters = variational_principle._parameters
+    grad_method = variational_principle._grad_method
+    qfi_method = variational_principle._qfi_method
 
     # VarQRTE
     if isinstance(variational_principle, RealVariationalPrinciple):

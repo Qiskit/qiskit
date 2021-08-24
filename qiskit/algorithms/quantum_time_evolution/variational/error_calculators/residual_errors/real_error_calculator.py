@@ -16,9 +16,10 @@ import numpy as np
 from qiskit.algorithms.quantum_time_evolution.variational.calculators.distance_energy_calculator import (
     _inner_prod,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.error_calculator import (
+from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.residual_errors.error_calculator import (
     ErrorCalculator,
 )
+
 
 # TODO used by variational principle
 class RealErrorCalculator(ErrorCalculator):
@@ -31,7 +32,7 @@ class RealErrorCalculator(ErrorCalculator):
         param_dict,
         backend=None,
     ):
-        super(ErrorCalculator, self).__init__(
+        super().__init__(
             h_squared, exp_operator, h_squared_sampler, exp_operator_sampler, param_dict, backend
         )
 
@@ -66,10 +67,9 @@ class RealErrorCalculator(ErrorCalculator):
         imgrad2 = _inner_prod(grad_res, ng_res)
         eps_squared -= imgrad2
 
-        # TODO this check differs from imaginary counterpart
-        if eps_squared < 0:
-            print(eps_squared)
-        return np.real(eps_squared), self._h_squared, dtdt_state, imgrad2 * 0.5
+        eps_squared = self._validate_epsilon_squared(eps_squared)
+
+        return np.real(eps_squared), dtdt_state, imgrad2 * 0.5
 
     # TODO some duplication compared to the imaginary counterpart
     def _calc_single_step_error_gradient(

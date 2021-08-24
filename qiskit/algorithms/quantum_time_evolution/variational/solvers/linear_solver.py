@@ -34,9 +34,12 @@ class LinearSolver:
         self._regularization = regularization
         self._grad_circ_sampler = None
         self._metric_circ_sampler = None
+        self._nat_grad_circ_sampler = None
         if backend is not None:
+            # TODO should be passed from VarQte (caching)
             self._grad_circ_sampler = CircuitSampler(self._backend)
             self._metric_circ_sampler = CircuitSampler(self._backend)
+            self._nat_grad_circ_sampler = CircuitSampler(self._backend)
         self._grad_method = grad_method
         self._qfi_method = qfi_method
 
@@ -79,13 +82,16 @@ class LinearSolver:
             )
         else:
 
+            # TODO possibly duplicated effort, should be passed from VarQte or saved in
+            #  VarPrinciple, probably the latter
             nat_grad = natural_gradient_calculator.calculate(
-                var_principle, param_dict, self._regularization, self._grad_method, self._qfi_method
+                var_principle, param_dict, self._regularization
             )
 
             if self._backend is not None:
-                nat_grad_circ_sampler = CircuitSampler(self._backend, caching="all")
-                nat_grad_result = nat_grad_circ_sampler.convert(nat_grad, params=param_dict).eval()
+                nat_grad_result = self._nat_grad_circ_sampler.convert(
+                    nat_grad, params=param_dict
+                ).eval()
             else:
                 nat_grad_result = nat_grad.assign_parameters(param_dict).eval()
 

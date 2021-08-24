@@ -46,12 +46,14 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
         # Define a set of initial parameters
         parameters = ansatz.ordered_parameters
 
-        var_principle = ImaginaryMcLachlanVariationalPrinciple(observable, ansatz, parameters)
+        # TODO var_principle currently requires an error calculator but linear solver for example
+        #  does not need it at all.
+        var_principle = ImaginaryMcLachlanVariationalPrinciple(observable, ansatz, parameters, None)
 
         param_dict = {}
         for param in parameters:
             param_dict[param] = 2.0
-        print(param_dict)
+
         nat_grad_res, grad_res, metric_res = linear_solver._solve_sle(var_principle, param_dict)
         expected_nat_grad_res = [
             1.41355699,
@@ -279,12 +281,12 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
         # Define a set of initial parameters
         parameters = ansatz.ordered_parameters
 
-        var_principle = ImaginaryMcLachlanVariationalPrinciple(observable, ansatz, parameters)
+        var_principle = ImaginaryMcLachlanVariationalPrinciple(observable, ansatz, parameters, None)
 
         param_dict = {}
         for param in parameters:
             param_dict[param] = 2.0
-        print(param_dict)
+
         nat_grad_res, grad_res, metric_res = linear_solver._solve_sle(
             var_principle, param_dict, faster=True
         )
