@@ -222,9 +222,10 @@ class QCircuitImage:
             register = self.bit_locations[reg]["register"]
             index = self.bit_locations[reg]["index"]
             qubit_label = get_bit_label("latex", register, index, qubit=True, layout=self.layout)
+            qubit_label += " : "
             if self.initial_state:
                 qubit_label += "\\ket{{0}}"
-            qubit_label += " : }"
+            qubit_label += ' }'
             self._latex[ii][0] = "\\nghost{" + qubit_label + " & " + "\\lstick{" + qubit_label
 
         # classical register
@@ -238,9 +239,10 @@ class QCircuitImage:
                 if self.cregbundle:
                     self._latex[ii][1] = "\\lstick{/_{_{" + str(register.size) + "}}} \\cw"
                     offset += register.size - 1
+                clbit_label += " : "
                 if self.initial_state:
                     clbit_label += "0"
-                clbit_label += " : }"
+                clbit_label += " }"
                 self._latex[ii][0] = "\\nghost{" + clbit_label + " & " + "\\lstick{" + clbit_label
 
     def _get_image_depth(self):
