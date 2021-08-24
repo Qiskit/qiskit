@@ -233,8 +233,8 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _opt_control(property_set):
         return not property_set["depth_fixed_point"]
 
-    #Check if the gates are in the basis to determine whether to run _unroll passes
-    _unroll_check=[GatesInBasis(basis_gates)]
+    # Check if the gates are in the basis to determine whether to run _unroll passes
+    _unroll_check = [GatesInBasis(basis_gates)]
 
     def _unroll_condition(property_set):
         return not property_set["all_gates_in_basis"]
@@ -275,8 +275,8 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         AlignMeasures(alignment=timing_constraints.acquire_alignment),
     ]
 
-    cc=[ConditionalController(_unroll_check+_unroll,condition=_unroll_condition)]
-   
+    cc = [ConditionalController(_unroll_check + _unroll, condition=_unroll_condition)]
+
     # Build pass manager
     pm3 = PassManager()
     pm3.append(_unroll3q)
