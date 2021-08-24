@@ -167,8 +167,8 @@ class PassManager:
         if isinstance(passes, BasePass):
             passes = [passes]
         for pass_ in passes:
-            if not isinstance(pass_, BasePass):
-                raise TranspilerError("%s is not a pass instance" % pass_.__class__)
+            if not isinstance(pass_, (BasePass, PassManager)):
+                raise TranspilerError("%s is not a pass instance or manager" % pass_.__class__)
         return passes
 
     def run(

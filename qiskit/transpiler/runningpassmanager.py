@@ -20,6 +20,7 @@ from time import time
 
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
+from .basepasses import BasePass
 from .propertyset import PropertySet
 from .fencedobjs import FencedPropertySet, FencedDAGCircuit
 from .exceptions import TranspilerError
@@ -90,7 +91,6 @@ class RunningPassManager:
                     passes, self.passmanager_options, **flow_controller_conditions
                 )
             )
-            pass
 
     def _normalize_flow_controller(self, flow_controller):
         for name, param in flow_controller.items():
@@ -99,6 +99,16 @@ class RunningPassManager:
             else:
                 raise TranspilerError("The flow controller parameter %s is not callable" % name)
         return flow_controller
+
+    def _run_on_dag(self, dag, callback):
+        for passset in self.working_list:
+            for pass_ in passset:
+                if isinstance(pass_, BasePass):
+                    dag = self._do_pass(pass_, dag, passset.options)
+                else:
+                    running_passmanager = pass_._create_running_passmanager()
+                    dag = running_passmanager._run_on_dag(dag, callback)
+        return dag
 
     def run(self, circuit, output_name=None, callback=None):
         """Run all the passes on a QuantumCircuit
@@ -118,9 +128,7 @@ class RunningPassManager:
         if callback:
             self.callback = callback
 
-        for passset in self.working_list:
-            for pass_ in passset:
-                dag = self._do_pass(pass_, dag, passset.options)
+        dag = self._run_on_dag(dag, callback)
 
         circuit = dag_to_circuit(dag)
         if output_name:

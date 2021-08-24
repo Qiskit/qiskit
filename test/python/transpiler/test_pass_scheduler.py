@@ -56,6 +56,7 @@ class SchedulerTestCase(QiskitTestCase):
         with self.assertLogs(logger, level="INFO") as cm:
             out = passmanager.run(circuit)
         self.assertIsInstance(out, QuantumCircuit)
+        print([record.message for record in cm.records])
         self.assertEqual([record.message for record in cm.records], expected)
 
     def assertSchedulerRaises(self, circuit, passmanager, expected, exception_type):
@@ -549,6 +550,90 @@ class TestUseCases(SchedulerTestCase):
                 "self.argument1 = 2",
             ],
         )
+
+    def test_conditional_inside_loop(self):
+        """Nestead flow control
+        See https://github.com/Qiskit/qiskit-terra/issues/6830"""
+        conditional_part = PassManager()
+        conditional_part.append(PassE_AP_NR_NP(True))
+        conditional_part.append(
+            PassA_TP_NR_NP(), condition=lambda property_set: property_set["property"]
+        )
+        self.passmanager.append(
+            [
+                PassK_check_fixed_point_property(),
+                PassA_TP_NR_NP(),
+                PassF_reduce_dag_property(),
+                conditional_part,
+            ],
+            do_while=lambda property_set: not property_set["property_fixed_point"],
+        )
+        expected = [
+            "run analysis pass PassG_calculates_dag_property",
+            "set property as 8 (from dag.property)",
+            "run analysis pass PassK_check_fixed_point_property",
+            "run transformation pass PassA_TP_NR_NP",
+            "run transformation pass PassF_reduce_dag_property",
+            "dag property = 6",
+            "run analysis pass PassE_AP_NR_NP",
+            "set property as True",
+            "run transformation pass PassA_TP_NR_NP",
+            "run analysis pass PassG_calculates_dag_property",
+            "set property as 6 (from dag.property)",
+            "run analysis pass PassK_check_fixed_point_property",
+            "run transformation pass PassA_TP_NR_NP",
+            "run transformation pass PassF_reduce_dag_property",
+            "dag property = 5",
+            "run analysis pass PassE_AP_NR_NP",
+            "set property as True",
+            "run transformation pass PassA_TP_NR_NP",
+            "run analysis pass PassG_calculates_dag_property",
+            "set property as 5 (from dag.property)",
+            "run analysis pass PassK_check_fixed_point_property",
+            "run transformation pass PassA_TP_NR_NP",
+            "run transformation pass PassF_reduce_dag_property",
+            "dag property = 4",
+            "run analysis pass PassE_AP_NR_NP",
+            "set property as True",
+            "run transformation pass PassA_TP_NR_NP",
+            "run analysis pass PassG_calculates_dag_property",
+            "set property as 4 (from dag.property)",
+            "run analysis pass PassK_check_fixed_point_property",
+            "run transformation pass PassA_TP_NR_NP",
+            "run transformation pass PassF_reduce_dag_property",
+            "dag property = 3",
+            "run analysis pass PassE_AP_NR_NP",
+            "set property as True",
+            "run transformation pass PassA_TP_NR_NP",
+            "run analysis pass PassG_calculates_dag_property",
+            "set property as 3 (from dag.property)",
+            "run analysis pass PassK_check_fixed_point_property",
+            "run transformation pass PassA_TP_NR_NP",
+            "run transformation pass PassF_reduce_dag_property",
+            "dag property = 2",
+            "run analysis pass PassE_AP_NR_NP",
+            "set property as True",
+            "run transformation pass PassA_TP_NR_NP",
+            "run analysis pass PassG_calculates_dag_property",
+            "set property as 2 (from dag.property)",
+            "run analysis pass PassK_check_fixed_point_property",
+            "run transformation pass PassA_TP_NR_NP",
+            "run transformation pass PassF_reduce_dag_property",
+            "dag property = 2",
+            "run analysis pass PassE_AP_NR_NP",
+            "set property as True",
+            "run transformation pass PassA_TP_NR_NP",
+            "run analysis pass PassG_calculates_dag_property",
+            "set property as 2 (from dag.property)",
+            "run analysis pass PassK_check_fixed_point_property",
+            "run transformation pass PassA_TP_NR_NP",
+            "run transformation pass PassF_reduce_dag_property",
+            "dag property = 2",
+            "run analysis pass PassE_AP_NR_NP",
+            "set property as True",
+            "run transformation pass PassA_TP_NR_NP",
+        ]
+        self.assertScheduler(self.circuit, self.passmanager, expected)
 
 
 class DoXTimesController(FlowController):
