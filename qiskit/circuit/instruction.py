@@ -150,7 +150,7 @@ class Instruction:
             str: A representation of the Instruction instance with the name,
                  number of qubits, classical bits and params( if any )
         """
-        return "Instruction(name = '{}', num_qubits = {}, num_clbits = {}, params = {})".format(
+        return "Instruction(name='{}', num_qubits={}, num_clbits={}, params={})".format(
             self.name, self.num_qubits, self.num_clbits, self.params
         )
 
