@@ -59,14 +59,14 @@ class InverseCancellation(TransformationPass):
         self.gates_to_cancel = gates_to_cancel
         super().__init__()
 
-        self_inverse_gates = []
-        inverse_gate_pairs = []
+        self.self_inverse_gates = []
+        self.inverse_gate_pairs = []
 
         for gates in self.gates_to_cancel:
             if isinstance(gates, Gate):
-                self_inverse_gates.append(gates)
+                self.self_inverse_gates.append(gates)
             else:
-                inverse_gate_pairs.append(gates)
+                self.inverse_gate_pairs.append(gates)
 
     def run(self, dag: DAGCircuit):
         """Run the InverseCancellation pass on `dag`.
