@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    PassManagers allow to use other passmanagers as passes in their lists to append
+    Fixed `#6830 <https://github.com/Qiskit/qiskit-terra/issues/6830>`__
