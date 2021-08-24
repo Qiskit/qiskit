@@ -85,7 +85,7 @@ decomposer = TwoQubitControlledUDecomposer(RZXGate)
 
                 unitary = qi.Operator(node.op).data
                 dag_weyl = circuit_to_dag(
-                    TwoQubitWeylEchoRZX(unitary, is_native=is_native).circuit()
+                    decomposer(unitary)
                 )
                 dag.substitute_node_with_dag(node, dag_weyl)
 
