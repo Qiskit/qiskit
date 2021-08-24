@@ -25,4 +25,4 @@ from .remove_diagonal_gates_before_measure import RemoveDiagonalGatesBeforeMeasu
 from .crosstalk_adaptive_schedule import CrosstalkAdaptiveSchedule
 from .hoare_opt import HoareOptimizer
 from .template_optimization import TemplateOptimization
-from .inverse_cancellation import Cancellation
+from .inverse_cancellation import InverseCancellation
