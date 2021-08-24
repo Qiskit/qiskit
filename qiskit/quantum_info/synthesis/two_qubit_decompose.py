@@ -569,6 +569,8 @@ class TwoQubitControlledUDecomposer:
         Note: atol ist passed to OneQubitEulerDecomposer.
         """
 
+self.decomposer = TwoQubitWeylDecomposition(unitary)
+
         if euler_basis is None:
             euler_basis = self._default_1q_basis
 
