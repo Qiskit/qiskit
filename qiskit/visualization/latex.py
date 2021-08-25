@@ -246,6 +246,8 @@ class QCircuitImage:
                 if self.initial_state:
                     clbit_label += "0"
                 clbit_label += " }"
+                if self.cregbundle:
+                    clbit_label = f"\\mathrm{{{clbit_label}}}"
                 self._latex[ii][0] = "\\nghost{" + clbit_label + " & " + "\\lstick{" + clbit_label
 
     def _get_image_depth(self):

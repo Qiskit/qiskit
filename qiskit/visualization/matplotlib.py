@@ -463,7 +463,7 @@ class MatplotlibDrawer:
             register = self._bit_locations[reg]["register"]
             index = self._bit_locations[reg]["index"]
             qubit_label = get_bit_label("mpl", register, index, qubit=True, layout=self._layout)
-            qubit_label = "$" + _fix_double_script(qubit_label) + initial_qbit + "$"
+            qubit_label = "$" + _fix_double_script(qubit_label) + "$" + initial_qbit
 
             text_width = self._get_text_width(qubit_label, self._fs) * 1.15
             if text_width > longest_bit_label_width:
@@ -473,7 +473,7 @@ class MatplotlibDrawer:
                 "y": pos,
                 "bit_label": qubit_label,
                 "index": index,
-                "group": register,
+                "register": register,
             }
             n_lines += 1
 
@@ -493,7 +493,10 @@ class MatplotlibDrawer:
                 clbit_label = get_bit_label(
                     "mpl", register, index, qubit=False, cregbundle=self._cregbundle
                 )
-                clbit_label = "$" + _fix_double_script(clbit_label) + initial_cbit + "$"
+                clbit_label = _fix_double_script(clbit_label)
+                if register is None or not self._cregbundle:
+                    clbit_label = "$" + clbit_label + "$"
+                clbit_label += initial_cbit
 
                 text_width = self._get_text_width(clbit_label, self._fs) * 1.15
                 if text_width > longest_bit_label_width:
@@ -503,7 +506,7 @@ class MatplotlibDrawer:
                     "y": pos,
                     "bit_label": clbit_label,
                     "index": index,
-                    "group": register,
+                    "register": register,
                 }
         self._x_offset = -1.2 + longest_bit_label_width
         return n_lines
@@ -528,7 +531,7 @@ class MatplotlibDrawer:
                 for qarg in node.qargs:
                     for index, reg in self._qubit_dict.items():
                         if (
-                            reg["group"] == self._bit_locations[qarg]["register"]
+                            reg["register"] == self._bit_locations[qarg]["register"]
                             and reg["index"] == self._bit_locations[qarg]["index"]
                         ):
                             q_indxs.append(index)
@@ -539,7 +542,7 @@ class MatplotlibDrawer:
                 for carg in node.cargs:
                     for index, reg in self._clbit_dict.items():
                         if (
-                            reg["group"] == self._bit_locations[carg]["register"]
+                            reg["register"] == self._bit_locations[carg]["register"]
                             and reg["index"] == self._bit_locations[carg]["index"]
                         ):
                             c_indxs.append(index)
@@ -638,15 +641,16 @@ class MatplotlibDrawer:
             this_clbit_dict = {}
             for clbit in self._clbit_dict.values():
                 clbit_label = clbit["bit_label"]
+                clbit_reg = clbit["register"]
                 y = clbit["y"] - fold_num * (n_lines + 1)
                 if y not in this_clbit_dict.keys():
-                    this_clbit_dict[y] = {"val": 1, "bit_label": clbit_label}
+                    this_clbit_dict[y] = {"val": 1, "bit_label": clbit_label, "register": clbit_reg}
                 else:
                     this_clbit_dict[y]["val"] += 1
 
             for y, this_clbit in this_clbit_dict.items():
                 # cregbundle
-                if this_clbit["val"] > 1:
+                if self._cregbundle and this_clbit["register"] is not None:
                     self._ax.plot(
                         [self._x_offset + 0.2, self._x_offset + 0.3],
                         [y - 0.1, y + 0.1],
