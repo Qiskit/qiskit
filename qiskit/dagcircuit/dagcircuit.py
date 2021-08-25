@@ -215,7 +215,10 @@ class DAGCircuit:
             Exception: if the gate is of type string and params is None.
         """
         if isinstance(gate, Gate):
-            self._calibrations[gate.name][(tuple(qubits), tuple(gate.params))] = schedule
+            if isinstance(gate.params[0], ParameterExpression):
+                self._calibrations[gate.name][(tuple(qubits), tuple([float(gate.params[0]._symbol_expr)]))] = schedule
+            else:
+                self._calibrations[gate.name][(tuple(qubits), tuple(gate.params))] = schedule
         else:
             self._calibrations[gate][(tuple(qubits), tuple(params or []))] = schedule
 

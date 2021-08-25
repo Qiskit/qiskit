@@ -175,10 +175,13 @@ class RZXCalibrationBuilder(CalibrationCreator):
             QiskitError: if the control and target qubits cannot be identified or the backend
                 does not support cx between the qubits.
         """
-        if isinstance(params[0], ParameterExpression):
-            theta = float(params[0]._symbol_expr)
-        else:
-            theta = params[0]
+        try:
+            theta = float(params[0])
+        except TypeError:
+            raise QiskitError(
+                "This transpilation pass requires all Parameters to be bound."
+            )
+
 
         q1, q2 = qubits[0], qubits[1]
 
