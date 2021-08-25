@@ -412,24 +412,24 @@ class VarQTE(EvolutionBase):
 
                 """
                 et_squared = self._error_t(params, dt_param_values, grad_res,
-                                           metric_res)[0]
+                                           metric_res)
                 # print('grad error', et_squared)
                 return et_squared
 
-            def jac_argmin_fun(dt_param_values: Union[List, np.ndarray]
-                               ) -> Union[List, np.ndarray]:
-                """
-                Get tge gradient of ||e_t||^2 w.r.t. dω/dt for given values
-
-                Args:
-                    dt_param_values: values for dω/dt
-                Returns:
-                    Gradient of ||e_t||^2 w.r.t. dω/dt
-
-                """
-                dw_et_squared = self._grad_error_t(dt_param_values, grad_res,
-                                                   metric_res)
-                return dw_et_squared
+            # def jac_argmin_fun(dt_param_values: Union[List, np.ndarray]
+            #                    ) -> Union[List, np.ndarray]:
+            #     """
+            #     Get tge gradient of ||e_t||^2 w.r.t. dω/dt for given values
+            #
+            #     Args:
+            #         dt_param_values: values for dω/dt
+            #     Returns:
+            #         Gradient of ||e_t||^2 w.r.t. dω/dt
+            #
+            #     """
+            #     dw_et_squared = self._grad_error_t(dt_param_values, grad_res,
+            #                                        metric_res)
+            #     return dw_et_squared
 
             # return nat_grad_result
             # Use the natural gradient result as initial point for least squares solver
@@ -522,7 +522,7 @@ class VarQTE(EvolutionBase):
 
         if issubclass(self._ode_solver, OdeSolver):
             self._ode_solver=self._ode_solver(ode_fun, t_bound=t, t0=0, y0=init_params,
-                                              atol=1e-10)
+                                              atol=1e-6)
 
         elif self._ode_solver == ForwardEuler:
             self._ode_solver = self._ode_solver(ode_fun, t_bound=t, t0=0,
@@ -834,6 +834,7 @@ class VarQTE(EvolutionBase):
                 true_energy = []
                 trained_energy = []
                 stddevs = []
+                variance = []
 
                 for line in reader:
                     if first:
@@ -850,6 +851,7 @@ class VarQTE(EvolutionBase):
                     true_energy.append(float(line['target_energy']))
                     trained_energy.append(float(line['trained_energy']))
                     stddevs.append(np.sqrt(float(line['variance'])))
+                    variance.append(float(line['variance']))
 
                 zipped_lists = zip(time, grad_errors, true_error, fid, true_energy, trained_energy)
 
@@ -868,203 +870,246 @@ class VarQTE(EvolutionBase):
                 # energy_error_bounds.append(trained_energy[s]/2.*er_b**2 + stddevs[s]*er_b)
                 fidelity_bounds.append((1-er_b**2/2)**2)
 
-            plt.rcParams.update({'font.size': 18})
+            # plt.rcParams.update({'font.size': 24})
 
-            plt.figure(0, figsize=(9, 7))
-            # plt.title('Error Bound ')
-            plt.scatter(time, phase_agnostic_true_error, color='indigo', marker='o', s=8,
+            plt.figure(0, figsize=(4, 3))
+            # plt.title('Error Bound')
+            plt.scatter(time, phase_agnostic_true_error, color='indigo', marker='o', s=12,
                          alpha=0.5)
-            plt.scatter(time, error_bounds, color='royalblue', marker='o', s=8,
+            plt.scatter(time, error_bounds, color='royalblue', marker='o', s=12,
                         alpha=0.5)
             plt.plot(time, phase_agnostic_true_error, color='indigo',
-                     label=r'$B(|\psi_t\rangle\langle\psi_t|, '
+                     label=r'$B(|\psi^{\omega}_t\rangle\langle\psi^{\omega}_t|, '
                            r'|\psi^*_t\rangle\langle\psi^*_t|)$',
-                     alpha=0.5)
-            plt.plot(time, error_bounds, color='royalblue', label=r'$\epsilon_t$', alpha=0.5)
+                     alpha=0.5, linewidth=2)
+            plt.plot(time, error_bounds, color='royalblue', label=r'$\epsilon_t$', alpha=0.5,
+                     linewidth=2)
 
             # plt.scatter(time, true_error, color='purple', marker='o', s=40, label='actual error')
             plt.legend(loc='best')
-            plt.ylabel('error')
+            plt.xlabel('time')
+            plt.ylabel('error', rotation=90)
             # plt.ylim(bottom=-0.01)
             # plt.ylim((-0.01, 0.25))
             plt.autoscale(enable=True)
-            plt.ylim((-0.0001, 0.52))
-            plt.yticks(np.linspace(0, 0.5, 11))
+            plt.ylim((-0.001, 0.11))
+            # plt.yticks([0, 0.05, 0.1, 0.15, 0.2, 0.25])
+            plt.yticks(np.linspace(0, 0.1, 6))
+            # plt.ylim((-0.0001, 1.425))
+            # plt.yticks(np.linspace(0, 1.4, 15))
             # plt.autoscale(enable=True)
             # plt.autoscale(enable=True)
                           # plt.xticks(range(counter-1))
-            plt.savefig(os.path.join(data_dir, 'error_bound_actual.png'))
+            plt.tight_layout()
+            plt.savefig(os.path.join(data_dir, 'error_bound_actual.pdf'))
+            plt.close()
 
 
-            if os.path.exists(os.path.join(data_dir, 'direct_error_bounds.npy')):
-                direct_error_bounds = np.load(os.path.join(data_dir, 'direct_error_bounds.npy'))
-                plt.plot(time, direct_error_bounds, color='pink', label='direct error '
-                                                                                'bound',
-                         alpha=0.5)
-                plt.legend(loc='best')
-                plt.savefig(os.path.join(data_dir, 'error_bound_actual_incl_direct.png'))
-                plt.close()
 
-            else:
-                plt.close()
-
-            if reverse_bound_directories is not None:
-                reverse_error_bounds = np.load(reverse_bound_directories[j])
-                reverse_fidelity_bounds = []
-                for s, er_b in enumerate(reverse_error_bounds):
-                    reverse_fidelity_bounds.append((1 - er_b ** 2 / 2) ** 2)
-                plt.figure(1, figsize=(9, 7))
-                # plt.title('Reverse Error Bound ')
-                # plt.scatter(time, true_error, color='purple', marker='o', s=40, label='actual error')
-                plt.scatter(time, phase_agnostic_true_error, color='indigo', marker='o', s=8,
-                            alpha=0.5)
-                plt.scatter(time, error_bounds, color='royalblue', marker='o', s=8,
-                            alpha=0.5)
-                plt.plot(time, phase_agnostic_true_error, label='actual error', color='indigo')
-                plt.plot(time, error_bounds, color='royalblue', label='error bound', alpha=0.5)
-                plt.scatter(time, reverse_error_bounds, color='magenta', marker='o', s=8,
-                            alpha=0.5)
-                plt.plot(time, reverse_error_bounds, color='magenta', label='reverse error bound',
-                                                                          alpha=0.5)
-
-                plt.legend(loc='best')
-                plt.xlabel('time')
-                plt.ylabel('error')
-                plt.ylim(bottom=-0.01)
-                plt.autoscale(enable=True)
-                plt.legend(loc='best')
-                plt.autoscale(enable=True)
-                plt.savefig(os.path.join(data_dir, 'error_bound_actual_reverse.png'))
-                plt.close()
-
-                plt.figure(2, figsize=(9, 7))
-                # plt.title('Fidelity')
-                plt.scatter(time, fid, color='indigo', marker='o', s=8,
-                            alpha=0.5)
-                plt.scatter(time, fidelity_bounds, color='royalblue', marker='o', s=8,
-                            alpha=0.5)
-                plt.scatter(time, reverse_fidelity_bounds, color='magenta', marker='o', s=8,
-                            alpha=0.5)
-                plt.plot(time, fid, color='indigo', label='fidelity', alpha=0.5)
-                plt.plot(time, fidelity_bounds, color='royalblue', label='fidelity bound',
-                         alpha=0.5)
-                plt.plot(time, reverse_fidelity_bounds, color='magenta',
-                         label='reverse fidelity bound', alpha=0.5)
-                plt.xlabel('time')
-                plt.ylabel('fidelity')
-                # plt.autoscale(enable=True)
-                # plt.xticks(range(counter-1))
-                plt.ylim((0.899, 1.03))
-                # plt.autoscale(enable=True)
-                plt.yticks(np.linspace(0.9, 1, 11))
-                plt.legend(loc='best')
-                plt.savefig(os.path.join(data_dir, 'reverse_fidelity.png'))
-                plt.close()
-
-            plt.figure(3, figsize=(9, 7))
+            plt.figure(3, figsize=(4, 3))
             # plt.title('Fidelity')
-            plt.scatter(time, fid, color='indigo', marker='o', s=8,
+            plt.scatter(time, fid, color='indigo', marker='o', s=12,
                         alpha=0.5)
-            plt.scatter(time, fidelity_bounds, color='royalblue', marker='o', s=8,
+            plt.scatter(time, fidelity_bounds, color='royalblue', marker='o', s=12,
                         alpha=0.5)
             plt.plot(time, fid, color='indigo', label=r'$|\langle\psi_t|\psi^*_t\rangle|^2$',
-                     alpha=0.5)
+                     alpha=0.5, linewidth=2)
             plt.plot(time, fidelity_bounds, color='royalblue',
-                     label=r'$(1 - \frac{\epsilon_t^2}{2})^2$', alpha=0.5)
+                     label=r'$(1 - \frac{\epsilon_t^2}{2})^2$', alpha=0.5, linewidth=2)
             plt.xlabel('time')
-            plt.ylabel('fidelity')
+            plt.ylabel('fidelity', rotation=90)
             # plt.autoscale(enable=True)
             # plt.xticks(range(counter-1))
             # plt.ylim((0.9, 1.003))
             # plt.yticks(np.linspace(0.9, 1, 6))
-            plt.ylim((0.699, 1.003))
+            plt.ylim((0.942, 1.003))
             # plt.autoscale(enable=True)
-            plt.yticks(np.linspace(0.7, 1, 11))
-            plt.legend(loc='best')
-            plt.savefig(os.path.join(data_dir, 'fidelity.png'))
+            plt.yticks(np.linspace(0.95, 1, 6))
+            plt.legend(loc='lower right')
+            plt.tight_layout()
+            plt.savefig(os.path.join(data_dir, 'fidelity.pdf'))
             plt.close()
 
             if os.path.exists(os.path.join(data_dir, 'energy_error_bound.npy')):
-                plt.figure(4, figsize=(9, 7))
-                # plt.title('Energy with error bounds')
-                plt.scatter(time, true_energy, color='indigo', marker='o', s=8,
+                plt.figure(4, figsize=(4, 3))
+                # plt.title('Energy')
+
+                plt.scatter(time, trained_energy, color='royalblue', marker='o', s=12,
+                            label=r'$E_t^{\omega}$', alpha=0.5)
+                plt.scatter(time, true_energy, color='indigo', marker='o', s=12,
                             label=r'$E_t^*$', alpha=0.5)
-                plt.scatter(time, trained_energy, color='royalblue', marker='o', s=8,
-                            label=r'$E_t$', alpha=0.5)
                 plt.plot(time, true_energy, color='indigo', alpha=0.5)
                 plt.plot(time, trained_energy, color='royalblue', alpha=0.5)
                 energy_error_bounds = np.load(os.path.join(data_dir, 'energy_error_bound.npy'))
                 plt.plot(time, trained_energy + energy_error_bounds, label=r'$E_t \pm \zeta$',
-                         color='turquoise', alpha=0.5)
+                         color='turquoise', alpha=0.5, linewidth=2)
                 plt.plot(time, trained_energy - energy_error_bounds,
-                         color='turquoise', alpha=0.5)
+                         color='turquoise', alpha=0.5, linewidth=2)
                 # plt.errorbar(time, trained_energy, yerr=energy_error_bounds, fmt='o', ecolor='blue')
                 # plt.scatter(time, energy_error_bounds, color='blue', marker='o', s=40,
                 #             label='energy error bound')
+                plt.ylim((-4.2, 0.3))
+                plt.yticks(np.linspace(-4, 0, 5))
+                # plt.autoscale(enable=True)
+                # plt.yticks([-1., -0.7, -0.4, -0.1, 0.2])
                 plt.xlabel('time')
-                plt.ylabel('energy')
+                plt.ylabel('energy', rotation=90)
+                plt.tight_layout()
                 plt.legend(loc='best')
                 # plt.autoscale(enable=True)
-                plt.savefig(os.path.join(data_dir, 'energy_w_error_bounds.png'))
+                plt.savefig(os.path.join(data_dir, 'energy_w_error_bounds.pdf'))
                 plt.close()
 
-            plt.figure(5, figsize=(9, 7))
-            plt.title('Energy')
-            plt.scatter(time, true_energy, color='indigo', marker='o', s=8,
+            plt.figure(5, figsize=(4, 3))
+            # plt.title('Energy')
+            plt.scatter(time, true_energy, color='indigo', marker='o', s=12,
                         alpha=0.5)
-            plt.scatter(time, trained_energy, color='royalblue', marker='o', s=8,
+            plt.scatter(time, trained_energy, color='royalblue', marker='o', s=12,
                         alpha=0.5)
-            plt.plot(time, true_energy, color='indigo', label=r'$E_t^*$', alpha=0.5)
-            plt.plot(time, trained_energy, color='royalblue', label=r'$E_t$', alpha=0.5)
+            plt.plot(time, true_energy, color='indigo', label=r'$E_t^*$', alpha=0.5, linewidth=2)
+            plt.plot(time, trained_energy, color='royalblue', label=r'$E_t^{\omega}$', alpha=0.5, linewidth=2)
             plt.xlabel('time')
-            plt.ylabel('energy')
+            plt.ylabel('energy', rotation=90)
+            plt.ylim((0.265, 0.345))
+            plt.yticks(np.linspace(0.27, 0.34, 8))
+            plt.tight_layout()
             plt.legend(loc='best')
             # plt.autoscale(enable=True)
-            plt.savefig(os.path.join(data_dir, 'energy.png'))
+            plt.savefig(os.path.join(data_dir, 'energy.pdf'))
             plt.close()
 
             if os.path.exists(os.path.join(data_dir, 'energy_error_bound.npy')):
-                plt.figure(6, figsize=(9, 7))
-                plt.title('Energy Error Bound')
+                plt.figure(6, figsize=(4, 3))
+                # plt.title('Energy Error Bound')
                 print('time', time)
                 print('energy error bounds', energy_error_bounds)
-                plt.scatter(time, energy_error_bounds, color='turquoise', marker='o', s=8,
+                plt.scatter(time, energy_error_bounds, color='turquoise', marker='o', s=12,
                             alpha=0.5)
-                plt.plot(time, energy_error_bounds, color='turquoise', alpha=0.5)
+                plt.plot(time, energy_error_bounds, color='turquoise', alpha=0.5, linewidth=2)
                 plt.xlabel('time')
-                plt.ylabel('energy error bound')
+                plt.ylabel('energy error bound', rotation=90)
+                plt.tight_layout()
                 # plt.legend(loc='best')
                 # plt.autoscale(enable=True)
-                plt.savefig(os.path.join(data_dir, 'energy_error_bound.png'))
+                plt.savefig(os.path.join(data_dir, 'energy_error_bound.pdf'))
                 plt.close()
 
                 max_bures = np.load(os.path.join(data_dir, 'max_bures.npy'))
 
-                plt.figure(7, figsize=(9, 7))
+                plt.figure(7, figsize=(4, 3))
                 plt.title('Max. Bures Metric')
-                plt.scatter(time, max_bures, color='pink', marker='o', s=8,
+                plt.scatter(time, max_bures, color='pink', marker='o', s=12,
                             alpha=0.5)
-                plt.plot(time, max_bures, color='pink', alpha=0.5)
+                plt.plot(time, max_bures, color='pink', alpha=0.5, linewidth=2)
                 plt.xlabel('time')
-                plt.ylabel('Max. Bures Metric')
+                plt.ylabel('Max. Bures Metric', rotation=90)
+                plt.tight_layout()
                 # plt.legend(loc='best')
                 # plt.autoscale(enable=True)
-                plt.savefig(os.path.join(data_dir, 'max_bures.png'))
+                plt.savefig(os.path.join(data_dir, 'max_bures.pdf'))
                 plt.close()
 
-                plt.figure(8, figsize=(9, 7))
-                plt.title('Gradient Errors')
-                plt.scatter(time, grad_errors, color='purple', marker='o', s=8,
+                plt.figure(8, figsize=(4, 3))
+                # plt.title('Gradient Errors')
+                plt.scatter(time, grad_errors, color='purple', marker='o', s=12,
                             alpha=0.5)
-                plt.plot(time, grad_errors, color='purple', alpha=0.5)
+                plt.plot(time, grad_errors, color='purple', alpha=0.5, linewidth=2)
                 plt.xlabel('time')
-                plt.ylabel('gradient error')
-                plt.ylim((-0.0001, 0.01))
+                plt.ylabel('error', rotation=90)
+                plt.ylim((-0.001, 0.101))
                 # plt.autoscale(enable=True)
-                plt.yticks(np.linspace(0, 0.01, 11))
+                plt.yticks(np.linspace(0, 0.1, 6))
+                plt.tight_layout()
                 # plt.legend(loc='best')
                 # plt.autoscale(enable=True)
-                plt.savefig(os.path.join(data_dir, 'grad_errors.png'))
+                plt.savefig(os.path.join(data_dir, 'grad_errors.pdf'))
                 plt.close()
+
+                plt.figure(8, figsize=(4, 3))
+                # plt.title('Energy Variance')
+                plt.scatter(time, variance, color='turquoise', marker='o', s=12,
+                            alpha=0.5)
+                plt.plot(time, variance, color='turquoise', alpha=0.5, linewidth=2)
+                plt.xlabel('time')
+                plt.ylabel('energy variance', rotation=90)
+                # plt.ylim((-0.0001, 0.01))
+                plt.autoscale(enable=True)
+                plt.tight_layout()
+                # plt.yticks(rotation=90)
+                # plt.yticks(np.linspace(0, 0.01, 11))
+                # plt.legend(loc='best')
+                # plt.autoscale(enable=True)
+                plt.savefig(os.path.join(data_dir, 'energy_var.pdf'))
+                plt.close()
+
+                # if os.path.exists(os.path.join(data_dir, 'direct_error_bounds.npy')):
+                #     direct_error_bounds = np.load(os.path.join(data_dir, 'direct_error_bounds.npy'))
+                #     plt.plot(time, direct_error_bounds, color='pink', label='direct error '
+                #                                                             'bound',
+                #              alpha=0.5, linewidth=2)
+                #     plt.legend(loc='best')
+                #     plt.savefig(os.path.join(data_dir, 'error_bound_actual_incl_direct.pdf'))
+                #     plt.close()
+                #
+                # else:
+                #     plt.close()
+                #
+                # if reverse_bound_directories is not None:
+                #     reverse_error_bounds = np.load(reverse_bound_directories[j])
+                #     reverse_fidelity_bounds = []
+                #     for s, er_b in enumerate(reverse_error_bounds):
+                #         reverse_fidelity_bounds.append((1 - er_b ** 2 / 2) ** 2)
+                #     plt.figure(1, figsize=(4, 3))
+                #     # plt.title('Reverse Error Bound ')
+                #     # plt.scatter(time, true_error, color='purple', marker='o', s=40,
+                #     # label='actual error')
+                #     plt.scatter(time, phase_agnostic_true_error, color='indigo', marker='o', s=12,
+                #                 alpha=0.5)
+                #     plt.scatter(time, error_bounds, color='royalblue', marker='o', s=12,
+                #                 alpha=0.5)
+                #     plt.plot(time, phase_agnostic_true_error, label='actual error', color='indigo',
+                #              linewidth=2)
+                #     plt.plot(time, error_bounds, color='royalblue', label='error bound', alpha=0.5
+                #              , linewidth=2)
+                #     plt.scatter(time, reverse_error_bounds, color='magenta', marker='o', s=12,
+                #                 alpha=0.5)
+                #     plt.plot(time, reverse_error_bounds, color='magenta',
+                #              label='reverse error bound',
+                #              alpha=0.5, linewidth=2)
+                #
+                #     plt.legend(loc='best')
+                #     plt.xlabel('time')
+                #     plt.ylabel('error', rotation=90)
+                #     plt.ylim(bottom=-0.01)
+                #     plt.autoscale(enable=True)
+                #     plt.legend(loc='best')
+                #     plt.autoscale(enable=True)
+                #     plt.savefig(os.path.join(data_dir, 'error_bound_actual_reverse.pdf'))
+                #     plt.close()
+                #
+                #     plt.figure(2, figsize=(4, 3))
+                #     # plt.title('Fidelity')
+                #     plt.scatter(time, fid, color='indigo', marker='o', s=12,
+                #                 alpha=0.5)
+                #     plt.scatter(time, fidelity_bounds, color='royalblue', marker='o', s=12,
+                #                 alpha=0.5)
+                #     plt.scatter(time, reverse_fidelity_bounds, color='magenta', marker='o', s=12,
+                #                 alpha=0.5)
+                #     plt.plot(time, fid, color='indigo', label='fidelity', alpha=0.5, linewidth=2)
+                #     plt.plot(time, fidelity_bounds, color='royalblue', label='fidelity bound',
+                #              alpha=0.5, linewidth=2)
+                #     plt.plot(time, reverse_fidelity_bounds, color='magenta',
+                #              label='reverse fidelity bound', alpha=0.5, linewidth=2)
+                #     plt.xlabel('time')
+                #     plt.ylabel('fidelity', rotation=90)
+                #     # plt.autoscale(enable=True)
+                #     # plt.xticks(range(counter-1))
+                #     plt.ylim((-0.03, 1.03))
+                #     # plt.autoscale(enable=True)
+                #     plt.yticks(np.linspace(0., 1, 11))
+                #     plt.legend(loc='best')
+                #     plt.tight_layout()
+                #     plt.savefig(os.path.join(data_dir, 'reverse_fidelity.pdf'))
+                #     plt.close()
 
         return

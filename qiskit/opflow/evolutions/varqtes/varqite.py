@@ -231,7 +231,7 @@ class VarQITE(VarQTE):
         x = None
         # TODO Use again finer grid of 10**6
         # Grid search over alphas for the optimization
-        a_grid = np.append(np.linspace(-1, 1, 10**6), 0)
+        a_grid = np.append(np.linspace(-1, 1, 10**7), 0)
         for a in a_grid:
             returned_bures = overlap([a])
             if math.isnan(returned_bures):
@@ -388,7 +388,7 @@ class VarQITE(VarQTE):
         if eps_t < 0:
             eps_t = 0
             print('Warn eps_t neg. clipped to 0')
-        if eps_t == 0 and grad_err == 0:
+        if eps_t == 0 and np.abs(grad_err) < 1e-6:
             eps_t_next = 0
             energy_factor = 0
             y = 0

@@ -46,10 +46,12 @@ regs = [None]
 reg_names = ['lstsq']
 # regs = ['ridge']
 # reg_names = ['ridge']
-error_based_odes = [False, True]
-error_based_ode_names = ['nat_grad', 'error']
+# error_based_odes = [False, True]
+# error_based_ode_names = ['nat_grad', 'error']
+error_based_odes = [False]
+error_based_ode_names = ['nat_grad']
 
-output_dirs = ['illustrative_errorODE_longer']
+output_dirs = ['illustrative_errorODE_longer_clipped_smaller_tol']
 
 output_dir = '../'
 # output_dir = '/Users/ouf/Box/ChristaPhDFolder/Papers/VarQTE_Error/output'
@@ -82,6 +84,12 @@ for dir in output_dirs:
                     print('---------------------------------------------------------------------')
 
                     t0 = time.time()
+                    # output_dir ='/Users/ouf/Box/ChristaPhDFolder/Papers/VarQTE_Error/output/' \
+                    #             'output_new_ode_def_june21/illustrative_errorODE_longer'
+                    # varqite_snapshot_dir = os.path.join(output_dir, 'imag',
+                    #                                     reg_names[j],
+                    #                                     ode_solvers_names[k] +
+                    #                                     error_based_ode_names[l])
                     varqite_snapshot_dir = os.path.join(output_dir, dir, 'imag',
                                                         reg_names[j],
                                                         ode_solvers_names[k] +
@@ -96,17 +104,17 @@ for dir in output_dirs:
                                       error_based_ode=error_based_ode,
                                       snapshot_dir=varqite_snapshot_dir)
 
-                    approx_time_evolved_state_imag = varqite.convert(op)
+                    # approx_time_evolved_state_imag = varqite.convert(op)
 
-                    # varqite._operator = op
-                    varqite_error_bounds, varqite_reverse_error_bounds = varqite.error_bound(
-                        varqite_snapshot_dir, imag_reverse_bound=True)
+                    varqite._operator = op
+                    # varqite_error_bounds, varqite_reverse_error_bounds = varqite.error_bound(
+                    #     varqite_snapshot_dir, imag_reverse_bound=True)
                     # varqite_error_bounds = varqite.error_bound(
                     #     varqite_snapshot_dir)
-                    np.save(os.path.join(varqite_snapshot_dir, 'error_bounds.npy'),
-                            varqite_error_bounds)
-                    np.save(os.path.join(varqite_snapshot_dir, 'reverse_error_bounds.npy'),
-                            varqite_reverse_error_bounds)
+                    # np.save(os.path.join(varqite_snapshot_dir, 'error_bounds.npy'),
+                    #         varqite_error_bounds)
+                    # np.save(os.path.join(varqite_snapshot_dir, 'reverse_error_bounds.npy'),
+                    #         varqite_reverse_error_bounds)
 
                     varqite.plot_results([varqite_snapshot_dir],
                                          [os.path.join(varqite_snapshot_dir,
@@ -122,31 +130,37 @@ for dir in output_dirs:
 
                     
                     # print('---------------------------------------------------------------------')
-                    varqrte_snapshot_dir = os.path.join(output_dir, dir, 'real',
-                                                        reg_names[j],
-                                                        ode_solvers_names[k] +
-                                                        error_based_ode_names[l])
-                    t0 = time.time()
-                    varqrte = VarQRTE(parameters=parameters,
-                                    grad_method='lin_comb',
-                                    init_parameter_values=init_param_values,
-                                    num_time_steps=nts,
-                                    ode_solver=ode_solver,
-                                    backend=Aer.get_backend('statevector_simulator'),
-                                    regularization=reg,
-                                    error_based_ode=error_based_ode,
-                                    snapshot_dir=varqrte_snapshot_dir
-                                    # snapshot_dir=os.path.join('..', 'test')
-                                    )
+                    # output_dir = '/Users/ouf/Box/ChristaPhDFolder/Papers/VarQTE_Error/output/' \
+                    #              'output_new_ode_def_june21/illustrative_errorODE_longer'
+                    # # varqrte_snapshot_dir = os.path.join(output_dir, dir, 'real',
+                    # #                                     reg_names[j],
+                    # #                                     ode_solvers_names[k] +
+                    # #                                     error_based_ode_names[l])
+                    # varqrte_snapshot_dir = os.path.join(output_dir, 'real',
+                    #                                     reg_names[j],
+                    #                                     ode_solvers_names[k] +
+                    #                                     error_based_ode_names[l])
+                    # t0 = time.time()
+                    # varqrte = VarQRTE(parameters=parameters,
+                    #                 grad_method='lin_comb',
+                    #                 init_parameter_values=init_param_values,
+                    #                 num_time_steps=nts,
+                    #                 ode_solver=ode_solver,
+                    #                 backend=Aer.get_backend('statevector_simulator'),
+                    #                 regularization=reg,
+                    #                 error_based_ode=error_based_ode,
+                    #                 snapshot_dir=varqrte_snapshot_dir
+                    #                 # snapshot_dir=os.path.join('..', 'test')
+                    #                 )
                     # varqrte._operator = 1j* op
-                    approx_time_evolved_state_real = varqrte.convert(op)
-                    varqrte_error_bounds = varqrte.error_bound(varqrte_snapshot_dir)
-                    np.save(os.path.join(varqrte_snapshot_dir, 'error_bounds.npy'),
-                            varqrte_error_bounds)
-                    #
-                    print('run time', (time.time()-t0)/60)
-                    varqrte.plot_results([varqrte_snapshot_dir],
-                                         [os.path.join(varqrte_snapshot_dir,
-                                                       'error_bounds.npy')])
+                    # # approx_time_evolved_state_real = varqrte.convert(op)
+                    # # varqrte_error_bounds = varqrte.error_bound(varqrte_snapshot_dir)
+                    # # np.save(os.path.join(varqrte_snapshot_dir, 'error_bounds.npy'),
+                    # #         varqrte_error_bounds)
+                    # #
+                    # print('run time', (time.time()-t0)/60)
+                    # varqrte.plot_results([varqrte_snapshot_dir],
+                    #                      [os.path.join(varqrte_snapshot_dir,
+                    #                                    'error_bounds.npy')])
 
 

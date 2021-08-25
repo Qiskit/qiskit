@@ -112,60 +112,60 @@ print('Target ', np.diag(target))
 # ansatz2.ry(params2[11], 2)
 
 
-params3 = ParameterVector('p3', 12)
-ansatz3 = QuantumCircuit(3)
-ansatz3.h(0)
-ansatz3.h(1)
-ansatz3.h(2)
-ansatz3.ry(params3[0], 0)
-ansatz3.ry(params3[1], 1)
-ansatz3.ry(params3[2], 2)
-ansatz3.cx(0, 1)
-ansatz3.cx(0, 2)
-ansatz3.ry(params3[3], 0)
-ansatz3.ry(params3[4], 1)
-ansatz3.ry(params3[5], 2)
-ansatz3.cx(1, 2)
-ansatz3.cx(1, 0)
-ansatz3.ry(params3[6], 0)
-ansatz3.ry(params3[7], 1)
-ansatz3.ry(params3[8], 2)
-ansatz3.cx(2, 0)
-ansatz3.cx(2, 1)
-# ansatz3.cry(params3[3], 0, 1)
-# ansatz3.cry(params3[4], 1, 2)
-# ansatz3.cry(params3[5], 2, 0)
-ansatz3.ry(params3[9], 0)
-ansatz3.ry(params3[10], 1)
-ansatz3.ry(params3[11], 2)
-
-print(ansatz3)
-
-params4 = ParameterVector('p4', 12)
-ansatz4 = QuantumCircuit(3)
-ansatz4.h(0)
-ansatz4.h(1)
-ansatz4.h(2)
-ansatz4.ry(params4[0], 0)
-ansatz4.ry(params4[1], 1)
-ansatz4.ry(params4[2], 2)
-ansatz4.cx(0, 1)
-ansatz4.ry(params4[3], 0)
-ansatz4.ry(params4[4], 1)
-ansatz4.cx(1, 0)
-ansatz4.cx(1, 2)
-ansatz4.ry(params4[5], 1)
-ansatz4.ry(params4[6], 2)
-ansatz4.cx(2, 1)
-ansatz4.cx(2, 0)
-ansatz4.ry(params4[7], 0)
-ansatz4.ry(params4[8], 2)
-ansatz4.cx(0, 2)
-ansatz4.ry(params4[9], 0)
-ansatz4.ry(params4[10], 1)
-ansatz4.ry(params4[11], 2)
-
-print(ansatz4)
+# params3 = ParameterVector('p3', 12)
+# ansatz3 = QuantumCircuit(3)
+# ansatz3.h(0)
+# ansatz3.h(1)
+# ansatz3.h(2)
+# ansatz3.ry(params3[0], 0)
+# ansatz3.ry(params3[1], 1)
+# ansatz3.ry(params3[2], 2)
+# ansatz3.cx(0, 1)
+# ansatz3.cx(0, 2)
+# ansatz3.ry(params3[3], 0)
+# ansatz3.ry(params3[4], 1)
+# ansatz3.ry(params3[5], 2)
+# ansatz3.cx(1, 2)
+# ansatz3.cx(1, 0)
+# ansatz3.ry(params3[6], 0)
+# ansatz3.ry(params3[7], 1)
+# ansatz3.ry(params3[8], 2)
+# ansatz3.cx(2, 0)
+# ansatz3.cx(2, 1)
+# # ansatz3.cry(params3[3], 0, 1)
+# # ansatz3.cry(params3[4], 1, 2)
+# # ansatz3.cry(params3[5], 2, 0)
+# ansatz3.ry(params3[9], 0)
+# ansatz3.ry(params3[10], 1)
+# ansatz3.ry(params3[11], 2)
+#
+# print(ansatz3)
+#
+# params4 = ParameterVector('p4', 12)
+# ansatz4 = QuantumCircuit(3)
+# ansatz4.h(0)
+# ansatz4.h(1)
+# ansatz4.h(2)
+# ansatz4.ry(params4[0], 0)
+# ansatz4.ry(params4[1], 1)
+# ansatz4.ry(params4[2], 2)
+# ansatz4.cx(0, 1)
+# ansatz4.ry(params4[3], 0)
+# ansatz4.ry(params4[4], 1)
+# ansatz4.cx(1, 0)
+# ansatz4.cx(1, 2)
+# ansatz4.ry(params4[5], 1)
+# ansatz4.ry(params4[6], 2)
+# ansatz4.cx(2, 1)
+# ansatz4.cx(2, 0)
+# ansatz4.ry(params4[7], 0)
+# ansatz4.ry(params4[8], 2)
+# ansatz4.cx(0, 2)
+# ansatz4.ry(params4[9], 0)
+# ansatz4.ry(params4[10], 1)
+# ansatz4.ry(params4[11], 2)
+#
+# print(ansatz4)
 # ansatz4.cry(params4[3], 0, 1)
 # ansatz4.cry(params4[4], 1, 0)
 # ansatz4.cry(params4[5], 1, 2)
@@ -173,14 +173,34 @@ print(ansatz4)
 # ansatz4.cry(params4[7], 2, 0)
 # ansatz4.cry(params4[8], 0, 2)
 
+params5 = ParameterVector('p5', 7)
+ansatz5 = QuantumCircuit(3)
+ansatz5.h(0)
+ansatz5.h(1)
+ansatz5.h(2)
+ansatz5.rz(params5[0], 2)
+ansatz5.cx(1, 2)
+ansatz5.rz(params5[1], 2)
+ansatz5.cx(0, 2)
+ansatz5.rz(params5[2], 2)
+ansatz5.cx(1, 2)
+ansatz5.rz(params5[3], 2)
+ansatz5.cx(0, 2)
+ansatz5.rz(params5[4], 1)
+ansatz5.cx(0, 1)
+ansatz5.rz(params5[5], 1)
+ansatz5.cx(0, 1)
+ansatz5.rz(params5[6], 0)
 
 
 
 # ansaetze = [ansatz1, ansatz2, ansatz3, ansatz4]
 # params = [params1, params2, params3, params4]
 
-ansaetze = [ansatz3, ansatz4]
-params = [params3, params4]
+# ansaetze = [ansatz3, ansatz4]
+# params = [params3, params4]
+ansaetze = [ansatz5]
+params = [params5]
 # for nts in num_time_steps:
 # nts = num_time_steps[1]
 for l, ansatz in enumerate(ansaetze):
@@ -194,6 +214,8 @@ for l, ansatz in enumerate(ansaetze):
                 init_param_values = np.zeros(len(parameters))
                 # Now we stack the observable and the quantum state together.
                 # The evolution time needs to be added as a coefficient to the operator
+                qc = ansatz.bind_parameters(dict(zip(parameters, init_param_values)))
+                print(StateFn(qc).eval())
                 op = ~StateFn(observable) @ StateFn(ansatz)
                 op = t * op
 
@@ -211,7 +233,7 @@ for l, ansatz in enumerate(ansaetze):
                                   ode_solver=ode_solver,
                                   backend=Aer.get_backend('statevector_simulator'),
                                   regularization=reg,
-                                  error_based_ode=False,
+                                  error_based_ode=True,
                                   snapshot_dir=varqite_snapshot_dir)
                 approx_time_evolved_state_imag = varqite.convert(op)
                 out_state = approx_time_evolved_state_imag.eval().primitive.data
