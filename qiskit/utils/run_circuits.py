@@ -554,7 +554,7 @@ def run_circuits(
                         logger.warning(
                             "Job (%s) is completed anyway, retrieve result " "from backend again.",
                             job_id,
-                        )                            
+                        )
                         job = backend.retrieve_job(job_id)
                     else:
                         raise QiskitError(
