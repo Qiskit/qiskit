@@ -776,7 +776,7 @@ class TextDrawing:
 
         # quantum register
         qubit_labels = []
-        for ii, reg in enumerate(self.qubits):
+        for reg in self.qubits:
             register = self.bit_locations[reg]["register"]
             index = self.bit_locations[reg]["index"]
             qubit_label = get_bit_label("text", register, index, qubit=True, layout=self.layout)
@@ -787,7 +787,7 @@ class TextDrawing:
         clbit_labels = []
         if self.clbits:
             prev_creg = None
-            for ii, reg in enumerate(self.clbits):
+            for reg in self.clbits:
                 register = self.bit_locations[reg]["register"]
                 index = self.bit_locations[reg]["index"]
                 clbit_label = get_bit_label(

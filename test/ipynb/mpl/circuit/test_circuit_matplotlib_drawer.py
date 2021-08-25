@@ -661,7 +661,6 @@ class TestMatplotlibDrawer(QiskitTestCase):
         """Text circuit with one-bit registers and registerless bits."""
         from qiskit.circuit import Qubit, Clbit
 
-        filename = self._get_resource_path("test_latex_registerless_one_bit.tex")
         qrx = QuantumRegister(2, "qrx")
         qry = QuantumRegister(1, "qry")
         crx = ClassicalRegister(2, "crx")

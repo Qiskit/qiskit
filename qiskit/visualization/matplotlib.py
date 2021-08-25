@@ -14,7 +14,6 @@
 
 """mpl circuit visualization backend."""
 
-import itertools
 import re
 from warnings import warn
 

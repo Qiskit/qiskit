@@ -230,7 +230,6 @@ class QCircuitImage:
             self._latex[ii][0] = "\\nghost{" + qubit_label + " & " + "\\lstick{" + qubit_label
 
         # classical register
-        clbit_labels = []
         offset = 0
         if self.clbit_list:
             for ii in range(len(self.qubit_list), self.img_width):
