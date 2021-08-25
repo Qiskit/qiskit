@@ -15,7 +15,7 @@ from typing import Union
 import math
 import numpy as np
 
-from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.residual_errors.imaginary_error_calculator import (
+from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.imaginary_error_calculator import (
     ImaginaryErrorCalculator,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.time_step_errors.time_step_error_calculator import (

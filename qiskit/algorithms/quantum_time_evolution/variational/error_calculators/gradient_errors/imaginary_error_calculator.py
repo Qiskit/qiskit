@@ -15,7 +15,7 @@ import numpy as np
 from qiskit.algorithms.quantum_time_evolution.variational.calculators.distance_energy_calculator import (
     _inner_prod,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.residual_errors.error_calculator import (
+from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.error_calculator import (
     ErrorCalculator,
 )
 

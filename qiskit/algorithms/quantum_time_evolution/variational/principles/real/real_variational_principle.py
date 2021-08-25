@@ -12,7 +12,7 @@
 from abc import abstractmethod
 from typing import Union
 
-from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.residual_errors.real_error_calculator import (
+from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.real_error_calculator import (
     RealErrorCalculator,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (

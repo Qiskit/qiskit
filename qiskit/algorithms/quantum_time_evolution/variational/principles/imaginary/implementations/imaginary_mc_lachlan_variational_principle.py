@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 from typing import Union
 
-from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.residual_errors.imaginary_error_calculator import (
+from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.imaginary_error_calculator import (
     ImaginaryErrorCalculator,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.imaginary_variational_principle import (

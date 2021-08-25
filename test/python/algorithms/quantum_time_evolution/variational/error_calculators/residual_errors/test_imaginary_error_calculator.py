@@ -15,7 +15,7 @@ import numpy as np
 from ddt import ddt
 
 from qiskit import Aer
-from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.residual_errors.imaginary_error_calculator import (
+from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.imaginary_error_calculator import (
     ImaginaryErrorCalculator,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (

@@ -16,7 +16,7 @@ from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
     evolution_grad_calculator,
     metric_tensor_calculator,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.residual_errors.error_calculator import (
+from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.error_calculator import (
     ErrorCalculator,
 )
 from qiskit.opflow import CircuitQFI, CircuitGradient, OperatorBase
@@ -42,7 +42,7 @@ class VariationalPrinciple(ABC):
         self._is_error_supported = is_error_supported
 
         raw_metric_tensor = metric_tensor_calculator.calculate(
-            observable, ansatz, parameters, qfi_method
+            ansatz, parameters, qfi_method
         )
         raw_evolution_grad = evolution_grad_calculator.calculate(
             observable, ansatz, parameters, grad_method
