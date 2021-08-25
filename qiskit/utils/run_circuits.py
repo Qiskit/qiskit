@@ -146,7 +146,7 @@ def _safe_submit_qobj(
     skip_qobj_validation: bool,
 ) -> Tuple[BaseJob, str]:
     # assure get job ids
-    for attempt in range(10):
+    for _ in range(10):
         try:
             job = run_on_backend(
                 backend,
@@ -204,7 +204,7 @@ def _safe_submit_qobj(
 
 
 def _safe_get_job_status(job: BaseJob, job_id: str) -> JobStatus:
-    for attempt in range(10):
+    for _ in range(10):
         try:
             job_status = job.status()
             break
@@ -300,7 +300,7 @@ def run_qobj(
         for idx, _ in enumerate(jobs):
             job = jobs[idx]
             job_id = job_ids[idx]
-            for trial in range(10):
+            for _ in range(10):
                 logger.info("Running %s-th qobj, job id: %s", idx, job_id)
                 # try to get result if possible
                 while True:
@@ -322,7 +322,7 @@ def run_qobj(
 
                 # get result after the status is DONE
                 if job_status == JobStatus.DONE:
-                    for result_check in range(10):
+                    for _ in range(10):
                         result = job.result(**qjob_config)
                         if result.success:
                             results.append(result)
@@ -519,7 +519,7 @@ def run_circuits(
             logger.info("There is one jobs are submitted: id: %s", job_id)
             job = jobs[idx]
             job_id = job_ids[idx]
-            for trial in range(10):
+            for _ in range(10):
                 logger.info("Running job id: %s", job_id)
                 # try to get result if possible
                 while True:
@@ -543,7 +543,7 @@ def run_circuits(
 
                 # get result after the status is DONE
                 if job_status == JobStatus.DONE:
-                    for result_check in range(10):
+                    for _ in range(10):
                         result = job.result()
                         if result.success:
                             results.append(result)
@@ -627,7 +627,7 @@ def _safe_submit_circuits(
     run_config: Dict,
 ) -> Tuple[BaseJob, str]:
     # assure get job ids
-    for attempt in range(10):
+    for _ in range(10):
         try:
             job = _run_circuits_on_backend(
                 backend,
