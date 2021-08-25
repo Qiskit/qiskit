@@ -216,7 +216,9 @@ class DAGCircuit:
         """
         if isinstance(gate, Gate):
             if isinstance(gate.params[0], ParameterExpression):
-                self._calibrations[gate.name][(tuple(qubits), tuple([float(gate.params[0]._symbol_expr)]))] = schedule
+                self._calibrations[gate.name][
+                    (tuple(qubits), tuple([float(gate.params[0]._symbol_expr)]))
+                ] = schedule
             else:
                 self._calibrations[gate.name][(tuple(qubits), tuple(gate.params))] = schedule
         else:

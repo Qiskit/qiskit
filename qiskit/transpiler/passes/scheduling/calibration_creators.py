@@ -31,7 +31,6 @@ from qiskit.exceptions import QiskitError
 from qiskit.providers import basebackend
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.circuit.library.standard_gates import RZXGate
-from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.transpiler.basepasses import TransformationPass
 
 
@@ -177,11 +176,10 @@ class RZXCalibrationBuilder(CalibrationCreator):
         """
         try:
             theta = float(params[0])
-        except TypeError:
+        except TypeError as ex:
             raise QiskitError(
                 "This transpilation pass requires all Parameters to be bound."
-            )
-
+            ) from ex
 
         q1, q2 = qubits[0], qubits[1]
 
