@@ -11,11 +11,14 @@
 # that they have been altered from the originals.
 from typing import Union
 
-from qiskit.opflow import StateFn, QFI, CircuitQFI
+from qiskit import QuantumCircuit
+from qiskit.opflow import QFI, CircuitQFI, CircuitStateFn
 
 
-def calculate(observable, ansatz, parameters, qfi_method: Union[str, CircuitQFI] = "lin_comb_full"):
-    operator = ~StateFn(observable) @ StateFn(ansatz)
-    # TODO why?
-    operator = operator.oplist[-1]
+# TODO basis to be passed, real measure Z, imaginary -iY observable; requires lin comb gradient
+#  change?
+def calculate(
+    ansatz: QuantumCircuit, parameters, qfi_method: Union[str, CircuitQFI] = "lin_comb_full"
+):
+    operator = CircuitStateFn(ansatz)
     return QFI(qfi_method).convert(operator, parameters)

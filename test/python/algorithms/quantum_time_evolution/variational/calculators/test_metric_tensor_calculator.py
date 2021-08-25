@@ -40,7 +40,7 @@ class TestMetricTensorCalculator(QiskitAlgorithmsTestCase):
 
         # Define a set of initial parameters
         parameters = ansatz.ordered_parameters
-        metric_tensor = calculate(observable, ansatz, parameters)
+        metric_tensor = calculate(ansatz, parameters)
 
         values_dict = [
             {param: np.pi / 4 for param in parameters},
