@@ -17,6 +17,7 @@
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
+from functools import partial
 import numpy as np
 from ddt import data, ddt, unpack
 
@@ -27,6 +28,7 @@ from qiskit.algorithms.optimizers import (
     COBYLA,
     L_BFGS_B,
     P_BFGS,
+    QNSPSA,
     SLSQP,
     SPSA,
     TNC,
@@ -210,7 +212,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
         with self.assertWarns(DeprecationWarning):
             optimal_vector = vqe.get_optimal_vector()
 
-        self.assertAlmostEqual(sum([v ** 2 for v in optimal_vector.values()]), 1.0, places=4)
+        self.assertAlmostEqual(sum(v ** 2 for v in optimal_vector.values()), 1.0, places=4)
 
     @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
     def test_with_aer_statevector(self):
@@ -438,6 +440,38 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
         with self.subTest("Check results."):
             self.assertEqual(len(result0.optimal_point), len(result1.optimal_point))
+
+    def test_batch_evaluate_with_qnspsa(self):
+        """Test batch evaluating with QNSPSA works."""
+        ansatz = TwoLocal(2, rotation_blocks=["ry", "rz"], entanglement_blocks="cz")
+
+        wrapped_backend = BasicAer.get_backend("qasm_simulator")
+        inner_backend = BasicAer.get_backend("statevector_simulator")
+
+        callcount = {"count": 0}
+
+        def wrapped_run(circuits, **kwargs):
+            kwargs["callcount"]["count"] += 1
+            return inner_backend.run(circuits)
+
+        wrapped_backend.run = partial(wrapped_run, callcount=callcount)
+
+        fidelity = QNSPSA.get_fidelity(ansatz, backend=wrapped_backend)
+        qnspsa = QNSPSA(fidelity, maxiter=5)
+
+        vqe = VQE(
+            ansatz=ansatz,
+            optimizer=qnspsa,
+            max_evals_grouped=100,
+            quantum_instance=wrapped_backend,
+        )
+        _ = vqe.compute_minimum_eigenvalue(Z ^ Z)
+
+        # 1 calibration + 1 stddev estimation + 1 initial blocking
+        # + 5 (1 loss + 1 fidelity + 1 blocking) + 1 return loss + 1 VQE eval
+        expected = 1 + 1 + 1 + 5 * 3 + 1 + 1
+
+        self.assertEqual(callcount["count"], expected)
 
 
 if __name__ == "__main__":

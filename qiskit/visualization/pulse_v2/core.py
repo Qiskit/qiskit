@@ -174,7 +174,7 @@ class DrawerCanvas:
 
             if t0b < t0 and t1b > t1:
                 raise VisualizationError(
-                    "Axis break is greater than time window. " "Nothing will be drawn."
+                    "Axis break is greater than time window. Nothing will be drawn."
                 )
             if t0b < t0 < t1b:
                 if t1b - t0 > self.formatter["axis_break.length"]:
@@ -357,7 +357,7 @@ class DrawerCanvas:
                 t_end = int(np.round(t_end / self.device.dt))
             else:
                 raise VisualizationError(
-                    "Setting time range with SI units requires " "backend `dt` information."
+                    "Setting time range with SI units requires backend `dt` information."
                 )
         self.time_range = (t_start, t_end)
 
@@ -586,7 +586,7 @@ class Chart:
         """
         for name, data in self._output_dataset.items():
             # prepare unique name
-            unique_id = "chart{ind:d}_{key}".format(ind=self.index, key=name)
+            unique_id = f"chart{self.index:d}_{name}"
             if self._check_visible(data):
                 yield unique_id, data
 
@@ -853,7 +853,7 @@ class Chart:
                 return self.vmax
             if val == types.AbstractCoordinate.BOTTOM:
                 return self.vmin
-            raise VisualizationError("Coordinate {name} is not supported.".format(name=val))
+            raise VisualizationError(f"Coordinate {val} is not supported.")
 
         try:
             return np.asarray(vals, dtype=float)

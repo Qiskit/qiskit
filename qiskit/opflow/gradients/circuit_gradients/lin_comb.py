@@ -312,7 +312,7 @@ class LinComb(CircuitGradient):
                 return prob_dict
             else:
                 raise TypeError(
-                    "The state result should be either a " "DictStateFn or a VectorStateFn."
+                    "The state result should be either a DictStateFn or a VectorStateFn."
                 )
 
         if not isinstance(x, Iterable):
@@ -436,7 +436,7 @@ class LinComb(CircuitGradient):
                 coeffs_gates.append(c_g)
             return coeffs_gates
 
-        raise TypeError("Unrecognized parameterized gate, {}".format(gate))
+        raise TypeError(f"Unrecognized parameterized gate, {gate}")
 
     @staticmethod
     def apply_grad_gate(

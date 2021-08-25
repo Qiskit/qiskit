@@ -17,15 +17,18 @@ Methods to create random operators.
 import numpy as np
 from numpy.random import default_rng
 
-from qiskit.quantum_info.operators import Operator, Stinespring
 from qiskit.exceptions import QiskitError
+from qiskit.quantum_info.operators import Operator, Stinespring
 
 # pylint: disable=unused-import
-from .symplectic.random import random_pauli
-from .symplectic.random import random_clifford
-from .symplectic.random import random_pauli_table
-from .symplectic.random import random_stabilizer_table
 from .dihedral.random import random_cnotdihedral
+from .symplectic.random import (
+    random_clifford,
+    random_pauli,
+    random_pauli_list,
+    random_pauli_table,
+    random_stabilizer_table,
+)
 
 DEFAULT_RNG = default_rng()
 
@@ -123,7 +126,7 @@ def random_quantum_channel(input_dims=None, output_dims=None, rank=None, seed=No
     # Determine total input and output dimensions
     if input_dims is None and output_dims is None:
         raise QiskitError(
-            "No dimensions specified: input_dims and output_dims cannot" " both be None."
+            "No dimensions specified: input_dims and output_dims cannot both be None."
         )
     if input_dims is None:
         input_dims = output_dims
@@ -138,7 +141,7 @@ def random_quantum_channel(input_dims=None, output_dims=None, rank=None, seed=No
     if rank is None or rank > d_in * d_out:
         rank = d_in * d_out
     if rank < 1:
-        raise QiskitError("Rank {} must be greater than 0.".format(rank))
+        raise QiskitError(f"Rank {rank} must be greater than 0.")
     from scipy import stats
 
     # Generate a random unitary matrix

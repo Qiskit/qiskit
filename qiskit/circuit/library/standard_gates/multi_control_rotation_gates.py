@@ -14,9 +14,11 @@ Multiple-Controlled U3 gate. Not using ancillary qubits.
 """
 
 from math import pi
+from typing import Optional, Union, Tuple, List
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
 from qiskit.circuit.library.standard_gates.x import MCXGate
 from qiskit.circuit.library.standard_gates.u3 import _generate_gray_code
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.exceptions import QiskitError
 
 
@@ -74,14 +76,20 @@ def _apply_mcu_graycode(circuit, theta, phi, lam, ctls, tgt, use_basis_gates):
         last_pattern = pattern
 
 
-def mcrx(self, theta, q_controls, q_target, use_basis_gates=False):
+def mcrx(
+    self,
+    theta: ParameterValueType,
+    q_controls: Union[QuantumRegister, List[Qubit]],
+    q_target: Qubit,
+    use_basis_gates: bool = False,
+):
     """
     Apply Multiple-Controlled X rotation gate
 
     Args:
         self (QuantumCircuit): The QuantumCircuit object to apply the mcrx gate on.
         theta (float): angle theta
-        q_controls (list(Qubit)): The list of control qubits
+        q_controls (QuantumRegister or list(Qubit)): The list of control qubits
         q_target (Qubit): The target qubit
         use_basis_gates (bool): use p, u, cx
 
@@ -134,7 +142,15 @@ def mcrx(self, theta, q_controls, q_target, use_basis_gates=False):
         )
 
 
-def mcry(self, theta, q_controls, q_target, q_ancillae=None, mode=None, use_basis_gates=False):
+def mcry(
+    self,
+    theta: ParameterValueType,
+    q_controls: Union[QuantumRegister, List[Qubit]],
+    q_target: Qubit,
+    q_ancillae: Optional[Union[QuantumRegister, Tuple[QuantumRegister, int]]] = None,
+    mode: str = None,
+    use_basis_gates=False,
+):
     """
     Apply Multiple-Controlled Y rotation gate
 
@@ -158,7 +174,7 @@ def mcry(self, theta, q_controls, q_target, q_ancillae=None, mode=None, use_basi
         control_qubits = q_controls
     else:
         raise QiskitError(
-            "The mcry gate needs a list of qubits or a quantum " "register for controls."
+            "The mcry gate needs a list of qubits or a quantum register for controls."
         )
 
     # check target
@@ -176,7 +192,7 @@ def mcry(self, theta, q_controls, q_target, q_ancillae=None, mode=None, use_basi
         ancillary_qubits = q_ancillae
     else:
         raise QiskitError(
-            "The mcry gate needs None or a list of qubits or a " "quantum register for ancilla."
+            "The mcry gate needs None or a list of qubits or a quantum register for ancilla."
         )
 
     all_qubits = control_qubits + [target_qubit] + ancillary_qubits
@@ -216,10 +232,16 @@ def mcry(self, theta, q_controls, q_target, q_ancillae=None, mode=None, use_basi
                 use_basis_gates=use_basis_gates,
             )
     else:
-        raise QiskitError("Unrecognized mode for building MCRY circuit: {}.".format(mode))
+        raise QiskitError(f"Unrecognized mode for building MCRY circuit: {mode}.")
 
 
-def mcrz(self, lam, q_controls, q_target, use_basis_gates=False):
+def mcrz(
+    self,
+    lam: ParameterValueType,
+    q_controls: Union[QuantumRegister, List[Qubit]],
+    q_target: Qubit,
+    use_basis_gates: bool = False,
+):
     """
     Apply Multiple-Controlled Z rotation gate
 

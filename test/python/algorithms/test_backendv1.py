@@ -100,7 +100,7 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
             from qiskit.ignis.mitigation.measurement import CompleteMeasFitter
             from qiskit.providers.aer import noise
         except ImportError as ex:
-            self.skipTest("Package doesn't appear to be installed. Error: '{}'".format(str(ex)))
+            self.skipTest(f"Package doesn't appear to be installed. Error: '{str(ex)}'")
             return
 
         algorithm_globals.random_seed = 0

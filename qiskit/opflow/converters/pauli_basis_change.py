@@ -109,7 +109,7 @@ class PauliBasisChange(ConverterBase):
 
         if not isinstance(dest, PauliOp):
             raise TypeError(
-                "PauliBasisChange can only convert into Pauli bases, " "not {}.".format(type(dest))
+                f"PauliBasisChange can only convert into Pauli bases, not {type(dest)}."
             )
         self._destination = dest
 
@@ -179,7 +179,7 @@ class PauliBasisChange(ConverterBase):
             # If the StateFn/Meas only contains a Pauli, use it directly.
             if isinstance(operator.primitive, PauliOp):
                 cob_instr_op, dest_pauli_op = self.get_cob_circuit(operator.primitive)
-                return self._replacement_fn(cob_instr_op, dest_pauli_op)
+                return self._replacement_fn(cob_instr_op, dest_pauli_op * operator.coeff)
             # TODO make a canonical "distribute" or graph swap as method in ListOp?
             elif operator.primitive.distributive:
                 if operator.primitive.abelian:

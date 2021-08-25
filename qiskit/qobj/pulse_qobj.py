@@ -16,17 +16,14 @@
 """Module providing definitions of Pulse Qobj classes."""
 
 import copy
-import json
 import pprint
 from typing import Union, List
-import warnings
 
 import numpy
 
 from qiskit.qobj.common import QobjDictField
 from qiskit.qobj.common import QobjHeader
 from qiskit.qobj.common import QobjExperimentHeader
-from qiskit.qobj.common import validator
 
 
 class QobjMeasurementOption:
@@ -201,14 +198,14 @@ class PulseQobjInstruction:
         return out_dict
 
     def __repr__(self):
-        out = 'PulseQobjInstruction(name="%s", t0=%s' % (self.name, self.t0)
+        out = f'PulseQobjInstruction(name="{self.name}", t0={self.t0}'
         for attr in self._COMMON_ATTRS:
             attr_val = getattr(self, attr, None)
             if attr_val is not None:
                 if isinstance(attr_val, str):
-                    out += ', %s="%s"' % (attr, attr_val)
+                    out += f', {attr}="{attr_val}"'
                 else:
-                    out += ", %s=%s" % (attr, attr_val)
+                    out += f", {attr}={attr_val}"
         out += ")"
         return out
 
@@ -217,7 +214,7 @@ class PulseQobjInstruction:
         out += "\t\tt0: %s\n" % self.t0
         for attr in self._COMMON_ATTRS:
             if hasattr(self, attr):
-                out += "\t\t%s: %s\n" % (attr, getattr(self, attr))
+                out += f"\t\t{attr}: {getattr(self, attr)}\n"
         return out
 
     @classmethod
@@ -266,7 +263,7 @@ def _to_complex(value: Union[List[float], complex]) -> complex:
     elif isinstance(value, complex):
         return value
 
-    raise TypeError("{} is not in a valid complex number format.".format(value))
+    raise TypeError(f"{value} is not in a valid complex number format.")
 
 
 class PulseQobjConfig(QobjDictField):
@@ -522,10 +519,10 @@ class PulseLibraryItem:
         return cls(**data)
 
     def __repr__(self):
-        return "PulseLibraryItem(%s, %s)" % (self.name, repr(self.samples))
+        return f"PulseLibraryItem({self.name}, {repr(self.samples)})"
 
     def __str__(self):
-        return "Pulse Library Item:\n\tname: %s\n\tsamples: %s" % (self.name, self.samples)
+        return f"Pulse Library Item:\n\tname: {self.name}\n\tsamples: {self.samples}"
 
     def __eq__(self, other):
         if isinstance(other, PulseLibraryItem):
@@ -559,24 +556,10 @@ class PulseQobj:
         self.type = "PULSE"
         self.schema_version = "1.2.0"
 
-    def _validate_json_schema(self, out_dict):
-        class PulseQobjEncoder(json.JSONEncoder):
-            """A json encoder for pulse qobj"""
-
-            def default(self, obj):
-                if isinstance(obj, numpy.ndarray):
-                    return obj.tolist()
-                if isinstance(obj, complex):
-                    return (obj.real, obj.imag)
-                return json.JSONEncoder.default(self, obj)
-
-        json_str = json.dumps(out_dict, cls=PulseQobjEncoder)
-        validator(json.loads(json_str))
-
     def __repr__(self):
         experiments_str = [repr(x) for x in self.experiments]
         experiments_repr = "[" + ", ".join(experiments_str) + "]"
-        out = "PulseQobj(qobj_id='%s', config=%s, experiments=%s, header=%s)" % (
+        out = "PulseQobj(qobj_id='{}', config={}, experiments={}, header={})".format(
             self.qobj_id,
             repr(self.config),
             experiments_repr,
@@ -595,7 +578,7 @@ class PulseQobj:
             out += "%s" % str(experiment)
         return out
 
-    def to_dict(self, validate=False):
+    def to_dict(self):
         """Return a dictionary format representation of the Pulse Qobj.
 
         Note this dict is not in the json wire format expected by IBMQ and qobj
@@ -619,10 +602,6 @@ class PulseQobj:
 
             json.dumps(qobj.to_dict(), cls=QobjEncoder)
 
-        Args:
-            validate (bool): When set to true validate the output dictionary
-                against the jsonschema for qobj spec.
-
         Returns:
             dict: A dictionary representation of the PulseQobj object
         """
@@ -634,18 +613,6 @@ class PulseQobj:
             "type": self.type,
             "experiments": [x.to_dict() for x in self.experiments],
         }
-        if validate:
-            warnings.warn(
-                "The jsonschema validation included in qiskit-terra "
-                "is deprecated and will be removed in a future release. "
-                "If you're relying on this schema validation you should "
-                "pull the schemas from the Qiskit/ibmq-schemas and directly "
-                "validate your payloads with that",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            self._validate_json_schema(out_dict)
-
         return out_dict
 
     @classmethod

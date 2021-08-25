@@ -20,7 +20,7 @@ from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
-from qiskit.dagcircuit import DAGNode
+from qiskit.dagcircuit import DAGOpNode
 
 logger = logging.getLogger(__name__)
 
@@ -273,7 +273,7 @@ def _map_free_gates(layout, gates, coupling_map):
         # Gates without a partition (barrier, snapshot, save, load, noise) may
         # still have associated qubits. Look for them in the qargs.
         if not gate["partition"]:
-            qubits = [n for n in gate["graph"].nodes() if n.type == "op"][0].qargs
+            qubits = [n for n in gate["graph"].nodes() if isinstance(n, DAGOpNode)][0].qargs
 
             if not qubits:
                 continue
@@ -294,7 +294,7 @@ def _map_free_gates(layout, gates, coupling_map):
         elif len(qubits) == 1:
             mapped_gate = _transform_gate_for_layout(gate, layout)
             mapped_gates.append(mapped_gate)
-        elif coupling_map.distance(*[layout[q] for q in qubits]) == 1:
+        elif coupling_map.distance(*(layout[q] for q in qubits)) == 1:
             mapped_gate = _transform_gate_for_layout(gate, layout)
             mapped_gates.append(mapped_gate)
         else:
@@ -312,7 +312,7 @@ def _calc_layout_distance(gates, coupling_map, layout, max_gates=None):
         max_gates = 50 + 10 * len(coupling_map.physical_qubits)
 
     return sum(
-        coupling_map.distance(*[layout[q] for q in gate["partition"][0]])
+        coupling_map.distance(*(layout[q] for q in gate["partition"][0]))
         for gate in gates[:max_gates]
         if gate["partition"] and len(gate["partition"][0]) == 2
     )
@@ -328,7 +328,7 @@ def _score_step(step):
 
 def _transform_gate_for_layout(gate, layout):
     """Return op implementing a virtual gate on given layout."""
-    mapped_op_node = deepcopy([n for n in gate["graph"].nodes() if n.type == "op"][0])
+    mapped_op_node = deepcopy([n for n in gate["graph"].nodes() if isinstance(n, DAGOpNode)][0])
 
     device_qreg = QuantumRegister(len(layout.get_physical_bits()), "q")
     mapped_qargs = [device_qreg[layout[a]] for a in mapped_op_node.qargs]
@@ -343,4 +343,4 @@ def _swap_ops_from_edge(edge, layout):
     qreg_edge = [device_qreg[i] for i in edge]
 
     # TODO shouldn't be making other nodes not by the DAG!!
-    return [DAGNode(op=SwapGate(), qargs=qreg_edge, cargs=[], type="op")]
+    return [DAGOpNode(op=SwapGate(), qargs=qreg_edge, cargs=[])]

@@ -165,7 +165,7 @@ def build_measurement_error_mitigation_circuits(
             mit_pattern=mit_pattern, circlabel=circlabel
         )
     else:
-        raise QiskitError("Unknown fitter {}".format(fitter_cls))
+        raise QiskitError(f"Unknown fitter {fitter_cls}")
 
     # the provided `qubit_list` would be used as the initial layout to
     # assure the consistent qubit mapping used in the main circuits.
@@ -237,7 +237,7 @@ def build_measurement_error_mitigation_qobj(
             mit_pattern=mit_pattern, circlabel=circlabel
         )
     else:
-        raise QiskitError("Unknown fitter {}".format(fitter_cls))
+        raise QiskitError(f"Unknown fitter {fitter_cls}")
 
     # the provided `qubit_list` would be used as the initial layout to
     # assure the consistent qubit mapping used in the main circuits.

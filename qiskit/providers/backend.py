@@ -114,7 +114,7 @@ class BackendV1(Backend, ABC):
         """
         for field in fields:
             if not hasattr(self._options, field):
-                raise AttributeError("Options field %s is not valid for this " "backend" % field)
+                raise AttributeError("Options field %s is not valid for this backend" % field)
         self._options.update_options(**fields)
 
     def configuration(self):
@@ -176,7 +176,7 @@ class BackendV1(Backend, ABC):
 
         [0] https://docs.python.org/3/reference/datamodel.html#object.__repr__
         """
-        return "<{}('{}')>".format(self.__class__.__name__, self.name())
+        return f"<{self.__class__.__name__}('{self.name()}')>"
 
     @property
     def options(self):

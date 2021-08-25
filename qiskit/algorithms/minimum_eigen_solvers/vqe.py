@@ -288,15 +288,15 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     @property
     def setting(self):
         """Prepare the setting of VQE as a string."""
-        ret = "Algorithm: {}\n".format(self.__class__.__name__)
+        ret = f"Algorithm: {self.__class__.__name__}\n"
         params = ""
         for key, value in self.__dict__.items():
             if key[0] == "_":
                 if "initial_point" in key and value is None:
                     params += "-- {}: {}\n".format(key[1:], "Random seed")
                 else:
-                    params += "-- {}: {}\n".format(key[1:], value)
-        ret += "{}".format(params)
+                    params += f"-- {key[1:]}: {value}\n"
+        ret += f"{params}"
         return ret
 
     def print_settings(self):
@@ -310,14 +310,14 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         ret += "==================== Setting of {} ============================\n".format(
             self.__class__.__name__
         )
-        ret += "{}".format(self.setting)
+        ret += f"{self.setting}"
         ret += "===============================================================\n"
         if self.ansatz is not None:
             ret += "{}".format(self.ansatz.draw(output="text"))
         else:
             ret += "ansatz has not been set"
         ret += "===============================================================\n"
-        ret += "{}".format(self._optimizer.setting)
+        ret += f"{self._optimizer.setting}"
         ret += "===============================================================\n"
         return ret
 
@@ -597,7 +597,7 @@ queried as VQEResult.eigenvalue."""
         """Get the minimal cost or energy found by the VQE."""
         if self._ret.optimal_point is None:
             raise AlgorithmError(
-                "Cannot return optimal cost before running the " "algorithm to find optimal params."
+                "Cannot return optimal cost before running the algorithm to find optimal params."
             )
         return self._ret.optimal_value
 
@@ -644,6 +644,7 @@ queried as VQEResult.eigenvector."""
 
         return state
 
+    @property
     @deprecate_function(
         """
 The VQE.optimal_params property is deprecated as of Qiskit Terra 0.18.0
@@ -651,7 +652,6 @@ and will be removed no sooner than 3 months after the releasedate.
 This information is part of the returned result object and can be
 queried as VQEResult.optimal_point."""
     )
-    @property
     def optimal_params(self) -> np.ndarray:
         """The optimal parameters for the ansatz."""
         if self._ret.optimal_point is None:

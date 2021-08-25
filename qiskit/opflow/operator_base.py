@@ -48,6 +48,20 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
         self._instance_id = next(self._count)
 
     @property
+    @abstractmethod
+    def settings(self) -> Dict:
+        """Return settings of this object in a dictionary.
+
+        You can, for example, use this ``settings`` dictionary to serialize the
+        object in JSON format, if the JSON encoder you use supports all types in
+        the dictionary.
+
+        Returns:
+            Object settings in a dictionary.
+        """
+        raise NotImplementedError
+
+    @property
     def instance_id(self) -> int:
         """Return the unique instance id."""
         return self._instance_id
@@ -159,8 +173,8 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
     @staticmethod
     def _indent(lines: str, indentation: str = INDENTATION) -> str:
         """Indented representation to allow pretty representation of nested operators."""
-        indented_str = indentation + lines.replace("\n", "\n{}".format(indentation))
-        if indented_str.endswith("\n{}".format(indentation)):
+        indented_str = indentation + lines.replace("\n", f"\n{indentation}")
+        if indented_str.endswith(f"\n{indentation}"):
             indented_str = indented_str[: -len(indentation)]
         return indented_str
 

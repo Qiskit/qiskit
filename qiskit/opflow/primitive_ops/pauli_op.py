@@ -12,6 +12,7 @@
 
 """PauliOp Class """
 
+from math import pi
 from typing import Dict, List, Optional, Set, Union, cast
 
 import numpy as np
@@ -20,14 +21,13 @@ from scipy.sparse import spmatrix
 from qiskit import QuantumCircuit
 from qiskit.circuit import Instruction, ParameterExpression
 from qiskit.circuit.library import IGate, RXGate, RYGate, RZGate, XGate, YGate, ZGate
+from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.opflow.exceptions import OpflowError
 from qiskit.opflow.list_ops.summed_op import SummedOp
 from qiskit.opflow.list_ops.tensored_op import TensoredOp
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 from qiskit.quantum_info import Pauli, SparsePauliOp, Statevector
-
-PAULI_GATE_MAPPING = {"X": XGate(), "Y": YGate(), "Z": ZGate(), "I": IGate()}
 
 
 class PauliOp(PrimitiveOp):
@@ -45,9 +45,7 @@ class PauliOp(PrimitiveOp):
             TypeError: invalid parameters.
         """
         if not isinstance(primitive, Pauli):
-            raise TypeError(
-                "PauliOp can only be instantiated with Paulis, not {}".format(type(primitive))
-            )
+            raise TypeError(f"PauliOp can only be instantiated with Paulis, not {type(primitive)}")
         super().__init__(primitive, coeff=coeff)
 
     def primitive_strings(self) -> Set[str]:
@@ -135,7 +133,7 @@ class PauliOp(PrimitiveOp):
         new_pauli_list = ["I"] * length
         if len(permutation) != self.num_qubits:
             raise OpflowError(
-                "List of indices to permute must " "have the same size as Pauli Operator"
+                "List of indices to permute must have the same size as Pauli Operator"
             )
         for i, index in enumerate(permutation):
             new_pauli_list[-index - 1] = pauli_string[-i - 1]
@@ -169,8 +167,8 @@ class PauliOp(PrimitiveOp):
             )
 
         # pylint: disable=cyclic-import
-        from .circuit_op import CircuitOp
         from ..state_fns.circuit_state_fn import CircuitStateFn
+        from .circuit_op import CircuitOp
 
         if isinstance(other, (CircuitOp, CircuitStateFn)):
             return new_self.to_circuit_op().compose(other)
@@ -197,7 +195,7 @@ class PauliOp(PrimitiveOp):
         if self.coeff == 1.0:
             return prim_str
         else:
-            return "{} * {}".format(self.coeff, prim_str)
+            return f"{self.coeff} * {prim_str}"
 
     def eval(
         self,
@@ -209,10 +207,10 @@ class PauliOp(PrimitiveOp):
             return self.to_matrix_op()
 
         # pylint: disable=cyclic-import
-        from ..state_fns.state_fn import StateFn
-        from ..state_fns.dict_state_fn import DictStateFn
-        from ..state_fns.circuit_state_fn import CircuitStateFn
         from ..list_ops.list_op import ListOp
+        from ..state_fns.circuit_state_fn import CircuitStateFn
+        from ..state_fns.dict_state_fn import DictStateFn
+        from ..state_fns.state_fn import StateFn
         from .circuit_op import CircuitOp
 
         new_front = None
@@ -314,15 +312,25 @@ class PauliOp(PrimitiveOp):
             return EvolvedOp(self)
 
     def to_circuit(self) -> QuantumCircuit:
-        # If Pauli equals identity, don't skip the IGates
-        is_identity = sum(self.primitive.x + self.primitive.z) == 0
 
-        # Note: Reversing endianness!!
-        qc = QuantumCircuit(len(self.primitive))
-        for q, pauli_str in enumerate(reversed(self.primitive.to_label())):
-            gate = PAULI_GATE_MAPPING[pauli_str]
-            if not pauli_str == "I" or is_identity:
-                qc.append(gate, qargs=[q])
+        pauli = self.primitive.to_label()[-self.num_qubits :]
+        phase = self.primitive.phase
+
+        qc = QuantumCircuit(self.num_qubits)
+        if pauli == "I" * self.num_qubits:
+            qc.global_phase = -phase * pi / 2
+            return qc
+
+        if self.num_qubits == 1:
+            gate = {"I": IGate(), "X": XGate(), "Y": YGate(), "Z": ZGate()}[pauli]
+        else:
+            gate = PauliGate(pauli)
+        qc.append(gate, range(self.num_qubits))
+
+        if not phase:
+            return qc
+
+        qc.global_phase = -phase * pi / 2
         return qc
 
     def to_instruction(self) -> Instruction:
@@ -331,7 +339,7 @@ class PauliOp(PrimitiveOp):
         # (Reduce removes extra IGates).
         # return PrimitiveOp(self.primitive.to_instruction(), coeff=self.coeff).reduce()
 
-        return self.to_circuit().to_instruction()
+        return self.primitive.to_instruction()
 
     def to_pauli_op(self, massive: bool = False) -> "PauliOp":
         return self

@@ -15,7 +15,7 @@
 import itertools
 import logging
 from copy import deepcopy
-from typing import List, Optional, Union, cast
+from typing import List, Optional, Union, cast, Dict
 
 import numpy as np
 
@@ -67,6 +67,15 @@ class TaperedPauliSumOp(PauliSumOp):
         """
         return self._z2_symmetries
 
+    @property
+    def settings(self) -> Dict:
+        """Return operator settings."""
+        return {
+            "primitive": self._primitive,
+            "z2_symmetries": self._z2_symmetries,
+            "coeff": self._coeff,
+        }
+
     def assign_parameters(self, param_dict: dict) -> OperatorBase:
         pauli_sum = PauliSumOp(self.primitive, self.coeff)  # pylint: disable=no-member
         return pauli_sum.assign_parameters(param_dict)
@@ -95,7 +104,7 @@ class Z2Symmetries:
         """
         if len(symmetries) != len(sq_paulis):
             raise OpflowError(
-                "Number of Z2 symmetries has to be the same as number " "of single-qubit pauli x."
+                "Number of Z2 symmetries has to be the same as number of single-qubit pauli x."
             )
 
         if len(sq_paulis) != len(sq_list):
@@ -153,6 +162,16 @@ class Z2Symmetries:
     def tapering_values(self, new_value):
         """set tapering values"""
         self._tapering_values = new_value
+
+    @property
+    def settings(self) -> Dict:
+        """Return operator settings."""
+        return {
+            "symmetries": self._symmetries,
+            "sq_paulis": self._sq_paulis,
+            "sq_list": self._sq_list,
+            "tapering_values": self._tapering_values,
+        }
 
     def __str__(self):
         ret = ["Z2 symmetries:"]
@@ -340,7 +359,7 @@ class Z2Symmetries:
         """
         if not self._symmetries or not self._sq_paulis or not self._sq_list:
             raise OpflowError(
-                "Z2 symmetries, single qubit pauli and " "single qubit list cannot be empty."
+                "Z2 symmetries, single qubit pauli and single qubit list cannot be empty."
             )
 
         if operator.is_zero():
@@ -398,7 +417,7 @@ class Z2Symmetries:
             commutator_op = cast(PauliSumOp, commutator(operator, PauliOp(symmetry)))
             if not commutator_op.is_zero():
                 raise OpflowError(
-                    "The given operator does not commute with " "the symmetry, can not taper it."
+                    "The given operator does not commute with the symmetry, can not taper it."
                 )
 
         return self.taper(operator)

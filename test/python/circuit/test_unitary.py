@@ -38,7 +38,7 @@ class TestUnitaryGate(QiskitTestCase):
             UnitaryGate([[0, 1], [1, 0]])
         # pylint: disable=broad-except
         except Exception as err:
-            self.fail("unexpected exception in init of Unitary: {}".format(err))
+            self.fail(f"unexpected exception in init of Unitary: {err}")
 
     def test_set_matrix_raises(self):
         """test non-unitary"""
@@ -174,7 +174,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         self.assertEqual(instr.name, "unitary")
         assert_allclose(numpy.array(instr.params[0]).astype(numpy.complex64), matrix)
         # check conversion to dict
-        qobj_dict = qobj.to_dict(validate=True)
+        qobj_dict = qobj.to_dict()
 
         class NumpyEncoder(json.JSONEncoder):
             """Class for encoding json str with complex and numpy arrays."""
@@ -219,11 +219,11 @@ class TestUnitaryCircuit(QiskitTestCase):
         expected_qasm = (
             "OPENQASM 2.0;\n"
             'include "qelib1.inc";\n'
-            "qreg q0[2];\ncreg c0[1];\n"
-            "x q0[0];\n"
             "gate custom_gate p0 {\n"
             "\tu3(0,0,0) p0;\n"
             "}\n"
+            "qreg q0[2];\ncreg c0[1];\n"
+            "x q0[0];\n"
             "custom_gate q0[0];\n"
             "custom_gate q0[1];\n"
         )
@@ -245,11 +245,11 @@ class TestUnitaryCircuit(QiskitTestCase):
         expected_qasm = (
             "OPENQASM 2.0;\n"
             'include "qelib1.inc";\n'
-            "qreg q0[2];\ncreg c0[1];\n"
-            "x q0[0];\n"
             "gate custom_gate p0 {\n"
             "\tu3(0,0,0) p0;\n"
             "}\n"
+            "qreg q0[2];\ncreg c0[1];\n"
+            "x q0[0];\n"
             "custom_gate q0[0];\n"
             "custom_gate q0[1];\n"
         )
@@ -271,13 +271,13 @@ class TestUnitaryCircuit(QiskitTestCase):
         expected_qasm = (
             "OPENQASM 2.0;\n"
             'include "qelib1.inc";\n'
-            "qreg q0[2];\n"
-            "creg c0[1];\n"
-            "x q0[0];\n"
             "gate custom_gate p0,p1 {\n"
             "\tu3(pi,-pi/2,pi/2) p0;\n"
             "\tu3(pi,pi/2,-pi/2) p1;\n"
             "}\n"
+            "qreg q0[2];\n"
+            "creg c0[1];\n"
+            "x q0[0];\n"
             "custom_gate q0[0],q0[1];\n"
             "custom_gate q0[1],q0[0];\n"
         )

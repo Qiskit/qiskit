@@ -201,13 +201,8 @@ class Gradient(GradientBase):
         elif isinstance(operator, ListOp):
             grad_ops = [self.get_gradient(op, param) for op in operator.oplist]
 
-            # Note: this check to see if the ListOp has a default combo_fn
-            # will fail if the user manually specifies the default combo_fn.
-            # I.e operator = ListOp([...], combo_fn=lambda x:x) will not pass this check and
-            # later on jax will try to differentiate it and raise an error.
-            # An alternative is to check the byte code of the operator's combo_fn against the
-            # default one.
-            if operator._combo_fn == ListOp([])._combo_fn:
+            # pylint: disable=comparison-with-callable
+            if operator.combo_fn == ListOp.default_combo_fn:  # If using default
                 return ListOp(oplist=grad_ops)
             elif isinstance(operator, SummedOp):
                 return SummedOp(oplist=[grad for grad in grad_ops if grad != ~Zero @ One]).reduce()
@@ -218,7 +213,7 @@ class Gradient(GradientBase):
                 grad_combo_fn = operator.grad_combo_fn
             else:
                 if _HAS_JAX:
-                    grad_combo_fn = jit(grad(operator._combo_fn, holomorphic=True))
+                    grad_combo_fn = jit(grad(operator.combo_fn, holomorphic=True))
                 else:
                     raise MissingOptionalLibraryError(
                         libname="jax",

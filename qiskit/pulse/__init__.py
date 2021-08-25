@@ -115,8 +115,8 @@ Configuration
    InstructionScheduleMap
 
 
-Schedule Transforms
-===================
+Schedule Transforms (:mod:`qiskit.pulse.transforms`)
+====================================================
 
 Schedule transforms take :class:`Schedule` s as input and return modified
 :class:`Schedule` s.
@@ -358,7 +358,7 @@ how the program is built.
     backend = FakeArmonk()
 
     with pulse.build(backend) as u3_sched:
-        print('Number of qubit in backend: '.format(pulse.num_qubits()))
+        print('Number of qubits in backend: {}'.format(pulse.num_qubits()))
 
         samples = 160
         print('There are {} samples in {} seconds'.format(

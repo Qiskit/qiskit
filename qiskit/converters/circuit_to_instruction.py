@@ -15,10 +15,10 @@
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.classicalregister import ClassicalRegister
+from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 
 
-def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None):
+def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None, label=None):
     """Build an ``Instruction`` object from a ``QuantumCircuit``.
 
     The instruction is anonymous (not tied to a named quantum register),
@@ -33,6 +33,7 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
            instruction.
         equivalence_library (EquivalenceLibrary): Optional equivalence library
            where the converted instruction will be registered.
+        label (str): Optional instruction label.
 
     Raises:
         QiskitError: if parameter_map is not compatible with circuit
@@ -76,9 +77,10 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
 
     instruction = Instruction(
         name=circuit.name,
-        num_qubits=sum([qreg.size for qreg in circuit.qregs]),
-        num_clbits=sum([creg.size for creg in circuit.cregs]),
+        num_qubits=sum(qreg.size for qreg in circuit.qregs),
+        num_clbits=sum(creg.size for creg in circuit.cregs),
         params=[*parameter_dict.values()],
+        label=label,
     )
     instruction.condition = None
 
@@ -111,7 +113,16 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
         condition = rule[0].condition
         if condition:
             reg, val = condition
-            if reg.size == c.size:
+            if isinstance(reg, Clbit):
+                idx = 0
+                for creg in circuit.cregs:
+                    if reg not in creg:
+                        idx += creg.size
+                    else:
+                        cond_reg = creg
+                        break
+                rule[0].condition = (c[idx + list(cond_reg).index(reg)], val)
+            elif reg.size == c.size:
                 rule[0].condition = (c, val)
             else:
                 raise QiskitError(

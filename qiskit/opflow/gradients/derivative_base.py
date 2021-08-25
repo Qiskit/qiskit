@@ -19,9 +19,10 @@ from typing import Callable, Iterable, List, Optional, Tuple, Union
 import numpy as np
 from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.circuit import ParameterExpression, ParameterVector
-from qiskit.providers import BaseBackend
+from qiskit.providers import BaseBackend, Backend
 
 from ..converters.converter_base import ConverterBase
+from ..expectations import ExpectationBase, PauliExpectation
 from ..list_ops.composed_op import ComposedOp
 from ..list_ops.list_op import ListOp
 from ..list_ops.tensored_op import TensoredOp
@@ -82,7 +83,8 @@ class DerivativeBase(ConverterBase):
                 List[Tuple[ParameterExpression, ParameterExpression]],
             ]
         ] = None,
-        backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
+        backend: Optional[Union[BaseBackend, Backend, QuantumInstance]] = None,
+        expectation: Optional[ExpectationBase] = None,
     ) -> Callable[[Iterable], np.ndarray]:
         """Get a callable function which provides the respective gradient, Hessian or QFI for given
         parameter values. This callable can be used as gradient function for optimizers.
@@ -91,12 +93,14 @@ class DerivativeBase(ConverterBase):
             operator: The operator for which we want to get the gradient, Hessian or QFI.
             bind_params: The operator parameters to which the parameter values are assigned.
             grad_params: The parameters with respect to which we are taking the gradient, Hessian
-                        or QFI. If grad_params = None, then grad_params = bind_params
+                or QFI. If grad_params = None, then grad_params = bind_params
             backend: The quantum backend or QuantumInstance to use to evaluate the gradient,
                 Hessian or QFI.
+            expectation: The expectation converter to be used. If none is set then
+                `PauliExpectation()` is used.
 
         Returns:
-            callable(param_values): Function to compute a gradient, Hessian or QFI. The function
+            Function to compute a gradient, Hessian or QFI. The function
             takes an iterable as argument which holds the parameter values.
         """
         from ..converters import CircuitSampler
@@ -104,7 +108,11 @@ class DerivativeBase(ConverterBase):
         if not grad_params:
             grad_params = bind_params
 
-        # grad = self.convert(operator, grad_params)
+
+        grad = self.convert(operator, grad_params)
+        if expectation is None:
+            expectation = PauliExpectation()
+        grad = expectation.convert(grad)
 
         def gradient_fn(p_values):
             p_values_dict = dict(zip(bind_params, p_values))

@@ -159,9 +159,7 @@ class SingleQubitUnitary(Gate):
         if isinstance(parameter, np.ndarray):
             return parameter
         else:
-            raise CircuitError(
-                "invalid param type {0} in gate " "{1}".format(type(parameter), self.name)
-            )
+            raise CircuitError(f"invalid param type {type(parameter)} in gate {self.name}")
 
 
 # pylint: disable=unused-argument, invalid-name, missing-type-doc, missing-param-doc
@@ -196,7 +194,7 @@ def squ(self, unitary_matrix, qubit, mode="ZYZ", up_to_diagonal=False, *, u=None
             qubit = qubit[0]
         else:
             raise QiskitError(
-                "The target qubit is a QuantumRegister containing more than" " one qubits."
+                "The target qubit is a QuantumRegister containing more than one qubit."
             )
     # Check if there is one target qubit provided
     if not isinstance(qubit, Qubit):
