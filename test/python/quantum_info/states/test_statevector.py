@@ -32,6 +32,7 @@ from qiskit.quantum_info.states import Statevector
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.visualization.state_visualization import numbers_to_latex_terms, state_to_latex
 
 logger = logging.getLogger(__name__)
 
@@ -1075,6 +1076,54 @@ class TestStatevector(QiskitTestCase):
         for drawtype in ["repr", "text", "latex", "latex_source", "qsphere", "hinton", "bloch"]:
             with self.subTest(msg=f"draw('{drawtype}')"):
                 sv.draw(drawtype)
+        with self.subTest(msg=" draw('latex', convention='vector')"):
+            sv.draw("latex", convention="vector")
+
+    def test_state_to_latex_for_large_statevector(self):
+        """Test conversion of large dense state vector"""
+        sv = Statevector(np.ones((2 ** 15, 1)))
+        latex_representation = state_to_latex(sv)
+        self.assertEqual(
+            latex_representation,
+            " |000000000000000\\rangle+ |000000000000001\\rangle+ |000000000000010\\rangle+"
+            " |000000000000011\\rangle+ |000000000000100\\rangle+ |000000000000101\\rangle +"
+            " \\ldots + |111111111111011\\rangle+ |111111111111100\\rangle+"
+            " |111111111111101\\rangle+ |111111111111110\\rangle+ |111111111111111\\rangle",
+        )
+
+    def test_state_to_latex_for_large_sparse_statevector(self):
+        """Test conversion of large sparse state vector"""
+        sv = Statevector(np.eye(2 ** 15, 1))
+        latex_representation = state_to_latex(sv)
+        self.assertEqual(latex_representation, " |000000000000000\\rangle")
+
+    def test_number_to_latex_terms(self):
+        """Test conversions of complex numbers to latex terms"""
+
+        cases = [
+            ([1 - 8e-17, 0], ["", None]),
+            ([0, -1], [None, "-"]),
+            ([0, 1], [None, ""]),
+            ([0, 1j], [None, "i"]),
+            ([-1, 1], ["-", "+"]),
+            ([0, 1j], [None, "i"]),
+            ([-1, 1j], ["-", "+i"]),
+            ([1e-16 + 1j], ["i"]),
+            ([-1 + 1e-16 * 1j], ["-"]),
+            ([-1, -1 - 1j], ["-", "+ (-1 - i)"]),
+            ([np.sqrt(2) / 2, np.sqrt(2) / 2], ["\\frac{\\sqrt{2}}{2}", "+\\frac{\\sqrt{2}}{2}"]),
+            ([1 + np.sqrt(2)], ["(1 + \\sqrt{2})"]),
+        ]
+        for numbers, latex_terms in cases:
+            terms = numbers_to_latex_terms(numbers)
+            self.assertListEqual(terms, latex_terms)
+
+    def test_statevector_draw_latex_regression(self):
+        """Test numerical rounding errors are not printed"""
+        sv = Statevector(np.array([1 - 8e-17, 8.32667268e-17j]))
+        latex_string = sv.draw(output="latex_source")
+        self.assertTrue(latex_string.startswith(" |0\\rangle"))
+        self.assertNotIn("|1\\rangle", latex_string)
 
 
 if __name__ == "__main__":
