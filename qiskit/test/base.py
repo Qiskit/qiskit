@@ -27,6 +27,7 @@ import itertools
 import logging
 import os
 import sys
+import threading
 import warnings
 import unittest
 from unittest.util import safe_repr
@@ -39,8 +40,6 @@ try:
     HAS_FIXTURES = True
 except ImportError:
     HAS_FIXTURES = False
-
-import signal
 
 from qiskit.exceptions import MissingOptionalLibraryError
 from .decorators import enforce_subclasses_call
@@ -100,19 +99,18 @@ class TimeOutContext:
         Args:
             timeout: The maximum time to process the context in sec.
         """
-        self._timeout = timeout
+        self._alarm = threading.Timer(timeout, self._handle_timeout)
 
-    def _handle_timeout(self, signum, frame):
+    def _handle_timeout(self):
         raise TimeoutError(
             "Test timed out. Check if any process deadlocked or significant performance regression."
         )
 
     def __enter__(self):
-        signal.signal(signal.SIGALRM, self._handle_timeout)
-        signal.alarm(self._timeout)
+        self._alarm.start()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        signal.alarm(0)
+        self._alarm.cancel()
 
 
 @enforce_subclasses_call(["setUp", "setUpClass", "tearDown", "tearDownClass"])
