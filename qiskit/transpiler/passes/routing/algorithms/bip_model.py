@@ -164,7 +164,7 @@ class BIPMappingModel:
         return len(self.gates[t]) == 0
 
     def create_cpx_problem(
-        self, objective: str, backend_prop: BackendProperties = None, line_symm: bool = False
+        self, objective: str, backend_prop: BackendProperties = None, line_symm: bool = False, depth_obj_weight: float = 0.1
     ):
         """Create integer programming model to compile a circuit.
 
@@ -185,6 +185,9 @@ class BIPMappingModel:
             line_symm:
                 Use symmetry breaking constrainst for line topology. Should
                 only be True if the hardware graph is a chain/line/path.
+
+            depth_obj_weight:
+                Weight of depth objective in ``'balanced'`` objective function.
 
         Raises:
             TranspilerError: if unknow objective type is specified or invalid options are specified.
@@ -355,19 +358,18 @@ class BIPMappingModel:
                         objexr += 0.01 * x[t, q, i, j]
             mdl.minimize(objexr)
         elif objective in ("gate_error", "balanced"):
-            # We multiply gate_error by 10 because the cofficients are usually very small.
-            # We add the depth objective with coefficient 0.01 if balanced was selected.
+            # We add the depth objective with coefficient depth_obj_weight if balanced was selected.
             objexr = 0
             for t in range(self.depth - 1):
                 for (p, q), node in self.gates[t]:
                     for (i, j) in self._arcs:
                         # We pay the cost for gate implementation.
                         pbest_fid = -np.log(self._max_expected_fidelity(node, i, j))
-                        objexr += 10 * y[t, p, q, i, j] * pbest_fid
+                        objexr += y[t, p, q, i, j] * pbest_fid
                         # If a gate is mirrored (followed by a swap on the same qubit pair),
                         # its cost should be replaced with the cost of the combined (mirrored) gate.
                         pbest_fidm = -np.log(self._max_expected_mirroed_fidelity(node, i, j))
-                        objexr += 10 * x[t, q, i, j] * (pbest_fidm - pbest_fid) / 2
+                        objexr += x[t, q, i, j] * (pbest_fidm - pbest_fid) / 2
                 # Cost of swaps on unused qubits
                 for q in range(self.num_vqubits):
                     used_qubits = {q for (pair, _) in self.gates[t] for q in pair}
@@ -375,15 +377,15 @@ class BIPMappingModel:
                         for i in range(self.num_pqubits):
                             for j in self._coupling.neighbors(i):
                                 objexr += (
-                                    10 * x[t, q, i, j] * -3 / 2 * np.log(self._cx_fidelity(i, j))
+                                    x[t, q, i, j] * -3 / 2 * np.log(self._cx_fidelity(i, j))
                                 )
             # Cost for the last layer (x variables are not defined for depth-1)
             for (p, q), node in self.gates[self.depth - 1]:
                 for (i, j) in self._arcs:
                     pbest_fid = -np.log(self._max_expected_fidelity(node, i, j))
-                    objexr += 10 * y[self.depth - 1, p, q, i, j] * pbest_fid
+                    objexr += y[self.depth - 1, p, q, i, j] * pbest_fid
             if objective == "balanced":
-                objexr += 0.01 * sum(z[t] for t in range(self.depth) if self._is_dummy_step(t))
+                objexr += depth_obj_weight * sum(z[t] for t in range(self.depth) if self._is_dummy_step(t))
             mdl.minimize(objexr)
         else:
             raise TranspilerError(f"Unknown objective type: {objective}")

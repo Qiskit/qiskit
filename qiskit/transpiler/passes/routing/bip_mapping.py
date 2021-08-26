@@ -57,8 +57,8 @@ class BIPMapping(TransformationPass):
 
     .. warning::
         The BIP mapper does not scale very well with respect to the number of qubits or gates.
-        For example, it would not work with ``qubit_subset`` beyond 10 qubits because
-        the BIP solver (CPLEX) could not find any solution within the default time limit.
+        For example, it may not work with ``qubit_subset`` beyond 10 qubits because
+        the BIP solver (CPLEX) may not find any solution within the default time limit.
 
     **References:**
 
@@ -70,11 +70,12 @@ class BIPMapping(TransformationPass):
         self,
         coupling_map,
         qubit_subset=None,
-        objective="depth",
+        objective="balanced",
         backend_prop=None,
         time_limit=30,
         threads=None,
         max_swaps_inbetween_layers=None,
+        depth_obj_weight=0.1
     ):
         """BIPMapping initializer.
 
@@ -88,8 +89,8 @@ class BIPMapping(TransformationPass):
                     negative logarithm of 2q-gate fidelities in the circuit. It takes into account only
                     the 2q-gate (CNOT) errors reported in ``backend_prop`` and ignores the other errors
                     in such as 1q-gates, SPAMs and idle times.
-                * ``'depth'``: [Default] Depth (number of 2q-gate layers) of the circuit.
-                * ``'balanced'``: Weighted sum of ``'gate_error'`` and ``'depth'``
+                * ``'depth'``: Depth (number of 2q-gate layers) of the circuit.
+                * ``'balanced'``: [Default] Weighted sum of ``'gate_error'`` and ``'depth'``
 
             backend_prop (BackendProperties): Backend properties object containing 2q-gate gate errors,
                 which are required in computing certain types of objective function
@@ -100,6 +101,10 @@ class BIPMapping(TransformationPass):
                 Number of swaps allowed in between layers. If None, automatically set.
                 Large value could decrease the probability to build infeasible BIP problem but also
                 could reduce the chance of finding a feasible solution within the ``time_limit``.
+
+            depth_obj_weight (float):
+                Weight of depth objective in ``'balanced'`` objective. The balanced objective is the
+                sum of error_rate + depth_obj_weight * depth.
 
         Raises:
             MissingOptionalLibraryError: if cplex or docplex are not installed.
@@ -124,6 +129,7 @@ class BIPMapping(TransformationPass):
         self.time_limit = time_limit
         self.threads = threads
         self.max_swaps_inbetween_layers = max_swaps_inbetween_layers
+        self.depth_obj_weight = depth_obj_weight
 
     def run(self, dag):
         """Run the BIPMapping pass on `dag`, assuming the number of virtual qubits (defined in
@@ -169,7 +175,7 @@ class BIPMapping(TransformationPass):
             logger.info("BIPMapping is skipped due to no 2q-gates.")
             return original_dag
 
-        model.create_cpx_problem(objective=self.objective, backend_prop=self.backend_prop)
+        model.create_cpx_problem(objective=self.objective, backend_prop=self.backend_prop, depth_obj_weight=self.depth_obj_weight)
 
         status = model.solve_cpx_problem(time_limit=self.time_limit, threads=self.threads)
         if model.solution is None:
