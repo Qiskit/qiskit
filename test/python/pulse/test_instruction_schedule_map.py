@@ -526,11 +526,13 @@ class TestInstructionScheduleMap(QiskitTestCase):
         """Test if instmap can be pickled."""
         instmap = FakeAthens().defaults().instruction_schedule_map
 
-        with self.assertTimeOut(60):
+        with self.assertTimeOut(1):
             parallel_map(_fake_task, [instmap, instmap])
 
 
 # pylint: disable=unused-argument
 def _fake_task(arg):
     """A fake callback for parallel test."""
+    import time
+    time.sleep(15)
     pass

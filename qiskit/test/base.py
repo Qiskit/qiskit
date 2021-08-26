@@ -28,9 +28,11 @@ import logging
 import os
 import sys
 import threading
+import traceback
 import warnings
 import unittest
 from unittest.util import safe_repr
+from unittest.case import _BaseTestCaseContext
 
 try:
     import fixtures
@@ -90,27 +92,43 @@ def gather_details(source_dict, target_dict):
         target_dict[name] = _copy_content(content_object)
 
 
-class TimeOutContext:
+class _AssertTimeOutContext(_BaseTestCaseContext):
     """A class providing a context to manage timeout."""
 
-    def __init__(self, timeout: int):
+    def __init__(self, test_case, timeout: int, msg: str = None):
         """Create new context.
 
         Args:
+            test_case: Target test case.
             timeout: The maximum time to process the context in sec.
+            msg: User provided error message.
         """
-        self._alarm = threading.Timer(timeout, self._handle_timeout)
+        super().__init__(test_case)
+        self._alarm = threading.Timer(timeout, self._handle)
+        self.msg = msg
 
-    def _handle_timeout(self):
+    def _handle(self):
         raise TimeoutError(
-            "Test timed out. Check if any process deadlocked or significant performance regression."
+            "Process timed out. Check if any deadlock or significant performance regression."
         )
 
     def __enter__(self):
         self._alarm.start()
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._alarm.cancel()
+
+        if exc_type is None:
+            return False
+        else:
+            traceback.clear_frames(exc_tb)
+
+        if issubclass(exc_type, TimeoutError):
+            self._raiseFailure(str(exc_val))
+            return True
+
+        return False
 
 
 @enforce_subclasses_call(["setUp", "setUpClass", "tearDown", "tearDownClass"])
@@ -193,7 +211,7 @@ class BaseQiskitTestCase(unittest.TestCase):
             msg = self._formatMessage(msg, error_msg)
             raise self.failureException(msg)
 
-    def assertTimeOut(self, timeout: int) -> TimeOutContext:
+    def assertTimeOut(self, timeout: int, msg: str = None) -> _AssertTimeOutContext:
         """Assert when the process hangs.
 
         This assertion should be used with python ``with`` statement.
@@ -209,11 +227,12 @@ class BaseQiskitTestCase(unittest.TestCase):
 
         Args:
             timeout: Time out in second.
+            msg: User provided error message.
 
         Returns:
             Timeout context.
         """
-        return TimeOutContext(timeout)
+        return _AssertTimeOutContext(self, timeout, msg)
 
 
 class QiskitTestCase(BaseQiskitTestCase):
