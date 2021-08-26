@@ -366,7 +366,6 @@ class SPSA(Optimizer):
 
     @property
     def settings(self) -> Dict[str, Any]:
-        """Return dictonary containing the settings of the optimizer"""
         # if learning rate or perturbation are custom iterators expand them
         if callable(self.learning_rate):
             iterator = self.learning_rate()
