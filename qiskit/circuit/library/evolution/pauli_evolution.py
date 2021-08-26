@@ -1,11 +1,5 @@
 # This code is part of Qiskit.
-from qiskit.quantum_info import Pauli
-from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.circuit.gate import Gate
-from typing import Union, Optional
-print(evo_gate.definition)
 #
-print(evo_gate.definition)
 # (C) Copyright IBM 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
@@ -17,6 +11,11 @@ print(evo_gate.definition)
 # that they have been altered from the originals.
 
 """A gate to implement time-evolution of a single Pauli string."""
+
+from typing import Union, Optional
+from qiskit.quantum_info import Pauli
+from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.circuit.gate import Gate
 
 
 class PauliEvolutionGate(Gate):
