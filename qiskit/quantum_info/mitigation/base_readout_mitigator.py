@@ -16,7 +16,7 @@ Base class for readout error mitigation.
 from abc import ABC, abstractmethod
 from typing import Optional, List, Dict, Iterable, Tuple, Union
 import numpy as np
-from qiskit.result import Counts
+from qiskit.result import Counts, QuasiDistribution
 
 try:
     import matplotlib.pyplot as plt
@@ -31,7 +31,7 @@ class BaseReadoutMitigator(ABC):
 
     def quasi_probabilities(
         self, data: Counts, qubits: Iterable[int] = None, shots: Optional[int] = None
-    ) -> (Dict[str, float], Dict[str, float]):
+    ) -> (QuasiDistribution, Dict[str, float]):
         """Convert counts to a dictionary of quasi-probabilities
 
         Args:
@@ -43,7 +43,7 @@ class BaseReadoutMitigator(ABC):
                 be calculated as the sum of all counts.
 
         Returns:
-            A dictionary containing pairs of [output, mean] where "output"
+            QuasiDistibution: A dictionary containing pairs of [output, mean] where "output"
                 is the key in the dictionaries,
                 which is the length-N bitstring of a measured standard basis state,
                 and "mean" is the mean of non-zero quasi-probability estimates.
