@@ -38,13 +38,14 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
         self._assignment_mat = amat
         self._mitigation_mats = {}
 
-    def expectation_value(self,
-                          data: Counts,
-                          diagonal: np.ndarray,
-                          qubits: Iterable[int] = None,
-                          clbits: Optional[List[int]] = None,
-                          shots: Optional[int] = None,
-                          ) -> Tuple[float, float]:
+    def expectation_value(
+        self,
+        data: Counts,
+        diagonal: np.ndarray,
+        qubits: Iterable[int] = None,
+        clbits: Optional[List[int]] = None,
+        shots: Optional[int] = None,
+    ) -> Tuple[float, float]:
         r"""Compute the mitigated expectation value of a diagonal observable.
         This computes the mitigated estimator of
         :math:`\langle O \rangle = \mbox{Tr}[\rho. O]` of a diagonal observable
@@ -97,12 +98,14 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
 
         return self._expval_with_stddev(coeffs, probs_vec, shots)
 
-    def quasi_probabilities(self,
-                            data: Counts,
-                            qubits: Optional[List[int]] = None,
-                            clbits: Optional[List[int]] = None,
-                            num_qubits: Optional[int] = None,
-                            shots: Optional[bool] = False) -> (Dict[str, float], Dict[str, float]):
+    def quasi_probabilities(
+        self,
+        data: Counts,
+        qubits: Optional[List[int]] = None,
+        clbits: Optional[List[int]] = None,
+        num_qubits: Optional[int] = None,
+        shots: Optional[bool] = False,
+    ) -> (Dict[str, float], Dict[str, float]):
         """Compute mitigated quasi probabilities value.
         Args:
             data: counts object
@@ -182,13 +185,15 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
             qubits = [qubits]
 
         # Compute marginal matrix
-        axis = tuple(self._num_qubits - 1 - i for i in set(
-            range(self._num_qubits)).difference(qubits))
+        axis = tuple(
+            self._num_qubits - 1 - i for i in set(range(self._num_qubits)).difference(qubits)
+        )
         num_qubits = len(qubits)
         new_amat = np.zeros(2 * [2 ** num_qubits], dtype=float)
         for i, col in enumerate(self._assignment_mat.T[self._keep_indexes(qubits)]):
-            new_amat[i] = np.reshape(col, self._num_qubits * [2]).sum(axis=axis).reshape(
-                [2 ** num_qubits])
+            new_amat[i] = (
+                np.reshape(col, self._num_qubits * [2]).sum(axis=axis).reshape([2 ** num_qubits])
+            )
         new_amat = new_amat.T
         return new_amat
 
@@ -204,13 +209,13 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
         r"""Return the diagonal for the operator :math:`Z^\otimes n`"""
         parity = np.zeros(dim, dtype=dtype)
         for i in range(dim):
-            parity[i] = bin(i)[2:].count('1')
-        return (-1)**np.mod(parity, 2)
+            parity[i] = bin(i)[2:].count("1")
+        return (-1) ** np.mod(parity, 2)
 
     @staticmethod
-    def _expval_with_stddev(coeffs: np.ndarray,
-                            probs: np.ndarray,
-                            shots: int) -> Tuple[float, float]:
+    def _expval_with_stddev(
+        coeffs: np.ndarray, probs: np.ndarray, shots: int
+    ) -> Tuple[float, float]:
         """Compute expectation value and standard deviation.
         Args:
             coeffs: array of diagonal operator coefficients.
@@ -229,8 +234,10 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
         # Compute standard deviation
         if variance < 0 and not np.isclose(variance, 0):
             logger.warning(
-                'Encountered a negative variance in expectation value calculation.'
-                '(%f). Setting standard deviation of result to 0.', variance)
+                "Encountered a negative variance in expectation value calculation."
+                "(%f). Setting standard deviation of result to 0.",
+                variance,
+            )
         stddev = np.sqrt(variance) if variance > 0 else 0.0
         return [expval, stddev]
 
@@ -246,28 +253,25 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
     @staticmethod
     def _to_probs_vec(data, num_qubits):
         """Convert counts to probabilities vector"""
-        vec = np.zeros(2**num_qubits, dtype=float)
+        vec = np.zeros(2 ** num_qubits, dtype=float)
         shots = 0
         for key, val in data.items():
             shots += val
             vec[int(key, 2)] = val
         vec /= shots
-        return(vec)
+        return vec
 
     @staticmethod
     def _str2diag(string):
         chars = {
-            'I': np.array([1, 1], dtype=float),
-            'Z': np.array([1, -1], dtype=float),
-            '0': np.array([1, 0], dtype=float),
-            '1': np.array([0, 1], dtype=float),
+            "I": np.array([1, 1], dtype=float),
+            "Z": np.array([1, -1], dtype=float),
+            "0": np.array([1, 0], dtype=float),
+            "1": np.array([0, 1], dtype=float),
         }
         ret = np.array([1], dtype=float)
         for i in string:
             if i not in chars:
-                raise QiskitError(
-                    f"Invalid diagonal string character {i}")
+                raise QiskitError(f"Invalid diagonal string character {i}")
             ret = np.kron(chars[i], ret)
         return ret
-
-
