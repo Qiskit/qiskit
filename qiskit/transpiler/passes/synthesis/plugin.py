@@ -20,7 +20,7 @@ Synthesis Plugins (:mod:`qiskit.transpiler.passes.synthesis.plugin`)
 This module defines the plugin interfaces for the synthesis transpiler passes
 in Qiskit. These provide a hook point for external python packages to implement
 their own synthesis techniques and have them seamlessly exposed as opt-in
-options to users when the run :func:`~qiskit.compiler.transpile`.
+options to users when they run :func:`~qiskit.compiler.transpile`.
 
 The plugin interfaces are built using setuptools
 `entry points <https://setuptools.readthedocs.io/en/latest/userguide/entry_point.html>`__
@@ -36,11 +36,11 @@ Unitary Synthesis Plugins
 To write a unitary synthesis plugin there are 2 main steps. The first step is
 to create a subclass of the abstract plugin class:
 :class:`~qiskit.transpiler.passes.synthesis.plugin.UnitarySynthesisPlugin`.
-subclass. The plugin class defines the interface and contract for unitary synthesis
+The plugin class defines the interface and contract for unitary synthesis
 plugins. The primary method is
 :meth:`~qiskit.transpiler.passes.synthesis.plugin.UnitarySynthesisPlugin.run`
 which takes in a single positional argument, a unitary matrix as a numpy array,
-and is expects to return a :class:`~qiskit.dagcircuit.DAGCircuit` object
+and is expected to return a :class:`~qiskit.dagcircuit.DAGCircuit` object
 representing the synthesized circuit from that unitary matrix. Then to inform
 the Qiskit transpiler about what information is necessary for the pass there
 are several required property methods that need to be implemented,
@@ -50,12 +50,10 @@ depending on whether the plugin supports and/or requires that input to perform
 synthesis. An example plugin class would look something like::
 
     from qiskit.transpiler.passes.synthesis import plugin
-
     from qiskit_plugin_pkg.synthesis import generate_dag_circuit_from_matrix
 
 
     class SpecialUnitarySynthesis(plugin.UnitarySynthesisPlugin):
-
         @property
         def supports_basis_gates(self):
             return True
@@ -106,7 +104,7 @@ an ``entry_points`` entry to the ``setuptools.setup`` call in the ``setup.py``
 for the plugin package with the necessary entry points under the
 ``qiskit.unitary_synthesis`` namespace. For example::
 
-    entry_points={
+    entry_points = {
         'qiskit.unitary_synthesis': [
             'special = qiskit_plugin_pkg.module.plugin:SpecialUnitarySynthesis',
         ]
@@ -249,9 +247,9 @@ class UnitarySynthesisPlugin(abc.ABC):
 
         Returns:
             DAGCircuit: The dag circuit representation of the unitary. Alternatively,
-                you can return a tuple of the form (dag, wires) where dag is the dag
+                you can return a tuple of the form ``(dag, wires)`` where ``dag`` is the dag
                 circuit representation of the circuit representation of the unitary
-                and wires is the mapping wires to use for
+                and ``wires`` is the mapping wires to use for
                 :meth:`qiskit.dagcircuit.DAGCircuit.substitute_node_with_dag`.
         """
         pass
@@ -261,7 +259,7 @@ class UnitarySynthesisPluginManager:
     """Unitary Synthesis plugin manager class
 
     This class tracks the installed plugins, it has a single property,
-    ext_plugins which contains a list of stevedore plugin objects.
+    ``ext_plugins`` which contains a list of stevedore plugin objects.
     """
 
     def __init__(self):

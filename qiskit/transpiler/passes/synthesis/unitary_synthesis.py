@@ -331,7 +331,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                         physical_gate_fidelity = 1 - gate_error
         if natural_direction is True and preferred_direction is None:
             raise TranspilerError(
-                f"No preferred direction of gate on qubits f{qubits}"
+                f"No preferred direction of gate on qubits {qubits} "
                 "could be determined from coupling map or "
                 "gate lengths."
             )
