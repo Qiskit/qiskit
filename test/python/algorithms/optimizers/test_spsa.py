@@ -144,8 +144,8 @@ class TestSPSA(QiskitAlgorithmsTestCase):
             def __init__(self):
                 self.values = []
 
-            def __call__(self, parameters, value, **kwargs) -> bool:
-                self.values.append(value)
+            def __call__(self, nfev, point, fvalue, stepsize, accepted) -> bool:
+                self.values.append(fvalue)
 
                 if len(self.values) > 10:
                     return True

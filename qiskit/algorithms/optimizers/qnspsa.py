@@ -20,7 +20,7 @@ from qiskit.circuit import ParameterVector, QuantumCircuit
 from qiskit.opflow import StateFn, CircuitSampler, ExpectationBase
 from qiskit.utils import QuantumInstance
 
-from .spsa import SPSA, CALLBACK, TERMINATIONCHECKER, _batch_evaluate
+from .spsa import SPSA, CALLBACK, _batch_evaluate
 
 # the function to compute the fidelity
 FIDELITY = Callable[[np.ndarray, np.ndarray], float]
@@ -92,7 +92,7 @@ class QNSPSA(SPSA):
         lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
         initial_hessian: Optional[np.ndarray] = None,
         callback: Optional[CALLBACK] = None,
-        termination_checker: Optional[TERMINATIONCHECKER] = None,
+        termination_checker: Optional[CALLBACK] = None,
     ) -> None:
         r"""
         Args:
@@ -140,10 +140,13 @@ class QNSPSA(SPSA):
                 information is, in this order: the parameters, the function value, the number
                 of function evaluations, the stepsize, whether the step was accepted.
             termination_checker: A callback function executed at the end of each iteration step. The
-                arguments are, in this order: current parameters, estimate of the objective and the
-                optimizer. If the callback returns True, the optimization is terminated.
-                To prevent additional evaluations of the objective method, objective is estimated by
-                taking the mean of the objective evaluations used in the estimate of the gradient.
+                arguments are, in this order: the parameters, the function value, the number
+                of function evaluations, the stepsize, whether the step was accepted. If the callback
+                returns True, the optimization is terminated.
+                To prevent additional evaluations of the objective method, if the objective has not yet
+                been evaluated, the objective is estimated by taking the mean of the objective
+                evaluations used in the estimate of the gradient.
+
 
         """
         super().__init__(

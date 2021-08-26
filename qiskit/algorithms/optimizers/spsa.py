@@ -30,7 +30,6 @@ from .optimizer import Optimizer, OptimizerSupportLevel
 
 # number of function evaluations, parameters, loss, stepsize, accepted
 CALLBACK = Callable[[int, np.ndarray, float, float, bool], None]
-TERMINATIONCHECKER = Callable[[np.ndarray, float, Optimizer], bool]
 
 logger = logging.getLogger(__name__)
 
@@ -143,7 +142,7 @@ class SPSA(Optimizer):
         lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
         initial_hessian: Optional[np.ndarray] = None,
         callback: Optional[CALLBACK] = None,
-        termination_checker: Optional[TERMINATIONCHECKER] = None,
+        termination_checker: Optional[CALLBACK] = None,
     ) -> None:
         r"""
         Args:
@@ -193,10 +192,13 @@ class SPSA(Optimizer):
                 information is, in this order: the number of function evaluations, the parameters,
                 the function value, the stepsize, whether the step was accepted.
             termination_checker: A callback function executed at the end of each iteration step. The
-                arguments are, in this order: current parameters, estimate of the objective and the
-                optimizer. If the callback returns True, the optimization is terminated.
-                To prevent additional evaluations of the objective method, objective is estimated by
-                taking the mean of the objective evaluations used in the estimate of the gradient.
+                arguments are, in this order: the parameters, the function value, the number
+                of function evaluations, the stepsize, whether the step was accepted. If the callback
+                returns True, the optimization is terminated.
+                To prevent additional evaluations of the objective method, if the objective has not yet
+                been evaluated, the objective is estimated by taking the mean of the objective
+                evaluations used in the estimate of the gradient.
+
 
         Raises:
             ValueError: If ``learning_rate`` or ``perturbation`` is an array with less elements
@@ -217,7 +219,7 @@ class SPSA(Optimizer):
                         self.N = N
                         self.values = []
 
-                    def __call__(self, parameters, value, optimizer) -> bool:
+                    def __call__(self, nfev, parameters, value, stepsize, accepted) -> bool:
                         self.values.append(value)
 
                         if len(self.values) > self.N:
@@ -532,7 +534,7 @@ class SPSA(Optimizer):
         for k in range(1, self.maxiter + 1):
             iteration_start = time()
             # compute update
-            f_estimate, update = self._compute_update(loss, x, k, next(eps), lse_solver)
+            fx_estimate, update = self._compute_update(loss, x, k, next(eps), lse_solver)
 
             # trust region
             if self.trust_region:
@@ -543,6 +545,7 @@ class SPSA(Optimizer):
             # compute next parameter value
             update = update * next(eta)
             x_next = x - update
+            fx_next = None
 
             # blocking
             if self.blocking:
@@ -596,7 +599,8 @@ class SPSA(Optimizer):
                     last_steps.popleft()
 
             if self.termination_checker is not None:
-                if self.termination_checker(x, f_estimate, optimizer=self):
+                f = fx_estimate if fx_next is None else fx_next
+                if self.termination_checker(self._nfev, x_next, f, np.linalg.norm(update), True):
                     logger.info("terminated optimization at {k}/{self.maxiter} iterations")
                     break
 

@@ -19,7 +19,7 @@ features:
                 self.N = N
                 self.values = []
             
-            def __call__(self, parameters, value, optimizer) -> bool:
+            def __call__(self, nfev, parameters, value, stepsize, accepted) -> bool:
                 """ 
                 Returns:
                     True if the optimization loop should be terminated
