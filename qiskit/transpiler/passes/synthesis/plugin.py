@@ -180,10 +180,10 @@ class UnitarySynthesisPlugin(abc.ABC):
         """Return whether the plugin supports taking ``coupling_map``
 
         If this returns ``True`` the plugin's ``run()`` method will receive
-        two kwargs ``coupling_map`` and ``qubots``. The ``coupling_map`` kwarg
+        two kwargs ``coupling_map`` and ``qubits``. The ``coupling_map`` kwarg
         will be a :class:`~qiskit.transpiler.CouplingMap` object representing
         the qubit connectivity of the target backend. The ``qubits`` kwarg will
-        recive a list of integers that represent the qubit indices in the
+        receive a list of integers that represent the qubit indices in the
         coupling map that unitary is on.
         """
         pass
