@@ -46,7 +46,7 @@ class InverseCancellation(TransformationPass):
                     raise TranspilerError(
                         "Too many or too few inputs: {}. Only two are allowed.".format(gates)
                     )
-                elif gates[0] != gates[1].inverse():
+                if gates[0] != gates[1].inverse():
                     raise TranspilerError(
                         "Gate {} and {} are not inverse.".format(gates[0].name, gates[1].name)
                     )

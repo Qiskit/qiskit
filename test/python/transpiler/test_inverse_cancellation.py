@@ -25,6 +25,8 @@ from qiskit.circuit.library import RXGate, HGate, CXGate, PhaseGate, XGate
 
 
 class TestInverseCancellation(QiskitTestCase):
+    """Test the InverseCancellation transpiler pass."""
+
     def test_basic_self_inverse(self):
         """Test that a single self-inverse gate as input can be cancelled."""
         qc = QuantumCircuit(2, 2)
@@ -83,14 +85,6 @@ class TestInverseCancellation(QiskitTestCase):
         self.assertIn("rx", gates_after)
         self.assertEqual(gates_after["rx"], 2)
 
-    def test_non_inverse_raise_error(self):
-        """Test that non-inverse gate inputs raise an error."""
-        qc = QuantumCircuit(2, 2)
-        qc.rx(np.pi / 2, 0)
-        qc.rx(np.pi / 4, 0)
-        with self.assertRaises(TranspilerError):
-            pass_ = InverseCancellation([RXGate(0.5)])
-
     def test_non_consecutive_gates(self):
         """Test that only consecutive gates cancel."""
         qc = QuantumCircuit(2, 2)
@@ -131,13 +125,21 @@ class TestInverseCancellation(QiskitTestCase):
         gates_after = new_circ.count_ops()
         self.assertNotIn("h", gates_after)
 
+    def test_non_inverse_raise_error(self):
+        """Test that non-inverse gate inputs raise an error."""
+        qc = QuantumCircuit(2, 2)
+        qc.rx(np.pi / 2, 0)
+        qc.rx(np.pi / 4, 0)
+        with self.assertRaises(TranspilerError):
+            InverseCancellation([RXGate(0.5)])
+
     def test_non_gate_inverse_raise_error(self):
         """Test that non-inverse gate inputs raise an error."""
         qc = QuantumCircuit(2, 2)
         qc.rx(np.pi / 4, 0)
         qc.rx(np.pi / 4, 0)
         with self.assertRaises(TranspilerError):
-            pass_ = InverseCancellation([(RXGate(np.pi / 4))])
+            InverseCancellation([(RXGate(np.pi / 4))])
 
     def test_string_gate_error(self):
         """Test that when gate is passed as a string an error is raised."""
@@ -145,7 +147,7 @@ class TestInverseCancellation(QiskitTestCase):
         qc.h(0)
         qc.h(0)
         with self.assertRaises(TranspilerError):
-            pass_ = InverseCancellation(["h"])
+            InverseCancellation(["h"])
 
     def test_consecutive_self_inverse_h_x_gate(self):
         """Test that only consecutive self-inverse gates cancel."""
