@@ -18,7 +18,7 @@ from typing import Optional, List, Dict, Tuple, Iterable
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.result import Counts, marginal_counts, ProbDistribution, QuasiDistribution
+from qiskit.result import Counts, marginal_counts, QuasiDistribution
 from .base_readout_mitigator import BaseReadoutMitigator
 
 logger = logging.getLogger(__name__)
@@ -105,7 +105,7 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
         clbits: Optional[List[int]] = None,
         num_qubits: Optional[int] = None,
         shots: Optional[bool] = False,
-    ) -> (Dict[str, float], Dict[str, float]):
+    ) -> (QuasiDistribution, Dict[str, float]):
         """Compute mitigated quasi probabilities value.
         Args:
             data: counts object
@@ -115,8 +115,6 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
             shots: return the number of shots.
         Raises:
             QiskitError: if qubit and clbit kwargs are not valid.
-        Returns:
-            np.ndarray: a probability vector for all count outcomes.
         """
         # Marginalize counts
         if clbits is not None:
@@ -139,7 +137,7 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
         for index in range(len(probs_vec)):
             probs_dict[index] = probs_vec[index]
 
-        return probs_dict, self._stddev(probs_dict, shots)
+        return QuasiDistribution(probs_dict), self._stddev(probs_dict, shots)
 
     def mitigation_matrix(self, qubits: List[int] = None) -> np.ndarray:
         r"""Return the readout mitigation matrix for the specified qubits.
