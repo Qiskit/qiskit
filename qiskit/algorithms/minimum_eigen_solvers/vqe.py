@@ -487,9 +487,19 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         )
 
         start_time = time()
-        opt_result = self.optimizer.minimize(
-            fun=energy_evaluation, x0=initial_point, jac=gradient, bounds=bounds
-        )
+
+        # keep this until Optimizer.optimize is removed
+        try:
+            opt_result = self.optimizer.minimize(
+                fun=energy_evaluation, x0=initial_point, jac=gradient, bounds=bounds
+            )
+        except AttributeError:
+            # self.optimizer is an optimizer with the deprecated interface that uses
+            # ``optimize`` instead of ``minimize```
+            opt_result = self.optimizer.optimize(
+                len(initial_point), energy_evaluation, gradient, bounds, initial_point
+            )
+
         eval_time = time() - start_time
 
         result = VQEResult()

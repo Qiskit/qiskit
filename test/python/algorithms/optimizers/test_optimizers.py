@@ -197,6 +197,7 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
         self.run_optimizer(optimizer, max_nfev=10000)
         self.assertTrue(values)  # Check the list is nonempty.
 
+    # ESCH and ISRES do not do well with rosen
     @data(
         (CRS, True),
         (DIRECT_L, True),
