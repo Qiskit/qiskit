@@ -106,8 +106,8 @@ def _maybe_split_qobj_by_gates(qobjs: List[QasmQobj], qobj: QasmQobj) -> List[Qa
     if MAX_GATES_PER_JOB is not None:
         max_gates_per_job = int(MAX_GATES_PER_JOB)
         total_num_gates = 0
-        for j in range(len(qobj.experiments)):
-            total_num_gates += len(qobj.experiments[j].instructions)
+        for experiment in qobj.experiments:
+            total_num_gates += len(experiment.instructions)
         # split by gates if total number of gates in a qobj exceed MAX_GATES_PER_JOB
         if total_num_gates > max_gates_per_job:
             qobj_template = QasmQobj(
@@ -117,17 +117,17 @@ def _maybe_split_qobj_by_gates(qobjs: List[QasmQobj], qobj: QasmQobj) -> List[Qa
             temp_qobj.qobj_id = str(uuid.uuid4())
             temp_qobj.experiments = []
             num_gates = 0
-            for i in range(len(qobj.experiments)):
-                num_gates += len(qobj.experiments[i].instructions)
+            for experiment in qobj.experiments:
+                num_gates += len(experiment.instructions)
                 if num_gates <= max_gates_per_job:
-                    temp_qobj.experiments.append(qobj.experiments[i])
+                    temp_qobj.experiments.append(experiment)
                 else:
                     qobjs.append(temp_qobj)
                     # Initialize for next temp_qobj
                     temp_qobj = copy.deepcopy(qobj_template)
                     temp_qobj.qobj_id = str(uuid.uuid4())
-                    temp_qobj.experiments.append(qobj.experiments[i])
-                    num_gates = len(qobj.experiments[i].instructions)
+                    temp_qobj.experiments.append(experiment)
+                    num_gates = len(experiment.instructions)
 
             qobjs.append(temp_qobj)
         else:
@@ -195,7 +195,7 @@ def _safe_submit_qobj(
                 )
         except Exception as ex:  # pylint: disable=broad-except
             logger.warning(
-                "FAILURE: Can not get job id, Resubmit the qobj to get job id." "Error: %s ", ex
+                "FAILURE: Can not get job id, Resubmit the qobj to get job id. Error: %s ", ex
             )
 
     return job, job_id
@@ -209,7 +209,7 @@ def _safe_get_job_status(job: BaseJob, job_id: str) -> JobStatus:
             break
         except JobError as ex:
             logger.warning(
-                "FAILURE: job id: %s, " "status: 'FAIL_TO_GET_STATUS' " "Terra job error: %s",
+                "FAILURE: job id: %s, status: 'FAIL_TO_GET_STATUS' Terra job error: %s",
                 job_id,
                 ex,
             )
@@ -325,7 +325,7 @@ def run_qobj(
 
                         logger.warning("FAILURE: Job id: %s", job_id)
                         logger.warning(
-                            "Job (%s) is completed anyway, retrieve result " "from backend again.",
+                            "Job (%s) is completed anyway, retrieve result from backend again.",
                             job_id,
                         )
                         job = backend.retrieve_job(job_id)
@@ -345,7 +345,7 @@ def run_qobj(
                     )
                 else:
                     logging.warning(
-                        "FAILURE: Job id: %s. Unknown status: %s. " "Re-submit the Qobj.",
+                        "FAILURE: Job id: %s. Unknown status: %s. Re-submit the Qobj.",
                         job_id,
                         job_status,
                     )
@@ -538,7 +538,7 @@ def run_circuits(
 
                         logger.warning("FAILURE: Job id: %s", job_id)
                         logger.warning(
-                            "Job (%s) is completed anyway, retrieve result " "from backend again.",
+                            "Job (%s) is completed anyway, retrieve result from backend again.",
                             job_id,
                         )
                         job = backend.retrieve_job(job_id)
@@ -558,7 +558,7 @@ def run_circuits(
                     )
                 else:
                     logging.warning(
-                        "FAILURE: Job id: %s. Unknown status: %s. " "Re-submit the circuits.",
+                        "FAILURE: Job id: %s. Unknown status: %s. Re-submit the circuits.",
                         job_id,
                         job_status,
                     )
@@ -658,7 +658,7 @@ def _safe_submit_circuits(
                 )
         except Exception as ex:  # pylint: disable=broad-except
             logger.warning(
-                "FAILURE: Can not get job id, Resubmit the qobj to get job id." "Error: %s ", ex
+                "FAILURE: Can not get job id, Resubmit the qobj to get job id. Error: %s ", ex
             )
 
     return job, job_id

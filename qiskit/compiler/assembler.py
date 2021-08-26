@@ -46,7 +46,7 @@ def assemble(
         Schedule,
         List[Schedule],
         ScheduleBlock,
-        Union[ScheduleBlock],
+        List[ScheduleBlock],
     ],
     backend: Optional[Union[Backend, BaseBackend]] = None,
     qobj_id: Optional[str] = None,
@@ -81,6 +81,10 @@ def assemble(
     This function serializes the payloads, which could be either circuits or schedules,
     to create ``Qobj`` "experiments". It further annotates the experiment payload with
     header and configurations.
+
+    NOTE: Backend.options is not used within assemble. The required values
+    (previously given by backend.set_options) should be manually extracted
+    from options and supplied directly when calling.
 
     Args:
         experiments: Circuit(s) or pulse schedule(s) to execute
@@ -214,9 +218,7 @@ def assemble(
         )
 
     else:
-        raise QiskitError(
-            "bad input to assemble() function; " "must be either circuits or schedules"
-        )
+        raise QiskitError("bad input to assemble() function; must be either circuits or schedules")
 
 
 # TODO: rework to return a list of RunConfigs (one for each experiments), and a global one
@@ -440,8 +442,8 @@ def _parse_pulse_args(
         if isinstance(rep_time, list):
             rep_time = rep_time[0]
         rep_time = int(rep_time * 1e6)  # convert sec to μs
-
-    parametric_pulses = parametric_pulses or getattr(backend_config, "parametric_pulses", [])
+    if parametric_pulses is None:
+        parametric_pulses = getattr(backend_config, "parametric_pulses", [])
 
     # create run configuration and populate
     run_config_dict = dict(
