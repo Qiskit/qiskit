@@ -77,8 +77,8 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
             data = marginal_counts(data, clbits)
 
         # Get probability vector
-        probs_vec = data.to_probs_vec()
         num_qubits = data.num_qubits()
+        probs_vec = self._to_probs_vec(data, num_qubits)
         shots = data.shots()
 
         # Get qubit mitigation matrix and mitigate probs
@@ -90,7 +90,7 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
         if diagonal is None:
             diagonal = self._z_diagonal(2 ** num_qubits)
         else:
-            diagonal = Counts(data)._str2diag(diagonal)
+            diagonal = self._str2diag(diagonal)
 
         # Apply transpose of mitigation matrix
         coeffs = mit_mat.T.dot(diagonal)
@@ -123,7 +123,7 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
         num_qubits = data.num_qubits()
         shots = data.shots()
         # Get probability vector
-        probs_vec = data.to_probs_vec()
+        probs_vec = self._to_probs_vec(data, num_qubits)
 
         # Get qubit mitigation matrix and mitigate probs
         if qubits is None:
@@ -136,8 +136,7 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
         for index in range(len(probs_vec)):
             probs_dict[index] = probs_vec[index]
 
-        probs = QuasiDistribution(probs_dict)
-        return probs_dict, probs.stddev(shots)
+        return probs_dict, self._stddev(probs_dict, shots)
 
     def mitigation_matrix(self, qubits: List[int] = None) -> np.ndarray:
         r"""Return the readout mitigation matrix for the specified qubits.
@@ -234,3 +233,41 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
                 '(%f). Setting standard deviation of result to 0.', variance)
         stddev = np.sqrt(variance) if variance > 0 else 0.0
         return [expval, stddev]
+
+    @staticmethod
+    def _stddev(probs, shots):
+        """Calculate stddev dict"""
+        ret = {}
+        for key, prob in probs.items():
+            std_err = np.sqrt(abs(prob) * (1 - abs(prob)) / shots)
+            ret[key] = std_err
+        return ret
+
+    @staticmethod
+    def _to_probs_vec(data, num_qubits):
+        """Convert counts to probabilities vector"""
+        vec = np.zeros(2**num_qubits, dtype=float)
+        shots = 0
+        for key, val in data.items():
+            shots += val
+            vec[int(key, 2)] = val
+        vec /= shots
+        return(vec)
+
+    @staticmethod
+    def _str2diag(string):
+        chars = {
+            'I': np.array([1, 1], dtype=float),
+            'Z': np.array([1, -1], dtype=float),
+            '0': np.array([1, 0], dtype=float),
+            '1': np.array([0, 1], dtype=float),
+        }
+        ret = np.array([1], dtype=float)
+        for i in string:
+            if i not in chars:
+                raise QiskitError(
+                    f"Invalid diagonal string character {i}")
+            ret = np.kron(chars[i], ret)
+        return ret
+
+

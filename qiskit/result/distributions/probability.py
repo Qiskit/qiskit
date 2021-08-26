@@ -12,7 +12,7 @@
 """Class for probability distributions."""
 
 import re
-import numpy as np
+
 
 # NOTE: A dict subclass should not overload any dunder methods like __getitem__
 # this can cause unexpected behavior and issues as the cPython dict
@@ -92,17 +92,3 @@ class ProbDistribution(dict):
                 format ``"0x1a"``
         """
         return {hex(key): value for key, value in self.items()}
-
-    def num_shots(self):
-        """Return the number of shots"""
-        if self.shots is not None:
-            return self.shots
-        return sum(self.values())
-
-    def stddev(self):
-        """Calculate stddev dict"""
-        ret = {}
-        for key, prob in self.items():
-            std_err = np.sqrt(prob * (1 - prob) / self.num_shots())
-            ret[key] = std_err
-        return ret
