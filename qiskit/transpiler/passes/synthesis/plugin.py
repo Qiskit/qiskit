@@ -97,6 +97,14 @@ changes are needed (for example to expand the available optional input options)
 it will be done in a way that will **not** require changes from existing
 plugins.
 
+.. note::
+
+    All methods prefixed with ``supports_`` are reserved on a
+    ``UnitarySynthesisPlugin`` derived class for part of the interface. You
+    should not define any custom ``supports_*`` methods on a subclass that
+    are not defined in the abstract class.
+
+
 The second step is to expose the
 :class:`~qiskit.transpiler.passes.synthesis.plugin.UnitarySynthesisPlugin` as
 a setuptools entry point in the package metadata. This is done by simply adding
@@ -113,7 +121,8 @@ for the plugin package with the necessary entry points under the
 (note that the entry point ``name = path`` is a single string not a Python
 expression). There isn't a limit to the number of plugins a single package can
 include as long as each plugin has a unique name. So a single package can
-expose multiple plugins if necessary.
+expose multiple plugins if necessary. The name ``default`` is used by Qiskit
+itself and can't be used in a plugin.
 
 Using Plugins
 =============
@@ -158,19 +167,37 @@ class UnitarySynthesisPlugin(abc.ABC):
     @property
     @abc.abstractmethod
     def supports_basis_gates(self):
-        """Return whether the plugin supports taking ``basis_gates``"""
+        """Return whether the plugin supports taking ``basis_gates``
+
+        If this returns ``True`` the plugin's ``run()`` method will be
+        passed a ``basis_gates`` kwarg with a list of gate names the target
+        backend supports. For example, ``['sx', 'x', 'cx', 'id', 'rz']``."""
         pass
 
     @property
     @abc.abstractmethod
     def supports_coupling_map(self):
-        """Return whether the plugin supports taking ``coupling_map``"""
+        """Return whether the plugin supports taking ``coupling_map``
+
+        If this returns ``True`` the plugin's ``run()`` method will receive
+        two kwargs ``coupling_map`` and ``qubots``. The ``coupling_map`` kwarg
+        will be a :class:`~qiskit.transpiler.CouplingMap` object representing
+        the qubit connectivity of the target backend. The ``qubits`` kwarg will
+        recive a list of integers that represent the qubit indices in the
+        coupling map that unitary is on.
+        """
         pass
 
     @property
     @abc.abstractmethod
     def supports_approximation_degree(self):
-        """Return whether the plugin supports taking ``approximation_degree``"""
+        """Return whether the plugin supports taking ``approximation_degree``
+
+        If this returns ``True`` the plugin's ``run()`` method will receive
+        a ``approximation_degree`` kwarg with a float value between 0 and 1
+        representing the closeness of the approximation to use (0: lowest,
+        1: highest).
+        """
         pass
 
     @property
@@ -207,6 +234,10 @@ class UnitarySynthesisPlugin(abc.ABC):
             'sx': {(0,): 0.0006149355812506126, (1,): 0.0006149355812506126},
             'cx': {(0, 1): 0.012012477900732316, (1, 0): 5.191111111111111e-07}
             }
+
+        Do note that this dictionary might not be complete or could be empty
+        as it depends on the target backend reporting gate lengths on every
+        gate for each qubit.
         """
         pass
 
@@ -222,6 +253,10 @@ class UnitarySynthesisPlugin(abc.ABC):
             'sx': {(0,): 0.0006149355812506126, (1,): 0.0006149355812506126},
             'cx': {(0, 1): 0.012012477900732316, (1, 0): 5.191111111111111e-07}
             }
+
+        Do note that this dictionary might not be complete or could be empty
+        as it depends on the target backend reporting gate errors on every
+        gate for each qubit.
         """
         pass
 
