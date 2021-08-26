@@ -14,7 +14,7 @@ Base class for readout error mitigation.
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional, List, Dict, Iterable, Tuple, Union
+from typing import Optional, List, Dict, Iterable, Tuple, Union, Callable
 import numpy as np
 from qiskit.result import Counts, QuasiDistribution
 
@@ -60,7 +60,7 @@ class BaseReadoutMitigator(ABC):
     def expectation_value(
         self,
         data: Counts,
-        diagonal: np.ndarray,
+        diagonal: Callable,
         qubits: Iterable[int] = None,
         shots: Optional[int] = None,
     ) -> Tuple[float, float]:
@@ -70,7 +70,7 @@ class BaseReadoutMitigator(ABC):
             data: Counts object to be mitigated.
             diagonal: the diagonal operator. This may either be specified
                       as a string containing I,Z,0,1 characters, or as a
-                      real valued 1D array_like object.
+                      real valued 1D array_like object, or as a dictionary.
             qubits: the physical qubits measured to obtain the counts clbits.
                     If None these are assumed to be qubits [0, ..., N-1]
                     for N-bit counts.
