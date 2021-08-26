@@ -599,8 +599,10 @@ class SPSA(Optimizer):
                     last_steps.popleft()
 
             if self.termination_checker is not None:
-                f = fx_estimate if fx_next is None else fx_next
-                if self.termination_checker(self._nfev, x_next, f, np.linalg.norm(update), True):
+                fx_check = fx_estimate if fx_next is None else fx_next
+                if self.termination_checker(
+                    self._nfev, x_next, fx_check, np.linalg.norm(update), True
+                ):
                     logger.info("terminated optimization at {k}/{self.maxiter} iterations")
                     break
 
