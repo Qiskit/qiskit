@@ -27,12 +27,13 @@ An instance of this class is instantiated by Pulse-enabled backends and populate
 
 """
 import inspect
+import functools
 import warnings
 from collections import defaultdict
 from typing import Callable, Iterable, List, Tuple, Union, Optional, NamedTuple
 
 from qiskit.circuit.instruction import Instruction
-from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 
@@ -59,7 +60,12 @@ class InstructionScheduleMap:
     def __init__(self):
         """Initialize a circuit instruction to schedule mapper instance."""
         # The processed and reformatted circuit instruction definitions
-        self._map = defaultdict(lambda: defaultdict(Generator))
+
+        # Do not use lambda function for nested defaultdict, i.e. lambda: defaultdict(Generator).
+        # This crashes qiskit parallel. Note that parallel framework passes args as
+        # pickled object, however lambda function cannot be pickled.
+        self._map = defaultdict(functools.partial(defaultdict, Generator))
+
         # A backwards mapping from qubit to supported instructions
         self._qubit_instructions = defaultdict(set)
 
@@ -257,7 +263,6 @@ class InstructionScheduleMap:
             for argname in ordered_names:
                 param_signature = inspect.Parameter(
                     name=argname,
-                    annotation=ParameterValueType,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 )
                 parameters.append(param_signature)
@@ -352,6 +357,19 @@ class InstructionScheduleMap:
                 multi_q_insts += f"  {qubits}: {insts}\n"
         instructions = single_q_insts + multi_q_insts
         return f"<{self.__class__.__name__}({instructions})>"
+
+    def __eq__(self, other):
+        if not isinstance(other, InstructionScheduleMap):
+            return False
+
+        for inst in self.instructions:
+            for qinds in self.qubits_with_instruction(inst):
+                try:
+                    if self._map[inst][_to_tuple(qinds)] != other._map[inst][_to_tuple(qinds)]:
+                        return False
+                except KeyError:
+                    return False
+        return True
 
 
 def _to_tuple(values: Union[int, Iterable[int]]) -> Tuple[int, ...]:
