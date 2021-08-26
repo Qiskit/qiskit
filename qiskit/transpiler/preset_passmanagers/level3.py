@@ -233,12 +233,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _opt_control(property_set):
         return not property_set["depth_fixed_point"]
 
-    # Check if the gates are in the basis to determine whether to run _unroll passes
-    _unroll_check = [GatesInBasis(basis_gates)]
-
-    def _unroll_condition(property_set):
-        return not property_set["all_gates_in_basis"]
-
     _reset = [RemoveResetInZeroState()]
 
     _meas = [OptimizeSwapBeforeMeasure(), RemoveDiagonalGatesBeforeMeasure()]
@@ -276,6 +270,13 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     ]
 
     # Build nested Flow controllers
+
+    # Check if the gates are in the basis to determine whether to run _unroll passes
+    _unroll_check = [GatesInBasis(basis_gates)]
+
+    def _unroll_condition(property_set):
+        return not property_set["all_gates_in_basis"]
+
     flow_unroll = [ConditionalController(_unroll, condition=_unroll_condition)]
 
     # Build pass manager
