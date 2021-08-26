@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    The ``QuantumCircuit.qasm()`` function now edits the names of copies of the 
+    instructions present in the circuit, not the original instructions that live in ``circuit.data``.
+    Refer to `#6687 <https://github.com/Qiskit/qiskit-terra/issues/6687>` for more
+    details.
