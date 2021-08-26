@@ -130,7 +130,7 @@ Using Plugins
 To use a plugin all you need to do is install the package that includes a
 synthesis plugin. Then Qiskit will automatically discover the installed
 plugins and expose them as valid options for the appropriate
-:func:`~qiskit.compiler.transpiler` kwargs and pass constructors. If there are
+:func:`~qiskit.compiler.transpile` kwargs and pass constructors. If there are
 any installed plugins which can't be loaded/imported this will be logged to
 Python logging.
 
