@@ -98,6 +98,15 @@ Generalized Gates
    RVGate
    PauliGate
 
+Evolution Gates
+===============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   EvolutionGate
+   PauliEvolutionGate
+
 Boolean Logic Circuits
 ======================
 
@@ -351,6 +360,10 @@ from .generalized_gates import (
     GRZ,
     RVGate,
     PauliGate,
+)
+from .evolution import (
+    PauliEvolutionGate,
+    EvolutionGate,
 )
 from .boolean_logic import (
     AND,
