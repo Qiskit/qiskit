@@ -330,3 +330,41 @@ mcx_vchain q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8];\n"""
             if match:
                 qasm_register_names.add(match.group(1))
         self.assertEqual(len(qasm_register_names), 6)
+
+    def test_function_does_not_change_original_instruction(self):
+        """Test that qasm() doesn't change the name of the instructions that live in circuit.data, but a copy of them."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.x(1)
+        # just some random custom gate
+        custom = QuantumCircuit(1)
+        custom.h(0)
+        custom.y(0)
+        gate = custom.to_gate()
+        gate.name = 'custom'
+        # another random custom gate
+        custom2 = QuantumCircuit(2)
+        custom2.x(0)
+        custom2.z(1)
+        gate2 = custom2.to_gate()
+        gate2.name = 'custom'
+        # append custom gates with same name
+        qc.append(gate, [0])
+        qc.append(gate2, [1, 0])
+        # call qasm() function to make sure it produces correct ouput
+        expected_qasm = f"""OPENQASM 2.0;
+include "qelib1.inc";
+gate custom q0 {{ h q0; y q0; }}
+gate custom_{id(gate2)} q0,q1 {{ x q0; z q1; }}
+qreg q[2];
+h q[0];
+x q[1];
+custom q[0];
+custom_{id(gate2)} q[1],q[0];\n"""  
+        self.assertEqual(expected_qasm, qc.qasm())
+        # check names were not changed by qasm()
+        names = ['h', 'x', 'custom', 'custom']
+        idx = 0
+        for instruction, _, _ in qc._data:
+            self.assertEqual(instruction.name, names[idx])
+            idx += 1
