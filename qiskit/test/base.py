@@ -27,12 +27,9 @@ import itertools
 import logging
 import os
 import sys
-import threading
-import traceback
 import warnings
 import unittest
 from unittest.util import safe_repr
-from unittest.case import _BaseTestCaseContext
 
 try:
     import fixtures
@@ -90,45 +87,6 @@ def gather_details(source_dict, target_dict):
             new_name = "%s-%d" % (name, advance_iterator(disambiguator))
         name = new_name
         target_dict[name] = _copy_content(content_object)
-
-
-class _AssertTimeOutContext(_BaseTestCaseContext):
-    """A class providing a context to manage timeout."""
-
-    def __init__(self, test_case, timeout: int, msg: str = None):
-        """Create new context.
-
-        Args:
-            test_case: Target test case.
-            timeout: The maximum time to process the context in sec.
-            msg: User provided error message.
-        """
-        super().__init__(test_case)
-        self._alarm = threading.Timer(timeout, self._handle)
-        self.msg = msg
-
-    def _handle(self):
-        raise TimeoutError(
-            "Process timed out. Check if any deadlock or significant performance regression."
-        )
-
-    def __enter__(self):
-        self._alarm.start()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self._alarm.cancel()
-
-        if exc_type is None:
-            return False
-        else:
-            traceback.clear_frames(exc_tb)
-
-        if issubclass(exc_type, TimeoutError):
-            self._raiseFailure(str(exc_val))
-            return True
-
-        return False
 
 
 @enforce_subclasses_call(["setUp", "setUpClass", "tearDown", "tearDownClass"])
@@ -210,29 +168,6 @@ class BaseQiskitTestCase(unittest.TestCase):
         if error_msg:
             msg = self._formatMessage(msg, error_msg)
             raise self.failureException(msg)
-
-    def assertTimeOut(self, timeout: int, msg: str = None) -> _AssertTimeOutContext:
-        """Assert when the process hangs.
-
-        This assertion should be used with python ``with`` statement.
-
-        .. parsed-literal::
-
-            with self.assertTimeOut(10):
-                do_some_process()
-
-        Fail if the context process spent more time than specified.
-        This test is mainly used for testing deadlock of the process, or maybe also convenient
-        to track performance regression of some heavy compute function.
-
-        Args:
-            timeout: Time out in second.
-            msg: User provided error message.
-
-        Returns:
-            Timeout context.
-        """
-        return _AssertTimeOutContext(self, timeout, msg)
 
 
 class QiskitTestCase(BaseQiskitTestCase):

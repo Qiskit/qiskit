@@ -378,6 +378,19 @@ class InstructionScheduleMap:
         instructions = single_q_insts + multi_q_insts
         return f"<{self.__class__.__name__}({instructions})>"
 
+    def __eq__(self, other):
+        if not isinstance(other, InstructionScheduleMap):
+            return False
+
+        for inst in self.instructions:
+            for qinds in self.qubits_with_instruction(inst):
+                try:
+                    if self._map[inst][_to_tuple(qinds)] != other._map[inst][_to_tuple(qinds)]:
+                        return False
+                except KeyError:
+                    return False
+        return True
+
 
 def _to_tuple(values: Union[int, Iterable[int]]) -> Tuple[int, ...]:
     """Return the input as a tuple.

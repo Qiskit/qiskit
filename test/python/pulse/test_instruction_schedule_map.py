@@ -11,6 +11,9 @@
 # that they have been altered from the originals.
 
 """Test the InstructionScheduleMap."""
+import copy
+import pickle
+
 import numpy as np
 
 import qiskit.pulse.library as library
@@ -32,7 +35,6 @@ from qiskit.qobj import PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q, FakeAthens
-from qiskit.tools.parallel import parallel_map
 
 
 class TestInstructionScheduleMap(QiskitTestCase):
@@ -522,17 +524,28 @@ class TestInstructionScheduleMap(QiskitTestCase):
         ret_sched = inst_map.get("my_gate2", (0,), par_b=0.1)
         self.assertEqual(ret_sched, ref_sched)
 
-    def test_qiskit_parallel_with_instmap(self):
+    def test_two_instmaps_equal(self):
+        """Test eq method when two instmaps are identical."""
+        instmap1 = FakeAthens().defaults().instruction_schedule_map
+        instmap2 = copy.deepcopy(instmap1)
+
+        self.assertEqual(instmap1, instmap2)
+
+    def test_two_instmaps_different(self):
+        """Test eq method when two instmaps are not identical."""
+        instmap1 = FakeAthens().defaults().instruction_schedule_map
+        instmap2 = copy.deepcopy(instmap1)
+
+        # override one of instruction
+        instmap2.add("sx", (0,), Schedule())
+
+        self.assertNotEqual(instmap1, instmap2)
+
+    def test_instmap_picklable(self):
         """Test if instmap can be pickled."""
         instmap = FakeAthens().defaults().instruction_schedule_map
 
-        with self.assertTimeOut(1):
-            parallel_map(_fake_task, [instmap, instmap])
+        ser_obj = pickle.dumps(instmap)
+        deser_instmap = pickle.loads(ser_obj)
 
-
-# pylint: disable=unused-argument
-def _fake_task(arg):
-    """A fake callback for parallel test."""
-    import time
-    time.sleep(15)
-    pass
+        self.assertEqual(instmap, deser_instmap)
