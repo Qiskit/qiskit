@@ -13,7 +13,7 @@
 """Synthesize UnitaryGates."""
 
 from math import pi, inf
-from typing import List, Union
+from typing import List, Union, Optional
 from copy import deepcopy
 
 from qiskit.converters import circuit_to_dag
@@ -21,7 +21,6 @@ from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
-from qiskit.exceptions import QiskitError
 from qiskit.extensions.quantum_initializer import isometry
 from qiskit.quantum_info.synthesis import one_qubit_decompose
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitBasisDecomposer
@@ -72,7 +71,7 @@ class UnitarySynthesis(TransformationPass):
         pulse_optimize: Union[bool, None] = None,
         natural_direction: Union[bool, None] = None,
         synth_gates: Union[List[str], None] = None,
-        method: str = None,
+        method: Optional[str] = None,
     ):
         """Synthesize unitaries over some basis gates.
 
@@ -142,7 +141,7 @@ class UnitarySynthesis(TransformationPass):
             Output dag with UnitaryGates synthesized to target basis.
 
         Raises:
-            QiskitError: if a 'method' was specified for the class and is not
+            TranspilerError: if a 'method' was specified for the class and is not
                 found in the installed plugins list. The list of installed
                 plugins can be queried with
                 :func:`~qiskit.transpiler.passes.synthesis.plugins.unitary_synthesis_plugin_names`
@@ -152,7 +151,7 @@ class UnitarySynthesis(TransformationPass):
         else:
             method = self.method
         if method not in self.plugins.ext_plugins:
-            raise QiskitError("Specified method: %s not found in plugin list" % method)
+            raise TranspilerError("Specified method: %s not found in plugin list" % method)
         plugin_method = self.plugins.ext_plugins[method].obj
         if plugin_method.supports_coupling_map:
             dag_bit_indices = {bit: idx for idx, bit in enumerate(dag.qubits)}
@@ -171,29 +170,9 @@ class UnitarySynthesis(TransformationPass):
             if plugin_method.supports_pulse_optimize:
                 kwargs["pulse_optimize"] = self._pulse_optimize
             if plugin_method.supports_gate_lengths:
-                gate_lengths = {}
-                if self._backend_props:
-                    for gate in self._backend_props._gates:
-                        gate_lengths[gate] = {}
-                        for k, v in self._backend_props._gates[gate].items():
-                            length = v.get("gate_length")
-                            if length:
-                                gate_lengths[gate][k] = length[0]
-                        if not gate_lengths[gate]:
-                            del gate_lengths[gate]
-                kwargs["gate_lengths"] = gate_lengths
+                kwargs["gate_lengths"] = _build_gate_lengths(self._backend_props)
             if plugin_method.supports_gate_errors:
-                gate_errors = {}
-                if self._backend_props:
-                    for gate in self._backend_props._gates:
-                        gate_errors[gate] = {}
-                        for k, v in self._backend_props._gates[gate].items():
-                            error = v.get("gate_error")
-                            if error:
-                                gate_errors[gate][k] = error[0]
-                        if not gate_errors[gate]:
-                            del gate_errors[gate]
-                kwargs["gate_errors"] = gate_errors
+                kwargs["gate_errors"] = _build_gate_errors(self._backend_props)
             unitary = node.op.to_matrix()
             synth_dag = plugin_method.run(unitary, **kwargs)
             if synth_dag:
@@ -202,6 +181,34 @@ class UnitarySynthesis(TransformationPass):
                 else:
                     dag.substitute_node_with_dag(node, synth_dag)
         return dag
+
+
+def _build_gate_lengths(props):
+    gate_lengths = {}
+    if props:
+        for gate in props._gates:
+            gate_lengths[gate] = {}
+            for k, v in props._gates[gate].items():
+                length = v.get("gate_length")
+                if length:
+                    gate_lengths[gate][k] = length[0]
+            if not gate_lengths[gate]:
+                del gate_lengths[gate]
+    return gate_lengths
+
+
+def _build_gate_errors(props):
+    gate_errors = {}
+    if props:
+        for gate in props._gates:
+            gate_errors[gate] = {}
+            for k, v in props._gates[gate].items():
+                error = v.get("gate_error")
+                if error:
+                    gate_errors[gate][k] = error[0]
+            if not gate_errors[gate]:
+                del gate_errors[gate]
+    return gate_errors
 
 
 class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
@@ -335,7 +342,10 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                 "could be determined from coupling map or "
                 "gate lengths."
             )
-        basis_fidelity = approximation_degree or physical_gate_fidelity
+        if approximation_degree is not None:
+            basis_fidelity = approximation_degree
+        else:
+            basis_fidelity = physical_gate_fidelity
         synth_circ = decomposer2q(su4_mat, basis_fidelity=basis_fidelity)
         synth_dag = circuit_to_dag(synth_circ)
 
