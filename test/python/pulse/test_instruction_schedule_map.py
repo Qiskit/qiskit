@@ -31,7 +31,8 @@ from qiskit.pulse.channels import DriveChannel
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeOpenPulse2Q
+from qiskit.test.mock import FakeOpenPulse2Q, FakeAthens
+from qiskit.tools.parallel import parallel_map
 
 
 class TestInstructionScheduleMap(QiskitTestCase):
@@ -520,3 +521,16 @@ class TestInstructionScheduleMap(QiskitTestCase):
         inst_map.add("my_gate2", (0,), test_callable_sched2, ["par_b"])
         ret_sched = inst_map.get("my_gate2", (0,), par_b=0.1)
         self.assertEqual(ret_sched, ref_sched)
+
+    def test_qiskit_parallel_with_instmap(self):
+        """Test if instmap can be pickled."""
+        instmap = FakeAthens().defaults().instruction_schedule_map
+
+        with self.assertTimeOut(60):
+            parallel_map(_fake_task, [instmap, instmap])
+
+
+# pylint: disable=unused-argument
+def _fake_task(arg):
+    """A fake callback for parallel test."""
+    pass

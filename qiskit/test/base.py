@@ -40,6 +40,8 @@ try:
 except ImportError:
     HAS_FIXTURES = False
 
+import signal
+
 from qiskit.exceptions import MissingOptionalLibraryError
 from .decorators import enforce_subclasses_call
 from .runtest import RunTest, MultipleExceptions
@@ -87,6 +89,30 @@ def gather_details(source_dict, target_dict):
             new_name = "%s-%d" % (name, advance_iterator(disambiguator))
         name = new_name
         target_dict[name] = _copy_content(content_object)
+
+
+class TimeOutContext:
+    """A class providing a context to manage timeout."""
+
+    def __init__(self, timeout: int):
+        """Create new context.
+
+        Args:
+            timeout: The maximum time to process the context in sec.
+        """
+        self._timeout = timeout
+
+    def _handle_timeout(self, signum, frame):
+        raise TimeoutError(
+            "Test timed out. Check if any process deadlocked or significant performance regression."
+        )
+
+    def __enter__(self):
+        signal.signal(signal.SIGALRM, self._handle_timeout)
+        signal.alarm(self._timeout)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        signal.alarm(0)
 
 
 @enforce_subclasses_call(["setUp", "setUpClass", "tearDown", "tearDownClass"])
@@ -168,6 +194,28 @@ class BaseQiskitTestCase(unittest.TestCase):
         if error_msg:
             msg = self._formatMessage(msg, error_msg)
             raise self.failureException(msg)
+
+    def assertTimeOut(self, timeout: int) -> TimeOutContext:
+        """Assert when the process hangs.
+
+        This assertion should be used with python ``with`` statement.
+
+        .. parsed-literal::
+
+            with self.assertTimeOut(10):
+                do_some_process()
+
+        Fail if the context process spent more time than specified.
+        This test is mainly used for testing deadlock of the process, or maybe also convenient
+        to track performance regression of some heavy compute function.
+
+        Args:
+            timeout: Time out in second.
+
+        Returns:
+            Timeout context.
+        """
+        return TimeOutContext(timeout)
 
 
 class QiskitTestCase(BaseQiskitTestCase):
