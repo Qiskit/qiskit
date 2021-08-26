@@ -169,7 +169,7 @@ class PassManager:
         for pass_ in passes:
             if not isinstance(pass_, BasePass):
                 if isinstance(pass_, FlowController):
-                    # Check if they are all BasePasses in FlowController
+                    # Normalize passes in nested FlowController
                     PassManager._normalize_passes(pass_.passes)
                 else:
                     raise TranspilerError("%s is not a pass instance" % pass_.__class__)

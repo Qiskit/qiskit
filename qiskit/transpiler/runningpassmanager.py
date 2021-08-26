@@ -157,6 +157,7 @@ class RunningPassManager:
                 # update the valid_passes property
                 self._update_valid_passes(pass_)
 
+        # if provided a nested flow controller
         elif isinstance(pass_, FlowController):
 
             if not isinstance(pass_.condition, partial):
