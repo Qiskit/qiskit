@@ -300,3 +300,73 @@ mcx_recursive q[0],q[1],q[2],q[3],q[4],q[5],q[6];
 mcx_vchain q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8];\n"""
 
         self.assertEqual(qc.qasm(), expected_qasm)
+<<<<<<< HEAD
+=======
+
+    def test_circuit_qasm_with_registerless_bits(self):
+        """Test that registerless bits do not have naming collisions in their registers."""
+        initial_registers = [QuantumRegister(2), ClassicalRegister(2)]
+        qc = QuantumCircuit(*initial_registers, [Qubit(), Clbit()])
+        # Match a 'qreg identifier[3];'-like QASM register declaration.
+        register_regex = re.compile(r"\s*[cq]reg\s+(\w+)\s*\[\d+\]\s*", re.M)
+        qasm_register_names = set()
+        for statement in qc.qasm().split(";"):
+            match = register_regex.match(statement)
+            if match:
+                qasm_register_names.add(match.group(1))
+        self.assertEqual(len(qasm_register_names), 4)
+
+        # Check that no additional registers were added to the circuit.
+        self.assertEqual(len(qc.qregs), 1)
+        self.assertEqual(len(qc.cregs), 1)
+
+        # Check that the registerless-register names are recalculated after adding more registers,
+        # to avoid naming clashes in this case.
+        generated_names = qasm_register_names - {register.name for register in initial_registers}
+        for generated_name in generated_names:
+            qc.add_register(QuantumRegister(1, name=generated_name))
+        qasm_register_names = set()
+        for statement in qc.qasm().split(";"):
+            match = register_regex.match(statement)
+            if match:
+                qasm_register_names.add(match.group(1))
+        self.assertEqual(len(qasm_register_names), 6)
+
+    def test_circuit_qasm_with_repeated_instruction_names(self):
+        """Test that qasm() doesn't change the name of the instructions that live in circuit.data,
+        but a copy of them when there are repeated names."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.x(1)
+        # Create some random custom gate and name it "custom"
+        custom = QuantumCircuit(1)
+        custom.h(0)
+        custom.y(0)
+        gate = custom.to_gate()
+        gate.name = "custom"
+        # Another random custom gate named "custom" as well
+        custom2 = QuantumCircuit(2)
+        custom2.x(0)
+        custom2.z(1)
+        gate2 = custom2.to_gate()
+        gate2.name = "custom"
+        # Append custom gates with same name to original circuit
+        qc.append(gate, [0])
+        qc.append(gate2, [1, 0])
+        # Expected qasm string will append the id to the second gate with repeated name
+        expected_qasm = f"""OPENQASM 2.0;
+include "qelib1.inc";
+gate custom q0 {{ h q0; y q0; }}
+gate custom_{id(gate2)} q0,q1 {{ x q0; z q1; }}
+qreg q[2];
+h q[0];
+x q[1];
+custom q[0];
+custom_{id(gate2)} q[1],q[0];\n"""
+        # Check qasm() produced the correct string
+        self.assertEqual(expected_qasm, qc.qasm())
+        # Check instruction names were not changed by qasm()
+        names = ["h", "x", "custom", "custom"]
+        for idx, (instruction, _, _) in enumerate(qc._data):
+            self.assertEqual(instruction.name, names[idx])
+>>>>>>> ed3ceea6e (Modify copy of instruction in .qasm() method (fix #6687) (#6952))
