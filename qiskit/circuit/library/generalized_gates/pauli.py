@@ -71,9 +71,7 @@ class PauliGate(Gate):
                 return parameter
             else:
                 raise CircuitError(
-                    "Parameter string {0} should contain only " "'I', 'X', 'Y', 'Z' characters"
+                    "Parameter string {0} should contain only 'I', 'X', 'Y', 'Z' characters"
                 )
         else:
-            raise CircuitError(
-                "Parameter {0} should be a string of " "'I', 'X', 'Y', 'Z' characters"
-            )
+            raise CircuitError("Parameter {0} should be a string of 'I', 'X', 'Y', 'Z' characters")

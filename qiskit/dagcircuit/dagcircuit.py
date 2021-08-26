@@ -671,7 +671,7 @@ class DAGCircuit:
 
         if len(other.qubits) > len(self.qubits) or len(other.clbits) > len(self.clbits):
             raise DAGCircuitError(
-                "Trying to compose with another DAGCircuit " "which has more 'in' edges."
+                "Trying to compose with another DAGCircuit which has more 'in' edges."
             )
 
         if edge_map is not None:
@@ -1007,7 +1007,7 @@ class DAGCircuit:
 
                 if condition_bits & mapped_cargs:
                     raise DAGCircuitError(
-                        "Mapped DAG would alter clbits " "on which it would be conditioned."
+                        "Mapped DAG would alter clbits on which it would be conditioned."
                     )
 
         # Add wire from pred to succ if no ops on wire
