@@ -368,3 +368,4 @@ custom_{id(gate2)} q[1],q[0];\n"""
         for instruction, _, _ in qc._data:
             self.assertEqual(instruction.name, names[idx])
             idx += 1
+            
