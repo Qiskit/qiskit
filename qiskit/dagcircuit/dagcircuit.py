@@ -992,8 +992,11 @@ class DAGCircuit:
 
         new_wires = list(node.qargs) + list(node.cargs) + list(condition_bit_list)
 
-        wire_map = dict(zip(wires, new_wires))
-        reverse_wire_map = dict(zip(new_wires, wires))
+        wire_map = {}
+        reverse_wire_map = {}
+        for wire, new_wire in zip(wires, new_wires):
+            wire_map[wire] = new_wire
+            reverse_wire_map[new_wire] = wire
         self._check_wiremap_validity(wire_map, wires, self.input_map)
 
         if condition_bit_list:
