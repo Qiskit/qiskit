@@ -14,7 +14,7 @@ Readout mitigator class based on the A-matrix inversion method
 """
 
 import logging
-from typing import Optional, List, Dict, Tuple, Iterable
+from typing import Optional, List, Dict, Tuple, Iterable, Callable
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -41,7 +41,7 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
     def expectation_value(
         self,
         data: Counts,
-        diagonal: np.ndarray,
+        diagonal: Callable,
         qubits: Iterable[int] = None,
         clbits: Optional[List[int]] = None,
         shots: Optional[int] = None,
