@@ -276,7 +276,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     def _unroll_condition(property_set):
         return not property_set["all_gates_in_basis"]
-
+    
     flow_unroll = [ConditionalController(_unroll, condition=_unroll_condition)]
 
     # Build pass manager
