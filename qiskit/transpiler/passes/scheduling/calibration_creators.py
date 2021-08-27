@@ -38,7 +38,7 @@ class CalibrationCreator(TransformationPass):
     """Abstract base class to inject calibrations into circuits."""
 
     @abstractmethod
-    def supported(self, node_op: DAGNode) -> bool:
+    def supported(self, node_op: DAGOpNode) -> bool:
         """Determine if a given name supports the calibration."""
 
     @abstractmethod
@@ -57,7 +57,7 @@ class CalibrationCreator(TransformationPass):
         bit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
 
         for node in dag.nodes():
-            if node.type == "op":
+            if isinstance(node, DAGOpNode):
                 if self.supported(node.op):
                     params = node.op.params
                     qubits = [bit_indices[qarg] for qarg in node.qargs]
@@ -112,7 +112,7 @@ class RZXCalibrationBuilder(CalibrationCreator):
         else:
             raise QiskitError("Either a backend or an instruction schedule map must be specified.")
 
-    def supported(self, node_op: DAGNode) -> bool:
+    def supported(self, node_op: DAGOpNode) -> bool:
         """
         Args:
             node_op: The node from the dag dep.

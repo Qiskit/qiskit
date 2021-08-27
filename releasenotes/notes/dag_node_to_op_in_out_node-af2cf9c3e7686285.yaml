@@ -1,0 +1,13 @@
+---
+deprecations:
+  - |
+    The :class:`qiskit.dagcircuit.dagnode.DAGNode` is being deprecated as a standalone
+    class and will be used in the future only as the parent class for
+    :class:`qiskit.dagcircuit.dagnode.DAGOpNode`, :class:`qiskit.dagcircuit.dagnode.DAGInNode`,
+    and :class:`qiskit.dagcircuit.dagnode.DAGOutNode`. As part of this deprecation, the
+    following kwargs and associated attributes in DAGNode are being deprecated - ``type``,
+    ``op``, and ``wire``.
+
+    The previously deprecated `condition` kwarg has been removed from
+    :meth:`qiskit.dagcircuit.dagcircuit.apply_operation_back` and
+    :meth:`qiskit.dagcircuit.dagcircuit.apply_operation_front`.

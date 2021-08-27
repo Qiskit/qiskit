@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Add utility function :py:func:`~qiskit.utils.units.detach_prefix` that is a counterpart of
+    :py:func:`~qiskit.utils.units.apply_prefix`.
+    The new function returns a tuple of scaled value and prefix from a given float value.
+    For example, a value ``1.3e8`` will be converted into ``(130, "M")`` that can be
+    used to display a value in the user friendly format, such as `130 MHz`.

@@ -132,7 +132,7 @@ class Gaussian(ParametricPulse):
 
     .. math::
 
-        f(x) = amp * exp( -(1/2) * (x - duration/2)^2 / sigma^2) )  ,  0 <= x < duration
+        f(x) = amp * exp( -(1/2) * (x - duration/2)^2 / sigma^2 )  ,  0 <= x < duration
     """
 
     def __init__(
@@ -184,7 +184,7 @@ class Gaussian(ParametricPulse):
         return {"duration": self.duration, "amp": self.amp, "sigma": self.sigma}
 
     def __repr__(self) -> str:
-        return "{}(duration={}, amp={}, sigma={}{})" "".format(
+        return "{}(duration={}, amp={}, sigma={}{})".format(
             self.__class__.__name__,
             self.duration,
             self.amp,
@@ -215,7 +215,7 @@ class GaussianSquare(ParametricPulse):
 
         0 <= x < risefall
 
-        f(x) = amp * exp( -(1/2) * (x - risefall/2)^2 / sigma^2) )
+        f(x) = amp * exp( -(1/2) * (x - risefall)^2 / sigma^2 )
 
         risefall <= x < risefall + width
 
@@ -223,8 +223,7 @@ class GaussianSquare(ParametricPulse):
 
         risefall + width <= x < duration
 
-        f(x) = amp * exp( -(1/2) * (x - (risefall + width)/2)^2 / sigma^2) )
-
+        f(x) = amp * exp( -(1/2) * (x - (risefall + width))^2 / sigma^2 )
     """
 
     def __init__(
@@ -331,7 +330,7 @@ class GaussianSquare(ParametricPulse):
         }
 
     def __repr__(self) -> str:
-        return "{}(duration={}, amp={}, sigma={}, width={}{})" "".format(
+        return "{}(duration={}, amp={}, sigma={}, width={}{})".format(
             self.__class__.__name__,
             self.duration,
             self.amp,
@@ -356,7 +355,7 @@ class Drag(ParametricPulse):
 
     .. math::
 
-        Gaussian(x, amp, sigma) = amp * exp( -(1/2) * (x - duration/2)^2 / sigma^2) )
+        Gaussian(x, amp, sigma) = amp * exp( -(1/2) * (x - duration/2)^2 / sigma^2 )
 
     References:
         1. |citation1|_
@@ -465,7 +464,7 @@ class Drag(ParametricPulse):
         return {"duration": self.duration, "amp": self.amp, "sigma": self.sigma, "beta": self.beta}
 
     def __repr__(self) -> str:
-        return "{}(duration={}, amp={}, sigma={}, beta={}{})" "".format(
+        return "{}(duration={}, amp={}, sigma={}, beta={}{})".format(
             self.__class__.__name__,
             self.duration,
             self.amp,
@@ -524,7 +523,7 @@ class Constant(ParametricPulse):
         return {"duration": self.duration, "amp": self.amp}
 
     def __repr__(self) -> str:
-        return "{}(duration={}, amp={}{})" "".format(
+        return "{}(duration={}, amp={}{})".format(
             self.__class__.__name__,
             self.duration,
             self.amp,

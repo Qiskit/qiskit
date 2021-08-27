@@ -83,19 +83,19 @@ class Isometry(Instruction):
         m = np.log2(isometry.shape[1])
         if not n.is_integer() or n < 0:
             raise QiskitError(
-                "The number of rows of the isometry is not a non negative" " power of 2."
+                "The number of rows of the isometry is not a non negative power of 2."
             )
         if not m.is_integer() or m < 0:
             raise QiskitError(
-                "The number of columns of the isometry is not a non negative" " power of 2."
+                "The number of columns of the isometry is not a non negative power of 2."
             )
         if m > n:
             raise QiskitError(
-                "The input matrix has more columns than rows and hence " "it can't be an isometry."
+                "The input matrix has more columns than rows and hence it can't be an isometry."
             )
         if not is_isometry(isometry, self._epsilon):
             raise QiskitError(
-                "The input matrix has non orthonormal columns and hence " "it is not an isometry."
+                "The input matrix has non orthonormal columns and hence it is not an isometry."
             )
 
         num_qubits = int(n) + num_ancillas_zero + num_ancillas_dirty
@@ -298,9 +298,7 @@ class Isometry(Instruction):
         if isinstance(parameter, np.ndarray):
             return parameter
         else:
-            raise CircuitError(
-                "invalid param type {} for gate  " "{}".format(type(parameter), self.name)
-            )
+            raise CircuitError(f"invalid param type {type(parameter)} for gate {self.name}")
 
     def inverse(self):
         """Return the adjoint of the unitary."""

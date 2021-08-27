@@ -43,6 +43,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit.library.standard_gates import U1Gate, U2Gate, U3Gate, CXGate
 from qiskit.circuit import Measure
 from qiskit.circuit.barrier import Barrier
+from qiskit.dagcircuit import DAGOpNode
 from qiskit.transpiler.exceptions import TranspilerError
 
 NUM_PREC = 10
@@ -340,7 +341,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         """
         for gate in self.gate_start_time:
             for dep_gate in self.dag.successors(gate):
-                if not dep_gate.type == "op":
+                if not isinstance(dep_gate, DAGOpNode):
                     continue
                 if isinstance(dep_gate.op, Measure):
                     continue
