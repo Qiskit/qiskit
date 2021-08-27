@@ -1,0 +1,23 @@
+---
+upgrade:
+  - |
+    :meth:`~qiskit.pulse.instruction_schedule_map.InstructionScheduleMap#add` takes
+    ``arguments`` with default values. This feature enables reassignment of parameters.
+    For example
+
+    .. code-block:: python
+
+      instmap = InstructionScheduleMap()
+
+      temp_sched = ScheduleBlock()
+      temp_sched += Play(Constant(Parameter("duration"), Parameter("amp")), DriveChannel(0))
+
+      instmap.add("my_gate", (0,), temp_sched, arguments={"duration": 100, "amp": 0.1})
+
+      # This returns a pulse with duration 100, amplitude 0.2
+      instmap.get("my_gate", (0,), amp=0.2)
+
+    Note that the parameter name has no scope information. If multiple pulse elements involving
+    the identical parameter names exist in the schedule, these parameter objects will conflict
+    and treated as a signle parameter object.
+    To distinguish two parameters, a parameter name should be unique.

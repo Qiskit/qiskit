@@ -259,7 +259,7 @@ class InstructionScheduleMap:
                 if set(arguments) != set(ordered_names):
                     raise PulseError(
                         "Arguments does not match with schedule parameters. "
-                        f"{list(arguments)} != {schedule.parameters}."
+                        f"{list(arguments)} != {ordered_names}."
                     )
                 ordered_names = list(arguments)
 
