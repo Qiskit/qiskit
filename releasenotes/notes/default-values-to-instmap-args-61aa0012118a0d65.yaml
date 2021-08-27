@@ -1,7 +1,7 @@
 ---
 upgrade:
   - |
-    :meth:`~qiskit.pulse.instruction_schedule_map.InstructionScheduleMap#add` takes
+    :meth:`qiskit.pulse.instruction_schedule_map.InstructionScheduleMap#add` takes
     ``arguments`` with default values. This feature enables reassignment of parameters.
     For example
 
