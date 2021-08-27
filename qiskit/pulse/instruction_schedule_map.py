@@ -274,7 +274,7 @@ class InstructionScheduleMap:
             parameters = list()
             for arg_name in ordered_names:
                 default_val = args_dict.get(arg_name, None)
-                if default_val:
+                if default_val is not None:
                     param_signature = inspect.Parameter(
                         name=arg_name,
                         default=default_val,
