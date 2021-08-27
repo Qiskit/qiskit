@@ -20,6 +20,7 @@ from time import time
 
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.transpiler.basepasses import BasePass
 from .propertyset import PropertySet
 from .fencedobjs import FencedPropertySet, FencedDAGCircuit
 from .exceptions import TranspilerError
@@ -135,7 +136,7 @@ class RunningPassManager:
         """Do a pass and its "requires".
 
         Args:
-            pass_ (BasePass): Pass to do.
+            pass_ (BasePass or FlowController): Pass to do.
             dag (DAGCircuit): The dag on which the pass is ran.
             options (dict): PassManager options.
         Returns:
@@ -144,17 +145,26 @@ class RunningPassManager:
         Raises:
             TranspilerError: If the pass is not a proper pass instance.
         """
+        if isinstance(pass_, BasePass):
+            # First, do the requires of pass_
+            for required_pass in pass_.requires:
+                dag = self._do_pass(required_pass, dag, options)
 
-        # First, do the requires of pass_
-        for required_pass in pass_.requires:
-            dag = self._do_pass(required_pass, dag, options)
+            # Run the pass itself, if not already run
+            if pass_ not in self.valid_passes:
+                dag = self._run_this_pass(pass_, dag)
 
-        # Run the pass itself, if not already run
-        if pass_ not in self.valid_passes:
-            dag = self._run_this_pass(pass_, dag)
+                # update the valid_passes property
+                self._update_valid_passes(pass_)
 
-            # update the valid_passes property
-            self._update_valid_passes(pass_)
+        # if provided a nested flow controller
+        elif isinstance(pass_, FlowController):
+
+            if not isinstance(pass_.condition, partial):
+                pass_.condition = partial(pass_.condition, self.fenced_property_set)
+
+            for _pass in pass_:
+                self._do_pass(_pass, dag, pass_.options)
 
         return dag
 
