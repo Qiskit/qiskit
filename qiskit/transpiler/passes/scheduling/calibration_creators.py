@@ -29,7 +29,7 @@ from qiskit.pulse import (
 from qiskit.pulse.instructions.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.providers import BaseBackend
-from qiskit.dagcircuit import DAGNode
+from qiskit.dagcircuit import DAGOpNode
 from qiskit.circuit.library.standard_gates import RZXGate
 from qiskit.transpiler.basepasses import TransformationPass
 
