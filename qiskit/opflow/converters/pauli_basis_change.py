@@ -109,7 +109,7 @@ class PauliBasisChange(ConverterBase):
 
         if not isinstance(dest, PauliOp):
             raise TypeError(
-                "PauliBasisChange can only convert into Pauli bases, " "not {}.".format(type(dest))
+                f"PauliBasisChange can only convert into Pauli bases, not {type(dest)}."
             )
         self._destination = dest
 

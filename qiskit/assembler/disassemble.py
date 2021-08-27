@@ -81,7 +81,7 @@ def _qobj_to_circuit_cals(qobj, pulse_lib, param_pulses):
         config = (tuple(gate["qubits"]), tuple(gate["params"]))
         cal = {
             config: pulse.Schedule(
-                name="%s %s %s" % (gate["name"], str(gate["params"]), str(gate["qubits"]))
+                name="{} {} {}".format(gate["name"], str(gate["params"]), str(gate["qubits"]))
             )
         }
         for instruction in gate["instructions"]:
