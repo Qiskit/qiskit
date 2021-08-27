@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    The internal data of :class:`~qiskit.quantum_info.SparsePauliOp` has been changed
+    from :class:`~qiskit.quantum_info.PauliTable` to
+    :class:`~qiskit.quantum_info.operators.PauliList`. As a result, initialization and
+    the property :meth:`~qiskit.quantum_info.SparsePauliOp.table` using PauliTable have
+    been deprecated. Also, returning `~qiskit.quantum_info.PauliTable` for
+    :func:`~qiskit.quantum_info.pauli_basis` has been deprecated.
