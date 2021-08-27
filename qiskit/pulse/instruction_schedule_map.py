@@ -30,7 +30,7 @@ import inspect
 import functools
 import warnings
 from collections import defaultdict
-from typing import Callable, Iterable, List, Tuple, Union, Optional, NamedTuple
+from typing import Callable, Iterable, List, Tuple, Union, Optional, NamedTuple, Dict
 
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -203,8 +203,9 @@ class InstructionScheduleMap:
             return function(**binds.arguments)
 
         try:
-            # schedules allow partial binding
+            # schedules allow partial binding, also default values can exist.
             binds = generator.signature.bind_partial(*params, **kwparams)
+            binds.apply_defaults()
         except TypeError as ex:
             raise PulseError(_error_message) from ex
 
@@ -228,7 +229,7 @@ class InstructionScheduleMap:
         instruction: Union[str, Instruction],
         qubits: Union[int, Iterable[int]],
         schedule: Union[Schedule, ScheduleBlock, Callable[..., Union[Schedule, ScheduleBlock]]],
-        arguments: Optional[List[str]] = None,
+        arguments: Optional[Union[List[str], Dict[str, float]]] = None,
     ) -> None:
         """Add a new known instruction for the given qubits and its mapping to a pulse schedule.
 
@@ -258,16 +259,32 @@ class InstructionScheduleMap:
                 if set(arguments) != set(ordered_names):
                     raise PulseError(
                         "Arguments does not match with schedule parameters. "
-                        f"{set(arguments)} != {schedule.parameters}."
+                        f"{list(arguments)} != {schedule.parameters}."
                     )
-                ordered_names = arguments
+                ordered_names = list(arguments)
+
+            # format arguments
+            if arguments is None:
+                args_dict = dict()
+            elif not isinstance(arguments, dict):
+                args_dict = {arg_name: None for arg_name in arguments}
+            else:
+                args_dict = arguments
 
             parameters = list()
-            for argname in ordered_names:
-                param_signature = inspect.Parameter(
-                    name=argname,
-                    kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                )
+            for arg_name in ordered_names:
+                default_val = args_dict.get(arg_name, None)
+                if default_val:
+                    param_signature = inspect.Parameter(
+                        name=arg_name,
+                        default=default_val,
+                        kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    )
+                else:
+                    param_signature = inspect.Parameter(
+                        name=arg_name,
+                        kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    )
                 parameters.append(param_signature)
             signature = inspect.Signature(parameters=parameters, return_annotation=type(schedule))
 
@@ -280,9 +297,9 @@ class InstructionScheduleMap:
             )
 
             parameters = list()
-            for argname in schedule.parameters:
+            for arg_name in schedule.parameters:
                 param_signature = inspect.Parameter(
-                    name=argname,
+                    name=arg_name,
                     kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 )
                 parameters.append(param_signature)

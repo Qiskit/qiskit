@@ -549,3 +549,72 @@ class TestInstructionScheduleMap(QiskitTestCase):
         deser_instmap = pickle.loads(ser_obj)
 
         self.assertEqual(instmap, deser_instmap)
+
+    def test_parameter_default_value(self):
+        """Test inst map schedule parameters are substituted by given defaults."""
+        instmap = InstructionScheduleMap()
+
+        duration = Parameter("duration")
+        amp = Parameter("amp")
+
+        temp_sched = ScheduleBlock()
+        temp_sched += Play(Constant(duration=duration, amp=amp), DriveChannel(0))
+
+        # test with no default vals
+        instmap.add(
+            instruction="test_pulse",
+            qubits=(0,),
+            schedule=temp_sched,
+            arguments=["duration", "amp"],
+        )
+
+        ret_sched = instmap.get("test_pulse", (0,), 160, 0.1)
+
+        ref_sched = ScheduleBlock()
+        ref_sched += Play(Constant(duration=160, amp=0.1), DriveChannel(0))
+
+        self.assertEqual(ret_sched, ref_sched)
+
+        # test with default vals
+        instmap.add(
+            instruction="test_pulse",
+            qubits=(0,),
+            schedule=temp_sched,
+            arguments={"duration": 160, "amp": 0.1},
+        )
+
+        ret_sched = instmap.get("test_pulse", (0,))  # default value is applied
+        self.assertEqual(ret_sched, ref_sched)
+
+    def test_parameter_reassignment(self):
+        """Test inst map schedule parameters can be reassigned."""
+        instmap = InstructionScheduleMap()
+
+        duration = Parameter("duration")
+        amp = Parameter("amp")
+
+        temp_sched = ScheduleBlock()
+        temp_sched += Play(Constant(duration=duration, amp=amp), DriveChannel(0))
+
+        instmap.add(
+            instruction="test_pulse",
+            qubits=(0,),
+            schedule=temp_sched,
+            arguments={"duration": 160, "amp": 0.1},
+        )
+
+        # kwargs
+        ret_sched = instmap.get("test_pulse", (0,), amp=0.2)
+
+        ref_sched = ScheduleBlock()
+        ref_sched += Play(Constant(duration=160, amp=0.2), DriveChannel(0))
+
+        self.assertEqual(ret_sched, ref_sched)
+
+        # args
+        ret_sched = instmap.get("test_pulse", (0,), 200, 0.3)
+
+        ref_sched = ScheduleBlock()
+        ref_sched += Play(Constant(duration=200, amp=0.3), DriveChannel(0))
+
+        self.assertEqual(ret_sched, ref_sched)
