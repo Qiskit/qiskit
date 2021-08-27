@@ -11,48 +11,54 @@
 # that they have been altered from the originals.
 
 """bridge gate."""
-
-from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
-
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.exceptions import QiskitError
 
 
 class BridgeGate(QuantumCircuit):
-    """Global bridge gate.
+    r"""Global bridge gate.
 
     *For n = 3
 
     In [1], the definition of the bridge gate is given and the gate is composed
     of 4 CNOTs gates.
 
-    [1] Toshinari et al., https://arxiv.org/pdf/1907.02686.pdf
+    [1] Toshinari et al.(2019), https://arxiv.org/pdf/1907.02686.pdf
 
     **Circuit symbol:**
 
     .. parsed-literal::
 
-         ┌───┐
-    q_0: ┤ X ├
-         └─┬─┘
-    q_1: ──┼──
-           │
-    q_2: ──■──
+         ┌─────────┐
+    q_0: ┤0        ├
+         │         │
+    q_1: ┤1 bridge ├
+         │         │
+    q_2: ┤2        ├
+         └─────────┘
+
+         ┌───┐                q_0: ──■─────────■───────
+    q_0: ┤ X ├                     ┌─┴─┐     ┌─┴─┐
+         └─┬─┘                q_1: ┤ X ├──■──┤ X ├──■──
+    q_1: ──┼──       =             └───┘┌─┴─┐└───┘┌─┴─┐
+           │                  q_2: ─────┤ X ├─────┤ X ├
+    q_2: ──■──                          └───┘     └───┘
 
 
     **Matrix Representation:**
 
-    \begin{bmatrix}
-        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
-        0 & 0 & 0 & 0 & 0 & 1 & 0 & 0\\
-        0 & 0 & 1 & 0 & 0 & 0 & 0 & 0\\
-        0 & 0 & 0 & 0 & 0 & 0 & 0 & 1\\
-        0 & 0 & 0 & 0 & 1 & 0 & 0 & 0\\
-        0 & 1 & 0 & 0 & 0 & 0 & 0 & 0\\
-        0 & 0 & 0 & 0 & 0 & 0 & 1 & 0\\
-        0 & 0 & 0 & 1 & 0 & 0 & 0 & 0\\
-    \end{bmatrix}
+    .. math::
+        \begin{bmatrix}
+            1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+            0 & 0 & 0 & 0 & 0 & 1 & 0 & 0\\
+            0 & 0 & 1 & 0 & 0 & 0 & 0 & 0\\
+            0 & 0 & 0 & 0 & 0 & 0 & 0 & 1\\
+            0 & 0 & 0 & 0 & 1 & 0 & 0 & 0\\
+            0 & 1 & 0 & 0 & 0 & 0 & 0 & 0\\
+            0 & 0 & 0 & 0 & 0 & 0 & 1 & 0\\
+            0 & 0 & 0 & 1 & 0 & 0 & 0 & 0
+        \end{bmatrix}
 
 
     *For n > 3
@@ -62,7 +68,7 @@ class BridgeGate(QuantumCircuit):
 
     **Matrix representation:**
 
-    The bridge gate is (represented by) matrices of size $2^n × 2^n$ in the
+    The bridge gate a (represented by) matrices of size $2^n × 2^n$ in the
     orthogonal group $O_{2^n}(R)$ and that they are permutation matrices.
 
 
@@ -72,29 +78,20 @@ class BridgeGate(QuantumCircuit):
 
     It is demonstrated in [2] that for n=4 the circuit can be CX-BRIDGE-CX-BRIDGE or BRIDGE-CX-BRIDGE-CX
 
-         ┌───┐
-    q_0: ┤ X ├
-         └─┬─┘
-    q_1: ──┼──
-           │
-    q_2: ──┼──
-           │
-    q_3: ──■──
+         ┌───┐                   ┌───┐     ┌───┐             ┌───┐     ┌───┐
+    q_0: ┤ X ├         q_0: ─────┤ X ├─────┤ X ├        q_0: ┤ X ├─────┤ X ├─────
+         └─┬─┘                   └─┬─┘     └─┬─┘             └─┬─┘     └─┬─┘
+    q_1: ──┼──         q_1: ───────┼─────────┼──        q_1: ──┼─────────┼───────
+           │       =        ┌───┐  │  ┌───┐  │     =           │  ┌───┐  │  ┌───┐
+    q_2: ──┼──         q_2: ┤ X ├──■──┤ X ├──■──        q_2: ──■──┤ X ├──■──┤ X ├
+           │                └─┬─┘     └─┬─┘                       └─┬─┘     └─┬─┘
+    q_3: ──■──         q_3: ──■─────────■───────        q_3: ───────■─────────■──
+
+                            CX-BRIDGE-CX-BRIDGE             BRIDGE-CX-BRIDGE-CX
 
 
-    CX-BRIDGE-CX-BRIDGE
 
-              ┌───┐     ┌───┐
-    q_0: ─────┤ X ├─────┤ X ├
-              └─┬─┘     └─┬─┘
-    q_1: ───────┼─────────┼──
-         ┌───┐  │  ┌───┐  │
-    q_2: ┤ X ├──■──┤ X ├──■──
-         └─┬─┘     └─┬─┘
-    q_3: ──■─────────■───────
-
-
-    [2] https://hal-normandie-univ.archives-ouvertes.fr/hal-02948598/document
+    [2] Marc Bataille (2020), https://hal-normandie-univ.archives-ouvertes.fr/hal-02948598/document
 
 
     ..Note::
@@ -108,7 +105,7 @@ class BridgeGate(QuantumCircuit):
         explicit BridgeGate instance for n > 2.
         """
 
-        if num_qubits < 2:
+        if num_qubits < 3:
             raise QiskitError(
                 "BridgeGate is only defined with num_qubits > 2, "
                 f"provided num_qubits = {num_qubits}."
@@ -120,11 +117,30 @@ class BridgeGate(QuantumCircuit):
         )
 
         qr = QuantumRegister(self.num_qubits, "q")
-        bridge = QuantumCircuit(q, name=self.name)
-        bridge.cx(0, 1)
-        if self.num_qubits > 2:
-            bridge.append(BridgeGate(self.num_qubits - 1), [qr[1], qr[-1]])
-            bridge.cx(0, 1)
-            bridge.append(BridgeGate(self.num_qubits - 1), [qr[1], qr[-1]])
+        bridge = QuantumCircuit(qr, name=self.name)
 
-        self.append(bridge.to_gate(), self.qubits)
+        for i in range(num_qubits - 1):
+
+            for j in range(num_qubits - 1):
+                j = i + 1
+            bridge.cx(i, j)
+
+        for i in range(num_qubits - 3, 0, -1):
+
+            for j in range(num_qubits - 3, 0, -1):
+                j = i + 1
+            bridge.cx(i, j)
+
+        for i in range(num_qubits - 1):
+
+            for j in range(num_qubits - 1):
+                j = i + 1
+            bridge.cx(i, j)
+
+        for i in range(num_qubits - 3, 0, -1):
+
+            for j in range(num_qubits - 3, 0, -1):
+                j = i + 1
+            bridge.cx(i, j)
+
+        self.append(bridge, self.qubits)
