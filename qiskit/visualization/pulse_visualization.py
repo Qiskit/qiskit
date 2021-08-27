@@ -24,6 +24,7 @@ from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse import matplotlib as _matplotlib
 from qiskit.visualization.matplotlib import HAS_MATPLOTLIB
+from qiskit.visualization.utils import matplotlib_close_if_inline
 
 
 def pulse_drawer(
@@ -159,9 +160,6 @@ def pulse_drawer(
             name="pulse_drawer",
             pip_install="pip install matplotlib",
         )
-    from matplotlib import get_backend
-    from matplotlib import pyplot as plt
-
     if isinstance(data, Waveform):
         drawer = _matplotlib.WaveformDrawer(style=style)
         image = drawer.draw(data, dt=dt, interp_method=interp_method, scale=scale)
@@ -188,8 +186,7 @@ def pulse_drawer(
     if filename:
         image.savefig(filename, dpi=drawer.style.dpi, bbox_inches="tight")
 
-    if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
-        plt.close(image)
+    matplotlib_close_if_inline(image)
     if image and interactive:
         image.show()
     return image

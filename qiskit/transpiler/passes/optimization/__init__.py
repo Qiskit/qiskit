@@ -26,3 +26,4 @@ from .crosstalk_adaptive_schedule import CrosstalkAdaptiveSchedule
 from .hoare_opt import HoareOptimizer
 from .template_optimization import TemplateOptimization
 from .swap_cx_swap_to_bridge import SwapCXSwaptoBridge
+from .inverse_cancellation import InverseCancellation

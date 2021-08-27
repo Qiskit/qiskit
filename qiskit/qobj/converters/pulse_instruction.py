@@ -220,7 +220,7 @@ class InstructionToQobjConverter:
 
             if instruction.duration != duration:
                 raise QiskitError(
-                    "Acquire instructions beginning at the same time must have " "same duration."
+                    "Acquire instructions beginning at the same time must have same duration."
                 )
 
             if instruction.mem_slot:
