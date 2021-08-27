@@ -90,6 +90,7 @@ Scheduling
    AlignMeasures
    ValidatePulseGates
    RZXCalibrationBuilder
+   RZXCalibrationBuilderNoEcho
 
 Circuit Analysis
 ================
@@ -174,6 +175,7 @@ from .optimization import RemoveDiagonalGatesBeforeMeasure
 from .optimization import CrosstalkAdaptiveSchedule
 from .optimization import HoareOptimizer
 from .optimization import TemplateOptimization
+from .optimization import InverseCancellation
 
 # circuit analysis
 from .analysis import ResourceEstimation
@@ -192,10 +194,11 @@ from .synthesis import UnitarySynthesis
 from .scheduling import TimeUnitConversion
 from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
+from .scheduling import RZXCalibrationBuilder
+from .scheduling import RZXCalibrationBuilderNoEcho
 from .scheduling import DynamicalDecoupling
 from .scheduling import AlignMeasures
 from .scheduling import ValidatePulseGates
-from .scheduling import RZXCalibrationBuilder
 
 # additional utility passes
 from .utils import CheckMap

@@ -114,7 +114,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
             name = experiment.header.name
             if getattr(experiment.config, "shots", 1) != 1:
                 logger.info(
-                    '"%s" only supports 1 shot. ' 'Setting shots=1 for circuit "%s".',
+                    '"%s" only supports 1 shot. Setting shots=1 for circuit "%s".',
                     self.name(),
                     name,
                 )

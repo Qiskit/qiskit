@@ -201,7 +201,7 @@ class PauliSumOp(PrimitiveOp):
         """
         if len(permutation) != self.num_qubits:
             raise OpflowError(
-                "List of indices to permute must have the " "same size as Pauli Operator"
+                "List of indices to permute must have the same size as Pauli Operator"
             )
         length = max(permutation) + 1
         spop = self.primitive.tensor(SparsePauliOp(Pauli("I" * (length - self.num_qubits))))

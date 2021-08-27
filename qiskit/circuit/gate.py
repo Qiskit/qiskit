@@ -93,7 +93,7 @@ class Gate(Instruction):
 
     def control(
         self,
-        num_ctrl_qubits: Optional[int] = 1,
+        num_ctrl_qubits: int = 1,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[int, str]] = None,
     ):
