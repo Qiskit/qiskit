@@ -1066,8 +1066,8 @@ class DAGCircuit:
             new_node_index = node_map[old_node_index]
             old_node = in_dag._multi_graph[old_node_index]
             condition = self._map_condition(wire_map, old_node.op.condition, self.cregs.values())
-            m_qargs = list(map(lambda x: wire_map.get(x, x), old_node.qargs))
-            m_cargs = list(map(lambda x: wire_map.get(x, x), old_node.cargs))
+            m_qargs = [wire_map.get(x, x) for x in old_node.qargs]
+            m_cargs = [wire_map.get(x, x) for x in old_node.cargs]
             new_node = DAGOpNode(old_node.op, qargs=m_qargs, cargs=m_cargs)
             new_node._node_id = new_node_index
             new_node.op.condition = condition
