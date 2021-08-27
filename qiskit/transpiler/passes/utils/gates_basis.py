@@ -25,15 +25,19 @@ class GatesInBasis(AnalysisPass):
             basis_gates (list): The list of basis gate names to check
         """
         super().__init__()
-        self._basis_gates = set(basis_gates)
+        self._basis_gates = basis_gates
 
     def run(self, dag):
         """Run the GatesInBasis pass on `dag`."""
-        gates_out_of_basis = False
-        gates = set(x.op.name for x in dag.gate_nodes())
-        for gate in gates:
-            if gate not in self._basis_gates:
-                gates_out_of_basis = True
-                break
+
+        if self._basis_gates:
+            gates_out_of_basis = False
+            gates = set(x.op.name for x in dag.gate_nodes())
+            for gate in gates:
+                if gate not in self._basis_gates:
+                    gates_out_of_basis = True
+                    break
+        else:
+            gates_out_of_basis = True
 
         self.property_set["all_gates_in_basis"] = not gates_out_of_basis
