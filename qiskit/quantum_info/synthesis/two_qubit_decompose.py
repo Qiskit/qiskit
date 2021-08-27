@@ -564,7 +564,6 @@ class TwoQubitControlledUDecomposer:
         """Initialize the KAK decomposition.
 
         Args:
-            unitary: The unitary to be decomposed.
             rxx_equivalent_gate: Gate that is locally equivalent to an RXXGate:
             U ~ Ud(α, 0, 0) ~ Ctrl-U gate.
         Raises:
@@ -586,6 +585,7 @@ class TwoQubitControlledUDecomposer:
         Note: atol ist passed to OneQubitEulerDecomposer.
         """
 
+        # pylint: disable=attribute-defined-outside-init
         self.decomposer = TwoQubitWeylDecomposition(unitary)
 
         oneq_decompose = OneQubitEulerDecomposer("ZYZ")
@@ -606,7 +606,7 @@ class TwoQubitControlledUDecomposer:
         circ.compose(c1l, [1], inplace=True)
         return circ
 
-    def _to_rxx_gate(self, angle: float, euler_basis=None):
+    def _to_rxx_gate(self, angle: float):
         """
         Takes an angle and returns the circuit equivalent to an RXXGate with the
         RXX equivalent gate as the two-qubit unitary.
@@ -640,9 +640,7 @@ class TwoQubitControlledUDecomposer:
         circ.append(self.rxx_equivalent_gate(scale * angle), qargs=[0, 1])
         decomposer_inv = TwoQubitWeylControlledEquiv(Operator(circ).data)
 
-        if euler_basis is None:
-            euler_basis = self._default_1q_basis
-        oneq_decompose = OneQubitEulerDecomposer(euler_basis)
+        oneq_decompose = OneQubitEulerDecomposer("ZYZ")
 
         # Express the RXXGate in terms of the user-provided RXXGate equivalent gate.
         rxx_circ = QuantumCircuit(2, global_phase=-decomposer_inv.global_phase)
