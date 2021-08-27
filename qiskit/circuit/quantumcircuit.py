@@ -1564,8 +1564,8 @@ class QuantumCircuit:
                     if instruction.name in [
                         instruction.name for instruction in existing_composite_circuits
                     ]:
-                        # append instruction id to name to make it unique
-                        instruction.name += f"_{id(instruction)}"
+                        # append instruction id to name of instruction copy to make it unique
+                        instruction = instruction.copy(name=f"{instruction.name}_{id(instruction)}")
 
                     existing_composite_circuits.append(instruction)
                     _add_sub_instruction_to_existing_composite_circuits(
