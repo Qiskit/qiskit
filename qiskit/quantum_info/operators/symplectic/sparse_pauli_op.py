@@ -412,7 +412,7 @@ class SparsePauliOp(LinearOp):
         # Non-normalized basis factor
         denom = 2 ** num_qubits
         # Compute coefficients from basis
-        basis = pauli_basis(num_qubits)
+        basis = pauli_basis(num_qubits, pauli_list=True)
         for i, mat in enumerate(basis.matrix_iter()):
             coeff = np.trace(mat.dot(data)) / denom
             if not np.isclose(coeff, 0, atol=atol, rtol=rtol):
