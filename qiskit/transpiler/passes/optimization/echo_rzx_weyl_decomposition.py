@@ -14,6 +14,9 @@
 
 from typing import Tuple
 
+from qiskit import QuantumRegister
+from qiskit.circuit.library.standard_gates import RZXGate, HGate, XGate
+
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
@@ -23,8 +26,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.layout import Layout
 
 import qiskit.quantum_info as qi
-
-from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitWeylEchoRZX
+from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitControlledUDecomposer
 
 
 class EchoRZXWeylDecomposition(TransformationPass):
@@ -45,6 +47,32 @@ class EchoRZXWeylDecomposition(TransformationPass):
         cx1 = self.inst_map.get("cx", qubit_pair)
         cx2 = self.inst_map.get("cx", qubit_pair[::-1])
         return cx1.duration < cx2.duration
+
+    @staticmethod
+    def _echo_rzx_dag(theta):
+        rzx_dag = DAGCircuit()
+        qr = QuantumRegister(2)
+        rzx_dag.add_qreg(qr)
+        rzx_dag.apply_operation_back(RZXGate(theta / 2), [qr[0], qr[1]], [])
+        rzx_dag.apply_operation_back(XGate(), [qr[0]], [])
+        rzx_dag.apply_operation_back(RZXGate(-theta / 2), [qr[0], qr[1]], [])
+        rzx_dag.apply_operation_back(XGate(), [qr[0]], [])
+        return rzx_dag
+
+    @staticmethod
+    def _reverse_echo_rzx_dag(theta):
+        reverse_rzx_dag = DAGCircuit()
+        qr = QuantumRegister(2)
+        reverse_rzx_dag.add_qreg(qr)
+        reverse_rzx_dag.apply_operation_back(HGate(), [qr[0]], [])
+        reverse_rzx_dag.apply_operation_back(HGate(), [qr[1]], [])
+        reverse_rzx_dag.apply_operation_back(RZXGate(theta / 2), [qr[1], qr[0]], [])
+        reverse_rzx_dag.apply_operation_back(XGate(), [qr[1]], [])
+        reverse_rzx_dag.apply_operation_back(RZXGate(-theta / 2), [qr[1], qr[0]], [])
+        reverse_rzx_dag.apply_operation_back(XGate(), [qr[1]], [])
+        reverse_rzx_dag.apply_operation_back(HGate(), [qr[0]], [])
+        reverse_rzx_dag.apply_operation_back(HGate(), [qr[1]], [])
+        return reverse_rzx_dag
 
     def run(self, dag: DAGCircuit):
         """Run the EchoRZXWeylDecomposition pass on `dag`.
@@ -71,10 +99,17 @@ class EchoRZXWeylDecomposition(TransformationPass):
 
         trivial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
-decomposer = TwoQubitControlledUDecomposer(RZXGate)
+        decomposer = TwoQubitControlledUDecomposer(RZXGate)
 
         for node in dag.two_qubit_ops():
             if node.type == "op":
+
+                unitary = qi.Operator(node.op).data
+                dag_weyl = circuit_to_dag(decomposer(unitary))
+                dag.substitute_node_with_dag(node, dag_weyl)
+
+        for node in dag.two_qubit_ops():
+            if node.type == "op" and node.name == "rzx":
                 control = node.qargs[0]
                 target = node.qargs[1]
 
@@ -83,10 +118,10 @@ decomposer = TwoQubitControlledUDecomposer(RZXGate)
 
                 is_native = self._is_native((physical_q0, physical_q1))
 
-                unitary = qi.Operator(node.op).data
-                dag_weyl = circuit_to_dag(
-                    decomposer(unitary)
-                )
-                dag.substitute_node_with_dag(node, dag_weyl)
+                theta = node.op.params[0]
+                if is_native:
+                    dag.substitute_node_with_dag(node, self._echo_rzx_dag(theta))
+                else:
+                    dag.substitute_node_with_dag(node, self._reverse_echo_rzx_dag(theta))
 
         return dag
