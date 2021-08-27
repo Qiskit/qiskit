@@ -560,8 +560,6 @@ class TwoQubitControlledUDecomposer:
     """Decompose two-qubit unitary in terms of a desired U ~ Ud(α, 0, 0) ~ Ctrl-U gate
     that is locally equivalent to an RXXGate."""
 
-    _default_1q_basis = "ZYZ"
-
     def __init__(self, rxx_equivalent_gate: Type[Gate]):
         """Initialize the KAK decomposition.
 
