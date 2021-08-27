@@ -2,21 +2,27 @@
 features:
   - |
     New transpiler pass group :mod:`~qiskit.transpiler.passes.calibration` is created.
-    This group consits of :class:`~qiskit.transpiler.passes.calibration.creators.\
-    RZXCalibrationBuilder`, :class:`~qiskit.transpiler.passes.calibration.creators.\
-    RZXCalibrationBuilderNoEcho`, :class:`~qiskit.transpiler.passes.calibration.creators.\
-    PulseGates` and :func:`~qiskit.transpiler.passes.calibration.rzx_templates.rzx_templates`.
+    This group consits of
 
-    :class:`~qiskit.transpiler.passes.calibration.creators.PulseGates` is a new pass that
-    automatically extracts user provided calibrations from the instruction schdule map and
-    attaches the gate schedule to the given quantum circuit.
+    - :class:`~qiskit.transpiler.passes.calibration.creators.RZXCalibrationBuilder`
+    - :class:`~qiskit.transpiler.passes.calibration.creators.RZXCalibrationBuilderNoEcho`
+    - :func:`~qiskit.transpiler.passes.calibration.rzx_templates.rzx_templates`.
+    - :class:`~qiskit.transpiler.passes.calibration.creators.PulseGates`
+
+    ``RZXCalibrationBuilder``, ``RZXCalibrationBuilderNoEcho``, and ``rzx_templates`` are
+    moved from :mod:`qiskit/transpiler/passes/scheduling`, whereas ``PulseGates``
+    is the new pass that automatically extracts user provided calibrations
+    from the instruction schdule map and attaches the gate schedule to the
+    given (transpiled) quantum circuit as a pulse gate.
+    Any transpiler pass that interacts with the pulse gate feature will be groupled to
+    :mod:`qiskit.transpiler.passes.calibration`.
 
     This pass is applied to all optimization levels from 0 to 3.
     No gate implementation is updated unless end user explicitly overrides
     the ``backend.defaults().instruction_schedule_map``.
 
-    This pass saves us from calling :meth:`~qiskit.circuit.quantumcircuit.\
-    QuantumCircuit#add_calibration` method for each circuit entry we run on hardware.
+    This pass saves us from individually calling :meth:`~qiskit.circuit.quantumcircuit.\
+    QuantumCircuit#add_calibration` method for every circuit entry we run on the hardware.
 
     Along with this change, a schedule added to :class:`qiskit.pulse.instruction_schedule_map.\
     InstructionScheduleMap` is implicitly updated with a metadta "publisher".
