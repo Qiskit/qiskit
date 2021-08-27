@@ -593,7 +593,7 @@ class TwoQubitControlledUDecomposer:
         if euler_basis is None:
             euler_basis = self._default_1q_basis
 
-        oneq_decompose = OneQubitEulerDecomposer(euler_basis)
+        oneq_decompose = OneQubitEulerDecomposer("ZYZ")
         c1l, c1r, c2l, c2r = (
             oneq_decompose(k, atol=atol)
             for k in (
