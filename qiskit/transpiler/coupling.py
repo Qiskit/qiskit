@@ -318,6 +318,24 @@ class CouplingMap:
         )
         return cmap
 
+    @classmethod
+    def from_heavy_hex(cls, num_distance, bidirectional=True):
+        """Return a connected and directed heavy hex map."""
+        cmap = cls(description="heavy-hex")
+        cmap.graph = rx.generators.directed_heavy_hex_graph(
+            num_distance, bidirectional=bidirectional
+        )
+        return cmap
+
+    @classmethod
+    def from_heavy_square(cls, num_distance, bidirectional=True):
+        """Return a connected and directed heavy square graph."""
+        cmap = cls(description="heavy-square")
+        cmap.graph = rx.generators.directed_heavy_square_graph(
+            num_distance, bidirectional=bidirectional
+        )
+        return cmap
+
     def largest_connected_component(self):
         """Return a set of qubits in the largest connected component."""
         return max(rx.weakly_connected_components(self.graph), key=len)
