@@ -196,6 +196,64 @@ class CouplingTest(QiskitTestCase):
         expected = [(0, 3), (0, 1), (3, 4), (1, 4), (1, 2), (4, 5), (2, 5)]
         self.assertEqual(set(edges), set(expected))
 
+    def test_heavy_hex_factory(self):
+        coupling = CouplingMap.from_heavy_hex(3, bidirectional=False)
+        edges = coupling.get_edges()
+        expected = [
+            (0, 9),
+            (0, 13),
+            (1, 13),
+            (1, 14),
+            (2, 14),
+            (3, 9),
+            (3, 15),
+            (4, 15),
+            (4, 16),
+            (5, 12),
+            (5, 16),
+            (6, 17),
+            (7, 17),
+            (7, 18),
+            (8, 12),
+            (8, 18),
+            (10, 14),
+            (10, 16),
+            (11, 15),
+            (11, 17)
+         ]
+        self.assertEqual(set(edges), set(expected))
+
+    def test_heavy_square_factory(self):
+        coupling = CouplingMap.from_heavy_square(3, bidirectional=False)
+        edges = coupling.get_edges()
+        expected = [
+            (0, 15),
+            (1, 16),
+            (2, 11),
+            (3, 12),
+            (3, 17),
+            (4, 18),
+            (5, 11),
+            (6, 12),
+            (6, 19),
+            (7, 20),
+            (9, 15),
+            (9, 17),
+            (10, 16),
+            (10, 18),
+            (13, 17),
+            (13, 19),
+            (14, 18),
+            (14, 20),
+            (15, 1),
+            (16, 2),
+            (17, 4),
+            (18, 5),
+            (19, 7),
+            (20, 8)
+        ]
+        self.assertEqual(set(edges), set(expected))
+
     def test_subgraph(self):
         coupling = CouplingMap.from_line(6, bidirectional=False)
         with self.assertWarns(DeprecationWarning):
