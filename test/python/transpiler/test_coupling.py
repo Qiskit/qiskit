@@ -219,8 +219,8 @@ class CouplingTest(QiskitTestCase):
             (10, 14),
             (10, 16),
             (11, 15),
-            (11, 17)
-         ]
+            (11, 17),
+        ]
         self.assertEqual(set(edges), set(expected))
 
     def test_heavy_square_factory(self):
@@ -250,7 +250,7 @@ class CouplingTest(QiskitTestCase):
             (17, 4),
             (18, 5),
             (19, 7),
-            (20, 8)
+            (20, 8),
         ]
         self.assertEqual(set(edges), set(expected))
 
