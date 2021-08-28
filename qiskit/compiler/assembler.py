@@ -27,6 +27,7 @@ from qiskit.providers.backend import Backend
 from qiskit.pulse import LoConfig, Instruction
 from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.pulse.channels import PulseChannel
+from qiskit.pulse.frame import FramesConfiguration
 from qiskit.qobj import QobjHeader, Qobj
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 
@@ -74,6 +75,7 @@ def assemble(
     parameter_binds: Optional[List[Dict[Parameter, float]]] = None,
     parametric_pulses: Optional[List[str]] = None,
     init_qubits: bool = True,
+    frames_config: FramesConfiguration = None,
     **run_config: Dict,
 ) -> Qobj:
     """Assemble a list of circuits or pulse schedules into a ``Qobj``.
@@ -143,7 +145,9 @@ def assemble(
 
             ['gaussian', 'constant']
         init_qubits: Whether to reset the qubits to the ground state for each shot.
-                     Default: ``True``.
+            Default: ``True``.
+        frames_config: An instance of FramesConfiguration defining how the frames are configured
+            for the backend.
         **run_config: Extra arguments used to configure the run (e.g., for Aer configurable
             backends). Refer to the backend documentation for details on these
             arguments.
@@ -172,6 +176,7 @@ def assemble(
         qubit_lo_range,
         meas_lo_range,
         schedule_los,
+        frames_config,
         **run_config,
     )
 
@@ -237,6 +242,7 @@ def _parse_common_args(
     qubit_lo_range,
     meas_lo_range,
     schedule_los,
+    frames_config,
     **run_config,
 ):
     """Resolve the various types of args allowed to the assemble() function through
@@ -342,6 +348,21 @@ def _parse_common_args(
         for lo_config in schedule_los
     ]
 
+    frames_config_ = FramesConfiguration()
+    if backend:
+        frames_config_ = getattr(backend.defaults(), "frames", FramesConfiguration())
+
+    if frames_config is None:
+        frames_config = frames_config_
+    else:
+        for frame, config in frames_config_.items():
+            # Do not override the frames provided by the user.
+            if frame not in frames_config:
+                frames_config[frame] = config
+
+    if backend:
+        frames_config.sample_duration = backend_config.dt
+
     # create run configuration and populate
     run_config_dict = dict(
         shots=shots,
@@ -356,6 +377,7 @@ def _parse_common_args(
         meas_lo_range=meas_lo_range,
         schedule_los=schedule_los,
         n_qubits=n_qubits,
+        frames_config=frames_config,
         **run_config,
     )
 
@@ -405,6 +427,7 @@ def _parse_pulse_args(
     memory_slot_size,
     rep_time,
     parametric_pulses,
+    frames_config,
     **run_config,
 ):
     """Build a pulse RunConfig replacing unset arguments with defaults derived from the `backend`.
@@ -429,6 +452,7 @@ def _parse_pulse_args(
             )
 
     meas_map = meas_map or getattr(backend_config, "meas_map", None)
+
     dynamic_reprate_enabled = getattr(backend_config, "dynamic_reprate_enabled", False)
 
     rep_time = rep_time or getattr(backend_config, "rep_times", None)
@@ -453,6 +477,7 @@ def _parse_pulse_args(
         memory_slot_size=memory_slot_size,
         rep_time=rep_time,
         parametric_pulses=parametric_pulses,
+        frames_config=frames_config,
         **run_config,
     )
     run_config = RunConfig(**{k: v for k, v in run_config_dict.items() if v is not None})

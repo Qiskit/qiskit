@@ -35,6 +35,7 @@ from qiskit.qobj import (
     QobjHeader,
 )
 from qiskit.tools.parallel import parallel_map
+from qiskit.pulse.transforms.frames import requires_frame_mapping
 
 
 PulseLibrary = Dict[str, List[complex]]
@@ -192,6 +193,12 @@ def _assemble_pulse_gates(
     pulse_library = {}
     for gate, cals in circuit.calibrations.items():
         for (qubits, params), schedule in cals.items():
+
+            # This will require the backend to map frames once timings are known in order to
+            # compute the phase advances.
+            if requires_frame_mapping(schedule):
+                raise QiskitError("Calibrations with frames are not yet supported.")
+
             qobj_instructions, _ = _assemble_schedule(
                 schedule,
                 converters.InstructionToQobjConverter(PulseQobjInstruction),
@@ -357,6 +364,10 @@ def assemble_circuits(
             m_los = lo_converter.get_meas_los(lo_dict)
             if m_los:
                 qobj_config_dict["meas_lo_freq"] = [freq / 1e9 for freq in m_los]
+
+        # Needed so that the backend can map the frames.
+        if "frames_config" in qobj_config_dict:
+            qobj_config_dict["frames_config"] = qobj_config_dict["frames_config"].to_dict()
 
         qobj_config = QasmQobjConfig(**qobj_config_dict)
 

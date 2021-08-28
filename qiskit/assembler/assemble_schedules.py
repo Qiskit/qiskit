@@ -100,7 +100,11 @@ def _assemble_experiments(
     )
     instruction_converter = instruction_converter(qobj.PulseQobjInstruction, **run_config.to_dict())
 
-    formatted_schedules = [transforms.target_qobj_transform(sched) for sched in schedules]
+    frames_config = getattr(run_config, "frames_config", None)
+    formatted_schedules = [
+        transforms.target_qobj_transform(sched, frames_config=frames_config) for sched in schedules
+    ]
+
     compressed_schedules = transforms.compress_pulses(formatted_schedules)
 
     user_pulselib = {}
@@ -179,7 +183,9 @@ def _assemble_instructions(
         A list of converted instructions, the user pulse library dictionary (from pulse name to
         pulse samples), and the maximum number of readout memory slots used by this Schedule.
     """
-    sched = transforms.target_qobj_transform(sched)
+    sched = transforms.target_qobj_transform(
+        sched, frames_config=getattr(run_config, "frames_config", None)
+    )
 
     max_memory_slot = 0
     qobj_instructions = []
@@ -327,5 +333,7 @@ def _assemble_config(
         m_los = lo_converter.get_meas_los(lo_dict)
         if m_los:
             qobj_config["meas_lo_freq"] = [freq / 1e9 for freq in m_los]
+
+    qobj_config.pop("frames_config", None)
 
     return qobj.PulseQobjConfig(**qobj_config)

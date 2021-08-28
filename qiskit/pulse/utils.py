@@ -13,12 +13,13 @@
 """Module for common pulse programming utilities."""
 import functools
 import warnings
-from typing import List, Dict, Union
+from typing import Any, List, Dict, Union
 
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import UnassignedDurationError, QiskitError
+from qiskit.pulse.exceptions import PulseError
 
 
 def format_meas_map(meas_map: List[List[int]]) -> Dict[int, List[int]]:
@@ -117,3 +118,22 @@ def deprecated_functionality(func):
         return func(*args, **kwargs)
 
     return wrapper
+
+
+def validate_index(index: Any) -> None:
+    """Raise a PulseError if the channel index is invalid, namely, if it's not a positive
+    integer.
+
+    Raises:
+        PulseError: If ``index`` is not a nonnegative integer.
+    """
+    if isinstance(index, ParameterExpression) and index.parameters:
+        # Parameters are unbound
+        return
+    elif isinstance(index, ParameterExpression):
+        index = float(index)
+        if index.is_integer():
+            index = int(index)
+
+    if not isinstance(index, (int, np.integer)) and index < 0:
+        raise PulseError("Channel index must be a nonnegative integer")

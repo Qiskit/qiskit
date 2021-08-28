@@ -15,7 +15,7 @@
 import numpy as np
 
 from qiskit import pulse, circuit
-from qiskit.pulse import channels, configuration, instructions, library, exceptions
+from qiskit.pulse import channels, configuration, instructions, library, exceptions, Frame
 from qiskit.pulse.transforms import inline_subroutines, target_qobj_transform
 from qiskit.test import QiskitTestCase
 
@@ -134,19 +134,29 @@ class TestSetFrequency(QiskitTestCase):
 
     def test_freq(self):
         """Test set frequency basic functionality."""
-        set_freq = instructions.SetFrequency(4.5e9, channels.DriveChannel(1), name="test")
+        set_freq = instructions.SetFrequency(4.5e9, channels.DriveChannel(1).frame, name="test")
 
         self.assertIsInstance(set_freq.id, int)
         self.assertEqual(set_freq.duration, 0)
         self.assertEqual(set_freq.frequency, 4.5e9)
-        self.assertEqual(set_freq.operands, (4.5e9, channels.DriveChannel(1)))
-        self.assertEqual(
-            set_freq, instructions.SetFrequency(4.5e9, channels.DriveChannel(1), name="test")
-        )
-        self.assertNotEqual(
-            set_freq, instructions.SetFrequency(4.5e8, channels.DriveChannel(1), name="test")
-        )
-        self.assertEqual(repr(set_freq), "SetFrequency(4500000000.0, DriveChannel(1), name='test')")
+        self.assertEqual(set_freq.operands, (4.5e9, channels.DriveChannel(1).frame))
+        self.assertEqual(set_freq, instructions.SetFrequency(4.5e9, Frame("d", 1), name="test"))
+        self.assertNotEqual(set_freq, instructions.SetFrequency(4.5e8, Frame("d", 1), name="test"))
+        self.assertEqual(repr(set_freq), "SetFrequency(4500000000.0, Frame(d1), name='test')")
+
+    def test_frame(self):
+        """Test the basic shift phase on a Frame."""
+        set_freq = instructions.SetFrequency(4.5e9, Frame("Q", 123))
+
+        self.assertEqual(set_freq.channel, None)
+        self.assertEqual(set_freq.frame, Frame("Q", 123))
+
+    def test_native_frame(self):
+        """Test the basic shift phase on a Frame."""
+        set_freq = instructions.SetFrequency(4.5e9, Frame("m", 123))
+
+        self.assertEqual(set_freq.channel, channels.MeasureChannel(123))
+        self.assertEqual(set_freq.frame, Frame("m", 123))
 
 
 class TestShiftPhase(QiskitTestCase):
@@ -154,20 +164,30 @@ class TestShiftPhase(QiskitTestCase):
 
     def test_default(self):
         """Test basic ShiftPhase."""
-        shift_phase = instructions.ShiftPhase(1.57, channels.DriveChannel(0))
+        shift_phase = instructions.ShiftPhase(1.57, channels.DriveChannel(0).frame)
 
         self.assertIsInstance(shift_phase.id, int)
         self.assertEqual(shift_phase.name, None)
         self.assertEqual(shift_phase.duration, 0)
         self.assertEqual(shift_phase.phase, 1.57)
-        self.assertEqual(shift_phase.operands, (1.57, channels.DriveChannel(0)))
-        self.assertEqual(
-            shift_phase, instructions.ShiftPhase(1.57, channels.DriveChannel(0), name="test")
-        )
-        self.assertNotEqual(
-            shift_phase, instructions.ShiftPhase(1.57j, channels.DriveChannel(0), name="test")
-        )
-        self.assertEqual(repr(shift_phase), "ShiftPhase(1.57, DriveChannel(0))")
+        self.assertEqual(shift_phase.operands, (1.57, channels.DriveChannel(0).frame))
+        self.assertEqual(shift_phase, instructions.ShiftPhase(1.57, Frame("d", 0), name="test"))
+        self.assertNotEqual(shift_phase, instructions.ShiftPhase(1.57j, Frame("d", 0), name="test"))
+        self.assertEqual(repr(shift_phase), "ShiftPhase(1.57, Frame(d0))")
+
+    def test_frame(self):
+        """Test the basic shift phase on a Frame."""
+        shift_phase = instructions.ShiftPhase(1.57, Frame("Q", 123))
+
+        self.assertEqual(shift_phase.channel, None)
+        self.assertEqual(shift_phase.frame, Frame("Q", 123))
+
+    def test_native_frame(self):
+        """Test the basic shift phase on a Frame."""
+        shift_phase = instructions.ShiftPhase(1.57, Frame("d", 123))
+
+        self.assertEqual(shift_phase.channel, pulse.DriveChannel(123))
+        self.assertEqual(shift_phase.frame, Frame("d", 123))
 
 
 class TestSnapshot(QiskitTestCase):

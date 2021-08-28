@@ -18,6 +18,7 @@ from typing import Optional, Tuple
 from qiskit.pulse.channels import SnapshotChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions.instruction import Instruction
+from qiskit.pulse.frame import Frame
 
 
 class Snapshot(Instruction):
@@ -64,6 +65,11 @@ class Snapshot(Instruction):
     def channels(self) -> Tuple[SnapshotChannel]:
         """Returns the channels that this schedule uses."""
         return (self.channel,)
+
+    @property
+    def frames(self) -> Tuple[Frame]:
+        """Return the frames this instructions acts on."""
+        return tuple()
 
     @property
     def duration(self) -> int:

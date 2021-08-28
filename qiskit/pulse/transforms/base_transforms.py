@@ -13,11 +13,13 @@
 
 # TODO: replace this with proper pulse transformation passes. Qiskit-terra/#6121
 
-from typing import Union, Iterable, Tuple
+from typing import Union, Iterable, Optional, Tuple
 
 from qiskit.pulse.instructions import Instruction
 from qiskit.pulse.schedule import ScheduleBlock, Schedule
 from qiskit.pulse.transforms import canonicalization
+from qiskit.pulse.frame import FramesConfiguration
+from qiskit.pulse.transforms.frames import map_frames
 
 InstructionSched = Union[Tuple[int, Instruction], Instruction]
 
@@ -25,12 +27,14 @@ InstructionSched = Union[Tuple[int, Instruction], Instruction]
 def target_qobj_transform(
     sched: Union[ScheduleBlock, Schedule, InstructionSched, Iterable[InstructionSched]],
     remove_directives: bool = True,
+    frames_config: Optional[FramesConfiguration] = None,
 ) -> Schedule:
     """A basic pulse program transformation for OpenPulse API execution.
 
     Args:
         sched: Input program to transform.
         remove_directives: Set `True` to remove compiler directives.
+        frames_config: The Configuration with which to resolve any frames.
 
     Returns:
         Transformed program for execution.
@@ -51,6 +55,9 @@ def target_qobj_transform(
     # remove directives, e.g. barriers
     if remove_directives:
         sched = canonicalization.remove_directives(sched)
+
+    # remove any instructions on frames
+    sched = map_frames(sched, frames_config)
 
     return sched
 

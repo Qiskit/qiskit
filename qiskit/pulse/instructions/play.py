@@ -19,8 +19,10 @@ from qiskit.circuit.parameterexpression import ParameterExpression, ParameterVal
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
+from qiskit.pulse.library.signal import Signal
 from qiskit.pulse.instructions.instruction import Instruction
 from qiskit.pulse.utils import deprecated_functionality
+from qiskit.pulse.frame import Frame
 
 
 class Play(Instruction):
@@ -32,7 +34,9 @@ class Play(Instruction):
     cycle time, dt, of the backend.
     """
 
-    def __init__(self, pulse: Pulse, channel: PulseChannel, name: Optional[str] = None):
+    def __init__(
+        self, pulse: Union[Pulse, Signal], channel: PulseChannel, name: Optional[str] = None
+    ):
         """Create a new pulse instruction.
 
         Args:
@@ -44,8 +48,12 @@ class Play(Instruction):
         Raises:
             PulseError: If pulse is not a Pulse type.
         """
-        if not isinstance(pulse, Pulse):
-            raise PulseError("The `pulse` argument to `Play` must be of type `library.Pulse`.")
+        if not isinstance(pulse, (Pulse, Signal)):
+            raise PulseError(
+                "The `pulse` argument to `Play` must be of type `library.Pulse` or "
+                "`library.Signal`."
+            )
+
         if not isinstance(channel, PulseChannel):
             raise PulseError(
                 "The `channel` argument to `Play` must be of type `channels.PulseChannel`."
@@ -57,7 +65,26 @@ class Play(Instruction):
     @property
     def pulse(self) -> Pulse:
         """A description of the samples that will be played."""
+        if isinstance(self.operands[0], Signal):
+            return self.operands[0].pulse
+
         return self.operands[0]
+
+    @property
+    def signal(self) -> Signal:
+        """The signal that will be played."""
+        if isinstance(self.operands[0], Pulse):
+            return Signal(self.operands[0], self.operands[1].frame)
+
+        return self.operands[0]
+
+    @property
+    def frame(self) -> Frame:
+        """The frame in which the pulse is played."""
+        if isinstance(self.operands[0], Signal):
+            return self.operands[0].frame
+
+        return self.channel.frame
 
     @property
     def channel(self) -> PulseChannel:
@@ -70,6 +97,11 @@ class Play(Instruction):
     def channels(self) -> Tuple[PulseChannel]:
         """Returns the channels that this schedule uses."""
         return (self.channel,)
+
+    @property
+    def frames(self) -> Tuple[Frame]:
+        """Return the frames this instructions acts on."""
+        return (self.frame,)
 
     @property
     def duration(self) -> Union[int, ParameterExpression]:

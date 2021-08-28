@@ -470,3 +470,5 @@ from qiskit.pulse.library import (
 )
 from qiskit.pulse.library.samplers.decorators import functional_pulse
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
+from qiskit.pulse.library.signal import Signal
+from qiskit.pulse.frame import Frame

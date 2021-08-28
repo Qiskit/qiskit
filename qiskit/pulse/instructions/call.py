@@ -19,6 +19,7 @@ from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions import instruction
 from qiskit.pulse.utils import format_parameter_value, deprecated_functionality
+from qiskit.pulse.frame import Frame
 
 
 class Call(instruction.Instruction):
@@ -82,6 +83,11 @@ class Call(instruction.Instruction):
     def channels(self) -> Tuple[Channel]:
         """Returns the channels that this schedule uses."""
         return self.assigned_subroutine().channels
+
+    @property
+    def frames(self) -> Tuple[Frame]:
+        """Returns the frames that this schedule uses."""
+        return self.assigned_subroutine().frames
 
     # pylint: disable=missing-return-type-doc
     @property

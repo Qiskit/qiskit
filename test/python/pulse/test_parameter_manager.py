@@ -71,18 +71,18 @@ class ParameterTestBase(QiskitTestCase):
 
         # schedule under test
         subroutine = pulse.ScheduleBlock(alignment_context=AlignLeft())
-        subroutine += pulse.ShiftPhase(self.phi1, self.d1)
+        subroutine += pulse.ShiftPhase(self.phi1, self.d1.frame)
         subroutine += pulse.Play(self.parametric_waveform1, self.d1)
 
         sched = pulse.Schedule()
-        sched += pulse.ShiftPhase(self.phi3, self.d3)
+        sched += pulse.ShiftPhase(self.phi3, self.d3.frame)
 
         long_schedule = pulse.ScheduleBlock(
             alignment_context=AlignEquispaced(self.context_dur), name="long_schedule"
         )
 
         long_schedule += subroutine
-        long_schedule += pulse.ShiftPhase(self.phi2, self.d2)
+        long_schedule += pulse.ShiftPhase(self.phi2, self.d2.frame)
         long_schedule += pulse.Play(self.parametric_waveform2, self.d2)
         long_schedule += pulse.Call(sched)
         long_schedule += pulse.Play(self.parametric_waveform3, self.d3)
@@ -124,7 +124,7 @@ class TestParameterGetter(ParameterTestBase):
 
     def test_get_parameter_from_inst(self):
         """Test get parameters from instruction."""
-        test_obj = pulse.ShiftPhase(self.phi1 + self.phi2, pulse.DriveChannel(0))
+        test_obj = pulse.ShiftPhase(self.phi1 + self.phi2, pulse.DriveChannel(0).frame)
 
         visitor = ParameterGetter()
         visitor.visit(test_obj)
@@ -136,7 +136,7 @@ class TestParameterGetter(ParameterTestBase):
     def test_get_parameter_from_call(self):
         """Test get parameters from instruction."""
         sched = pulse.Schedule()
-        sched += pulse.ShiftPhase(self.phi1, self.d1)
+        sched += pulse.ShiftPhase(self.phi1, self.d1.frame)
 
         test_obj = pulse.Call(subroutine=sched)
 
@@ -199,21 +199,21 @@ class TestParameterSetter(ParameterTestBase):
 
     def test_set_parameter_to_inst(self):
         """Test get parameters from instruction."""
-        test_obj = pulse.ShiftPhase(self.phi1 + self.phi2, pulse.DriveChannel(0))
+        test_obj = pulse.ShiftPhase(self.phi1 + self.phi2, pulse.DriveChannel(0).frame)
 
         value_dict = {self.phi1: 0.123, self.phi2: 0.456}
 
         visitor = ParameterSetter(param_map=value_dict)
         assigned = visitor.visit(test_obj)
 
-        ref_obj = pulse.ShiftPhase(0.579, pulse.DriveChannel(0))
+        ref_obj = pulse.ShiftPhase(0.579, pulse.DriveChannel(0).frame)
 
         self.assertEqual(assigned, ref_obj)
 
     def test_set_parameter_to_call(self):
         """Test get parameters from instruction."""
         sched = pulse.Schedule()
-        sched += pulse.ShiftPhase(self.phi1, self.d1)
+        sched += pulse.ShiftPhase(self.phi1, self.d1.frame)
 
         test_obj = pulse.Call(subroutine=sched)
 
@@ -223,7 +223,7 @@ class TestParameterSetter(ParameterTestBase):
         assigned = visitor.visit(test_obj)
 
         ref_sched = pulse.Schedule()
-        ref_sched += pulse.ShiftPhase(1.57, pulse.DriveChannel(2))
+        ref_sched += pulse.ShiftPhase(1.57, pulse.DriveChannel(2).frame)
 
         ref_obj = pulse.Call(subroutine=ref_sched)
 
@@ -320,16 +320,16 @@ class TestParameterSetter(ParameterTestBase):
 
         # create ref schedule
         subroutine = pulse.ScheduleBlock(alignment_context=AlignLeft())
-        subroutine += pulse.ShiftPhase(1.0, pulse.DriveChannel(0))
+        subroutine += pulse.ShiftPhase(1.0, pulse.DriveChannel(0).frame)
         subroutine += pulse.Play(pulse.Gaussian(100, 0.3, 25), pulse.DriveChannel(0))
 
         sched = pulse.Schedule()
-        sched += pulse.ShiftPhase(3.0, pulse.DriveChannel(4))
+        sched += pulse.ShiftPhase(3.0, pulse.DriveChannel(4).frame)
 
         ref_obj = pulse.ScheduleBlock(alignment_context=AlignEquispaced(1000), name="long_schedule")
 
         ref_obj += subroutine
-        ref_obj += pulse.ShiftPhase(2.0, pulse.DriveChannel(2))
+        ref_obj += pulse.ShiftPhase(2.0, pulse.DriveChannel(2).frame)
         ref_obj += pulse.Play(pulse.Gaussian(125, 0.3, 25), pulse.DriveChannel(2))
         ref_obj += pulse.Call(sched)
         ref_obj += pulse.Play(pulse.Gaussian(150, 0.4, 25), pulse.DriveChannel(4))

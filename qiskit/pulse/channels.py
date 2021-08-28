@@ -28,7 +28,8 @@ import numpy as np
 from qiskit.circuit import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.utils import deprecated_functionality
+from qiskit.pulse.utils import deprecated_functionality, validate_index
+from qiskit.pulse.frame import Frame
 
 
 class Channel(metaclass=ABCMeta):
@@ -67,7 +68,7 @@ class Channel(metaclass=ABCMeta):
         Args:
             index: Index of channel.
         """
-        self._validate_index(index)
+        validate_index(index)
         self._index = index
         self._hash = hash((self.__class__.__name__, self._index))
 
@@ -131,7 +132,7 @@ class Channel(metaclass=ABCMeta):
 
         new_index = self.index.assign(parameter, value)
         if not new_index.parameters:
-            self._validate_index(new_index)
+            validate_index(new_index)
             new_index = int(new_index)
 
         return type(self)(new_index)
@@ -163,7 +164,13 @@ class Channel(metaclass=ABCMeta):
 class PulseChannel(Channel, metaclass=ABCMeta):
     """Base class of transmit Channels. Pulses can be played on these channels."""
 
-    pass
+    def __init__(self, index: int):
+        super().__init__(index)
+
+    @property
+    def frame(self) -> Frame:
+        """Return the default frame of this channel."""
+        return Frame(self.prefix, self._index)
 
 
 class DriveChannel(PulseChannel):

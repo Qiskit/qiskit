@@ -35,6 +35,7 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions import Instruction
 from qiskit.pulse.utils import instruction_duration_validation, deprecated_functionality
 from qiskit.utils.multiprocessing import is_main_process
+from qiskit.pulse.frame import Frame
 
 
 Interval = Tuple[int, int]
@@ -231,6 +232,15 @@ class Schedule:
     def channels(self) -> Tuple[Channel]:
         """Returns channels that this schedule uses."""
         return tuple(self._timeslots.keys())
+
+    @property
+    def frames(self) -> Tuple[Frame]:
+        """Returns the frames this schedule uses."""
+        frames = {}
+        for _, inst in self.instructions:
+            frames = frames | inst.frames
+
+        return tuple(frames)
 
     @property
     def _children(self) -> Tuple[Tuple[int, ScheduleComponent], ...]:

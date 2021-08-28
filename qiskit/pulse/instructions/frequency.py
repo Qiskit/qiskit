@@ -14,9 +14,11 @@
 the frequency of a channel.
 """
 from typing import Optional, Union, Tuple
+import warnings
 
 from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.pulse.channels import PulseChannel
+from qiskit.pulse.channels import PulseChannel, DriveChannel, MeasureChannel, ControlChannel
+from qiskit.pulse.frame import Frame
 from qiskit.pulse.instructions.instruction import Instruction
 
 
@@ -37,19 +39,27 @@ class SetFrequency(Instruction):
     def __init__(
         self,
         frequency: Union[float, ParameterExpression],
-        channel: PulseChannel,
+        frame: Union[PulseChannel, Frame],
         name: Optional[str] = None,
     ):
         """Creates a new set channel frequency instruction.
 
         Args:
             frequency: New frequency of the channel in Hz.
-            channel: The channel this instruction operates on.
+            channel: The channel or frame this instruction operates on.
             name: Name of this set channel frequency instruction.
         """
+        if isinstance(frame, PulseChannel):
+            warnings.warn(
+                f"Applying {self.__class__.__name__} to channel {frame}. This "
+                f"functionality will be deprecated. Using frame {frame.frame}. "
+                f"Instead, apply {self.__class__.__name__} to a frame."
+            )
+            frame = frame.frame
+
         if not isinstance(frequency, ParameterExpression):
             frequency = float(frequency)
-        super().__init__(operands=(frequency, channel), name=name)
+        super().__init__(operands=(frequency, frame), name=name)
 
     @property
     def frequency(self) -> Union[float, ParameterExpression]:
@@ -58,15 +68,35 @@ class SetFrequency(Instruction):
 
     @property
     def channel(self) -> PulseChannel:
-        """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
+        """Return the :py:class:`~qiskit.pulse.channels.Channel` or frame that this instruction is
         scheduled on.
         """
+        if self.frame.prefix == "d":
+            return DriveChannel(self.frame.index)
+
+        if self.frame.prefix == "m":
+            return MeasureChannel(self.frame.index)
+
+        if self.frame.prefix == "u":
+            return ControlChannel(self.frame.index)
+
+    @property
+    def frame(self) -> Frame:
+        """Return the frame on which this instruction applies."""
         return self.operands[1]
 
     @property
     def channels(self) -> Tuple[PulseChannel]:
         """Returns the channels that this schedule uses."""
-        return (self.channel,)
+        if self.channel is not None:
+            return (self.channel,)
+
+        return tuple()
+
+    @property
+    def frames(self) -> Tuple[Frame]:
+        """Return the frames this instructions acts on."""
+        return (self.frame,)
 
     @property
     def duration(self) -> int:
@@ -75,7 +105,7 @@ class SetFrequency(Instruction):
 
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
-        return isinstance(self.frequency, ParameterExpression) or super().is_parameterized()
+        return isinstance(self.frequency, ParameterExpression) or self.frame.is_parameterized()
 
 
 class ShiftFrequency(Instruction):
@@ -84,19 +114,27 @@ class ShiftFrequency(Instruction):
     def __init__(
         self,
         frequency: Union[float, ParameterExpression],
-        channel: PulseChannel,
+        frame: Union[PulseChannel, Frame],
         name: Optional[str] = None,
     ):
         """Creates a new shift frequency instruction.
 
         Args:
             frequency: Frequency shift of the channel in Hz.
-            channel: The channel this instruction operates on.
+            frame: The frame or channel this instruction operates on.
             name: Name of this set channel frequency instruction.
         """
+        if isinstance(frame, PulseChannel):
+            warnings.warn(
+                f"Applying {self.__class__.__name__} to channel {frame}. This "
+                f"functionality will be deprecated. Using frame {frame.frame}. "
+                f"Instead, apply {self.__class__.__name__} to a frame."
+            )
+            frame = frame.frame
+
         if not isinstance(frequency, ParameterExpression):
             frequency = float(frequency)
-        super().__init__(operands=(frequency, channel), name=name)
+        super().__init__(operands=(frequency, frame), name=name)
 
     @property
     def frequency(self) -> Union[float, ParameterExpression]:
@@ -105,15 +143,35 @@ class ShiftFrequency(Instruction):
 
     @property
     def channel(self) -> PulseChannel:
-        """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
+        """Return the :py:class:`~qiskit.pulse.channels.Channel` or frame that this instruction is
         scheduled on.
         """
+        if self.frame.prefix == "d":
+            return DriveChannel(self.frame.index)
+
+        if self.frame.prefix == "m":
+            return MeasureChannel(self.frame.index)
+
+        if self.frame.prefix == "u":
+            return ControlChannel(self.frame.index)
+
+    @property
+    def frame(self) -> Frame:
+        """Return the frame on which this instruction applies."""
         return self.operands[1]
 
     @property
     def channels(self) -> Tuple[PulseChannel]:
         """Returns the channels that this schedule uses."""
-        return (self.channel,)
+        if self.channel is not None:
+            return (self.channel,)
+
+        return tuple()
+
+    @property
+    def frames(self) -> Tuple[Frame]:
+        """Return the frames this instructions acts on."""
+        return (self.frame,)
 
     @property
     def duration(self) -> int:
@@ -122,4 +180,4 @@ class ShiftFrequency(Instruction):
 
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
-        return isinstance(self.frequency, ParameterExpression) or super().is_parameterized()
+        return isinstance(self.frequency, ParameterExpression) or self.frame.is_parameterized()

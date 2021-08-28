@@ -249,13 +249,13 @@ class TestContexts(TestBuilder):
         d0 = pulse.DriveChannel(0)
 
         with pulse.build() as schedule:
-            with pulse.phase_offset(3.14, d0):
+            with pulse.phase_offset(3.14, d0.frame):
                 pulse.delay(10, d0)
 
         reference = pulse.Schedule()
-        reference += instructions.ShiftPhase(3.14, d0)
+        reference += instructions.ShiftPhase(3.14, d0.frame)
         reference += instructions.Delay(10, d0)
-        reference += instructions.ShiftPhase(-3.14, d0)
+        reference += instructions.ShiftPhase(-3.14, d0.frame)
 
         self.assertScheduleEqual(schedule, reference)
 
@@ -264,13 +264,13 @@ class TestContexts(TestBuilder):
         d0 = pulse.DriveChannel(0)
 
         with pulse.build() as schedule:
-            with pulse.frequency_offset(1e9, d0):
+            with pulse.frequency_offset(1e9, d0.frame):
                 pulse.delay(10, d0)
 
         reference = pulse.Schedule()
-        reference += instructions.ShiftFrequency(1e9, d0)
+        reference += instructions.ShiftFrequency(1e9, d0.frame)
         reference += instructions.Delay(10, d0)
-        reference += instructions.ShiftFrequency(-1e9, d0)
+        reference += instructions.ShiftFrequency(-1e9, d0.frame)
 
         self.assertScheduleEqual(schedule, reference)
 
@@ -280,16 +280,16 @@ class TestContexts(TestBuilder):
         d0 = pulse.DriveChannel(0)
 
         with pulse.build(self.backend) as schedule:
-            with pulse.frequency_offset(1e9, d0, compensate_phase=True):
+            with pulse.frequency_offset(1e9, d0.frame, compensate_phase=True):
                 pulse.delay(10, d0)
 
         reference = pulse.Schedule()
-        reference += instructions.ShiftFrequency(1e9, d0)
+        reference += instructions.ShiftFrequency(1e9, d0.frame)
         reference += instructions.Delay(10, d0)
         reference += instructions.ShiftPhase(
-            -2 * np.pi * ((1e9 * 10 * self.configuration.dt) % 1), d0
+            -2 * np.pi * ((1e9 * 10 * self.configuration.dt) % 1), d0.frame
         )
-        reference += instructions.ShiftFrequency(-1e9, d0)
+        reference += instructions.ShiftFrequency(-1e9, d0.frame)
 
         self.assertScheduleEqual(schedule, reference)
 
@@ -424,10 +424,9 @@ class TestInstructions(TestBuilder):
 
     def test_instruction_name_argument(self):
         """Test setting the name of an instruction."""
-        d0 = pulse.DriveChannel(0)
+        d0 = pulse.Frame("d", 0)
 
         for instruction_method in [
-            pulse.delay,
             pulse.set_frequency,
             pulse.set_phase,
             pulse.shift_frequency,
@@ -437,9 +436,13 @@ class TestInstructions(TestBuilder):
                 instruction_method(0, d0, name="instruction_name")
             self.assertEqual(schedule.instructions[0][1].name, "instruction_name")
 
+        with pulse.build() as schedule:
+            pulse.delay(0, d0, name="instruction_name")
+        self.assertEqual(schedule.instructions[0][1].name, "instruction_name")
+
     def test_set_frequency(self):
         """Test set frequency instruction."""
-        d0 = pulse.DriveChannel(0)
+        d0 = pulse.Frame("d", 0)
 
         with pulse.build() as schedule:
             pulse.set_frequency(1e9, d0)
@@ -451,7 +454,7 @@ class TestInstructions(TestBuilder):
 
     def test_shift_frequency(self):
         """Test shift frequency instruction."""
-        d0 = pulse.DriveChannel(0)
+        d0 = pulse.Frame("d", 0)
 
         with pulse.build() as schedule:
             pulse.shift_frequency(0.1e9, d0)
@@ -463,7 +466,7 @@ class TestInstructions(TestBuilder):
 
     def test_set_phase(self):
         """Test set phase instruction."""
-        d0 = pulse.DriveChannel(0)
+        d0 = pulse.Frame("d", 0)
 
         with pulse.build() as schedule:
             pulse.set_phase(3.14, d0)
@@ -475,7 +478,7 @@ class TestInstructions(TestBuilder):
 
     def test_shift_phase(self):
         """Test shift phase instruction."""
-        d0 = pulse.DriveChannel(0)
+        d0 = pulse.Frame("d", 0)
 
         with pulse.build() as schedule:
             pulse.shift_phase(3.14, d0)
@@ -1227,3 +1230,66 @@ class TestSubroutineCall(TestBuilder):
             pulse.call(subroutine)
 
         self.assertEqual(len(main.blocks), 1)
+
+
+class TestBuilderFrames(TestBuilder):
+    """Test that the builder works with frames."""
+
+    def test_simple_frame_schedule(self):
+        """Test basic schedule construction with frames."""
+
+        signal = pulse.Signal(pulse.Gaussian(160, 0.1, 40), pulse.Frame("d", 0))
+        with pulse.build() as sched:
+            with pulse.align_left():
+                pulse.play(signal, pulse.DriveChannel(0))
+                pulse.shift_phase(1.57, pulse.Frame("d", 0))
+                pulse.play(signal, pulse.DriveChannel(0))
+
+        play_gaus = pulse.Play(signal, pulse.DriveChannel(0))
+        self.assertEqual(sched.instructions[0][0], 0)
+        self.assertEqual(sched.instructions[0][1], play_gaus)
+        self.assertEqual(sched.instructions[1][0], 160)
+        self.assertEqual(sched.instructions[1][1], pulse.ShiftPhase(1.57, pulse.Frame("d", 0)))
+        self.assertEqual(sched.instructions[2][0], 160)
+        self.assertEqual(sched.instructions[2][1], play_gaus)
+
+    def test_ignore_frames(self):
+        """Test the behavior of ignoring frames in the alignments context."""
+
+        signal = pulse.Signal(pulse.Gaussian(160, 0.1, 40), pulse.Frame("d", 0))
+
+        with pulse.build() as sched:
+            with pulse.align_right():
+                pulse.play(signal, pulse.DriveChannel(0))
+                pulse.shift_phase(1.57, pulse.Frame("d", 0))
+                pulse.shift_phase(1.57, pulse.Frame("d", 1))
+                pulse.play(signal, pulse.DriveChannel(0))
+
+        play_gaus = pulse.Play(signal, pulse.DriveChannel(0))
+
+        self.assertEqual(sched.instructions[0][0], 0)
+        self.assertEqual(sched.instructions[0][1], play_gaus)
+        self.assertEqual(sched.instructions[1][0], 160)
+        self.assertEqual(sched.instructions[1][1], pulse.ShiftPhase(1.57, pulse.Frame("d", 0)))
+        self.assertEqual(sched.instructions[2][0], 160)
+        self.assertEqual(sched.instructions[2][1], play_gaus)
+        self.assertEqual(sched.instructions[3][0], 320)
+        self.assertEqual(sched.instructions[3][1], pulse.ShiftPhase(1.57, pulse.Frame("d", 1)))
+
+        with pulse.build() as sched:
+            with pulse.align_sequential():
+                pulse.play(signal, pulse.DriveChannel(0))
+                pulse.shift_phase(1.57, pulse.Frame("Q", 0))
+                pulse.shift_phase(1.57, pulse.Frame("Q", 1))
+                pulse.play(signal, pulse.DriveChannel(0))
+
+        play_gaus = pulse.Play(signal, pulse.DriveChannel(0))
+
+        self.assertEqual(sched.instructions[0][0], 0)
+        self.assertEqual(sched.instructions[0][1], play_gaus)
+        self.assertEqual(sched.instructions[1][0], 160)
+        self.assertEqual(sched.instructions[1][1], pulse.ShiftPhase(1.57, pulse.Frame("Q", 0)))
+        self.assertEqual(sched.instructions[2][0], 160)
+        self.assertEqual(sched.instructions[2][1], pulse.ShiftPhase(1.57, pulse.Frame("Q", 1)))
+        self.assertEqual(sched.instructions[3][0], 160)
+        self.assertEqual(sched.instructions[3][1], play_gaus)
