@@ -332,7 +332,7 @@ class CouplingMap:
         """Return a connected and directed heavy square graph."""
         cmap = cls(description="heavy-square")
         cmap.graph = rx.generators.directed_heavy_square_graph(
-            num_distance, bidirectional=bidirectional
+            distance, bidirectional=bidirectional
         )
         return cmap
 
