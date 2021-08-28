@@ -319,16 +319,16 @@ class CouplingMap:
         return cmap
 
     @classmethod
-    def from_heavy_hex(cls, num_distance, bidirectional=True):
+    def from_heavy_hex(cls, distance, bidirectional=True):
         """Return a connected and directed heavy hex map."""
         cmap = cls(description="heavy-hex")
         cmap.graph = rx.generators.directed_heavy_hex_graph(
-            num_distance, bidirectional=bidirectional
+            distance, bidirectional=bidirectional
         )
         return cmap
 
     @classmethod
-    def from_heavy_square(cls, num_distance, bidirectional=True):
+    def from_heavy_square(cls, distance, bidirectional=True):
         """Return a connected and directed heavy square graph."""
         cmap = cls(description="heavy-square")
         cmap.graph = rx.generators.directed_heavy_square_graph(
