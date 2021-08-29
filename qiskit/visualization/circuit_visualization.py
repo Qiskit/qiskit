@@ -53,11 +53,10 @@ logger = logging.getLogger(__name__)
 class HasPdfLatexWrapper:
     """Wrapper to lazily detect presence of the pdflatex command."""
 
-    has_pdflatex = False
+    has_pdflatex = None
 
-    # pylint: disable=unused-import
     def __bool__(self):
-        if not self.has_pdflatex:
+        if self.has_pdflatex is None:
             try:
                 subprocess.run(
                     ["pdflatex", "-version"],
@@ -415,9 +414,9 @@ def _latex_circuit_drawer(
 
     Raises:
         OSError: usually indicates that ```pdflatex``` or ```pdftocairo``` is
-                 missing.
+                 missing or produced unexpected result.
         CalledProcessError: usually points to errors during diagram creation.
-        MissingOptionalLibraryError: if pillow is not installed
+        MissingOptionalLibraryError: if pillow or pdflatex is not installed
         VisualizationError: If unsupported image format is given as filename extension.
     """
     tmpfilename = "circuit"
@@ -437,7 +436,11 @@ def _latex_circuit_drawer(
             cregbundle=cregbundle,
         )
         try:
-
+            if not HAS_PDFLATEX:
+                raise MissingOptionalLibraryError(
+                    libname="pdflatex",
+                    name=_latex_circuit_drawer.__name__,
+                )
             subprocess.run(
                 [
                     "pdflatex",
