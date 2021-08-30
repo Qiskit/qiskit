@@ -133,7 +133,7 @@ class RunningPassManager:
         return circuit
 
     def _do_pass(self, pass_, dag, options):
-        """Do a pass and its "requires".
+        """Do either a pass and its "requires" or FlowController.
 
         Args:
             pass_ (BasePass or FlowController): Pass to do.
