@@ -1039,8 +1039,8 @@ class DAGCircuit:
             wire = reverse_wire_map[self_wire]
             # successor edge
             if source == node._node_id:
-                wire_id = in_dag.output_map[wire]._node_id
-                out_index = in_dag._multi_graph.predecessor_indices(wire_id)[0]
+                wire_output_id = in_dag.output_map[wire]._node_id
+                out_index = in_dag._multi_graph.predecessor_indices(wire_output_id)[0]
                 # Edge from input to output don't map (handled already)
                 if not isinstance(in_dag._multi_graph[out_index], DAGOpNode):
                     return None

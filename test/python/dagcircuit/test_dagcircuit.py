@@ -1208,7 +1208,7 @@ class TestDagSubstitute(QiskitTestCase):
         circuit.apply_operation_back(HGate(), [v[0]], [])
         circuit.apply_operation_back(XGate(), [v[0]], [])
 
-        self.dag.substitute_node_with_dag(self.dag.op_nodes()[0], circuit)
+        self.dag.substitute_node_with_dag(next(self.dag.topological_op_nodes()), circuit)
         expected = DAGCircuit()
         qreg = QuantumRegister(3, "qr")
         creg = ClassicalRegister(2, "cr")
@@ -1228,7 +1228,7 @@ class TestDagSubstitute(QiskitTestCase):
         circuit.apply_operation_back(HGate(), [v[0]], [])
         circuit.apply_operation_back(XGate(), [v[0]], [])
 
-        self.dag.substitute_node_with_dag(self.dag.op_nodes()[2], circuit)
+        self.dag.substitute_node_with_dag(list(self.dag.topological_op_nodes())[2], circuit)
         expected = DAGCircuit()
         qreg = QuantumRegister(3, "qr")
         creg = ClassicalRegister(2, "cr")
