@@ -1013,7 +1013,13 @@ class DAGCircuit:
                         "Mapped DAG would alter clbits on which it would be conditioned."
                     )
 
-        # Add wire from pred to succ if no ops on wire
+        # Add wire from pred to succ if no ops on mapped wire on ``in_dag``
+        # retworkx's substitute_node_with_subgraph lacks the DAGCircuit
+        # context to know what to do in this case (the method won't even see
+        # these nodes because they're filtered) so we manually retain the
+        # edges prior to calling substitute_node_with_subgraph and set the
+        # edge_map_fn callback kwarg to skip these edges when they're
+        # encountered.
         for wire in wires:
             input_node = in_dag.input_map[wire]
             output_node = in_dag.output_map[wire]
@@ -1027,6 +1033,8 @@ class DAGCircuit:
                 )[0]
                 self._multi_graph.add_edge(pred._node_id, succ._node_id, self_wire)
 
+        # Exlude any nodes from in_dag that are not a DAGOpNode or are on
+        # bits outside the set specified by the wires kwarg
         def filter_fn(node):
             if not isinstance(node, DAGOpNode):
                 return False
@@ -1035,24 +1043,30 @@ class DAGCircuit:
                     return False
             return True
 
+        # Map edges into and out of node to the appropriate node from in_dag
         def edge_map_fn(source, _target, self_wire):
             wire = reverse_wire_map[self_wire]
             # successor edge
             if source == node._node_id:
                 wire_output_id = in_dag.output_map[wire]._node_id
                 out_index = in_dag._multi_graph.predecessor_indices(wire_output_id)[0]
-                # Edge from input to output don't map (handled already)
+                # Edge directly from from input nodes to output nodes in in_dag are
+                # already handled prior to calling retworkx. Don't map these edges
+                # in retworkx.
                 if not isinstance(in_dag._multi_graph[out_index], DAGOpNode):
                     return None
             # predecessor edge
             else:
-                wire_id = in_dag.input_map[wire]._node_id
-                out_index = in_dag._multi_graph.successor_indices(wire_id)[0]
-                # Edge from input to output don't map (handled already)
+                wire_input_id = in_dag.input_map[wire]._node_id
+                out_index = in_dag._multi_graph.successor_indices(wire_input_id)[0]
+                # Edge directly from from input nodes to output nodes in in_dag are
+                # already handled prior to calling retworkx. Don't map these edges
+                # in retworkx.
                 if not isinstance(in_dag._multi_graph[out_index], DAGOpNode):
                     return None
             return out_index
 
+        # Adjust edge weights from in_dag
         def edge_weight_map(wire):
             return wire_map[wire]
 
@@ -1060,10 +1074,10 @@ class DAGCircuit:
             node._node_id, in_dag._multi_graph, edge_map_fn, filter_fn, edge_weight_map
         )
 
-        # Iterate over nodes of input_circuit and update wires
-        for old_node_index in node_map:
+        # Iterate over nodes of input_circuit and update wiires in node objects migrated
+        # from in_dag
+        for old_node_index, new_node_index in node_map.items():
             # update node attributes
-            new_node_index = node_map[old_node_index]
             old_node = in_dag._multi_graph[old_node_index]
             condition = self._map_condition(wire_map, old_node.op.condition, self.cregs.values())
             m_qargs = [wire_map.get(x, x) for x in old_node.qargs]
