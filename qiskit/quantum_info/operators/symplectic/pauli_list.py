@@ -632,11 +632,6 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         """
         if not isinstance(other, PauliList):
             other = PauliList(other)
-        if len(other) not in [1, len(self)]:
-            raise QiskitError(
-                "Incompatible PauliLists. Other list must "
-                "have either 1 or the same number of Paulis."
-            )
         return PauliList(super().tensor(other))
 
     def expand(self, other):
