@@ -16,7 +16,7 @@ from qiskit.transpiler.basepasses import AnalysisPass
 
 
 class GatesInBasis(AnalysisPass):
-    """Check if a a dag is all in the basis"""
+    """Check if a dag is all in the basis"""
 
     def __init__(self, basis_gates):
         """FixedPoint initializer.
