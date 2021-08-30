@@ -111,7 +111,7 @@ class UnitarySynthesis(TransformationPass):
                 `pulse_optimize` is False or None, default to
                 ['unitary']. If None and `pulse_optimzie` == True,
                 default to ['unitary', 'swap']
-            method (str): THe unitary synthesis method plugin to use.
+            method (str): The unitary synthesis method plugin to use.
 
         """
         super().__init__()
