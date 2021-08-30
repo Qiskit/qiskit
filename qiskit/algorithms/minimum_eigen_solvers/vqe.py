@@ -440,7 +440,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             key_value_iterator = zip(aux_operators.keys(), aux_op_results)
 
         for key, value in key_value_iterator:
-            if aux_operators[key]:
+            if aux_operators[key] is not None:
                 aux_operator_eigenvalues[key] = value
 
         return aux_operator_eigenvalues
@@ -469,7 +469,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             zero_op = I.tensorpower(operator.num_qubits) * 0.0
 
             # Convert the None and zero values when aux_operators is a list.
-            # Drop None and zero values when aux_operators is a dict.
+            # Drop None and convert zero values when aux_operators is a dict.
             if isinstance(aux_operators, list):
                 key_op_iterator = enumerate(aux_operators)
                 converted = [zero_op] * len(aux_operators)
@@ -477,8 +477,8 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
                 key_op_iterator = aux_operators.items()
                 converted = {}
             for key, op in key_op_iterator:
-                if op:
-                    converted[key] = op
+                if op is not None:
+                    converted[key] = zero_op if op == 0 else op
 
             aux_operators = converted
 
