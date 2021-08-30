@@ -1809,7 +1809,6 @@ class QuantumCircuit:
                 # Add to the stacks of the qubits and
                 # cbits used in the gate.
                 reg_ints.append(bit_indices[reg])
-                # If not barrier then add one to stack heights
                 if instr._directive:
                     levels.append(op_stack[reg_ints[ind]])
                 else:
