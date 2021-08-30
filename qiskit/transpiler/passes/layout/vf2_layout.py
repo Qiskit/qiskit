@@ -40,7 +40,6 @@ class VF2Layout(AnalysisPass):
             strict_direction (bool): If True, considers the direction of the coupling map.
                                      Default is False.
             seed (int): Sets the seed of the PRNG. -1 Means no node shuffling.
-            id_order (bool or None): Forces the id_order parameter.
         """
         super().__init__()
         self.coupling_map = coupling_map
@@ -78,16 +77,14 @@ class VF2Layout(AnalysisPass):
         im_graph.add_nodes_from(range(len(qubits)))
         im_graph.add_edges_from_no_data(interactions)
 
-        mapping = vf2_mapping(
-            cm_graph, im_graph, subgraph=True, id_order=self.id_order, induced=False
-        )
-
-        if mapping:
+        mappings = vf2_mapping(cm_graph, im_graph, subgraph=True, id_order=self.id_order, induced=False)
+        for mapping in mappings:
             stop_reason = "solution found"
             layout = Layout({qubits[im_i]: cm_nodes[cm_i] for cm_i, im_i in mapping.items()})
             self.property_set["layout"] = layout
             for reg in dag.qregs.values():
                 self.property_set["layout"].add_register(reg)
+            break
         else:
             stop_reason = "nonexistent solution"
 
