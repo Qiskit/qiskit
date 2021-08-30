@@ -165,7 +165,10 @@ class RunningPassManager:
 
             for _pass in pass_:
                 self._do_pass(_pass, dag, pass_.options)
-
+        else:
+            raise TranspilerError(
+                "Expecting type BasePass or FlowController, got %s." % type(pass_)
+            )
         return dag
 
     def _run_this_pass(self, pass_, dag):
