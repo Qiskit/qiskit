@@ -16,14 +16,22 @@ import re
 from collections import OrderedDict
 
 import numpy as np
-from qiskit.converters import circuit_to_dag
-from qiskit.quantum_info.states import DensityMatrix
-from qiskit.quantum_info.operators.symplectic import PauliTable, SparsePauliOp
-from qiskit.visualization.exceptions import VisualizationError
-from qiskit.circuit import Measure, ControlledGate, Gate, Instruction, Delay, BooleanExpression
-from qiskit.circuit import Clbit
+
+from qiskit.circuit import (
+    BooleanExpression,
+    Clbit,
+    ControlledGate,
+    Delay,
+    Gate,
+    Instruction,
+    Measure,
+)
 from qiskit.circuit.tools import pi_check
+from qiskit.converters import circuit_to_dag
 from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.quantum_info.operators.symplectic import PauliList, SparsePauliOp
+from qiskit.quantum_info.states import DensityMatrix
+from qiskit.visualization.exceptions import VisualizationError
 
 try:
     import PIL
@@ -445,13 +453,13 @@ def _bloch_multivector_data(state):
     num = rho.num_qubits
     if num is None:
         raise VisualizationError("Input is not a multi-qubit quantum state.")
-    pauli_singles = PauliTable.from_labels(["X", "Y", "Z"])
+    pauli_singles = PauliList(["X", "Y", "Z"])
     bloch_data = []
     for i in range(num):
         if num > 1:
-            paulis = PauliTable(np.zeros((3, 2 * (num - 1)), dtype=bool)).insert(
-                i, pauli_singles, qubit=True
-            )
+            paulis = PauliList.from_symplectic(
+                np.zeros((3, (num - 1)), dtype=bool), np.zeros((3, (num - 1)), dtype=bool)
+            ).insert(i, pauli_singles, qubit=True)
         else:
             paulis = pauli_singles
         bloch_state = [np.real(np.trace(np.dot(mat, rho.data))) for mat in paulis.matrix_iter()]
@@ -474,7 +482,7 @@ def _paulivec_data(state):
     rho = SparsePauliOp.from_operator(DensityMatrix(state))
     if rho.num_qubits is None:
         raise VisualizationError("Input is not a multi-qubit quantum state.")
-    return rho.table.to_labels(), np.real(rho.coeffs)
+    return rho.paulis.to_labels(), np.real(rho.coeffs)
 
 
 MATPLOTLIB_INLINE_BACKENDS = {
