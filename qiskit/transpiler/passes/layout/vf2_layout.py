@@ -77,7 +77,9 @@ class VF2Layout(AnalysisPass):
         im_graph.add_nodes_from(range(len(qubits)))
         im_graph.add_edges_from_no_data(interactions)
 
-        mappings = vf2_mapping(cm_graph, im_graph, subgraph=True, id_order=self.id_order, induced=False)
+        mappings = vf2_mapping(
+            cm_graph, im_graph, subgraph=True, id_order=self.id_order, induced=False
+        )
         for mapping in mappings:
             stop_reason = "solution found"
             layout = Layout({qubits[im_i]: cm_nodes[cm_i] for cm_i, im_i in mapping.items()})
