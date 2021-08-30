@@ -1511,6 +1511,32 @@ class DAGCircuit:
 
         return rx.collect_runs(self._multi_graph, filter_fn)
 
+    def collect_2q_runs(self):
+        """Return a set of non-conditional runs of 2q "op" nodes."""
+
+        to_qid = dict()
+        for i, qubit in enumerate(self.qubits):
+            to_qid[qubit] = i
+
+        def filter_fn(node):
+            if isinstance(node, DAGOpNode):
+                return (
+                    isinstance(node.op, Gate)
+                    and len(node.qargs) <= 2
+                    and not node.op.condition
+                    and not node.op.is_parameterized()
+                )
+            else:
+                return None
+
+        def color_fn(edge):
+            if isinstance(edge, Qubit):
+                return to_qid[edge]
+            else:
+                return None
+
+        return rx.collect_bicolor_runs(self._multi_graph, filter_fn, color_fn)
+
     def nodes_on_wire(self, wire, only_ops=False):
         """
         Iterator for nodes that affect a given wire.
