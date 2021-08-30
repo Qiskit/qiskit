@@ -23,9 +23,9 @@ from qiskit.transpiler.basepasses import AnalysisPass
 
 
 class VF2Layout(AnalysisPass):
-    """If possible, chooses a Layout as a Subgraph Isomorphism Probrem, using VF2."""
+    """If possible, chooses a Layout as a Subgraph Isomorphism Problem, using VF2."""
 
-    def __init__(self, coupling_map, strict_direction=False, seed=None, id_order=False):
+    def __init__(self, coupling_map, strict_direction=False, seed=None):
         """If possible, chooses a Layout as a Subgraph Isomorphism Probrem, using VF2.
 
         If not possible, does not set the layout property. In all the cases,
@@ -45,7 +45,6 @@ class VF2Layout(AnalysisPass):
         self.coupling_map = coupling_map
         self.strict_direction = strict_direction
         self.seed = seed
-        self.id_order = id_order
 
     def run(self, dag):
         """run the layout method"""
@@ -77,9 +76,7 @@ class VF2Layout(AnalysisPass):
         im_graph.add_nodes_from(range(len(qubits)))
         im_graph.add_edges_from_no_data(interactions)
 
-        mappings = vf2_mapping(
-            cm_graph, im_graph, subgraph=True, id_order=self.id_order, induced=False
-        )
+        mappings = vf2_mapping(cm_graph, im_graph, subgraph=True, id_order=False, induced=False)
         for mapping in mappings:
             stop_reason = "solution found"
             layout = Layout({qubits[im_i]: cm_nodes[cm_i] for cm_i, im_i in mapping.items()})
