@@ -75,7 +75,8 @@ class BIPMapping(TransformationPass):
         time_limit=30,
         threads=None,
         max_swaps_inbetween_layers=None,
-        depth_obj_weight=0.1
+        depth_obj_weight=0.1,
+        default_cx_error_rate=5e-3
     ):
         """BIPMapping initializer.
 
@@ -94,7 +95,8 @@ class BIPMapping(TransformationPass):
 
             backend_prop (BackendProperties): Backend properties object containing 2q-gate gate errors,
                 which are required in computing certain types of objective function
-                such as ``'gate_error'`` or ``'balanced'``.
+                such as ``'gate_error'`` or ``'balanced'``. If this is not available,
+                default_cx_error_rate is used instead.
             time_limit (float): Time limit for solving BIP in seconds
             threads (int): Number of threads to be allowed for CPLEX to solve BIP
             max_swaps_inbetween_layers (int):
@@ -105,6 +107,9 @@ class BIPMapping(TransformationPass):
             depth_obj_weight (float):
                 Weight of depth objective in ``'balanced'`` objective. The balanced objective is the
                 sum of error_rate + depth_obj_weight * depth.
+
+            default_cx_error_rate (float):
+                Default CX error rate to be used if backend_prop is not available.
 
         Raises:
             MissingOptionalLibraryError: if cplex or docplex are not installed.
@@ -117,8 +122,6 @@ class BIPMapping(TransformationPass):
                 pip_install="pip install 'qiskit-terra[bip-mapper]'",
                 msg="This may not be possible for all Python versions and OSes",
             )
-        if backend_prop is None and objective in ("gate_error", "balanced"):
-            raise TranspilerError(f"'backend_prop' is required for '{objective}' objective")
         super().__init__()
         self.coupling_map = coupling_map
         self.qubit_subset = qubit_subset
@@ -130,6 +133,7 @@ class BIPMapping(TransformationPass):
         self.threads = threads
         self.max_swaps_inbetween_layers = max_swaps_inbetween_layers
         self.depth_obj_weight = depth_obj_weight
+        self.default_cx_error_rate = default_cx_error_rate
 
     def run(self, dag):
         """Run the BIPMapping pass on `dag`, assuming the number of virtual qubits (defined in
@@ -175,7 +179,7 @@ class BIPMapping(TransformationPass):
             logger.info("BIPMapping is skipped due to no 2q-gates.")
             return original_dag
 
-        model.create_cpx_problem(objective=self.objective, backend_prop=self.backend_prop, depth_obj_weight=self.depth_obj_weight)
+        model.create_cpx_problem(objective=self.objective, backend_prop=self.backend_prop, depth_obj_weight=self.depth_obj_weight, default_cx_error_rate=self.default_cx_error_rate)
 
         status = model.solve_cpx_problem(time_limit=self.time_limit, threads=self.threads)
         if model.solution is None:

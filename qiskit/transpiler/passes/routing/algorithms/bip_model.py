@@ -164,7 +164,7 @@ class BIPMappingModel:
         return len(self.gates[t]) == 0
 
     def create_cpx_problem(
-        self, objective: str, backend_prop: BackendProperties = None, line_symm: bool = False, depth_obj_weight: float = 0.1
+            self, objective: str, backend_prop: BackendProperties = None, line_symm: bool = False, depth_obj_weight: float = 0.1, default_cx_error_rate: float = 5e-3
     ):
         """Create integer programming model to compile a circuit.
 
@@ -181,6 +181,7 @@ class BIPMappingModel:
             backend_prop:
                 Backend properties storing gate errors, which are required in computing certain
                 types of objective function such as ``'gate_error'`` or ``'balanced'``.
+                If this is not available, default_cx_error_rate is used instead.
 
             line_symm:
                 Use symmetry breaking constrainst for line topology. Should
@@ -189,13 +190,15 @@ class BIPMappingModel:
             depth_obj_weight:
                 Weight of depth objective in ``'balanced'`` objective function.
 
+            default_gate_error_rate:
+                Default CX error rate to be used if backend_prop is not available.
+
         Raises:
             TranspilerError: if unknow objective type is specified or invalid options are specified.
-        """
-        if backend_prop is None and objective in ("gate_error", "balanced"):
-            raise TranspilerError(f"'backend_prop' is required for '{objective}' objective")
 
+        """
         self.bprop = backend_prop
+        self.default_cx_error_rate = default_cx_error_rate
 
         mdl = Model()
 
@@ -368,7 +371,7 @@ class BIPMappingModel:
                         objexr += y[t, p, q, i, j] * pbest_fid
                         # If a gate is mirrored (followed by a swap on the same qubit pair),
                         # its cost should be replaced with the cost of the combined (mirrored) gate.
-                        pbest_fidm = -np.log(self._max_expected_mirroed_fidelity(node, i, j))
+                        pbest_fidm = -np.log(self._max_expected_mirrored_fidelity(node, i, j))
                         objexr += x[t, q, i, j] * (pbest_fidm - pbest_fid) / 2
                 # Cost of swaps on unused qubits
                 for q in range(self.num_vqubits):
@@ -399,7 +402,7 @@ class BIPMappingModel:
             for k, gfid in enumerate(self._gate_fidelities(node))
         )
 
-    def _max_expected_mirroed_fidelity(self, node, i, j):
+    def _max_expected_mirrored_fidelity(self, node, i, j):
         return max(
             gfid * self._cx_fidelity(i, j) ** k
             for k, gfid in enumerate(self._mirrored_gate_fidelities(node))
@@ -407,7 +410,14 @@ class BIPMappingModel:
 
     def _cx_fidelity(self, i, j) -> float:
         # fidelity of cx on global physical qubits
-        return 1.0 - self.bprop.gate_error("cx", [self.global_qubit[i], self.global_qubit[j]])
+        if (self.bprop is not None):
+            try:
+                error_rate = self.bprop.gate_error("cx", [self.global_qubit[i], self.global_qubit[j]])
+            except:
+                error_rate = self.default_cx_error_rate
+            return 1.0 - error_rate
+        else:
+            return 1.0 - self.default_cx_error_rate
 
     @staticmethod
     @lru_cache()
