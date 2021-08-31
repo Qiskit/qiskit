@@ -14,34 +14,36 @@
 Convenience function to load RZXGate based templates.
 """
 
-from typing import List
+from enum import Enum
+from typing import List, Dict
 
 from qiskit.circuit.library.templates.rzx import rzx_zz1, rzx_zz2, rzx_zz3, rzx_yz, rzx_xz, rzx_cy
 
 
-def rzx_templates(template_list: List[str] = None):
-    """
-    Convenience function to get the cost_dict and
-    templates for template matching.
-    """
+# pylint: disable=invalid-name
+class RZXTemplateMap(Enum):
+    """Mapping of instruction name to decomposition template."""
+    zz1 = rzx_zz1()
+    zz2 = rzx_zz2()
+    zz3 = rzx_zz3()
+    yz = rzx_yz()
+    xz = rzx_xz()
+    cy = rzx_cy()
 
+
+def rzx_templates(template_list: List[str] = None) -> Dict:
+    """Convenience function to get the cost_dict and templates for template matching.
+
+    Args:
+        template_list: List of instruction names.
+
+    Returns:
+        Decomposition templates and cost values.
+    """
     if template_list is None:
         template_list = ["zz1", "zz2", "zz3", "yz", "xz", "cy"]
 
-    templates = []
-    if "zz1" in template_list:
-        templates.append(rzx_zz1())
-    if "zz2" in template_list:
-        templates.append(rzx_zz2())
-    if "zz3" in template_list:
-        templates.append(rzx_zz3())
-    if "yz" in template_list:
-        templates.append(rzx_yz())
-    if "xz" in template_list:
-        templates.append(rzx_xz())
-    if "cy" in template_list:
-        templates.append(rzx_cy())
-
+    templates = list(map(lambda gate: RZXTemplateMap[gate].value, template_list))
     cost_dict = {"rzx": 0, "cx": 6, "rz": 0, "sx": 1, "p": 0, "h": 1, "rx": 1, "ry": 1}
 
     rzx_dict = {"template_list": templates, "user_cost_dict": cost_dict}
