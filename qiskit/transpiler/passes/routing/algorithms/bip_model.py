@@ -125,6 +125,9 @@ class BIPMappingModel:
             self.gates.extend([[]] * dummy_timesteps)
 
         self.bprop = None  # Backend properties to compute cx fidelities (set later if necessary)
+        self.default_cx_error_rate = (
+            5e-3  # Default cx error rate in case backend properties are not available
+        )
 
         logger.info("Num virtual qubits: %d", self.num_vqubits)
         logger.info("Num physical qubits: %d", self.num_pqubits)
@@ -164,7 +167,12 @@ class BIPMappingModel:
         return len(self.gates[t]) == 0
 
     def create_cpx_problem(
-            self, objective: str, backend_prop: BackendProperties = None, line_symm: bool = False, depth_obj_weight: float = 0.1, default_cx_error_rate: float = 5e-3
+        self,
+        objective: str,
+        backend_prop: BackendProperties = None,
+        line_symm: bool = False,
+        depth_obj_weight: float = 0.1,
+        default_cx_error_rate: float = 5e-3,
     ):
         """Create integer programming model to compile a circuit.
 
@@ -190,7 +198,7 @@ class BIPMappingModel:
             depth_obj_weight:
                 Weight of depth objective in ``'balanced'`` objective function.
 
-            default_gate_error_rate:
+            default_cx_error_rate:
                 Default CX error rate to be used if backend_prop is not available.
 
         Raises:
@@ -379,16 +387,16 @@ class BIPMappingModel:
                     if q not in used_qubits:
                         for i in range(self.num_pqubits):
                             for j in self._coupling.neighbors(i):
-                                objexr += (
-                                    x[t, q, i, j] * -3 / 2 * np.log(self._cx_fidelity(i, j))
-                                )
+                                objexr += x[t, q, i, j] * -3 / 2 * np.log(self._cx_fidelity(i, j))
             # Cost for the last layer (x variables are not defined for depth-1)
             for (p, q), node in self.gates[self.depth - 1]:
                 for (i, j) in self._arcs:
                     pbest_fid = -np.log(self._max_expected_fidelity(node, i, j))
                     objexr += y[self.depth - 1, p, q, i, j] * pbest_fid
             if objective == "balanced":
-                objexr += depth_obj_weight * sum(z[t] for t in range(self.depth) if self._is_dummy_step(t))
+                objexr += depth_obj_weight * sum(
+                    z[t] for t in range(self.depth) if self._is_dummy_step(t)
+                )
             mdl.minimize(objexr)
         else:
             raise TranspilerError(f"Unknown objective type: {objective}")
@@ -410,10 +418,12 @@ class BIPMappingModel:
 
     def _cx_fidelity(self, i, j) -> float:
         # fidelity of cx on global physical qubits
-        if (self.bprop is not None):
+        if self.bprop is not None:
             try:
-                error_rate = self.bprop.gate_error("cx", [self.global_qubit[i], self.global_qubit[j]])
-            except:
+                error_rate = self.bprop.gate_error(
+                    "cx", [self.global_qubit[i], self.global_qubit[j]]
+                )
+            except (AttributeError, KeyError, ValueError):
                 error_rate = self.default_cx_error_rate
             return 1.0 - error_rate
         else:

@@ -76,7 +76,7 @@ class BIPMapping(TransformationPass):
         threads=None,
         max_swaps_inbetween_layers=None,
         depth_obj_weight=0.1,
-        default_cx_error_rate=5e-3
+        default_cx_error_rate=5e-3,
     ):
         """BIPMapping initializer.
 
@@ -179,7 +179,12 @@ class BIPMapping(TransformationPass):
             logger.info("BIPMapping is skipped due to no 2q-gates.")
             return original_dag
 
-        model.create_cpx_problem(objective=self.objective, backend_prop=self.backend_prop, depth_obj_weight=self.depth_obj_weight, default_cx_error_rate=self.default_cx_error_rate)
+        model.create_cpx_problem(
+            objective=self.objective,
+            backend_prop=self.backend_prop,
+            depth_obj_weight=self.depth_obj_weight,
+            default_cx_error_rate=self.default_cx_error_rate,
+        )
 
         status = model.solve_cpx_problem(time_limit=self.time_limit, threads=self.threads)
         if model.solution is None:
