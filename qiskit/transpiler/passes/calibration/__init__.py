@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2021
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,10 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module containing circuit scheduling passes."""
+"""Module containing transpiler calibration passes."""
 
-from .alap import ALAPSchedule
-from .asap import ASAPSchedule
-from .time_unit_conversion import TimeUnitConversion
-from .dynamical_decoupling import DynamicalDecoupling
-from .instruction_alignment import AlignMeasures, ValidatePulseGates
+from .builders import RZXCalibrationBuilder, RZXCalibrationBuilderNoEcho, PulseGates
