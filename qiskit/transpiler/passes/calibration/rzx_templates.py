@@ -17,18 +17,18 @@ Convenience function to load RZXGate based templates.
 from enum import Enum
 from typing import List, Dict
 
-from qiskit.circuit.library.templates.rzx import rzx_zz1, rzx_zz2, rzx_zz3, rzx_yz, rzx_xz, rzx_cy
+from qiskit.circuit.library.templates import rzx
 
 
-# pylint: disable=invalid-name
 class RZXTemplateMap(Enum):
     """Mapping of instruction name to decomposition template."""
-    zz1 = rzx_zz1()
-    zz2 = rzx_zz2()
-    zz3 = rzx_zz3()
-    yz = rzx_yz()
-    xz = rzx_xz()
-    cy = rzx_cy()
+
+    ZZ1 = rzx.rzx_zz1()
+    ZZ2 = rzx.rzx_zz2()
+    ZZ3 = rzx.rzx_zz3()
+    YZ = rzx.rzx_yz()
+    XZ = rzx.rzx_xz()
+    CY = rzx.rzx_cy()
 
 
 def rzx_templates(template_list: List[str] = None) -> Dict:
@@ -43,7 +43,7 @@ def rzx_templates(template_list: List[str] = None) -> Dict:
     if template_list is None:
         template_list = ["zz1", "zz2", "zz3", "yz", "xz", "cy"]
 
-    templates = list(map(lambda gate: RZXTemplateMap[gate].value, template_list))
+    templates = list(map(lambda gate: RZXTemplateMap[gate.upper()].value, template_list))
     cost_dict = {"rzx": 0, "cx": 6, "rz": 0, "sx": 1, "p": 0, "h": 1, "rx": 1, "ry": 1}
 
     rzx_dict = {"template_list": templates, "user_cost_dict": cost_dict}
