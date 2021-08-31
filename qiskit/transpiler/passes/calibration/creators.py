@@ -413,7 +413,7 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
 class PulseGates(CalibrationCreator):
     """Pulse gate adding pass.
 
-    This pass adds gate calibrations in InstructionScheduleMap to a quantum circuit.
+    This pass adds gate calibrations from the supplied ``InstructionScheduleMap`` to a quantum circuit.
     In QASM3 [1], the gate calibration can be encapsulated as ``defcal`` entry that declares
     the hardware implementation of ``gate`` in specified grammar, such as OpenPulse.
 
