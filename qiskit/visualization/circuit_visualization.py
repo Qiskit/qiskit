@@ -436,11 +436,9 @@ def _latex_circuit_drawer(
         PIL.Image: an in-memory representation of the circuit diagram
 
     Raises:
-        OSError: usually indicates that ```pdflatex``` or ```pdftocairo``` is
-                 missing or produced unexpected result.
-        CalledProcessError: usually points to errors during diagram creation.
-        MissingOptionalLibraryError: if pillow or pdflatex is not installed
-        VisualizationError: If unsupported image format is given as filename extension.
+        MissingOptionalLibraryError: if pillow, pdflatex, or poppler are not installed
+        VisualizationError: if one of the conversion utilities failed for some internal or
+            file-access reason.
     """
     tmpfilename = "circuit"
     with tempfile.TemporaryDirectory() as tmpdirname:
@@ -488,23 +486,30 @@ def _latex_circuit_drawer(
                 stderr=subprocess.DEVNULL,
                 check=True,
             )
-        except (OSError, subprocess.CalledProcessError) as ex:
+        except OSError as exc:
+            # OSError should generally not occur, because it's usually only triggered if `pdflatex`
+            # doesn't exist as a command, but we've already checked that.
+            raise VisualizationError("`pdflatex` command could not be run.") from exc
+        except subprocess.CalledProcessError as exc:
             with open("latex_error.log", "wb") as error_file:
-                error_file.write(ex.stdout)
+                error_file.write(exc.stdout)
             logger.warning(
                 "Unable to compile LaTeX. Perhaps you are missing the `qcircuit` package."
                 " The output from the `pdflatex` command is in `latex_error.log`."
             )
-            raise
+            raise VisualizationError(
+                "`pdflatex` call did not succeed: see `latex_error.log`."
+            ) from exc
         base = os.path.join(tmpdirname, tmpfilename)
         try:
             subprocess.run(
                 ["pdftocairo", "-singlefile", "-png", "-q", base + ".pdf", base],
                 check=True,
             )
-        except (OSError, subprocess.CalledProcessError) as ex:
-            logger.warning("`pdftocairo` failed to produce an image.")
-            raise
+        except (OSError, subprocess.CalledProcessError) as exc:
+            message = "`pdftocairo` failed to produce an image."
+            logger.warning(message)
+            raise VisualizationError(message) from exc
         image = Image.open(base + ".png")
         image = utils._trim(image)
         if filename:
