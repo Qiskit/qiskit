@@ -250,10 +250,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         CommutativeCancellation(),
     ]
 
-    # 9. Add calibrations for pulse gates
-    _calibrations = PulseGates(inst_map=inst_map)
-
-    # 10. Unify all durations (either SI, or convert to dt if known)
+    # 9. Unify all durations (either SI, or convert to dt if known)
     # Schedule the circuit only when scheduling_method is supplied
     _scheduling = [TimeUnitConversion(instruction_durations)]
     if scheduling_method:
@@ -264,7 +261,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         else:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
 
-    # 11. Call measure alignment. Should come after scheduling.
+    # 10. Call measure alignment. Should come after scheduling.
     _alignments = [
         ValidatePulseGates(
             granularity=timing_constraints.granularity, min_length=timing_constraints.min_length
@@ -291,7 +288,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     pm3.append(_reset)
     pm3.append(_depth_check + _opt + _unroll, do_while=_opt_control)
     if inst_map and inst_map.has_custom_gate():
-        pm3.append(_calibrations)
+        pm3.append(PulseGates(inst_map=inst_map))
     pm3.append(_scheduling)
     pm3.append(_alignments)
 
