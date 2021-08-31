@@ -1564,8 +1564,8 @@ class QuantumCircuit:
                     if instruction.name in [
                         instruction.name for instruction in existing_composite_circuits
                     ]:
-                        # append instruction id to name to make it unique
-                        instruction.name += f"_{id(instruction)}"
+                        # append instruction id to name of instruction copy to make it unique
+                        instruction = instruction.copy(name=f"{instruction.name}_{id(instruction)}")
 
                     existing_composite_circuits.append(instruction)
                     _add_sub_instruction_to_existing_composite_circuits(
@@ -1805,18 +1805,14 @@ class QuantumCircuit:
         for instr, qargs, cargs in self._data:
             levels = []
             reg_ints = []
-            # If count then add one to stack heights
-            count = True
-            if instr._directive:
-                count = False
             for ind, reg in enumerate(qargs + cargs):
                 # Add to the stacks of the qubits and
                 # cbits used in the gate.
                 reg_ints.append(bit_indices[reg])
-                if count:
-                    levels.append(op_stack[reg_ints[ind]] + 1)
-                else:
+                if instr._directive:
                     levels.append(op_stack[reg_ints[ind]])
+                else:
+                    levels.append(op_stack[reg_ints[ind]] + 1)
             # Assuming here that there is no conditional
             # snapshots or barriers ever.
             if instr.condition:
