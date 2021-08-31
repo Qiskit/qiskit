@@ -620,7 +620,7 @@ def _parse_basis_gates(basis_gates, backend, circuits):
 def _parse_inst_map(inst_map, backend, num_circuits):
     # try getting inst_map from user, else backend
     if inst_map is None:
-        if getattr(backend, "defaults", None):
+        if hasattr(backend, "defaults"):
             inst_map = getattr(backend.defaults(), "instruction_schedule_map", None)
 
     # inst_maps could be None, or single entry
