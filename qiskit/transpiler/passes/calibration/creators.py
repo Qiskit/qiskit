@@ -419,15 +419,15 @@ class PulseGates(CalibrationCreator):
 
     This pass checks each DAG circuit node and acquires a corresponding schedule from
     the instruction schedule map object that may be provided by the target backend.
-    Because this map is a mutable object, end-user can provide configured backend to
+    Because this map is a mutable object, the end-user can provide a configured backend to
     execute the circuit with customized gate implementations.
 
     This mapping object returns a schedule with "publisher" metadata which is an integer Enum
     value representing who created the gate schedule.
     If the gate schedule is provided by end-users, this pass attaches the schedule to
-    the DAG circuit as a ``defcal`` entry.
+    the DAG circuit as a calibration.
 
-    This pass allows users to easily override quantum circuit with custom gate definition
+    This pass allows users to easily override quantum circuit with custom gate definitions
     without directly dealing with those schedules.
 
     References
