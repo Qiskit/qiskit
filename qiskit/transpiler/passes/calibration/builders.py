@@ -38,7 +38,7 @@ from qiskit.pulse.instructions.instruction import Instruction as PulseInst
 from qiskit.transpiler.basepasses import TransformationPass
 
 
-class CalibrationCreator(TransformationPass):
+class CalibrationBuilder(TransformationPass):
     """Abstract base class to inject calibrations into circuits."""
 
     @abstractmethod
@@ -89,7 +89,7 @@ class CalibrationCreator(TransformationPass):
         return dag
 
 
-class RZXCalibrationBuilder(CalibrationCreator):
+class RZXCalibrationBuilder(CalibrationBuilder):
     """
     Creates calibrations for RZXGate(theta) by stretching and compressing
     Gaussian square pulses in the CX gate. This is done by retrieving (for a given pair of
@@ -410,12 +410,11 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
         return rzx_theta
 
 
-class PulseGates(CalibrationCreator):
+class PulseGates(CalibrationBuilder):
     """Pulse gate adding pass.
 
-    This pass adds gate calibrations from the supplied ``InstructionScheduleMap`` to a quantum circuit.
-    In QASM3 [1], the gate calibration can be encapsulated as ``defcal`` entry that declares
-    the hardware implementation of ``gate`` in specified grammar, such as OpenPulse.
+    This pass adds gate calibrations from the supplied ``InstructionScheduleMap``
+    to a quantum circuit.
 
     This pass checks each DAG circuit node and acquires a corresponding schedule from
     the instruction schedule map object that may be provided by the target backend.

@@ -21,7 +21,7 @@ from qiskit.transpiler.passes.calibration import RZXCalibrationBuilder, RZXCalib
 
 warnings.warn(
     "RZXCalibrationBuilder and RZXCalibrationBuilderNoEcho passes are moved to "
-    "`qiskit.transpiler.passes.calibration.creators`. "
+    "`qiskit.transpiler.passes.calibration.builders`. "
     "This import path is being deprecated.",
     DeprecationWarning,
 )
