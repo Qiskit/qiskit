@@ -193,12 +193,16 @@ class NumPyEigensolver(Eigensolver):
             raise AlgorithmError("Operator was never provided")
 
         self._check_set_k(operator)
+        zero_op = I.tensorpower(operator.num_qubits) * 0.0
         if isinstance(aux_operators, list) and len(aux_operators) > 0:
-            zero_op = I.tensorpower(operator.num_qubits) * 0.0
             # For some reason Chemistry passes aux_ops with 0 qubits and paulis sometimes.
             aux_operators = [zero_op if op == 0 else op for op in aux_operators]
         elif isinstance(aux_operators, dict) and len(aux_operators) > 0:
-            aux_operators = {key: op for key, op in aux_operators.items() if op}
+            aux_operators = {
+                key: zero_op if op == 0 else op  # Convert zero values to zero operators
+                for key, op in aux_operators.items()
+                if op is not None  # Discard None values
+            }
         else:
             aux_operators = None
 

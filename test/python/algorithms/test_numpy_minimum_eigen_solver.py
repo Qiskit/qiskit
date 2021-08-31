@@ -151,9 +151,10 @@ class TestNumPyMinimumEigensolver(QiskitAlgorithmsTestCase):
         extra_ops = {"None_op": None, "zero_op": 0, **self.aux_ops_dict}
         result = algo.compute_minimum_eigenvalue(operator=self.qubit_op, aux_operators=extra_ops)
         self.assertAlmostEqual(result.eigenvalue, -1.85727503 + 0j)
-        self.assertEqual(len(result.aux_operator_eigenvalues), 2)
+        self.assertEqual(len(result.aux_operator_eigenvalues), 3)
         np.testing.assert_array_almost_equal(result.aux_operator_eigenvalues["aux_op1"], [2, 0])
         np.testing.assert_array_almost_equal(result.aux_operator_eigenvalues["aux_op2"], [0, 0])
+        self.assertEqual(result.aux_operator_eigenvalues["zero_op"], (0.0, 0))
 
 
 if __name__ == "__main__":

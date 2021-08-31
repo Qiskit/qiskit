@@ -497,9 +497,10 @@ class TestVQE(QiskitAlgorithmsTestCase):
         extra_ops = {**aux_ops, "None_operator": None, "zero_operator": 0}
         result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=extra_ops)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
-        self.assertEqual(len(result.aux_operator_eigenvalues), 2)
+        self.assertEqual(len(result.aux_operator_eigenvalues), 3)
         self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op1"], 2, places=6)
         self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op2"], 0, places=6)
+        self.assertEqual(result.aux_operator_eigenvalues["zero_operator"], 0.0)
 
 
 if __name__ == "__main__":
