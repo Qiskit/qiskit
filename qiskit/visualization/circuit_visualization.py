@@ -50,10 +50,11 @@ from qiskit.visualization import matplotlib as _matplotlib
 logger = logging.getLogger(__name__)
 
 
-class HasPdfLatexWrapper:
-    """Wrapper to lazily detect presence of the pdflatex command."""
+class _HasPdfLatexWrapper:
+    """Wrapper to lazily detect presence of the ``pdflatex`` command."""
 
-    has_pdflatex = None
+    def __init__(self):
+        self.has_pdflatex = None
 
     def __bool__(self):
         if self.has_pdflatex is None:
@@ -70,7 +71,29 @@ class HasPdfLatexWrapper:
         return self.has_pdflatex
 
 
-HAS_PDFLATEX = HasPdfLatexWrapper()
+class _HasPdfToCairoWrapper:
+    """Lazily detect the presence of the ``pdftocairo`` command."""
+
+    def __init__(self):
+        self.has_pdftocairo = None
+
+    def __bool__(self):
+        if self.has_pdftocairo is None:
+            try:
+                subprocess.run(
+                    ["pdftocairo", "-v"],
+                    check=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                self.has_pdftocairo = True
+            except (OSError, subprocess.SubprocessError):
+                self.has_pdftocairo = False
+        return self.has_pdftocairo
+
+
+HAS_PDFLATEX = _HasPdfLatexWrapper()
+HAS_PDFTOCAIRO = _HasPdfToCairoWrapper()
 
 
 def circuit_drawer(
@@ -435,12 +458,25 @@ def _latex_circuit_drawer(
             initial_state=initial_state,
             cregbundle=cregbundle,
         )
+        if not HAS_PDFLATEX:
+            raise MissingOptionalLibraryError(
+                libname="pdflatex",
+                name="LaTeX circuit drawing",
+                msg="You will likely need to install a full LaTeX distribution for your system",
+            )
+        if not HAS_PDFTOCAIRO:
+            raise MissingOptionalLibraryError(
+                libname="pdftocairo",
+                name="LaTeX circuit drawing",
+                msg="This is part of the 'poppler' set of PDF utilities",
+            )
+        if not HAS_PIL:
+            raise MissingOptionalLibraryError(
+                libname="pillow",
+                name="LaTeX circuit drawing",
+                pip_install="pip install pillow",
+            )
         try:
-            if not HAS_PDFLATEX:
-                raise MissingOptionalLibraryError(
-                    libname="pdflatex",
-                    name=_latex_circuit_drawer.__name__,
-                )
             subprocess.run(
                 [
                     "pdflatex",
@@ -452,55 +488,35 @@ def _latex_circuit_drawer(
                 stderr=subprocess.DEVNULL,
                 check=True,
             )
-        except OSError as ex:
-            if ex.errno == errno.ENOENT:
-                logger.warning(
-                    "WARNING: Unable to compile latex. "
-                    "Is `pdflatex` installed? "
-                    "Skipping latex circuit drawing..."
-                )
-            raise
-        except subprocess.CalledProcessError as ex:
+        except (OSError, subprocess.CalledProcessError) as ex:
             with open("latex_error.log", "wb") as error_file:
                 error_file.write(ex.stdout)
             logger.warning(
-                "WARNING Unable to compile latex. "
-                "The output from the pdflatex command can "
-                "be found in latex_error.log"
+                "Unable to compile LaTeX. Perhaps you are missing the `qcircuit` package."
+                " The output from the `pdflatex` command is in `latex_error.log`."
             )
             raise
-        else:
-            if not HAS_PIL:
-                raise MissingOptionalLibraryError(
-                    libname="pillow",
-                    name="latex drawer",
-                    pip_install="pip install pillow",
-                )
-            try:
-                base = os.path.join(tmpdirname, tmpfilename)
-                subprocess.run(
-                    ["pdftocairo", "-singlefile", "-png", "-q", base + ".pdf", base], check=True
-                )
-                image = Image.open(base + ".png")
-                image = utils._trim(image)
-                os.remove(base + ".png")
-                if filename:
-                    if filename.endswith(".pdf"):
-                        os.rename(base + ".pdf", filename)
-                    else:
-                        try:
-                            image.save(filename)
-                        except VisualizationError as ve:
-                            raise VisualizationError(
-                                "ERROR: filename parameter does not use a supported extension."
-                            ) from ve
-            except (OSError, subprocess.CalledProcessError) as ex:
-                logger.warning(
-                    "WARNING: Unable to convert pdf to image. "
-                    "Is `poppler` installed? "
-                    "Skipping circuit drawing..."
-                )
-                raise
+        base = os.path.join(tmpdirname, tmpfilename)
+        try:
+            subprocess.run(
+                ["pdftocairo", "-singlefile", "-png", "-q", base + ".pdf", base],
+                check=True,
+            )
+        except (OSError, subprocess.CalledProcessError) as ex:
+            logger.warning("`pdftocairo` failed to produce an image.")
+            raise
+        image = Image.open(base + ".png")
+        image = utils._trim(image)
+        if filename:
+            if filename.endswith(".pdf"):
+                os.rename(base + ".pdf", filename)
+            else:
+                try:
+                    image.save(filename)
+                except (ValueError, OSError) as exc:
+                    raise VisualizationError(
+                        f"Pillow could not write the image file '{filename}'."
+                    ) from exc
         return image
 
 
