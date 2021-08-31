@@ -198,12 +198,12 @@ class RZXCalibrationBuilder(CalibrationBuilder):
                 does not support cx between the qubits.
         """
         try:
-            theta = float(params[0])
+            theta = float(node_op.params[0])
         except TypeError as ex:
             raise QiskitError(
                 "This transpilation pass requires all Parameters to be bound."
             ) from ex
-            
+
         q1, q2 = qubits[0], qubits[1]
 
         if not self._inst_map.has("cx", qubits):
