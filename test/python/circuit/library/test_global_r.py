@@ -29,7 +29,7 @@ class TestGlobalRLibrary(QiskitTestCase):
         expected = QuantumCircuit(3, name="gr")
         for i in range(3):
             expected.append(RGate(theta=np.pi / 3, phi=2 * np.pi / 3), [i])
-        self.assertEqual(expected, circuit)
+        self.assertEqual(expected, circuit.decompose())
 
     def test_grx_equivalence(self):
         """Test global RX gates is same as 3 individual RX gates."""

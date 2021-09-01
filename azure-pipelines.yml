@@ -145,7 +145,7 @@ stages:
             twine upload wheelhouse\*
           env:
             TWINE_PASSWORD: $(TWINE_PASSWORD)
-  - stage: 'Lint_and_Tests'
+  - stage: 'Lint_Docs_and_Tests'
     dependsOn: []
     jobs:
     - job: 'Linux_Tests'
@@ -189,7 +189,7 @@ stages:
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             python setup.py sdist
             pip install -U -c constraints.txt dist/qiskit-terra*.tar.gz
-            pip install -U "qiskit-aer" "z3-solver" -c constraints.txt
+            pip install -U "cplex" "qiskit-aer" "z3-solver" -c constraints.txt
             mkdir -p /tmp/terra-tests
             cp -r test /tmp/terra-tests/.
             cp .stestr.conf /tmp/terra-tests/.
@@ -237,6 +237,23 @@ stages:
           inputs:
             testResultsFiles: '**/test-*.xml'
             testRunTitle: 'Test results for Linux Python $(python.version)'
+        - bash: |
+            set -e
+            pushd test/qpy_compat
+            ./run_tests.sh
+            popd
+          displayName: 'Run QPY backwards compat tests'
+        - bash: |
+            set -e
+            virtualenv image_tests
+            image_tests/bin/pip install -U -r requirements.txt -c constraints.txt
+            image_tests/bin/pip install -U -c constraints.txt -e ".[visualization]"
+            image_tests/bin/python setup.py build_ext --inplace
+            sudo apt install -y graphviz pandoc
+            image_tests/bin/pip check
+          displayName: 'Install dependencies'
+        - bash: image_tests/bin/python -m unittest discover -v test/ipynb
+          displayName: 'Run image test'
     - job: 'Lint'
       pool: {vmImage: 'ubuntu-latest'}
       strategy:
@@ -278,6 +295,52 @@ stages:
             python tools/find_optional_imports.py
             reno lint
           displayName: 'Style and lint'
+    - job: 'Docs'
+      pool: {vmImage: 'ubuntu-latest'}
+      strategy:
+        matrix:
+          Python37:
+            python.version: '3.7'
+      variables:
+        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+      steps:
+        - checkout: self
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '$(python.version)'
+          displayName: 'Use Python $(python.version)'
+        - task: Cache@2
+          inputs:
+            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)" | "$(python.version)"
+              pip | "$(Agent.OS)"
+              pip
+            path: $(PIP_CACHE_DIR)
+          displayName: Cache pip
+        - bash: |
+            set -e
+            python -m pip install --upgrade pip setuptools wheel
+            pip install -U tox
+            python setup.py build_ext --inplace
+            sudo apt install -y graphviz
+          displayName: 'Install dependencies'
+        - bash: |
+            tox -edocs
+          displayName: 'Run Docs build'
+        - task: ArchiveFiles@2
+          inputs:
+            rootFolderOrFile: 'docs/_build/html'
+            archiveType: tar
+            archiveFile: '$(Build.ArtifactStagingDirectory)/html_docs.tar.gz'
+            verbose: true
+        - task: PublishBuildArtifacts@1
+          displayName: 'Publish docs'
+          inputs:
+            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            artifactName: 'html_docs'
+            Parallel: true
+            ParallelCount: 8
     - job: 'MacOS_Catalina_Tests'
       pool: {vmImage: 'macOS-latest'}
       strategy:
@@ -434,8 +497,8 @@ stages:
           inputs:
             testResultsFiles: '**/test-*.xml'
             testRunTitle: 'Test results for Windows Python $(python.version)'
-  - stage: 'Python_Tests'
-    condition: and(succeeded('Lint_and_Tests'), not(startsWith(variables['Build.SourceBranch'], 'refs/tags')))
+  - stage: 'Python_Tests_and_Tutorials'
+    condition: and(succeeded('Lint_Docs_and_Tests'), not(startsWith(variables['Build.SourceBranch'], 'refs/tags')))
     jobs:
     - job: 'Windows_Tests'
       pool: {vmImage: 'windows-latest'}
@@ -684,55 +747,6 @@ stages:
           inputs:
             testResultsFiles: '**/test-*.xml'
             testRunTitle: 'Test results for macOS Python $(python.version)'
-  - stage: 'Docs_and_Tutorials'
-    condition: and(succeeded('Python_Tests'), not(startsWith(variables['Build.SourceBranch'], 'refs/tags')))
-    jobs:
-    - job: 'Docs'
-      pool: {vmImage: 'ubuntu-latest'}
-      strategy:
-        matrix:
-          Python37:
-            python.version: '3.7'
-      variables:
-        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
-      steps:
-        - checkout: self
-        - task: UsePythonVersion@0
-          inputs:
-            versionSpec: '$(python.version)'
-          displayName: 'Use Python $(python.version)'
-        - task: Cache@2
-          inputs:
-            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
-            restoreKeys: |
-              pip | "$(Agent.OS)" | "$(python.version)"
-              pip | "$(Agent.OS)"
-              pip
-            path: $(PIP_CACHE_DIR)
-          displayName: Cache pip
-        - bash: |
-            set -e
-            python -m pip install --upgrade pip setuptools wheel
-            pip install -U tox
-            python setup.py build_ext --inplace
-            sudo apt install -y graphviz
-          displayName: 'Install dependencies'
-        - bash: |
-            tox -edocs
-          displayName: 'Run Docs build'
-        - task: ArchiveFiles@2
-          inputs:
-            rootFolderOrFile: 'docs/_build/html'
-            archiveType: tar
-            archiveFile: '$(Build.ArtifactStagingDirectory)/html_docs.tar.gz'
-            verbose: true
-        - task: PublishBuildArtifacts@1
-          displayName: 'Publish docs'
-          inputs:
-            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
-            artifactName: 'html_docs'
-            Parallel: true
-            ParallelCount: 8
     - job: 'Tutorials'
       pool: {vmImage: 'ubuntu-latest'}
       strategy:
@@ -786,37 +800,3 @@ stages:
             artifactName: 'html_tutorials'
             Parallel: true
             ParallelCount: 8
-    - job: 'Image_tests'
-      pool: {vmImage: 'ubuntu-latest'}
-      strategy:
-        matrix:
-          Python38:
-            python.version: '3.8'
-      variables:
-        QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
-        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
-      steps:
-        - task: UsePythonVersion@0
-          inputs:
-            versionSpec: '$(python.version)'
-          displayName: 'Use Python $(python.version)'
-        - task: Cache@2
-          inputs:
-            key: 'pip | "$(Agent.OS)" | "$(python.version)"'
-            restoreKeys: |
-              pip | "$(Agent.OS)"
-              pip
-            path: $(PIP_CACHE_DIR)
-          displayName: Cache pip
-        - bash: |
-            set -e
-            python -m pip install --upgrade pip
-            pip install -U -r requirements.txt -c constraints.txt
-            pip install -U -c constraints.txt -e .
-            pip install -U "matplotlib<3.3.0" pylatexenc pillow
-            python setup.py build_ext --inplace
-            sudo apt install -y graphviz pandoc
-            pip check
-          displayName: 'Install dependencies'
-        - bash: python -m unittest discover -v test/ipynb
-          displayName: 'Run image test'

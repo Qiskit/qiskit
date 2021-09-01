@@ -148,8 +148,8 @@ class DefaultStyle:
                 'sdg': ('#6FA4FF', '#000000'),
                 't': ('#BB8BFF', '#000000'),
                 'tdg': ('#BB8BFF', '#000000'),
-                'sx': ('#BB8BFF', '#000000'),
-                'sxdg': ('#BB8BFF', '#000000')
+                'sx': ('#6FA4FF', '#000000'),
+                'sxdg': ('#6FA4FF', '#000000')
                 'r': ('#BB8BFF', '#000000'),
                 'rx': ('#BB8BFF', '#000000'),
                 'ry': ('#BB8BFF', '#000000'),
@@ -249,8 +249,8 @@ class DefaultStyle:
                 "sdg": (colors["clifford"], colors["black"]),
                 "t": (colors["def_other"], colors["black"]),
                 "tdg": (colors["def_other"], colors["black"]),
-                "sx": (colors["def_other"], colors["black"]),
-                "sxdg": (colors["def_other"], colors["black"]),
+                "sx": (colors["clifford"], colors["black"]),
+                "sxdg": (colors["clifford"], colors["black"]),
                 "r": (colors["def_other"], colors["black"]),
                 "rx": (colors["def_other"], colors["black"]),
                 "ry": (colors["def_other"], colors["black"]),

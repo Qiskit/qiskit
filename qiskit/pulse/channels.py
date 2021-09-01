@@ -127,9 +127,7 @@ class Channel(metaclass=ABCMeta):
             PulseError: If the parameter is not present in the channel.
         """
         if parameter not in self.parameters:
-            raise PulseError(
-                "Cannot bind parameters ({}) not present in the channel." "".format(parameter)
-            )
+            raise PulseError(f"Cannot bind parameters ({parameter}) not present in the channel.")
 
         new_index = self.index.assign(parameter, value)
         if not new_index.parameters:

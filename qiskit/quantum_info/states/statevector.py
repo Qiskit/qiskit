@@ -17,6 +17,7 @@ Statevector quantum state class.
 import copy
 import re
 from numbers import Number
+from typing import Dict
 
 import numpy as np
 
@@ -117,6 +118,11 @@ class Statevector(QuantumState, TolerancesMixin):
             self._op_shape.dims_l(),
         )
 
+    @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        return {"data": self._data, "dims": self._op_shape.dims_l()}
+
     def draw(self, output=None, **drawer_args):
         """Return a visualization of the Statevector.
 
@@ -157,6 +163,18 @@ class Statevector(QuantumState, TolerancesMixin):
 
         Raises:
             ValueError: when an invalid output method is selected.
+
+        Examples:
+
+            Plot one of the Bell states
+
+            .. jupyter-execute::
+
+                from numpy import sqrt
+                from qiskit.quantum_info import Statevector
+                sv=Statevector([1/sqrt(2), 0, 0, -1/sqrt(2)])
+                sv.draw(output='latex')
+
         """
         # pylint: disable=cyclic-import
         from qiskit.visualization.state_visualization import state_drawer

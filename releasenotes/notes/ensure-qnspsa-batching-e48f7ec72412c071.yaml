@@ -1,0 +1,25 @@
+---
+features:
+  - |
+    The :class:`~qiskit.algorithms.optimizers.SPSA` and
+    :class:`~qiskit.algorithms.optimizers.QNSPSA` optimizer classes are now capable of
+    batching as many circuit evaluations as possible for both the iterations and the initial
+    calibrations. This can be leveraged by setting the ``max_evals_grouped`` kwarg on
+    the constructor for :class:`~qiskit.algorithms.VQE` when using either
+    :class:`~qiskit.algorithms.optimizers.SPSA` or
+    :class:`~qiskit.algorithms.optimizers.QNSPSA` as the ``optimizer`` parameter. For example::
+    
+        from qiskit.circuit.library import TwoLocal
+        from qiskit.algorithms import VQE
+        from qiskit.algorithms.optimizers import QNSPSA
+        from qiskit.test.mock import FakeMontreal
+        
+        backend = FakeMontreal()
+        ansatz = TwoLocal(2, rotation_blocks=["ry", "rz"], entanglement_blocks="cz")
+        qnspsa = QNSPSA(fidelity, maxiter=5)
+        vqe = VQE(
+            ansatz=ansatz,
+            optimizer=qnspsa,
+            max_evals_grouped=100,
+            quantum_instance=backend,
+        )

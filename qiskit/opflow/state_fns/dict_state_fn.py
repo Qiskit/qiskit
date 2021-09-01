@@ -91,6 +91,13 @@ class DictStateFn(StateFn):
     def num_qubits(self) -> int:
         return len(next(iter(self.primitive)))
 
+    @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        data = super().settings
+        data["from_operator"] = self.from_operator
+        return data
+
     def add(self, other: OperatorBase) -> OperatorBase:
         if not self.num_qubits == other.num_qubits:
             raise ValueError(
