@@ -37,7 +37,6 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.backend = FakeParis()
-        self.inst_map = self.backend.defaults().instruction_schedule_map
 
     def test_rzx_number_native_weyl_decomposition(self):
         """Check the number of RZX gates for a hardware-native cx"""
@@ -47,7 +46,7 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
 
         unitary_circuit = qi.Operator(circuit).data
 
-        after = EchoRZXWeylDecomposition(self.inst_map)(circuit)
+        after = EchoRZXWeylDecomposition(self.backend)(circuit)
 
         unitary_after = qi.Operator(after).data
 
@@ -66,7 +65,7 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
         unitary_circuit = qi.Operator(circuit).data
 
         dag = circuit_to_dag(circuit)
-        pass_ = EchoRZXWeylDecomposition(self.inst_map)
+        pass_ = EchoRZXWeylDecomposition(self.backend)
         after = dag_to_circuit(pass_.run(dag))
 
         unitary_after = qi.Operator(after).data
@@ -117,11 +116,11 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
         circuit_non_native.rzz(theta, qr[1], qr[0])
 
         dag = circuit_to_dag(circuit)
-        pass_ = EchoRZXWeylDecomposition(self.inst_map)
+        pass_ = EchoRZXWeylDecomposition(self.backend)
         after = dag_to_circuit(pass_.run(dag))
 
         dag_non_native = circuit_to_dag(circuit_non_native)
-        pass_ = EchoRZXWeylDecomposition(self.inst_map)
+        pass_ = EchoRZXWeylDecomposition(self.backend)
         after_non_native = dag_to_circuit(pass_.run(dag_non_native))
 
         circuit_rzx_number = self.count_gate_number("rzx", after)
@@ -147,11 +146,11 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
         circuit_non_native.swap(qr[1], qr[0])
 
         dag = circuit_to_dag(circuit)
-        pass_ = EchoRZXWeylDecomposition(self.inst_map)
+        pass_ = EchoRZXWeylDecomposition(self.backend)
         after = dag_to_circuit(pass_.run(dag))
 
         dag_non_native = circuit_to_dag(circuit_non_native)
-        pass_ = EchoRZXWeylDecomposition(self.inst_map)
+        pass_ = EchoRZXWeylDecomposition(self.backend)
         after_non_native = dag_to_circuit(pass_.run(dag_non_native))
 
         circuit_rzx_number = self.count_gate_number("rzx", after)
@@ -192,7 +191,7 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
         unitary_circuit = qi.Operator(circuit).data
 
         dag = circuit_to_dag(circuit)
-        pass_ = EchoRZXWeylDecomposition(self.inst_map)
+        pass_ = EchoRZXWeylDecomposition(self.backend)
         after = dag_to_circuit(pass_.run(dag))
 
         unitary_after = qi.Operator(after).data

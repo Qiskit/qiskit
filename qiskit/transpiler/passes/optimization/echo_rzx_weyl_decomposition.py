@@ -19,11 +19,12 @@ from qiskit.circuit.library.standard_gates import RZXGate, HGate, XGate
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.layout import Layout
 
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag
 
-from qiskit.transpiler.layout import Layout
+from qiskit.providers import basebackend
 
 import qiskit.quantum_info as qi
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitControlledUDecomposer
@@ -37,15 +38,15 @@ class EchoRZXWeylDecomposition(TransformationPass):
     Each pair of RZXGates forms an echoed RZXGate.
     """
 
-    def __init__(self, inst_map):
+    def __init__(self, backend: basebackend):
         """EchoRZXWeylDecomposition pass."""
-        self.inst_map = inst_map
+        self._inst_map = backend.defaults().instruction_schedule_map
         super().__init__()
 
     def _is_native(self, qubit_pair: Tuple) -> bool:
         """Return the direction of the qubit pair that is native, i.e. with the shortest schedule."""
-        cx1 = self.inst_map.get("cx", qubit_pair)
-        cx2 = self.inst_map.get("cx", qubit_pair[::-1])
+        cx1 = self._inst_map.get("cx", qubit_pair)
+        cx2 = self._inst_map.get("cx", qubit_pair[::-1])
         return cx1.duration < cx2.duration
 
     @staticmethod
