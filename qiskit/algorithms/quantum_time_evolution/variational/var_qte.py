@@ -15,7 +15,6 @@ from abc import abstractmethod, ABC
 from typing import List, Optional, Union, Iterable
 
 import numpy as np
-from scipy.integrate import OdeSolver, ode
 
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
@@ -29,7 +28,7 @@ from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.var_qte_od
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
 from qiskit.opflow import StateFn, CircuitSampler, ComposedOp, PauliExpectation
-from qiskit.opflow.gradients import Gradient, QFI, NaturalGradient
+from qiskit.opflow.gradients import NaturalGradient
 
 
 class VarQte(ABC):
@@ -45,10 +44,8 @@ class VarQte(ABC):
         regularization: Optional[str] = None,
         init_parameter_values: Optional[Union[List, np.ndarray]] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
-        snapshot_dir: Optional[str] = None,
-        faster: bool = True,
         error_based_ode: bool = False,
-        **kwargs,
+        epsilon: float = 10e-6,
     ):
         r"""
         Args:
@@ -69,70 +66,54 @@ class VarQte(ABC):
             backend: Backend used to evaluate the quantum circuit outputs
             snapshot_dir: Directory in to which to store cvs file with parameters,
                 if None (default) then no cvs file is created.
-            faster: Use additional CircuitSampler objects to increase the processing speed
-                    (deprecated if backend is None)
             error_based_ode: If False use McLachlan to get the parameter updates
                              If True use the argument that minimizes the error error_bounds
             kwargs (dict): Optional parameters for a CircuitGradient
         """
         super().__init__()
         self._variational_principle = variational_principle
-        self._grad_method = variational_principle._grad_method
-        self._qfi_method = variational_principle._qfi_method
         self._regularization = regularization
-        self._epsilon = kwargs.get("epsilon", 1e-6)
+        self._epsilon = epsilon
         self._parameters = variational_principle._parameters
         if init_parameter_values is not None:
             self._init_parameter_values = init_parameter_values
         else:
             self._init_parameter_values = np.random.random(len(self._parameters))
+        self._param_dict = dict(zip(self._parameters, self._init_parameter_values))
         self._backend = backend
         if self._backend is not None:
             # we define separate instances of CircuitSamplers as it caches aggresively according
             # to it documentation
-            self._operator_circ_sampler = CircuitSampler(self._backend)
-            self._state_circ_sampler = CircuitSampler(self._backend)
-            self._h_squared_circ_sampler = CircuitSampler(self._backend)
-            self._h_trip_circ_sampler = CircuitSampler(self._backend)
-            self._grad_circ_sampler = CircuitSampler(self._backend)
-            self._metric_circ_sampler = CircuitSampler(self._backend)
-            if not faster:
-                self._nat_grad_circ_sampler = CircuitSampler(self._backend, caching="all")
-        self._faster = faster
+            self._init_samplers()
+            self._nat_grad_circ_sampler = CircuitSampler(self._backend, caching="all")
         self._ode_function_generator = OdeFunctionGenerator(
-            self._dt_params,
-            self._nat_grad_res,
-            self._grad_res,
-            self._metric_res,
             self._param_dict,
             self._variational_principle,
             self._state,
             self._exact_state,
             self._h_matrix,
+            self._h_norm,
+            self._grad_circ_sampler,
+            self._metric_circ_sampler,
+            self._nat_grad_circ_sampler,
+            self._regularization,
             self._state_circ_sampler,
+            self._backend,
         )
-        self._ode_solver = VarQteOdeSolver(t, init_parameter_values, self._ode_function_generator)
-        self._snapshot_dir = snapshot_dir
-        self._operator = None
-        self._nat_grad = None
-        self._metric = None
-        self._grad = None
+        self._ode_solver = VarQteOdeSolver(
+            self._init_parameter_values, self._ode_function_generator
+        )
         self._error_based_ode = error_based_ode
 
-        self._storage_params_tbd = None
-        self._store_now = False
+        self._operator =None
 
-    @property
-    def operator(self):
-        return self._operator
-
-    @operator.setter
-    def operator(self, op):
-        self._operator = op
-        # Initialize H Norm
-        self._h = self._operator.oplist[0].primitive * self._operator.oplist[0].coeff
-        self._h_matrix = self._h.to_matrix(massive=True)
-        self._h_norm = np.linalg.norm(self._h_matrix, np.infty)
+    def _init_samplers(self):
+        self._operator_circ_sampler = CircuitSampler(self._backend)
+        self._state_circ_sampler = CircuitSampler(self._backend)
+        self._h_squared_circ_sampler = CircuitSampler(self._backend)
+        self._h_trip_circ_sampler = CircuitSampler(self._backend)
+        self._grad_circ_sampler = CircuitSampler(self._backend)
+        self._metric_circ_sampler = CircuitSampler(self._backend)
 
     @abstractmethod
     def _exact_state(self, time: Union[float, complex]) -> Iterable:
@@ -147,7 +128,9 @@ class VarQte(ABC):
         """
         Initialize the gradient objects needed to perform VarQTE
         """
-
+        self._h = self._operator.oplist[0].primitive * self._operator.oplist[0].coeff
+        self._h_matrix = self._h.to_matrix(massive=True)
+        self._h_norm = np.linalg.norm(self._h_matrix, np.infty)
         self._state = self._operator[-1]
         if self._backend is not None:
             self._init_state = self._state_circ_sampler.convert(
@@ -158,36 +141,30 @@ class VarQte(ABC):
                 dict(zip(self._parameters, self._init_parameter_values))
             )
         self._init_state = self._init_state.eval().primitive.data
-        self._h = self._operator.oplist[0].primitive * self._operator.oplist[0].coeff
-        self._h_matrix = self._h.to_matrix(massive=True)
-        self._h_norm = np.linalg.norm(self._h_matrix, np.infty)
-        h_squared = self._h ** 2
-        self._h_squared = ComposedOp([~StateFn(h_squared.reduce()), self._state])
-        self._h_squared = PauliExpectation().convert(self._h_squared)
-        h_trip = self._h ** 3
-        self._h_trip = ComposedOp([~StateFn(h_trip.reduce()), self._state])
-        self._h_trip = PauliExpectation().convert(self._h_trip)
 
-        if not self._faster:
-            # VarQRTE
-            if np.iscomplex(self._operator.coeff):
-                self._nat_grad = NaturalGradient(
-                    grad_method=self._grad_method,
-                    qfi_method=self._qfi_method,
-                    regularization=self._regularization,
-                ).convert(self._operator * 0.5, self._parameters)
-            # VarQITE
-            else:
-                self._nat_grad = NaturalGradient(
-                    grad_method=self._grad_method,
-                    qfi_method=self._qfi_method,
-                    regularization=self._regularization,
-                ).convert(self._operator * -0.5, self._parameters)
+        self._h_squared = self._h_pow(2)
+        self._h_trip = self._h_pow(3)
 
-            self._nat_grad = PauliExpectation().convert(self._nat_grad)
+        # TODO does it depend on the var principle?
+        # VarQRTE
+        if np.iscomplex(self._operator.coeff):
+            self._nat_grad = NaturalGradient(
+                grad_method=self._grad_method,
+                qfi_method=self._qfi_method,
+                regularization=self._regularization,
+            ).convert(self._operator * 0.5, self._parameters)
+        # VarQITE
+        else:
+            self._nat_grad = NaturalGradient(
+                grad_method=self._grad_method,
+                qfi_method=self._qfi_method,
+                regularization=self._regularization,
+            ).convert(self._operator * -0.5, self._parameters)
 
-        self._grad = Gradient(self._grad_method).convert(self._operator, self._parameters)
-        # self._grad = PauliExpectation().convert(self._grad)
+        self._nat_grad = PauliExpectation().convert(self._nat_grad)
 
-        self._metric = QFI(self._qfi_method).convert(self._operator.oplist[-1], self._parameters)
-        # self._metric = PauliExpectation().convert(self._metric)
+    def _h_pow(self, power):
+        h_power = self._h ** power
+        h_power = ComposedOp([~StateFn(h_power.reduce()), self._state])
+        h_power = PauliExpectation().convert(h_power)
+        return h_power
