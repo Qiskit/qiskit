@@ -9,20 +9,21 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from typing import Union
 
 import numpy as np
 
-from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.imaginary_variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary\
+    .imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.principles.real.real_variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.principles.real\
+    .real_variational_principle import (
     RealVariationalPrinciple,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
 )
-from qiskit.opflow import CircuitGradient, StateFn, NaturalGradient, CircuitQFI, OpflowError
+from qiskit.opflow import StateFn, NaturalGradient, OpflowError
 
 
 def calculate(
@@ -31,7 +32,7 @@ def calculate(
     regularization=None,
 ):
     # TODO consider passing operator immediately, also in evolution_grad and metric_tensor
-    observable = variational_principle._observable
+    observable = variational_principle._hamiltonian
     ansatz = variational_principle._ansatz
     operator = ~StateFn(observable) @ StateFn(ansatz)
     parameters = variational_principle._parameters

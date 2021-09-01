@@ -24,18 +24,12 @@ from qiskit.opflow import CircuitQFI, CircuitGradient, OperatorBase
 class RealVariationalPrinciple(VariationalPrinciple):
     def __init__(
         self,
-        observable,
-        ansatz,
-        parameters,
         error_calculator: RealErrorCalculator,
         qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
         grad_method: Union[str, CircuitGradient] = "lin_comb",
         is_error_supported: bool = False,
     ):
         super().__init__(
-            observable,
-            ansatz,
-            parameters,
             error_calculator,
             qfi_method,
             grad_method,
@@ -53,6 +47,6 @@ class RealVariationalPrinciple(VariationalPrinciple):
         pass
 
     def _calc_error_bound(
-        self, error, et, h_squared, h_trip, trained_energy, variational_principle
+        self, error, et, h_squared, h_norm, trained_energy, variational_principle
     ):
         return et

@@ -22,30 +22,30 @@ from qiskit.algorithms.quantum_time_evolution.variational.principles.variational
 from qiskit.opflow import NaturalGradient, CircuitSampler, CircuitQFI, CircuitGradient
 
 
-class LinearSolver:
+class VarQteLinearSolver:
     def __init__(
         self,
+        grad_circ_sampler,
+        metric_circ_sampler,
+        nat_grad_circ_sampler,
         grad_method: Union[str, CircuitGradient] = "lin_comb",
         qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
         regularization=None,
         backend=None,
     ):
+
         self._backend = backend
         self._regularization = regularization
-        self._grad_circ_sampler = None
-        self._metric_circ_sampler = None
-        self._nat_grad_circ_sampler = None
         if backend is not None:
             # TODO should be passed from VarQte (caching)
-            self._grad_circ_sampler = CircuitSampler(self._backend)
-            self._metric_circ_sampler = CircuitSampler(self._backend)
-            self._nat_grad_circ_sampler = CircuitSampler(self._backend)
+            self._grad_circ_sampler = grad_circ_sampler
+            self._metric_circ_sampler = metric_circ_sampler
+            self._nat_grad_circ_sampler = nat_grad_circ_sampler
         self._grad_method = grad_method
         self._qfi_method = qfi_method
 
-    # TODO better name for faster
     def _solve_sle(
-        self, var_principle: VariationalPrinciple, param_dict: Dict, faster=False
+        self, var_principle: VariationalPrinciple, param_dict: Dict
     ) -> (Union[List, np.ndarray], Union[List, np.ndarray], np.ndarray):
         """
         Solve the system of linear equations underlying McLachlan's variational principle
@@ -69,37 +69,31 @@ class LinearSolver:
         metric_res = self._check_and_fix_metric_psd(metric_res)
 
         nat_grad_result = self._calc_nat_grad_result(
-            faster, grad_res, metric_res, param_dict, var_principle
+            param_dict, var_principle
         )
 
         return np.real(nat_grad_result), grad_res, metric_res
 
-    def _calc_nat_grad_result(self, faster, grad_res, metric_res, param_dict, var_principle):
-        if faster:
-            # TODO delete this comment: grad_res already corresponds to a certain var principle
-            nat_grad_result = NaturalGradient.nat_grad_combo_fn(
-                x=[grad_res * 0.5, metric_res], regularization=self._regularization
-            )
+    def _calc_nat_grad_result(self, param_dict, var_principle):
+
+        # TODO possibly duplicated effort, should be passed from VarQte or saved in
+        #  VarPrinciple, probably the latter
+        nat_grad = natural_gradient_calculator.calculate(
+            var_principle, param_dict, self._regularization
+        )
+
+        if self._backend is not None:
+            nat_grad_result = self._nat_grad_circ_sampler.convert(
+                nat_grad, params=param_dict
+            ).eval()
         else:
+            nat_grad_result = nat_grad.assign_parameters(param_dict).eval()
 
-            # TODO possibly duplicated effort, should be passed from VarQte or saved in
-            #  VarPrinciple, probably the latter
-            nat_grad = natural_gradient_calculator.calculate(
-                var_principle, param_dict, self._regularization
-            )
+        if any(np.abs(np.imag(nat_grad_item)) > 1e-8 for nat_grad_item in nat_grad_result):
+            raise Warning("The imaginary part of the gradient are non-negligible.")
 
-            if self._backend is not None:
-                nat_grad_result = self._nat_grad_circ_sampler.convert(
-                    nat_grad, params=param_dict
-                ).eval()
-            else:
-                nat_grad_result = nat_grad.assign_parameters(param_dict).eval()
-
-            if any(np.abs(np.imag(nat_grad_item)) > 1e-8 for nat_grad_item in nat_grad_result):
-                raise Warning("The imaginary part of the gradient are non-negligible.")
-
-            # TODO log
-            print("nat grad result", nat_grad_result)
+        # TODO log
+        print("nat grad result", nat_grad_result)
         return nat_grad_result
 
     def _inspect_imaginary_parts(self, grad_res, metric_res):

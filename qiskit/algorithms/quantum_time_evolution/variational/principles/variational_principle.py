@@ -16,36 +16,34 @@ from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
     evolution_grad_calculator,
     metric_tensor_calculator,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.error_calculator import (
+from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors\
+    .error_calculator import (
     ErrorCalculator,
 )
-from qiskit.opflow import CircuitQFI, CircuitGradient, OperatorBase
+from qiskit.opflow import CircuitQFI, CircuitGradient, OperatorBase, StateFn
 
 
 class VariationalPrinciple(ABC):
     def __init__(
-        self,
-        observable,
-        ansatz,
-        parameters,
-        error_calculator: ErrorCalculator,
-        qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
-        grad_method: Union[str, CircuitGradient] = "lin_comb",
-        is_error_supported: bool = False,
+            self,
+            error_calculator: ErrorCalculator,
+            qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
+            grad_method: Union[str, CircuitGradient] = "lin_comb",
+            is_error_supported: bool = False,
     ):
-        self._observable = observable
-        self._ansatz = ansatz
-        self._parameters = parameters
         self._qfi_method = qfi_method
         self._grad_method = grad_method
         self._error_calculator = error_calculator
         self._is_error_supported = is_error_supported
 
-        raw_metric_tensor = metric_tensor_calculator.calculate(
-            ansatz, parameters, qfi_method
-        )
+    def _lazy_init(self, hamiltonian, ansatz, parameters):
+        self._hamiltonian = hamiltonian
+        self._ansatz = ansatz
+        self._parameters = parameters
+        self._operator = ~StateFn(hamiltonian) @ StateFn(ansatz)
+        raw_metric_tensor = metric_tensor_calculator.calculate(ansatz, parameters, self._qfi_method)
         raw_evolution_grad = evolution_grad_calculator.calculate(
-            observable, ansatz, parameters, grad_method
+            hamiltonian, ansatz, parameters, self._grad_method
         )
         self._metric_tensor = self._calc_metric_tensor(raw_metric_tensor)
         self._evolution_grad = self._calc_evolution_grad(raw_evolution_grad)
@@ -62,7 +60,7 @@ class VariationalPrinciple(ABC):
 
     @abstractmethod
     def _calc_error_bound(
-        self, error, et, h_squared, h_trip, trained_energy, variational_principle
+            self, error, et, h_squared, h_trip, trained_energy, variational_principle
     ):
         pass
 

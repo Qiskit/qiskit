@@ -21,7 +21,9 @@ from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.grad
 from qiskit.algorithms.quantum_time_evolution.variational.principles.real.implementations.real_mc_lachlan_variational_principle import (
     RealMcLachlanVariationalPrinciple,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.solvers.linear_solver import LinearSolver
+from qiskit.algorithms.quantum_time_evolution.variational.solvers.var_qte_linear_solver import (
+    VarQteLinearSolver,
+)
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import (
     SummedOp,
@@ -79,8 +81,12 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
             param_dict,
             backend=None,
         )
-        linear_solver = LinearSolver()
-        var_principle = RealMcLachlanVariationalPrinciple(observable, ansatz, parameters, None)
+        backend = Aer.get_backend("qasm_simulator")
+        linear_solver = VarQteLinearSolver(CircuitSampler(backend), CircuitSampler(backend),
+                                           CircuitSampler(backend), backend=None)
+        var_principle = RealMcLachlanVariationalPrinciple(None)
+        # for the purpose of the test we invoke lazy_init
+        var_principle._lazy_init(observable, ansatz, parameters)
         ng_res, grad_res, metric_res = linear_solver._solve_sle(var_principle, param_dict)
 
         eps_squared, dtdt_state, regrad2 = imaginary_error_calculator._calc_single_step_error(
@@ -134,8 +140,12 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
             param_dict,
             backend=None,
         )
-        linear_solver = LinearSolver()
-        var_principle = RealMcLachlanVariationalPrinciple(observable, ansatz, parameters, None)
+        backend = Aer.get_backend("qasm_simulator")
+        linear_solver = VarQteLinearSolver(CircuitSampler(backend), CircuitSampler(backend),
+                                           CircuitSampler(backend), backend=None)
+        var_principle = RealMcLachlanVariationalPrinciple(None)
+        # for the purpose of the test we invoke lazy_init
+        var_principle._lazy_init(observable, ansatz, parameters)
         ng_res, grad_res, metric_res = linear_solver._solve_sle(var_principle, param_dict)
 
         eps_squared = imaginary_error_calculator._calc_single_step_error_gradient(
