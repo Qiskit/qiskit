@@ -665,6 +665,61 @@ class TestUseCases(SchedulerTestCase):
 
         self.assertScheduler(self.circuit, self.passmanager, expected)
 
+    def test_nested_do_while(self):
+        """Run nested do while."""
+        nested_do_while = [
+            DoWhileController(
+                [PassK_check_fixed_point_property(), PassF_reduce_dag_property()],
+                do_while=lambda property_set: not property_set["property_fixed_point"],
+            )
+        ]
+
+        self.passmanager.append([PassD_TP_NR_NP()] + nested_do_while + [PassD_TP_NR_NP()])
+
+        expected = [
+            "run transformation pass PassD_TP_NR_NP",
+            "argument None",
+            "run analysis pass PassG_calculates_dag_property",
+            "set property as 8 (from dag.property)",
+            "run analysis pass PassK_check_fixed_point_property",
+            "run transformation pass PassF_reduce_dag_property",
+            "dag property = 6",
+            "run analysis pass PassG_calculates_dag_property",
+            "set property as 6 (from dag.property)",
+            "run analysis pass PassK_check_fixed_point_property",
+            "run transformation pass PassF_reduce_dag_property",
+            "dag property = 5",
+            "run analysis pass PassG_calculates_dag_property",
+            "set property as 5 (from dag.property)",
+            "run analysis pass PassK_check_fixed_point_property",
+            "run transformation pass PassF_reduce_dag_property",
+            "dag property = 4",
+            "run analysis pass PassG_calculates_dag_property",
+            "set property as 4 (from dag.property)",
+            "run analysis pass PassK_check_fixed_point_property",
+            "run transformation pass PassF_reduce_dag_property",
+            "dag property = 3",
+            "run analysis pass PassG_calculates_dag_property",
+            "set property as 3 (from dag.property)",
+            "run analysis pass PassK_check_fixed_point_property",
+            "run transformation pass PassF_reduce_dag_property",
+            "dag property = 2",
+            "run analysis pass PassG_calculates_dag_property",
+            "set property as 2 (from dag.property)",
+            "run analysis pass PassK_check_fixed_point_property",
+            "run transformation pass PassF_reduce_dag_property",
+            "dag property = 2",
+            "run analysis pass PassG_calculates_dag_property",
+            "set property as 2 (from dag.property)",
+            "run analysis pass PassK_check_fixed_point_property",
+            "run transformation pass PassF_reduce_dag_property",
+            "dag property = 2",
+            "run transformation pass PassD_TP_NR_NP",
+            "argument None",
+        ]
+
+        self.assertScheduler(self.circuit, self.passmanager, expected)
+
 
 class DoXTimesController(FlowController):
     """A control-flow plugin for running a set of passes an X amount of times."""

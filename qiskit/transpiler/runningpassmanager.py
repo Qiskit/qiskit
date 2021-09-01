@@ -160,8 +160,13 @@ class RunningPassManager:
         # if provided a nested flow controller
         elif isinstance(pass_, FlowController):
 
-            if not isinstance(pass_.condition, partial):
+            if isinstance(pass_, ConditionalController) and not isinstance(
+                pass_.condition, partial
+            ):
                 pass_.condition = partial(pass_.condition, self.fenced_property_set)
+
+            elif isinstance(pass_, DoWhileController) and not isinstance(pass_.do_while, partial):
+                pass_.do_while = partial(pass_.do_while, self.fenced_property_set)
 
             for _pass in pass_:
                 self._do_pass(_pass, dag, pass_.options)
