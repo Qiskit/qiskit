@@ -20,7 +20,7 @@ from qiskit.circuit import ParameterVector, QuantumCircuit
 from qiskit.opflow import StateFn, CircuitSampler, ExpectationBase
 from qiskit.utils import QuantumInstance
 
-from .spsa import SPSA, CALLBACK, _batch_evaluate
+from .spsa import SPSA, CALLBACK, TERMINATION_CHECKER_CALLBACK, _batch_evaluate
 
 # the function to compute the fidelity
 FIDELITY = Callable[[np.ndarray, np.ndarray], float]
@@ -92,7 +92,7 @@ class QNSPSA(SPSA):
         lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
         initial_hessian: Optional[np.ndarray] = None,
         callback: Optional[CALLBACK] = None,
-        termination_checker: Optional[CALLBACK] = None,
+        termination_checker: Optional[TERMINATION_CHECKER_CALLBACK] = None,
     ) -> None:
         r"""
         Args:
