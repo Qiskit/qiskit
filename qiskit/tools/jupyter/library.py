@@ -203,7 +203,7 @@ def circuit_library_widget(circuit: QuantumCircuit) -> None:
 
     # The separator widget
     sep = wid.HTML(
-        "<div style='border-left: 3px solid #212121;" "height: {}px;'></div>".format(sep_length),
+        f"<div style='border-left: 3px solid #212121;height: {sep_length}px;'></div>",
         layout=wid.Layout(height="auto", max_height="495px", margin="40px 0px 0px 20px"),
     )
     bottom = wid.HBox(
