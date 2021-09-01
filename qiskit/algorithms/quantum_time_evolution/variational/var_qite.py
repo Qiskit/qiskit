@@ -20,10 +20,12 @@ from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result 
     EvolutionGradientResult,
 )
 from qiskit.algorithms.quantum_time_evolution.results.evolution_result import EvolutionResult
-from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.imaginary_variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary \
+    .imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
 )
-from qiskit.opflow import OperatorBase, Gradient, StateFn
+from qiskit.opflow import OperatorBase, Gradient, StateFn, CircuitStateFn, ComposedOp, \
+    PauliExpectation
 from qiskit.algorithms.quantum_time_evolution.variational.var_qte import VarQte
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
@@ -31,17 +33,15 @@ from qiskit.utils import QuantumInstance
 
 class VarQite(VarQte, EvolutionBase):
     def __init__(
-        self,
-        variational_principle: ImaginaryVariationalPrinciple,
-        regularization: Optional[str] = None,
-        num_time_steps: int = 10,
-        init_parameter_values: Optional[Union[List, np.ndarray]] = None,
-        ode_solver: Optional[Union[OdeSolver, ode]] = None,
-        backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
-        snapshot_dir: Optional[str] = None,
-        faster: bool = True,
-        error_based_ode: bool = False,
-        **kwargs,
+            self,
+            variational_principle: ImaginaryVariationalPrinciple,
+            regularization: Optional[str] = None,
+            num_time_steps: int = 10,
+            init_parameter_values: Optional[Union[List, np.ndarray]] = None,
+            ode_solver: Optional[Union[OdeSolver, ode]] = None,
+            backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
+            snapshot_dir: Optional[str] = None,
+            error_based_ode: bool = False
     ):
         super().__init__(
             variational_principle,
@@ -51,32 +51,76 @@ class VarQite(VarQte, EvolutionBase):
             ode_solver,
             backend,
             snapshot_dir,
-            faster,
-            error_based_ode,
-            kwargs,
+            error_based_ode
         )
 
     def evolve(
-        self,
-        hamiltonian: OperatorBase,
-        time: float,
-        initial_state: StateFn = None,
-        observable: OperatorBase = None,
-        t_param=None,
-        hamiltonian_value_dict=None,
+            self,
+            hamiltonian: OperatorBase,
+            time: float,
+            initial_state: StateFn = None,
+            observable: OperatorBase = None,
+            t_param=None,
+            hamiltonian_value_dict=None,
     ) -> EvolutionResult:
-        raise NotImplementedError()
+        """
+        Apply Variational Quantum Imaginary Time Evolution (VarQITE) w.r.t. the given
+        operator
+        Args:
+            operator:
+                ⟨ψ(ω)|H|ψ(ω)〉
+                Operator used vor Variational Quantum Imaginary Time Evolution (VarQITE)
+                The coefficient of the operator (operator.coeff) determines the evolution
+                time.
+                The operator may be given either as a composed op consisting of a Hermitian
+                observable and a CircuitStateFn or a ListOp of a CircuitStateFn with a
+                ComboFn.
+                The latter case enables the evaluation of a Quantum Natural Gradient.
+        Returns:
+            StateFn (parameters are bound) which represents an approximation to the
+            respective
+            time evolution.
+        """
+        # TODO how does t_param fit in here?
+        if observable is not None:
+            raise TypeError(
+                "Observable argument provided. Observable evolution not supported by VarQite.")
+
+        self._parameters = list(hamiltonian_value_dict.keys())
+        self._variational_principle._lazy_init(hamiltonian, initial_state, self._parameters)
+        self._state = initial_state
+        self._operator = self._variational_principle._operator
+        if not isinstance(self._operator[-1], CircuitStateFn):
+            raise TypeError('Please provide the respective Ansatz as a CircuitStateFn.')
+        elif not isinstance(self._operator, ComposedOp) and not all(
+                isinstance(op, CircuitStateFn) for \
+                op in self._operator.oplist):
+            raise TypeError('Please provide the operator either as ComposedOp or as ListOp of a '
+                            'CircuitStateFn potentially with a combo function.')
+
+        # Convert the operator that holds the Hamiltonian and ansatz into a NaturalGradient operator
+        self._operator = self._operator / self._operator.coeff  # Remove the time from the operator
+        self._operator_eval = PauliExpectation().convert(self._operator / self._operator.coeff)
+
+        # dt = np.abs(operator.coeff) * np.sign(operator.coeff)
+
+        self._init_grad_objects()
+        # Run ODE Solver
+        parameter_values = self._ode_solver._run(time, self._init_parameter_values)
+        # return evolved
+        return self._state.assign_parameters(dict(zip(self._parameters,
+                                                      parameter_values)))
 
     @abstractmethod
     def gradient(
-        self,
-        hamiltonian: OperatorBase,
-        time: float,
-        initial_state: StateFn,
-        gradient_object: Gradient,
-        observable: OperatorBase = None,
-        t_param=None,
-        hamiltonian_value_dict=None,
-        gradient_params=None,
+            self,
+            hamiltonian: OperatorBase,
+            time: float,
+            initial_state: StateFn,
+            gradient_object: Gradient,
+            observable: OperatorBase = None,
+            t_param=None,
+            hamiltonian_value_dict=None,
+            gradient_params=None,
     ) -> EvolutionGradientResult:
         raise NotImplementedError()
