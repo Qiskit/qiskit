@@ -30,7 +30,7 @@ from .optimizer import Optimizer, OptimizerSupportLevel
 
 # number of function evaluations, parameters, loss, stepsize, accepted
 CALLBACK = Callable[[int, np.ndarray, float, float, bool], None]
-TERMINATION_CHECKER_CALLBACK = Callable[[int, np.ndarray, float, float, bool], bool]
+TERMINATIONCHECKER_CALLBACK = Callable[[int, np.ndarray, float, float, bool], bool]
 
 logger = logging.getLogger(__name__)
 
@@ -143,7 +143,7 @@ class SPSA(Optimizer):
         lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
         initial_hessian: Optional[np.ndarray] = None,
         callback: Optional[CALLBACK] = None,
-        termination_checker: Optional[TERMINATION_CHECKER_CALLBACK] = None,
+        termination_checker: Optional[TERMINATIONCHECKER_CALLBACK] = None,
     ) -> None:
         r"""
         Args:
