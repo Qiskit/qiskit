@@ -72,6 +72,16 @@ class BackendV1(Backend, ABC):
                 options.
         Raises:
             AttributeError: if input field not a valid options
+
+        ..
+            This next bit is necessary just because autosummary generally won't summarise private
+            methods; changing that behaviour would have annoying knock-on effects through all the
+            rest of the documentation, so instead we just hard-code the automethod directive.
+
+        In addition to the public abstract methods, subclasses should also implement the following
+        private methods:
+
+        .. automethod:: _default_options
         """
         self._configuration = configuration
         self._options = self._default_options()
