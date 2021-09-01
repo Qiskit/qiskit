@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixed an issue where the ``ax`` kwarg and the ``figwidth`` option in the
+    ``style`` kwarg for the ``mpl`` circuit drawer did not scale properly.
+    Users can now pass an ``ax`` from a matplotlib subplot to the ``mpl``
+    circuit drawer and the circuit will be drawn within the boundaries of
+    that subplot. Alternatively, users can set the ``figwidth`` in inches in
+    the ``style`` dict kwarg and the drawing will scale to the width in
+    inches that was set.
+    Fixed `#6367 <https://github.com/Qiskit/qiskit-terra/issues/6367>`__

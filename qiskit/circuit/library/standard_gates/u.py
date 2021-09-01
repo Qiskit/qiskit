@@ -12,9 +12,11 @@
 
 """Two-pulse single-qubit gate."""
 
+from typing import Optional, Union
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
 
@@ -52,14 +54,20 @@ class UGate(Gate):
 
     .. math::
 
-        U\left(\theta, -\frac{\pi}{2}, \frac{pi}{2}\right) = RX(\theta)
+        U\left(\theta, -\frac{\pi}{2}, \frac{\pi}{2}\right) = RX(\theta)
 
     .. math::
 
         U(\theta, 0, 0) = RY(\theta)
     """
 
-    def __init__(self, theta, phi, lam, label=None):
+    def __init__(
+        self,
+        theta: ParameterValueType,
+        phi: ParameterValueType,
+        lam: ParameterValueType,
+        label: Optional[str] = None,
+    ):
         """Create new U gate."""
         super().__init__("u", 1, [theta, phi, lam], label=label)
 
@@ -70,7 +78,12 @@ class UGate(Gate):
         """
         return UGate(-self.params[0], -self.params[2], -self.params[1])
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Return a (multi-)controlled-U gate.
 
         Args:
@@ -168,7 +181,15 @@ class CUGate(ControlledGate):
                 \end{pmatrix}
     """
 
-    def __init__(self, theta, phi, lam, gamma, label=None, ctrl_state=None):
+    def __init__(
+        self,
+        theta: ParameterValueType,
+        phi: ParameterValueType,
+        lam: ParameterValueType,
+        gamma: ParameterValueType,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Create new CU gate."""
         super().__init__(
             "cu",
@@ -251,7 +272,7 @@ class CUGate(ControlledGate):
             # CU has one additional parameter to the U base gate
             return self.base_gate.params + self._params
         else:
-            raise CircuitError("Controlled gate does not define base gate " "for extracting params")
+            raise CircuitError("Controlled gate does not define base gate for extracting params")
 
     @params.setter
     def params(self, parameters):
@@ -268,4 +289,4 @@ class CUGate(ControlledGate):
         if self.base_gate:
             self.base_gate.params = parameters[:-1]
         else:
-            raise CircuitError("Controlled gate does not define base gate " "for extracting params")
+            raise CircuitError("Controlled gate does not define base gate for extracting params")

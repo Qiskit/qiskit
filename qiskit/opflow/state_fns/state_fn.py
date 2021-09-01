@@ -154,6 +154,15 @@ class StateFn(OperatorBase):
         """Whether the StateFn object is a measurement Operator."""
         return self._is_measurement
 
+    @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        return {
+            "primitive": self._primitive,
+            "coeff": self._coeff,
+            "is_measurement": self._is_measurement,
+        }
+
     def primitive_strings(self) -> Set[str]:
         raise NotImplementedError
 

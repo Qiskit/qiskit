@@ -85,6 +85,19 @@ class SciPyOptimizer(Optimizer):
             "initial_point": self._initial_point_support_level,
         }
 
+    @property
+    def settings(self) -> Dict[str, Any]:
+        settings = {
+            "max_evals_grouped": self._max_evals_grouped,
+            "options": self._options,
+            **self._kwargs,
+        }
+        # the subclasses don't need the "method" key as the class type specifies the method
+        if self.__class__ == SciPyOptimizer:
+            settings["method"] = self._method
+
+        return settings
+
     def optimize(
         self,
         num_vars,

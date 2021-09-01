@@ -22,20 +22,20 @@ from qiskit import BasicAer, execute
 # Make a quantum circuit for the GHZ state.
 ###############################################################
 num_qubits = 5
-qc = QuantumCircuit(num_qubits, num_qubits, name='ghz')
+qc = QuantumCircuit(num_qubits, num_qubits, name="ghz")
 
 # Create a GHZ state
 qc.h(0)
-for i in range(num_qubits-1):
-    qc.cx(i, i+1)
+for i in range(num_qubits - 1):
+    qc.cx(i, i + 1)
 # Insert a barrier before measurement
 qc.barrier()
 # Measure all of the qubits in the standard basis
 for i in range(num_qubits):
     qc.measure(i, i)
 
-sim_backend = BasicAer.get_backend('qasm_simulator')
+sim_backend = BasicAer.get_backend("qasm_simulator")
 job = execute(qc, sim_backend, shots=1024)
 result = job.result()
-print('Qasm simulator : ')
+print("Qasm simulator : ")
 print(result.get_counts(qc))
