@@ -84,7 +84,7 @@ class CalibrationBuilder(TransformationPass):
 
                 # add calibration if it is not backend default
                 if publisher != CalibrationPublisher.BACKEND_PROVIDER:
-                    dag.add_calibration(gate=node.op.name, qubits=qubits, schedule=schedule)
+                    dag.add_calibration(gate=node.op, qubits=qubits, schedule=schedule)
 
         return dag
 
