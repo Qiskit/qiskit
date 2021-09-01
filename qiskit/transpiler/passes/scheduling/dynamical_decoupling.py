@@ -174,7 +174,7 @@ class DynamicalDecoupling(TransformationPass):
             physical_qubit = qubit_index_map[qubit]
             dd_sequence_duration = 0
             for gate in self._dd_sequence:
-                gate.duration = self._durations.get(gate, physical_qubit)
+                gate.duration = self._durations.get(gate.name, gate.params, physical_qubit)
                 dd_sequence_duration += gate.duration
             index_sequence_duration_map[physical_qubit] = dd_sequence_duration
 

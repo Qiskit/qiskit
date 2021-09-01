@@ -34,7 +34,9 @@ class InstructionDurations:
         self, instruction_durations: Optional["InstructionDurationsType"] = None, dt: float = None
     ):
         self.duration_by_name = {}
+        self.duration_by_name_params = {}
         self.duration_by_name_qubits = {}
+        self.duration_by_name_params_qubits = {}
         self.dt = dt
         if instruction_durations:
             self.update(instruction_durations)
@@ -47,8 +49,18 @@ class InstructionDurations:
             string += ": "
             string += str(v[0]) + " " + v[1]
             string += "\n"
+        for k, v in self.duration_by_name_params.items():
+            string += k[0] + str(k[1])
+            string += ": "
+            string += str(v[0]) + " " + v[1]
+            string += "\n"
         for k, v in self.duration_by_name_qubits.items():
             string += k[0] + str(k[1])
+            string += ": "
+            string += str(v[0]) + " " + v[1]
+            string += "\n"
+        for k, v in self.duration_by_name_params_qubits.items():
+            string += k[0] + str(k[1]) + str(k[2])
             string += ": "
             string += str(v[0]) + " " + v[1]
             string += "\n"
@@ -67,17 +79,20 @@ class InstructionDurations:
         Raises:
             TranspilerError: If dt and dtm is different in the backend.
         """
-        # All durations in seconds in gate_length
+        # FIXME: no field provisioned to report durations dependent on gate parameter
+        # assume None for all params.
+
+        # backend reports all gate_length in seconds
         instruction_durations = []
         for gate, insts in backend.properties()._gates.items():
             for qubits, props in insts.items():
                 if "gate_length" in props:
                     gate_length = props["gate_length"][0]  # Throw away datetime at index 1
-                    instruction_durations.append((gate, qubits, gate_length, "s"))
+                    instruction_durations.append((gate, None, qubits, gate_length, "s"))
         for q, props in backend.properties()._qubits.items():
             if "readout_length" in props:
                 readout_length = props["readout_length"][0]  # Throw away datetime at index 1
-                instruction_durations.append(("measure", [q], readout_length, "s"))
+                instruction_durations.append(("measure", None, [q], readout_length, "s"))
 
         try:
             dt = backend.configuration().dt
@@ -107,39 +122,56 @@ class InstructionDurations:
 
         if isinstance(inst_durations, InstructionDurations):
             self.duration_by_name.update(inst_durations.duration_by_name)
+            self.duration_by_name_params.update(inst_durations.duration_by_name_params)
             self.duration_by_name_qubits.update(inst_durations.duration_by_name_qubits)
+            self.duration_by_name_params_qubits.update(inst_durations.duration_by_name_params_qubits)
         else:
             for i, items in enumerate(inst_durations):
                 if len(items) == 3:
-                    inst_durations[i] = (*items, "dt")  # set default unit
-                elif len(items) != 4:
+                    inst_durations[i] = (items[0], None, items[1], items[2], "dt")
+                elif len(items) == 4:
+                    if isinstance(items[-1], str):
+                        inst_durations[i] = (items[0], None, items[1], items[2], items[3])
+                    else:
+                        inst_durations[i] = (*items, 'dt')  # set default unit
+                elif len(items) != 5:
                     raise TranspilerError(
                         "Each entry of inst_durations dictionary must be "
                         "(inst_name, qubits, duration) or "
-                        "(inst_name, qubits, duration, unit)"
+                        "(inst_name, qubits, duration, unit) or"
+                        "(inst_name, params, qubits, duration) or"
+                        "(inst_name, params, qubits, duration, unit)"
                     )
 
-            for name, qubits, duration, unit in inst_durations:
+            for name, params, qubits, duration, unit in inst_durations:
                 if isinstance(qubits, int):
                     qubits = [qubits]
+                if isinstance(params, float):
+                    params = [params]
 
-                if qubits is None:
+                if params is None and qubits is None:
                     self.duration_by_name[name] = duration, unit
-                else:
+                elif params is None:
                     self.duration_by_name_qubits[(name, tuple(qubits))] = duration, unit
+                elif qubits is None:
+                    self.duration_by_name_params[(name, tuple(params))] = duration, unit
+                else:
+                    self.duration_by_name_params_qubits[(name, tuple(params), tuple(qubits))] = duration, unit
 
         return self
 
     def get(
         self,
         inst: Union[str, Instruction],
+        params: Union[float, List[float]],
         qubits: Union[int, List[int], Qubit, List[Qubit]],
         unit: str = "dt",
     ) -> float:
-        """Get the duration of the instruction with the name and the qubits.
+        """Get the duration of the instruction with the name, parameters and qubits.
 
         Args:
             inst: An instruction or its name to be queried.
+            params: Instruction parameters.
             qubits: Qubits or its indices that the instruction acts on.
             unit: The unit of duration to be returned. It must be 's' or 'dt'.
 
@@ -159,6 +191,9 @@ class InstructionDurations:
         else:
             inst_name = inst
 
+        if isinstance(params, float):
+            params = [params]
+
         if isinstance(qubits, (int, Qubit)):
             qubits = [qubits]
 
@@ -174,24 +209,27 @@ class InstructionDurations:
             qubits = [q.index for q in qubits]
 
         try:
-            return self._get(inst_name, qubits, unit)
+            return self._get(inst_name, params, qubits, unit)
         except TranspilerError as ex:
             raise TranspilerError(
                 f"Duration of {inst_name} on qubits {qubits} is not found."
             ) from ex
 
-    def _get(self, name: str, qubits: List[int], to_unit: str) -> float:
-        """Get the duration of the instruction with the name and the qubits."""
-        if name == "barrier":
-            return 0
+    def _get(self, name: str, params: List[float], qubits: List[int], to_unit: str) -> float:
+        """Get the duration of the instruction, priority with the most specific matching one."""
+        params = tuple(params)
+        qubits = tuple(qubits)
 
-        key = (name, tuple(qubits))
-        if key in self.duration_by_name_qubits:
-            duration, unit = self.duration_by_name_qubits[key]
+        if (name, params, qubits) in self.duration_by_name_params_qubits:
+            duration, unit = self.duration_by_name_params_qubits[(name, params, qubits)]
+        elif (name, params) in self.duration_by_name_params:
+            duration, unit = self.duration_by_name_params[(name, params)]
+        elif (name, qubits) in self.duration_by_name_qubits:
+            duration, unit = self.duration_by_name_qubits[(name, qubits)]
         elif name in self.duration_by_name:
             duration, unit = self.duration_by_name[name]
         else:
-            raise TranspilerError(f"No value is found for key={key}")
+            raise TranspilerError(f"No value is found for name={name}, params={params}, qubits={qubits}")
 
         return self._convert_unit(duration, unit, to_unit)
 
@@ -232,8 +270,8 @@ class InstructionDurations:
 
 
 InstructionDurationsType = Union[
-    List[Tuple[str, Optional[Iterable[int]], float, str]],
-    List[Tuple[str, Optional[Iterable[int]], float]],
+    List[Tuple[str, Optional[Iterable[float]], Optional[Iterable[int]], float, str]],
+    List[Tuple[str, Optional[Iterable[float]], Optional[Iterable[int]], float]],
     InstructionDurations,
 ]
-"""List of tuples representing (instruction name, qubits indices, duration)."""
+"""List of tuples representing (instruction name, params, qubits indices, duration)."""
