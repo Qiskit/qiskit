@@ -85,15 +85,11 @@ class BasisTranslator(TransformationPass):
         basic_instrs = ["measure", "reset", "barrier", "snapshot", "delay"]
 
         target_basis = set(self._target_basis).union(basic_instrs)
-
+        
         source_basis = set()
-
-        save_states = {"save_statevector", "save_state", "save_statevector_dict"}
-        invalid_save_states = save_states.difference(target_basis)
-
         for node in dag.op_nodes():
             if not dag.has_calibration_for(node):
-                if node.name not in invalid_save_states:
+                if node.op._directive is False:
                     source_basis.add((node.name, node.op.num_qubits))
 
         logger.info(
@@ -136,13 +132,9 @@ class BasisTranslator(TransformationPass):
             if node.name in target_basis:
                 continue
 
-            if node.name in invalid_save_states:
-                logger.info(
-                    "Skipping %s instruction as it is not " "supported by the current backend.",
-                    node.name,
-                )
-                continue
-
+            if node.op._directive is True:
+                continue 
+            
             if dag.has_calibration_for(node):
                 continue
 
