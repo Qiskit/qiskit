@@ -26,12 +26,13 @@ class ProductFormula(EvolutionSynthesis):
     Lie-Trotter and Suzuki inherit this class.
     """
 
-    def __init__(self,
-                 order: int,
-                 reps: int = 1,
-                 atomic_evolution: Optional[Callable[[SparsePauliOp, float], QuantumCircuit]] = None,
-                 insert_barriers: bool = False,
-                 ) -> None:
+    def __init__(
+        self,
+        order: int,
+        reps: int = 1,
+        atomic_evolution: Optional[Callable[[SparsePauliOp, float], QuantumCircuit]] = None,
+        insert_barriers: bool = False,
+    ) -> None:
         """
         Args:
             order: The order of the product formula.

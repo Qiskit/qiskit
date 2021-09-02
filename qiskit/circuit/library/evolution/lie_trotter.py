@@ -22,11 +22,12 @@ from .product_formula import ProductFormula
 class LieTrotter(ProductFormula):
     """The Lie-Trotter product formula."""
 
-    def __init__(self,
-                 reps: int = 1,
-                 atomic_evolution: Optional[Callable[[SparsePauliOp, float], QuantumCircuit]] = None,
-                 insert_barriers: bool = False,
-                 ) -> None:
+    def __init__(
+        self,
+        reps: int = 1,
+        atomic_evolution: Optional[Callable[[SparsePauliOp, float], QuantumCircuit]] = None,
+        insert_barriers: bool = False,
+    ) -> None:
         """
         Args:
             order: The order of the product formula.
@@ -36,9 +37,9 @@ class LieTrotter(ProductFormula):
         """
         super().__init__(1, reps, atomic_evolution, insert_barriers)
 
-    def synthesize(self,
-                   operators: Union[SparsePauliOp, List[SparsePauliOp]],
-                   time: float) -> QuantumCircuit:
+    def synthesize(
+        self, operators: Union[SparsePauliOp, List[SparsePauliOp]], time: float
+    ) -> QuantumCircuit:
         evo = QuantumCircuit(operators[0].num_qubits)
         first_barrier = False
         for _ in range(self.reps):

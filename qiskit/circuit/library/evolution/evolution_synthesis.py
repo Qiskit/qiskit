@@ -25,9 +25,9 @@ class EvolutionSynthesis(ABC):
     """
 
     @abstractmethod
-    def synthesize(self,
-                   operators: Union[SparsePauliOp, List[SparsePauliOp]],
-                   time: float) -> QuantumCircuit:
+    def synthesize(
+        self, operators: Union[SparsePauliOp, List[SparsePauliOp]], time: float
+    ) -> QuantumCircuit:
         """Synthesize the evolution of a (list of) operator(s) to a circuit.
 
         If a single operator, the summands are assumed not to commute.

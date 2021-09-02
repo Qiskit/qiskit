@@ -21,20 +21,18 @@ from qiskit.circuit.gate import Gate
 class PauliEvolutionGate(Gate):
     """Time-evolution of a single Pauli string."""
 
-    def __init__(self,
-                 pauli: Pauli,
-                 time: Union[float, ParameterExpression] = 1.0,
-                 label: Optional[str] = None,
-                 ) -> None:
+    def __init__(
+        self,
+        pauli: Pauli,
+        time: Union[float, ParameterExpression] = 1.0,
+        label: Optional[str] = None,
+    ) -> None:
         """
         Args:
             operator: The Pauli to evolve.
         """
         super().__init__(
-            name=f"exp(it {pauli.to_label()})",
-            num_qubits=pauli.num_qubits,
-            params=[],
-            label=label
+            name=f"exp(it {pauli.to_label()})", num_qubits=pauli.num_qubits, params=[], label=label
         )
 
         self.time = time
@@ -44,6 +42,7 @@ class PauliEvolutionGate(Gate):
         """Unroll with a default implementation."""
         # TODO move logic here
         from qiskit.opflow import PauliTrotterEvolution, PauliOp
+
         pop = (self.time * PauliOp(self.pauli)).exp_i()
         definition = PauliTrotterEvolution().convert(pop).to_circuit_op().reduce().primitive
         self.definition = definition

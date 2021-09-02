@@ -18,6 +18,7 @@ import scipy
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.parameterexpression import ParameterExpression
+
 # from qiskit.opflow import PauliSumOp  # cyclic import!
 from qiskit.quantum_info import SparsePauliOp, Operator
 
@@ -27,12 +28,13 @@ from .evolution_synthesis import EvolutionSynthesis
 class EvolutionGate(Gate):
     """Time-evolution of an operator."""
 
-    def __init__(self,
-                 operator: Union[SparsePauliOp, "PauliSumOp", List[SparsePauliOp], List["PauliSumOp"]],
-                 time: Union[float, ParameterExpression] = 1.0,
-                 label: Optional[str] = None,
-                 synthesis: Optional[EvolutionSynthesis] = None
-                 ) -> None:
+    def __init__(
+        self,
+        operator: Union[SparsePauliOp, "PauliSumOp", List[SparsePauliOp], List["PauliSumOp"]],
+        time: Union[float, ParameterExpression] = 1.0,
+        label: Optional[str] = None,
+        synthesis: Optional[EvolutionSynthesis] = None,
+    ) -> None:
         """
         Args:
             operator: The operator to evolve. Can be provided as list of non-commuting operators
@@ -45,12 +47,7 @@ class EvolutionGate(Gate):
         operator = _cast_to_sparse_pauli_op(operator)
 
         num_qubits = operator[0].num_qubits if isinstance(operator, list) else operator.num_qubits
-        super().__init__(
-            name="EvolutionGate",
-            num_qubits=num_qubits,
-            params=[],
-            label=label
-        )
+        super().__init__(name="EvolutionGate", num_qubits=num_qubits, params=[], label=label)
 
         self.time = time
         self.operator = operator
@@ -85,6 +82,7 @@ class EvolutionGate(Gate):
 
 def _cast_to_sparse_pauli_op(operator):
     from qiskit.opflow import PauliSumOp, PauliOp
+
     if isinstance(operator, (PauliSumOp, PauliOp)):
         # TODO warning: coefficients are discarded?
         operator = operator.primitive

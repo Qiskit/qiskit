@@ -44,14 +44,14 @@ class TestEvolutionGate(QiskitTestCase):
         time = 0.123
         reps = 4
         evo_gate = EvolutionGate(op, time, synthesis=LieTrotter(reps=reps))
-        self.assertEqual(evo_gate.definition.count_ops()['cx'], reps * 3 * 4)
+        self.assertEqual(evo_gate.definition.count_ops()["cx"], reps * 3 * 4)
 
     def test_passing_grouped_paulis(self):
         """Test passing a list of already grouped Paulis."""
         grouped_ops = [(X ^ Y) + (Y ^ X), (Z ^ I) + (Z ^ Z) + (I ^ Z), (X ^ X)]
         evo_gate = EvolutionGate(grouped_ops, time=0.12, synthesis=LieTrotter())
 
-        self.assertEqual(evo_gate.definition.count_ops()['rz'], 6)
+        self.assertEqual(evo_gate.definition.count_ops()["rz"], 6)
 
     def test_list_from_grouped_paulis(self):
         """Test getting a string representation from grouped Paulis."""
@@ -63,15 +63,18 @@ class TestEvolutionGate(QiskitTestCase):
             if isinstance(op, SparsePauliOp):
                 pauli_strings.append(op.to_list())
             else:
-                pauli_strings.append([(str(op), 1+0j)])
+                pauli_strings.append([(str(op), 1 + 0j)])
 
-        expected = [[('XY', 1+0j), ('YX', 1+0j)], [('ZI', 1+0j),
-                                                   ('ZZ', 1+0j), ('IZ', 1+0j)], [('XX', 1+0j)]]
+        expected = [
+            [("XY", 1 + 0j), ("YX", 1 + 0j)],
+            [("ZI", 1 + 0j), ("ZZ", 1 + 0j), ("IZ", 1 + 0j)],
+            [("XX", 1 + 0j)],
+        ]
         self.assertListEqual(pauli_strings, expected)
 
     def test_dag_conversion(self):
         """Test constructing a circuit with evolutions yields a DAG with evolution blocks."""
-        time = Parameter('t')
+        time = Parameter("t")
         evo = EvolutionGate(X ^ 2, time=time, synthesis=LieTrotter())
 
         circuit = QuantumCircuit(2)
@@ -81,7 +84,7 @@ class TestEvolutionGate(QiskitTestCase):
 
         dag = circuit_to_dag(circuit)
 
-        expected_ops = {'h', 'cx', 'EvolutionGate'}
+        expected_ops = {"h", "cx", "EvolutionGate"}
         ops = set(node.op.name for node in dag.op_nodes())
 
         self.assertEqual(ops, expected_ops)
