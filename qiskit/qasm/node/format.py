@@ -37,7 +37,7 @@ class Format(Node):
         """Return the corresponding format string."""
         if prec is not None:
             warnings.warn(
-                "Parameter 'Format.qasm(..., prec)' is no longer used and is being " "deprecated.",
+                "Parameter 'Format.qasm(..., prec)' is no longer used and is being deprecated.",
                 DeprecationWarning,
                 2,
             )
