@@ -38,7 +38,7 @@ class Int(Node):
         """Return the corresponding OPENQASM string."""
         if prec is not None:
             warnings.warn(
-                "Parameter 'Int.qasm(..., prec)' is no longer used and is being " "deprecated.",
+                "Parameter 'Int.qasm(..., prec)' is no longer used and is being deprecated.",
                 DeprecationWarning,
                 2,
             )
@@ -48,7 +48,7 @@ class Int(Node):
         """Return the corresponding math mode latex string."""
         if prec is not None:
             warnings.warn(
-                "Parameter 'Int.latex(..., prec)' is no longer used and is being " "deprecated.",
+                "Parameter 'Int.latex(..., prec)' is no longer used and is being deprecated.",
                 DeprecationWarning,
                 2,
             )

@@ -244,7 +244,7 @@ class ParamShift(CircuitGradient):
                     )
                 else:
                     raise TypeError(
-                        "Probability gradients are not supported for the given " "operator type"
+                        "Probability gradients are not supported for the given operator type"
                     )
 
                 if isinstance(p_param, ParameterExpression) and not isinstance(p_param, Parameter):
