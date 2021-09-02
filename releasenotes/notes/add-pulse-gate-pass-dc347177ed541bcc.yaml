@@ -1,0 +1,94 @@
+---
+features:
+  - |
+    A new transpiler pass group :mod:`~qiskit.transpiler.passes.calibration` has been added.
+    This group consists of
+
+    - :class:`~qiskit.transpiler.passes.calibration.creators.RZXCalibrationBuilder`
+    - :class:`~qiskit.transpiler.passes.calibration.creators.RZXCalibrationBuilderNoEcho`
+    - :func:`~qiskit.transpiler.passes.calibration.rzx_templates.rzx_templates`.
+    - :class:`~qiskit.transpiler.passes.calibration.creators.PulseGates`
+
+    ``RZXCalibrationBuilder``, ``RZXCalibrationBuilderNoEcho``, and ``rzx_templates`` are
+    moved from :mod:`qiskit/transpiler/passes/scheduling`, whereas ``PulseGates``
+    is the new pass that automatically extracts user-provided calibrations
+    from the instruction schedule map and attaches the gate schedule to the
+    given (transpiled) quantum circuit as a pulse gate.
+    Any transpiler pass that interacts with the pulse gate feature will be grouped to
+    :mod:`qiskit.transpiler.passes.calibration`.
+
+    This pass is applied to all optimization levels from 0 to 3.
+    No gate implementation is updated unless the end-user explicitly overrides
+    the ``backend.defaults().instruction_schedule_map``.
+
+    This pass saves users from individually calling :meth:`~qiskit.circuit.quantumcircuit.\
+    QuantumCircuit#add_calibration` method for every circuit run on the hardware.
+
+    Along with this change, a schedule was added to :class:`qiskit.pulse.instruction_schedule_map.\
+    InstructionScheduleMap` and is implicitly updated with a metadata "publisher".
+    Backend calibrated gate schedules have a special publisher kind to avoid overriding
+    circuits with calibrations of already known schedules.
+    Usually, end-users don't need to take care of this metadata as it is applied automatically.
+    You can call
+    :py:meth:`~qiskit.pulse.instruction_schedule_map.InstructionScheduleMap#has_custom_gate`
+    to check if the map has custom gate calibration.
+
+    See below code example to learn how to apply custom gate implementation
+    for all circuits under execution.
+
+    .. code-block:: python
+
+      from qiskit.test.mock import FakeGuadalupe
+      from qiskit import pulse, circuit, transpile
+
+      backend = FakeGuadalupe()
+
+      with pulse.build(backend, name="x") as x_q0:
+          pulse.play(pulse.Constant(160, 0.1), pulse.drive_channel(0))
+
+      backend.defaults().instruction_schedule_map.add("x", (0,), x_q0)
+
+      circs = []
+      for _ in range(100):
+          circ = circuit.QuantumCircuit(1)
+          circ.sx(0)
+          circ.rz(1.57, 0)
+          circ.x(0)
+          circ.measure_active()
+          circs.append(circ)
+
+      circs = transpile(circs, backend)
+      circs[0].calibrations  # This returns calibration only for x gate
+
+    Note that the instruction schedule map is a mutable object.
+    If you override one of the entries and use that backend for other experiments,
+    you may accidentally update the gate definition.
+
+    .. code-block:: python
+
+      backend = FakeGuadalupe()
+
+      instmap = backend.defaults().instruction_schedule_map
+      instmap.add("x", (0, ), my_x_gate_schedule)
+
+      qc = QuantumCircuit(1, 1)
+      qc.x(0)
+      qc.measure(0, 0)
+
+      qc = transpile(qc, backend)  # This backend uses custom X gate
+
+    If you want to update the gate definitions of a specific experiment,
+    you need to first deepcopy the instruction schedule map
+    and directly pass it to the transpiler.
+
+
+deprecations:
+  - |
+    Transpiler pass reorganization regarding calibrations.
+    The import path for :class:`~qiskit.transpiler.passes.scheduling.calibration_creators.\
+    RZXCalibrationBuilder` and :class:`~qiskit.transpiler.passes.scheduling.\
+    calibration_creators.RZXCalibrationBuilderNoEcho` are deprecated.
+    The import path for :func:`qiskit.transpiler.passes.scheduling.rzx_templates.\
+    rzx_templates.rzx_templates` is also deprecated.
+
+    Use new import path under :mod:`~qiskit.transpiler.passes.calibration`.

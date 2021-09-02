@@ -13,6 +13,7 @@
 """Remove final measurements and barriers at the end of a circuit."""
 
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.dagcircuit import DAGOpNode
 
 
 class RemoveFinalMeasurements(TransformationPass):
@@ -44,7 +45,8 @@ class RemoveFinalMeasurements(TransformationPass):
 
             for _, child_successors in dag.bfs_successors(candidate_node):
                 if any(
-                    suc.type == "op" and suc.name not in final_op_types for suc in child_successors
+                    isinstance(suc, DAGOpNode) and suc.name not in final_op_types
+                    for suc in child_successors
                 ):
                     is_final_op = False
                     break

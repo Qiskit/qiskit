@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    The values ``"gate_error"`` and ``"balanced"`` are newly available for
+    ``objective`` option in the construction of
+    :class:`qiskit.transpiler.passes.BIPMapping` object.
+    Those objectives require ``backend_prop``, which contains the 2q-gate gate errors
+    used in the computation of the objectives.

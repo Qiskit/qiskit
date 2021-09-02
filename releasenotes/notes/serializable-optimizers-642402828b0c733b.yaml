@@ -1,6 +1,0 @@
----
-features:
-  - |
-    Add a :meth:`~qiskit.algorithms.optimizers.Optimizer.settings` property to the optimizers to
-    return the optimizer settings in form of a dictionary. This can e.g. be used to JSON-serialize
-    the optimizers -- if you use an appropriate encoder for the dictionary values.

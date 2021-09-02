@@ -12,6 +12,7 @@
 
 """iSWAP gate."""
 
+from typing import Optional
 import numpy as np
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -75,9 +76,9 @@ class iSwapGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self):
+    def __init__(self, label: Optional[str] = None):
         """Create new iSwap gate."""
-        super().__init__("iswap", 2, [])
+        super().__init__("iswap", 2, [], label=label)
 
     def _define(self):
         """

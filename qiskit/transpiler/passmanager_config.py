@@ -20,6 +20,7 @@ class PassManagerConfig:
         self,
         initial_layout=None,
         basis_gates=None,
+        inst_map=None,
         coupling_map=None,
         layout_method=None,
         routing_method=None,
@@ -29,7 +30,7 @@ class PassManagerConfig:
         backend_properties=None,
         approximation_degree=None,
         seed_transpiler=None,
-        alignment=None,
+        timing_constraints=None,
     ):
         """Initialize a PassManagerConfig object
 
@@ -37,6 +38,7 @@ class PassManagerConfig:
             initial_layout (Layout): Initial position of virtual qubits on
                 physical qubits.
             basis_gates (list): List of basis gate names to unroll to.
+            inst_map (InstructionScheduleMap): Mapping object that maps gate to schedule.
             coupling_map (CouplingMap): Directed graph represented a coupling
                 map.
             layout_method (str): the pass to use for choosing initial qubit
@@ -55,10 +57,11 @@ class PassManagerConfig:
                 (1.0=no approximation, 0.0=maximal approximation)
             seed_transpiler (int): Sets random seed for the stochastic parts of
                 the transpiler.
-            alignment (int): Hardware instruction alignment restriction.
+            timing_constraints (TimingConstraints): Hardware time alignment restrictions.
         """
         self.initial_layout = initial_layout
         self.basis_gates = basis_gates
+        self.inst_map = inst_map
         self.coupling_map = coupling_map
         self.layout_method = layout_method
         self.routing_method = routing_method
@@ -68,4 +71,4 @@ class PassManagerConfig:
         self.backend_properties = backend_properties
         self.approximation_degree = approximation_degree
         self.seed_transpiler = seed_transpiler
-        self.alignment = alignment
+        self.timing_constraints = timing_constraints
