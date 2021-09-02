@@ -62,7 +62,7 @@ class Permutation(QuantumCircuit):
         if pattern is not None:
             if sorted(pattern) != list(range(num_qubits)):
                 raise CircuitError(
-                    "Permutation pattern must be some " "ordering of 0..num_qubits-1 in a list."
+                    "Permutation pattern must be some ordering of 0..num_qubits-1 in a list."
                 )
             pattern = np.array(pattern)
         else:

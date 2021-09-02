@@ -21,7 +21,7 @@ from scipy.sparse import csr_matrix
 from sympy import Symbol
 
 from qiskit import QuantumCircuit, transpile
-from qiskit.circuit import Parameter, ParameterVector, ParameterExpression
+from qiskit.circuit import Parameter, ParameterExpression, ParameterVector
 from qiskit.opflow import (
     CX,
     CircuitStateFn,
