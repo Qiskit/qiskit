@@ -12,7 +12,7 @@
 
 """The Lie-Trotter product formula."""
 
-from typing import List, Callable, Optional
+from typing import List, Callable, Optional, Union
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp
 
@@ -24,7 +24,8 @@ class LieTrotter(ProductFormula):
 
     def __init__(self,
                  reps: int = 1,
-                 atomic_evolution: Optional[Callable[[SparsePauliOp, float], QuantumCircuit]] = None
+                 atomic_evolution: Optional[Callable[[SparsePauliOp, float], QuantumCircuit]] = None,
+                 insert_barriers: bool = False,
                  ) -> None:
         """
         Args:
@@ -33,11 +34,22 @@ class LieTrotter(ProductFormula):
             atomic_evolution: A function to construct the circuit for the evolution of single operators.
                 Per default, `PauliEvolutionGate` will be used.
         """
-        super().__init__(order=1, reps=reps, atomic_evolution=atomic_evolution)
+        super().__init__(1, reps, atomic_evolution, insert_barriers)
 
-    def synthesize(self, operators: List[SparsePauliOp], time: float) -> QuantumCircuit:
-        # TODO move logic here
-        from qiskit.opflow import PauliTrotterEvolution, PauliSumOp
-        op = sum(operators[1:], operators[0])
-        exp = (time * PauliSumOp(op)).exp_i()
-        return PauliTrotterEvolution(reps=self.reps).convert(exp).to_circuit_op().primitive
+    def synthesize(self,
+                   operators: Union[SparsePauliOp, List[SparsePauliOp]],
+                   time: float) -> QuantumCircuit:
+        evo = QuantumCircuit(operators[0].num_qubits)
+        first_barrier = False
+        for _ in range(self.reps):
+            for op in operators:
+                # add barriers
+                if first_barrier:
+                    if self.insert_barriers:
+                        evo.barrier()
+                else:
+                    first_barrier = True
+
+                evo.compose(self.atomic_evolution(op, time / self.reps), inplace=True)
+
+        return evo

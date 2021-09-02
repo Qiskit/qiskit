@@ -31,7 +31,7 @@ class PauliEvolutionGate(Gate):
             operator: The Pauli to evolve.
         """
         super().__init__(
-            name='PauliEvolution',
+            name=f"exp(it {pauli.to_label()})",
             num_qubits=pauli.num_qubits,
             params=[],
             label=label
@@ -42,13 +42,10 @@ class PauliEvolutionGate(Gate):
 
     def _define(self):
         """Unroll with a default implementation."""
-        if self.definition is not None:
-            return
-
         # TODO move logic here
         from qiskit.opflow import PauliTrotterEvolution, PauliOp
-        pop = PauliOp(self.pauli)
-        definition = PauliTrotterEvolution().convert(pop).to_circuit_op().primitive
+        pop = (self.time * PauliOp(self.pauli)).exp_i()
+        definition = PauliTrotterEvolution().convert(pop).to_circuit_op().reduce().primitive
         self.definition = definition
 
     def inverse(self) -> "PauliEvolutionGate":

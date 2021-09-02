@@ -15,7 +15,7 @@
 
 from typing import Callable, Optional
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.quantum_info import SparsePauliOp
+from qiskit.quantum_info import SparsePauliOp, Pauli
 
 from .evolution_synthesis import EvolutionSynthesis
 
@@ -29,7 +29,8 @@ class ProductFormula(EvolutionSynthesis):
     def __init__(self,
                  order: int,
                  reps: int = 1,
-                 atomic_evolution: Optional[Callable[[SparsePauliOp, float], QuantumCircuit]] = None
+                 atomic_evolution: Optional[Callable[[SparsePauliOp, float], QuantumCircuit]] = None,
+                 insert_barriers: bool = False,
                  ) -> None:
         """
         Args:
@@ -37,14 +38,28 @@ class ProductFormula(EvolutionSynthesis):
             reps: The number of time steps.
             atomic_evolution: A function to construct the circuit for the evolution of single operators.
                 Per default, `PauliEvolutionGate` will be used.
+            insert_barriers: Whether to insert barriers between the atomic evolutions.
         """
         super().__init__()
         self.order = order
         self.reps = reps
+        self.insert_barriers = insert_barriers
+
         if atomic_evolution is None:
             from .pauli_evolution import PauliEvolutionGate
 
             def atomic_evolution(operator, time):
-                return PauliEvolutionGate(operator, time).definition
+                # single Pauli operator: just exponentiate it
+                if isinstance(operator, Pauli):
+                    return PauliEvolutionGate(operator, time).definition
+
+                # sum of Pauli operators: exponentiate each term (this assumes they commute)
+                evo = QuantumCircuit(operator.num_qubits)
+
+                pauli_list = [(Pauli(op), coeff) for op, coeff in operator.to_list()]
+                for pauli, coeff in pauli_list:
+                    evo.append(PauliEvolutionGate(pauli, coeff * time), evo.qubits)
+
+                return evo
 
         self.atomic_evolution = atomic_evolution

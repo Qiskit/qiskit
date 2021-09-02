@@ -364,6 +364,9 @@ from .generalized_gates import (
 from .evolution import (
     PauliEvolutionGate,
     EvolutionGate,
+    EvolutionSynthesis,
+    ProductFormula,
+    LieTrotter,
 )
 from .boolean_logic import (
     AND,

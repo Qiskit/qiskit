@@ -12,10 +12,10 @@
 
 """Evolution synthesis."""
 
-from typing import List
+from typing import List, Union
 from abc import ABC, abstractmethod
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info import SparsePauliOp
 
 
 class EvolutionSynthesis(ABC):
@@ -25,11 +25,14 @@ class EvolutionSynthesis(ABC):
     """
 
     @abstractmethod
-    def synthesize(self, operators: List[BaseOperator], time: float) -> QuantumCircuit:
-        """Synthesize a list of operators to a circuit.
+    def synthesize(self,
+                   operators: Union[SparsePauliOp, List[SparsePauliOp]],
+                   time: float) -> QuantumCircuit:
+        """Synthesize the evolution of a (list of) operator(s) to a circuit.
 
-        The list elements are *not* assumed to commute pairwisely, however if a single operator is
-        a sum of operators, these summands are assumed to commute.
+        If a single operator, the summands are assumed not to commute.
+        If a list, the lust elements are *not* assumed to commute pairwisely, however summands in
+        a single operator are assumed to commute.
 
         Args:
             operators: List of operators to evolve.
