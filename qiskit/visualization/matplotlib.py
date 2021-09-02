@@ -863,7 +863,7 @@ class MatplotlibDrawer:
 
     def _condition(self, node, cond_xy):
         """Add a conditional to a gate"""
-        cond_is_bit = bool(isinstance(op.condition[0], Clbit))
+        cond_is_bit = bool(isinstance(node.op.condition[0], Clbit))
         mask = 0
         qubit_b = min(self._data[node]["q_xy"], key=lambda xy: xy[1])
         for index, cbit in enumerate(self._clbit):
