@@ -44,14 +44,15 @@ class TestEvolutionGate(QiskitTestCase):
         time = 0.123
         reps = 4
         evo_gate = EvolutionGate(op, time, synthesis=LieTrotter(reps=reps))
-        self.assertEqual(evo_gate.definition.count_ops()["cx"], reps * 3 * 4)
+        decomposed = evo_gate.definition.decompose()
+        self.assertEqual(decomposed.count_ops()["cx"], reps * 3 * 4)
 
     def test_passing_grouped_paulis(self):
         """Test passing a list of already grouped Paulis."""
         grouped_ops = [(X ^ Y) + (Y ^ X), (Z ^ I) + (Z ^ Z) + (I ^ Z), (X ^ X)]
         evo_gate = EvolutionGate(grouped_ops, time=0.12, synthesis=LieTrotter())
-
-        self.assertEqual(evo_gate.definition.count_ops()["rz"], 6)
+        decomposed = evo_gate.definition.decompose()
+        self.assertEqual(decomposed.count_ops()["rz"], 6)
 
     def test_list_from_grouped_paulis(self):
         """Test getting a string representation from grouped Paulis."""

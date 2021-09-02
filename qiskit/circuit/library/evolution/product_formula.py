@@ -50,16 +50,16 @@ class ProductFormula(EvolutionSynthesis):
             from .pauli_evolution import PauliEvolutionGate
 
             def atomic_evolution(operator, time):
-                # single Pauli operator: just exponentiate it
-                if isinstance(operator, Pauli):
-                    return PauliEvolutionGate(operator, time).definition
-
-                # sum of Pauli operators: exponentiate each term (this assumes they commute)
                 evo = QuantumCircuit(operator.num_qubits)
 
-                pauli_list = [(Pauli(op), coeff) for op, coeff in operator.to_list()]
-                for pauli, coeff in pauli_list:
-                    evo.append(PauliEvolutionGate(pauli, coeff * time), evo.qubits)
+                if isinstance(operator, Pauli):
+                    # single Pauli operator: just exponentiate it
+                    evo.append(PauliEvolutionGate(operator, time), evo.qubits)
+                else:
+                    # sum of Pauli operators: exponentiate each term (this assumes they commute)
+                    pauli_list = [(Pauli(op), coeff) for op, coeff in operator.to_list()]
+                    for pauli, coeff in pauli_list:
+                        evo.append(PauliEvolutionGate(pauli, coeff * time), evo.qubits)
 
                 return evo
 
