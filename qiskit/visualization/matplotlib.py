@@ -866,16 +866,15 @@ class MatplotlibDrawer:
         cond_is_bit = bool(isinstance(node.op.condition[0], Clbit))
         mask = 0
         qubit_b = min(self._data[node]["q_xy"], key=lambda xy: xy[1])
-        for index, cbit in enumerate(self._clbit):
-            if cond_is_bit:
-                for index, cbit in enumerate(self._clbit):
-                    if cbit == node.op.condition[0]:
-                        mask = 1 << index
-                        break
-            else:
-                for index, cbit in enumerate(self._clbit):
-                    if self._bit_locations[cbit]["register"] == node.op.condition[0]:
-                        mask |= 1 << index
+        if cond_is_bit:
+            for index, cbit in enumerate(self._clbit):
+                if cbit == node.op.condition[0]:
+                    mask = 1 << index
+                    break
+        else:
+            for index, cbit in enumerate(self._clbit):
+                if self._bit_locations[cbit]["register"] == node.op.condition[0]:
+                    mask |= 1 << index
         val = node.op.condition[1]
 
         # cbit list to consider
