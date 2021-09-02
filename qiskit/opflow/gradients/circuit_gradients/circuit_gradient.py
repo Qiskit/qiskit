@@ -39,17 +39,17 @@ class CircuitGradient(ConverterBase):
     # pylint: disable=arguments-differ
     @abstractmethod
     def convert(
-            self,
-            operator: OperatorBase,
-            params: Optional[
-                Union[
-                    ParameterExpression,
-                    ParameterVector,
-                    List[ParameterExpression],
-                    Tuple[ParameterExpression, ParameterExpression],
-                    List[Tuple[ParameterExpression, ParameterExpression]],
-                ]
-            ] = None,
+        self,
+        operator: OperatorBase,
+        params: Optional[
+            Union[
+                ParameterExpression,
+                ParameterVector,
+                List[ParameterExpression],
+                Tuple[ParameterExpression, ParameterExpression],
+                List[Tuple[ParameterExpression, ParameterExpression]],
+            ]
+        ] = None,
     ) -> OperatorBase:
         r"""
         Args:
@@ -71,7 +71,7 @@ class CircuitGradient(ConverterBase):
 
     @staticmethod
     def _transpile_to_supported_operations(
-            circuit: QuantumCircuit, supported_gates: Set[str]
+        circuit: QuantumCircuit, supported_gates: Set[str]
     ) -> QuantumCircuit:
         """Unroll the given circuit into a gate set for which the gradients may be computed.
 
@@ -88,8 +88,9 @@ class CircuitGradient(ConverterBase):
         unique_ops = set(circuit.count_ops().keys())
         if not unique_ops.issubset(supported_gates):
             try:
-                circuit = transpile(circuit, basis_gates=list(supported_gates),
-                                    optimization_level=0)
+                circuit = transpile(
+                    circuit, basis_gates=list(supported_gates), optimization_level=0
+                )
             except Exception as exc:
                 raise QiskitError(
                     f"Could not transpile the circuit provided {circuit} into supported gates "
