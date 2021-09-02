@@ -15,7 +15,7 @@
 from abc import abstractmethod
 from typing import List, Union, Optional, Tuple, Set
 
-from qiskit import QuantumCircuit, QiskitError
+from qiskit import QuantumCircuit, QiskitError, transpile
 from qiskit.circuit import ParameterExpression, ParameterVector
 from qiskit.transpiler.passes import Unroller
 from ...converters.converter_base import ConverterBase
@@ -39,17 +39,17 @@ class CircuitGradient(ConverterBase):
     # pylint: disable=arguments-differ
     @abstractmethod
     def convert(
-        self,
-        operator: OperatorBase,
-        params: Optional[
-            Union[
-                ParameterExpression,
-                ParameterVector,
-                List[ParameterExpression],
-                Tuple[ParameterExpression, ParameterExpression],
-                List[Tuple[ParameterExpression, ParameterExpression]],
-            ]
-        ] = None,
+            self,
+            operator: OperatorBase,
+            params: Optional[
+                Union[
+                    ParameterExpression,
+                    ParameterVector,
+                    List[ParameterExpression],
+                    Tuple[ParameterExpression, ParameterExpression],
+                    List[Tuple[ParameterExpression, ParameterExpression]],
+                ]
+            ] = None,
     ) -> OperatorBase:
         r"""
         Args:
@@ -70,8 +70,8 @@ class CircuitGradient(ConverterBase):
         raise NotImplementedError
 
     @staticmethod
-    def _unroll_to_supported_operations(
-        circuit: QuantumCircuit, supported_gates: Set[str]
+    def _transpile_to_supported_operations(
+            circuit: QuantumCircuit, supported_gates: Set[str]
     ) -> QuantumCircuit:
         """Unroll the given circuit into a gate set for which the gradients may be computed.
 
@@ -88,11 +88,11 @@ class CircuitGradient(ConverterBase):
         unique_ops = set(circuit.count_ops().keys())
         if not unique_ops.issubset(supported_gates):
             try:
-                unroller = Unroller(list(supported_gates))
-                circuit = unroller(circuit)
+                circuit = transpile(circuit, basis_gates=list(supported_gates),
+                                    optimization_level=0)
             except Exception as exc:
                 raise QiskitError(
-                    f"Could not unroll the circuit provided {circuit} into supported gates "
+                    f"Could not transpile the circuit provided {circuit} into supported gates "
                     f"{supported_gates}."
                 ) from exc
         return circuit

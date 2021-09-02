@@ -197,7 +197,7 @@ class ParamShift(CircuitGradient):
             if self.analytic:
                 # Unroll the circuit into a gate set for which the gradient may be computed
                 # using pi/2 shifts.
-                circ = CircuitGradient._unroll_to_supported_operations(circ, self.SUPPORTED_GATES)
+                circ = CircuitGradient._transpile_to_supported_operations(circ, self.SUPPORTED_GATES)
                 operator = ParamShift._replace_operator_circuit(operator, circ)
 
             if param not in circ._parameter_table:

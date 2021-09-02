@@ -625,7 +625,7 @@ class LinComb(CircuitGradient):
         state_qc.h(qr_superpos)
         # unroll separately from the H gate since we need the H gate to be the first
         # operation in the data attributes of the circuit
-        unrolled = CircuitGradient._unroll_to_supported_operations(
+        unrolled = CircuitGradient._transpile_to_supported_operations(
             state_op.primitive, self.SUPPORTED_GATES
         )
         state_qc.compose(unrolled, inplace=True)
