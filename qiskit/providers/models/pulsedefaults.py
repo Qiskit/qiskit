@@ -15,7 +15,7 @@
 import copy
 from typing import Any, Dict, List
 
-from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
+from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap, CalibrationPublisher
 from qiskit.pulse.schedule import Schedule
 from qiskit.qobj import PulseLibraryItem, PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
@@ -205,6 +205,7 @@ class PulseDefaults:
         for inst in cmd_def:
             pulse_insts = [self.converter(inst) for inst in inst.sequence]
             schedule = Schedule(*pulse_insts, name=inst.name)
+            schedule.metadata["publisher"] = CalibrationPublisher.BACKEND_PROVIDER
             self.instruction_schedule_map.add(inst.name, inst.qubits, schedule)
 
         if meas_kernel is not None:
@@ -282,7 +283,7 @@ class PulseDefaults:
         meas_freqs = [freq / 1e9 for freq in self.meas_freq_est]
         qfreq = f"Qubit Frequencies [GHz]\n{qubit_freqs}"
         mfreq = f"Measurement Frequencies [GHz]\n{meas_freqs} "
-        return "<{name}({insts}{qfreq}\n{mfreq})>" "".format(
+        return "<{name}({insts}{qfreq}\n{mfreq})>".format(
             name=self.__class__.__name__,
             insts=str(self.instruction_schedule_map),
             qfreq=qfreq,
