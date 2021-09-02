@@ -158,9 +158,9 @@ class OneQubitEulerDecomposer:
 
         # Check input is a 2-qubit unitary
         if unitary.shape != (2, 2):
-            raise QiskitError("OneQubitEulerDecomposer: " "expected 2x2 input matrix")
+            raise QiskitError("OneQubitEulerDecomposer: expected 2x2 input matrix")
         if not is_unitary_matrix(unitary):
-            raise QiskitError("OneQubitEulerDecomposer: " "input matrix is not unitary.")
+            raise QiskitError("OneQubitEulerDecomposer: input matrix is not unitary.")
         return self._decompose(unitary, simplify=simplify, atol=atol)
 
     def _decompose(self, unitary, simplify=True, atol=DEFAULT_ATOL):
