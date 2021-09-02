@@ -124,7 +124,9 @@ class InstructionDurations:
             self.duration_by_name.update(inst_durations.duration_by_name)
             self.duration_by_name_params.update(inst_durations.duration_by_name_params)
             self.duration_by_name_qubits.update(inst_durations.duration_by_name_qubits)
-            self.duration_by_name_params_qubits.update(inst_durations.duration_by_name_params_qubits)
+            self.duration_by_name_params_qubits.update(
+                inst_durations.duration_by_name_params_qubits
+            )
         else:
             for i, items in enumerate(inst_durations):
                 if len(items) == 3:
@@ -133,7 +135,7 @@ class InstructionDurations:
                     if isinstance(items[-1], str):
                         inst_durations[i] = (items[0], None, items[1], items[2], items[3])
                     else:
-                        inst_durations[i] = (*items, 'dt')  # set default unit
+                        inst_durations[i] = (*items, "dt")  # set default unit
                 elif len(items) != 5:
                     raise TranspilerError(
                         "Each entry of inst_durations dictionary must be "
@@ -156,7 +158,10 @@ class InstructionDurations:
                 elif qubits is None:
                     self.duration_by_name_params[(name, tuple(params))] = duration, unit
                 else:
-                    self.duration_by_name_params_qubits[(name, tuple(params), tuple(qubits))] = duration, unit
+                    self.duration_by_name_params_qubits[(name, tuple(params), tuple(qubits))] = (
+                        duration,
+                        unit,
+                    )
 
         return self
 
@@ -229,7 +234,9 @@ class InstructionDurations:
         elif name in self.duration_by_name:
             duration, unit = self.duration_by_name[name]
         else:
-            raise TranspilerError(f"No value is found for name={name}, params={params}, qubits={qubits}")
+            raise TranspilerError(
+                f"No value is found for name={name}, params={params}, qubits={qubits}"
+            )
 
         return self._convert_unit(duration, unit, to_unit)
 
