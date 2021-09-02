@@ -153,6 +153,20 @@ class TestQFT(QiskitTestCase):
             expected = qft.num_qubits if insert_barriers else 0
             self.assertEqual(ops.get("barrier", 0), expected)
 
+    def test_name_after_inverting(self):
+        """Test the name after inverting the QFT is IQFT and not QFT_dg."""
+        iqft = QFT(1).inverse()
+        i2qft = iqft.inverse()
+
+        with self.subTest(msg="inverted once"):
+            self.assertEqual(iqft.name, "IQFT")
+
+        with self.subTest(msg="inverted twice"):
+            self.assertEqual(i2qft.name, "QFT")
+
+        with self.subTest(msg="inverse as kwarg"):
+            self.assertEqual(QFT(1, inverse=True).name, "IQFT")
+
 
 if __name__ == "__main__":
     unittest.main()
