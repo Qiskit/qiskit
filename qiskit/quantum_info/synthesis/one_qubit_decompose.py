@@ -48,6 +48,7 @@ ONE_QUBIT_EULER_BASIS_GATES = {
     "RR": ["r"],
     "ZYZ": ["rz", "ry"],
     "ZXZ": ["rz", "rx"],
+    "XZX": ["rz", "rx"],
     "XYX": ["rx", "ry"],
     "ZSXX": ["rz", "sx", "x"],
     "ZSX": ["rz", "sx"],
@@ -80,6 +81,9 @@ class OneQubitEulerDecomposer:
         * - 'XYX'
           - :math:`X(\phi) Y(\theta) X(\lambda)`
           - :math:`e^{i\gamma} R_X(\phi).R_Y(\theta).R_X(\lambda)`
+        * - 'XZX'
+          - :math:`X(\phi) Z(\theta) X(\lambda)`
+          - :math:`e^{i\gamma} R_X(\phi).R_Z(\theta).R_X(\lambda)`
         * - 'U3'
           - :math:`Z(\phi) Y(\theta) Z(\lambda)`
           - :math:`e^{i\gamma} U_3(\theta,\phi,\lambda)`
@@ -116,7 +120,7 @@ class OneQubitEulerDecomposer:
         """Initialize decomposer
 
         Supported bases are: 'U', 'PSX', 'ZSXX', 'ZSX', 'U321', 'U3', 'U1X', 'RR', 'ZYZ', 'ZXZ',
-        'XYX'.
+        'XYX', 'XZX'.
 
         Args:
             basis (str): the decomposition basis [Default: 'U3']
@@ -154,9 +158,9 @@ class OneQubitEulerDecomposer:
 
         # Check input is a 2-qubit unitary
         if unitary.shape != (2, 2):
-            raise QiskitError("OneQubitEulerDecomposer: " "expected 2x2 input matrix")
+            raise QiskitError("OneQubitEulerDecomposer: expected 2x2 input matrix")
         if not is_unitary_matrix(unitary):
-            raise QiskitError("OneQubitEulerDecomposer: " "input matrix is not unitary.")
+            raise QiskitError("OneQubitEulerDecomposer: input matrix is not unitary.")
         return self._decompose(unitary, simplify=simplify, atol=atol)
 
     def _decompose(self, unitary, simplify=True, atol=DEFAULT_ATOL):
@@ -184,6 +188,7 @@ class OneQubitEulerDecomposer:
             "ZYZ": (self._params_zyz, self._circuit_zyz),
             "ZXZ": (self._params_zxz, self._circuit_zxz),
             "XYX": (self._params_xyx, self._circuit_xyx),
+            "XZX": (self._params_xzx, self._circuit_xzx),
         }
         if basis not in basis_methods:
             raise QiskitError(f"OneQubitEulerDecomposer: unsupported basis {basis}")
@@ -260,6 +265,15 @@ class OneQubitEulerDecomposer:
         theta, phi, lam, phase = OneQubitEulerDecomposer._params_zyz(mat_zyz)
         newphi, newlam = _mod_2pi(phi + np.pi), _mod_2pi(lam + np.pi)
         return theta, newphi, newlam, phase + (newphi + newlam - phi - lam) / 2
+
+    @staticmethod
+    def _params_xzx(umat):
+        det = np.linalg.det(umat)
+        phase = (-1j * np.log(det)).real / 2
+        mat = umat / np.sqrt(det)
+        mat_zxz = _h_conjugate(mat)
+        theta, phi, lam, phase_zxz = OneQubitEulerDecomposer._params_zxz(mat_zxz)
+        return theta, phi, lam, phase + phase_zxz
 
     @staticmethod
     def _params_u3(mat):
@@ -379,6 +393,21 @@ class OneQubitEulerDecomposer:
             allow_non_canonical=allow_non_canonical,
             k_gate=RZGate,
             a_gate=RXGate,
+        )
+
+    def _circuit_xzx(
+        self, theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL, allow_non_canonical=True
+    ):
+        return self._circuit_kak(
+            theta,
+            phi,
+            lam,
+            phase,
+            simplify=simplify,
+            atol=atol,
+            allow_non_canonical=allow_non_canonical,
+            k_gate=RXGate,
+            a_gate=RZGate,
         )
 
     def _circuit_xyx(
@@ -565,3 +594,14 @@ def _mod_2pi(angle: float, atol: float = 0):
     if abs(wrapped - np.pi) < atol:
         wrapped = -np.pi
     return wrapped
+
+
+def _h_conjugate(su2):
+    """Return su2 conjugated by Hadamard gate. No warning if input matrix is not in su2."""
+    return np.array(
+        [
+            [su2[0, 0].real + 1j * su2[1, 0].imag, 1j * su2[0, 0].imag + su2[1, 0].real],
+            [1j * su2[0, 0].imag - su2[1, 0].real, su2[0, 0].real - 1j * su2[1, 0].imag],
+        ],
+        dtype=complex,
+    )

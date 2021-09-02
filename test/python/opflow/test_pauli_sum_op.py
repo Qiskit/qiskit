@@ -18,9 +18,10 @@ from test.python.opflow import QiskitOpflowTestCase
 
 import numpy as np
 from scipy.sparse import csr_matrix
+from sympy import Symbol
 
 from qiskit import QuantumCircuit, transpile
-from qiskit.circuit import Parameter, ParameterVector
+from qiskit.circuit import Parameter, ParameterExpression, ParameterVector
 from qiskit.opflow import (
     CX,
     CircuitStateFn,
@@ -51,6 +52,25 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         self.assertEqual(pauli_sum.primitive, sparse_pauli)
         self.assertEqual(pauli_sum.coeff, coeff)
         self.assertEqual(pauli_sum.num_qubits, 4)
+
+    def test_coeffs(self):
+        """ListOp.coeffs test"""
+        sum1 = SummedOp(
+            [(0 + 1j) * X, (1 / np.sqrt(2) + 1j / np.sqrt(2)) * Z], 0.5
+        ).collapse_summands()
+        self.assertAlmostEqual(sum1.coeffs[0], 0.5j)
+        self.assertAlmostEqual(sum1.coeffs[1], (1 + 1j) / (2 * np.sqrt(2)))
+
+        a_param = Parameter("a")
+        b_param = Parameter("b")
+        param_exp = ParameterExpression({a_param: 1, b_param: 0}, Symbol("a") ** 2 + Symbol("b"))
+        sum2 = SummedOp([X, (1 / np.sqrt(2) - 1j / np.sqrt(2)) * Y], param_exp).collapse_summands()
+        self.assertIsInstance(sum2.coeffs[0], ParameterExpression)
+        self.assertIsInstance(sum2.coeffs[1], ParameterExpression)
+
+        # Nested ListOp
+        sum_nested = SummedOp([X, sum1])
+        self.assertRaises(TypeError, lambda: sum_nested.coeffs)
 
     def test_add(self):
         """add test"""

@@ -1,7 +1,0 @@
----
-features:
-  - |
-    Add symplectic :class:`~qiskit.quantum_info.PauliList` that inherits from
-    :class:`qiskit.quantum_info.BasePauli`. Unlike the
-    :class:`~qiskit.quantum_info.PauliTable`, :class:`qiskit.quantum_info.PauliList`
-    can handle Z4 phases.

@@ -1,9 +1,0 @@
----
-fixes:
-  - |
-    Fixed an issue with the :class:`~qiskit.utils.QuantumInstance` with
-    :class:`~qiskit.providers.BackendV1` backends with the
-    :attr:`~qiskit.providers.models.BackendConfiguration.`max_experiments`
-    attribute set to a value less than the number of circuits to run. Previously
-    the :class:`~qiskit.utils.QuantumInstance` would not correctly split the
-    circuits to run into separate jobs, which has been corrected.

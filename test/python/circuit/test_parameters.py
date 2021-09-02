@@ -14,10 +14,10 @@
 import unittest
 import cmath
 import math
-
 import copy
 import pickle
 from operator import add, mul, sub, truediv
+
 from test import combine
 
 import numpy
@@ -71,9 +71,7 @@ def raise_if_parameter_table_invalid(circuit):  # pylint: disable=invalid-name
     for parameter, instr_list in table.items():
         for instr, param_index in instr_list:
             if instr not in circuit_instructions:
-                raise CircuitError(
-                    "ParameterTable instruction not present " "in circuit: {}.".format(instr)
-                )
+                raise CircuitError(f"ParameterTable instruction not present in circuit: {instr}.")
 
             if not isinstance(instr.params[param_index], ParameterExpression):
                 raise CircuitError(
@@ -811,7 +809,8 @@ class TestParameters(QiskitTestCase):
 
         self.assertTrue(len(job.result().results), 2)
 
-    def test_transpile_across_optimization_levels(self):
+    @data(0, 1, 2, 3)
+    def test_transpile_across_optimization_levels(self, opt_level):
         """Verify parameterized circuits can be transpiled with all default pass managers."""
 
         qc = QuantumCircuit(5, 5)
@@ -826,8 +825,7 @@ class TestParameters(QiskitTestCase):
 
         qc.measure(range(5 - 1), range(5 - 1))
 
-        for i in [0, 1, 2, 3]:
-            transpile(qc, FakeOurense(), optimization_level=i)
+        transpile(qc, FakeOurense(), optimization_level=opt_level)
 
     def test_repeated_gates_to_dag_and_back(self):
         """Verify circuits with repeated parameterized gates can be converted
@@ -1422,7 +1420,7 @@ class TestParameterExpressions(QiskitTestCase):
         try:
             qc.decompose()
         except TypeError:
-            self.fail("failed to decompose cu3 gate with negated parameter " "expression")
+            self.fail("failed to decompose cu3 gate with negated parameter expression")
 
     def test_name_collision(self):
         """Verify Expressions of distinct Parameters of shared name raises."""

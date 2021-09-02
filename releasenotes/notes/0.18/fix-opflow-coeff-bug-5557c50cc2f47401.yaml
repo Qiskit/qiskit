@@ -1,0 +1,21 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :mod:`qiskit.opflow.expectations` module
+    where coefficients of a statefunction were not being multiplied correctly.
+    This also fixed the calculations
+    of Gradients and QFIs when using the
+    :class:`~qiskit.opflow.expectations.PauliExpectation` or
+    :class:`~qiskit.opflow.expectations.AerPauliExpectation` classes. For
+    example, previously::
+
+        from qiskit.opflow import StateFn, I, One
+
+        exp = ~StateFn(I) @ (2 * One)
+
+    evaluated to ``2``
+    for :class:`~qiskit.opflow.expectations.AerPauliExpectation` and to ``4``
+    for other expectation converters. Since ``~StateFn(I) @ (2 * One)`` is a
+    shorthand notation for ``~(2 * One) @ I @ (2 * One)``, the now correct
+    coefficient of ``4`` is returned for all expectation converters.
+    Fixed `#6497 <https://github.com/Qiskit/qiskit-terra/issues/6497>`__
