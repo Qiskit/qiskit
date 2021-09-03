@@ -1,0 +1,17 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :func:`~qiskit.visualization.circuit_drawer`
+    function and :meth:`~qiskit.circuit.QuantumCircuit.draw` method of
+    :class:`~qiskit.circuit.QuantumCircuit`. When displaying a ``measure``
+    instruction containing a classical ``condition`` using the ``mpl`` or
+    ``latex`` options, the ``condition`` information would sometimes
+    overwrite the ``measure`` display.
+fixes:
+  - |
+    Fixed an issue with the :func:`~qiskit.visualization.circuit_drawer`
+    function and :meth:`~qiskit.circuit.QuantumCircuit.draw` method of
+    :class:`~qiskit.circuit.QuantumCircuit`. The ``mpl`` drawer used hex
+    notation to display the ``condition`` value, whereas the ``text`` and
+    ``latex`` drawers used decimal notation. Now all three drawers use
+    hex notation.

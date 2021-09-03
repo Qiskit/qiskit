@@ -918,6 +918,8 @@ class MatplotlibDrawer:
             label = hex(val)
         else:
             label = None
+        if isinstance(node.op, Measure):
+            xpos += 0.3
         self._ax.text(
             xpos,
             ypos - 0.3 * HIG,
