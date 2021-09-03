@@ -22,7 +22,6 @@ from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.library.standard_gates import SwapGate, XGate, ZGate, RZZGate, U1Gate, PhaseGate
 from qiskit.circuit.measure import Measure
 from qiskit.visualization.qcstyle import load_style
-from qiskit.visualization import exceptions
 from qiskit.circuit.tools.pi_check import pi_check
 from .utils import get_gate_ctrl_text, get_param_str, generate_latex_label
 
@@ -159,16 +158,15 @@ class QCircuitImage:
 
         self._initialize_latex_array()
         self._build_latex_array()
-        header_1 = r"""\documentclass[border=2px]{standalone}
-        """
+        header_1 = r"\documentclass[border=2px]{standalone}" + "\n"
 
         header_2 = r"""
 \usepackage[braket, qm]{qcircuit}
 \usepackage{graphicx}
 
-\begin{document} 
+\begin{document}
 """
-        header_scale = "\\scalebox{{{}}}".format(self.scale) + "{"
+        header_scale = f"\\scalebox{{{self.scale}}}" + "{"
 
         qcircuit_line = r"""
 \Qcircuit @C=%.1fem @R=%.1fem @!R { \\
@@ -190,7 +188,7 @@ class QCircuitImage:
                 if j != self.img_depth:
                     output.write(" & ")
                 else:
-                    output.write(r"\\ " + "\n")
+                    output.write(r"\\" + "\n")
         output.write(r"\\ " + "}}\n")
         output.write("\\end{document}")
         contents = output.getvalue()
@@ -395,6 +393,10 @@ class QCircuitImage:
             for node in layer:
                 op = node.op
                 num_cols_op = 1
+                wire_list = [self.img_regs[qarg] for qarg in node.qargs]
+                if op.condition:
+                    self._add_condition(op, wire_list, column)
+
                 if isinstance(op, Measure):
                     self._build_measure(node, column)
 
@@ -405,14 +407,10 @@ class QCircuitImage:
                     gate_text, _, _ = get_gate_ctrl_text(op, "latex", style=self._style)
                     gate_text += get_param_str(op, "latex", ndigits=4)
                     gate_text = generate_latex_label(gate_text)
-                    wire_list = [self.img_regs[qarg] for qarg in node.qargs]
                     if node.cargs:
                         cwire_list = [self.img_regs[carg] for carg in node.cargs]
                     else:
                         cwire_list = []
-
-                    if op.condition:
-                        self._add_condition(op, wire_list, column)
 
                     if len(wire_list) == 1 and not node.cargs:
                         self._latex[wire_list[0]][column] = "\\gate{%s}" % gate_text
@@ -441,7 +439,7 @@ class QCircuitImage:
                 wire_max = max(cwire_list)
             wire_ind = wire_list.index(wire_min)
             self._latex[wire_min][col] = (
-                "\\multigate{%s}{%s}_" % (wire_max - wire_min, gate_text)
+                f"\\multigate{{{wire_max - wire_min}}}{{{gate_text}}}_"
                 + "<" * (len(str(wire_ind)) + 2)
                 + "{%s}" % wire_ind
             )
@@ -532,10 +530,8 @@ class QCircuitImage:
 
     def _build_measure(self, node, col):
         """Build a meter and the lines to the creg"""
-        if node.op.condition:
-            raise exceptions.VisualizationError("If controlled measures currently not supported.")
-
         wire1 = self.img_regs[node.qargs[0]]
+        self._latex[wire1][col] = "\\meter"
         if self.cregbundle:
             wire2 = len(self.qubit_list)
             cregindex = self.img_regs[node.cargs[0]] - wire2
@@ -545,17 +541,15 @@ class QCircuitImage:
                     wire2 += 1
                 else:
                     break
-        else:
-            wire2 = self.img_regs[node.cargs[0]]
-
-        self._latex[wire1][col] = "\\meter"
-        if self.cregbundle:
-            self._latex[wire2][col] = "\\dstick{_{_{%s}}} \\cw \\cwx[-%s]" % (
+            cond_offset = 1.5 if node.op.condition else 0.0
+            self._latex[wire2][col] = "\\dstick{_{_{\\hspace{%sem}%s}}} \\cw \\ar @{<=} [-%s,0]" % (
+                cond_offset,
                 str(cregindex),
                 str(wire2 - wire1),
             )
         else:
-            self._latex[wire2][col] = "\\control \\cw \\cwx[-" + str(wire2 - wire1) + "]"
+            wire2 = self.img_regs[node.cargs[0]]
+            self._latex[wire2][col] = "\\cw \\ar @{<=} [-" + str(wire2 - wire1) + ",0]"
 
     def _build_barrier(self, node, col):
         """Build a partial or full barrier if plot_barriers set"""
@@ -622,21 +616,24 @@ class QCircuitImage:
             cwire += 1
 
         gap = cwire - max(wire_list)
+        meas_offset = -0.3 if isinstance(op, Measure) else 0.0
         if self.cregbundle:
-            # Print the condition value at the bottom
+            # Print the condition value at the bottom and put bullet on creg line
             if cond_is_bit:
                 ctrl_bit = (
                     str(cond_reg.name) + "_" + str(self.bit_locations[op.condition[0]]["index"])
                 )
                 label = "T" if if_value is True else "F"
-                self._latex[cwire][col] = "\\dstick{_{_{%s=%s}}} \\cw \\cwx[-%s]" % (
+                self._latex[cwire][col] = "\\control \\cw^(%s){^{\\mathtt{%s=%s}}} \\cwx[-%s]" % (
+                    meas_offset,
                     ctrl_bit,
                     label,
                     str(gap),
                 )
             else:
-                self._latex[cwire][col] = "\\dstick{_{_{=%s}}} \\cw \\cwx[-%s]" % (
-                    str(op.condition[1]),
+                self._latex[cwire][col] = "\\control \\cw^(%s){^{\\mathtt{%s}}} \\cwx[-%s]" % (
+                    meas_offset,
+                    str(hex(op.condition[1])),
                     str(gap),
                 )
         else:
@@ -645,12 +642,27 @@ class QCircuitImage:
                 extra_gap = list(cond_reg).index(op.condition[0])
                 gap += extra_gap
                 control = "\\control" if if_value is True else "\\controlo"
-                self._latex[cwire + extra_gap][col] = f"{control} \\cw \\cwx[-" + str(gap) + "]"
+                self._latex[cwire + extra_gap][col] = (
+                    f"{control}" + " \\cw^(%s){^{\\mathtt{%s}}} \\cwx[-%s]"
+                ) % (
+                    meas_offset,
+                    str(hex(op.condition[1])),
+                    str(gap),
+                )
             else:
-                for i in range(creg_size):
+                for i in range(creg_size - 1):
                     control = "\\control" if if_value[i] == "1" else "\\controlo"
                     self._latex[cwire + i][col] = f"{control} \\cw \\cwx[-" + str(gap) + "]"
                     gap = 1
+                # Add (hex condition value) below the last cwire
+                control = "\\control" if if_value[creg_size - 1] == "1" else "\\controlo"
+                self._latex[creg_size + cwire - 1][col] = (
+                    f"{control}" + " \\cw^(%s){^{\\mathtt{%s}}} \\cwx[-%s]"
+                ) % (
+                    meas_offset,
+                    str(hex(op.condition[1])),
+                    str(gap),
+                )
 
     def _truncate_float(self, matchobj, ndigits=4):
         """Truncate long floats."""
