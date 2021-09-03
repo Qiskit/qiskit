@@ -179,7 +179,7 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         """Test for trotter qrte gradient with SummedOp and QDrift with commuting operators."""
         theta1 = Parameter("theta1")
         theta2 = Parameter("theta2")
-        operator = theta1 * (-1j * (Y ^ Z ^ Y)) + theta2 * (Z ^ X ^ X)
+        operator = (theta1 * (Y ^ Z ^ Y)) + theta2 * (Z ^ X ^ X)
         mode = TrotterModeEnum.QDRIFT
         trotter_qrte = TrotterQrte(mode)
         initial_state = Zero
@@ -205,7 +205,7 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         """Test for trotter qrte gradient with SummedOp and QDrift with commuting operators."""
         theta1 = Parameter("theta1")
         theta2 = Parameter("theta2")
-        operator = theta1 * (-1j * (Y ^ Z ^ Y)) + theta2 * (Z ^ X ^ X)
+        operator = (theta1 * (Y ^ Z ^ Y)) + theta2 * (Z ^ X ^ X)
         mode = TrotterModeEnum.QDRIFT
         trotter_qrte = TrotterQrte(mode)
         initial_state = Zero
