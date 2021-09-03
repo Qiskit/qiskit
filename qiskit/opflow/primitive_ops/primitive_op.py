@@ -246,7 +246,11 @@ class PrimitiveOp(OperatorBase):
                 return ListOp([self.assign_parameters(param_dict) for param_dict in unrolled_dict])
             if self.coeff.parameters <= set(unrolled_dict.keys()):
                 binds = {param: unrolled_dict[param] for param in self.coeff.parameters}
-                param_value = float(self.coeff.bind(binds))
+                param_value = self.coeff.bind(binds)
+                if np.imag(complex(param_value)) == 0:
+                    param_value = float(param_value)
+                else:
+                    param_value = complex(param_value)
         return self.__class__(self.primitive, coeff=param_value)
 
     # Nothing to collapse here.
