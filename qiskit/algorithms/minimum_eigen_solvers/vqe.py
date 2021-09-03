@@ -496,6 +496,15 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         except AttributeError:
             # self.optimizer is an optimizer with the deprecated interface that uses
             # ``optimize`` instead of ``minimize```
+            warnings.warn(
+                "Using an optimizer that is run with the ``optimize`` method is "
+                "deprecated as of Qiskit Terra 0.19.0 and will be unsupported no "
+                "sooner than 3 months after the release date. Instead use an optimizer "
+                "providing ``minimize`` (see qiskit.algorithms.optimizers.Optimizer).",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
             opt_result = self.optimizer.optimize(
                 len(initial_point), energy_evaluation, gradient, bounds, initial_point
             )
