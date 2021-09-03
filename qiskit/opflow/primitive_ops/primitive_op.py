@@ -46,12 +46,11 @@ class PrimitiveOp(OperatorBase):
     @staticmethod
     # pylint: disable=unused-argument
     def __new__(
-            cls,
-            primitive: Union[
-                Instruction, QuantumCircuit, List, np.ndarray, spmatrix, Operator, Pauli,
-                SparsePauliOp
-            ],
-            coeff: Union[complex, ParameterExpression] = 1.0,
+        cls,
+        primitive: Union[
+            Instruction, QuantumCircuit, List, np.ndarray, spmatrix, Operator, Pauli, SparsePauliOp
+        ],
+        coeff: Union[complex, ParameterExpression] = 1.0,
     ) -> "PrimitiveOp":
         """A factory method to produce the correct type of PrimitiveOp subclass
         based on the primitive passed in. Primitive and coeff arguments are passed into
@@ -94,9 +93,9 @@ class PrimitiveOp(OperatorBase):
         )
 
     def __init__(
-            self,
-            primitive: Union[QuantumCircuit, Operator, Pauli, SparsePauliOp, OperatorBase],
-            coeff: Union[complex, ParameterExpression] = 1.0,
+        self,
+        primitive: Union[QuantumCircuit, Operator, Pauli, SparsePauliOp, OperatorBase],
+        coeff: Union[complex, ParameterExpression] = 1.0,
     ) -> None:
         """
         Args:
@@ -171,7 +170,7 @@ class PrimitiveOp(OperatorBase):
         return temp
 
     def compose(
-            self, other: OperatorBase, permutation: Optional[List[int]] = None, front: bool = False
+        self, other: OperatorBase, permutation: Optional[List[int]] = None, front: bool = False
     ) -> OperatorBase:
         # pylint: disable=cyclic-import
         from ..list_ops.composed_op import ComposedOp
@@ -220,10 +219,10 @@ class PrimitiveOp(OperatorBase):
         return f"{type(self).__name__}({repr(self.primitive)}, coeff={self.coeff})"
 
     def eval(
-            self,
-            front: Optional[
-                Union[str, Dict[str, complex], np.ndarray, OperatorBase, Statevector]
-            ] = None,
+        self,
+        front: Optional[
+            Union[str, Dict[str, complex], np.ndarray, OperatorBase, Statevector]
+        ] = None,
     ) -> Union[OperatorBase, complex]:
         raise NotImplementedError
 
