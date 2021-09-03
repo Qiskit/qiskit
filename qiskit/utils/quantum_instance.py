@@ -136,7 +136,7 @@ class QuantumInstance:
         measurement_error_mitigation_shots: Optional[int] = None,
         job_callback: Optional[Callable] = None,
         mit_pattern: Optional[List[List[int]]] = None,
-        max_tries: int = 50,
+        max_job_retries: int = 50,
     ) -> None:
         """
         Quantum Instance holds a Qiskit Terra backend as well as configuration for circuit
@@ -185,7 +185,7 @@ class QuantumInstance:
                 measurement correction, divided to groups according to tensors.
                 If `None` and `qr` is given then assumed to be performed over the entire
                 `qr` as one group (default `None`).
-            max_tries(int): positive non-zero number of trials for the job set
+            max_job_retries(int): positive non-zero number of trials for the job set
                             (-1 for infinite trials) (default: 50)
 
         Raises:
@@ -305,7 +305,7 @@ class QuantumInstance:
         self._circuit_summary = False
         self._job_callback = job_callback
         self._time_taken = 0.0
-        self._max_tries = max_tries
+        self._max_job_retries = max_job_retries
         logger.info(self)
 
     def __str__(self) -> str:
@@ -508,7 +508,7 @@ class QuantumInstance:
                             noise_config=self._noise_config,
                             run_config=self._run_config.to_dict(),
                             job_callback=self._job_callback,
-                            max_tries=self._max_tries,
+                            max_job_retries=self._max_job_retries,
                         )
                         self._time_taken += cals_result.time_taken
                         result = run_circuits(
@@ -519,7 +519,7 @@ class QuantumInstance:
                             noise_config=self._noise_config,
                             run_config=self.run_config.to_dict(),
                             job_callback=self._job_callback,
-                            max_tries=self._max_tries,
+                            max_job_retries=self._max_job_retries,
                         )
                         self._time_taken += result.time_taken
                     else:
@@ -532,7 +532,7 @@ class QuantumInstance:
                             noise_config=self._noise_config,
                             run_config=self.run_config.to_dict(),
                             job_callback=self._job_callback,
-                            max_tries=self._max_tries,
+                            max_job_retries=self._max_job_retries,
                         )
                         self._time_taken += result.time_taken
                         cals_result = result
@@ -569,7 +569,7 @@ class QuantumInstance:
                             self._noise_config,
                             self._skip_qobj_validation,
                             self._job_callback,
-                            self._max_tries,
+                            self._max_job_retries,
                         )
                         self._time_taken += cals_result.time_taken
                         result = run_qobj(
@@ -580,7 +580,7 @@ class QuantumInstance:
                             self._noise_config,
                             self._skip_qobj_validation,
                             self._job_callback,
-                            self._max_tries,
+                            self._max_job_retries,
                         )
                         self._time_taken += result.time_taken
                     else:
@@ -594,7 +594,7 @@ class QuantumInstance:
                             self._noise_config,
                             self._skip_qobj_validation,
                             self._job_callback,
-                            self._max_tries,
+                            self._max_job_retries,
                         )
                         self._time_taken += result.time_taken
                         cals_result = result
@@ -623,7 +623,7 @@ class QuantumInstance:
                         noise_config=self._noise_config,
                         run_config=self._run_config.to_dict(),
                         job_callback=self._job_callback,
-                        max_tries=self._max_tries,
+                        max_job_retries=self._max_job_retries,
                     )
                     if circuit_job
                     else run_qobj(
@@ -634,7 +634,7 @@ class QuantumInstance:
                         self._noise_config,
                         self._skip_qobj_validation,
                         self._job_callback,
-                        self._max_tries,
+                        self._max_job_retries,
                     )
                 )
                 self._time_taken += result.time_taken
@@ -688,7 +688,7 @@ class QuantumInstance:
                     noise_config=self._noise_config,
                     run_config=self._run_config.to_dict(),
                     job_callback=self._job_callback,
-                    max_tries=self._max_tries,
+                    max_job_retries=self._max_job_retries,
                 )
                 if circuit_job
                 else run_qobj(
@@ -699,7 +699,7 @@ class QuantumInstance:
                     self._noise_config,
                     self._skip_qobj_validation,
                     self._job_callback,
-                    self._max_tries,
+                    self._max_job_retries,
                 )
             )
             self._time_taken += result.time_taken
@@ -799,23 +799,23 @@ class QuantumInstance:
         self._circuit_summary = new_value
 
     @property
-    def max_tries(self):
+    def max_job_retries(self):
         """Getter of max tries"""
-        return self._max_tries
+        return self._max_job_retries
 
-    @max_tries.setter
-    def max_tries(self, new_value):
+    @max_job_retries.setter
+    def max_job_retries(self, new_value):
         """Sets the maximum tries"""
         if not isinstance(new_value, int):
-            raise TypeError("max_tries parameter must be an integer")
+            raise TypeError("max_job_retries parameter must be an integer")
         if new_value < -1 or new_value == 0:
             raise ValueError(
-                "max_tries must either be a positive integer or -1(for infinite trials)"
+                "max_job_retries must either be a positive integer or -1(for infinite trials)"
             )
         if new_value == -1:
-            self._max_tries = int(1e18)
+            self._max_job_retries = int(1e18)
         else:
-            self._max_tries = new_value
+            self._max_job_retries = new_value
 
     @property
     def measurement_error_mitigation_cls(self):  # pylint: disable=invalid-name

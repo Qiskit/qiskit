@@ -144,10 +144,10 @@ def _safe_submit_qobj(
     backend_options: Dict,
     noise_config: Dict,
     skip_qobj_validation: bool,
-    max_tries: int,
+    max_job_retries: int,
 ) -> Tuple[BaseJob, str]:
     # assure get job ids
-    for _ in range(max_tries):
+    for _ in range(max_job_retries):
         try:
             job = run_on_backend(
                 backend,
@@ -204,8 +204,8 @@ def _safe_submit_qobj(
     return job, job_id
 
 
-def _safe_get_job_status(job: BaseJob, job_id: str, max_tries: int) -> JobStatus:
-    for _ in range(max_tries):
+def _safe_get_job_status(job: BaseJob, job_id: str, max_job_retries: int) -> JobStatus:
+    for _ in range(max_job_retries):
         try:
             job_status = job.status()
             break
@@ -238,7 +238,7 @@ def run_qobj(
     noise_config: Optional[Dict] = None,
     skip_qobj_validation: bool = False,
     job_callback: Optional[Callable] = None,
-    max_tries: int = 50,
+    max_job_retries: int = 50,
 ) -> Result:
     """
     An execution wrapper with Qiskit-Terra, with job auto recover capability.
@@ -257,7 +257,7 @@ def run_qobj(
         job_callback: callback used in querying info of the submitted job, and
                                            providing the following arguments:
                                             job_id, job_status, queue_position, job
-        max_tries(int): positive non-zero number of trials for the job set
+        max_job_retries(int): positive non-zero number of trials for the job set
                             (-1 for infinite trials) (default: 50)
 
     Returns:
@@ -291,7 +291,7 @@ def run_qobj(
     job_ids = []
     for qob in qobjs:
         job, job_id = _safe_submit_qobj(
-            qob, backend, backend_options, noise_config, skip_qobj_validation, max_tries
+            qob, backend, backend_options, noise_config, skip_qobj_validation, max_job_retries
         )
         job_ids.append(job_id)
         jobs.append(job)
@@ -304,11 +304,11 @@ def run_qobj(
         for idx, _ in enumerate(jobs):
             job = jobs[idx]
             job_id = job_ids[idx]
-            for _ in range(max_tries):
+            for _ in range(max_job_retries):
                 logger.info("Running %s-th qobj, job id: %s", idx, job_id)
                 # try to get result if possible
                 while True:
-                    job_status = _safe_get_job_status(job, job_id, max_tries)
+                    job_status = _safe_get_job_status(job, job_id, max_job_retries)
                     queue_position = 0
                     if job_status in JOB_FINAL_STATES:
                         # do callback again after the job is in the final states
@@ -326,7 +326,7 @@ def run_qobj(
 
                 # get result after the status is DONE
                 if job_status == JobStatus.DONE:
-                    for _ in range(max_tries):
+                    for _ in range(max_job_retries):
                         result = job.result(**qjob_config)
                         if result.success:
                             results.append(result)
@@ -363,7 +363,12 @@ def run_qobj(
                         job_status,
                     )
                 job, job_id = _safe_submit_qobj(
-                    qobj, backend, backend_options, noise_config, skip_qobj_validation, max_tries
+                    qobj,
+                    backend,
+                    backend_options,
+                    noise_config,
+                    skip_qobj_validation,
+                    max_job_retries,
                 )
                 jobs[idx] = job
                 job_ids[idx] = job_id
@@ -444,7 +449,7 @@ def run_circuits(
     noise_config: Optional[Dict] = None,
     run_config: Optional[Dict] = None,
     job_callback: Optional[Callable] = None,
-    max_tries: int = 50,
+    max_job_retries: int = 50,
 ) -> Result:
     """
     An execution wrapper with Qiskit-Terra, with job auto recover capability.
@@ -462,7 +467,7 @@ def run_circuits(
         job_callback: callback used in querying info of the submitted job, and
                                            providing the following arguments:
                                             job_id, job_status, queue_position, job
-        max_tries(int): positive non-zero number of trials for the job set
+        max_job_retries(int): positive non-zero number of trials for the job set
                         (-1 for infinite trials) (default: 50)
 
     Returns:
@@ -499,7 +504,7 @@ def run_circuits(
                 backend_options=backend_options,
                 noise_config=noise_config,
                 run_config=run_config,
-                max_tries=max_tries,
+                max_job_retries=max_job_retries,
             )
             jobs.append(job)
             job_ids.append(job_id)
@@ -512,7 +517,7 @@ def run_circuits(
             backend_options=backend_options,
             noise_config=noise_config,
             run_config=run_config,
-            max_tries=max_tries,
+            max_job_retries=max_job_retries,
         )
         jobs = [job]
         job_ids = [job_id]
@@ -528,12 +533,12 @@ def run_circuits(
             logger.info("There is one jobs are submitted: id: %s", job_id)
             job = jobs[idx]
             job_id = job_ids[idx]
-            for _ in range(max_tries):
+            for _ in range(max_job_retries):
                 logger.info("Running job id: %s", job_id)
                 # try to get result if possible
                 while True:
                     job_status = _safe_get_job_status(
-                        job, job_id, max_tries
+                        job, job_id, max_job_retries
                     )  # if the status was broken, an Exception would be raised anyway
                     queue_position = 0
                     if job_status in JOB_FINAL_STATES:
@@ -552,7 +557,7 @@ def run_circuits(
 
                 # get result after the status is DONE
                 if job_status == JobStatus.DONE:
-                    for _ in range(max_tries):
+                    for _ in range(max_job_retries):
                         result = job.result()
                         if result.success:
                             results.append(result)
@@ -596,7 +601,7 @@ def run_circuits(
                     backend_options=backend_options,
                     noise_config=noise_config,
                     run_config=run_config,
-                    max_tries=max_tries,
+                    max_job_retries=max_job_retries,
                 )
             else:
                 raise QiskitError(
@@ -635,10 +640,10 @@ def _safe_submit_circuits(
     backend_options: Dict,
     noise_config: Dict,
     run_config: Dict,
-    max_tries: int,
+    max_job_retries: int,
 ) -> Tuple[BaseJob, str]:
     # assure get job ids
-    for _ in range(max_tries):
+    for _ in range(max_job_retries):
         try:
             job = _run_circuits_on_backend(
                 backend,
