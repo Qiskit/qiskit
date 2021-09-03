@@ -30,6 +30,7 @@ from qiskit.pulse import (
     ShiftPhase,
     Constant,
 )
+from qiskit.pulse.instruction_schedule_map import CalibrationPublisher
 from qiskit.pulse.channels import DriveChannel
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
@@ -550,6 +551,38 @@ class TestInstructionScheduleMap(QiskitTestCase):
 
         self.assertEqual(instmap, deser_instmap)
 
+    def test_check_backend_provider_cals(self):
+        """Test if schedules provided by backend provider is distinguishable."""
+        instmap = FakeOpenPulse2Q().defaults().instruction_schedule_map
+        publisher = instmap.get("u1", (0,), P0=0).metadata["publisher"]
+
+        self.assertEqual(publisher, CalibrationPublisher.BACKEND_PROVIDER)
+
+    def test_check_user_cals(self):
+        """Test if schedules provided by user is distinguishable."""
+        instmap = FakeOpenPulse2Q().defaults().instruction_schedule_map
+
+        test_u1 = Schedule()
+        test_u1 += ShiftPhase(Parameter("P0"), DriveChannel(0))
+
+        instmap.add("u1", (0,), test_u1, arguments=["P0"])
+        publisher = instmap.get("u1", (0,), P0=0).metadata["publisher"]
+
+        self.assertEqual(publisher, CalibrationPublisher.QISKIT)
+
+    def test_has_custom_gate(self):
+        """Test method to check custom gate."""
+        backend = FakeOpenPulse2Q()
+        instmap = backend.defaults().instruction_schedule_map
+
+        self.assertFalse(instmap.has_custom_gate())
+
+        # add something
+        some_sched = Schedule()
+        instmap.add("u3", (0,), some_sched)
+
+        self.assertTrue(instmap.has_custom_gate())
+
     def test_parameter_default_value(self):
         """Test inst map schedule parameters are substituted by given defaults."""
         instmap = InstructionScheduleMap()
@@ -585,6 +618,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
 
         ret_sched = instmap.get("test_pulse", (0,))  # default value is applied
         self.assertEqual(ret_sched, ref_sched)
+
 
     def test_parameter_reassignment(self):
         """Test inst map schedule parameters can be reassigned."""
