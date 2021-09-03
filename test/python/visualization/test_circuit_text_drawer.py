@@ -1747,7 +1747,7 @@ class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
                 "      └─╥─┘└─╥─┘",
                 "        ║    ║  ",
                 "c0: 0 ══■════╬══",
-                "        =1   ║  ",
+                "       0x1   ║  ",
                 "             ║  ",
                 "c1: 0 ═══════■══",
                 "            0x1 ",
@@ -1912,6 +1912,7 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
                 "      └─╥─┘└─╥─┘",
                 "c0: 0 ══■════╬══",
                 "       0x1   ║  ",
+                "             ║  ",
                 "c1: 0 ═══════■══",
                 "            0x1 ",
             ]
@@ -2289,13 +2290,13 @@ class TestTextConditional(QiskitTestCase):
 
         expected = "\n".join(
             [
-                "             ",
-                "qr_0: |0>─■──",
-                "          │  ",
-                "qr_1: |0>─■──",
-                "          ║  ",
-                "   cr: 0 ═■══",
-                "         0x1 ",
+                "              ",
+                "qr_0: |0>──■──",
+                "           │  ",
+                "qr_1: |0>──■──",
+                "           ║  ",
+                "   cr: 0 ══■══",
+                "          0x1 ",
             ]
         )
 
@@ -2333,14 +2334,14 @@ class TestTextConditional(QiskitTestCase):
 
         expected = "\n".join(
             [
-                "             ",
-                "qr_0: |0>─■──",
-                "          │  ",
-                "qr_1: |0>─■──",
-                "          ║  ",
-                "qr_2: |0>─╫──",
-                "          ║  ",
-                "   cr: 0 ═■══",
+                "              ",
+                "qr_0: |0>──■──",
+                "           │  ",
+                "qr_1: |0>──■──",
+                "           ║  ",
+                "qr_2: |0>──╫──",
+                "           ║  ",
+                "   cr: 0 ══■══",
                 "          0x1 ",
             ]
         )
@@ -2701,14 +2702,14 @@ class TestTextConditional(QiskitTestCase):
 
         expected = "\n".join(
             [
-                "             ",
-                "qr_0: |0>─X──",
-                "          │  ",
-                "qr_1: |0>─X──",
-                "          ║  ",
-                "qr_2: |0>─╫──",
-                "          ║  ",
-                "   cr: 0 ═■══",
+                "              ",
+                "qr_0: |0>──X──",
+                "           │  ",
+                "qr_1: |0>──X──",
+                "           ║  ",
+                "qr_2: |0>──╫──",
+                "           ║  ",
+                "   cr: 0 ══■══",
                 "          0x1 ",
             ]
         )
@@ -2749,16 +2750,16 @@ class TestTextConditional(QiskitTestCase):
 
         expected = "\n".join(
             [
-                "             ",
-                "qr_0: |0>─■──",
-                "          │  ",
-                "qr_1: |0>─X──",
-                "          │  ",
-                "qr_2: |0>─X──",
-                "          ║  ",
-                "qr_3: |0>─╫──",
-                "          ║  ",
-                "   cr: 0 ═■══",
+                "              ",
+                "qr_0: |0>──■──",
+                "           │  ",
+                "qr_1: |0>──X──",
+                "           │  ",
+                "qr_2: |0>──X──",
+                "           ║  ",
+                "qr_3: |0>──╫──",
+                "           ║  ",
+                "   cr: 0 ══■══",
                 "          0x1 ",
             ]
         )
@@ -3828,16 +3829,16 @@ class TestTextOpenControlledGate(QiskitTestCase):
         """Closed-Open controlled Z (with conditional)"""
         expected = "\n".join(
             [
-                "            ",
-                "q_0: |0>─■──",
-                "         │  ",
-                "q_1: |0>─o──",
-                "         │  ",
-                "q_2: |0>─■──",
-                "         │  ",
-                "q_3: |0>─■──",
-                "         ║  ",
-                "   c: 0 ═■══",
+                "             ",
+                "q_0: |0>──■──",
+                "          │  ",
+                "q_1: |0>──o──",
+                "          │  ",
+                "q_2: |0>──■──",
+                "          │  ",
+                "q_3: |0>──■──",
+                "          ║  ",
+                "   c: 0 ══■══",
                 "         0x1 ",
             ]
         )
