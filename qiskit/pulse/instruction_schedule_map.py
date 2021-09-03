@@ -30,6 +30,7 @@ import inspect
 import functools
 import warnings
 from collections import defaultdict
+from enum import IntEnum
 from typing import Callable, Iterable, List, Tuple, Union, Optional, NamedTuple
 
 from qiskit.circuit.instruction import Instruction
@@ -41,6 +42,14 @@ Generator = NamedTuple(
     "Generator",
     [("function", Union[Callable, Schedule, ScheduleBlock]), ("signature", inspect.Signature)],
 )
+
+
+class CalibrationPublisher(IntEnum):
+    """Defines who defined schedule entry."""
+
+    BACKEND_PROVIDER = 0
+    QISKIT = 1
+    EXPERIMENT_SERVICE = 2
 
 
 class InstructionScheduleMap:
@@ -68,6 +77,16 @@ class InstructionScheduleMap:
 
         # A backwards mapping from qubit to supported instructions
         self._qubit_instructions = defaultdict(set)
+
+    def has_custom_gate(self) -> bool:
+        """Return ``True`` if the map has user provided instruction."""
+        for qubit_inst in self._map.values():
+            for generator in qubit_inst.values():
+                metadata = getattr(generator.function, "metadata", {})
+                publisher = metadata.get("publisher", CalibrationPublisher.QISKIT)
+                if publisher != CalibrationPublisher.BACKEND_PROVIDER:
+                    return True
+        return False
 
     @property
     def instructions(self) -> List[str]:
@@ -302,6 +321,10 @@ class InstructionScheduleMap:
                 "Supplied schedule must be one of the Schedule, ScheduleBlock or a "
                 "callable that outputs a schedule."
             )
+
+        # add metadata
+        if hasattr(schedule, "metadata") and "publisher" not in schedule.metadata:
+            schedule.metadata["publisher"] = CalibrationPublisher.QISKIT
 
         self._map[instruction][qubits] = Generator(schedule, signature)
         self._qubit_instructions[qubits].add(instruction)

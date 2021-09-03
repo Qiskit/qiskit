@@ -25,7 +25,7 @@ from qiskit.providers import BaseBackend
 from qiskit.providers.backend import Backend
 from qiskit.providers.models import BackendProperties
 from qiskit.providers.models.backendproperties import Gate
-from qiskit.pulse import Schedule
+from qiskit.pulse import Schedule, InstructionScheduleMap
 from qiskit.tools.parallel import parallel_map
 from qiskit.transpiler import Layout, CouplingMap, PropertySet, PassManager
 from qiskit.transpiler.basepasses import BasePass
@@ -33,13 +33,13 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations, InstructionDurationsType
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
-from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.preset_passmanagers import (
     level_0_pass_manager,
     level_1_pass_manager,
     level_2_pass_manager,
     level_3_pass_manager,
 )
+from qiskit.transpiler.timing_constraints import TimingConstraints
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +48,7 @@ def transpile(
     circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     backend: Optional[Union[Backend, BaseBackend]] = None,
     basis_gates: Optional[List[str]] = None,
+    inst_map: Optional[List[InstructionScheduleMap]] = None,
     coupling_map: Optional[Union[CouplingMap, List[List[int]]]] = None,
     backend_properties: Optional[BackendProperties] = None,
     initial_layout: Optional[Union[Layout, Dict, List]] = None,
@@ -85,6 +86,12 @@ def transpile(
                 circuit may be run on any backend as long as it is compatible.
         basis_gates: List of basis gate names to unroll to
             (e.g: ``['u1', 'u2', 'u3', 'cx']``). If ``None``, do not unroll.
+        inst_map: Mapping of unrolled gates to pulse schedules. If this is not provided,
+            transpiler tries to get from the backend. If any user defined calibration
+            is found in the map and this is used in a circuit, transpiler attaches
+            the custom gate definition to the circuit. This enables one to flexibly
+            override the low-level instruction implementation. This feature is available
+            iff the backend supports the pulse gate experiment.
         coupling_map: Coupling map (perhaps custom) to target in mapping.
             Multiple formats are supported:
 
@@ -270,6 +277,7 @@ def transpile(
         circuits,
         backend,
         basis_gates,
+        inst_map,
         coupling_map,
         backend_properties,
         initial_layout,
@@ -451,6 +459,7 @@ def _parse_transpile_args(
     circuits,
     backend,
     basis_gates,
+    inst_map,
     coupling_map,
     backend_properties,
     initial_layout,
@@ -488,6 +497,7 @@ def _parse_transpile_args(
     num_circuits = len(circuits)
 
     basis_gates = _parse_basis_gates(basis_gates, backend, circuits)
+    inst_map = _parse_inst_map(inst_map, backend, num_circuits)
     faulty_qubits_map = _parse_faulty_qubits_map(backend, num_circuits)
     coupling_map = _parse_coupling_map(coupling_map, backend, num_circuits)
     backend_properties = _parse_backend_properties(backend_properties, backend, num_circuits)
@@ -514,6 +524,7 @@ def _parse_transpile_args(
     for kwargs in _zip_dict(
         {
             "basis_gates": basis_gates,
+            "inst_map": inst_map,
             "coupling_map": coupling_map,
             "backend_properties": backend_properties,
             "initial_layout": initial_layout,
@@ -535,6 +546,7 @@ def _parse_transpile_args(
         transpile_args = {
             "pass_manager_config": PassManagerConfig(
                 basis_gates=kwargs["basis_gates"],
+                inst_map=kwargs["inst_map"],
                 coupling_map=kwargs["coupling_map"],
                 backend_properties=kwargs["backend_properties"],
                 initial_layout=kwargs["initial_layout"],
@@ -603,6 +615,19 @@ def _parse_basis_gates(basis_gates, backend, circuits):
         basis_gates = [basis_gates] * len(circuits)
 
     return basis_gates
+
+
+def _parse_inst_map(inst_map, backend, num_circuits):
+    # try getting inst_map from user, else backend
+    if inst_map is None:
+        if hasattr(backend, "defaults"):
+            inst_map = getattr(backend.defaults(), "instruction_schedule_map", None)
+
+    # inst_maps could be None, or single entry
+    if inst_map is None or isinstance(inst_map, InstructionScheduleMap):
+        inst_map = [inst_map] * num_circuits
+
+    return inst_map
 
 
 def _parse_coupling_map(coupling_map, backend, num_circuits):
