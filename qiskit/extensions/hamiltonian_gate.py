@@ -81,7 +81,7 @@ class HamiltonianGate(Gate):
         """Return matrix for the unitary."""
         # pylint: disable=unused-argument
         try:
-            return scipy.linalg.expm(-1j * self.params[0] * complex(self.params[1]))
+            return scipy.linalg.expm(-1j * self.params[0] * float(self.params[1]))
         except TypeError as ex:
             raise TypeError(
                 "Unable to generate Unitary matrix for "
@@ -117,10 +117,10 @@ class HamiltonianGate(Gate):
 
     def validate_parameter(self, parameter):
         """Hamiltonian parameter has to be an ndarray, operator, complex or float."""
-        if isinstance(parameter, (complex, float, int, numpy.ndarray)):
+        if isinstance(parameter, (float, int, numpy.ndarray)):
             return parameter
         elif isinstance(parameter, ParameterExpression) and len(parameter.parameters) == 0:
-            return complex(parameter)
+            return float(parameter)
         else:
             raise CircuitError(f"invalid param type {type(parameter)} for gate {self.name}")
 
