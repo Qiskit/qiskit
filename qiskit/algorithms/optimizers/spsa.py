@@ -206,7 +206,7 @@ class SPSA(Optimizer):
                 than the number of iterations.
 
         Example:
-            .. jupyter-execute::
+            .. code-block::python
 
                 import numpy as np
                 from qiskit.algorithms.optimizers import SPSA
