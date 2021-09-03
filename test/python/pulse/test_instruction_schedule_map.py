@@ -619,7 +619,6 @@ class TestInstructionScheduleMap(QiskitTestCase):
         ret_sched = instmap.get("test_pulse", (0,))  # default value is applied
         self.assertEqual(ret_sched, ref_sched)
 
-
     def test_parameter_reassignment(self):
         """Test inst map schedule parameters can be reassigned."""
         instmap = InstructionScheduleMap()
