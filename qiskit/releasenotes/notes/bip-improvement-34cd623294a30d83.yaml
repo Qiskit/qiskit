@@ -7,7 +7,7 @@ features:
     parameter ``default_cx_error_rate``. A new parameter ``depth_obj_weight``
     now controls the weight of the two objectives combined in the ``balanced``
     objective.
-other:
+upgrade:
   - |
     The default method for ``BIPMapping`` is now ``balanced`` rather than
     ``depth``.

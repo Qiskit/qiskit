@@ -126,7 +126,7 @@ class BIPMappingModel:
 
         self.bprop = None  # Backend properties to compute cx fidelities (set later if necessary)
         self.default_cx_error_rate = (
-            5e-3  # Default cx error rate in case backend properties are not available
+            None  # Default cx error rate in case backend properties are not available
         )
 
         logger.info("Num virtual qubits: %d", self.num_vqubits)
@@ -202,11 +202,13 @@ class BIPMappingModel:
                 Default CX error rate to be used if backend_prop is not available.
 
         Raises:
-            TranspilerError: if unknow objective type is specified or invalid options are specified.
+            TranspilerError: if unknown objective type is specified or invalid options are specified.
 
         """
         self.bprop = backend_prop
         self.default_cx_error_rate = default_cx_error_rate
+        if self.bprop is None and self.default_cx_error_rate is None:
+            raise TranspilerError("BackendProperties or default_cx_error_rate must be specified")
 
         mdl = Model()
 
@@ -419,13 +421,7 @@ class BIPMappingModel:
     def _cx_fidelity(self, i, j) -> float:
         # fidelity of cx on global physical qubits
         if self.bprop is not None:
-            try:
-                error_rate = self.bprop.gate_error(
-                    "cx", [self.global_qubit[i], self.global_qubit[j]]
-                )
-            except (AttributeError, KeyError, ValueError):
-                error_rate = self.default_cx_error_rate
-            return 1.0 - error_rate
+            return 1.0 - self.bprop.gate_error("cx", [self.global_qubit[i], self.global_qubit[j]])
         else:
             return 1.0 - self.default_cx_error_rate
 
