@@ -292,18 +292,12 @@ class InstructionScheduleMap:
 
             parameters = list()
             for arg_name in ordered_names:
-                default_val = args_dict.get(arg_name, None)
-                if default_val is not None:
-                    param_signature = inspect.Parameter(
-                        name=arg_name,
-                        default=default_val,
-                        kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                    )
-                else:
-                    param_signature = inspect.Parameter(
-                        name=arg_name,
-                        kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                    )
+                default_val = args_dict.get(arg_name, inspect._empty)
+                param_signature = inspect.Parameter(
+                    name=arg_name,
+                    default=default_val,
+                    kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                )
                 parameters.append(param_signature)
             signature = inspect.Signature(parameters=parameters, return_annotation=type(schedule))
 
