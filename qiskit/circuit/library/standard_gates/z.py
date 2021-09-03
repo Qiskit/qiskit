@@ -12,6 +12,7 @@
 
 """Z and CZ gates."""
 
+from typing import Optional, Union
 import numpy
 from qiskit.qasm import pi
 from qiskit.circuit.controlledgate import ControlledGate
@@ -64,7 +65,7 @@ class ZGate(Gate):
     gate_name = "z"
     num_params = 0
 
-    def __init__(self, label=None):
+    def __init__(self, label: Optional[str] = None):
         """Create new Z gate."""
         super().__init__("z", 1, [], label=label)
 
@@ -81,7 +82,12 @@ class ZGate(Gate):
 
         self.definition = qc
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Return a (multi-)controlled-Z gate.
 
         One control returns a CZ gate.
@@ -142,7 +148,7 @@ class CZGate(ControlledGate):
     gate_name = "cz"
     num_params = 0
 
-    def __init__(self, label=None, ctrl_state=None):
+    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CZ gate."""
         super().__init__(
             "cz", 2, [], label=label, num_ctrl_qubits=1, ctrl_state=ctrl_state, base_gate=ZGate()

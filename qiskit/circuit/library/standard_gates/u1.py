@@ -12,9 +12,11 @@
 
 """U1 Gate."""
 
+from typing import Optional, Union
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import _ctrl_state_to_int
 
@@ -76,7 +78,7 @@ class U1Gate(Gate):
     gate_name = "u1"
     num_params = 1
 
-    def __init__(self, theta, label=None):
+    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new U1 gate."""
         super().__init__("u1", 1, [theta], label=label)
 
@@ -93,7 +95,12 @@ class U1Gate(Gate):
 
         self.definition = qc
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Return a (multi-)controlled-U1 gate.
 
         Args:
@@ -165,7 +172,12 @@ class CU1Gate(ControlledGate):
     gate_name = "cu1"
     num_params = 1
 
-    def __init__(self, theta, label=None, ctrl_state=None):
+    def __init__(
+        self,
+        theta: ParameterValueType,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Create new CU1 gate."""
         super().__init__(
             "cu1",
@@ -203,7 +215,12 @@ class CU1Gate(ControlledGate):
 
         self.definition = qc
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Controlled version of this gate.
 
         Args:
@@ -266,7 +283,13 @@ class MCU1Gate(ControlledGate):
     num_params = 1
     num_int_params = 1
 
-    def __init__(self, lam, num_ctrl_qubits, label=None, ctrl_state=None):
+    def __init__(
+        self,
+        lam: ParameterValueType,
+        num_ctrl_qubits: int,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Create new MCU1 gate."""
         super().__init__(
             "mcu1",
@@ -299,7 +322,12 @@ class MCU1Gate(ControlledGate):
             qc._append(instr, qargs, cargs)
         self.definition = qc
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Controlled version of this gate.
 
         Args:

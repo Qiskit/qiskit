@@ -13,11 +13,13 @@
 """Rotation around the Y axis."""
 
 import math
+from typing import Optional, Union
 import numpy
 from qiskit.qasm import pi
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.parameterexpression import ParameterValueType
 
 
 class RYGate(Gate):
@@ -46,7 +48,7 @@ class RYGate(Gate):
     gate_name = "ry"
     num_params = 1
 
-    def __init__(self, theta, label=None):
+    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new RY gate."""
         super().__init__("ry", 1, [theta], label=label)
 
@@ -66,7 +68,12 @@ class RYGate(Gate):
 
         self.definition = qc
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Return a (multi-)controlled-RY gate.
 
         Args:
@@ -155,7 +162,12 @@ class CRYGate(ControlledGate):
     gate_name = "cry"
     num_params = 1
 
-    def __init__(self, theta, label=None, ctrl_state=None):
+    def __init__(
+        self,
+        theta: ParameterValueType,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Create new CRY gate."""
         super().__init__(
             "cry",

@@ -12,10 +12,12 @@
 
 """Phase Gate."""
 
+from typing import Optional, Union
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.parameterexpression import ParameterValueType
 
 
 class PhaseGate(Gate):
@@ -71,7 +73,7 @@ class PhaseGate(Gate):
     gate_name = "p"
     num_params = 1
 
-    def __init__(self, theta, label=None):
+    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new Phase gate."""
         super().__init__("p", 1, [theta], label=label)
 
@@ -85,7 +87,12 @@ class PhaseGate(Gate):
         qc.append(UGate(0, 0, self.params[0]), [0])
         self.definition = qc
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[int, str]] = None,
+    ):
         """Return a (multi-)controlled-Phase gate.
 
         Args:
@@ -157,7 +164,12 @@ class CPhaseGate(ControlledGate):
     gate_name = "cp"
     num_params = 1
 
-    def __init__(self, theta, label=None, ctrl_state=None):
+    def __init__(
+        self,
+        theta: ParameterValueType,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Create new CPhase gate."""
         super().__init__(
             "cp",
@@ -189,7 +201,12 @@ class CPhaseGate(ControlledGate):
         qc.p(self.params[0] / 2, 1)
         self.definition = qc
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Controlled version of this gate.
 
         Args:
@@ -249,7 +266,7 @@ class MCPhaseGate(ControlledGate):
     num_params = 1
     num_int_params = 1
 
-    def __init__(self, lam, num_ctrl_qubits, label=None):
+    def __init__(self, lam: ParameterValueType, num_ctrl_qubits: int, label: Optional[str] = None):
         """Create new MCPhase gate."""
         super().__init__(
             "mcphase",
@@ -280,7 +297,12 @@ class MCPhaseGate(ControlledGate):
             qc.data = definition
         self.definition = qc
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Controlled version of this gate.
 
         Args:

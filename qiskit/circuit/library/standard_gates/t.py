@@ -12,6 +12,7 @@
 
 """T and Tdg gate."""
 
+from typing import Optional
 import numpy
 from qiskit.qasm import pi
 from qiskit.circuit.gate import Gate
@@ -48,7 +49,7 @@ class TGate(Gate):
     gate_name = "t"
     num_params = 0
 
-    def __init__(self, label=None):
+    def __init__(self, label: Optional[str] = None):
         """Create new T gate."""
         super().__init__("t", 1, [], label=label)
 
@@ -106,7 +107,7 @@ class TdgGate(Gate):
     gate_name = "tdg"
     num_params = 0
 
-    def __init__(self, label=None):
+    def __init__(self, label: Optional[str] = None):
         """Create new Tdg gate."""
         super().__init__("tdg", 1, [], label=label)
 

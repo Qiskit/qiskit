@@ -21,7 +21,7 @@ This module contains the classes used to build external providers for Terra. A
 provider is anything that provides an external service to Terra. The typical
 example of this is a Backend provider which provides
 :class:`~qiskit.providers.Backend` objects which can be used for executing
-:class:`~qiskit.circuits.QuantumCircuit` and/or :class:`~qiskit.pulse.Schedule`
+:class:`~qiskit.circuit.QuantumCircuit` and/or :class:`~qiskit.pulse.Schedule`
 objects. This module contains the abstract classes which are used to define the
 interface between a provider and terra.
 
@@ -63,13 +63,14 @@ should) update to newer versions as soon as they can, the support window is
 just for Terra's supported versions. Part of this lengthy window prior to
 deprecation is to give providers enough time to do their own deprecation of a
 potential end user impacting change in a user facing part of the interface
-prior to bumping their version. For example, lets say we changed the signature
-to `Backend.run()` in ``BackendV34`` in a backwards incompatible way, before
-Aer could update its ``AerBackend`` class to use version 34 they'd need to
-deprecate the old signature prior to switching over. The changeover for Aer is
-not guaranteed to be lockstep with Terra so we need to ensure there is a
-sufficient amount of time for Aer to complete it's deprecation cycle prior to
-removing version 33 (ie making version 34 mandatory/the minimum version).
+prior to bumping their version. For example, let's say we changed the signature
+to ``Backend.run()`` in ``BackendV34`` in a backwards incompatible way, before
+Aer could update its :class:`~qiskit.providers.aer.aerbackend.AerBackend` class
+to use version 34 they'd need to deprecate the old signature prior to switching
+over. The changeover for Aer is not guaranteed to be lockstep with Terra so we
+need to ensure there is a sufficient amount of time for Aer to complete its
+deprecation cycle prior to removing version 33 (ie making version 34
+mandatory/the minimum version).
 
 Abstract Classes
 ================
@@ -115,14 +116,14 @@ Writing a New Provider
 
 If you have a quantum device or simulator that you would like to integrate with
 Qiskit you will need to write a provider. A provider will provide Terra with a
-method to get available :class:`~qiskit.provider.BackendV1` objects. The
-:class:`~qiskit.provider.BackendV1` object provides both information describing
+method to get available :class:`~qiskit.providers.BackendV1` objects. The
+:class:`~qiskit.providers.BackendV1` object provides both information describing
 a backend and its operation for the :mod:`~qiskit.transpiler` so that circuits
 can be compiled to something that is optimized and can execute on the
 backend. It also provides the :meth:`~qiskit.providers.BackendV1.run` method which can
 run the :class:`~qiskit.circuit.QuantumCircuit` objects and/or
 :class:`~qiskit.pulse.Schedule` objects. This enables users and other Qiskit
-APIs, such as :func:`~qiskit.execute.execute` and higher level algorithms in
+APIs, such as :func:`~qiskit.execute_function.execute` and higher level algorithms in
 Qiskit Aqua, to get results from executing circuits on devices in a standard
 fashion regardless of how the Backend is implemented. At a high level the basic
 steps for writing a provider are:
@@ -182,9 +183,9 @@ provide the interface between Qiskit and the hardware or simulator that will
 execute circuits. This includes providing the necessary information to
 describe a backend to the compiler so that it can embed and optimize any
 circuit for the backend. There are 3 required things in every backend object: a
-backend configuration property, a ``run()`` method, and a
-``_default_options()`` method. For example, a minimum working example would be
-something like::
+backend configuration property, a :obj:`~qiskit.providers.BackendV1.run` method, and a
+:obj:`~qiskit.providers.BackendV1._default_options` method. For example, a
+minimum working example would be something like::
 
     from qiskit.providers import BackendV1 as Backend
     from qiskit.providers.models import BackendConfiguration
@@ -291,7 +292,7 @@ custom basis set. This can be done by defining equivalent circuits, in terms
 of the custom gate, for standard gates. Typically if you can convert from a
 :class:`~qiskit.circuit.library.CXGate` (if your basis doesn't include a
 standard 2 qubit gate) and some commonly used single qubit rotation gates like
-the :class:`~qiskit.ciruit.library.HGate` and
+the :class:`~qiskit.circuit.library.HGate` and
 :class:`~qiskit.circuit.library.UGate` that should be sufficient for the
 transpiler to translate any circuit into the custom basis gates. But, the more
 equivalence rules that are defined from standard gates to your basis the more
@@ -362,7 +363,8 @@ package this involves converting from a quantum circuit and options into a
 `qobj <https://arxiv.org/abs/1809.03452>`__ JSON payload and submitting
 that to the IBM Quantum API. Since every backend interface is different (and
 in the case of the local simulators serialization may not be needed) it is
-expected that the backend's ``run()`` method will handle this conversion.
+expected that the backend's :obj:`~qiskit.providers.BackendV1.run` method will
+handle this conversion.
 
 An example run method would be something like::
 
@@ -387,11 +389,12 @@ There are often several options for a backend that control how a circuit is run.
 The typical example of this is something like the number of ``shots`` which is
 how many times the circuit is to be executed. The options available for a
 backend are defined using an :class:`~qiskit.providers.Options` object. This
-object is initially created by the ``_default_options`` method of a Backend
-class. The default options returns an initialized
-:class:`~qiskit.providers.Options` object with all the default values for all
-the options a backend supports. For example, if the backend supports only
-supports ``shots`` the ``_default_options`` method would look like::
+object is initially created by the
+:obj:`~qiskit.providers.BackendV1._default_options` method of a Backend class.
+The default options returns an initialized :class:`~qiskit.providers.Options`
+object with all the default values for all the options a backend supports. For
+example, if the backend supports only supports ``shots`` the
+:obj:`~qiskit.providers.BackendV1._default_options` method would look like::
 
     @classmethod
     def _default_options(cls):
@@ -401,23 +404,24 @@ supports ``shots`` the ``_default_options`` method would look like::
 Job
 ===
 
-The output from the ``run()`` method is a :class:`~qiskit.providers.JobV1`
+The output from the :obj:`~qiskit.providers.BackendV1.run` method is a :class:`~qiskit.providers.JobV1`
 object. Each provider is expected to implement a custom job subclass that
 defines the behavior for the provider. There are 2 types of jobs depending on
 the backend's execution method, either a sync or async. By default jobs are
 considered async and the expectation is that it represents a handle to the
 async execution of the circuits submitted with ``Backend.run()``. An async
-``Job`` object provides users the ability to query the status of the execution,
+job object provides users the ability to query the status of the execution,
 cancel a running job, and block until the execution is finished. The
-:class:`~qiskit.providers.JobV1.result` is the primary user facing method
+:obj:`~qiskit.providers.JobV1.result` is the primary user facing method
 which will block until the execution is complete and then will return a
 :class:`~qiskit.result.Result` object with results of the job.
 
 For some backends (mainly local simulators) the execution of circuits is a
 synchronous operation and there is no need to return a handle to a running job
-elsewhere. For sync jobs its expected that the ``run()`` method on the backend
-will block until a :class:`~qiskit.result.Result` object is generated and the
-sync job will return with that inner :class:`~qiskit.result.Result` object.
+elsewhere. For sync jobs its expected that the
+:obj:`~qiskit.providers.BackendV1.run` method on the backend will block until a
+:class:`~qiskit.result.Result` object is generated and the sync job will return
+with that inner :class:`~qiskit.result.Result` object.
 
 An example job class for an async API based backend would look something like::
 

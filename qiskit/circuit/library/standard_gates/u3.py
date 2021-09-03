@@ -12,9 +12,11 @@
 
 """Two-pulse single-qubit gate."""
 
+from typing import Optional, Union
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
 
 
@@ -60,7 +62,13 @@ class U3Gate(Gate):
     gate_name = "u3"
     num_params = 3
 
-    def __init__(self, theta, phi, lam, label=None):
+    def __init__(
+        self,
+        theta: ParameterValueType,
+        phi: ParameterValueType,
+        lam: ParameterValueType,
+        label: Optional[str] = None,
+    ):
         """Create new U3 gate."""
         super().__init__("u3", 1, [theta, phi, lam], label=label)
 
@@ -71,7 +79,12 @@ class U3Gate(Gate):
         """
         return U3Gate(-self.params[0], -self.params[2], -self.params[1])
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Return a (multi-)controlled-U3 gate.
 
         Args:
@@ -173,7 +186,14 @@ class CU3Gate(ControlledGate):
     gate_name = "cu3"
     num_params = 3
 
-    def __init__(self, theta, phi, lam, label=None, ctrl_state=None):
+    def __init__(
+        self,
+        theta: ParameterValueType,
+        phi: ParameterValueType,
+        lam: ParameterValueType,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Create new CU3 gate."""
         super().__init__(
             "cu3",

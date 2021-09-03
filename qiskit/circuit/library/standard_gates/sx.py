@@ -12,6 +12,7 @@
 
 """Sqrt(X) and C-Sqrt(X) gates."""
 
+from typing import Optional, Union
 import numpy
 from qiskit.qasm import pi
 from qiskit.circuit.controlledgate import ControlledGate
@@ -56,7 +57,7 @@ class SXGate(Gate):
     gate_name = "sx"
     num_params = 0
 
-    def __init__(self, label=None):
+    def __init__(self, label: Optional[str] = None):
         """Create new SX gate."""
         super().__init__("sx", 1, [], label=label)
 
@@ -79,7 +80,12 @@ class SXGate(Gate):
         """Return inverse SX gate (i.e. SXdg)."""
         return SXdgGate()
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Return a (multi-)controlled-SX gate.
 
         One control returns a CSX gate.
@@ -132,7 +138,7 @@ class SXdgGate(Gate):
     gate_name = "sxdg"
     num_params = 0
 
-    def __init__(self, label=None):
+    def __init__(self, label: Optional[str] = None):
         """Create new SXdg gate."""
         super().__init__("sxdg", 1, [], label=label)
 
@@ -232,7 +238,7 @@ class CSXGate(ControlledGate):
     gate_name = "csx"
     num_params = 0
 
-    def __init__(self, label=None, ctrl_state=None):
+    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CSX gate."""
         super().__init__(
             "csx", 2, [], num_ctrl_qubits=1, label=label, ctrl_state=ctrl_state, base_gate=SXGate()

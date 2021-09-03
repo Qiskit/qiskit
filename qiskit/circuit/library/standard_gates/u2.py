@@ -12,9 +12,11 @@
 
 """One-pulse single-qubit gate."""
 
+from typing import Optional
 import numpy
 from qiskit.qasm import pi
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
 
 
@@ -60,7 +62,9 @@ class U2Gate(Gate):
     gate_name = "u2"
     num_params = 2
 
-    def __init__(self, phi, lam, label=None):
+    def __init__(
+        self, phi: ParameterValueType, lam: ParameterValueType, label: Optional[str] = None
+    ):
         """Create new U2 gate."""
         super().__init__("u2", 1, [phi, lam], label=label)
 
