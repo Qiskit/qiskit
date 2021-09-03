@@ -1404,7 +1404,6 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
                 "q_1: |0>┤ my h ├",
                 "        └──╥───┘",
                 "           ║    ",
-
                 "   c: 0 ═══■════",
                 "          0x1   ",
             ]
