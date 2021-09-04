@@ -25,6 +25,10 @@ class InstructionSet:
 
         The context (qargs and cargs that each instruction is attached to)
         is also stored separately for each instruction.
+
+        Args:
+            circuit_clbits (list[Clbit]): Optional. List of clbits of the
+                circuit to which the instruction is added. Default: `None`.
         """
         self.instructions = []
         self.qargs = []
