@@ -76,6 +76,16 @@ Optimizations
    CrosstalkAdaptiveSchedule
    TemplateOptimization
 
+Calibration
+=============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   PulseGates
+   RZXCalibrationBuilder
+   RZXCalibrationBuilderNoEcho
+
 Scheduling
 =============
 
@@ -88,8 +98,6 @@ Scheduling
    DynamicalDecoupling
    AlignMeasures
    ValidatePulseGates
-   RZXCalibrationBuilder
-   RZXCalibrationBuilderNoEcho
 
 Circuit Analysis
 ================
@@ -189,12 +197,15 @@ from .analysis import DAGLongestPath
 from .synthesis import UnitarySynthesis
 from .synthesis import unitary_synthesis_plugin_names
 
+# calibration
+from .calibration import PulseGates
+from .calibration import RZXCalibrationBuilder
+from .calibration import RZXCalibrationBuilderNoEcho
+
 # circuit scheduling
 from .scheduling import TimeUnitConversion
 from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
-from .scheduling import RZXCalibrationBuilder
-from .scheduling import RZXCalibrationBuilderNoEcho
 from .scheduling import DynamicalDecoupling
 from .scheduling import AlignMeasures
 from .scheduling import ValidatePulseGates
