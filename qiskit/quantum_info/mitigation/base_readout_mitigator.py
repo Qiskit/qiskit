@@ -52,7 +52,7 @@ class BaseReadoutMitigator(ABC):
                 which is the length-N bitstring of a measured standard basis state,
                 and "standard deviation" is the standard deviation of the non-zero
                 quasi-probability estimates.
-       """
+        """
 
     def expectation_value(
         self,
