@@ -184,8 +184,8 @@ class Counts(dict):
         """Removes all spaces and underscores from bitstring"""
         return int(bitstring.replace(" ", "").replace("_", ""), 2)
 
-    def num_qubits(self):
-        """Return the number of qubits"""
+    def size(self):
+        """Return the number of clbits"""
         return len(next(iter(self)))
 
     def shots(self):
