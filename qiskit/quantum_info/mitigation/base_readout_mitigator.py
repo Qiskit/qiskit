@@ -52,15 +52,12 @@ class BaseReadoutMitigator(ABC):
                 which is the length-N bitstring of a measured standard basis state,
                 and "standard deviation" is the standard deviation of the non-zero
                 quasi-probability estimates.
-
-        Raises:
-            QiskitError: if qubits is not None and does not match the number of count clbits.
-        """
+       """
 
     def expectation_value(
         self,
         data: Counts,
-        diagonal: Callable,
+        diagonal: Union[Callable, dict, str, np.ndarray],
         qubits: Iterable[int] = None,
         shots: Optional[int] = None,
     ) -> Tuple[float, float]:
@@ -70,7 +67,8 @@ class BaseReadoutMitigator(ABC):
             data: Counts object to be mitigated.
             diagonal: the diagonal operator. This may either be specified
                       as a string containing I,Z,0,1 characters, or as a
-                      real valued 1D array_like object, or as a dictionary.
+                      real valued 1D array_like object supplying the full diagonal,
+                      or as a dictionary, or as Callable.
             qubits: the physical qubits measured to obtain the counts clbits.
                     If None these are assumed to be qubits [0, ..., N-1]
                     for N-bit counts.
@@ -80,8 +78,4 @@ class BaseReadoutMitigator(ABC):
         Returns:
             The mean and standard deviation of operator expectation value
             calculated from the current counts.
-
-        Raises:
-            QiskitError: if the diagonal does not match the number of count clbits.
-            QiskitError: if qubits is not None and does not match the number of count clbits.
         """

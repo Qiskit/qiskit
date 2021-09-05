@@ -50,6 +50,7 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
         This computes the mitigated estimator of
         :math:`\langle O \rangle = \mbox{Tr}[\rho. O]` of a diagonal observable
         :math:`O = \sum_{x\in\{0, 1\}^n} O(x)|x\rangle\!\langle x|`.
+
         Args:
             data: Counts object
             diagonal: Optional, the vector of diagonal values for summing the
@@ -59,10 +60,13 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
                     bitstrings correspond to. If None qubits are assumed to be
                     :math:`[0, ..., n-1]`.
             clbits: Optional, if not None marginalize counts to the specified bits.
+
         Returns:
             (float, float): the expectation value and standard deviation.
+
         Raises:
             QiskitError: if input arguments are invalid.
+
         Additional Information:
             The diagonal observable :math:`O` is input using the ``diagonal`` kwarg as
             a list or Numpy array :math:`[O(0), ..., O(2^n -1)]`. If no diagonal is specified
@@ -78,7 +82,7 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
             data = marginal_counts(data, clbits)
 
         # Get probability vector
-        num_qubits = data.num_qubits()
+        num_qubits = data.size()
         probs_vec = self._to_probs_vec(data, num_qubits)
         shots = data.shots()
 
@@ -107,12 +111,14 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
         shots: Optional[bool] = False,
     ) -> (QuasiDistribution, Dict[str, float]):
         """Compute mitigated quasi probabilities value.
+
         Args:
             data: counts object
             qubits: qubits the count bitstrings correspond to.
             clbits: Optional, marginalize counts to just these bits.
             num_qubits: the total number of qubits.
             shots: return the number of shots.
+
         Raises:
             QiskitError: if qubit and clbit kwargs are not valid.
         """
@@ -121,7 +127,7 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
             data = marginal_counts(data, clbits)
 
         # Get total number of qubits and shots
-        num_qubits = data.num_qubits()
+        num_qubits = data.size()
         shots = data.shots()
         # Get probability vector
         probs_vec = self._to_probs_vec(data, num_qubits)
