@@ -23,7 +23,6 @@ def _calculate_distance_energy(
     state,
     exact_state,
     h_matrix,
-    time: Union[float, complex],
     param_dict: Dict,
     state_circ_sampler=None,
 ) -> (float, float, float):
@@ -44,7 +43,7 @@ def _calculate_distance_energy(
     else:
         trained_state = state.assign_parameters(param_dict)
     trained_state = trained_state.eval().primitive.data
-    target_state = exact_state(time)
+    target_state = exact_state
 
     # Fidelity
     f = state_fidelity(target_state, trained_state)

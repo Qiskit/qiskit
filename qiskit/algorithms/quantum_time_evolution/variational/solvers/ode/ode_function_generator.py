@@ -113,7 +113,6 @@ class OdeFunctionGenerator:
             self._state,
             self._exact_state,
             self._h_matrix,
-            t,
             self._param_dict,
             self._state_circ_sampler,
         )

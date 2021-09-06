@@ -10,16 +10,20 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 from abc import abstractmethod
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Iterable
 
 import numpy as np
 from scipy.integrate import ode, OdeSolver
+from scipy.linalg import expm
 
 from qiskit.algorithms.quantum_time_evolution.evolution_base import EvolutionBase
 from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import (
     EvolutionGradientResult,
 )
 from qiskit.algorithms.quantum_time_evolution.results.evolution_result import EvolutionResult
+from qiskit.algorithms.quantum_time_evolution.variational.calculators.distance_energy_calculator \
+    import \
+    _inner_prod
 from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary \
     .imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
@@ -124,3 +128,32 @@ class VarQite(VarQte, EvolutionBase):
             gradient_params=None,
     ) -> EvolutionGradientResult:
         raise NotImplementedError()
+
+
+    def _exact_state(self, time: Union[float, complex]) -> Iterable:
+        """
+        Args:
+            time: current time
+        Returns:
+            Exactly evolved state for the respective time
+        """
+
+        # Evolve with exponential operator
+        target_state = np.dot(expm(-1 * self._h_matrix * time), self._init_state)
+        # Normalization
+        target_state /= np.sqrt(_inner_prod(target_state, target_state))
+        return target_state
+
+    def _exact_grad_state(self,
+                          state: Iterable) -> Iterable:
+        """
+        Return the gradient of the given state
+        (E_t - H ) |state>
+        Args:
+            state: State for which the exact gradient shall be evaluated
+        Returns:
+            Exact gradient of the given state
+        """
+
+        energy_t = _inner_prod(state, np.matmul(self._h_matrix, state))
+        return np.matmul(np.subtract(energy_t*np.eye(len(self._h_matrix)), self._h_matrix), state)

@@ -21,7 +21,7 @@ from qiskit import QiskitError
 class VarQteOdeSolver:
     def __init__(
             self,
-            init_params: Union[List, np.ndarray],
+            init_params,
             ode_function_generator,
     ):
         """
@@ -40,8 +40,8 @@ class VarQteOdeSolver:
         """
         ode_solver = OdeSolver(
             self._ode_function, t_bound=evolution_time, t0=0, y0=self._init_params,
-            vectorized=False, support_complex=False
-        )  # TODO added vectorized, support_complex, how to handle this?
+            vectorized=False
+        )
         param_values = None
 
         _ = ode_solver.fun(ode_solver.t, ode_solver.y)

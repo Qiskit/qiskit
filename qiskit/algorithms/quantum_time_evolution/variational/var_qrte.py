@@ -10,17 +10,18 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 from abc import abstractmethod
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Iterable
 
 import numpy as np
 from scipy.integrate import ode, OdeSolver
+from scipy.linalg import expm
 
 from qiskit.algorithms.quantum_time_evolution.evolution_base import EvolutionBase
 from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import (
     EvolutionGradientResult,
 )
 from qiskit.algorithms.quantum_time_evolution.results.evolution_result import EvolutionResult
-from qiskit.algorithms.quantum_time_evolution.variational.principles.real\
+from qiskit.algorithms.quantum_time_evolution.variational.principles.real \
     .real_variational_principle import (
     RealVariationalPrinciple,
 )
@@ -114,3 +115,27 @@ class VarQrte(VarQte, EvolutionBase):
             gradient_params=None,
     ) -> EvolutionGradientResult:
         raise NotImplementedError()
+
+    def _exact_state(self, time: Union[float, complex]) -> Iterable:
+        """
+        Args:
+            time: current time
+        Returns:
+            Exactly evolved state for the respective time
+        """
+
+        # Evolve with exponential operator
+        target_state = np.dot(expm(-1j * self._h_matrix * time), self._init_state)
+        return target_state
+
+    def _exact_grad_state(self,
+                          state: Iterable) -> Iterable:
+        """
+        Return the gradient of the given state
+        -i H |state>
+        Args:
+            state: State for which the exact gradient shall be evaluated
+        Returns:
+            Exact gradient of the given state
+        """
+        return np.matmul(-1j * self._h_matrix, state)
