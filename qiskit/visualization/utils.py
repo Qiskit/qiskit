@@ -159,7 +159,7 @@ def get_bit_label(drawer, register, index, qubit=True, layout=None, cregbundle=T
             Default: ``True``.
 
     Returns:
-        bit_label (str): label to display for the register/index
+        str: label to display for the register/index
 
     """
     index_str = f"{index}" if drawer == "text" else f"{{{index}}}"
