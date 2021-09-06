@@ -116,7 +116,7 @@ class HamiltonianGate(Gate):
         raise ExtensionError("HamiltonianGate has no QASM definition.")
 
     def validate_parameter(self, parameter):
-        """Hamiltonian parameter has to be an ndarray, operator, complex or float."""
+        """Hamiltonian parameter has to be an ndarray, operator or float."""
         if isinstance(parameter, (float, int, numpy.ndarray)):
             return parameter
         elif isinstance(parameter, ParameterExpression) and len(parameter.parameters) == 0:
