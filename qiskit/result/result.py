@@ -210,7 +210,7 @@ class Result:
 
         Returns:
             List[str] or np.ndarray: Either the list of each outcome, formatted according to
-                registers in circuit or a complex numpy np.ndarray with shape:
+            registers in circuit or a complex numpy np.ndarray with shape:
 
                 ============  =============  =====
                 `meas_level`  `meas_return`  shape
@@ -261,11 +261,11 @@ class Result:
                 experiment, as specified by ``data([experiment])``.
 
         Returns:
-            dict[str:int] or list[dict[str:int]]: a dictionary or a list of
-                dictionaries. A dictionary has the counts for each qubit with
-                the keys containing a string in binary format and separated
-                according to the registers in circuit (e.g. ``0100 1110``).
-                The string is little-endian (cr[0] on the right hand side).
+            dict[str, int] or list[dict[str, int]]: a dictionary or a list of
+            dictionaries. A dictionary has the counts for each qubit with
+            the keys containing a string in binary format and separated
+            according to the registers in circuit (e.g. ``0100 1110``).
+            The string is little-endian (cr[0] on the right hand side).
 
         Raises:
             QiskitError: if there are no counts for the experiment.
