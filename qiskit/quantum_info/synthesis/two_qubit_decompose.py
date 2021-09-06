@@ -37,7 +37,7 @@ import scipy.linalg as la
 
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit, Gate
-from qiskit.circuit.library.standard_gates import CXGate, RXGate, RYGate, RZGate, RXXGate
+from qiskit.circuit.library.standard_gates import CXGate, RXGate, RYGate, RZGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.synthesis.weyl import weyl_coordinates, transform_to_magic_basis
@@ -569,19 +569,46 @@ class TwoQubitControlledUDecomposer:
         Raises:
             QiskitError: If the gate is not locally equivalent to an RXXGate.
         """
-        # Check that gate takes a single angle parameter
-        try:
-            rxx_equivalent_gate(test_angle, label='foo')
-        except TypeError:
-            raise QiskitError(<equivalent gate needs to take exactly 1 angle parameter>)
+        atol = DEFAULT_ATOL
 
-        # Do a few spot checks that the KAK decomposition gives (x, 0, 0)
-        for test_angle in [0.2, 0.3, np.pi / 2]:
-         decomp = TwoQubitWeylDecomposition(rxx_equivalent_gate(test_angle))
-         if not isinstance(decomp, TwoQubitWeylControlledEquiv) or abs(decomp.a - self.scale * test_angle) > atol:
+        scales, test_angles, scale = [], [0.2, 0.3, np.pi / 2], None
+
+        for test_angle in test_angles:
+            # Check that gate takes a single angle parameter
+            try:
+                rxx_equivalent_gate(test_angle, label="foo")
+            except TypeError:
+                raise QiskitError("Equivalent gate needs to take exactly 1 angle parameter.")
+            decomp = TwoQubitWeylDecomposition(rxx_equivalent_gate(test_angle))
+
+            circ = QuantumCircuit(2)
+            circ.rxx(test_angle, 0, 1)
+            decomposer_rxx = TwoQubitWeylControlledEquiv(Operator(circ).data)
+
+            circ = QuantumCircuit(2)
+            circ.append(rxx_equivalent_gate(test_angle), qargs=[0, 1])
+            decomposer_equiv = TwoQubitWeylControlledEquiv(Operator(circ).data)
+
+            scale = decomposer_rxx.a / decomposer_equiv.a
+
+            if (
+                not isinstance(decomp, TwoQubitWeylControlledEquiv)
+                or abs(decomp.a * 2 - test_angle / scale) > atol
+            ):
                 raise QiskitError(
                     f"{rxx_equivalent_gate.__name__} is not equivalent to an RXXGate."
                 )
+
+            scales.append(scale)
+
+        # Check that all three tested angles give the same scale
+        if not np.allclose(scales, [scale] * len(test_angles)):
+            raise QiskitError(
+                f"Cannot initialize {self.__class__.__name__}: with gate {rxx_equivalent_gate}. "
+                "Inconsistent scaling parameters in checks."
+            )
+
+        self.scale = scales[0]
 
         self.rxx_equivalent_gate = rxx_equivalent_gate
 
@@ -632,18 +659,18 @@ class TwoQubitControlledUDecomposer:
         # parameters (angle, 0, 0) for angle in [0, pi/2] but the user provided gate, i.e.
         # :code:`self.rxx_equivalent_gate(angle)` might produce the Weyl parameters
         # (scale * angle, 0, 0) where scale != 1. This is the case for the CPhaseGate.
-        circ = QuantumCircuit(2)
-        circ.rxx(angle, 0, 1)
-        decomposer_rxx = TwoQubitWeylControlledEquiv(Operator(circ).data)
+        # circ = QuantumCircuit(2)
+        # circ.rxx(angle, 0, 1)
+        # decomposer_rxx = TwoQubitWeylControlledEquiv(Operator(circ).data)
+        #
+        # circ = QuantumCircuit(2)
+        # circ.append(self.rxx_equivalent_gate(angle), qargs=[0, 1])
+        # decomposer_equiv = TwoQubitWeylControlledEquiv(Operator(circ).data)
+        #
+        # scale = decomposer_rxx.a / decomposer_equiv.a
 
         circ = QuantumCircuit(2)
-        circ.append(self.rxx_equivalent_gate(angle), qargs=[0, 1])
-        decomposer_equiv = TwoQubitWeylControlledEquiv(Operator(circ).data)
-
-        scale = decomposer_rxx.a / decomposer_equiv.a
-
-        circ = QuantumCircuit(2)
-        circ.append(self.rxx_equivalent_gate(scale * angle), qargs=[0, 1])
+        circ.append(self.rxx_equivalent_gate(self.scale * angle), qargs=[0, 1])
         decomposer_inv = TwoQubitWeylControlledEquiv(Operator(circ).data)
 
         oneq_decompose = OneQubitEulerDecomposer("ZYZ")
@@ -655,7 +682,6 @@ class TwoQubitControlledUDecomposer:
         rxx_circ.compose(circ, inplace=True)
         rxx_circ.compose(oneq_decompose(decomposer_inv.K1r).inverse(), inplace=True, qubits=[0])
         rxx_circ.compose(oneq_decompose(decomposer_inv.K1l).inverse(), inplace=True, qubits=[1])
-
 
         return rxx_circ
 
