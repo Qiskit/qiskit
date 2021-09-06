@@ -17,6 +17,7 @@ from typing import Optional, Set, List, Tuple
 from qiskit.circuit.library.evolved_operator_ansatz import EvolvedOperatorAnsatz
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.gate import Gate
 
 
 class QAOAAnsatz(EvolvedOperatorAnsatz):
@@ -234,3 +235,69 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         """
         self._mixer = mixer_operator
         self._invalidate()
+
+
+class QAOAGate(Gate):
+    """A generalized QAOA gate with a support of custom initial states and mixers.
+
+    References:
+
+        [1]: Farhi et al., A Quantum Approximate Optimization Algorithm.
+            `arXiv:1411.4028 <https://arxiv.org/pdf/1411.4028>`_
+    """
+
+    def __init__(
+        self,
+        cost_operator=None,
+        reps: int = 1,
+        initial_state: Optional[QuantumCircuit] = None,
+        mixer_operator=None,
+        label: str = None,
+    ):
+        r"""
+        Args:
+            cost_operator (OperatorBase, optional): The operator representing the cost of
+                the optimization problem, denoted as :math:`U(C, \gamma)` in the original paper.
+                Must be set either in the constructor or via property setter.
+            reps (int): The integer parameter p, which determines the depth of the circuit,
+                as specified in the original paper, default is 1.
+            initial_state (QuantumCircuit, optional): An optional initial state to use.
+                If `None` is passed then a set of Hadamard gates is applied as an initial state
+                to all qubits.
+            mixer_operator (OperatorBase or QuantumCircuit, optional): An optional custom mixer
+                to use instead of the global X-rotations, denoted as :math:`U(B, \beta)`
+                in the original paper. Can be an operator or an optionally parameterized quantum
+                circuit.
+            label (str): A label.
+        Raises:
+            AttributeError: when cost_operator and initial_state are not compatible
+        """
+        self.cost_operator = cost_operator
+        self.reps = reps
+        self.initial_state = initial_state
+        self.mixer_operator = mixer_operator
+
+        is_num_qubits = co_num_qubits = 0
+        if initial_state:
+            is_num_qubits = self.initial_state.num_qubits
+        if cost_operator:
+            co_num_qubits = self.cost_operator.num_qubits
+
+        if co_num_qubits and is_num_qubits and is_num_qubits != co_num_qubits:
+            raise AttributeError(
+                "initial_state and cost_operator has incompatible number of qubits"
+            )
+
+        num_qubits = is_num_qubits + co_num_qubits
+
+        if num_qubits == 0:
+            raise AttributeError("Either initial_state or cost_operator should be set")
+
+        super().__init__("QAOA", num_qubits, params=None, label=label)
+
+    def _define(self):
+        """TODO"""
+        circuit = QAOAAnsatz(
+            self.cost_operator, self.reps, self.initial_state, self.mixer_operator, self.label
+        )
+        self.definition = circuit.decompose()
