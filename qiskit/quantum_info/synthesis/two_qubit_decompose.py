@@ -569,6 +569,12 @@ class TwoQubitControlledUDecomposer:
         Raises:
             QiskitError: If the gate is not locally equivalent to an RXXGate.
         """
+        # Check that gate takes a single angle parameter
+        try:
+            rxx_equivalent_gate(test_angle, label='foo')
+        except TypeError:
+            raise QiskitError(<equivalent gate needs to take exactly 1 angle parameter>)
+
         # Do a few spot checks that the KAK decomposition gives (x, 0, 0)
         for test_angle in [0.2, 0.3, np.pi / 2]:
          decomp = TwoQubitWeylDecomposition(rxx_equivalent_gate(test_angle))
