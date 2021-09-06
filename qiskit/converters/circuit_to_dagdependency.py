@@ -38,8 +38,7 @@ def circuit_to_dagdependency(circuit):
         dagdependency.add_creg(register)
 
     for operation, qargs, cargs in circuit.data:
-        if operation._directive is False:
-            dagdependency.add_op_node(operation, qargs, cargs)
+        dagdependency.add_op_node(operation, qargs, cargs)
 
     dagdependency._add_successors()
 

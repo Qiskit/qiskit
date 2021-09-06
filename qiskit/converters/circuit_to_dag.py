@@ -59,8 +59,7 @@ def circuit_to_dag(circuit):
         dagcircuit.add_creg(register)
 
     for instruction, qargs, cargs in circuit.data:
-        if instruction._directive is False:
-            dagcircuit.apply_operation_back(instruction.copy(), qargs, cargs)
+        dagcircuit.apply_operation_back(instruction.copy(), qargs, cargs)
 
     dagcircuit.duration = circuit.duration
     dagcircuit.unit = circuit.unit

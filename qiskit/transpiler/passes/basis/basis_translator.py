@@ -85,12 +85,16 @@ class BasisTranslator(TransformationPass):
         basic_instrs = ["measure", "reset", "barrier", "snapshot", "delay"]
 
         target_basis = set(self._target_basis).union(basic_instrs)
-        
+
         source_basis = set()
         for node in dag.op_nodes():
+            if node.op._directive is True:
+                if node.name != "barrier":
+                    dag.remove_op_node(node)
+                    continue
+
             if not dag.has_calibration_for(node):
-                if node.op._directive is False:
-                    source_basis.add((node.name, node.op.num_qubits))
+                source_basis.add((node.name, node.op.num_qubits))
 
         logger.info(
             "Begin BasisTranslator from source basis %s to target " "basis %s.",
@@ -132,9 +136,6 @@ class BasisTranslator(TransformationPass):
             if node.name in target_basis:
                 continue
 
-            if node.op._directive is True:
-                continue 
-            
             if dag.has_calibration_for(node):
                 continue
 
