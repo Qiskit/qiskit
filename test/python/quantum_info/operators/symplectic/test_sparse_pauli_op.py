@@ -12,16 +12,22 @@
 
 """Tests for SparsePauliOp class."""
 
-import unittest
 import itertools as it
+import unittest
 from test import combine
-from ddt import ddt
+
 import numpy as np
+from ddt import ddt
 
 from qiskit import QiskitError
-from qiskit.test import QiskitTestCase
+from qiskit.quantum_info.operators import (
+    Operator,
+    PauliList,
+    PauliTable,
+    SparsePauliOp,
+)
 from qiskit.quantum_info.random import random_unitary
-from qiskit.quantum_info.operators import Operator, SparsePauliOp, PauliTable
+from qiskit.test import QiskitTestCase
 
 
 def pauli_mat(label):
@@ -65,6 +71,23 @@ class TestSparsePauliOpInit(QiskitTestCase):
             spp_op = SparsePauliOp(label)
             self.assertEqual(spp_op.table, table)
             self.assertTrue(np.array_equal(spp_op.coeffs, [1]))
+
+    def test_pauli_list_init(self):
+        """Test PauliList initialization."""
+        labels = ["I", "X", "Y", "Z", "iZ", "-iX"]
+        paulis = PauliList(labels)
+        with self.subTest(msg="no coeffs"):
+            spp_op = SparsePauliOp(paulis)
+            np.testing.assert_array_equal(spp_op.coeffs, [1, 1, 1, 1, 1j, -1j])
+            paulis.phase = 0
+            self.assertEqual(spp_op.paulis, paulis)
+        paulis = PauliList(labels)
+        with self.subTest(msg="with coeffs"):
+            coeffs = [1, 2, 3, 4, 5, 6]
+            spp_op = SparsePauliOp(paulis, coeffs)
+            np.testing.assert_array_equal(spp_op.coeffs, [1, 2, 3, 4, 5j, -6j])
+            paulis.phase = 0
+            self.assertEqual(spp_op.paulis, paulis)
 
 
 class TestSparsePauliOpConversions(QiskitTestCase):

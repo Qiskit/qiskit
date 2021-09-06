@@ -130,7 +130,7 @@ class MCMT(QuantumCircuit):
         elif isinstance(gate, QuantumCircuit):
             if gate.num_qubits != 1:
                 raise AttributeError(
-                    "The circuit you specified as control gate can only have " "one qubit!"
+                    "The circuit you specified as control gate can only have one qubit!"
                 )
             base_gate = gate.to_gate()  # raises error if circuit contains non-unitary instructions
         else:

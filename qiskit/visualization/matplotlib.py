@@ -40,7 +40,11 @@ from qiskit.circuit.library.standard_gates import (
 )
 from qiskit.extensions import Initialize
 from qiskit.visualization.qcstyle import load_style
-from qiskit.visualization.utils import get_gate_ctrl_text, get_param_str
+from qiskit.visualization.utils import (
+    get_gate_ctrl_text,
+    get_param_str,
+    matplotlib_close_if_inline,
+)
 from qiskit.circuit.tools.pi_check import pi_check
 from qiskit.exceptions import MissingOptionalLibraryError
 
@@ -348,10 +352,7 @@ class MatplotlibDrawer:
                 facecolor=self._figure.get_facecolor(),
             )
         if not self._user_ax:
-            from matplotlib import get_backend
-
-            if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
-                self._plt_mod.close(self._figure)
+            matplotlib_close_if_inline(self._figure)
             return self._figure
 
     def _get_layer_widths(self):
@@ -902,6 +903,8 @@ class MatplotlibDrawer:
                 v_ind += 1
         clbit_b = min(xy_plot, key=lambda xy: xy[1])
         xpos, ypos = clbit_b
+        if isinstance(node.op, Measure):
+            xpos += 0.3
         self._ax.text(
             xpos,
             ypos - 0.3 * HIG,
@@ -1061,12 +1064,12 @@ class MatplotlibDrawer:
             return
 
         c_xy = self._data[node]["c_xy"]
-        xpos = min([x[0] for x in xy])
-        ypos = min([y[1] for y in xy])
-        ypos_max = max([y[1] for y in xy])
+        xpos = min(x[0] for x in xy)
+        ypos = min(y[1] for y in xy)
+        ypos_max = max(y[1] for y in xy)
         if c_xy:
-            cxpos = min([x[0] for x in c_xy])
-            cypos = min([y[1] for y in c_xy])
+            cxpos = min(x[0] for x in c_xy)
+            cypos = min(y[1] for y in c_xy)
             ypos = min(ypos, cypos)
 
         wid = max(self._data[node]["width"] + 0.21, WID)
