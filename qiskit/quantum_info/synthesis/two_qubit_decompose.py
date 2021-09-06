@@ -677,7 +677,7 @@ class TwoQubitControlledUDecomposer:
 
         # translate the RZZGate(c) into a circuit based on the desired Ctrl-U gate.
         if abs(self.decomposer.c) > atol:
-            # Since the Weyl chember is here defined as a > b > |c| we may have
+            # Since the Weyl chamber is here defined as a > b > |c| we may have
             # negative c. This will cause issues in _to_rxx_gate
             # as TwoQubitWeylControlledEquiv will map (c, 0, 0) to (|c|, 0, 0).
             # We therefore produce RZZGate(|c|) and append its inverse to the
