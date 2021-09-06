@@ -147,55 +147,65 @@ def get_param_str(op, drawer, ndigits=3):
 
 
 def get_bit_label(drawer, register, index, qubit=True, layout=None, cregbundle=True):
-    """Get the bit labels to display to the left of the wires."""
+    """Get the bit labels to display to the left of the wires.
+
+    Args:
+        drawer (str): which drawer is calling ("text", "mpl", or "latex")
+        register (QuantumRegister or ClassicalRegister): get bit_label for this register
+        index (int): index of bit in register
+        qubit (bool): Optional. if set True, a Qubit or QuantumRegister. Default: ``True``
+        layout (Layout): Optional. mapping of virtual to physical bits
+        cregbundle (bool): Optional. if set True bundle classical registers.
+            Default: ``True``.
+
+    Returns:
+        bit_label (str): label to display for the register/index
+
+    """
     index_str = f"{index}" if drawer == "text" else f"{{{index}}}"
+    if register is None:
+        bit_label = index_str
+        return bit_label
 
-    if register is not None:
-        if drawer == "text":
-            reg_name = f"{register.name}"
-            reg_name_index = f"{register.name}_{index}"
-        else:
-            reg_name = f"{{{register.name}}}"
-            reg_name_index = f"{{{register.name}}}_{{{index}}}"
+    if drawer == "text":
+        reg_name = f"{register.name}"
+        reg_name_index = f"{register.name}_{index}"
+    else:
+        reg_name = f"{{{register.name}}}"
+        reg_name_index = f"{{{register.name}}}_{{{index}}}"
 
-        if not qubit and cregbundle:
+    # Clbits
+    if not qubit:
+        if cregbundle:
             bit_label = f"{register.name}"
-            return bit_label
-
-        if register.size > 1:
-            if qubit:
-                if layout is None:
-                    bit_label = reg_name_index
-                else:
-                    if layout[index]:
-                        virt_bit = layout[index]
-                        try:
-                            virt_reg = next(
-                                reg for reg in layout.get_registers() if virt_bit in reg
-                            )
-                            if drawer == "text":
-                                bit_label = (
-                                    f"{virt_reg.name}_{virt_reg[:].index(virt_bit)} -> {index}"
-                                )
-                            else:
-                                bit_label = (
-                                    f"{{{virt_reg.name}}}_{{{virt_reg[:].index(virt_bit)}}}"
-                                    f" \\mapsto {{{index}}}"
-                                )
-
-                        except StopIteration:
-                            if drawer == "text":
-                                bit_label = f"{virt_bit} -> {index}"
-                            else:
-                                bit_label = f"{{{virt_bit}}} \\mapsto {{{index}}}"
-                    else:
-                        bit_label = index_str
-
-            else:  # Clbits
-                bit_label = reg_name_index
-        else:  # One-bit register
+        elif register.size == 1:
             bit_label = reg_name
-    else:  # Registerless bit
+        else:
+            bit_label = reg_name_index
+        return bit_label
+
+    # Qubits
+    if register.size == 1:
+        bit_label = reg_name
+    elif layout is None:
+        bit_label = reg_name_index
+    elif layout[index]:
+        virt_bit = layout[index]
+        try:
+            virt_reg = next(reg for reg in layout.get_registers() if virt_bit in reg)
+            if drawer == "text":
+                bit_label = f"{virt_reg.name}_{virt_reg[:].index(virt_bit)} -> {index}"
+            else:
+                bit_label = (
+                    f"{{{virt_reg.name}}}_{{{virt_reg[:].index(virt_bit)}}}"
+                    f" \\mapsto {{{index}}}"
+                )
+        except StopIteration:
+            if drawer == "text":
+                bit_label = f"{virt_bit} -> {index}"
+            else:
+                bit_label = f"{{{virt_bit}}} \\mapsto {{{index}}}"
+    else:
         bit_label = index_str
 
     return bit_label
