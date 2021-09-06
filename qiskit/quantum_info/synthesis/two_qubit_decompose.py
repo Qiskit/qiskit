@@ -650,11 +650,6 @@ class TwoQubitControlledUDecomposer:
         rxx_circ.compose(oneq_decompose(decomposer_inv.K1r).inverse(), inplace=True, qubits=[0])
         rxx_circ.compose(oneq_decompose(decomposer_inv.K1l).inverse(), inplace=True, qubits=[1])
 
-        # Ensure the circuit is equivalent to an RXXGate.
-        qc_rxx = QuantumCircuit(2)
-        qc_rxx.append(RXXGate(angle), qargs=[0, 1])
-        if not np.allclose(Operator(rxx_circ).data, Operator(qc_rxx).data):
-            raise QiskitError(f"Failed to reproduce RXXGate for angle {angle}.")
 
         return rxx_circ
 
