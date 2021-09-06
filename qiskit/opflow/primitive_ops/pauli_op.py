@@ -133,7 +133,7 @@ class PauliOp(PrimitiveOp):
         new_pauli_list = ["I"] * length
         if len(permutation) != self.num_qubits:
             raise OpflowError(
-                "List of indices to permute must " "have the same size as Pauli Operator"
+                "List of indices to permute must have the same size as Pauli Operator"
             )
         for i, index in enumerate(permutation):
             new_pauli_list[-index - 1] = pauli_string[-i - 1]

@@ -27,7 +27,7 @@ from qiskit.pulse import (
     DriveChannel,
     GaussianSquare,
 )
-from qiskit.transpiler.passes.scheduling.calibration_creators import (
+from qiskit.transpiler.passes.calibration.builders import (
     RZXCalibrationBuilderNoEcho,
 )
 from qiskit.test.mock import FakeAthens

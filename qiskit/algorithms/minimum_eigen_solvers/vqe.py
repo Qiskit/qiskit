@@ -597,7 +597,7 @@ queried as VQEResult.eigenvalue."""
         """Get the minimal cost or energy found by the VQE."""
         if self._ret.optimal_point is None:
             raise AlgorithmError(
-                "Cannot return optimal cost before running the " "algorithm to find optimal params."
+                "Cannot return optimal cost before running the algorithm to find optimal params."
             )
         return self._ret.optimal_value
 
