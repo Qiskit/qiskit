@@ -571,8 +571,8 @@ class TwoQubitControlledUDecomposer:
         """
         # Do a few spot checks that the KAK decomposition gives (x, 0, 0)
         for test_angle in [0.2, 0.3, np.pi / 2]:
-            decomp = TwoQubitWeylDecomposition(Operator(rxx_equivalent_gate(test_angle)).data)
-            if not np.allclose([decomp.b, decomp.c], [0, 0]):
+         decomp = TwoQubitWeylDecomposition(rxx_equivalent_gate(test_angle))
+         if not isinstance(decomp, TwoQubitWeylControlledEquiv) or abs(decomp.a - self.scale * test_angle) > atol:
                 raise QiskitError(
                     f"{rxx_equivalent_gate.__name__} is not equivalent to an RXXGate."
                 )
