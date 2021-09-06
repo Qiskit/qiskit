@@ -861,15 +861,12 @@ class QuantumCircuit:
 
         if front:
             dest._data = mapped_instrs + dest._data
-        else:
-            dest._data += mapped_instrs
-
-        if front:
             dest._parameter_table.clear()
             for instr, _, _ in dest._data:
                 dest._update_parameter_table(instr)
         else:
             # just append new parameters
+            dest._data += mapped_instrs
             for instr, _, _ in mapped_instrs:
                 dest._update_parameter_table(instr)
 
