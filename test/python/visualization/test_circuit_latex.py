@@ -548,6 +548,24 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    def test_measures_with_conditions(self):
+        """Test that a measure containing a condition displays"""
+        filename1 = self._get_resource_path("test_latex_meas_cond_false.tex")
+        filename2 = self._get_resource_path("test_latex_meas_cond_true.tex")
+        qr = QuantumRegister(2, "qr")
+        cr1 = ClassicalRegister(2, "cr1")
+        cr2 = ClassicalRegister(2, "cr2")
+        circuit = QuantumCircuit(qr, cr1, cr2)
+        circuit.h(0)
+        circuit.h(1)
+        circuit.measure(0, cr1[1])
+        circuit.measure(1, cr2[0]).c_if(cr1, 1)
+        circuit.h(0).c_if(cr2, 3)
+        circuit_drawer(circuit, cregbundle=False, filename=filename1, output="latex_source")
+        circuit_drawer(circuit, cregbundle=True, filename=filename2, output="latex_source")
+        self.assertEqualToReference(filename1)
+        self.assertEqualToReference(filename2)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
