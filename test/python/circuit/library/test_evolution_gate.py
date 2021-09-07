@@ -17,6 +17,7 @@ import scipy
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import EvolutionGate
 from qiskit.circuit.library.evolution.lie_trotter import LieTrotter
+from qiskit.circuit.library.evolution.suzuki_trotter import SuzukiTrotter
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.opflow import I, X, Y, Z
@@ -46,6 +47,55 @@ class TestEvolutionGate(QiskitTestCase):
         evo_gate = EvolutionGate(op, time, synthesis=LieTrotter(reps=reps))
         decomposed = evo_gate.definition.decompose()
         self.assertEqual(decomposed.count_ops()["cx"], reps * 3 * 4)
+
+    def test_suzuki_trotter(self):
+        """Test constructing the circuit with Lie Trotter decomposition."""
+        op = (X ^ 3) + (Y ^ 3) + (Z ^ 3)
+        time = 0.123
+        reps = 4
+        for order in [2, 4, 7]:
+            if order == 2:
+                expected_cx = reps * 5 * 4
+            elif order % 2 == 0:
+                # recurse (order - 2) / 2 times, base case has 5 blocks with 4 CX each
+                expected_cx = reps * 5 ** ((order - 2) / 2) * 5 * 4
+            else:
+                # recurse (order - 1) / 2 times, base case has 3 blocks with 4 CX each
+                expected_cx = reps * 5 ** ((order - 1) / 2) * 3 * 4
+
+            with self.subTest(order=order):
+                evo_gate = EvolutionGate(op, time, synthesis=SuzukiTrotter(order=order, reps=reps))
+                decomposed = evo_gate.definition.decompose()
+                self.assertEqual(decomposed.count_ops()["cx"], expected_cx)
+
+    def test_suzuki_trotter_manual(self):
+        """Test the evolution circuit of Suzuki Trotter against a manually constructed circuit."""
+        # op = (X ^ 3) + (Y ^ 3)  # + (Z ^ 3)
+        op = X + Y
+        time = 0.1
+        reps = 1
+        evo_gate = EvolutionGate(op, time, synthesis=SuzukiTrotter(order=4, reps=reps))
+
+        # manually construct expected evolution
+        expected = QuantumCircuit(1)
+        p_4 = 1 / (4 - 4 ** (1 / 3))  # coefficient for reduced time from Suzuki paper
+        for _ in range(2):
+            # factor of 1/2 already included with factor 1/2 in rotation gate
+            expected.rx(p_4 * time, 0)
+            expected.ry(2 * p_4 * time, 0)
+            expected.rx(p_4 * time, 0)
+
+        expected.rx((1 - 4 * p_4) * time, 0)
+        expected.ry(2 * (1 - 4 * p_4) * time, 0)
+        expected.rx((1 - 4 * p_4) * time, 0)
+
+        for _ in range(2):
+            expected.rx(p_4 * time, 0)
+            expected.ry(2 * p_4 * time, 0)
+            expected.rx(p_4 * time, 0)
+
+        decomposed = evo_gate.definition.decompose()
+        self.assertEqual(decomposed, expected)
 
     def test_passing_grouped_paulis(self):
         """Test passing a list of already grouped Paulis."""

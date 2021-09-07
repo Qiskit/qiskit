@@ -14,7 +14,7 @@
 
 from typing import List, Callable, Optional, Union
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.quantum_info.operators import SparsePauliOp
+from qiskit.quantum_info.operators import SparsePauliOp, Pauli
 
 from .product_formula import ProductFormula
 
@@ -42,8 +42,14 @@ class LieTrotter(ProductFormula):
     ) -> QuantumCircuit:
         evo = QuantumCircuit(operators[0].num_qubits)
         first_barrier = False
+
+        if not isinstance(operators, list):
+            pauli_list = [(Pauli(op), coeff) for op, coeff in operators.to_list()]
+        else:
+            pauli_list = [(op, 1) for op in operators]
+
         for _ in range(self.reps):
-            for op in operators:
+            for op, coeff in pauli_list:
                 # add barriers
                 if first_barrier:
                     if self.insert_barriers:
@@ -51,6 +57,6 @@ class LieTrotter(ProductFormula):
                 else:
                     first_barrier = True
 
-                evo.compose(self.atomic_evolution(op, time / self.reps), inplace=True)
+                evo.compose(self.atomic_evolution(op, coeff * time / self.reps), inplace=True)
 
         return evo

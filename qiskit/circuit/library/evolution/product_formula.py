@@ -13,7 +13,7 @@
 """A gate to implement time-evolution of a single Pauli string."""
 
 
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info import SparsePauliOp, Pauli
 
@@ -30,7 +30,9 @@ class ProductFormula(EvolutionSynthesis):
         self,
         order: int,
         reps: int = 1,
-        atomic_evolution: Optional[Callable[[SparsePauliOp, float], QuantumCircuit]] = None,
+        atomic_evolution: Optional[
+            Callable[[Union[Pauli, SparsePauliOp, float]], QuantumCircuit]
+        ] = None,
         insert_barriers: bool = False,
     ) -> None:
         """
