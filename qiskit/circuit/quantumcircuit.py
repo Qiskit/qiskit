@@ -1163,7 +1163,7 @@ class QuantumCircuit:
         expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
         expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
 
-        instructions = InstructionSet()
+        instructions = InstructionSet(self.clbits)
         for (qarg, carg) in instruction.broadcast_arguments(expanded_qargs, expanded_cargs):
             instructions.add(self._append(instruction, qarg, carg), qarg, carg)
         return instructions
@@ -1805,18 +1805,14 @@ class QuantumCircuit:
         for instr, qargs, cargs in self._data:
             levels = []
             reg_ints = []
-            # If count then add one to stack heights
-            count = True
-            if instr._directive:
-                count = False
             for ind, reg in enumerate(qargs + cargs):
                 # Add to the stacks of the qubits and
                 # cbits used in the gate.
                 reg_ints.append(bit_indices[reg])
-                if count:
-                    levels.append(op_stack[reg_ints[ind]] + 1)
-                else:
+                if instr._directive:
                     levels.append(op_stack[reg_ints[ind]])
+                else:
+                    levels.append(op_stack[reg_ints[ind]] + 1)
             # Assuming here that there is no conditional
             # snapshots or barriers ever.
             if instr.condition:
