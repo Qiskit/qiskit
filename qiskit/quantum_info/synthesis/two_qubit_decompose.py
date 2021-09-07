@@ -577,8 +577,8 @@ class TwoQubitControlledUDecomposer:
             # Check that gate takes a single angle parameter
             try:
                 rxx_equivalent_gate(test_angle, label="foo")
-            except TypeError:
-                raise QiskitError("Equivalent gate needs to take exactly 1 angle parameter.")
+            except TypeError as _:
+                raise QiskitError("Equivalent gate needs to take exactly 1 angle parameter.") from _
             decomp = TwoQubitWeylDecomposition(rxx_equivalent_gate(test_angle))
 
             circ = QuantumCircuit(2)
