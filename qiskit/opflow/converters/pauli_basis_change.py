@@ -144,6 +144,7 @@ class PauliBasisChange(ConverterBase):
             cob_instr_op, _ = self.get_cob_circuit(origin_pauli)
             primitive.paulis.z = np.logical_or(primitive.paulis.x, primitive.paulis.z)
             primitive.paulis.x = False
+            primitive.paulis.phase = 0
             dest_pauli_sum_op = PauliSumOp(primitive, coeff=operator.coeff, grouping_type="TPB")
             return self._replacement_fn(cob_instr_op, dest_pauli_sum_op)
 
