@@ -43,7 +43,7 @@ class PauliEvolutionGate(Gate):
 
     def _define(self):
         # first check if we evolve on a single qubit, if yes use the corresponding qubit rotation
-        if len([label for label in self.pauli.to_label() if label != 'I']) <= 1:
+        if len([label for label in self.pauli.to_label() if label != "I"]) <= 1:
             self.definition = self._single_qubit_evolution()
         else:
             self.definition = self._multi_qubit_evolution()
@@ -51,11 +51,11 @@ class PauliEvolutionGate(Gate):
     def _single_qubit_evolution(self):
         definition = QuantumCircuit(self.pauli.num_qubits)
         for i, pauli_i in enumerate(reversed(self.pauli.to_label())):
-            if pauli_i == 'X':
+            if pauli_i == "X":
                 definition.rx(2 * self.time, i)
-            elif pauli_i == 'Y':
+            elif pauli_i == "Y":
                 definition.ry(2 * self.time, i)
-            elif pauli_i == 'Z':
+            elif pauli_i == "Z":
                 definition.rz(2 * self.time, i)
 
         return definition
@@ -73,7 +73,7 @@ class PauliEvolutionGate(Gate):
         # determine qubit to do the rotation on
         target = None
         for i, pauli_i in enumerate(reversed(self.pauli.to_label())):
-            if pauli_i != 'I':
+            if pauli_i != "I":
                 target = i
                 break
 
@@ -102,9 +102,9 @@ def diagonalizing_clifford(pauli: Pauli) -> QuantumCircuit:
     """
     cliff = QuantumCircuit(pauli.num_qubits)
     for i, pauli_i in enumerate(pauli.to_label()):
-        if pauli_i == 'Y':
+        if pauli_i == "Y":
             cliff.sdg(i)
-        if pauli_i in ['X', 'Y']:
+        if pauli_i in ["X", "Y"]:
             cliff.h(i)
 
     return cliff
@@ -141,7 +141,7 @@ def cnot_chain(pauli: Pauli) -> QuantumCircuit:
     # iterate over the Pauli's and add CNOTs
     for i, pauli_i in enumerate(pauli.to_label()):
         i = pauli.num_qubits - i - 1
-        if pauli_i != 'I':
+        if pauli_i != "I":
             if control is None:
                 control = i
             else:
@@ -183,7 +183,7 @@ def cnot_fountain(pauli: Pauli) -> QuantumCircuit:
     chain = QuantumCircuit(pauli.num_qubits)
     control, target = None, None
     for i, pauli_i in enumerate(reversed(pauli.to_label())):
-        if pauli_i != 'I':
+        if pauli_i != "I":
             if target is None:
                 target = i
             else:
