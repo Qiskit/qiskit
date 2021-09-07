@@ -1322,21 +1322,12 @@ class TestTwoQubitControlledUDecompose(CheckDecompositions):
             circ = decomposer(unitary)
             self.assertEqual(Operator(unitary), Operator(circ))
 
-    def test_rxx_not_reproducible(self):
-        """Test that an exception is raised if RXXGate cannot be reproduced"""
-        unitary = random_unitary(4)
-        for gate in [CXGate, CZGate]:
-            decomposer = TwoQubitControlledUDecomposer(gate)
-            with self.assertRaises(QiskitError) as exc:
-                decomposer(unitary)
-            self.assertIn("Failed to reproduce RXXGate for angle", exc.exception.message)
-
     def test_not_rxx_equivalent(self):
         """Test that an exception is raised if the gate is not equivalent to an RXXGate"""
         gate = SwapGate
         with self.assertRaises(QiskitError) as exc:
             TwoQubitControlledUDecomposer(gate)
-        self.assertIn("is not equivalent to an RXXGate.", exc.exception.message)
+        self.assertIn("Equivalent gate needs to take exactly 1 angle parameter.", exc.exception.message)
 
 
 class TestDecomposeProductRaises(QiskitTestCase):
