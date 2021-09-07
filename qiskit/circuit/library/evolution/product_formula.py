@@ -12,8 +12,8 @@
 
 """A gate to implement time-evolution of a single Pauli string."""
 
-
 from typing import Callable, Optional, Union
+import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info import SparsePauliOp, Pauli
 
@@ -59,7 +59,7 @@ class ProductFormula(EvolutionSynthesis):
                     evo.append(PauliEvolutionGate(operator, time), evo.qubits)
                 else:
                     # sum of Pauli operators: exponentiate each term (this assumes they commute)
-                    pauli_list = [(Pauli(op), coeff) for op, coeff in operator.to_list()]
+                    pauli_list = [(Pauli(op), np.real(coeff)) for op, coeff in operator.to_list()]
                     for pauli, coeff in pauli_list:
                         evo.append(PauliEvolutionGate(pauli, coeff * time), evo.qubits)
 

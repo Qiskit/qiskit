@@ -13,6 +13,7 @@
 """The Lie-Trotter product formula."""
 
 from typing import List, Callable, Optional, Union
+import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
 
@@ -44,7 +45,7 @@ class LieTrotter(ProductFormula):
         first_barrier = False
 
         if not isinstance(operators, list):
-            pauli_list = [(Pauli(op), coeff) for op, coeff in operators.to_list()]
+            pauli_list = [(Pauli(op), np.real(coeff)) for op, coeff in operators.to_list()]
         else:
             pauli_list = [(op, 1) for op in operators]
 

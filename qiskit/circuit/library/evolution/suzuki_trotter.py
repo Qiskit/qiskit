@@ -13,6 +13,7 @@
 """The Lie-Trotter product formula."""
 
 from typing import List, Callable, Optional, Union
+import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
 
@@ -42,7 +43,7 @@ class SuzukiTrotter(ProductFormula):
         self, operators: Union[SparsePauliOp, List[SparsePauliOp]], time: float
     ) -> QuantumCircuit:
         if not isinstance(operators, list):
-            pauli_list = [(Pauli(op), coeff) for op, coeff in operators.to_list()]
+            pauli_list = [(Pauli(op), np.real(coeff)) for op, coeff in operators.to_list()]
         else:
             pauli_list = [(op, 1) for op in operators]
 
@@ -91,7 +92,6 @@ class SuzukiTrotter(ProductFormula):
 
         else:
             reduction = 1 / (4 - 4 ** (1 / (order - 1)))
-            print("order")
             outer = 2 * SuzukiTrotter._recurse(
                 order - 2, time=reduction * time, pauli_list=pauli_list
             )

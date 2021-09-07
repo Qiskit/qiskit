@@ -54,7 +54,7 @@ class EvolutionGate(Gate):
         self.synthesis = synthesis
 
     def _define(self):
-        """Unroll with a default implementation."""
+        """Unroll, where the default synthesis is matrix based."""
         if self.synthesis is None:
             self.definition = self._matrix_synthesis()
         else:
@@ -69,7 +69,7 @@ class EvolutionGate(Gate):
         else:
             operator = self.operator
 
-        evolved = scipy.linalg.expm(1j * self.time * Operator(operator).data)
+        evolved = scipy.linalg.expm(-1j * self.time * Operator(operator).data)
 
         definition = QuantumCircuit(self.num_qubits)
         definition.unitary(evolved, definition.qubits)

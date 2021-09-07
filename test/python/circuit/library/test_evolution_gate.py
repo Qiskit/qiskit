@@ -33,7 +33,7 @@ class TestEvolutionGate(QiskitTestCase):
         time = 0.123
 
         matrix = op.to_matrix()
-        evolved = scipy.linalg.expm(1j * time * matrix)
+        evolved = scipy.linalg.expm(-1j * time * matrix)
 
         evo_gate = EvolutionGate(op, time)
 
@@ -53,7 +53,7 @@ class TestEvolutionGate(QiskitTestCase):
         op = (X ^ 3) + (Y ^ 3) + (Z ^ 3)
         time = 0.123
         reps = 4
-        for order in [2, 4, 7]:
+        for order in [2, 4, 5]:
             if order == 2:
                 expected_cx = reps * 5 * 4
             elif order % 2 == 0:
@@ -70,7 +70,6 @@ class TestEvolutionGate(QiskitTestCase):
 
     def test_suzuki_trotter_manual(self):
         """Test the evolution circuit of Suzuki Trotter against a manually constructed circuit."""
-        # op = (X ^ 3) + (Y ^ 3)  # + (Z ^ 3)
         op = X + Y
         time = 0.1
         reps = 1
