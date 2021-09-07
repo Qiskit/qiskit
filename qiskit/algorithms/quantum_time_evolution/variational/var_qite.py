@@ -58,7 +58,6 @@ class VarQite(VarQte, EvolutionBase):
             self,
             variational_principle: ImaginaryVariationalPrinciple,
             regularization: Optional[str] = None,
-            init_parameter_values: Optional[Union[List, np.ndarray]] = None,
             backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
             error_based_ode: bool = False,
             epsilon: float = 10e-6,
@@ -66,7 +65,6 @@ class VarQite(VarQte, EvolutionBase):
         super().__init__(
             variational_principle,
             regularization,
-            init_parameter_values,
             backend,
             error_based_ode,
             epsilon,
@@ -105,14 +103,15 @@ class VarQite(VarQte, EvolutionBase):
                 "Observable argument provided. Observable evolution not supported by VarQite."
             )
 
-        init_state_parameters = initial_state.parameters
+        init_state_parameters = list(initial_state.parameters)
         init_state_param_dict, init_state_parameter_values = self._create_init_state_param_dict(
             hamiltonian_value_dict, init_state_parameters)
 
         # TODO bind Hamiltonian?
 
         self._variational_principle._lazy_init(hamiltonian, initial_state, init_state_parameters)
-        self.bind_initial_state(initial_state, init_state_param_dict)  # in this case this is ansatz
+        self.bind_initial_state(StateFn(initial_state),
+                                init_state_param_dict)  # in this case this is ansatz
         self._operator = self._variational_principle._operator
 
         if not isinstance(self._operator[-1], CircuitStateFn):
@@ -129,7 +128,8 @@ class VarQite(VarQte, EvolutionBase):
         self._operator = self._operator / self._operator.coeff  # Remove the time from the operator
         self._operator_eval = PauliExpectation().convert(self._operator / self._operator.coeff)
 
-        self._init_grad_objects()
+        self._init_grad_objects(self._variational_principle._grad_method,
+                                self._variational_principle._qfi_method, init_state_parameters)
         error_calculator = ImaginaryErrorCalculator(
             self._h_squared,
             self._operator,

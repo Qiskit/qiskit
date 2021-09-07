@@ -69,6 +69,7 @@ class VarQte(ABC):
         self._epsilon = epsilon
 
         self._backend = backend
+        # TODO what happens if backend is None?
         if self._backend is not None:
             # we define separate instances of CircuitSamplers as it caches aggresively according
             # to it documentation
@@ -110,7 +111,7 @@ class VarQte(ABC):
         """
         raise NotImplementedError
 
-    def _init_grad_objects(self):
+    def _init_grad_objects(self, grad_method, qfi_method, parameters):
         """
         Initialize the gradient objects needed to perform VarQTE
         """
@@ -124,23 +125,23 @@ class VarQte(ABC):
         # VarQRTE
         if np.iscomplex(self._operator.coeff):
             self._nat_grad = NaturalGradient(
-                grad_method=self._grad_method,
-                qfi_method=self._qfi_method,
+                grad_method=grad_method,
+                qfi_method=qfi_method,
                 regularization=self._regularization,
-            ).convert(self._operator * 0.5, self._parameters)
+            ).convert(self._operator * 0.5, parameters)
         # VarQITE
         else:
             self._nat_grad = NaturalGradient(
-                grad_method=self._grad_method,
-                qfi_method=self._qfi_method,
+                grad_method=grad_method,
+                qfi_method=qfi_method,
                 regularization=self._regularization,
-            ).convert(self._operator * -0.5, self._parameters)
+            ).convert(self._operator * -0.5, parameters)
 
         self._nat_grad = PauliExpectation().convert(self._nat_grad)
 
     def _h_pow(self, power):
         h_power = self._h ** power
-        h_power = ComposedOp([~StateFn(h_power.reduce()), self._initial_state])
+        h_power = ComposedOp([~StateFn(h_power.reduce()), StateFn(self._initial_state)])
         h_power = PauliExpectation().convert(h_power)
         return h_power
 
