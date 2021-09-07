@@ -13,15 +13,16 @@
 """The Eigensolver algorithm."""
 
 import logging
-from typing import List, Optional, Union, Tuple, Callable
+from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np
 from scipy import sparse as scisparse
 
-from qiskit.opflow import OperatorBase, I, StateFn, ListOp
+from qiskit.opflow import I, ListOp, OperatorBase, PauliSumOp, StateFn
 from qiskit.utils.validation import validate_min
-from .eigen_solver import Eigensolver, EigensolverResult
+
 from ..exceptions import AlgorithmError
+from .eigen_solver import Eigensolver, EigensolverResult
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +124,23 @@ class NumPyEigensolver(Eigensolver):
             for i, idx in enumerate(indices):
                 eigvec[idx, i] = 1.0
         else:
-            if self._k >= 2 ** operator.num_qubits - 1:
+            if (
+                isinstance(operator, PauliSumOp)
+                and np.isreal(operator.coeffs).all()
+                and np.all(operator.primitive.paulis.phase == 0)
+                and self._k >= 2 ** operator.num_qubits - 1
+            ):
+                logger.debug("SciPy doesn't support to get all eigenvalues, using NumPy instead.")
+                eigval, eigvec = np.linalg.eigh(operator.to_matrix())
+            elif (
+                isinstance(operator, PauliSumOp)
+                and np.isreal(operator.coeffs).all()
+                and np.all(operator.primitive.paulis.phase == 0)
+            ):
+                eigval, eigvec = scisparse.linalg.eigsh(
+                    operator.to_spmatrix(), k=self._k, which="SR"
+                )
+            elif self._k >= 2 ** operator.num_qubits - 1:
                 logger.debug("SciPy doesn't support to get all eigenvalues, using NumPy instead.")
                 eigval, eigvec = np.linalg.eig(operator.to_matrix())
             else:

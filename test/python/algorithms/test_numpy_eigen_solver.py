@@ -44,6 +44,7 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
         self.assertEqual(len(result.eigenvalues), 1)
         self.assertEqual(len(result.eigenstates), 1)
+        self.assertEqual(result.eigenvalues.dtype, np.float64)
         self.assertAlmostEqual(result.eigenvalues[0], -1.85727503 + 0j)
 
     def test_ce_k4(self):
@@ -52,6 +53,7 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
         self.assertEqual(len(result.eigenvalues), 4)
         self.assertEqual(len(result.eigenstates), 4)
+        self.assertEqual(result.eigenvalues.dtype, np.float64)
         np.testing.assert_array_almost_equal(
             result.eigenvalues.real, [-1.85727503, -1.24458455, -0.88272215, -0.22491125]
         )
@@ -68,6 +70,7 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
         self.assertEqual(len(result.eigenvalues), 2)
         self.assertEqual(len(result.eigenstates), 2)
+        self.assertEqual(result.eigenvalues.dtype, np.float64)
         np.testing.assert_array_almost_equal(result.eigenvalues.real, [-0.88272215, -0.22491125])
 
     def test_ce_k4_filtered_empty(self):
