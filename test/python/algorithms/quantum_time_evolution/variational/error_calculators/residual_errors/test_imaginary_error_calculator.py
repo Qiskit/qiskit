@@ -82,8 +82,9 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
             backend=None,
         )
         backend = Aer.get_backend("qasm_simulator")
-        linear_solver = VarQteLinearSolver(CircuitSampler(backend), CircuitSampler(backend),
-                                           CircuitSampler(backend), backend=None)
+        linear_solver = VarQteLinearSolver(
+            CircuitSampler(backend), CircuitSampler(backend), CircuitSampler(backend), backend=None
+        )
         var_principle = ImaginaryMcLachlanVariationalPrinciple()
         # for the purpose of the test we invoke lazy_init
         var_principle._lazy_init(observable, ansatz, parameters)
@@ -141,8 +142,9 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
             backend=None,
         )
         backend = Aer.get_backend("qasm_simulator")
-        linear_solver = VarQteLinearSolver(CircuitSampler(backend), CircuitSampler(backend),
-                                           CircuitSampler(backend), backend=None)
+        linear_solver = VarQteLinearSolver(
+            CircuitSampler(backend), CircuitSampler(backend), CircuitSampler(backend), backend=None
+        )
         var_principle = ImaginaryMcLachlanVariationalPrinciple()
         # for the purpose of the test we invoke lazy_init
         var_principle._lazy_init(observable, ansatz, parameters)

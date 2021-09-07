@@ -12,12 +12,10 @@
 
 import numpy as np
 
-from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary\
-    .imaginary_variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.principles.real\
-    .real_variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.principles.real.real_variational_principle import (
     RealVariationalPrinciple,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (

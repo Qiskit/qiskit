@@ -57,9 +57,7 @@ class TestDistanceEnergyCalculator(QiskitAlgorithmsTestCase):
         init_state = state1.assign_parameters(param_dict).eval().primitive.data
         exact_state = np.dot(expm(-1j * h_matrix * time), init_state)
 
-        distance_energy = _calculate_distance_energy(
-            state1, exact_state, h_matrix, param_dict
-        )
+        distance_energy = _calculate_distance_energy(state1, exact_state, h_matrix, param_dict)
         expected_distance_energy = 0
         print(distance_energy)
         # np.testing.assert_almost_equal(distance_energy, expected_bures_distance, decimal=6)

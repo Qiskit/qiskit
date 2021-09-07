@@ -15,18 +15,17 @@ import unittest
 import numpy as np
 from scipy.linalg import expm
 
-from qiskit.algorithms.quantum_time_evolution.variational.calculators.distance_energy_calculator \
-    import \
-    _inner_prod
-from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors \
-    .imaginary_error_calculator import \
-    ImaginaryErrorCalculator
-from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.ode_function_generator \
-    import \
-    OdeFunctionGenerator
+from qiskit.algorithms.quantum_time_evolution.variational.calculators.distance_energy_calculator import (
+    _inner_prod,
+)
+from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.imaginary_error_calculator import (
+    ImaginaryErrorCalculator,
+)
+from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.ode_function_generator import (
+    OdeFunctionGenerator,
+)
 from qiskit import Aer
-from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.implementations \
-    .imaginary_mc_lachlan_variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
@@ -37,7 +36,9 @@ from qiskit.opflow import (
     I,
     Z,
     StateFn,
-    CircuitSampler, ComposedOp, PauliExpectation,
+    CircuitSampler,
+    ComposedOp,
+    PauliExpectation,
 )
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
@@ -66,11 +67,9 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         backend = Aer.get_backend("qasm_simulator")
         state = operator[-1]
         if backend is not None:
-            init_state = CircuitSampler(backend).convert(
-                state, params=param_dict)
+            init_state = CircuitSampler(backend).convert(state, params=param_dict)
         else:
-            init_state = state.assign_parameters(
-                param_dict)
+            init_state = state.assign_parameters(param_dict)
         init_state = init_state.eval().primitive.data
 
         h = operator.oplist[0].primitive * operator.oplist[0].coeff
@@ -80,8 +79,9 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         h_squared = ComposedOp([~StateFn(h_squared.reduce()), state])
         h_squared = PauliExpectation().convert(h_squared)
 
-        error_calculator = ImaginaryErrorCalculator(h_squared, operator, CircuitSampler(backend),
-                                                    CircuitSampler(backend), param_dict)
+        error_calculator = ImaginaryErrorCalculator(
+            h_squared, operator, CircuitSampler(backend), CircuitSampler(backend), param_dict
+        )
 
         var_principle = ImaginaryMcLachlanVariationalPrinciple()
         # for the purpose of the test we invoke lazy_init
@@ -106,11 +106,21 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         )
 
         qte_ode_function = ode_function_generator.var_qte_ode_function(time, np.array([0, 0, 0]))
-        expected_qte_ode_function = [-0.8842908, 0.0441611, -0.21244606, 0.2349356, -0.50246622,
-                                     -0.6425113,
-                                     0.12545623, 0.07241851, 1.01843757, 0.3669189, 0.10147791,
-                                     0.18632604,
-                                     0.75854565]
+        expected_qte_ode_function = [
+            -0.8842908,
+            0.0441611,
+            -0.21244606,
+            0.2349356,
+            -0.50246622,
+            -0.6425113,
+            0.12545623,
+            0.07241851,
+            1.01843757,
+            0.3669189,
+            0.10147791,
+            0.18632604,
+            0.75854565,
+        ]
 
         np.testing.assert_array_almost_equal(expected_qte_ode_function, qte_ode_function)
 

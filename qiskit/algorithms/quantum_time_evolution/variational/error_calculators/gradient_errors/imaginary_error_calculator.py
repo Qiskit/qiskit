@@ -20,7 +20,7 @@ from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.grad
 )
 
 
-# TODO used by variational principle
+# TODO perhaps move h_squared and exp_operator to methods
 class ImaginaryErrorCalculator(ErrorCalculator):
     def __init__(
         self,

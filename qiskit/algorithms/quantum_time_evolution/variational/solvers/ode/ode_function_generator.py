@@ -101,9 +101,7 @@ class OdeFunctionGenerator:
             et,
             dtdt_state,
             reimgrad,
-        ) = self._error_calculator._calc_single_step_error(
-            nat_grad_res, grad_res, metric_res
-        )
+        ) = self._error_calculator._calc_single_step_error(nat_grad_res, grad_res, metric_res)
 
         et = self._inspect_fix_et_negative_part(et)
         (

@@ -67,9 +67,7 @@ class VarQteLinearSolver:
         # Check if numerical instabilities lead to a metric which is not positive semidefinite
         metric_res = self._check_and_fix_metric_psd(metric_res)
 
-        nat_grad_result = self._calc_nat_grad_result(
-            param_dict, var_principle
-        )
+        nat_grad_result = self._calc_nat_grad_result(param_dict, var_principle)
 
         return np.real(nat_grad_result), grad_res, metric_res
 

@@ -20,9 +20,9 @@ from qiskit import QiskitError
 
 class VarQteOdeSolver:
     def __init__(
-            self,
-            init_params,
-            ode_function_generator,
+        self,
+        init_params,
+        ode_function_generator,
     ):
         """
         Initialize ODE Solver
@@ -39,8 +39,7 @@ class VarQteOdeSolver:
         Find numerical solution with ODE Solver.
         """
         ode_solver = OdeSolver(
-            self._ode_function, t_bound=evolution_time, t0=0, y0=self._init_params,
-            vectorized=False
+            self._ode_function, t_bound=evolution_time, t0=0, y0=self._init_params, vectorized=False
         )
         param_values = None
 

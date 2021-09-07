@@ -14,8 +14,7 @@ import unittest
 import numpy as np
 
 from qiskit import Aer
-from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.implementations \
-    .imaginary_mc_lachlan_variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.solvers.var_qte_linear_solver import (
@@ -30,8 +29,9 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
     # TODO use ddt
     def test_solve_sle_no_backend(self):
         backend = Aer.get_backend("qasm_simulator")
-        linear_solver = VarQteLinearSolver(CircuitSampler(backend), CircuitSampler(backend),
-                                           CircuitSampler(backend), backend=None)
+        linear_solver = VarQteLinearSolver(
+            CircuitSampler(backend), CircuitSampler(backend), CircuitSampler(backend), backend=None
+        )
 
         # Define the Hamiltonian for the simulation
         observable = SummedOp(
