@@ -67,6 +67,7 @@ from qiskit.circuit.library import (
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
+from qiskit.opflow import I
 
 from .gate_utils import _get_free_params
 
@@ -288,6 +289,8 @@ class TestGateEquivalenceEqual(QiskitTestCase):
                     params[0] = 2
                 if gate_class.__name__ in ["PauliGate"]:
                     params = ["IXYZ"]
+                if gate_class.__name__ in ["QAOAGate"]:
+                    params = [I]
                 if gate_class.__name__ in ["BooleanExpression"]:
                     params = ["x | y"]
                 gate = gate_class(*params)

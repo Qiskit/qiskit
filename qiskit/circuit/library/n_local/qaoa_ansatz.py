@@ -293,7 +293,7 @@ class QAOAGate(Gate):
         if num_qubits == 0:
             raise AttributeError("Either initial_state or cost_operator should be set")
 
-        super().__init__("QAOA", num_qubits, params=None, label=label)
+        super().__init__("QAOA", num_qubits, params=[], label=label)
 
     def _define(self):
         """TODO"""
