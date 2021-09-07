@@ -19,12 +19,6 @@ import numpy as np
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.ode_function_generator import (
-    OdeFunctionGenerator,
-)
-from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.var_qte_ode_solver import (
-    VarQteOdeSolver,
-)
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
 from qiskit.opflow import StateFn, CircuitSampler, ComposedOp, PauliExpectation
@@ -42,7 +36,6 @@ class VarQte(ABC):
         self,
         variational_principle: VariationalPrinciple,
         regularization: Optional[str] = None,
-        init_parameter_values: Optional[Union[List, np.ndarray]] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
         error_based_ode: bool = False,
         epsilon: float = 10e-6,
@@ -74,43 +67,31 @@ class VarQte(ABC):
         self._variational_principle = variational_principle
         self._regularization = regularization
         self._epsilon = epsilon
-        self._parameters = variational_principle._parameters
-        if init_parameter_values is not None:
-            self._init_parameter_values = init_parameter_values
-        else:
-            self._init_parameter_values = np.random.random(len(self._parameters))
-        self._param_dict = dict(zip(self._parameters, self._init_parameter_values))
+
         self._backend = backend
         if self._backend is not None:
             # we define separate instances of CircuitSamplers as it caches aggresively according
             # to it documentation
             self._init_samplers()
             self._nat_grad_circ_sampler = CircuitSampler(self._backend, caching="all")
-        self._ode_function_generator = OdeFunctionGenerator(
-            self.error_calculator,
-            self._param_dict,
-            self._variational_principle,
-            self._state,
-            self._exact_state,
-            self._h_matrix,
-            self._h_norm,
-            self._grad_circ_sampler,
-            self._metric_circ_sampler,
-            self._nat_grad_circ_sampler,
-            self._regularization,
-            self._state_circ_sampler,
-            self._backend,
-        )
-        self._ode_solver = VarQteOdeSolver(
-            self._init_parameter_values, self._ode_function_generator
-        )
+
         self._error_based_ode = error_based_ode
 
-        self._operator =None
+        self._operator = None
+        self._initial_state = None
 
     @property
-    def error_calculator(self):
-        return self._error_calculator
+    def initial_state(self):
+        return self._initial_state
+
+    def bind_initial_state(self, state, param_dict):
+        if self._backend is not None:
+            self._initial_state = self._state_circ_sampler.convert(
+                state, params=param_dict)
+        else:
+            self._initial_state = state.assign_parameters(
+                param_dict)
+        self._initial_state = self._initial_state.eval().primitive.data
 
     def _init_samplers(self):
         self._operator_circ_sampler = CircuitSampler(self._backend)
@@ -136,21 +117,10 @@ class VarQte(ABC):
         self._h = self._operator.oplist[0].primitive * self._operator.oplist[0].coeff
         self._h_matrix = self._h.to_matrix(massive=True)
         self._h_norm = np.linalg.norm(self._h_matrix, np.infty)
-        self._state = self._operator[-1]
         self._h_squared = self._h_pow(2)
         self._h_trip = self._h_pow(3)
 
-        if self._backend is not None:
-            self._init_state = self._state_circ_sampler.convert(
-                self._state, params=dict(zip(self._parameters, self._init_parameter_values))
-            )
-        else:
-            self._init_state = self._state.assign_parameters(
-                dict(zip(self._parameters, self._init_parameter_values))
-            )
-        self._init_state = self._init_state.eval().primitive.data
-
-        # TODO does it depend on the var principle? check paper
+        # TODO does it depend on the var principle? yes, check paper
         # VarQRTE
         if np.iscomplex(self._operator.coeff):
             self._nat_grad = NaturalGradient(
@@ -170,6 +140,17 @@ class VarQte(ABC):
 
     def _h_pow(self, power):
         h_power = self._h ** power
-        h_power = ComposedOp([~StateFn(h_power.reduce()), self._state])
+        h_power = ComposedOp([~StateFn(h_power.reduce()), self._initial_state])
         h_power = PauliExpectation().convert(h_power)
         return h_power
+
+    def _create_init_state_param_dict(self, hamiltonian_value_dict, init_state_parameters):
+        if hamiltonian_value_dict is None:
+            init_state_parameter_values = np.random.random(len(init_state_parameters))
+        else:
+            init_state_parameter_values = []
+            for param in init_state_parameters:
+                if param in hamiltonian_value_dict.keys():
+                    init_state_parameter_values.append(hamiltonian_value_dict[param])
+        init_state_param_dict = dict(zip(init_state_parameters, init_state_parameter_values))
+        return init_state_param_dict, init_state_parameter_values

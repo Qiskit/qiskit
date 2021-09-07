@@ -9,64 +9,71 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from abc import abstractmethod
 from typing import Optional, Union, List, Iterable
 
 import numpy as np
-from scipy.integrate import ode, OdeSolver
 from scipy.linalg import expm
 
 from qiskit.algorithms.quantum_time_evolution.evolution_base import EvolutionBase
 from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import (
     EvolutionGradientResult,
 )
-from qiskit.algorithms.quantum_time_evolution.results.evolution_result import EvolutionResult
 from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors\
-    .real_error_calculator import \
-    RealErrorCalculator
-from qiskit.algorithms.quantum_time_evolution.variational.principles.real \
+    .real_error_calculator import (
+    RealErrorCalculator,
+)
+from qiskit.algorithms.quantum_time_evolution.variational.principles.real\
     .real_variational_principle import (
     RealVariationalPrinciple,
 )
+from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.ode_function_generator \
+    import (
+    OdeFunctionGenerator,
+)
+from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.var_qte_ode_solver import (
+    VarQteOdeSolver,
+)
 from qiskit.algorithms.quantum_time_evolution.variational.var_qte import VarQte
-from qiskit.opflow import OperatorBase, Gradient, StateFn, ComposedOp, CircuitStateFn, \
-    PauliExpectation
+from qiskit.opflow import (
+    OperatorBase,
+    Gradient,
+    StateFn,
+    ComposedOp,
+    CircuitStateFn,
+    PauliExpectation,
+)
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
 
 
 class VarQrte(VarQte, EvolutionBase):
     def __init__(
-            self,
-            variational_principle: RealVariationalPrinciple,
-            regularization: Optional[str] = None,
-            num_time_steps: int = 10,
-            init_parameter_values: Optional[Union[List, np.ndarray]] = None,
-            ode_solver: Optional[Union[OdeSolver, ode]] = None,
-            backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
-            snapshot_dir: Optional[str] = None,
-            error_based_ode: bool = False,
+        self,
+        variational_principle: RealVariationalPrinciple,
+        regularization: Optional[str] = None,
+        init_parameter_values: Optional[Union[List, np.ndarray]] = None,
+        backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
+        error_based_ode: bool = False,
+        epsilon: float = 10e-6,
     ):
         super().__init__(
             variational_principle,
             regularization,
-            num_time_steps,
             init_parameter_values,
-            ode_solver,
             backend,
-            snapshot_dir,
             error_based_ode,
+            epsilon,
         )
 
     def evolve(
-            self,
-            hamiltonian: OperatorBase,
-            time: float,
-            initial_state: StateFn = None,
-            observable: OperatorBase = None,
-            t_param=None,
-            hamiltonian_value_dict=None,
-    ) -> EvolutionResult:
+        self,
+        hamiltonian: OperatorBase,
+        time: float,
+        initial_state: StateFn = None,
+        observable: OperatorBase = None,
+        t_param=None,
+        hamiltonian_value_dict=None,
+    ):
 
         """
         Apply Variational Quantum Time Evolution (VarQTE) w.r.t. the given operator
@@ -81,15 +88,20 @@ class VarQrte(VarQte, EvolutionBase):
             StateFn (parameters are bound) which represents an approximation to the respective
             time evolution.
         """
-        self._parameters = list(hamiltonian_value_dict.keys())
-        self._variational_principle._lazy_init(hamiltonian, initial_state, self._parameters)
-        self._state = initial_state
+        init_state_parameters = initial_state.parameters
+        init_state_param_dict, init_state_parameter_values = self._create_init_state_param_dict(
+            hamiltonian_value_dict, init_state_parameters)
+
+        self._variational_principle._lazy_init(hamiltonian, initial_state, init_state_parameters)
+        self.bind_initial_state(initial_state, init_state_param_dict)  # in this case this is ansatz
         self._operator = self._variational_principle._operator
         if not isinstance(self._operator, ComposedOp) or len(self._operator.oplist) != 2:
-            raise TypeError('Please provide the operator as a ComposedOp consisting of the '
-                            'observable and the state (as CircuitStateFn).')
+            raise TypeError(
+                "Please provide the operator as a ComposedOp consisting of the "
+                "observable and the state (as CircuitStateFn)."
+            )
         if not isinstance(self._operator[-1], CircuitStateFn):
-            raise TypeError('Please provide the state as a CircuitStateFn.')
+            raise TypeError("Please provide the state as a CircuitStateFn.")
 
         # For VarQRTE we need to add a -i factor to the operator coefficient.
         # TODO should this also happen in VarPrinciple?
@@ -97,28 +109,51 @@ class VarQrte(VarQte, EvolutionBase):
         self._operator_eval = PauliExpectation().convert(self._operator / self._operator.coeff)
 
         self._init_grad_objects()
-        self._error_calculator = RealErrorCalculator(self._h_squared, self._operator, self._h_squared_circ_sampler,
-                                                    self._operator_circ_sampler, self._param_dict)
+        error_calculator = RealErrorCalculator(
+            self._h_squared,
+            self._operator,
+            self._h_squared_circ_sampler,
+            self._operator_circ_sampler,
+            init_state_param_dict,
+        )
 
-        # Step size
-        # dt = np.abs(self._operator.coeff)
+        exact_state = self._exact_state(time)
+
+        ode_function_generator = OdeFunctionGenerator(
+            error_calculator,
+            init_state_param_dict,
+            self._variational_principle,
+            self._initial_state,
+            exact_state,
+            self._h_matrix,
+            self._h_norm,
+            self._grad_circ_sampler,
+            self._metric_circ_sampler,
+            self._nat_grad_circ_sampler,
+            self._regularization,
+            self._state_circ_sampler,
+            self._backend,
+        )
+
+        ode_solver = VarQteOdeSolver(init_state_parameter_values, ode_function_generator)
         # Run ODE Solver
-        parameter_values = self._ode_solver._run(time, self._init_parameter_values)
-        # return evolved
-        return self._state.assign_parameters(dict(zip(self._parameters,
-                                                      parameter_values)))
+        parameter_values = ode_solver._run(time)
 
-    @abstractmethod
+        # initial state here is not with self because we need a parametrized state (input to this
+        # method)
+        param_dict_from_ode = dict(zip(init_state_parameters, parameter_values))
+        return initial_state.assign_parameters(param_dict_from_ode)
+
     def gradient(
-            self,
-            hamiltonian: OperatorBase,
-            time: float,
-            initial_state: StateFn,
-            gradient_object: Gradient,
-            observable: OperatorBase = None,
-            t_param=None,
-            hamiltonian_value_dict=None,
-            gradient_params=None,
+        self,
+        hamiltonian: OperatorBase,
+        time: float,
+        initial_state: StateFn,
+        gradient_object: Gradient,
+        observable: OperatorBase = None,
+        t_param=None,
+        hamiltonian_value_dict=None,
+        gradient_params=None,
     ) -> EvolutionGradientResult:
         raise NotImplementedError()
 
@@ -131,11 +166,10 @@ class VarQrte(VarQte, EvolutionBase):
         """
 
         # Evolve with exponential operator
-        target_state = np.dot(expm(-1j * self._h_matrix * time), self._init_state)
+        target_state = np.dot(expm(-1j * self._h_matrix * time), self._initial_state)
         return target_state
 
-    def _exact_grad_state(self,
-                          state: Iterable) -> Iterable:
+    def _exact_grad_state(self, state: Iterable) -> Iterable:
         """
         Return the gradient of the given state
         -i H |state>

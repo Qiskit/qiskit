@@ -22,17 +22,32 @@ from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result 
 )
 from qiskit.algorithms.quantum_time_evolution.results.evolution_result import EvolutionResult
 from qiskit.algorithms.quantum_time_evolution.variational.calculators.distance_energy_calculator \
-    import \
-    _inner_prod
-from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors\
-    .imaginary_error_calculator import \
-    ImaginaryErrorCalculator
+    import (
+    _inner_prod,
+)
+from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors \
+    .imaginary_error_calculator import (
+    ImaginaryErrorCalculator,
+)
 from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary \
     .imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
 )
-from qiskit.opflow import OperatorBase, Gradient, StateFn, CircuitStateFn, ComposedOp, \
-    PauliExpectation
+from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.ode_function_generator \
+    import (
+    OdeFunctionGenerator,
+)
+from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.var_qte_ode_solver import (
+    VarQteOdeSolver,
+)
+from qiskit.opflow import (
+    OperatorBase,
+    Gradient,
+    StateFn,
+    CircuitStateFn,
+    ComposedOp,
+    PauliExpectation,
+)
 from qiskit.algorithms.quantum_time_evolution.variational.var_qte import VarQte
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
@@ -43,22 +58,18 @@ class VarQite(VarQte, EvolutionBase):
             self,
             variational_principle: ImaginaryVariationalPrinciple,
             regularization: Optional[str] = None,
-            num_time_steps: int = 10,
             init_parameter_values: Optional[Union[List, np.ndarray]] = None,
-            ode_solver: Optional[Union[OdeSolver, ode]] = None,
             backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
-            snapshot_dir: Optional[str] = None,
-            error_based_ode: bool = False
+            error_based_ode: bool = False,
+            epsilon: float = 10e-6,
     ):
         super().__init__(
             variational_principle,
             regularization,
-            num_time_steps,
             init_parameter_values,
-            ode_solver,
             backend,
-            snapshot_dir,
-            error_based_ode
+            error_based_ode,
+            epsilon,
         )
 
     def evolve(
@@ -69,7 +80,7 @@ class VarQite(VarQte, EvolutionBase):
             observable: OperatorBase = None,
             t_param=None,
             hamiltonian_value_dict=None,
-    ) -> EvolutionResult:
+    ):
         """
         Apply Variational Quantum Imaginary Time Evolution (VarQITE) w.r.t. the given
         operator
@@ -91,37 +102,69 @@ class VarQite(VarQte, EvolutionBase):
         # TODO how does t_param fit in here?
         if observable is not None:
             raise TypeError(
-                "Observable argument provided. Observable evolution not supported by VarQite.")
+                "Observable argument provided. Observable evolution not supported by VarQite."
+            )
 
-        self._parameters = list(hamiltonian_value_dict.keys())
-        self._variational_principle._lazy_init(hamiltonian, initial_state, self._parameters)
-        self._state = initial_state
+        init_state_parameters = initial_state.parameters
+        init_state_param_dict, init_state_parameter_values = self._create_init_state_param_dict(
+            hamiltonian_value_dict, init_state_parameters)
+
+        # TODO bind Hamiltonian?
+
+        self._variational_principle._lazy_init(hamiltonian, initial_state, init_state_parameters)
+        self.bind_initial_state(initial_state, init_state_param_dict)  # in this case this is ansatz
         self._operator = self._variational_principle._operator
+
         if not isinstance(self._operator[-1], CircuitStateFn):
-            raise TypeError('Please provide the respective Ansatz as a CircuitStateFn.')
+            raise TypeError("Please provide the respective Ansatz as a CircuitStateFn.")
         elif not isinstance(self._operator, ComposedOp) and not all(
-                isinstance(op, CircuitStateFn) for \
-                op in self._operator.oplist):
-            raise TypeError('Please provide the operator either as ComposedOp or as ListOp of a '
-                            'CircuitStateFn potentially with a combo function.')
+                isinstance(op, CircuitStateFn) for op in self._operator.oplist
+        ):
+            raise TypeError(
+                "Please provide the operator either as ComposedOp or as ListOp of a "
+                "CircuitStateFn potentially with a combo function."
+            )
 
         # Convert the operator that holds the Hamiltonian and ansatz into a NaturalGradient operator
         self._operator = self._operator / self._operator.coeff  # Remove the time from the operator
         self._operator_eval = PauliExpectation().convert(self._operator / self._operator.coeff)
 
-        # dt = np.abs(operator.coeff) * np.sign(operator.coeff)
-
         self._init_grad_objects()
-        self._error_calculator = ImaginaryErrorCalculator(self._h_squared, self._operator,
-                                                     self._h_squared_circ_sampler,
-                                                     self._operator_circ_sampler, self._param_dict)
-        # Run ODE Solver
-        parameter_values = self._ode_solver._run(time, self._init_parameter_values)
-        # return evolved
-        return self._state.assign_parameters(dict(zip(self._parameters,
-                                                      parameter_values)))
+        error_calculator = ImaginaryErrorCalculator(
+            self._h_squared,
+            self._operator,
+            self._h_squared_circ_sampler,
+            self._operator_circ_sampler,
+            init_state_param_dict,
+        )
 
-    @abstractmethod
+        exact_state = self._exact_state(time)
+
+        ode_function_generator = OdeFunctionGenerator(
+            error_calculator,
+            init_state_param_dict,
+            self._variational_principle,
+            self._initial_state,
+            exact_state,
+            self._h_matrix,
+            self._h_norm,
+            self._grad_circ_sampler,
+            self._metric_circ_sampler,
+            self._nat_grad_circ_sampler,
+            self._regularization,
+            self._state_circ_sampler,
+            self._backend,
+        )
+
+        ode_solver = VarQteOdeSolver(init_state_parameter_values, ode_function_generator)
+        # Run ODE Solver
+        parameter_values = ode_solver._run(time)
+        # return evolved
+        # initial state here is not with self because we need a parametrized state (input to this
+        # method)
+        param_dict_from_ode = dict(zip(init_state_parameters, parameter_values))
+        return initial_state.assign_parameters(param_dict_from_ode)
+
     def gradient(
             self,
             hamiltonian: OperatorBase,
@@ -135,7 +178,6 @@ class VarQite(VarQte, EvolutionBase):
     ) -> EvolutionGradientResult:
         raise NotImplementedError()
 
-
     def _exact_state(self, time: Union[float, complex]) -> Iterable:
         """
         Args:
@@ -145,13 +187,12 @@ class VarQite(VarQte, EvolutionBase):
         """
 
         # Evolve with exponential operator
-        target_state = np.dot(expm(-1 * self._h_matrix * time), self._init_state)
+        target_state = np.dot(expm(-1 * self._h_matrix * time), self._initial_state)
         # Normalization
         target_state /= np.sqrt(_inner_prod(target_state, target_state))
         return target_state
 
-    def _exact_grad_state(self,
-                          state: Iterable) -> Iterable:
+    def _exact_grad_state(self, state: Iterable) -> Iterable:
         """
         Return the gradient of the given state
         (E_t - H ) |state>
@@ -162,4 +203,4 @@ class VarQite(VarQte, EvolutionBase):
         """
 
         energy_t = _inner_prod(state, np.matmul(self._h_matrix, state))
-        return np.matmul(np.subtract(energy_t*np.eye(len(self._h_matrix)), self._h_matrix), state)
+        return np.matmul(np.subtract(energy_t * np.eye(len(self._h_matrix)), self._h_matrix), state)
