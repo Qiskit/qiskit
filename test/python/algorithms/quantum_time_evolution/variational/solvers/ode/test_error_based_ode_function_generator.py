@@ -78,11 +78,12 @@ class TestErrorBasedOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         error_calculator = ImaginaryErrorCalculator(h_squared, operator, CircuitSampler(backend),
                                                     CircuitSampler(backend), param_dict)
 
-        var_principle = ImaginaryMcLachlanVariationalPrinciple(error_calculator)
+        var_principle = ImaginaryMcLachlanVariationalPrinciple()
         # for the purpose of the test we invoke lazy_init
         var_principle._lazy_init(observable, ansatz, parameters)
 
         ode_function_generator = ErrorBaseOdeFunctionGenerator(
+            error_calculator,
             param_dict,
             var_principle,
             CircuitSampler(backend),

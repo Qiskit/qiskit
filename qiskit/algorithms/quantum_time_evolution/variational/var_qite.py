@@ -24,6 +24,9 @@ from qiskit.algorithms.quantum_time_evolution.results.evolution_result import Ev
 from qiskit.algorithms.quantum_time_evolution.variational.calculators.distance_energy_calculator \
     import \
     _inner_prod
+from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors\
+    .imaginary_error_calculator import \
+    ImaginaryErrorCalculator
 from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary \
     .imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
@@ -109,6 +112,9 @@ class VarQite(VarQte, EvolutionBase):
         # dt = np.abs(operator.coeff) * np.sign(operator.coeff)
 
         self._init_grad_objects()
+        self._error_calculator = ImaginaryErrorCalculator(self._h_squared, self._operator,
+                                                     self._h_squared_circ_sampler,
+                                                     self._operator_circ_sampler, self._param_dict)
         # Run ODE Solver
         parameter_values = self._ode_solver._run(time, self._init_parameter_values)
         # return evolved

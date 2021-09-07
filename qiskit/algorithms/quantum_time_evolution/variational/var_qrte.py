@@ -21,6 +21,9 @@ from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result 
     EvolutionGradientResult,
 )
 from qiskit.algorithms.quantum_time_evolution.results.evolution_result import EvolutionResult
+from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors\
+    .real_error_calculator import \
+    RealErrorCalculator
 from qiskit.algorithms.quantum_time_evolution.variational.principles.real \
     .real_variational_principle import (
     RealVariationalPrinciple,
@@ -94,6 +97,9 @@ class VarQrte(VarQte, EvolutionBase):
         self._operator_eval = PauliExpectation().convert(self._operator / self._operator.coeff)
 
         self._init_grad_objects()
+        self._error_calculator = RealErrorCalculator(self._h_squared, self._operator, self._h_squared_circ_sampler,
+                                                    self._operator_circ_sampler, self._param_dict)
+
         # Step size
         # dt = np.abs(self._operator.coeff)
         # Run ODE Solver

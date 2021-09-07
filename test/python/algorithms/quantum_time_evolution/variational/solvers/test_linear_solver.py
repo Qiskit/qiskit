@@ -52,9 +52,7 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
         # Define a set of initial parameters
         parameters = ansatz.ordered_parameters
 
-        # TODO var_principle currently requires an error calculator but linear solver for example
-        #  does not need it at all.
-        var_principle = ImaginaryMcLachlanVariationalPrinciple(None)
+        var_principle = ImaginaryMcLachlanVariationalPrinciple()
         # for the purpose of the test we invoke lazy_init
         var_principle._lazy_init(observable, ansatz, parameters)
 

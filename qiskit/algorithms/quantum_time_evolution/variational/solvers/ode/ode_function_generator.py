@@ -30,6 +30,7 @@ from qiskit.algorithms.quantum_time_evolution.variational.solvers.var_qte_linear
 class OdeFunctionGenerator:
     def __init__(
         self,
+        error_calculator,
         param_dict,
         variational_principle: VariationalPrinciple,
         state,
@@ -44,6 +45,7 @@ class OdeFunctionGenerator:
         backend=None,
         error_based_ode=False,
     ):
+        self._error_calculator = error_calculator
         self._param_dict = param_dict
         self._variational_principle = variational_principle
         self._state_circ_sampler = state_circ_sampler
@@ -73,6 +75,7 @@ class OdeFunctionGenerator:
         print("previous error", error)
         if self._error_based_ode:
             error_based_ode_fun_gen = ErrorBaseOdeFunctionGenerator(
+                self._error_calculator,
                 self._param_dict,
                 self._variational_principle,
                 self._grad_circ_sampler,
@@ -98,7 +101,7 @@ class OdeFunctionGenerator:
             et,
             dtdt_state,
             reimgrad,
-        ) = self._variational_principle._error_calculator._calc_single_step_error(
+        ) = self._error_calculator._calc_single_step_error(
             nat_grad_res, grad_res, metric_res
         )
 
@@ -116,7 +119,7 @@ class OdeFunctionGenerator:
             self._param_dict,
             self._state_circ_sampler,
         )
-        h_squared = self._variational_principle._error_calculator._h_squared
+        h_squared = self._error_calculator._h_squared
 
         error_bound_grad = self._variational_principle._calc_error_bound(
             error, et, h_squared, self._h_norm, trained_energy, self._variational_principle

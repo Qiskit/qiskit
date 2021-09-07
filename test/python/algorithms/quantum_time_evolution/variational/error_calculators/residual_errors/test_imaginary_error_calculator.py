@@ -84,7 +84,7 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
         backend = Aer.get_backend("qasm_simulator")
         linear_solver = VarQteLinearSolver(CircuitSampler(backend), CircuitSampler(backend),
                                            CircuitSampler(backend), backend=None)
-        var_principle = ImaginaryMcLachlanVariationalPrinciple(None)
+        var_principle = ImaginaryMcLachlanVariationalPrinciple()
         # for the purpose of the test we invoke lazy_init
         var_principle._lazy_init(observable, ansatz, parameters)
         ng_res, grad_res, metric_res = linear_solver._solve_sle(var_principle, param_dict)
@@ -143,7 +143,7 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
         backend = Aer.get_backend("qasm_simulator")
         linear_solver = VarQteLinearSolver(CircuitSampler(backend), CircuitSampler(backend),
                                            CircuitSampler(backend), backend=None)
-        var_principle = ImaginaryMcLachlanVariationalPrinciple(None)
+        var_principle = ImaginaryMcLachlanVariationalPrinciple()
         # for the purpose of the test we invoke lazy_init
         var_principle._lazy_init(observable, ansatz, parameters)
         ng_res, grad_res, metric_res = linear_solver._solve_sle(var_principle, param_dict)

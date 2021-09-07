@@ -26,14 +26,12 @@ from qiskit.opflow import CircuitQFI, CircuitGradient, OperatorBase, StateFn
 class VariationalPrinciple(ABC):
     def __init__(
             self,
-            error_calculator: ErrorCalculator,
             qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
             grad_method: Union[str, CircuitGradient] = "lin_comb",
             is_error_supported: bool = False,
     ):
         self._qfi_method = qfi_method
         self._grad_method = grad_method
-        self._error_calculator = error_calculator
         self._is_error_supported = is_error_supported
 
     def _lazy_init(self, hamiltonian, ansatz, parameters):

@@ -87,6 +87,7 @@ class VarQte(ABC):
             self._init_samplers()
             self._nat_grad_circ_sampler = CircuitSampler(self._backend, caching="all")
         self._ode_function_generator = OdeFunctionGenerator(
+            self.error_calculator,
             self._param_dict,
             self._variational_principle,
             self._state,
@@ -106,6 +107,10 @@ class VarQte(ABC):
         self._error_based_ode = error_based_ode
 
         self._operator =None
+
+    @property
+    def error_calculator(self):
+        return self._error_calculator
 
     def _init_samplers(self):
         self._operator_circ_sampler = CircuitSampler(self._backend)
@@ -132,6 +137,9 @@ class VarQte(ABC):
         self._h_matrix = self._h.to_matrix(massive=True)
         self._h_norm = np.linalg.norm(self._h_matrix, np.infty)
         self._state = self._operator[-1]
+        self._h_squared = self._h_pow(2)
+        self._h_trip = self._h_pow(3)
+
         if self._backend is not None:
             self._init_state = self._state_circ_sampler.convert(
                 self._state, params=dict(zip(self._parameters, self._init_parameter_values))
@@ -142,10 +150,7 @@ class VarQte(ABC):
             )
         self._init_state = self._init_state.eval().primitive.data
 
-        self._h_squared = self._h_pow(2)
-        self._h_trip = self._h_pow(3)
-
-        # TODO does it depend on the var principle?
+        # TODO does it depend on the var principle? check paper
         # VarQRTE
         if np.iscomplex(self._operator.coeff):
             self._nat_grad = NaturalGradient(

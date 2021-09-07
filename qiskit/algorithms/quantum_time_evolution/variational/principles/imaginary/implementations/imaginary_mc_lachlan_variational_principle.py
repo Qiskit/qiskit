@@ -26,13 +26,11 @@ from qiskit.opflow import CircuitQFI, CircuitGradient, OperatorBase
 class ImaginaryMcLachlanVariationalPrinciple(ImaginaryVariationalPrinciple):
     def __init__(
         self,
-        error_calculator: ImaginaryErrorCalculator,
         qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
         grad_method: Union[str, CircuitGradient] = "lin_comb",
         is_error_supported: bool = False,
     ):
         super().__init__(
-            error_calculator,
             qfi_method,
             grad_method,
             is_error_supported,

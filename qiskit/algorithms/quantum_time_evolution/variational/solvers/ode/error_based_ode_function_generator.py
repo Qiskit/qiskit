@@ -25,6 +25,7 @@ from qiskit.algorithms.quantum_time_evolution.variational.solvers.var_qte_linear
 class ErrorBaseOdeFunctionGenerator:
     def __init__(
         self,
+        error_calculator,
         param_dict,
         variational_principle: VariationalPrinciple,
         grad_circ_sampler,
@@ -33,6 +34,7 @@ class ErrorBaseOdeFunctionGenerator:
         regularization=None,
         backend=None,
     ):
+        self._error_calculator = error_calculator
         self._param_dict = param_dict
         self._variational_principle = variational_principle
         self._regularization = regularization
@@ -63,7 +65,7 @@ class ErrorBaseOdeFunctionGenerator:
             Returns:
                 ||e_t||^2 for given for dω/dt
             """
-            (et_squared) = self._variational_principle._error_calculator._calc_single_step_error(
+            (et_squared) = self._error_calculator._calc_single_step_error(
                 dt_param_values, grad_res, metric_res
             )[0]
 

@@ -19,7 +19,7 @@ from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
 )
-from qiskit.opflow import NaturalGradient, CircuitSampler, CircuitQFI, CircuitGradient
+from qiskit.opflow import CircuitQFI, CircuitGradient
 
 
 class VarQteLinearSolver:
@@ -37,7 +37,6 @@ class VarQteLinearSolver:
         self._backend = backend
         self._regularization = regularization
         if backend is not None:
-            # TODO should be passed from VarQte (caching)
             self._grad_circ_sampler = grad_circ_sampler
             self._metric_circ_sampler = metric_circ_sampler
             self._nat_grad_circ_sampler = nat_grad_circ_sampler
