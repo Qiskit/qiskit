@@ -914,10 +914,8 @@ class MatplotlibDrawer:
             cond_reg = self._bit_locations[node.op.condition[0]]["register"]
             ctrl_bit = self._bit_locations[node.op.condition[0]]["index"]
             label = "$%s_%s=%s$" % (cond_reg.name, ctrl_bit, hex(val))
-        elif self._cregbundle:
-            label = hex(val)
         else:
-            label = None
+            label = hex(val)
         if isinstance(node.op, Measure):
             xpos += 0.3
         self._ax.text(
