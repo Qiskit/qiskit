@@ -1327,7 +1327,9 @@ class TestTwoQubitControlledUDecompose(CheckDecompositions):
         gate = SwapGate
         with self.assertRaises(QiskitError) as exc:
             TwoQubitControlledUDecomposer(gate)
-        self.assertIn("Equivalent gate needs to take exactly 1 angle parameter.", exc.exception.message)
+        self.assertIn(
+            "Equivalent gate needs to take exactly 1 angle parameter.", exc.exception.message
+        )
 
 
 class TestDecomposeProductRaises(QiskitTestCase):

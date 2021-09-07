@@ -659,15 +659,6 @@ class TwoQubitControlledUDecomposer:
         # parameters (angle, 0, 0) for angle in [0, pi/2] but the user provided gate, i.e.
         # :code:`self.rxx_equivalent_gate(angle)` might produce the Weyl parameters
         # (scale * angle, 0, 0) where scale != 1. This is the case for the CPhaseGate.
-        # circ = QuantumCircuit(2)
-        # circ.rxx(angle, 0, 1)
-        # decomposer_rxx = TwoQubitWeylControlledEquiv(Operator(circ).data)
-        #
-        # circ = QuantumCircuit(2)
-        # circ.append(self.rxx_equivalent_gate(angle), qargs=[0, 1])
-        # decomposer_equiv = TwoQubitWeylControlledEquiv(Operator(circ).data)
-        #
-        # scale = decomposer_rxx.a / decomposer_equiv.a
 
         circ = QuantumCircuit(2)
         circ.append(self.rxx_equivalent_gate(self.scale * angle), qargs=[0, 1])
