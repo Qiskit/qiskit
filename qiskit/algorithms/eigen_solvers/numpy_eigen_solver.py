@@ -126,17 +126,12 @@ class NumPyEigensolver(Eigensolver):
         else:
             if (
                 isinstance(operator, PauliSumOp)
-                and np.isreal(operator.coeffs).all()
-                and np.all(operator.primitive.paulis.phase == 0)
+                and operator.is_hermitian()
                 and self._k >= 2 ** operator.num_qubits - 1
             ):
                 logger.debug("SciPy doesn't support to get all eigenvalues, using NumPy instead.")
                 eigval, eigvec = np.linalg.eigh(operator.to_matrix())
-            elif (
-                isinstance(operator, PauliSumOp)
-                and np.isreal(operator.coeffs).all()
-                and np.all(operator.primitive.paulis.phase == 0)
-            ):
+            elif isinstance(operator, PauliSumOp) and operator.is_hermitian():
                 eigval, eigvec = scisparse.linalg.eigsh(
                     operator.to_spmatrix(), k=self._k, which="SR"
                 )

@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Method :meth:`~qiskit.opflow.PauliSumOp.is_hermitian` is added to check whether
+    the operator is Hermite or not.
