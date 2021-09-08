@@ -31,8 +31,6 @@ class ErrorCalculator:
         self._exp_operator = self._bind_or_sample_operator(
             exp_operator, exp_operator_sampler, param_dict, backend
         )
-        self._h_squared_sampler = h_squared_sampler
-        self._exp_operator_sampler = exp_operator_sampler
         self._param_dict = param_dict
         self._backend = backend
 

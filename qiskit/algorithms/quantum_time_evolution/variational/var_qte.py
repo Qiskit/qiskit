@@ -69,12 +69,9 @@ class VarQte(ABC):
         self._epsilon = epsilon
 
         self._backend = backend
-        # TODO what happens if backend is None?
-        if self._backend is not None:
-            # we define separate instances of CircuitSamplers as it caches aggresively according
-            # to it documentation
-            self._init_samplers()
-            self._nat_grad_circ_sampler = CircuitSampler(self._backend, caching="all")
+        # we define separate instances of CircuitSamplers as it caches aggresively according
+        # to it documentation
+        self._init_samplers()
 
         self._error_based_ode = error_based_ode
 
@@ -87,20 +84,21 @@ class VarQte(ABC):
 
     def bind_initial_state(self, state, param_dict):
         if self._backend is not None:
-            self._initial_state = self._state_circ_sampler.convert(
-                state, params=param_dict)
+            self._initial_state = self._state_circ_sampler.convert(state, params=param_dict)
         else:
-            self._initial_state = state.assign_parameters(
-                param_dict)
+            self._initial_state = state.assign_parameters(param_dict)
         self._initial_state = self._initial_state.eval().primitive.data
 
     def _init_samplers(self):
-        self._operator_circ_sampler = CircuitSampler(self._backend)
-        self._state_circ_sampler = CircuitSampler(self._backend)
-        self._h_squared_circ_sampler = CircuitSampler(self._backend)
-        self._h_trip_circ_sampler = CircuitSampler(self._backend)
-        self._grad_circ_sampler = CircuitSampler(self._backend)
-        self._metric_circ_sampler = CircuitSampler(self._backend)
+        self._operator_circ_sampler = CircuitSampler(self._backend) if self._backend else None
+        self._state_circ_sampler = CircuitSampler(self._backend) if self._backend else None
+        self._h_squared_circ_sampler = CircuitSampler(self._backend) if self._backend else None
+        self._h_trip_circ_sampler = CircuitSampler(self._backend) if self._backend else None
+        self._grad_circ_sampler = CircuitSampler(self._backend) if self._backend else None
+        self._metric_circ_sampler = CircuitSampler(self._backend) if self._backend else None
+        self._nat_grad_circ_sampler = (
+            CircuitSampler(self._backend, caching="all") if self._backend else None
+        )
 
     @abstractmethod
     def _exact_state(self, time: Union[float, complex]) -> Iterable:

@@ -33,7 +33,7 @@ def calculate(
     observable = variational_principle._hamiltonian
     ansatz = variational_principle._ansatz
     operator = ~StateFn(observable) @ StateFn(ansatz)
-    parameters = variational_principle._parameters
+    parameters = list(variational_principle._param_dict.keys())
     grad_method = variational_principle._grad_method
     qfi_method = variational_principle._qfi_method
 
