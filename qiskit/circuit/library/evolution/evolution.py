@@ -13,14 +13,12 @@
 """A gate to implement time-evolution of operators."""
 
 from typing import Union, Optional, List
-import scipy
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.parameterexpression import ParameterExpression
 
-# from qiskit.opflow import PauliSumOp  # cyclic import!
-from qiskit.quantum_info import SparsePauliOp, Operator
+from qiskit.quantum_info import SparsePauliOp, Operator, Pauli
 
 from .evolution_synthesis import EvolutionSynthesis
 
@@ -55,7 +53,11 @@ class EvolutionGate(Gate):
 
     def _define(self):
         """Unroll, where the default synthesis is matrix based."""
-        if self.synthesis is None:
+        if isinstance(self.operator, Pauli):
+            from .pauli_evolution import PauliEvolutionGate
+
+            self.definition = PauliEvolutionGate(self.operator, self.time).definition
+        elif self.synthesis is None:
             self.definition = self._matrix_synthesis()
         else:
             self.definition = self.synthesis.synthesize(self.operator, self.time)
@@ -69,10 +71,8 @@ class EvolutionGate(Gate):
         else:
             operator = self.operator
 
-        evolved = scipy.linalg.expm(-1j * self.time * Operator(operator).data)
-
         definition = QuantumCircuit(self.num_qubits)
-        definition.unitary(evolved, definition.qubits)
+        definition.hamiltonian(Operator(operator).data, self.time, definition.qubits)
         return definition
 
     def inverse(self) -> "EvolutionGate":

@@ -17,3 +17,4 @@ from .evolution import EvolutionGate
 from .evolution_synthesis import EvolutionSynthesis
 from .product_formula import ProductFormula
 from .lie_trotter import LieTrotter
+from .suzuki_trotter import SuzukiTrotter
