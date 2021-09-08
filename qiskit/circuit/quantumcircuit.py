@@ -1756,22 +1756,31 @@ class QuantumCircuit:
             cregbundle=cregbundle,
         )
 
-    def size(self) -> int:
-        """Returns total number of gate operations in circuit.
+    def size(self,
+             filter_function: Optional[callable] = lambda x: not x[0]._directive) -> int:
+        """Returns total number of instructions in circuit.
+
+        Args:
+            filter_function (callable): a function to filter out some instructions.
+                Should take as input a tuple of (Instruction, list(Qubit), list(Clbit)).
+                By default filters out "directives", such as barrier or snapshot.
 
         Returns:
             int: Total number of gate operations.
         """
-        gate_ops = 0
-        for instr, _, _ in self._data:
-            if not instr._directive:
-                gate_ops += 1
-        return gate_ops
+        ops = 0
+        for instr, _, _ in list(filter(filter_function, self._data)):
+            ops += 1
+        return ops
 
-    def depth(self) -> int:
+    def depth(self,
+              filter_function: Optional[callable] = lambda x: not x[0]._directive) -> int:
         """Return circuit depth (i.e., length of critical path).
-        This does not include compiler or simulator directives
-        such as 'barrier' or 'snapshot'.
+
+        Args:
+            filter_function (callable): a function to filter out some instructions.
+                Should take as input a tuple of (Instruction, list(Qubit), list(Clbit)).
+                By default filters out "directives", such as barrier or snapshot.
 
         Returns:
             int: Depth of circuit.
@@ -1802,7 +1811,7 @@ class QuantumCircuit:
         # We treat barriers or snapshots different as
         # They are transpiler and simulator directives.
         # The max stack height is the circuit depth.
-        for instr, qargs, cargs in self._data:
+        for instr, qargs, cargs in list(filter(filter_function, self._data)):
             levels = []
             reg_ints = []
             for ind, reg in enumerate(qargs + cargs):
