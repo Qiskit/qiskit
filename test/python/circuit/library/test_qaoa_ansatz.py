@@ -55,7 +55,6 @@ class TestQAOAAnsatz(QiskitTestCase):
         circuit = QAOAAnsatz(I ^ 4, reps=0)
         reference = QuantumCircuit(4)
         reference.h(range(4))
-
         self.assertEqual(circuit.decompose(), reference)
 
     def test_custom_circuit_mixer(self):

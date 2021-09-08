@@ -207,13 +207,13 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
         #         is_evolved_operator.append(True)  # has time coeff
         #
         # # set the registers
-        # num_qubits = circuits[0].num_qubits
-        # try:
-        #     qr = QuantumRegister(num_qubits, "q")
-        #     self.add_register(qr)
-        # except CircuitError:
-        #     # the register already exists, probably because of a previous composition
-        #     pass
+        num_qubits = self.operators[0].num_qubits
+        try:
+            qr = QuantumRegister(num_qubits, "q")
+            self.add_register(qr)
+        except CircuitError:
+            # the register already exists, probably because of a previous composition
+            pass
         #
         # # build the circuit
         # times = ParameterVector("t", self.reps * sum(is_evolved_operator))
@@ -263,7 +263,7 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
                 initial_state=self.initial_state,
                 label=self.name,
             ),
-            self.qubits, []
+            *self.qregs, []
         )
 
 
@@ -314,8 +314,23 @@ class EvolvedOperatorGate(Gate):
 
         if len(operators) == 0:
             raise AttributeError("At least one operator is needed.")
+        from qiskit.opflow import PauliOp
+        is_evolved_operator = []
+        for op in operators:
+            if isinstance(op, QuantumCircuit):
+                is_evolved_operator.append(False)  # does not have time coeff
+            else:
+                # check if the operator is just the identity, if yes, skip it
+                if isinstance(op, PauliOp):
+                    sig_qubits = np.logical_or(op.primitive.x, op.primitive.z)
+                    if sum(sig_qubits) == 0:
+                        continue
+                is_evolved_operator.append(True)  # has time coeff
 
-        super().__init__("EvolvedOps", operators[0].num_qubits, params=[], label=label)
+        self._is_evolved_operator = is_evolved_operator
+
+        params = ParameterVector("t", reps * sum(is_evolved_operator))[:]
+        super().__init__("EvolvedOps", operators[0].num_qubits, params=params, label=label)
 
     def _define(self):
         """TODO"""
@@ -327,12 +342,10 @@ class EvolvedOperatorGate(Gate):
 
         coeff = Parameter("c")
         circuits = []
-        is_evolved_operator = []
         for op in self.operators:
             # if the operator is already the evolved circuit just append it
             if isinstance(op, QuantumCircuit):
                 circuits.append(op)
-                is_evolved_operator.append(False)  # has no time coeff
             else:
                 # check if the operator is just the identity, if yes, skip it
                 if isinstance(op, PauliOp):
@@ -342,30 +355,29 @@ class EvolvedOperatorGate(Gate):
 
                 evolved_op = self.evolution.convert((coeff * op).exp_i()).reduce()
                 circuits.append(evolved_op.to_circuit())
-                is_evolved_operator.append(True)  # has time coeff
 
-        # set the registers
-        num_qubits = circuits[0].num_qubits
-        try:
-            qr = QuantumRegister(num_qubits, "q")
-            self.add_register(qr)
-        except CircuitError:
-            # the register already exists, probably because of a previous composition
-            pass
+        # # set the registers
+        # num_qubits = circuits[0].num_qubits
+        # try:
+        #     qr = QuantumRegister(num_qubits, "q")
+        #     self.add_register(qr)
+        # except CircuitError:
+        #     # the register already exists, probably because of a previous composition
+        #     pass
 
         # build the circuit
-        times = ParameterVector("t", self.reps * sum(is_evolved_operator))
+        times = self.params
         times_it = iter(times)
 
-        evolution = QuantumCircuit(*self.qregs, name=self.name)
+        evolution = QuantumCircuit(circuits[0].num_qubits, name=self.name)
 
         first = True
         for _ in range(self.reps):
-            for is_evolved, circuit in zip(is_evolved_operator, circuits):
+            for is_evolved, circuit in zip(self._is_evolved_operator, circuits):
                 if first:
                     first = False
                 else:
-                    if self._insert_barriers:
+                    if self.insert_barriers:
                         evolution.barrier()
 
                 if is_evolved:
@@ -386,7 +398,7 @@ class EvolvedOperatorGate(Gate):
             except (RuntimeError, TypeError):
                 # expression contains free parameters
                 pass
-        return evolution
+        self.definition = evolution
         # try:
         #     instr = evolution.to_gate()
         # except QiskitError:
