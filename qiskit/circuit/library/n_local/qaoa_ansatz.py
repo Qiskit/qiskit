@@ -279,9 +279,9 @@ class QAOAGate(Gate):
 
         is_num_qubits = co_num_qubits = 0
         if initial_state:
-            is_num_qubits = self.initial_state.num_qubits
+            is_num_qubits = initial_state.num_qubits
         if cost_operator:
-            co_num_qubits = self.cost_operator.num_qubits
+            co_num_qubits = cost_operator.num_qubits
 
         if co_num_qubits and is_num_qubits and is_num_qubits != co_num_qubits:
             raise AttributeError(

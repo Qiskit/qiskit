@@ -25,6 +25,7 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.exceptions import QiskitError
+from qiskit.circuit.gate import Gate
 
 from .blueprintcircuit import BlueprintCircuit
 
@@ -266,3 +267,42 @@ def _validate_operators(operators):
             raise ValueError("All operators must act on the same number of qubits.")
 
     return operators
+
+
+class EvolvedOperatorGate(Gate):
+    """TODO"""
+
+    def __init__(
+        self,
+        operators=None,
+        reps: int = 1,
+        evolution=None,
+        insert_barriers: bool = False,
+        initial_state: Optional[QuantumCircuit] = None,
+        label: str = None,
+    ):
+        """
+        Args:
+            operators (Optional[Union[OperatorBase, QuantumCircuit, list]): The operators to evolve.
+                If a circuit is passed, we assume it implements an already evolved operator and thus
+                the circuit is not evolved again. Can be a single operator (circuit) or a list of
+                operators (and circuits).
+            reps: The number of times to repeat the evolved operators.
+            evolution (Optional[EvolutionBase]): An opflow converter object to construct the evolution.
+                Defaults to Trotterization.
+            insert_barriers: Whether to insert barriers in between each evolution.
+            initial_state: A `QuantumCircuit` object to prepend to the circuit.
+            label: The label for the gate.
+        Raises:
+            AttributeError: if the operator list is empty
+        """
+        self.operators = operators
+        self.reps = reps
+        self.evolution = evolution
+        self.insert_barriers = insert_barriers
+        self.initial_state = initial_state
+
+        if len(operators) == 0:
+            raise AttributeError("At least one operator is needed.")
+
+        super().__init__("EvolvedOps", operators[0].num_qubits, params=[], label=label)
