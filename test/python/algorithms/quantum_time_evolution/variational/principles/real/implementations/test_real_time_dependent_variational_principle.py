@@ -17,15 +17,15 @@ from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
     metric_tensor_calculator,
     evolution_grad_calculator,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
-    ImaginaryMcLachlanVariationalPrinciple,
+from qiskit.algorithms.quantum_time_evolution.variational.principles.real.implementations.real_time_dependent_variational_principle import (
+    RealTimeDependentVariationalPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import SummedOp, X, Y, I, Z
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 
-class TestImaginaryMcLachlanVariationalPrinciple(QiskitAlgorithmsTestCase):
+class TestRealTimeDependentVariationalPrinciple(QiskitAlgorithmsTestCase):
 
     def test_calc_calc_metric_tensor(self):
         observable = SummedOp(
@@ -45,7 +45,7 @@ class TestImaginaryMcLachlanVariationalPrinciple(QiskitAlgorithmsTestCase):
         # Define a set of initial parameters
         parameters = ansatz.ordered_parameters
         param_dict = {param: np.pi / 4 for param in parameters}
-        var_principle = ImaginaryMcLachlanVariationalPrinciple()
+        var_principle = RealTimeDependentVariationalPrinciple()
         # for the purpose of the test we invoke lazy_init
         var_principle._lazy_init(observable, ansatz, param_dict)
 
@@ -55,7 +55,7 @@ class TestImaginaryMcLachlanVariationalPrinciple(QiskitAlgorithmsTestCase):
         metric_tensor = var_principle.metric_tensor
 
         bound_raw_metric_tensor = raw_metric_tensor.bind_parameters(param_dict)
-        expected_metric_tensor = bound_raw_metric_tensor.to_matrix(True).real
+        expected_metric_tensor = bound_raw_metric_tensor.to_matrix(True).imag
 
         np.testing.assert_almost_equal(metric_tensor.to_matrix(True), expected_metric_tensor)
 
@@ -77,7 +77,7 @@ class TestImaginaryMcLachlanVariationalPrinciple(QiskitAlgorithmsTestCase):
         # Define a set of initial parameters
         parameters = ansatz.ordered_parameters
         param_dict = {param: np.pi / 4 for param in parameters}
-        var_principle = ImaginaryMcLachlanVariationalPrinciple()
+        var_principle = RealTimeDependentVariationalPrinciple()
         # for the purpose of the test we invoke lazy_init
         var_principle._lazy_init(observable, ansatz, param_dict)
 

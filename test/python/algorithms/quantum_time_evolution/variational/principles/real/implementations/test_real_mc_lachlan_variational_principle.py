@@ -17,16 +17,15 @@ from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
     metric_tensor_calculator,
     evolution_grad_calculator,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
-    ImaginaryMcLachlanVariationalPrinciple,
+from qiskit.algorithms.quantum_time_evolution.variational.principles.real.implementations.real_mc_lachlan_variational_principle import (
+    RealMcLachlanVariationalPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import SummedOp, X, Y, I, Z
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 
-class TestImaginaryMcLachlanVariationalPrinciple(QiskitAlgorithmsTestCase):
-
+class TestRealMcLachlanVariationalPrinciple(QiskitAlgorithmsTestCase):
     def test_calc_calc_metric_tensor(self):
         observable = SummedOp(
             [
@@ -45,7 +44,7 @@ class TestImaginaryMcLachlanVariationalPrinciple(QiskitAlgorithmsTestCase):
         # Define a set of initial parameters
         parameters = ansatz.ordered_parameters
         param_dict = {param: np.pi / 4 for param in parameters}
-        var_principle = ImaginaryMcLachlanVariationalPrinciple()
+        var_principle = RealMcLachlanVariationalPrinciple()
         # for the purpose of the test we invoke lazy_init
         var_principle._lazy_init(observable, ansatz, param_dict)
 
@@ -77,7 +76,7 @@ class TestImaginaryMcLachlanVariationalPrinciple(QiskitAlgorithmsTestCase):
         # Define a set of initial parameters
         parameters = ansatz.ordered_parameters
         param_dict = {param: np.pi / 4 for param in parameters}
-        var_principle = ImaginaryMcLachlanVariationalPrinciple()
+        var_principle = RealMcLachlanVariationalPrinciple()
         # for the purpose of the test we invoke lazy_init
         var_principle._lazy_init(observable, ansatz, param_dict)
 
@@ -87,7 +86,7 @@ class TestImaginaryMcLachlanVariationalPrinciple(QiskitAlgorithmsTestCase):
         evolution_grad = var_principle.evolution_grad
 
         bound_raw_evolution_grad = raw_evolution_grad.bind_parameters(param_dict)
-        expected_evolution_grad = -bound_raw_evolution_grad.to_matrix(True).real
+        expected_evolution_grad = bound_raw_evolution_grad.to_matrix(True).imag
 
         np.testing.assert_almost_equal(evolution_grad.to_matrix(True), expected_evolution_grad)
 
