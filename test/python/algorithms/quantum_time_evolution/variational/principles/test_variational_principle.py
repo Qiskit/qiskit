@@ -13,8 +13,7 @@ import unittest
 
 import numpy as np
 
-from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.implementations\
-    .imaginary_mc_lachlan_variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2

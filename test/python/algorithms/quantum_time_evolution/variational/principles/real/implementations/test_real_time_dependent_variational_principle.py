@@ -26,7 +26,6 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 
 
 class TestRealTimeDependentVariationalPrinciple(QiskitAlgorithmsTestCase):
-
     def test_calc_calc_metric_tensor(self):
         observable = SummedOp(
             [
