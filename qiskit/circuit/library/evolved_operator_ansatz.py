@@ -183,6 +183,144 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
 
         self._check_configuration()
         self._data = []
+        #
+        # # get the evolved operators as circuits
+        # from qiskit.opflow import PauliOp
+        #
+        # coeff = Parameter("c")
+        # circuits = []
+        # is_evolved_operator = []
+        # for op in self.operators:
+        #     # if the operator is already the evolved circuit just append it
+        #     if isinstance(op, QuantumCircuit):
+        #         circuits.append(op)
+        #         is_evolved_operator.append(False)  # has no time coeff
+        #     else:
+        #         # check if the operator is just the identity, if yes, skip it
+        #         if isinstance(op, PauliOp):
+        #             sig_qubits = np.logical_or(op.primitive.x, op.primitive.z)
+        #             if sum(sig_qubits) == 0:
+        #                 continue
+        #
+        #         evolved_op = self.evolution.convert((coeff * op).exp_i()).reduce()
+        #         circuits.append(evolved_op.to_circuit())
+        #         is_evolved_operator.append(True)  # has time coeff
+        #
+        # # set the registers
+        # num_qubits = circuits[0].num_qubits
+        # try:
+        #     qr = QuantumRegister(num_qubits, "q")
+        #     self.add_register(qr)
+        # except CircuitError:
+        #     # the register already exists, probably because of a previous composition
+        #     pass
+        #
+        # # build the circuit
+        # times = ParameterVector("t", self.reps * sum(is_evolved_operator))
+        # times_it = iter(times)
+        #
+        # evolution = QuantumCircuit(*self.qregs, name=self.name)
+        #
+        # first = True
+        # for _ in range(self.reps):
+        #     for is_evolved, circuit in zip(is_evolved_operator, circuits):
+        #         if first:
+        #             first = False
+        #         else:
+        #             if self._insert_barriers:
+        #                 evolution.barrier()
+        #
+        #         if is_evolved:
+        #             bound = circuit.assign_parameters({coeff: next(times_it)})
+        #         else:
+        #             bound = circuit
+        #
+        #         evolution.compose(bound, inplace=True)
+        #
+        # if self.initial_state:
+        #     evolution.compose(self.initial_state, front=True, inplace=True)
+        #
+        # # cast global phase to float if it has no free parameters
+        # if isinstance(evolution.global_phase, ParameterExpression):
+        #     try:
+        #         evolution.global_phase = float(evolution.global_phase._symbol_expr)
+        #     # RuntimeError is raised if symengine is used, for SymPy it is a TypeError
+        #     except (RuntimeError, TypeError):
+        #         # expression contains free parameters
+        #         pass
+        #
+        # try:
+        #     instr = evolution.to_gate()
+        # except QiskitError:
+        #     instr = evolution.to_instruction()
+
+        self._append(
+            EvolvedOperatorGate(
+                operators=self.operators,
+                reps=self.reps,
+                evolution=self.evolution,
+                insert_barriers=self._insert_barriers,
+                initial_state=self.initial_state,
+                label=self.name,
+            ),
+            self.qubits, []
+        )
+
+
+def _validate_operators(operators):
+    if not isinstance(operators, list):
+        operators = [operators]
+
+    if len(operators) > 1:
+        num_qubits = operators[0].num_qubits
+        if any(operators[i].num_qubits != num_qubits for i in range(1, len(operators))):
+            raise ValueError("All operators must act on the same number of qubits.")
+
+    return operators
+
+
+class EvolvedOperatorGate(Gate):
+    """TODO"""
+
+    def __init__(
+        self,
+        operators=None,
+        reps: int = 1,
+        evolution=None,
+        insert_barriers: bool = False,
+        initial_state: Optional[QuantumCircuit] = None,
+        label: str = None,
+    ):
+        """
+        Args:
+            operators (Optional[Union[OperatorBase, QuantumCircuit, list]): The operators to evolve.
+                If a circuit is passed, we assume it implements an already evolved operator and thus
+                the circuit is not evolved again. Can be a single operator (circuit) or a list of
+                operators (and circuits).
+            reps: The number of times to repeat the evolved operators.
+            evolution (Optional[EvolutionBase]): An opflow converter object to construct the evolution.
+                Defaults to Trotterization.
+            insert_barriers: Whether to insert barriers in between each evolution.
+            initial_state: A `QuantumCircuit` object to prepend to the circuit.
+            label: The label for the gate.
+        Raises:
+            AttributeError: if the operator list is empty
+        """
+        self.operators = operators
+        self.reps = reps
+        self.evolution = evolution
+        self.insert_barriers = insert_barriers
+        self.initial_state = initial_state
+
+        if len(operators) == 0:
+            raise AttributeError("At least one operator is needed.")
+
+        super().__init__("EvolvedOps", operators[0].num_qubits, params=[], label=label)
+
+    def _define(self):
+        """TODO"""
+        # self._check_configuration()
+        # self._data = []
 
         # get the evolved operators as circuits
         from qiskit.opflow import PauliOp
@@ -248,61 +386,10 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
             except (RuntimeError, TypeError):
                 # expression contains free parameters
                 pass
-
-        try:
-            instr = evolution.to_gate()
-        except QiskitError:
-            instr = evolution.to_instruction()
-
-        self.append(instr, self.qubits)
-
-
-def _validate_operators(operators):
-    if not isinstance(operators, list):
-        operators = [operators]
-
-    if len(operators) > 1:
-        num_qubits = operators[0].num_qubits
-        if any(operators[i].num_qubits != num_qubits for i in range(1, len(operators))):
-            raise ValueError("All operators must act on the same number of qubits.")
-
-    return operators
-
-
-class EvolvedOperatorGate(Gate):
-    """TODO"""
-
-    def __init__(
-        self,
-        operators=None,
-        reps: int = 1,
-        evolution=None,
-        insert_barriers: bool = False,
-        initial_state: Optional[QuantumCircuit] = None,
-        label: str = None,
-    ):
-        """
-        Args:
-            operators (Optional[Union[OperatorBase, QuantumCircuit, list]): The operators to evolve.
-                If a circuit is passed, we assume it implements an already evolved operator and thus
-                the circuit is not evolved again. Can be a single operator (circuit) or a list of
-                operators (and circuits).
-            reps: The number of times to repeat the evolved operators.
-            evolution (Optional[EvolutionBase]): An opflow converter object to construct the evolution.
-                Defaults to Trotterization.
-            insert_barriers: Whether to insert barriers in between each evolution.
-            initial_state: A `QuantumCircuit` object to prepend to the circuit.
-            label: The label for the gate.
-        Raises:
-            AttributeError: if the operator list is empty
-        """
-        self.operators = operators
-        self.reps = reps
-        self.evolution = evolution
-        self.insert_barriers = insert_barriers
-        self.initial_state = initial_state
-
-        if len(operators) == 0:
-            raise AttributeError("At least one operator is needed.")
-
-        super().__init__("EvolvedOps", operators[0].num_qubits, params=[], label=label)
+        return evolution
+        # try:
+        #     instr = evolution.to_gate()
+        # except QiskitError:
+        #     instr = evolution.to_instruction()
+        #
+        # self.append(instr, self.qubits)
