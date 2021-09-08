@@ -37,10 +37,10 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
         )
 
     @staticmethod
-    def _calc_metric_tensor(raw_metric_tensor: OperatorBase) -> OperatorBase:
-        return VariationalPrinciple.op_real_part(raw_metric_tensor)
+    def _calc_metric_tensor(raw_metric_tensor: OperatorBase, param_dict) -> OperatorBase:
+        return VariationalPrinciple.op_real_part(raw_metric_tensor.bind_parameters(param_dict))
 
     @staticmethod
-    def _calc_evolution_grad(raw_evolution_grad: OperatorBase) -> OperatorBase:
+    def _calc_evolution_grad(raw_evolution_grad: OperatorBase, param_dict) -> OperatorBase:
         # TODO verify
-        return VariationalPrinciple.op_imag_part(raw_evolution_grad)
+        return VariationalPrinciple.op_imag_part(raw_evolution_grad.bind_parameters(param_dict))

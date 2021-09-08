@@ -43,17 +43,15 @@ class ImaginaryVariationalPrinciple(VariationalPrinciple):
 
     @staticmethod
     @abstractmethod
-    def _calc_metric_tensor(raw_metric_tensor: OperatorBase) -> OperatorBase:
+    def _calc_metric_tensor(raw_metric_tensor: OperatorBase, param_dict) -> OperatorBase:
         pass
 
     @staticmethod
     @abstractmethod
-    def _calc_evolution_grad(raw_evolution_grad: OperatorBase) -> OperatorBase:
+    def _calc_evolution_grad(raw_evolution_grad: OperatorBase, param_dict) -> OperatorBase:
         pass
 
-    def _calc_error_bound(
-        self, error, et, h_squared, h_norm, trained_energy, variational_principle
-    ):
+    def _calc_error_bound(self, error, et, h_squared, h_norm, trained_energy):
         # TODO stack dt params with the gradient for the error update
         error_store = max(error, 0)
         error_store = min(error_store, np.sqrt(2))

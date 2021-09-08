@@ -36,10 +36,11 @@ class ImaginaryMcLachlanVariationalPrinciple(ImaginaryVariationalPrinciple):
             is_error_supported,
         )
 
+    # TODO we might need to bind first before taking real/imag
     @staticmethod
-    def _calc_metric_tensor(raw_metric_tensor: OperatorBase) -> OperatorBase:
-        return VariationalPrinciple.op_real_part(raw_metric_tensor)
+    def _calc_metric_tensor(raw_metric_tensor: OperatorBase, param_dict) -> OperatorBase:
+        return VariationalPrinciple.op_real_part(raw_metric_tensor.bind_parameters(param_dict))
 
     @staticmethod
-    def _calc_evolution_grad(raw_evolution_grad: OperatorBase) -> OperatorBase:
-        return -VariationalPrinciple.op_real_part(raw_evolution_grad)
+    def _calc_evolution_grad(raw_evolution_grad: OperatorBase, param_dict) -> OperatorBase:
+        return -VariationalPrinciple.op_real_part(raw_evolution_grad.bind_parameters(param_dict))
