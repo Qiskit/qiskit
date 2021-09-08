@@ -82,7 +82,7 @@ class QFT(BlueprintCircuit):
         do_swaps: bool = True,
         inverse: bool = False,
         insert_barriers: bool = False,
-        name: str = "QFT",
+        name: Optional[str] = None,
     ) -> None:
         """Construct a new QFT circuit.
 
@@ -94,6 +94,9 @@ class QFT(BlueprintCircuit):
             insert_barriers: If True, barriers are inserted as visualization improvement.
             name: The name of the circuit.
         """
+        if name is None:
+            name = "IQFT" if inverse else "QFT"
+
         super().__init__(name=name)
         self._approximation_degree = approximation_degree
         self._do_swaps = do_swaps
@@ -223,14 +226,14 @@ class QFT(BlueprintCircuit):
             name = self.name + "_dg"
 
         inverted = self.copy(name=name)
+        super(QFT, inverted)._invalidate()
+
+        # data consists of the QFT gate only
+        iqft = self._data[0][0].inverse()
+        iqft.name = name
+
         inverted._data = []
-
-        from qiskit.circuit.parametertable import ParameterTable
-
-        inverted._parameter_table = ParameterTable()
-
-        for inst, qargs, cargs in reversed(self._data):
-            inverted._append(inst.inverse(), qargs, cargs)
+        inverted._append(iqft, inverted.qubits, [])
 
         inverted._inverse = not self._inverse
         return inverted

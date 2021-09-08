@@ -258,7 +258,7 @@ class StochasticSwap(TransformationPass):
 
         # Output any swaps
         if best_depth > 0:
-            logger.debug("layer_update: there are swaps in this layer, " "depth %d", best_depth)
+            logger.debug("layer_update: there are swaps in this layer, depth %d", best_depth)
             dag.compose(best_circuit)
         else:
             logger.debug("layer_update: there are no swaps in this layer")
@@ -316,7 +316,7 @@ class StochasticSwap(TransformationPass):
 
             # If this fails, try one gate at a time in this layer
             if not success_flag:
-                logger.debug("mapper: failed, layer %d, " "retrying sequentially", i)
+                logger.debug("mapper: failed, layer %d, retrying sequentially", i)
                 serial_layerlist = list(layer["graph"].serial_layers())
 
                 # Go through each gate in the layer

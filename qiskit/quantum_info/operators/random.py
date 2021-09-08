@@ -126,7 +126,7 @@ def random_quantum_channel(input_dims=None, output_dims=None, rank=None, seed=No
     # Determine total input and output dimensions
     if input_dims is None and output_dims is None:
         raise QiskitError(
-            "No dimensions specified: input_dims and output_dims cannot" " both be None."
+            "No dimensions specified: input_dims and output_dims cannot both be None."
         )
     if input_dims is None:
         input_dims = output_dims
