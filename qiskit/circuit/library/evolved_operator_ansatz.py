@@ -263,7 +263,8 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
                 initial_state=self.initial_state,
                 label=self.name,
             ),
-            *self.qregs, []
+            *self.qregs,
+            [],
         )
 
 
@@ -307,6 +308,7 @@ class EvolvedOperatorGate(Gate):
             AttributeError: if the operator list is empty
         """
         self.operators = operators
+        self._op = {}
         self.reps = reps
         self.evolution = evolution
         self.insert_barriers = insert_barriers
@@ -315,22 +317,29 @@ class EvolvedOperatorGate(Gate):
         if len(operators) == 0:
             raise AttributeError("At least one operator is needed.")
         from qiskit.opflow import PauliOp
-        is_evolved_operator = []
-        for op in operators:
-            if isinstance(op, QuantumCircuit):
-                is_evolved_operator.append(False)  # does not have time coeff
-            else:
+
+        _op_params = []
+        for idx, op in enumerate(operators):
+            if not isinstance(op, QuantumCircuit):
                 # check if the operator is just the identity, if yes, skip it
                 if isinstance(op, PauliOp):
                     sig_qubits = np.logical_or(op.primitive.x, op.primitive.z)
                     if sum(sig_qubits) == 0:
                         continue
-                is_evolved_operator.append(True)  # has time coeff
+                _op_params.append(idx)
 
-        self._is_evolved_operator = is_evolved_operator
+        self._rep_op_params = {
+            (rep, op_idx): Parameter(f"t_{rep}_{op_idx}")
+            for rep in range(reps)
+            for op_idx in _op_params
+        }
 
-        params = ParameterVector("t", reps * sum(is_evolved_operator))[:]
-        super().__init__("EvolvedOps", operators[0].num_qubits, params=params, label=label)
+        super().__init__(
+            "EvolvedOps",
+            operators[0].num_qubits,
+            params=[param for param in self._rep_op_params.values()],
+            label=label,
+        )
 
     def _define(self):
         """TODO"""
@@ -347,45 +356,24 @@ class EvolvedOperatorGate(Gate):
             if isinstance(op, QuantumCircuit):
                 circuits.append(op)
             else:
-                # check if the operator is just the identity, if yes, skip it
-                if isinstance(op, PauliOp):
-                    sig_qubits = np.logical_or(op.primitive.x, op.primitive.z)
-                    if sum(sig_qubits) == 0:
-                        continue
-
                 evolved_op = self.evolution.convert((coeff * op).exp_i()).reduce()
                 circuits.append(evolved_op.to_circuit())
-
-        # # set the registers
-        # num_qubits = circuits[0].num_qubits
-        # try:
-        #     qr = QuantumRegister(num_qubits, "q")
-        #     self.add_register(qr)
-        # except CircuitError:
-        #     # the register already exists, probably because of a previous composition
-        #     pass
-
-        # build the circuit
-        times = self.params
-        times_it = iter(times)
 
         evolution = QuantumCircuit(circuits[0].num_qubits, name=self.name)
 
         first = True
-        for _ in range(self.reps):
-            for is_evolved, circuit in zip(self._is_evolved_operator, circuits):
-                if first:
+        for rep in range(self.reps):
+            for idx, circuit in enumerate(circuits):
+                if not first and self.insert_barriers:
                     first = False
-                else:
-                    if self.insert_barriers:
-                        evolution.barrier()
+                    evolution.barrier()
 
-                if is_evolved:
-                    bound = circuit.assign_parameters({coeff: next(times_it)})
+                if (rep, idx) in self._rep_op_params:
+                    bound = circuit.assign_parameters({coeff: self._rep_op_params[(rep, idx)]})
                 else:
                     bound = circuit
 
-                evolution.compose(bound, inplace=True)
+            evolution.compose(bound, inplace=True)
 
         if self.initial_state:
             evolution.compose(self.initial_state, front=True, inplace=True)
