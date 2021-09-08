@@ -34,32 +34,32 @@ class VariationalPrinciple(ABC):
         self._is_error_supported = is_error_supported
 
     # TODO might avoid lazy init by switching to enums
-    def _lazy_init(self, hamiltonian, ansatz, parameters):
+    def _lazy_init(self, hamiltonian, ansatz, param_dict):
         self._hamiltonian = hamiltonian
         self._ansatz = ansatz
-        self._parameters = parameters
+        self._param_dict = param_dict
         self._operator = ~StateFn(hamiltonian) @ StateFn(ansatz)
-        raw_metric_tensor = metric_tensor_calculator.calculate(ansatz, parameters, self._qfi_method)
-        raw_evolution_grad = evolution_grad_calculator.calculate(
-            hamiltonian, ansatz, parameters, self._grad_method
+        raw_metric_tensor = metric_tensor_calculator.calculate(
+            ansatz, list(param_dict.keys()), self._qfi_method
         )
-        self._metric_tensor = self._calc_metric_tensor(raw_metric_tensor)
-        self._evolution_grad = self._calc_evolution_grad(raw_evolution_grad)
+        raw_evolution_grad = evolution_grad_calculator.calculate(
+            hamiltonian, ansatz, list(param_dict.keys()), self._grad_method
+        )
+        self._metric_tensor = self._calc_metric_tensor(raw_metric_tensor, param_dict)
+        self._evolution_grad = self._calc_evolution_grad(raw_evolution_grad, param_dict)
 
     @staticmethod
     @abstractmethod
-    def _calc_metric_tensor(raw_metric_tensor):
+    def _calc_metric_tensor(raw_metric_tensor, param_dict):
         pass
 
     @staticmethod
     @abstractmethod
-    def _calc_evolution_grad(raw_evolution_grad):
+    def _calc_evolution_grad(raw_evolution_grad, param_dict):
         pass
 
     @abstractmethod
-    def _calc_error_bound(
-        self, error, et, h_squared, h_trip, trained_energy, variational_principle
-    ):
+    def _calc_error_bound(self, error, et, h_squared, h_trip, trained_energy):
         pass
 
     @property
@@ -76,4 +76,4 @@ class VariationalPrinciple(ABC):
 
     @staticmethod
     def op_imag_part(operator: OperatorBase) -> OperatorBase:
-        return (operator - operator.adjoint()) / 2.0
+        return (operator - operator.adjoint()) / (2.0j)
