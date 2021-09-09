@@ -12,12 +12,15 @@
 
 """Test the Optimize1qGatesSimpleCommutation pass"""
 
+from collections import Counter
+
 import unittest
 
 import ddt
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
+from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes.optimization.optimize_1q_commutation import (
     Optimize1qGatesSimpleCommutation,
 )
@@ -106,6 +109,57 @@ class TestOptimize1qSimpleCommutation(QiskitTestCase):
 
         msg = f"expected:\n{expected}\nresult:\n{result}"
         self.assertEqual(expected, result, msg=msg)
+
+    def test_midcircuit_double_commutation(self):
+        """
+        Check that Optimize1qGatesSimpleCommutation can push gates forward and backward out of a run
+        in the middle of a circuit.
+        """
+        qc = QuantumCircuit(2)
+
+        qc.rz(2.15, 0)  # this block will get modified by resynthesis
+        qc.sx(0)
+        qc.rz(-2.75, 0)
+        qc.sx(0)
+        qc.rz(0.255, 0)
+
+        qc.rz(0.138, 1)
+        qc.sx(1)
+        qc.rz(-2.87, 1)
+        qc.sx(1)
+        qc.rz(-2.1, 1)
+
+        qc.cx(1, 0)
+
+        qc.sx(0)  # this will get moved
+        qc.rz(1.03, 0)
+        qc.sx(0)  # this will get moved
+
+        qc.sx(1)
+        qc.rz(1.45, 1)
+        qc.sx(1)
+        qc.rz(1.33, 1)  # this will get moved
+
+        qc.cx(1, 0)
+
+        qc.rz(2.01, 0)  # this block will get modified by resynthesis
+        qc.sx(0)
+        qc.rz(-1.62, 0)
+        qc.sx(0)
+        qc.rz(-1.16, 0)
+
+        qc.rz(-0.732, 1)  # this one gate will get modified by resynthesis
+        qc.sx(1)
+        qc.rz(-2.65, 1)
+        qc.sx(1)
+        qc.rz(2.17, 1)
+
+        optimize_pass = Optimize1qGatesSimpleCommutation(["sx", "rz"])
+        result = optimize_pass(qc)
+        runs = circuit_to_dag(result).collect_1q_runs()
+        oneq_counts = Counter([len(run) for run in runs])
+
+        self.assertEqual(oneq_counts, Counter([5, 5, 3, 1, 5, 5]))
 
 
 if __name__ == "__main__":
