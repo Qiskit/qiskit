@@ -56,8 +56,8 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         self.graph_count_drawer = TestGraphMatplotlibDrawer.save_data_wrap(
             plot_histogram, str(self)
         )
-        self.graph_gate_map_drawer = TestGraphMatplotlibDrawer.save_data_wrap(plot_gate_map, str(self))
-        self.graph_coupling_map_drawer = TestGraphMatplotlibDrawer.save_data_wrap(plot_coupling_map, str(self))
+        self.graph_plot_gate_map = TestGraphMatplotlibDrawer.save_data_wrap(plot_gate_map, str(self))
+        self.graph_plot_coupling_map = TestGraphMatplotlibDrawer.save_data_wrap(plot_coupling_map, str(self))
 
     def tearDown(self):
         super().tearDown()
@@ -163,16 +163,21 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
     def test_plot_gate_map(self):
         """for testing the plot_gate_map"""
         #getting the backend from IBMQ provider
+        
         provider = IBMQ.load_account()
         accountProvider = IBMQ.get_provider(hub='ibm-q')
         backend = accountProvider.get_backend('ibmq_belem')
 
-        self.graph_gate_map_drawer(backend=backend, output="gate_map")
+        self.graph_plot_gate_map(backend=backend, filename="gate_map.png")
     
     def test_plot_coupling_map(self):
         """for testing the plot_coupling_map"""
 
-        self.graph_coupling_map_drawer(num_qubits=5, qubit_coordinates=[[1, 0], [0, 1], [1, 1], [1, 2], [2, 1]], coupling_map=[[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]], output="coupling_map.png")
+        num_qubits = 5
+        qubit_coordinates = [[1, 0], [0, 1], [1, 1], [1, 2], [2, 1]]
+        coupling_map = [[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]]
+
+        self.graph_plot_coupling_map(num_qubits=num_qubits, qubit_coordinates=qubit_coordinates, coupling_map=coupling_map, filename="coupling.png")
 
 
 if __name__ == "__main__":
