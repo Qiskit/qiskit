@@ -167,12 +167,12 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         accountProvider = IBMQ.get_provider(hub='ibm-q')
         backend = accountProvider.get_backend('ibmq_belem')
 
-        self.graph_gate_map_drawer(backend=backend, filename="gatemap.png")
+        self.graph_gate_map_drawer(backend=backend, output="gate_map")
     
     def test_plot_coupling_map(self):
         """for testing the plot_coupling_map"""
 
-        self.graph_coupling_map_drawer(num_qubits=5, qubit_coordinates=[[1, 0], [0, 1], [1, 1], [1, 2], [2, 1]], coupling_map=[[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]], filename="gatemap.png")
+        self.graph_coupling_map_drawer(num_qubits=5, qubit_coordinates=[[1, 0], [0, 1], [1, 1], [1, 2], [2, 1]], coupling_map=[[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]], output="coupling_map.png")
 
 
 if __name__ == "__main__":
