@@ -95,7 +95,7 @@ bip_requirements = ["cplex", "docplex"]
 
 setup(
     name="qiskit-terra",
-    version="0.18.1",
+    version="0.18.2",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type="text/markdown",
