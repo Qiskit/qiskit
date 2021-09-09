@@ -1756,8 +1756,7 @@ class QuantumCircuit:
             cregbundle=cregbundle,
         )
 
-    def size(self,
-             filter_function: Optional[callable] = lambda x: not x[0]._directive) -> int:
+    def size(self, filter_function: Optional[callable] = lambda x: not x[0]._directive) -> int:
         """Returns total number of instructions in circuit.
 
         Args:
@@ -1773,8 +1772,7 @@ class QuantumCircuit:
             ops += 1
         return ops
 
-    def depth(self,
-              filter_function: Optional[callable] = lambda x: not x[0]._directive) -> int:
+    def depth(self, filter_function: Optional[callable] = lambda x: not x[0]._directive) -> int:
         """Return circuit depth (i.e., length of critical path).
 
         Args:
@@ -1811,17 +1809,18 @@ class QuantumCircuit:
         # We treat barriers or snapshots different as
         # They are transpiler and simulator directives.
         # The max stack height is the circuit depth.
-        for instr, qargs, cargs in list(filter(filter_function, self._data)):
+        whitelist = list(filter(filter_function, self._data))
+        for instr, qargs, cargs in self._data:
             levels = []
             reg_ints = []
             for ind, reg in enumerate(qargs + cargs):
                 # Add to the stacks of the qubits and
                 # cbits used in the gate.
                 reg_ints.append(bit_indices[reg])
-                if instr._directive:
-                    levels.append(op_stack[reg_ints[ind]])
-                else:
+                if (instr, qargs, cargs) in whitelist:
                     levels.append(op_stack[reg_ints[ind]] + 1)
+                else:
+                    levels.append(op_stack[reg_ints[ind]])
             # Assuming here that there is no conditional
             # snapshots or barriers ever.
             if instr.condition:
