@@ -250,7 +250,6 @@ class BackendV2(Backend, ABC):
     def __init__(self, provider, **fields):
         self._options = self._default_options()
         self._provider = provider
-        self._gate_weights = None
         self._coupling_map = None
         if fields:
             for field in fields:
@@ -259,11 +258,14 @@ class BackendV2(Backend, ABC):
             self._options.update_config(**fields)
 
     @property
-    def basis_gates(self) -> List[Gate]:
-        """A list of Gate classes that the backend supports."""
-        if not self._gate_weights:
-            self._gate_weights = {x.gate for x in self.gate_map.gates_weights()}
-        return self._gate_weights
+    def gates(self) -> List[Gate]:
+        """A list of Gate instances that the backend supports."""
+        return list(self.gate_map.gates)
+
+    @property
+    def gate_names(self) -> List[str]:
+        """A list of Gate names that the backend supports."""
+        return list(self.gate_map.gate_names)
 
     @property
     @abstractmethod
@@ -290,9 +292,7 @@ class BackendV2(Backend, ABC):
     @property
     def coupling_map(self):
         """Return the :class:`~qiskit.transpiler.CouplingMap` object"""
-        if not self._coupling_map:
-            self._coupling_map = self.gate_map.to_coupling_map()
-        return self._coupling_map
+        return self.gate_map.coupling_map()
 
     @property
     @abstractmethod
