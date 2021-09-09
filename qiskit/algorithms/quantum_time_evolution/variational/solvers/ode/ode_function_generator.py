@@ -120,7 +120,7 @@ class OdeFunctionGenerator:
         h_squared = self._error_calculator._h_squared
 
         error_bound_grad = self._variational_principle._calc_error_bound(
-            error, et, h_squared, self._h_norm, trained_energy, self._variational_principle
+            error, et, h_squared, self._h_norm, trained_energy
         )
 
         return np.append(nat_grad_res, error_bound_grad)

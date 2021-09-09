@@ -9,11 +9,8 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from ctypes import Union
-from typing import List
-
 import numpy as np
-from scipy.integrate import OdeSolver
+from scipy.integrate import RK45, Radau
 
 from qiskit import QiskitError
 
@@ -38,8 +35,13 @@ class VarQteOdeSolver:
         """
         Find numerical solution with ODE Solver.
         """
-        ode_solver = OdeSolver(
-            self._ode_function, t_bound=evolution_time, t0=0, y0=self._init_params, vectorized=False
+        # TODO shall we accept solver as an argument?
+        ode_solver = RK45(
+            self._ode_function,
+            t_bound=evolution_time,
+            t0=0,
+            y0=np.append(self._init_params, 0),
+            vectorized=False,
         )
         param_values = None
 
