@@ -24,6 +24,7 @@ from .utils import matplotlib_close_if_inline
 def plot_gate_map(
     backend,
     figsize=None,
+    filename=None,
     plot_directed=False,
     label_qubits=True,
     qubit_size=None,
@@ -41,6 +42,7 @@ def plot_gate_map(
         backend (BaseBackend): The backend instance that will be used to plot the device
             gate map.
         figsize (tuple): Output figure size (wxh) in inches.
+        filename (str): file path to save image to.
         plot_directed (bool): Plot directed coupling map.
         label_qubits (bool): Label the qubits.
         qubit_size (float): Size of qubit marker.
@@ -352,6 +354,7 @@ def plot_gate_map(
         num_qubits,
         qubit_coordinates,
         coupling_map,
+        filename,
         figsize,
         plot_directed,
         label_qubits,
@@ -370,6 +373,7 @@ def plot_coupling_map(
     num_qubits: int,
     qubit_coordinates: List[List[int]],
     coupling_map: List[List[int]],
+    filename=None,
     figsize=None,
     plot_directed=False,
     label_qubits=True,
@@ -390,6 +394,7 @@ def plot_coupling_map(
             list being the planar coordinates in a 0-based square grid where each qubit is located.
         coupling_map (List[List[int]]): A list of two-element lists, with entries of each nested
             list being the qubit numbers of the bonds to be plotted.
+        filename (str): file path to save image to.
         figsize (tuple): Output figure size (wxh) in inches.
         plot_directed (bool): Plot directed coupling map.
         label_qubits (bool): Label the qubits.
@@ -464,6 +469,8 @@ def plot_coupling_map(
         if not input_axes:
             fig, ax = plt.subplots(figsize=(5, 5))
             ax.axis("off")
+            if filename:
+                fig.savefig(filename)
             return fig
 
     x_max = max(d[1] for d in grid_data)
@@ -571,8 +578,11 @@ def plot_coupling_map(
     ax.set_xlim([-1, x_max + 1])
     ax.set_ylim([-(y_max + 1), 1])
     ax.set_aspect("equal")
+
     if not input_axes:
         matplotlib_close_if_inline(fig)
+        if filename:
+            fig.savefig(filename)
         return fig
     return None
 

@@ -24,7 +24,8 @@ from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit
 from qiskit.tools.visualization import HAS_MATPLOTLIB
 from qiskit.visualization.counts_visualization import plot_histogram
-
+from qiskit.visualization.gate_map import plot_gate_map, plot_coupling_map
+from qiskit import IBMQ
 
 if HAS_MATPLOTLIB:
     from matplotlib.pyplot import close as mpl_close
@@ -55,6 +56,8 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         self.graph_count_drawer = TestGraphMatplotlibDrawer.save_data_wrap(
             plot_histogram, str(self)
         )
+        self.graph_gate_map_drawer = TestGraphMatplotlibDrawer.save_data_wrap(plot_gate_map, str(self))
+        self.graph_coupling_map_drawer = TestGraphMatplotlibDrawer.save_data_wrap(plot_coupling_map, str(self))
 
     def tearDown(self):
         super().tearDown()
@@ -156,6 +159,20 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         counts = {"11": 500, "00": 500}
 
         self.graph_count_drawer(counts, filename="histogram.png")
+
+    def test_plot_gate_map(self):
+        """for testing the plot_gate_map"""
+        #getting the backend from IBMQ provider
+        provider = IBMQ.load_account()
+        accountProvider = IBMQ.get_provider(hub='ibm-q')
+        backend = accountProvider.get_backend('ibmq_belem')
+
+        self.graph_gate_map_drawer(backend=backend, filename="gatemap.png")
+    
+    def test_plot_coupling_map(self):
+        """for testing the plot_coupling_map"""
+
+        self.graph_coupling_map_drawer(num_qubits=5, qubit_coordinates=[[1, 0], [0, 1], [1, 1], [1, 2], [2, 1]], coupling_map=[[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]], filename="gatemap.png")
 
 
 if __name__ == "__main__":
