@@ -98,7 +98,7 @@ class ConsolidateBlocks(TransformationPass):
                         # nodes before this one topologically had been added
                         # so not all predecessors were removed
                         raise TranspilerError(
-                            "Not all predecessors removed due to error" " in topological order"
+                            "Not all predecessors removed due to error in topological order"
                         )
 
                     block_count += 1
