@@ -15,7 +15,7 @@
 This implementation allows both, standard first-order as well as second-order SPSA.
 """
 
-from typing import Iterator, Optional, Union, Callable, Tuple, Dict, Any
+from typing import Iterator, Optional, Union, Callable, Tuple, Dict, List, Any
 import logging
 import warnings
 from time import time
@@ -26,7 +26,7 @@ import numpy as np
 
 from qiskit.utils import algorithm_globals
 
-from .optimizer import Optimizer, OptimizerSupportLevel
+from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
 # number of function evaluations, parameters, loss, stepsize, accepted
 CALLBACK = Callable[[int, np.ndarray, float, float, bool], None]
@@ -488,13 +488,17 @@ class SPSA(Optimizer):
 
         return value, gradient
 
-    def _minimize(self, loss, initial_point):
+    def minimize(
+        self,
+        fun: Callable[[POINT], float],
+        x0: POINT,
+        jac: Optional[Callable[[POINT], POINT]] = None,
+        bounds: Optional[List[Tuple[float, float]]] = None,
+    ) -> OptimizerResult:
         # ensure learning rate and perturbation are correctly set: either none or both
         # this happens only here because for the calibration the loss function is required
         if self.learning_rate is None and self.perturbation is None:
-            get_eta, get_eps = self.calibrate(
-                loss, initial_point, max_evals_grouped=self._max_evals_grouped
-            )
+            get_eta, get_eps = self.calibrate(fun, x0, max_evals_grouped=self._max_evals_grouped)
         else:
             get_eta, get_eps = _validate_pert_and_learningrate(
                 self.perturbation, self.learning_rate
@@ -507,7 +511,7 @@ class SPSA(Optimizer):
             lse_solver = self.lse_solver
 
         # prepare some initials
-        x = np.asarray(initial_point)
+        x = np.asarray(x0)
         if self.initial_hessian is None:
             self._smoothed_hessian = np.identity(x.size)
         else:
@@ -517,12 +521,12 @@ class SPSA(Optimizer):
 
         # if blocking is enabled we need to keep track of the function values
         if self.blocking:
-            fx = loss(x)
+            fx = fun(x)
 
             self._nfev += 1
             if self.allowed_increase is None:
                 self.allowed_increase = 2 * self.estimate_stddev(
-                    loss, x, max_evals_grouped=self._max_evals_grouped
+                    fun, x, max_evals_grouped=self._max_evals_grouped
                 )
 
         logger.info("=" * 30)
@@ -535,7 +539,7 @@ class SPSA(Optimizer):
         for k in range(1, self.maxiter + 1):
             iteration_start = time()
             # compute update
-            fx_estimate, update = self._compute_update(loss, x, k, next(eps), lse_solver)
+            fx_estimate, update = self._compute_update(fun, x, k, next(eps), lse_solver)
 
             # trust region
             if self.trust_region:
@@ -551,7 +555,7 @@ class SPSA(Optimizer):
             # blocking
             if self.blocking:
                 self._nfev += 1
-                fx_next = loss(x_next)
+                fx_next = fun(x_next)
 
                 if fx + self.allowed_increase <= fx_next:  # accept only if loss improved
                     if self.callback is not None:
@@ -580,7 +584,7 @@ class SPSA(Optimizer):
                 # if we didn't evaluate the function yet, do it now
                 if not self.blocking:
                     self._nfev += 1
-                    fx_next = loss(x_next)
+                    fx_next = fun(x_next)
 
                 self.callback(
                     self._nfev,  # number of function evals
@@ -613,7 +617,13 @@ class SPSA(Optimizer):
         if self.last_avg > 1:
             x = np.mean(last_steps, axis=0)
 
-        return x, loss(x), self._nfev
+        result = OptimizerResult()
+        result.x = x
+        result.fun = fun(x)
+        result.nfev = self._nfev
+        result.nit = self.maxiter
+
+        return result
 
     def get_support_level(self):
         """Get the support level dictionary."""
@@ -631,7 +641,8 @@ class SPSA(Optimizer):
         variable_bounds=None,
         initial_point=None,
     ):
-        return self._minimize(objective_function, initial_point)
+        result = self.minimize(objective_function, initial_point)
+        return result.x, result.fun, result.nfev
 
 
 def bernoulli_perturbation(dim, perturbation_dims=None):
