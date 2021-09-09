@@ -13,6 +13,7 @@
 """Test the evolution gate."""
 
 import scipy
+from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import EvolutionGate
@@ -20,10 +21,11 @@ from qiskit.circuit.library.evolution.lie_trotter import LieTrotter
 from qiskit.circuit.library.evolution.suzuki_trotter import SuzukiTrotter
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.opflow import I, X, Y, Z
-from qiskit.quantum_info import Operator, SparsePauliOp
+from qiskit.opflow import I, X, Y, Z, PauliSumOp
+from qiskit.quantum_info import Operator, SparsePauliOp, Pauli
 
 
+@ddt
 class TestEvolutionGate(QiskitTestCase):
     """Test the evolution gate."""
 
@@ -138,3 +140,67 @@ class TestEvolutionGate(QiskitTestCase):
         ops = set(node.op.name for node in dag.op_nodes())
 
         self.assertEqual(ops, expected_ops)
+
+    @data("chain", "fountain")
+    def test_cnot_chain_options(self, option):
+        """Test selecting different kinds of CNOT chains."""
+
+        op = Z ^ Z ^ Z
+        synthesis = LieTrotter(reps=1, cx_structure=option)
+        evo = EvolutionGate(op, synthesis=synthesis)
+
+        expected = QuantumCircuit(3)
+        if option == "chain":
+            expected.cx(2, 1)
+            expected.cx(1, 0)
+        else:
+            expected.cx(1, 0)
+            expected.cx(2, 0)
+
+        expected.rz(2, 0)
+
+        if option == "chain":
+            expected.cx(1, 0)
+            expected.cx(2, 1)
+        else:
+            expected.cx(2, 0)
+            expected.cx(1, 0)
+
+        self.assertEqual(expected, evo.definition.decompose())
+
+    @data(
+        Pauli("XI"),
+        X ^ I,  # PauliOp
+        SparsePauliOp(Pauli("XI")),
+        PauliSumOp(SparsePauliOp("XI")),
+    )
+    def test_different_input_types(self, op):
+        """Test all different supported input types and that they yield the same."""
+        expected = QuantumCircuit(2)
+        expected.rx(4, 1)
+
+        with self.subTest(msg="plain"):
+            evo = EvolutionGate(op, time=2, synthesis=LieTrotter())
+            self.assertEqual(evo.definition.decompose(), expected)
+
+        with self.subTest(msg="wrapped in list"):
+            evo = EvolutionGate([op], time=2, synthesis=LieTrotter())
+            self.assertEqual(evo.definition.decompose(), expected)
+
+    def test_pauliop_coefficients_respected(self):
+        """Test that global ``PauliOp`` coefficients are being taken care of."""
+        evo = EvolutionGate(5 * (Z ^ Z), time=1, synthesis=LieTrotter())
+        circuit = evo.definition.decompose()
+        rz_angle = circuit.data[1][0].params[0]
+        self.assertEqual(rz_angle, 10)
+
+    def test_paulisumop_coefficients_respected(self):
+        """Test that global ``PauliSumOp`` coefficients are being taken care of."""
+        evo = EvolutionGate(5 * (2 * X + 3 * Y - Z), time=1, synthesis=LieTrotter())
+        circuit = evo.definition.decompose()
+        rz_angles = [
+            circuit.data[0][0].params[0],  # X
+            circuit.data[1][0].params[0],  # Y
+            circuit.data[2][0].params[0],  # Z
+        ]
+        self.assertListEqual(rz_angles, [20, 30, -10])

@@ -29,6 +29,7 @@ class SuzukiTrotter(ProductFormula):
         order: int = 2,
         atomic_evolution: Optional[Callable[[SparsePauliOp, float], QuantumCircuit]] = None,
         insert_barriers: bool = False,
+        cx_structure: str = "chain",
     ) -> None:
         """
         Args:
@@ -37,7 +38,7 @@ class SuzukiTrotter(ProductFormula):
             atomic_evolution: A function to construct the circuit for the evolution of single operators.
                 Per default, `PauliEvolutionGate` will be used.
         """
-        super().__init__(order, reps, atomic_evolution, insert_barriers)
+        super().__init__(order, reps, atomic_evolution, insert_barriers, cx_structure)
 
     def synthesize(
         self, operators: Union[SparsePauliOp, List[SparsePauliOp]], time: float

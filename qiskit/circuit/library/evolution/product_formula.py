@@ -34,6 +34,7 @@ class ProductFormula(EvolutionSynthesis):
             Callable[[Union[Pauli, SparsePauliOp, float]], QuantumCircuit]
         ] = None,
         insert_barriers: bool = False,
+        cx_structure: str = "chain",
     ) -> None:
         """
         Args:
@@ -42,6 +43,8 @@ class ProductFormula(EvolutionSynthesis):
             atomic_evolution: A function to construct the circuit for the evolution of single operators.
                 Per default, `PauliEvolutionGate` will be used.
             insert_barriers: Whether to insert barriers between the atomic evolutions.
+            cx_structure: Determine the structure of CX gates, can be either "chain" for
+                next-neighbor connections or "fountain" to connect directly to the top qubit.
         """
         super().__init__()
         self.order = order
@@ -56,12 +59,14 @@ class ProductFormula(EvolutionSynthesis):
 
                 if isinstance(operator, Pauli):
                     # single Pauli operator: just exponentiate it
-                    evo.append(PauliEvolutionGate(operator, time), evo.qubits)
+                    evo.append(PauliEvolutionGate(operator, time, cx_structure), evo.qubits)
                 else:
                     # sum of Pauli operators: exponentiate each term (this assumes they commute)
                     pauli_list = [(Pauli(op), np.real(coeff)) for op, coeff in operator.to_list()]
                     for pauli, coeff in pauli_list:
-                        evo.append(PauliEvolutionGate(pauli, coeff * time), evo.qubits)
+                        evo.append(
+                            PauliEvolutionGate(pauli, coeff * time, cx_structure), evo.qubits
+                        )
 
                 return evo
 

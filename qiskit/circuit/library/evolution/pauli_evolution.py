@@ -26,12 +26,16 @@ class PauliEvolutionGate(Gate):
         self,
         pauli: Pauli,
         time: Union[float, ParameterExpression] = 1.0,
-        label: Optional[str] = None,
         cx_structure: str = "chain",
+        label: Optional[str] = None,
     ) -> None:
         """
         Args:
             operator: The Pauli to evolve.
+            time: The evolution time.
+            cx_structure: Determine the structure of CX gates, can be either "chain" for
+                next-neighbor connections or "fountain" to connect directly to the top qubit.
+            label: A label for the gate.
         """
         super().__init__(
             name=f"exp(it {pauli.to_label()})", num_qubits=pauli.num_qubits, params=[], label=label
