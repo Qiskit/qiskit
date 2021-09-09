@@ -61,7 +61,7 @@ class DenseLayout(AnalysisPass):
         Raises:
             TranspilerError: if dag wider than self.coupling_map
         """
-        num_dag_qubits = sum([qreg.size for qreg in dag.qregs.values()])
+        num_dag_qubits = sum(qreg.size for qreg in dag.qregs.values())
         if num_dag_qubits > self.coupling_map.size():
             raise TranspilerError("Number of qubits greater than device.")
 

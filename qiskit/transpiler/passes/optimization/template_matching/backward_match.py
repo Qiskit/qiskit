@@ -184,7 +184,7 @@ class BackwardMatch:
             if template_blocked[node_id]:
                 template_block.append(node_id)
 
-        matches_template = sorted([match[0] for match in matches])
+        matches_template = sorted(match[0] for match in matches)
 
         successors = self.template_dag_dep.get_node(self.node_id_t).successors
         potential = []

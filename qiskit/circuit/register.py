@@ -82,9 +82,9 @@ class Register:
             )
         size = int(size)  # cast to int
 
-        if size <= 0:
+        if size < 0:
             raise CircuitError(
-                "Register size must be positive (%s '%s' was provided)"
+                "Register size must be non-negative (%s '%s' was provided)"
                 % (type(size).__name__, size)
             )
 
@@ -113,9 +113,7 @@ class Register:
         if bits is not None:
             # pylint: disable=isinstance-second-argument-not-valid-type
             if any(not isinstance(bit, self.bit_type) for bit in bits):
-                raise CircuitError(
-                    "Provided bits did not all match " "register type. bits=%s" % bits
-                )
+                raise CircuitError("Provided bits did not all match register type. bits=%s" % bits)
             self._bits = list(bits)
         else:
             self._bits = [self.bit_type(self, idx) for idx in range(size)]
@@ -142,15 +140,14 @@ class Register:
         """
         Arg:
             bit_type (Qubit or Clbit): a constructor type return element/s.
-            key (int or slice or list): index of the clbit to be retrieved.
+            key (int or slice or list): index of the bit to be retrieved.
 
         Returns:
             Qubit or Clbit or list(Qubit) or list(Clbit): a Qubit or Clbit instance if
             key is int. If key is a slice, returns a list of these instances.
 
         Raises:
-            CircuitError: if the `key` is not an integer.
-            QiskitIndexError: if the `key` is not in the range `(0, self.size)`.
+            CircuitError: if the `key` is not an integer or not in the range `(0, self.size)`.
         """
         if not isinstance(key, (int, np.integer, slice, list)):
             raise CircuitError("expected integer or slice index into register")

@@ -94,7 +94,7 @@ class Result:
                 value_str = "'%s'" % self._metadata[key]
             else:
                 value_str = repr(self._metadata[key])
-            out += ", %s=%s" % (key, value_str)
+            out += f", {key}={value_str}"
         out += ")"
         return out
 
@@ -210,7 +210,7 @@ class Result:
 
         Returns:
             List[str] or np.ndarray: Either the list of each outcome, formatted according to
-                registers in circuit or a complex numpy np.ndarray with shape:
+            registers in circuit or a complex numpy np.ndarray with shape:
 
                 ============  =============  =====
                 `meas_level`  `meas_return`  shape
@@ -243,7 +243,7 @@ class Result:
             elif meas_level == MeasLevel.RAW:
                 return postprocess.format_level_0_memory(memory)
             else:
-                raise QiskitError("Measurement level {} is not supported".format(meas_level))
+                raise QiskitError(f"Measurement level {meas_level} is not supported")
 
         except KeyError as ex:
             raise QiskitError(
@@ -261,11 +261,11 @@ class Result:
                 experiment, as specified by ``data([experiment])``.
 
         Returns:
-            dict[str:int] or list[dict[str:int]]: a dictionary or a list of
-                dictionaries. A dictionary has the counts for each qubit with
-                the keys containing a string in binary format and separated
-                according to the registers in circuit (e.g. ``0100 1110``).
-                The string is little-endian (cr[0] on the right hand side).
+            dict[str, int] or list[dict[str, int]]: a dictionary or a list of
+            dictionaries. A dictionary has the counts for each qubit with
+            the keys containing a string in binary format and separated
+            according to the registers in circuit (e.g. ``0100 1110``).
+            The string is little-endian (cr[0] on the right hand side).
 
         Raises:
             QiskitError: if there are no counts for the experiment.
@@ -297,7 +297,7 @@ class Result:
                 vec = postprocess.format_statevector(self.data(key)["statevector"])
                 dict_list.append(statevector.Statevector(vec).probabilities_dict(decimals=15))
             else:
-                raise QiskitError('No counts for experiment "{}"'.format(repr(key)))
+                raise QiskitError(f'No counts for experiment "{repr(key)}"')
 
         # Return first item of dict_list if size is 1
         if len(dict_list) == 1:

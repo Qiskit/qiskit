@@ -86,11 +86,14 @@ class SabreLayout(AnalysisPass):
         initial_layout = Layout({q: dag.qubits[i] for i, q in enumerate(physical_qubits)})
 
         if self.routing_pass is None:
-            self.routing_pass = SabreSwap(self.coupling_map, "decay", seed=self.seed)
+            self.routing_pass = SabreSwap(self.coupling_map, "decay", seed=self.seed, fake_run=True)
+        else:
+            self.routing_pass.fake_run = True
 
         # Do forward-backward iterations.
         circ = dag_to_circuit(dag)
-        for i in range(self.max_iterations):
+        rev_circ = circ.reverse_ops()
+        for _ in range(self.max_iterations):
             for _ in ("forward", "backward"):
                 pm = self._layout_and_route_passmanager(initial_layout)
                 new_circ = pm.run(circ)
@@ -101,14 +104,9 @@ class SabreLayout(AnalysisPass):
                     initial_layout, pass_final_layout, new_circ.qregs  # pylint: disable=no-member
                 )
                 initial_layout = final_layout
-                circ = circ.reverse_ops()
+                circ, rev_circ = rev_circ, circ
 
             # Diagnostics
-            logger.info(
-                "After round %d, num_swaps: %d",
-                i + 1,
-                new_circ.count_ops().get("swap", 0),  # pylint: disable=no-member
-            )
             logger.info("new initial layout")
             logger.info(initial_layout)
 
@@ -116,6 +114,7 @@ class SabreLayout(AnalysisPass):
             initial_layout.add_register(qreg)
 
         self.property_set["layout"] = initial_layout
+        self.routing_pass.fake_run = False
 
     def _layout_and_route_passmanager(self, initial_layout):
         """Return a passmanager for a full layout and routing.

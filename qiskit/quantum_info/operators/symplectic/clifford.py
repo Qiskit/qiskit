@@ -131,14 +131,14 @@ class Clifford(BaseOperator, AdjointMixin):
             # Validate table is a symplectic matrix
             if validate and not Clifford._is_symplectic(self._table.array):
                 raise QiskitError(
-                    "Invalid Clifford. Input StabilizerTable is not a valid" " symplectic matrix."
+                    "Invalid Clifford. Input StabilizerTable is not a valid symplectic matrix."
                 )
 
         # Initialize BaseOperator
         super().__init__(num_qubits=self._table.num_qubits)
 
     def __repr__(self):
-        return "Clifford({})".format(repr(self.table))
+        return f"Clifford({repr(self.table)})"
 
     def __str__(self):
         return "Clifford: Stabilizer = {}, Destabilizer = {}".format(

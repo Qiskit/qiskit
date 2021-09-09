@@ -27,6 +27,7 @@ from qiskit.circuit.library.standard_gates.s import SGate
 from qiskit.circuit.library.standard_gates.t import TGate
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.random import random_circuit
 
 
 class TestInstructions(QiskitTestCase):
@@ -350,6 +351,17 @@ class TestInstructions(QiskitTestCase):
         gate_inverse = circ.to_instruction()
         self.assertEqual(gate.inverse().definition, gate_inverse.definition)
 
+    def test_inverse_with_label(self):
+        """test inverting gate initialized with label attribute."""
+        q = QuantumRegister(2)
+        qc = QuantumCircuit(q, name="circ")
+        qc.cx(0, 1)
+        qc_gate = qc.to_gate()
+        qc_gate_inverse = qc_gate.inverse()
+        self.assertEqual(qc_gate.name + "_dg", qc_gate_inverse.name)
+        qc_gate_inverse_inverse = qc_gate_inverse.inverse()
+        self.assertEqual(qc_gate_inverse_inverse.name, qc_gate.name)
+
     def test_no_broadcast(self):
         """See https://github.com/Qiskit/qiskit-terra/issues/2777
         When creating custom instructions, do not broadcast parameters"""
@@ -390,6 +402,26 @@ class TestInstructions(QiskitTestCase):
         qc = QuantumCircuit(qr)
         with self.assertRaises(CircuitError):
             qc.append(HGate, qr[:], [])
+
+    def test_repr_of_instructions(self):
+        """Test the __repr__ method of the Instruction
+        class"""
+
+        ins1 = Instruction("test_instruction", 3, 5, [0, 1, 2, 3])
+        self.assertEqual(
+            repr(ins1),
+            "Instruction(name='{}', num_qubits={}, num_clbits={}, params={})".format(
+                ins1.name, ins1.num_qubits, ins1.num_clbits, ins1.params
+            ),
+        )
+
+        ins2 = random_circuit(num_qubits=4, depth=4, measure=True).to_instruction()
+        self.assertEqual(
+            repr(ins2),
+            "Instruction(name='{}', num_qubits={}, num_clbits={}, params={})".format(
+                ins2.name, ins2.num_qubits, ins2.num_clbits, ins2.params
+            ),
+        )
 
 
 if __name__ == "__main__":

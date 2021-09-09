@@ -49,11 +49,13 @@ def execute(
     qobj_id=None,
     qobj_header=None,
     shots=None,  # common run options
-    memory=False,
+    memory=None,
     max_credits=None,
     seed_simulator=None,
     default_qubit_los=None,
     default_meas_los=None,  # schedule run options
+    qubit_lo_range=None,
+    meas_lo_range=None,
     schedule_los=None,
     meas_level=None,
     meas_return=None,
@@ -168,15 +170,33 @@ def execute(
 
         seed_simulator (int): Random seed to control sampling, for when backend is a simulator
 
-        default_qubit_los (list): List of default qubit LO frequencies in Hz
+        default_qubit_los (Optional[List[float]]): List of job level qubit drive LO frequencies
+            in Hz. Overridden by ``schedule_los`` if specified. Must have length ``n_qubits``.
 
-        default_meas_los (list): List of default meas LO frequencies in Hz
+        default_meas_los (Optional[List[float]]): List of job level measurement LO frequencies in
+            Hz. Overridden by ``schedule_los`` if specified. Must have length ``n_qubits``.
 
-        schedule_los (None or list or dict or LoConfig): Experiment LO
-            configurations, if specified the list is in the format::
+        qubit_lo_range (Optional[List[List[float]]]): List of job level drive LO ranges each of form
+            ``[range_min, range_max]`` in Hz. Used to validate ``qubit_lo_freq``. Must have length
+            ``n_qubits``.
 
-                list[Union[Dict[PulseChannel, float], LoConfig]] or
-                     Union[Dict[PulseChannel, float], LoConfig]
+        meas_lo_range (Optional[List[List[float]]]): List of job level measurement LO ranges each of
+            form ``[range_min, range_max]`` in Hz. Used to validate ``meas_lo_freq``. Must have
+            length ``n_qubits``.
+
+        schedule_los (list):
+            Experiment level (ie circuit or schedule) LO frequency configurations for qubit drive
+            and measurement channels. These values override the job level values from
+            ``default_qubit_los`` and ``default_meas_los``. Frequencies are in Hz. Settable for qasm
+            and pulse jobs.
+
+            If a single LO config or dict is used, the values are set at job level. If a list is
+            used, the list must be the size of the number of experiments in the job, except in the
+            case of a single experiment. In this case, a frequency sweep will be assumed and one
+            experiment will be created for every list entry.
+
+            Not every channel is required to be specified. If not specified, the backend default
+            value will be used.
 
         meas_level (int or MeasLevel): Set the appropriate level of the
             measurement output for pulse experiments.
@@ -295,6 +315,8 @@ def execute(
         # assembling the circuits into a qobj to be run on the backend
         if shots is None:
             shots = 1024
+        if memory is None:
+            memory = False
         if max_credits is None:
             max_credits = 10
         if meas_level is None:
@@ -312,8 +334,10 @@ def execute(
             memory=memory,
             max_credits=max_credits,
             seed_simulator=seed_simulator,
-            default_qubit_los=default_qubit_los,
-            default_meas_los=default_meas_los,
+            qubit_lo_freq=default_qubit_los,
+            meas_lo_freq=default_meas_los,
+            qubit_lo_range=qubit_lo_range,
+            meas_lo_range=meas_lo_range,
             schedule_los=schedule_los,
             meas_level=meas_level,
             meas_return=meas_return,
@@ -338,8 +362,10 @@ def execute(
             "shots": shots,
             "memory": memory,
             "seed_simulator": seed_simulator,
-            "default_qubit_los": default_qubit_los,
-            "default_meas_los": default_meas_los,
+            "qubit_lo_freq": default_qubit_los,
+            "meas_lo_freq": default_meas_los,
+            "qubit_lo_range": qubit_lo_range,
+            "meas_lo_range": meas_lo_range,
             "schedule_los": schedule_los,
             "meas_level": meas_level,
             "meas_return": meas_return,
@@ -359,18 +385,11 @@ def execute(
                         key,
                     )
                 del run_kwargs[key]
-            elif key == "shots" and run_kwargs[key] is None:
-                run_kwargs[key] = 1024
-            elif key == "max_credits" and run_kwargs[key] is None:
-                run_kwargs[key] = 10
-            elif key == "meas_level" and run_kwargs[key] is None:
-                run_kwargs[key] = MeasLevel.CLASSIFIED
-            elif key == "meas_return" and run_kwargs[key] is None:
-                run_kwargs[key] = MeasReturnType.AVERAGE
-            elif key == "memory_slot_size" and run_kwargs[key] is None:
-                run_kwargs[key] = 100
+            elif run_kwargs[key] is None:
+                del run_kwargs[key]
 
-        run_kwargs["parameter_binds"] = parameter_binds
+        if parameter_binds:
+            run_kwargs["parameter_binds"] = parameter_binds
         run_kwargs.update(run_config)
         job = backend.run(experiments, **run_kwargs)
         end_time = time()

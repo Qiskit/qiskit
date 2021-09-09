@@ -16,6 +16,7 @@ Level 1 pass manager: light optimization by simple adjacent gate collapsing.
 """
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
+from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passmanager import PassManager
 
 from qiskit.transpiler.passes import Unroller
@@ -50,6 +51,9 @@ from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes import TimeUnitConversion
 from qiskit.transpiler.passes import ALAPSchedule
 from qiskit.transpiler.passes import ASAPSchedule
+from qiskit.transpiler.passes import AlignMeasures
+from qiskit.transpiler.passes import ValidatePulseGates
+from qiskit.transpiler.passes import PulseGates
 from qiskit.transpiler.passes import Error
 
 from qiskit.transpiler import TranspilerError
@@ -81,6 +85,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         TranspilerError: if the passmanager config is invalid.
     """
     basis_gates = pass_manager_config.basis_gates
+    inst_map = pass_manager_config.inst_map
     coupling_map = pass_manager_config.coupling_map
     initial_layout = pass_manager_config.initial_layout
     layout_method = pass_manager_config.layout_method or "dense"
@@ -91,6 +96,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
     approximation_degree = pass_manager_config.approximation_degree
+    timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
 
     # 1. Use trivial layout if no layout given
     _given_layout = SetLayout(initial_layout)
@@ -165,7 +171,12 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             Unroll3qOrMore(),
             Collect2qBlocks(),
             ConsolidateBlocks(basis_gates=basis_gates),
-            UnitarySynthesis(basis_gates, approximation_degree=approximation_degree),
+            UnitarySynthesis(
+                basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                backend_props=backend_properties,
+            ),
         ]
     else:
         raise TranspilerError("Invalid translation method %s." % translation_method)
@@ -200,6 +211,14 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         else:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
 
+    # 11. Call measure alignment. Should come after scheduling.
+    _alignments = [
+        ValidatePulseGates(
+            granularity=timing_constraints.granularity, min_length=timing_constraints.min_length
+        ),
+        AlignMeasures(alignment=timing_constraints.acquire_alignment),
+    ]
+
     # Build pass manager
     pm1 = PassManager()
     if coupling_map or initial_layout:
@@ -216,6 +235,9 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm1.append(_direction, condition=_direction_condition)
     pm1.append(_reset)
     pm1.append(_depth_check + _opt + _unroll, do_while=_opt_control)
+    if inst_map and inst_map.has_custom_gate():
+        pm1.append(PulseGates(inst_map=inst_map))
     pm1.append(_scheduling)
+    pm1.append(_alignments)
 
     return pm1

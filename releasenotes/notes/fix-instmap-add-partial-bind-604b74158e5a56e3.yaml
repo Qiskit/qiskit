@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    Fix argument parsing bug of :meth:`InstructionScheduleMap.add` when a
-    `functools.partial` function is input.

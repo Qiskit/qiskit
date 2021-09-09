@@ -220,7 +220,7 @@ class InstructionToQobjConverter:
 
             if instruction.duration != duration:
                 raise QiskitError(
-                    "Acquire instructions beginning at the same time must have " "same duration."
+                    "Acquire instructions beginning at the same time must have same duration."
                 )
 
             if instruction.mem_slot:
@@ -682,7 +682,7 @@ class QobjToInstructionConverter:
                 pulse=instruction.pulse_shape, params=str(sorted_params)
             )
             short_pulse_id = hashlib.md5(base_str.encode("utf-8")).hexdigest()[:4]
-            pulse_name = "{0}_{1}".format(instruction.pulse_shape, short_pulse_id)
+            pulse_name = f"{instruction.pulse_shape}_{short_pulse_id}"
 
         pulse = ParametricPulseShapes[instruction.pulse_shape].value(
             **instruction.parameters, name=pulse_name

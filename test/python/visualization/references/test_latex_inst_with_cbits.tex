@@ -1,0 +1,18 @@
+\documentclass[border=2px]{standalone}
+
+\usepackage[braket, qm]{qcircuit}
+\usepackage{graphicx}
+
+\begin{document}
+\scalebox{1.0}{
+\Qcircuit @C=1.0em @R=1.0em @!R { \\
+	 	\nghost{ {qr}_{0} :  } & \lstick{ {qr}_{0} :  } & \qw & \qw & \qw\\
+	 	\nghost{ {qr}_{1} :  } & \lstick{ {qr}_{1} :  } & \multigate{5}{\mathrm{instruction}}_<<<{0} & \qw & \qw\\
+	 	\nghost{ {qr}_{2} :  } & \lstick{ {qr}_{2} :  } & \ghost{\mathrm{instruction}}_<<<{1} & \qw & \qw\\
+	 	\nghost{ {qr}_{3} :  } & \lstick{ {qr}_{3} :  } & \ghost{\mathrm{instruction}} & \qw & \qw\\
+	 	\nghost{cr_{0}:} & \lstick{cr_{0}:} & \cghost{\mathrm{instruction}} & \cw & \cw\\
+	 	\nghost{cr_{1}:} & \lstick{cr_{1}:} & \cghost{\mathrm{instruction}}_<<<{1} & \cw & \cw\\
+	 	\nghost{cr_{2}:} & \lstick{cr_{2}:} & \cghost{\mathrm{instruction}}_<<<{0} & \cw & \cw\\
+	 	\nghost{cr_{3}:} & \lstick{cr_{3}:} & \cw & \cw & \cw\\
+\\ }}
+\end{document}
