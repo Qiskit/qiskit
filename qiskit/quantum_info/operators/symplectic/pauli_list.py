@@ -135,18 +135,18 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
     @property
     def settings(self):
-        return {"data": self.to_labels())}
+        return {"data": self.to_labels()}
 
-    def __array__(self, dtype = None):
+    def __array__(self, dtype=None):
         """Convert to numpy array"""
         # pylint: disable=unused-argument
-        shape=(len(self),) + 2 * (2 ** self.num_qubits,)
-        ret=np.zeros(shape, dtype = complex)
+        shape = (len(self),) + 2 * (2 ** self.num_qubits,)
+        ret = np.zeros(shape, dtype=complex)
         for i, mat in enumerate(self.matrix_iter()):
-            ret[i]=mat
+            ret[i] = mat
         return ret
 
-    @ staticmethod
+    @staticmethod
     def _from_paulis(data):
         """Construct a PauliList from a list of Pauli data.
 
@@ -161,24 +161,24 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             Pauli strings.
         """
         if not isinstance(data, (list, tuple, set, np.ndarray)):
-            data=[data]
-        num_paulis=len(data)
+            data = [data]
+        num_paulis = len(data)
         if num_paulis == 0:
             raise QiskitError("Input Pauli list is empty.")
-        paulis=[]
+        paulis = []
         for i in data:
             if not isinstance(i, Pauli):
                 paulis.append(Pauli(i))
             else:
                 paulis.append(i)
-        num_qubits=paulis[0].num_qubits
-        base_z=np.zeros((num_paulis, num_qubits), dtype = bool)
-        base_x=np.zeros((num_paulis, num_qubits), dtype = bool)
-        base_phase=np.zeros(num_paulis, dtype = int)
+        num_qubits = paulis[0].num_qubits
+        base_z = np.zeros((num_paulis, num_qubits), dtype=bool)
+        base_x = np.zeros((num_paulis, num_qubits), dtype=bool)
+        base_phase = np.zeros(num_paulis, dtype=int)
         for i, pauli in enumerate(paulis):
-            base_z[i]=pauli._z
-            base_x[i]=pauli._x
-            base_phase[i]=pauli._phase
+            base_z[i] = pauli._z
+            base_x[i] = pauli._x
+            base_phase[i] = pauli._phase
         return base_z, base_x, base_phase
 
     def __repr__(self):
@@ -190,27 +190,27 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         return self._truncated_str(False)
 
     def _truncated_str(self, show_class):
-        stop=self._num_paulis
+        stop = self._num_paulis
         if self.__truncate__:
-            max_paulis=self.__truncate__ // self.num_qubits
+            max_paulis = self.__truncate__ // self.num_qubits
             if self._num_paulis > max_paulis:
-                stop=max_paulis
-        labels=[str(self[i]) for i in range(stop)]
-        prefix="PauliList(" if show_class else ""
-        tail=")" if show_class else ""
+                stop = max_paulis
+        labels = [str(self[i]) for i in range(stop)]
+        prefix = "PauliList(" if show_class else ""
+        tail = ")" if show_class else ""
         if stop != self._num_paulis:
-            suffix=", ...]" + tail
+            suffix = ", ...]" + tail
         else:
-            suffix="]" + tail
-        list_str=np.array2string(
-            np.array(labels), threshold = stop + 1, separator = ", ", prefix = prefix, suffix = suffix
+            suffix = "]" + tail
+        list_str = np.array2string(
+            np.array(labels), threshold=stop + 1, separator=", ", prefix=prefix, suffix=suffix
         )
         return prefix + list_str[:-1] + suffix
 
     def __eq__(self, other):
         """Entrywise comparison of Pauli equality."""
         if not isinstance(other, PauliList):
-            other=PauliList(other)
+            other = PauliList(other)
         if not isinstance(other, BasePauli):
             return False
         return self._eq(other)
@@ -226,51 +226,51 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
                         of the current table.
         """
         if not isinstance(other, PauliList):
-            other=PauliList(other)
-        return np.all(self.z == other.z, axis = 1) & np.all(self.x == other.x, axis = 1)
+            other = PauliList(other)
+        return np.all(self.z == other.z, axis=1) & np.all(self.x == other.x, axis=1)
 
     # ---------------------------------------------------------------------
     # Direct array access
     # ---------------------------------------------------------------------
-    @ property
+    @property
     def phase(self):
         """Return the phase exponent of the PauliList."""
         # Convert internal ZX-phase convention to group phase convention
         return np.mod(self._phase - self._count_y(), 4)
 
-    @ phase.setter
+    @phase.setter
     def phase(self, value):
         # Convert group phase convetion to internal ZX-phase convention
-        self._phase[:]=np.mod(value + self._count_y(), 4)
+        self._phase[:] = np.mod(value + self._count_y(), 4)
 
-    @ property
+    @property
     def x(self):
         """The x array for the symplectic representation."""
         return self._x
 
-    @ x.setter
+    @x.setter
     def x(self, val):
-        self._x[:]=val
+        self._x[:] = val
 
-    @ property
+    @property
     def z(self):
         """The z array for the symplectic representation."""
         return self._z
 
-    @ z.setter
+    @z.setter
     def z(self, val):
-        self._z[:]=val
+        self._z[:] = val
 
     # ---------------------------------------------------------------------
     # Size Properties
     # ---------------------------------------------------------------------
 
-    @ property
+    @property
     def shape(self):
         """The full shape of the :meth:`array`"""
         return self._num_paulis, self.num_qubits
 
-    @ property
+    @property
     def size(self):
         """The number of Pauli rows in the table."""
         return self._num_paulis
@@ -289,7 +289,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         # This supports all slicing operations the underlying array supports.
         if isinstance(index, tuple):
             if len(index) == 1:
-                index=index[0]
+                index = index[0]
             elif len(index) > 2:
                 raise IndexError(f"Invalid PauliList index {index}")
 

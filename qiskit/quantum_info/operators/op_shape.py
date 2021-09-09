@@ -53,10 +53,12 @@ class OpShape:
     @property
     def settings(self):
         """Return the settings of the ``OpShape`` as dictionary."""
-        return {"dims_l": self._dims_l,
-                "dims_r": self._dims_r,
-                "num_qargs_l": self._num_qargs_l,
-                "num_qargs_r": self._num_qargs_r}
+        return {
+            "dims_l": self._dims_l,
+            "dims_r": self._dims_r,
+            "num_qargs_l": self._num_qargs_l,
+            "num_qargs_r": self._num_qargs_r,
+        }
 
     def __repr__(self):
         if self._dims_l:
