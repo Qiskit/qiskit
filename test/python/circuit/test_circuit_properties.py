@@ -442,9 +442,9 @@ class TestCircuitProperties(QiskitTestCase):
         circ.cz(1, 3)
         circ.measure(1, 0)
         circ.x(0).c_if(0, 1)
-        self.assertEqual(circ.depth(
-                lambda x: x[0].num_qubits >= 2 or x[0].condition is not None
-                ), 4)
+        self.assertEqual(
+            circ.depth(lambda x: x[0].num_qubits >= 2 or x[0].condition is not None), 4
+        )
 
     def test_circuit_depth_first_qubit(self):
         """Test finding depth of gates touching q0 only.
