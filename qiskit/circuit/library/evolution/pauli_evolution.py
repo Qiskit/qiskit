@@ -38,20 +38,23 @@ class PauliEvolutionGate(Gate):
             label: A label for the gate.
         """
         super().__init__(
-            name=f"exp(it {pauli.to_label()})", num_qubits=pauli.num_qubits, params=[], label=label
+            name=f"exp(it {pauli.to_label()})",
+            num_qubits=pauli.num_qubits,
+            params=[time],
+            label=label,
         )
 
-        self.time = time
         self.pauli = pauli
         self.cx_structure = cx_structure
 
     def _define(self):
         num_non_identity = len([label for label in self.pauli.to_label() if label != "I"])
 
+        time = self.params[0]
         # first check, if the Pauli is only the identity, in which case the evolution only
         # adds a global phase
         if num_non_identity == 0:
-            self.definition = QuantumCircuit(self.pauli.num_qubits, global_phase=-self.time)
+            self.definition = QuantumCircuit(self.pauli.num_qubits, global_phase=-time)
         # if we evolve on a single qubit, if yes use the corresponding qubit rotation
         elif num_non_identity <= 1:
             self.definition = self._single_qubit_evolution()
@@ -61,13 +64,14 @@ class PauliEvolutionGate(Gate):
 
     def _single_qubit_evolution(self):
         definition = QuantumCircuit(self.pauli.num_qubits)
+        time = self.params[0]
         for i, pauli_i in enumerate(reversed(self.pauli.to_label())):
             if pauli_i == "X":
-                definition.rx(2 * self.time, i)
+                definition.rx(2 * time, i)
             elif pauli_i == "Y":
-                definition.ry(2 * self.time, i)
+                definition.ry(2 * time, i)
             elif pauli_i == "Z":
-                definition.rz(2 * self.time, i)
+                definition.rz(2 * time, i)
 
         return definition
 
@@ -89,17 +93,18 @@ class PauliEvolutionGate(Gate):
                 break
 
         # build the evolution as: diagonalization, reduction, 1q evolution, followed by inverses
+        time = self.params[0]
         definition = QuantumCircuit(self.pauli.num_qubits)
         definition.compose(cliff, inplace=True)
         definition.compose(chain, inplace=True)
-        definition.rz(2 * self.time, target)
+        definition.rz(2 * time, target)
         definition.compose(chain.inverse(), inplace=True)
         definition.compose(cliff.inverse(), inplace=True)
 
         return definition
 
     def inverse(self) -> "PauliEvolutionGate":
-        return PauliEvolutionGate(pauli=self.pauli, time=-self.time)
+        return PauliEvolutionGate(pauli=self.pauli, time=-self.params[0])
 
 
 def diagonalizing_clifford(pauli: Pauli) -> QuantumCircuit:
@@ -112,7 +117,7 @@ def diagonalizing_clifford(pauli: Pauli) -> QuantumCircuit:
         A circuit to diagonalize.
     """
     cliff = QuantumCircuit(pauli.num_qubits)
-    for i, pauli_i in enumerate(pauli.to_label()):
+    for i, pauli_i in enumerate(reversed(pauli.to_label())):
         if pauli_i == "Y":
             cliff.sdg(i)
         if pauli_i in ["X", "Y"]:

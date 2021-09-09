@@ -17,6 +17,7 @@ from typing import Optional, Union, cast
 
 import numpy as np
 
+from qiskit.circuit.library import EvolutionGate, LieTrotter, SuzukiTrotter, PauliEvolutionGate
 from qiskit.opflow.converters.pauli_basis_change import PauliBasisChange
 from qiskit.opflow.evolutions.evolution_base import EvolutionBase
 from qiskit.opflow.evolutions.evolved_op import EvolvedOp
@@ -27,6 +28,7 @@ from qiskit.opflow.list_ops.summed_op import SummedOp
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.operator_globals import I, Z
 from qiskit.opflow.primitive_ops.pauli_op import PauliOp
+from qiskit.opflow.primitive_ops.circuit_op import CircuitOp
 from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 
@@ -102,10 +104,22 @@ class PauliTrotterEvolution(EvolutionBase):
         #     operator = self._grouper.convert(operator).reduce()
         return self._recursive_convert(operator)
 
+    def _get_evolution_synthesis(self):
+        """Return the ``EvolutionSynthesis`` corresponding to this Trotterization."""
+        if self.trotter.order == 1:
+            return LieTrotter(reps=self.trotter.reps)
+        return SuzukiTrotter(reps=self.trotter.reps, order=self.trotter.order)
+
     def _recursive_convert(self, operator: OperatorBase) -> OperatorBase:
         if isinstance(operator, EvolvedOp):
             if isinstance(operator.primitive, PauliSumOp):
-                operator = EvolvedOp(operator.primitive.to_pauli_op(), coeff=operator.coeff)
+                evolution = EvolutionGate(
+                    operator.primitive,
+                    time=operator.coeff,
+                    synthesis=self._get_evolution_synthesis(),
+                )
+                return CircuitOp(evolution.definition.decompose())
+                # operator = EvolvedOp(operator.primitive.to_pauli_op(), coeff=operator.coeff)
             if not {"Pauli"} == operator.primitive_strings():
                 logger.warning(
                     "Evolved Hamiltonian is not composed of only Paulis, converting to "
@@ -144,7 +158,11 @@ class PauliTrotterEvolution(EvolutionBase):
                 circuit_no_identities.primitive.global_phase = global_phase
                 return circuit_no_identities
             elif isinstance(operator.primitive, PauliOp):
-                return self.evolution_for_pauli(operator.primitive)
+                pauli = operator.primitive.primitive
+                time = operator.coeff * operator.primitive.coeff
+                evo = EvolutionGate(pauli, time=time, synthesis=self._get_evolution_synthesis())
+                return CircuitOp(evo.definition)
+                # return self.evolution_for_pauli(operator.primitive)
             # Covers ListOp, ComposedOp, TensoredOp
             elif isinstance(operator.primitive, ListOp):
                 converted_ops = [self._recursive_convert(op) for op in operator.primitive.oplist]

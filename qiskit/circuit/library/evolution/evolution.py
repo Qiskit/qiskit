@@ -44,12 +44,14 @@ class EvolutionGate(Gate):
                 expensive matrix calculation, exponentiation and synthesis.
         """
         if isinstance(operator, list):
-            operator = [_to_sparse_pauli_op(op) for op in operator]
+            operator, global_coeff = [_to_sparse_pauli_op(op) for op in operator]
         else:
-            operator = _to_sparse_pauli_op(operator)
+            operator, global_coeff = _to_sparse_pauli_op(operator)
+
+        time *= global_coeff
 
         num_qubits = operator[0].num_qubits if isinstance(operator, list) else operator.num_qubits
-        super().__init__(name="EvolutionGate", num_qubits=num_qubits, params=[], label=label)
+        super().__init__(name="EvolutionGate", num_qubits=num_qubits, params=[time], label=label)
 
         self.time = time
         self.operator = operator
@@ -88,18 +90,22 @@ def _pauliop_to_sparsepauli(operator):
 
 
 def _to_sparse_pauli_op(operator):
+    """Cast the operator to a SparsePauliOp.
+
+    For Opflow objects, return a global coefficient that must be multiplied to the evolution time.
+    Since this coefficient might contain unbound parameters it cannot be absorbed into the
+    coefficients of the SparsePauliOp.
+    """
     # pylint: disable=cyclic-import
     from qiskit.opflow import PauliSumOp, PauliOp
 
     if isinstance(operator, PauliSumOp):
-        sparse_pauli = operator.primitive
-        sparse_pauli._coeffs *= operator.coeff  # keep track of global coeff
-        return sparse_pauli
+        return operator.primitive, operator.coeff
     if isinstance(operator, PauliOp):
-        return SparsePauliOp(operator.primitive, operator.coeff)
+        return SparsePauliOp(operator.primitive), operator.coeff
     if isinstance(operator, Pauli):
-        return SparsePauliOp(operator)
+        return SparsePauliOp(operator), 1
     if isinstance(operator, SparsePauliOp):
-        return operator
+        return operator, 1
 
     raise ValueError(f"Unsupported operator type for evolution: {type(operator)}.")
