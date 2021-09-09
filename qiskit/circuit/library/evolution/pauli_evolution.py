@@ -42,9 +42,16 @@ class PauliEvolutionGate(Gate):
         self.cx_structure = cx_structure
 
     def _define(self):
-        # first check if we evolve on a single qubit, if yes use the corresponding qubit rotation
-        if len([label for label in self.pauli.to_label() if label != "I"]) <= 1:
+        num_non_identity = len([label for label in self.pauli.to_label() if label != "I"])
+
+        # first check, if the Pauli is only the identity, in which case the evolution only
+        # adds a global phase
+        if num_non_identity == 0:
+            self.definition = QuantumCircuit(self.pauli.num_qubits, global_phase=-self.time)
+        # if we evolve on a single qubit, if yes use the corresponding qubit rotation
+        elif num_non_identity <= 1:
             self.definition = self._single_qubit_evolution()
+        # otherwise do basis transformation and CX chains
         else:
             self.definition = self._multi_qubit_evolution()
 

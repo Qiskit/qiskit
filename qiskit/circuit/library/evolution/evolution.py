@@ -12,13 +12,13 @@
 
 """A gate to implement time-evolution of operators."""
 
-from typing import Union, Optional, List
+from typing import Union, Optional
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.parameterexpression import ParameterExpression
 
-from qiskit.quantum_info import SparsePauliOp, Operator, Pauli
+from qiskit.quantum_info import Operator, Pauli, SparsePauliOp
 
 from .evolution_synthesis import EvolutionSynthesis
 
@@ -28,21 +28,25 @@ class EvolutionGate(Gate):
 
     def __init__(
         self,
-        operator: Union[SparsePauliOp, "PauliSumOp", List[SparsePauliOp], List["PauliSumOp"]],
+        operator,
         time: Union[float, ParameterExpression] = 1.0,
         label: Optional[str] = None,
         synthesis: Optional[EvolutionSynthesis] = None,
     ) -> None:
         """
         Args:
-            operator: The operator to evolve. Can be provided as list of non-commuting operators
+            operator (Union[SparsePauliOp, PauliSumOp, List[SparsePauliOp], List[PauliSumOp]]):
+                The operator to evolve. Can be provided as list of non-commuting operators
                 where the elements are sums of commuting operators.
             time: The evolution time.
             label: A label for the gate to display in visualizations.
             synthesis: A synthesis strategy. If None, the default synthesis is exponentially
                 expensive matrix calculation, exponentiation and synthesis.
         """
-        operator = _cast_to_sparse_pauli_op(operator)
+        if isinstance(operator, list):
+            operator = [_to_sparse_pauli_op(op) for op in operator]
+        else:
+            operator = _to_sparse_pauli_op(operator)
 
         num_qubits = operator[0].num_qubits if isinstance(operator, list) else operator.num_qubits
         super().__init__(name="EvolutionGate", num_qubits=num_qubits, params=[], label=label)
@@ -76,19 +80,26 @@ class EvolutionGate(Gate):
         return definition
 
     def inverse(self) -> "EvolutionGate":
-        # TODO label
         return EvolutionGate(operator=self.operator, time=-self.time)
 
 
-def _cast_to_sparse_pauli_op(operator):
+def _pauliop_to_sparsepauli(operator):
+    return SparsePauliOp(operator.primitive, operator.coeff)
+
+
+def _to_sparse_pauli_op(operator):
+    # pylint: disable=cyclic-import
     from qiskit.opflow import PauliSumOp, PauliOp
 
-    if isinstance(operator, (PauliSumOp, PauliOp)):
-        # TODO warning: coefficients are discarded?
-        operator = operator.primitive
-    elif isinstance(operator, list):
-        for i, op in enumerate(operator):
-            if isinstance(op, (PauliSumOp, PauliOp)):
-                # TODO warning: coefficients are discarded?
-                operator[i] = op.primitive
-    return operator
+    if isinstance(operator, PauliSumOp):
+        sparse_pauli = operator.primitive
+        sparse_pauli._coeffs *= operator.coeff  # keep track of global coeff
+        return sparse_pauli
+    if isinstance(operator, PauliOp):
+        return SparsePauliOp(operator.primitive, operator.coeff)
+    if isinstance(operator, Pauli):
+        return SparsePauliOp(operator)
+    if isinstance(operator, SparsePauliOp):
+        return operator
+
+    raise ValueError(f"Unsupported operator type for evolution: {type(operator)}.")
