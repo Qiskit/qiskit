@@ -1768,7 +1768,7 @@ class QuantumCircuit:
             int: Total number of gate operations.
         """
         ops = 0
-        for instr, _, _ in list(filter(filter_function, self._data)):
+        for _ in filter(filter_function, self._data):
             ops += 1
         return ops
 
@@ -1809,7 +1809,7 @@ class QuantumCircuit:
         # We treat barriers or snapshots different as
         # They are transpiler and simulator directives.
         # The max stack height is the circuit depth.
-        whitelist = list(filter(filter_function, self._data))
+        whitelist = set(filter(filter_function, self._data))
         for instr, qargs, cargs in self._data:
             levels = []
             reg_ints = []
