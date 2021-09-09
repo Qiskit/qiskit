@@ -52,6 +52,37 @@ class TestInstructionDurationsClass(QiskitTestCase):
         with self.assertRaises(TranspilerError):
             durations.get(gate, 0)
 
+    def test_durations_by_name_param_qubits(self):
+        dt = 2.222222e-10
+        chunk_size = 16
+        durations = InstructionDurations(
+            [
+                # duration_by_name
+                ('rz', None, None, 0, 'dt'),
+                ('sx', None, None, 6, 'dt'),
+
+                # duration_by_name_params
+                ('rx', pi, None, 12, 'dt'),
+                ('rx', pi/4, None, 3, 'dt'),
+
+                # duration_by_name_qubits
+                ('y', None, 0, 8, 'dt'),
+                ('y', None, 1, 4, 'dt'),
+
+                # duration_by_name_params_qubits
+                ('cx', None, (0, 1), 101, 'dt'),
+                ('cx', None, (2, 1), 70, 'dt'),
+                ('rzx', pi/2, (0, 1), 101, 'dt'),
+                ('rzx', pi/2, (2, 1), 70, 'dt'),
+                ('rzx', pi/4, (0, 1), 52, 'dt'),
+                ('rzx', pi/4, (2, 1), 37, 'dt'),
+                ('rzx', pi/6, (0, 1), 37, 'dt'),
+                ('rzx', pi/6, (2, 1), 24, 'dt')
+            ],
+            dt=dt
+        )
+        self.assertEqual(durations.get('sx', unit='dt'), 6)
+
     def _find_gate_with_length(self, backend):
         """Find a gate that has gate length."""
         props = backend.properties()

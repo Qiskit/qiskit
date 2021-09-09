@@ -79,8 +79,8 @@ class InstructionDurations:
         Raises:
             TranspilerError: If dt and dtm is different in the backend.
         """
-        # FIXME: no field provisioned to report durations dependent on gate parameter
-        # assume None for all params.
+        # FIXME: no field currently provisioned for backends to report durations
+        # dependent on gate parameter. Assume None for all params.
 
         # backend reports all gate_length in seconds
         instruction_durations = []
