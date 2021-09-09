@@ -49,8 +49,8 @@ from the multiprocessing library.
 """
 
 import os
-from concurrent.futures import ProcessPoolExecutor
 import sys
+from pathos.pools import ProcessPool
 
 from qiskit.exceptions import QiskitError
 from qiskit.utils.multiprocessing import local_hardware_info
@@ -143,12 +143,10 @@ def parallel_map(  # pylint: disable=dangerous-default-value
     ):
         os.environ["QISKIT_IN_PARALLEL"] = "TRUE"
         try:
-            results = []
-            with ProcessPoolExecutor(max_workers=num_processes) as executor:
-                param = map(lambda value: (task, value, task_args, task_kwargs), values)
-                future = executor.map(_task_wrapper, param)
+            pool = ProcessPool(nodes=num_processes)
+            param = map(lambda value: (task, value, task_args, task_kwargs), values)
+            results = pool.map(_task_wrapper, param)
 
-            results = list(future)
             Publisher().publish("terra.parallel.done", len(results))
 
         except (KeyboardInterrupt, Exception) as error:
