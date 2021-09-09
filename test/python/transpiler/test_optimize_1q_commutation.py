@@ -42,7 +42,10 @@ class TestOptimize1qSimpleCommutation(QiskitTestCase):
         qc.sx(1)
         qc.p(np.pi, 1)
 
-        optimize_pass = Optimize1qGatesSimpleCommutation(["sx", "p"])
+        optimize_pass = Optimize1qGatesSimpleCommutation(
+            basis=["sx", "p"],
+            run_to_completion=True
+        )
         result = optimize_pass(qc)
 
         expected = QuantumCircuit(2, global_phase=np.pi / 2)
@@ -61,7 +64,10 @@ class TestOptimize1qSimpleCommutation(QiskitTestCase):
         qc.cx(0, 1)
         qc.sx(1)
 
-        optimize_pass = Optimize1qGatesSimpleCommutation(["sx", "p"])
+        optimize_pass = Optimize1qGatesSimpleCommutation(
+            basis=["sx", "p"],
+            run_to_completion=True
+        )
         result = optimize_pass(qc)
 
         expected = QuantumCircuit(2, global_phase=np.pi / 2)
@@ -92,7 +98,10 @@ class TestOptimize1qSimpleCommutation(QiskitTestCase):
         qc.sx(0)
         qc.p(np.pi / 8, 0)
 
-        optimize_pass = Optimize1qGatesSimpleCommutation(["sx", "p"])
+        optimize_pass = Optimize1qGatesSimpleCommutation(
+            basis=["sx", "p"],
+            run_to_completion=True
+        )
         result = optimize_pass(qc)
 
         expected = QuantumCircuit(2, global_phase=np.pi / 2)
@@ -154,7 +163,10 @@ class TestOptimize1qSimpleCommutation(QiskitTestCase):
         qc.sx(1)
         qc.rz(2.17, 1)
 
-        optimize_pass = Optimize1qGatesSimpleCommutation(["sx", "rz"])
+        optimize_pass = Optimize1qGatesSimpleCommutation(
+            basis=["sx", "rz"],
+            run_to_completion=True
+        )
         result = optimize_pass(qc)
         runs = circuit_to_dag(result).collect_1q_runs()
         oneq_counts = Counter([len(run) for run in runs])

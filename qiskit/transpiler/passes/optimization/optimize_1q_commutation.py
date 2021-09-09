@@ -58,7 +58,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
     # NOTE: A run from `dag.collect_1q_runs` is always nonempty, so we sometimes use an empty list
     #       to signify the absence of a run.
 
-    def __init__(self, basis=None):
+    def __init__(self, basis=None, run_to_completion=False):
         """
         Args:
             basis (list[str]): See also `Optimize1qGatesDecomposition`.
@@ -67,6 +67,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
 
         self._basis = basis
         self._optimize1q = Optimize1qGatesDecomposition(basis)
+        self._run_to_completion = run_to_completion
 
     @staticmethod
     def _find_adjoining_run(dag, runs, run, front=True):
@@ -220,7 +221,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
         # python doesn't support tail calls
         while True:
             did_work = self._step(dag)
-            if not did_work:
+            if not self._run_to_completion or not did_work:
                 break
 
         return dag
