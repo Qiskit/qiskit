@@ -177,7 +177,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         qubit_coordinates = [[1, 0], [0, 1], [1, 1], [1, 2], [2, 1]]
         coupling_map = [[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]]
 
-        self.graph_plot_coupling_map(num_qubits=num_qubits, qubit_coordinates=qubit_coordinates, coupling_map=coupling_map, filename="coupling.png")
+        self.graph_plot_coupling_map(num_qubits=num_qubits, qubit_coordinates=qubit_coordinates, coupling_map=coupling_map, filename="coupling_map.png")
 
 
 if __name__ == "__main__":
