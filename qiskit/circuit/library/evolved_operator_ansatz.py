@@ -18,13 +18,11 @@ import numpy as np
 
 from qiskit.circuit import (
     Parameter,
-    ParameterVector,
     QuantumRegister,
     QuantumCircuit,
     ParameterExpression,
 )
-from qiskit.circuit.exceptions import CircuitError
-from qiskit.exceptions import QiskitError
+
 from qiskit.circuit.gate import Gate
 
 from .blueprintcircuit import BlueprintCircuit
@@ -208,51 +206,12 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
         #
         # # set the registers
         num_qubits = self.operators[0].num_qubits
-        try:
-            qr = QuantumRegister(num_qubits, "q")
+
+        qr = QuantumRegister(num_qubits, "q")
+        if qr.name not in [qreg.name for qreg in self.qregs]:
+            # if the register already exists, probably because of a previous composition.
+            # Otherwise, add it.
             self.add_register(qr)
-        except CircuitError:
-            # the register already exists, probably because of a previous composition
-            pass
-        #
-        # # build the circuit
-        # times = ParameterVector("t", self.reps * sum(is_evolved_operator))
-        # times_it = iter(times)
-        #
-        # evolution = QuantumCircuit(*self.qregs, name=self.name)
-        #
-        # first = True
-        # for _ in range(self.reps):
-        #     for is_evolved, circuit in zip(is_evolved_operator, circuits):
-        #         if first:
-        #             first = False
-        #         else:
-        #             if self._insert_barriers:
-        #                 evolution.barrier()
-        #
-        #         if is_evolved:
-        #             bound = circuit.assign_parameters({coeff: next(times_it)})
-        #         else:
-        #             bound = circuit
-        #
-        #         evolution.compose(bound, inplace=True)
-        #
-        # if self.initial_state:
-        #     evolution.compose(self.initial_state, front=True, inplace=True)
-        #
-        # # cast global phase to float if it has no free parameters
-        # if isinstance(evolution.global_phase, ParameterExpression):
-        #     try:
-        #         evolution.global_phase = float(evolution.global_phase._symbol_expr)
-        #     # RuntimeError is raised if symengine is used, for SymPy it is a TypeError
-        #     except (RuntimeError, TypeError):
-        #         # expression contains free parameters
-        #         pass
-        #
-        # try:
-        #     instr = evolution.to_gate()
-        # except QiskitError:
-        #     instr = evolution.to_instruction()
 
         self._append(
             EvolvedOperatorGate(
@@ -263,8 +222,8 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
                 initial_state=self.initial_state,
                 label=self.name,
             ),
-            *self.qregs,
-            [],
+            qargs=self.qubits,
+            cargs=[],
         )
 
 
@@ -337,18 +296,12 @@ class EvolvedOperatorGate(Gate):
         super().__init__(
             "EvolvedOps",
             operators[0].num_qubits,
-            params=[param for param in self._rep_op_params.values()],
+            params=list(self._rep_op_params.values()),
             label=label,
         )
 
     def _define(self):
         """TODO"""
-        # self._check_configuration()
-        # self._data = []
-
-        # get the evolved operators as circuits
-        from qiskit.opflow import PauliOp
-
         coeff = Parameter("c")
         circuits = []
         for op in self.operators:
@@ -359,7 +312,7 @@ class EvolvedOperatorGate(Gate):
                 evolved_op = self.evolution.convert((coeff * op).exp_i()).reduce()
                 circuits.append(evolved_op.to_circuit())
 
-        evolution = QuantumCircuit(circuits[0].num_qubits, name=self.name)
+        evolution = QuantumCircuit(self.num_qubits, name=self.name)
 
         first = True
         for rep in range(self.reps):
