@@ -15,8 +15,16 @@ import math
 import numpy as np
 
 
-def _get_error_term(
-    d_t, eps_t, grad_err, energy: float, h_squared: float, h_norm: float, stddev: float
+# used in error bounds
+# TODO why h_squared a float? likely to be renamed
+def _calculate_error_term(
+    d_t: float,
+    eps_t: float,
+    grad_err: float,
+    energy: float,
+    h_squared: float,
+    h_norm: float,
+    stddev: float,
 ):
     """
     Compute the error term for a given time step and a point in the simulation time
@@ -31,8 +39,8 @@ def _get_error_term(
     if eps_t == 0 and grad_err == 0:
         eps_t_next = 0
     else:
-        energy_factor = _get_energy_factor(eps_t, energy, stddev, h_norm)
-        y = _get_max_bures(eps_t, energy, energy_factor, h_squared, d_t)
+        energy_factor = _calculate_energy_factor(eps_t, energy, stddev, h_norm)
+        y = _calculate_max_bures(eps_t, energy, energy_factor, h_squared, d_t)
         eps_t_next = y + d_t * grad_err + d_t * energy_factor
 
     # TODO Write terms to csv file
@@ -40,7 +48,7 @@ def _get_error_term(
 
 
 # TODO extract grid search to reduce code duplication
-def _get_max_bures(
+def _calculate_max_bures(
     eps: float, e: float, e_factor: float, h_squared: float, delta_t: float
 ) -> float:
     """
@@ -107,7 +115,7 @@ def _get_max_bures(
     return max_bures
 
 
-def _get_energy_factor(eps_t: float, energy: float, stddev: float, h_norm: float):
+def _calculate_energy_factor(eps_t: float, energy: float, stddev: float, h_norm: float):
     """
     Get upper bound to |E-E*|
     Args:

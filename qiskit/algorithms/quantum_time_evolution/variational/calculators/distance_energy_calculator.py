@@ -41,6 +41,7 @@ def _calculate_distance_energy(
     if state_circ_sampler is not None:
         trained_state = state_circ_sampler.convert(state, params=param_dict)
     else:
+        # TODO state was already bound earlier, error
         trained_state = state.assign_parameters(param_dict)
     trained_state = trained_state.eval().primitive.data
     target_state = exact_state

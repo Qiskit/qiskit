@@ -19,8 +19,8 @@ from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.grad
     ImaginaryErrorCalculator,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.time_step_errors.time_step_error_calculator import (
-    _get_max_bures,
-    _get_energy_factor,
+    _calculate_max_bures,
+    _calculate_energy_factor,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
@@ -110,9 +110,9 @@ class ImaginaryVariationalPrinciple(VariationalPrinciple):
             energy_factor = 0
             y = 0
         else:
-            energy_factor = _get_energy_factor(eps_t, energy, stddev, h_norm)
+            energy_factor = _calculate_energy_factor(eps_t, energy, stddev, h_norm)
             # max B(I + delta_t(E_t-H)|psi_t>, I + delta_t(E_t-H)|psi*_t>(alpha))
-            y = _get_max_bures(eps_t, energy, energy_factor, h_squared, d_t)
+            y = _calculate_max_bures(eps_t, energy, energy_factor, h_squared, d_t)
             # eps_t*sqrt(var) + eps_t^2/2 * |E_t - ||H||_infty |
             # energy_factor = (2 * eps_t * stddev +
             #                  eps_t ** 2 / 2 * self._h_norm)
