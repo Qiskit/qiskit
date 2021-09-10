@@ -16,8 +16,8 @@ from typing import Optional, Set, List, Tuple
 
 from qiskit.circuit.library.evolved_operator_ansatz import EvolvedOperatorAnsatz
 from qiskit.circuit.parameter import Parameter
-from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.gate import Gate
+from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.library.evolved_operator_ansatz import EvolvedOperatorGate
 
 
 class QAOAAnsatz(EvolvedOperatorAnsatz):
@@ -236,8 +236,34 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         self._mixer = mixer_operator
         self._invalidate()
 
+    def _build(self):
+        if self._data is not None:
+            return
 
-class QAOAGate(Gate):
+        self._check_configuration()
+        self._data = []
+        num_qubits = self.operators[0].num_qubits
+
+        qr = QuantumRegister(num_qubits, "q")
+        if qr.name not in [qreg.name for qreg in self.qregs]:
+            # if the register already exists, probably because of a previous composition.
+            # Otherwise, add it.
+            self.add_register(qr)
+
+        self._append(
+            QAOAGate(
+                cost_operator=self.cost_operator,
+                reps=self.reps,
+                initial_state=self.initial_state,
+                mixer_operator=self.mixer_operator,
+                label=self.name,
+            ),
+            qargs=self.qubits,
+            cargs=[],
+        )
+
+
+class QAOAGate(EvolvedOperatorGate):
     """A generalized QAOA gate with a support of custom initial states and mixers.
 
     References:
@@ -293,11 +319,9 @@ class QAOAGate(Gate):
         if num_qubits == 0:
             raise AttributeError("Either initial_state or cost_operator should be set")
 
-        super().__init__("QAOA", num_qubits, params=[], label=label)
-
-    def _define(self):
-        """TODO"""
-        circuit = QAOAAnsatz(
-            self.cost_operator, self.reps, self.initial_state, self.mixer_operator, self.label
+        super().__init__(
+            operators=[cost_operator, mixer_operator],
+            reps=reps,
+            initial_state=initial_state,
+            label=label,
         )
-        self.definition = circuit.decompose()
