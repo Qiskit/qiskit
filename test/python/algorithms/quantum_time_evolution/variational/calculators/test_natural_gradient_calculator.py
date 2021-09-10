@@ -46,7 +46,7 @@ class TestNaturalGradientCalculator(QiskitAlgorithmsTestCase):
 
         var_principle = ImaginaryMcLachlanVariationalPrinciple()
         # for the purpose of the test we invoke lazy_init
-        var_principle._lazy_init(observable, ansatz, parameters)
+        var_principle._lazy_init(observable, ansatz, params_dict)
 
         correct_values = [
             -0.8842908,
@@ -89,7 +89,7 @@ class TestNaturalGradientCalculator(QiskitAlgorithmsTestCase):
 
         var_principle = ImaginaryMcLachlanVariationalPrinciple()
         # for the purpose of the test we invoke lazy_init
-        var_principle._lazy_init(observable, ansatz, parameters)
+        var_principle._lazy_init(observable, ansatz, params_dict)
 
         correct_values = [
             -0.8842908,
