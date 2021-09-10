@@ -14,7 +14,6 @@
 import os
 import multiprocessing as mp
 import platform
-import sys
 
 import psutil
 
