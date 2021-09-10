@@ -106,7 +106,9 @@ def generate_pre_op_passmanager(coupling_map=None, remove_reset_in_zero=False):
     return pre_opt
 
 
-def generate_translation_passmanager(basis_gates, method="basis", approximation_degree=None):
+def generate_translation_passmanager(
+    basis_gates, method="basis", approximation_degree=None, coupling_map=None, backend_props=None
+):
     """Generate a basis translation :class:`~qiskit.transpiler.PassManager`
 
     Args:
@@ -114,6 +116,13 @@ def generate_translation_passmanager(basis_gates, method="basis", approximation_
         method (str): The basis translation method to use
         approximation_degree (float): The heuristic approximation degree to
             use. Can be between 0 and 1.
+        coupling_map (CouplingMap): the coupling map of the backend
+            in case synthesis is done on a physical circuit. The
+            directionality of the coupling_map will be taken into
+            account if pulse_optimize is True/None and natural_direction
+            is True/None.
+        backend_props (BackendProperties): Properties of a backend to
+            synthesize for (e.g. gate fidelities).
 
     Returns:
         PassManager: The basis translation pass manager
@@ -130,7 +139,12 @@ def generate_translation_passmanager(basis_gates, method="basis", approximation_
             Unroll3qOrMore(),
             Collect2qBlocks(),
             ConsolidateBlocks(basis_gates=basis_gates),
-            UnitarySynthesis(basis_gates, approximation_degree=approximation_degree),
+            UnitarySynthesis(
+                basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                backend_props=backend_props,
+            ),
         ]
     else:
         raise TranspilerError("Invalid translation method %s." % method)

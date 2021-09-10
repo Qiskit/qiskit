@@ -184,7 +184,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         layout = None
         routing = None
     translation = common.generate_translation_passmanager(
-        basis_gates, translation_method, approximation_degree
+        basis_gates, translation_method, approximation_degree, coupling_map, backend_properties
     )
     if coupling_map and not coupling_map.is_symmetric:
         pre_optimization = common.generate_pre_op_passmanager(coupling_map, True)
