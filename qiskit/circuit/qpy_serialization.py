@@ -843,6 +843,8 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
         or gate_class_name == "Gate"
         or gate_class_name == "Instruction"
         or isinstance(instruction_tuple[0], library.BlueprintCircuit)
+        or gate_class_name == "PauliEvolutionGate"
+        or gate_class_name == "EvolutionGate"
     ):
         if instruction_tuple[0].name not in custom_instructions:
             custom_instructions[instruction_tuple[0].name] = instruction_tuple[0]
