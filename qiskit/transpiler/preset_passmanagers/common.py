@@ -35,6 +35,9 @@ from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import RemoveResetInZeroState
+from qiskit.transpiler.passes import ValidatePulseGates
+from qiskit.transpiler.passes import AlignMeasures
+from qiskit.transpiler.passes import PulseGates
 from qiskit.transpiler.exceptions import TranspilerError
 
 
@@ -134,14 +137,18 @@ def generate_translation_passmanager(basis_gates, method="basis", approximation_
     return PassManager(unroll)
 
 
-def generate_scheduling_post_opt(instruction_durations, scheduling_method):
+def generate_scheduling_post_opt(
+    instruction_durations, scheduling_method, timing_constraints, inst_map
+):
     """Generate a post optimization scheduling :class:`~qiskit.transpiler.PassManager`
 
     Args:
         instruction_durations (dict): The dictionary of instruction durations
         scheduling_method (str): The scheduling method to use, can either be
-        ``'asap'``/``'as_soon_as_possible'`` or
-        ``'alap'``/``'as_late_as_possible'``
+            ``'asap'``/``'as_soon_as_possible'`` or
+            ``'alap'``/``'as_late_as_possible'``
+        timing_constraints (TimingConstraints): Hardware time alignment restrictions.
+        inst_map (InstructionScheduleMap): Mapping object that maps gate to schedule.
 
     Returns:
         PassManager: The scheduling pass manager
@@ -149,7 +156,10 @@ def generate_scheduling_post_opt(instruction_durations, scheduling_method):
     Raises:
         TranspilerError: If the ``scheduling_method`` kwarg is not a valid value
     """
-    scheduling = PassManager([TimeUnitConversion(instruction_durations)])
+    scheduling = PassManager()
+    if inst_map and inst_map.has_custom_gate():
+        scheduling.append(PulseGates(inst_map=inst_map))
+    scheduling.append(TimeUnitConversion(instruction_durations))
     if scheduling_method:
         if scheduling_method in {"alap", "as_late_as_possible"}:
             scheduling.append(ALAPSchedule(instruction_durations))
@@ -157,4 +167,10 @@ def generate_scheduling_post_opt(instruction_durations, scheduling_method):
             scheduling.append(ASAPSchedule(instruction_durations))
         else:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
+    scheduling.append(
+        ValidatePulseGates(
+            granularity=timing_constraints.granularity, min_length=timing_constraints.min_length
+        )
+    )
+    scheduling.append(AlignMeasures(alignment=timing_constraints.acquire_alignment))
     return scheduling

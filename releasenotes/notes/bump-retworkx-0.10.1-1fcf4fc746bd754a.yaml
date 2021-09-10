@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    The core dependency ``retworkx`` had its version requirement bumped to 0.10.1, up from 0.9.
+    This enables several performance improvements across different transpilation passes.

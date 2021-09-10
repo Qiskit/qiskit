@@ -109,7 +109,7 @@ class PauliBasisChange(ConverterBase):
 
         if not isinstance(dest, PauliOp):
             raise TypeError(
-                "PauliBasisChange can only convert into Pauli bases, " "not {}.".format(type(dest))
+                f"PauliBasisChange can only convert into Pauli bases, not {type(dest)}."
             )
         self._destination = dest
 
@@ -138,12 +138,12 @@ class PauliBasisChange(ConverterBase):
             and operator.primitive.grouping_type == "TPB"
         ):
             primitive = operator.primitive.primitive.copy()
-            origin_x = reduce(np.logical_or, primitive.table.X)
-            origin_z = reduce(np.logical_or, primitive.table.Z)
+            origin_x = reduce(np.logical_or, primitive.paulis.x)
+            origin_z = reduce(np.logical_or, primitive.paulis.z)
             origin_pauli = Pauli((origin_z, origin_x))
             cob_instr_op, _ = self.get_cob_circuit(origin_pauli)
-            primitive.table.Z = np.logical_or(primitive.table.X, primitive.table.Z)
-            primitive.table.X = False
+            primitive.paulis.z = np.logical_or(primitive.paulis.x, primitive.paulis.z)
+            primitive.paulis.x = False
             dest_pauli_sum_op = PauliSumOp(primitive, coeff=operator.coeff, grouping_type="TPB")
             return self._replacement_fn(cob_instr_op, dest_pauli_sum_op)
 
@@ -179,7 +179,7 @@ class PauliBasisChange(ConverterBase):
             # If the StateFn/Meas only contains a Pauli, use it directly.
             if isinstance(operator.primitive, PauliOp):
                 cob_instr_op, dest_pauli_op = self.get_cob_circuit(operator.primitive)
-                return self._replacement_fn(cob_instr_op, dest_pauli_op)
+                return self._replacement_fn(cob_instr_op, dest_pauli_op * operator.coeff)
             # TODO make a canonical "distribute" or graph swap as method in ListOp?
             elif operator.primitive.distributive:
                 if operator.primitive.abelian:

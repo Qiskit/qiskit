@@ -17,6 +17,7 @@ gate cancellation using commutativity rules.
 """
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
+from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passmanager import FullPassManager
 
@@ -35,8 +36,6 @@ from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import Layout2qDistance
-
-
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.preset_passmanagers import common
 
@@ -71,6 +70,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         TranspilerError: if the passmanager config is invalid.
     """
     basis_gates = pass_manager_config.basis_gates
+    inst_map = pass_manager_config.inst_map
     coupling_map = pass_manager_config.coupling_map
     initial_layout = pass_manager_config.initial_layout
     layout_method = pass_manager_config.layout_method or "dense"
@@ -81,6 +81,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
     approximation_degree = pass_manager_config.approximation_degree
+    timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
 
     # Search for a perfect layout, or choose a dense layout, if no layout given
     _given_layout = SetLayout(initial_layout)
@@ -194,7 +195,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     opt_loop = _depth_check + _opt + unroll
     optimization.append(opt_loop, do_while=_opt_control)
     post_optimization = common.generate_scheduling_post_opt(
-        instruction_durations, scheduling_method
+        instruction_durations, scheduling_method, timing_constraints, inst_map
     )
 
     return FullPassManager(

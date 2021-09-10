@@ -85,7 +85,7 @@ class UCGate(Gate):
         num_contr = math.log2(len(gate_list))
         if num_contr < 0 or not num_contr.is_integer():
             raise QiskitError(
-                "The number of controlled single-qubit gates is not a " "non-negative power of 2."
+                "The number of controlled single-qubit gates is not a non-negative power of 2."
             )
 
         # Check if the single-qubit gates are unitaries
@@ -286,9 +286,7 @@ class UCGate(Gate):
         if isinstance(parameter, np.ndarray):
             return parameter
         else:
-            raise CircuitError(
-                "invalid param type {0} in gate " "{1}".format(type(parameter), self.name)
-            )
+            raise CircuitError(f"invalid param type {type(parameter)} in gate {self.name}")
 
 
 def uc(self, gate_list, q_controls, q_target, up_to_diagonal=False):
@@ -328,7 +326,7 @@ def uc(self, gate_list, q_controls, q_target, up_to_diagonal=False):
             q_target = q_target[0]
         else:
             raise QiskitError(
-                "The target qubit is a QuantumRegister containing more than" " one qubit."
+                "The target qubit is a QuantumRegister containing more than one qubit."
             )
     # Check if q_controls has type "list"
     if not isinstance(q_controls, list):
@@ -343,12 +341,12 @@ def uc(self, gate_list, q_controls, q_target, up_to_diagonal=False):
     num_contr = math.log2(len(gate_list))
     if num_contr < 0 or not num_contr.is_integer():
         raise QiskitError(
-            "The number of controlled single-qubit gates is not a non negative" " power of 2."
+            "The number of controlled single-qubit gates is not a non negative power of 2."
         )
     # Check if number of control qubits does correspond to the number of single-qubit rotations
     if num_contr != len(q_controls):
         raise QiskitError(
-            "Number of controlled gates does not correspond to the number of" " control qubits."
+            "Number of controlled gates does not correspond to the number of control qubits."
         )
     return self.append(UCGate(gate_list, up_to_diagonal), [q_target] + q_controls)
 

@@ -28,19 +28,17 @@ class TolerancesMeta(ABCMeta):
         cls._MAX_TOL = 1e-4
         super().__init__(cls, args, kwargs)
 
+    def _check_value(cls, value, value_name):
+        """Check if value is within valid ranges"""
+        if value < 0:
+            raise QiskitError(f"Invalid {value_name} ({value}) must be non-negative.")
+        if value > cls._MAX_TOL:
+            raise QiskitError(f"Invalid {value_name} ({value}) must be less than {cls._MAX_TOL}.")
+
     @property
     def atol(cls):
         """Default absolute tolerance parameter for float comparisons."""
         return cls._ATOL_DEFAULT
-
-    def _check_value(cls, value, value_name):
-        """Check if value is within valid ranges"""
-        if value < 0:
-            raise QiskitError("Invalid {} ({}) must be non-negative.".format(value_name, value))
-        if value > cls._MAX_TOL:
-            raise QiskitError(
-                "Invalid {} ({}) must be less than {}.".format(value_name, value, cls._MAX_TOL)
-            )
 
     @atol.setter
     def atol(cls, value):

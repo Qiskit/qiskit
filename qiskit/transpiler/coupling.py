@@ -18,11 +18,15 @@ directed edges indicate which physical qubits are coupled and the permitted dire
 CNOT gates. The object has a distance function that can be used to map quantum circuits
 onto a device with this coupling.
 """
+
 import io
+import warnings
+
 import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
 import retworkx as rx
+
 from qiskit.transpiler.exceptions import CouplingError
 from qiskit.exceptions import MissingOptionalLibraryError
 
@@ -113,11 +117,15 @@ class CouplingMap:
 
         nodelist (list): list of integer node labels
         """
+        warnings.warn(
+            "The .subgraph() method is deprecated and will be removed in a "
+            "future release. Instead the .reduce() method should be used "
+            "instead which does the same thing but preserves nodelist order.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         subcoupling = CouplingMap()
         subcoupling.graph = self.graph.subgraph(nodelist)
-        for node in nodelist:
-            if node not in subcoupling.physical_qubits:
-                subcoupling.add_physical_qubit(node)
         return subcoupling
 
     @property
@@ -200,7 +208,7 @@ class CouplingMap:
         )
         if not paths:
             raise CouplingError(
-                "Nodes %s and %s are not connected" % (str(physical_qubit1), str(physical_qubit2))
+                f"Nodes {str(physical_qubit1)} and {str(physical_qubit2)} are not connected"
             )
         return paths[physical_qubit2]
 
@@ -312,14 +320,14 @@ class CouplingMap:
 
     def largest_connected_component(self):
         """Return a set of qubits in the largest connected component."""
-        return max(rx.strongly_connected_components(self.graph), key=len)
+        return max(rx.weakly_connected_components(self.graph), key=len)
 
     def __str__(self):
         """Return a string representation of the coupling graph."""
         string = ""
         if self.get_edges():
             string += "["
-            string += ", ".join(["[%s, %s]" % (src, dst) for (src, dst) in self.get_edges()])
+            string += ", ".join([f"[{src}, {dst}]" for (src, dst) in self.get_edges()])
             string += "]"
         return string
 

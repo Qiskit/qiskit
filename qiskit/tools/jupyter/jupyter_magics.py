@@ -142,7 +142,7 @@ class StatusMagic(Magics):
                 idx_str = "[%s]" % idx
             else:
                 idx_str = ""
-            header = "<p style='{style}'>Job Status {id}: %s </p>".format(id=idx_str, style=style)
+            header = f"<p style='{style}'>Job Status {idx_str}: %s </p>"
             status = widgets.HTML(value=header % job_var.status().value)
 
             thread = threading.Thread(

@@ -17,6 +17,7 @@ Statevector quantum state class.
 import copy
 import re
 from numbers import Number
+from typing import Dict
 
 import numpy as np
 
@@ -117,6 +118,11 @@ class Statevector(QuantumState, TolerancesMixin):
             self._op_shape.dims_l(),
         )
 
+    @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        return {"data": self._data, "dims": self._op_shape.dims_l()}
+
     def draw(self, output=None, **drawer_args):
         """Return a visualization of the Statevector.
 
@@ -157,6 +163,18 @@ class Statevector(QuantumState, TolerancesMixin):
 
         Raises:
             ValueError: when an invalid output method is selected.
+
+        Examples:
+
+            Plot one of the Bell states
+
+            .. jupyter-execute::
+
+                from numpy import sqrt
+                from qiskit.quantum_info import Statevector
+                sv=Statevector([1/sqrt(2), 0, 0, -1/sqrt(2)])
+                sv.draw(output='latex')
+
         """
         # pylint: disable=cyclic-import
         from qiskit.visualization.state_visualization import state_drawer
@@ -422,10 +440,8 @@ class Statevector(QuantumState, TolerancesMixin):
 
         if isinstance(oper, SparsePauliOp):
             return sum(
-                [
-                    coeff * self._expectation_value_pauli(Pauli((z, x)), qargs)
-                    for z, x, coeff in zip(oper.table.Z, oper.table.X, oper.coeffs)
-                ]
+                coeff * self._expectation_value_pauli(Pauli((z, x)), qargs)
+                for z, x, coeff in zip(oper.table.Z, oper.table.X, oper.coeffs)
             )
 
         val = self.evolve(oper, qargs=qargs)
@@ -782,7 +798,7 @@ class Statevector(QuantumState, TolerancesMixin):
         # circuit decomposition definition if it exists, otherwise we
         # cannot compose this gate and raise an error.
         if obj.definition is None:
-            raise QiskitError("Cannot apply Instruction: {}".format(obj.name))
+            raise QiskitError(f"Cannot apply Instruction: {obj.name}")
         if not isinstance(obj.definition, QuantumCircuit):
             raise QiskitError(
                 "{} instruction definition is {}; expected QuantumCircuit".format(
@@ -795,7 +811,7 @@ class Statevector(QuantumState, TolerancesMixin):
         for instr, qregs, cregs in obj.definition:
             if cregs:
                 raise QiskitError(
-                    "Cannot apply instruction with classical registers: {}".format(instr.name)
+                    f"Cannot apply instruction with classical registers: {instr.name}"
                 )
             # Get the integer position of the flat register
             if qargs is None:

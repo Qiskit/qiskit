@@ -398,9 +398,7 @@ def draw(
         elif time_unit == types.TimeUnits.NS.value:
             canvas.set_time_range(*time_range, seconds=True)
         else:
-            raise VisualizationError(
-                "Invalid time unit {unit} is " "specified.".format(unit=time_unit)
-            )
+            raise VisualizationError(f"Invalid time unit {time_unit} is specified.")
 
     # channels not shown
     if disable_channels:
@@ -444,6 +442,6 @@ def draw(
         plotter_api = Mpl2DPlotter(canvas=canvas, axis=axis)
         plotter_api.draw()
     else:
-        raise VisualizationError("Plotter API {name} is not supported.".format(name=plotter))
+        raise VisualizationError(f"Plotter API {plotter} is not supported.")
 
     return plotter_api.get_image()

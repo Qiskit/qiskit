@@ -16,6 +16,7 @@ Level 0 pass manager: no explicit optimization other than mapping to backend.
 """
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
+from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passmanager import FullPassManager
 
@@ -57,6 +58,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> FullPassMana
         TranspilerError: if the passmanager config is invalid.
     """
     basis_gates = pass_manager_config.basis_gates
+    inst_map = pass_manager_config.inst_map
     coupling_map = pass_manager_config.coupling_map
     initial_layout = pass_manager_config.initial_layout
     layout_method = pass_manager_config.layout_method or "trivial"
@@ -67,6 +69,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> FullPassMana
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
     approximation_degree = pass_manager_config.approximation_degree
+    timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
 
     # Choose an initial layout if not set by user (default: trivial layout)
     _given_layout = SetLayout(initial_layout)
@@ -121,7 +124,9 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> FullPassMana
         pre_opt += translation
     else:
         pre_opt = None
-    post_opt = common.generate_scheduling_post_opt(instruction_durations, scheduling_method)
+    post_opt = common.generate_scheduling_post_opt(
+        instruction_durations, scheduling_method, timing_constraints, inst_map
+    )
     return FullPassManager(
         layout=layout,
         routing=routing,

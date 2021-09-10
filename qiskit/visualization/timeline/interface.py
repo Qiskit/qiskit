@@ -404,7 +404,7 @@ def draw(
         plotter_api = MplPlotter(canvas=canvas, axis=axis)
         plotter_api.draw()
     else:
-        raise VisualizationError("Plotter API {name} is not supported.".format(name=plotter))
+        raise VisualizationError(f"Plotter API {plotter} is not supported.")
 
     # save figure
     if filename:

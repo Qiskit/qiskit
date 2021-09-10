@@ -12,12 +12,12 @@
 
 """A standard gradient descent optimizer."""
 
-from typing import Iterator, Optional, Union, Callable
+from typing import Iterator, Optional, Union, Callable, Dict, Any, List, Tuple
 from functools import partial
 
 import numpy as np
 
-from .optimizer import Optimizer, OptimizerSupportLevel
+from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
 CALLBACK = Callable[[int, np.ndarray, float, float], None]
 
@@ -132,29 +132,52 @@ class GradientDescent(Optimizer):
         self.tol = tol
         self.callback = callback
 
-    def _minimize(self, loss, grad, initial_point):
+    @property
+    def settings(self) -> Dict[str, Any]:
+        # if learning rate or perturbation are custom iterators expand them
+        if callable(self.learning_rate):
+            iterator = self.learning_rate()
+            learning_rate = np.array([next(iterator) for _ in range(self.maxiter)])
+        else:
+            learning_rate = self.learning_rate
+
+        return {
+            "maxiter": self.maxiter,
+            "tol": self.tol,
+            "learning_rate": learning_rate,
+            "perturbation": self.perturbation,
+            "callback": self.callback,
+        }
+
+    def minimize(
+        self,
+        fun: Callable[[POINT], float],
+        x0: POINT,
+        jac: Optional[Callable[[POINT], POINT]] = None,
+        bounds: Optional[List[Tuple[float, float]]] = None,
+    ) -> OptimizerResult:
         # set learning rate
         if isinstance(self.learning_rate, float):
             eta = constant(self.learning_rate)
         else:
             eta = self.learning_rate()
 
-        if grad is None:
+        if jac is None:
             eps = 0.01 if self.perturbation is None else self.perturbation
-            grad = partial(
+            jac = partial(
                 Optimizer.gradient_num_diff,
-                f=loss,
+                f=fun,
                 epsilon=eps,
                 max_evals_grouped=self._max_evals_grouped,
             )
 
         # prepare some initials
-        x = np.asarray(initial_point)
+        x = np.asarray(x0)
         nfevs = 0
 
         for _ in range(1, self.maxiter + 1):
             # compute update -- gradient evaluation counts as one function evaluation
-            update = grad(x)
+            update = jac(x)
             nfevs += 1
 
             # compute next parameter value
@@ -163,7 +186,7 @@ class GradientDescent(Optimizer):
             # send information to callback
             stepsize = np.linalg.norm(update)
             if self.callback is not None:
-                self.callback(nfevs, x_next, loss(x_next), stepsize)
+                self.callback(nfevs, x_next, fun(x_next), stepsize)
 
             # update parameters
             x = x_next
@@ -172,7 +195,14 @@ class GradientDescent(Optimizer):
             if stepsize < self.tol:
                 break
 
-        return x, loss(x), nfevs
+        # TODO the optimizer result should contain the number of gradient evaluations,
+        # if the gradient is passed
+        result = OptimizerResult()
+        result.x = x
+        result.fun = fun(x)
+        result.nfev = nfevs
+
+        return result
 
     def get_support_level(self):
         """Get the support level dictionary."""
@@ -191,7 +221,11 @@ class GradientDescent(Optimizer):
         variable_bounds=None,
         initial_point=None,
     ):
-        return self._minimize(objective_function, gradient_function, initial_point)
+        super().optimize(
+            num_vars, objective_function, gradient_function, variable_bounds, initial_point
+        )
+        result = self.minimize(objective_function, initial_point, gradient_function)
+        return result.x, result.fun, result.nfev
 
 
 def constant(eta=0.01):

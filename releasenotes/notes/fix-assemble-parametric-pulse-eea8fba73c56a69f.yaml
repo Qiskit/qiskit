@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :func:`~qiskit.compiler.assemble` function when
+    called with the ``backend`` kwarg set and the ``parametric_pulses`` kwarg
+    was set to an empty list the output qobj would contain the
+    ``parametric_pulses`` setting from the given backend's
+    :class:`~qiskit.providers.models.BackendConfiguration` instead of the
+    expected empty list.
+    Fixed `#6898 <https://github.com/Qiskit/qiskit-terra/issues/6898>`__

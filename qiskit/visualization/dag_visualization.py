@@ -20,6 +20,7 @@ import os
 import sys
 import tempfile
 
+from qiskit.dagcircuit.dagnode import DAGOpNode, DAGInNode, DAGOutNode
 from qiskit.exceptions import MissingOptionalLibraryError
 from .exceptions import VisualizationError
 
@@ -125,7 +126,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
 
     else:
         bit_labels = {
-            bit: "%s[%s]" % (reg.name, idx)
+            bit: f"{reg.name}[{idx}]"
             for reg in list(dag.qregs.values()) + list(dag.cregs.values())
             for (idx, bit) in enumerate(reg)
         }
@@ -137,17 +138,17 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
                 return {}
             if style == "color":
                 n = {}
-                if node.type == "op":
+                if isinstance(node, DAGOpNode):
                     n["label"] = node.name
                     n["color"] = "blue"
                     n["style"] = "filled"
                     n["fillcolor"] = "lightblue"
-                if node.type == "in":
+                if isinstance(node, DAGInNode):
                     n["label"] = bit_labels[node.wire]
                     n["color"] = "black"
                     n["style"] = "filled"
                     n["fillcolor"] = "green"
-                if node.type == "out":
+                if isinstance(node, DAGOutNode):
                     n["label"] = bit_labels[node.wire]
                     n["color"] = "black"
                     n["style"] = "filled"

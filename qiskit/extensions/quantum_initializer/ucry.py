@@ -73,7 +73,7 @@ def ucry(self, angle_list, q_controls, q_target):
             q_target = q_target[0]
         else:
             raise QiskitError(
-                "The target qubit is a QuantumRegister containing" " more than one qubits."
+                "The target qubit is a QuantumRegister containing more than one qubit."
             )
     # Check if q_controls has type "list"
     if not isinstance(angle_list, list):
@@ -81,12 +81,12 @@ def ucry(self, angle_list, q_controls, q_target):
     num_contr = math.log2(len(angle_list))
     if num_contr < 0 or not num_contr.is_integer():
         raise QiskitError(
-            "The number of controlled rotation gates is not" " a non-negative power of 2."
+            "The number of controlled rotation gates is not a non-negative power of 2."
         )
     # Check if number of control qubits does correspond to the number of rotations
     if num_contr != len(q_controls):
         raise QiskitError(
-            "Number of controlled rotations does not correspond to" " the number of control-qubits."
+            "Number of controlled rotations does not correspond to the number of control-qubits."
         )
     return self.append(UCRYGate(angle_list), [q_target] + q_controls, [])
 

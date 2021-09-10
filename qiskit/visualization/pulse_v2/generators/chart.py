@@ -140,7 +140,7 @@ def gen_chart_scale(
         "ha": "right",
     }
 
-    scale_val = "x{param}".format(param=types.DynamicString.SCALE)
+    scale_val = f"x{types.DynamicString.SCALE}"
 
     text = drawings.TextData(
         data_type=types.LabelType.CH_INFO,
@@ -186,12 +186,12 @@ def gen_channel_freqs(
             freq = device.get_channel_frequency(chan)
             if not freq:
                 continue
-            sources.append("{chan}: {val:.2f} GHz".format(chan=chan.name.upper(), val=freq / 1e9))
+            sources.append(f"{chan.name.upper()}: {freq / 1e9:.2f} GHz")
         freq_text = ", ".join(sources)
     else:
         freq = device.get_channel_frequency(data.channels[0])
         if freq:
-            freq_text = "{val:.2f} GHz".format(val=freq / 1e9)
+            freq_text = f"{freq / 1e9:.2f} GHz"
         else:
             freq_text = ""
 

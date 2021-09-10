@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,wrong-import-position
-
+# pylint: disable=wrong-import-position
 
 """Main Qiskit public functionality."""
 
@@ -60,11 +59,10 @@ from .version import QiskitVersion  # noqa
 __qiskit_version__ = QiskitVersion()
 
 
-if sys.version_info[0] == 3 and sys.version_info[1] == 6:
+if sys.version_info < (3, 7):
     warnings.warn(
-        "Using Qiskit with Python 3.6 is deprecated as of the 0.17.0 release. "
-        "Support for running Qiskit with Python 3.6 will be removed in a "
-        "future release.",
+        "Using Qiskit with Python 3.6 is deprecated as of qiskit-terra 0.17.0. "
+        "Support for running Qiskit with Python 3.6 will be removed in qiskit-terra 0.20.0.",
         DeprecationWarning,
     )
 

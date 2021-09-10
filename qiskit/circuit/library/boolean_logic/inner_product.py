@@ -70,7 +70,10 @@ class InnerProduct(QuantumCircuit):
         """
         qr_a = QuantumRegister(num_qubits)
         qr_b = QuantumRegister(num_qubits)
-        super().__init__(qr_a, qr_b, name="inner_product")
+        inner = QuantumCircuit(qr_a, qr_b, name="inner_product")
 
         for i in range(num_qubits):
-            self.cz(qr_a[i], qr_b[i])
+            inner.cz(qr_a[i], qr_b[i])
+
+        super().__init__(*inner.qregs, name="inner_product")
+        self.compose(inner.to_gate(), qubits=self.qubits, inplace=True)
