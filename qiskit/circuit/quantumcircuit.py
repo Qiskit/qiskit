@@ -1767,10 +1767,7 @@ class QuantumCircuit:
         Returns:
             int: Total number of gate operations.
         """
-        ops = 0
-        for _ in filter(filter_function, self._data):
-            ops += 1
-        return ops
+        return sum(map(filter_function, self._data))
 
     def depth(self, filter_function: Optional[callable] = lambda x: not x[0]._directive) -> int:
         """Return circuit depth (i.e., length of critical path).
@@ -1806,10 +1803,8 @@ class QuantumCircuit:
         # line so that they all stacked at the same depth.
         # Conditional gates act on all cbits in the register
         # they are conditioned on.
-        # We treat barriers or snapshots different as
-        # They are transpiler and simulator directives.
         # The max stack height is the circuit depth.
-        whitelist = set(filter(filter_function, self._data))
+        whitelist = list(filter(filter_function, self._data))
         for instr, qargs, cargs in self._data:
             levels = []
             reg_ints = []
