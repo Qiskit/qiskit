@@ -39,6 +39,7 @@ class VariationalPrinciple(ABC):
         self._ansatz = ansatz
         self._param_dict = param_dict
         self._operator = ~StateFn(hamiltonian) @ StateFn(ansatz)
+        self._operator = self._operator / self._operator.coeff  # Remove the time from the operator
         raw_metric_tensor = metric_tensor_calculator.calculate(
             ansatz, list(param_dict.keys()), self._qfi_method
         )

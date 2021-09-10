@@ -28,15 +28,12 @@ class ImaginaryMcLachlanVariationalPrinciple(ImaginaryVariationalPrinciple):
         self,
         qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
         grad_method: Union[str, CircuitGradient] = "lin_comb",
-        is_error_supported: bool = False,
     ):
         super().__init__(
             qfi_method,
             grad_method,
-            is_error_supported,
         )
 
-    # TODO we might need to bind first before taking real/imag
     @staticmethod
     def _calc_metric_tensor(raw_metric_tensor: OperatorBase, param_dict) -> OperatorBase:
         return VariationalPrinciple.op_real_part(raw_metric_tensor.bind_parameters(param_dict))
