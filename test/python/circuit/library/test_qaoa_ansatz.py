@@ -11,8 +11,10 @@
 # that they have been altered from the originals.
 
 """Test QAOA ansatz from the library."""
+
+from qiskit import transpile
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
+from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz, QAOAGate
 from qiskit.circuit.library import HGate, RXGate, YGate, RYGate, RZGate
 from qiskit.opflow import I, Y, Z
 from qiskit.test import QiskitTestCase
@@ -116,3 +118,31 @@ class TestQAOAAnsatz(QiskitTestCase):
         _ = circuit.parameters
         self.assertEqual(1, circuit.num_qubits)
         self.assertEqual(10, circuit.num_parameters)
+
+    def test_qaoa_gate_inserted(self):
+        """Test the ``QAOAGate`` is used an we can retrieve the operator information."""
+        qaoa = QAOAAnsatz(Z ^ Z ^ I, reps=2)
+
+        with self.subTest(msg="QAOAGate as only instruction"):
+            self.assertIsInstance(qaoa.data[0][0], QAOAGate)
+
+        with self.subTest(msg="extract operator info from gate"):
+            gate = qaoa.data[0][0]
+            self.assertEqual(gate.cost_operator, Z ^ Z ^ I)
+            self.assertIsNotNone(gate.mixer_operator)
+
+    def test_parameters(self):
+        """Test that the parameter instances don't change between construction and definition."""
+        qaoa = QAOAAnsatz(Z ^ Z ^ I, reps=2)
+        parameters = qaoa.parameters
+
+        with self.subTest(msg="test number of parameters"):
+            self.assertEqual(len(parameters), 4)
+
+        circuit = transpile(qaoa, basis_gates=['u', 'cx'])
+        with self.subTest(msg="test number of parameters of transpiled circuit"):
+            self.assertEqual(circuit.num_parameters, 4)
+
+        with self.subTest(msg="test binding parameters per instance"):
+            bound = circuit.bind_parameters(dict(zip(parameters, list(range(4)))))
+            self.assertEqual(bound.num_parameters, 0)

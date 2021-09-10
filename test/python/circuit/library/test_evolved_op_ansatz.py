@@ -13,10 +13,12 @@
 """Test the evolved operator ansatz."""
 
 
+from qiskit import transpile
 from qiskit.circuit import QuantumCircuit
 from qiskit.opflow import X, Y, Z, I, MatrixEvolution
 
 from qiskit.circuit.library import EvolvedOperatorAnsatz
+from qiskit.circuit.library.evolved_operator_ansatz import EvolvedOperatorGate
 from qiskit.test import QiskitTestCase
 
 
@@ -83,6 +85,34 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
                 ref.barrier()
 
         self.assertEqual(evo.decompose(), ref)
+
+    def test_evolved_gate_inserted(self):
+        """Test the ``EvolvedOperatorGate`` is used an we can retrieve the operator information."""
+        evo = EvolvedOperatorAnsatz([X + Y, Z], reps=2)
+
+        with self.subTest(msg="EvolvedOpGate as only instruction"):
+            self.assertIsInstance(evo.data[0][0], EvolvedOperatorGate)
+
+        with self.subTest(msg="extract operator info from gate"):
+            gate = evo.data[0][0]
+            ops = gate.operators
+            self.assertListEqual(ops, [X + Y, Z])
+
+    def test_parameters(self):
+        """Test that the parameter instances don't change between construction and definition."""
+        evo = EvolvedOperatorAnsatz([X, Y, Z], reps=2)
+        parameters = evo.parameters
+
+        with self.subTest(msg="test number of parameters"):
+            self.assertEqual(len(parameters), 6)
+
+        circuit = transpile(evo, basis_gates=['u', 'cx'])
+        with self.subTest(msg="test number of parameters of transpiled circuit"):
+            self.assertEqual(circuit.num_parameters, 6)
+
+        with self.subTest(msg="test binding parameters per instance"):
+            bound = circuit.bind_parameters(dict(zip(parameters, list(range(6)))))
+            self.assertEqual(bound.num_parameters, 0)
 
 
 def evolve(pauli_string, time):
