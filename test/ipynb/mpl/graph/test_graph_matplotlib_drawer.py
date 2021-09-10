@@ -25,7 +25,7 @@ from qiskit import QuantumCircuit
 from qiskit.tools.visualization import HAS_MATPLOTLIB
 from qiskit.visualization.counts_visualization import plot_histogram
 from qiskit.visualization.gate_map import plot_gate_map, plot_coupling_map
-from qiskit import IBMQ
+from qiskit.test.mock.fake_provider import FakeBelem 
 
 if HAS_MATPLOTLIB:
     from matplotlib.pyplot import close as mpl_close
@@ -162,11 +162,9 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
 
     def test_plot_gate_map(self):
         """for testing the plot_gate_map"""
-        #getting the backend from IBMQ provider
+        #getting the mock backend from FakeProvider
         
-        provider = IBMQ.load_account()
-        accountProvider = IBMQ.get_provider(hub='ibm-q')
-        backend = accountProvider.get_backend('ibmq_belem')
+        backend = FakeBelem()
 
         self.graph_plot_gate_map(backend=backend, filename="gate_map.png")
     
