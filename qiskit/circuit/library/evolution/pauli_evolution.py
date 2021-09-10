@@ -31,7 +31,7 @@ class PauliEvolutionGate(Gate):
     ) -> None:
         """
         Args:
-            operator: The Pauli to evolve.
+            pauli: The Pauli to evolve.
             time: The evolution time.
             cx_structure: Determine the structure of CX gates, can be either "chain" for
                 next-neighbor connections or "fountain" to connect directly to the top qubit.
