@@ -31,7 +31,7 @@ class EvolutionSynthesis(ABC):
         """Synthesize the evolution of a (list of) operator(s) to a circuit.
 
         If a single operator, the summands are assumed not to commute.
-        If a list, the lust elements are *not* assumed to commute pairwisely, however summands in
+        If a list, the list elements are *not* assumed to commute pairwisely, however summands in
         a single operator are assumed to commute.
 
         Args:
