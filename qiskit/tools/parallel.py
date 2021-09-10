@@ -65,6 +65,9 @@ else:
     # Default False on Windows
     if sys.platform == "win32":
         PARALLEL_DEFAULT = False
+    # On python 3.9 default false to avoid deadlock issues
+    elif sys.version_info[0] == 3 and sys.version_info[1] == 9:
+        PARALLEL_DEFAULT = False
     # On linux (and other OSes) default to True
     else:
         PARALLEL_DEFAULT = True
