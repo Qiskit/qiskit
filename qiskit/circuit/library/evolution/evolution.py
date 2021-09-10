@@ -44,11 +44,9 @@ class EvolutionGate(Gate):
                 expensive matrix calculation, exponentiation and synthesis.
         """
         if isinstance(operator, list):
-            operator, global_coeff = [_to_sparse_pauli_op(op) for op in operator]
+            operator = [_to_sparse_pauli_op(op) for op in operator]
         else:
-            operator, global_coeff = _to_sparse_pauli_op(operator)
-
-        time *= global_coeff
+            operator = _to_sparse_pauli_op(operator)
 
         num_qubits = operator[0].num_qubits if isinstance(operator, list) else operator.num_qubits
         super().__init__(name="EvolutionGate", num_qubits=num_qubits, params=[time], label=label)
@@ -100,12 +98,16 @@ def _to_sparse_pauli_op(operator):
     from qiskit.opflow import PauliSumOp, PauliOp
 
     if isinstance(operator, PauliSumOp):
-        return operator.primitive, operator.coeff
+        sparse_pauli = operator.primitive
+        sparse_pauli._coeffs *= operator.coeff
+        return sparse_pauli
     if isinstance(operator, PauliOp):
-        return SparsePauliOp(operator.primitive), operator.coeff
+        sparse_pauli = SparsePauliOp(operator.primitive)
+        sparse_pauli._coeffs *= operator.coeff
+        return sparse_pauli
     if isinstance(operator, Pauli):
-        return SparsePauliOp(operator), 1
+        return SparsePauliOp(operator)
     if isinstance(operator, SparsePauliOp):
-        return operator, 1
+        return operator
 
     raise ValueError(f"Unsupported operator type for evolution: {type(operator)}.")

@@ -17,7 +17,7 @@ from typing import Optional, Union, cast
 
 import numpy as np
 
-from qiskit.circuit.library import EvolutionGate, LieTrotter, SuzukiTrotter, PauliEvolutionGate
+from qiskit.circuit.library import EvolutionGate, LieTrotter, SuzukiTrotter
 from qiskit.opflow.converters.pauli_basis_change import PauliBasisChange
 from qiskit.opflow.evolutions.evolution_base import EvolutionBase
 from qiskit.opflow.evolutions.evolved_op import EvolvedOp
@@ -112,13 +112,11 @@ class PauliTrotterEvolution(EvolutionBase):
 
     def _recursive_convert(self, operator: OperatorBase) -> OperatorBase:
         if isinstance(operator, EvolvedOp):
-            if isinstance(operator.primitive, PauliSumOp):
-                evolution = EvolutionGate(
-                    operator.primitive,
-                    time=operator.coeff,
-                    synthesis=self._get_evolution_synthesis(),
-                )
-                return CircuitOp(evolution.definition.decompose())
+            if isinstance(operator.primitive, (PauliOp, PauliSumOp)):
+                pauli = operator.primitive.primitive
+                time = operator.coeff * operator.primitive.coeff
+                evo = EvolutionGate(pauli, time=time, synthesis=self._get_evolution_synthesis())
+                return CircuitOp(evo.definition)
                 # operator = EvolvedOp(operator.primitive.to_pauli_op(), coeff=operator.coeff)
             if not {"Pauli"} == operator.primitive_strings():
                 logger.warning(
@@ -157,12 +155,6 @@ class PauliTrotterEvolution(EvolutionBase):
                 global_phase = -sum(identity_phases) * operator.primitive.coeff
                 circuit_no_identities.primitive.global_phase = global_phase
                 return circuit_no_identities
-            elif isinstance(operator.primitive, PauliOp):
-                pauli = operator.primitive.primitive
-                time = operator.coeff * operator.primitive.coeff
-                evo = EvolutionGate(pauli, time=time, synthesis=self._get_evolution_synthesis())
-                return CircuitOp(evo.definition)
-                # return self.evolution_for_pauli(operator.primitive)
             # Covers ListOp, ComposedOp, TensoredOp
             elif isinstance(operator.primitive, ListOp):
                 converted_ops = [self._recursive_convert(op) for op in operator.primitive.oplist]

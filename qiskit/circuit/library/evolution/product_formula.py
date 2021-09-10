@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""A gate to implement time-evolution of a single Pauli string."""
+"""A product formula base for decomposing non-commuting operator exponentials."""
 
 from typing import Callable, Optional, Union
 import numpy as np
@@ -30,21 +30,22 @@ class ProductFormula(EvolutionSynthesis):
         self,
         order: int,
         reps: int = 1,
-        atomic_evolution: Optional[
-            Callable[[Union[Pauli, SparsePauliOp, float]], QuantumCircuit]
-        ] = None,
         insert_barriers: bool = False,
         cx_structure: str = "chain",
+        atomic_evolution: Optional[
+            Callable[[Union[Pauli, SparsePauliOp], float], QuantumCircuit]
+        ] = None,
     ) -> None:
         """
         Args:
             order: The order of the product formula.
             reps: The number of time steps.
+            insert_barriers: Whether to insert barriers between the atomic evolutions.
+            cx_structure: How to arrange the CX gates for the Pauli evolutions, can be
+                "chain", where next neighbor connections are used, or "fountain", where all
+                qubits are connected to one.
             atomic_evolution: A function to construct the circuit for the evolution of single operators.
                 Per default, `PauliEvolutionGate` will be used.
-            insert_barriers: Whether to insert barriers between the atomic evolutions.
-            cx_structure: Determine the structure of CX gates, can be either "chain" for
-                next-neighbor connections or "fountain" to connect directly to the top qubit.
         """
         super().__init__()
         self.order = order

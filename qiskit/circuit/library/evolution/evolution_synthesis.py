@@ -14,19 +14,19 @@
 
 from typing import List, Union
 from abc import ABC, abstractmethod
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info import SparsePauliOp
 
 
 class EvolutionSynthesis(ABC):
-    """Interface for evolution synthesis algorithms.
-
-    TODO do we need this or do we prefer plain functions?
-    """
+    """Interface for evolution synthesis algorithms."""
 
     @abstractmethod
     def synthesize(
-        self, operators: Union[SparsePauliOp, List[SparsePauliOp]], time: float
+        self,
+        operators: Union[SparsePauliOp, List[SparsePauliOp]],
+        time: Union[float, ParameterExpression],
     ) -> QuantumCircuit:
         """Synthesize the evolution of a (list of) operator(s) to a circuit.
 
@@ -35,7 +35,7 @@ class EvolutionSynthesis(ABC):
         a single operator are assumed to commute.
 
         Args:
-            operators: List of operators to evolve.
+            operators: (List of) operator(s) to evolve.
             time: Evolution time.
 
         Returns:

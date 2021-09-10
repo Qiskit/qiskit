@@ -10,10 +10,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The Lie-Trotter product formula."""
+"""The Suzuki-Trotter product formula."""
 
 from typing import List, Callable, Optional, Union
 import numpy as np
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
 
@@ -21,27 +22,42 @@ from .product_formula import ProductFormula
 
 
 class SuzukiTrotter(ProductFormula):
-    """The (higher order) Suzuki-Trotter product formula."""
+    """The (higher order) Suzuki-Trotter product formula.
+
+    References:
+
+        [1]: D. Berry, G. Ahokas, R. Cleve and B. Sanders,
+        "Efficient quantum algorithms for simulating sparse Hamiltonians" (2006).
+        `arXiv:quant-ph/0508139 <https://arxiv.org/abs/quant-ph/0508139>`_
+    """
 
     def __init__(
         self,
         reps: int = 1,
         order: int = 2,
-        atomic_evolution: Optional[Callable[[SparsePauliOp, float], QuantumCircuit]] = None,
         insert_barriers: bool = False,
         cx_structure: str = "chain",
+        atomic_evolution: Optional[
+            Callable[[Union[Pauli, SparsePauliOp], float], QuantumCircuit]
+        ] = None,
     ) -> None:
         """
         Args:
-            order: The order of the product formula.
             reps: The number of time steps.
+            order: The order of the product formula.
+            insert_barriers: If True, insert barriers in between each evolved Pauli.
+            cx_structure: How to arrange the CX gates for the Pauli evolutions, can be
+                "chain", where next neighbor connections are used, or "fountain", where all
+                qubits are connected to one.
             atomic_evolution: A function to construct the circuit for the evolution of single operators.
                 Per default, `PauliEvolutionGate` will be used.
         """
-        super().__init__(order, reps, atomic_evolution, insert_barriers, cx_structure)
+        super().__init__(order, reps, insert_barriers, cx_structure, atomic_evolution)
 
     def synthesize(
-        self, operators: Union[SparsePauliOp, List[SparsePauliOp]], time: float
+        self,
+        operators: Union[SparsePauliOp, List[SparsePauliOp]],
+        time: Union[float, ParameterExpression],
     ) -> QuantumCircuit:
         if not isinstance(operators, list):
             pauli_list = [(Pauli(op), np.real(coeff)) for op, coeff in operators.to_list()]
