@@ -333,6 +333,7 @@ class FullPassManager(PassManager):
     6. Optimization - The main optimization loop, this will typically run in a loop trying to optimize
         the circuit until a condtion (such as fixed depth) is reached.
     7. Post-Optimization - Any passes to run after the main optimization loop
+    8. Scheduling - Any hardware aware scheduling passes
 
     These stages will be executed in order and any stage set to ``None`` will be skipped. If
     a :class:`~qiskit.transpiler.PassManager` input is being used for more than 1 stage here
@@ -348,6 +349,7 @@ class FullPassManager(PassManager):
         "pre_optimization",
         "optimization",
         "post_optimization",
+        "scheduling",
     ]
 
     def __init__(
@@ -359,6 +361,7 @@ class FullPassManager(PassManager):
         pre_optimization=None,
         optimization=None,
         post_optimization=None,
+        scheduling=None,
     ):
         """Initialize a new FullPassManager object
 
@@ -377,6 +380,7 @@ class FullPassManager(PassManager):
                 optimization loop stage
             post_opt (PassManager): A pass manager to run after the optimization
                 loop
+            scheduling (PassManager): A pass manager to run any scheduling passes
         """
         super().__init__()
         self._init = init
@@ -386,6 +390,7 @@ class FullPassManager(PassManager):
         self._pre_optimization = pre_optimization
         self._optimization = optimization
         self._post_optimization = post_optimization
+        self._scheduling = scheduling
         self._update_passmanager()
 
     def _update_passmanager(self):
@@ -404,6 +409,8 @@ class FullPassManager(PassManager):
             self._pass_sets.extend(self._optimization._pass_sets)
         if self._post_optimization:
             self._pass_sets.extend(self._post_optimization._pass_sets)
+        if self._scheduling:
+            self._pass_sets.extend(self._scheduling._pass_sets)
 
     @property
     def init(self):
@@ -468,5 +475,16 @@ class FullPassManager(PassManager):
     @post_optimization.setter
     def post_optimization(self, value):
         """Set the :class:`~qiskit.transpiler.PassManager` for the post_optimization stage."""
+        self._post_optimization = value
+        self._update_passmanager()
+
+    @property
+    def scheduling(self):
+        """Get the :class:`~qiskit.transpiler.PassManager` for the scheduling stage."""
+        return self._post_optimization
+
+    @scheduling.setter
+    def scheduling(self, value):
+        """Set the :class:`~qiskit.transpiler.PassManager` for the scheduling stage."""
         self._post_optimization = value
         self._update_passmanager()

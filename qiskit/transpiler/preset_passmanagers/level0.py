@@ -124,7 +124,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> FullPassMana
         pre_opt += translation
     else:
         pre_opt = None
-    post_opt = common.generate_scheduling_post_opt(
+    sched = common.generate_scheduling_post_opt(
         instruction_durations, scheduling_method, timing_constraints, inst_map
     )
     return FullPassManager(
@@ -132,5 +132,5 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> FullPassMana
         routing=routing,
         translation=translation,
         pre_optimization=pre_opt,
-        post_optimization=post_opt,
+        scheduling=sched,
     )
