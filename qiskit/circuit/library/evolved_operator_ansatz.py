@@ -21,7 +21,7 @@ from qiskit.circuit import (
     QuantumRegister,
     QuantumCircuit,
     ParameterExpression,
-    ParameterVector
+    ParameterVector,
 )
 
 from qiskit.circuit.gate import Gate
@@ -54,11 +54,11 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
             name: The name of the circuit.
             initial_state: A `QuantumCircuit` object to prepend to the circuit.
         """
-        if evolution is None:
-            # pylint: disable=cyclic-import
-            from qiskit.opflow import PauliTrotterEvolution
-
-            evolution = PauliTrotterEvolution()
+        # if evolution is None:
+        #     # pylint: disable=cyclic-import
+        #     from qiskit.opflow import PauliTrotterEvolution
+        #
+        #     evolution = PauliTrotterEvolution()
 
         if operators is not None:
             operators = _validate_operators(operators)
@@ -267,6 +267,12 @@ class EvolvedOperatorGate(Gate):
         Raises:
             AttributeError: if the operator list is empty
         """
+        if evolution is None:
+            # pylint: disable=cyclic-import
+            from qiskit.opflow import PauliTrotterEvolution
+
+            evolution = PauliTrotterEvolution()
+
         self.operators = operators
         self._op = {}
         self.reps = reps
@@ -277,6 +283,8 @@ class EvolvedOperatorGate(Gate):
         if len(operators) == 0:
             raise AttributeError("At least one operator is needed.")
         from qiskit.opflow import PauliOp
+
+
 
         # determine how many parameters the circuit will contain
         num_parameters = 0
