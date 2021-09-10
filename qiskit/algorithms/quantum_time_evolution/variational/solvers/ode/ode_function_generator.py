@@ -63,8 +63,6 @@ class OdeFunctionGenerator:
             self._grad_circ_sampler,
             self._metric_circ_sampler,
             self._nat_grad_circ_sampler,
-            self._variational_principle._grad_method,
-            self._variational_principle._qfi_method,
             self._regularization,
             self._backend,
         )

@@ -30,11 +30,11 @@ from qiskit.opflow import CircuitQFI, CircuitGradient, OperatorBase
 
 class ImaginaryVariationalPrinciple(VariationalPrinciple):
     def __init__(
-        self, hamiltonian, ansatz, param_dict,
+        self,
         qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
         grad_method: Union[str, CircuitGradient] = "lin_comb",
     ):
-        super().__init__( hamiltonian, ansatz, param_dict,
+        super().__init__(
             qfi_method,
             grad_method,
         )

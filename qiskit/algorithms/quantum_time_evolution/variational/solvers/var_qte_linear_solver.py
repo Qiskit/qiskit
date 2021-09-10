@@ -19,7 +19,6 @@ from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
 )
-from qiskit.opflow import CircuitQFI, CircuitGradient
 
 
 class VarQteLinearSolver:
@@ -28,8 +27,6 @@ class VarQteLinearSolver:
         grad_circ_sampler,
         metric_circ_sampler,
         nat_grad_circ_sampler,
-        grad_method: Union[str, CircuitGradient] = "lin_comb",
-        qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
         regularization=None,
         backend=None,
     ):
@@ -40,8 +37,6 @@ class VarQteLinearSolver:
             self._grad_circ_sampler = grad_circ_sampler
             self._metric_circ_sampler = metric_circ_sampler
             self._nat_grad_circ_sampler = nat_grad_circ_sampler
-        self._grad_method = grad_method
-        self._qfi_method = qfi_method
 
     def _solve_sle(
         self, var_principle: VariationalPrinciple, param_dict: Dict
@@ -55,6 +50,11 @@ class VarQteLinearSolver:
         """
         metric_tensor = var_principle.metric_tensor
         evolution_grad = var_principle.evolution_grad
+        #
+        # print("Metrix tensor")
+        # print(metric_tensor.assign_parameters(param_dict).to_matrix(True))
+        # print("Evol grad")
+        # print(evolution_grad.assign_parameters(param_dict).to_matrix(True))
 
         grad_res = self._eval_evolution_grad(evolution_grad, param_dict)
         metric_res = self._eval_metric_tensor(metric_tensor, param_dict)
@@ -90,7 +90,8 @@ class VarQteLinearSolver:
             raise Warning("The imaginary part of the gradient are non-negligible.")
 
         # TODO log
-        print("nat grad result", nat_grad_result)
+
+        ("nat grad result", nat_grad_result)
         return nat_grad_result
 
     def _inspect_imaginary_parts(self, grad_res, metric_res):
