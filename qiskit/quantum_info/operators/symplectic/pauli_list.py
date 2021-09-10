@@ -133,6 +133,10 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
     # Representation conversions
     # ---------------------------------------------------------------------
 
+    @property
+    def settings(self):
+        return {"data": self.to_labels()}
+
     def __array__(self, dtype=None):
         """Convert to numpy array"""
         # pylint: disable=unused-argument
