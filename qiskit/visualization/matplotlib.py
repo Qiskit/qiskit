@@ -903,6 +903,8 @@ class MatplotlibDrawer:
                 v_ind += 1
         clbit_b = min(xy_plot, key=lambda xy: xy[1])
         xpos, ypos = clbit_b
+        if isinstance(node.op, Measure):
+            xpos += 0.3
         self._ax.text(
             xpos,
             ypos - 0.3 * HIG,

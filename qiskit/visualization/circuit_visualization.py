@@ -25,7 +25,6 @@ This provides a single function entry point to drawing a circuit object with
 any of the backends.
 """
 
-import errno
 import logging
 import os
 import subprocess
@@ -46,12 +45,54 @@ from qiskit.visualization import text as _text
 from qiskit.visualization import utils
 from qiskit.visualization import matplotlib as _matplotlib
 
-try:
-    subprocess.run("pdflatex -v", check=True)
-except OSError as ex:
-    HAS_PDFLATEX = False
 
 logger = logging.getLogger(__name__)
+
+
+class _HasPdfLatexWrapper:
+    """Wrapper to lazily detect presence of the ``pdflatex`` command."""
+
+    def __init__(self):
+        self.has_pdflatex = None
+
+    def __bool__(self):
+        if self.has_pdflatex is None:
+            try:
+                subprocess.run(
+                    ["pdflatex", "-version"],
+                    check=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                self.has_pdflatex = True
+            except (OSError, subprocess.SubprocessError):
+                self.has_pdflatex = False
+        return self.has_pdflatex
+
+
+class _HasPdfToCairoWrapper:
+    """Lazily detect the presence of the ``pdftocairo`` command."""
+
+    def __init__(self):
+        self.has_pdftocairo = None
+
+    def __bool__(self):
+        if self.has_pdftocairo is None:
+            try:
+                subprocess.run(
+                    ["pdftocairo", "-v"],
+                    check=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                self.has_pdftocairo = True
+            except (OSError, subprocess.SubprocessError):
+                self.has_pdftocairo = False
+        return self.has_pdftocairo
+
+
+HAS_PDFLATEX = _HasPdfLatexWrapper()
+HAS_PDFTOCAIRO = _HasPdfToCairoWrapper()
 
 
 def circuit_drawer(
@@ -394,11 +435,9 @@ def _latex_circuit_drawer(
         PIL.Image: an in-memory representation of the circuit diagram
 
     Raises:
-        OSError: usually indicates that ```pdflatex``` or ```pdftocairo``` is
-                 missing.
-        CalledProcessError: usually points to errors during diagram creation.
-        MissingOptionalLibraryError: if pillow is not installed
-        VisualizationError: If unsupported image format is given as filename extension.
+        MissingOptionalLibraryError: if pillow, pdflatex, or poppler are not installed
+        VisualizationError: if one of the conversion utilities failed for some internal or
+            file-access reason.
     """
     tmpfilename = "circuit"
     with tempfile.TemporaryDirectory() as tmpdirname:
@@ -416,8 +455,25 @@ def _latex_circuit_drawer(
             initial_state=initial_state,
             cregbundle=cregbundle,
         )
+        if not HAS_PDFLATEX:
+            raise MissingOptionalLibraryError(
+                libname="pdflatex",
+                name="LaTeX circuit drawing",
+                msg="You will likely need to install a full LaTeX distribution for your system",
+            )
+        if not HAS_PDFTOCAIRO:
+            raise MissingOptionalLibraryError(
+                libname="pdftocairo",
+                name="LaTeX circuit drawing",
+                msg="This is part of the 'poppler' set of PDF utilities",
+            )
+        if not HAS_PIL:
+            raise MissingOptionalLibraryError(
+                libname="pillow",
+                name="LaTeX circuit drawing",
+                pip_install="pip install pillow",
+            )
         try:
-
             subprocess.run(
                 [
                     "pdflatex",
@@ -429,55 +485,42 @@ def _latex_circuit_drawer(
                 stderr=subprocess.DEVNULL,
                 check=True,
             )
-        except OSError as ex:
-            if ex.errno == errno.ENOENT:
-                logger.warning(
-                    "WARNING: Unable to compile latex. "
-                    "Is `pdflatex` installed? "
-                    "Skipping latex circuit drawing..."
-                )
-            raise
-        except subprocess.CalledProcessError as ex:
+        except OSError as exc:
+            # OSError should generally not occur, because it's usually only triggered if `pdflatex`
+            # doesn't exist as a command, but we've already checked that.
+            raise VisualizationError("`pdflatex` command could not be run.") from exc
+        except subprocess.CalledProcessError as exc:
             with open("latex_error.log", "wb") as error_file:
-                error_file.write(ex.stdout)
+                error_file.write(exc.stdout)
             logger.warning(
-                "WARNING Unable to compile latex. "
-                "The output from the pdflatex command can "
-                "be found in latex_error.log"
+                "Unable to compile LaTeX. Perhaps you are missing the `qcircuit` package."
+                " The output from the `pdflatex` command is in `latex_error.log`."
             )
-            raise
-        else:
-            if not HAS_PIL:
-                raise MissingOptionalLibraryError(
-                    libname="pillow",
-                    name="latex drawer",
-                    pip_install="pip install pillow",
-                )
-            try:
-                base = os.path.join(tmpdirname, tmpfilename)
-                subprocess.run(
-                    ["pdftocairo", "-singlefile", "-png", "-q", base + ".pdf", base], check=True
-                )
-                image = Image.open(base + ".png")
-                image = utils._trim(image)
-                os.remove(base + ".png")
-                if filename:
-                    if filename.endswith(".pdf"):
-                        os.rename(base + ".pdf", filename)
-                    else:
-                        try:
-                            image.save(filename)
-                        except VisualizationError as ve:
-                            raise VisualizationError(
-                                "ERROR: filename parameter does not use a supported extension."
-                            ) from ve
-            except (OSError, subprocess.CalledProcessError) as ex:
-                logger.warning(
-                    "WARNING: Unable to convert pdf to image. "
-                    "Is `poppler` installed? "
-                    "Skipping circuit drawing..."
-                )
-                raise
+            raise VisualizationError(
+                "`pdflatex` call did not succeed: see `latex_error.log`."
+            ) from exc
+        base = os.path.join(tmpdirname, tmpfilename)
+        try:
+            subprocess.run(
+                ["pdftocairo", "-singlefile", "-png", "-q", base + ".pdf", base],
+                check=True,
+            )
+        except (OSError, subprocess.CalledProcessError) as exc:
+            message = "`pdftocairo` failed to produce an image."
+            logger.warning(message)
+            raise VisualizationError(message) from exc
+        image = Image.open(base + ".png")
+        image = utils._trim(image)
+        if filename:
+            if filename.endswith(".pdf"):
+                os.rename(base + ".pdf", filename)
+            else:
+                try:
+                    image.save(filename)
+                except (ValueError, OSError) as exc:
+                    raise VisualizationError(
+                        f"Pillow could not write the image file '{filename}'."
+                    ) from exc
         return image
 
 
