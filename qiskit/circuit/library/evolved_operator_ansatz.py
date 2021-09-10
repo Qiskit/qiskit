@@ -21,6 +21,7 @@ from qiskit.circuit import (
     QuantumRegister,
     QuantumCircuit,
     ParameterExpression,
+    ParameterVector
 )
 
 from qiskit.circuit.gate import Gate
@@ -277,26 +278,24 @@ class EvolvedOperatorGate(Gate):
             raise AttributeError("At least one operator is needed.")
         from qiskit.opflow import PauliOp
 
-        _op_params = []
-        for idx, op in enumerate(operators):
+        # determine how many parameters the circuit will contain
+        num_parameters = 0
+        for op in operators:
             if not isinstance(op, QuantumCircuit):
                 # check if the operator is just the identity, if yes, skip it
                 if isinstance(op, PauliOp):
                     sig_qubits = np.logical_or(op.primitive.x, op.primitive.z)
                     if sum(sig_qubits) == 0:
                         continue
-                _op_params.append(idx)
+                num_parameters += 1
 
-        self._rep_op_params = {
-            (rep, op_idx): Parameter(f"t_{rep}_{op_idx}")
-            for rep in range(reps)
-            for op_idx in _op_params
-        }
+        # keep a list of the parameters
+        self._parameters = ParameterVector("t", reps * num_parameters)
 
         super().__init__(
             "EvolvedOps",
             operators[0].num_qubits,
-            params=list(self._rep_op_params.values()),
+            params=list(self._parameters),
             label=label,
         )
 
@@ -304,29 +303,38 @@ class EvolvedOperatorGate(Gate):
         """TODO"""
         coeff = Parameter("c")
         circuits = []
+        bind_parameter = []
         for op in self.operators:
             # if the operator is already the evolved circuit just append it
             if isinstance(op, QuantumCircuit):
                 circuits.append(op)
+                bind_parameter.append(False)
             else:
                 evolved_op = self.evolution.convert((coeff * op).exp_i()).reduce()
-                circuits.append(evolved_op.to_circuit())
+                circuit = evolved_op.to_circuit()
+                # if the operator was the identity it is amounts only to a global phase and no
+                # parameter is added
+                bind_parameter.append(circuit.num_parameters > 0)
+                circuits.append(circuit)
 
         evolution = QuantumCircuit(self.num_qubits, name=self.name)
 
+        param_it = iter(self._parameters)
         first = True
-        for rep in range(self.reps):
-            for idx, circuit in enumerate(circuits):
-                if not first and self.insert_barriers:
+        for _ in range(self.reps):
+            for bind, circuit in zip(bind_parameter, circuits):
+                if first:
                     first = False
+                elif self.insert_barriers:
                     evolution.barrier()
 
-                if (rep, idx) in self._rep_op_params:
-                    bound = circuit.assign_parameters({coeff: self._rep_op_params[(rep, idx)]})
+                if bind:
+                    param = next(param_it)
+                    bound = circuit.assign_parameters({coeff: param})
                 else:
                     bound = circuit
 
-            evolution.compose(bound, inplace=True)
+                evolution.compose(bound, inplace=True)
 
         if self.initial_state:
             evolution.compose(self.initial_state, front=True, inplace=True)
