@@ -448,5 +448,4 @@ class PauliSumOp(PrimitiveOp):
         return op.coeff == 1 and len(op) == 1 and primitive.coeffs[0] == 0
 
     def is_hermitian(self):
-        """Checks whether the operator is hermitian"""
         return np.isreal(self.coeffs).all() and np.all(self.primitive.paulis.phase == 0)

@@ -18,7 +18,7 @@ from typing import Callable, List, Optional, Tuple, Union
 import numpy as np
 from scipy import sparse as scisparse
 
-from qiskit.opflow import I, ListOp, OperatorBase, PauliSumOp, StateFn
+from qiskit.opflow import I, ListOp, OperatorBase, StateFn
 from qiskit.utils.validation import validate_min
 
 from ..exceptions import AlgorithmError
@@ -124,24 +124,21 @@ class NumPyEigensolver(Eigensolver):
             for i, idx in enumerate(indices):
                 eigvec[idx, i] = 1.0
         else:
-            if (
-                isinstance(operator, PauliSumOp)
-                and operator.is_hermitian()
-                and self._k >= 2 ** operator.num_qubits - 1
-            ):
+            if self._k >= 2 ** operator.num_qubits - 1:
                 logger.debug("SciPy doesn't support to get all eigenvalues, using NumPy instead.")
-                eigval, eigvec = np.linalg.eigh(operator.to_matrix())
-            elif isinstance(operator, PauliSumOp) and operator.is_hermitian():
-                eigval, eigvec = scisparse.linalg.eigsh(
-                    operator.to_spmatrix(), k=self._k, which="SR"
-                )
-            elif self._k >= 2 ** operator.num_qubits - 1:
-                logger.debug("SciPy doesn't support to get all eigenvalues, using NumPy instead.")
-                eigval, eigvec = np.linalg.eig(operator.to_matrix())
+                if operator.is_hermitian():
+                    eigval, eigvec = np.linalg.eigh(operator.to_matrix())
+                else:
+                    eigval, eigvec = np.linalg.eig(operator.to_matrix())
             else:
-                eigval, eigvec = scisparse.linalg.eigs(
-                    operator.to_spmatrix(), k=self._k, which="SR"
-                )
+                if operator.is_hermitian():
+                    eigval, eigvec = scisparse.linalg.eigsh(
+                        operator.to_spmatrix(), k=self._k, which="SA"
+                    )
+                else:
+                    eigval, eigvec = scisparse.linalg.eigs(
+                        operator.to_spmatrix(), k=self._k, which="SR"
+                    )
             indices = np.argsort(eigval)[: self._k]
             eigval = eigval[indices]
             eigvec = eigvec[:, indices]
