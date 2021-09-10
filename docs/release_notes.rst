@@ -22,6 +22,62 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.29.1
+*************
+
+.. _Release Notes_0.18.2:
+
+Terra 0.18.2
+============
+
+.. _Release Notes_0.18.2_Bug Fixes:
+
+Bug Fixes
+---------
+
+- Fixed an issue with the :func:`~qiskit.compiler.assemble` function when
+  called with the ``backend`` kwarg set and the ``parametric_pulses`` kwarg
+  was set to an empty list the output qobj would contain the
+  ``parametric_pulses`` setting from the given backend's
+  :class:`~qiskit.providers.models.BackendConfiguration` instead of the
+  expected empty list.
+  Fixed `#6898 <https://github.com/Qiskit/qiskit-terra/issues/6898>`__
+
+- The Matplotlib circuit drawer will no longer duplicate drawings when using
+  ``ipykernel>=6.0.0``.
+  Fixes `#6889 <https://github.com/Qiskit/qiskit-terra/issues/6889>`__.
+
+Aer 0.8.2
+=========
+
+No change
+
+Ignis 0.6.0
+===========
+
+No change
+
+.. _Release Notes_Aqua_0.9.5:
+
+Aqua 0.9.5
+==========
+
+.. _Release Notes_Aqua_0.9.5_Bug Fixes:
+
+Bug Fixes
+---------
+
+- Fixed a handling error in the Yahoo provider when only one ticker is entered.
+  Added exception error if no ticker is entered.
+  Limit yfinance to >=0.1.62 as previous versions have a JSON decoder error.
+
+IBM Q Provider 0.16.0
+=====================
+
+No change
+
+
+*************
 Qiskit 0.29.0
 *************
 
