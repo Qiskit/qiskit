@@ -25,7 +25,7 @@ from qiskit import QuantumCircuit
 from qiskit.tools.visualization import HAS_MATPLOTLIB
 from qiskit.visualization.counts_visualization import plot_histogram
 from qiskit.visualization.gate_map import plot_gate_map, plot_coupling_map
-from qiskit.test.mock.fake_provider import FakeBelem 
+from qiskit.test.mock.fake_provider import FakeBelem
 
 if HAS_MATPLOTLIB:
     from matplotlib.pyplot import close as mpl_close
@@ -56,8 +56,12 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         self.graph_count_drawer = TestGraphMatplotlibDrawer.save_data_wrap(
             plot_histogram, str(self)
         )
-        self.graph_plot_gate_map = TestGraphMatplotlibDrawer.save_data_wrap(plot_gate_map, str(self))
-        self.graph_plot_coupling_map = TestGraphMatplotlibDrawer.save_data_wrap(plot_coupling_map, str(self))
+        self.graph_plot_gate_map = TestGraphMatplotlibDrawer.save_data_wrap(
+            plot_gate_map, str(self)
+        )
+        self.graph_plot_coupling_map = TestGraphMatplotlibDrawer.save_data_wrap(
+            plot_coupling_map, str(self)
+        )
 
     def tearDown(self):
         super().tearDown()
@@ -81,12 +85,12 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Saves result data of a test"""
         datafilename = "result_test.json"
         if os.path.exists(datafilename):
-            with open(datafilename) as datafile:
+            with open(datafilename, encoding="UTF-8") as datafile:
                 data = json.load(datafile)
         else:
             data = {}
         data[image_filename] = {"testname": testname}
-        with open(datafilename, "w") as datafile:
+        with open(datafilename, "w", encoding="UTF-8") as datafile:
             json.dump(data, datafile)
 
     def test_plot_bloch_multivector(self):
@@ -162,12 +166,12 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
 
     def test_plot_gate_map(self):
         """for testing the plot_gate_map"""
-        #getting the mock backend from FakeProvider
-        
+        # getting the mock backend from FakeProvider
+
         backend = FakeBelem()
 
         self.graph_plot_gate_map(backend=backend, filename="gate_map.png")
-    
+
     def test_plot_coupling_map(self):
         """for testing the plot_coupling_map"""
 
@@ -175,7 +179,12 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         qubit_coordinates = [[1, 0], [0, 1], [1, 1], [1, 2], [2, 1]]
         coupling_map = [[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]]
 
-        self.graph_plot_coupling_map(num_qubits=num_qubits, qubit_coordinates=qubit_coordinates, coupling_map=coupling_map, filename="coupling_map.png")
+        self.graph_plot_coupling_map(
+            num_qubits=num_qubits,
+            qubit_coordinates=qubit_coordinates,
+            coupling_map=coupling_map,
+            filename="coupling_map.png",
+        )
 
 
 if __name__ == "__main__":
