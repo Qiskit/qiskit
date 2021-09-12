@@ -23,7 +23,7 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.library.standard_gates import SGate
 from qiskit.quantum_info import Operator
-from qiskit.circuit import Qubit
+from qiskit.circuit import Qubit, Clbit
 
 
 @ddt
@@ -811,6 +811,44 @@ class TestCircuitOperations(QiskitTestCase):
         expected.h(1)
 
         self.assertEqual(qc.reverse_bits(), expected)
+
+    def test_reverse_bits_with_isolated_qubits_and_registers(self):
+        """Test reversing order of bits when both isolated qubits and registers are present."""
+
+        qr1 = QuantumRegister(3, "a")
+        qr2 = QuantumRegister(2, "b")
+        cl1 = ClassicalRegister(2, "cl_a")
+        cl2 = ClassicalRegister(1, "cl_b")
+        qubit1 = Qubit()
+        qubit2 = Qubit()
+        qubit3 = Qubit()
+
+        qc = QuantumCircuit(qr1, [qubit1, qubit2], qr2, [qubit3], cl1, cl2, name="test")
+        qc.h(qr1[0])
+        qc.cx(qr1[0], qr1[1])
+        qc.cx(qr1[1], qr1[2])
+        qc.cx(qr1[2], 3)
+        qc.cx(3, 4)
+        qc.cx(4, qr2[0])
+        qc.cx(qr2[0], qr2[1])
+        qc.cx(qr2[1], 7)
+        qc.measure([qr1[2], qubit1], [cl1[0], cl1[1]])
+        qc.measure(qubit3, cl2[0])
+
+        expected = QuantumCircuit([qubit3], qr2, [qubit2, qubit1], qr1, cl2, cl1, name="test")
+        expected.h(qr1[2])
+        expected.cx(qr1[2], qr1[1])
+        expected.cx(qr1[1], qr1[0])
+        expected.cx(qr1[0], 4)
+        expected.cx(4, 3)
+        expected.cx(3, qr2[1])
+        expected.cx(qr2[1], qr2[0])
+        expected.cx(qr2[0], 0)
+        expected.measure([qr1[0], qubit1], [cl1[1], cl1[0]])
+        expected.measure(qubit3, cl2[0])
+
+        self.assertEqual(qc.reverse_bits(), expected)
+
 
     def test_cnot_alias(self):
         """Test that the cnot method alias adds a cx gate."""
