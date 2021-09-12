@@ -90,10 +90,11 @@ class TimeUnitConversion(TransformationPass):
         for node in dag.op_nodes():
             try:
                 node.op = node.op.copy()
+                print(node.op, node.op.params, [bit_indices[qarg] for qarg in node.qargs], time_unit)
                 node.op.duration = self.inst_durations.get(
-                    node.op.name,
-                    node.op.params,
-                    [bit_indices[qarg] for qarg in node.qargs],
+                    node.op,
+                    params=node.op.params,
+                    qubits=[bit_indices[qarg] for qarg in node.qargs],
                     unit=time_unit,
                 )
                 node.op.unit = time_unit

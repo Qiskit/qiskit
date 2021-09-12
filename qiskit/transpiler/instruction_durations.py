@@ -168,8 +168,8 @@ class InstructionDurations:
     def get(
         self,
         inst: Union[str, Instruction],
-        params: Union[float, List[float]],
-        qubits: Union[int, List[int], Qubit, List[Qubit]],
+        params: Optional[Union[float, List[float]]] = None,
+        qubits: Optional[Union[int, List[int], Qubit, List[Qubit]]] = None,
         unit: str = "dt",
     ) -> float:
         """Get the duration of the instruction with the name, parameters and qubits.
@@ -202,7 +202,7 @@ class InstructionDurations:
         if isinstance(qubits, (int, Qubit)):
             qubits = [qubits]
 
-        if isinstance(qubits[0], Qubit):
+        if qubits and isinstance(qubits[0], Qubit):
             warnings.warn(
                 "Querying an InstructionDurations object with a Qubit "
                 "has been deprecated and will be removed in a future "
@@ -217,13 +217,15 @@ class InstructionDurations:
             return self._get(inst_name, params, qubits, unit)
         except TranspilerError as ex:
             raise TranspilerError(
-                f"Duration of {inst_name} on qubits {qubits} is not found."
+                f"Duration of {inst_name} with params {params} on" f"qubits {qubits} not found."
             ) from ex
 
     def _get(self, name: str, params: List[float], qubits: List[int], to_unit: str) -> float:
         """Get the duration of the instruction, priority with the most specific matching one."""
-        params = tuple(params)
-        qubits = tuple(qubits)
+        if params is not None:
+            params = tuple(params)
+        if qubits is not None:
+            qubits = tuple(qubits)
 
         if (name, params, qubits) in self.duration_by_name_params_qubits:
             duration, unit = self.duration_by_name_params_qubits[(name, params, qubits)]

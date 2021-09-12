@@ -14,6 +14,8 @@
 
 """Test InstructionDurations class."""
 
+from numpy import pi
+
 from qiskit.circuit import Delay, Parameter
 from qiskit.test.mock.backends import FakeParis, FakeTokyo
 from qiskit.transpiler.exceptions import TranspilerError
@@ -41,16 +43,16 @@ class TestInstructionDurationsClass(QiskitTestCase):
         gate = self._find_gate_with_length(backend)
         durations = InstructionDurations.from_backend(backend)
         self.assertGreater(durations.dt, 0)
-        self.assertGreater(durations.get(gate, 0), 0)
+        self.assertGreater(durations.get(gate, qubits=0), 0)
 
     def test_from_backend_for_backend_without_dt(self):
         backend = FakeTokyo()
         gate = self._find_gate_with_length(backend)
         durations = InstructionDurations.from_backend(backend)
         self.assertIsNone(durations.dt)
-        self.assertGreater(durations.get(gate, 0, "s"), 0)
+        self.assertGreater(durations.get(gate, qubits=0, unit="s"), 0)
         with self.assertRaises(TranspilerError):
-            durations.get(gate, 0)
+            durations.get(gate, qubits=0)
 
     def test_durations_by_name_param_qubits(self):
         dt = 2.222222e-10
@@ -58,30 +60,27 @@ class TestInstructionDurationsClass(QiskitTestCase):
         durations = InstructionDurations(
             [
                 # duration_by_name
-                ('rz', None, None, 0, 'dt'),
-                ('sx', None, None, 6, 'dt'),
-
+                ("rz", None, None, 0, "dt"),
+                ("sx", None, None, 6, "dt"),
                 # duration_by_name_params
-                ('rx', pi, None, 12, 'dt'),
-                ('rx', pi/4, None, 3, 'dt'),
-
+                ("rx", pi, None, 12, "dt"),
+                ("rx", pi / 4, None, 3, "dt"),
                 # duration_by_name_qubits
-                ('y', None, 0, 8, 'dt'),
-                ('y', None, 1, 4, 'dt'),
-
+                ("y", None, 0, 8, "dt"),
+                ("y", None, 1, 4, "dt"),
                 # duration_by_name_params_qubits
-                ('cx', None, (0, 1), 101, 'dt'),
-                ('cx', None, (2, 1), 70, 'dt'),
-                ('rzx', pi/2, (0, 1), 101, 'dt'),
-                ('rzx', pi/2, (2, 1), 70, 'dt'),
-                ('rzx', pi/4, (0, 1), 52, 'dt'),
-                ('rzx', pi/4, (2, 1), 37, 'dt'),
-                ('rzx', pi/6, (0, 1), 37, 'dt'),
-                ('rzx', pi/6, (2, 1), 24, 'dt')
+                ("cx", None, (0, 1), 101, "dt"),
+                ("cx", None, (2, 1), 70, "dt"),
+                ("rzx", pi / 2, (0, 1), 101, "dt"),
+                ("rzx", pi / 2, (2, 1), 70, "dt"),
+                ("rzx", pi / 4, (0, 1), 52, "dt"),
+                ("rzx", pi / 4, (2, 1), 37, "dt"),
+                ("rzx", pi / 6, (0, 1), 37, "dt"),
+                ("rzx", pi / 6, (2, 1), 24, "dt"),
             ],
-            dt=dt
+            dt=dt,
         )
-        self.assertEqual(durations.get('sx', unit='dt'), 6)
+        self.assertEqual(durations.get("sx", unit="dt"), 6)
 
     def _find_gate_with_length(self, backend):
         """Find a gate that has gate length."""
