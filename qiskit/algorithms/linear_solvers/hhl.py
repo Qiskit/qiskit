@@ -310,12 +310,15 @@ class HHL(LinearSolver):
         self,
         matrix: Union[List, np.ndarray, QuantumCircuit],
         vector: Union[List, np.ndarray, QuantumCircuit],
+        neg_vals: Optional[bool] = True,
     ) -> QuantumCircuit:
         """Construct the HHL circuit.
 
         Args:
             matrix: The matrix specifying the system, i.e. A in Ax=b.
             vector: The vector specifying the right hand side of the equation in Ax=b.
+            neg_vals: States whether the matrix has negative eigenvalues. If False the
+            computation becomes cheaper.
 
         Returns:
             The HHL circuit.
@@ -376,16 +379,18 @@ class HHL(LinearSolver):
         else:
             kappa = 1
         # Update the number of qubits required to represent the eigenvalues
-        nl = max(nb + 1, int(np.log2(kappa)) + 1)
+        # The +neg_vals is to register negative eigenvalues because
+        # e^{-2 \pi i \lambda} = e^{2 \pi i (1 - \lambda)}
+        nl = max(nb + 1, int(np.log2(kappa)) + 1) + neg_vals
 
         # check if the matrix can calculate bounds for the eigenvalues
         if hasattr(matrix_circuit, "eigs_bounds") and matrix_circuit.eigs_bounds() is not None:
             lambda_min, lambda_max = matrix_circuit.eigs_bounds()
             # Constant so that the minimum eigenvalue is represented exactly, since it contributes
-            # the most to the solution of the system
-            delta = self._get_delta(nl, lambda_min, lambda_max)
+            # the most to the solution of the system. -1 to take into account the sign qubit
+            delta = self._get_delta(nl - neg_vals, lambda_min, lambda_max)
             # Update evolution time
-            matrix_circuit.evolution_time = 2 * np.pi * delta / lambda_min
+            matrix_circuit.evolution_time = 2 * np.pi * delta / lambda_min / (2 ** neg_vals)
             # Update the scaling of the solution
             self.scaling = lambda_min
         else:
@@ -393,7 +398,7 @@ class HHL(LinearSolver):
             print("The solution will be calculated up to a scaling factor.")
 
         if self._exact_reciprocal:
-            reciprocal_circuit = ExactReciprocal(nl, delta)
+            reciprocal_circuit = ExactReciprocal(nl, delta, neg_vals=neg_vals)
             # Update number of ancilla qubits
             na = matrix_circuit.num_ancillas
         else:
