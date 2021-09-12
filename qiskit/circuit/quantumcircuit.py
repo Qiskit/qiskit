@@ -469,8 +469,8 @@ class QuantumCircuit:
             regless_clbits = [bit for bit in self.clbits if bit not in creg_bits]
 
         circ = QuantumCircuit(
-            *reversed(self.cregs),
             *reversed(self.qregs),
+            *reversed(self.cregs),
             name=self.name,
             global_phase=self.global_phase,
         )
