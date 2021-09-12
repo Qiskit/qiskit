@@ -55,6 +55,7 @@ from qiskit.transpiler.passes import ALAPSchedule
 from qiskit.transpiler.passes import ASAPSchedule
 from qiskit.transpiler.passes import AlignMeasures
 from qiskit.transpiler.passes import ValidatePulseGates
+from qiskit.transpiler.passes import PulseGates
 from qiskit.transpiler.passes import Error
 
 from qiskit.transpiler import TranspilerError
@@ -88,6 +89,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         TranspilerError: if the passmanager config is invalid.
     """
     basis_gates = pass_manager_config.basis_gates
+    inst_map = pass_manager_config.inst_map
     coupling_map = pass_manager_config.coupling_map
     initial_layout = pass_manager_config.initial_layout
     layout_method = pass_manager_config.layout_method or "dense"
@@ -271,6 +273,8 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm2.append(_direction, condition=_direction_condition)
     pm2.append(_reset)
     pm2.append(_depth_check + _opt + _unroll, do_while=_opt_control)
+    if inst_map and inst_map.has_custom_gate():
+        pm2.append(PulseGates(inst_map=inst_map))
     pm2.append(_scheduling)
     pm2.append(_alignments)
     return pm2

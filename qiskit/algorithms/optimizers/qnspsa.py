@@ -20,13 +20,10 @@ from qiskit.circuit import ParameterVector, QuantumCircuit
 from qiskit.opflow import StateFn, CircuitSampler, ExpectationBase
 from qiskit.utils import QuantumInstance
 
-from .spsa import SPSA, _batch_evaluate
+from .spsa import SPSA, CALLBACK, TERMINATIONCHECKER, _batch_evaluate
 
 # the function to compute the fidelity
 FIDELITY = Callable[[np.ndarray, np.ndarray], float]
-
-# parameters, loss, stepsize, number of function evaluations, accepted
-CALLBACK = Callable[[np.ndarray, float, float, int, bool], None]
 
 
 class QNSPSA(SPSA):
@@ -95,6 +92,7 @@ class QNSPSA(SPSA):
         lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
         initial_hessian: Optional[np.ndarray] = None,
         callback: Optional[CALLBACK] = None,
+        termination_checker: Optional[TERMINATIONCHECKER] = None,
     ) -> None:
         r"""
         Args:
@@ -141,6 +139,15 @@ class QNSPSA(SPSA):
             callback: A callback function passed information in each iteration step. The
                 information is, in this order: the parameters, the function value, the number
                 of function evaluations, the stepsize, whether the step was accepted.
+            termination_checker: A callback function executed at the end of each iteration step. The
+                arguments are, in this order: the parameters, the function value, the number
+                of function evaluations, the stepsize, whether the step was accepted. If the callback
+                returns True, the optimization is terminated.
+                To prevent additional evaluations of the objective method, if the objective has not yet
+                been evaluated, the objective is estimated by taking the mean of the objective
+                evaluations used in the estimate of the gradient.
+
+
         """
         super().__init__(
             maxiter,
@@ -158,6 +165,7 @@ class QNSPSA(SPSA):
             regularization=regularization,
             perturbation_dims=perturbation_dims,
             initial_hessian=initial_hessian,
+            termination_checker=termination_checker,
         )
 
         self.fidelity = fidelity
@@ -187,21 +195,14 @@ class QNSPSA(SPSA):
         # -0.5 factor comes from the fact that we need -0.5 * fidelity
         hessian_estimate = -0.5 * diff * (rank_one + rank_one.T) / 2
 
-        return gradient_estimate, hessian_estimate
+        return np.mean(loss_values), gradient_estimate, hessian_estimate
 
     @property
     def settings(self) -> Dict[str, Any]:
-        """The optimizer settings in a dictionary format.
-
-        .. note::
-
-            The ``fidelity`` property cannot be serialized and will not be contained
-            in the dictionary. To construct a ``QNSPSA`` object from a dictionary you
-            have to add it manually with the key ``"fidelity"``.
-
-        """
+        """The optimizer settings in a dictionary format."""
         # re-use serialization from SPSA
         settings = super().settings
+        settings.update({"fidelity": self.fidelity})
 
         # remove SPSA-specific arguments not in QNSPSA
         settings.pop("trust_region")
@@ -260,10 +261,20 @@ class QNSPSA(SPSA):
         else:
             sampler = CircuitSampler(backend)
 
-            def fidelity(values_x, values_y):
-                value_dict = dict(
-                    zip(params_x[:] + params_y[:], values_x.tolist() + values_y.tolist())
-                )
+            def fidelity(values_x, values_y=None):
+                if values_y is not None:  # no batches
+                    value_dict = dict(
+                        zip(params_x[:] + params_y[:], values_x.tolist() + values_y.tolist())
+                    )
+                else:
+                    value_dict = {p: [] for p in params_x[:] + params_y[:]}
+                    for values_xy in values_x:
+                        for value_x, param_x in zip(values_xy[0, :], params_x):
+                            value_dict[param_x].append(value_x)
+
+                        for value_y, param_y in zip(values_xy[1, :], params_y):
+                            value_dict[param_y].append(value_y)
+
                 return np.abs(sampler.convert(expression, params=value_dict).eval()) ** 2
 
         return fidelity

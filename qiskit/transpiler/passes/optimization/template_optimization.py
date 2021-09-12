@@ -117,7 +117,7 @@ class TemplateOptimization(TransformationPass):
 
                 if not comparison:
                     raise TranspilerError(
-                        "A template is a Quantumciruit() that " "performs the identity."
+                        "A template is a Quantumciruit() that performs the identity."
                     )
             except TypeError:
                 pass

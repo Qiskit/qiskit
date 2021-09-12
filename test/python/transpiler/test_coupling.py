@@ -195,3 +195,13 @@ class CouplingTest(QiskitTestCase):
         edges = coupling.get_edges()
         expected = [(0, 3), (0, 1), (3, 4), (1, 4), (1, 2), (4, 5), (2, 5)]
         self.assertEqual(set(edges), set(expected))
+
+    def test_subgraph(self):
+        coupling = CouplingMap.from_line(6, bidirectional=False)
+        with self.assertWarns(DeprecationWarning):
+            subgraph = coupling.subgraph([4, 2, 3, 5])
+        self.assertEqual(subgraph.size(), 4)
+        self.assertEqual([0, 1, 2, 3], subgraph.physical_qubits)
+        edge_list = subgraph.get_edges()
+        expected = [(0, 1), (1, 2), (2, 3)]
+        self.assertEqual(expected, edge_list, f"{edge_list} does not match {expected}")
