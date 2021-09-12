@@ -45,6 +45,7 @@ from qiskit.circuit.library import (
     CPhaseGate,
 )
 from qiskit.transpiler.passes import ApplyLayout
+from qiskit.visualization.exceptions import VisualizationError
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
 
 
@@ -1404,7 +1405,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
                 "        └──╥───┘",
                 "           ║    ",
                 " c_0: 0 ═══■════",
-                "           =1   ",
+                "          0x1   ",
             ]
         )
 
@@ -1429,7 +1430,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
                 "q_1: |0>┤ my h ├",
                 "        └──╥───┘",
                 "        ┌──╨──┐ ",
-                " c: 0 1/╡ = 1 ╞═",
+                " c: 0 1/╡ 0x1 ╞═",
                 "        └─────┘ ",
             ]
         )
@@ -1456,7 +1457,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
                 "q_1: |0>┤ my h ├",
                 "        └──╥───┘",
                 " c_0: 0 ═══■════",
-                "           =1   ",
+                "          0x1   ",
             ]
         )
 
@@ -1480,7 +1481,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
                 "q_1: |0>┤ my h ├",
                 "        └──╥───┘",
                 "        ┌──╨──┐ ",
-                " c: 0 1/╡ = 1 ╞═",
+                " c: 0 1/╡ 0x1 ╞═",
                 "        └─────┘ ",
             ]
         )
@@ -1508,7 +1509,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
                 "q_1: |0>┤ my h ├",
                 "        └──╥───┘",
                 " c_0: 0 ═══■════",
-                "           =1   ",
+                "          0x1   ",
             ]
         )
 
@@ -1531,7 +1532,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
                 "        ┌──┴───┐",
                 "q_1: |0>┤ my h ├",
                 "        ├──╨──┬┘",
-                " c: 0 1/╡ = 1 ╞═",
+                " c: 0 1/╡ 0x1 ╞═",
                 "        └─────┘ ",
             ]
         )
@@ -1559,7 +1560,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
                 "         my ch  ",
                 "           ║    ",
                 " c_0: 0 ═══■════",
-                "           =1   ",
+                "          0x1   ",
             ]
         )
 
@@ -1583,7 +1584,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
                 "q_1: |0>───■────",
                 "         my ch  ",
                 "        ┌──╨──┐ ",
-                " c: 0 1/╡ = 1 ╞═",
+                " c: 0 1/╡ 0x1 ╞═",
                 "        └─────┘ ",
             ]
         )
@@ -1613,7 +1614,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
                 "         my ch  ",
                 "           ║    ",
                 " c_0: 0 ═══■════",
-                "           =1   ",
+                "          0x1   ",
             ]
         )
 
@@ -1638,7 +1639,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
                 "q_1: |0>───■────",
                 "         my ch  ",
                 "        ┌──╨──┐ ",
-                " c: 0 1/╡ = 1 ╞═",
+                " c: 0 1/╡ 0x1 ╞═",
                 "        └─────┘ ",
             ]
         )
@@ -1745,10 +1746,10 @@ class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
                 "        └─╥─┘└─╥─┘",
                 "          ║    ║  ",
                 "c0_0: 0 ══■════╬══",
-                "          =1   ║  ",
+                "         0x1   ║  ",
                 "               ║  ",
                 "c1_0: 0 ═══════■══",
-                "               =1 ",
+                "              0x1 ",
             ]
         )
 
@@ -1772,10 +1773,10 @@ class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
                 "q_0: |0>─┤ X ├──┤ X ├─",
                 "         └─╥─┘  └─╥─┘ ",
                 "        ┌──╨──┐   ║   ",
-                "c0: 0 1/╡ = 1 ╞═══╬═══",
+                "c0: 0 1/╡ 0x1 ╞═══╬═══",
                 "        └─────┘   ║   ",
                 "               ┌──╨──┐",
-                "c1: 0 1/═══════╡ = 1 ╞",
+                "c1: 0 1/═══════╡ 0x1 ╞",
                 "               └─────┘",
             ]
         )
@@ -1814,7 +1815,7 @@ class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
                 " cr_1: 0 ═══════════╩════════■══",
                 "                             ║  ",
                 " cr_0: 0 ════════════════════o══",
-                "                             =2 ",
+                "                            0x2 ",
             ]
         )
 
@@ -1848,7 +1849,7 @@ class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
                 " cr_0: 0 ═══════╬════o══",
                 "                ║    ║  ",
                 " cr_1: 0 ═══════╩════■══",
-                "                     =2 ",
+                "                    0x2 ",
                 "cr2_0: 0 ═══════════════",
                 "                        ",
             ]
@@ -1909,12 +1910,12 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
                 "q_0: |0>┤ X ├┤ X ├",
                 "        └─╥─┘└─╥─┘",
                 "c0_0: 0 ══■════╬══",
-                "          =1   ║  ",
+                "         0x1   ║  ",
+                "               ║  ",
                 "c1_0: 0 ═══════■══",
-                "               =1 ",
+                "              0x1 ",
             ]
         )
-
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(
             str(_text_circuit_drawer(circuit, vertical_compression="medium")), expected
@@ -1937,9 +1938,9 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
                 "q_0: |0>─┤ X ├──┤ X ├─",
                 "         └─╥─┘  └─╥─┘ ",
                 "        ┌──╨──┐   ║   ",
-                "c0: 0 1/╡ = 1 ╞═══╬═══",
+                "c0: 0 1/╡ 0x1 ╞═══╬═══",
                 "        └─────┘┌──╨──┐",
-                "c1: 0 1/═══════╡ = 1 ╞",
+                "c1: 0 1/═══════╡ 0x1 ╞",
                 "               └─────┘",
             ]
         )
@@ -1974,7 +1975,7 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
                 " c_1: 0 ═╩═══o══",
                 "             ║  ",
                 " c_2: 0 ═════o══",
-                "             =1 ",
+                "            0x1 ",
             ]
         )
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
@@ -2002,7 +2003,7 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
                 "q_1: |0>─╫──┤ X ├─",
                 "         ║  └─╥─┘ ",
                 "         ║ ┌──╨──┐",
-                " c: 0 3/═╩═╡ = 1 ╞",
+                " c: 0 3/═╩═╡ 0x1 ╞",
                 "         1 └─────┘",
             ]
         )
@@ -2032,9 +2033,9 @@ class TestTextConditional(QiskitTestCase):
                 "         ┌───┐  ┌───┐ ",
                 "q_0: |0>─┤ X ├──┤ X ├─",
                 "        ┌┴─╨─┴┐ └─╥─┘ ",
-                "c0: 0 1/╡ = 1 ╞═══╬═══",
+                "c0: 0 1/╡ 0x1 ╞═══╬═══",
                 "        └─────┘┌──╨──┐",
-                "c1: 0 1/═══════╡ = 1 ╞",
+                "c1: 0 1/═══════╡ 0x1 ╞",
                 "               └─────┘",
             ]
         )
@@ -2059,9 +2060,9 @@ class TestTextConditional(QiskitTestCase):
                 "q_0: |0>┤ X ├┤ X ├",
                 "        └─╥─┘└─╥─┘",
                 "c0_0: 0 ══■════╬══",
-                "          =1   ║  ",
+                "         0x1   ║  ",
                 "c1_0: 0 ═══════■══",
-                "               =1 ",
+                "              0x1 ",
             ]
         )
 
@@ -2084,9 +2085,9 @@ class TestTextConditional(QiskitTestCase):
                 "         ┌───┐  ┌───┐ ",
                 "q_0: |0>─┤ X ├──┤ X ├─",
                 "        ┌┴─╨─┴┐ └─╥─┘ ",
-                "c0: 0 2/╡ = 2 ╞═══╬═══",
+                "c0: 0 2/╡ 0x2 ╞═══╬═══",
                 "        └─────┘┌──╨──┐",
-                "c1: 0 2/═══════╡ = 2 ╞",
+                "c1: 0 2/═══════╡ 0x2 ╞",
                 "               └─────┘",
             ]
         )
@@ -2112,11 +2113,11 @@ class TestTextConditional(QiskitTestCase):
                 "c0_0: 0 ══o════╬══",
                 "          ║    ║  ",
                 "c0_1: 0 ══■════╬══",
-                "          =2   ║  ",
+                "         0x2   ║  ",
                 "c1_0: 0 ═══════o══",
                 "               ║  ",
                 "c1_1: 0 ═══════■══",
-                "               =2 ",
+                "              0x2 ",
             ]
         )
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
@@ -2138,9 +2139,9 @@ class TestTextConditional(QiskitTestCase):
                 "         ┌───┐  ┌───┐ ",
                 "q_0: |0>─┤ X ├──┤ X ├─",
                 "        ┌┴─╨─┴┐ └─╥─┘ ",
-                "c0: 0 3/╡ = 3 ╞═══╬═══",
+                "c0: 0 3/╡ 0x3 ╞═══╬═══",
                 "        └─────┘┌──╨──┐",
-                "c1: 0 3/═══════╡ = 3 ╞",
+                "c1: 0 3/═══════╡ 0x3 ╞",
                 "               └─────┘",
             ]
         )
@@ -2168,13 +2169,13 @@ class TestTextConditional(QiskitTestCase):
                 "c0_1: 0 ══■════╬══",
                 "          ║    ║  ",
                 "c0_2: 0 ══o════╬══",
-                "          =3   ║  ",
+                "         0x3   ║  ",
                 "c1_0: 0 ═══════■══",
                 "               ║  ",
                 "c1_1: 0 ═══════■══",
                 "               ║  ",
                 "c1_2: 0 ═══════o══",
-                "               =3 ",
+                "              0x3 ",
             ]
         )
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
@@ -2203,7 +2204,7 @@ class TestTextConditional(QiskitTestCase):
                 "c0_2: 0 ══■════╬══",
                 "          ║    ║  ",
                 "c0_3: 0 ══o════╬══",
-                "          =4   ║  ",
+                "         0x4   ║  ",
                 "c1_0: 0 ═══════o══",
                 "               ║  ",
                 "c1_1: 0 ═══════o══",
@@ -2211,7 +2212,7 @@ class TestTextConditional(QiskitTestCase):
                 "c1_2: 0 ═══════■══",
                 "               ║  ",
                 "c1_3: 0 ═══════o══",
-                "               =4 ",
+                "              0x4 ",
             ]
         )
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
@@ -2242,7 +2243,7 @@ class TestTextConditional(QiskitTestCase):
                 "c0_3: 0 ══o════╬══",
                 "          ║    ║  ",
                 "c0_4: 0 ══o════╬══",
-                "          =5   ║  ",
+                "         0x5   ║  ",
                 "c1_0: 0 ═══════■══",
                 "               ║  ",
                 "c1_1: 0 ═══════o══",
@@ -2252,7 +2253,7 @@ class TestTextConditional(QiskitTestCase):
                 "c1_3: 0 ═══════o══",
                 "               ║  ",
                 "c1_4: 0 ═══════o══",
-                "               =5 ",
+                "              0x5 ",
             ]
         )
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
@@ -2272,7 +2273,7 @@ class TestTextConditional(QiskitTestCase):
                 "            │   ",
                 "qr_1: |0>───■───",
                 "         ┌──╨──┐",
-                " cr: 0 1/╡ = 1 ╞",
+                " cr: 0 1/╡ 0x1 ╞",
                 "         └─────┘",
             ]
         )
@@ -2288,13 +2289,13 @@ class TestTextConditional(QiskitTestCase):
 
         expected = "\n".join(
             [
-                "             ",
-                "qr_0: |0>─■──",
-                "          │  ",
-                "qr_1: |0>─■──",
-                "          ║  ",
-                " cr_0: 0 ═■══",
-                "          =1 ",
+                "              ",
+                "qr_0: |0>──■──",
+                "           │  ",
+                "qr_1: |0>──■──",
+                "           ║  ",
+                " cr_0: 0 ══■══",
+                "          0x1 ",
             ]
         )
 
@@ -2316,7 +2317,7 @@ class TestTextConditional(QiskitTestCase):
                 "            ║   ",
                 "qr_2: |0>───╫───",
                 "         ┌──╨──┐",
-                " cr: 0 1/╡ = 1 ╞",
+                " cr: 0 1/╡ 0x1 ╞",
                 "         └─────┘",
             ]
         )
@@ -2332,15 +2333,15 @@ class TestTextConditional(QiskitTestCase):
 
         expected = "\n".join(
             [
-                "             ",
-                "qr_0: |0>─■──",
-                "          │  ",
-                "qr_1: |0>─■──",
-                "          ║  ",
-                "qr_2: |0>─╫──",
-                "          ║  ",
-                " cr_0: 0 ═■══",
-                "          =1 ",
+                "              ",
+                "qr_0: |0>──■──",
+                "           │  ",
+                "qr_1: |0>──■──",
+                "           ║  ",
+                "qr_2: |0>──╫──",
+                "           ║  ",
+                " cr_0: 0 ══■══",
+                "          0x1 ",
             ]
         )
 
@@ -2362,7 +2363,7 @@ class TestTextConditional(QiskitTestCase):
                 "          └─╥─┘ ",
                 "qr_2: |0>───╫───",
                 "         ┌──╨──┐",
-                " cr: 0 1/╡ = 1 ╞",
+                " cr: 0 1/╡ 0x1 ╞",
                 "         └─────┘",
             ]
         )
@@ -2386,7 +2387,7 @@ class TestTextConditional(QiskitTestCase):
                 "qr_2: |0>──╫──",
                 "           ║  ",
                 " cr_0: 0 ══■══",
-                "           =1 ",
+                "          0x1 ",
             ]
         )
 
@@ -2408,7 +2409,7 @@ class TestTextConditional(QiskitTestCase):
                 "            ║   ",
                 "qr_2: |0>───╫───",
                 "         ┌──╨──┐",
-                " cr: 0 1/╡ = 1 ╞",
+                " cr: 0 1/╡ 0x1 ╞",
                 "         └─────┘",
             ]
         )
@@ -2432,7 +2433,7 @@ class TestTextConditional(QiskitTestCase):
                 "qr_2: |0>──╫──",
                 "           ║  ",
                 " cr_0: 0 ══■══",
-                "           =1 ",
+                "          0x1 ",
             ]
         )
 
@@ -2454,7 +2455,7 @@ class TestTextConditional(QiskitTestCase):
                 "         └────────╥────────┘",
                 "qr_2: |0>─────────╫─────────",
                 "               ┌──╨──┐      ",
-                " cr: 0 1/══════╡ = 1 ╞══════",
+                " cr: 0 1/══════╡ 0x1 ╞══════",
                 "               └─────┘      ",
             ]
         )
@@ -2478,7 +2479,7 @@ class TestTextConditional(QiskitTestCase):
                 "qr_2: |0>─────────╫─────────",
                 "                  ║         ",
                 " cr_0: 0 ═════════■═════════",
-                "                  =1        ",
+                "                 0x1        ",
             ]
         )
 
@@ -2500,7 +2501,7 @@ class TestTextConditional(QiskitTestCase):
                 "                  ║         ",
                 "qr_2: |0>─────────╫─────────",
                 "               ┌──╨──┐      ",
-                " cr: 0 1/══════╡ = 1 ╞══════",
+                " cr: 0 1/══════╡ 0x1 ╞══════",
                 "               └─────┘      ",
             ]
         )
@@ -2524,7 +2525,7 @@ class TestTextConditional(QiskitTestCase):
                 "qr_2: |0>─────────╫─────────",
                 "                  ║         ",
                 " cr_0: 0 ═════════■═════════",
-                "                  =1        ",
+                "                 0x1        ",
             ]
         )
 
@@ -2548,7 +2549,7 @@ class TestTextConditional(QiskitTestCase):
                 "          └─╥─┘ ",
                 "qr_3: |0>───╫───",
                 "         ┌──╨──┐",
-                " cr: 0 1/╡ = 1 ╞",
+                " cr: 0 1/╡ 0x1 ╞",
                 "         └─────┘",
             ]
         )
@@ -2574,7 +2575,7 @@ class TestTextConditional(QiskitTestCase):
                 "qr_3: |0>──╫──",
                 "           ║  ",
                 " cr_0: 0 ══■══",
-                "           =1 ",
+                "          0x1 ",
             ]
         )
 
@@ -2596,7 +2597,7 @@ class TestTextConditional(QiskitTestCase):
                 "          ┌─┴─┐ ",
                 "qr_2: |0>─┤ X ├─",
                 "         ┌┴─╨─┴┐",
-                " cr: 0 1/╡ = 1 ╞",
+                " cr: 0 1/╡ 0x1 ╞",
                 "         └─────┘",
             ]
         )
@@ -2620,7 +2621,7 @@ class TestTextConditional(QiskitTestCase):
                 "qr_2: |0>┤ X ├",
                 "         └─╥─┘",
                 " cr_0: 0 ══■══",
-                "           =1 ",
+                "          0x1 ",
             ]
         )
 
@@ -2640,7 +2641,7 @@ class TestTextConditional(QiskitTestCase):
                 "          └─╥─┘ ",
                 "qr_1: |0>───╫───",
                 "         ┌──╨──┐",
-                " cr: 0 1/╡ = 1 ╞",
+                " cr: 0 1/╡ 0x1 ╞",
                 "         └─────┘",
             ]
         )
@@ -2662,7 +2663,7 @@ class TestTextConditional(QiskitTestCase):
                 "qr_1: |0>──╫──",
                 "           ║  ",
                 " cr_0: 0 ══■══",
-                "           =1 ",
+                "          0x1 ",
             ]
         )
 
@@ -2684,7 +2685,7 @@ class TestTextConditional(QiskitTestCase):
                 "            ║   ",
                 "qr_2: |0>───╫───",
                 "         ┌──╨──┐",
-                " cr: 0 1/╡ = 1 ╞",
+                " cr: 0 1/╡ 0x1 ╞",
                 "         └─────┘",
             ]
         )
@@ -2700,15 +2701,15 @@ class TestTextConditional(QiskitTestCase):
 
         expected = "\n".join(
             [
-                "             ",
-                "qr_0: |0>─X──",
-                "          │  ",
-                "qr_1: |0>─X──",
-                "          ║  ",
-                "qr_2: |0>─╫──",
-                "          ║  ",
-                " cr_0: 0 ═■══",
-                "          =1 ",
+                "              ",
+                "qr_0: |0>──X──",
+                "           │  ",
+                "qr_1: |0>──X──",
+                "           ║  ",
+                "qr_2: |0>──╫──",
+                "           ║  ",
+                " cr_0: 0 ══■══",
+                "          0x1 ",
             ]
         )
 
@@ -2732,7 +2733,7 @@ class TestTextConditional(QiskitTestCase):
                 "            ║   ",
                 "qr_3: |0>───╫───",
                 "         ┌──╨──┐",
-                " cr: 0 1/╡ = 1 ╞",
+                " cr: 0 1/╡ 0x1 ╞",
                 "         └─────┘",
             ]
         )
@@ -2748,17 +2749,17 @@ class TestTextConditional(QiskitTestCase):
 
         expected = "\n".join(
             [
-                "             ",
-                "qr_0: |0>─■──",
-                "          │  ",
-                "qr_1: |0>─X──",
-                "          │  ",
-                "qr_2: |0>─X──",
-                "          ║  ",
-                "qr_3: |0>─╫──",
-                "          ║  ",
-                " cr_0: 0 ═■══",
-                "          =1 ",
+                "              ",
+                "qr_0: |0>──■──",
+                "           │  ",
+                "qr_1: |0>──X──",
+                "           │  ",
+                "qr_2: |0>──X──",
+                "           ║  ",
+                "qr_3: |0>──╫──",
+                "           ║  ",
+                " cr_0: 0 ══■══",
+                "          0x1 ",
             ]
         )
 
@@ -2779,7 +2780,7 @@ class TestTextConditional(QiskitTestCase):
                 "            ║   ",
                 "qr_1: |0>───╫───",
                 "         ┌──╨──┐",
-                " cr: 0 1/╡ = 1 ╞",
+                " cr: 0 1/╡ 0x1 ╞",
                 "         └─────┘",
             ]
         )
@@ -2802,7 +2803,7 @@ class TestTextConditional(QiskitTestCase):
                 "qr_1: |0>──╫──",
                 "           ║  ",
                 " cr_0: 0 ══■══",
-                "           =1 ",
+                "          0x1 ",
             ]
         )
 
@@ -2826,7 +2827,7 @@ class TestTextConditional(QiskitTestCase):
                 "         └──────╥───────┘",
                 "qr_2: |0>───────╫────────",
                 "             ┌──╨──┐     ",
-                " cr: 0 1/════╡ = 1 ╞═════",
+                " cr: 0 1/════╡ 0x1 ╞═════",
                 "             └─────┘     ",
             ]
         )
@@ -2852,9 +2853,9 @@ class TestTextConditional(QiskitTestCase):
                 "qr_2: |0>───────╫────────",
                 "                ║        ",
                 " cr_0: 0 ═══════■════════",
-                "                =1       ",
+                "               0x1       ",
                 "             ┌──╨──┐     ",
-                " cr_0: 0 ════╡ = 1 ╞═════",
+                " cr_0: 0 ════╡ 0x1 ╞═════",
                 "             └─────┘     ",
             ]
         )
@@ -2877,7 +2878,7 @@ class TestTextConditional(QiskitTestCase):
                 "         └───┘└╥┘ ┌───┐ ",
                 "qr_1: |0>──────╫──┤ H ├─",
                 "               ║ ┌┴─╨─┴┐",
-                " cr: 0 2/══════╩═╡ = 1 ╞",
+                " cr: 0 2/══════╩═╡ 0x1 ╞",
                 "               0 └─────┘",
             ]
         )
@@ -2903,7 +2904,7 @@ class TestTextConditional(QiskitTestCase):
                 " cr_0: 0 ══════╩═══■══",
                 "                   ║  ",
                 " cr_1: 0 ══════════o══",
-                "                   =1 ",
+                "                  0x1 ",
             ]
         )
 
@@ -2926,9 +2927,9 @@ class TestTextConditional(QiskitTestCase):
                 "qr_1: |0>──╫──┤ H ├",
                 "           ║  └─╥─┘",
                 " cr_0: 0 ══■════╬══",
-                "           =1   ║  ",
+                "          0x1   ║  ",
                 " cr_1: 0 ═══════o══",
-                "                =0 ",
+                "               0x0 ",
             ]
         )
 
@@ -2980,7 +2981,7 @@ class TestTextConditional(QiskitTestCase):
                 " cr_1: 0 ══════╬═══o══",
                 "               ║   ║  ",
                 " cr_0: 0 ══════╩═══■══",
-                "                   =1 ",
+                "                  0x1 ",
             ]
         )
 
@@ -3012,7 +3013,7 @@ class TestTextConditional(QiskitTestCase):
                 " cr_1: 0 ══■════o════■════■══",
                 "           ║    ║    ║    ║  ",
                 " cr_0: 0 ══o════■════o════■══",
-                "           =6   =1   =2   =3 ",
+                "          0x6  0x1  0x2  0x3 ",
             ]
         )
 
@@ -3824,17 +3825,17 @@ class TestTextOpenControlledGate(QiskitTestCase):
         """Closed-Open controlled Z (with conditional)"""
         expected = "\n".join(
             [
-                "            ",
-                "q_0: |0>─■──",
-                "         │  ",
-                "q_1: |0>─o──",
-                "         │  ",
-                "q_2: |0>─■──",
-                "         │  ",
-                "q_3: |0>─■──",
-                "         ║  ",
-                " c_0: 0 ═■══",
-                "         =1 ",
+                "             ",
+                "q_0: |0>──■──",
+                "          │  ",
+                "q_1: |0>──o──",
+                "          │  ",
+                "q_2: |0>──■──",
+                "          │  ",
+                "q_3: |0>──■──",
+                "          ║  ",
+                " c_0: 0 ══■══",
+                "         0x1 ",
             ]
         )
         qr = QuantumRegister(4, "q")
@@ -4760,6 +4761,16 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
             self.fail("_text_circuit_drawer() should be cp437.")
         self.assertFilesAreEqual(filename, self.text_reference_cp437, "cp437")
         os.remove(filename)
+
+    def test_filename_extension_error_message(self):
+        """Test that the error message shown for wrong file extension is correct."""
+        circuit = self.sample_circuit()
+        with self.assertRaises(VisualizationError) as ve:
+            _text_circuit_drawer(circuit, filename="file.spooky")
+            self.assertEqual(
+                str(ve.exception),
+                "ERROR: filename parameter does not use .txt extension.",
+            )
 
 
 if __name__ == "__main__":

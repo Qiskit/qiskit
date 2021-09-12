@@ -783,7 +783,6 @@ class TextDrawing:
                         label.format(
                             name=self.bit_locations[bit]["register"].name,
                             index=self.bit_locations[bit]["index"],
-                            physical="",
                         )
                     )
                 else:
@@ -890,11 +889,6 @@ class TextDrawing:
             lines.append(TextDrawing.merge_lines(lines[-1], bot_line, icod="bot"))
 
         return lines
-
-    @staticmethod
-    def label_for_conditional(node):
-        """Creates the label for a conditional instruction."""
-        return "= %s" % node.op.condition[1]
 
     @staticmethod
     def special_label(node):
@@ -1101,7 +1095,7 @@ class TextDrawing:
                 gates.append(Bullet(conditional=conditional))
             elif base_gate.name in ["u1", "p"]:
                 # cu1
-                connection_label = "%s%s" % (base_gate.name.upper(), params)
+                connection_label = f"{base_gate.name.upper()}{params}"
                 gates.append(Bullet(conditional=conditional))
             elif base_gate.name == "swap":
                 # cswap
@@ -1382,10 +1376,10 @@ class Layer:
                 bit_reg = self._clbit_locations[creg]["register"]
                 bit_index = self._clbit_locations[creg]["index"]
                 label_bool = "= T" if val is True else "= F"
-                label = "%s_%s %s" % (bit_reg.name, bit_index, label_bool)
+                label = f"{bit_reg.name}_{bit_index} {label_bool}"
                 self.set_clbit(creg, BoxOnClWire(label=label, top_connect=top_connect))
             else:
-                label = "= %s" % val
+                label = "%s" % str(hex(val))
                 self.set_clbit(creg[0], BoxOnClWire(label=label, top_connect=top_connect))
         else:
             if isinstance(creg, Clbit):
@@ -1411,7 +1405,7 @@ class Layer:
         for i, bit in enumerate(clbits):
             bot_connect = " "
             if bit == clbits[-1]:
-                bot_connect = "=%s" % str(int(val, 2))
+                bot_connect = "%s" % str(hex(int(val, 2)))
             if vlist[i] == "1":
                 self.set_clbit(bit, ClBullet(top_connect="║", bot_connect=bot_connect))
             elif vlist[i] == "0":
