@@ -414,17 +414,17 @@ class QuantumCircuit:
 
         circ = QuantumCircuit(
             *reversed(self.cregs),
-            *self.qregs,
+            *reversed(self.qregs),
             name=self.name,
             global_phase=self.global_phase,
         )
 
-        for qubit in regless_qubits:
-            circ.qubits.insert(self.qubits.index(qubit),qubit)
+        for qubit in reversed(regless_qubits):
+            circ.qubits.insert([q for q in reversed(self.qubits)].index(qubit),qubit)
             circ._qubit_set.add(qubit)
 
-        for clbit in regless_clbits:
-            circ.clbits.insert(self.clbits.index(clbit),clbit)
+        for clbit in reversed(regless_clbits):
+            circ.clbits.insert([c for c in reversed(self.clbits)].index(clbit),clbit)
             circ._clbit_set.add(clbit)
 
         num_qubits = self.num_qubits
