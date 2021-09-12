@@ -96,7 +96,7 @@ def make_cnot_network(
         if connectivity_type != "full":
             raise ValueError(f"'{network_layout}' layout expects 'full' connectivity")
 
-        cnots = np.zeros((2, depth), dtype=np.int64)
+        cnots = np.zeros((2, depth), dtype=int)
         z = 0
         while True:
             for i in range(0, num_qubits, 2):
@@ -125,7 +125,7 @@ def make_cnot_network(
         if connectivity_type != "line":
             raise ValueError(f"'{network_layout}' layout expects 'line' connectivity")
 
-        cnots = np.zeros((2, depth), dtype=np.int64)
+        cnots = np.zeros((2, depth), dtype=int)
         for i in range(depth):
             cnots[0, i] = (i + 0) % num_qubits
             cnots[1, i] = (i + 1) % num_qubits
