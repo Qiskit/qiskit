@@ -476,11 +476,11 @@ class QuantumCircuit:
         )
 
         for qubit in reversed(regless_qubits):
-            circ.qubits.insert([q for q in reversed(self.qubits)].index(qubit),qubit)
+            circ.qubits.insert(list(reversed(self.qubits)).index(qubit),qubit)
             circ._qubit_set.add(qubit)
 
         for clbit in reversed(regless_clbits):
-            circ.clbits.insert([c for c in reversed(self.clbits)].index(clbit),clbit)
+            circ.clbits.insert(list(reversed(self.clbits)).index(clbit),clbit)
             circ._clbit_set.add(clbit)
 
         num_qubits = self.num_qubits

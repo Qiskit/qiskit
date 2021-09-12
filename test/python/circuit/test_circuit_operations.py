@@ -801,7 +801,8 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(qc.reverse_bits(), expected)
 
     def test_reverse_bits_isolated_qubits(self):
-        """Test reversing order of bits when QuantumCircuit is made with isolated Qubits (not in a register)."""
+        """Test reversing order of bits when QuantumCircuit is made with isolated
+         Qubits (not in a register)."""
         qubit1 = Qubit()
         qubit2 = Qubit()
         qc = QuantumCircuit([qubit1, qubit2])
