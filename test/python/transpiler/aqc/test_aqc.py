@@ -18,9 +18,13 @@ from test.python.transpiler.aqc.sample_data import ORIGINAL_CIRCUIT, INITIAL_THE
 
 import numpy as np
 
+from qiskit.algorithms.optimizers import L_BFGS_B
+from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.synthesis.aqc.aqc import AQC
 from qiskit.transpiler.synthesis.aqc.cnot_structures import make_cnot_network
+from qiskit.transpiler.synthesis.aqc.cnot_unit_circuit import CNOTUnitCircuit
+from qiskit.transpiler.synthesis.aqc.cnot_unit_objective import DefaultCNOTUnitObjective
 
 
 class TestAqc(QiskitTestCase):
@@ -29,28 +33,31 @@ class TestAqc(QiskitTestCase):
     def test_aqc(self):
         """Tests AQC on a hardcoded circuit/matrix."""
 
-        np.random.seed(12345)
+        seed = 12345
 
         num_qubits = int(round(np.log2(np.array(ORIGINAL_CIRCUIT).shape[0])))
         cnots = make_cnot_network(
             num_qubits=num_qubits, network_layout="spin", connectivity_type="full", depth=0
         )
 
-        aqc = AQC(
-            method="nesterov",
-            maxiter=1000,
-            eta=0.01,
-            tol=0.01,
-            eps=0.0,
+        optimizer = L_BFGS_B(maxiter=200)
+
+        aqc = AQC(optimizer=optimizer, seed=seed)
+
+        target_matrix = np.array(ORIGINAL_CIRCUIT)
+        approximate_circuit = CNOTUnitCircuit(num_qubits, cnots)
+        approximating_objective = DefaultCNOTUnitObjective(num_qubits, cnots)
+        # todo: approximating_objective = DefaultCNOTUnitObjective(approximate_circuit)
+
+        aqc.compile_unitary(
+            target_matrix=target_matrix,
+            approximate_circuit=approximate_circuit,
+            approximating_objective=approximating_objective,
+            initial_point=np.array(INITIAL_THETAS),
         )
 
-        optimized_circuit = aqc.compile_unitary(
-            target_matrix=np.array(ORIGINAL_CIRCUIT),
-            cnots=cnots,
-            thetas=np.array(INITIAL_THETAS),
-        )
-
-        error = 0.5 * (np.linalg.norm(optimized_circuit.to_matrix() - ORIGINAL_CIRCUIT, "fro") ** 2)
+        approx_matrix = Operator(approximate_circuit).data
+        error = 0.5 * (np.linalg.norm(approx_matrix - ORIGINAL_CIRCUIT, "fro") ** 2)
         self.assertTrue(error < 1e-3)
 
 

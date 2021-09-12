@@ -16,40 +16,14 @@ import logging
 
 import numpy as np
 
-# N O T E: we use 1-based indices like in Matlab. To be updated.
-
-_NETWORK_LAYOUTS = {"sequ", "spin", "cart", "cyclic_spin", "cyclic_line"}
-_CONNECTIVITY_TYPES = {"full", "line", "star"}
+_NETWORK_LAYOUTS = ["sequ", "spin", "cart", "cyclic_spin", "cyclic_line"]
+_CONNECTIVITY_TYPES = ["full", "line", "star"]
 
 
 logger = logging.getLogger(__name__)
 
 
-def check_cnots(num_qubits: int, cnots: np.ndarray) -> bool:
-    """
-    Checks validity of CNOT structure.
-    """
-    assert isinstance(num_qubits, (int, np.int64)) and num_qubits >= 1
-    assert isinstance(cnots, np.ndarray)
-    assert cnots.dtype == np.int64 or cnots.dtype == int
-    assert cnots.shape == (2, cnots.size // 2)
-    # pylint: disable=misplaced-comparison-constant
-    assert np.all(np.logical_and(1 <= cnots, cnots <= num_qubits))  # 1-based!!
-    assert np.all(cnots[0, :] != cnots[1, :])
-    return True
-
-
-def get_network_layouts() -> list:
-    """Returns the list of supported network geometry types."""
-    return list(_NETWORK_LAYOUTS)
-
-
-def get_connectivity_types() -> list:
-    """Returns the list of supported inter-qubit connectivity types."""
-    return list(_CONNECTIVITY_TYPES)
-
-
-def lower_limit(num_qubits: int) -> int:
+def _lower_limit(num_qubits: int) -> int:
     """
     Returns lower limit on the number of CNOT units that guarantees exact representation of
     a unitary operator by quantum gates.
@@ -60,7 +34,6 @@ def lower_limit(num_qubits: int) -> int:
     Returns:
         lower limit on the number of CNOT units.
     """
-    assert isinstance(num_qubits, (np.int64, int)) and num_qubits >= 2
     num_cnots = round(np.ceil((4 ** num_qubits - 3 * num_qubits - 1) / 4.0))
     return num_cnots
 
@@ -79,7 +52,8 @@ def make_cnot_network(
 
     Args:
         num_qubits: number of qubits.
-        network_layout: type of network geometry, ``{"sequ", "spin", "cart"}``.
+        network_layout: type of network geometry, ``{"sequ", "spin", "cart", "cyclic_spin",
+            "cyclic_line"}``.
         connectivity_type: type of inter-qubit connectivity, ``{"full", "line", "star"}``.
         depth: depth of the CNOT-network, i.e. the number of layers, where each layer consists of
             a single CNOT-block; default value will be selected, if ``L <= 0``.
@@ -89,24 +63,23 @@ def make_cnot_network(
             is either equal ``L``, or defined by a concrete type of the network.
 
     Raises:
-         ValueError: if unsupported type of CNOT-network layout is passed.
+         ValueError: if unsupported type of CNOT-network layout or number of qubits or combination
+            of parameters are passed.
     """
-    # assert isinstance(num_qubits, (np.int64, int)) and num_qubits >= 2
-    # assert isinstance(network_layout, str)
-    # assert isinstance(connectivity_type, str)
-    # assert isinstance(depth, (np.int64, int)) # todo: fails on int32
+    if num_qubits < 2:
+        raise ValueError("Number of qubits must be greater or equal to 2")
 
     if depth <= 0:
-        new_depth = lower_limit(num_qubits)
+        new_depth = _lower_limit(num_qubits)
         logger.debug(
-            "number of CNOT units chosen as the lower limit: %d, got a non-positive value: %d",
+            "Number of CNOT units chosen as the lower limit: %d, got a non-positive value: %d",
             new_depth,
             depth,
         )
         depth = new_depth
 
     if network_layout == "sequ":
-        links = get_connectivity(num_qubits=num_qubits, connectivity=connectivity_type)
+        links = _get_connectivity(num_qubits=num_qubits, connectivity=connectivity_type)
         return _sequential_network(num_qubits=num_qubits, links=links, depth=depth)
 
     elif network_layout == "spin":
@@ -115,12 +88,13 @@ def make_cnot_network(
     elif network_layout == "cart":
         cnots = _cartan_network(num_qubits=num_qubits)
         logger.debug(
-            "Optimal lower bound: %d; Cartan CNOTs: %d", lower_limit(num_qubits), cnots.shape[1]
+            "Optimal lower bound: %d; Cartan CNOTs: %d", _lower_limit(num_qubits), cnots.shape[1]
         )
         return cnots
 
     elif network_layout == "cyclic_spin":
-        assert connectivity_type == "full", f"'{network_layout}' layout expects 'full' connectivity"
+        if connectivity_type != "full":
+            raise ValueError(f"'{network_layout}' layout expects 'full' connectivity")
 
         cnots = np.zeros((2, depth), dtype=np.int64)
         z = 0
@@ -148,7 +122,8 @@ def make_cnot_network(
                     return cnots
 
     elif network_layout == "cyclic_line":
-        assert connectivity_type == "line", f"'{network_layout}' layout expects 'line' connectivity"
+        if connectivity_type != "line":
+            raise ValueError(f"'{network_layout}' layout expects 'line' connectivity")
 
         cnots = np.zeros((2, depth), dtype=np.int64)
         for i in range(depth):
@@ -159,41 +134,12 @@ def make_cnot_network(
 
     else:
         raise ValueError(
-            f"unknown type of CNOT-network layout, expects one of {get_network_layouts()}, "
+            f"Unknown type of CNOT-network layout, expects one of {_NETWORK_LAYOUTS}, "
             f"got {network_layout}"
         )
 
 
-def generate_random_cnots(num_qubits: int, depth: int, set_depth_limit: bool = True) -> np.ndarray:
-    """
-    Generates a random CNot network for debugging and testing. Note: there's 1-based index.
-
-    Args:
-        num_qubits: number of qubits.
-        depth: depth of the network; it will be bounded by the lower limit (function
-            ``lower_limit()``), if exceeded.
-        set_depth_limit: apply theoretical upper limit on cnot circuit depth.
-
-    Returns:
-        A matrix of size ``(2, N)``, where each column contains two distinct indices from
-            the range ``[1 ... num_qubits]``;
-    """
-    assert isinstance(num_qubits, (np.int64, int)) and 1 <= num_qubits <= 16
-    # pylint: disable=misplaced-comparison-constant
-    assert isinstance(depth, (np.int64, int)) and 1 <= depth
-    assert isinstance(set_depth_limit, bool)
-
-    if set_depth_limit:
-        depth = min(depth, lower_limit(num_qubits))
-    cnots = np.tile(np.arange(num_qubits).reshape(num_qubits, 1), depth)
-    for i in range(depth):
-        np.random.shuffle(cnots[:, i])
-    cnots = cnots[0:2, :].copy()
-    cnots += 1  # TODO: 1-based index
-    return cnots
-
-
-def get_connectivity(num_qubits: int, connectivity: str) -> dict:
+def _get_connectivity(num_qubits: int, connectivity: str) -> dict:
     """
     Generates connectivity structure between qubits.
 
@@ -207,30 +153,33 @@ def get_connectivity(num_qubits: int, connectivity: str) -> dict:
     Raises:
          ValueError: if unsupported type of CNOT-network layout is passed.
     """
-    assert isinstance(num_qubits, (np.int64, int)) and num_qubits > 0
-    assert isinstance(connectivity, str)
-
     if num_qubits == 1:
-        links = {1: [1]}
+        links = {0: [0]}
 
     elif connectivity == "full":
         # Full connectivity between qubits.
-        links = {i + 1: [j + 1 for j in range(num_qubits)] for i in range(num_qubits)}
+        links = {i: list(range(num_qubits)) for i in range(num_qubits)}
 
     elif connectivity == "line":
         # Every qubit is connected to its immediate neighbours only.
-        links = {i + 1: [i, i + 1, i + 2] for i in range(1, num_qubits - 1)}
-        links[1] = [1, 2]
-        links[num_qubits] = [num_qubits - 1, num_qubits]
+        links = {i: [i - 1, i, i + 1] for i in range(1, num_qubits - 1)}
+
+        # first qubit
+        links[0] = [0, 1]
+
+        # last qubit
+        links[num_qubits - 1] = [num_qubits - 2, num_qubits - 1]
 
     elif connectivity == "star":
         # Every qubit is connected to the first one only.
-        links = {i + 1: [1, i + 1] for i in range(1, num_qubits)}
-        links[1] = [j + 1 for j in range(num_qubits)]
+        links = {i: [0, i] for i in range(1, num_qubits)}
+
+        # first qubit
+        links[0] = list(range(num_qubits))
 
     else:
         raise ValueError(
-            f"unknown connectivity type, expects one of {get_connectivity_types()}, got {connectivity}"
+            f"Unknown connectivity type, expects one of {_CONNECTIVITY_TYPES}, got {connectivity}"
         )
     return links
 
@@ -247,12 +196,11 @@ def _sequential_network(num_qubits: int, links: dict, depth: int = 0) -> np.ndar
     Returns:
         A matrix of ``(2, N)`` that defines layers in qubit network.
     """
-    assert len(links) > 0 and depth > 0
     layer = 0
-    cnots = np.zeros((2, depth), dtype=np.int64)
+    cnots = np.zeros((2, depth), dtype=int)
     while True:
-        for i in range(1, num_qubits):
-            for j in range(i + 1, num_qubits + 1):
+        for i in range(0, num_qubits - 1):
+            for j in range(i + 1, num_qubits):
                 if j in links[i]:
                     cnots[0, layer] = i
                     cnots[1, layer] = j
@@ -273,16 +221,16 @@ def _spin_network(num_qubits: int, depth: int = 0) -> np.ndarray:
         A matrix of size ``2 x L`` that defines layers in qubit network.
     """
     layer = 0
-    cnots = np.zeros((2, depth), dtype=np.int64)
+    cnots = np.zeros((2, depth), dtype=int)
     while True:
-        for i in range(1, num_qubits, 2):  # <--- starts from 1
+        for i in range(0, num_qubits - 1, 2):
             cnots[0, layer] = i
             cnots[1, layer] = i + 1
             layer += 1
             if layer >= depth:
                 return cnots
 
-        for i in range(2, num_qubits, 2):  # <--- starts from 2
+        for i in range(1, num_qubits - 1, 2):
             cnots[0, layer] = i
             cnots[1, layer] = i + 1
             layer += 1
@@ -306,8 +254,8 @@ def _cartan_network(num_qubits: int) -> np.ndarray:
     """
     n = num_qubits
     if n > 3:
-        cnots = np.array([[1, 1, 1], [2, 2, 2]])
-        mult = np.array([[n - 1, n - 2, n - 1, n - 2], [n, n, n, n]])
+        cnots = np.array([[0, 0, 0], [1, 1, 1]])
+        mult = np.array([[n - 2, n - 3, n - 2, n - 3], [n - 1, n - 1, n - 1, n - 1]])
         for _ in range(n - 2):
             cnots = np.hstack((np.tile(np.hstack((cnots, mult)), 3), cnots))
             mult[0, -1] -= 1
@@ -315,8 +263,8 @@ def _cartan_network(num_qubits: int) -> np.ndarray:
     elif n == 3:
         cnots = np.array(
             [
-                [1, 1, 1, 2, 1, 2, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1],
-                [2, 2, 2, 3, 3, 3, 2, 2, 2, 3, 3, 3, 3, 2, 2, 2, 3, 3, 3, 2, 2, 2],
+                [0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0],
+                [1, 1, 1, 2, 2, 2, 1, 1, 1, 2, 2, 2, 2, 1, 1, 1, 2, 2, 2, 1, 1, 1],
             ]
         )
     else:

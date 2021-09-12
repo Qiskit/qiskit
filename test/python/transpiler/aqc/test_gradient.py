@@ -20,7 +20,7 @@ from scipy.stats import unitary_group
 
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.synthesis.aqc.cnot_structures import make_cnot_network
-from qiskit.transpiler.synthesis.aqc.parametric_circuit import ParametricCircuit
+from qiskit.transpiler.synthesis.aqc.cnot_unit_objective import DefaultCNOTUnitObjective
 
 
 class TestGradientAgainstFiniteDiff(QiskitTestCase):
@@ -42,16 +42,17 @@ class TestGradientAgainstFiniteDiff(QiskitTestCase):
             num_qubits=num_qubits, network_layout="spin", connectivity_type="full", depth=num_cnots
         )
 
-        circuit = ParametricCircuit(num_qubits=num_qubits, cnots=cnots)
-
         # Generate random target matrix and random starting point. Repeat until
         # sufficiently large gradient has been encountered.
         # This operation is pretty fast.
         while True:
             target_matrix = self._random_special_unitary(num_qubits=num_qubits)
-            thetas = np.random.rand(circuit.num_thetas) * (2.0 * np.pi)
-            circuit.set_thetas(thetas)
-            fobj0, grad0 = circuit.get_gradient(target_matrix=target_matrix)
+            objective = DefaultCNOTUnitObjective(num_qubits, cnots)
+            objective.target_matrix = target_matrix
+
+            thetas = np.random.rand(objective.num_thetas) * (2.0 * np.pi)
+            fobj0 = objective.objective(thetas)
+            grad0 = objective.gradient(thetas)
             if np.linalg.norm(grad0) > 1e-2:
                 break
 
@@ -72,12 +73,12 @@ class TestGradientAgainstFiniteDiff(QiskitTestCase):
             for i in range(thetas.size):
                 np.copyto(thetas_delta, thetas)
                 thetas_delta[i] -= tau
-                circuit.set_thetas(thetas_delta)
-                fobj1, _ = circuit.get_gradient(target_matrix=target_matrix)
+                # circuit.set_thetas(thetas_delta)
+                fobj1 = objective.objective(thetas_delta)
                 np.copyto(thetas_delta, thetas)
                 thetas_delta[i] += tau
-                circuit.set_thetas(thetas_delta)
-                fobj2, _ = circuit.get_gradient(target_matrix=target_matrix)
+                # circuit.set_thetas(thetas_delta)
+                fobj2 = objective.objective(thetas_delta)
                 numerical_grad[i] = (fobj2 - fobj1) / (2.0 * tau)
             errors.append(np.linalg.norm(grad0 - numerical_grad) / np.linalg.norm(grad0))
 
@@ -86,8 +87,8 @@ class TestGradientAgainstFiniteDiff(QiskitTestCase):
             # approach would take a random direction, although quadratic
             # convergence is less pronounced in this case.
             perturbation = grad0_dir * tau
-            circuit.set_thetas(thetas + perturbation)
-            fobj, _ = circuit.get_gradient(target_matrix=target_matrix)
+            # circuit.set_thetas(thetas + perturbation)
+            fobj = objective.objective(thetas + perturbation)
             diff = abs(fobj - fobj0 - np.dot(grad0, perturbation))
             orders.append(
                 0.0 if step == 0 else float((np.log(diff_prev) - np.log(diff)) / np.log(2.0))

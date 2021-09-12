@@ -16,12 +16,16 @@ import abc
 
 import numpy as np
 
+from qiskit.algorithms.optimizers import L_BFGS_B
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.synthesis.aqc.aqc import AQC
 from qiskit.transpiler.synthesis.aqc.cnot_structures import make_cnot_network
 
-
 # todo: this is a copy from the PR: https://github.com/Qiskit/qiskit-terra/pull/6124
+from qiskit.transpiler.synthesis.aqc.cnot_unit_circuit import CNOTUnitCircuit
+from qiskit.transpiler.synthesis.aqc.cnot_unit_objective import DefaultCNOTUnitObjective
+
+
 class UnitarySynthesisPlugin(abc.ABC):
     """
     Abstract plugin Synthesis plugin class.
@@ -86,22 +90,33 @@ class AQCSynthesisPlugin(UnitarySynthesisPlugin):
         return True
 
     def run(self, unitary, **options):
-        approximation_degree = options.get("approximation_degree") or 0.01
-        thetas = options.get("thetas")
         num_qubits = int(round(np.log2(unitary.shape[0])))
-        aqc = AQC(
-            method="nesterov",
-            maxiter=1000,
-            eta=0.01,
-            tol=approximation_degree,
-            eps=0.0,
-        )
 
+        layout = options.get("layout") or "spin"
+        connectivity = options.get("connectivity") or "full"
+        depth = int(options.get("depth") or 0)
         cnots = make_cnot_network(
-            num_qubits=num_qubits, network_layout="spin", connectivity_type="full"
+            num_qubits=num_qubits,
+            network_layout=layout,
+            connectivity_type=connectivity,
+            depth=depth,
         )
 
-        parametric_circuit = aqc.compile_unitary(target_matrix=unitary, cnots=cnots, thetas=thetas)
+        seed = options.get("seed")
+        max_iter = options.get("max_iter") or 1000
+        optimizer = L_BFGS_B(maxiter=max_iter)
+        aqc = AQC(optimizer, seed)
 
-        dag_circuit = circuit_to_dag(parametric_circuit.to_circuit())
+        tol = options.get("approximation_degree") or 0.01
+        name = options.get("approx_name") or "aqc"
+        approximate_circuit = CNOTUnitCircuit(num_qubits, cnots, tol, name)
+        approximating_objective = DefaultCNOTUnitObjective(num_qubits, cnots)
+
+        aqc.compile_unitary(
+            target_matrix=unitary,
+            approximate_circuit=approximate_circuit,
+            approximating_objective=approximating_objective,
+        )
+
+        dag_circuit = circuit_to_dag(approximate_circuit)
         return dag_circuit

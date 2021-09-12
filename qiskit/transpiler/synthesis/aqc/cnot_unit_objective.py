@@ -9,65 +9,76 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Defines classes to compute gradient."""
-
-from abc import abstractmethod, ABC
-from typing import Union, List, Tuple
+"""
+A definition of the approximate circuit compilation optimization problem based on CNOT unit
+definition.
+"""
+from abc import abstractmethod
 
 import numpy as np
 from numpy import linalg as la
 
+from .approximate import ApproximatingObjective
 from .elementary_operations import ry_matrix, rz_matrix, place_unitary, place_cnot, rx_matrix
 
 
-class GradientBase(ABC):
-    """Interface to any class that computes gradient and objective function."""
-
-    def __init__(self):
-        pass
-
-    @abstractmethod
-    def get_gradient(
-        self, thetas: Union[List[float], np.ndarray], target_matrix: np.ndarray
-    ) -> Tuple[float, np.ndarray]:
-        """
-        Computes gradient and objective function.
-
-        Args:
-            thetas: an array of angles.
-            target_matrix: an original circuit represented as a unitary matrix.
-
-        Returns:
-            objective function value, gradient.
-        """
-        raise NotImplementedError("Abstract method is called!")
-
-
-class DefaultGradient(GradientBase):
-    """A default implementation of a gradient computation."""
+class CNOTUnitObjective(ApproximatingObjective):
+    """
+    A base class for a problem definition based on CNOT unit. This class may have different
+    subclasses for objective and gradient computations.
+    """
 
     def __init__(self, num_qubits: int, cnots: np.ndarray) -> None:
         """
         Args:
             num_qubits: number of qubits.
-            cnots: a CNOT structure to be used.
+            cnots: a CNOT structure to be used in the optimization procedure.
         """
         super().__init__()
-        assert isinstance(num_qubits, int) and 1 <= num_qubits <= 16
-        assert isinstance(cnots, np.ndarray)
-        assert cnots.ndim == 2 and cnots.shape[0] == 2
         self._num_qubits = num_qubits
         self._cnots = cnots
         self._num_cnots = cnots.shape[1]
+        # must be defined later
+        self._target_matrix = None
 
-    def get_gradient(self, thetas: Union[List[float], np.ndarray], target_matrix: np.ndarray):
-        # the partial derivative of the circuit with respect to an angle
-        # is the same circuit with the corresponding pauli gate, multiplied
-        # by a global phase of -1j / 2, next to the rotation gate (it commutes)
-        pauli_x = np.multiply(-1j / 2, np.array([[0, 1], [1, 0]]))
-        pauli_y = np.multiply(-1j / 2, np.array([[0, -1j], [1j, 0]]))
-        pauli_z = np.multiply(-1j / 2, np.array([[1, 0], [0, -1]]))
+    @abstractmethod
+    def objective(self, param_values: np.ndarray) -> float:
+        raise NotImplementedError
 
+    @abstractmethod
+    def gradient(self, param_values: np.ndarray) -> np.ndarray:
+        raise NotImplementedError
+
+    @property
+    def num_thetas(self):
+        """
+        Returns:
+            Number of parameters (angles) of rotation gates in this circuit.
+        """
+        return 3 * self._num_qubits + 4 * self._num_cnots
+
+
+class DefaultCNOTUnitObjective(CNOTUnitObjective):
+    """A naive implementation of the objective function based on CNOT units."""
+
+    def __init__(self, num_qubits: int, cnots: np.ndarray) -> None:
+        """
+        Args:
+            num_qubits: number of qubits.
+            cnots: a CNOT structure to be used in the optimization procedure.
+        """
+        super().__init__(num_qubits, cnots)
+
+        # last objective computations to be re-used by gradient
+        self._last_thetas = None
+        self._cnot_right_collection = None
+        self._cnot_left_collection = None
+        self._rotation_matrix = None
+        self._cnot_matrix = None
+
+    def objective(self, param_values: np.ndarray) -> float:
+        # rename parameters just to make shorter and make use of our dictionary
+        thetas = param_values
         n = self._num_qubits
         d = int(2 ** n)
         cnots = self._cnots
@@ -147,7 +158,36 @@ class DefaultGradient(GradientBase):
         circuit_matrix = np.dot(cnot_matrix, rotation_matrix)
 
         # compute error
-        error = 0.5 * (la.norm(circuit_matrix - target_matrix, "fro") ** 2)
+        error = 0.5 * (la.norm(circuit_matrix - self._target_matrix, "fro") ** 2)
+
+        # cache computations for gradient
+        self._last_thetas = thetas
+        self._cnot_left_collection = cnot_left_collection
+        self._cnot_right_collection = cnot_right_collection
+        self._rotation_matrix = rotation_matrix
+        self._cnot_matrix = cnot_matrix
+
+        return error
+
+    def gradient(self, param_values: np.ndarray) -> np.ndarray:
+        # just to make shorter
+        thetas = param_values
+        # if given thetas are the same as used at the previous objective computations, then
+        # we re-use computations, otherwise we have to re-compute objective
+        if thetas is not self._last_thetas:
+            self.objective(thetas)
+
+        # the partial derivative of the circuit with respect to an angle
+        # is the same circuit with the corresponding pauli gate, multiplied
+        # by a global phase of -1j / 2, next to the rotation gate (it commutes)
+        pauli_x = np.multiply(-1j / 2, np.array([[0, 1], [1, 0]]))
+        pauli_y = np.multiply(-1j / 2, np.array([[0, -1j], [1j, 0]]))
+        pauli_z = np.multiply(-1j / 2, np.array([[1, 0], [0, -1]]))
+
+        n = self._num_qubits
+        d = int(2 ** n)
+        cnots = self._cnots
+        num_cnots = np.shape(cnots)[1]
 
         # the partial derivative of the cost function is -Re<V',U>
         # where V' is the partial derivative of the circuit
@@ -199,30 +239,32 @@ class DefaultGradient(GradientBase):
                 # of it (if there are any) and to the right of it (if there are any)
                 if cnot_index == 0:
                     der_cnot_matrix = np.dot(
-                        cnot_right_collection[:, d : 2 * d],
+                        self._cnot_right_collection[:, d : 2 * d],
                         der_cnot_unit,
                     )
                 elif num_cnots - 1 == cnot_index:
                     der_cnot_matrix = np.dot(
                         der_cnot_unit,
-                        cnot_left_collection[:, d * (num_cnots - 2) : d * (num_cnots - 1)],
+                        self._cnot_left_collection[:, d * (num_cnots - 2) : d * (num_cnots - 1)],
                     )
                 else:
                     der_cnot_matrix = la.multi_dot(
                         [
-                            cnot_right_collection[:, d * (cnot_index + 1) : d * (cnot_index + 2)],
+                            self._cnot_right_collection[
+                                :, d * (cnot_index + 1) : d * (cnot_index + 2)
+                            ],
                             der_cnot_unit,
-                            cnot_left_collection[:, d * (cnot_index - 1) : d * cnot_index],
+                            self._cnot_left_collection[:, d * (cnot_index - 1) : d * cnot_index],
                         ]
                     )
 
                 # the matrix corresponding to the full circuit partial derivative
                 # is the partial derivative of the cnot part multiplied by the usual
                 # rotation part
-                der_circuit_matrix = np.dot(der_cnot_matrix, rotation_matrix)
+                der_circuit_matrix = np.dot(der_cnot_matrix, self._rotation_matrix)
                 # we compute the partial derivative of the cost function
                 der[i + theta_index] = -np.real(
-                    np.trace(np.dot(der_circuit_matrix.conj().T, target_matrix))
+                    np.trace(np.dot(der_circuit_matrix.conj().T, self._target_matrix))
                 )
 
         # now we compute the partial derivatives in the rotation part
@@ -248,11 +290,10 @@ class DefaultGradient(GradientBase):
             # the matrix corresponding to the full circuit partial derivative
             # is the usual cnot part multiplied by the partial derivative of
             # the rotation part
-            der_circuit_matrix = np.dot(cnot_matrix, der_rotation_matrix)
+            der_circuit_matrix = np.dot(self._cnot_matrix, der_rotation_matrix)
             # we compute the partial derivative of the cost function
             der[4 * num_cnots + i] = -np.real(
-                np.trace(np.dot(der_circuit_matrix.conj().T, target_matrix))
+                np.trace(np.dot(der_circuit_matrix.conj().T, self._target_matrix))
             )
 
-        # return error, gradient
-        return error, der
+        return der

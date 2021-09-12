@@ -23,7 +23,18 @@ from qiskit.transpiler.synthesis.aqc.aqc_plugin import AQCSynthesisPlugin
 
 
 class TestAQCSynthesisPlugin(QiskitTestCase):
-    """Tests AQC synthesis plugin"""
+    """Basic tests of the AQC synthesis plugin."""
+
+    def _compare_circuits_up_global_phase(
+        self, target_matrix: np.ndarray, approx_matrix: np.ndarray
+    ):
+        # Hilbert–Schmidt inner product
+        hs_product = np.trace(np.dot(approx_matrix.conj().T, target_matrix))
+
+        alpha = np.angle(hs_product)
+        target_matrix *= np.exp(-1j * alpha)
+
+        return 0.5 * (np.linalg.norm(approx_matrix - target_matrix, "fro") ** 2)
 
     def test_aqc_plugin(self):
         """Basic test of the plugin."""
@@ -35,10 +46,13 @@ class TestAQCSynthesisPlugin(QiskitTestCase):
             ],
             2,
         )
-        unitary = Operator(qc).data
+        target_unitary = Operator(qc).data
 
         plugin = AQCSynthesisPlugin()
-        dag = plugin.run(unitary, approximation_degree=0.001, thetas=None)
-        unitary2 = Operator(dag_to_circuit(dag)).data
-        error = 0.5 * (np.linalg.norm(unitary2 - unitary, "fro") ** 2)
-        self.assertLess(error, 0.7)
+        dag = plugin.run(target_unitary, approximation_degree=0.001)
+
+        approx_circuit = dag_to_circuit(dag)
+        approx_unitary = Operator(approx_circuit).data
+
+        error = self._compare_circuits_up_global_phase(target_unitary, approx_unitary)
+        self.assertLess(error, 0.001)
