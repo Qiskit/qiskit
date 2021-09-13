@@ -173,6 +173,7 @@ class InstructionDurations:
         unit: str = "dt",
     ) -> float:
         """Get the duration of the instruction with the name, parameters and qubits.
+        Priority with the most specific matching one.
 
         Args:
             inst: An instruction or its name to be queried.
@@ -192,15 +193,21 @@ class InstructionDurations:
             return self._convert_unit(inst.duration, inst.unit, unit)
 
         if isinstance(inst, Instruction):
-            inst_name = inst.name
+            name = inst.name
         else:
-            inst_name = inst
+            name = inst
 
         if isinstance(params, float):
-            params = [params]
+            params = tuple(list(params))
+        elif isinstance(params, list):
+            params = tuple(params)
+        else:
+            raise TranspilerError(f"Invalid params={params}")
 
         if isinstance(qubits, (int, Qubit)):
-            qubits = [qubits]
+            qubits = tuple(list(qubits))
+        elif isinstance(qubits, list):
+            qubits = tuple(qubits)
 
         if qubits and isinstance(qubits[0], Qubit):
             warnings.warn(
@@ -213,34 +220,22 @@ class InstructionDurations:
             )
             qubits = [q.index for q in qubits]
 
-        try:
-            return self._get(inst_name, params, qubits, unit)
-        except TranspilerError as ex:
-            raise TranspilerError(
-                f"Duration of {inst_name} with params {params} on" f"qubits {qubits} not found."
-            ) from ex
-
-    def _get(self, name: str, params: List[float], qubits: List[int], to_unit: str) -> float:
-        """Get the duration of the instruction, priority with the most specific matching one."""
-        if params is not None:
-            params = tuple(params)
-        if qubits is not None:
-            qubits = tuple(qubits)
-
+        print()
+        print(name, params, qubits)
         if (name, params, qubits) in self.duration_by_name_params_qubits:
-            duration, unit = self.duration_by_name_params_qubits[(name, params, qubits)]
+            duration, from_unit = self.duration_by_name_params_qubits[(name, params, qubits)]
         elif (name, params) in self.duration_by_name_params:
-            duration, unit = self.duration_by_name_params[(name, params)]
+            duration, from_unit = self.duration_by_name_params[(name, params)]
         elif (name, qubits) in self.duration_by_name_qubits:
-            duration, unit = self.duration_by_name_qubits[(name, qubits)]
+            duration, from_unit = self.duration_by_name_qubits[(name, qubits)]
         elif name in self.duration_by_name:
-            duration, unit = self.duration_by_name[name]
+            duration, from_unit = self.duration_by_name[name]
         else:
             raise TranspilerError(
-                f"No value is found for name={name}, params={params}, qubits={qubits}"
+                f"No duration found for name={name}, params={params}, qubits={qubits}"
             )
 
-        return self._convert_unit(duration, unit, to_unit)
+        return self._convert_unit(duration, from_unit, unit)
 
     def _convert_unit(self, duration: float, from_unit: str, to_unit: str) -> float:
         if from_unit.endswith("s") and from_unit != "s":
