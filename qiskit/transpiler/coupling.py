@@ -46,6 +46,8 @@ class CouplingMap:
         Args:
             couplinglist (list or None): An initial coupling graph, specified as
                 an adjacency list containing couplings, e.g. [[0,1], [0,2], [1,2]].
+                It is required that nodes are contiguously indexed starting at 0.
+                Missed nodes will be added as isolated nodes in the coupling map.
             description (str): A string to describe the coupling map.
         """
         self.description = description
