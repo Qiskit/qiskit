@@ -176,37 +176,24 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
             self._build()
             return np.zeros(self.reps * len(self.operators), dtype=float)
 
+    def _build_gate(self):
+        """ """
+        return EvolvedOperatorGate(
+            operators=self.operators,
+            reps=self.reps,
+            evolution=self.evolution,
+            insert_barriers=self._insert_barriers,
+            initial_state=self.initial_state,
+            label=self.name,
+        )
+
     def _build(self):
         if self._data is not None:
             return
 
         self._check_configuration()
         self._data = []
-        #
-        # # get the evolved operators as circuits
-        # from qiskit.opflow import PauliOp
-        #
-        # coeff = Parameter("c")
-        # circuits = []
-        # is_evolved_operator = []
-        # for op in self.operators:
-        #     # if the operator is already the evolved circuit just append it
-        #     if isinstance(op, QuantumCircuit):
-        #         circuits.append(op)
-        #         is_evolved_operator.append(False)  # has no time coeff
-        #     else:
-        #         # check if the operator is just the identity, if yes, skip it
-        #         if isinstance(op, PauliOp):
-        #             sig_qubits = np.logical_or(op.primitive.x, op.primitive.z)
-        #             if sum(sig_qubits) == 0:
-        #                 continue
-        #
-        #         evolved_op = self.evolution.convert((coeff * op).exp_i()).reduce()
-        #         circuits.append(evolved_op.to_circuit())
-        #         is_evolved_operator.append(True)  # has time coeff
-        #
-        # # set the registers
-        num_qubits = self.operators[0].num_qubits
+        num_qubits = self.num_qubits
 
         qr = QuantumRegister(num_qubits, "q")
         if qr.name not in [qreg.name for qreg in self.qregs]:
@@ -215,14 +202,7 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
             self.add_register(qr)
 
         self._append(
-            EvolvedOperatorGate(
-                operators=self.operators,
-                reps=self.reps,
-                evolution=self.evolution,
-                insert_barriers=self._insert_barriers,
-                initial_state=self.initial_state,
-                label=self.name,
-            ),
+            self._build_gate(),
             qargs=self.qubits,
             cargs=[],
         )
@@ -260,7 +240,8 @@ class EvolvedOperatorGate(Gate):
                 operators (and circuits).
             reps: The number of times to repeat the evolved operators.
             evolution (Optional[EvolutionBase]): An opflow converter object to construct the evolution.
-                Defaults to Trotterization.
+                Defaults to
+                :class:`~qiskit.opflow.evolutions.pauli_trotter_evolution.PauliTrotterEvolution`.
             insert_barriers: Whether to insert barriers in between each evolution.
             initial_state: A `QuantumCircuit` object to prepend to the circuit.
             label: The label for the gate.
@@ -283,8 +264,6 @@ class EvolvedOperatorGate(Gate):
         if len(operators) == 0:
             raise AttributeError("At least one operator is needed.")
         from qiskit.opflow import PauliOp
-
-
 
         # determine how many parameters the circuit will contain
         num_parameters = 0
@@ -356,9 +335,3 @@ class EvolvedOperatorGate(Gate):
                 # expression contains free parameters
                 pass
         self.definition = evolution
-        # try:
-        #     instr = evolution.to_gate()
-        # except QiskitError:
-        #     instr = evolution.to_instruction()
-        #
-        # self.append(instr, self.qubits)
