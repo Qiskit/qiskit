@@ -1804,7 +1804,6 @@ class QuantumCircuit:
         # Conditional gates act on all cbits in the register
         # they are conditioned on.
         # The max stack height is the circuit depth.
-        whitelist = list(filter(filter_function, self._data))
         for instr, qargs, cargs in self._data:
             levels = []
             reg_ints = []
@@ -1812,7 +1811,7 @@ class QuantumCircuit:
                 # Add to the stacks of the qubits and
                 # cbits used in the gate.
                 reg_ints.append(bit_indices[reg])
-                if (instr, qargs, cargs) in whitelist:
+                if (instr, qargs, cargs) in filter(filter_function, self._data):
                     levels.append(op_stack[reg_ints[ind]] + 1)
                 else:
                     levels.append(op_stack[reg_ints[ind]])
