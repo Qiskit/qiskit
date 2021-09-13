@@ -12,7 +12,9 @@
 
 """Test operations on circuit.data."""
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, Parameter
+from ddt import ddt, data, unpack
+
+from qiskit.circuit import Parameter, QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.library import HGate, XGate, CXGate, RXGate
 
 from qiskit.test import QiskitTestCase
@@ -34,11 +36,11 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         qc.cx(0, 1)
         qc.h(1)
 
-        data = qc.data
+        qc_data = qc.data
 
-        self.assertEqual(data[0], (HGate(), [qr[0]], []))
-        self.assertEqual(data[1], (CXGate(), [qr[0], qr[1]], []))
-        self.assertEqual(data[2], (HGate(), [qr[1]], []))
+        self.assertEqual(qc_data[0], (HGate(), [qr[0]], []))
+        self.assertEqual(qc_data[1], (CXGate(), [qr[0], qr[1]], []))
+        self.assertEqual(qc_data[2], (HGate(), [qr[1]], []))
 
     def test_count_gates(self):
         """Verify circuit.data can count inst/qarg/carg tuples."""
@@ -49,9 +51,9 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         qc.h(1)
         qc.h(0)
 
-        data = qc.data
+        qc_data = qc.data
 
-        self.assertEqual(data.count((HGate(), [qr[0]], [])), 2)
+        self.assertEqual(qc_data.count((HGate(), [qr[0]], [])), 2)
 
     def test_len(self):
         """Verify finding the length of circuit.data."""
@@ -425,3 +427,286 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         qc0_instance = qc0._parameter_table[b][0][0]
         qc1_instance = qc1._parameter_table[a][0][0]
         self.assertNotEqual(qc0_instance, qc1_instance)
+
+
+@ddt
+class TestQuantumCircuitRegisterData(QiskitTestCase):
+    """QuantumCircuit.{q,c}regs operation tests."""
+
+    # N.B. Most of the cases here are not expected use cases of circuit.{q,c}regs
+    # but are included as tests to maintain compatability with the previous
+    # list interface of circuit.{q,c}regs.
+
+    @data(["qregs", QuantumRegister], ["cregs", ClassicalRegister])
+    @unpack
+    def test_getitem_by_insertion_order(self, reg_prop, reg_type):
+        """Verify we can fetch registers by their insertion order."""
+        reg1 = reg_type(3, "reg1")
+        reg2 = reg_type(3, "reg2")
+        reg3 = reg_type(3, "reg3")
+        reg4 = reg_type(3, "reg4")
+
+        qc = QuantumCircuit(reg1, reg2, reg3, reg4)
+        circ_regs = getattr(qc, reg_prop)
+
+        # __eq__
+        self.assertEqual(circ_regs, [reg1, reg2, reg3, reg4])
+
+        # __len__
+        self.assertEqual(len(circ_regs), 4)
+
+        # __getitem__
+        self.assertEqual(circ_regs[0], reg1)
+        self.assertEqual(circ_regs[1], reg2)
+        self.assertEqual(circ_regs[2], reg3)
+        self.assertEqual(circ_regs[3], reg4)
+
+        with self.assertRaises(IndexError):
+            _ = circ_regs[4]
+
+        # __contains__
+        self.assertTrue(reg1 in circ_regs)
+        self.assertTrue(reg2 in circ_regs)
+        self.assertTrue(reg3 in circ_regs)
+        self.assertTrue(reg4 in circ_regs)
+
+        reg5 = reg_type(5, "reg5")
+        self.assertFalse(reg5 in circ_regs)
+
+        # .index
+        self.assertEqual(circ_regs.index(reg1), 0)
+        self.assertEqual(circ_regs.index(reg2), 1)
+        self.assertEqual(circ_regs.index(reg3), 2)
+        self.assertEqual(circ_regs.index(reg4), 3)
+
+        with self.assertRaises(ValueError):
+            _ = circ_regs.index(reg5)
+
+        # __iter__
+        iter_ = iter(circ_regs)
+        self.assertEqual(next(iter_), reg1)
+        self.assertEqual(next(iter_), reg2)
+        self.assertEqual(next(iter_), reg3)
+        self.assertEqual(next(iter_), reg4)
+        with self.assertRaises(StopIteration):
+            next(iter_)
+
+        # slice
+        self.assertEqual(circ_regs[::2], [reg1, reg3])
+        self.assertEqual(circ_regs[1::2], [reg2, reg4])
+
+        self.assertEqual(circ_regs[-1:1:-1], [reg4, reg3])
+        self.assertEqual(circ_regs[1:-1:-1], [])
+
+        # copy
+        self.assertEqual(circ_regs.copy(), circ_regs)
+        self.assertTrue(circ_regs.copy() is not circ_regs)
+
+        # repr
+        self.assertEqual(repr(circ_regs), repr([reg1, reg2, reg3, reg4]))
+
+        # str
+        self.assertEqual(str(circ_regs), str([reg1, reg2, reg3, reg4]))
+
+    @data(["qregs", "qubits", QuantumRegister], ["cregs", "clbits", ClassicalRegister])
+    @unpack
+    def test_remove_gate(self, reg_prop, bit_prop, reg_type):
+        """Verify removing a register via circuit.{q,c}regs.remove."""
+        reg1 = reg_type(3, "reg1")
+        reg2 = reg_type(3, "reg2")
+        reg3 = reg_type(3, "reg3")
+
+        qc = QuantumCircuit(reg1, reg2, reg3)
+
+        getattr(qc, reg_prop).remove(reg2)
+
+        self.assertEqual(getattr(qc, reg_prop), [reg1, reg3])
+        self.assertEqual(getattr(qc, bit_prop), reg1[:] + reg2[:] + reg3[:])
+
+    @data(["qregs", "qubits", QuantumRegister], ["cregs", "clbits", ClassicalRegister])
+    @unpack
+    def test_del(self, reg_prop, bit_prop, reg_type):
+        """Verify removing a register via circuit.{q,c}regs.delattr."""
+        reg1 = reg_type(3, "reg1")
+        reg2 = reg_type(3, "reg2")
+        reg3 = reg_type(3, "reg3")
+
+        qc = QuantumCircuit(reg1, reg2, reg3)
+
+        del getattr(qc, reg_prop)[1]
+
+        self.assertEqual(getattr(qc, reg_prop), [reg1, reg3])
+        self.assertEqual(getattr(qc, bit_prop), reg1[:] + reg2[:] + reg3[:])
+
+    @data(["qregs", "qubits", QuantumRegister], ["cregs", "clbits", ClassicalRegister])
+    @unpack
+    def test_pop_reg(self, reg_prop, bit_prop, reg_type):
+        """Verify removing a register via circuit.{q,c}regs.pop."""
+        reg1 = reg_type(3, "reg1")
+        reg2 = reg_type(3, "reg2")
+        reg3 = reg_type(3, "reg3")
+
+        qc = QuantumCircuit(reg1, reg2, reg3)
+
+        last_reg = getattr(qc, reg_prop).pop()
+
+        self.assertEqual(reg3, last_reg)
+        self.assertEqual(getattr(qc, reg_prop), [reg1, reg2])
+        self.assertEqual(getattr(qc, bit_prop), reg1[:] + reg2[:] + reg3[:])
+
+    @data(["qregs", "qubits", QuantumRegister], ["cregs", "clbits", ClassicalRegister])
+    @unpack
+    def test_clear_regs(self, reg_prop, bit_prop, reg_type):
+        """Verify emptying circuit registers via circuit.{q,c}regs.clear."""
+        reg1 = reg_type(3, "reg1")
+        reg2 = reg_type(3, "reg2")
+        reg3 = reg_type(3, "reg3")
+
+        qc = QuantumCircuit(reg1, reg2, reg3)
+
+        getattr(qc, reg_prop).clear()
+
+        self.assertEqual(getattr(qc, reg_prop), [])
+        self.assertEqual(getattr(qc, bit_prop), reg1[:] + reg2[:] + reg3[:])
+
+    @data(["qregs", "qubits", QuantumRegister], ["cregs", "clbits", ClassicalRegister])
+    @unpack
+    def test_reverse_regs(self, reg_prop, bit_prop, reg_type):
+        """Verify reversing circuit registers via circuit.{q,c}regs.reverse."""
+        reg1 = reg_type(3, "reg1")
+        reg2 = reg_type(3, "reg2")
+        reg3 = reg_type(3, "reg3")
+
+        qc = QuantumCircuit(reg1, reg2, reg3)
+
+        getattr(qc, reg_prop).reverse()
+
+        self.assertEqual(getattr(qc, reg_prop), [reg3, reg2, reg1])
+        self.assertEqual(getattr(qc, bit_prop), reg1[:] + reg2[:] + reg3[:])
+
+    @data(["qregs", QuantumRegister], ["cregs", ClassicalRegister])
+    @unpack
+    def test_repeating_a_circuit_via_mul(self, reg_prop, reg_type):
+        """Verify repeating registers via circuit.{q,c}regs.__mul__ raises a CircuitError."""
+        reg1 = reg_type(3, "reg1")
+        reg2 = reg_type(3, "reg2")
+        reg3 = reg_type(3, "reg3")
+
+        qc = QuantumCircuit(reg1, reg2, reg3)
+
+        with self.assertRaisesRegex(CircuitError, r"register name.*already exists"):
+            setattr(qc, reg_prop, getattr(qc, reg_prop) * 3)
+
+    @data(["qregs", "qubits", QuantumRegister], ["cregs", "clbits", ClassicalRegister])
+    @unpack
+    def test_add_radd(self, reg_prop, bit_prop, reg_type):
+        """Verify adding lists of registers via circuit.{q,c}regs.__add__."""
+        reg1 = reg_type(3, "reg1")
+        reg2 = reg_type(3, "reg2")
+        reg3 = reg_type(3, "reg3")
+
+        qc = QuantumCircuit(reg1, reg2, reg3)
+
+        new_reg1 = reg_type(3, "new_reg1")
+        new_reg2 = reg_type(3, "new_reg2")
+        new_regs = [new_reg1, new_reg2]
+
+        setattr(qc, reg_prop, getattr(qc, reg_prop) + new_regs)
+
+        self.assertEqual(getattr(qc, reg_prop), [reg1, reg2, reg3, new_reg1, new_reg2])
+        self.assertEqual(
+            getattr(qc, bit_prop), reg1[:] + reg2[:] + reg3[:] + new_reg1[:] + new_reg2[:]
+        )
+
+    @data(["qregs", "qubits", QuantumRegister], ["cregs", "clbits", ClassicalRegister])
+    @unpack
+    def test_append_is_validated(self, reg_prop, bit_prop, reg_type):
+        """Verify appended regs via circuit.{q,c}regs are validated."""
+        reg1 = reg_type(3, "reg1")
+        reg2 = reg_type(3, "reg2")
+        reg3 = reg_type(3, "reg3")
+
+        qc = QuantumCircuit(reg1, reg2, reg3)
+
+        with self.assertRaisesRegex(CircuitError, r"expected a register"):
+            getattr(qc, reg_prop).append("not a register")
+
+        self.assertEqual(getattr(qc, reg_prop), [reg1, reg2, reg3])
+        self.assertEqual(getattr(qc, bit_prop), reg1[:] + reg2[:] + reg3[:])
+
+        new_reg = reg_type(3, "new_reg")
+
+        getattr(qc, reg_prop).append(new_reg)
+
+        self.assertEqual(getattr(qc, reg_prop), [reg1, reg2, reg3, new_reg])
+        self.assertEqual(getattr(qc, bit_prop), reg1[:] + reg2[:] + reg3[:] + new_reg[:])
+
+    @data(["qregs", "qubits", QuantumRegister], ["cregs", "clbits", ClassicalRegister])
+    @unpack
+    def test_insert_is_validated(self, reg_prop, bit_prop, reg_type):
+        """Verify inserting regs via circuit.{q,c}regs are validated."""
+        reg1 = reg_type(3, "reg1")
+        reg2 = reg_type(3, "reg2")
+        reg3 = reg_type(3, "reg3")
+
+        qc = QuantumCircuit(reg1, reg2, reg3)
+
+        with self.assertRaisesRegex(CircuitError, r"expected a register"):
+            getattr(qc, reg_prop).insert(0, "not a register")
+
+        self.assertEqual(getattr(qc, reg_prop), [reg1, reg2, reg3])
+        self.assertEqual(getattr(qc, bit_prop), reg1[:] + reg2[:] + reg3[:])
+
+        new_reg = reg_type(3, "new_reg")
+
+        getattr(qc, reg_prop).insert(0, new_reg)
+
+        self.assertEqual(getattr(qc, reg_prop), [new_reg, reg1, reg2, reg3])
+        self.assertEqual(getattr(qc, bit_prop), reg1[:] + reg2[:] + reg3[:] + new_reg[:])
+
+    @data(["qregs", "qubits", QuantumRegister], ["cregs", "clbits", ClassicalRegister])
+    @unpack
+    def test_extend_is_validated(self, reg_prop, bit_prop, reg_type):
+        """Verify extending registers via circuit.{q,c}regs is validated."""
+        reg1 = reg_type(3, "reg1")
+        reg2 = reg_type(3, "reg2")
+        reg3 = reg_type(3, "reg3")
+
+        qc = QuantumCircuit(reg1, reg2, reg3)
+
+        with self.assertRaisesRegex(CircuitError, r"expected a register"):
+            getattr(qc, reg_prop).extend(["not a register"])
+
+        new_reg1 = reg_type(3, "new_reg1")
+        new_reg2 = reg_type(3, "new_reg2")
+        new_regs = [new_reg1, new_reg2]
+
+        getattr(qc, reg_prop).extend(new_regs)
+
+        self.assertEqual(getattr(qc, reg_prop), [reg1, reg2, reg3, new_reg1, new_reg2])
+        self.assertEqual(
+            getattr(qc, bit_prop), reg1[:] + reg2[:] + reg3[:] + new_reg1[:] + new_reg2[:]
+        )
+
+    @data(["qregs", "qubits", QuantumRegister], ["cregs", "clbits", ClassicalRegister])
+    @unpack
+    def test_setting_data_is_validated(self, reg_prop, bit_prop, reg_type):
+        """Verify setting circuit.data is broadcast and validated."""
+        reg1 = reg_type(3, "reg1")
+        reg2 = reg_type(3, "reg2")
+        reg3 = reg_type(3, "reg3")
+
+        qc = QuantumCircuit(reg1, reg2, reg3)
+
+        with self.assertRaisesRegex(CircuitError, r"expected a register"):
+            setattr(qc, reg_prop, ["not a register"])
+
+        new_reg1 = reg_type(3, "new_reg1")
+        new_reg2 = reg_type(3, "new_reg2")
+
+        setattr(qc, reg_prop, [new_reg1, reg2, new_reg2])
+
+        self.assertEqual(getattr(qc, reg_prop), [new_reg1, reg2, new_reg2])
+        self.assertEqual(
+            getattr(qc, bit_prop), reg1[:] + reg2[:] + reg3[:] + new_reg1[:] + new_reg2[:]
+        )

@@ -52,7 +52,7 @@ from .parametervector import ParameterVector, ParameterVectorElement
 from .instructionset import InstructionSet
 from .register import Register
 from .bit import Bit
-from .quantumcircuitdata import QuantumCircuitData
+from .quantumcircuitdata import QuantumCircuitData, QuantumCircuitQregs, QuantumCircuitCregs
 from .delay import Delay
 from .measure import Measure
 from .reset import Reset
@@ -417,7 +417,7 @@ class QuantumCircuit:
                  └──────────┘
         """
         reverse_circ = QuantumCircuit(
-            self.qubits, self.clbits, *self.qregs, *self.cregs, name=self.name + "_reverse"
+            self.qubits, self.clbits, *self._qregs, *self._cregs, name=self.name + "_reverse"
         )
 
         for inst, qargs, cargs in reversed(self.data):
@@ -1240,6 +1240,26 @@ class QuantumCircuit:
             if spec[0] is instruction and spec[1] == param_index:
                 return True
         return False
+
+    @property
+    def qregs(self):
+        """Returns a list of QuantumRegisters attached to the circuit."""
+        return QuantumCircuitQregs(self)
+
+    @qregs.setter
+    def qregs(self, regs):
+        self._qregs = []
+        self.add_register(*regs)
+
+    @property
+    def cregs(self):
+        """Returns a list of ClassicalRegisters attached to the circuit."""
+        return QuantumCircuitCregs(self)
+
+    @cregs.setter
+    def cregs(self, regs):
+        self._cregs = []
+        self.add_register(*regs)
 
     def add_register(self, *regs: Union[Register, int, Sequence[Bit]]) -> None:
         """Add registers."""
