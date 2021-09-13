@@ -903,6 +903,8 @@ class MatplotlibDrawer:
                 v_ind += 1
         clbit_b = min(xy_plot, key=lambda xy: xy[1])
         xpos, ypos = clbit_b
+        if isinstance(node.op, Measure):
+            xpos += 0.3
         self._ax.text(
             xpos,
             ypos - 0.3 * HIG,
@@ -1062,12 +1064,12 @@ class MatplotlibDrawer:
             return
 
         c_xy = self._data[node]["c_xy"]
-        xpos = min([x[0] for x in xy])
-        ypos = min([y[1] for y in xy])
-        ypos_max = max([y[1] for y in xy])
+        xpos = min(x[0] for x in xy)
+        ypos = min(y[1] for y in xy)
+        ypos_max = max(y[1] for y in xy)
         if c_xy:
-            cxpos = min([x[0] for x in c_xy])
-            cypos = min([y[1] for y in c_xy])
+            cxpos = min(x[0] for x in c_xy)
+            cypos = min(y[1] for y in c_xy)
             ypos = min(ypos, cypos)
 
         wid = max(self._data[node]["width"] + 0.21, WID)

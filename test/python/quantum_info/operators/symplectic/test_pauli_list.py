@@ -70,7 +70,7 @@ def pauli_mat(label):
         elif i == "Z":
             mat = np.kron(mat, np.array([[1, 0], [0, -1]], dtype=complex))
         else:
-            raise QiskitError("Invalid Pauli string {}".format(i))
+            raise QiskitError(f"Invalid Pauli string {i}")
     return mat
 
 
@@ -228,6 +228,12 @@ class TestPauliListInit(QiskitTestCase):
             value = PauliList(target)
             value[0] = "II"
             self.assertEqual(value, target)
+
+    def test_init_from_settings(self):
+        """Test initializing from the settings dictionary."""
+        pauli_list = PauliList(["IX", "-iYZ", "YY"])
+        from_settings = PauliList(**pauli_list.settings)
+        self.assertEqual(pauli_list, from_settings)
 
 
 @ddt
@@ -1503,13 +1509,13 @@ class TestPauliListMethods(QiskitTestCase):
             target0 = PauliList([j * "I", j * "X"])
             target1 = PauliList([j * "X", j * "I"])
 
-            with self.subTest(msg="single row from str ({})".format(j)):
+            with self.subTest(msg=f"single row from str ({j})"):
                 value0 = pauli.insert(0, j * "I")
                 self.assertEqual(value0, target0)
                 value1 = pauli.insert(1, j * "I")
                 self.assertEqual(value1, target1)
 
-            with self.subTest(msg="single row from PauliList ({})".format(j)):
+            with self.subTest(msg=f"single row from PauliList ({j})"):
                 value0 = pauli.insert(0, PauliList(j * "I"))
                 self.assertEqual(value0, target0)
                 value1 = pauli.insert(1, PauliList(j * "I"))
@@ -1518,13 +1524,13 @@ class TestPauliListMethods(QiskitTestCase):
             target0 = PauliList(["i" + j * "I", j * "X"])
             target1 = PauliList([j * "X", "i" + j * "I"])
 
-            with self.subTest(msg="single row with phase from str ({})".format(j)):
+            with self.subTest(msg=f"single row with phase from str ({j})"):
                 value0 = pauli.insert(0, "i" + j * "I")
                 self.assertEqual(value0, target0)
                 value1 = pauli.insert(1, "i" + j * "I")
                 self.assertEqual(value1, target1)
 
-            with self.subTest(msg="single row with phase from PauliList ({})".format(j)):
+            with self.subTest(msg=f"single row with phase from PauliList ({j})"):
                 value0 = pauli.insert(0, PauliList("i" + j * "I"))
                 self.assertEqual(value0, target0)
                 value1 = pauli.insert(1, PauliList("i" + j * "I"))
@@ -1537,7 +1543,7 @@ class TestPauliListMethods(QiskitTestCase):
             target0 = insert + pauli
             target1 = pauli + insert
 
-            with self.subTest(msg="multiple-rows from PauliList ({})".format(j)):
+            with self.subTest(msg=f"multiple-rows from PauliList ({j})"):
                 value0 = pauli.insert(0, insert)
                 self.assertEqual(value0, target0)
                 value1 = pauli.insert(1, insert)

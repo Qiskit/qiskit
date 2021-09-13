@@ -20,15 +20,20 @@ from .instruction import Instruction
 class InstructionSet:
     """Instruction collection, and their contexts."""
 
-    def __init__(self):
+    def __init__(self, circuit_clbits=None):
         """New collection of instructions.
 
         The context (qargs and cargs that each instruction is attached to)
         is also stored separately for each instruction.
+
+        Args:
+            circuit_clbits (list[Clbit]): Optional. List of clbits of the
+                circuit to which the instruction is added. Default: `None`.
         """
         self.instructions = []
         self.qargs = []
         self.cargs = []
+        self.circuit_clbits = circuit_clbits
 
     def __len__(self):
         """Return number of instructions in set"""
@@ -54,6 +59,8 @@ class InstructionSet:
 
     def c_if(self, classical, val):
         """Add condition on classical register to all instructions."""
+        if isinstance(classical, int):
+            classical = self.circuit_clbits[classical]
         for gate in self.instructions:
             gate.c_if(classical, val)
         return self
