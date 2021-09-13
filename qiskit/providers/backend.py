@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=invalid-name
+
 """Backend abstract interface for providers."""
 
 
@@ -336,17 +338,81 @@ class BackendV2(Backend, ABC):
         """
         pass
 
-    @property
-    def properties(self):
-        """Return the backend properties.
+    def t1(self, qubit: int):
+        """Return the T1 time of a given qubit
 
-        The properties of a backend are the measure properties of backend.
+        Args:
+            qubit: The qubit index to get the T1 time for
 
         Returns:
-            BackendProperties: the configuration for the backend. If the backend
-            does not support properties, it returns ``None``.
+            t1: the T1 time for the specified qubit
+
+        Raises:
+            NotImplementedError: if the backend doesn't support querying the
+                t1 time for a qubit
         """
-        return None
+        raise NotImplementedError
+
+    def t2(self, qubit: int):
+        """Return the T2 time of a given qubit
+
+        Args:
+            qubit: The qubit index to get the T2 time for
+
+        Returns:
+            t2: the T2 time for the specified qubit
+
+        Raises:
+            NotImplementedError: if the backend doesn't support querying the
+                t2 time for a qubit
+        """
+        raise NotImplementedError
+
+    def readout_error(self, qubit: int) -> float:
+        """Return the readout error rate of a given qubit
+
+        Args:
+            qubit: The qubit index to get the readout error rate for
+
+        Returns:
+            readout_error: the readout error rate for the specified qubit
+
+        Raises:
+            NotImplementedError: if the backend doesn't support querying the
+                readout error rate
+        """
+        raise NotImplementedError
+
+    def readout_length(self, qubit: int) -> float:
+        """Return the readout length of a given qubit
+
+        Args:
+            qubit: The qubit index to get the readout length for
+
+        Returns:
+            readout_length: the length/duration of a readout for the specified
+            qubit
+
+        Raises:
+            NotImplementedError: if the backend doesn't support querying the
+                readout length
+        """
+        raise NotImplementedError
+
+    def qubit_frequency(self, qubit: int) -> float:
+        """Return the frequency of a given qubit
+
+        Args:
+            qubit: The qubit index to get the frequency for
+
+        Returns:
+            frequency: the frequency of the specified qubit
+
+        Raises:
+            NotImplementedError: if the backend doesn't support querying the
+                qubit frequency
+        """
+        raise NotImplementedError
 
     def set_options(self, **fields):
         """Set the options fields for the backend
