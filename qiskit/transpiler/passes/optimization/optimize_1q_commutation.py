@@ -98,6 +98,10 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
 
         Returns a pair of lists whose concatenation is `run`.
         """
+
+        if run == []:
+            return [], []
+
         run_clone = copy(run)
 
         commuted = []
