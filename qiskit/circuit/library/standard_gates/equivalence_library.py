@@ -654,7 +654,7 @@ for inst, qargs, cargs in [
     (HGate(), [q[0]], []),
 ]:
     def_x.append(inst, qargs, cargs)
-_sel.add_equivalence(XGate(), )
+_sel.add_equivalence(XGate(), def_x)
 
 
 # CXGate
