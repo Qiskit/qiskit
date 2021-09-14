@@ -43,9 +43,30 @@ class GateProperties:
 class GateMap:
     """
     A description of gates on a backend. It exists around a central mapping of
-    :class:`~qiskit.circuit.Instruction` objects to their propertieson the
-    device. A basic example, lets
+    :class:`~qiskit.circuit.Instruction` objects to their properties on the
+    device. As a basic example, lets assume your device is two qubits, supports
+    :class:`~qiskit.circuit.library.UGate` on both qubits and
+    :class:`~qiskit.circuit.library.CXGate` in both directions you would create
+    the gate map like::
 
+        from qiskit.transpiler import GateMap
+        from qiskit.circuit.library import UGate, CXGate
+        from qiskit.circuit import Parameter
+
+        gmap = GateMap()
+        theta = Parameter('theta')
+        phi = Parameter('phi')
+        lam = Parameter('lambda')
+        u_props = {
+            (0,): GateProperties(length=5.23e-8, error=0.00038115),
+            (1,): GateProperties(length=4.52e-8, error=0.00032115),
+        }
+        gmap.add_gate(UGate(theta, phi, lam), [(0,), (1,)], properties=u_props)
+        cx_props = {
+            (0,1): GateProperties(length=5.23e-7, error=0.00098115),
+            (1,0): GateProperties(length=4.52e-7, error=0.00132115),
+        }
+        gmap.add_gate(CXGate(), [(0, 1), (1, 0)], properties=cx_props)
 
     .. note::
 
@@ -63,9 +84,10 @@ class GateMap:
     """
 
     __slots__ = (
-        "qubits",
-        "qargs",
+        "num_qubits",
         "_gate_map",
+        "_gate_name_map",
+        "_qarg_gate_map",
         "description",
         "_coupling_graph",
         "_unweighted_dist_matrix",
@@ -73,7 +95,7 @@ class GateMap:
         "_error_distance_matrix",
     )
 
-    def __init__(self, gate_map=None, description=None):
+    def __init__(self, description=None):
         """
         Create a new gate map class
 
@@ -82,24 +104,17 @@ class GateMap:
                 qargs for
             description (str): A string to describe the coupling map.
         """
-        self.qubits = set()
-        self.qargs = set()
+        self.num_qubits = 0
+        self._gate_name_map = {}
         self._gate_map = {}
-        if gate_map:
-            self._gate_map = gate_map
-            for qargs in self._gate_map.values():
-                for qarg in qargs:
-                    self.qargs.add(qarg)
-                    for qubit in qarg:
-                        self.qubits.add(qubit)
-
+        self._qarg_gate_map = {}
         self.description = description
         self._coupling_graph = None
         self._unweighted_dist_matrix = None
         self._length_distance_matrix = None
         self._error_distance_matrix = None
 
-    def add_gate(self, gate, qargs, properties=None):
+    def add_gate(self, gate, qargs, name=None, properties=None):
         """A a new gate to the gate_map
 
         Args:
@@ -108,15 +123,23 @@ class GateMap:
             qargs (list): A list of qubit indices the gate applies to. In the case
                 of multiqubit gates this will be the tuple of qubits the gate can
                 be applied to.
+            name (str): An optional name to use for identifying the gate. If not
+                specified the :attr:`~qiskit.circuit.Instruction.name` attribute
+                of ``gate`` will be used. All gates in the ``GateMap`` need unique
+                names. Using a custom name allows a backend to specify duplicate
+                gates with different parameters.
             properties (dict): An optional dictionary of qarg entries to a
                 GateProperties object for that gate implementation on the backend
         Raises:
             AttributeError: If gate is already in map
         """
-        if gate in self._gate_map:
+        gate_name = name or gate.name
+        if gate_name in self._gate_map:
             raise AttributeError("already in map")
+        self._gate_name_map[gate_name] = gate
         qargs_val = {}
         for qarg in qargs:
+            self.num_qubits = max(self.num_qubits, max(qarg))
             if properties:
                 if qarg in properties:
                     qargs_val[qarg] = properties[qarg]
@@ -124,22 +147,40 @@ class GateMap:
                     qargs_val[qarg] = None
             else:
                 qargs_val[qarg] = None
-            for qubit in qarg:
-                self.qubits.add(qubit)
+            if qarg in self._qarg_gate_map:
+                self._qarg_gate_map[qarg].add(gate_name)
+            else:
+                self._qarg_gate_map[qarg] = set(gate_name)
+        self._gate_map[gate_name] = qargs_val
         self._coupling_graph = None
         self._unweighted_dist_matrix = None
         self._length_distance_matrix = None
         self._error_distance_matrix = None
 
+    @property
+    def qargs(self):
+        """The set of qargs in the gate map."""
+        return set(self._qarg_gate_map)
+
     def get_qargs(self, gate):
         """Get the qargs for a given gate instance
 
         Args:
-           gate (Instruction): The gate instance to get qargs for
+           gate (str): The gate instance to get qargs for
         Returns:
             set: The set of qargs the gate instance applies to
         """
         return set(self._gate_map[gate])
+
+    def get_gate_from_name(self, gate):
+        """Get the gate object for a given name
+
+        Args:
+           gate (str): The gate name to get the gate instance for
+        Returns:
+            Gate: The gate instance corresponding to the name
+        """
+        return self._gate_name_map[gate]
 
     def get_qargs_from_name(self, gate_name):
         """Get the qargs for a given gate by name
@@ -154,27 +195,27 @@ class GateMap:
         """
         output = set()
         for gate, qarg_map in self._gate_map.items():
-            if gate.name == gate_name:
+            if gate == gate_name:
                 output.union(set(qarg_map))
         return output
 
     @property
     def gate_names(self):
         """Gate the basis gate names in the gate map"""
-        return set(x.name for x in self._gate_map)
+        return set(self._gate_map)
 
     @property
     def gates(self):
         """Gate the basis gates in the gate map"""
-        return set(self._gate_map)
+        return list(self._gate_name_map.values())
 
     def size(self):
         """Return the number of physical qubits in this graph."""
-        return max(self.qubits) + 1
+        return self.num_qubits
 
     def _build_coupling_graph(self):
         self._coupling_graph = rx.PyDiGraph(multigraph=False)
-        self._coupling_graph.add_nodes_from(list({} for _ in range(max(self.qubits))))
+        self._coupling_graph.add_nodes_from(list({} for _ in range(self.num_qubits)))
         for gate, qarg_map in self._gate_map:
             for qarg, properties in qarg_map.items():
                 if len(qarg) == 1:
@@ -203,7 +244,7 @@ class GateMap:
     @property
     def physical_qubits(self):
         """Returns a sorted list of physical_qubits"""
-        return sorted(self.qubits)
+        return list(range(self.num_qubits))
 
     def distance_matrix(self, weight=None):
         """Return the distance matrix for the coupling map."""
