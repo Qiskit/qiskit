@@ -231,6 +231,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
             optimizer=optimizer,
             max_evals_grouped=1,
             quantum_instance=quantum_instance,
+            include_custom=True,
         )
 
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)

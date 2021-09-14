@@ -14,14 +14,15 @@
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
+
 from qiskit import Aer
-from qiskit.circuit.library import RealAmplitudes
-from qiskit.utils import QuantumInstance, algorithm_globals
-from qiskit.opflow import PauliSumOp
-from qiskit.algorithms.optimizers import AQGD
 from qiskit.algorithms import VQE, AlgorithmError
+from qiskit.algorithms.optimizers import AQGD
+from qiskit.circuit.library import RealAmplitudes
+from qiskit.opflow import PauliSumOp
 from qiskit.opflow.gradients import Gradient
 from qiskit.test import slow_test
+from qiskit.utils import QuantumInstance, algorithm_globals
 
 
 @unittest.skipUnless(Aer, "Aer is required to run these tests")
@@ -70,7 +71,12 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
         )
 
         aqgd = AQGD(maxiter=[1000, 1000, 1000], eta=[1.0, 0.5, 0.3], momentum=[0.0, 0.5, 0.75])
-        vqe = VQE(ansatz=RealAmplitudes(), optimizer=aqgd, quantum_instance=q_instance)
+        vqe = VQE(
+            ansatz=RealAmplitudes(),
+            optimizer=aqgd,
+            quantum_instance=q_instance,
+            include_custom=True,
+        )
         result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
         self.assertAlmostEqual(result.eigenvalue.real, -1.857, places=3)
 

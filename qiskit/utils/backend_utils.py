@@ -138,11 +138,12 @@ def is_statevector_backend(backend):
         bool: True is statevector
     """
     if has_aer():
-        from qiskit.providers.aer.backends import AerSimulator, StatevectorSimulator
+        from qiskit.providers.aer.backends import (
+            AerSimulator,
+            StatevectorSimulator,
+        )
 
         if isinstance(backend, StatevectorSimulator):
-            return True
-        if isinstance(backend, AerSimulator) and backend.name() == "aer_simulator_statevector":
             return True
     return backend.name().startswith("statevector") if backend is not None else False
 
@@ -180,11 +181,9 @@ def is_aer_qasm(backend):
     Returns:
         bool: True is Aer Qasm simulator
     """
-    ret = False
     if is_aer_provider(backend):
-        if not is_statevector_backend(backend):
-            ret = True
-    return ret
+        return True
+    return False
 
 
 def support_backend_options(backend):
