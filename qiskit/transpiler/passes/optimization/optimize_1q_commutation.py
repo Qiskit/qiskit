@@ -20,7 +20,9 @@ from qiskit.circuit.library.standard_gates import CXGate, RZXGate
 from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.transpiler.passes.optimization import Optimize1qGatesDecomposition
+from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
+    Optimize1qGatesDecomposition,
+)
 
 logger = logging.getLogger(__name__)
 
