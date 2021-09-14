@@ -177,6 +177,7 @@ Quantum Circuit Construction
    Clbit
    AncillaRegister
    AncillaQubit
+   Operation
 
 Gates and Instructions
 ----------------------
@@ -212,6 +213,7 @@ Random Circuits
    random.random_circuit
 """
 from .quantumcircuit import QuantumCircuit
+from .operation import Operation
 from .classicalregister import ClassicalRegister, Clbit
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .gate import Gate

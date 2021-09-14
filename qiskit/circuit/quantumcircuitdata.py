@@ -17,6 +17,7 @@ from collections.abc import MutableSequence
 
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.operation import Operation
 
 
 class QuantumCircuitData(MutableSequence):
@@ -54,13 +55,18 @@ class QuantumCircuitData(MutableSequence):
         self._circuit._check_qargs(qargs)
         self._circuit._check_cargs(cargs)
 
-        self._circuit._data[key] = (instruction, qargs, cargs)
+        self._circuit._data[key] = Operation(instruction, qargs, cargs)
 
         self._circuit._update_parameter_table(instruction)
 
     def insert(self, index, value):
         self._circuit._data.insert(index, None)
-        self[index] = value
+        if isinstance(value, tuple):
+            self[index] = Operation(*value)
+        elif isinstance(index, Operation):
+            self[index] = value
+        else:
+            raise TypeError("Invalid element type %s" % type(value))
 
     def __delitem__(self, i):
         del self._circuit._data[i]

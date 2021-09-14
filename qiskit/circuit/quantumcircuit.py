@@ -40,6 +40,7 @@ from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.operation import Operation
 from qiskit.qasm.qasm import Qasm
 from qiskit.qasm.exceptions import QasmError
 from qiskit.circuit.exceptions import CircuitError
@@ -1195,8 +1196,8 @@ class QuantumCircuit:
         self._check_cargs(cargs)
 
         # add the instruction onto the given wires
-        instruction_context = instruction, qargs, cargs
-        self._data.append(instruction_context)
+        operation = Operation(instruction, qargs, cargs)
+        self._data.append(operation)
 
         self._update_parameter_table(instruction)
 
@@ -1811,6 +1812,7 @@ class QuantumCircuit:
                 # Add to the stacks of the qubits and
                 # cbits used in the gate.
                 reg_ints.append(bit_indices[reg])
+
                 if (instr, qargs, cargs) in filter(filter_function, self._data):
                     levels.append(op_stack[reg_ints[ind]] + 1)
                 else:
