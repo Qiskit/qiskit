@@ -195,7 +195,7 @@ class TestParameters(QiskitTestCase):
         for i in (numpy.float16, numpy.float32):
             with self.subTest(float_type=i):
                 expr = (v[0] * (x + y + z) + phase) - (v[2] * v[1])
-                params = numpy.array([0.1 * i for i in range(8)], dtype=i)
+                params = numpy.array([0.1 * j for j in range(8)], dtype=i)
                 order = [phase] + v[:] + [x, y, z]
                 param_dict = dict(zip(order, params))
                 bound_value = expr.bind(param_dict)
