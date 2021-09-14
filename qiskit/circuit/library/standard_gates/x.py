@@ -469,14 +469,6 @@ class C3SXGate(ControlledGate):
             "c3sx", 4, [], num_ctrl_qubits=3, label=label, ctrl_state=ctrl_state, base_gate=SXGate()
         )
 
-        if angle is not None:
-            warnings.warn(
-                "The angle argument is deprecated as of Qiskit Terra 0.17.0 and will "
-                "be removed no earlier than 3 months after the release date.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-
         if angle is None:
             angle = numpy.pi / 8
 

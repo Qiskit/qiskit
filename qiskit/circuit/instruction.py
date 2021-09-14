@@ -321,20 +321,6 @@ class Instruction:
         else:
             raise TypeError("label expects a string or None")
 
-    def mirror(self):
-        """DEPRECATED: use instruction.reverse_ops().
-
-        Return:
-            qiskit.circuit.Instruction: a new instruction with sub-instructions
-                reversed.
-        """
-        warnings.warn(
-            "instruction.mirror() is deprecated. Use circuit.reverse_ops()"
-            "to reverse the order of gates.",
-            DeprecationWarning,
-        )
-        return self.reverse_ops()
-
     def reverse_ops(self):
         """For a composite instruction, reverse the order of sub-instructions.
 
