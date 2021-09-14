@@ -855,7 +855,7 @@ class MatplotlibDrawer:
         v_ind = 0
         xy_plot = []
         for xy, m in zip(cond_xy, cmask):
-            if m == "1":
+            if m == "0":
                 if xy not in xy_plot:
                     if vlist[v_ind] == "1" or self._cregbundle:
                         fc = self._style["lc"]
