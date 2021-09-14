@@ -63,7 +63,10 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
     def __init__(self, basis=None, run_to_completion=False):
         """
         Args:
-            basis (list[str]): See also `Optimize1qGatesDecomposition`.
+            basis (List[str]): See also `Optimize1qGatesDecomposition`.
+            run_to_completion (bool): If `True`, this pass retries until it is unable to do any more
+                work.  If `False`, it finds and performs one optimization, and for full optimization
+                the user is obligated to re-call the pass until the output stabilizes.
         """
         super().__init__()
 
