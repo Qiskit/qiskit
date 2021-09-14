@@ -198,14 +198,12 @@ class InstructionDurations:
             name = inst
 
         if isinstance(params, float):
-            params = tuple(list(params))
+            params = (params,)
         elif isinstance(params, list):
             params = tuple(params)
-        else:
-            raise TranspilerError(f"Invalid params={params}")
 
         if isinstance(qubits, (int, Qubit)):
-            qubits = tuple(list(qubits))
+            qubits = (qubits,)
         elif isinstance(qubits, list):
             qubits = tuple(qubits)
 
@@ -220,17 +218,22 @@ class InstructionDurations:
             )
             qubits = [q.index for q in qubits]
 
-        print()
-        print(name, params, qubits)
-        if (name, params, qubits) in self.duration_by_name_params_qubits:
-            duration, from_unit = self.duration_by_name_params_qubits[(name, params, qubits)]
-        elif (name, params) in self.duration_by_name_params:
-            duration, from_unit = self.duration_by_name_params[(name, params)]
-        elif (name, qubits) in self.duration_by_name_qubits:
-            duration, from_unit = self.duration_by_name_qubits[(name, qubits)]
-        elif name in self.duration_by_name:
-            duration, from_unit = self.duration_by_name[name]
-        else:
+        not_found = False
+        try:
+            if (name, params, qubits) in self.duration_by_name_params_qubits:
+                duration, from_unit = self.duration_by_name_params_qubits[(name, params, qubits)]
+            elif (name, params) in self.duration_by_name_params:
+                duration, from_unit = self.duration_by_name_params[(name, params)]
+            elif (name, qubits) in self.duration_by_name_qubits:
+                duration, from_unit = self.duration_by_name_qubits[(name, qubits)]
+            elif name in self.duration_by_name:
+                duration, from_unit = self.duration_by_name[name]
+            else:
+                not_found = True
+        except TypeError:
+            not_found = True
+
+        if not_found:
             raise TranspilerError(
                 f"No duration found for name={name}, params={params}, qubits={qubits}"
             )
