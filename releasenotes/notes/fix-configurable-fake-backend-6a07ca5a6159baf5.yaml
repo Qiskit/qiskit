@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The member ``name`` of :py:class:`~qiskit.test.mock.utils.configurable_backend.\
+    ConfigurableFakeBackend` is updated to a class method. This used to cause a bug
+    in several unittests because string is not callable.
