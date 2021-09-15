@@ -22,7 +22,6 @@ from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
 from . import (
     HGate,
     CHGate,
-    MSGate,
     PhaseGate,
     CPhaseGate,
     RGate,
@@ -93,19 +92,6 @@ for inst, qargs, cargs in [
 ]:
     def_ch.append(inst, qargs, cargs)
 _sel.add_equivalence(CHGate(), def_ch)
-
-# MSGate
-
-for num_qubits in range(2, 20):
-    q = QuantumRegister(num_qubits, "q")
-    theta = Parameter("theta")
-    def_ms = QuantumCircuit(q)
-    for i in range(num_qubits):
-        for j in range(i + 1, num_qubits):
-            def_ms.append(RXXGate(theta), [q[i], q[j]])
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        _sel.add_equivalence(MSGate(num_qubits, theta), def_ms)
 
 # PhaseGate
 
