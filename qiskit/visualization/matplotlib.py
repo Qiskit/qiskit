@@ -27,7 +27,7 @@ try:
 except ImportError:
     HAS_PYLATEX = False
 
-from qiskit.circuit import ControlledGate
+from qiskit.circuit import ControlledGate, Clbit
 from qiskit.circuit import Measure
 from qiskit.circuit.library.standard_gates import (
     SwapGate,
@@ -834,11 +834,18 @@ class MatplotlibDrawer:
 
     def _condition(self, node, cond_xy):
         """Add a conditional to a gate"""
+        cond_is_bit = bool(isinstance(node.op.condition[0], Clbit))
         mask = 0
         qubit_b = min(self._data[node]["q_xy"], key=lambda xy: xy[1])
-        for index, cbit in enumerate(self._clbit):
-            if self._bit_locations[cbit]["register"] == node.op.condition[0]:
-                mask |= 1 << index
+        if cond_is_bit:
+            for index, cbit in enumerate(self._clbit):
+                if cbit == node.op.condition[0]:
+                    mask = 1 << index
+                    break
+        else:
+            for index, cbit in enumerate(self._clbit):
+                if self._bit_locations[cbit]["register"] == node.op.condition[0]:
+                    mask |= 1 << index
         val = node.op.condition[1]
 
         # cbit list to consider
@@ -874,12 +881,18 @@ class MatplotlibDrawer:
                 v_ind += 1
         clbit_b = min(xy_plot, key=lambda xy: xy[1])
         xpos, ypos = clbit_b
+        if cond_is_bit and self._cregbundle:
+            cond_reg = self._bit_locations[node.op.condition[0]]["register"]
+            ctrl_bit = self._bit_locations[node.op.condition[0]]["index"]
+            label = "%s_%s=%s" % (cond_reg.name, ctrl_bit, hex(val))
+        else:
+            label = hex(val)
         if isinstance(node.op, Measure):
             xpos += 0.3
         self._ax.text(
             xpos,
             ypos - 0.3 * HIG,
-            hex(val),
+            label,
             ha="center",
             va="top",
             fontsize=self._sfs,
