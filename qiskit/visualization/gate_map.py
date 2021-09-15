@@ -24,7 +24,6 @@ from .utils import matplotlib_close_if_inline
 def plot_gate_map(
     backend,
     figsize=None,
-    filename=None,
     plot_directed=False,
     label_qubits=True,
     qubit_size=None,
@@ -35,6 +34,7 @@ def plot_gate_map(
     line_color=None,
     font_color="w",
     ax=None,
+    filename=None,
 ):
     """Plots the gate map of a device.
 
@@ -42,7 +42,6 @@ def plot_gate_map(
         backend (BaseBackend): The backend instance that will be used to plot the device
             gate map.
         figsize (tuple): Output figure size (wxh) in inches.
-        filename (str): file path to save image to.
         plot_directed (bool): Plot directed coupling map.
         label_qubits (bool): Label the qubits.
         qubit_size (float): Size of qubit marker.
@@ -53,6 +52,7 @@ def plot_gate_map(
         line_color (list): A list of colors for each line from coupling_map.
         font_color (str): The font color for the qubit labels.
         ax (Axes): A Matplotlib axes instance.
+        filename (str): file path to save image to.
 
     Returns:
         Figure: A Matplotlib figure instance.
@@ -354,7 +354,6 @@ def plot_gate_map(
         num_qubits,
         qubit_coordinates,
         coupling_map,
-        filename,
         figsize,
         plot_directed,
         label_qubits,
@@ -366,6 +365,7 @@ def plot_gate_map(
         line_color,
         font_color,
         ax,
+        filename,
     )
 
 
@@ -373,7 +373,6 @@ def plot_coupling_map(
     num_qubits: int,
     qubit_coordinates: List[List[int]],
     coupling_map: List[List[int]],
-    filename=None,
     figsize=None,
     plot_directed=False,
     label_qubits=True,
@@ -385,6 +384,7 @@ def plot_coupling_map(
     line_color=None,
     font_color="w",
     ax=None,
+    filename=None,
 ):
     """Plots an arbitrary coupling map of qubits (embedded in a plane).
 
@@ -394,7 +394,6 @@ def plot_coupling_map(
             list being the planar coordinates in a 0-based square grid where each qubit is located.
         coupling_map (List[List[int]]): A list of two-element lists, with entries of each nested
             list being the qubit numbers of the bonds to be plotted.
-        filename (str): file path to save image to.
         figsize (tuple): Output figure size (wxh) in inches.
         plot_directed (bool): Plot directed coupling map.
         label_qubits (bool): Label the qubits.
@@ -406,6 +405,7 @@ def plot_coupling_map(
         line_color (list): A list of colors for each line from coupling_map.
         font_color (str): The font color for the qubit labels.
         ax (Axes): A Matplotlib axes instance.
+        filename (str): file path to save image to.
 
     Returns:
         Figure: A Matplotlib figure instance.
