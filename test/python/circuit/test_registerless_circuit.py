@@ -482,3 +482,34 @@ class TestGatesOnWireSlice(QiskitTestCase):
         qreg = QuantumRegister(4)
         circuit = QuantumCircuit(qreg)
         self.assertRaises(CircuitError, circuit.h, numpy_arr)  # circuit.h(numpy_arr)
+
+
+class TestBitConditional(QiskitTestCase):
+    """Test gates with single bit conditionals."""
+
+    def test_bit_conditional_single_gate(self):
+        """Test circuit with a single gate conditioned on a bit."""
+        qreg = QuantumRegister(1)
+        creg = ClassicalRegister(2)
+        circuit = QuantumCircuit(qreg, creg)
+        circuit.h(0).c_if(0, True)
+
+        expected = QuantumCircuit(qreg, creg)
+        expected.h(qreg[0]).c_if(creg[0], True)
+        self.assertEqual(circuit, expected)
+
+    def test_bit_conditional_multiple_gates(self):
+        """Test circuit with multiple gates conditioned on individual bits."""
+        qreg = QuantumRegister(2)
+        creg = ClassicalRegister(2)
+        creg1 = ClassicalRegister(1)
+        circuit = QuantumCircuit(qreg, creg, creg1)
+        circuit.h(0).c_if(0, True)
+        circuit.h(1).c_if(1, False)
+        circuit.cx(1, 0).c_if(2, True)
+
+        expected = QuantumCircuit(qreg, creg, creg1)
+        expected.h(qreg[0]).c_if(creg[0], True)
+        expected.h(qreg[1]).c_if(creg[1], False)
+        expected.cx(qreg[1], qreg[0]).c_if(creg1[0], True)
+        self.assertEqual(circuit, expected)
