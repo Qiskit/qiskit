@@ -84,7 +84,7 @@ class CircuitGradient(ConverterBase):
             QiskitError: when circuit unrolling fails.
 
         """
-        unique_ops = set(circuit.count_ops().keys())
+        unique_ops = set(circuit.count_ops())
         if not unique_ops.issubset(supported_gates):
             try:
                 circuit = transpile(
