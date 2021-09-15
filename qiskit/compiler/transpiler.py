@@ -143,6 +143,7 @@ def transpile(
             in the ground state when possible. (alias: ``'alap'``)
             If ``None``, no scheduling will be done.
         instruction_durations: Durations of instructions.
+            Applicable only if scheduling_method is specified.
             The gate lengths defined in ``backend.properties`` are used as default.
             They are overwritten if this ``instruction_durations`` is specified.
             The format of ``instruction_durations`` must be as follows.
