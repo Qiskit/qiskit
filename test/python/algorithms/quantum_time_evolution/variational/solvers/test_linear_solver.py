@@ -28,9 +28,12 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 class TestLinearSolver(QiskitAlgorithmsTestCase):
     # TODO use ddt
     def test_solve_sle_no_backend(self):
-        backend = Aer.get_backend("qasm_simulator")
+        backend = Aer.get_backend("statevector_simulator")
         linear_solver = VarQteLinearSolver(
-            CircuitSampler(backend), CircuitSampler(backend), CircuitSampler(backend), backend=None
+            CircuitSampler(backend),
+            CircuitSampler(backend),
+            CircuitSampler(backend),
+            backend=backend,
         )
 
         # Define the Hamiltonian for the simulation
@@ -51,16 +54,27 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
 
         # Define a set of initial parameters
         parameters = ansatz.ordered_parameters
+        param_dict = {}
+        init_param_values = np.zeros(len(ansatz.ordered_parameters))
+        for i in range(ansatz.num_qubits):
+            init_param_values[-(ansatz.num_qubits + i + 1)] = np.pi / 2
+
+        print(init_param_values)
+
+        param_dict = dict(zip(parameters, init_param_values))
 
         var_principle = ImaginaryMcLachlanVariationalPrinciple()
         # for the purpose of the test we invoke lazy_init
-        var_principle._lazy_init(observable, ansatz, parameters)
-
-        param_dict = {}
-        for param in parameters:
-            param_dict[param] = 2.0
+        var_principle._lazy_init(observable, ansatz, param_dict)
 
         nat_grad_res, grad_res, metric_res = linear_solver._solve_sle(var_principle, param_dict)
+        # print(nat_grad_res)
+        # print("nat_grad_res")
+        # print(grad_res)
+        # print("grad_res")
+        # print(metric_res)
+        # print("metric_res")
+
         expected_nat_grad_res = [
             1.41355699,
             -0.61865659,
