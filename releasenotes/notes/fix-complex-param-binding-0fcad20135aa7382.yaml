@@ -6,4 +6,3 @@ fixes:
     were generalized to casts to ``complex`` if necessary, but will remain ``float`` if
     there is no imaginary component.
     Fixes `#6976 <https://github.com/Qiskit/qiskit-terra/issues/6976>`__.
-    Fixes `#6976 <https://github.com/Qiskit/qiskit-terra/issues/6976>`__.
