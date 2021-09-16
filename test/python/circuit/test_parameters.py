@@ -185,6 +185,22 @@ class TestParameters(QiskitTestCase):
                 bqc_list = getattr(qc, assign_fun)(param_dict)
                 self.assertEqual(bqc_anonymous, bqc_list)
 
+    def test_bind_half_single_precision(self):
+        """Test binding with 16bit and 32bit floats."""
+        phase = Parameter("phase")
+        x = Parameter("x")
+        y = Parameter("y")
+        z = Parameter("z")
+        v = ParameterVector("v", 3)
+        for i in (numpy.float16, numpy.float32):
+            with self.subTest(float_type=i):
+                expr = (v[0] * (x + y + z) + phase) - (v[2] * v[1])
+                params = numpy.array([0.1 * j for j in range(8)], dtype=i)
+                order = [phase] + v[:] + [x, y, z]
+                param_dict = dict(zip(order, params))
+                bound_value = expr.bind(param_dict)
+                self.assertAlmostEqual(float(bound_value), 0.09, delta=1e-4)
+
     def test_parameter_order(self):
         """Test the parameters are sorted by name but parameter vector order takes precedence.
 
