@@ -11,6 +11,9 @@
 # that they have been altered from the originals.
 
 """Test the InstructionScheduleMap."""
+import copy
+import pickle
+
 import numpy as np
 
 import qiskit.pulse.library as library
@@ -27,11 +30,12 @@ from qiskit.pulse import (
     ShiftPhase,
     Constant,
 )
+from qiskit.pulse.instruction_schedule_map import CalibrationPublisher
 from qiskit.pulse.channels import DriveChannel
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeOpenPulse2Q
+from qiskit.test.mock import FakeOpenPulse2Q, FakeAthens
 
 
 class TestInstructionScheduleMap(QiskitTestCase):
@@ -520,3 +524,61 @@ class TestInstructionScheduleMap(QiskitTestCase):
         inst_map.add("my_gate2", (0,), test_callable_sched2, ["par_b"])
         ret_sched = inst_map.get("my_gate2", (0,), par_b=0.1)
         self.assertEqual(ret_sched, ref_sched)
+
+    def test_two_instmaps_equal(self):
+        """Test eq method when two instmaps are identical."""
+        instmap1 = FakeAthens().defaults().instruction_schedule_map
+        instmap2 = copy.deepcopy(instmap1)
+
+        self.assertEqual(instmap1, instmap2)
+
+    def test_two_instmaps_different(self):
+        """Test eq method when two instmaps are not identical."""
+        instmap1 = FakeAthens().defaults().instruction_schedule_map
+        instmap2 = copy.deepcopy(instmap1)
+
+        # override one of instruction
+        instmap2.add("sx", (0,), Schedule())
+
+        self.assertNotEqual(instmap1, instmap2)
+
+    def test_instmap_picklable(self):
+        """Test if instmap can be pickled."""
+        instmap = FakeAthens().defaults().instruction_schedule_map
+
+        ser_obj = pickle.dumps(instmap)
+        deser_instmap = pickle.loads(ser_obj)
+
+        self.assertEqual(instmap, deser_instmap)
+
+    def test_check_backend_provider_cals(self):
+        """Test if schedules provided by backend provider is distinguishable."""
+        instmap = FakeOpenPulse2Q().defaults().instruction_schedule_map
+        publisher = instmap.get("u1", (0,), P0=0).metadata["publisher"]
+
+        self.assertEqual(publisher, CalibrationPublisher.BACKEND_PROVIDER)
+
+    def test_check_user_cals(self):
+        """Test if schedules provided by user is distinguishable."""
+        instmap = FakeOpenPulse2Q().defaults().instruction_schedule_map
+
+        test_u1 = Schedule()
+        test_u1 += ShiftPhase(Parameter("P0"), DriveChannel(0))
+
+        instmap.add("u1", (0,), test_u1, arguments=["P0"])
+        publisher = instmap.get("u1", (0,), P0=0).metadata["publisher"]
+
+        self.assertEqual(publisher, CalibrationPublisher.QISKIT)
+
+    def test_has_custom_gate(self):
+        """Test method to check custom gate."""
+        backend = FakeOpenPulse2Q()
+        instmap = backend.defaults().instruction_schedule_map
+
+        self.assertFalse(instmap.has_custom_gate())
+
+        # add something
+        some_sched = Schedule()
+        instmap.add("u3", (0,), some_sched)
+
+        self.assertTrue(instmap.has_custom_gate())

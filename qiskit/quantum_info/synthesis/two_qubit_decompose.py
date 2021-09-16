@@ -40,7 +40,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import CXGate, RXGate, RYGate, RZGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.operator import Operator
-from qiskit.quantum_info.synthesis.weyl import weyl_coordinates
+from qiskit.quantum_info.synthesis.weyl import weyl_coordinates, transform_to_magic_basis
 from qiskit.quantum_info.synthesis.one_qubit_decompose import (
     OneQubitEulerDecomposer,
     DEFAULT_ATOL,
@@ -85,10 +85,6 @@ def decompose_two_qubit_product_gate(special_unitary_matrix):
     return L, R, phase
 
 
-_B = (1.0 / math.sqrt(2)) * np.array(
-    [[1, 1j, 0, 0], [0, 0, 1j, 1], [0, 0, 1j, -1], [1, -1j, 0, 0]], dtype=complex
-)
-_Bd = _B.T.conj()
 _ipx = np.array([[0, 1j], [1j, 0]], dtype=complex)
 _ipy = np.array([[0, 1], [-1, 0]], dtype=complex)
 _ipz = np.array([[1j, 0], [0, -1j]], dtype=complex)
@@ -159,12 +155,21 @@ class TwoQubitWeylDecomposition:
         U *= detU ** (-0.25)
         global_phase = cmath.phase(detU) / 4
 
-        Up = _Bd.dot(U).dot(_B)
+        Up = transform_to_magic_basis(U, reverse=True)
         M2 = Up.T.dot(Up)
 
         # M2 is a symmetric complex matrix. We need to decompose it as M2 = P D P^T where
         # P ∈ SO(4), D is diagonal with unit-magnitude elements.
-        # D, P = la.eig(M2)  # this can fail for certain kinds of degeneracy
+        #
+        # We can't use raw `eig` directly because it isn't guaranteed to give us real or othogonal
+        # eigenvectors.  Instead, since `M2` is complex-symmetric,
+        #   M2 = A + iB
+        # for real-symmetric `A` and `B`, and as
+        #   M2^+ @ M2 = A^2 + B^2 + i [A, B] = 1
+        # we must have `A` and `B` commute, and consequently they are simultaneously diagonalizable.
+        # Mixing them together _should_ account for any degeneracy problems, but it's not
+        # guaranteed, so we repeat it a little bit.  The fixed seed is to make failures
+        # deterministic; the value is not important.
         state = np.random.default_rng(2020)
         for _ in range(100):  # FIXME: this randomized algorithm is horrendous
             M2real = state.normal() * M2.real + state.normal() * M2.imag
@@ -173,7 +178,11 @@ class TwoQubitWeylDecomposition:
             if np.allclose(P.dot(np.diag(D)).dot(P.T), M2, rtol=0, atol=1.0e-13):
                 break
         else:
-            raise QiskitError("TwoQubitWeylDecomposition: failed to diagonalize M2")
+            raise QiskitError(
+                "TwoQubitWeylDecomposition: failed to diagonalize M2."
+                " Please report this at https://github.com/Qiskit/qiskit-terra/issues/4159."
+                f" Input: {U.tolist()}"
+            )
 
         d = -np.angle(D) / 2
         d[3] = -d[0] - d[1] - d[2]
@@ -192,8 +201,8 @@ class TwoQubitWeylDecomposition:
             P[:, -1] = -P[:, -1]
 
         # Find K1, K2 so that U = K1.A.K2, with K being product of single-qubit unitaries
-        K1 = _B.dot(Up).dot(P).dot(np.diag(np.exp(1j * d))).dot(_Bd)
-        K2 = _B.dot(P.T).dot(_Bd)
+        K1 = transform_to_magic_basis(Up @ P @ np.diag(np.exp(1j * d)))
+        K2 = transform_to_magic_basis(P.T)
 
         K1l, K1r, phase_l = decompose_two_qubit_product_gate(K1)
         K2l, K2r, phase_r = decompose_two_qubit_product_gate(K2)

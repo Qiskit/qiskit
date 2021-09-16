@@ -131,10 +131,10 @@ class BlueprintCircuit(QuantumCircuit, ABC):
     def __getitem__(self, item):
         return self.data[item]
 
-    def size(self):
+    def size(self, *args, **kwargs):
         if self._data is None:
             self._build()
-        return super().size()
+        return super().size(*args, **kwargs)
 
     def to_instruction(self, parameter_map=None, label=None):
         if self._data is None:
@@ -146,10 +146,10 @@ class BlueprintCircuit(QuantumCircuit, ABC):
             self._build()
         return super().to_gate(parameter_map, label=label)
 
-    def depth(self):
+    def depth(self, *args, **kwargs):
         if self._data is None:
             self._build()
-        return super().depth()
+        return super().depth(*args, **kwargs)
 
     def count_ops(self):
         if self._data is None:

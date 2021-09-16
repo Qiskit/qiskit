@@ -104,7 +104,7 @@ class Z2Symmetries:
         """
         if len(symmetries) != len(sq_paulis):
             raise OpflowError(
-                "Number of Z2 symmetries has to be the same as number " "of single-qubit pauli x."
+                "Number of Z2 symmetries has to be the same as number of single-qubit pauli x."
             )
 
         if len(sq_paulis) != len(sq_list):
@@ -359,7 +359,7 @@ class Z2Symmetries:
         """
         if not self._symmetries or not self._sq_paulis or not self._sq_list:
             raise OpflowError(
-                "Z2 symmetries, single qubit pauli and " "single qubit list cannot be empty."
+                "Z2 symmetries, single qubit pauli and single qubit list cannot be empty."
             )
 
         if operator.is_zero():
@@ -417,7 +417,7 @@ class Z2Symmetries:
             commutator_op = cast(PauliSumOp, commutator(operator, PauliOp(symmetry)))
             if not commutator_op.is_zero():
                 raise OpflowError(
-                    "The given operator does not commute with " "the symmetry, can not taper it."
+                    "The given operator does not commute with the symmetry, can not taper it."
                 )
 
         return self.taper(operator)
