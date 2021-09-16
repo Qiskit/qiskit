@@ -1811,7 +1811,7 @@ class QuantumCircuit:
                 # Add to the stacks of the qubits and
                 # cbits used in the gate.
                 reg_ints.append(bit_indices[reg])
-                if (instr, qargs, cargs) in filter(filter_function, self._data):
+                if filter_function((instr, qargs, cargs)):
                     levels.append(op_stack[reg_ints[ind]] + 1)
                 else:
                     levels.append(op_stack[reg_ints[ind]])
