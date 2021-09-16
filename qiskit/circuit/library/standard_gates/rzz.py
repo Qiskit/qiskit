@@ -80,7 +80,7 @@ class RZZGate(Gate):
                                         0 & 0 & 0 & 1-i
                                     \end{pmatrix}
     """
-    gate_name = "rzz"
+    gate = "rzz"
     num_params = 1
 
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):

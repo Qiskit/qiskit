@@ -44,7 +44,7 @@ class RGate(Gate):
                 -i e^{i \phi} \sin{\th} & \cos{\th}
             \end{pmatrix}
     """
-    gate_name = "r"
+    gate = "r"
     num_params = 2
 
     def __init__(

@@ -60,7 +60,7 @@ class UGate(Gate):
 
         U(\theta, 0, 0) = RY(\theta)
     """
-    gate_name = "u"
+    gate = "u"
     num_params = 3
 
     def __init__(
@@ -182,7 +182,7 @@ class CUGate(ControlledGate):
                     0 & 0 & e^{i(\gamma + \phi)}\sin(\th) & e^{i(\gamma + \phi+\lambda)}\cos(\th)
                 \end{pmatrix}
     """
-    gate_name = "cu"
+    gate = "cu"
     num_params = 4
 
     def __init__(

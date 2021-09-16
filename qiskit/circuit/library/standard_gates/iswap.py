@@ -75,7 +75,7 @@ class iSwapGate(Gate):
                 0 & 0 & 0 & 1
             \end{pmatrix}
     """
-    gate_name = "iswap"
+    gate = "iswap"
     num_params = 0
 
     def __init__(self, label: Optional[str] = None):

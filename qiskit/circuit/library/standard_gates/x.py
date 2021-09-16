@@ -71,7 +71,7 @@ class XGate(Gate):
         |0\rangle \rightarrow |1\rangle \\
         |1\rangle \rightarrow |0\rangle
     """
-    gate_name = "x"
+    gate = "x"
     num_params = 0
 
     def __init__(self, label: Optional[str] = None):
@@ -184,7 +184,7 @@ class CXGate(ControlledGate):
     .. math::
         `|a, b\rangle \rightarrow |a, a \oplus b\rangle`
     """
-    gate_name = "cx"
+    gate = "cx"
     num_params = 0
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
@@ -295,7 +295,7 @@ class CCXGate(ControlledGate):
                 \end{pmatrix}
 
     """
-    gate_name = "ccx"
+    gate = "ccx"
     num_params = 0
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
@@ -390,7 +390,7 @@ class RCCXGate(Gate):
     of Fig. 3.
     """
 
-    gate_name = "rccx"
+    gate = "rccx"
     num_params = 0
 
     def __init__(self, label: Optional[str] = None):
@@ -458,7 +458,7 @@ class C3SXGate(ControlledGate):
         [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
     """
 
-    gate_name = "c3sx"
+    gate = "c3sx"
     num_params = 0
 
     def __init__(
@@ -571,7 +571,7 @@ class C3XGate(ControlledGate):
 
     This implementation uses :math:`\sqrt{T}` and 14 CNOT gates.
     """
-    gate_name = "mcx"
+    gate = "mcx"
     num_params = 0
 
     def __new__(
@@ -720,7 +720,7 @@ class RC3XGate(Gate):
     of Fig. 4.
     """
 
-    gate_name = "rcccx"
+    gate = "rcccx"
     num_params = 0
 
     def __init__(self, label: Optional[str] = None):
@@ -816,7 +816,7 @@ class C4XGate(ControlledGate):
         [2] Maslov, 2015. https://arxiv.org/abs/1508.03273
     """
 
-    gate_name = "mcx"
+    gate = "mcx"
     num_params = 0
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
@@ -915,7 +915,7 @@ class C4XGate(ControlledGate):
 class MCXGate(ControlledGate):
     """The general, multi-controlled X gate."""
 
-    gate_name = "mcx"
+    gate = "mcx"
     num_params = 0
     num_int_params = 1
 
@@ -1026,7 +1026,7 @@ class MCXGrayCode(MCXGate):
 
     This delegates the implementation to the MCU1 gate, since :math:`X = H \cdot U1(\pi) \cdot H`.
     """
-    gate_name = "mcx_gray"
+    gate = "mcx_gray"
     num_params = 0
 
     def __new__(
@@ -1080,7 +1080,7 @@ class MCXRecursive(MCXGate):
     for these we have a concrete implementation that do not require ancillas.
     """
 
-    gate_name = "mcx_recursive"
+    gate = "mcx_recursive"
     num_params = 0
 
     def __init__(
@@ -1145,7 +1145,7 @@ class MCXRecursive(MCXGate):
 class MCXVChain(MCXGate):
     """Implement the multi-controlled X gate using a V-chain of CX gates."""
 
-    gate_name = "mcx_vchain"
+    gate = "mcx_vchain"
     num_params = 0
 
     def __new__(

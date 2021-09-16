@@ -251,7 +251,7 @@ class TwoLocal(NLocal):
         for gate in gates_dict.values():
             params = []
             # Check if gate is in standard gate library and has required static attributes
-            if (hasattr(gate, "gate_name") and gate.gate_name == val) or (gate == val):
+            if (hasattr(gate, "gate") and gate.gate == val) or (gate == val):
                 if hasattr(gate, "num_params"):
                     for _ in range(gate.num_params):
                         params.append(Parameter("θ"))

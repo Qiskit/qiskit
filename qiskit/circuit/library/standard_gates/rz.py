@@ -55,7 +55,7 @@ class RZGate(Gate):
         Reference for virtual Z gate implementation:
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
-    gate_name = "rz"
+    gate = "rz"
     num_params = 1
 
     def __init__(self, phi: ParameterValueType, label: Optional[str] = None):
@@ -177,7 +177,7 @@ class CRZGate(ControlledGate):
         of U1 and RZ, CU1 and CRZ are different gates with a relative
         phase difference.
     """
-    gate_name = "crz"
+    gate = "crz"
     num_params = 1
 
     def __init__(
