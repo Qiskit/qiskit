@@ -12,8 +12,8 @@
 
 """Post-processing of raw result."""
 
-import numpy as np
 from typing import Union
+import numpy as np
 
 from qiskit.exceptions import QiskitError
 
@@ -189,7 +189,7 @@ def format_statevector(vec: Union[np.ndarray, list], decimals=None):
     """
     if isinstance(vec, np.ndarray):
         if len(vec.shape) != 1:
-            raise QiskitError(f"Does not appear to be a statevector")
+            raise QiskitError("Does not appear to be a statevector")
         if decimals:
             return np.around(vec, decimals=decimals)
         return vec
@@ -206,7 +206,7 @@ def format_statevector(vec: Union[np.ndarray, list], decimals=None):
     return vec_complex
 
 
-def format_unitary(mat: Union[np.ndarray, list[list]], decimals=None):
+def format_unitary(mat: Union[np.ndarray, list], decimals=None):
     """Format unitary coming from the backend to present to the Qiskit user.
 
     Args:
@@ -223,7 +223,7 @@ def format_unitary(mat: Union[np.ndarray, list[list]], decimals=None):
     """
     if isinstance(mat, np.ndarray):
         if len(mat.shape) != 2:
-            raise QiskitError(f"Does not appear to be a unitary")
+            raise QiskitError("Does not appear to be a unitary")
         if decimals:
             return np.around(mat, decimals=decimals)
         return mat
