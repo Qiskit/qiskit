@@ -97,6 +97,7 @@ Random
    random_quantum_channel
    random_cnotdihedral
    random_pauli_table
+   random_pauli_list
    random_stabilizer_table
 
 Analysis
@@ -145,6 +146,7 @@ from .random import (
     random_clifford,
     random_pauli,
     random_pauli_table,
+    random_pauli_list,
     random_stabilizer_table,
     random_hermitian,
     random_statevector,
