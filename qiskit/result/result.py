@@ -332,7 +332,7 @@ class Result:
         try:
             sv = self.data(experiment)[_label]
         except KeyError as ex:
-            label_text = "" if label is None else (label + " ")
+            label_text = "" if label is None else f'"{label}" '
             raise QiskitError(f'No statevector {label_text}for experiment "{experiment!r}"') from ex
 
         try:
