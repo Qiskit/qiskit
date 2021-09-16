@@ -358,6 +358,34 @@ def_sdg = QuantumCircuit(q)
 def_sdg.append(U1Gate(-pi / 2), [q[0]], [])
 _sel.add_equivalence(SdgGate(), def_sdg)
 
+q = QuantumRegister(1, "q")
+def_sdg = QuantumCircuit(q)
+for inst, qargs, cargs in [
+    (SGate(), [q[0]], []),
+    (ZGate(), [q[0]], []),
+]:
+    def_sdg.append(inst, qargs, cargs)
+_sel.add_equivalence(SdgGate(), def_sdg)
+
+q = QuantumRegister(1, "q")
+def_sdg = QuantumCircuit(q)
+for inst, qargs, cargs in [
+    (ZGate(), [q[0]], []),
+    (SGate(), [q[0]], []),
+]:
+    def_sdg.append(inst, qargs, cargs)
+_sel.add_equivalence(SdgGate(), def_sdg)
+
+q = QuantumRegister(1, "q")
+def_sdg = QuantumCircuit(q)
+for inst, qargs, cargs in [
+    (SGate(), [q[0]], []),
+    (SGate(), [q[0]], []),
+    (SGate(), [q[0]], []),
+]:
+    def_sdg.append(inst, qargs, cargs)
+_sel.add_equivalence(SdgGate(), def_sdg)
+
 # SwapGate
 
 q = QuantumRegister(2, "q")
@@ -543,7 +571,7 @@ for inst, qargs, cargs in [
     def_cu1.append(inst, qargs, cargs)
 _sel.add_equivalence(CU1Gate(theta), def_cu1)
 
-# U1Gate
+# U2Gate
 
 q = QuantumRegister(1, "q")
 phi = Parameter("phi")
@@ -616,6 +644,18 @@ q = QuantumRegister(1, "q")
 def_x = QuantumCircuit(q)
 def_x.append(U3Gate(pi, 0, pi), [q[0]], [])
 _sel.add_equivalence(XGate(), def_x)
+
+q = QuantumRegister(1, "q")
+def_x = QuantumCircuit(q)
+for inst, qargs, cargs in [
+    (HGate(), [q[0]], []),
+    (SGate(), [q[0]], []),
+    (SGate(), [q[0]], []),
+    (HGate(), [q[0]], []),
+]:
+    def_x.append(inst, qargs, cargs)
+_sel.add_equivalence(XGate(), def_x)
+
 
 # CXGate
 
@@ -696,6 +736,34 @@ def_y = QuantumCircuit(q)
 def_y.append(U3Gate(pi, pi / 2, pi / 2), [q[0]], [])
 _sel.add_equivalence(YGate(), def_y)
 
+q = QuantumRegister(1, "q")
+def_y = QuantumCircuit(q)
+def_y.global_phase = 3 * pi / 2
+for inst, qargs, cargs in [
+    (HGate(), [q[0]], []),
+    (SGate(), [q[0]], []),
+    (SGate(), [q[0]], []),
+    (HGate(), [q[0]], []),
+    (SGate(), [q[0]], []),
+    (SGate(), [q[0]], []),
+]:
+    def_y.append(inst, qargs, cargs)
+_sel.add_equivalence(YGate(), def_y)
+
+q = QuantumRegister(1, "q")
+def_y = QuantumCircuit(q)
+def_y.global_phase = pi / 2
+for inst, qargs, cargs in [
+    (SGate(), [q[0]], []),
+    (SGate(), [q[0]], []),
+    (HGate(), [q[0]], []),
+    (SGate(), [q[0]], []),
+    (SGate(), [q[0]], []),
+    (HGate(), [q[0]], []),
+]:
+    def_y.append(inst, qargs, cargs)
+_sel.add_equivalence(YGate(), def_y)
+
 # CYGate
 
 q = QuantumRegister(2, "q")
@@ -713,6 +781,15 @@ _sel.add_equivalence(CYGate(), def_cy)
 q = QuantumRegister(1, "q")
 def_z = QuantumCircuit(q)
 def_z.append(U1Gate(pi), [q[0]], [])
+_sel.add_equivalence(ZGate(), def_z)
+
+q = QuantumRegister(1, "q")
+def_z = QuantumCircuit(q)
+for inst, qargs, cargs in [
+    (SGate(), [q[0]], []),
+    (SGate(), [q[0]], []),
+]:
+    def_z.append(inst, qargs, cargs)
 _sel.add_equivalence(ZGate(), def_z)
 
 # CZGate

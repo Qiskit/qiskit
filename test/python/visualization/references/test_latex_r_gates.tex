@@ -6,9 +6,9 @@
 \begin{document}
 \scalebox{1.0}{
 \Qcircuit @C=1.0em @R=0.2em @!R { \\
-	 	\nghost{ {q}_{0} :  } & \lstick{ {q}_{0} :  } & \gate{\mathrm{R}\,(\mathrm{\frac{3\pi}{4},\frac{3\pi}{8}})} & \multigate{1}{\mathrm{R_{XX}}\,(\mathrm{\frac{\pi}{2}})}_<<<{0} & \multigate{1}{\mathrm{R_{ZX}}\,(\mathrm{\frac{-\pi}{2}})}_<<<{0} & \qw & \qw & \qw & \qw & \qw\\
-	 	\nghost{ {q}_{1} :  } & \lstick{ {q}_{1} :  } & \gate{\mathrm{R_X}\,(\mathrm{\frac{\pi}{2}})} & \ghost{\mathrm{R_{XX}}\,(\mathrm{\frac{\pi}{2}})}_<<<{1} & \ghost{\mathrm{R_{ZX}}\,(\mathrm{\frac{-\pi}{2}})}_<<<{1} & \qw & \qw & \qw & \qw & \qw\\
-	 	\nghost{ {q}_{2} :  } & \lstick{ {q}_{2} :  } & \gate{\mathrm{R_Y}\,(\mathrm{\frac{-\pi}{2}})} & \multigate{1}{\mathrm{R_{YY}}\,(\mathrm{\frac{3\pi}{4}})}_<<<{0} & \ctrl{1} & \dstick{\hspace{2.0em}\mathrm{ZZ}\,(\mathrm{\frac{\pi}{2}})} \qw & \qw & \qw & \qw & \qw\\
-	 	\nghost{ {q}_{3} :  } & \lstick{ {q}_{3} :  } & \gate{\mathrm{R_Z}\,(\mathrm{\frac{3\pi}{4}})} & \ghost{\mathrm{R_{YY}}\,(\mathrm{\frac{3\pi}{4}})}_<<<{1} & \control \qw & \qw & \qw & \qw & \qw & \qw\\
+	 	\nghost{{q}_{0} :  } & \lstick{{q}_{0} :  } & \gate{\mathrm{R}\,(\mathrm{\frac{3\pi}{4},\frac{3\pi}{8}})} & \multigate{1}{\mathrm{R_{XX}}\,(\mathrm{\frac{\pi}{2}})}_<<<{0} & \multigate{1}{\mathrm{R_{ZX}}\,(\mathrm{\frac{-\pi}{2}})}_<<<{0} & \qw & \qw & \qw & \qw & \qw\\
+	 	\nghost{{q}_{1} :  } & \lstick{{q}_{1} :  } & \gate{\mathrm{R_X}\,(\mathrm{\frac{\pi}{2}})} & \ghost{\mathrm{R_{XX}}\,(\mathrm{\frac{\pi}{2}})}_<<<{1} & \ghost{\mathrm{R_{ZX}}\,(\mathrm{\frac{-\pi}{2}})}_<<<{1} & \qw & \qw & \qw & \qw & \qw\\
+	 	\nghost{{q}_{2} :  } & \lstick{{q}_{2} :  } & \gate{\mathrm{R_Y}\,(\mathrm{\frac{-\pi}{2}})} & \multigate{1}{\mathrm{R_{YY}}\,(\mathrm{\frac{3\pi}{4}})}_<<<{0} & \ctrl{1} & \dstick{\hspace{2.0em}\mathrm{ZZ}\,(\mathrm{\frac{\pi}{2}})} \qw & \qw & \qw & \qw & \qw\\
+	 	\nghost{{q}_{3} :  } & \lstick{{q}_{3} :  } & \gate{\mathrm{R_Z}\,(\mathrm{\frac{3\pi}{4}})} & \ghost{\mathrm{R_{YY}}\,(\mathrm{\frac{3\pi}{4}})}_<<<{1} & \control \qw & \qw & \qw & \qw & \qw & \qw\\
 \\ }}
 \end{document}
