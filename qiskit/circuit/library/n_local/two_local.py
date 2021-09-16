@@ -245,9 +245,10 @@ class TwoLocal(NLocal):
         """Iterate over the standard gates library and return an instance of required gate"""
         instance = None
         # dictionary of standard gates
-        gates_dict = dict(
-            [(cls_name, cls) for cls_name, cls in gates.__dict__.items() if isinstance(cls, type)]
-        )
+        gates_dict = {
+            cls_name: cls for (cls_name, cls) in gates.__dict__.items() if isinstance(cls, type)
+        }
+
         for gate in gates_dict.values():
             params = []
             # Check if gate is in standard gate library and has required static attributes
