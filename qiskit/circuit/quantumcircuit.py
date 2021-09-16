@@ -860,7 +860,7 @@ class QuantumCircuit:
             mapped_instrs.append((n_instr, n_qargs, n_cargs))
 
         if front:
-            #adjust new instrs before original ones and update all parameters
+            # adjust new instrs before original ones and update all parameters
             dest._data = mapped_instrs + dest._data
             dest._parameter_table.clear()
             for instr, _, _ in dest._data:
