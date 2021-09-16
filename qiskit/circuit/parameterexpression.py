@@ -246,6 +246,9 @@ class ParameterExpression:
         self_expr = self._symbol_expr
 
         if isinstance(other, ParameterExpression):
+            if other._names is None:
+                other._names = {p.name: p for p in other._parameters}
+
             self._raise_if_parameter_names_conflict(other._parameter_symbols.keys())
 
             parameter_symbols = {**self._parameter_symbols, **other._parameter_symbols}
@@ -261,7 +264,12 @@ class ParameterExpression:
         else:
             expr = operation(self_expr, other_expr)
 
-        return ParameterExpression(parameter_symbols, expr)
+        out_expr = ParameterExpression(parameter_symbols, expr)
+        out_expr._names = self._names
+        if isinstance(other, ParameterExpression):
+            out_expr._names.update(other._names)
+
+        return out_expr
 
     def gradient(self, param) -> Union["ParameterExpression", complex]:
         """Get the derivative of a parameter expression w.r.t. a specified parameter expression.
