@@ -589,14 +589,11 @@ class QCircuitImage:
         cond_is_bit = isinstance(op.condition[0], Clbit)
         if cond_is_bit:
             cond_reg = self.bit_locations[op.condition[0]]["register"]
-        else:
-            cond_reg = op.condition[0]
-        creg_size = self.cregs[cond_reg]
-        if cond_is_bit:
             if_value = op.condition[1]
         else:
+            cond_reg = op.condition[0]
+            creg_size = self.cregs[cond_reg]
             if_value = format(op.condition[1], "b").zfill(creg_size)
-        if not cond_is_bit:
             if not self.reverse_bits:
                 if_value = if_value[::-1]
 
