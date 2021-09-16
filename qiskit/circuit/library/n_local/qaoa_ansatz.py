@@ -46,10 +46,10 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
             initial_state (QuantumCircuit, optional): An optional initial state to use.
                 If `None` is passed then a set of Hadamard gates is applied as an initial state
                 to all qubits.
-            mixer_operator (OperatorBase or QuantumCircuit, optional): An optional custom mixer
-                to use instead of the global X-rotations, denoted as :math:`U(B, \beta)`
-                in the original paper. Can be an operator or an optionally parameterized quantum
-                circuit.
+            mixer_operator (OperatorBase or QuantumCircuit, List[QuantumCircuit], optional): An optional 
+                custom mixer or list of mixer to be used instead of the global X-rotations, denoted 
+                as :math:`U(B, \beta)` in the original paper. Can be an operator or an optionally 
+                parameterized quantum circuit.
             name (str): A name of the circuit, default 'qaoa'
         """
         super().__init__(name=name)
