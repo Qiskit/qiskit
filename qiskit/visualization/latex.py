@@ -23,7 +23,7 @@ from qiskit.circuit.library.standard_gates import SwapGate, XGate, ZGate, RZZGat
 from qiskit.circuit.measure import Measure
 from qiskit.visualization.qcstyle import load_style
 from qiskit.circuit.tools.pi_check import pi_check
-from .utils import get_gate_ctrl_text, get_param_str, generate_latex_label
+from .utils import get_gate_ctrl_text, get_param_str, get_bit_label, generate_latex_label
 
 
 class QCircuitImage:
@@ -122,6 +122,7 @@ class QCircuitImage:
 
         #################################
         self.qubit_list = qubits
+        self.clbit_list = clbits
         self.ordered_bits = qubits + clbits
         self.cregs = {reg: reg.size for reg in cregs}
 
@@ -145,8 +146,9 @@ class QCircuitImage:
         self.cregs_bits = [self.bit_locations[bit]["register"] for bit in clbits]
         self.img_regs = {bit: ind for ind, bit in enumerate(self.ordered_bits)}
 
+        num_reg_bits = sum([reg.size for reg in self.cregs])
         if self.cregbundle:
-            self.img_width = len(qubits) + len(self.cregs)
+            self.img_width = len(qubits) + len(clbits) - (num_reg_bits - len(self.cregs))
         else:
             self.img_width = len(self.img_regs)
         self.global_phase = global_phase
@@ -214,48 +216,37 @@ class QCircuitImage:
             for j in range(self.img_width)
         ]
         self._latex.append([" "] * (self.img_depth + 1))
-        if self.cregbundle:
-            offset = 0
-        for i in range(self.img_width):
-            if isinstance(self.ordered_bits[i], Clbit):
+
+        # quantum register
+        for ii, reg in enumerate(self.qubit_list):
+            register = self.bit_locations[reg]["register"]
+            index = self.bit_locations[reg]["index"]
+            qubit_label = get_bit_label("latex", register, index, qubit=True, layout=self.layout)
+            qubit_label += " : "
+            if self.initial_state:
+                qubit_label += "\\ket{{0}}"
+            qubit_label += " }"
+            self._latex[ii][0] = "\\nghost{" + qubit_label + " & " + "\\lstick{" + qubit_label
+
+        # classical register
+        offset = 0
+        if self.clbit_list:
+            for ii in range(len(self.qubit_list), self.img_width):
+                register = self.bit_locations[self.ordered_bits[ii + offset]]["register"]
+                index = self.bit_locations[self.ordered_bits[ii + offset]]["index"]
+                clbit_label = get_bit_label(
+                    "latex", register, index, qubit=False, cregbundle=self.cregbundle
+                )
+                if self.cregbundle and register is not None:
+                    self._latex[ii][1] = "\\lstick{/_{_{" + str(register.size) + "}}} \\cw"
+                    offset += register.size - 1
+                clbit_label += " : "
+                if self.initial_state:
+                    clbit_label += "0"
+                clbit_label += " }"
                 if self.cregbundle:
-                    reg = self.bit_locations[self.ordered_bits[i + offset]]["register"]
-                    label = reg.name + ":"
-                    clbitsize = self.cregs[reg]
-                    self._latex[i][1] = "\\lstick{/_{_{" + str(clbitsize) + "}}} \\cw"
-                    offset += clbitsize - 1
-                else:
-                    label = self.bit_locations[self.ordered_bits[i]]["register"].name + "_{"
-                    label += str(self.bit_locations[self.ordered_bits[i]]["index"]) + "}:"
-                if self.initial_state:
-                    label += "0"
-                label += "}"
-                self._latex[i][0] = "\\nghost{" + label + " & " + "\\lstick{" + label
-            else:
-                if self.layout is None:
-                    label = " {{{}}}_{{{}}} : ".format(
-                        self.bit_locations[self.ordered_bits[i]]["register"].name,
-                        self.bit_locations[self.ordered_bits[i]]["index"],
-                    )
-                else:
-                    bit_location = self.bit_locations[self.ordered_bits[i]]
-                    if bit_location and self.layout[bit_location["index"]]:
-                        virt_bit = self.layout[bit_location["index"]]
-                        try:
-                            virt_reg = next(
-                                reg for reg in self.layout.get_registers() if virt_bit in reg
-                            )
-                            label = " {{{}}}_{{{}}}\\mapsto{{{}}} : ".format(
-                                virt_reg.name, virt_reg[:].index(virt_bit), bit_location["index"]
-                            )
-                        except StopIteration:
-                            label = "  {{{}}} : ".format(bit_location["index"])
-                    else:
-                        label = " {{{}}} : ".format(bit_location["index"])
-                if self.initial_state:
-                    label += "\\ket{{0}}"
-                label += " }"
-                self._latex[i][0] = "\\nghost{" + label + " & " + "\\lstick{" + label
+                    clbit_label = f"\\mathrm{{{clbit_label}}}"
+                self._latex[ii][0] = "\\nghost{" + clbit_label + " & " + "\\lstick{" + clbit_label
 
     def _get_image_depth(self):
         """Get depth information for the circuit."""
@@ -338,7 +329,8 @@ class QCircuitImage:
 
         max_reg_name = 3
         for reg in self.ordered_bits:
-            max_reg_name = max(max_reg_name, len(self.bit_locations[reg]["register"].name))
+            if self.bit_locations[reg]["register"] is not None:
+                max_reg_name = max(max_reg_name, len(self.bit_locations[reg]["register"].name))
         sum_column_widths += 5 + max_reg_name / 3
 
         # could be a fraction so ceil
