@@ -22,7 +22,6 @@ from .approximate import ApproximateCircuit, ApproximatingObjective
 
 
 class AQC:
-    # todo: update
     r"""
     Implementation of Approximate Quantum Compiler as described in the paper.
 
@@ -38,7 +37,76 @@ class AQC:
     as the Frobenius norm between the unitary matrix of the compiled circuit :math:`V` and
     the target unitary matrix :math:`U`, i.e., :math:`\|V - U\|_{\mathrm{F}}`. This choice
     is motivated by mathematical programming considerations, and it is related to other
-    formulations that appear in the literature.
+    formulations that appear in the literature. Let's take a look at the problem in more details.
+
+    Let :math:`n` be the number of qubits and :math:`d=2^n`. Given a CNOT structure :math:`ct`
+    and a vector of rotation angles :math:`\theta`, the parametric circuit forms a matrix
+    :math:`Vct(\theta)\in SU(d)`. If we are given a target circuit forming a matrix
+    :math:`U\in SU(d)`, then we would like to compute
+
+    .. math::
+
+        argmax_{\theta}\frac{1}{d}|\langle Vct(\theta),U\rangle|
+
+    where the inner product is the Frobenius inner product. Note that
+    :math:`|\langle V,U\rangle|\leq d` for all unitaries :math:`U` and :math:`V`, so the objective
+    has range in :math:`[0,1]`.
+
+    Our strategy is to maximize
+
+    .. math::
+
+        \frac{1}{d}\Re \langle Vct(\theta),U\rangle
+
+    using its gradient. We will now discuss the specifics by going through an example.
+
+    While the range of :math:`Vct` is a subset of :math:`SU(d)` by construction, the target
+    circuit may form a general unitary matrix. However, for any :math:`U\in U(d)`,
+
+    .. math::
+
+        \frac{\exp(2\pi i k/d)}{\det(U)^{1/d}}U\in SU(d)\text{ for all }k\in\{0,\ldots,d-1\}.
+
+    Thus, we should normalize the target circuit by its global phase and then approximately
+    compile the normalized circuit. We can add the global phase back in afterwards.
+
+    In the algorithm let :math:`U'` denote the un-normalized target matrix and :math:`U`
+    the normalized  target matrix. Now that we have :math:`U`, we give the gradient function
+    to the Nesterov's method optimizer and compute :math:`\theta`.
+
+    To add the global phase back in, we can form the control circuit as
+
+    .. math::
+
+        \frac{\langle Vct(\theta),U'\rangle}{|\langle Vct(\theta),U'\rangle|}Vct(\theta).
+
+    Note that while we optimized using Nesterov's method in the paper, this was for its convergence
+    guarantees, not its speed in practice. It is much faster to use L-BFGS which is used as a
+    default optimizer in this implementation.
+
+    A basic usage of the algorithm should consist of the following steps:
+
+        1. Choose a layout of the CNOT structure for the approximate circuit, e.g. ``spin`` for
+            a linear layout.
+
+        2. Choose a connectivity type, e.g. ``full`` for full connectivity between qubits.
+
+        3. Construct a CNOT unit structure via
+            :func:`qiskit.transpiler.synthesis.aqc.make_cnot_network` with a desirable
+            configuration.
+
+        4. Create an optimizer to be used by AQC.
+
+        5. Create an approximate circuit based on the chosen CNOT structure. At this time the only
+            one template of an approximate circuit that is supported is
+            :class:`qiskit.transpiler.synthesis.aqc.CNOTUnitCircuit`.
+
+        6. Create an objective for the optimization problem. At this time the only one objective
+            that is supported is: :class:`qiskit.transpiler.synthesis.aqc.DefaultCNOTUnitObjective`.
+
+        7. Compile a target unitary. This may take significant time of a number of qubits is large
+            and if the target circuit is deep. As a result of the optimization procedure
+            ``approximate_circuit`` contains an circuit that approximates the target circuit.
 
     References:
 
