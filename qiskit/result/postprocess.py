@@ -13,6 +13,7 @@
 """Post-processing of raw result."""
 
 import numpy as np
+from typing import Union
 
 from qiskit.exceptions import QiskitError
 
@@ -171,18 +172,24 @@ def format_counts(counts, header=None):
     return counts_dict
 
 
-def format_statevector(vec, decimals=None):
+def format_statevector(vec: Union[np.ndarray, list], decimals=None):
     """Format statevector coming from the backend to present to the Qiskit user.
 
     Args:
-        vec (list): a list of [re, im] complex numbers.
+        vec (list or numpy.ndarray): a list of [re, im] complex numbers, or
+            ndarray of complex numbers.
         decimals (int): the number of decimals in the statevector.
             If None, no rounding is done.
 
     Returns:
-        list[complex]: a list of python complex numbers.
+        numpy.ndarray: an array of python complex numbers.
+
+    Raises:
+        QiskitError: if vec is not a properly formatted statevector
     """
     if isinstance(vec, np.ndarray):
+        if len(vec.shape) != 1:
+            raise QiskitError(f"Does not appear to be a statevector")
         if decimals:
             return np.around(vec, decimals=decimals)
         return vec
@@ -199,18 +206,24 @@ def format_statevector(vec, decimals=None):
     return vec_complex
 
 
-def format_unitary(mat, decimals=None):
+def format_unitary(mat: Union[np.ndarray, list[list]], decimals=None):
     """Format unitary coming from the backend to present to the Qiskit user.
 
     Args:
-        mat (list[list]): a list of list of [re, im] complex numbers
+        mat (list[list] or numpy.ndarray): a list of list of [re, im] complex
+            numbers, or ndarray of complex numbers.
         decimals (int): the number of decimals in the statevector.
             If None, no rounding is done.
 
     Returns:
-        list[list[complex]]: a matrix of complex numbers
+        numpy.ndarray: a matrix of complex numbers
+
+    Raises:
+        QiskitError: if given matrix is not a properly formatted unitary
     """
     if isinstance(mat, np.ndarray):
+        if len(mat.shape) != 2:
+            raise QiskitError(f"Does not appear to be a unitary")
         if decimals:
             return np.around(mat, decimals=decimals)
         return mat

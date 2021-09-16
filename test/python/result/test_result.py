@@ -492,7 +492,7 @@ class TestResultOperations(QiskitTestCase):
         np.testing.assert_almost_equal(statevector, processed_sv)
 
     def test_circuit_statevector_with_label(self):
-        """Test postprocessing of saved statevector without giving any decimals arg."""
+        """Test retrieving saved statevector with a label."""
         raw_statevector = np.array(
             [
                 0.35355339 + 0.0j,
@@ -567,6 +567,30 @@ class TestResultOperations(QiskitTestCase):
         exp_result = models.ExperimentResult(shots=1, success=True, data=data)
         result = Result(results=[exp_result], **self.base_result_args)
         unitary = result.get_unitary(decimals=3)
+        self.assertEqual(unitary.shape, (2, 2))
+        self.assertEqual(unitary.dtype, np.complex_)
+        np.testing.assert_almost_equal(unitary, processed_unitary)
+
+    def test_circuit_unitary_with_label(self):
+        """Test retrieving unitary with a label."""
+        raw_unitary = np.array(
+            [
+                [0.70710678 + 0.00000000e00j, 0.70710678 - 8.65956056e-17j],
+                [0.70710678 + 0.00000000e00j, -0.70710678 + 8.65956056e-17j],
+            ],
+            dtype=np.complex_,
+        )
+        processed_unitary = np.array(
+            [
+                [0.70710678 + 0.00000000e00j, 0.70710678 - 8.65956056e-17j],
+                [0.70710678 + 0.00000000e00j, -0.70710678 + 8.65956056e-17j],
+            ],
+            dtype=np.complex_,
+        )
+        data = models.ExperimentResultData(probe2=raw_unitary)
+        exp_result = models.ExperimentResult(shots=1, success=True, data=data)
+        result = Result(results=[exp_result], **self.base_result_args)
+        unitary = result.get_unitary(label="probe2")
         self.assertEqual(unitary.shape, (2, 2))
         self.assertEqual(unitary.dtype, np.complex_)
         np.testing.assert_almost_equal(unitary, processed_unitary)
