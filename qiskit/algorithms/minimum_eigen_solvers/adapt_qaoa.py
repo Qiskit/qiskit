@@ -1,3 +1,6 @@
+import numpy as np
+from itertools import combinations_with_replacement, permutations, product
+
 from typing import Optional, List, Callable, Union, Dict
 from qiskit import QuantumCircuit
 from qiskit.providers import BaseBackend
@@ -6,22 +9,14 @@ from qiskit.opflow import OperatorBase, ExpectationBase
 from qiskit.quantum_info import Operator
 from qiskit.opflow.gradients import GradientBase
 from qiskit.utils.quantum_instance import QuantumInstance
-from typing import List, Callable, Optional, Union
-from qiskit.algorithms.optimizers import Optimizer
 from qiskit.circuit import QuantumCircuit
-from qiskit.utils.quantum_instance import QuantumInstance
-import random
-import networkx as nx
-from qiskit import QuantumRegister
-from qiskit import Aer, QuantumCircuit, QuantumRegister, execute
+from qiskit import Aer, QuantumCircuit
 from qiskit.opflow.primitive_ops import MatrixOp
 from qiskit.circuit.library import IGate, XGate, YGate, ZGate
 from qiskit.algorithms.optimizers import Optimizer, SLSQP
-import numpy as np
-
+from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
 from qiskit.algorithms import QAOA
 
-from qiskit.algorithms import MinimumEigensolverResult
 class AdaptQAOA(QAOA):
     def __init__(
         self,
@@ -41,15 +36,15 @@ class AdaptQAOA(QAOA):
             Union[QuantumInstance, BaseBackend, Backend]] = None) -> None:
 
         super().__init__(
-            optimizer=optimizer, 
-            reps=reps, 
-            initial_state=initial_state, 
-            initial_point=initial_point, 
-            gradient=gradient, 
-            expectation=expectation, 
-            include_custom=include_custom, 
-            max_evals_grouped=max_evals_grouped, 
-            callback=callback, 
+            optimizer=optimizer,
+            reps=reps,
+            initial_state=initial_state,
+            initial_point=initial_point,
+            gradient=gradient,
+            expectation=expectation,
+            include_custom=include_custom,
+            max_evals_grouped=max_evals_grouped,
+            callback=callback,
             quantum_instance=quantum_instance)
         self.initial_point =initial_point
         self.threshold = threshold
@@ -72,7 +67,7 @@ class AdaptQAOA(QAOA):
             Returns: The mixer operator with the largest energy gradient along with the associated energy
                      gradient."""
 
-        if not isinstance(self.cost_operator,MatrixOp):
+        if not isinstance(self.cost_operator, MatrixOp):
             cost_op = MatrixOp(Operator(self.cost_operator))
 
         if not previous_state:
@@ -164,8 +159,7 @@ class AdaptQAOA(QAOA):
 
 
 
-from itertools import combinations_with_replacement, permutations, product
-def adapt_mixer_pool(num_qubits: int, add_single: bool = True, add_multi: bool = True):
+def adapt_mixer_pool(num_qubits: int, add_single: bool = True, add_multi: bool = True) -> List:
     """
     Gets all combinations of mixers in desired set (standard qaoa mixer, single qubit mixers, multi qubit mixers)
     Args:
@@ -197,29 +191,29 @@ def adapt_mixer_pool(num_qubits: int, add_single: bool = True, add_multi: bool =
             mixer_pool.append(''.join(iden_str))
     return mixer_pool
 
-num, reps = 6, 2
-mixers_list = adapt_mixer_pool(num)
-mixerop_pool = []
-for mix_str in mixers_list:
-    qr = QuantumRegister(num)
-    qc = QuantumCircuit(qr)
-    for i, mix in enumerate(mix_str):
-        qiskit_dict = {"I": IGate(), "X": XGate(), "Y":YGate(), "Z":ZGate()}
+# num, reps = 6, 2
+# mixers_list = adapt_mixer_pool(num)
+# mixerop_pool = []
+# for mix_str in mixers_list:
+#     qr = QuantumRegister(num)
+#     qc = QuantumCircuit(qr)
+#     for i, mix in enumerate(mix_str):
+#         qiskit_dict = {"I": IGate(), "X": XGate(), "Y":YGate(), "Z":ZGate()}
 
-        mix_qis_gate = qiskit_dict[mix]
-        qc.append(mix_qis_gate, [i])
-    mixerop_pool.append(MatrixOp(Operator(qc)))
-G = nx.random_regular_graph(5, 6, seed=1234) # connectivity, vertices
-for (u, v) in G.edges():
-    G.edges[u,v]['weight'] = random.randint(0,1000)/1000
-Hc = MatrixOp(build_maxcut_hamiltonian(G).full())
+#         mix_qis_gate = qiskit_dict[mix]
+#         qc.append(mix_qis_gate, [i])
+#     mixerop_pool.append(MatrixOp(Operator(qc)))
+# G = nx.random_regular_graph(5, 6, seed=1234) # connectivity, vertices
+# for (u, v) in G.edges():
+#     G.edges[u,v]['weight'] = random.randint(0,1000)/1000
 
-init_params_gamma  = [0.01 for i in range(0, reps)] 
-init_params_beta = [-np.pi/4 for i in range(0, reps)]
-init_guess = init_params_gamma+init_params_beta
+# Hc = MatrixOp(build_maxcut_hamiltonian(G).full())
+# init_params_gamma  = [0.01 for i in range(0, reps)] 
+# init_params_beta = [-np.pi/4 for i in range(0, reps)]
+# init_guess = init_params_gamma+init_params_beta
 
 
-adqaoa = AdaptQAOA(optimizer=SLSQP(), reps=reps, mixer_list=mixerop_pool, quantum_instance=Aer.get_backend('statevector_simulator'),
-            initial_point=init_guess)
-# print(adqaoa.compute_minimum_eigenvalue(Hc))
-print(adqaoa.construct_circuit(init_guess,Hc))
+# adqaoa = AdaptQAOA(optimizer=SLSQP(), reps=reps, mixer_list=mixerop_pool, quantum_instance=Aer.get_backend('statevector_simulator'),
+#             initial_point=init_guess)
+# # print(adqaoa.compute_minimum_eigenvalue(Hc))
+# print(adqaoa.construct_circuit(init_guess,Hc))
