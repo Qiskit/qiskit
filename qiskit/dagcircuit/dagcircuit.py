@@ -790,13 +790,16 @@ class DAGCircuit:
         if ignore is None:
             ignore = []
         for wire in self._wires:
-            nodes = [
-                node
-                for node in self.nodes_on_wire(wire, only_ops=True)
-                if node.op.name not in ignore
-            ]
-            if len(nodes) == 0:
-                yield wire
+            if not ignore:
+                if isinstance(self.successors(self.input_map[wire]), DAGOutNode):
+                    yield wire
+            else:
+                count = 0
+                for node in self.nodes_on_wire(wire, only_ops=True):
+                    if node.op.name not in ignore:
+                        count += 1
+                if count == 0:
+                    yield wire
 
     def size(self):
         """Return the number of operations."""
