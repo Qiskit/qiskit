@@ -788,19 +788,18 @@ class DAGCircuit:
             Bit: Bit in idle wire.
         """
         if ignore is None:
-            ignore = []
+            ignore = set()
+        ignore_set = set(ignore)
         for wire in self._wires:
             if not ignore:
                 if isinstance(self.successors(self.input_map[wire]), DAGOutNode):
                     yield wire
             else:
-                count = 0
                 for node in self.nodes_on_wire(wire, only_ops=True):
-                    if node.op.name not in ignore:
-                        count += 1
+                    if node.op.name not in ignore_set:
                         # If we found an op node outside of ignore we can stop iterating over the wire
                         break
-                if count == 0:
+                else:
                     yield wire
 
     def size(self):
