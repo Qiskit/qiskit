@@ -1,7 +1,7 @@
 import numpy as np
 from itertools import combinations_with_replacement, permutations, product
 
-from typing import Optional, List, Callable, Union, Dict
+from typing import Optional, List, Callable, Tuple, Union, Dict
 from qiskit import QuantumCircuit
 from qiskit.providers import BaseBackend
 from qiskit.providers import Backend
@@ -12,10 +12,10 @@ from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.circuit import QuantumCircuit
 from qiskit import Aer, QuantumCircuit
 from qiskit.opflow.primitive_ops import MatrixOp
-from qiskit.circuit.library import IGate, XGate, YGate, ZGate
-from qiskit.algorithms.optimizers import Optimizer, SLSQP
+from qiskit.algorithms.optimizers import Optimizer
 from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
 from qiskit.algorithms import QAOA
+from qiskit.opflow import OperatorBase
 
 class AdaptQAOA(QAOA):
     def __init__(
@@ -23,7 +23,7 @@ class AdaptQAOA(QAOA):
         optimizer: Optimizer = None,
         reps: int = 1,
         initial_state: Optional[QuantumCircuit] = None,
-        mixer_list: list = None,
+        mixers: Optional[Union[str,List]] = None,
         initial_point: Optional[np.ndarray] = None,
         threshold: Optional[Callable[[int, float], None]] = None,
         gradient: Optional[Union[GradientBase, Callable[[Union[np.ndarray, List]],
@@ -48,8 +48,10 @@ class AdaptQAOA(QAOA):
             quantum_instance=quantum_instance)
         self.initial_point =initial_point
         self.threshold = threshold
-        self.mixer_list = mixer_list
+        self.mixer_list = mixers
         self.optimal_mixer_pool = [] # --------------> Will be appending optimal mixers to this.
+        if self.mixers is None:
+            self.mixers = 'multi'
 
     def _check_operator_ansatz(self, operator: OperatorBase) -> OperatorBase:
         # Recreates a circuit based on operator parameter.
@@ -122,6 +124,18 @@ class AdaptQAOA(QAOA):
             - p += 1
         (5) Repeat 1-4.
         """""
+
+    def translate_mixer_str_opn(opn: str) -> Dict:
+        opn = opn.lower()
+        if opn == 'multi':
+            return ()
+
+    def run_adapt(self, operator:OperatorBase, aux_operators: Optional[List[Optional[OperatorBase]]] = None):
+        #build mixers
+        if isinstance(self.mixers, str):
+            mixers = adapt_mixer_pool(operator.num_qubits,)
+
+        
 
 
     @property
