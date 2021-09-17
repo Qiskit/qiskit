@@ -64,13 +64,12 @@ class Optimize1qGatesDecomposition(TransformationPass):
                             tuple(gates)
                         ] = one_qubit_decompose.OneQubitEulerDecomposer(euler_basis_name)
 
-    def _resynthesize_run(self, dag, run):
+    def _resynthesize_run(self, run):
         """
-        Resynthesizes one `run` from `dag`, typically extracted via `dag.collect_1q_runs`.
+        Resynthesizes one `run`, typically extracted via `dag.collect_1q_runs`.
 
-        Returns:
-            (basis, circuit) containing the newly synthesized circuit in the indicated basis.
-            (None, None) if no synthesis routine applied.
+        Returns (basis, circuit) containing the newly synthesized circuit in the indicated basis, or
+        (None, None) if no synthesis routine applied.
         """
 
         operator = run[0].op.to_matrix()
@@ -164,7 +163,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 if "u2" not in self._target_basis and "u1" not in self._target_basis:
                     continue
 
-            new_basis, new_circ = self._resynthesize_run(dag, run)
+            new_basis, new_circ = self._resynthesize_run(run)
 
             if new_circ is not None and self._substitution_checks(dag, run, new_circ, new_basis):
                 new_dag = circuit_to_dag(new_circ)
