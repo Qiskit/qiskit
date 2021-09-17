@@ -739,8 +739,8 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
         if gate["gate"] == "sx":
             _qubit = gate["qubits"][0]
             for param in gate["parameters"]:
-                if param['name'] == 'gate_error':
-                    single_gate_errors[_qubit] = param['value']
+                if param["name"] == "gate_error":
+                    single_gate_errors[_qubit] = param["value"]
                     break
 
     # Convert to percent
