@@ -109,6 +109,8 @@ class CHGate(ControlledGate):
     in the :math:`|1\rangle` state.
 
     **Circuit symbol:**
+    
+    .. parsed-literal::
 
         q_0: ──■──
              ┌─┴─┐
