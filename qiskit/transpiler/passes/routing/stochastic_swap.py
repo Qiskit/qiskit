@@ -159,7 +159,7 @@ class StochasticSwap(TransformationPass):
         logger.debug("layer_permutation: gates = %s", gates)
 
         # Can we already apply the gates? If so, there is no work to do.
-        dist = sum(coupling.distance(layout[g[0]], layout[g[1]]) for g in gates)
+        dist = sum(coupling.dist_matrix[layout.v2p[g[0]], layout.v2p[g[1]]] for g in gates)
         logger.debug("layer_permutation: distance = %s", dist)
         if dist == len(gates):
             logger.debug("layer_permutation: nothing to do")
@@ -232,8 +232,8 @@ class StochasticSwap(TransformationPass):
 
         edges = best_edges.edges()
         for idx in range(best_edges.size // 2):
-            swap_src = self.trivial_layout[edges[2 * idx]]
-            swap_tgt = self.trivial_layout[edges[2 * idx + 1]]
+            swap_src = self.trivial_layout.p2v[edges[2 * idx]]
+            swap_tgt = self.trivial_layout.p2v[edges[2 * idx + 1]]
             trial_circuit.apply_operation_back(SwapGate(), [swap_src, swap_tgt], [])
         best_circuit = trial_circuit
 
@@ -291,7 +291,7 @@ class StochasticSwap(TransformationPass):
         for i, v in enumerate(layerlist):
             logger.debug("    %d: %s", i, v["partition"])
 
-        qubit_subset = self.trivial_layout.get_virtual_bits().keys()
+        qubit_subset = self.trivial_layout.v2p.keys()
 
         # Find swap circuit to precede each layer of input circuit
         layout = self.trivial_layout.copy()

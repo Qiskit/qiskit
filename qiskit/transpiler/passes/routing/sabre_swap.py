@@ -153,6 +153,8 @@ class SabreSwap(TransformationPass):
         if len(dag.qubits) > self.coupling_map.size():
             raise TranspilerError("More virtual qubits exist than physical.")
 
+        self.coupling_map.compute_distance_matrix()
+
         rng = np.random.default_rng(self.seed)
 
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
@@ -183,7 +185,9 @@ class SabreSwap(TransformationPass):
             for node in front_layer:
                 if len(node.qargs) == 2:
                     v0, v1 = node.qargs
-                    if self.coupling_map.graph.has_edge(current_layout[v0], current_layout[v1]):
+                    if self.coupling_map.graph.has_edge(
+                        current_layout.v2p[v0], current_layout.v2p[v1]
+                    ):
                         execute_gate_list.append(node)
                 else:  # Single-qubit gates as well as barriers are free
                     execute_gate_list.append(node)
@@ -329,7 +333,9 @@ class SabreSwap(TransformationPass):
     def _compute_cost(self, layer, layout):
         cost = 0
         for node in layer:
-            cost += self.coupling_map.distance(layout[node.qargs[0]], layout[node.qargs[1]])
+            cost += self.coupling_map.dist_matrix[layout.v2p[node.qargs[0]]][
+                layout.v2p[node.qargs[1]]
+            ]
         return cost
 
     def _score_heuristic(self, heuristic, front_layer, extended_set, layout, swap_qubits=None):
@@ -365,7 +371,7 @@ def _transform_gate_for_layout(op_node, layout, device_qreg):
     mapped_op_node = copy(op_node)
 
     premap_qargs = op_node.qargs
-    mapped_qargs = map(lambda x: device_qreg[layout[x]], premap_qargs)
+    mapped_qargs = map(lambda x: device_qreg[layout.v2p[x]], premap_qargs)
     mapped_op_node.qargs = list(mapped_qargs)
 
     return mapped_op_node

@@ -52,12 +52,18 @@ class Layout2qDistance(AnalysisPass):
         if layout is None:
             return
 
+        if self.coupling_map is None or len(self.coupling_map.graph) == 0:
+            self.property_set[self.property_name] = 0
+            return
+
+        self.coupling_map.compute_distance_matrix()
+
         sum_distance = 0
 
         for gate in dag.two_qubit_ops():
-            physical_q0 = layout[gate.qargs[0]]
-            physical_q1 = layout[gate.qargs[1]]
+            physical_q0 = layout.v2p[gate.qargs[0]]
+            physical_q1 = layout.v2p[gate.qargs[1]]
 
-            sum_distance += self.coupling_map.distance(physical_q0, physical_q1) - 1
+            sum_distance += self.coupling_map.dist_matrix[physical_q0][physical_q1] - 1
 
         self.property_set[self.property_name] = sum_distance

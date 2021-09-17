@@ -44,7 +44,7 @@ class ApplyLayout(TransformationPass):
             raise TranspilerError(
                 "No 'layout' is found in property_set. Please run a Layout pass in advance."
             )
-        if len(layout) != (1 + max(layout.get_physical_bits())):
+        if len(layout) != (1 + max(layout.p2v)):
             raise TranspilerError("The 'layout' must be full (with ancilla).")
 
         for qreg in dag.qregs.values():
@@ -59,7 +59,7 @@ class ApplyLayout(TransformationPass):
         for creg in dag.cregs.values():
             new_dag.add_creg(creg)
         for node in dag.topological_op_nodes():
-            qargs = [q[layout[qarg]] for qarg in node.qargs]
+            qargs = [q[layout.v2p[qarg]] for qarg in node.qargs]
             new_dag.apply_operation_back(node.op, qargs, node.cargs)
         new_dag._global_phase = dag._global_phase
 

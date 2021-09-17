@@ -43,8 +43,10 @@ class CheckMap(AnalysisPass):
         """
         self.property_set["is_swap_mapped"] = True
 
-        if self.coupling_map is None:
+        if self.coupling_map is None or len(self.coupling_map.graph) == 0:
             return
+
+        self.coupling_map.compute_distance_matrix()
 
         qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
 
@@ -54,7 +56,7 @@ class CheckMap(AnalysisPass):
             physical_q0 = qubit_indices[gate.qargs[0]]
             physical_q1 = qubit_indices[gate.qargs[1]]
 
-            if self.coupling_map.distance(physical_q0, physical_q1) != 1:
+            if self.coupling_map.dist_matrix[physical_q0][physical_q1] != 1:
                 self.property_set["check_map_msg"] = "{}({}, {}) failed".format(
                     gate.name,
                     physical_q0,
