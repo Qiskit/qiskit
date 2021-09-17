@@ -798,6 +798,8 @@ class DAGCircuit:
                 for node in self.nodes_on_wire(wire, only_ops=True):
                     if node.op.name not in ignore:
                         count += 1
+                        # If we found an op node outside of ignore we can stop iterating over the wire
+                        break
                 if count == 0:
                     yield wire
 
