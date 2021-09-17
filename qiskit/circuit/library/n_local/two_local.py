@@ -16,7 +16,7 @@ from typing import Union, Optional, List, Callable, Any, Type
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit import Gate, Instruction, Parameter
-import qiskit.circuit.library.standard_gates as gates
+from qiskit.circuit.library import standard_gates as gates
 
 from .n_local import NLocal
 
