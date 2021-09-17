@@ -41,8 +41,9 @@ class TestVariationalPrinciple(QiskitAlgorithmsTestCase):
         parameters = ansatz.ordered_parameters
         param_dict = {param: np.pi / 4 for param in parameters}
         var_principle = ImaginaryMcLachlanVariationalPrinciple()
+        regularization = "ridge"
         # for the purpose of the test we invoke lazy_init
-        var_principle._lazy_init(observable, ansatz, param_dict)
+        var_principle._lazy_init(observable, ansatz, param_dict, regularization)
 
         np.testing.assert_equal(var_principle._hamiltonian, observable)
         np.testing.assert_equal(var_principle._ansatz, ansatz)

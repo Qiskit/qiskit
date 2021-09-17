@@ -19,7 +19,14 @@ from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
 from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.error_calculator import (
     ErrorCalculator,
 )
-from qiskit.opflow import CircuitQFI, CircuitGradient, OperatorBase, StateFn
+from qiskit.opflow import (
+    CircuitQFI,
+    CircuitGradient,
+    OperatorBase,
+    StateFn,
+    NaturalGradient,
+    PauliExpectation,
+)
 
 
 class VariationalPrinciple(ABC):
@@ -33,8 +40,7 @@ class VariationalPrinciple(ABC):
         self._grad_method = grad_method
         self._is_error_supported = is_error_supported
 
-    # TODO might avoid lazy init by switching to enums
-    def _lazy_init(self, hamiltonian, ansatz, param_dict):
+    def _lazy_init(self, hamiltonian, ansatz, param_dict, regularization):
         self._hamiltonian = hamiltonian
         self._ansatz = ansatz
         self._param_dict = param_dict
@@ -48,6 +54,7 @@ class VariationalPrinciple(ABC):
         )
         self._metric_tensor = self._calc_metric_tensor(raw_metric_tensor, param_dict)
         self._evolution_grad = self._calc_evolution_grad(raw_evolution_grad, param_dict)
+        self._nat_grad = self._calc_nat_grad(self._operator, param_dict, regularization)
 
     @staticmethod
     @abstractmethod
@@ -58,6 +65,21 @@ class VariationalPrinciple(ABC):
     @abstractmethod
     def _calc_evolution_grad(raw_evolution_grad, param_dict):
         pass
+
+    @abstractmethod
+    def _calc_nat_grad(
+        self, raw_operator: OperatorBase, param_dict, regularization
+    ) -> OperatorBase:
+        nat_grad = NaturalGradient(
+            grad_method=self._grad_method,
+            qfi_method=self._qfi_method,
+            regularization=regularization,
+        ).convert(raw_operator * 0.5, list(param_dict.keys()))
+
+        # TODO should be bind here?
+        # nat_grad = nat_grad.bind_parameters(param_dict)
+
+        return PauliExpectation().convert(nat_grad)
 
     @abstractmethod
     def _calc_error_bound(self, error, et, h_squared, h_trip, trained_energy):

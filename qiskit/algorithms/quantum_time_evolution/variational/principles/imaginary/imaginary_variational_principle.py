@@ -25,7 +25,13 @@ from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.time
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
 )
-from qiskit.opflow import CircuitQFI, CircuitGradient, OperatorBase
+from qiskit.opflow import (
+    CircuitQFI,
+    CircuitGradient,
+    OperatorBase,
+    NaturalGradient,
+    PauliExpectation,
+)
 
 
 class ImaginaryVariationalPrinciple(VariationalPrinciple):
@@ -48,6 +54,11 @@ class ImaginaryVariationalPrinciple(VariationalPrinciple):
     @abstractmethod
     def _calc_evolution_grad(raw_evolution_grad: OperatorBase, param_dict) -> OperatorBase:
         pass
+
+    def _calc_nat_grad(
+        self, raw_operator: OperatorBase, param_dict, regularization
+    ) -> OperatorBase:
+        return super()._calc_nat_grad(-raw_operator, param_dict, regularization)
 
     def _calc_error_bound(self, error, et, h_squared, h_norm, trained_energy):
         # TODO stack dt params with the gradient for the error update

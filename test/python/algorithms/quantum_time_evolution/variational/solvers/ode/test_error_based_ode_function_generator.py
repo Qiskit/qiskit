@@ -81,8 +81,9 @@ class TestErrorBasedOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         )
 
         var_principle = ImaginaryMcLachlanVariationalPrinciple()
+        regularization = "ridge"
         # for the purpose of the test we invoke lazy_init
-        var_principle._lazy_init(observable, ansatz, param_dict)
+        var_principle._lazy_init(observable, ansatz, param_dict, regularization)
 
         ode_function_generator = ErrorBaseOdeFunctionGenerator(
             error_calculator,

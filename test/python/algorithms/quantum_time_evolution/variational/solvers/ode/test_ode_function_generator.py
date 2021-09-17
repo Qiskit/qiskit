@@ -84,8 +84,9 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         )
 
         var_principle = ImaginaryMcLachlanVariationalPrinciple()
+        regularization = "ridge"
         # for the purpose of the test we invoke lazy_init
-        var_principle._lazy_init(observable, ansatz, param_dict)
+        var_principle._lazy_init(observable, ansatz, param_dict, regularization)
         time = 2
 
         target_state = np.dot(expm(-1 * h_matrix * time), init_state)

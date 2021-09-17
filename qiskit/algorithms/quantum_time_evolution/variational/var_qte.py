@@ -12,7 +12,7 @@
 
 """The Variational Quantum Time Evolution Interface"""
 from abc import abstractmethod, ABC
-from typing import List, Optional, Union, Iterable
+from typing import Optional, Union, Iterable
 
 import numpy as np
 
@@ -22,7 +22,6 @@ from qiskit.algorithms.quantum_time_evolution.variational.principles.variational
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
 from qiskit.opflow import StateFn, CircuitSampler, ComposedOp, PauliExpectation
-from qiskit.opflow.gradients import NaturalGradient
 
 
 class VarQte(ABC):
@@ -118,24 +117,6 @@ class VarQte(ABC):
         self._h_norm = np.linalg.norm(self._h_matrix, np.infty)
         self._h_squared = self._h_pow(2)
         self._h_trip = self._h_pow(3)
-
-        # TODO does it depend on the var principle? yes, check paper
-        # VarQRTE
-        if np.iscomplex(self._operator.coeff):
-            self._nat_grad = NaturalGradient(
-                grad_method=grad_method,
-                qfi_method=qfi_method,
-                regularization=self._regularization,
-            ).convert(self._operator * 0.5, parameters)
-        # VarQITE
-        else:
-            self._nat_grad = NaturalGradient(
-                grad_method=grad_method,
-                qfi_method=qfi_method,
-                regularization=self._regularization,
-            ).convert(self._operator * -0.5, parameters)
-
-        self._nat_grad = PauliExpectation().convert(self._nat_grad)
 
     def _h_pow(self, power):
         h_power = self._h ** power

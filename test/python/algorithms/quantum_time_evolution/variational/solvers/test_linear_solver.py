@@ -33,7 +33,7 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
             CircuitSampler(backend),
             CircuitSampler(backend),
             CircuitSampler(backend),
-            backend=backend,
+            backend=None,
         )
 
         # Define the Hamiltonian for the simulation
@@ -64,8 +64,9 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
         param_dict = dict(zip(parameters, init_param_values))
 
         var_principle = ImaginaryMcLachlanVariationalPrinciple()
+        regularization = "ridge"
         # for the purpose of the test we invoke lazy_init
-        var_principle._lazy_init(observable, ansatz, param_dict)
+        var_principle._lazy_init(observable, ansatz, param_dict, regularization)
 
         nat_grad_res, grad_res, metric_res = linear_solver._solve_sle(var_principle, param_dict)
         # print(nat_grad_res)
@@ -307,8 +308,9 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
     #     # TODO var_principle currently requires an error calculator but linear solver for example
     #     #  does not need it at all.
     #     var_principle = ImaginaryMcLachlanVariationalPrinciple(None)
+    #     regularization = 'ridge'
     #     # for the purpose of the test we invoke lazy_init
-    #     var_principle._lazy_init(observable, ansatz, parameters)
+    #     var_principle._lazy_init(observable, ansatz, param_dict, regularization)
     #
     #     param_dict = {}
     #     for param in parameters:

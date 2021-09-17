@@ -81,13 +81,13 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
             param_dict,
             backend=None,
         )
-        backend = Aer.get_backend("qasm_simulator")
         linear_solver = VarQteLinearSolver(
             CircuitSampler(backend), CircuitSampler(backend), CircuitSampler(backend), backend=None
         )
         var_principle = RealMcLachlanVariationalPrinciple()
+        regularization = "ridge"
         # for the purpose of the test we invoke lazy_init
-        var_principle._lazy_init(observable, ansatz, param_dict)
+        var_principle._lazy_init(observable, ansatz, param_dict, regularization)
         ng_res, grad_res, metric_res = linear_solver._solve_sle(var_principle, param_dict)
 
         eps_squared, dtdt_state, regrad2 = imaginary_error_calculator._calc_single_step_error(
@@ -141,13 +141,13 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
             param_dict,
             backend=None,
         )
-        backend = Aer.get_backend("qasm_simulator")
         linear_solver = VarQteLinearSolver(
             CircuitSampler(backend), CircuitSampler(backend), CircuitSampler(backend), backend=None
         )
         var_principle = RealMcLachlanVariationalPrinciple()
+        regularization = "ridge"
         # for the purpose of the test we invoke lazy_init
-        var_principle._lazy_init(observable, ansatz, param_dict)
+        var_principle._lazy_init(observable, ansatz, param_dict, regularization)
         ng_res, grad_res, metric_res = linear_solver._solve_sle(var_principle, param_dict)
 
         eps_squared = imaginary_error_calculator._calc_single_step_error_gradient(
