@@ -157,8 +157,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
             except CircuitError:
                 # the register already exists, probably because of a previous composition
                 pass         
-            times = ParameterVector("t", self.reps * sum(is_evolved_operator))
-            times_it = iter(times) 
+            #times = ParameterVector("t", self.reps * sum(is_evolved_operator))
             evolution_ = QuantumCircuit(*self.qregs, name=self.name)            # ------- need to figure out how initial_point is passed/ updated with reps
             first = True
             for _ in range(self.reps):
