@@ -795,7 +795,7 @@ class TestBasisExamples(QiskitTestCase):
         expected.cp(pi, 0, 1)
         expected.u(pi / 2, 0, pi, 1)
         expected_dag = circuit_to_dag(expected)
-        
+
         self.assertEqual(out_dag, expected_dag)
 
     def test_cx_bell_to_crz(self):
@@ -818,7 +818,7 @@ class TestBasisExamples(QiskitTestCase):
         expected.crz(pi, 0, 1)
         expected.u(pi / 2, 0, pi, 1)
         expected_dag = circuit_to_dag(expected)
-        
+
         self.assertEqual(out_dag, expected_dag)
 
     def test_global_phase(self):
