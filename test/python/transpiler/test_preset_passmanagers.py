@@ -311,7 +311,7 @@ class TestInitialLayouts(QiskitTestCase):
         qc_b = transpile(qc, backend, initial_layout=initial_layout, optimization_level=level)
         qobj = assemble(qc_b)
 
-        self.assertEqual(qc_b._layout._p2v, final_layout)
+        self.assertEqual(qc_b._layout.p2v, final_layout)
 
         compiled_ops = qobj.experiments[0].instructions
         for operation in compiled_ops:
@@ -359,7 +359,7 @@ class TestInitialLayouts(QiskitTestCase):
 
         qc_b = transpile(qc, backend, initial_layout=initial_layout, optimization_level=level)
 
-        self.assertEqual(qc_b._layout._p2v, final_layout)
+        self.assertEqual(qc_b._layout.p2v, final_layout)
 
         output_qr = qc_b.qregs[0]
         for gate, qubits, _ in qc_b:
@@ -413,7 +413,7 @@ class TestInitialLayouts(QiskitTestCase):
 
         qc_b = transpile(qc, backend, initial_layout=initial_layout, optimization_level=level)
 
-        self.assertEqual(qc_b._layout._p2v, final_layout)
+        self.assertEqual(qc_b._layout.p2v, final_layout)
 
         gate_0, qubits_0, _ = qc_b[0]
         gate_1, qubits_1, _ = qc_b[1]
@@ -527,7 +527,7 @@ class TestFinalLayouts(QiskitTestCase):
         ]
         backend = FakeTokyo()
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
-        self.assertEqual(result._layout._p2v, expected_layouts[level])
+        self.assertEqual(result._layout.p2v, expected_layouts[level])
 
     @data(0, 1, 2, 3)
     def test_layout_tokyo_fully_connected_cx(self, level):
@@ -600,7 +600,7 @@ class TestFinalLayouts(QiskitTestCase):
         ]
         backend = FakeTokyo()
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
-        self.assertEqual(result._layout._p2v, expected_layouts[level])
+        self.assertEqual(result._layout.p2v, expected_layouts[level])
 
     @data(0, 1, 2, 3)
     def test_all_levels_use_trivial_if_perfect(self, level):
@@ -642,7 +642,7 @@ class TestFinalLayouts(QiskitTestCase):
             19: Qubit(QuantumRegister(20, "q"), 19),
         }
         trans_qc = transpile(qc, backend, optimization_level=level)
-        self.assertEqual(trans_qc._layout._p2v, expected)
+        self.assertEqual(trans_qc._layout.p2v, expected)
 
     @data(0, 1)
     def test_trivial_layout(self, level):
@@ -690,7 +690,7 @@ class TestFinalLayouts(QiskitTestCase):
 
         backend = FakeTokyo()
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
-        self.assertEqual(result._layout._p2v, expected_layouts[level])
+        self.assertEqual(result._layout.p2v, expected_layouts[level])
 
     @data(0, 1, 2, 3)
     def test_initial_layout(self, level):
@@ -727,7 +727,7 @@ class TestFinalLayouts(QiskitTestCase):
         )
 
         for physical, virtual in initial_layout.items():
-            self.assertEqual(result._layout._p2v[physical], virtual)
+            self.assertEqual(result._layout.p2v[physical], virtual)
 
 
 @ddt

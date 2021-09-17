@@ -294,8 +294,8 @@ class LayoutTest(QiskitTestCase):
                 "Layout": Layout,
             },
         )
-        self.assertDictEqual(layout._p2v, repr_layout._p2v)
-        self.assertDictEqual(layout._v2p, repr_layout._v2p)
+        self.assertDictEqual(layout.p2v, repr_layout.p2v)
+        self.assertDictEqual(layout.v2p, repr_layout.v2p)
 
     def test_layout_repr_with_holes(self):
         """A non-bijective Layout repr reproduces layout"""
@@ -310,8 +310,8 @@ class LayoutTest(QiskitTestCase):
                 "Layout": Layout,
             },
         )
-        self.assertDictEqual(layout._p2v, repr_layout._p2v)
-        self.assertDictEqual(layout._v2p, repr_layout._v2p)
+        self.assertDictEqual(layout.p2v, repr_layout.p2v)
+        self.assertDictEqual(layout.v2p, repr_layout.v2p)
 
     def test_layout_from_intlist(self):
         """Create a layout from a list of integers.
@@ -330,8 +330,8 @@ class LayoutTest(QiskitTestCase):
         layout = Layout.from_intlist(intlist_layout, qr1, qr2, qr3)
 
         expected = Layout({4: qr1[0], 5: qr2[0], 6: qr2[1], 8: qr3[0], 9: qr3[1], 10: qr3[2]})
-        self.assertDictEqual(layout._p2v, expected._p2v)
-        self.assertDictEqual(layout._v2p, expected._v2p)
+        self.assertDictEqual(layout.p2v, expected.p2v)
+        self.assertDictEqual(layout.v2p, expected.v2p)
 
     def test_layout_from_intlist_numpy(self):
         """Create a layout from a list of numpy integers. See #3097"""
@@ -342,8 +342,8 @@ class LayoutTest(QiskitTestCase):
         layout = Layout.from_intlist(intlist_layout, qr1, qr2, qr3)
 
         expected = Layout.generate_trivial_layout(qr1, qr2, qr3)
-        self.assertDictEqual(layout._p2v, expected._p2v)
-        self.assertDictEqual(layout._v2p, expected._v2p)
+        self.assertDictEqual(layout.p2v, expected.p2v)
+        self.assertDictEqual(layout.v2p, expected.v2p)
 
     def test_layout_from_intlist_short(self):
         """Raise if the intlist is longer that your quantum register.
@@ -414,8 +414,8 @@ class LayoutTest(QiskitTestCase):
                 7: qr2[1],
             }
         )
-        self.assertDictEqual(layout._p2v, expected._p2v)
-        self.assertDictEqual(layout._v2p, expected._v2p)
+        self.assertDictEqual(layout.p2v, expected.p2v)
+        self.assertDictEqual(layout.v2p, expected.v2p)
 
     def test_layout_contains(self):
         """Verify Layouts support __contains__."""

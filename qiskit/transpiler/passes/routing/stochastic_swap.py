@@ -103,7 +103,7 @@ class StochasticSwap(TransformationPass):
             self.seed = np.random.randint(0, np.iinfo(np.int32).max)
         self.rng = np.random.default_rng(self.seed)
         logger.debug("StochasticSwap default_rng seeded with seed=%s", self.seed)
-
+        self.coupling_map.compute_distance_matrix()
         new_dag = self._mapper(dag, self.coupling_map, trials=self.trials)
         return new_dag
 
@@ -174,7 +174,7 @@ class StochasticSwap(TransformationPass):
         best_circuit = None  # initialize best swap circuit
         best_layout = None  # initialize best final layout
 
-        cdist2 = coupling._dist_matrix ** 2
+        cdist2 = coupling.dist_matrix ** 2
         # Scaling matrix
         scale = np.zeros((num_qubits, num_qubits))
 
@@ -196,7 +196,7 @@ class StochasticSwap(TransformationPass):
         trial_circuit.add_qubits(layout.get_virtual_bits())
 
         edges = np.asarray(coupling.get_edges(), dtype=np.int32).ravel()
-        cdist = coupling._dist_matrix
+        cdist = coupling.dist_matrix
         for trial in range(trials):
             logger.debug("layer_permutation: trial %s", trial)
             # This is one Trial --------------------------------------
