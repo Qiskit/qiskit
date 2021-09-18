@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes the error in executing :obj:`.pulse.ScheduleBlock` on a ``PulseBackend``.
+    Previously, ``execute`` did not correctly handle the execution of ``ScheduleBlock`` 
+    and tried transpilation of ``pulse`` type circuits. The ``ScheduleBlock`` is now 
+    run as a pulse schedule on the specified backend. 
