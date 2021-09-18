@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fix a bug in the `qiskit/utils/run_circuits.py` where a qobj
+    was submitted for execution infinite number of times until it
+    was submitted correctly. A user defined parameter for the
+    maximum number of retries was added in the `QuantumInstance` 
+    class in qiskit. An exception was raised if the qobj exceeds the
+    maximum number of retries. 
+
