@@ -786,17 +786,30 @@ class DAGCircuit:
 
         Yields:
             Bit: Bit in idle wire.
+
+        Raises:
+            DAGCircuitError: If the DAG is invalid
         """
         if ignore is None:
-            ignore = []
+            ignore = set()
+        ignore_set = set(ignore)
         for wire in self._wires:
-            nodes = [
-                node
-                for node in self.nodes_on_wire(wire, only_ops=True)
-                if node.op.name not in ignore
-            ]
-            if len(nodes) == 0:
-                yield wire
+            if not ignore:
+                try:
+                    child = next(self.successors(self.input_map[wire]))
+                except StopIteration as e:
+                    raise DAGCircuitError(
+                        "Invalid dagcircuit input node %s has no output" % self.input_map[wire]
+                    ) from e
+                if isinstance(child, DAGOutNode):
+                    yield wire
+            else:
+                for node in self.nodes_on_wire(wire, only_ops=True):
+                    if node.op.name not in ignore_set:
+                        # If we found an op node outside of ignore we can stop iterating over the wire
+                        break
+                else:
+                    yield wire
 
     def size(self):
         """Return the number of operations."""
