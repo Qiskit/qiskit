@@ -37,22 +37,22 @@ depths = [1]
 #  Ansatz
 #
 
-ode_solvers = [ForwardEuler,  RK45]
-ode_solvers_names = ['ForwardEuler', 'RK45']
+# ode_solvers = [ForwardEuler,  RK45]
+# ode_solvers_names = ['ForwardEuler', 'RK45']
 
 
-# ode_solvers = [ RK45]
-# ode_solvers_names = ['RK45']
-regs = [None, 'ridge', 'perturb_diag']
-reg_names = ['lstsq', 'ridge', 'perturb_diag']
-# regs = [None]
-# reg_names = ['lstsq']
+ode_solvers = [ ForwardEuler]
+ode_solvers_names = ['ForwardEuler']
+# regs = [None, 'ridge', 'perturb_diag']
+# reg_names = ['lstsq', 'ridge', 'perturb_diag']
+regs = [None]
+reg_names = ['lstsq']
 # for nts in num_time_steps:
 # nts = num_time_steps[1]
-# error_based_odes = [True]
-# error_based_ode_names = ['error']
-error_based_odes = [False, True]
-error_based_ode_names = ['nat_grad', 'error']
+error_based_odes = [False]
+error_based_ode_names = ['nat_grad']
+# error_based_odes = [False, True]
+# error_based_ode_names = ['nat_grad', 'error']
 for l, error_based_ode in enumerate(error_based_odes):
     for k, ode_solver in enumerate(ode_solvers):
         for d in depths:
@@ -97,11 +97,10 @@ for l, error_based_ode in enumerate(error_based_odes):
                 print('---------------------------------------------------------------------')
 
                 t0 = time.time()
-                varqite_snapshot_dir = '/Users/ouf/Box/ChristaPhDFolder/Papers/VarQTE_Error/' \
-                'output/output_new_ode_def_june21/output_h2_reducedtolRK/imag/lstsq/RK45error'
-                # varqite_snapshot_dir = os.path.join('..', 'output_h2_reducedtolRK', 'imag',
-                #                                     reg_names[j],
-                #                                     ode_solvers_names[k] + error_based_ode_names[l])
+                # varqite_snapshot_dir = '../comparison_h2_varqite'
+                varqite_snapshot_dir = os.path.join('..', 'comparison_h2_varqite', 'imag',
+                                                    reg_names[j],
+                                                    ode_solvers_names[k] + error_based_ode_names[l])
 
                 varqite = VarQITE(parameters=parameters, grad_method='lin_comb',
                                   init_parameter_values=init_param_values,
@@ -113,15 +112,15 @@ for l, error_based_ode in enumerate(error_based_odes):
                                   snapshot_dir=varqite_snapshot_dir)
 
                 varqite.operator = op
-                # approx_time_evolved_state_imag = varqite.convert(op)
-                # varqite_error_bounds = varqite.error_bound(varqite_snapshot_dir)
-                # np.save(os.path.join(varqite_snapshot_dir, 'error_bounds.npy'),
-                #         varqite_error_bounds)
+                approx_time_evolved_state_imag = varqite.convert(op)
+                varqite_error_bounds = varqite.error_bound(varqite_snapshot_dir)
+                np.save(os.path.join(varqite_snapshot_dir, 'error_bounds.npy'),
+                        varqite_error_bounds)
                 # np.save(os.path.join(varqite_snapshot_dir, 'reverse_error_bounds.npy'),
                 #         varqite_reverse_error_bounds)
                 # dir_fast = '../output/imag/10/ridge/RK45error'
                 # varqite.print_results([dir_fast], [os.path.join(dir_fast,
-                #                                                'error_bounds.npy')])
+                # #                                                'error_bounds.npy')])
                 varqite.plot_results([varqite_snapshot_dir], [os.path.join(varqite_snapshot_dir,
                                                               'error_bounds.npy')])
                                      # ,

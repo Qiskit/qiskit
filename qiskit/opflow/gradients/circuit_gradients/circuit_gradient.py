@@ -13,8 +13,9 @@
 """CircuitGradient Class """
 
 from abc import abstractmethod
-from typing import List, Union, Optional, Tuple
+from typing import List, Union, Optional, Tuple, Set
 
+from qiskit import QuantumCircuit, QiskitError, transpile
 from qiskit.circuit import ParameterExpression, ParameterVector
 from ...converters.converter_base import ConverterBase
 from ...operator_base import OperatorBase
@@ -66,3 +67,32 @@ class CircuitGradient(ConverterBase):
             ValueError: If ``params`` contains a parameter not present in ``operator``.
         """
         raise NotImplementedError
+
+    @staticmethod
+    def _transpile_to_supported_operations(
+        circuit: QuantumCircuit, supported_gates: Set[str]
+    ) -> QuantumCircuit:
+        """Unroll the given circuit into a gate set for which the gradients may be computed.
+
+        Args:
+            circuit: Quantum circuit to be unrolled into supported operations.
+
+        Returns:
+            Quantum circuit which is unrolled into supported operations.
+
+        Raises:
+            QiskitError: when circuit unrolling fails.
+
+        """
+        unique_ops = set(circuit.count_ops())
+        if not unique_ops.issubset(supported_gates):
+            try:
+                circuit = transpile(
+                    circuit, basis_gates=list(supported_gates), optimization_level=0
+                )
+            except Exception as exc:
+                raise QiskitError(
+                    f"Could not transpile the circuit provided {circuit} into supported gates "
+                    f"{supported_gates}."
+                ) from exc
+        return circuit

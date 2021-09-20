@@ -20,6 +20,7 @@ from typing import List, Optional, Tuple, Union
 
 import scipy
 import numpy as np
+
 from qiskit.circuit import Gate, Instruction
 from qiskit.circuit import (
     QuantumCircuit,
@@ -48,7 +49,6 @@ from qiskit.circuit.library.standard_gates import (
     ZGate,
 )
 from qiskit.quantum_info import partial_trace
-
 from ...operator_base import OperatorBase
 from ...list_ops.list_op import ListOp
 from ...list_ops.composed_op import ComposedOp
@@ -72,6 +72,31 @@ class LinComb(CircuitGradient):
     This method employs a linear combination of unitaries,
     see e.g. https://arxiv.org/pdf/1811.11184.pdf
     """
+
+    SUPPORTED_GATES = {
+        "rx",
+        "ry",
+        "rz",
+        "rzx",
+        "rzz",
+        "ryy",
+        "rxx",
+        "p",
+        "u",
+        "controlledgate",
+        "cx",
+        "cy",
+        "cz",
+        "ccx",
+        "swap",
+        "iswap",
+        "t",
+        "s",
+        "sdg",
+        "x",
+        "y",
+        "z",
+    }
 
     # pylint: disable=signature-differs
     def convert(
@@ -435,7 +460,6 @@ class LinComb(CircuitGradient):
                 c_g = (coeffs, gates)
                 coeffs_gates.append(c_g)
             return coeffs_gates
-
         raise TypeError(f"Unrecognized parameterized gate, {gate}")
 
     @staticmethod
@@ -587,9 +611,42 @@ class LinComb(CircuitGradient):
             AquaError: If one of the circuits could not be constructed.
             TypeError: If the operators is of unsupported type.
         """
+#         qr_superpos = QuantumRegister(1)
+        # #         state_qc = QuantumCircuit(*state_op.primitive.qregs, qr_superpos)
+        # #         state_qc.h(qr_superpos)
+        # # <<<<<<< HEAD
+        # #         phase_fix = False
+        # #         if not isinstance(meas_op, bool):
+        # #             if meas_op is not None:
+        # #                 meas_op = meas_op.reduce()
+        # #
+        # #             if np.iscomplex(meas_op._coeff):
+        # #                 phase_fix = True
+        # #                 phase_fix_observable = SummedOp([Z ^ (I ^ state_op.num_qubits),
+        # #                                          -1j * Y ^ (I ^ state_op.num_qubits)])
+        # #                 state_qc.s(qr_superpos)
+        # #                 meas_op._coeff /= 1j
+        # #
+        # #             # print(state_qc)
+        # #             # print(meas_op, 'meas_op')
+        # #
+        # #         state_qc.compose(state_op.primitive, inplace=True)
+        # # =======
+        # #         # unroll separately from the H gate since we need the H gate to be the first
+        # #         # operation in the data attributes of the circuit
+        # #         unrolled = self._transpile_to_supported_operations(state_op.primitive,
+        # self.SUPPORTED_GATES)
+        # #         state_qc.compose(unrolled, inplace=True)
+        # # >>>>>>> 90253729f7674a22d5a76bfebdf5b96069c54239
+
+        # unroll separately from the H gate since we need the H gate to be the first
+        # operation in the data attributes of the circuit
+        unrolled = self._transpile_to_supported_operations(state_op.primitive, self.SUPPORTED_GATES)
+
         qr_superpos = QuantumRegister(1)
-        state_qc = QuantumCircuit(*state_op.primitive.qregs, qr_superpos)
+        state_qc = QuantumCircuit(*unrolled.primitive.qregs, qr_superpos)
         state_qc.h(qr_superpos)
+
         phase_fix = False
         if not isinstance(meas_op, bool):
             if meas_op is not None:
@@ -597,15 +654,16 @@ class LinComb(CircuitGradient):
 
             if np.iscomplex(meas_op._coeff):
                 phase_fix = True
-                phase_fix_observable = SummedOp([Z ^ (I ^ state_op.num_qubits),
-                                         -1j * Y ^ (I ^ state_op.num_qubits)])
+                phase_fix_observable = SummedOp([Z ^ (I ^ unrolled.num_qubits),
+                                                 -1j * Y ^ (I ^ unrolled.num_qubits)])
                 state_qc.s(qr_superpos)
                 meas_op._coeff /= 1j
 
             # print(state_qc)
             # print(meas_op, 'meas_op')
 
-        state_qc.compose(state_op.primitive, inplace=True)
+        state_qc.compose(unrolled, inplace=True)
+
 
         # Define the working qubit to realize the linear combination of unitaries
         if not isinstance(target_params, (list, np.ndarray)):
