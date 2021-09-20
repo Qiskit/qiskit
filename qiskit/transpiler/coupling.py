@@ -169,9 +169,9 @@ class CouplingMap:
         The distance map self.dist_matrix is computed from the graph using
         all_pairs_shortest_path_length.
         """
-        if not self.is_connected():
-            raise CouplingError("coupling graph not connected")
         if self.dist_matrix is None:
+            if not self.is_connected():
+                raise CouplingError("coupling graph not connected")
             self.dist_matrix = rx.digraph_distance_matrix(self.graph, as_undirected=True)
 
     def distance(self, physical_qubit1, physical_qubit2):
