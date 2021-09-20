@@ -126,7 +126,7 @@ from qiskit.visualization.state_visualization import (
 from qiskit.visualization.transition_visualization import visualize_transition
 from qiskit.visualization.array import array_to_latex
 
-from .circuit_visualization import circuit_drawer, HAS_PIL, HAS_PDFLATEX
+from .circuit_visualization import circuit_drawer, HAS_PIL, HAS_PDFLATEX, HAS_PDFTOCAIRO
 from .dag_visualization import dag_drawer
 from .exceptions import VisualizationError
 from .gate_map import plot_gate_map, plot_circuit_layout, plot_error_map
