@@ -172,7 +172,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         self.graph_count_drawer(counts, filename="histogram.png")
 
     def test_plot_1_qubit_gate_map(self):
-        """test for plot_gate_map using 1 qubit backend"""
+        """Test plot_gate_map using 1 qubit backend"""
         # getting the mock backend from FakeProvider
 
         backend = FakeArmonk()
@@ -180,7 +180,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         self.graph_plot_gate_map(backend=backend, filename="1_qubit_gate_map.png")
 
     def test_plot_5_qubit_gate_map(self):
-        """test for plot_gate_map using 5 qubit backend"""
+        """Test plot_gate_map using 5 qubit backend"""
         # getting the mock backend from FakeProvider
 
         backend = FakeBelem()
@@ -188,7 +188,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         self.graph_plot_gate_map(backend=backend, filename="5_qubit_gate_map.png")
 
     def test_plot_7_qubit_gate_map(self):
-        """test for plot_gate_map using 7 qubit backend"""
+        """Test plot_gate_map using 7 qubit backend"""
         # getting the mock backend from FakeProvider
 
         backend = FakeCasablanca()
@@ -196,7 +196,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         self.graph_plot_gate_map(backend=backend, filename="7_qubit_gate_map.png")
 
     def test_plot_16_qubit_gate_map(self):
-        """test for plot_gate_map using 16 qubit backend"""
+        """Test plot_gate_map using 16 qubit backend"""
         # getting the mock backend from FakeProvider
 
         backend = FakeRueschlikon()
@@ -204,7 +204,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         self.graph_plot_gate_map(backend=backend, filename="16_qubit_gate_map.png")
 
     def test_plot_27_qubit_gate_map(self):
-        """test for plot_gate_map using 27 qubit backend"""
+        """Test plot_gate_map using 27 qubit backend"""
         # getting the mock backend from FakeProvider
 
         backend = FakeMumbai()
@@ -220,7 +220,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         self.graph_plot_gate_map(backend=backend, filename="65_qubit_gate_map.png")
 
     def test_figsize(self):
-        """for testing figsize parameter of plot_gate_map"""
+        """Test figsize parameter of plot_gate_map"""
         # getting the mock backend from FakeProvider
 
         backend = FakeBelem()
@@ -228,7 +228,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         self.graph_plot_gate_map(backend=backend, figsize=(10, 10), filename="figsize.png")
 
     def test_qubit_size(self):
-        """for testing qubit_size parameter of plot_gate_map"""
+        """Test qubit_size parameter of plot_gate_map"""
         # getting the mock backend from FakeProvider
 
         backend = FakeBelem()
@@ -236,7 +236,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         self.graph_plot_gate_map(backend=backend, qubit_size=38, filename="qubit_size.png")
 
     def test_qubit_color(self):
-        """for testing qubit_color parameter of plot_gate_map"""
+        """Test qubit_color parameter of plot_gate_map"""
         # getting the mock backend from FakeProvider
 
         backend = FakeCasablanca()
@@ -246,7 +246,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         )
 
     def test_qubit_labels(self):
-        """for testing qubit_labels parameter of plot_gate_map"""
+        """Test qubit_labels parameter of plot_gate_map"""
         # getting the mock backend from FakeProvider
 
         backend = FakeCasablanca()
@@ -256,7 +256,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         )
 
     def test_line_color(self):
-        """for testing line_color parameter of plot_gate_map"""
+        """Test line_color parameter of plot_gate_map"""
         # getting the mock backend from FakeProvider
 
         backend = FakeManhattan()
@@ -266,7 +266,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         )
 
     def test_font_color(self):
-        """for testing font_color parameter of plot_gate_map"""
+        """Test font_color parameter of plot_gate_map"""
         # getting the mock backend from FakeProvider
 
         backend = FakeManhattan()
@@ -274,7 +274,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         self.graph_plot_gate_map(backend=backend, font_color="#ff00ff", filename="font_color.png")
 
     def test_plot_coupling_map(self):
-        """for testing the plot_coupling_map"""
+        """Test plot_coupling_map"""
 
         num_qubits = 5
         qubit_coordinates = [[1, 0], [0, 1], [1, 1], [1, 2], [2, 1]]
