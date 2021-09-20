@@ -170,18 +170,21 @@ class TestReciprocal(QiskitAlgorithmsTestCase):
         * the constructed circuits
     """
 
-    @idata([[2, 0.1], [3, 1 / 9]])
+    @idata([[2, 0.1, False], [3, 1 / 9, True]])
     @unpack
-    def test_exact_reciprocal(self, num_qubits, scaling):
+    def test_exact_reciprocal(self, num_qubits, scaling, neg_vals):
         """Test the ExactReciprocal class."""
-        reciprocal = ExactReciprocal(num_qubits, scaling)
+        reciprocal = ExactReciprocal(num_qubits + neg_vals, scaling, neg_vals)
 
-        qc = QuantumCircuit(num_qubits + 1)
+        qc = QuantumCircuit(num_qubits + 1 + neg_vals)
         qc.h(list(range(num_qubits)))
-        qc.append(reciprocal, list(range(num_qubits + 1)))
+        # If negative eigenvalues, set the sign qubit to 1
+        if neg_vals:
+            qc.x(num_qubits)
+        qc.append(reciprocal, list(range(num_qubits + 1 + neg_vals)))
 
         # Create the operator 0
-        state_vec = quantum_info.Statevector.from_instruction(qc).data[2 ** num_qubits : :]
+        state_vec = quantum_info.Statevector.from_instruction(qc).data[-(2 ** num_qubits) :]
 
         # Remove the factor from the hadamards
         state_vec *= np.sqrt(2) ** num_qubits
@@ -192,7 +195,10 @@ class TestReciprocal(QiskitAlgorithmsTestCase):
             if i == 0:
                 exact.append(0)
             else:
-                exact.append(scaling * (2 ** num_qubits) / i)
+                if neg_vals:
+                    exact.append(-scaling / (1 - i / (2 ** num_qubits)))
+                else:
+                    exact.append(scaling * (2 ** num_qubits) / i)
 
         np.testing.assert_array_almost_equal(state_vec, exact, decimal=2)
 
@@ -214,14 +220,9 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
             ],
             [
                 np.array(
-                    [
-                        [1 / 2, 1 / 6, 0, 0],
-                        [1 / 6, 1 / 2, 1 / 6, 0],
-                        [0, 1 / 6, 1 / 2, 1 / 6],
-                        [0, 0, 1 / 6, 1 / 2],
-                    ]
+                    [[0, 0, 1.585, 0], [0, 0, -0.585, 1], [1.585, -0.585, 0, 0], [0, 1, 0, 0]]
                 ),
-                [1.0, -2.1, 3.2, -4.3],
+                [1.0, 0, 0, 0],
                 MatrixFunctional(1, 1 / 2),
             ],
             [
@@ -270,7 +271,7 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
             exact_x = np.dot(np.linalg.inv(matrix), rhs)
         exact_result = observable.evaluate_classically(exact_x)
 
-        np.testing.assert_almost_equal(approx_result, exact_result, decimal=2)
+        np.testing.assert_almost_equal(approx_result, exact_result, decimal=1)
 
 
 if __name__ == "__main__":

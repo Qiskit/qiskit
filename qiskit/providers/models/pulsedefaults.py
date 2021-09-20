@@ -15,7 +15,7 @@
 import copy
 from typing import Any, Dict, List
 
-from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
+from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap, CalibrationPublisher
 from qiskit.pulse.schedule import Schedule
 from qiskit.qobj import PulseLibraryItem, PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
@@ -205,6 +205,7 @@ class PulseDefaults:
         for inst in cmd_def:
             pulse_insts = [self.converter(inst) for inst in inst.sequence]
             schedule = Schedule(*pulse_insts, name=inst.name)
+            schedule.metadata["publisher"] = CalibrationPublisher.BACKEND_PROVIDER
             self.instruction_schedule_map.add(inst.name, inst.qubits, schedule)
 
         if meas_kernel is not None:
