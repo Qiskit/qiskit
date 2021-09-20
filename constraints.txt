@@ -4,3 +4,4 @@ decorator==4.4.2
 jax==0.2.13
 jaxlib==0.1.67
 networkx==2.5
+importlib-metadata==4.6.4
