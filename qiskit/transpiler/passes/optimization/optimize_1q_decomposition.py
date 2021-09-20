@@ -111,9 +111,12 @@ class Optimize1qGatesDecomposition(TransformationPass):
             # NOTE: This is short-circuited on calibrated gates, which we're timid about
             #       reducing.
             warnings.warn(
-                f"Resynthesized {old_run} and got {new_circ}, "
-                f"but the original was native and the new value is longer.  This "
-                f"indicates an efficiency bug in synthesis.  Please report it by "
+                "Resynthesized \n\n"
+                + "\n".join([str(node.op) for node in old_run])
+                + "\n\nand got\n\n"
+                + "\n".join([str(node[0]) for node in new_circ])
+                + f"\n\nbut the original was native (for {self._target_basis}) and the new value "
+                f"is longer.  This indicates an efficiency bug in synthesis.  Please report it by "
                 f"opening an issue here: "
                 f"https://github.com/Qiskit/qiskit-terra/issues/new/choose",
                 stacklevel=2,
