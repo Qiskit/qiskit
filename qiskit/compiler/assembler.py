@@ -282,7 +282,7 @@ def _parse_common_args(
             or meas_lo_range is not None
             or schedule_los is not None
         )
-        if pulse_qobj or backend_config.open_pulse and pulse_param_set:
+        if pulse_qobj or (backend_config.open_pulse and pulse_param_set):
             try:
                 backend_defaults = backend.defaults()
             except AttributeError:
