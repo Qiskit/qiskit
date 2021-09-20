@@ -13,12 +13,13 @@
 # pylint: disable=invalid-name
 
 """Test cases for the pulse schedule block."""
-
+import unittest
 from qiskit import pulse, circuit
 from qiskit.pulse import transforms
 from qiskit.pulse.exceptions import PulseError
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeArmonk
+from qiskit.utils import has_aer
 
 
 class BaseTestBlock(QiskitTestCase):
@@ -429,6 +430,7 @@ class TestBlockOperation(BaseTestBlock):
         self.assertEqual(new_sched.name, ref_name)
         self.assertDictEqual(new_sched.metadata, ref_metadata)
 
+    @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
     def test_execute_block(self):
         """Test executing a ScheduleBlock on a Pulse backend"""
 
