@@ -64,6 +64,6 @@ class Layout2qDistance(AnalysisPass):
             physical_q0 = layout.v2p[gate.qargs[0]]
             physical_q1 = layout.v2p[gate.qargs[1]]
 
-            sum_distance += self.coupling_map.dist_matrix[physical_q0][physical_q1] - 1
+            sum_distance += self.coupling_map.dist_matrix[physical_q0, physical_q1] - 1
 
         self.property_set[self.property_name] = sum_distance

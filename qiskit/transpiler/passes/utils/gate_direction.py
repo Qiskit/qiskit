@@ -106,7 +106,7 @@ class GateDirection(TransformationPass):
             physical_q0 = trivial_layout.v2p[control]
             physical_q1 = trivial_layout.v2p[target]
 
-            if self.coupling_map.dist_matrix[physical_q0][physical_q1] != 1:
+            if self.coupling_map.dist_matrix[physical_q0, physical_q1] != 1:
                 raise TranspilerError(
                     "The circuit requires a connection between physical "
                     "qubits %s and %s" % (physical_q0, physical_q1)

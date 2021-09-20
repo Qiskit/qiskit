@@ -56,7 +56,7 @@ class CheckMap(AnalysisPass):
             physical_q0 = qubit_indices[gate.qargs[0]]
             physical_q1 = qubit_indices[gate.qargs[1]]
 
-            if self.coupling_map.dist_matrix[physical_q0][physical_q1] != 1:
+            if self.coupling_map.dist_matrix[physical_q0, physical_q1] != 1:
                 self.property_set["check_map_msg"] = "{}({}, {}) failed".format(
                     gate.name,
                     physical_q0,

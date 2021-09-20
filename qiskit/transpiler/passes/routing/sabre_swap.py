@@ -333,8 +333,8 @@ class SabreSwap(TransformationPass):
     def _compute_cost(self, layer, layout):
         cost = 0
         for node in layer:
-            cost += self.coupling_map.dist_matrix[layout.v2p[node.qargs[0]]][
-                layout.v2p[node.qargs[1]]
+            cost += self.coupling_map.dist_matrix[
+                layout.v2p[node.qargs[0]], layout.v2p[node.qargs[1]]
             ]
         return cost
 
