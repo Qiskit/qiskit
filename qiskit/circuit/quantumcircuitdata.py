@@ -63,7 +63,8 @@ class QuantumCircuitData(MutableSequence):
         self._circuit._data.insert(index, None)
         if isinstance(value, tuple):
             self[index] = Operation(*value)
-        self[index] = value
+        else:
+            self[index] = value
 
     def __delitem__(self, i):
         del self._circuit._data[i]
