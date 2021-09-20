@@ -644,7 +644,7 @@ class LinComb(CircuitGradient):
         unrolled = self._transpile_to_supported_operations(state_op.primitive, self.SUPPORTED_GATES)
 
         qr_superpos = QuantumRegister(1)
-        state_qc = QuantumCircuit(*unrolled.primitive.qregs, qr_superpos)
+        state_qc = QuantumCircuit(*state_op.primitive.qregs, qr_superpos)
         state_qc.h(qr_superpos)
 
         phase_fix = False
