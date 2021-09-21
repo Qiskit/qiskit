@@ -166,6 +166,30 @@ class UnitarySynthesisPlugin(abc.ABC):
 
     @property
     @abc.abstractmethod
+    def max_qubits(self):
+        """Return the maximum number of qubits the unitary synthesis plugin supports.
+
+        If the size of the unitary to be synthesized exceeds this value the
+        ``default`` plugin will be used. If there is no upper bound return
+        ``None`` and all unitaries ( ``> min_qubits`` if it's defined) will be
+        passed to this plugin when it's enabled.
+        """
+        pass
+
+    @property
+    @abc.abstractmethod
+    def min_qubits(self):
+        """Return the minimum number of qubits the unitary synthesis plugin supports.
+
+        If the size of the unitary to be synthesized is below this value the
+        ``default`` plugin will be used. If there is no lower bound return
+        ``None`` and all unitaries ( ``< max_qubits`` if it's defined) will be
+        passed to this plugin when it's enabled.
+        """
+        pass
+
+    @property
+    @abc.abstractmethod
     def supports_basis_gates(self):
         """Return whether the plugin supports taking ``basis_gates``
 

@@ -152,6 +152,7 @@ class UnitarySynthesis(TransformationPass):
             method = self.method
         if method not in self.plugins.ext_plugins:
             raise TranspilerError("Specified method: %s not found in plugin list" % method)
+        default_method = self.plugins.ext_plugins["default"].obj
         plugin_method = self.plugins.ext_plugins[method].obj
         if plugin_method.supports_coupling_map:
             dag_bit_indices = {bit: idx for idx, bit in enumerate(dag.qubits)}
@@ -174,7 +175,13 @@ class UnitarySynthesis(TransformationPass):
             if plugin_method.supports_gate_errors:
                 kwargs["gate_errors"] = _build_gate_errors(self._backend_props)
             unitary = node.op.to_matrix()
-            synth_dag = plugin_method.run(unitary, **kwargs)
+            n_qubits = len(node.qargs)
+            if (plugin_method.max_qubits is not None and n_qubits > plugin_method.max_qubits) or (
+                plugin_method.min_qubits is not None and n_qubits < plugin_method.min_qubits
+            ):
+                synth_dag = default_method.run(unitary, **kwargs)
+            else:
+                synth_dag = plugin_method.run(unitary, **kwargs)
             if synth_dag:
                 if isinstance(synth_dag, tuple):
                     dag.substitute_node_with_dag(node, synth_dag[0], wires=synth_dag[1])
@@ -241,6 +248,14 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
     @property
     def supports_gate_errors(self):
         return True
+
+    @property
+    def max_qubits(self):
+        return None
+
+    @property
+    def min_qubits(self):
+        return None
 
     def run(self, unitary, **options):
         basis_gates = options["basis_gates"]
