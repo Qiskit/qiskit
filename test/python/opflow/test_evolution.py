@@ -197,6 +197,17 @@ class TestEvolution(QiskitOpflowTestCase):
         for p in thetas:
             self.assertIn(p, evo.to_circuit().parameters)
 
+    def test_bind_parameters_complex(self):
+        """bind parameters with a complex value test"""
+        th1 = Parameter("th1")
+        th2 = Parameter("th2")
+
+        operator = th1 * X + th2 * Y
+        bound_operator = operator.bind_parameters({th1: 3j, th2: 2})
+
+        expected_bound_operator = SummedOp([3j * X, (2 + 0j) * Y])
+        self.assertEqual(bound_operator, expected_bound_operator)
+
     def test_qdrift(self):
         """QDrift test"""
         op = (2 * Z ^ Z) + (3 * X ^ X) - (4 * Y ^ Y) + (0.5 * Z ^ I)
