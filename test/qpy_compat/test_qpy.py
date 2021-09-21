@@ -65,10 +65,19 @@ def generate_unitary_gate_circuit():
 def generate_random_circuits():
     """Generate multiple random circuits."""
     random_circuits = []
-    for i in range(10):
-        random_circuits.append(
-            random_circuit(10, 10, measure=True, conditional=True, reset=True, seed=42 + i)
-        )
+    for i in range(1, 15):
+        qc = QuantumCircuit(i)
+        qc.h(0)
+        if i > 1:
+            for j in range(i - 1):
+                qc.cx(0, j + 1)
+        qc.measure_all()
+        for i in range(i):
+            qc.reset(i)
+        qc.x(0).c_if(qc.cregs[0], i)
+        for i in range(i):
+            qc.measure(i, i)
+        random_circuits.append(qc)
     return random_circuits
 
 

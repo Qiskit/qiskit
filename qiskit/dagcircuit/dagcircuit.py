@@ -786,17 +786,30 @@ class DAGCircuit:
 
         Yields:
             Bit: Bit in idle wire.
+
+        Raises:
+            DAGCircuitError: If the DAG is invalid
         """
         if ignore is None:
-            ignore = []
+            ignore = set()
+        ignore_set = set(ignore)
         for wire in self._wires:
-            nodes = [
-                node
-                for node in self.nodes_on_wire(wire, only_ops=True)
-                if node.op.name not in ignore
-            ]
-            if len(nodes) == 0:
-                yield wire
+            if not ignore:
+                try:
+                    child = next(self.successors(self.input_map[wire]))
+                except StopIteration as e:
+                    raise DAGCircuitError(
+                        "Invalid dagcircuit input node %s has no output" % self.input_map[wire]
+                    ) from e
+                if isinstance(child, DAGOutNode):
+                    yield wire
+            else:
+                for node in self.nodes_on_wire(wire, only_ops=True):
+                    if node.op.name not in ignore_set:
+                        # If we found an op node outside of ignore we can stop iterating over the wire
+                        break
+                else:
+                    yield wire
 
     def size(self):
         """Return the number of operations."""
@@ -942,6 +955,9 @@ class DAGCircuit:
                 in the input circuit. This order gets matched to the node wires
                 by qargs first, then cargs, then conditions.
 
+        Returns:
+            dict: maps node IDs from `input_dag` to their new node incarnations in `self`.
+
         Raises:
             DAGCircuitError: if met with unexpected predecessor/successors
         """
@@ -1074,7 +1090,7 @@ class DAGCircuit:
             node._node_id, in_dag._multi_graph, edge_map_fn, filter_fn, edge_weight_map
         )
 
-        # Iterate over nodes of input_circuit and update wiires in node objects migrated
+        # Iterate over nodes of input_circuit and update wires in node objects migrated
         # from in_dag
         for old_node_index, new_node_index in node_map.items():
             # update node attributes
@@ -1086,6 +1102,8 @@ class DAGCircuit:
             new_node._node_id = new_node_index
             new_node.op.condition = condition
             self._multi_graph[new_node_index] = new_node
+
+        return {k: self._multi_graph[v] for k, v in node_map.items()}
 
     def substitute_node(self, node, op, inplace=False):
         """Replace an DAGOpNode with a single instruction. qargs, cargs and
