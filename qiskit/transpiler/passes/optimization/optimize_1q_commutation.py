@@ -147,12 +147,13 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
     def _resynthesize(self, new_run):
         """
         Synthesizes an efficient circuit from a sequence `new_run` of `DAGOpNode`s.
-        """
 
-        new_circuit = QuantumCircuit(1)
-        for gate in new_run:
-            new_circuit.append(gate.op, [0])
-        return self._optimize1q(new_circuit)
+        NOTE: Returns None when resynthesis is not possible.
+        """
+        if len(new_run) == 0:
+            return (), QuantumCircuit(1)
+
+        return self._optimize1q._resynthesize_run(new_run)
 
     @staticmethod
     def _replace_subdag(dag, old_run, new_circ):
@@ -162,20 +163,24 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
         """
 
         new_dag = circuit_to_dag(new_circ)
-        dag.substitute_node_with_dag(old_run[0], new_dag)
+        node_map = dag.substitute_node_with_dag(old_run[0], new_dag)
+
         for node in old_run[1:]:
             dag.remove_op_node(node)
 
+        spliced_run = [node_map[node._node_id] for node in new_dag.topological_op_nodes()]
+        mov_list(old_run, spliced_run)
+
     def _step(self, dag):
         """
-        Performs one unit of optimization work.
+        Performs one full pass of optimization work.
 
         Returns True if `dag` changed, False if no work on `dag` was possible.
         """
 
-        # NOTE: This next call is somewhat expensive, and it could be improved if
-        #       `dag.substitute_node_with_dag` returned the new (ordered) replacement node list.
         runs = dag.collect_1q_runs()
+        did_work = False
+
         for run in runs:
             # identify the preceding blocking gates
             run_clone = copy(run)
@@ -199,24 +204,34 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
                 )
 
             # re-synthesize
-            new_preceding_run = self._resynthesize(preceding_run + commuted_preceding)
-            new_succeeding_run = self._resynthesize(commuted_succeeding + succeeding_run)
-            new_run = self._resynthesize(run_clone)
-
-            # check whether this was actually a good idea
-            original_depth = len(run) + len(preceding_run) + len(succeeding_run)
-            new_depth = len(new_run) + len(new_preceding_run) + len(new_succeeding_run)
+            new_preceding_basis, new_preceding_run = self._resynthesize(
+                preceding_run + commuted_preceding
+            )
+            new_succeeding_basis, new_succeeding_run = self._resynthesize(
+                commuted_succeeding + succeeding_run
+            )
+            new_basis, new_run = self._resynthesize(run_clone)
 
             # perform the replacement if it was indeed a good idea
-            if original_depth > new_depth:
-                if preceding_run != []:
+            if self._optimize1q._substitution_checks(
+                dag,
+                (preceding_run or []) + run + (succeeding_run or []),
+                (
+                    (new_preceding_run or QuantumCircuit(1)).data
+                    + (new_run or QuantumCircuit(1)).data
+                    + (new_succeeding_run or QuantumCircuit(1)).data
+                ),
+                new_basis + new_preceding_basis + new_succeeding_basis,
+            ):
+                if preceding_run and new_preceding_run is not None:
                     self._replace_subdag(dag, preceding_run, new_preceding_run)
-                if succeeding_run != []:
+                if succeeding_run and new_succeeding_run is not None:
                     self._replace_subdag(dag, succeeding_run, new_succeeding_run)
-                self._replace_subdag(dag, run, new_run)
-                return True
+                if new_run is not None:
+                    self._replace_subdag(dag, run, new_run)
+                did_work = True
 
-        return False
+        return did_work
 
     def run(self, dag):
         """
@@ -234,3 +249,13 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
                 break
 
         return dag
+
+
+def mov_list(destination, source):
+    """
+    Replace `destination` in-place with `source`.
+    """
+
+    while destination:
+        del destination[0]
+    destination += source
