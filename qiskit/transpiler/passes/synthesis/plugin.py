@@ -235,6 +235,8 @@ class UnitarySynthesisPlugin(abc.ABC):
             'cx': {(0, 1): 0.012012477900732316, (1, 0): 5.191111111111111e-07}
             }
 
+        Where the ``length`` value is in unites of seconds.
+
         Do note that this dictionary might not be complete or could be empty
         as it depends on the target backend reporting gate lengths on every
         gate for each qubit.
