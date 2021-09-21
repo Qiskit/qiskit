@@ -11,27 +11,23 @@
 # that they have been altered from the originals.
 from typing import Union
 
-from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.real_error_calculator import (
-    RealErrorCalculator,
-)
+
 from qiskit.algorithms.quantum_time_evolution.variational.principles.real.real_variational_principle import (
     RealVariationalPrinciple,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
 )
-from qiskit.opflow import CircuitQFI, CircuitGradient, OperatorBase
+from qiskit.opflow import CircuitQFI, OperatorBase
 
 
 class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
     def __init__(
         self,
         qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
-        grad_method: Union[str, CircuitGradient] = "lin_comb",
     ):
         super().__init__(
             qfi_method,
-            grad_method,
         )
 
     @staticmethod

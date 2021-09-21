@@ -12,18 +12,12 @@
 from abc import abstractmethod
 from typing import Union
 
-from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.real_error_calculator import (
-    RealErrorCalculator,
-)
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
 )
 from qiskit.opflow import (
     CircuitQFI,
-    CircuitGradient,
     OperatorBase,
-    PauliExpectation,
-    NaturalGradient,
 )
 
 
@@ -31,8 +25,8 @@ class RealVariationalPrinciple(VariationalPrinciple):
     def __init__(
         self,
         qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
-        grad_method: Union[str, CircuitGradient] = "lin_comb",
     ):
+        grad_method = "lin_comb"  # we only know how to do this with lin_comb for a real case
         super().__init__(
             qfi_method,
             grad_method,
