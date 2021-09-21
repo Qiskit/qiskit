@@ -802,7 +802,7 @@ class TestCircuitOperations(QiskitTestCase):
 
     def test_reverse_bits_isolated_qubits(self):
         """Test reversing order of bits when QuantumCircuit is made with isolated
-         Qubits (not in a register)."""
+        Qubits (not in a register)."""
         qubit1 = Qubit()
         qubit2 = Qubit()
         qc = QuantumCircuit([qubit1, qubit2])
@@ -849,7 +849,6 @@ class TestCircuitOperations(QiskitTestCase):
         expected.measure(qubit3, cl2[0])
 
         self.assertEqual(qc.reverse_bits(), expected)
-
 
     def test_cnot_alias(self):
         """Test that the cnot method alias adds a cx gate."""
