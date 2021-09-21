@@ -72,6 +72,16 @@ class BackendV1(Backend, ABC):
                 options.
         Raises:
             AttributeError: if input field not a valid options
+
+        ..
+            This next bit is necessary just because autosummary generally won't summarise private
+            methods; changing that behaviour would have annoying knock-on effects through all the
+            rest of the documentation, so instead we just hard-code the automethod directive.
+
+        In addition to the public abstract methods, subclasses should also implement the following
+        private methods:
+
+        .. automethod:: _default_options
         """
         self._configuration = configuration
         self._options = self._default_options()
@@ -114,7 +124,7 @@ class BackendV1(Backend, ABC):
         """
         for field in fields:
             if not hasattr(self._options, field):
-                raise AttributeError("Options field %s is not valid for this " "backend" % field)
+                raise AttributeError("Options field %s is not valid for this backend" % field)
         self._options.update_options(**fields)
 
     def configuration(self):

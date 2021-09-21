@@ -65,10 +65,19 @@ def generate_unitary_gate_circuit():
 def generate_random_circuits():
     """Generate multiple random circuits."""
     random_circuits = []
-    for i in range(10):
-        random_circuits.append(
-            random_circuit(10, 10, measure=True, conditional=True, reset=True, seed=42 + i)
-        )
+    for i in range(1, 15):
+        qc = QuantumCircuit(i)
+        qc.h(0)
+        if i > 1:
+            for j in range(i - 1):
+                qc.cx(0, j + 1)
+        qc.measure_all()
+        for i in range(i):
+            qc.reset(i)
+        qc.x(0).c_if(qc.cregs[0], i)
+        for i in range(i):
+            qc.measure(i, i)
+        random_circuits.append(qc)
     return random_circuits
 
 
@@ -191,6 +200,37 @@ def generate_qft_circuit():
     return qft_circ
 
 
+def generate_param_phase():
+    """Generate circuits with parameterize global phase."""
+    output_circuits = []
+    # Generate circuit with ParameterExpression global phase
+    theta = Parameter("theta")
+    phi = Parameter("phi")
+    sum_param = theta + phi
+    qc = QuantumCircuit(5, 1, global_phase=sum_param)
+    qc.h(0)
+    for i in range(4):
+        qc.cx(i, i + 1)
+    qc.barrier()
+    qc.rz(sum_param, range(3))
+    qc.rz(phi, 3)
+    qc.rz(theta, 4)
+    qc.barrier()
+    for i in reversed(range(4)):
+        qc.cx(i, i + 1)
+    qc.h(0)
+    qc.measure(0, 0)
+    output_circuits.append(qc)
+    # Generate circuit with Parameter global phase
+    theta = Parameter("theta")
+    bell_qc = QuantumCircuit(2, global_phase=theta)
+    bell_qc.h(0)
+    bell_qc.cx(0, 1)
+    bell_qc.measure_all()
+    output_circuits.append(bell_qc)
+    return output_circuits
+
+
 def generate_single_clbit_condition_teleportation():
     qr = QuantumRegister(1)
     cr = ClassicalRegister(2, name="name")
@@ -222,6 +262,9 @@ def generate_circuits(version_str=None):
     if version_parts >= (0, 18, 1):
         output_circuits["qft_circuit.qpy"] = [generate_qft_circuit()]
         output_circuits["teleport.qpy"] = [generate_single_clbit_condition_teleportation()]
+
+    if version_parts >= (0, 19, 0):
+        output_circuits["param_phase.qpy"] = generate_param_phase()
 
     return output_circuits
 
@@ -266,6 +309,12 @@ def load_qpy(qpy_files):
             bind = None
             if path == "parameterized.qpy":
                 bind = [1, 2]
+            elif path == "param_phase.qpy":
+                if i == 0:
+                    bind = [1, 2]
+                else:
+                    bind = [1]
+
             assert_equal(circuit, qpy_circuits[i], i, bind=bind)
 
 

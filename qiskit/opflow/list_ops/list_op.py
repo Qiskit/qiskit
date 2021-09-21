@@ -427,7 +427,7 @@ class ListOp(OperatorBase):
         # The below code only works for distributive ListOps, e.g. ListOp and SummedOp
         if not self.distributive:
             raise NotImplementedError(
-                "ListOp's eval function is only defined for distributive " "ListOps."
+                "ListOp's eval function is only defined for distributive ListOps."
             )
 
         evals = [op.eval(front) for op in self.oplist]

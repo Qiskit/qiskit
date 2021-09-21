@@ -18,11 +18,15 @@ directed edges indicate which physical qubits are coupled and the permitted dire
 CNOT gates. The object has a distance function that can be used to map quantum circuits
 onto a device with this coupling.
 """
+
 import io
+import warnings
+
 import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
 import retworkx as rx
+
 from qiskit.transpiler.exceptions import CouplingError
 from qiskit.exceptions import MissingOptionalLibraryError
 
@@ -42,6 +46,8 @@ class CouplingMap:
         Args:
             couplinglist (list or None): An initial coupling graph, specified as
                 an adjacency list containing couplings, e.g. [[0,1], [0,2], [1,2]].
+                It is required that nodes are contiguously indexed starting at 0.
+                Missed nodes will be added as isolated nodes in the coupling map.
             description (str): A string to describe the coupling map.
         """
         self.description = description
@@ -113,6 +119,13 @@ class CouplingMap:
 
         nodelist (list): list of integer node labels
         """
+        warnings.warn(
+            "The .subgraph() method is deprecated and will be removed in a "
+            "future release. Instead the .reduce() method should be used "
+            "instead which does the same thing but preserves nodelist order.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         subcoupling = CouplingMap()
         subcoupling.graph = self.graph.subgraph(nodelist)
         return subcoupling
