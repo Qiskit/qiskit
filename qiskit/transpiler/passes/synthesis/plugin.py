@@ -82,6 +82,18 @@ synthesis. An example plugin class would look something like::
         def supports_gate_errors(self):
             return False
 
+        @property
+        def min_qubits(self):
+            return None
+
+        @property
+        def max_qubits(self):
+            return None
+
+        @property
+        def supported_basis(self):
+            return None
+
         def run(self, unitary, **options):
             basis_gates = options['basis_gates']
             dag_circuit = generate_dag_circuit_from_matrix(unitary, basis_gates)
@@ -283,6 +295,23 @@ class UnitarySynthesisPlugin(abc.ABC):
         Do note that this dictionary might not be complete or could be empty
         as it depends on the target backend reporting gate errors on every
         gate for each qubit.
+        """
+        pass
+
+    @property
+    @abc.abstractmethod
+    def supported_basis(self):
+        """Returns a dictionary of supported basis for synthesis
+
+        This is expected to return a dictionary where the key is a string
+        basis and the value is a list of gate names that the basis works in.
+        If the synthesis method doesn't support multiple basis this should
+        return ``None``.
+
+        If a dictionary is returned by this method the run kwargs will be
+        passed a parameter ``matched_basis`` which contains a list of the
+        basis strings which match the target basis gate set for the
+        transpilation.
         """
         pass
 

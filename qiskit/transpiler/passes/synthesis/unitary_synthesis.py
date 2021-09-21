@@ -53,10 +53,29 @@ def _choose_euler_basis(basis_gates):
     basis_set = set(basis_gates or [])
 
     for basis, gates in one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES.items():
+
         if set(gates).issubset(basis_set):
             return basis
 
     return None
+
+
+def _choose_basis(basis_gates, basis_dict=None):
+    """Find all matching basis in the specified basis gates."""
+    if basis_gates is None:
+        basis_set = set()
+    else:
+        basis_set = set(basis_gates)
+
+    if basis_dict is None:
+        basis_dict = one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES
+
+    out_basis = []
+    for basis, gates in basis_dict.items():
+        if set(gates).issubset(basis_set):
+            return out_basis.append(basis)
+
+    return out_basis
 
 
 class UnitarySynthesis(TransformationPass):
@@ -156,24 +175,28 @@ class UnitarySynthesis(TransformationPass):
         plugin_method = self.plugins.ext_plugins[method].obj
         if plugin_method.supports_coupling_map:
             dag_bit_indices = {bit: idx for idx, bit in enumerate(dag.qubits)}
+        kwargs = {}
+        if plugin_method.supports_basis_gates:
+            kwargs["basis_gates"] = self._basis_gates
+        if plugin_method.supports_approximation_degree:
+            kwargs["approximation_degree"] = self._approximation_degree
+        if plugin_method.supports_natural_direction:
+            kwargs["natural_direction"] = self._natural_direction
+        if plugin_method.supports_pulse_optimize:
+            kwargs["pulse_optimize"] = self._pulse_optimize
+        if plugin_method.supports_gate_lengths:
+            kwargs["gate_lengths"] = _build_gate_lengths(self._backend_props)
+        if plugin_method.supports_gate_errors:
+            kwargs["gate_errors"] = _build_gate_errors(self._backend_props)
+        supported_basis = plugin_method.supported_basis()
+        if supported_basis is not None:
+            kwargs["matched_basis"] = _choose_basis(self._basis_gates, supported_basis)
+
         for node in dag.named_nodes(*self._synth_gates):
-            synth_dag = None
-            kwargs = {}
-            if plugin_method.supports_basis_gates:
-                kwargs["basis_gates"] = self._basis_gates
             if plugin_method.supports_coupling_map:
                 kwargs["coupling_map"] = self._coupling_map
                 kwargs["qubits"] = [dag_bit_indices[x] for x in node.qargs]
-            if plugin_method.supports_approximation_degree:
-                kwargs["approximation_degree"] = self._approximation_degree
-            if plugin_method.supports_natural_direction:
-                kwargs["natural_direction"] = self._natural_direction
-            if plugin_method.supports_pulse_optimize:
-                kwargs["pulse_optimize"] = self._pulse_optimize
-            if plugin_method.supports_gate_lengths:
-                kwargs["gate_lengths"] = _build_gate_lengths(self._backend_props)
-            if plugin_method.supports_gate_errors:
-                kwargs["gate_errors"] = _build_gate_errors(self._backend_props)
+            synth_dag = None
             unitary = node.op.to_matrix()
             n_qubits = len(node.qargs)
             if (plugin_method.max_qubits is not None and n_qubits > plugin_method.max_qubits) or (
@@ -255,6 +278,10 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
 
     @property
     def min_qubits(self):
+        return None
+
+    @property
+    def supported_basis(self):
         return None
 
     def run(self, unitary, **options):
