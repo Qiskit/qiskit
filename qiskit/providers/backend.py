@@ -292,19 +292,14 @@ class BackendV2(Backend, ABC):
         pass
 
     @property
-    @abstractmethod
-    def supported_instruction(self) -> List[Instruction]:
-        """Return the list of supported non-gate instructions for the
-        backend.
-
-        The expectation this will be things like Measure, Reset, Save, etc.
-        """
-        pass
-
-    @property
     def coupling_map(self):
         """Return the :class:`~qiskit.transpiler.CouplingMap` object"""
         return self.target.coupling_map()
+
+    @property
+    def instruction_durations(self):
+        """Return the :class:`~qiskit.transpiler.InstructionDurations` object."""
+        return self.target.durations()
 
     @property
     @abstractmethod
