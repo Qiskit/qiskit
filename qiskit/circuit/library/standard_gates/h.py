@@ -47,7 +47,7 @@ class HGate(Gate):
                 1 & -1
             \end{pmatrix}
     """
-    gate = "h"
+    name = "h"
     num_params = 0
 
     def __init__(self, label: Optional[str] = None):
@@ -165,7 +165,7 @@ class CHGate(ControlledGate):
         [[_sqrt2o2, 0, _sqrt2o2, 0], [0, 1, 0, 0], [_sqrt2o2, 0, -_sqrt2o2, 0], [0, 0, 0, 1]],
         dtype=complex,
     )
-    gate = "ch"
+    name = "ch"
     num_params = 0
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[int, str]] = None):

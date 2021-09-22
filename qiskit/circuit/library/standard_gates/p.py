@@ -70,7 +70,7 @@ class PhaseGate(Gate):
         Reference for virtual Z gate implementation:
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
-    gate = "p"
+    name = "p"
     num_params = 1
 
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
@@ -161,7 +161,7 @@ class CPhaseGate(ControlledGate):
         of Phase and RZ, CPhase and CRZ are different gates with a relative
         phase difference.
     """
-    gate = "cp"
+    name = "cp"
     num_params = 1
 
     def __init__(
@@ -262,7 +262,7 @@ class MCPhaseGate(ControlledGate):
         :class:`~qiskit.circuit.library.standard_gates.CPhaseGate`:
         The singly-controlled-version of this gate.
     """
-    gate = "mcphase"
+    name = "mcphase"
     num_params = 1
     num_int_params = 1
 

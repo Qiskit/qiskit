@@ -68,7 +68,7 @@ class RYYGate(Gate):
                                         i & 0 & 0 & 1
                                     \end{pmatrix}
     """
-    gate = "ryy"
+    name = "ryy"
     num_params = 1
 
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):

@@ -45,7 +45,7 @@ class SGate(Gate):
 
     Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
     """
-    gate = "s"
+    name = "s"
     num_params = 0
 
     def __init__(self, label: Optional[str] = None):
@@ -103,7 +103,7 @@ class SdgGate(Gate):
 
     Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
     """
-    gate = "sdg"
+    name = "sdg"
     num_params = 0
 
     def __init__(self, label: Optional[str] = None):

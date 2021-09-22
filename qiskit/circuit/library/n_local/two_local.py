@@ -209,19 +209,12 @@ class TwoLocal(NLocal):
         """
         if isinstance(layer, QuantumCircuit):
             return layer
-
-        # try to exchange `layer` from a string to a gate instance
-        if isinstance(layer, str):
-            try:
-                layer = self._get_gate_instance(layer)
-            except KeyError as ex:
-                raise ValueError(f"Unknown layer name `{layer}`.") from ex
-
-        # try to exchange `layer` from a type to a gate instance
-        if isinstance(layer, type):
+        
+        # try to exchange `layer` from a string/type to a gate instance
+        if isinstance(layer, str) or isinstance(layer, type):
             instance = self._get_gate_instance(layer)
             if instance is None:
-                raise ValueError(f"Unknown layer type`{layer}`.")
+                raise ValueError(f"Unknown layer `{layer}`.")
             layer = instance
 
         if isinstance(layer, Instruction):
@@ -252,7 +245,7 @@ class TwoLocal(NLocal):
         for gate in gates_dict.values():
             params = []
             # Check if gate is in standard gate library and has required static attributes
-            if (hasattr(gate, "gate") and gate.gate == val) or (gate == val):
+            if (hasattr(gate, "name") and gate.name == val) or (gate == val):
                 if hasattr(gate, "num_params"):
                     for _ in range(gate.num_params):
                         params.append(Parameter("θ"))
@@ -260,5 +253,8 @@ class TwoLocal(NLocal):
                     for _ in range(gate.num_int_params):
                         params.append(1)
                 # instantiate gate with appropriate params
-                instance = gate(*params)
+                try:
+                    instance = gate(*params)
+                except TypeError as ex:
+                    raise ValueError(f"Unable to instantiate {val}") from ex
         return instance

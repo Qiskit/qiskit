@@ -46,7 +46,7 @@ class RXGate(Gate):
                 -i\sin{\th} & \cos{\th}
             \end{pmatrix}
     """
-    gate = "rx"
+    name = "rx"
     num_params = 1
 
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):

@@ -62,7 +62,7 @@ class ZGate(Gate):
         |0\rangle \rightarrow |0\rangle \\
         |1\rangle \rightarrow -|1\rangle
     """
-    gate = "z"
+    name = "z"
     num_params = 0
 
     def __init__(self, label: Optional[str] = None):
@@ -145,7 +145,7 @@ class CZGate(ControlledGate):
     In the computational basis, this gate flips the phase of
     the target qubit if the control qubit is in the :math:`|1\rangle` state.
     """
-    gate = "cz"
+    name = "cz"
     num_params = 0
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):

@@ -50,7 +50,7 @@ class SwapGate(Gate):
 
         |a, b\rangle \rightarrow |b, a\rangle
     """
-    gate = "swap"
+    name = "swap"
     num_params = 0
 
     def __init__(self, label: Optional[str] = None):
@@ -208,7 +208,7 @@ class CSwapGate(ControlledGate):
             [0, 0, 0, 0, 0, 0, 0, 1],
         ]
     )
-    gate = "cswap"
+    name = "cswap"
     num_params = 0
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
