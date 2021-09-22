@@ -21,6 +21,7 @@ import retworkx as rx
 
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import CouplingError
+from qiskit.transpiler.instruction_durations import InstructionDurations
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +90,7 @@ class Target:
         "_unweighted_dist_matrix",
         "_length_distance_matrix",
         "_error_distance_matrix",
+        "_instruction_durations",
     )
 
     def __init__(self, description=None):
@@ -109,6 +111,7 @@ class Target:
         self._unweighted_dist_matrix = None
         self._length_distance_matrix = None
         self._error_distance_matrix = None
+        self._instruction_durations = None
 
     def add_instruction(self, instruction, qargs, name=None, properties=None):
         """A a new gate to the gate_map
@@ -152,6 +155,7 @@ class Target:
         self._unweighted_dist_matrix = None
         self._length_distance_matrix = None
         self._error_distance_matrix = None
+        self._instruction_durations = None
 
     @property
     def qargs(self):
@@ -167,6 +171,23 @@ class Target:
             set: The set of qargs the gate instance applies to
         """
         return set(self._gate_map[gate])
+
+    def durations(self):
+        """Get an InstructionDurations object from the target
+
+        Returns:
+            InstructionDurations: The instruction duration represented in the
+                target
+        """
+        if self._instruction_durations is not None:
+            return self._instruction_durations
+        out_durations = []
+        for instruction, props_map in self._gate_map.items():
+            for qarg, properties in props_map.items():
+                if properties is not None and properties.length is not None:
+                    out_durations.append((instruction, list(qarg), properties.length, "s"))
+        self._instruction_durations = InstructionDurations(out_durations)
+        return self._instruction_durations
 
     def get_gate_from_name(self, gate):
         """Get the gate object for a given name
