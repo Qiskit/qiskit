@@ -260,19 +260,19 @@ class BackendV2(Backend, ABC):
             self._options.update_config(**fields)
 
     @property
-    def gates(self) -> List[Gate]:
+    def instructions(self) -> List[Gate]:
         """A list of Gate instances that the backend supports."""
-        return list(self.gate_map.gates)
+        return list(self.target.gates)
 
     @property
-    def gate_names(self) -> List[str]:
+    def instructions_names(self) -> List[str]:
         """A list of Gate names that the backend supports."""
-        return list(self.gate_map.gate_names)
+        return list(self.target.gate_names)
 
     @property
     @abstractmethod
-    def gate_map(self):
-        """A :class:`qiskit.transpiler.GateMap` object for the backend."""
+    def target(self):
+        """A :class:`qiskit.transpiler.Target` object for the backend."""
         pass
 
     @property
@@ -294,7 +294,7 @@ class BackendV2(Backend, ABC):
     @property
     def coupling_map(self):
         """Return the :class:`~qiskit.transpiler.CouplingMap` object"""
-        return self.gate_map.coupling_map()
+        return self.target.coupling_map()
 
     @property
     @abstractmethod
@@ -345,7 +345,7 @@ class BackendV2(Backend, ABC):
             qubit: The qubit index to get the T1 time for
 
         Returns:
-            t1: the T1 time for the specified qubit
+            t1: the T1 time for the specified qubit in seconds
 
         Raises:
             NotImplementedError: if the backend doesn't support querying the
@@ -360,42 +360,11 @@ class BackendV2(Backend, ABC):
             qubit: The qubit index to get the T2 time for
 
         Returns:
-            t2: the T2 time for the specified qubit
+            t2: the T2 time for the specified qubit in seconds
 
         Raises:
             NotImplementedError: if the backend doesn't support querying the
                 t2 time for a qubit
-        """
-        raise NotImplementedError
-
-    def readout_error(self, qubit: int) -> float:
-        """Return the readout error rate of a given qubit
-
-        Args:
-            qubit: The qubit index to get the readout error rate for
-
-        Returns:
-            readout_error: the readout error rate for the specified qubit
-
-        Raises:
-            NotImplementedError: if the backend doesn't support querying the
-                readout error rate
-        """
-        raise NotImplementedError
-
-    def readout_length(self, qubit: int) -> float:
-        """Return the readout length of a given qubit
-
-        Args:
-            qubit: The qubit index to get the readout length for
-
-        Returns:
-            readout_length: the length/duration of a readout for the specified
-            qubit
-
-        Raises:
-            NotImplementedError: if the backend doesn't support querying the
-                readout length
         """
         raise NotImplementedError
 
@@ -406,7 +375,7 @@ class BackendV2(Backend, ABC):
             qubit: The qubit index to get the frequency for
 
         Returns:
-            frequency: the frequency of the specified qubit
+            frequency: the frequency of the specified qubit in Hz
 
         Raises:
             NotImplementedError: if the backend doesn't support querying the

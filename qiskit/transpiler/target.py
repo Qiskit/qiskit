@@ -11,12 +11,8 @@
 # that they have been altered from the originals.
 
 """
-Directed graph object for representing basis gates on physical qubits.
-
-The nodes of the graph correspond to physical qubits (represented as integers) and the
-directed edges indicate which physical qubits are coupled and the permitted direction of
-CNOT gates. The object has a distance function that can be used to map quantum circuits
-onto a device with this coupling.
+A target object represents the minimum set of information the transpiler needs
+from a backend
 """
 
 import logging
@@ -29,7 +25,7 @@ from qiskit.transpiler.exceptions import CouplingError
 logger = logging.getLogger(__name__)
 
 
-class GateProperties:
+class InstructionProperties:
     """A representation of the properties of a gate implementation."""
 
     __slots__ = ("length", "error", "properties")
@@ -40,7 +36,7 @@ class GateProperties:
         self.properties = properties
 
 
-class GateMap:
+class Target:
     """
     A description of gates on a backend. It exists around a central mapping of
     :class:`~qiskit.circuit.Instruction` objects to their properties on the
@@ -49,22 +45,22 @@ class GateMap:
     :class:`~qiskit.circuit.library.CXGate` in both directions you would create
     the gate map like::
 
-        from qiskit.transpiler import GateMap
+        from qiskit.transpiler import Target
         from qiskit.circuit.library import UGate, CXGate
         from qiskit.circuit import Parameter
 
-        gmap = GateMap()
+        gmap = Target()
         theta = Parameter('theta')
         phi = Parameter('phi')
         lam = Parameter('lambda')
         u_props = {
-            (0,): GateProperties(length=5.23e-8, error=0.00038115),
-            (1,): GateProperties(length=4.52e-8, error=0.00032115),
+            (0,): InstructionProperties(length=5.23e-8, error=0.00038115),
+            (1,): InstructionProperties(length=4.52e-8, error=0.00032115),
         }
         gmap.add_gate(UGate(theta, phi, lam), [(0,), (1,)], properties=u_props)
         cx_props = {
-            (0,1): GateProperties(length=5.23e-7, error=0.00098115),
-            (1,0): GateProperties(length=4.52e-7, error=0.00132115),
+            (0,1): InstructionProperties(length=5.23e-7, error=0.00098115),
+            (1,0): InstructionProperties(length=4.52e-7, error=0.00132115),
         }
         gmap.add_gate(CXGate(), [(0, 1), (1, 0)], properties=cx_props)
 
@@ -114,29 +110,29 @@ class GateMap:
         self._length_distance_matrix = None
         self._error_distance_matrix = None
 
-    def add_gate(self, gate, qargs, name=None, properties=None):
+    def add_instruction(self, instruction, qargs, name=None, properties=None):
         """A a new gate to the gate_map
 
         Args:
-            gate (Instruction): The gate object to add to the map. If it's
+            instruction (Instruction): The gate object to add to the map. If it's
                 paramerterized any value of the parameter can be set
             qargs (list): A list of qubit indices the gate applies to. In the case
                 of multiqubit gates this will be the tuple of qubits the gate can
                 be applied to.
             name (str): An optional name to use for identifying the gate. If not
                 specified the :attr:`~qiskit.circuit.Instruction.name` attribute
-                of ``gate`` will be used. All gates in the ``GateMap`` need unique
+                of ``gate`` will be used. All gates in the ``Target`` need unique
                 names. Using a custom name allows a backend to specify duplicate
                 gates with different parameters.
             properties (dict): An optional dictionary of qarg entries to a
-                GateProperties object for that gate implementation on the backend
+                InstructionProperties object for that gate implementation on the backend
         Raises:
             AttributeError: If gate is already in map
         """
-        gate_name = name or gate.name
-        if gate_name in self._gate_map:
+        instruction_name = name or instruction.name
+        if instruction_name in self._gate_map:
             raise AttributeError("already in map")
-        self._gate_name_map[gate_name] = gate
+        self._gate_name_map[instruction_name] = instruction
         qargs_val = {}
         for qarg in qargs:
             self.num_qubits = max(self.num_qubits, max(qarg))
@@ -148,10 +144,10 @@ class GateMap:
             else:
                 qargs_val[qarg] = None
             if qarg in self._qarg_gate_map:
-                self._qarg_gate_map[qarg].add(gate_name)
+                self._qarg_gate_map[qarg].add(instruction_name)
             else:
-                self._qarg_gate_map[qarg] = set(gate_name)
-        self._gate_map[gate_name] = qargs_val
+                self._qarg_gate_map[qarg] = set(instruction_name)
+        self._gate_map[instruction_name] = qargs_val
         self._coupling_graph = None
         self._unweighted_dist_matrix = None
         self._length_distance_matrix = None
@@ -231,7 +227,7 @@ class GateMap:
         """Get a :class:`~qiskit.transpiler.CouplingMap` from this gate map."""
         if any(len(x) > 2 for x in self.qargs):
             logger.warning(
-                "This GateMap object contains multiqubit gates that "
+                "This Target object contains multiqubit gates that "
                 "operate on > 2 qubits. This will not be reflected in "
                 "the output coupling map."
             )
@@ -250,7 +246,7 @@ class GateMap:
         """Return the distance matrix for the coupling map."""
         if any(len(x) > 2 for x in self.qargs):
             logger.warning(
-                "This GateMap object contains multiqubit gates that "
+                "This Target object contains multiqubit gates that "
                 "operate on > 2 qubits. These gates will not be "
                 "reflected in the output matrix."
             )
@@ -326,7 +322,7 @@ class GateMap:
         """
         if any(len(x) > 2 for x in self.qargs):
             logger.warning(
-                "This GateMap object contains multiqubit gates that "
+                "This Target object contains multiqubit gates that "
                 "operate on > 2 qubits. These gates will not be "
                 "reflected in the output matrix."
             )
