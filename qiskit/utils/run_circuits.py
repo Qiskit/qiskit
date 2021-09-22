@@ -218,14 +218,10 @@ def _safe_get_job_status(job: BaseJob, job_id: str, max_job_retries: int) -> Job
             time.sleep(5)
         except Exception as ex:
             raise QiskitError(
-                "job id: {}, "
-                "status: 'FAIL_TO_GET_STATUS' "
-                "Unknown error: ({})".format(job_id, ex)
+                f"job id: {job_id}, status: 'FAIL_TO_GET_STATUS' Unknown error: ({ex})"
             ) from ex
     else:
-        raise QiskitError(
-            "Max retry limit reached. Failed to get status for job with id {}".format(job_id)
-        )
+        raise QiskitError(f"Max retry limit reached. Failed to get status for job with id {job_id}")
 
     return job_status
 
@@ -340,9 +336,7 @@ def run_qobj(
                         job = backend.retrieve_job(job_id)
                     else:
                         raise QiskitError(
-                            "Max retry limit reached. Failed to get result for job id {}".format(
-                                job_id
-                            )
+                            f"Max retry limit reached. Failed to get result for job id {job_id}"
                         )
                     break
                 # for other cases, resubmit the qobj until the result is available.
@@ -376,9 +370,7 @@ def run_qobj(
                 job_ids[idx] = job_id
             else:
                 raise QiskitError(
-                    "Max retry limit reached. Failed to get result for job with id {}.".format(
-                        job_id
-                    )
+                    f"Max retry limit reached. Failed to get result for job with id {job_id}."
                 )
     else:
         results = []
@@ -576,9 +568,7 @@ def run_circuits(
                         job = backend.retrieve_job(job_id)
                     else:
                         raise QiskitError(
-                            "Max retry limit reached. Failed to get result for job id {}".format(
-                                job_id
-                            )
+                            f"Max retry limit reached. Failed to get result for job id {job_id}"
                         )
                     break
                 # for other cases, resubmit the circuit until the result is available.
@@ -611,9 +601,7 @@ def run_circuits(
                 )
             else:
                 raise QiskitError(
-                    "Max retry limit reached. Failed to get result for job with id {} ".format(
-                        job_id
-                    )
+                    f"Max retry limit reached. Failed to get result for job with id {job_id} "
                 )
     else:
         results = []
