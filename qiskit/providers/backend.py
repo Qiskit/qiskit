@@ -21,7 +21,6 @@ from typing import List
 
 from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.instruction import Instruction
 
 
 class Backend:
