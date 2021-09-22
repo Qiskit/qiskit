@@ -13,13 +13,16 @@ import numpy as np
 from scipy.integrate import RK45, Radau
 
 from qiskit import QiskitError
+from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.ode_function_generator import (
+    OdeFunctionGenerator,
+)
 
 
 class VarQteOdeSolver:
     def __init__(
         self,
         init_params,
-        ode_function_generator,
+        ode_function_generator: OdeFunctionGenerator,
     ):
         """
         Initialize ODE Solver

@@ -9,13 +9,17 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from typing import Union
+from typing import Union, Optional, List
 
-from qiskit.opflow import StateFn, Gradient, CircuitGradient
+from qiskit.circuit import ParameterVector, ParameterExpression
+from qiskit.opflow import StateFn, Gradient, CircuitGradient, OperatorBase
 
 
 def calculate(
-    observable, ansatz, parameters, grad_method: Union[str, CircuitGradient] = "lin_comb"
+    observable: OperatorBase,
+    ansatz: OperatorBase,
+    parameters: Optional[Union[ParameterVector, ParameterExpression, List[ParameterExpression]]],
+    grad_method: Union[str, CircuitGradient],
 ):
     operator = ~StateFn(observable) @ StateFn(ansatz)
     return Gradient(grad_method).convert(operator, parameters)

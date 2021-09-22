@@ -18,8 +18,8 @@ from scipy.optimize import minimize
 def _calculate_bures_distance(
     state1: Union[List, np.ndarray],
     state2: Union[List, np.ndarray],
-    optimizer="COBYLA",
-    tolerance=1e-6,
+    optimizer: str = "COBYLA",
+    tolerance: float = 1e-6,
 ) -> float:
     """
     Find the Bures metric between two normalized pure states
@@ -30,7 +30,7 @@ def _calculate_bures_distance(
         global phase agnostic l2 norm value
     """
 
-    def bures_dist(phi):
+    def bures_dist(phi: float):
         return np.linalg.norm(np.subtract(state1, np.exp(1j * phi) * state2), ord=2)
 
     bures_distance = minimize(fun=bures_dist, x0=np.array([0]), method=optimizer, tol=tolerance)

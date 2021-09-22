@@ -9,8 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from typing import Union
-
+from typing import Union, Dict
 
 from qiskit.algorithms.quantum_time_evolution.variational.principles.real.real_variational_principle import (
     RealVariationalPrinciple,
@@ -18,6 +17,7 @@ from qiskit.algorithms.quantum_time_evolution.variational.principles.real.real_v
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
 )
+from qiskit.circuit import Parameter
 from qiskit.opflow import CircuitQFI, OperatorBase
 
 
@@ -31,10 +31,14 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
         )
 
     @staticmethod
-    def _calc_metric_tensor(raw_metric_tensor: OperatorBase, param_dict) -> OperatorBase:
+    def _calc_metric_tensor(
+        raw_metric_tensor: OperatorBase, param_dict: Dict[Parameter, Union[float, complex]]
+    ) -> OperatorBase:
         return VariationalPrinciple.op_real_part(raw_metric_tensor.bind_parameters(param_dict))
 
     @staticmethod
-    def _calc_evolution_grad(raw_evolution_grad: OperatorBase, param_dict) -> OperatorBase:
+    def _calc_evolution_grad(
+        raw_evolution_grad: OperatorBase, param_dict: Dict[Parameter, Union[float, complex]]
+    ) -> OperatorBase:
         # TODO verify
         return VariationalPrinciple.op_imag_part(raw_evolution_grad.bind_parameters(param_dict))

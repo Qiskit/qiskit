@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+from typing import Dict, Optional, Union, List
 
 import numpy as np
 
@@ -21,13 +22,21 @@ from qiskit.algorithms.quantum_time_evolution.variational.principles.real.real_v
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
 )
-from qiskit.opflow import StateFn, NaturalGradient, OpflowError
+from qiskit.circuit import Parameter, ParameterVector, ParameterExpression
+from qiskit.opflow import (
+    StateFn,
+    NaturalGradient,
+    OpflowError,
+    OperatorBase,
+    CircuitGradient,
+    CircuitQFI,
+)
 
 
 def calculate(
     variational_principle: VariationalPrinciple,
-    param_dict,
-    regularization=None,
+    param_dict: Dict[Parameter, Union[float, complex]],
+    regularization: str = None,
 ):
     # TODO consider passing operator immediately, also in evolution_grad and metric_tensor
     observable = variational_principle._hamiltonian
@@ -65,7 +74,13 @@ def calculate(
     return NaturalGradient(grad_method).convert(operator, parameters)
 
 
-def _calc_op_natural_gradient(grad_method, operator, parameters, qfi_method, regularization):
+def _calc_op_natural_gradient(
+    grad_method: Union[str, CircuitGradient],
+    operator: OperatorBase,
+    parameters: Optional[Union[ParameterVector, ParameterExpression, List[ParameterExpression]]],
+    qfi_method: Union[str, CircuitQFI],
+    regularization: str,
+):
     nat_grad = NaturalGradient(
         grad_method=grad_method,
         qfi_method=qfi_method,

@@ -9,12 +9,15 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from typing import Iterable
+from typing import Iterable, Union, Dict, Optional
 
 import numpy as np
 
 from qiskit.algorithms.quantum_time_evolution.variational.calculators.distance_energy_calculator import (
     _calculate_distance_energy,
+)
+from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.error_calculator import (
+    ErrorCalculator,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
@@ -25,25 +28,29 @@ from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.error_base
 from qiskit.algorithms.quantum_time_evolution.variational.solvers.var_qte_linear_solver import (
     VarQteLinearSolver,
 )
+from qiskit.circuit import Parameter
+from qiskit.opflow import CircuitSampler
+from qiskit.providers import BaseBackend
+from qiskit.utils import QuantumInstance
 
 
 class OdeFunctionGenerator:
     def __init__(
         self,
-        error_calculator,
-        param_dict,
+        error_calculator: ErrorCalculator,
+        param_dict: Dict[Parameter, Union[float, complex]],
         variational_principle: VariationalPrinciple,
         state,
         exact_state,
         h_matrix,
         h_norm,
-        grad_circ_sampler,
-        metric_circ_sampler,
-        nat_grad_circ_sampler,
-        regularization=None,
-        state_circ_sampler=None,
-        backend=None,
-        error_based_ode=False,
+        grad_circ_sampler: CircuitSampler,
+        metric_circ_sampler: CircuitSampler,
+        nat_grad_circ_sampler: CircuitSampler,
+        regularization: Optional[str] = None,
+        state_circ_sampler: Optional[CircuitSampler] = None,
+        backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
+        error_based_ode: Optional[bool] = False,
     ):
         self._error_calculator = error_calculator
         self._param_dict = param_dict
@@ -123,7 +130,7 @@ class OdeFunctionGenerator:
 
         return np.append(nat_grad_res, error_bound_grad)
 
-    def _inspect_fix_et_negative_part(self, et):
+    def _inspect_fix_et_negative_part(self, et: float) -> float:
         print("returned et", et)
         try:
             if et < 0:

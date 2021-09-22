@@ -10,14 +10,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 from abc import abstractmethod
-from typing import Union
-
+from typing import Union, Dict
 import math
+
 import numpy as np
 
-from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.imaginary_error_calculator import (
-    ImaginaryErrorCalculator,
-)
 from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.time_step_errors.time_step_error_calculator import (
     _calculate_max_bures,
     _calculate_energy_factor,
@@ -25,12 +22,11 @@ from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.time
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
 )
+from qiskit.circuit import Parameter
 from qiskit.opflow import (
     CircuitQFI,
     CircuitGradient,
     OperatorBase,
-    NaturalGradient,
-    PauliExpectation,
 )
 
 
@@ -47,20 +43,34 @@ class ImaginaryVariationalPrinciple(VariationalPrinciple):
 
     @staticmethod
     @abstractmethod
-    def _calc_metric_tensor(raw_metric_tensor: OperatorBase, param_dict) -> OperatorBase:
+    def _calc_metric_tensor(
+        raw_metric_tensor: OperatorBase, param_dict: Dict[Parameter, Union[float, complex]]
+    ) -> OperatorBase:
         pass
 
     @staticmethod
     @abstractmethod
-    def _calc_evolution_grad(raw_evolution_grad: OperatorBase, param_dict) -> OperatorBase:
+    def _calc_evolution_grad(
+        raw_evolution_grad: OperatorBase, param_dict: Dict[Parameter, Union[float, complex]]
+    ) -> OperatorBase:
         pass
 
     def _calc_nat_grad(
-        self, raw_operator: OperatorBase, param_dict, regularization
+        self,
+        raw_operator: OperatorBase,
+        param_dict: Dict[Parameter, Union[float, complex]],
+        regularization: str,
     ) -> OperatorBase:
         return super()._calc_nat_grad(-raw_operator, param_dict, regularization)
 
-    def _calc_error_bound(self, error, et, h_squared, h_norm, trained_energy):
+    def _calc_error_bound(
+        self,
+        error: float,
+        et: float,
+        h_squared_expectation: float,
+        h_norm: float,
+        trained_energy: float,
+    ) -> float:
         # TODO stack dt params with the gradient for the error update
         error_store = max(error, 0)
         error_store = min(error_store, np.sqrt(2))
@@ -69,9 +79,9 @@ class ImaginaryVariationalPrinciple(VariationalPrinciple):
             eps_t=error_store,
             grad_err=et,
             energy=trained_energy,
-            h_squared=h_squared,
+            h_squared_expectation=h_squared_expectation,
             h_norm=h_norm,
-            stddev=np.sqrt(h_squared - trained_energy ** 2),
+            stddev=np.sqrt(h_squared_expectation - trained_energy ** 2),
         )
 
         print("returned grad", error_bound_grad)
@@ -83,14 +93,14 @@ class ImaginaryVariationalPrinciple(VariationalPrinciple):
         eps_t: float,
         grad_err: float,
         energy: float,
-        h_squared: float,
+        h_squared_expectation: float,
         h_norm: float,
         stddev: float,
-    ):
+    ) -> float:
         eps_t = max(eps_t, 0)
         eps_t = min(eps_t, np.sqrt(2))
         eps_t_next = self._get_error_term(
-            delta_t, eps_t, grad_err, energy, h_squared, h_norm, stddev
+            delta_t, eps_t, grad_err, energy, h_squared_expectation, h_norm, stddev
         )
         eps_t_next = max(eps_t_next, 0)
         eps_t_next = min(eps_t_next, np.sqrt(2))
@@ -102,8 +112,15 @@ class ImaginaryVariationalPrinciple(VariationalPrinciple):
         return grad
 
     def _get_error_term(
-        self, d_t, eps_t, grad_err, energy: float, h_squared: float, h_norm: float, stddev: float
-    ):
+        self,
+        d_t,
+        eps_t,
+        grad_err,
+        energy: float,
+        h_squared_expectation: float,
+        h_norm: float,
+        stddev: float,
+    ) -> float:
         """
         Compute the error term for a given time step and a point in the simulation time
         Args:
@@ -121,7 +138,7 @@ class ImaginaryVariationalPrinciple(VariationalPrinciple):
         else:
             energy_factor = _calculate_energy_factor(eps_t, energy, stddev, h_norm)
             # max B(I + delta_t(E_t-H)|psi_t>, I + delta_t(E_t-H)|psi*_t>(alpha))
-            y = _calculate_max_bures(eps_t, energy, energy_factor, h_squared, d_t)
+            y = _calculate_max_bures(eps_t, energy, energy_factor, h_squared_expectation, d_t)
             # eps_t*sqrt(var) + eps_t^2/2 * |E_t - ||H||_infty |
             # energy_factor = (2 * eps_t * stddev +
             #                  eps_t ** 2 / 2 * self._h_norm)

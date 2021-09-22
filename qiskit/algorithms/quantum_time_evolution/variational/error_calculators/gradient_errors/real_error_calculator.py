@@ -9,7 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from typing import Union, List
+from typing import Union, List, Tuple, Any, Dict, Optional
 
 import numpy as np
 
@@ -19,18 +19,24 @@ from qiskit.algorithms.quantum_time_evolution.variational.calculators.distance_e
 from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.error_calculator import (
     ErrorCalculator,
 )
+from qiskit.circuit import Parameter
+from qiskit.opflow import OperatorBase, CircuitSampler
 
 
 # TODO used by variational principle
+from qiskit.providers import BaseBackend
+from qiskit.utils import QuantumInstance
+
+
 class RealErrorCalculator(ErrorCalculator):
     def __init__(
         self,
-        h_squared,
-        exp_operator,
-        h_squared_sampler,
-        exp_operator_sampler,
-        param_dict,
-        backend=None,
+        h_squared: OperatorBase,
+        exp_operator: OperatorBase,
+        h_squared_sampler: CircuitSampler,
+        exp_operator_sampler: CircuitSampler,
+        param_dict: Dict[Parameter, Union[float, complex]],
+        backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
     ):
         super().__init__(
             h_squared, exp_operator, h_squared_sampler, exp_operator_sampler, param_dict, backend

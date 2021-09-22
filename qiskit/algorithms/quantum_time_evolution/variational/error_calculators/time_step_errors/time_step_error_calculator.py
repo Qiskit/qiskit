@@ -16,16 +16,15 @@ import numpy as np
 
 
 # used in error bounds
-# TODO why h_squared a float? likely to be renamed
 def _calculate_error_term(
     d_t: float,
     eps_t: float,
     grad_err: float,
     energy: float,
-    h_squared: float,
+    h_squared_expectation: float,
     h_norm: float,
     stddev: float,
-):
+) -> float:
     """
     Compute the error term for a given time step and a point in the simulation time
     Args:
@@ -40,7 +39,7 @@ def _calculate_error_term(
         eps_t_next = 0
     else:
         energy_factor = _calculate_energy_factor(eps_t, energy, stddev, h_norm)
-        y = _calculate_max_bures(eps_t, energy, energy_factor, h_squared, d_t)
+        y = _calculate_max_bures(eps_t, energy, energy_factor, h_squared_expectation, d_t)
         eps_t_next = y + d_t * grad_err + d_t * energy_factor
 
     # TODO Write terms to csv file
@@ -49,7 +48,7 @@ def _calculate_error_term(
 
 # TODO extract grid search to reduce code duplication
 def _calculate_max_bures(
-    eps: float, e: float, e_factor: float, h_squared: float, delta_t: float
+    eps: float, e: float, e_factor: float, h_squared_expectation: float, delta_t: float
 ) -> float:
     """
     Compute  max_alpha B(I + delta_t(E_t-H)|psi_t>, I + delta_t(E_t-H)|psi*_t>(alpha))
@@ -57,13 +56,13 @@ def _calculate_max_bures(
         eps: Error from the previous time step
         e: Energy <psi_t|H|psi_t>
         e_factor: Upper bound to |E - E*|
-        h_squared: <psi_t|H^2|psi_t>
+        h_squared_expectation: <psi_t|H^2|psi_t>
         delta_t: time step
     Returns: max_alpha B(I + delta_t(E_t-H)|psi_t>, I + delta_t(E_t-H)|psi*_t>(alpha))
     """
 
     c_alpha = lambda a: np.sqrt(
-        (1 - np.abs(a)) ** 2 + 2 * a * (1 - np.abs(a)) * e + a ** 2 * h_squared
+        (1 - np.abs(a)) ** 2 + 2 * a * (1 - np.abs(a)) * e + a ** 2 * h_squared_expectation
     )
 
     def overlap(alpha: Iterable[float]) -> float:
@@ -80,7 +79,7 @@ def _calculate_max_bures(
         x = np.abs(
             (
                 (1 + 2 * delta_t * e) * (1 - np.abs(alpha) + alpha * e)
-                - 2 * delta_t * ((1 - np.abs(alpha)) * e + alpha * h_squared)
+                - 2 * delta_t * ((1 - np.abs(alpha)) * e + alpha * h_squared_expectation)
             )
             / c_alpha(alpha)
         )
@@ -115,7 +114,7 @@ def _calculate_max_bures(
     return max_bures
 
 
-def _calculate_energy_factor(eps_t: float, energy: float, stddev: float, h_norm: float):
+def _calculate_energy_factor(eps_t: float, energy: float, stddev: float, h_norm: float) -> float:
     """
     Get upper bound to |E-E*|
     Args:

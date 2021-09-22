@@ -16,6 +16,8 @@ import numpy as np
 from qiskit.algorithms.quantum_time_evolution.variational.calculators.bures_distance_calculator import (
     _calculate_bures_distance,
 )
+from qiskit.circuit import Parameter
+from qiskit.opflow import CircuitSampler
 from qiskit.quantum_info import state_fidelity
 
 
@@ -23,8 +25,8 @@ def _calculate_distance_energy(
     state,
     exact_state,
     h_matrix,
-    param_dict: Dict,
-    state_circ_sampler=None,
+    param_dict: Dict[Parameter, Union[float, complex]],
+    state_circ_sampler: CircuitSampler = None,
 ) -> (float, float, float):
     """
     Evaluate the fidelity to the target state, the energy w.r.t. the target state and

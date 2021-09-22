@@ -12,16 +12,17 @@
 
 """The Variational Quantum Time Evolution Interface"""
 from abc import abstractmethod, ABC
-from typing import Optional, Union, Iterable
+from typing import Optional, Union, Iterable, Dict
 
 import numpy as np
 
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
 )
+from qiskit.circuit import Parameter
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
-from qiskit.opflow import StateFn, CircuitSampler, ComposedOp, PauliExpectation
+from qiskit.opflow import StateFn, CircuitSampler, ComposedOp, PauliExpectation, OperatorBase
 
 
 class VarQte(ABC):
@@ -36,8 +37,8 @@ class VarQte(ABC):
         variational_principle: VariationalPrinciple,
         regularization: Optional[str] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
-        error_based_ode: bool = False,
-        epsilon: float = 10e-6,
+        error_based_ode: Optional[bool] = False,
+        epsilon: Optional[float] = 10e-6,
     ):
         r"""
         Args:
@@ -81,7 +82,7 @@ class VarQte(ABC):
     def initial_state(self):
         return self._initial_state
 
-    def bind_initial_state(self, state, param_dict):
+    def bind_initial_state(self, state, param_dict: Dict[Parameter, Union[float, complex]]):
         if self._backend is not None:
             self._initial_state = self._state_circ_sampler.convert(state, params=param_dict)
         else:
@@ -108,7 +109,7 @@ class VarQte(ABC):
         """
         raise NotImplementedError
 
-    def _init_grad_objects(self, grad_method, qfi_method, parameters):
+    def _init_grad_objects(self) -> None:
         """
         Initialize the gradient objects needed to perform VarQTE
         """
@@ -118,7 +119,7 @@ class VarQte(ABC):
         self._h_squared = self._h_pow(2)
         self._h_trip = self._h_pow(3)
 
-    def _h_pow(self, power):
+    def _h_pow(self, power: int) -> OperatorBase:
         h_power = self._h ** power
         h_power = ComposedOp([~StateFn(h_power.reduce()), StateFn(self._initial_state)])
         h_power = PauliExpectation().convert(h_power)

@@ -49,8 +49,8 @@ class VarQrte(VarQte, EvolutionBase):
         variational_principle: RealVariationalPrinciple,
         regularization: Optional[str] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
-        error_based_ode: bool = False,
-        epsilon: float = 10e-6,
+        error_based_ode: Optional[bool] = False,
+        epsilon: Optional[float] = 10e-6,
     ):
         super().__init__(
             variational_principle,
@@ -64,11 +64,11 @@ class VarQrte(VarQte, EvolutionBase):
         self,
         hamiltonian: OperatorBase,
         time: float,
-        initial_state: StateFn = None,
-        observable: OperatorBase = None,
+        initial_state: Optional[StateFn] = None,
+        observable: Optional[OperatorBase] = None,
         t_param=None,
         hamiltonian_value_dict=None,
-    ):
+    ) -> StateFn:
 
         """
         Apply Variational Quantum Time Evolution (VarQTE) w.r.t. the given operator
@@ -152,7 +152,7 @@ class VarQrte(VarQte, EvolutionBase):
         time: float,
         initial_state: StateFn,
         gradient_object: Gradient,
-        observable: OperatorBase = None,
+        observable: Optional[OperatorBase] = None,
         t_param=None,
         hamiltonian_value_dict=None,
         gradient_params=None,

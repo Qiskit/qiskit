@@ -9,16 +9,19 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from typing import Union
+from typing import Union, Optional, List
 
 from qiskit import QuantumCircuit
+from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.opflow import QFI, CircuitQFI, CircuitStateFn
 
 
 # TODO basis to be passed, real measure Z, imaginary -iY observable; requires lin comb gradient
 #  change?
 def calculate(
-    ansatz: QuantumCircuit, parameters, qfi_method: Union[str, CircuitQFI] = "lin_comb_full"
+    ansatz: QuantumCircuit,
+    parameters: Optional[Union[ParameterVector, ParameterExpression, List[ParameterExpression]]],
+    qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
 ):
     operator = CircuitStateFn(ansatz)
     return QFI(qfi_method).convert(operator, parameters)

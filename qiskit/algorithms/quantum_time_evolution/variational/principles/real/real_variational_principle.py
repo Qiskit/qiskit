@@ -10,11 +10,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 from abc import abstractmethod
-from typing import Union
+from typing import Union, Dict
 
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
 )
+from qiskit.circuit import Parameter
 from qiskit.opflow import (
     CircuitQFI,
     OperatorBase,
@@ -34,18 +35,32 @@ class RealVariationalPrinciple(VariationalPrinciple):
 
     @staticmethod
     @abstractmethod
-    def _calc_metric_tensor(raw_metric_tensor: OperatorBase, param_dict) -> OperatorBase:
+    def _calc_metric_tensor(
+        raw_metric_tensor: OperatorBase, param_dict: Dict[Parameter, Union[float, complex]]
+    ) -> OperatorBase:
         pass
 
     @staticmethod
     @abstractmethod
-    def _calc_evolution_grad(raw_evolution_grad: OperatorBase, param_dict) -> OperatorBase:
+    def _calc_evolution_grad(
+        raw_evolution_grad: OperatorBase, param_dict: Dict[Parameter, Union[float, complex]]
+    ) -> OperatorBase:
         pass
 
     def _calc_nat_grad(
-        self, raw_operator: OperatorBase, param_dict, regularization
+        self,
+        raw_operator: OperatorBase,
+        param_dict: Dict[Parameter, Union[float, complex]],
+        regularization: str,
     ) -> OperatorBase:
         return super()._calc_nat_grad(raw_operator, param_dict, regularization)
 
-    def _calc_error_bound(self, error, et, h_squared, h_norm, trained_energy):
+    def _calc_error_bound(
+        self,
+        error: float,
+        et: float,
+        h_squared_expectation: float,
+        h_norm: float,
+        trained_energy: float,
+    ):
         return et

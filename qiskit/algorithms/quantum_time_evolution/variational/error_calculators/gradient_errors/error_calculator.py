@@ -10,20 +10,25 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 from abc import abstractmethod
-from typing import Union, List, Tuple, Any
+from typing import Union, List, Tuple, Any, Dict, Optional
 
 import numpy as np
+
+from qiskit.circuit import Parameter
+from qiskit.opflow import OperatorBase, CircuitSampler
+from qiskit.providers import BaseBackend
+from qiskit.utils import QuantumInstance
 
 
 class ErrorCalculator:
     def __init__(
         self,
-        h_squared,
-        exp_operator,
-        h_squared_sampler,
-        exp_operator_sampler,
-        param_dict,
-        backend=None,
+        h_squared: OperatorBase,
+        exp_operator: OperatorBase,
+        h_squared_sampler: CircuitSampler,
+        exp_operator_sampler: CircuitSampler,
+        param_dict: Dict[Parameter, Union[float, complex]],
+        backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
     ):
         self._h_squared = self._bind_or_sample_operator(
             h_squared, h_squared_sampler, param_dict, backend
@@ -35,8 +40,12 @@ class ErrorCalculator:
         self._backend = backend
 
     def _bind_or_sample_operator(
-        self, operator, operator_circuit_sampler, param_dict, backend=None
-    ):
+        self,
+        operator: OperatorBase,
+        operator_circuit_sampler: CircuitSampler,
+        param_dict: Dict[Parameter, float],
+        backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
+    ) -> OperatorBase:
         # ⟨ψ(ω)|H^2|ψ(ω)〉
         if backend is not None:
             operator = operator_circuit_sampler.convert(operator, params=param_dict)
@@ -82,7 +91,7 @@ class ErrorCalculator:
         """
         raise NotImplementedError
 
-    def _validate_epsilon_squared(self, eps_squared):
+    def _validate_epsilon_squared(self, eps_squared: float) -> float:
         if eps_squared < 0:
             if np.abs(eps_squared) < 1e-3:
                 eps_squared = 0

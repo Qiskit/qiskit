@@ -55,8 +55,8 @@ class VarQite(VarQte, EvolutionBase):
         variational_principle: ImaginaryVariationalPrinciple,
         regularization: Optional[str] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
-        error_based_ode: bool = False,
-        epsilon: float = 10e-6,
+        error_based_ode: Optional[bool] = False,
+        epsilon: Optional[float] = 10e-6,
     ):
         super().__init__(
             variational_principle,
@@ -74,7 +74,7 @@ class VarQite(VarQte, EvolutionBase):
         observable: OperatorBase = None,
         t_param=None,
         hamiltonian_value_dict=None,
-    ):
+    ) -> StateFn:
         """
         Apply Variational Quantum Imaginary Time Evolution (VarQITE) w.r.t. the given
         operator

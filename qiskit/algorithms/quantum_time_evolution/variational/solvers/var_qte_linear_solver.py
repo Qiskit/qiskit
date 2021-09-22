@@ -9,7 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from typing import Union, List, Dict
+from typing import Union, List, Dict, Optional
 
 import numpy as np
 
@@ -19,16 +19,20 @@ from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
 )
+from qiskit.circuit import Parameter
+from qiskit.opflow import CircuitSampler
+from qiskit.providers import BaseBackend
+from qiskit.utils import QuantumInstance
 
 
 class VarQteLinearSolver:
     def __init__(
         self,
-        grad_circ_sampler,
-        metric_circ_sampler,
-        nat_grad_circ_sampler,
-        regularization=None,
-        backend=None,
+        grad_circ_sampler: CircuitSampler,
+        metric_circ_sampler: CircuitSampler,
+        nat_grad_circ_sampler: CircuitSampler,
+        regularization: Optional[str] = None,
+        backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
     ):
 
         self._backend = backend
@@ -39,7 +43,9 @@ class VarQteLinearSolver:
             self._nat_grad_circ_sampler = nat_grad_circ_sampler
 
     def _solve_sle(
-        self, var_principle: VariationalPrinciple, param_dict: Dict
+        self,
+        var_principle: VariationalPrinciple,
+        param_dict: Dict[Parameter, Union[float, complex]],
     ) -> (Union[List, np.ndarray], Union[List, np.ndarray], np.ndarray):
         """
         Solve the system of linear equations underlying McLachlan's variational principle
@@ -71,7 +77,11 @@ class VarQteLinearSolver:
 
         return np.real(nat_grad_result), grad_res, metric_res
 
-    def _calc_nat_grad_result(self, param_dict, var_principle):
+    def _calc_nat_grad_result(
+        self,
+        param_dict: Dict[Parameter, Union[float, complex]],
+        var_principle: VariationalPrinciple,
+    ):
 
         # TODO possibly duplicated effort, should be passed from VarQte or saved in
         #  VarPrinciple, probably the latter
@@ -126,7 +136,9 @@ class VarQteLinearSolver:
                 break
         return metric_res
 
-    def _eval_metric_tensor(self, metric_tensor, param_dict):
+    def _eval_metric_tensor(
+        self, metric_tensor, param_dict: Dict[Parameter, Union[float, complex]]
+    ):
         if self._backend is not None:
             # Get the QFI/4
             metric_res = (
@@ -138,7 +150,9 @@ class VarQteLinearSolver:
             metric_res = np.array(metric_tensor.assign_parameters(param_dict).eval()) * 0.25
         return metric_res
 
-    def _eval_evolution_grad(self, evolution_grad, param_dict):
+    def _eval_evolution_grad(
+        self, evolution_grad, param_dict: Dict[Parameter, Union[float, complex]]
+    ):
         if self._backend is not None:
             grad_res = np.array(
                 self._grad_circ_sampler.convert(evolution_grad, params=param_dict).eval()
