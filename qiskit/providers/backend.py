@@ -393,6 +393,32 @@ class BackendV2(Backend, ABC):
         """
         raise NotImplementedError
 
+    @property
+    def dt(self) -> float:
+        """Return the qubit drive channel timestep in nanoseconds
+
+        Returns:
+            dt: The qubit drive channel timestep in nanoseconds.
+
+        Raises:
+            NotImplementedError: if the backend doesn't support querying the
+                qubit drive channel timestep
+        """
+        raise NotImplementedError
+
+    @property
+    def dtm(self) -> float:
+        """Return the measurement drive channel timestep in nanoseconds
+
+        Returns:
+            dtm: The measurement drive channel timestep in nanoseconds.
+
+        Raises:
+            NotImplementedError: if the backend doesn't support querying the
+                measurement drive channel timestep
+        """
+        raise NotImplementedError
+
     def set_options(self, **fields):
         """Set the options fields for the backend
 
