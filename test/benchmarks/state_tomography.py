@@ -24,7 +24,7 @@ from qiskit.quantum_info import state_fidelity
 class StateTomographyBench:
     params = [2, 3, 4, 5]
     param_names = ['n_qubits']
-    version = '0.2.0'
+    version = '0.6.0'
     timeout = 120.0
 
     def setup(self, _):
