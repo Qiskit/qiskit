@@ -17,7 +17,7 @@
 
 from abc import ABC
 from abc import abstractmethod
-from typing import List
+from typing import List, Union
 
 from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.circuit.gate import Gate
@@ -342,14 +342,16 @@ class BackendV2(Backend, ABC):
         """
         pass
 
-    def t1(self, qubit: int):
+    def t1(self, qubit: Union[int, List[int]]) -> Union[float, List[float]]:
         """Return the T1 time of a given qubit
 
         Args:
-            qubit: The qubit index to get the T1 time for
+            qubit: The qubit index to get the T1 time for. If
+                a list is specified the output will be a list with the
+                T1 time for the specified qubits in the same order.
 
         Returns:
-            t1: the T1 time for the specified qubit in seconds
+            t1: the T1 time for the specified qubit(s) in seconds.
 
         Raises:
             NotImplementedError: if the backend doesn't support querying the
@@ -357,14 +359,16 @@ class BackendV2(Backend, ABC):
         """
         raise NotImplementedError
 
-    def t2(self, qubit: int):
+    def t2(self, qubit: Union[int, List[int]]) -> Union[float, List[float]]:
         """Return the T2 time of a given qubit
 
         Args:
-            qubit: The qubit index to get the T2 time for
+            qubit: The qubit index or indices to get the T2 time for. If
+                a list is specified the output will be a list with the
+                T2 time for the specified qubits in the same order.
 
         Returns:
-            t2: the T2 time for the specified qubit in seconds
+            t2: the T2 time for the specified qubit(s) in seconds
 
         Raises:
             NotImplementedError: if the backend doesn't support querying the
@@ -372,14 +376,16 @@ class BackendV2(Backend, ABC):
         """
         raise NotImplementedError
 
-    def qubit_frequency(self, qubit: int) -> float:
+    def qubit_frequency(self, qubit: Union[int, List[int]]) -> Union[float, List[float]]:
         """Return the frequency of a given qubit
 
         Args:
-            qubit: The qubit index to get the frequency for
+            qubit: The qubit index to get the frequency for. If
+                a list is specified the output will be a list with the
+                frequency for the specified qubits in the same order.
 
         Returns:
-            frequency: the frequency of the specified qubit in Hz
+            frequency: the frequency of the specified qubit(s) in Hz
 
         Raises:
             NotImplementedError: if the backend doesn't support querying the
