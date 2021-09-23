@@ -318,7 +318,7 @@ class BackendV2(Backend, ABC):
 
     @property
     @abstractmethod
-    def max_experiments(self):
+    def max_circuits(self):
         """The maximum number of circuits (or Pulse schedules) that can be
         run in a single job.
 
