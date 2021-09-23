@@ -188,7 +188,7 @@ class UnitarySynthesis(TransformationPass):
             kwargs["gate_lengths"] = _build_gate_lengths(self._backend_props)
         if plugin_method.supports_gate_errors:
             kwargs["gate_errors"] = _build_gate_errors(self._backend_props)
-        supported_basis = plugin_method.supported_basis()
+        supported_basis = plugin_method.supported_basis
         if supported_basis is not None:
             kwargs["matched_basis"] = _choose_basis(self._basis_gates, supported_basis)
 
