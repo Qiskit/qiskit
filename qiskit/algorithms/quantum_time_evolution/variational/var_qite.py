@@ -106,7 +106,9 @@ class VarQite(VarQte, EvolutionBase):
 
         # TODO bind Hamiltonian?
 
-        self._variational_principle._lazy_init(hamiltonian, initial_state, init_state_param_dict, self._regularization)
+        self._variational_principle._lazy_init(
+            hamiltonian, initial_state, init_state_param_dict, self._regularization
+        )
         self.bind_initial_state(
             StateFn(initial_state), init_state_param_dict
         )  # in this case this is ansatz
@@ -132,7 +134,7 @@ class VarQite(VarQte, EvolutionBase):
             self._h_squared_circ_sampler,
             self._operator_circ_sampler,
             init_state_param_dict,
-            self._backend
+            self._backend,
         )
 
         exact_state = self._exact_state(time)
@@ -151,7 +153,7 @@ class VarQite(VarQte, EvolutionBase):
             self._regularization,
             self._state_circ_sampler,
             self._backend,
-            self._error_based_ode
+            self._error_based_ode,
         )
 
         ode_solver = VarQteOdeSolver(init_state_parameter_values, ode_function_generator)

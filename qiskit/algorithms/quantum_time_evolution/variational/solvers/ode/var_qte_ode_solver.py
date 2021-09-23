@@ -9,8 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 import numpy as np
-from scipy.integrate import RK45, Radau
+from scipy.integrate import RK45, OdeSolver
 
 from qiskit import QiskitError
 from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.ode_function_generator import (
@@ -23,6 +24,7 @@ class VarQteOdeSolver:
         self,
         init_params,
         ode_function_generator: OdeFunctionGenerator,
+        ode_solver_callable: OdeSolver = RK45,
     ):
         """
         Initialize ODE Solver
@@ -33,13 +35,13 @@ class VarQteOdeSolver:
         self._init_params = init_params
         self._ode_function_generator = ode_function_generator
         self._ode_function = ode_function_generator.var_qte_ode_function
+        self._ode_solver_callable = ode_solver_callable
 
     def _run(self, evolution_time: float):
         """
         Find numerical solution with ODE Solver.
         """
-        # TODO shall we accept solver as an argument?
-        ode_solver = RK45(
+        ode_solver = self._ode_solver_callable(
             self._ode_function,
             t_bound=evolution_time,
             t0=0,
