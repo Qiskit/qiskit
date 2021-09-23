@@ -14,7 +14,7 @@ Readout mitigator class based on the A-matrix inversion method
 """
 
 import logging
-from typing import Optional, List, Dict, Tuple, Iterable, Callable
+from typing import Optional, List, Dict, Tuple, Iterable, Callable, Union
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -41,7 +41,7 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
     def expectation_value(
         self,
         data: Counts,
-        diagonal: Callable,
+        diagonal: Union[Callable, dict, str, np.ndarray],
         qubits: Iterable[int] = None,
         clbits: Optional[List[int]] = None,
         shots: Optional[int] = None,
@@ -60,6 +60,7 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
                     bitstrings correspond to. If None qubits are assumed to be
                     :math:`[0, ..., n-1]`.
             clbits: Optional, if not None marginalize counts to the specified bits.
+            shots: the number of shots.
 
         Returns:
             (float, float): the expectation value and standard deviation.
@@ -107,17 +108,26 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
         data: Counts,
         qubits: Optional[List[int]] = None,
         clbits: Optional[List[int]] = None,
-        num_qubits: Optional[int] = None,
         shots: Optional[bool] = False,
-    ) -> (QuasiDistribution, Dict[str, float]):
+    ) -> (QuasiDistribution, QuasiDistribution):
         """Compute mitigated quasi probabilities value.
 
         Args:
             data: counts object
             qubits: qubits the count bitstrings correspond to.
             clbits: Optional, marginalize counts to just these bits.
-            num_qubits: the total number of qubits.
-            shots: return the number of shots.
+            shots: the number of shots.
+
+        Returns:
+            QuasiDistibution: A dictionary containing pairs of [output, mean] where "output"
+                is the key in the dictionaries,
+                which is the length-N bitstring of a measured standard basis state,
+                and "mean" is the mean of non-zero quasi-probability estimates.
+            QuasiDistibution: A dictionary containing pairs of [output, standard deviation]
+                where "output" is the key in the dictionaries,
+                which is the length-N bitstring of a measured standard basis state,
+                and "standard deviation" is the standard deviation of the non-zero
+                quasi-probability estimates.
 
         Raises:
             QiskitError: if qubit and clbit kwargs are not valid.
@@ -140,10 +150,10 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
         # Apply transpose of mitigation matrix
         probs_vec = mit_mat.dot(probs_vec)
         probs_dict = {}
-        for index in range(len(probs_vec)):
+        for index, _ in enumerate(probs_vec):
             probs_dict[index] = probs_vec[index]
 
-        return QuasiDistribution(probs_dict), self._stddev(probs_dict, shots)
+        return QuasiDistribution(probs_dict), QuasiDistribution(self._stddev(probs_dict, shots))
 
     def mitigation_matrix(self, qubits: List[int] = None) -> np.ndarray:
         r"""Return the readout mitigation matrix for the specified qubits.
