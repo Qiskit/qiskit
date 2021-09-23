@@ -71,6 +71,7 @@ class BaseReadoutMitigator(ABC):
             qubits: the physical qubits measured to obtain the counts clbits.
                     If None these are assumed to be qubits [0, ..., N-1]
                     for N-bit counts.
+            clbits: Optional, marginalize counts to just these bits.
             shots: Optional, the total number of shots, if None shots will
                 be calculated as the sum of all counts.
 
