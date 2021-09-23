@@ -70,7 +70,7 @@ class VarQite(VarQte, EvolutionBase):
         self,
         hamiltonian: OperatorBase,
         time: float,
-        initial_state: StateFn = None,
+        initial_state: OperatorBase = None,
         observable: OperatorBase = None,
         t_param=None,
         hamiltonian_value_dict=None,
@@ -106,7 +106,7 @@ class VarQite(VarQte, EvolutionBase):
 
         # TODO bind Hamiltonian?
 
-        self._variational_principle._lazy_init(hamiltonian, initial_state, init_state_param_dict)
+        self._variational_principle._lazy_init(hamiltonian, initial_state, init_state_param_dict, self._regularization)
         self.bind_initial_state(
             StateFn(initial_state), init_state_param_dict
         )  # in this case this is ansatz
@@ -123,20 +123,16 @@ class VarQite(VarQte, EvolutionBase):
             )
 
         # Convert the operator that holds the Hamiltonian and ansatz into a NaturalGradient operator
-        self._operator = self._operator / self._operator.coeff  # Remove the time from the operator
-        self._operator_eval = PauliExpectation().convert(self._operator / self._operator.coeff)
+        self._operator_eval = PauliExpectation().convert(self._operator)
 
-        self._init_grad_objects(
-            self._variational_principle._grad_method,
-            self._variational_principle._qfi_method,
-            init_state_parameters,
-        )
+        self._init_grad_objects()
         error_calculator = ImaginaryErrorCalculator(
             self._h_squared,
             self._operator,
             self._h_squared_circ_sampler,
             self._operator_circ_sampler,
             init_state_param_dict,
+            self._backend
         )
 
         exact_state = self._exact_state(time)
@@ -155,6 +151,7 @@ class VarQite(VarQte, EvolutionBase):
             self._regularization,
             self._state_circ_sampler,
             self._backend,
+            self._error_based_ode
         )
 
         ode_solver = VarQteOdeSolver(init_state_parameter_values, ode_function_generator)

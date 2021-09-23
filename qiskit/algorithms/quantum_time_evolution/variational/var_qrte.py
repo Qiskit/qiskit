@@ -88,7 +88,7 @@ class VarQrte(VarQte, EvolutionBase):
             hamiltonian_value_dict, init_state_parameters
         )
 
-        self._variational_principle._lazy_init(hamiltonian, initial_state, init_state_param_dict)
+        self._variational_principle._lazy_init(hamiltonian, initial_state, init_state_param_dict, self._regularization)
         self.bind_initial_state(
             StateFn(initial_state), init_state_param_dict
         )  # in this case this is ansatz
