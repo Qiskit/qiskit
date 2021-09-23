@@ -211,7 +211,7 @@ class TwoLocal(NLocal):
             return layer
 
         # try to exchange `layer` from a string/type to a gate instance
-        if isinstance(layer, str) or isinstance(layer, type):
+        if isinstance(layer, (str, type)):
             instance = self._get_gate_instance(layer)
             if instance is None:
                 raise ValueError(f"Unknown layer `{layer}`.")
