@@ -37,6 +37,50 @@ around the world by beginners, hobbyists, educators, researchers, and commercial
 
   </div>
 
+Interested in applications of quantum computing?
+################################################
+
+.. raw:: html
+
+  <div class="applications-callout-container">
+     <div class="row">
+
+.. customcalloutitem::
+  :description: Qiskit Nature supports different applications, such as electronic/vibronic structure calculations for ground and excited states or protein folding. It provides all the components necessary to interface classical codes and automatically convert to different representations required by quantum computers.
+  :header: Qiskit Nature
+  :button_link: https://qiskit.org/documentation/nature/
+  :button_text: Qiskit Nature
+
+.. customcalloutitem::
+  :description: Qiskit Finance provides a set of illustrative applications and tools, including Ising translators for portfolio optimization, data providers for real or random data, and implementations for pricing different financial options or for credit risk analysis.
+  :header: Qiskit Finance
+  :button_link: https://qiskit.org/documentation/finance/
+  :button_text: Qiskit Finance
+
+.. customcalloutitem::
+  :description: Qiskit Machine Learning provides fundamental quantum kernels and quantum neural networks (QNNs) as building blocks and quantum machine learning algorithms that apply them to solve different tasks like regression and classification. Further, it allows to connect QNNs to PyTorch to enhance classical workflows with quantum components.
+  :header: Qiskit Machine Learning
+  :button_link: https://qiskit.org/documentation/machine-learning/
+  :button_text: Qiskit Machine Learning
+
+.. customcalloutitem::
+  :description: Qiskit Optimization provides the whole range from high-level modeling of optimization problems, to automatic conversion of problems to different required representations, to a suite of easy-to-use quantum optimization algorithms.
+  :header: Qiskit Optimization
+  :button_link: https://qiskit.org/documentation/optimization/
+  :button_text: Qiskit Optimization
+
+.. raw:: html
+
+  </div>
+
+Interested in running experiments on real qubits?
+#################################################
+
+.. customcalloutitem::
+  :description: Run characterization, calibration, and verification experiments
+  :header: Qiskit Experiments
+  :button_link: https://qiskit.org/documentation/experiments/
+  :button_text: Qiskit Experiments
 
 Interested in quantum hardware design?
 ######################################
@@ -56,12 +100,11 @@ Interested in quantum hardware design?
     :link-badge:`https://qiskit.org/documentation/metal/,"Documentation",cls=badge-primary text-white`
 
 
-
 .. toctree::
   :maxdepth: 1
   :hidden:
 
-  Documentation homepage <self>
+  Documentation Homepage <self>
 
 .. toctree::
   :caption: Frontmatter
@@ -87,18 +130,18 @@ Interested in quantum hardware design?
   :caption: API References
   :hidden:
 
-  Qiskit (Terra) <apidoc/terra>
-  Qiskit Simulator (Aer) <apidoc/aer>
-  Qiskit Experiments (Ignis) <apidoc/ignis>
-  Qiskit Application Modules (Aqua) <apidoc/aqua>
-  Qiskit IBM Quantum (Provider) <apidoc/ibmq-provider>
+  Qiskit Terra <apidoc/terra>
+  Qiskit Aer <apidoc/aer>
+  Qiskit Ignis (deprecated) <apidoc/ignis>
+  Qiskit Aqua (deprecated) <apidoc/aqua>
+  Qiskit IBM Quantum Provider <apidoc/ibmq-provider>
 
 .. toctree::
   :maxdepth: 1
-  :caption: Qiskit Applications (Aqua) Migration Guide
+  :caption: Qiskit Aqua Migration Guide
   :hidden:
 
-  Qiskit Applications (Aqua) Migration Guide <aqua_migration>
+  Qiskit Aqua Migration Guide <aqua_migration>
 
 .. toctree::
   :maxdepth: 1
