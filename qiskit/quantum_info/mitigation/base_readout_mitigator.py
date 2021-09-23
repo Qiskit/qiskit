@@ -14,7 +14,7 @@ Base class for readout error mitigation.
 """
 
 from abc import ABC
-from typing import Optional, List, Dict, Iterable, Tuple, Union, Callable
+from typing import Optional, List, Iterable, Tuple, Union, Callable
 import numpy as np
 from qiskit.result import Counts, QuasiDistribution
 
@@ -34,8 +34,8 @@ class BaseReadoutMitigator(ABC):
         Args:
             data: Counts to be mitigated.
             qubits: the physical qubits measured to obtain the counts clbits.
-                    If None these are assumed to be qubits [0, ..., N-1]
-                    for N-bit counts.
+                If None these are assumed to be qubits [0, ..., N-1]
+                for N-bit counts.
             clbits: Optional, marginalize counts to just these bits.
             shots: Optional, the total number of shots, if None shots will
                 be calculated as the sum of all counts.
