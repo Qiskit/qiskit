@@ -23,8 +23,11 @@ class BaseReadoutMitigator(ABC):
     """Base readout error mitigator class."""
 
     def quasi_probabilities(
-        self, data: Counts, qubits: Iterable[int] = None, clbits: Optional[List[int]] = None,
-            shots: Optional[int] = None
+        self,
+        data: Counts,
+        qubits: Iterable[int] = None,
+        clbits: Optional[List[int]] = None,
+        shots: Optional[int] = None,
     ) -> (QuasiDistribution, QuasiDistribution):
         """Convert counts to a dictionary of quasi-probabilities
 
