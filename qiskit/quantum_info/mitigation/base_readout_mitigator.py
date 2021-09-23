@@ -13,25 +13,19 @@
 Base class for readout error mitigation.
 """
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Optional, List, Dict, Iterable, Tuple, Union, Callable
 import numpy as np
 from qiskit.result import Counts, QuasiDistribution
-
-try:
-    import matplotlib.pyplot as plt
-
-    _HAS_MATPLOTLIB = True
-except ImportError:
-    _HAS_MATPLOTLIB = False
 
 
 class BaseReadoutMitigator(ABC):
     """Base readout error mitigator class."""
 
     def quasi_probabilities(
-        self, data: Counts, qubits: Iterable[int] = None, shots: Optional[int] = None
-    ) -> (QuasiDistribution, Dict[str, float]):
+        self, data: Counts, qubits: Iterable[int] = None, clbits: Optional[List[int]] = None,
+            shots: Optional[int] = None
+    ) -> (QuasiDistribution, QuasiDistribution):
         """Convert counts to a dictionary of quasi-probabilities
 
         Args:
@@ -39,6 +33,7 @@ class BaseReadoutMitigator(ABC):
             qubits: the physical qubits measured to obtain the counts clbits.
                     If None these are assumed to be qubits [0, ..., N-1]
                     for N-bit counts.
+            clbits: Optional, marginalize counts to just these bits.
             shots: Optional, the total number of shots, if None shots will
                 be calculated as the sum of all counts.
 
@@ -47,7 +42,7 @@ class BaseReadoutMitigator(ABC):
                 is the key in the dictionaries,
                 which is the length-N bitstring of a measured standard basis state,
                 and "mean" is the mean of non-zero quasi-probability estimates.
-            A dictionary containing pairs of [output, standard deviation]
+            QuasiDistibution: A dictionary containing pairs of [output, standard deviation]
                 where "output" is the key in the dictionaries,
                 which is the length-N bitstring of a measured standard basis state,
                 and "standard deviation" is the standard deviation of the non-zero
@@ -59,6 +54,7 @@ class BaseReadoutMitigator(ABC):
         data: Counts,
         diagonal: Union[Callable, dict, str, np.ndarray],
         qubits: Iterable[int] = None,
+        clbits: Optional[List[int]] = None,
         shots: Optional[int] = None,
     ) -> Tuple[float, float]:
         """Calculate the expectation value of a diagonal Hermitian operator.
