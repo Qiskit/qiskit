@@ -244,14 +244,34 @@ class Target:
                     except rx.NoEdgeBetweenNodes:
                         self._coupling_graph.add_edge(*qarg, {gate: properties})
 
-    def coupling_map(self):
-        """Get a :class:`~qiskit.transpiler.CouplingMap` from this gate map."""
+    def coupling_map(self, two_q_gate=None):
+        """Get a :class:`~qiskit.transpiler.CouplingMap` from this gate map.
+
+        Args:
+            two_q_gate (str): An optional gate name for a two qubit gate in
+                the Target to generate the coupling map for. If specified the
+                output coupling map will only have edges between qubits where
+                this gate is present.
+        Returns:
+            CouplingMap: The :class:`~qiskit.transpiler.CouplingMap` object
+                for this target.
+        """
         if any(len(x) > 2 for x in self.qargs):
             logger.warning(
                 "This Target object contains multiqubit gates that "
                 "operate on > 2 qubits. This will not be reflected in "
                 "the output coupling map."
             )
+
+        if two_q_gate is not None:
+            coupling_graph = rx.PyDiGraph(multigraph=False)
+            coupling_graph.add_nodes_from(list(None for _ in range(self.num_qubits)))
+            for qargs, properties in self._gate_map[two_q_gate]:
+                coupling_graph.add_edge(*qargs, {two_q_gate: properties})
+            cmap = CouplingMap()
+            cmap.graph = coupling_graph
+            return cmap
+
         if self._coupling_graph is None:
             self._build_coupling_graph()
         cmap = CouplingMap()
