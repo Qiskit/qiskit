@@ -217,7 +217,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
     @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
     def test_with_aer_statevector(self):
         """Test VQE with Aer's statevector_simulator."""
-        backend = Aer.get_backend("aer_simulator_statevector")
+        backend = Aer.get_backend("statevector_simulator")
         wavefunction = self.ry_wavefunction
         optimizer = L_BFGS_B()
 
@@ -231,7 +231,6 @@ class TestVQE(QiskitAlgorithmsTestCase):
             optimizer=optimizer,
             max_evals_grouped=1,
             quantum_instance=quantum_instance,
-            include_custom=True,
         )
 
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)

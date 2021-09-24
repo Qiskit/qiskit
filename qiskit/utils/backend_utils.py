@@ -181,9 +181,7 @@ def is_aer_qasm(backend):
     Returns:
         bool: True is Aer Qasm simulator
     """
-    if is_aer_provider(backend):
-        return True
-    return False
+    return is_aer_provider(backend) and not is_statevector_backend(backend)
 
 
 def support_backend_options(backend):

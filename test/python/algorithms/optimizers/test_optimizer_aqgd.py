@@ -65,18 +65,13 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
     def test_list(self):
         """test AQGD optimizer with the parameters as lists."""
         q_instance = QuantumInstance(
-            Aer.get_backend("aer_simulator_statevector"),
+            Aer.get_backend("statevector_simulator"),
             seed_simulator=algorithm_globals.random_seed,
             seed_transpiler=algorithm_globals.random_seed,
         )
 
         aqgd = AQGD(maxiter=[1000, 1000, 1000], eta=[1.0, 0.5, 0.3], momentum=[0.0, 0.5, 0.75])
-        vqe = VQE(
-            ansatz=RealAmplitudes(),
-            optimizer=aqgd,
-            quantum_instance=q_instance,
-            include_custom=True,
-        )
+        vqe = VQE(ansatz=RealAmplitudes(), optimizer=aqgd, quantum_instance=q_instance)
         result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
         self.assertAlmostEqual(result.eigenvalue.real, -1.857, places=3)
 
