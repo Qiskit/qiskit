@@ -48,7 +48,7 @@ except ImportError:
     HAS_PYLATEX = False
 
 
-def get_gate_ctrl_text(op, drawer, style=None):
+def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
     """Load the gate_text and ctrl_text strings based on names and labels"""
     op_label = getattr(op, "label", None)
     op_type = type(op)
@@ -110,6 +110,13 @@ def get_gate_ctrl_text(op, drawer, style=None):
         gate_text == base_name and base_type not in (Gate, Instruction)
     ):
         gate_text = gate_text.capitalize()
+
+    if drawer == "mpl" and op.name in calibrations:
+        if isinstance(op, ControlledGate):
+            ctrl_text = "" if ctrl_text is None else ctrl_text
+            ctrl_text = "(cal)\n" + ctrl_text
+        else:
+            gate_text = gate_text + "\n(cal)"
 
     return gate_text, ctrl_text, raw_gate_text
 
