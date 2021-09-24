@@ -369,7 +369,7 @@ class CouplingMap:
             distance, bidirectional=bidirectional
         )
         return cmap
-    
+
     @classmethod
     def from_hexagonal_lattice(cls, rows, cols, bidirectional=True):
         """Return a hexagonal lattice graph coupling map.
