@@ -13,6 +13,7 @@
 """Disassemble function for a qobj into a list of circuits and its config"""
 from typing import Any, Dict, List, NewType, Tuple, Union
 import collections
+import math
 
 from qiskit import pulse
 from qiskit.circuit.classicalregister import ClassicalRegister
@@ -174,10 +175,22 @@ def _experiments_to_circuits(qobj):
                     mask = [0] * (full_bit_size - len(raw)) + raw
                     raw_map[creg] = mask
                     mask_map[int("".join(str(x) for x in mask), 2)] = creg
-                creg = mask_map[int(i.mask, 16)]
-                conditional["register"] = creg_dict[creg]
+                if bin(int(i.mask, 16)).count("1") == 1:
+                    cbit = int(math.log2(int(i.mask, 16)))
+                    for reg in creg_dict:
+                        size = creg_dict[reg].size
+                        if cbit >= size:
+                            cbit -= size
+                        else:
+                            conditional["register"] = creg_dict[reg][cbit]
+                            break
+                    mask_str = bin(int(i.mask, 16))[2:].zfill(full_bit_size)
+                    mask = [int(item) for item in list(mask_str)]
+                else:
+                    creg = mask_map[int(i.mask, 16)]
+                    conditional["register"] = creg_dict[creg]
+                    mask = raw_map[creg]
                 val = int(i.val, 16)
-                mask = raw_map[creg]
                 for j in reversed(mask):
                     if j == 0:
                         val = val >> 1
