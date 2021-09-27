@@ -119,16 +119,23 @@ class CheckDecompositions(QiskitTestCase):
 
     def check_one_qubit_euler_angles(self, operator, basis="U3", tolerance=1e-14, simplify=False):
         """Check OneQubitEulerDecomposer works for the given unitary"""
+        # print(f"Working on {(operator, basis, tolerance, simplify)}")
         target_unitary = operator.data
         if basis is None:
             angles = OneQubitEulerDecomposer().angles(target_unitary)
             decomp_unitary = U3Gate(*angles).to_matrix()
         else:
             decomposer = OneQubitEulerDecomposer(basis)
-            decomp_unitary = Operator(decomposer(target_unitary, simplify=simplify)).data
-        maxdist = np.max(np.abs(target_unitary - decomp_unitary))
+            qc = decomposer(target_unitary, simplify=simplify)
+            # for item in qc.data:
+            #     print(item)
+            # print(qc.global_phase)
+            decomp_unitary = Operator(qc).data
+        trace_pairing = np.trace(decomp_unitary @ np.conj(operator.data).transpose(1, 0))
+        infidelity = (4 - abs(trace_pairing) ** 2) / 6
         self.assertTrue(
-            np.abs(maxdist) < tolerance, f"Operator {operator}: Worst distance {maxdist}"
+            np.abs(infidelity) < tolerance,
+            f"Operator {operator}: Worst distance {infidelity}"
         )
 
     @contextlib.contextmanager

@@ -464,7 +464,8 @@ class OneQubitEulerDecomposer:
         return circuit
 
     @staticmethod
-    def _circuit_psx_gen(theta, phi, lam, phase, atol, pfun, xfun, xpifun=None):
+    def _circuit_psx_gen(theta, phi, lam, phase, atol, pfun, xfun, xpifun=None,
+                         xfun_fid=1., xpifun_fid=1., simplify=True):
         """
         Generic X90, phase decomposition
 
@@ -472,37 +473,69 @@ class OneQubitEulerDecomposer:
         """
         qr = QuantumRegister(1, "qr")
         circuit = QuantumCircuit(qr, global_phase=phase)
-        # Early return for zero SX decomposition
-        if np.abs(theta) < atol:
+
+        if not simplify:
+            atol = -1.
+
+        # infidelity estimates for each of the registered circuit types
+        circuit_types = [(2 * (1. - xfun_fid), "two sx")]
+        if simplify:
+            circuit_types += [
+                ((1. - xfun_fid) + (1 - math.cos(theta - np.pi / 2)) / 3, "one sx"),
+                ((1. - math.cos(theta)) / 3, "empty")
+            ]
+            if xpifun is not None:
+                circuit_types += [
+                    ((1. - xpifun_fid) + (1 - math.cos(theta - np.pi)) / 3, "one x")
+                ]
+        infidelity, circuit_type = min(circuit_types)
+
+        # print(circuit_types)
+        # print(infidelity, circuit_type)
+
+        # generate a circuit based on the best infidelity estimate
+        if "empty" == circuit_type:
+            # print(lam, phi, lam + phi)
             pfun(circuit, qr, lam + phi)
-            return circuit
-        # Early return for single SX decomposition
-        if abs(theta - np.pi / 2) < atol:
+
+        elif "one sx" == circuit_type:
             pfun(circuit, qr, lam - np.pi / 2)
             xfun(circuit, qr)
             pfun(circuit, qr, phi + np.pi / 2)
-            return circuit
-        # General double SX decomposition
-        if abs(theta - np.pi) < atol:
-            circuit.global_phase += lam
-            phi, lam = phi - lam, 0
-        if abs(_mod_2pi(lam + np.pi)) < atol or abs(_mod_2pi(phi)) < atol:
-            lam, theta, phi = lam + np.pi, -theta, phi + np.pi
-            circuit.global_phase -= theta
-        # Shift theta and phi to turn the decomposition from
-        # RZ(phi).RY(theta).RZ(lam) = RZ(phi).RX(-pi/2).RZ(theta).RX(pi/2).RZ(lam)
-        # into RZ(phi+pi).SX.RZ(theta+pi).SX.RZ(lam) .
-        theta, phi = theta + np.pi, phi + np.pi
-        circuit.global_phase -= np.pi / 2
-        # Emit circuit
-        pfun(circuit, qr, lam)
-        if xpifun and abs(_mod_2pi(theta)) < atol:
-            xpifun(circuit, qr)
+
+        # the "one x" and "two sx" cases are pretty similar, so we fold them together
+        elif "one x" == circuit_type or "two sx" == circuit_type:
+            # collapse the two p gates.
+            # this is always possible when theta ~ pi...
+            if "one x" == circuit_type or abs(theta - np.pi) < atol:
+                circuit.global_phase += lam
+                phi, lam = phi - lam, 0
+            # ... or when lam ~ pi or phi ~ 0
+            if abs(_mod_2pi(lam + np.pi)) < atol or abs(_mod_2pi(phi)) < atol:
+                lam, theta, phi = lam + np.pi, -theta, phi + np.pi
+                circuit.global_phase -= theta
+
+            # Shift theta and phi to turn the decomposition from
+            # RZ(phi).RY(theta).RZ(lam) = RZ(phi).RX(-pi/2).RZ(theta).RX(pi/2).RZ(lam)
+            # into RZ(phi+pi).SX.RZ(theta+pi).SX.RZ(lam) .
+            theta, phi = theta + np.pi, phi + np.pi
+            circuit.global_phase -= np.pi / 2
+
+            # actually emit the circuit
+            pfun(circuit, qr, lam)
+            if "one x" == circuit_type:
+                xpifun(circuit, qr)
+            else:
+                xfun(circuit, qr)
+                pfun(circuit, qr, theta)
+                xfun(circuit, qr)
+            pfun(circuit, qr, phi)
+
         else:
-            xfun(circuit, qr)
-            pfun(circuit, qr, theta)
-            xfun(circuit, qr)
-        pfun(circuit, qr, phi)
+            raise QiskitError(f"Unknown 1Q circuit type '{circuit_type}'.")
+
+        # print(circuit.qasm())
+        # print(f"in {phase} vs out {circuit.global_phase}")
 
         return circuit
 
@@ -519,7 +552,8 @@ class OneQubitEulerDecomposer:
         def fnx(circuit, qr):
             circuit._append(SXGate(), [qr[0]], [])
 
-        return OneQubitEulerDecomposer._circuit_psx_gen(theta, phi, lam, phase, atol, fnz, fnx)
+        return OneQubitEulerDecomposer._circuit_psx_gen(theta, phi, lam, phase, atol, fnz, fnx,
+                                                        simplify=simplify)
 
     @staticmethod
     def _circuit_zsx(theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL):
@@ -535,7 +569,8 @@ class OneQubitEulerDecomposer:
         def fnx(circuit, qr):
             circuit._append(SXGate(), [qr[0]], [])
 
-        return OneQubitEulerDecomposer._circuit_psx_gen(theta, phi, lam, phase, atol, fnz, fnx)
+        return OneQubitEulerDecomposer._circuit_psx_gen(theta, phi, lam, phase, atol, fnz, fnx,
+                                                        simplify=simplify)
 
     @staticmethod
     def _circuit_u1x(theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL):
@@ -551,7 +586,8 @@ class OneQubitEulerDecomposer:
             circuit.global_phase += np.pi / 4
             circuit._append(RXGate(np.pi / 2), [qr[0]], [])
 
-        return OneQubitEulerDecomposer._circuit_psx_gen(theta, phi, lam, phase, atol, fnz, fnx)
+        return OneQubitEulerDecomposer._circuit_psx_gen(theta, phi, lam, phase, atol, fnz, fnx,
+                                                        simplify=simplify)
 
     @staticmethod
     def _circuit_zsxx(theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL):
@@ -559,10 +595,13 @@ class OneQubitEulerDecomposer:
             atol = -1.0
 
         def fnz(circuit, qr, phi):
+            # print(f"1: {phi}")
             phi = _mod_2pi(phi, atol)
+            # print(f"2: {phi}")
             if abs(phi) > atol:
                 circuit._append(RZGate(phi), [qr[0]], [])
                 circuit.global_phase += phi / 2
+                # print(f"3: {phi / 2} gave {circuit.global_phase}")
 
         def fnx(circuit, qr):
             circuit._append(SXGate(), [qr[0]], [])
@@ -571,7 +610,7 @@ class OneQubitEulerDecomposer:
             circuit._append(XGate(), [qr[0]], [])
 
         return OneQubitEulerDecomposer._circuit_psx_gen(
-            theta, phi, lam, phase, atol, fnz, fnx, fnxpi
+            theta, phi, lam, phase, atol, fnz, fnx, fnxpi, simplify=simplify
         )
 
     @staticmethod
