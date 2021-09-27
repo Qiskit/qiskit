@@ -12,7 +12,6 @@
 
 """Test registerless QuantumCircuit and Gates on wires"""
 
-
 import numpy
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
