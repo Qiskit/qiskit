@@ -5,18 +5,18 @@ features:
     been added to the :class:`~qiskit.circuit.QuantumCircuit` class
     which allows lookups of the index and registers of a provided
     :class:`~qiskit.circuit.Bit` on the given circuit. The method
-    returns a two-element `NamedTuple` containing 0) the `Bit` 's
-    index in either :attr:`~qiskit.circuit.QuantumCircuit.qubits` (for
+    returns a two-element ``namedtuple`` containing 0) the index of the ``Bit``
+    in either :attr:`~qiskit.circuit.QuantumCircuit.qubits` (for
     a :class:`~qiskit.circuit.Qubit`) or
     :attr:`~qiskit.circuit.QuantumCircuit.clbits` (for a
     :class:`~qiskit.circuit.Clbit`) and 1) a list of length-2 tuples
     containing each circuit :class:`~qiskit.circuit.Register` which
-    contains the `Bit`, and the index in that `Register` at which the
-    `Bit` can be found.
+    contains the ``Bit``, and the index in that ``Register`` at which the
+    ``Bit`` can be found.
 
     For example:
 
-    .. code-block::python
+    .. code-block:: python
 
         from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
 
@@ -31,7 +31,7 @@ features:
 
     would generate:
 
-    .. code-block::python
+    .. code-block:: python
 
         BitLocations(index=2, registers=[(QuantumRegister(3, 'foo'), 2)])
         BitLocations(index=3, registers=[])
