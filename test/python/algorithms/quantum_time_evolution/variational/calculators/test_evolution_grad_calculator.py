@@ -39,7 +39,8 @@ class TestEvolutionGradCalculator(QiskitAlgorithmsTestCase):
 
         # Define a set of initial parameters
         parameters = ansatz.ordered_parameters
-        evolution_grad = calculate(observable, ansatz, parameters)
+        grad_method = "lin_comb"
+        evolution_grad = calculate(observable, ansatz, parameters, grad_method)
 
         values_dict = [
             {param: np.pi / 4 for param in parameters},
