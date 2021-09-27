@@ -4,4 +4,3 @@ decorator==4.4.2
 jax==0.2.13
 jaxlib==0.1.67
 networkx==2.5
-ddt!=1.4.3
