@@ -229,6 +229,12 @@ class TestPauliListInit(QiskitTestCase):
             value[0] = "II"
             self.assertEqual(value, target)
 
+    def test_init_from_settings(self):
+        """Test initializing from the settings dictionary."""
+        pauli_list = PauliList(["IX", "-iYZ", "YY"])
+        from_settings = PauliList(**pauli_list.settings)
+        self.assertEqual(pauli_list, from_settings)
+
 
 @ddt
 class TestPauliListProperties(QiskitTestCase):
