@@ -12,10 +12,6 @@
 from abc import ABC, abstractmethod
 from typing import Union, Dict, Optional
 
-from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
-    evolution_grad_calculator,
-    metric_tensor_calculator,
-)
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
     CircuitQFI,
@@ -50,15 +46,34 @@ class VariationalPrinciple(ABC):
         self._param_dict = param_dict
         self._operator = ~StateFn(hamiltonian) @ StateFn(ansatz)
         self._operator = self._operator / self._operator.coeff  # Remove the time from the operator
-        raw_metric_tensor = metric_tensor_calculator.calculate(
-            ansatz, list(param_dict.keys()), self._qfi_method
-        )
-        raw_evolution_grad = evolution_grad_calculator.calculate(
-            hamiltonian, ansatz, list(param_dict.keys()), self._grad_method
-        )
+        raw_metric_tensor = self._get_raw_metric_tensor(ansatz, param_dict)
+        print("Raw metric tensor")
+        print(raw_metric_tensor.assign_parameters(param_dict).to_matrix())
+
+        raw_evolution_grad = self._get_raw_evolution_grad(hamiltonian, ansatz, param_dict)
+        print("Raw evolution grad")
+        print(raw_evolution_grad.assign_parameters(param_dict).to_matrix())
+
         self._metric_tensor = self._calc_metric_tensor(raw_metric_tensor, param_dict)
         self._evolution_grad = self._calc_evolution_grad(raw_evolution_grad, param_dict)
         self._nat_grad = self._calc_nat_grad(self._operator, param_dict, regularization)
+
+    @abstractmethod
+    def _get_raw_metric_tensor(
+        self,
+        ansatz,
+        param_dict: Dict[Parameter, Union[float, complex]],
+    ):
+        pass
+
+    @abstractmethod
+    def _get_raw_evolution_grad(
+        self,
+        hamiltonian,
+        ansatz,
+        param_dict: Dict[Parameter, Union[float, complex]],
+    ):
+        pass
 
     @staticmethod
     @abstractmethod

@@ -11,14 +11,12 @@
 # that they have been altered from the originals.
 from typing import Union, Dict
 
-from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.imaginary_error_calculator import (
-    ImaginaryErrorCalculator,
+from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
+    metric_tensor_calculator,
+    evolution_grad_calculator,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
-)
-from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
-    VariationalPrinciple,
 )
 from qiskit.circuit import Parameter
 from qiskit.opflow import CircuitQFI, CircuitGradient, OperatorBase
@@ -35,14 +33,37 @@ class ImaginaryMcLachlanVariationalPrinciple(ImaginaryVariationalPrinciple):
             grad_method,
         )
 
+    def _get_raw_metric_tensor(
+        self,
+        ansatz,
+        param_dict: Dict[Parameter, Union[float, complex]],
+    ):
+        raw_metric_tensor_real = metric_tensor_calculator.calculate(
+            ansatz, list(param_dict.keys()), self._qfi_method
+        )
+
+        return raw_metric_tensor_real
+
+    def _get_raw_evolution_grad(
+        self,
+        hamiltonian,
+        ansatz,
+        param_dict: Dict[Parameter, Union[float, complex]],
+    ):
+        raw_evolution_grad_real = evolution_grad_calculator.calculate(
+            hamiltonian, ansatz, list(param_dict.keys()), self._grad_method
+        )
+
+        return raw_evolution_grad_real
+
     @staticmethod
     def _calc_metric_tensor(
         raw_metric_tensor: OperatorBase, param_dict: Dict[Parameter, Union[float, complex]]
     ) -> OperatorBase:
-        return VariationalPrinciple.op_real_part(raw_metric_tensor.bind_parameters(param_dict))
+        return raw_metric_tensor.bind_parameters(param_dict)
 
     @staticmethod
     def _calc_evolution_grad(
         raw_evolution_grad: OperatorBase, param_dict: Dict[Parameter, Union[float, complex]]
     ) -> OperatorBase:
-        return -VariationalPrinciple.op_real_part(raw_evolution_grad.bind_parameters(param_dict))
+        return -raw_evolution_grad.bind_parameters(param_dict)

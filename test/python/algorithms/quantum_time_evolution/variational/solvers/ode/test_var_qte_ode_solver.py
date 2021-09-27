@@ -106,6 +106,7 @@ class TestVarQteOdeSolver(QiskitAlgorithmsTestCase):
         target_state /= np.sqrt(_inner_prod(target_state, target_state))
 
         reg = "ridge"
+        error_based_ode = True
 
         ode_function_generator = OdeFunctionGenerator(
             error_calculator,
@@ -121,7 +122,7 @@ class TestVarQteOdeSolver(QiskitAlgorithmsTestCase):
             reg,
             CircuitSampler(backend),
             None,
-            True,
+            error_based_ode,
         )
 
         var_qte_ode_solver = VarQteOdeSolver(

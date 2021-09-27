@@ -11,6 +11,10 @@
 # that they have been altered from the originals.
 from typing import Union, Dict
 
+from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
+    metric_tensor_calculator,
+    evolution_grad_calculator,
+)
 from qiskit.algorithms.quantum_time_evolution.variational.principles.real.real_variational_principle import (
     RealVariationalPrinciple,
 )
@@ -30,15 +34,38 @@ class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):
             qfi_method,
         )
 
+    def _get_raw_metric_tensor(
+        self,
+        ansatz,
+        param_dict: Dict[Parameter, Union[float, complex]],
+    ):
+        raw_metric_tensor_imag = metric_tensor_calculator.calculate(
+            -1j * ansatz, list(param_dict.keys()), self._qfi_method
+        )
+
+        return raw_metric_tensor_imag
+
+    def _get_raw_evolution_grad(
+        self,
+        hamiltonian,
+        ansatz,
+        param_dict: Dict[Parameter, Union[float, complex]],
+    ):
+        raw_evolution_grad_real = evolution_grad_calculator.calculate(
+            hamiltonian, ansatz, list(param_dict.keys()), self._grad_method
+        )
+
+        return raw_evolution_grad_real
+
     @staticmethod
     def _calc_metric_tensor(
-        raw_metric_tensor: OperatorBase, param_dict: Dict[Parameter, Union[float, complex]]
+        raw_metric_tensor_imag: OperatorBase, param_dict: Dict[Parameter, Union[float, complex]]
     ) -> OperatorBase:
         # TODO verify
-        return VariationalPrinciple.op_imag_part(raw_metric_tensor.bind_parameters(param_dict))
+        return raw_metric_tensor_imag.bind_parameters(param_dict)
 
     @staticmethod
     def _calc_evolution_grad(
-        raw_evolution_grad: OperatorBase, param_dict: Dict[Parameter, Union[float, complex]]
+        raw_evolution_grad_real: OperatorBase, param_dict: Dict[Parameter, Union[float, complex]]
     ) -> OperatorBase:
-        return -VariationalPrinciple.op_real_part(raw_evolution_grad.bind_parameters(param_dict))
+        return -raw_evolution_grad_real.bind_parameters(param_dict)
