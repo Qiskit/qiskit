@@ -16,6 +16,7 @@ from a backend
 """
 
 import logging
+from typing import Union
 
 import retworkx as rx
 
@@ -29,11 +30,29 @@ logger = logging.getLogger(__name__)
 class InstructionProperties:
     """A representation of the properties of a gate implementation."""
 
-    __slots__ = ("length", "error", "properties")
+    __slots__ = ("length", "error", "pulse", "properties")
 
-    def __init__(self, length=None, error=None, properties=None):
+    def __init__(
+        self,
+        length: float = None,
+        error: float = None,
+        pulse: Union["Schedule", "ScheduleBlock"] = None,
+        properties: Dict[str, Any] = None,
+    ):
+        """Create a new ``InstructionProperties`` object
+
+        Args:
+            length: The duration of the instruction on the specified set of
+                qubits
+            error: The average error rate for the instruction on the specified
+                set of qubits.
+            pulse: The pulse representation of the instruction
+            properties: A free form dictionary of additional properties the
+                backend has for a specified instruction (operation + arguments).
+        """
         self.length = length
         self.error = error
+        self.pulse = pulse
         self.properties = properties
 
 
