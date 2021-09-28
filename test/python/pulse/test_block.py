@@ -439,10 +439,8 @@ class TestBlockOperation(BaseTestBlock):
             pulse.acquire(50, pulse.MeasureChannel(0), pulse.MemorySlot(0))
 
         backend = FakeArmonk()
-        test_job = backend.run(sched_block)
-        test_result = test_job.result().results[0]
-
-        self.assertEqual(test_result.data.counts, {"0x0": 1024})
+        test_result = backend.run(sched_block).result()
+        self.assertDictEqual(test_result.get_counts(), {"0": 1024})
 
 
 class TestBlockEquality(BaseTestBlock):
