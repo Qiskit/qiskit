@@ -334,8 +334,11 @@ def _check_circuits_coupling_map(circuits, transpile_args, backend):
         # If coupling_map is None, the limit might be in the backend (like in 1Q devices)
         elif backend is not None:
             backend_version = getattr(backend, "version", 0)
+            if not isinstance(backend_version, int):
+                backend_version = 0
             if backend_version <= 1:
-                max_qubits = backend.configuration().n_qubits
+                if not backend.configuration().simulator:
+                    max_qubits = backend.configuration().n_qubits
             else:
                 max_qubits = backend.num_qubits
 
@@ -580,6 +583,11 @@ def _create_faulty_qubits_map(backend):
     from working qubit in the backend to dummy qubits that are consecutive and connected."""
     faulty_qubits_map = None
     if backend is not None:
+        backend_version = getattr(backend, "version", 0)
+        if not isinstance(backend_version, int):
+            backend_version = 0
+        if backend_version > 1:
+            return None
         if backend.properties():
             faulty_qubits = backend.properties().faulty_qubits()
             faulty_edges = [gates.qubits for gates in backend.properties().faulty_gates()]
@@ -589,27 +597,22 @@ def _create_faulty_qubits_map(backend):
 
         if faulty_qubits or faulty_edges:
             faulty_qubits_map = {}
-            backend_version = getattr(backend, "version", 0)
-            if backend_version <= 1:
-                configuration = backend.configuration()
-                full_coupling_map = configuration.coupling_map
-            else:
-                full_coupling_map = backend.coupling_map
-                num_qubits = backend.num_qubits
+            configuration = backend.configuration()
+            full_coupling_map = configuration.coupling_map
             functional_cm_list = [
                 edge
                 for edge in full_coupling_map
                 if (set(edge).isdisjoint(faulty_qubits) and edge not in faulty_edges)
             ]
+
             connected_working_qubits = CouplingMap(functional_cm_list).largest_connected_component()
             dummy_qubit_counter = 0
-            for qubit in range(num_qubits):
+            for qubit in range(configuration.n_qubits):
                 if qubit in connected_working_qubits:
                     faulty_qubits_map[qubit] = dummy_qubit_counter
                     dummy_qubit_counter += 1
                 else:
                     faulty_qubits_map[qubit] = None
-
     return faulty_qubits_map
 
 
@@ -617,12 +620,13 @@ def _parse_basis_gates(basis_gates, backend, circuits):
     # try getting basis_gates from user, else backend
     if basis_gates is None:
         backend_version = getattr(backend, "version", 0)
+        if not isinstance(backend_version, int):
+            backend_version = 0
         if backend_version <= 1:
             if getattr(backend, "configuration", None):
                 basis_gates = getattr(backend.configuration(), "basis_gates", None)
         else:
-            basis_gates = [gate.name for gate in backend.basis_gates]
-
+            basis_gates = backend.instructions_names
     # basis_gates could be None, or a list of basis, e.g. ['u3', 'cx']
     if basis_gates is None or (
         isinstance(basis_gates, list) and all(isinstance(i, str) for i in basis_gates)
@@ -649,6 +653,8 @@ def _parse_coupling_map(coupling_map, backend, num_circuits):
     # try getting coupling_map from user, else backend
     if coupling_map is None:
         backend_version = getattr(backend, "version", 0)
+        if not isinstance(backend_version, int):
+            backend_version = 0
         if backend_version <= 1:
             if getattr(backend, "configuration", None):
                 configuration = backend.configuration()
@@ -672,15 +678,8 @@ def _parse_coupling_map(coupling_map, backend, num_circuits):
                             )
                     else:
                         coupling_map = CouplingMap(configuration.coupling_map)
-
         else:
             coupling_map = backend.coupling_map
-            faulty_map = _create_faulty_qubits_map(backend)
-            if faulty_map:
-                coupling_map = CouplingMap()
-                for qubit1, qubit2 in configuration.coupling_map:
-                    if faulty_map[qubit1] is not None and faulty_map[qubit2] is not None:
-                        coupling_map.add_edge(faulty_map[qubit1], faulty_map[qubit2])
 
     # coupling_map could be None, or a list of lists, e.g. [[0, 1], [2, 1]]
     if coupling_map is None or isinstance(coupling_map, CouplingMap):
@@ -735,20 +734,23 @@ def _parse_backend_properties(backend_properties, backend, num_circuits):
 def _parse_backend_num_qubits(backend, num_circuits):
     if backend is None:
         return [None] * num_circuits
-    backend_version = getattr(backend, "version", 0)
     if not isinstance(backend, list):
+        backend_version = getattr(backend, "version", 0)
+        if not isinstance(backend_version, int):
+            backend_version = 0
         if backend_version <= 1:
-            num_qubits = backend.configuration().n_qubits
+            return [backend.configuration().n_qubits] * num_circuits
         else:
-            num_qubits = backend.num_qubits
-        return [num_qubits] * num_circuits
+            return backend.num_qubits
     backend_num_qubits = []
     for a_backend in backend:
+        backend_version = getattr(backend, "version", 0)
+        if not isinstance(backend_version, int):
+            backend_version = 0
         if backend_version <= 1:
-            num_qubits = a_backend.configuration().n_qubits
+            backend_num_qubits.append(a_backend.configuration().n_qubits)
         else:
-            num_qubits = a_backend.num_qubits
-        backend_num_qubits.append(num_qubits)
+            backend_num_qubits.append(a_backend.num_qubits)
     return backend_num_qubits
 
 
