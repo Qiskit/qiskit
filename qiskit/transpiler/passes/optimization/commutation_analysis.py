@@ -12,6 +12,7 @@
 
 """Analysis pass to find commutation relations between DAG nodes."""
 
+from functools import lru_cache
 from collections import defaultdict
 import numpy as np
 from qiskit.transpiler.exceptions import TranspilerError
@@ -35,7 +36,6 @@ class CommutationAnalysis(AnalysisPass):
 
     def __init__(self):
         super().__init__()
-        self.cache = {}
 
     def run(self, dag):
         """Run the CommutationAnalysis pass on `dag`.
@@ -74,7 +74,7 @@ class CommutationAnalysis(AnalysisPass):
                     prev_gate = current_comm_set[-1][-1]
                     does_commute = False
                     try:
-                        does_commute = _commute(current_gate, prev_gate, self.cache)
+                        does_commute = _commute(current_gate, prev_gate)
                     except TranspilerError:
                         pass
                     if does_commute:
@@ -114,7 +114,8 @@ def _hashable_parameters(params):
     return ("fallback", str(params))
 
 
-def _commute(node1, node2, cache):
+@lru_cache
+def _commute(node1, node2):
     if not isinstance(node1, DAGOpNode) or not isinstance(node2, DAGOpNode):
         return False
     for nd in [node1, node2]:
@@ -139,12 +140,6 @@ def _commute(node1, node2, cache):
 
     node1_key = (node1.op.name, _hashable_parameters(node1.op.params), qarg1)
     node2_key = (node2.op.name, _hashable_parameters(node2.op.params), qarg2)
-    try:
-        # We only need to try one orientation of the keys, since if we've seen the compound key
-        # before, we've set it in both orientations.
-        return cache[node1_key, node2_key]
-    except KeyError:
-        pass
 
     operator_1 = Operator(node1.op, input_dims=(2,) * len(qarg1), output_dims=(2,) * len(qarg1))
     operator_2 = Operator(node2.op, input_dims=(2,) * len(qarg2), output_dims=(2,) * len(qarg2))
@@ -169,5 +164,4 @@ def _commute(node1, node2, cache):
             operator_1 = id_op.tensor(operator_1)
         op12 = operator_1.compose(operator_2, qargs=qarg2, front=False)
         op21 = operator_1.compose(operator_2, qargs=qarg2, front=True)
-    cache[node1_key, node2_key] = cache[node2_key, node1_key] = ret = op12 == op21
-    return ret
+    return op12 == op21
