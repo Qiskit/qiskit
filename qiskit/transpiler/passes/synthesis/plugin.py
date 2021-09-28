@@ -43,11 +43,13 @@ which takes in a single positional argument, a unitary matrix as a numpy array,
 and is expected to return a :class:`~qiskit.dagcircuit.DAGCircuit` object
 representing the synthesized circuit from that unitary matrix. Then to inform
 the Qiskit transpiler about what information is necessary for the pass there
-are several required property methods that need to be implemented,
-``supports_basis_gates``, ``supports_coupling_map``, and
-``supports_approximation_degree`` which return either ``True`` or ``False``
-depending on whether the plugin supports and/or requires that input to perform
-synthesis. An example plugin class would look something like::
+are several required property methods that need to be implemented such as
+``supports_basis_gates`` and ``supports_coupling_map`` depending on whether the
+plugin supports and/or requires that input to perform synthesis. For the full
+details refer to the
+:class:`~qiskit.transpiler.passes.synthesis.plugin.UnitarySynthesisPlugin`
+documentation for all the required fields. An example plugin class would look
+something like::
 
     from qiskit.transpiler.passes.synthesis import plugin
     from qiskit_plugin_pkg.synthesis import generate_dag_circuit_from_matrix
@@ -60,10 +62,6 @@ synthesis. An example plugin class would look something like::
 
         @property
         def supports_coupling_map(self):
-            return False
-
-        @property
-        def supports_approximation_degree(self):
             return False
 
         @property
@@ -221,18 +219,6 @@ class UnitarySynthesisPlugin(abc.ABC):
         the qubit connectivity of the target backend. The ``qubits`` kwarg will
         receive a list of integers that represent the qubit indices in the
         coupling map that unitary is on.
-        """
-        pass
-
-    @property
-    @abc.abstractmethod
-    def supports_approximation_degree(self):
-        """Return whether the plugin supports taking ``approximation_degree``
-
-        If this returns ``True`` the plugin's ``run()`` method will receive
-        a ``approximation_degree`` kwarg with a float value between 0 and 1
-        representing the closeness of the approximation to use (0: lowest,
-        1: highest).
         """
         pass
 

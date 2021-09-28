@@ -178,8 +178,6 @@ class UnitarySynthesis(TransformationPass):
         kwargs = {}
         if plugin_method.supports_basis_gates:
             kwargs["basis_gates"] = self._basis_gates
-        if plugin_method.supports_approximation_degree:
-            kwargs["approximation_degree"] = self._approximation_degree
         if plugin_method.supports_natural_direction:
             kwargs["natural_direction"] = self._natural_direction
         if plugin_method.supports_pulse_optimize:
@@ -191,6 +189,13 @@ class UnitarySynthesis(TransformationPass):
         supported_basis = plugin_method.supported_basis
         if supported_basis is not None:
             kwargs["matched_basis"] = _choose_basis(self._basis_gates, supported_basis)
+
+        # Handle approximation degree as a special case for backwards compatibility, it's
+        # not part of the plugin interface and only something needed for the default
+        # pass.
+        default_method._approximation_degree = self._approximation_degree
+        if method == "default":
+            plugin_method._approximation_degree = self._approximation_degree
 
         for node in dag.named_nodes(*self._synth_gates):
             if plugin_method.supports_coupling_map:
@@ -253,10 +258,6 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         return True
 
     @property
-    def supports_approximation_degree(self):
-        return True
-
-    @property
     def supports_natural_direction(self):
         return True
 
@@ -285,8 +286,12 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         return None
 
     def run(self, unitary, **options):
+        # Approximation degree is set directly as an attribute on the
+        # instance by the UnitarySynthesis pass here as it's not part of
+        # plugin interface. However if for some reason it's not set assume
+        # it's 1.
+        approximation_degree = getattr(self, "_approximation_degree", 1)
         basis_gates = options["basis_gates"]
-        approximation_degree = options["approximation_degree"]
         coupling_map = options["coupling_map"]
         natural_direction = options["natural_direction"]
         pulse_optimize = options["pulse_optimize"]
