@@ -25,7 +25,7 @@ from qiskit.compiler import transpile, assemble, schedule
 from qiskit.providers import BaseBackend
 from qiskit.providers.backend import Backend
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
-from qiskit.pulse import Schedule
+from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.exceptions import QiskitError
 
 logger = logging.getLogger(__name__)
@@ -272,8 +272,8 @@ def execute(
 
             job = execute(qc, backend, shots=4321)
     """
-    if isinstance(experiments, Schedule) or (
-        isinstance(experiments, list) and isinstance(experiments[0], Schedule)
+    if isinstance(experiments, (Schedule, ScheduleBlock)) or (
+        isinstance(experiments, list) and isinstance(experiments[0], (Schedule, ScheduleBlock))
     ):
         # do not transpile a schedule circuit
         if schedule_circuit:
