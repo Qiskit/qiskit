@@ -380,10 +380,10 @@ class BackendV2(Backend, ABC):
 
     @property
     def dt(self) -> float:
-        """Return the qubit drive channel timestep in nanoseconds
+        """Return the qubit drive channel timestep in seconds
 
         Returns:
-            dt: The qubit drive channel timestep in nanoseconds.
+            dt: The qubit drive channel timestep in seconds.
 
         Raises:
             NotImplementedError: if the backend doesn't support querying the
