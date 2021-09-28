@@ -344,7 +344,7 @@ class BackendV2(Backend, ABC):
         """
         pass
 
-    def t1(self, qubit: Union[int, List[int]]) -> Union[float, np.array[float]]:
+    def t1(self, qubit: Union[int, List[int]]) -> Union[float, np.array]:
         """Return the T1 time of a given qubit
 
         Args:
@@ -361,7 +361,7 @@ class BackendV2(Backend, ABC):
         """
         raise NotImplementedError
 
-    def t2(self, qubit: Union[int, List[int]]) -> Union[float, np.array[float]]:
+    def t2(self, qubit: Union[int, List[int]]) -> Union[float, np.array]:
         """Return the T2 time of a given qubit
 
         Args:
