@@ -248,13 +248,12 @@ def run_qobj(
         qjob_config: configuration for quantum job object
         backend_options: configuration for simulator
         noise_config: configuration for noise model
-        skip_qobj_validation: Bypass Qobj validation to decrease submission time,
-                                               only works for Aer and BasicAer providers
-        job_callback: callback used in querying info of the submitted job, and
-                                           providing the following arguments:
-                                            job_id, job_status, queue_position, job
-        max_job_retries(int): positive non-zero number of trials for the job set
-                            (-1 for infinite trials) (default: 50)
+        skip_qobj_validation: Bypass Qobj validation to decrease submission time, only works for Aer
+            and BasicAer providers
+        job_callback: callback used in querying info of the submitted job, and providing the
+            following arguments: job_id, job_status, queue_position, job
+        max_job_retries(int): positive non-zero number of trials for the job set (-1 for infinite
+            trials) (default: 50).
 
     Returns:
         Result object
