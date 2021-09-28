@@ -29,6 +29,9 @@ except ImportError:
     HAS_SYMENGINE = False
 
 
+# This type is redefined at the bottom to insert the full reference to "ParameterExpression", so it
+# can safely be used by runtime type-checkers like Sphinx.  Mypy does not need this because it
+# handles the references by static analysis.
 ParameterValueType = Union["ParameterExpression", float]
 
 
@@ -110,12 +113,7 @@ class ParameterExpression:
         symbol_values = {}
         for parameter, value in parameter_values.items():
             param_expr = self._parameter_symbols[parameter]
-            # TODO: Remove after symengine supports single precision floats
-            # see symengine/symengine.py#351 for more details
-            if isinstance(value, numpy.floating):
-                symbol_values[param_expr] = float(value)
-            else:
-                symbol_values[param_expr] = value
+            symbol_values[param_expr] = value
 
         bound_symbol_expr = self._symbol_expr.subs(symbol_values)
 
@@ -220,7 +218,7 @@ class ParameterExpression:
         }
         if conflicting_names:
             raise CircuitError(
-                "Name conflict applying operation for parameters: " "{}".format(conflicting_names)
+                f"Name conflict applying operation for parameters: {conflicting_names}"
             )
 
     def _apply_operation(
@@ -515,3 +513,8 @@ class ParameterExpression:
             else:
                 return False
         return True
+
+
+# Redefine the type so external imports get an evaluated reference; Sphinx needs this to understand
+# the type hints.
+ParameterValueType = Union[ParameterExpression, float]

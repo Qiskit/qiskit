@@ -261,7 +261,7 @@ class QuantumInstance:
                 self._backend_options = {"backend_options": backend_options}
             else:
                 raise QiskitError(
-                    "backend_options can not used with the backends in " "IBMQ provider."
+                    "backend_options can not used with the backends in IBMQ provider."
                 )
 
         # setup measurement error mitigation
@@ -269,7 +269,7 @@ class QuantumInstance:
         if self.is_statevector:
             if measurement_error_mitigation_cls is not None:
                 raise QiskitError(
-                    "Measurement error mitigation does not work " "with the statevector simulation."
+                    "Measurement error mitigation does not work with the statevector simulation."
                 )
         else:
             self._meas_error_mitigation_cls = measurement_error_mitigation_cls

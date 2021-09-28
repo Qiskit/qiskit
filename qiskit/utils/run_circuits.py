@@ -196,7 +196,7 @@ def _safe_submit_qobj(
                 )
         except Exception as ex:  # pylint: disable=broad-except
             logger.warning(
-                "FAILURE: Can not get job id, Resubmit the qobj to get job id." "Error: %s ", ex
+                "FAILURE: Can not get job id, Resubmit the qobj to get job id. Error: %s ", ex
             )
     else:
         raise QiskitError("Max retry limit reached. Could not submit the qobj correctly")
@@ -211,7 +211,7 @@ def _safe_get_job_status(job: BaseJob, job_id: str, max_job_retries: int) -> Job
             break
         except JobError as ex:
             logger.warning(
-                "FAILURE: job id: %s, " "status: 'FAIL_TO_GET_STATUS' " "Terra job error: %s",
+                "FAILURE: job id: %s, status: 'FAIL_TO_GET_STATUS' Terra job error: %s",
                 job_id,
                 ex,
             )
@@ -330,7 +330,7 @@ def run_qobj(
                             break
                         logger.warning("FAILURE: Job id: %s", job_id)
                         logger.warning(
-                            "Job (%s) is completed anyway, retrieve result " "from backend again.",
+                            "Job (%s) is completed anyway, retrieve result from backend again.",
                             job_id,
                         )
                         job = backend.retrieve_job(job_id)
@@ -354,7 +354,7 @@ def run_qobj(
                     )
                 else:
                     logging.warning(
-                        "FAILURE: Job id: %s. Unknown status: %s. " "Re-submit the Qobj.",
+                        "FAILURE: Job id: %s. Unknown status: %s. Re-submit the Qobj.",
                         job_id,
                         job_status,
                     )
@@ -561,7 +561,7 @@ def run_circuits(
 
                         logger.warning("FAILURE: Job id: %s", job_id)
                         logger.warning(
-                            "Job (%s) is completed anyway, retrieve result " "from backend again.",
+                            "Job (%s) is completed anyway, retrieve result from backend again.",
                             job_id,
                         )
                         job = backend.retrieve_job(job_id)
@@ -585,7 +585,7 @@ def run_circuits(
                     )
                 else:
                     logging.warning(
-                        "FAILURE: Job id: %s. Unknown status: %s. " "Re-submit the circuits.",
+                        "FAILURE: Job id: %s. Unknown status: %s. Re-submit the circuits.",
                         job_id,
                         job_status,
                     )
@@ -689,7 +689,7 @@ def _safe_submit_circuits(
                 )
         except Exception as ex:  # pylint: disable=broad-except
             logger.warning(
-                "FAILURE: Can not get job id, Resubmit the qobj to get job id." "Error: %s ", ex
+                "FAILURE: Can not get job id, Resubmit the qobj to get job id. Error: %s ", ex
             )
     else:
         raise QiskitError("Max retry limit reached. Failed to submit the qobj correctly")
