@@ -185,8 +185,8 @@ class QuantumInstance:
                 measurement correction, divided to groups according to tensors.
                 If `None` and `qr` is given then assumed to be performed over the entire
                 `qr` as one group (default `None`).
-            max_job_retries(int): positive non-zero number of trials for the job set
-                            (-1 for infinite trials) (default: 50)
+            max_job_retries(int): positive non-zero number of trials for the job set (-1 for
+                infinite trials) (default: 50)
 
         Raises:
             QiskitError: the shots exceeds the maximum number of shots
@@ -369,7 +369,6 @@ class QuantumInstance:
 
         return compiler.assemble(circuits, **self._run_config.to_dict())
 
-    # to-do : add max - tries param
     def execute(self, circuits, had_transpiled: bool = False):
         """
         A wrapper to interface with quantum backend.

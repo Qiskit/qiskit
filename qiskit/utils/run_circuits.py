@@ -460,11 +460,10 @@ def run_circuits(
         backend_options: backend options
         noise_config: configuration for noise model
         run_config: configuration for run
-        job_callback: callback used in querying info of the submitted job, and
-                                           providing the following arguments:
-                                            job_id, job_status, queue_position, job
-        max_job_retries(int): positive non-zero number of trials for the job set
-                        (-1 for infinite trials) (default: 50)
+        job_callback: callback used in querying info of the submitted job, and providing the
+            following arguments: job_id, job_status, queue_position, job.
+        max_job_retries(int): positive non-zero number of trials for the job set (-1 for infinite
+            trials) (default: 50)
 
     Returns:
         Result object
