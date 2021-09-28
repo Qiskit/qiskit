@@ -25,7 +25,7 @@ from qiskit.circuit.exceptions import CircuitError
 class Register:
     """Implement a generic register."""
 
-    __slots__ = ["_name", "_size", "_bits", "_hash", "_repr"]
+    __slots__ = ["_name", "_size", "_bits", "_bit_indices", "_hash", "_repr"]
 
     # Register name should conform to OpenQASM 2.0 specification
     # See appendix A of https://arxiv.org/pdf/1707.03429v2.pdf
@@ -115,8 +115,15 @@ class Register:
             if any(not isinstance(bit, self.bit_type) for bit in bits):
                 raise CircuitError("Provided bits did not all match register type. bits=%s" % bits)
             self._bits = list(bits)
+            self._bit_indices = {bit: idx for idx, bit in enumerate(self._bits)}
         else:
             self._bits = [self.bit_type(self, idx) for idx in range(size)]
+
+            # Since the hash of Bits created by the line above will depend upon
+            # the the hash of self, which is not guaranteed to have been initialized
+            # first on deepcopying or on pickling, so defer populating _bit_indices
+            # until first access.
+            self._bit_indices = None
 
     @property
     def name(self):
@@ -165,6 +172,22 @@ class Register:
         for idx in range(self._size):
             yield self._bits[idx]
 
+    def __contains__(self, bit):
+        if self._bit_indices is None:
+            self._bit_indices = {bit: idx for idx, bit in enumerate(self._bits)}
+
+        return bit in self._bit_indices
+
+    def index(self, bit):
+        """Find the index of the provided bit within this register."""
+        if self._bit_indices is None:
+            self._bit_indices = {bit: idx for idx, bit in enumerate(self._bits)}
+
+        try:
+            return self._bit_indices[bit]
+        except KeyError as err:
+            raise ValueError(f"Bit {bit} not found in Register {self}.") from err
+
     def __eq__(self, other):
         """Two Registers are the same if they are of the same type
         (i.e. quantum/classical), and have the same name and size. Additionally,
@@ -198,3 +221,13 @@ class Register:
     def __hash__(self):
         """Make object hashable, based on the name and size to hash."""
         return self._hash
+
+    def __getstate__(self):
+        # Specifically exclude _bit_indices from pickled state as bit hashes
+        # can in general depend on the hash of their containing register,
+        # which may not have yet been initialized.
+        return self._name, self._size, self._hash, self._repr, self._bits
+
+    def __setstate__(self, state):
+        self._name, self._size, self._hash, self._repr, self._bits = state
+        self._bit_indices = None
