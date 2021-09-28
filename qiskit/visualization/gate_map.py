@@ -34,6 +34,7 @@ def plot_gate_map(
     line_color=None,
     font_color="w",
     ax=None,
+    filename=None,
 ):
     """Plots the gate map of a device.
 
@@ -51,6 +52,7 @@ def plot_gate_map(
         line_color (list): A list of colors for each line from coupling_map.
         font_color (str): The font color for the qubit labels.
         ax (Axes): A Matplotlib axes instance.
+        filename (str): file path to save image to.
 
     Returns:
         Figure: A Matplotlib figure instance.
@@ -363,6 +365,7 @@ def plot_gate_map(
         line_color,
         font_color,
         ax,
+        filename,
     )
 
 
@@ -381,6 +384,7 @@ def plot_coupling_map(
     line_color=None,
     font_color="w",
     ax=None,
+    filename=None,
 ):
     """Plots an arbitrary coupling map of qubits (embedded in a plane).
 
@@ -401,6 +405,7 @@ def plot_coupling_map(
         line_color (list): A list of colors for each line from coupling_map.
         font_color (str): The font color for the qubit labels.
         ax (Axes): A Matplotlib axes instance.
+        filename (str): file path to save image to.
 
     Returns:
         Figure: A Matplotlib figure instance.
@@ -464,6 +469,8 @@ def plot_coupling_map(
         if not input_axes:
             fig, ax = plt.subplots(figsize=(5, 5))
             ax.axis("off")
+            if filename:
+                fig.savefig(filename)
             return fig
 
     x_max = max(d[1] for d in grid_data)
@@ -571,8 +578,11 @@ def plot_coupling_map(
     ax.set_xlim([-1, x_max + 1])
     ax.set_ylim([-(y_max + 1), 1])
     ax.set_aspect("equal")
+
     if not input_axes:
         matplotlib_close_if_inline(fig)
+        if filename:
+            fig.savefig(filename)
         return fig
     return None
 
