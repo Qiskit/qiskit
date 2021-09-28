@@ -572,6 +572,8 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.x(qr[1]).c_if(cr[0], 1)
         circuit_drawer(circuit, cregbundle=True, filename=filename, output="latex_source")
 
+        self.assertEqualToReference(filename)
+
     def test_registerless_one_bit(self):
         """Text circuit with one-bit registers and registerless bits."""
         from qiskit.circuit import Qubit, Clbit
