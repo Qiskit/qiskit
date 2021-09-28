@@ -1,10 +1,11 @@
 ---
-fixes:
+features:
   - |
-    Fix a bug in the `qiskit/utils/run_circuits.py` where a qobj
-    was submitted for execution infinite number of times until it
-    was submitted correctly. A user defined parameter for the
-    maximum number of retries was added in the `QuantumInstance` 
-    class in qiskit. An exception was raised if the qobj exceeds the
-    maximum number of retries. 
-
+    Added a ``max_job_tries`` parameter to :obj:`~qiskit.utils.QuantumInstance`,
+    to limit the number of times a job will attempt to be executed on a backend.
+    Previously the submission and fetching of results would be attempted
+    infinitely, even if the job was cancelled or errored on the backend.  The
+    default is now 50, and the previous behaviour can be achieved by setting
+    ``max_job_tries=-1``.  Fixes `#6872
+    <https://github.com/Qiskit/qiskit-terra/issues/6872>`__ and `#6821
+    <https://github.com/Qiskit/qiskit-terra/issues/6821>`__.
