@@ -1,0 +1,5 @@
+---
+prelude: >
+  This bugfix release fixes a few minor issues in the 0.18 series, including a
+  performance regression in :obj:`~qiskit.compiler.assemble` when dealing with
+  non-pulse backends.
