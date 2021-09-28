@@ -18,7 +18,7 @@ from qiskit import pulse, circuit
 from qiskit.pulse import transforms
 from qiskit.pulse.exceptions import PulseError
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeArmonk
+from qiskit.test.mock import FakeOpenPulse2Q, FakeArmonk
 from qiskit.utils import has_aer
 
 
@@ -28,7 +28,7 @@ class BaseTestBlock(QiskitTestCase):
     def setUp(self):
         super().setUp()
 
-        self.backend = FakeArmonk()
+        self.backend = FakeOpenPulse2Q()
 
         self.test_waveform0 = pulse.Constant(100, 0.1)
         self.test_waveform1 = pulse.Constant(200, 0.1)
@@ -434,20 +434,15 @@ class TestBlockOperation(BaseTestBlock):
     def test_execute_block(self):
         """Test executing a ScheduleBlock on a Pulse backend"""
 
-        ref_header = {"memory_slots": 1, "name": "test_block", "metadata": {}, "ode_t": 0.0}
-        ref_data = dict()
-        ref_data["counts"] = {"0x0": 1024}
-        ref_data["statevector"] = [[1.0, 0.0], [0.0, 0.0], [0.0, 0.0]]
-
         with pulse.build(name="test_block") as sched_block:
             pulse.play(pulse.Constant(160, 1.0), pulse.DriveChannel(0))
             pulse.acquire(50, pulse.MeasureChannel(0), pulse.MemorySlot(0))
 
-        test_job = self.backend.run(sched_block)
+        backend = FakeArmonk()
+        test_job = backend.run(sched_block)
         test_result = test_job.result().results[0]
 
-        self.assertEqual(test_result.header.to_dict(), ref_header)
-        self.assertEqual(test_result.data.to_dict(), ref_data)
+        self.assertEqual(test_result.data.counts, {"0x0": 1024})
 
 
 class TestBlockEquality(BaseTestBlock):
