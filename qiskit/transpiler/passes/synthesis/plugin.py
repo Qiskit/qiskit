@@ -294,7 +294,9 @@ class UnitarySynthesisPlugin(abc.ABC):
 
         Do note that this dictionary might not be complete or could be empty
         as it depends on the target backend reporting gate errors on every
-        gate for each qubit.
+        gate for each qubit. The gate error rates reported in ``gate_errors``
+        are provided by the target device ``Backend`` object and the exact
+        meaning might be different depending on the backend.
         """
         pass
 
