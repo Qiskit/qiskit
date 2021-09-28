@@ -378,23 +378,6 @@ class BackendV2(Backend, ABC):
         """
         raise NotImplementedError
 
-    def qubit_frequency(self, qubit: Union[int, List[int]]) -> Union[float, List[float]]:
-        """Return the frequency of a given qubit
-
-        Args:
-            qubit: The qubit index to get the frequency for. If
-                a list is specified the output will be a list with the
-                frequency for the specified qubits in the same order.
-
-        Returns:
-            frequency: the frequency of the specified qubit(s) in Hz
-
-        Raises:
-            NotImplementedError: if the backend doesn't support querying the
-                qubit frequency
-        """
-        raise NotImplementedError
-
     @property
     def dt(self) -> float:
         """Return the qubit drive channel timestep in nanoseconds
