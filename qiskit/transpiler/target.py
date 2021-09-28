@@ -55,6 +55,12 @@ class InstructionProperties:
         self.pulse = pulse
         self.properties = properties
 
+    def __repr__(self):
+        return (
+            f"InstructionProperties(length={self.length}, error={self.error}"
+            f", pulse={self.pulse}, properties={self.properties})"
+        )
+
 
 class Target:
     """
