@@ -741,7 +741,7 @@ def _parse_backend_num_qubits(backend, num_circuits):
         if backend_version <= 1:
             return [backend.configuration().n_qubits] * num_circuits
         else:
-            return backend.num_qubits
+            return [backend.num_qubits] * num_circuits
     backend_num_qubits = []
     for a_backend in backend:
         backend_version = getattr(backend, "version", 0)
@@ -930,11 +930,17 @@ def _parse_timing_constraints(backend, timing_constraints, num_circuits):
     if backend is None and timing_constraints is None:
         timing_constraints = TimingConstraints()
     else:
-        if timing_constraints is None:
-            # get constraints from backend
-            timing_constraints = getattr(backend.configuration(), "timing_constraints", {})
-        timing_constraints = TimingConstraints(**timing_constraints)
-
+        backend_version = getattr(backend, "version", 0)
+        if not isinstance(backend_version, int):
+            backend_version = 0
+        if backend_version <= 1:
+            if timing_constraints is None:
+                # get constraints from backend
+                timing_constraints = getattr(backend.configuration(), "timing_constraints", {})
+            timing_constraints = TimingConstraints(**timing_constraints)
+        # TODO: Update when BackendV2 has representation of TimingConstraints
+        else:
+            timing_constraints = TimingConstraints()
     return [timing_constraints] * num_circuits
 
 

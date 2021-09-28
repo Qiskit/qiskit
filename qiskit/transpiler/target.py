@@ -16,7 +16,7 @@ from a backend
 """
 
 import logging
-from typing import Union
+from typing import Union, Dict, Any
 
 import retworkx as rx
 
@@ -82,7 +82,7 @@ class Target:
             (0,1): InstructionProperties(length=5.23e-7, error=0.00098115),
             (1,0): InstructionProperties(length=4.52e-7, error=0.00132115),
         }
-        gmap.add_gate(CXGate(), [(0, 1), (1, 0)], properties=cx_props)
+        gmap.add_instruction(CXGate(), [(0, 1), (1, 0)], properties=cx_props)
 
     .. note::
 
@@ -122,8 +122,11 @@ class Target:
             description (str): A string to describe the coupling map.
         """
         self.num_qubits = 0
+        # A mapping of gate name -> gate instance
         self._gate_name_map = {}
+        # A nested mapping of gate name -> qargs -> properties
         self._gate_map = {}
+        # A mapping of qarg -> set(gate name)
         self._qarg_gate_map = {}
         self.description = description
         self._coupling_graph = None
@@ -157,7 +160,7 @@ class Target:
         self._gate_name_map[instruction_name] = instruction
         qargs_val = {}
         for qarg in qargs:
-            self.num_qubits = max(self.num_qubits, max(qarg))
+            self.num_qubits = max(self.num_qubits, max(qarg) + 1)
             if properties:
                 if qarg in properties:
                     qargs_val[qarg] = properties[qarg]
@@ -252,14 +255,14 @@ class Target:
     def _build_coupling_graph(self):
         self._coupling_graph = rx.PyDiGraph(multigraph=False)
         self._coupling_graph.add_nodes_from(list({} for _ in range(self.num_qubits)))
-        for gate, qarg_map in self._gate_map:
+        for gate, qarg_map in self._gate_map.items():
             for qarg, properties in qarg_map.items():
                 if len(qarg) == 1:
-                    self._coupling_graph[gate] = properties
+                    self._coupling_graph[qarg[0]] = properties
                 elif len(qarg) == 2:
                     try:
-                        edge_map = self._coupling_graph.has_edge(*qarg)
-                        edge_map[gate] = properties
+                        edge_data = self._coupling_graph.get_edge_data(*qarg)
+                        edge_data[gate] = properties
                     except rx.NoEdgeBetweenNodes:
                         self._coupling_graph.add_edge(*qarg, {gate: properties})
 

@@ -287,10 +287,9 @@ class BackendV2(Backend, ABC):
         pass
 
     @property
-    @abstractmethod
     def num_qubits(self) -> int:
         """Return the number of qubits the backend has."""
-        pass
+        return self.target.num_qubits
 
     @property
     def coupling_map(self):
