@@ -31,7 +31,7 @@ class PassManagerConfig:
         approximation_degree=None,
         seed_transpiler=None,
         timing_constraints=None,
-        unitary_synthesis_method=None,
+        unitary_synthesis_method="default",
     ):
         """Initialize a PassManagerConfig object
 

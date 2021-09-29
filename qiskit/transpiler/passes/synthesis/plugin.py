@@ -288,18 +288,23 @@ class UnitarySynthesisPlugin(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def supported_basis(self):
+    def supported_bases(self):
         """Returns a dictionary of supported basis for synthesis
 
         This is expected to return a dictionary where the key is a string
         basis and the value is a list of gate names that the basis works in.
         If the synthesis method doesn't support multiple basis this should
-        return ``None``.
+        return ``None``. For example::
+
+            {
+                "XZX": ["rz", "rx"],
+                "XYX": ["rx", "ry"],
+            }
 
         If a dictionary is returned by this method the run kwargs will be
         passed a parameter ``matched_basis`` which contains a list of the
-        basis strings which match the target basis gate set for the
-        transpilation.
+        basis strings (ie keys in the dictionary) which match the target basis
+        gate set for the transpilation.
         """
         pass
 
@@ -311,23 +316,19 @@ class UnitarySynthesisPlugin(abc.ABC):
             unitary (numpy.ndarray): The unitary matrix to synthesize to a
                 :class:`~qiskit.dagcircuit.DAGCircuit` object
             options: The optional kwargs that are passed based on the output
-                of :meth:`supports_basis_gates`, :meth:`supports_coupling_map`,
-                and :meth:`supports_approximation_degree`. If
-                :meth:`supports_coupling_map` returns ``True`` a kwarg
-                ``coupling_map`` will be passed either containing ``None`` (if
-                there is no coupling map) or a
-                :class:`~qiskit.transpiler.CouplingMap` object. If
-                :meth:`supports_basis_gates` returns ``True`` then a kwarg
-                ``basis_gates`` will the list of basis gate names will be
-                passed. Finally if :meth:`supports_approximation_degree`
-                returns ``True`` a kwarg ``approximation_degree`` containing
-                a float for the approximation value will be passed.
+                the ``support_*`` methods on the class. Refer to the
+                documentation for these methods on
+                :class:`~qiskit.transpiler.passes.synthesis.plugin.UnitarySynthesisPlugin`
+                to see what the keys and values are.
 
         Returns:
             DAGCircuit: The dag circuit representation of the unitary. Alternatively, you can return
             a tuple of the form ``(dag, wires)`` where ``dag`` is the dag circuit representation of
             the circuit representation of the unitary and ``wires`` is the mapping wires to use for
-            :meth:`qiskit.dagcircuit.DAGCircuit.substitute_node_with_dag`.
+            :meth:`qiskit.dagcircuit.DAGCircuit.substitute_node_with_dag`. If you return a tuple
+            and ``wires`` is ``None`` this will behave just as if only a
+            :class:`~qiskit.dagcircuit.DAGCircuit` was returned. Additionally if this returns
+            ``None`` no substitution will be made.
 
         """
         pass

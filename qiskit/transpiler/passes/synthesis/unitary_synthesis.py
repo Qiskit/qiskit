@@ -60,8 +60,8 @@ def _choose_euler_basis(basis_gates):
     return None
 
 
-def _choose_basis(basis_gates, basis_dict=None):
-    """Find all matching basis in the specified basis gates."""
+def _choose_bases(basis_gates, basis_dict=None):
+    """Find the matching basis string keys from the list of basis gates from the backend."""
     if basis_gates is None:
         basis_set = set()
     else:
@@ -90,7 +90,7 @@ class UnitarySynthesis(TransformationPass):
         pulse_optimize: Union[bool, None] = None,
         natural_direction: Union[bool, None] = None,
         synth_gates: Union[List[str], None] = None,
-        method: Optional[str] = None,
+        method: str = "default",
     ):
         """Synthesize unitaries over some basis gates.
 
@@ -165,14 +165,10 @@ class UnitarySynthesis(TransformationPass):
                 plugins can be queried with
                 :func:`~qiskit.transpiler.passes.synthesis.plugin.unitary_synthesis_plugin_names`
         """
-        if not self.method:
-            method = "default"
-        else:
-            method = self.method
-        if method not in self.plugins.ext_plugins:
-            raise TranspilerError("Specified method: %s not found in plugin list" % method)
+        if self.method not in self.plugins.ext_plugins:
+            raise TranspilerError("Specified method: %s not found in plugin list" % self.method)
         default_method = self.plugins.ext_plugins["default"].obj
-        plugin_method = self.plugins.ext_plugins[method].obj
+        plugin_method = self.plugins.ext_plugins[self.method].obj
         if plugin_method.supports_coupling_map:
             dag_bit_indices = {bit: idx for idx, bit in enumerate(dag.qubits)}
         kwargs = {}
@@ -186,15 +182,15 @@ class UnitarySynthesis(TransformationPass):
             kwargs["gate_lengths"] = _build_gate_lengths(self._backend_props)
         if plugin_method.supports_gate_errors:
             kwargs["gate_errors"] = _build_gate_errors(self._backend_props)
-        supported_basis = plugin_method.supported_basis
-        if supported_basis is not None:
-            kwargs["matched_basis"] = _choose_basis(self._basis_gates, supported_basis)
+        supported_bases = plugin_method.supported_bases
+        if supported_bases is not None:
+            kwargs["matched_basis"] = _choose_bases(self._basis_gates, supported_bases)
 
         # Handle approximation degree as a special case for backwards compatibility, it's
         # not part of the plugin interface and only something needed for the default
         # pass.
         default_method._approximation_degree = self._approximation_degree
-        if method == "default":
+        if self.method == "default":
             plugin_method._approximation_degree = self._approximation_degree
 
         for node in dag.named_nodes(*self._synth_gates):
@@ -210,7 +206,7 @@ class UnitarySynthesis(TransformationPass):
                 synth_dag = default_method.run(unitary, **kwargs)
             else:
                 synth_dag = plugin_method.run(unitary, **kwargs)
-            if synth_dag:
+            if synth_dag is not None:
                 if isinstance(synth_dag, tuple):
                     dag.substitute_node_with_dag(node, synth_dag[0], wires=synth_dag[1])
                 else:
@@ -282,7 +278,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         return None
 
     @property
-    def supported_basis(self):
+    def supported_bases(self):
         return None
 
     def run(self, unitary, **options):
