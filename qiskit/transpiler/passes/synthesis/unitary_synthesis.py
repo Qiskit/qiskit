@@ -13,7 +13,7 @@
 """Synthesize UnitaryGates."""
 
 from math import pi, inf
-from typing import List, Union, Optional
+from typing import List, Union
 from copy import deepcopy
 
 from qiskit.converters import circuit_to_dag
@@ -195,8 +195,10 @@ class UnitarySynthesis(TransformationPass):
 
         for node in dag.named_nodes(*self._synth_gates):
             if plugin_method.supports_coupling_map:
-                kwargs["coupling_map"] = self._coupling_map
-                kwargs["qubits"] = [dag_bit_indices[x] for x in node.qargs]
+                kwargs["coupling_map"] = (
+                    self._coupling_map,
+                    [dag_bit_indices[x] for x in node.qargs],
+                )
             synth_dag = None
             unitary = node.op.to_matrix()
             n_qubits = len(node.qargs)
@@ -288,12 +290,12 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         # it's 1.
         approximation_degree = getattr(self, "_approximation_degree", 1)
         basis_gates = options["basis_gates"]
-        coupling_map = options["coupling_map"]
+        coupling_map = options["coupling_map"][0]
         natural_direction = options["natural_direction"]
         pulse_optimize = options["pulse_optimize"]
         gate_lengths = options["gate_lengths"]
         gate_errors = options["gate_errors"]
-        qubits = options["qubits"]
+        qubits = options["coupling_map"][1]
 
         euler_basis = _choose_euler_basis(basis_gates)
         kak_gate = _choose_kak_gate(basis_gates)
