@@ -356,5 +356,7 @@ def unitary_synthesis_plugin_names():
         list: A list of the installed unitary synthesis plugin names. The plugin names are valid
         values for the :func:`~qiskit.compiler.transpile` kwarg ``unitary_synthesis_method``.
     """
+    # NOTE: This is not a shared global instance to avoid an import cycle
+    # at load time for the default plugin.
     plugins = UnitarySynthesisPluginManager()
     return plugins.ext_plugins.names()
