@@ -169,7 +169,7 @@ import stevedore
 
 
 class UnitarySynthesisPlugin(abc.ABC):
-    """Abstract plugin Synthesis plugin class
+    """Abstract unitary synthesis plugin class
 
     This abstract class defines the interface for unitary synthesis plugins.
     """
@@ -181,7 +181,7 @@ class UnitarySynthesisPlugin(abc.ABC):
 
         If the size of the unitary to be synthesized exceeds this value the
         ``default`` plugin will be used. If there is no upper bound return
-        ``None`` and all unitaries ( ``> min_qubits`` if it's defined) will be
+        ``None`` and all unitaries (``>= min_qubits`` if it's defined) will be
         passed to this plugin when it's enabled.
         """
         pass
@@ -193,7 +193,7 @@ class UnitarySynthesisPlugin(abc.ABC):
 
         If the size of the unitary to be synthesized is below this value the
         ``default`` plugin will be used. If there is no lower bound return
-        ``None`` and all unitaries ( ``< max_qubits`` if it's defined) will be
+        ``None`` and all unitaries (``<= max_qubits`` if it's defined) will be
         passed to this plugin when it's enabled.
         """
         pass
@@ -324,11 +324,11 @@ class UnitarySynthesisPlugin(abc.ABC):
                 a float for the approximation value will be passed.
 
         Returns:
-            DAGCircuit: The dag circuit representation of the unitary. Alternatively,
-                you can return a tuple of the form ``(dag, wires)`` where ``dag`` is the dag
-                circuit representation of the circuit representation of the unitary
-                and ``wires`` is the mapping wires to use for
-                :meth:`qiskit.dagcircuit.DAGCircuit.substitute_node_with_dag`.
+            DAGCircuit: The dag circuit representation of the unitary. Alternatively, you can return
+            a tuple of the form ``(dag, wires)`` where ``dag`` is the dag circuit representation of
+            the circuit representation of the unitary and ``wires`` is the mapping wires to use for
+            :meth:`qiskit.dagcircuit.DAGCircuit.substitute_node_with_dag`.
+
         """
         pass
 
@@ -350,10 +350,8 @@ def unitary_synthesis_plugin_names():
     """Return a list of installed unitary synthesis plugin names
 
     Returns:
-        list: A list of the installed unitary synthesis plugin names. The
-            plugin names are valid values for the
-            :func:`~qiskit.compiler.transpile` kwarg
-            ``unitary_synthesis_method``.
+        list: A list of the installed unitary synthesis plugin names. The plugin names are valid
+        values for the :func:`~qiskit.compiler.transpile` kwarg ``unitary_synthesis_method``.
     """
     plugins = UnitarySynthesisPluginManager()
     return plugins.ext_plugins.names()
