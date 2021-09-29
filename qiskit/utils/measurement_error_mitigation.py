@@ -20,7 +20,7 @@ from qiskit.providers import BaseBackend
 from qiskit.circuit import QuantumCircuit
 from qiskit.qobj import QasmQobj
 from qiskit.assembler.run_config import RunConfig
-from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
+from qiskit.exceptions import QiskitError
 from qiskit.utils.mitigation import (
     complete_meas_cal,
     tensored_meas_cal,
@@ -142,7 +142,6 @@ def build_measurement_error_mitigation_circuits(
         the labels of the calibration circuits
     Raises:
         QiskitError: when the fitter_cls is not recognizable.
-        MissingOptionalLibraryError: Qiskit-Ignis not installed
     """
     circlabel = "mcal"
 
