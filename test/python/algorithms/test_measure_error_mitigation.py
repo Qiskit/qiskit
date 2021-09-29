@@ -32,9 +32,9 @@ try:
     from qiskit import Aer
     from qiskit.providers.aer import noise
 
-    _ERROR_MITIGATION_IMPORT_ERROR = None
-except ImportError as ex:
-    _ERROR_MITIGATION_IMPORT_ERROR = str(ex)
+    HAS_AER = True
+except ImportError:
+    HAS_AER = False
 
 try:
     from qiskit.ignis.mitigation.measurement import (
@@ -51,15 +51,10 @@ except ImportError:
 class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
     """Test measurement error mitigation."""
 
+    @unittest.skipUnless(HAS_AER, "qiskit-aer is required for this test")
     @data("CompleteMeasFitter", "TensoredMeasFitter")
     def test_measurement_error_mitigation_with_diff_qubit_order(self, fitter_str):
         """measurement error mitigation with different qubit order"""
-        if _ERROR_MITIGATION_IMPORT_ERROR is not None:
-            self.skipTest(
-                f"Package doesn't appear to be installed. Error: '{_ERROR_MITIGATION_IMPORT_ERROR}'"
-            )
-            return
-
         algorithm_globals.random_seed = 0
 
         # build noise model
@@ -115,14 +110,10 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
 
         self.assertRaises(QiskitError, quantum_instance.execute, [qc1, qc3])
 
+    @unittest.skipUnless(HAS_AER, "qiskit-aer is required for this test")
     @data(("CompleteMeasFitter", None), ("TensoredMeasFitter", [[0], [1]]))
     def test_measurement_error_mitigation_with_vqe(self, config):
         """measurement error mitigation test with vqe"""
-        if _ERROR_MITIGATION_IMPORT_ERROR is not None:
-            self.skipTest(
-                f"Package doesn't appear to be installed. Error: '{_ERROR_MITIGATION_IMPORT_ERROR}'"
-            )
-            return
 
         fitter_str, mit_pattern = config
         algorithm_globals.random_seed = 0
@@ -187,14 +178,9 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         opflow_list = [(pauli[1].to_label(), pauli[0]) for pauli in pauli_list]
         return PauliSumOp.from_list(opflow_list), shift
 
+    @unittest.skipUnless(HAS_AER, "qiskit-aer is required for this test")
     def test_measurement_error_mitigation_qaoa(self):
         """measurement error mitigation test with QAOA"""
-        if _ERROR_MITIGATION_IMPORT_ERROR is not None:
-            self.skipTest(
-                f"Package doesn't appear to be installed. Error: '{_ERROR_MITIGATION_IMPORT_ERROR}'"
-            )
-            return
-
         algorithm_globals.random_seed = 167
 
         # build noise model
@@ -222,16 +208,11 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         self.assertAlmostEqual(result.eigenvalue.real, 3.49, delta=0.05)
 
+    @unittest.skipUnless(HAS_AER, "qiskit-aer is required for this test")
     @unittest.skipUnless(HAS_IGNIS, "qiskit-ignis is required to run this test")
     @data("CompleteMeasFitter", "TensoredMeasFitter")
     def test_measurement_error_mitigation_with_diff_qubit_order_ignis(self, fitter_str):
         """measurement error mitigation with different qubit order"""
-        if _ERROR_MITIGATION_IMPORT_ERROR is not None:
-            self.skipTest(
-                f"Package doesn't appear to be installed. Error: '{_ERROR_MITIGATION_IMPORT_ERROR}'"
-            )
-            return
-
         algorithm_globals.random_seed = 0
 
         # build noise model
@@ -289,16 +270,11 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
 
         self.assertRaises(QiskitError, quantum_instance.execute, [qc1, qc3])
 
+    @unittest.skipUnless(HAS_AER, "qiskit-aer is required for this test")
     @unittest.skipUnless(HAS_IGNIS, "qiskit-ignis is required to run this test")
     @data(("CompleteMeasFitter", None), ("TensoredMeasFitter", [[0], [1]]))
     def test_measurement_error_mitigation_with_vqe_ignis(self, config):
         """measurement error mitigation test with vqe"""
-        if _ERROR_MITIGATION_IMPORT_ERROR is not None:
-            self.skipTest(
-                f"Package doesn't appear to be installed. Error: '{_ERROR_MITIGATION_IMPORT_ERROR}'"
-            )
-            return
-
         fitter_str, mit_pattern = config
         algorithm_globals.random_seed = 0
 
