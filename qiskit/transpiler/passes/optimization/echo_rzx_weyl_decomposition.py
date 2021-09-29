@@ -83,13 +83,13 @@ class EchoRZXWeylDecomposition(TransformationPass):
         input dag.
 
         Args:
-            dag (DAGCircuit): DAG to map.
+            dag (DAGCircuit): DAG to rewrite.
 
         Returns:
-            DAGCircuit: The rearranged dag.
+            DAGCircuit: The modified dag.
 
         Raises:
-            TranspilerError: If the circuit cannot be mapped.
+            TranspilerError: If the circuit cannot be rewritten.
         """
 
         if len(dag.qregs) > 1:
