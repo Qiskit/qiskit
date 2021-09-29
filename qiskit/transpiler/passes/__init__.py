@@ -71,10 +71,21 @@ Optimizations
    CXCancellation
    CommutationAnalysis
    CommutativeCancellation
+   Optimize1qGatesSimpleCommutation
    RemoveDiagonalGatesBeforeMeasure
    RemoveResetInZeroState
    CrosstalkAdaptiveSchedule
    TemplateOptimization
+
+Calibration
+=============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   PulseGates
+   RZXCalibrationBuilder
+   RZXCalibrationBuilderNoEcho
 
 Scheduling
 =============
@@ -88,8 +99,6 @@ Scheduling
    DynamicalDecoupling
    AlignMeasures
    ValidatePulseGates
-   RZXCalibrationBuilder
-   RZXCalibrationBuilderNoEcho
 
 Circuit Analysis
 ================
@@ -167,12 +176,14 @@ from .optimization import ConsolidateBlocks
 from .optimization import CommutationAnalysis
 from .optimization import CommutativeCancellation
 from .optimization import CXCancellation
+from .optimization import Optimize1qGatesSimpleCommutation
 from .optimization import OptimizeSwapBeforeMeasure
 from .optimization import RemoveResetInZeroState
 from .optimization import RemoveDiagonalGatesBeforeMeasure
 from .optimization import CrosstalkAdaptiveSchedule
 from .optimization import HoareOptimizer
 from .optimization import TemplateOptimization
+from .optimization import InverseCancellation
 
 # circuit analysis
 from .analysis import ResourceEstimation
@@ -187,12 +198,15 @@ from .analysis import DAGLongestPath
 # synthesis
 from .synthesis import UnitarySynthesis
 
+# calibration
+from .calibration import PulseGates
+from .calibration import RZXCalibrationBuilder
+from .calibration import RZXCalibrationBuilderNoEcho
+
 # circuit scheduling
 from .scheduling import TimeUnitConversion
 from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
-from .scheduling import RZXCalibrationBuilder
-from .scheduling import RZXCalibrationBuilderNoEcho
 from .scheduling import DynamicalDecoupling
 from .scheduling import AlignMeasures
 from .scheduling import ValidatePulseGates
