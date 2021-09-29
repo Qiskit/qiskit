@@ -592,6 +592,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
 
     Raises:
         VisualizationError: Input is not IBMQ backend.
+        VisualizationError: The backend does not provide gate errors for the 'sx' gate.
         MissingOptionalLibraryError: If seaborn is not installed
 
     Example:
@@ -639,12 +640,19 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
 
     num_qubits = config["n_qubits"]
 
-    # U2 error rates
+    # sx error rates
     single_gate_errors = [0] * num_qubits
     for gate in props["gates"]:
-        if gate["gate"] == "u2":
+        if gate["gate"] == "sx":
             _qubit = gate["qubits"][0]
-            single_gate_errors[_qubit] = gate["parameters"][0]["value"]
+            for param in gate["parameters"]:
+                if param["name"] == "gate_error":
+                    single_gate_errors[_qubit] = param["value"]
+                    break
+            else:
+                raise VisualizationError(
+                    f"Backend '{backend}' did not supply an error for the 'sx' gate."
+                )
 
     # Convert to percent
     single_gate_errors = 100 * np.asarray(single_gate_errors)
