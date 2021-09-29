@@ -113,11 +113,10 @@ class MeasurementFilter:
             for data_label in raw_data.keys():
                 if data_label not in self._state_labels:
                     raise QiskitError(
-                        "Unexpected state label '"
-                        + data_label
-                        + "', verify the fitter's state labels "
-                        "correspond to the input data"
+                        f"Unexpected state label '{data_label}'."
+                        " Verify the fitter's state labels correspond to the input data."
                     )
+
             data_format = 0
             # convert to form2
             raw_data2 = [np.zeros(len(self._state_labels), dtype=float)]
@@ -141,7 +140,7 @@ class MeasurementFilter:
                     ]
             else:
                 raise QiskitError(
-                    "Data list is not an integer multiple " "of the number of calibrated states"
+                    "Data list is not an integer multiple of the number of calibrated states"
                 )
 
         elif isinstance(raw_data, qiskit.result.result.Result):
@@ -486,7 +485,7 @@ class TensoredFilter:
 
     def _apply_correction(
         self,
-        resultidx: int,
+        resultidx,
         raw_data,
         method,
         meas_layout,

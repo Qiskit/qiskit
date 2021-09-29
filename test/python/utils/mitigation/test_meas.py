@@ -295,16 +295,14 @@ class TestMeasCal(QiskitTestCase):
                 self.assertListEqual(
                     meas_cal.cal_matrix.tolist(),
                     IdentityMatrix.tolist(),
-                    "Error: the calibration matrix is \
-                                     not equal to identity",
+                    "Error: the calibration matrix is not equal to identity",
                 )
 
                 # Assert that the readout fidelity is equal to 1
                 self.assertEqual(
                     meas_cal.readout_fidelity(),
                     1.0,
-                    "Error: the average fidelity  \
-                                 is not equal to 1",
+                    "Error: the average fidelity is not equal to 1",
                 )
 
                 # Generate ideal (equally distributed) results
@@ -412,16 +410,14 @@ class TestMeasCal(QiskitTestCase):
             self.assertListEqual(
                 cal_mat.tolist(),
                 IdentityMatrix.tolist(),
-                "Error: the calibration matrix is \
-                                 not equal to identity",
+                "Error: the calibration matrix is not equal to identity",
             )
 
         # Assert that the readout fidelity is equal to 1
         self.assertEqual(
             meas_cal.readout_fidelity(),
             1.0,
-            "Error: the average fidelity  \
-                         is not equal to 1",
+            "Error: the average fidelity is not equal to 1",
         )
 
         # Generate ideal (equally distributed) results

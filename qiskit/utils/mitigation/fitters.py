@@ -51,12 +51,12 @@ class CompleteMeasFitter:
 
         .. warning::
 
-            This class is not a public API the internals are not stable and will
-            likely change. It's uses is solely for the
+            This class is not a public API. The internals are not stable and will
+            likely change. It is used solely for the
             ``measurement_error_mitigation_cls`` kwarg of the
             :class:`~qiskit.utils.QuantumInstance` class's constructor (as
             a class not an instance). Anything outside of that usage does
-            not have the normal user facing API stability.
+            not have the normal user-facing API stability.
 
         Args:
             results: the results of running the measurement calibration
@@ -229,12 +229,12 @@ class TensoredMeasFitter:
 
         .. warning::
 
-            This class is not a public API the internals are not stable and will
-            likely change. It's uses is solely for the
+            This class is not a public API. The internals are not stable and will
+            likely change. It is used solely for the
             ``measurement_error_mitigation_cls`` kwarg of the
             :class:`~qiskit.utils.QuantumInstance` class's constructor (as
             a class not an instance). Anything outside of that usage does
-            not have the normal user facing API stability.
+            not have the normal user-facing API stability.
 
         Args:
             results: the results of running the measurement calibration
@@ -271,10 +271,7 @@ class TensoredMeasFitter:
         else:
             self._substate_labels_list = substate_labels_list
             if len(self._qubit_list_sizes) != len(substate_labels_list):
-                raise ValueError(
-                    "mit_pattern does not match \
-                    substate_labels_list"
-                )
+                raise ValueError("mit_pattern does not match substate_labels_list")
 
         self._indices_list = []
         for _, sub_labels in enumerate(self._substate_labels_list):

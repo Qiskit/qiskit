@@ -54,10 +54,10 @@ def complete_meas_cal(
            qr. The calibration states will be labelled according to this ordering (default `None`).
 
         qr: Quantum registers (or their size).
-        If `None`, one is created (default `None`).
+            If ``None``, one is created (default ``None``).
 
         cr: Classical registers (or their size).
-        If `None`, one is created(default `None`).
+            If ``None``, one is created(default ``None``).
 
         circlabel: A string to add to the front of circuit names for
             unique identification(default ' ').
@@ -173,8 +173,7 @@ def tensored_meas_cal(
             for qubit in qubit_list:
                 if qubit in qubits_in_pattern:
                     raise QiskitError(
-                        "mit_pattern cannot contain \
-                    multiple instances of the same qubit"
+                        "mit_pattern cannot contain multiple instances of the same qubit"
                     )
                 qubits_in_pattern.append(qubit)
 

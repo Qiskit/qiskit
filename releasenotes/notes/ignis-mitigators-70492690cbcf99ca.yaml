@@ -7,13 +7,13 @@ features:
     values for the ``measurement_error_mitigation_cls`` kwarg of the
     :class:`~qiskit.utils.QuantumInstance` class. The instantiation and usage
     of these classes (or anything else in :mod:`qiskit.utils.mitigation`)
-    outside of the ``measurement_error_mitigation_cls`` should be treated as an
+    outside of the ``measurement_error_mitigation_cls`` kwarg should be treated as an
     internal private API and not relied upon.
 deprecations:
   - |
     The use of the measurement mitigation classes
-    :class:`~qiskit.ignis.mitigation.CompleteMeasFitter` and
-    :class:`~qiskit.ignis.mitigation.TensoredMeasFitter` from ``qiskit-ignis``
+    :class:`qiskit.ignis.mitigation.CompleteMeasFitter` and
+    :class:`qiskit.ignis.mitigation.TensoredMeasFitter` from ``qiskit-ignis``
     as values for the ``measurement_error_mitigation_cls`` kwarg of the
     constructor for the :class:`~qiskit.utils.QuantumInstance` class is
     deprecated and will be removed in a future release. Instead the equivalent

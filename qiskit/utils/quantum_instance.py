@@ -202,10 +202,11 @@ class QuantumInstance:
             skip_qobj_validation: Bypass Qobj validation to decrease circuit
                 processing time during submission to backend.
             measurement_error_mitigation_cls: The approach to mitigate
-                measurement errors. The :class:`~qiskit.utils.mitigation.CompleteMeasFitter` or
-                :class:`~qiskit.utils.mitigation.TensoredMeasFitter` from the the
-                :mod:`qiskit.utils.mitigation` module
-                ``TensoredMeasFitter`` doesn't support subset fitter.
+                measurement errors. The classes :class:`~qiskit.utils.mitigation.CompleteMeasFitter`
+                or :class:`~qiskit.utils.mitigation.TensoredMeasFitter` from the
+                :mod:`qiskit.utils.mitigation` module can be used here as exact values, not
+                instances. ``TensoredMeasFitter`` doesn't support the ``subset_fitter`` method.
+
             cals_matrix_refresh_period: How often to refresh the calibration
                 matrix in measurement mitigation. in minutes
             measurement_error_mitigation_shots: The number of shots number for
