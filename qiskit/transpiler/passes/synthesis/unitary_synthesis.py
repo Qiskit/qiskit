@@ -163,7 +163,7 @@ class UnitarySynthesis(TransformationPass):
             TranspilerError: if a 'method' was specified for the class and is not
                 found in the installed plugins list. The list of installed
                 plugins can be queried with
-                :func:`~qiskit.transpiler.passes.synthesis.plugins.unitary_synthesis_plugin_names`
+                :func:`~qiskit.transpiler.passes.synthesis.plugin.unitary_synthesis_plugin_names`
         """
         if not self.method:
             method = "default"
