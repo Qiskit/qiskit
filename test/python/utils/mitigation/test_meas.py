@@ -498,11 +498,6 @@ class TestMeasCal(QiskitTestCase):
             output_results_least_square["111"] / self.shots, predicted_results["111"], places=1
         )
 
-
-@unittest.skipUnless(HAS_AER, "Qiskit aer is required to run these tests")
-class TestMeasCalNoise(TestMeasCal):
-    """Run measurement mitigation calibration tests with noise."""
-
     def test_meas_fitter_with_noise(self):
         """Test the MeasurementFitter with noise."""
         tests = []
