@@ -246,7 +246,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         qc2.measure(0, 1)
 
         if fitter_cls == TensoredMeasFitter_IG:
-            with self.assertWarns(DeprecationWarning):
+            with self.assertWarnsRegex(DeprecationWarning, r".*ignis.*"):
                 self.assertRaisesRegex(
                     QiskitError,
                     "TensoredMeasFitter doesn't support subset_fitter.",
@@ -255,7 +255,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
                 )
         else:
             # this should run smoothly
-            with self.assertWarns(DeprecationWarning):
+            with self.assertWarnsRegex(DeprecationWarning, r".*ignis.*"):
                 quantum_instance.execute([qc1, qc2])
 
         self.assertGreater(quantum_instance.time_taken, 0.0)
@@ -307,7 +307,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         ansatz = EfficientSU2(2, reps=1)
 
         vqe = VQE(ansatz=ansatz, optimizer=optimizer, quantum_instance=quantum_instance)
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarnsRegex(DeprecationWarning, r".*ignis.*"):
             result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
         self.assertGreater(quantum_instance.time_taken, 0.0)
         quantum_instance.reset_execution_results()
