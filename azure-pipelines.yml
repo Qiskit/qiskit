@@ -193,6 +193,7 @@ stages:
             mkdir -p /tmp/terra-tests
             cp -r test /tmp/terra-tests/.
             cp .stestr.conf /tmp/terra-tests/.
+            cp -r .stestr /tmp/terra-tests/. || :
             sudo apt install -y graphviz
             pip check
           displayName: 'Install dependencies'
@@ -225,11 +226,12 @@ stages:
             pushd /tmp/terra-tests
             mkdir -p junit
             stestr last --subunit | ./subunit_to_junit.py -o junit/test-results.xml
-            popd
-            cp -r /tmp/terra-tests/junit .
             pushd .stestr
             ls | grep -P "^\d" | xargs -d "\n" rm -f
             popd
+            popd
+            cp -r /tmp/terra-tests/junit .
+            cp -r /tmp/terra-tests/.stestr .
           condition: succeededOrFailed()
           displayName: 'Generate results'
         - task: PublishTestResults@2
