@@ -22,6 +22,62 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.30.1
+*************
+
+.. _Release Notes_0.18.3:
+
+Terra 0.18.3
+============
+
+Prelude
+-------
+
+This bugfix release fixes a few minor issues in 0.18, including a performance
+regression in :obj:`~qiskit.compiler.assemble` when dealing with executing
+:class:`~qiskit.circuit.QuantumCircuit` objects on pulse-enabled backends.
+
+.. _Release Notes_0.18.3_Bug Fixes:
+
+Bug Fixes
+---------
+
+- Fixed `#7004 <https://github.com/Qiskit/qiskit-terra/issues/7004>`__ where
+  ``AttributeError`` was raised when executing
+  :obj:`~qiskit.pulse.ScheduleBlock` on a pulse backend. These blocks are now
+  correctly treated as pulse jobs, like :obj:`~qiskit.pulse.Schedule`.
+
+- Fixed an issue causing an error when binding a complex parameter value to an operator's
+  coefficient. Casts to ``float`` in :class:`~qiskit.opflow.primitive_ops.PrimitiveOp`
+  were generalized to casts to ``complex`` if necessary, but will remain ``float`` if
+  there is no imaginary component.
+  Fixes `#6976 <https://github.com/Qiskit/qiskit-terra/issues/6976>`__.
+
+- Update the 1-qubit gate errors in
+  :obj:`~qiskit.visualization.plot_error_map` to use the `sx` gate instead of
+  the `u2` gate, consistent with IBMQ backends.
+
+Aer 0.9.0
+=========
+
+No change
+
+Ignis 0.6.0
+===========
+
+No change
+
+Aqua 0.9.5
+==========
+
+No change
+
+IBM Q Provider 0.16.0
+=====================
+
+No change
+
+*************
 Qiskit 0.30.0
 *************
 
