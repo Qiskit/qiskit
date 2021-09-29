@@ -167,11 +167,9 @@ def build_measurement_error_mitigation_circuits(
                 TensoredMeasFitter as TensoredMeasFitter_IG,
             )
         except ImportError as ex:
-            raise MissingOptionalLibraryError(
-                libname="qiskit-ignis",
-                name="build_measurement_error_mitigation_qobj",
-                pip_install="pip install qiskit-ignis",
-            ) from ex
+            # If ignis can't be imported we don't have a valid fitter
+            # class so just fail here with an appropriate error message
+            raise QiskitError(f"Unknown fitter {fitter_cls}") from ex
         if fitter_cls == CompleteMeasFitter_IG:
             meas_calibs_circuits, state_labels = complete_meas_cal(
                 qubit_list=range(len(qubit_list)), circlabel=circlabel
