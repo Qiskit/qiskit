@@ -50,5 +50,4 @@ with the :class:`~qiskit.utils.QuantumInstance` class as part of
 
 # Measurement correction functions
 from .circuits import complete_meas_cal, tensored_meas_cal
-from .filters import MeasurementFilter, TensoredFilter
 from .fitters import CompleteMeasFitter, TensoredMeasFitter

@@ -38,8 +38,8 @@ from qiskit.utils.mitigation import (
     TensoredMeasFitter,
     complete_meas_cal,
     tensored_meas_cal,
-    MeasurementFilter,
 )
+from qiskit.utils.mitigation._filters import MeasurementFilter
 from qiskit.utils.mitigation.circuits import count_keys
 
 try:
