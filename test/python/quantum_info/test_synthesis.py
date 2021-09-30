@@ -12,12 +12,13 @@
 
 """Tests for quantum synthesis methods."""
 
+from collections import defaultdict
 import unittest
 import contextlib
 import logging
 from test import combine
 
-from ddt import ddt
+from ddt import ddt, data
 import numpy as np
 
 from qiskit import execute, QiskitError
@@ -45,7 +46,10 @@ from qiskit.circuit.library import (
 from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.random import random_unitary
-from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
+from qiskit.quantum_info.synthesis.one_qubit_decompose import (
+    OneQubitEulerDecomposer,
+    DEFAULT_FIDELITY,
+)
 from qiskit.quantum_info.synthesis.two_qubit_decompose import (
     TwoQubitWeylDecomposition,
     TwoQubitWeylIdEquiv,
@@ -122,16 +126,16 @@ class CheckDecompositions(QiskitTestCase):
         target_unitary = operator.data
         if basis is None:
             angles = OneQubitEulerDecomposer().angles(target_unitary)
-            decomp_unitary = U3Gate(*angles).to_matrix()
+            qc = QuantumCircuit(1)
+            qc.u3(*angles)
         else:
             decomposer = OneQubitEulerDecomposer(basis)
-            qc = decomposer(target_unitary, simplify=simplify)
-            decomp_unitary = Operator(qc).data
+            qc = decomposer(target_unitary, simplify=simplify, fidelity_mapping=fidelity_mapping)
+        decomp_unitary = Operator(qc).data
         trace_pairing = np.trace(decomp_unitary @ np.conj(operator.data).transpose(1, 0))
         infidelity = (4 - abs(trace_pairing) ** 2) / 6
         self.assertTrue(
-            np.abs(infidelity) < tolerance,
-            f"Operator {operator}: Worst distance {infidelity}"
+            np.abs(infidelity) < tolerance, f"Operator {operator}: Worst infidelity {infidelity}"
         )
 
     @contextlib.contextmanager
@@ -556,6 +560,33 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
             self.assertTrue(np.allclose(unitary, Operator(qc_psx).data))
             self.assertTrue(np.allclose(unitary, Operator(qc_zsx).data))
             self.assertTrue(np.allclose(unitary, Operator(qc_zsxx).data))
+
+
+@ddt
+class TestOneQubitFidelityDecomposition(CheckDecompositions):
+    @data(
+        {"rz": 1.0, "sx": 0.0, "x": 1.0},
+        {"rz": 1.0, "sx": 1.0, "x": 0.0},
+        {"rz": 1.0, "sx": 0.0, "x": 0.0},
+    )
+    def test_discouraging_fidelities(self, fidelity_mapping, seed=42):
+        fidelity_mapping = defaultdict(lambda: 1.0, **fidelity_mapping)
+        for j in range(100):
+            target_unitary = random_unitary(2, seed=j + seed)
+            decomposer = OneQubitEulerDecomposer("ZSXX")
+            qc = decomposer(target_unitary, simplify=True, fidelity_mapping=fidelity_mapping)
+            decomp_unitary = Operator(qc).data
+            trace_pairing = np.trace(decomp_unitary @ np.conj(target_unitary).transpose(1, 0))
+            infidelity = (4 - abs(trace_pairing) ** 2) / 6
+
+            for gate, _, _ in qc.data:
+                self.assertTrue(fidelity_mapping[gate.name] > 0.0)
+                infidelity += 1 - fidelity_mapping[gate.name]
+
+            self.assertTrue(
+                infidelity < 2 * fidelity_mapping["sx"] + 3 * fidelity_mapping["rz"],
+                f"Operator {target_unitary}: infidelity {infidelity}",
+            )
 
 
 # FIXME: streamline the set of test cases

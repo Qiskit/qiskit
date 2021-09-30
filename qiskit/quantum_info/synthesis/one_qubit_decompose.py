@@ -14,6 +14,7 @@
 Decompose a single-qubit unitary via Euler angles.
 """
 
+from collections import defaultdict
 import math
 import cmath
 import numpy as np
@@ -53,6 +54,8 @@ ONE_QUBIT_EULER_BASIS_GATES = {
     "ZSXX": ["rz", "sx", "x"],
     "ZSX": ["rz", "sx"],
 }
+
+DEFAULT_FIDELITY = defaultdict(lambda: 1.0)
 
 
 class OneQubitEulerDecomposer:
@@ -130,7 +133,9 @@ class OneQubitEulerDecomposer:
         """
         self.basis = basis  # sets: self._basis, self._params, self._circuit
 
-    def __call__(self, unitary, simplify=True, atol=DEFAULT_ATOL, fidelity_mapping=None):
+    def __call__(
+        self, unitary, simplify=True, atol=DEFAULT_ATOL, fidelity_mapping=DEFAULT_FIDELITY
+    ):
         """Decompose single qubit gate into a circuit.
 
         Args:
@@ -138,7 +143,7 @@ class OneQubitEulerDecomposer:
             simplify (bool): reduce gate count in decomposition [Default: True].
             atol (float): absolute tolerance for checking angles when simplifying
                          returned circuit [Default: 1e-12].
-            fidelity_mapping (Optional[Callable]): Maps gate names to fidelities.
+            fidelity_mapping (dict): Maps gate names to fidelities.
         Returns:
             QuantumCircuit: the decomposed single-qubit gate circuit
 
@@ -162,13 +167,17 @@ class OneQubitEulerDecomposer:
             raise QiskitError("OneQubitEulerDecomposer: expected 2x2 input matrix")
         if not is_unitary_matrix(unitary):
             raise QiskitError("OneQubitEulerDecomposer: input matrix is not unitary.")
-        return self._decompose(unitary, simplify=simplify, atol=atol,
-                               fidelity_mapping=fidelity_mapping)
+        return self._decompose(
+            unitary, simplify=simplify, atol=atol, fidelity_mapping=fidelity_mapping
+        )
 
-    def _decompose(self, unitary, simplify=True, atol=DEFAULT_ATOL, fidelity_mapping=None):
+    def _decompose(
+        self, unitary, simplify=True, atol=DEFAULT_ATOL, fidelity_mapping=DEFAULT_FIDELITY
+    ):
         theta, phi, lam, phase = self._params(unitary)
-        circuit = self._circuit(theta, phi, lam, phase, simplify=simplify, atol=atol,
-                                fidelity_mapping=fidelity_mapping)
+        circuit = self._circuit(
+            theta, phi, lam, phase, simplify=simplify, atol=atol, fidelity_mapping=fidelity_mapping
+        )
         return circuit
 
     @property
@@ -369,8 +378,15 @@ class OneQubitEulerDecomposer:
         return circuit
 
     def _circuit_zyz(
-        self, theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL, allow_non_canonical=True,
-            fidelity_mapping=None
+        self,
+        theta,
+        phi,
+        lam,
+        phase,
+        simplify=True,
+        atol=DEFAULT_ATOL,
+        allow_non_canonical=True,
+        fidelity_mapping=DEFAULT_FIDELITY,
     ):
         return self._circuit_kak(
             theta,
@@ -385,8 +401,15 @@ class OneQubitEulerDecomposer:
         )
 
     def _circuit_zxz(
-        self, theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL, allow_non_canonical=True,
-            fidelity_mapping=None
+        self,
+        theta,
+        phi,
+        lam,
+        phase,
+        simplify=True,
+        atol=DEFAULT_ATOL,
+        allow_non_canonical=True,
+        fidelity_mapping=DEFAULT_FIDELITY,
     ):
         return self._circuit_kak(
             theta,
@@ -401,8 +424,15 @@ class OneQubitEulerDecomposer:
         )
 
     def _circuit_xzx(
-        self, theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL, allow_non_canonical=True,
-            fidelity_mapping=None
+        self,
+        theta,
+        phi,
+        lam,
+        phase,
+        simplify=True,
+        atol=DEFAULT_ATOL,
+        allow_non_canonical=True,
+        fidelity_mapping=DEFAULT_FIDELITY,
     ):
         return self._circuit_kak(
             theta,
@@ -417,8 +447,15 @@ class OneQubitEulerDecomposer:
         )
 
     def _circuit_xyx(
-        self, theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL, allow_non_canonical=True,
-            fidelity_mapping=None
+        self,
+        theta,
+        phi,
+        lam,
+        phase,
+        simplify=True,
+        atol=DEFAULT_ATOL,
+        allow_non_canonical=True,
+        fidelity_mapping=DEFAULT_FIDELITY,
     ):
         return self._circuit_kak(
             theta,
@@ -433,7 +470,9 @@ class OneQubitEulerDecomposer:
         )
 
     @staticmethod
-    def _circuit_u3(theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL, fidelity_mapping=None):
+    def _circuit_u3(
+        theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL, fidelity_mapping=DEFAULT_FIDELITY
+    ):
         qr = QuantumRegister(1, "qr")
         circuit = QuantumCircuit(qr, global_phase=phase)
         phi = _mod_2pi(phi, atol)
@@ -443,7 +482,9 @@ class OneQubitEulerDecomposer:
         return circuit
 
     @staticmethod
-    def _circuit_u321(theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL, fidelity_mapping=None):
+    def _circuit_u321(
+        theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL, fidelity_mapping=DEFAULT_FIDELITY
+    ):
         qr = QuantumRegister(1, "qr")
         circuit = QuantumCircuit(qr, global_phase=phase)
         if not simplify:
@@ -459,7 +500,9 @@ class OneQubitEulerDecomposer:
         return circuit
 
     @staticmethod
-    def _circuit_u(theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL, fidelity_mapping=None):
+    def _circuit_u(
+        theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL, fidelity_mapping=DEFAULT_FIDELITY
+    ):
         qr = QuantumRegister(1, "qr")
         circuit = QuantumCircuit(qr, global_phase=phase)
         if not simplify:
@@ -471,8 +514,19 @@ class OneQubitEulerDecomposer:
         return circuit
 
     @staticmethod
-    def _circuit_psx_gen(theta, phi, lam, phase, atol, pfun, xfun, xpifun=None,
-                         xfun_fid=1., xpifun_fid=1., simplify=True):
+    def _circuit_psx_gen(
+        theta,
+        phi,
+        lam,
+        phase,
+        atol,
+        pfun,
+        xfun,
+        xpifun=None,
+        xfun_fid=1.0,
+        xpifun_fid=1.0,
+        simplify=True,
+    ):
         """
         Generic X90, phase decomposition
 
@@ -482,20 +536,18 @@ class OneQubitEulerDecomposer:
         circuit = QuantumCircuit(qr, global_phase=phase)
 
         if not simplify:
-            atol = -1.
+            atol = -1.0
 
         # infidelity estimates for each of the registered circuit types
         # NOTE: When the infidelity estimates overlap, we're relying on alphabetical sorting.
-        circuit_types = [(2 * (1. - xfun_fid), "two sx")]
+        circuit_types = [(2 * (1.0 - xfun_fid), "two sx")]
         if simplify:
             circuit_types += [
-                ((1. - xfun_fid) + (1 - math.cos(theta - np.pi / 2)) / 3, "one sx"),
-                ((1. - math.cos(theta)) / 3, "empty")
+                ((1.0 - xfun_fid) + (1 - math.cos(theta - np.pi / 2)) / 3, "one sx"),
+                ((1.0 - math.cos(theta)) / 3, "empty"),
             ]
             if xpifun is not None:
-                circuit_types += [
-                    ((1. - xpifun_fid) + (1 - math.cos(theta - np.pi)) / 3, "one x")
-                ]
+                circuit_types += [((1.0 - xpifun_fid) + (1 - math.cos(theta - np.pi)) / 3, "one x")]
         infidelity, circuit_type = min(circuit_types)
 
         # generate a circuit based on the best infidelity estimate
@@ -542,8 +594,9 @@ class OneQubitEulerDecomposer:
         return circuit
 
     @staticmethod
-    def _circuit_psx(theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL,
-                     fidelity_mapping=None):
+    def _circuit_psx(
+        theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL, fidelity_mapping=DEFAULT_FIDELITY
+    ):
         if not simplify:
             atol = -1.0
 
@@ -555,16 +608,23 @@ class OneQubitEulerDecomposer:
         def fnx(circuit, qr):
             circuit._append(SXGate(), [qr[0]], [])
 
-        xfun_fid = fidelity_mapping("sx") if fidelity_mapping else 1.0
-
         return OneQubitEulerDecomposer._circuit_psx_gen(
-            theta, phi, lam, phase, atol, fnz, fnx, simplify=simplify,
-            xfun_fid=xfun_fid, xpifun_fid=0.0
+            theta,
+            phi,
+            lam,
+            phase,
+            atol,
+            fnz,
+            fnx,
+            simplify=simplify,
+            xfun_fid=fidelity_mapping["sx"],
+            xpifun_fid=0.0,
         )
 
     @staticmethod
-    def _circuit_zsx(theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL,
-                     fidelity_mapping=None):
+    def _circuit_zsx(
+        theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL, fidelity_mapping=DEFAULT_FIDELITY
+    ):
         if not simplify:
             atol = -1.0
 
@@ -577,16 +637,23 @@ class OneQubitEulerDecomposer:
         def fnx(circuit, qr):
             circuit._append(SXGate(), [qr[0]], [])
 
-        xfun_fid = fidelity_mapping("sx") if fidelity_mapping else 1.0
-
         return OneQubitEulerDecomposer._circuit_psx_gen(
-            theta, phi, lam, phase, atol, fnz, fnx, simplify=simplify,
-            xfun_fid=xfun_fid, xpifun_fid=0.0
+            theta,
+            phi,
+            lam,
+            phase,
+            atol,
+            fnz,
+            fnx,
+            simplify=simplify,
+            xfun_fid=fidelity_mapping["sx"],
+            xpifun_fid=0.0,
         )
 
     @staticmethod
-    def _circuit_u1x(theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL,
-                     fidelity_mapping=None):
+    def _circuit_u1x(
+        theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL, fidelity_mapping=DEFAULT_FIDELITY
+    ):
         if not simplify:
             atol = -1.0
 
@@ -599,27 +666,31 @@ class OneQubitEulerDecomposer:
             circuit.global_phase += np.pi / 4
             circuit._append(RXGate(np.pi / 2), [qr[0]], [])
 
-        xfun_fid = fidelity_mapping("sx") if fidelity_mapping else 1.0
-
         return OneQubitEulerDecomposer._circuit_psx_gen(
-            theta, phi, lam, phase, atol, fnz, fnx, simplify=simplify,
-            xfun_fid=xfun_fid, xpifun_fid=0.0
+            theta,
+            phi,
+            lam,
+            phase,
+            atol,
+            fnz,
+            fnx,
+            simplify=simplify,
+            xfun_fid=fidelity_mapping["sx"],
+            xpifun_fid=0.0,
         )
 
     @staticmethod
-    def _circuit_zsxx(theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL,
-                      fidelity_mapping=None):
+    def _circuit_zsxx(
+        theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL, fidelity_mapping=DEFAULT_FIDELITY
+    ):
         if not simplify:
             atol = -1.0
 
         def fnz(circuit, qr, phi):
-            # print(f"1: {phi}")
             phi = _mod_2pi(phi, atol)
-            # print(f"2: {phi}")
             if abs(phi) > atol:
                 circuit._append(RZGate(phi), [qr[0]], [])
                 circuit.global_phase += phi / 2
-                # print(f"3: {phi / 2} gave {circuit.global_phase}")
 
         def fnx(circuit, qr):
             circuit._append(SXGate(), [qr[0]], [])
@@ -627,17 +698,24 @@ class OneQubitEulerDecomposer:
         def fnxpi(circuit, qr):
             circuit._append(XGate(), [qr[0]], [])
 
-        xfun_fid = fidelity_mapping("sx") if fidelity_mapping else 1.0
-        xpifun_fid = fidelity_mapping("x") if fidelity_mapping else 1.0
-
         return OneQubitEulerDecomposer._circuit_psx_gen(
-            theta, phi, lam, phase, atol, fnz, fnx, fnxpi, simplify=simplify,
-            xfun_fid=xfun_fid, xpifun_fid=xpifun_fid
+            theta,
+            phi,
+            lam,
+            phase,
+            atol,
+            fnz,
+            fnx,
+            fnxpi,
+            simplify=simplify,
+            xfun_fid=fidelity_mapping["sx"],
+            xpifun_fid=fidelity_mapping["x"],
         )
 
     @staticmethod
-    def _circuit_rr(theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL,
-                    fidelity_mapping=None):
+    def _circuit_rr(
+        theta, phi, lam, phase, simplify=True, atol=DEFAULT_ATOL, fidelity_mapping=DEFAULT_FIDELITY
+    ):
         qr = QuantumRegister(1, "qr")
         circuit = QuantumCircuit(qr, global_phase=phase)
         if not simplify:

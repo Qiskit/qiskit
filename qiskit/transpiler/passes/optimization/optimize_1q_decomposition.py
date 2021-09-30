@@ -12,6 +12,7 @@
 
 """Optimize chains of single-qubit gates using Euler 1q decomposer"""
 
+from collections import defaultdict
 import copy
 import logging
 import warnings
@@ -36,9 +37,9 @@ class Optimize1qGatesDecomposition(TransformationPass):
     """Optimize chains of single-qubit gates by combining them into a single gate."""
 
     def __init__(
-            self,
-            basis=None,
-            backend_properties: BackendProperties = None,
+        self,
+        basis=None,
+        backend_properties: BackendProperties = None,
     ):
         """Optimize1qGatesDecomposition initializer.
 
@@ -74,6 +75,26 @@ class Optimize1qGatesDecomposition(TransformationPass):
                         decomposer = one_qubit_decompose.OneQubitEulerDecomposer(euler_basis_name)
                         self._decomposers[tuple(gates)] = decomposer
 
+    def _generate_fidelities_dict(self, qubit, default=1.0):
+        """
+        Produces a dictionary mapping gate names to reported fidelities for the indicated `qubit`.
+        Reports `default` when the gate name has no measurement present.
+        """
+        # invert the key order in _backend_properties's fidelities dictionary
+        if self._backend_properties is None:
+            return defaultdict(lambda: default)
+        else:
+            return defaultdict(
+                lambda: default,
+                **{
+                    x["gate"]: (
+                        1 - next(y["value"] for y in x["parameters"] if y["name"] == "gate_error")
+                    )
+                    for x in self._backend_properties.to_dict()["gates"]
+                    if x["qubits"] == [qubit]
+                },
+            )
+
     def _resynthesize_run(self, dag, run):
         """
         Resynthesizes one `run`, typically extracted via `dag.collect_1q_runs`.
@@ -82,24 +103,19 @@ class Optimize1qGatesDecomposition(TransformationPass):
         (None, None) if no synthesis routine applied.
         """
 
-        qubit = next((index for (index, qubit) in enumerate(dag.qubits)
-                      if qubit == run[0].qargs[0]), None)
         operator = run[0].op.to_matrix()
         for gate in run[1:]:
             operator = gate.op.to_matrix().dot(operator)
 
-        def fidelity_lookup(gate_name, default=1.0):
-            nonlocal self, qubit
+        qubit = next(
+            (index for (index, qubit) in enumerate(dag.qubits) if qubit == run[0].qargs[0]), None
+        )
+        fidelities = self._generate_fidelities_dict(qubit)
 
-            if self._backend_properties is None:
-                return default
-            try:
-                return 1.0 - self._backend_properties.gate_error(gate_name, [qubit])
-            except BackendPropertyError:
-                return default
-
-        new_circs = {k: v._decompose(operator, fidelity_mapping=fidelity_lookup)
-                     for k, v in self._decomposers.items()}
+        new_circs = {
+            k: v._decompose(operator, fidelity_mapping=fidelities)
+            for k, v in self._decomposers.items()
+        }
 
         new_basis, new_circ = None, None
         if len(new_circs) > 0:
@@ -134,8 +150,10 @@ class Optimize1qGatesDecomposition(TransformationPass):
         new_infidelity = 0
         # look up physical qubit index in layout
         # (this snippet is adapted from UnitarySynthesis._synth_natural_direction)
-        qubit = next((index for (index, qubit) in enumerate(dag.qubits)
-                      if qubit == old_run[0].qargs[0]), None)
+        qubit = next(
+            (index for (index, qubit) in enumerate(dag.qubits) if qubit == old_run[0].qargs[0]),
+            None,
+        )
 
         if self._backend_properties is not None:
             try:
@@ -146,7 +164,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
             except BackendPropertyError:
                 old_infidelity += float("inf")
 
-            for instr, qregs, cregs in new_circ.data:
+            for instr, _, _ in new_circ.data:
                 try:
                     new_infidelity += self._backend_properties.gate_error(instr.name, [qubit])
                 except BackendPropertyError:
@@ -163,8 +181,8 @@ class Optimize1qGatesDecomposition(TransformationPass):
         new_infidelity += (4 - abs(trace_pairing) ** 2) / 6
 
         if rewriteable_and_in_basis_p and (
-            (old_infidelity + atol < new_infidelity) or
-            (abs(old_infidelity - new_infidelity) < atol and len(old_run) < len(new_circ))
+            (old_infidelity + atol < new_infidelity)
+            or (abs(old_infidelity - new_infidelity) < atol and len(old_run) < len(new_circ))
         ):
             # NOTE: This is short-circuited on calibrated gates, which we're timid about reducing.
             warnings.warn(
@@ -184,10 +202,15 @@ class Optimize1qGatesDecomposition(TransformationPass):
         #    to decompose, using the results if we see improvement.
         return (
             uncalibrated_and_not_basis_p
-            or (uncalibrated_p and
-                ((new_infidelity < old_infidelity - atol) or
-                 (abs(new_infidelity - old_infidelity) < atol and
-                  len(new_circ) < len(old_run))))
+            or (
+                uncalibrated_p
+                and (
+                    (new_infidelity < old_infidelity - atol)
+                    or (
+                        abs(new_infidelity - old_infidelity) < atol and len(new_circ) < len(old_run)
+                    )
+                )
+            )
             or isinstance(old_run[0].op, U3Gate)
         )
 
