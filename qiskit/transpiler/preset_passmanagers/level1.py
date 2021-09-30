@@ -180,7 +180,13 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         _unroll = [
             # Use unitary synthesis for basis aware decomposition of UnitaryGates before
             # custom unrolling
-            UnitarySynthesis(basis_gates, approximation_degree=approximation_degree),
+            UnitarySynthesis(
+                basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                method=unitary_synthesis_method,
+                backend_props=backend_properties,
+            ),
             UnrollCustomDefinitions(sel, basis_gates),
             BasisTranslator(sel, basis_gates),
         ]
@@ -188,7 +194,14 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         _unroll = [
             # Use unitary synthesis for basis aware decomposition of UnitaryGates before
             # collection
-            UnitarySynthesis(basis_gates, approximation_degree=approximation_degree),
+            UnitarySynthesis(
+                basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                method=unitary_synthesis_method,
+                backend_props=backend_properties,
+                min_qubits=3,
+            ),
             Unroll3qOrMore(),
             Collect2qBlocks(),
             ConsolidateBlocks(basis_gates=basis_gates),
