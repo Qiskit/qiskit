@@ -108,12 +108,14 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     # 1. Unroll to 1q or 2q gates
     _unroll3q = [
+        # Use unitary synthesis for basis aware decomposition of UnitaryGates
         UnitarySynthesis(
             basis_gates,
             approximation_degree=approximation_degree,
             coupling_map=coupling_map,
             backend_props=backend_properties,
             method=unitary_synthesis_method,
+            min_qubits=3,
         ),
         Unroll3qOrMore(),
     ]
@@ -212,9 +214,27 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     elif translation_method == "translator":
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 
-        _unroll = [UnrollCustomDefinitions(sel, basis_gates), BasisTranslator(sel, basis_gates)]
+        _unroll = [
+            UnitarySynthesis(
+                basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                backend_props=backend_properties,
+                method=unitary_synthesis_method,
+            ),
+            UnrollCustomDefinitions(sel, basis_gates),
+            BasisTranslator(sel, basis_gates),
+        ]
     elif translation_method == "synthesis":
         _unroll = [
+            UnitarySynthesis(
+                basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                backend_props=backend_properties,
+                method=unitary_synthesis_method,
+                min_qubits=3,
+            ),
             Unroll3qOrMore(),
             Collect2qBlocks(),
             ConsolidateBlocks(basis_gates=basis_gates),
