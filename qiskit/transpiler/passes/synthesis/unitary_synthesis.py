@@ -73,7 +73,7 @@ def _choose_bases(basis_gates, basis_dict=None):
     out_basis = []
     for basis, gates in basis_dict.items():
         if set(gates).issubset(basis_set):
-            return out_basis.append(basis)
+            out_basis.append(basis)
 
     return out_basis
 

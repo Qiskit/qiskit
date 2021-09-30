@@ -220,7 +220,7 @@ class UnitarySynthesisPlugin(abc.ABC):
         connectivity of the target backend, the second element will be a list
         of integers that represent the qubit indices in the coupling map that
         unitary is on. Note that if the target backend doesn't have a coupling
-        map set the ``coupling_map`` kwarg's value will be ``None``.
+        map set, the ``coupling_map`` kwarg's value will be ``(None, qubit_indices)``.
         """
         pass
 
