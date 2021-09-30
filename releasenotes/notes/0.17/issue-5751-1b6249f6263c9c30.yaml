@@ -1,0 +1,21 @@
+---
+features:
+  - |
+    A new transpiler pass,
+    :py:class:`qiskit.transpiler.passes.RZXCalibrationBuilder`, capable
+    of generating calibrations and adding them to a quantum circuit has been
+    introduced. This pass takes calibrated
+    :class:`~qiskit.circuit.library.CXGate` objects and creates the
+    calibrations for :class:`qiskit.circuit.library.RZXGate` objects with an
+    arbitrary rotation angle. The schedules are created by stretching and
+    compressing the :class:`~qiskit.pulse.GaussianSquare` pulses of the
+    echoed-cross resonance gates.
+  - |
+    New template circuits for using :class:`qiskit.circuit.library.RZXGate`
+    are added to the :mod:`qiskit.circuit.library` module (eg
+    :class:`~qiskit.circuit.library.rzx_yz`). This enables pairing
+    the :class:`~qiskit.transpiler.passes.TemplateOptimization` pass with the
+    :py:class:`qiskit.transpiler.passes.RZXCalibrationBuilder` pass to
+    automatically find and replace gate sequences, such as
+    ``CNOT - P(theta) - CNOT``, with more efficent circuits based on
+    :class:`qiskit.circuit.library.RZXGate` with a calibration.

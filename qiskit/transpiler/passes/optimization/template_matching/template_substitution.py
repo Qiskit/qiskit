@@ -29,8 +29,15 @@ class SubstitutionConfig:
     in the circuit.
     """
 
-    def __init__(self, circuit_config, template_config, pred_block,
-                 qubit_config, template_dag_dep, clbit_config=None):
+    def __init__(
+        self,
+        circuit_config,
+        template_config,
+        pred_block,
+        qubit_config,
+        template_dag_dep,
+        clbit_config=None,
+    ):
         self.template_dag_dep = template_dag_dep
         self.circuit_config = circuit_config
         self.template_config = template_config
@@ -77,12 +84,45 @@ class TemplateSubstitution:
         if user_cost_dict is not None:
             self.cost_dict = dict(user_cost_dict)
         else:
-            self.cost_dict = {'id': 0, 'x': 1, 'y': 1, 'z': 1, 'h': 1, 't': 1, 'tdg': 1, 's': 1,
-                              'sdg': 1, 'u1': 1, 'u2': 2, 'u3': 2, 'rx': 1, 'ry': 1, 'rz': 1,
-                              'r': 2, 'cx': 2, 'cy': 4, 'cz': 4, 'ch': 8, 'swap': 6, 'iswap': 8,
-                              'rxx': 9, 'ryy': 9, 'rzz': 5, 'rzx': 7, 'ms': 9, 'cu3': 10, 'crx': 10,
-                              'cry': 10, 'crz': 10, 'ccx': 21, 'rccx': 12, 'c3x': 96, 'rc3x': 24,
-                              'c4x': 312, 'p': 1}
+            self.cost_dict = {
+                "id": 0,
+                "x": 1,
+                "y": 1,
+                "z": 1,
+                "h": 1,
+                "t": 1,
+                "tdg": 1,
+                "s": 1,
+                "sdg": 1,
+                "u1": 1,
+                "u2": 2,
+                "u3": 2,
+                "rx": 1,
+                "ry": 1,
+                "rz": 1,
+                "r": 2,
+                "cx": 2,
+                "cy": 4,
+                "cz": 4,
+                "ch": 8,
+                "swap": 6,
+                "iswap": 8,
+                "rxx": 9,
+                "ryy": 9,
+                "rzz": 5,
+                "rzx": 7,
+                "ms": 9,
+                "cu3": 10,
+                "crx": 10,
+                "cry": 10,
+                "crz": 10,
+                "ccx": 21,
+                "rccx": 12,
+                "c3x": 96,
+                "rc3x": 24,
+                "c4x": 312,
+                "p": 1,
+            }
 
     def _pred_block(self, circuit_sublist, index):
         """
@@ -161,12 +201,12 @@ class TemplateSubstitution:
         left = []
         right = []
 
-        pred = set([])
+        pred = set()
         for index in template_sublist:
             pred = pred | set(self.template_dag_dep.get_node(index).predecessors)
         pred = list(pred - set(template_sublist))
 
-        succ = set([])
+        succ = set()
         for index in template_sublist:
             succ = succ | set(self.template_dag_dep.get_node(index).successors)
         succ = list(succ - set(template_sublist))
@@ -247,19 +287,21 @@ class TemplateSubstitution:
                 continue
             index_a = self.substitution_list.index(scenario_a)
             circuit_a = scenario_a.circuit_config
-            for scenario_b in self.substitution_list[index_a+1::]:
+            for scenario_b in self.substitution_list[index_a + 1 : :]:
                 if scenario_b in remove_list:
                     continue
                 index_b = self.substitution_list.index(scenario_b)
                 circuit_b = scenario_b.circuit_config
-                if (set(circuit_a) & list_predecessors[index_b])\
-                        and (set(circuit_b) & list_predecessors[index_a]):
+                if (set(circuit_a) & list_predecessors[index_b]) and (
+                    set(circuit_b) & list_predecessors[index_a]
+                ):
                     remove_list.append(scenario_b)
 
         # Remove the incompatible groups from the list.
         if remove_list:
-            self.substitution_list = [scenario for scenario in self.substitution_list
-                                      if scenario not in remove_list]
+            self.substitution_list = [
+                scenario for scenario in self.substitution_list if scenario not in remove_list
+            ]
 
     def _substitution(self):
         """
@@ -291,22 +333,24 @@ class TemplateSubstitution:
 
             # If the match obey the rule then it is added to the list.
             if self._rules(circuit_sublist, template_sublist, template_complement):
-                template_sublist_inverse = self._template_inverse(template_list,
-                                                                  template_sublist,
-                                                                  template_complement)
+                template_sublist_inverse = self._template_inverse(
+                    template_list, template_sublist, template_complement
+                )
 
-                config = SubstitutionConfig(circuit_sublist,
-                                            template_sublist_inverse,
-                                            [],
-                                            current_qubit,
-                                            template,
-                                            current_clbit)
+                config = SubstitutionConfig(
+                    circuit_sublist,
+                    template_sublist_inverse,
+                    [],
+                    current_qubit,
+                    template,
+                    current_clbit,
+                )
                 self.substitution_list.append(config)
 
         # Remove incompatible matches.
         self._remove_impossible()
 
-        # First sort the matches accordding to the smallest index in the matches (circuit).
+        # First sort the matches according to the smallest index in the matches (circuit).
         self.substitution_list.sort(key=lambda x: x.circuit_config[0])
 
         # Change position of the groups due to predecessors of other groups.
@@ -321,8 +365,9 @@ class TemplateSubstitution:
             circuit_list = circuit_list + elem.circuit_config + elem.pred_block
 
         # Unmatched gates that are not predecessors of any group of matches.
-        self.unmatched_list = sorted(list(set(range(0, self.circuit_dag_dep.size()))
-                                          - set(circuit_list)))
+        self.unmatched_list = sorted(
+            list(set(range(0, self.circuit_dag_dep.size())) - set(circuit_list))
+        )
 
     def run_dag_opt(self):
         """
@@ -365,7 +410,6 @@ class TemplateSubstitution:
                 for elem in pred:
                     node = self.circuit_dag_dep.get_node(elem)
                     inst = node.op.copy()
-                    inst.condition = node.condition
                     dag_dep_opt.add_op_node(inst, node.qargs, node.cargs)
                     already_sub.append(elem)
 
@@ -388,7 +432,6 @@ class TemplateSubstitution:
                         cargs = []
                     node = group.template_dag_dep.get_node(index)
                     inst = node.op.copy()
-                    inst.condition = node.condition
 
                     dag_dep_opt.add_op_node(inst.inverse(), qargs, cargs)
 
@@ -396,7 +439,6 @@ class TemplateSubstitution:
             for node_id in self.unmatched_list:
                 node = self.circuit_dag_dep.get_node(node_id)
                 inst = node.op.copy()
-                inst.condition = node.condition
                 dag_dep_opt.add_op_node(inst, node.qargs, node.cargs)
 
             dag_dep_opt._add_successors()

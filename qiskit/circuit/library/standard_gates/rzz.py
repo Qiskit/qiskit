@@ -12,12 +12,14 @@
 
 """Two-qubit ZZ-rotation gate."""
 
+from typing import Optional
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.parameterexpression import ParameterValueType
 
 
 class RZZGate(Gate):
-    r"""A parameteric 2-qubit :math:`Z \otimes Z` interaction (rotation about ZZ).
+    r"""A parametric 2-qubit :math:`Z \otimes Z` interaction (rotation about ZZ).
 
     This gate is symmetric, and is maximally entangling at :math:`\theta = \pi/2`.
 
@@ -79,9 +81,9 @@ class RZZGate(Gate):
                                     \end{pmatrix}
     """
 
-    def __init__(self, theta):
+    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new RZZ gate."""
-        super().__init__('rzz', 2, [theta])
+        super().__init__("rzz", 2, [theta], label=label)
 
     def _define(self):
         """
@@ -91,13 +93,14 @@ class RZZGate(Gate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate
         from .rz import RZGate
-        q = QuantumRegister(2, 'q')
+
+        q = QuantumRegister(2, "q")
         theta = self.params[0]
         qc = QuantumCircuit(q, name=self.name)
         rules = [
             (CXGate(), [q[0], q[1]], []),
             (RZGate(theta), [q[1]], []),
-            (CXGate(), [q[0], q[1]], [])
+            (CXGate(), [q[0], q[1]], []),
         ]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
@@ -111,8 +114,14 @@ class RZZGate(Gate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the RZZ gate."""
         import numpy
+
         itheta2 = 1j * float(self.params[0]) / 2
-        return numpy.array([[numpy.exp(-itheta2), 0, 0, 0],
-                            [0, numpy.exp(itheta2), 0, 0],
-                            [0, 0, numpy.exp(itheta2), 0],
-                            [0, 0, 0, numpy.exp(-itheta2)]], dtype=dtype)
+        return numpy.array(
+            [
+                [numpy.exp(-itheta2), 0, 0, 0],
+                [0, numpy.exp(itheta2), 0, 0],
+                [0, 0, numpy.exp(itheta2), 0],
+                [0, 0, 0, numpy.exp(-itheta2)],
+            ],
+            dtype=dtype,
+        )

@@ -1,0 +1,37 @@
+---
+features:
+  - |
+    Pulse :class:`qiskit.pulse.Instruction` objects and
+    parametric pulse objects (eg :class:`~qiskit.pulse.library.Gaussian` now
+    support using :class:`~qiskit.circuit.Parameter` and
+    :class:`~qiskit.circuit.ParameterExpression` objects for the ``duration``
+    parameter. For example:
+
+    .. code-block:: python
+
+      from qiskit.circuit import Parameter
+      from qiskit.pulse import Gaussian
+
+      dur = Parameter('x_pulse_duration')
+      double_dur = dur * 2
+      rx_pulse = Gaussian(dur, 0.1, dur/4)
+      double_rx_pulse = Gaussian(double_dir, 0.1, dur/4)
+
+    Note that while we can create an instruction with a parameterized
+    ``duration`` adding an instruction with unbound parameter ``duration``
+    to a schedule is supported only by the newly introduced representation 
+    :class:`~qiskit.pulse.ScheduleBlock`. See the known issues release notes
+    section for more details.
+
+issues:
+  - |
+    Attempting to add an :class:`qiskit.pulse.Instruction` object
+    with a parameterized ``duration`` (ie the value of ``duration`` is
+    an unbound :class:`~qiskit.circuit.Parameter` or
+    :class:`~qiskit.circuit.ParameterExpression` object) to a
+    :class:`qiskit.pulse.Schedule` is not supported. Attempting to do
+    so will result in ``UnassignedDurationError``
+    :class:`~qiskit.pulse.PulseError` being raised. This is a limitation of
+    how the :class:`~qiskit.pulse.Instruction` overlap constraints are
+    evaluated currently. This is supported by :class:`~qiskit.pulse.ScheduleBlock`,
+    in which the overlap constraints are evaluated just before the execution. 

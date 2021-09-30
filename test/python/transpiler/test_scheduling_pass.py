@@ -15,9 +15,9 @@
 import unittest
 
 from qiskit import QuantumCircuit
-from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.passes import ASAPSchedule, ALAPSchedule
+from qiskit.transpiler.passmanager import PassManager
 
 from qiskit.test import QiskitTestCase
 
@@ -26,27 +26,27 @@ class TestSchedulingPass(QiskitTestCase):
     """Tests the Scheduling passes"""
 
     def test_alap_agree_with_reverse_asap_reverse(self):
-        """Test if ALAP schedule agrees with doubly-reversed ASAP schedule.
-        """
+        """Test if ALAP schedule agrees with doubly-reversed ASAP schedule."""
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.delay(500, 1)
         qc.cx(0, 1)
         qc.measure_all()
 
-        dag = circuit_to_dag(qc)
-        durations = InstructionDurations([('h', 0, 200), ('cx', [0, 1], 700),
-                                          ('measure', None, 1000)])
+        durations = InstructionDurations(
+            [("h", 0, 200), ("cx", [0, 1], 700), ("measure", None, 1000)]
+        )
 
-        alap_dag = ALAPSchedule(durations).run(dag, time_unit="dt")
+        pm = PassManager(ALAPSchedule(durations))
+        alap_qc = pm.run(qc)
 
-        new_dag = dag.reverse_ops()
-        new_dag = ASAPSchedule(durations).run(new_dag, time_unit="dt")
-        new_dag = new_dag.reverse_ops()
-        new_dag.name = dag.name
+        pm = PassManager(ASAPSchedule(durations))
+        new_qc = pm.run(qc.reverse_ops())
+        new_qc = new_qc.reverse_ops()  # pylint: disable=no-member
+        new_qc.name = new_qc.name
 
-        self.assertEqual(alap_dag, new_dag)
+        self.assertEqual(alap_qc, new_qc)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

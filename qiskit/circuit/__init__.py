@@ -188,6 +188,7 @@ Gates and Instructions
    ControlledGate
    Delay
    Measure
+   MeasurePauli
    Reset
    Instruction
    InstructionSet
@@ -215,17 +216,18 @@ from .quantumcircuit import QuantumCircuit
 from .classicalregister import ClassicalRegister, Clbit
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .gate import Gate
+
 # pylint: disable=cyclic-import
 from .controlledgate import ControlledGate
 from .instruction import Instruction
 from .instructionset import InstructionSet
 from .barrier import Barrier
 from .delay import Delay
-from .measure import Measure
+from .measure import Measure, MeasurePauli
 from .reset import Reset
 from .parameter import Parameter
 from .parametervector import ParameterVector
 from .parameterexpression import ParameterExpression
 from .equivalence import EquivalenceLibrary
 from .classicalfunction.types import Int1, Int2
-from .classicalfunction import classical_function
+from .classicalfunction import classical_function, BooleanExpression

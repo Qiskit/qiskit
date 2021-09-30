@@ -14,6 +14,8 @@ Symplectic Pauli Table Class
 """
 # pylint: disable=invalid-name
 
+from typing import Dict
+
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -21,9 +23,10 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
+from qiskit.quantum_info.operators.mixins import generate_apidocs, AdjointMixin
 
 
-class PauliTable(BaseOperator):
+class PauliTable(BaseOperator, AdjointMixin):
     r"""Symplectic representation of a list Pauli matrices.
 
     **Symplectic Representation**
@@ -149,8 +152,7 @@ class PauliTable(BaseOperator):
         elif isinstance(data, ScalarOp):
             # Initialize an N-qubit identity
             if data.num_qubits is None:
-                raise QiskitError(
-                    '{} is not an N-qubit identity'.format(data))
+                raise QiskitError(f"{data} is not an N-qubit identity")
             self._array = np.zeros((1, 2 * data.num_qubits), dtype=bool)
         else:
             raise QiskitError("Invalid input data for PauliTable.")
@@ -168,19 +170,23 @@ class PauliTable(BaseOperator):
 
     def __repr__(self):
         """Display representation."""
-        prefix = 'PauliTable('
-        return '{}{})'.format(prefix, np.array2string(
-            self._array, separator=',', prefix=prefix))
+        prefix = "PauliTable("
+        return "{}{})".format(prefix, np.array2string(self._array, separator=",", prefix=prefix))
 
     def __str__(self):
         """String representation."""
-        return 'PauliTable: {}'.format(self.to_labels())
+        return f"PauliTable: {self.to_labels()}"
 
     def __eq__(self, other):
         """Test if two Pauli tables are equal."""
         if isinstance(other, PauliTable):
             return np.all(self._array == other._array)
         return False
+
+    @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        return {"data": self._array}
 
     # ---------------------------------------------------------------------
     # Direct array access
@@ -201,20 +207,20 @@ class PauliTable(BaseOperator):
     @property
     def X(self):
         """The X block of the :attr:`array`."""
-        return self._array[:, 0:self.num_qubits]
+        return self._array[:, 0 : self.num_qubits]
 
     @X.setter
     def X(self, val):
-        self._array[:, 0:self.num_qubits] = val
+        self._array[:, 0 : self.num_qubits] = val
 
     @property
     def Z(self):
         """The Z block of the :attr:`array`."""
-        return self._array[:, self.num_qubits:2*self.num_qubits]
+        return self._array[:, self.num_qubits : 2 * self.num_qubits]
 
     @Z.setter
     def Z(self, val):
-        self._array[:, self.num_qubits:2*self.num_qubits] = val
+        self._array[:, self.num_qubits : 2 * self.num_qubits] = val
 
     # ---------------------------------------------------------------------
     # Size Properties
@@ -242,7 +248,7 @@ class PauliTable(BaseOperator):
         """Return a view of the PauliTable."""
         # Returns a view of specified rows of the PauliTable
         # This supports all slicing operations the underlying array supports.
-        if isinstance(key, int):
+        if isinstance(key, (int, np.integer)):
             key = [key]
         return PauliTable(self._array[key])
 
@@ -271,20 +277,24 @@ class PauliTable(BaseOperator):
             QiskitError: if ind is out of bounds for the array size or
                          number of qubits.
         """
-        if isinstance(ind, int):
+        if isinstance(ind, (int, np.integer)):
             ind = [ind]
 
         # Row deletion
         if not qubit:
             if max(ind) >= self.size:
-                raise QiskitError("Indices {} are not all less than the size"
-                                  " of the PauliTable ({})".format(ind, self.size))
+                raise QiskitError(
+                    "Indices {} are not all less than the size"
+                    " of the PauliTable ({})".format(ind, self.size)
+                )
             return PauliTable(np.delete(self._array, ind, axis=0))
 
         # Column (qubit) deletion
         if max(ind) >= self.num_qubits:
-            raise QiskitError("Indices {} are not all less than the number of"
-                              " qubits in the PauliTable ({})".format(ind, self.num_qubits))
+            raise QiskitError(
+                "Indices {} are not all less than the number of"
+                " qubits in the PauliTable ({})".format(ind, self.num_qubits)
+            )
         cols = ind + [self.num_qubits + i for i in ind]
         return PauliTable(np.delete(self._array, cols, axis=1))
 
@@ -306,7 +316,7 @@ class PauliTable(BaseOperator):
         Raises:
             QiskitError: if the insertion index is invalid.
         """
-        if not isinstance(ind, int):
+        if not isinstance(ind, (int, np.integer)):
             raise QiskitError("Insert index must be an integer.")
 
         if not isinstance(value, PauliTable):
@@ -315,14 +325,18 @@ class PauliTable(BaseOperator):
         # Row insertion
         if not qubit:
             if ind > self.size:
-                raise QiskitError("Index {} is larger than the number of rows in the"
-                                  " PauliTable ({}).".format(ind, self.num_qubits))
+                raise QiskitError(
+                    "Index {} is larger than the number of rows in the"
+                    " PauliTable ({}).".format(ind, self.num_qubits)
+                )
             return PauliTable(np.insert(self.array, ind, value.array, axis=0))
 
         # Column insertion
         if ind > self.num_qubits:
-            raise QiskitError("Index {} is greater than number of qubits"
-                              " in the PauliTable ({})".format(ind, self.num_qubits))
+            raise QiskitError(
+                "Index {} is greater than number of qubits"
+                " in the PauliTable ({})".format(ind, self.num_qubits)
+            )
         if value.size == 1:
             # Pad blocks to correct size
             value_x = np.vstack(self.size * [value.X])
@@ -333,12 +347,24 @@ class PauliTable(BaseOperator):
             value_z = value.Z
         else:
             # Blocks are incorrect size
-            raise QiskitError("Input PauliTable must have a single row, or"
-                              " the same number of rows as the Pauli Table"
-                              " ({}).".format(self.size))
+            raise QiskitError(
+                "Input PauliTable must have a single row, or"
+                " the same number of rows as the Pauli Table"
+                " ({}).".format(self.size)
+            )
         # Build new array by blocks
-        return PauliTable(np.hstack((self.X[:, :ind], value_x, self.X[:, ind:],
-                                     self.Z[:, :ind], value_z, self.Z[:, ind:])))
+        return PauliTable(
+            np.hstack(
+                (
+                    self.X[:, :ind],
+                    value_x,
+                    self.X[:, ind:],
+                    self.Z[:, :ind],
+                    value_z,
+                    self.Z[:, ind:],
+                )
+            )
+        )
 
     def argsort(self, weight=False):
         """Return indices for sorting the rows of the table.
@@ -369,7 +395,7 @@ class PauliTable(BaseOperator):
         # are use the 'stable' sort method
         indices = np.arange(self.size)
         for i in range(self.num_qubits):
-            sort_inds = order[:, i].argsort(kind='stable')
+            sort_inds = order[:, i].argsort(kind="stable")
             order = order[sort_inds]
             indices = indices[sort_inds]
             if weight:
@@ -378,7 +404,7 @@ class PauliTable(BaseOperator):
         # If using weights we implement a final sort by total number
         # of non-identity Paulis
         if weight:
-            indices = indices[weights.argsort(kind='stable')]
+            indices = indices[weights.argsort(kind="stable")]
         return indices
 
     def sort(self, weight=False):
@@ -458,20 +484,19 @@ class PauliTable(BaseOperator):
                 original array. Only provided if ``return_counts`` is True.
         """
         if return_counts:
-            _, index, counts = np.unique(self.array, return_index=True,
-                                         return_counts=True, axis=0)
+            _, index, counts = np.unique(self.array, return_index=True, return_counts=True, axis=0)
         else:
             _, index = np.unique(self.array, return_index=True, axis=0)
         # Sort the index so we return unique rows in the original array order
         sort_inds = index.argsort()
         index = index[sort_inds]
         unique = self[index]
-        # Concatinate return tuples
-        ret = (unique, )
+        # Concatenate return tuples
+        ret = (unique,)
         if return_index:
-            ret += (index, )
+            ret += (index,)
         if return_counts:
-            ret += (counts[sort_inds], )
+            ret += (counts[sort_inds],)
         if len(ret) == 1:
             return ret[0]
         return ret
@@ -509,9 +534,7 @@ class PauliTable(BaseOperator):
         """
         if not isinstance(other, PauliTable):
             other = PauliTable(other)
-        x1, x2 = self._block_stack(self.X, other.X)
-        z1, z2 = self._block_stack(self.Z, other.Z)
-        return PauliTable(np.hstack([x2, x1, z2, z1]))
+        return self._tensor(self, other)
 
     def expand(self, other):
         """Return the expand output product of two tables.
@@ -542,9 +565,7 @@ class PauliTable(BaseOperator):
         """
         if not isinstance(other, PauliTable):
             other = PauliTable(other)
-        x1, x2 = self._block_stack(self.X, other.X)
-        z1, z2 = self._block_stack(self.Z, other.Z)
-        return PauliTable(np.hstack([x1, x2, z1, z2]))
+        return self._tensor(other, self)
 
     def compose(self, other, qargs=None, front=True):
         """Return the compose output product of two tables.
@@ -576,9 +597,8 @@ class PauliTable(BaseOperator):
         Raises:
             QiskitError: if other cannot be converted to a PauliTable.
         """
-        # pylint: disable=unused-argument
         if qargs is None:
-            qargs = getattr(other, 'qargs', None)
+            qargs = getattr(other, "qargs", None)
         if not isinstance(other, PauliTable):
             other = PauliTable(other)
         if qargs is None and other.num_qubits != self.num_qubits:
@@ -631,6 +651,12 @@ class PauliTable(BaseOperator):
         """
         return self.compose(other, qargs=qargs, front=True)
 
+    @classmethod
+    def _tensor(cls, a, b):
+        x1, x2 = a._block_stack(a.X, b.X)
+        z1, z2 = a._block_stack(a.Z, b.Z)
+        return PauliTable(np.hstack([x2, x1, z2, z1]))
+
     def _add(self, other, qargs=None):
         """Append with another PauliTable.
 
@@ -643,35 +669,35 @@ class PauliTable(BaseOperator):
                                   (Default: None)
 
         Returns:
-            PauliTable: the concatinated table self + other.
+            PauliTable: the concatenated table self + other.
         """
         if qargs is None:
-            qargs = getattr(other, 'qargs', None)
+            qargs = getattr(other, "qargs", None)
 
         if not isinstance(other, PauliTable):
             other = PauliTable(other)
 
         self._op_shape._validate_add(other._op_shape, qargs)
 
-        if qargs is None or (sorted(qargs) == qargs
-                             and len(qargs) == self.num_qubits):
+        if qargs is None or (sorted(qargs) == qargs and len(qargs) == self.num_qubits):
             return PauliTable(np.vstack((self._array, other._array)))
 
         # Pad other with identity and then add
-        padded = PauliTable(
-            np.zeros((1, 2 * self.num_qubits), dtype=bool))
+        padded = PauliTable(np.zeros((1, 2 * self.num_qubits), dtype=bool))
         padded = padded.compose(other, qargs=qargs)
         return PauliTable(np.vstack((self._array, padded._array)))
 
+    def __add__(self, other):
+        qargs = getattr(other, "qargs", None)
+        return self._add(other, qargs=qargs)
+
     def conjugate(self):
         """Not implemented."""
-        raise NotImplementedError(
-            "{} does not support conjugatge".format(type(self)))
+        raise NotImplementedError(f"{type(self)} does not support conjugatge")
 
     def transpose(self):
         """Not implemented."""
-        raise NotImplementedError(
-            "{} does not support transpose".format(type(self)))
+        raise NotImplementedError(f"{type(self)} does not support transpose")
 
     # ---------------------------------------------------------------------
     # Utility methods
@@ -736,7 +762,7 @@ class PauliTable(BaseOperator):
         Args:
             other (PauliTable): a PauliTable.
             anti (bool): if True return rows that anti-commute, otherwise
-                         return rows taht commute (Default: False).
+                         return rows that commute (Default: False).
 
         Returns:
             array: index array of commuting or anti-commuting row.
@@ -744,10 +770,10 @@ class PauliTable(BaseOperator):
         if not isinstance(other, PauliTable):
             other = PauliTable(other)
         comms = PauliTable._commutes(self, other[0])
-        inds, = np.where(comms == int(not anti))
+        (inds,) = np.where(comms == int(not anti))
         for pauli in other[1:]:
             comms = PauliTable._commutes(self[inds], pauli)
-            new_inds, = np.where(comms == int(not anti))
+            (new_inds,) = np.where(comms == int(not anti))
             if new_inds.size == 0:
                 # No commuting rows
                 return new_inds
@@ -771,9 +797,9 @@ class PauliTable(BaseOperator):
         # Multiply array by Pauli, and set entries where inputs
         # where I to I
         tmp = PauliTable(pauli_table.array ^ pauli.array)
-        tmp.X = (tmp.X & non_iden)
-        tmp.Z = (tmp.Z & non_iden)
-        # Find total number of non I pauli's remaining in table
+        tmp.X = tmp.X & non_iden
+        tmp.Z = tmp.Z & non_iden
+        # Find total number of non I Pauli's remaining in table
         # if there are an even number the row commutes with the
         # input Pauli, otherwise it anti-commutes
         return np.logical_not(np.sum((tmp.X | tmp.Z), axis=1) % 2)
@@ -783,12 +809,11 @@ class PauliTable(BaseOperator):
         """Stack two arrays along their first axis."""
         sz1 = len(array1)
         sz2 = len(array2)
-        out_shape1 = (sz1 * sz2, ) + array1.shape[1:]
-        out_shape2 = (sz1 * sz2, ) + array2.shape[1:]
+        out_shape1 = (sz1 * sz2,) + array1.shape[1:]
+        out_shape2 = (sz1 * sz2,) + array2.shape[1:]
         if sz2 > 1:
             # Stack blocks for output table
-            ret1 = np.reshape(np.stack(sz2 * [array1], axis=1),
-                              out_shape1)
+            ret1 = np.reshape(np.stack(sz2 * [array1], axis=1), out_shape1)
         else:
             ret1 = array1
         if sz1 > 1:
@@ -860,7 +885,7 @@ class PauliTable(BaseOperator):
         Returns:
             list or array: The rows of the PauliTable in label form.
         """
-        ret = np.zeros(self.size, dtype='<U{}'.format(self.num_qubits))
+        ret = np.zeros(self.size, dtype=f"<U{self.num_qubits}")
         for i in range(self.size):
             ret[i] = self._to_label(self._array[i])
         if array:
@@ -919,21 +944,23 @@ class PauliTable(BaseOperator):
     @staticmethod
     def _from_label(label):
         """Return the symplectic representation of a Pauli string"""
-        if label[0] == '+':
+        if label[0] == "+":
             # We allow +1 phase sign so we can convert back from positive
             # stabilizer strings
             label = label[1:]
         num_qubits = len(label)
         symp = np.zeros(2 * num_qubits, dtype=bool)
         xs = symp[0:num_qubits]
-        zs = symp[num_qubits:2*num_qubits]
+        zs = symp[num_qubits : 2 * num_qubits]
         for i, char in enumerate(label):
-            if char not in ['I', 'X', 'Y', 'Z']:
-                raise QiskitError("Pauli string contains invalid character:"
-                                  " {} not in ['I', 'X', 'Y', 'Z'].".format(char))
-            if char in ['X', 'Y']:
+            if char not in ["I", "X", "Y", "Z"]:
+                raise QiskitError(
+                    "Pauli string contains invalid character:"
+                    " {} not in ['I', 'X', 'Y', 'Z'].".format(char)
+                )
+            if char in ["X", "Y"]:
                 xs[num_qubits - 1 - i] = True
-            if char in ['Z', 'Y']:
+            if char in ["Z", "Y"]:
                 zs[num_qubits - 1 - i] = True
         return symp
 
@@ -946,19 +973,19 @@ class PauliTable(BaseOperator):
         symp = np.asarray(pauli, dtype=bool)
         num_qubits = symp.size // 2
         x = symp[0:num_qubits]
-        z = symp[num_qubits:2*num_qubits]
-        paulis = np.zeros(num_qubits, dtype='<U1')
+        z = symp[num_qubits : 2 * num_qubits]
+        paulis = np.zeros(num_qubits, dtype="<U1")
         for i in range(num_qubits):
             if not z[i]:
                 if not x[i]:
-                    paulis[num_qubits - 1 - i] = 'I'
+                    paulis[num_qubits - 1 - i] = "I"
                 else:
-                    paulis[num_qubits - 1 - i] = 'X'
+                    paulis[num_qubits - 1 - i] = "X"
             elif not x[i]:
-                paulis[num_qubits - 1 - i] = 'Z'
+                paulis[num_qubits - 1 - i] = "Z"
             else:
-                paulis[num_qubits - 1 - i] = 'Y'
-        return ''.join(paulis)
+                paulis[num_qubits - 1 - i] = "Y"
+        return "".join(paulis)
 
     @staticmethod
     def _to_matrix(pauli, sparse=False, real_valued=False):
@@ -979,12 +1006,12 @@ class PauliTable(BaseOperator):
             """Count number of set bits in int or array"""
             i = i - ((i >> 1) & 0x55555555)
             i = (i & 0x33333333) + ((i >> 2) & 0x33333333)
-            return (((i + (i >> 4) & 0xF0F0F0F) * 0x1010101) & 0xffffffff) >> 24
+            return (((i + (i >> 4) & 0xF0F0F0F) * 0x1010101) & 0xFFFFFFFF) >> 24
 
         symp = np.asarray(pauli, dtype=bool)
         num_qubits = symp.size // 2
         x = symp[0:num_qubits]
-        z = symp[num_qubits:2*num_qubits]
+        z = symp[num_qubits : 2 * num_qubits]
 
         dim = 2 ** num_qubits
         twos_array = 1 << np.arange(num_qubits)
@@ -1003,13 +1030,13 @@ class PauliTable(BaseOperator):
         if sparse:
             # Return sparse matrix
             from scipy.sparse import csr_matrix
-            return csr_matrix((data, indices, indptr), shape=(dim, dim),
-                              dtype=dtype)
+
+            return csr_matrix((data, indices, indptr), shape=(dim, dim), dtype=dtype)
 
         # Build dense matrix using csr format
         mat = np.zeros((dim, dim), dtype=dtype)
         for i in range(dim):
-            mat[i][indices[indptr[i]:indptr[i+1]]] = data[indptr[i]:indptr[i+1]]
+            mat[i][indices[indptr[i] : indptr[i + 1]]] = data[indptr[i] : indptr[i + 1]]
         return mat
 
     # ---------------------------------------------------------------------
@@ -1026,13 +1053,16 @@ class PauliTable(BaseOperator):
         Returns:
             LabelIterator: label iterator object for the PauliTable.
         """
+
         class LabelIterator(CustomIterator):
             """Label representation iteration and item access."""
+
             def __repr__(self):
-                return "<PauliTable_label_iterator at {}>".format(hex(id(self)))
+                return f"<PauliTable_label_iterator at {hex(id(self))}>"
 
             def __getitem__(self, key):
                 return self.obj._to_label(self.obj.array[key])
+
         return LabelIterator(self)
 
     def matrix_iter(self, sparse=False):
@@ -1050,11 +1080,18 @@ class PauliTable(BaseOperator):
         Returns:
             MatrixIterator: matrix iterator object for the PauliTable.
         """
+
         class MatrixIterator(CustomIterator):
             """Matrix representation iteration and item access."""
+
             def __repr__(self):
-                return "<PauliTable_matrix_iterator at {}>".format(hex(id(self)))
+                return f"<PauliTable_matrix_iterator at {hex(id(self))}>"
 
             def __getitem__(self, key):
                 return self.obj._to_matrix(self.obj.array[key], sparse=sparse)
+
         return MatrixIterator(self)
+
+
+# Update docstrings for API docs
+generate_apidocs(PauliTable)

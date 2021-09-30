@@ -11,8 +11,9 @@
 # that they have been altered from the originals.
 
 r"""
+================================
 Operators (:mod:`qiskit.opflow`)
-========================================
+================================
 
 .. currentmodule:: qiskit.opflow
 
@@ -71,12 +72,14 @@ enforces the presence and consistency of methods to manipulate these objects con
 
 .. autosummary::
    :toctree: ../stubs/
-   :nosignatures:
+   :template: autosummary/class_no_inherited_members.rst
 
    OperatorBase
 
+
 Operator Globals
 ================
+
 The :mod:`operator_globals` is a set of immutable Operator instances that are convenient building
 blocks to reach for while working with the Operator flow.
 
@@ -93,20 +96,21 @@ Submodules
 ==========
 
 Operators
-+++++++++
+---------
 
 The Operators submodules include the PrimitiveOp, ListOp, and StateFn class groups which
 represent the primary Operator modules.
 
 .. autosummary::
-   :toctree:
+    :toctree: ../stubs/
 
-   primitive_ops
-   list_ops
-   state_fns
+    primitive_ops
+    list_ops
+    state_fns
+
 
 Converters
-++++++++++
+----------
 
 The Converter submodules include objects which manipulate Operators, usually recursing over an
 Operator structure and changing certain Operators' representation. For example, the
@@ -116,12 +120,24 @@ diagonalizing circuits following by :class:`~.state_fns.OperatorStateFn` measure
 only diagonal Paulis.
 
 .. autosummary::
-   :toctree:
+    :toctree: ../stubs/
 
-   converters
-   evolutions
-   expectations
-   gradients
+    converters
+    evolutions
+    expectations
+    gradients
+
+
+Utility functions
+=================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   commutator
+   anti_commutator
+   double_commutator
+
 
 Exceptions
 ==========
@@ -134,47 +150,162 @@ Exceptions
 
 # New Operators
 from .operator_base import OperatorBase
-from .primitive_ops import PrimitiveOp, PauliOp, MatrixOp, CircuitOp, PauliSumOp
-from .state_fns import (StateFn, DictStateFn, VectorStateFn, CVaRMeasurement,
-                        CircuitStateFn, OperatorStateFn)
+from .primitive_ops import (
+    PrimitiveOp,
+    PauliOp,
+    MatrixOp,
+    CircuitOp,
+    PauliSumOp,
+    TaperedPauliSumOp,
+    Z2Symmetries,
+)
+from .state_fns import (
+    StateFn,
+    DictStateFn,
+    VectorStateFn,
+    CVaRMeasurement,
+    CircuitStateFn,
+    OperatorStateFn,
+    SparseVectorStateFn,
+)
 from .list_ops import ListOp, SummedOp, ComposedOp, TensoredOp
-from .converters import (ConverterBase, CircuitSampler, PauliBasisChange,
-                         DictToCircuitSum, AbelianGrouper)
-from .expectations import (ExpectationBase, ExpectationFactory, PauliExpectation,
-                           MatrixExpectation, AerPauliExpectation, CVaRExpectation)
-from .evolutions import (EvolutionBase, EvolutionFactory, EvolvedOp, PauliTrotterEvolution,
-                         MatrixEvolution, TrotterizationBase, TrotterizationFactory, Trotter,
-                         Suzuki, QDrift)
+from .converters import (
+    ConverterBase,
+    CircuitSampler,
+    PauliBasisChange,
+    DictToCircuitSum,
+    AbelianGrouper,
+    TwoQubitReduction,
+)
+from .expectations import (
+    ExpectationBase,
+    ExpectationFactory,
+    PauliExpectation,
+    MatrixExpectation,
+    AerPauliExpectation,
+    CVaRExpectation,
+)
+from .evolutions import (
+    EvolutionBase,
+    EvolutionFactory,
+    EvolvedOp,
+    PauliTrotterEvolution,
+    MatrixEvolution,
+    TrotterizationBase,
+    TrotterizationFactory,
+    Trotter,
+    Suzuki,
+    QDrift,
+)
+from .utils import commutator, anti_commutator, double_commutator
 
 # Convenience immutable instances
-from .operator_globals import (EVAL_SIG_DIGITS,
-                               X, Y, Z, I,
-                               CX, S, H, T, Swap, CZ,
-                               Zero, One, Plus, Minus)
+from .operator_globals import (
+    EVAL_SIG_DIGITS,
+    X,
+    Y,
+    Z,
+    I,
+    CX,
+    S,
+    H,
+    T,
+    Swap,
+    CZ,
+    Zero,
+    One,
+    Plus,
+    Minus,
+)
+
 # Gradients
-from .gradients import (DerivativeBase, GradientBase, Gradient, NaturalGradient,
-                        HessianBase, Hessian, QFIBase, QFI,
-                        CircuitGradient, CircuitQFI)
+from .gradients import (
+    DerivativeBase,
+    GradientBase,
+    Gradient,
+    NaturalGradient,
+    HessianBase,
+    Hessian,
+    QFIBase,
+    QFI,
+    CircuitGradient,
+    CircuitQFI,
+)
+
 # Exceptions
 from .exceptions import OpflowError
 
 __all__ = [
     # Operators
-    'OperatorBase',
-    'PrimitiveOp', 'PauliOp', 'MatrixOp', 'CircuitOp', 'PauliSumOp',
-    'StateFn', 'DictStateFn', 'VectorStateFn', 'CircuitStateFn', 'OperatorStateFn',
-    'CVaRMeasurement',
-    'ListOp', 'SummedOp', 'ComposedOp', 'TensoredOp',
+    "OperatorBase",
+    "PrimitiveOp",
+    "PauliOp",
+    "MatrixOp",
+    "CircuitOp",
+    "PauliSumOp",
+    "TaperedPauliSumOp",
+    "StateFn",
+    "DictStateFn",
+    "VectorStateFn",
+    "CircuitStateFn",
+    "OperatorStateFn",
+    "SparseVectorStateFn",
+    "CVaRMeasurement",
+    "ListOp",
+    "SummedOp",
+    "ComposedOp",
+    "TensoredOp",
     # Converters
-    'ConverterBase', 'CircuitSampler', 'AbelianGrouper', 'DictToCircuitSum', 'PauliBasisChange',
-    'ExpectationBase', 'ExpectationFactory', 'PauliExpectation', 'MatrixExpectation',
-    'AerPauliExpectation', 'CVaRExpectation',
-    'EvolutionBase', 'EvolvedOp', 'EvolutionFactory', 'PauliTrotterEvolution', 'MatrixEvolution',
-    'TrotterizationBase', 'TrotterizationFactory', 'Trotter', 'Suzuki', 'QDrift',
+    "ConverterBase",
+    "CircuitSampler",
+    "AbelianGrouper",
+    "DictToCircuitSum",
+    "PauliBasisChange",
+    "ExpectationBase",
+    "ExpectationFactory",
+    "PauliExpectation",
+    "MatrixExpectation",
+    "AerPauliExpectation",
+    "CVaRExpectation",
+    "EvolutionBase",
+    "EvolvedOp",
+    "EvolutionFactory",
+    "PauliTrotterEvolution",
+    "MatrixEvolution",
+    "TrotterizationBase",
+    "TrotterizationFactory",
+    "Trotter",
+    "Suzuki",
+    "QDrift",
+    "TwoQubitReduction",
+    "Z2Symmetries",
     # Convenience immutable instances
-    'X', 'Y', 'Z', 'I', 'CX', 'S', 'H', 'T', 'Swap', 'CZ', 'Zero', 'One', 'Plus', 'Minus',
+    "X",
+    "Y",
+    "Z",
+    "I",
+    "CX",
+    "S",
+    "H",
+    "T",
+    "Swap",
+    "CZ",
+    "Zero",
+    "One",
+    "Plus",
+    "Minus",
     # Gradients
-    'DerivativeBase', 'GradientBase', 'Gradient', 'NaturalGradient',
-    'HessianBase', 'Hessian', 'QFIBase', 'QFI',
-    'OpflowError',
+    "DerivativeBase",
+    "GradientBase",
+    "Gradient",
+    "NaturalGradient",
+    "HessianBase",
+    "Hessian",
+    "QFIBase",
+    "QFI",
+    "OpflowError",
+    # utils
+    "commutator",
+    "anti_commutator",
+    "double_commutator",
 ]

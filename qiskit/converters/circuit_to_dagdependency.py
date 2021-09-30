@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-'''Helper function for converting a circuit to a dag dependency'''
+"""Helper function for converting a circuit to a dag dependency"""
 
 from qiskit.dagcircuit.dagdependency import DAGDependency
 
@@ -27,6 +27,9 @@ def circuit_to_dagdependency(circuit):
     dagdependency = DAGDependency()
     dagdependency.name = circuit.name
     dagdependency.metadata = circuit.metadata
+
+    dagdependency.add_qubits(circuit.qubits)
+    dagdependency.add_clbits(circuit.clbits)
 
     for register in circuit.qregs:
         dagdependency.add_qreg(register)

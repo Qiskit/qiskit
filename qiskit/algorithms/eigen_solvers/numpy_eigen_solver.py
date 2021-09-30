@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,8 +12,9 @@
 
 """The Eigensolver algorithm."""
 
-from typing import List, Optional, Union, Tuple, Callable
 import logging
+from typing import List, Optional, Union, Tuple, Callable
+
 import numpy as np
 from scipy import sparse as scisparse
 
@@ -41,11 +42,13 @@ class NumPyEigensolver(Eigensolver):
         operator size, mostly in terms of number of qubits it represents, gets larger.
     """
 
-    def __init__(self,
-                 k: int = 1,
-                 filter_criterion: Callable[[Union[List, np.ndarray], float, Optional[List[float]]],
-                                            bool] = None
-                 ) -> None:
+    def __init__(
+        self,
+        k: int = 1,
+        filter_criterion: Callable[
+            [Union[List, np.ndarray], float, Optional[List[float]]], bool
+        ] = None,
+    ) -> None:
         """
         Args:
             k: How many eigenvalues are to be computed, has a min. value of 1.
@@ -56,7 +59,7 @@ class NumPyEigensolver(Eigensolver):
                 elements that satisfies the criterion is smaller than `k` then the returned list has
                 fewer elements and can even be empty.
         """
-        validate_min('k', k, 1)
+        validate_min("k", k, 1)
         super().__init__()
 
         self._in_k = k
@@ -68,26 +71,31 @@ class NumPyEigensolver(Eigensolver):
 
     @property
     def k(self) -> int:
-        """ returns k (number of eigenvalues requested) """
+        """returns k (number of eigenvalues requested)"""
         return self._in_k
 
     @k.setter
     def k(self, k: int) -> None:
-        """ set k (number of eigenvalues requested) """
-        validate_min('k', k, 1)
+        """set k (number of eigenvalues requested)"""
+        validate_min("k", k, 1)
         self._in_k = k
         self._k = k
 
     @property
-    def filter_criterion(self) -> Optional[
-            Callable[[Union[List, np.ndarray], float, Optional[List[float]]], bool]]:
-        """ returns the filter criterion if set """
+    def filter_criterion(
+        self,
+    ) -> Optional[Callable[[Union[List, np.ndarray], float, Optional[List[float]]], bool]]:
+        """returns the filter criterion if set"""
         return self._filter_criterion
 
     @filter_criterion.setter
-    def filter_criterion(self, filter_criterion: Optional[
-            Callable[[Union[List, np.ndarray], float, Optional[List[float]]], bool]]) -> None:
-        """ set the filter criterion """
+    def filter_criterion(
+        self,
+        filter_criterion: Optional[
+            Callable[[Union[List, np.ndarray], float, Optional[List[float]]], bool]
+        ],
+    ) -> None:
+        """set the filter criterion"""
         self._filter_criterion = filter_criterion
 
     @classmethod
@@ -96,60 +104,60 @@ class NumPyEigensolver(Eigensolver):
 
     def _check_set_k(self, operator: OperatorBase) -> None:
         if operator is not None:
-            if self._in_k > 2**(operator.num_qubits):
-                self._k = 2**(operator.num_qubits)
-                logger.debug("WARNING: Asked for %s eigenvalues but max possible is %s.",
-                             self._in_k, self._k)
+            if self._in_k > 2 ** operator.num_qubits:
+                self._k = 2 ** operator.num_qubits
+                logger.debug(
+                    "WARNING: Asked for %s eigenvalues but max possible is %s.", self._in_k, self._k
+                )
             else:
                 self._k = self._in_k
 
-    def _solve(self,
-               operator: OperatorBase) -> None:
+    def _solve(self, operator: OperatorBase) -> None:
         sp_mat = operator.to_spmatrix()
         # If matrix is diagonal, the elements on the diagonal are the eigenvalues. Solve by sorting.
         if scisparse.csr_matrix(sp_mat.diagonal()).nnz == sp_mat.nnz:
             diag = sp_mat.diagonal()
-            eigval = np.sort(diag)[:self._k]
-            temp = np.argsort(diag)[:self._k]
+            indices = np.argsort(diag)[: self._k]
+            eigval = diag[indices]
             eigvec = np.zeros((sp_mat.shape[0], self._k))
-            for i, idx in enumerate(temp):
+            for i, idx in enumerate(indices):
                 eigvec[idx, i] = 1.0
         else:
-            if self._k >= 2 ** (operator.num_qubits) - 1:
+            if self._k >= 2 ** operator.num_qubits - 1:
                 logger.debug("SciPy doesn't support to get all eigenvalues, using NumPy instead.")
                 eigval, eigvec = np.linalg.eig(operator.to_matrix())
             else:
-                eigval, eigvec = scisparse.linalg.eigs(operator.to_spmatrix(),
-                                                       k=self._k, which='SR')
-        if self._k > 1:
-            idx = eigval.argsort()
-            eigval = eigval[idx]
-            eigvec = eigvec[:, idx]
+                eigval, eigvec = scisparse.linalg.eigs(
+                    operator.to_spmatrix(), k=self._k, which="SR"
+                )
+            indices = np.argsort(eigval)[: self._k]
+            eigval = eigval[indices]
+            eigvec = eigvec[:, indices]
         self._ret.eigenvalues = eigval
         self._ret.eigenstates = eigvec.T
 
-    def _get_ground_state_energy(self,
-                                 operator: OperatorBase) -> None:
+    def _get_ground_state_energy(self, operator: OperatorBase) -> None:
         if self._ret.eigenvalues is None or self._ret.eigenstates is None:
             self._solve(operator)
 
-    def _get_energies(self,
-                      operator: OperatorBase,
-                      aux_operators: Optional[List[OperatorBase]]) -> None:
+    def _get_energies(
+        self, operator: OperatorBase, aux_operators: Optional[List[OperatorBase]]
+    ) -> None:
         if self._ret.eigenvalues is None or self._ret.eigenstates is None:
             self._solve(operator)
 
         if aux_operators is not None:
             aux_op_vals = []
             for i in range(self._k):
-                aux_op_vals.append(self._eval_aux_operators(aux_operators,
-                                                            self._ret.eigenstates[i]))
+                aux_op_vals.append(
+                    self._eval_aux_operators(aux_operators, self._ret.eigenstates[i])
+                )
             self._ret.aux_operator_eigenvalues = aux_op_vals
 
     @staticmethod
-    def _eval_aux_operators(aux_operators: List[OperatorBase],
-                            wavefn,
-                            threshold: float = 1e-12) -> np.ndarray:
+    def _eval_aux_operators(
+        aux_operators: List[OperatorBase], wavefn, threshold: float = 1e-12
+    ) -> np.ndarray:
         values = []  # type: List[Tuple[float, int]]
         for operator in aux_operators:
             if operator is None:
@@ -170,9 +178,7 @@ class NumPyEigensolver(Eigensolver):
         return np.array(values, dtype=object)
 
     def compute_eigenvalues(
-            self,
-            operator: OperatorBase,
-            aux_operators: Optional[List[Optional[OperatorBase]]] = None
+        self, operator: OperatorBase, aux_operators: Optional[List[Optional[OperatorBase]]] = None
     ) -> EigensolverResult:
         super().compute_eigenvalues(operator, aux_operators)
 
@@ -190,7 +196,7 @@ class NumPyEigensolver(Eigensolver):
         k_orig = self._k
         if self._filter_criterion:
             # need to consider all elements if a filter is set
-            self._k = 2**operator.num_qubits
+            self._k = 2 ** operator.num_qubits
 
         self._ret = EigensolverResult()
         self._solve(operator)
@@ -233,5 +239,5 @@ class NumPyEigensolver(Eigensolver):
         if self._ret.eigenstates is not None:
             self._ret.eigenstates = ListOp([StateFn(vec) for vec in self._ret.eigenstates])
 
-        logger.debug('EigensolverResult:\n%s', self._ret)
+        logger.debug("EigensolverResult:\n%s", self._ret)
         return self._ret

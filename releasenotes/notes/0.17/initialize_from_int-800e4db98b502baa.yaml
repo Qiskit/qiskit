@@ -1,0 +1,19 @@
+---
+features:
+  - |
+    The :class:`~qiskit.extensions.Initialize` class in the
+    :mod:`qiskit.extensions` module can now be constructed using an integer.
+    The '1' bits of the integer will insert a :class:`~qiskit.circuit.Reset`
+    and an :class:`~qiskit.circuit.library.XGate` into the circuit for the
+    corresponding qubit. This will be done using the standard little-endian
+    convention is qiskit, ie the rightmost bit of the integer will set qubit
+    0. For example, setting the parameter in
+    :class:`~qiskit.extensions.Initialize` equal to ``5`` will set qubits 0
+    and 2 to value 1.
+
+    .. jupyter-execute::
+
+        from qiskit.extensions import Initialize
+
+        initialize = Initialize(13)
+        initialize.definition.draw('mpl')

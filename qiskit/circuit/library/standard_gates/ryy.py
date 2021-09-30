@@ -12,13 +12,15 @@
 
 """Two-qubit YY-rotation gate."""
 
+from typing import Optional
 import numpy as np
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.parameterexpression import ParameterValueType
 
 
 class RYYGate(Gate):
-    r"""A parameteric 2-qubit :math:`Y \otimes Y` interaction (rotation about YY).
+    r"""A parametric 2-qubit :math:`Y \otimes Y` interaction (rotation about YY).
 
     This gate is symmetric, and is maximally entangling at :math:`\theta = \pi/2`.
 
@@ -67,9 +69,9 @@ class RYYGate(Gate):
                                     \end{pmatrix}
     """
 
-    def __init__(self, theta):
+    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new RYY gate."""
-        super().__init__('ryy', 2, [theta])
+        super().__init__("ryy", 2, [theta], label=label)
 
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
@@ -79,7 +81,7 @@ class RYYGate(Gate):
         from .rx import RXGate
         from .rz import RZGate
 
-        q = QuantumRegister(2, 'q')
+        q = QuantumRegister(2, "q")
         theta = self.params[0]
         qc = QuantumCircuit(q, name=self.name)
         rules = [
@@ -105,9 +107,7 @@ class RYYGate(Gate):
         theta = float(self.params[0])
         cos = np.cos(theta / 2)
         isin = 1j * np.sin(theta / 2)
-        return np.array([
-            [cos, 0, 0, isin],
-            [0, cos, -isin, 0],
-            [0, -isin, cos, 0],
-            [isin, 0, 0, cos]
-        ], dtype=dtype)
+        return np.array(
+            [[cos, 0, 0, isin], [0, cos, -isin, 0], [0, -isin, cos, 0], [isin, 0, 0, cos]],
+            dtype=dtype,
+        )

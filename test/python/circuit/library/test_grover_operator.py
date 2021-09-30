@@ -1,4 +1,3 @@
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -46,13 +45,13 @@ class TestGroverOperator(QiskitTestCase):
 
     def test_grover_operator(self):
         """Test the base case for the Grover operator."""
-        with self.subTest('single Z oracle'):
+        with self.subTest("single Z oracle"):
             oracle = QuantumCircuit(3)
             oracle.z(2)  # good state if last qubit is 1
             grover_op = GroverOperator(oracle)
             self.assertGroverOperatorIsCorrect(grover_op, oracle)
 
-        with self.subTest('target state x0x1'):
+        with self.subTest("target state x0x1"):
             oracle = QuantumCircuit(4)
             oracle.x(1)
             oracle.z(1)
@@ -63,20 +62,35 @@ class TestGroverOperator(QiskitTestCase):
 
     def test_quantum_info_input(self):
         """Test passing quantum_info.Operator and Statevector as input."""
-        mark = Statevector.from_label('001')
-        diffuse = 2 * DensityMatrix.from_label('000') - Operator.from_label('III')
+        mark = Statevector.from_label("001")
+        diffuse = 2 * DensityMatrix.from_label("000") - Operator.from_label("III")
         grover_op = GroverOperator(oracle=mark, zero_reflection=diffuse)
-        self.assertGroverOperatorIsCorrect(grover_op,
-                                           oracle=np.diag((-1) ** mark.data),
-                                           zero_reflection=diffuse.data)
+        self.assertGroverOperatorIsCorrect(
+            grover_op, oracle=np.diag((-1) ** mark.data), zero_reflection=diffuse.data
+        )
+
+    def test_stateprep_contains_instruction(self):
+        """Test wrapping works if the state preparation is not unitary."""
+        oracle = QuantumCircuit(1)
+        oracle.z(0)
+
+        instr = QuantumCircuit(1)
+        instr.s(0)
+        instr = instr.to_instruction()
+
+        stateprep = QuantumCircuit(1)
+        stateprep.append(instr, [0])
+
+        grover_op = GroverOperator(oracle, stateprep)
+        self.assertEqual(grover_op.num_qubits, 1)
 
     def test_reflection_qubits(self):
         """Test setting idle qubits doesn't apply any operations on these qubits."""
         oracle = QuantumCircuit(4)
         oracle.z(3)
         grover_op = GroverOperator(oracle, reflection_qubits=[0, 3])
-        dag = circuit_to_dag(grover_op)
-        self.assertEqual(set(wire.index for wire in dag.idle_wires()), {1, 2})
+        dag = circuit_to_dag(grover_op.decompose())
+        self.assertEqual(set(dag.idle_wires()), {dag.qubits[1], dag.qubits[2]})
 
     def test_custom_state_in(self):
         """Test passing a custom state_in operator."""
@@ -102,16 +116,16 @@ class TestGroverOperator(QiskitTestCase):
 
         grover_op = GroverOperator(oracle, zero_reflection=zero_reflection)
 
-        with self.subTest('zero reflection up to phase works'):
+        with self.subTest("zero reflection up to phase works"):
             self.assertGroverOperatorIsCorrect(grover_op, oracle)
 
-        with self.subTest('circuits match'):
+        with self.subTest("circuits match"):
             expected = QuantumCircuit(*grover_op.qregs, global_phase=np.pi)
             expected.compose(oracle, inplace=True)
             expected.h(0)  # state_in is H
             expected.compose(zero_reflection, inplace=True)
             expected.h(0)
-            self.assertEqual(expected, grover_op)
+            self.assertEqual(expected, grover_op.decompose())
 
     def test_num_mcx_ancillas(self):
         """Test the number of ancilla bits for the mcx gate in zero_reflection."""
@@ -127,5 +141,5 @@ class TestGroverOperator(QiskitTestCase):
         self.assertEqual(grover_op.width(), 7)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

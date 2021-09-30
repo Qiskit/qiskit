@@ -28,6 +28,7 @@ install:
   - pip install -U -r requirements-dev.txt coveralls -c constraints.txt
   - pip install -c constraints.txt -e .
   - pip install "qiskit-ibmq-provider" -c constraints.txt
+  - pip install "qiskit-aer"
 script:
   # Compile the executables and run the tests.
   - python setup.py build_ext --inplace
@@ -52,7 +53,7 @@ jobs:
         - coveralls || true
         - coverage xml || true
         - pip install diff-cover || true
-        - diff-cover --compare-branch master coverage.xml || true
+        - diff-cover --compare-branch main coverage.xml || true
 
     # Randomized testing
     - name: Randomized tests
@@ -63,5 +64,4 @@ jobs:
       script:
       - pip install -U pip
       - python setup.py build_ext --inplace
-      - pip install "qiskit-aer"
       - make test_randomized

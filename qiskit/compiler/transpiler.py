@@ -14,10 +14,9 @@
 import logging
 import warnings
 from time import time
-from typing import List, Union, Dict, Callable, Any, Optional, Tuple
+from typing import List, Union, Dict, Callable, Any, Optional, Tuple, Iterable
 
 from qiskit import user_config
-from qiskit.circuit import Delay
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.converters import isinstanceint, isinstancelist, dag_to_circuit, circuit_to_dag
@@ -26,7 +25,7 @@ from qiskit.providers import BaseBackend
 from qiskit.providers.backend import Backend
 from qiskit.providers.models import BackendProperties
 from qiskit.providers.models.backendproperties import Gate
-from qiskit.pulse import Schedule
+from qiskit.pulse import Schedule, InstructionScheduleMap
 from qiskit.tools.parallel import parallel_map
 from qiskit.transpiler import Layout, CouplingMap, PropertySet, PassManager
 from qiskit.transpiler.basepasses import BasePass
@@ -34,33 +33,39 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations, InstructionDurationsType
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
-from qiskit.transpiler.preset_passmanagers import (level_0_pass_manager,
-                                                   level_1_pass_manager,
-                                                   level_2_pass_manager,
-                                                   level_3_pass_manager)
+from qiskit.transpiler.preset_passmanagers import (
+    level_0_pass_manager,
+    level_1_pass_manager,
+    level_2_pass_manager,
+    level_3_pass_manager,
+)
+from qiskit.transpiler.timing_constraints import TimingConstraints
 
-LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
-def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
-              backend: Optional[Union[Backend, BaseBackend]] = None,
-              basis_gates: Optional[List[str]] = None,
-              coupling_map: Optional[Union[CouplingMap, List[List[int]]]] = None,
-              backend_properties: Optional[BackendProperties] = None,
-              initial_layout: Optional[Union[Layout, Dict, List]] = None,
-              layout_method: Optional[str] = None,
-              routing_method: Optional[str] = None,
-              translation_method: Optional[str] = None,
-              scheduling_method: Optional[str] = None,
-              instruction_durations: Optional[InstructionDurationsType] = None,
-              dt: Optional[float] = None,
-              seed_transpiler: Optional[int] = None,
-              optimization_level: Optional[int] = None,
-              pass_manager: Optional[PassManager] = None,
-              callback: Optional[Callable[[BasePass, DAGCircuit, float,
-                                           PropertySet, int], Any]] = None,
-              output_name: Optional[Union[str, List[str]]] = None) -> Union[QuantumCircuit,
-                                                                            List[QuantumCircuit]]:
+def transpile(
+    circuits: Union[QuantumCircuit, List[QuantumCircuit]],
+    backend: Optional[Union[Backend, BaseBackend]] = None,
+    basis_gates: Optional[List[str]] = None,
+    inst_map: Optional[List[InstructionScheduleMap]] = None,
+    coupling_map: Optional[Union[CouplingMap, List[List[int]]]] = None,
+    backend_properties: Optional[BackendProperties] = None,
+    initial_layout: Optional[Union[Layout, Dict, List]] = None,
+    layout_method: Optional[str] = None,
+    routing_method: Optional[str] = None,
+    translation_method: Optional[str] = None,
+    scheduling_method: Optional[str] = None,
+    instruction_durations: Optional[InstructionDurationsType] = None,
+    dt: Optional[float] = None,
+    approximation_degree: Optional[float] = None,
+    timing_constraints: Optional[Dict[str, int]] = None,
+    seed_transpiler: Optional[int] = None,
+    optimization_level: Optional[int] = None,
+    pass_manager: Optional[PassManager] = None,
+    callback: Optional[Callable[[BasePass, DAGCircuit, float, PropertySet, int], Any]] = None,
+    output_name: Optional[Union[str, List[str]]] = None,
+) -> Union[QuantumCircuit, List[QuantumCircuit]]:
     """Transpile one or more circuits, according to some desired transpilation targets.
 
     All arguments may be given as either a singleton or list. In case of a list,
@@ -81,6 +86,12 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
                 circuit may be run on any backend as long as it is compatible.
         basis_gates: List of basis gate names to unroll to
             (e.g: ``['u1', 'u2', 'u3', 'cx']``). If ``None``, do not unroll.
+        inst_map: Mapping of unrolled gates to pulse schedules. If this is not provided,
+            transpiler tries to get from the backend. If any user defined calibration
+            is found in the map and this is used in a circuit, transpiler attaches
+            the custom gate definition to the circuit. This enables one to flexibly
+            override the low-level instruction implementation. This feature is available
+            iff the backend supports the pulse gate experiment.
         coupling_map: Coupling map (perhaps custom) to target in mapping.
             Multiple formats are supported:
 
@@ -127,11 +138,12 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
         translation_method: Name of translation pass ('unroller', 'translator', 'synthesis')
         scheduling_method: Name of scheduling pass.
             * ``'as_soon_as_possible'``: Schedule instructions greedily, as early as possible
-            on a qubit resource. alias: ``'asap'``)
+            on a qubit resource. (alias: ``'asap'``)
             * ``'as_late_as_possible'``: Schedule instructions late, i.e. keeping qubits
             in the ground state when possible. (alias: ``'alap'``)
             If ``None``, no scheduling will be done.
         instruction_durations: Durations of instructions.
+            Applicable only if scheduling_method is specified.
             The gate lengths defined in ``backend.properties`` are used as default.
             They are overwritten if this ``instruction_durations`` is specified.
             The format of ``instruction_durations`` must be as follows.
@@ -143,6 +155,27 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
             If the time unit is 'dt', the duration must be an integer.
         dt: Backend sample time (resolution) in seconds.
             If ``None`` (default), ``backend.configuration().dt`` is used.
+        approximation_degree (float): heuristic dial used for circuit approximation
+            (1.0=no approximation, 0.0=maximal approximation)
+        timing_constraints: An optional control hardware restriction on instruction time resolution.
+            A quantum computer backend may report a set of restrictions, namely:
+
+            - granularity: An integer value representing minimum pulse gate
+              resolution in units of ``dt``. A user-defined pulse gate should have
+              duration of a multiple of this granularity value.
+            - min_length: An integer value representing minimum pulse gate
+              length in units of ``dt``. A user-defined pulse gate should be longer
+              than this length.
+            - pulse_alignment: An integer value representing a time resolution of gate
+              instruction starting time. Gate instruction should start at time which
+              is a multiple of the alignment value.
+            - acquire_alignment: An integer value representing a time resolution of measure
+              instruction starting time. Measure instruction should start at time which
+              is a multiple of the alignment value.
+
+            This information will be provided by the backend configuration.
+            If the backend doesn't have any restriction on the instruction time allocation,
+            then ``timing_constraints`` is None and no adjustment will be performed.
         seed_transpiler: Sets random seed for the stochastic parts of the transpiler
         optimization_level: How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,
@@ -205,36 +238,63 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
             return circuits[0]
 
     if pass_manager is not None:
-        _check_conflicting_argument(optimization_level=optimization_level, basis_gates=basis_gates,
-                                    coupling_map=coupling_map, seed_transpiler=seed_transpiler,
-                                    backend_properties=backend_properties,
-                                    initial_layout=initial_layout, layout_method=layout_method,
-                                    routing_method=routing_method,
-                                    translation_method=translation_method,
-                                    backend=backend)
+        _check_conflicting_argument(
+            optimization_level=optimization_level,
+            basis_gates=basis_gates,
+            coupling_map=coupling_map,
+            seed_transpiler=seed_transpiler,
+            backend_properties=backend_properties,
+            initial_layout=initial_layout,
+            layout_method=layout_method,
+            routing_method=routing_method,
+            translation_method=translation_method,
+            approximation_degree=approximation_degree,
+            backend=backend,
+        )
 
-        warnings.warn("The parameter pass_manager in transpile is being deprecated. "
-                      "The preferred way to tranpile a circuit using a custom pass manager is"
-                      " pass_manager.run(circuit)", DeprecationWarning, stacklevel=2)
+        warnings.warn(
+            "The parameter pass_manager in transpile is being deprecated. "
+            "The preferred way to tranpile a circuit using a custom pass manager is"
+            " pass_manager.run(circuit)",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return pass_manager.run(circuits, output_name=output_name, callback=callback)
 
     if optimization_level is None:
         # Take optimization level from the configuration or 1 as default.
         config = user_config.get_config()
-        optimization_level = config.get('transpile_optimization_level', 1)
+        optimization_level = config.get("transpile_optimization_level", 1)
 
     if scheduling_method is not None and backend is None and not instruction_durations:
-        warnings.warn("When scheduling circuits without backend,"
-                      " 'instruction_durations' should be usually provided.",
-                      UserWarning)
+        warnings.warn(
+            "When scheduling circuits without backend,"
+            " 'instruction_durations' should be usually provided.",
+            UserWarning,
+        )
 
     # Get transpile_args to configure the circuit transpilation job(s)
-    transpile_args = _parse_transpile_args(circuits, backend, basis_gates, coupling_map,
-                                           backend_properties, initial_layout,
-                                           layout_method, routing_method, translation_method,
-                                           scheduling_method, instruction_durations, dt,
-                                           seed_transpiler, optimization_level,
-                                           callback, output_name)
+    transpile_args = _parse_transpile_args(
+        circuits,
+        backend,
+        basis_gates,
+        inst_map,
+        coupling_map,
+        backend_properties,
+        initial_layout,
+        layout_method,
+        routing_method,
+        translation_method,
+        scheduling_method,
+        instruction_durations,
+        dt,
+        approximation_degree,
+        seed_transpiler,
+        optimization_level,
+        callback,
+        output_name,
+        timing_constraints,
+    )
 
     _check_circuits_coupling_map(circuits, transpile_args, backend)
 
@@ -253,14 +313,17 @@ def transpile(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
 def _check_conflicting_argument(**kargs):
     conflicting_args = [arg for arg, value in kargs.items() if value]
     if conflicting_args:
-        raise TranspilerError("The parameters pass_manager conflicts with the following "
-                              "parameter(s): {}.".format(', '.join(conflicting_args)))
+        raise TranspilerError(
+            "The parameters pass_manager conflicts with the following "
+            "parameter(s): {}.".format(", ".join(conflicting_args))
+        )
 
 
 def _check_circuits_coupling_map(circuits, transpile_args, backend):
     # Check circuit width against number of qubits in coupling_map(s)
-    coupling_maps_list = list(config['pass_manager_config'].coupling_map for config in
-                              transpile_args)
+    coupling_maps_list = list(
+        config["pass_manager_config"].coupling_map for config in transpile_args
+    )
     for circuit, parsed_coupling_map in zip(circuits, coupling_maps_list):
         # If coupling_map is not None or num_qubits == 1
         num_qubits = len(circuit.qubits)
@@ -273,15 +336,15 @@ def _check_circuits_coupling_map(circuits, transpile_args, backend):
             max_qubits = backend.configuration().n_qubits
 
         if max_qubits is not None and (num_qubits > max_qubits):
-            raise TranspilerError('Number of qubits ({}) '.format(num_qubits) +
-                                  'in {} '.format(circuit.name) +
-                                  'is greater than maximum ({}) '.format(max_qubits) +
-                                  'in the coupling_map')
+            raise TranspilerError(
+                f"Number of qubits ({num_qubits}) in {circuit.name} "
+                f"is greater than maximum ({max_qubits}) in the coupling_map"
+            )
 
 
 def _log_transpile_time(start_time, end_time):
     log_msg = "Total Transpile Time - %.5f (ms)" % ((end_time - start_time) * 1000)
-    LOG.info(log_msg)
+    logger.info(log_msg)
 
 
 def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> QuantumCircuit:
@@ -302,14 +365,15 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
     """
     circuit, transpile_config = circuit_config_tuple
 
-    pass_manager_config = transpile_config['pass_manager_config']
+    pass_manager_config = transpile_config["pass_manager_config"]
 
-    if transpile_config['faulty_qubits_map']:
+    if transpile_config["faulty_qubits_map"]:
         pass_manager_config.initial_layout = _remap_layout_faulty_backend(
-            pass_manager_config.initial_layout, transpile_config['faulty_qubits_map'])
+            pass_manager_config.initial_layout, transpile_config["faulty_qubits_map"]
+        )
 
     # we choose an appropriate one based on desired optimization level
-    level = transpile_config['optimization_level']
+    level = transpile_config["optimization_level"]
 
     if level == 0:
         pass_manager = level_0_pass_manager(pass_manager_config)
@@ -322,28 +386,33 @@ def _transpile_circuit(circuit_config_tuple: Tuple[QuantumCircuit, Dict]) -> Qua
     else:
         raise TranspilerError("optimization_level can range from 0 to 3.")
 
-    result = pass_manager.run(circuit, callback=transpile_config['callback'],
-                              output_name=transpile_config['output_name'])
+    result = pass_manager.run(
+        circuit, callback=transpile_config["callback"], output_name=transpile_config["output_name"]
+    )
 
-    if transpile_config['faulty_qubits_map']:
-        return _remap_circuit_faulty_backend(result, transpile_config['backend_num_qubits'],
-                                             pass_manager_config.backend_properties,
-                                             transpile_config['faulty_qubits_map'])
+    if transpile_config["faulty_qubits_map"]:
+        return _remap_circuit_faulty_backend(
+            result,
+            transpile_config["backend_num_qubits"],
+            pass_manager_config.backend_properties,
+            transpile_config["faulty_qubits_map"],
+        )
 
     return result
 
 
 def _remap_circuit_faulty_backend(circuit, num_qubits, backend_prop, faulty_qubits_map):
     faulty_qubits = backend_prop.faulty_qubits() if backend_prop else []
-    disconnected_qubits = {k for k, v in faulty_qubits_map.items()
-                           if v is None}.difference(faulty_qubits)
+    disconnected_qubits = {k for k, v in faulty_qubits_map.items() if v is None}.difference(
+        faulty_qubits
+    )
     faulty_qubits_map_reverse = {v: k for k, v in faulty_qubits_map.items()}
     if faulty_qubits:
-        faulty_qreg = circuit._create_qreg(len(faulty_qubits), 'faulty')
+        faulty_qreg = circuit._create_qreg(len(faulty_qubits), "faulty")
     else:
         faulty_qreg = []
     if disconnected_qubits:
-        disconnected_qreg = circuit._create_qreg(len(disconnected_qubits), 'disconnected')
+        disconnected_qreg = circuit._create_qreg(len(disconnected_qubits), "disconnected")
     else:
         disconnected_qreg = []
 
@@ -362,13 +431,13 @@ def _remap_circuit_faulty_backend(circuit, num_qubits, backend_prop, faulty_qubi
                 new_layout[real_qubit] = disconnected_qreg[disconnected_qubit]
                 disconnected_qubit += 1
     physical_layout_dict = {}
-    for qubit in circuit.qubits:
-        physical_layout_dict[qubit] = faulty_qubits_map_reverse[qubit.index]
+    for index, qubit in enumerate(circuit.qubits):
+        physical_layout_dict[qubit] = faulty_qubits_map_reverse[index]
     for qubit in faulty_qreg[:] + disconnected_qreg[:]:
         physical_layout_dict[qubit] = new_layout[qubit]
     dag_circuit = circuit_to_dag(circuit)
     apply_layout_pass = ApplyLayout()
-    apply_layout_pass.property_set['layout'] = Layout(physical_layout_dict)
+    apply_layout_pass.property_set["layout"] = Layout(physical_layout_dict)
     circuit = dag_to_circuit(apply_layout_pass.run(dag_circuit))
     circuit._layout = new_layout
     return circuit
@@ -380,18 +449,34 @@ def _remap_layout_faulty_backend(layout, faulty_qubits_map):
     new_layout = Layout()
     for virtual, physical in layout.get_virtual_bits().items():
         if faulty_qubits_map[physical] is None:
-            raise TranspilerError("The initial_layout parameter refers to faulty"
-                                  " or disconnected qubits")
+            raise TranspilerError(
+                "The initial_layout parameter refers to faulty or disconnected qubits"
+            )
         new_layout[virtual] = faulty_qubits_map[physical]
     return new_layout
 
 
-def _parse_transpile_args(circuits, backend,
-                          basis_gates, coupling_map, backend_properties,
-                          initial_layout, layout_method, routing_method, translation_method,
-                          scheduling_method, instruction_durations, dt,
-                          seed_transpiler, optimization_level,
-                          callback, output_name) -> List[Dict]:
+def _parse_transpile_args(
+    circuits,
+    backend,
+    basis_gates,
+    inst_map,
+    coupling_map,
+    backend_properties,
+    initial_layout,
+    layout_method,
+    routing_method,
+    translation_method,
+    scheduling_method,
+    instruction_durations,
+    dt,
+    approximation_degree,
+    seed_transpiler,
+    optimization_level,
+    callback,
+    output_name,
+    timing_constraints,
+) -> List[Dict]:
     """Resolve the various types of args allowed to the transpile() function through
     duck typing, overriding args, etc. Refer to the transpile() docstring for details on
     what types of inputs are allowed.
@@ -407,13 +492,13 @@ def _parse_transpile_args(circuits, backend,
         TranspilerError: If instruction_durations are required but not supplied or found.
     """
     if initial_layout is not None and layout_method is not None:
-        warnings.warn("initial_layout provided; layout_method is ignored.",
-                      UserWarning)
+        warnings.warn("initial_layout provided; layout_method is ignored.", UserWarning)
     # Each arg could be single or a list. If list, it must be the same size as
     # number of circuits. If single, duplicate to create a list of that size.
     num_circuits = len(circuits)
 
     basis_gates = _parse_basis_gates(basis_gates, backend, circuits)
+    inst_map = _parse_inst_map(inst_map, backend, num_circuits)
     faulty_qubits_map = _parse_faulty_qubits_map(backend, num_circuits)
     coupling_map = _parse_coupling_map(coupling_map, backend, num_circuits)
     backend_properties = _parse_backend_properties(backend_properties, backend, num_circuits)
@@ -422,37 +507,65 @@ def _parse_transpile_args(circuits, backend,
     layout_method = _parse_layout_method(layout_method, num_circuits)
     routing_method = _parse_routing_method(routing_method, num_circuits)
     translation_method = _parse_translation_method(translation_method, num_circuits)
+    approximation_degree = _parse_approximation_degree(approximation_degree, num_circuits)
     seed_transpiler = _parse_seed_transpiler(seed_transpiler, num_circuits)
     optimization_level = _parse_optimization_level(optimization_level, num_circuits)
     output_name = _parse_output_name(output_name, circuits)
     callback = _parse_callback(callback, num_circuits)
-
     durations = _parse_instruction_durations(backend, instruction_durations, dt, circuits)
-    scheduling_method = _parse_scheduling_method(scheduling_method, circuits)
-    if scheduling_method and not durations:
-        raise TranspilerError("Transpiling a circuit with a scheduling method or with delay "
-                              "instructions requires a backend or instruction_durations.")
+    scheduling_method = _parse_scheduling_method(scheduling_method, num_circuits)
+    timing_constraints = _parse_timing_constraints(backend, timing_constraints, num_circuits)
+    if scheduling_method and any(d is None for d in durations):
+        raise TranspilerError(
+            "Transpiling a circuit with a scheduling method"
+            "requires a backend or instruction_durations."
+        )
 
     list_transpile_args = []
-    for args in zip(basis_gates, coupling_map, backend_properties, initial_layout,
-                    layout_method, routing_method, translation_method, scheduling_method,
-                    durations, seed_transpiler, optimization_level,
-                    output_name, callback, backend_num_qubits, faulty_qubits_map):
-        transpile_args = {'pass_manager_config': PassManagerConfig(basis_gates=args[0],
-                                                                   coupling_map=args[1],
-                                                                   backend_properties=args[2],
-                                                                   initial_layout=args[3],
-                                                                   layout_method=args[4],
-                                                                   routing_method=args[5],
-                                                                   translation_method=args[6],
-                                                                   scheduling_method=args[7],
-                                                                   instruction_durations=args[8],
-                                                                   seed_transpiler=args[9]),
-                          'optimization_level': args[10],
-                          'output_name': args[11],
-                          'callback': args[12],
-                          'backend_num_qubits': args[13],
-                          'faulty_qubits_map': args[14]}
+    for kwargs in _zip_dict(
+        {
+            "basis_gates": basis_gates,
+            "inst_map": inst_map,
+            "coupling_map": coupling_map,
+            "backend_properties": backend_properties,
+            "initial_layout": initial_layout,
+            "layout_method": layout_method,
+            "routing_method": routing_method,
+            "translation_method": translation_method,
+            "scheduling_method": scheduling_method,
+            "durations": durations,
+            "approximation_degree": approximation_degree,
+            "timing_constraints": timing_constraints,
+            "seed_transpiler": seed_transpiler,
+            "optimization_level": optimization_level,
+            "output_name": output_name,
+            "callback": callback,
+            "backend_num_qubits": backend_num_qubits,
+            "faulty_qubits_map": faulty_qubits_map,
+        }
+    ):
+        transpile_args = {
+            "pass_manager_config": PassManagerConfig(
+                basis_gates=kwargs["basis_gates"],
+                inst_map=kwargs["inst_map"],
+                coupling_map=kwargs["coupling_map"],
+                backend_properties=kwargs["backend_properties"],
+                initial_layout=kwargs["initial_layout"],
+                layout_method=kwargs["layout_method"],
+                routing_method=kwargs["routing_method"],
+                translation_method=kwargs["translation_method"],
+                scheduling_method=kwargs["scheduling_method"],
+                instruction_durations=kwargs["durations"],
+                approximation_degree=kwargs["approximation_degree"],
+                timing_constraints=kwargs["timing_constraints"],
+                seed_transpiler=kwargs["seed_transpiler"],
+            ),
+            "optimization_level": kwargs["optimization_level"],
+            "output_name": kwargs["output_name"],
+            "callback": kwargs["callback"],
+            "backend_num_qubits": kwargs["backend_num_qubits"],
+            "faulty_qubits_map": kwargs["faulty_qubits_map"],
+        }
         list_transpile_args.append(transpile_args)
 
     return list_transpile_args
@@ -460,7 +573,7 @@ def _parse_transpile_args(circuits, backend,
 
 def _create_faulty_qubits_map(backend):
     """If the backend has faulty qubits, those should be excluded. A faulty_qubit_map is a map
-       from working qubit in the backend to dumnmy qubits that are consecutive and connected."""
+    from working qubit in the backend to dummy qubits that are consecutive and connected."""
     faulty_qubits_map = None
     if backend is not None:
         if backend.properties():
@@ -474,9 +587,11 @@ def _create_faulty_qubits_map(backend):
             faulty_qubits_map = {}
             configuration = backend.configuration()
             full_coupling_map = configuration.coupling_map
-            functional_cm_list = [edge for edge in full_coupling_map
-                                  if (set(edge).isdisjoint(faulty_qubits) and
-                                      edge not in faulty_edges)]
+            functional_cm_list = [
+                edge
+                for edge in full_coupling_map
+                if (set(edge).isdisjoint(faulty_qubits) and edge not in faulty_edges)
+            ]
 
             connected_working_qubits = CouplingMap(functional_cm_list).largest_connected_component()
             dummy_qubit_counter = 0
@@ -492,36 +607,62 @@ def _create_faulty_qubits_map(backend):
 def _parse_basis_gates(basis_gates, backend, circuits):
     # try getting basis_gates from user, else backend
     if basis_gates is None:
-        if getattr(backend, 'configuration', None):
-            basis_gates = getattr(backend.configuration(), 'basis_gates', None)
+        if getattr(backend, "configuration", None):
+            basis_gates = getattr(backend.configuration(), "basis_gates", None)
     # basis_gates could be None, or a list of basis, e.g. ['u3', 'cx']
-    if basis_gates is None or (isinstance(basis_gates, list) and
-                               all(isinstance(i, str) for i in basis_gates)):
+    if basis_gates is None or (
+        isinstance(basis_gates, list) and all(isinstance(i, str) for i in basis_gates)
+    ):
         basis_gates = [basis_gates] * len(circuits)
 
     return basis_gates
 
 
+def _parse_inst_map(inst_map, backend, num_circuits):
+    # try getting inst_map from user, else backend
+    if inst_map is None:
+        if hasattr(backend, "defaults"):
+            inst_map = getattr(backend.defaults(), "instruction_schedule_map", None)
+
+    # inst_maps could be None, or single entry
+    if inst_map is None or isinstance(inst_map, InstructionScheduleMap):
+        inst_map = [inst_map] * num_circuits
+
+    return inst_map
+
+
 def _parse_coupling_map(coupling_map, backend, num_circuits):
     # try getting coupling_map from user, else backend
     if coupling_map is None:
-        if getattr(backend, 'configuration', None):
+        if getattr(backend, "configuration", None):
             configuration = backend.configuration()
-            if hasattr(configuration, 'coupling_map') and configuration.coupling_map:
+            if hasattr(configuration, "coupling_map") and configuration.coupling_map:
                 faulty_map = _create_faulty_qubits_map(backend)
                 if faulty_map:
+                    faulty_edges = [gate.qubits for gate in backend.properties().faulty_gates()]
+                    functional_gates = [
+                        edge for edge in configuration.coupling_map if edge not in faulty_edges
+                    ]
                     coupling_map = CouplingMap()
-                    for qubit1, qubit2 in configuration.coupling_map:
+                    for qubit1, qubit2 in functional_gates:
                         if faulty_map[qubit1] is not None and faulty_map[qubit2] is not None:
                             coupling_map.add_edge(faulty_map[qubit1], faulty_map[qubit2])
+                    if configuration.n_qubits != coupling_map.size():
+                        warnings.warn(
+                            "The backend has currently some qubits/edges out of service."
+                            " This temporarily reduces the backend size from "
+                            f"{configuration.n_qubits} to {coupling_map.size()}",
+                            UserWarning,
+                        )
                 else:
                     coupling_map = CouplingMap(configuration.coupling_map)
 
     # coupling_map could be None, or a list of lists, e.g. [[0, 1], [2, 1]]
     if coupling_map is None or isinstance(coupling_map, CouplingMap):
         coupling_map = [coupling_map] * num_circuits
-    elif isinstance(coupling_map, list) and all(isinstance(i, list) and len(i) == 2
-                                                for i in coupling_map):
+    elif isinstance(coupling_map, list) and all(
+        isinstance(i, list) and len(i) == 2 for i in coupling_map
+    ):
         coupling_map = [coupling_map] * num_circuits
 
     coupling_map = [CouplingMap(cm) if isinstance(cm, list) else cm for cm in coupling_map]
@@ -532,10 +673,11 @@ def _parse_coupling_map(coupling_map, backend, num_circuits):
 def _parse_backend_properties(backend_properties, backend, num_circuits):
     # try getting backend_properties from user, else backend
     if backend_properties is None:
-        if getattr(backend, 'properties', None):
+        if getattr(backend, "properties", None):
             backend_properties = backend.properties()
-            if backend_properties and \
-                    (backend_properties.faulty_qubits() or backend_properties.faulty_gates()):
+            if backend_properties and (
+                backend_properties.faulty_qubits() or backend_properties.faulty_gates()
+            ):
                 faulty_qubits = sorted(backend_properties.faulty_qubits(), reverse=True)
                 faulty_edges = [gates.qubits for gates in backend_properties.faulty_gates()]
                 # remove faulty qubits in backend_properties.qubits
@@ -547,14 +689,16 @@ def _parse_backend_properties(backend_properties, backend, num_circuits):
                     # remove gates using faulty edges or with faulty qubits (and remap the
                     # gates in terms of faulty_qubits_map)
                     faulty_qubits_map = _create_faulty_qubits_map(backend)
-                    if any([faulty_qubits_map[qubits] is not None for qubits in gate.qubits]) or \
-                            gate.qubits in faulty_edges:
+                    if (
+                        any(faulty_qubits_map[qubits] is not None for qubits in gate.qubits)
+                        or gate.qubits in faulty_edges
+                    ):
                         continue
                     gate_dict = gate.to_dict()
                     replacement_gate = Gate.from_dict(gate_dict)
-                    gate_dict['qubits'] = [faulty_qubits_map[qubit] for qubit in gate.qubits]
-                    args = '_'.join([str(qubit) for qubit in gate_dict['qubits']])
-                    gate_dict['name'] = "%s%s" % (gate_dict['gate'], args)
+                    gate_dict["qubits"] = [faulty_qubits_map[qubit] for qubit in gate.qubits]
+                    args = "_".join([str(qubit) for qubit in gate_dict["qubits"]])
+                    gate_dict["name"] = "{}{}".format(gate_dict["gate"], args)
                     gates.append(replacement_gate)
 
                 backend_properties.gates = gates
@@ -584,7 +728,7 @@ def _parse_initial_layout(initial_layout, circuits):
             if all(isinstanceint(elem) for elem in initial_layout):
                 initial_layout = Layout.from_intlist(initial_layout, *circuit.qregs)
             elif all(elem is None or isinstance(elem, Qubit) for elem in initial_layout):
-                initial_layout = Layout.from_qubit_list(initial_layout)
+                initial_layout = Layout.from_qubit_list(initial_layout, *circuit.qregs)
         elif isinstance(initial_layout, dict):
             initial_layout = Layout(initial_layout)
         else:
@@ -592,10 +736,13 @@ def _parse_initial_layout(initial_layout, circuits):
         return initial_layout
 
     # multiple layouts?
-    if isinstance(initial_layout, list) and \
-            any(isinstance(i, (list, dict)) for i in initial_layout):
-        initial_layout = [_layout_from_raw(lo, circ) if isinstance(lo, (list, dict)) else lo
-                          for lo, circ in zip(initial_layout, circuits)]
+    if isinstance(initial_layout, list) and any(
+        isinstance(i, (list, dict)) for i in initial_layout
+    ):
+        initial_layout = [
+            _layout_from_raw(lo, circ) if isinstance(lo, (list, dict)) else lo
+            for lo, circ in zip(initial_layout, circuits)
+        ]
     else:
         # even if one layout, but multiple circuits, the layout needs to be adapted for each
         initial_layout = [_layout_from_raw(initial_layout, circ) for circ in circuits]
@@ -624,22 +771,9 @@ def _parse_translation_method(translation_method, num_circuits):
     return translation_method
 
 
-def _parse_scheduling_method(scheduling_method, circuits):
-    """If there is a delay in any circuit, implicitly add a default scheduling method."""
-    def has_delay(circuit):
-        for inst, _, _ in circuit:
-            if isinstance(inst, Delay):
-                return True
-        return False
-
-    if scheduling_method is None:
-        for circ in circuits:
-            if has_delay(circ):
-                scheduling_method = 'alap'
-                break
-
+def _parse_scheduling_method(scheduling_method, num_circuits):
     if not isinstance(scheduling_method, list):
-        scheduling_method = [scheduling_method] * len(circuits)
+        scheduling_method = [scheduling_method] * num_circuits
     return scheduling_method
 
 
@@ -670,10 +804,18 @@ def _parse_instruction_durations(backend, inst_durations, dt, circuits):
             circ_durations.update(cal_durations, circ_durations.dt)
 
         if inst_durations:
-            circ_durations.update(inst_durations, dt or getattr(inst_durations, 'dt', None))
+            circ_durations.update(inst_durations, dt or getattr(inst_durations, "dt", None))
 
         durations.append(circ_durations)
     return durations
+
+
+def _parse_approximation_degree(approximation_degree, num_circuits):
+    if not isinstance(approximation_degree, list):
+        approximation_degree = [approximation_degree] * num_circuits
+    if not all(0.0 <= d <= 1.0 for d in approximation_degree if d):
+        raise TranspilerError("Approximation degree must be in [0.0, 1.0]")
+    return approximation_degree
 
 
 def _parse_seed_transpiler(seed_transpiler, num_circuits):
@@ -721,20 +863,48 @@ def _parse_output_name(output_name, circuits):
                 return [output_name]
             # multiple circuits
             else:
-                raise TranspilerError("Expected a list object of length equal " +
-                                      "to that of the number of circuits " +
-                                      "being transpiled")
+                raise TranspilerError(
+                    "Expected a list object of length equal "
+                    + "to that of the number of circuits "
+                    + "being transpiled"
+                )
         elif isinstance(output_name, list):
-            if len(circuits) == len(output_name) and \
-                    all(isinstance(name, str) for name in output_name):
+            if len(circuits) == len(output_name) and all(
+                isinstance(name, str) for name in output_name
+            ):
                 return output_name
             else:
-                raise TranspilerError("The length of output_name list "
-                                      "must be equal to the number of "
-                                      "transpiled circuits and the output_name "
-                                      "list should be strings.")
+                raise TranspilerError(
+                    "The length of output_name list "
+                    "must be equal to the number of "
+                    "transpiled circuits and the output_name "
+                    "list should be strings."
+                )
         else:
-            raise TranspilerError("The parameter output_name should be a string or a"
-                                  "list of strings: %s was used." % type(output_name))
+            raise TranspilerError(
+                "The parameter output_name should be a string or a"
+                "list of strings: %s was used." % type(output_name)
+            )
     else:
         return [circuit.name for circuit in circuits]
+
+
+def _parse_timing_constraints(backend, timing_constraints, num_circuits):
+
+    if backend is None and timing_constraints is None:
+        timing_constraints = TimingConstraints()
+    else:
+        if timing_constraints is None:
+            # get constraints from backend
+            timing_constraints = getattr(backend.configuration(), "timing_constraints", {})
+        timing_constraints = TimingConstraints(**timing_constraints)
+
+    return [timing_constraints] * num_circuits
+
+
+def _zip_dict(mapping: Dict[Any, Iterable]) -> Iterable[Dict]:
+    """Zip a dictionary where all the values are iterables of the same length into an iterable of
+    dictionaries with the same keys.  This has the same semantics as zip with regard to laziness
+    (over the iterables; there must be a finite number of keys!) and unequal lengths."""
+    keys, iterables = zip(*mapping.items())
+    return (dict(zip(keys, values)) for values in zip(*iterables))

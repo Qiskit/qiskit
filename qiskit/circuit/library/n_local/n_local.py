@@ -12,19 +12,18 @@
 
 """The n-local circuit class."""
 
-import logging
 from typing import Union, Optional, List, Any, Tuple, Sequence, Set, Callable
 from itertools import combinations
+import warnings
 
 import numpy
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit import Instruction, Parameter, ParameterVector, ParameterExpression
 from qiskit.circuit.parametertable import ParameterTable
+from qiskit.exceptions import QiskitError
 
 from ..blueprintcircuit import BlueprintCircuit
-
-logger = logging.getLogger(__name__)
 
 
 class NLocal(BlueprintCircuit):
@@ -65,21 +64,25 @@ class NLocal(BlueprintCircuit):
     If an initial state object of Qiskit Aqua is provided, it is added in front of the NLocal.
     """
 
-    def __init__(self,
-                 num_qubits: Optional[int] = None,
-                 rotation_blocks: Optional[Union[QuantumCircuit, List[QuantumCircuit],
-                                                 Instruction, List[Instruction]]] = None,
-                 entanglement_blocks: Optional[Union[QuantumCircuit, List[QuantumCircuit],
-                                                     Instruction, List[Instruction]]] = None,
-                 entanglement: Optional[Union[List[int], List[List[int]]]] = None,
-                 reps: int = 1,
-                 insert_barriers: bool = False,
-                 parameter_prefix: str = 'θ',
-                 overwrite_block_parameters: Union[bool, List[List[Parameter]]] = True,
-                 skip_final_rotation_layer: bool = False,
-                 skip_unentangled_qubits: bool = False,
-                 initial_state: Optional[Any] = None,
-                 name: Optional[str] = 'nlocal') -> None:
+    def __init__(
+        self,
+        num_qubits: Optional[int] = None,
+        rotation_blocks: Optional[
+            Union[QuantumCircuit, List[QuantumCircuit], Instruction, List[Instruction]]
+        ] = None,
+        entanglement_blocks: Optional[
+            Union[QuantumCircuit, List[QuantumCircuit], Instruction, List[Instruction]]
+        ] = None,
+        entanglement: Optional[Union[List[int], List[List[int]]]] = None,
+        reps: int = 1,
+        insert_barriers: bool = False,
+        parameter_prefix: str = "θ",
+        overwrite_block_parameters: Union[bool, List[List[Parameter]]] = True,
+        skip_final_rotation_layer: bool = False,
+        skip_unentangled_qubits: bool = False,
+        initial_state: Optional[Any] = None,
+        name: Optional[str] = "nlocal",
+    ) -> None:
         """Create a new n-local circuit.
 
         Args:
@@ -87,7 +90,7 @@ class NLocal(BlueprintCircuit):
             rotation_blocks: The blocks used in the rotation layers. If multiple are passed,
                 these will be applied one after another (like new sub-layers).
             entanglement_blocks: The blocks used in the entanglement layers. If multiple are passed,
-                these will be applied one after another. To use different enganglements for
+                these will be applied one after another. To use different entanglements for
                 the sub-layers, see :meth:`get_entangler_map`.
             entanglement: The indices specifying on which qubits the input blocks act. If None, the
                 entanglement blocks are applied at the top of the circuit.
@@ -100,10 +103,8 @@ class NLocal(BlueprintCircuit):
             skip_final_rotation_layer: Whether a final rotation layer is added to the circuit.
             skip_unentangled_qubits: If ``True``, the rotation gates act only on qubits that
                 are entangled. If ``False``, the rotation gates act on all qubits.
-            initial_state: A `qiskit.aqua.components.initial_states.InitialState` object which can
-                be used to describe an initial state prepended to the NLocal circuit. This
-                is primarily for compatibility with algorithms in Qiskit Aqua, which leverage
-                this object to prepare input states.
+            initial_state: A `QuantumCircuit` object which can be used to describe an initial state
+                prepended to the NLocal circuit.
             name: The name of the circuit.
 
         Examples:
@@ -111,9 +112,8 @@ class NLocal(BlueprintCircuit):
 
         Raises:
             ImportError: If an ``initial_state`` is specified but Qiskit Aqua is not installed.
-            TypeError: If an ``initial_state`` is specified but not of the correct type,
-                ``qiskit.aqua.components.initial_states.InitialState``.
             ValueError: If reps parameter is less than or equal to 0.
+            TypeError: If reps parameter is not an int value.
         """
         super().__init__(name=name)
 
@@ -136,8 +136,11 @@ class NLocal(BlueprintCircuit):
         self._data = None
         self._bounds = None
 
-        if reps <= 0:
-            raise ValueError('The value of reps should be larger than or equal to 1')
+        if int(reps) != reps:
+            raise TypeError("The value of reps should be int")
+
+        if reps < 0:
+            raise ValueError("The value of reps should be larger than or equal to 0")
 
         if num_qubits is not None:
             self.num_qubits = num_qubits
@@ -152,15 +155,6 @@ class NLocal(BlueprintCircuit):
             self.entanglement = entanglement
 
         if initial_state is not None:
-            try:
-                from qiskit.aqua.components.initial_states import InitialState
-                if not isinstance(initial_state, InitialState):
-                    raise TypeError('initial_state must be of type InitialState, but is '
-                                    '{}.'.format(type(initial_state)))
-            except ImportError:
-                raise ImportError('Could not import the qiskit.aqua.components.initial_states.'
-                                  'InitialState. To use this feature Qiskit Aqua must be installed.'
-                                  )
             self.initial_state = initial_state
 
     @property
@@ -183,7 +177,7 @@ class NLocal(BlueprintCircuit):
             # invalidate the circuit
             self._invalidate()
             self._num_qubits = num_qubits
-            self.qregs = [QuantumRegister(num_qubits, name='q')]
+            self.qregs = [QuantumRegister(num_qubits, name="q")]
 
     def _convert_to_block(self, layer: Any) -> QuantumCircuit:
         """Try to convert ``layer`` to a QuantumCircuit.
@@ -212,7 +206,7 @@ class NLocal(BlueprintCircuit):
         except AttributeError:
             pass
 
-        raise TypeError('Adding a {} to an NLocal is not supported.'.format(type(layer)))
+        raise TypeError(f"Adding a {type(layer)} to an NLocal is not supported.")
 
     @property
     def rotation_blocks(self) -> List[Instruction]:
@@ -224,8 +218,9 @@ class NLocal(BlueprintCircuit):
         return self._rotation_blocks
 
     @rotation_blocks.setter
-    def rotation_blocks(self, blocks: Union[QuantumCircuit, List[QuantumCircuit],
-                                            Instruction, List[Instruction]]) -> None:
+    def rotation_blocks(
+        self, blocks: Union[QuantumCircuit, List[QuantumCircuit], Instruction, List[Instruction]]
+    ) -> None:
         """Set the blocks in the rotation layers.
 
         Args:
@@ -248,8 +243,9 @@ class NLocal(BlueprintCircuit):
         return self._entanglement_blocks
 
     @entanglement_blocks.setter
-    def entanglement_blocks(self, blocks: Union[QuantumCircuit, List[QuantumCircuit],
-                                                Instruction, List[Instruction]]) -> None:
+    def entanglement_blocks(
+        self, blocks: Union[QuantumCircuit, List[QuantumCircuit], Instruction, List[Instruction]]
+    ) -> None:
         """Set the blocks in the entanglement layers.
 
         Args:
@@ -263,9 +259,19 @@ class NLocal(BlueprintCircuit):
         self._entanglement_blocks = [self._convert_to_block(block) for block in blocks]
 
     @property
-    def entanglement(self) -> Union[str, List[str], List[List[str]], List[int], List[List[int]],
-                                    List[List[List[int]]], List[List[List[List[int]]]],
-                                    Callable[[int], str], Callable[[int], List[List[int]]]]:
+    def entanglement(
+        self,
+    ) -> Union[
+        str,
+        List[str],
+        List[List[str]],
+        List[int],
+        List[List[int]],
+        List[List[List[int]]],
+        List[List[List[List[int]]]],
+        Callable[[int], str],
+        Callable[[int], List[List[int]]],
+    ]:
         """Get the entanglement strategy.
 
         Returns:
@@ -275,11 +281,22 @@ class NLocal(BlueprintCircuit):
         return self._entanglement
 
     @entanglement.setter
-    def entanglement(self, entanglement: Optional[Union[str, List[str], List[List[str]], List[int],
-                                                        List[List[int]], List[List[List[int]]],
-                                                        List[List[List[List[int]]]],
-                                                        Callable[[int], str],
-                                                        Callable[[int], List[List[int]]]]]) -> None:
+    def entanglement(
+        self,
+        entanglement: Optional[
+            Union[
+                str,
+                List[str],
+                List[List[str]],
+                List[int],
+                List[List[int]],
+                List[List[List[int]]],
+                List[List[List[List[int]]]],
+                Callable[[int], str],
+                Callable[[int], List[List[int]]],
+            ]
+        ],
+    ) -> None:
         """Set the entanglement strategy.
 
         Args:
@@ -323,13 +340,13 @@ class NLocal(BlueprintCircuit):
         if self.num_qubits is None:
             valid = False
             if raise_on_failure:
-                raise ValueError('No number of qubits specified.')
+                raise ValueError("No number of qubits specified.")
 
         # check no needed parameters are None
         if self.entanglement_blocks is None and self.rotation_blocks is None:
             valid = False
             if raise_on_failure:
-                raise ValueError('The blocks are not set.')
+                raise ValueError("The blocks are not set.")
 
         return valid
 
@@ -372,12 +389,16 @@ class NLocal(BlueprintCircuit):
                 parameters in the circuit and they are not a ``ParameterVector`` (which could
                 be resized to fit the number of parameters).
         """
-        if not isinstance(parameters, ParameterVector) \
-                and len(parameters) != self.num_parameters_settable:
-            raise ValueError('The length of ordered parameters must be equal to the number of '
-                             'settable parameters in the circuit ({}), but is {}'.format(
-                                 self.num_parameters_settable, len(parameters)
-                             ))
+        if (
+            not isinstance(parameters, ParameterVector)
+            and len(parameters) != self.num_parameters_settable
+        ):
+            raise ValueError(
+                "The length of ordered parameters must be equal to the number of "
+                "settable parameters in the circuit ({}), but is {}".format(
+                    self.num_parameters_settable, len(parameters)
+                )
+            )
         self._ordered_parameters = parameters
         self._invalidate()
 
@@ -449,23 +470,16 @@ class NLocal(BlueprintCircuit):
                 for j in range(self.num_qubits // block.num_qubits)
             ]
             if self._skip_unentangled_qubits:
-                block_indices = [indices for indices in block_indices
-                                 if set(indices).isdisjoint(unentangled_qubits)]
+                block_indices = [
+                    indices
+                    for indices in block_indices
+                    if set(indices).isdisjoint(unentangled_qubits)
+                ]
             num_rot += len(block_indices) * len(get_parameters(block))
 
         num += num_rot * (self._reps + int(not self._skip_final_rotation_layer))
 
         return num
-
-    @property
-    def parameters(self) -> Set[Parameter]:
-        """Get the :class:`~qiskit.circuit.Parameter` objects in the circuit.
-
-        Returns:
-            A set containing the unbound circuit parameters.
-        """
-        self._build()
-        return super().parameters
 
     @property
     def reps(self) -> int:
@@ -480,14 +494,17 @@ class NLocal(BlueprintCircuit):
     def reps(self, repetitions: int) -> None:
         """Set the repetitions.
 
+        If the repetitions are `0`, only one rotation layer with no entanglement
+        layers is applied (unless ``self.skip_final_rotation_layer`` is set to ``True``).
+
         Args:
             repetitions: The new repetitions.
 
         Raises:
-            ValueError: If reps setter has parameter repetitions <= 0.
+            ValueError: If reps setter has parameter repetitions < 0.
         """
-        if repetitions <= 0:
-            raise ValueError('The repetitions should be larger than or equal to 1')
+        if repetitions < 0:
+            raise ValueError("The repetitions should be larger than or equal to 0")
         if repetitions != self._reps:
             self._invalidate()
             self._reps = repetitions
@@ -498,12 +515,12 @@ class NLocal(BlueprintCircuit):
         Returns:
             The class name and the attributes/parameters of the instance as ``str``.
         """
-        ret = 'NLocal: {}\n'.format(self.__class__.__name__)
-        params = ''
+        ret = f"NLocal: {self.__class__.__name__}\n"
+        params = ""
         for key, value in self.__dict__.items():
-            if key[0] == '_':
-                params += '-- {}: {}\n'.format(key[1:], value)
-        ret += '{}'.format(params)
+            if key[0] == "_":
+                params += f"-- {key[1:]}: {value}\n"
+        ret += f"{params}"
         return ret
 
     @property
@@ -515,9 +532,10 @@ class NLocal(BlueprintCircuit):
         """
         return None
 
-    # pylint:disable=too-many-return-statements
-    def get_entangler_map(self, rep_num: int, block_num: int, num_block_qubits: int
-                          ) -> List[List[int]]:
+    # pylint: disable=too-many-return-statements
+    def get_entangler_map(
+        self, rep_num: int, block_num: int, num_block_qubits: int
+    ) -> List[List[int]]:
         """Get the entangler map for in the repetition ``rep_num`` and the block ``block_num``.
 
         The entangler map for the current block is derived from the value of ``self.entanglement``.
@@ -570,48 +588,69 @@ class NLocal(BlueprintCircuit):
 
         # check if entanglement is list of something
         if not isinstance(entanglement, (tuple, list)):
-            raise ValueError('Invalid value of entanglement: {}'.format(entanglement))
+            raise ValueError(f"Invalid value of entanglement: {entanglement}")
         num_i = len(entanglement)
 
         # entanglement is List[str]
-        if all(isinstance(e, str) for e in entanglement):
+        if all(isinstance(en, str) for en in entanglement):
             return get_entangler_map(n, self.num_qubits, entanglement[i % num_i], offset=i)
 
         # entanglement is List[int]
-        if all(isinstance(e, int) for e in entanglement):
-            return [entanglement]
+        if all(isinstance(en, (int, numpy.integer)) for en in entanglement):
+            return [[int(en) for en in entanglement]]
 
         # check if entanglement is List[List]
-        if not all(isinstance(e, (tuple, list)) for e in entanglement):
-            raise ValueError('Invalid value of entanglement: {}'.format(entanglement))
+        if not all(isinstance(en, (tuple, list)) for en in entanglement):
+            raise ValueError(f"Invalid value of entanglement: {entanglement}")
         num_j = len(entanglement[i % num_i])
 
         # entanglement is List[List[str]]
-        if all(isinstance(e2, str) for e in entanglement for e2 in e):
-            return get_entangler_map(n, self.num_qubits, entanglement[i % num_i][j % num_j],
-                                     offset=i)
+        if all(isinstance(e2, str) for en in entanglement for e2 in en):
+            return get_entangler_map(
+                n, self.num_qubits, entanglement[i % num_i][j % num_j], offset=i
+            )
 
         # entanglement is List[List[int]]
-        if all(isinstance(e2, int) for e in entanglement for e2 in e):
+        if all(isinstance(e2, (int, numpy.int32, numpy.int64)) for en in entanglement for e2 in en):
+            for ind, en in enumerate(entanglement):
+                entanglement[ind] = tuple(map(int, en))
             return entanglement
 
         # check if entanglement is List[List[List]]
-        if not all(isinstance(e2, (tuple, list)) for e in entanglement for e2 in e):
-            raise ValueError('Invalid value of entanglement: {}'.format(entanglement))
+        if not all(isinstance(e2, (tuple, list)) for en in entanglement for e2 in en):
+            raise ValueError(f"Invalid value of entanglement: {entanglement}")
 
         # entanglement is List[List[List[int]]]
-        if all(isinstance(e3, int) for e in entanglement for e2 in e for e3 in e2):
+        if all(
+            isinstance(e3, (int, numpy.int32, numpy.int64))
+            for en in entanglement
+            for e2 in en
+            for e3 in e2
+        ):
+            for en in entanglement:
+                for ind, e2 in enumerate(en):
+                    en[ind] = tuple(map(int, e2))
             return entanglement[i % num_i]
 
         # check if entanglement is List[List[List[List]]]
-        if not all(isinstance(e3, (tuple, list)) for e in entanglement for e2 in e for e3 in e2):
-            raise ValueError('Invalid value of entanglement: {}'.format(entanglement))
+        if not all(isinstance(e3, (tuple, list)) for en in entanglement for e2 in en for e3 in e2):
+            raise ValueError(f"Invalid value of entanglement: {entanglement}")
 
         # entanglement is List[List[List[List[int]]]]
-        if all(isinstance(e4, int) for e in entanglement for e2 in e for e3 in e2 for e4 in e3):
+        if all(
+            isinstance(e4, (int, numpy.int32, numpy.int64))
+            for en in entanglement
+            for e2 in en
+            for e3 in e2
+            for e4 in e3
+        ):
+            for en in entanglement:
+                for e2 in en:
+                    for ind, e3 in enumerate(e2):
+                        e2[ind] = tuple(map(int, e3))
             return entanglement[i % num_i][j % num_j]
 
-        raise ValueError('Invalid value of entanglement: {}'.format(entanglement))
+        raise ValueError(f"Invalid value of entanglement: {entanglement}")
 
     @property
     def initial_state(self) -> Any:
@@ -639,13 +678,28 @@ class NLocal(BlueprintCircuit):
         self._initial_state = initial_state
 
         # construct the circuit of the initial state
-        self._initial_state_circuit = initial_state.construct_circuit(mode='circuit')
+        # if initial state is an instance of QuantumCircuit do not call construct circuit
+        if isinstance(self._initial_state, QuantumCircuit):
+            self._initial_state_circuit = self._initial_state.copy()
+        else:
+            warnings.warn(
+                "The initial_state argument of the NLocal class "
+                "should be a QuantumCircuit. Passing any other type is "
+                "deprecated as of Qiskit Terra 0.18.0, and "
+                "will be removed no earlier than 3 months after that "
+                "release date.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self._initial_state_circuit = initial_state.construct_circuit(mode="circuit")
 
         # the initial state dictates the number of qubits since we do not have information
         # about on which qubits the initial state acts
-        if self._num_qubits is not None and \
-                self._initial_state_circuit.num_qubits != self._num_qubits:
-            raise ValueError('Mismatching number of qubits in initial state and n-local circuit.')
+        if (
+            self._num_qubits is not None
+            and self._initial_state_circuit.num_qubits != self._num_qubits
+        ):
+            raise ValueError("Mismatching number of qubits in initial state and n-local circuit.")
 
         self._invalidate()
 
@@ -675,11 +729,12 @@ class NLocal(BlueprintCircuit):
         self._data = None
         self._parameter_table = ParameterTable()
 
-    def add_layer(self,
-                  other: Union['NLocal', Instruction, QuantumCircuit],
-                  entanglement: Optional[Union[List[int], str, List[List[int]]]] = None,
-                  front: bool = False,
-                  ) -> 'NLocal':
+    def add_layer(
+        self,
+        other: Union["NLocal", Instruction, QuantumCircuit],
+        entanglement: Optional[Union[List[int], str, List[List[int]]]] = None,
+        front: bool = False,
+    ) -> "NLocal":
         """Append another layer to the NLocal.
 
         Args:
@@ -718,7 +773,7 @@ class NLocal(BlueprintCircuit):
         # modify the circuit accordingly
         if self._data and front is False:
             if self._insert_barriers and len(self._data) > 0:
-                self.barrier()  # pylint: disable=no-member
+                self.barrier()
 
             if isinstance(entanglement, str):
                 entangler_map = get_entangler_map(block.num_qubits, self.num_qubits, entanglement)
@@ -727,20 +782,22 @@ class NLocal(BlueprintCircuit):
 
             layer = QuantumCircuit(self.num_qubits)
             for i in entangler_map:
-                params = self.ordered_parameters[-len(get_parameters(block)):]
-                parametrized_block = self._parametrize_block(block, params=params)
-                layer.compose(parametrized_block, i)
+                params = self.ordered_parameters[-len(get_parameters(block)) :]
+                parameterized_block = self._parameterize_block(block, params=params)
+                layer.compose(parameterized_block, i)
 
-            self += layer
+            self.compose(layer, inplace=True)
         else:
             # cannot prepend a block currently, just rebuild
             self._invalidate()
 
         return self
 
-    def assign_parameters(self, param_dict: Union[dict, List[float], List[Parameter],
-                                                  ParameterVector],
-                          inplace: bool = False) -> Optional[QuantumCircuit]:
+    def assign_parameters(
+        self,
+        parameters: Union[dict, List[float], List[Parameter], ParameterVector],
+        inplace: bool = False,
+    ) -> Optional[QuantumCircuit]:
         """Assign parameters to the n-local circuit.
 
         This method also supports passing a list instead of a dictionary. If a list
@@ -758,30 +815,40 @@ class NLocal(BlueprintCircuit):
         if self._data is None:
             self._build()
 
-        if not isinstance(param_dict, dict):
-            if len(param_dict) != self.num_parameters:
-                raise AttributeError('If the parameters are provided as list, the size must match '
-                                     'the number of parameters ({}), but {} are given.'.format(
-                                         self.num_parameters, len(param_dict)
-                                     ))
-            unbound_params = [param for param in self._ordered_parameters if
-                              isinstance(param, ParameterExpression)]
+        if not isinstance(parameters, dict):
+            if len(parameters) != self.num_parameters:
+                raise AttributeError(
+                    "If the parameters are provided as list, the size must match "
+                    "the number of parameters ({}), but {} are given.".format(
+                        self.num_parameters, len(parameters)
+                    )
+                )
+            unbound_parameters = [
+                param
+                for param in self._ordered_parameters
+                if isinstance(param, ParameterExpression)
+            ]
 
             # to get a sorted list of unique parameters, keep track of the already used parameters
             # in a set and add the parameters to the unique list only if not existing in the set
             used = set()
-            unbound_unique_params = [param for param in unbound_params
-                                     if param not in used and (used.add(param) or True)]
-            param_dict = dict(zip(unbound_unique_params, param_dict))
+            unbound_unique_parameters = []
+            for param in unbound_parameters:
+                if param not in used:
+                    unbound_unique_parameters.append(param)
+                    used.add(param)
+
+            parameters = dict(zip(unbound_unique_parameters, parameters))
 
         if inplace:
-            new = [param_dict.get(param, param) for param in self.ordered_parameters]
+            new = [parameters.get(param, param) for param in self.ordered_parameters]
             self._ordered_parameters = new
 
-        return super().assign_parameters(param_dict, inplace=inplace)
+        return super().assign_parameters(parameters, inplace=inplace)
 
-    def _parametrize_block(self, block, param_iter=None, rep_num=None, block_num=None, indices=None,
-                           params=None):
+    def _parameterize_block(
+        self, block, param_iter=None, rep_num=None, block_num=None, indices=None, params=None
+    ):
         """Convert ``block`` to a circuit of correct width and parameterized using the iterator."""
         if self._overwrite_block_parameters:
             # check if special parameters should be used
@@ -796,7 +863,7 @@ class NLocal(BlueprintCircuit):
 
         return block.copy()
 
-    def _build_rotation_layer(self, param_iter, i):
+    def _build_rotation_layer(self, circuit, param_iter, i):
         """Build a rotation layer."""
         # if the unentangled qubits are skipped, compute the set of qubits that are not entangled
         if self._skip_unentangled_qubits:
@@ -817,18 +884,21 @@ class NLocal(BlueprintCircuit):
             # if unentangled qubits should not be acted on, remove all operations that
             # touch an unentangled qubit
             if self._skip_unentangled_qubits:
-                block_indices = [indices for indices in block_indices
-                                 if set(indices).isdisjoint(unentangled_qubits)]
+                block_indices = [
+                    indices
+                    for indices in block_indices
+                    if set(indices).isdisjoint(unentangled_qubits)
+                ]
 
             # apply the operations in the layer
             for indices in block_indices:
-                parametrized_block = self._parametrize_block(block, param_iter, i, j, indices)
-                layer.compose(parametrized_block, indices, inplace=True)
+                parameterized_block = self._parameterize_block(block, param_iter, i, j, indices)
+                layer.compose(parameterized_block, indices, inplace=True)
 
             # add the layer to the circuit
-            self += layer
+            circuit.compose(layer, inplace=True)
 
-    def _build_entanglement_layer(self, param_iter, i):
+    def _build_entanglement_layer(self, circuit, param_iter, i):
         """Build an entanglement layer."""
         # iterate over all entanglement blocks
         for j, block in enumerate(self.entanglement_blocks):
@@ -838,30 +908,30 @@ class NLocal(BlueprintCircuit):
 
             # apply the operations in the layer
             for indices in entangler_map:
-                parametrized_block = self._parametrize_block(block, param_iter, i, j, indices)
-                layer.compose(parametrized_block, indices, inplace=True)
+                parameterized_block = self._parameterize_block(block, param_iter, i, j, indices)
+                layer.compose(parameterized_block, indices, inplace=True)
 
             # add the layer to the circuit
-            self += layer
+            circuit.compose(layer, inplace=True)
 
-    def _build_additional_layers(self, which):
-        if which == 'appended':
+    def _build_additional_layers(self, circuit, which):
+        if which == "appended":
             blocks = self._appended_blocks
             entanglements = self._appended_entanglement
-        elif which == 'prepended':
+        elif which == "prepended":
             blocks = reversed(self._prepended_blocks)
             entanglements = reversed(self._prepended_entanglement)
         else:
-            raise ValueError('`which` must be either `appended` or `prepended`.')
+            raise ValueError("`which` must be either `appended` or `prepended`.")
 
-        for i, (block, ent) in enumerate(zip(blocks, entanglements)):
+        for block, ent in zip(blocks, entanglements):
             layer = QuantumCircuit(*self.qregs)
             if isinstance(ent, str):
-                ent = get_entangler_map(block.num_block_qubits, self.num_qubits, ent)
+                ent = get_entangler_map(block.num_qubits, self.num_qubits, ent)
             for indices in ent:
                 layer.compose(block, indices, inplace=True)
 
-            self += layer
+            circuit.compose(layer, inplace=True)
 
     def _build(self) -> None:
         """Build the circuit."""
@@ -875,40 +945,52 @@ class NLocal(BlueprintCircuit):
         if self.num_qubits == 0:
             return
 
-        # use the initial state circuit if it is not None
+        circuit = QuantumCircuit(*self.qregs, name=self.name)
+
+        # use the initial state as starting circuit, if it is set
         if self._initial_state:
-            circuit = self._initial_state.construct_circuit('circuit', register=self.qregs[0])
-            self += circuit
+            if isinstance(self._initial_state, QuantumCircuit):
+                initial = self._initial_state.copy()
+            else:
+                initial = self._initial_state.construct_circuit("circuit", register=self.qregs[0])
+            circuit.compose(initial, inplace=True)
 
         param_iter = iter(self.ordered_parameters)
 
         # build the prepended layers
-        self._build_additional_layers('prepended')
+        self._build_additional_layers(circuit, "prepended")
 
         # main loop to build the entanglement and rotation layers
         for i in range(self.reps):
             # insert barrier if specified and there is a preceding layer
             if self._insert_barriers and (i > 0 or len(self._prepended_blocks) > 0):
-                self.barrier()
+                circuit.barrier()
 
             # build the rotation layer
-            self._build_rotation_layer(param_iter, i)
+            self._build_rotation_layer(circuit, param_iter, i)
 
             # barrier in between rotation and entanglement layer
             if self._insert_barriers and len(self._rotation_blocks) > 0:
-                self.barrier()
+                circuit.barrier()
 
             # build the entanglement layer
-            self._build_entanglement_layer(param_iter, i)
+            self._build_entanglement_layer(circuit, param_iter, i)
 
         # add the final rotation layer
         if not self._skip_final_rotation_layer:
-            if self.insert_barriers:
-                self.barrier()
-            self._build_rotation_layer(param_iter, self.reps)
+            if self.insert_barriers and self.reps > 0:
+                circuit.barrier()
+            self._build_rotation_layer(circuit, param_iter, self.reps)
 
         # add the appended layers
-        self._build_additional_layers('appended')
+        self._build_additional_layers(circuit, "appended")
+
+        try:
+            block = circuit.to_gate()
+        except QiskitError:
+            block = circuit.to_instruction()
+
+        self.append(block, self.qubits)
 
     # pylint: disable=unused-argument
     def _parameter_generator(self, rep: int, block: int, indices: List[int]) -> Optional[Parameter]:
@@ -922,11 +1004,43 @@ class NLocal(BlueprintCircuit):
             A single string representing this NLocal.
         """
         from qiskit.compiler import transpile
-        basis_gates = ['id', 'x', 'y', 'z', 'h', 's', 't', 'sdg', 'tdg', 'rx', 'ry', 'rz',
-                       'rxx', 'ryy', 'cx', 'cy', 'cz', 'ch', 'crx', 'cry', 'crz', 'swap',
-                       'cswap', 'ccx', 'cu1', 'cu3', 'u1', 'u2', 'u3']
-        return transpile(self, basis_gates=basis_gates,
-                         optimization_level=0).draw(output='text').single_string()
+
+        basis_gates = [
+            "id",
+            "x",
+            "y",
+            "z",
+            "h",
+            "s",
+            "t",
+            "sdg",
+            "tdg",
+            "rx",
+            "ry",
+            "rz",
+            "rxx",
+            "ryy",
+            "cx",
+            "cy",
+            "cz",
+            "ch",
+            "crx",
+            "cry",
+            "crz",
+            "swap",
+            "cswap",
+            "ccx",
+            "cu1",
+            "cu3",
+            "u1",
+            "u2",
+            "u3",
+        ]
+        return (
+            transpile(self, basis_gates=basis_gates, optimization_level=0)
+            .draw(output="text")
+            .single_string()
+        )
 
 
 def get_parameters(block: Union[QuantumCircuit, Instruction]) -> List[Parameter]:
@@ -942,8 +1056,9 @@ def get_parameters(block: Union[QuantumCircuit, Instruction]) -> List[Parameter]
         return [p for p in block.params if isinstance(p, ParameterExpression)]
 
 
-def get_entangler_map(num_block_qubits: int, num_circuit_qubits: int, entanglement: str,
-                      offset: int = 0) -> List[Sequence[int]]:
+def get_entangler_map(
+    num_block_qubits: int, num_circuit_qubits: int, entanglement: str, offset: int = 0
+) -> List[Sequence[int]]:
     """Get an entangler map for an arbitrary number of qubits.
 
     Args:
@@ -962,26 +1077,31 @@ def get_entangler_map(num_block_qubits: int, num_circuit_qubits: int, entangleme
     """
     n, m = num_circuit_qubits, num_block_qubits
     if m > n:
-        raise ValueError('The number of block qubits must be smaller or equal to the number of '
-                         'qubits in the circuit.')
+        raise ValueError(
+            "The number of block qubits must be smaller or equal to the number of "
+            "qubits in the circuit."
+        )
 
-    if entanglement == 'pairwise' and num_block_qubits != 2:
-        raise ValueError('Pairwise entanglement is only defined for blocks of 2 qubits.')
+    if entanglement == "pairwise" and num_block_qubits != 2:
+        raise ValueError("Pairwise entanglement is only defined for blocks of 2 qubits.")
 
-    if entanglement == 'full':
+    if entanglement == "full":
         return list(combinations(list(range(n)), m))
-    if entanglement in ['linear', 'circular', 'sca', 'pairwise']:
+    if entanglement in ["linear", "circular", "sca", "pairwise"]:
         linear = [tuple(range(i, i + m)) for i in range(n - m + 1)]
         # if the number of block qubits is 1, we don't have to add the 'circular' part
-        if entanglement == 'linear' or m == 1:
+        if entanglement == "linear" or m == 1:
             return linear
 
-        if entanglement == 'pairwise':
+        if entanglement == "pairwise":
             return linear[::2] + linear[1::2]
 
-        # circular equals linear plus top-bottom entanglement
-        circular = [tuple(range(n - m + 1, n)) + (0,)] + linear
-        if entanglement == 'circular':
+        # circular equals linear plus top-bottom entanglement (if there's space for it)
+        if n > m:
+            circular = [tuple(range(n - m + 1, n)) + (0,)] + linear
+        else:
+            circular = linear
+        if entanglement == "circular":
             return circular
 
         # sca is circular plus shift and reverse
@@ -994,4 +1114,4 @@ def get_entangler_map(num_block_qubits: int, num_circuit_qubits: int, entangleme
         return sca
 
     else:
-        raise ValueError('Unsupported entanglement type: {}'.format(entanglement))
+        raise ValueError(f"Unsupported entanglement type: {entanglement}")

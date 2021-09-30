@@ -27,10 +27,9 @@ from qiskit import exceptions
 class Counts(dict):
     """A class to store a counts result from a circuit execution."""
 
-    bitstring_regex = re.compile(r'^[01\s]+$')
+    bitstring_regex = re.compile(r"^[01\s]+$")
 
-    def __init__(self, data, time_taken=None, creg_sizes=None,
-                 memory_slots=None):
+    def __init__(self, data, time_taken=None, creg_sizes=None, memory_slots=None):
         """Build a counts object
 
         Args:
@@ -39,7 +38,7 @@ class Counts(dict):
                 integer the number of shots with that result.
                 The keys can be one of several formats:
 
-                     * A hexademical string of the form ``"0x4a"``
+                     * A hexadecimal string of the form ``"0x4a"``
                      * A bit string prefixed with ``0b`` for example ``'0b1011'``
                      * A bit string formatted across register and memory slots.
                        For example, ``'00 10'``.
@@ -71,18 +70,14 @@ class Counts(dict):
             first_key = next(iter(data.keys()))
             if isinstance(first_key, int):
                 self.int_raw = data
-                self.hex_raw = {
-                    hex(key): value for key, value in self.int_raw.items()}
+                self.hex_raw = {hex(key): value for key, value in self.int_raw.items()}
             elif isinstance(first_key, str):
-                if first_key.startswith('0x'):
+                if first_key.startswith("0x"):
                     self.hex_raw = data
-                    self.int_raw = {
-                        int(key, 0): value for key, value in self.hex_raw.items()}
-                elif first_key.startswith('0b'):
-                    self.int_raw = {
-                        int(key, 0): value for key, value in data.items()}
-                    self.hex_raw = {
-                        hex(key): value for key, value in self.int_raw.items()}
+                    self.int_raw = {int(key, 0): value for key, value in self.hex_raw.items()}
+                elif first_key.startswith("0b"):
+                    self.int_raw = {int(key, 0): value for key, value in data.items()}
+                    self.hex_raw = {hex(key): value for key, value in self.int_raw.items()}
                 else:
                     if not creg_sizes and not memory_slots:
                         self.hex_raw = None
@@ -94,24 +89,27 @@ class Counts(dict):
                         for bitstring, value in data.items():
                             if not self.bitstring_regex.search(bitstring):
                                 raise exceptions.QiskitError(
-                                    'Counts objects with dit strings do not '
-                                    'currently support dit string formatting parameters '
-                                    'creg_sizes or memory_slots')
-                            int_key = int(bitstring.replace(" ", ""), 2)
+                                    "Counts objects with dit strings do not "
+                                    "currently support dit string formatting parameters "
+                                    "creg_sizes or memory_slots"
+                                )
+                            int_key = self._remove_space_underscore(bitstring)
                             int_dict[int_key] = value
                             hex_dict[hex(int_key)] = value
                         self.hex_raw = hex_dict
                         self.int_raw = int_dict
             else:
-                raise TypeError("Invalid input key type %s, must be either an int "
-                                "key or string key with hexademical value or bit string")
+                raise TypeError(
+                    "Invalid input key type %s, must be either an int "
+                    "key or string key with hexademical value or bit string"
+                )
         header = {}
         self.creg_sizes = creg_sizes
         if self.creg_sizes:
-            header['creg_sizes'] = self.creg_sizes
+            header["creg_sizes"] = self.creg_sizes
         self.memory_slots = memory_slots
         if self.memory_slots:
-            header['memory_slots'] = self.memory_slots
+            header["memory_slots"] = self.memory_slots
         if not bin_data:
             bin_data = postprocess.format_counts(self.hex_raw, header=header)
         super().__init__(bin_data)
@@ -127,18 +125,17 @@ class Counts(dict):
                 an empty object.
         """
         if not self:
-            raise exceptions.QiskitError(
-                "Can not return a most frequent count on an empty object")
+            raise exceptions.QiskitError("Can not return a most frequent count on an empty object")
         max_value = max(self.values())
         max_values_counts = [x[0] for x in self.items() if x[1] == max_value]
         if len(max_values_counts) != 1:
             raise exceptions.QiskitError(
-                "Multiple values have the same maximum counts: %s" %
-                ','.join(max_values_counts))
+                "Multiple values have the same maximum counts: %s" % ",".join(max_values_counts)
+            )
         return max_values_counts[0]
 
     def hex_outcomes(self):
-        """Return a counts dictionary with hexademical string keys
+        """Return a counts dictionary with hexadecimal string keys
 
         Returns:
             dict: A dictionary with the keys as hexadecimal strings instead of
@@ -153,9 +150,10 @@ class Counts(dict):
             for bitstring, value in self.items():
                 if not self.bitstring_regex.search(bitstring):
                     raise exceptions.QiskitError(
-                        'Counts objects with dit strings do not '
-                        'currently support conversion to hexadecimal')
-                int_key = int(bitstring.replace(" ", ""), 2)
+                        "Counts objects with dit strings do not "
+                        "currently support conversion to hexadecimal"
+                    )
+                int_key = self._remove_space_underscore(bitstring)
                 out_dict[hex(int_key)] = value
             return out_dict
 
@@ -174,8 +172,14 @@ class Counts(dict):
             for bitstring, value in self.items():
                 if not self.bitstring_regex.search(bitstring):
                     raise exceptions.QiskitError(
-                        'Counts objects with dit strings do not '
-                        'currently support conversion to integer')
-                int_key = int(bitstring.replace(" ", ""), 2)
+                        "Counts objects with dit strings do not "
+                        "currently support conversion to integer"
+                    )
+                int_key = self._remove_space_underscore(bitstring)
                 out_dict[int_key] = value
             return out_dict
+
+    @staticmethod
+    def _remove_space_underscore(bitstring):
+        """Removes all spaces and underscores from bitstring"""
+        return int(bitstring.replace(" ", "").replace("_", ""), 2)

@@ -13,11 +13,14 @@
 """Rotation around the X axis."""
 
 import math
+from typing import Optional, Union
 import numpy
+
 from qiskit.qasm import pi
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.parameterexpression import ParameterValueType
 
 
 class RXGate(Gate):
@@ -44,9 +47,9 @@ class RXGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, theta, label=None):
+    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new RX gate."""
-        super().__init__('rx', 1, [theta], label=label)
+        super().__init__("rx", 1, [theta], label=label)
 
     def _define(self):
         """
@@ -55,18 +58,22 @@ class RXGate(Gate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .r import RGate
-        q = QuantumRegister(1, 'q')
+
+        q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (RGate(self.params[0], 0), [q[0]], [])
-        ]
+        rules = [(RGate(self.params[0], 0), [q[0]], [])]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 
         self.definition = qc
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Return a (mutli-)controlled-RX gate.
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
+        """Return a (multi-)controlled-RX gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
@@ -94,8 +101,7 @@ class RXGate(Gate):
         """Return a numpy.array for the RX gate."""
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)
-        return numpy.array([[cos, -1j * sin],
-                            [-1j * sin, cos]], dtype=dtype)
+        return numpy.array([[cos, -1j * sin], [-1j * sin, cos]], dtype=dtype)
 
 
 class CRXGate(ControlledGate):
@@ -153,11 +159,22 @@ class CRXGate(ControlledGate):
                 \end{pmatrix}
     """
 
-    def __init__(self, theta, label=None, ctrl_state=None):
+    def __init__(
+        self,
+        theta: ParameterValueType,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Create new CRX gate."""
-        super().__init__('crx', 2, [theta], num_ctrl_qubits=1,
-                         label=label, ctrl_state=ctrl_state,
-                         base_gate=RXGate(theta))
+        super().__init__(
+            "crx",
+            2,
+            [theta],
+            num_ctrl_qubits=1,
+            label=label,
+            ctrl_state=ctrl_state,
+            base_gate=RXGate(theta),
+        )
 
     def _define(self):
         """
@@ -174,14 +191,15 @@ class CRXGate(ControlledGate):
         from .u1 import U1Gate
         from .u3 import U3Gate
         from .x import CXGate
-        q = QuantumRegister(2, 'q')
+
+        q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
             (U1Gate(pi / 2), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
             (U3Gate(-self.params[0] / 2, 0, 0), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
-            (U3Gate(self.params[0] / 2, -pi / 2, 0), [q[1]], [])
+            (U3Gate(self.params[0] / 2, -pi / 2, 0), [q[1]], []),
         ]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
@@ -198,14 +216,10 @@ class CRXGate(ControlledGate):
         cos = numpy.cos(half_theta)
         isin = 1j * numpy.sin(half_theta)
         if self.ctrl_state:
-            return numpy.array([[1, 0, 0, 0],
-                                [0, cos, 0, -isin],
-                                [0, 0, 1, 0],
-                                [0, -isin, 0, cos]],
-                               dtype=dtype)
+            return numpy.array(
+                [[1, 0, 0, 0], [0, cos, 0, -isin], [0, 0, 1, 0], [0, -isin, 0, cos]], dtype=dtype
+            )
         else:
-            return numpy.array([[cos, 0, -isin, 0],
-                                [0, 1, 0, 0],
-                                [-isin, 0, cos, 0],
-                                [0, 0, 0, 1]],
-                               dtype=dtype)
+            return numpy.array(
+                [[cos, 0, -isin, 0], [0, 1, 0, 0], [-isin, 0, cos, 0], [0, 0, 0, 1]], dtype=dtype
+            )

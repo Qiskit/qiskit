@@ -19,6 +19,7 @@ from ddt import ddt
 
 import numpy as np
 
+from qiskit import QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.operators import Operator
 import qiskit.circuit.library.templates as templib
@@ -30,6 +31,10 @@ class TestTemplates(QiskitTestCase):
 
     circuits = [o[1]() for o in getmembers(templib) if isfunction(o[1])]
 
+    for circuit in circuits:
+        if isinstance(circuit, QuantumCircuit):
+            circuit.assign_parameters({param: 0.2 for param in circuit.parameters}, inplace=True)
+
     @combine(template_circuit=circuits)
     def test_template(self, template_circuit):
         """test to verify that all templates are equivalent to the identity"""
@@ -39,5 +44,5 @@ class TestTemplates(QiskitTestCase):
         self.assertTrue(target.equiv(value))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

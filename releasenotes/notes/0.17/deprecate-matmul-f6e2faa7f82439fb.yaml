@@ -1,0 +1,50 @@
+---
+features:
+  - |
+    Adds a ``&`` (``__and__``) binary operator to ``BaseOperator`` subclasses
+    (eg :class:`qiskit.quantum_info.Operator`) in the
+    :mod:`qiskit.quantum_info` module. This is shorthand to call the
+    classes :meth:`~qiskit.quantum_info.compose` method
+    (ie ``A & B == A.compose(B)``).
+
+    For example:
+
+    .. code:: python
+    
+      import qiskit.quantum_info as qi
+
+      qi.Pauli('X') & qi.Pauli('Y')
+  - |
+    Adds a ``&`` (``__and__``) binary operator to
+    :class:`qiskit.quantum_info.Statevector` and
+    :class:`qiskit.quantum_info.DensityMatrix` classes. This is shorthand to
+    call the classes :meth:`~qiskit.quantum_info.Statevector.evolve` method
+    (ie ``psi & U == psi.evolve(U)``).
+
+    For example:
+
+    .. code:: python
+    
+      import qiskit.quantum_info as qi
+
+      qi.Statevector.from_label('0') & qi.Pauli('X')
+deprecations:
+  - |
+    Using ``@`` (``__matmul__``) for invoking the ``compose`` method
+    of ``BaseOperator`` subclasses (eg :class:`~qiskit.quantum_info.Operator`)
+    is deprecated and will be removed in a future release. The
+    :meth:`qiskit.quantum_info.Operator.compose` method can be used directly or
+    also invoked using the ``&`` (``__and__``) operator.
+  - |
+    Using ``*`` (``__mul__``) for calling the
+    :meth:`~qiskit.quantum_info.Operator.dot` method of ``BaseOperator``
+    subclasses (eg :class:`qiskit.quantum_info.Operator`) is deprecated and
+    will be removed in a future release. Instead you can just call the
+    :meth:`~qiskit.quantum_info.Operator.dot` directly.
+  - |
+    Using ``@`` (``__matmul__``) for invoking the
+    :meth:`~qiskit.quantum_info.Statevector.evolve` method
+    of the :class:`qiskit.quantum_info.Statevector` and
+    :class:`qiskit.quantum_info.DensityMatrix` classes is deprecated and will
+    be removed in a future release.. The ``evolve`` method can be used directly
+    or also invoked using the ``&`` (``__and__``) operator.

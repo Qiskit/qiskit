@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name, missing-return-type-doc
+# pylint: disable=missing-return-type-doc
 
 """Qiskit pulse drawer.
 
@@ -24,24 +24,27 @@ the configured canvas is passed to the one of plotter APIs to generate visualiza
 from typing import Union, Optional, Dict, Any, Tuple, List
 
 from qiskit.providers import BaseBackend
-from qiskit.pulse import Waveform, ParametricPulse, Schedule
+from qiskit.pulse import Waveform, ParametricPulse, Schedule, ScheduleBlock
 from qiskit.pulse.channels import Channel
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import core, device_info, stylesheet, types
+from qiskit.exceptions import MissingOptionalLibraryError
 
 
-def draw(program: Union[Waveform, ParametricPulse, Schedule],
-         style: Optional[Dict[str, Any]] = None,
-         backend: Optional[BaseBackend] = None,
-         time_range: Optional[Tuple[int, int]] = None,
-         time_unit: str = types.TimeUnits.CYCLES.value,
-         disable_channels: Optional[List[Channel]] = None,
-         show_snapshot: bool = True,
-         show_framechange: bool = True,
-         show_waveform_info: bool = True,
-         show_barrier: bool = True,
-         plotter: str = types.Plotter.Mpl2D.value,
-         axis: Optional[Any] = None):
+def draw(
+    program: Union[Waveform, ParametricPulse, Schedule, ScheduleBlock],
+    style: Optional[Dict[str, Any]] = None,
+    backend: Optional[BaseBackend] = None,
+    time_range: Optional[Tuple[int, int]] = None,
+    time_unit: str = types.TimeUnits.CYCLES.value,
+    disable_channels: Optional[List[Channel]] = None,
+    show_snapshot: bool = True,
+    show_framechange: bool = True,
+    show_waveform_info: bool = True,
+    show_barrier: bool = True,
+    plotter: str = types.Plotter.Mpl2D.value,
+    axis: Optional[Any] = None,
+):
     """Generate visualization data for pulse programs.
 
     Args:
@@ -214,10 +217,10 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
             with the chart. If the minimum height is above this value, this value is set
             as the chart bottom (default -0.1).
         formatter.box_width.opaque_shape: Default box length of the waveform representation
-            when the instruction is parametrized and duration is not bound or not defined.
+            when the instruction is parameterized and duration is not bound or not defined.
             Value is units in dt (default: 150).
         formatter.box_height.opaque_shape: Default box height of the waveform representation
-            when the instruction is parametrized (default: 0.4).
+            when the instruction is parameterized (default: 0.4).
         formatter.axis_break.length: Waveform or idle time duration that axis break is
             applied. Intervals longer than this value are truncated.
             The value is in units of data points (default `3000`).
@@ -243,19 +246,19 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
             snapshot. This text is used when the plotter doesn't support latex
             (default u'\u21AF').
         formatter.unicode_symbol.phase_parameter: Text that represents the symbol of
-            parametrized phase value. This text is used when the plotter doesn't support latex
+            parameterized phase value. This text is used when the plotter doesn't support latex
             (default u'\u03b8').
         formatter.unicode_symbol.freq_parameter: Text that represents the symbol of
-            parametrized frequency value. This text is used when the plotter doesn't support latex
+            parameterized frequency value. This text is used when the plotter doesn't support latex
             (default 'f').
         formatter.latex_symbol.frame_change: Latex text that represents the symbol of
             frame change (default r'\\circlearrowleft').
         formatter.latex_symbol.snapshot: Latex text that represents the symbol of
             snapshot (default '').
         formatter.latex_symbol.phase_parameter: Latex text that represents the symbol of
-            parametrized phase value (default r'\theta').
+            parameterized phase value (default r'\theta').
         formatter.latex_symbol.freq_parameter: Latex text that represents the symbol of
-            parametrized frequency value (default 'f').
+            parameterized frequency value (default 'f').
         generator.waveform: List of callback functions that generates drawing
             for waveforms. Arbitrary callback functions satisfying the generator format
             can be set here. There are some default generators in the pulse drawer.
@@ -369,7 +372,7 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
         without modifying the codebase.
 
     Raises:
-        ImportError: When required visualization package is not installed.
+        MissingOptionalLibraryError: When required visualization package is not installed.
         VisualizationError: When invalid plotter API or invalid time range is specified.
     """
     temp_style = stylesheet.QiskitPulseStyle()
@@ -395,8 +398,7 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
         elif time_unit == types.TimeUnits.NS.value:
             canvas.set_time_range(*time_range, seconds=True)
         else:
-            raise VisualizationError('Invalid time unit {unit} is '
-                                     'specified.'.format(unit=time_unit))
+            raise VisualizationError(f"Invalid time unit {time_unit} is specified.")
 
     # channels not shown
     if disable_channels:
@@ -431,12 +433,15 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule],
     if plotter == types.Plotter.Mpl2D.value:
         try:
             from qiskit.visualization.pulse_v2.plotters import Mpl2DPlotter
-        except ImportError:
-            raise ImportError('Must have Matplotlib installed.')
-
+        except ImportError as ex:
+            raise MissingOptionalLibraryError(
+                libname="Matplotlib",
+                name="plot_histogram",
+                pip_install="pip install matplotlib",
+            ) from ex
         plotter_api = Mpl2DPlotter(canvas=canvas, axis=axis)
         plotter_api.draw()
     else:
-        raise VisualizationError('Plotter API {name} is not supported.'.format(name=plotter))
+        raise VisualizationError(f"Plotter API {plotter} is not supported.")
 
     return plotter_api.get_image()

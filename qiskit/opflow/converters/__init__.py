@@ -12,7 +12,7 @@
 
 """
 Converters (:mod:`qiskit.opflow.converters`)
-====================================================
+============================================
 
 .. currentmodule:: qiskit.opflow.converters
 
@@ -36,29 +36,29 @@ Note:
      and :mod:`~qiskit.opflow.evolutions` are also converters.
 
 Converter Base Class
-====================
+--------------------
 The converter base class simply enforces the presence of a :meth:`~ConverterBase.convert` method.
 
 .. autosummary::
    :toctree: ../stubs/
-   :nosignatures:
+   :template: autosummary/class_no_inherited_members.rst
 
    ConverterBase
 
 Converters
-==========
+----------
 In addition to the base class, directory holds a few miscellaneous converters which are used
 frequently around the Operator flow.
 
 .. autosummary::
    :toctree: ../stubs/
-   :nosignatures:
+   :template: autosummary/class_no_inherited_members.rst
 
    CircuitSampler
    AbelianGrouper
    DictToCircuitSum
    PauliBasisChange
-
+   TwoQubitReduction
 """
 
 from .converter_base import ConverterBase
@@ -66,9 +66,13 @@ from .circuit_sampler import CircuitSampler
 from .pauli_basis_change import PauliBasisChange
 from .dict_to_circuit_sum import DictToCircuitSum
 from .abelian_grouper import AbelianGrouper
+from .two_qubit_reduction import TwoQubitReduction
 
-__all__ = ['ConverterBase',
-           'CircuitSampler',
-           'PauliBasisChange',
-           'DictToCircuitSum',
-           'AbelianGrouper']
+__all__ = [
+    "ConverterBase",
+    "CircuitSampler",
+    "PauliBasisChange",
+    "DictToCircuitSum",
+    "AbelianGrouper",
+    "TwoQubitReduction",
+]

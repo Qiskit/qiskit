@@ -1,0 +1,18 @@
+---
+upgrade:
+  - |
+    The :class:`~qiskit.circuit.library.QFT` class in the
+    :mod:`qiskit.circuit.library` module now computes the Fourier transform
+    using a little-endian representation of tensors, i.e. the state
+    :math:`|1\rangle` maps to :math:`|0\rangle - |1\rangle + |2\rangle - ..`
+    assuming the computational basis correspond to little-endian bit ordering
+    of the integers. :math:`|0\rangle = |000\rangle, |1\rangle = |001\rangle`,
+    etc. This was done to make it more consistent with the rest of Qiskit,
+    which uses a little-endian convention for bit order. If you were depending
+    on the previous bit order you can use the
+    :meth:`~qiskit.circuit.library.QFT.reverse_bits` method to revert to the
+    previous behavior. For example::
+
+      from qiskit.circuit.library import QFT
+
+      qft = QFT(5).reverse_bits()

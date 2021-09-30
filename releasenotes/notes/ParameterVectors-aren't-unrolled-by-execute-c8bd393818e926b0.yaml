@@ -1,9 +1,0 @@
----
-fixes:
-  - |
-    Fixed issue where circuit.execute would raise exception when 
-    ParameterVectors were passed in the parameter_bind parameter.
-    Refer to `#5467 <https://github.com/Qiskit/qiskit-terra/issues/5467>` for more
-    details. 
-    It is now possible to call:
-    execute(circuit, backend, parameter_binds=[{pv1: [...], pv2: [...]}])

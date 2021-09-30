@@ -18,12 +18,17 @@ directed edges indicate which physical qubits are coupled and the permitted dire
 CNOT gates. The object has a distance function that can be used to map quantum circuits
 onto a device with this coupling.
 """
+
 import io
+import warnings
+
 import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
 import retworkx as rx
+
 from qiskit.transpiler.exceptions import CouplingError
+from qiskit.exceptions import MissingOptionalLibraryError
 
 
 class CouplingMap:
@@ -41,6 +46,8 @@ class CouplingMap:
         Args:
             couplinglist (list or None): An initial coupling graph, specified as
                 an adjacency list containing couplings, e.g. [[0,1], [0,2], [1,2]].
+                It is required that nodes are contiguously indexed starting at 0.
+                Missed nodes will be added as isolated nodes in the coupling map.
             description (str): A string to describe the coupling map.
         """
         self.description = description
@@ -85,7 +92,8 @@ class CouplingMap:
             raise CouplingError("Physical qubits should be integers.")
         if physical_qubit in self.physical_qubits:
             raise CouplingError(
-                "The physical qubit %s is already in the coupling graph" % physical_qubit)
+                "The physical qubit %s is already in the coupling graph" % physical_qubit
+            )
         self.graph.add_node(physical_qubit)
         self._dist_matrix = None  # invalidate
         self._qubit_list = None  # invalidate
@@ -111,11 +119,15 @@ class CouplingMap:
 
         nodelist (list): list of integer node labels
         """
+        warnings.warn(
+            "The .subgraph() method is deprecated and will be removed in a "
+            "future release. Instead the .reduce() method should be used "
+            "instead which does the same thing but preserves nodelist order.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         subcoupling = CouplingMap()
         subcoupling.graph = self.graph.subgraph(nodelist)
-        for node in nodelist:
-            if node not in subcoupling.physical_qubits:
-                subcoupling.add_physical_qubit(node)
         return subcoupling
 
     @property
@@ -194,10 +206,12 @@ class CouplingMap:
             CouplingError: When there is no path between physical_qubit1, physical_qubit2.
         """
         paths = rx.digraph_dijkstra_shortest_paths(
-            self.graph, source=physical_qubit1, target=physical_qubit2, as_undirected=True)
+            self.graph, source=physical_qubit1, target=physical_qubit2, as_undirected=True
+        )
         if not paths:
             raise CouplingError(
-                "Nodes %s and %s are not connected" % (str(physical_qubit1), str(physical_qubit2)))
+                f"Nodes {str(physical_qubit1)} and {str(physical_qubit2)} are not connected"
+            )
         return paths[physical_qubit2]
 
     @property
@@ -262,18 +276,17 @@ class CouplingMap:
         cols = np.array([edge[1] for edge in reduced_cmap], dtype=int)
         data = np.ones_like(rows)
 
-        mat = sp.coo_matrix((data, (rows, cols)),
-                            shape=(reduced_qubits, reduced_qubits)).tocsr()
+        mat = sp.coo_matrix((data, (rows, cols)), shape=(reduced_qubits, reduced_qubits)).tocsr()
 
         if cs.connected_components(mat)[0] != 1:
-            raise CouplingError('coupling_map must be connected.')
+            raise CouplingError("coupling_map must be connected.")
 
         return CouplingMap(reduced_cmap)
 
     @classmethod
     def from_full(cls, num_qubits, bidirectional=True):
         """Return a fully connected coupling map on n qubits."""
-        cmap = cls(description='full')
+        cmap = cls(description="full")
         if bidirectional:
             cmap.graph = rx.generators.directed_mesh_graph(num_qubits)
         else:
@@ -287,37 +300,105 @@ class CouplingMap:
     @classmethod
     def from_line(cls, num_qubits, bidirectional=True):
         """Return a fully connected coupling map on n qubits."""
-        cmap = cls(description='line')
-        cmap.graph = rx.generators.directed_path_graph(
-            num_qubits, bidirectional=bidirectional)
+        cmap = cls(description="line")
+        cmap.graph = rx.generators.directed_path_graph(num_qubits, bidirectional=bidirectional)
         return cmap
 
     @classmethod
     def from_ring(cls, num_qubits, bidirectional=True):
         """Return a fully connected coupling map on n qubits."""
-        cmap = cls(description='ring')
-        cmap.graph = rx.generators.directed_cycle_graph(
-            num_qubits, bidirectional=bidirectional)
+        cmap = cls(description="ring")
+        cmap.graph = rx.generators.directed_cycle_graph(num_qubits, bidirectional=bidirectional)
         return cmap
 
     @classmethod
     def from_grid(cls, num_rows, num_columns, bidirectional=True):
         """Return qubits connected on a grid of num_rows x num_columns."""
-        cmap = cls(description='grid')
+        cmap = cls(description="grid")
         cmap.graph = rx.generators.directed_grid_graph(
-            num_rows, num_columns, bidirectional=bidirectional)
+            num_rows, num_columns, bidirectional=bidirectional
+        )
+        return cmap
+
+    @classmethod
+    def from_heavy_hex(cls, distance, bidirectional=True):
+        """Return a heavy hexagon graph coupling map
+
+        A heavy hexagon graph is described in:
+
+        https://journals.aps.org/prx/abstract/10.1103/PhysRevX.10.011022
+
+        Args:
+            distance (int): The code distance for the generated heavy hex
+                graph. The value for distance can be any odd positive integer.
+                The distance relates to the number of qubits by:
+                :math:`n = \\frac{5d^2 - 2d - 1}{2}` where :math:`n` is the
+                number of qubits and :math:`d` is the ``distance`` parameter.
+            bidirectional (bool): Whether the edges in the output coupling
+                graph are bidirectional or not. By default this is set to
+                ``True``
+        Returns:
+            CouplingMap: A heavy hex coupling graph
+        """
+        cmap = cls(description="heavy-hex")
+        cmap.graph = rx.generators.directed_heavy_hex_graph(distance, bidirectional=bidirectional)
+        return cmap
+
+    @classmethod
+    def from_heavy_square(cls, distance, bidirectional=True):
+        """Return a heavy square graph coupling map.
+
+        A heavy square graph is described in:
+
+        https://journals.aps.org/prx/abstract/10.1103/PhysRevX.10.011022
+
+        Args:
+            distance (int): The code distance for the generated heavy square
+                graph. The value for distance can be any odd positive integer.
+                The distance relates to the number of qubits by:
+                :math:`n = 3d^2 - 2d` where :math:`n` is the
+                number of qubits and :math:`d` is the ``distance`` parameter.
+            bidirectional (bool): Whether the edges in the output coupling
+                graph are bidirectional or not. By default this is set to
+                ``True``
+        Returns:
+            CouplingMap: A heavy square coupling graph
+        """
+        cmap = cls(description="heavy-square")
+        cmap.graph = rx.generators.directed_heavy_square_graph(
+            distance, bidirectional=bidirectional
+        )
+        return cmap
+
+    @classmethod
+    def from_hexagonal_lattice(cls, rows, cols, bidirectional=True):
+        """Return a hexagonal lattice graph coupling map.
+
+        Args:
+            rows (int): The number of rows to generate the graph with.
+            cols (int): The number of columns to generate the graph with.
+            bidirectional (bool): Whether the edges in the output coupling
+                graph are bidirectional or not. By default this is set to
+                ``True``
+        Returns:
+            CouplingMap: A hexagonal lattice coupling graph
+        """
+        cmap = cls(description="hexagonal-lattice")
+        cmap.graph = rx.generators.directed_hexagonal_lattice_graph(
+            rows, cols, bidirectional=bidirectional
+        )
         return cmap
 
     def largest_connected_component(self):
         """Return a set of qubits in the largest connected component."""
-        return max(rx.strongly_connected_components(self.graph), key=len)
+        return max(rx.weakly_connected_components(self.graph), key=len)
 
     def __str__(self):
         """Return a string representation of the coupling graph."""
         string = ""
         if self.get_edges():
             string += "["
-            string += ", ".join(["[%s, %s]" % (src, dst) for (src, dst) in self.get_edges()])
+            string += ", ".join([f"[{src}, {dst}]" for (src, dst) in self.get_edges()])
             string += "]"
         return string
 
@@ -333,17 +414,27 @@ class CouplingMap:
             PIL.Image: Drawn coupling map.
 
         Raises:
-            ImportError: when pydot or pillow are not installed.
+            MissingOptionalLibraryError: when pydot or pillow are not installed.
         """
+        try:
+            import pydot
+        except ImportError as ex:
+            raise MissingOptionalLibraryError(
+                libname="pydot",
+                name="coupling map drawer",
+                pip_install="pip install pydot",
+            ) from ex
 
         try:
-            import pydot  # pylint: disable=unused-import
             from PIL import Image
-        except ImportError:
-            raise ImportError("CouplingMap.draw requires pydot and pillow. "
-                              "Run 'pip install pydot pillow'.")
+        except ImportError as ex:
+            raise MissingOptionalLibraryError(
+                libname="pillow",
+                name="coupling map drawer",
+                pip_install="pip install pillow",
+            ) from ex
         dot_str = self.graph.to_dot()
         dot = pydot.graph_from_dot_data(dot_str)[0]
-        png = dot.create_png(prog='neato')
+        png = dot.create_png(prog="neato")
 
         return Image.open(io.BytesIO(png))

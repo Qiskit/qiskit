@@ -17,6 +17,7 @@ from copy import deepcopy
 from functools import partial
 from typing import List, Union, Tuple, Dict
 
+import scipy
 import numpy as np
 from qiskit import transpile, QuantumCircuit
 from qiskit.circuit import Parameter, ParameterExpression, ParameterVector
@@ -31,8 +32,9 @@ from ...list_ops.list_op import ListOp
 from ...list_ops.composed_op import ComposedOp
 from ...state_fns.dict_state_fn import DictStateFn
 from ...state_fns.vector_state_fn import VectorStateFn
+from ...state_fns.sparse_vector_state_fn import SparseVectorStateFn
 from ...exceptions import OpflowError
-from ..derivative_base import DerivativeBase
+from ..derivative_base import _coeff_derivative
 
 
 class ParamShift(CircuitGradient):
@@ -41,9 +43,7 @@ class ParamShift(CircuitGradient):
     method.
     """
 
-    def __init__(self,
-                 analytic: bool = True,
-                 epsilon: float = 1e-6):
+    def __init__(self, analytic: bool = True, epsilon: float = 1e-6):
         r"""
         Args:
             analytic: If True use the parameter shift rule to compute analytic gradients,
@@ -79,12 +79,17 @@ class ParamShift(CircuitGradient):
         return self._epsilon
 
     # pylint: disable=signature-differs
-    def convert(self,
-                operator: OperatorBase,
-                params: Union[ParameterExpression, ParameterVector, List[ParameterExpression],
-                              Tuple[ParameterExpression, ParameterExpression],
-                              List[Tuple[ParameterExpression, ParameterExpression]]]
-                ) -> OperatorBase:
+    def convert(
+        self,
+        operator: OperatorBase,
+        params: Union[
+            ParameterExpression,
+            ParameterVector,
+            List[ParameterExpression],
+            Tuple[ParameterExpression, ParameterExpression],
+            List[Tuple[ParameterExpression, ParameterExpression]],
+        ],
+    ) -> OperatorBase:
         """
         Args:
             operator: The operator corresponding to our quantum state we are taking the
@@ -112,20 +117,27 @@ class ParamShift(CircuitGradient):
                 return self._parameter_shift(operator, params)
             elif all(isinstance(param, tuple) for param in params):
                 return ListOp(
-                    [self._parameter_shift(self._parameter_shift(operator, pair[0]), pair[1])
-                     for pair in params])
+                    [
+                        self._parameter_shift(self._parameter_shift(operator, pair[0]), pair[1])
+                        for pair in params
+                    ]
+                )
             else:
-                raise OpflowError('The linear combination gradient does only support '
-                                  'the computation '
-                                  'of 1st gradients and 2nd order gradients.')
+                raise OpflowError(
+                    "The linear combination gradient does only support "
+                    "the computation "
+                    "of 1st gradients and 2nd order gradients."
+                )
         else:
-            raise OpflowError('The linear combination gradient does only support the computation '
-                              'of 1st gradients and 2nd order gradients.')
+            raise OpflowError(
+                "The linear combination gradient does only support the computation "
+                "of 1st gradients and 2nd order gradients."
+            )
 
     # pylint: disable=too-many-return-statements
-    def _parameter_shift(self,
-                         operator: OperatorBase,
-                         params: Union[ParameterExpression, ParameterVector, List]) -> OperatorBase:
+    def _parameter_shift(
+        self, operator: OperatorBase, params: Union[ParameterExpression, ParameterVector, List]
+    ) -> OperatorBase:
         r"""
         Args:
             operator: The operator containing circuits we are taking the derivative of.
@@ -140,12 +152,14 @@ class ParamShift(CircuitGradient):
         """
         if isinstance(params, (ParameterVector, list)):
             param_grads = [self._parameter_shift(operator, param) for param in params]
-            absent_params = [params[i] for i, grad_ops in enumerate(param_grads) if
-                             grad_ops is None]
+            absent_params = [
+                params[i] for i, grad_ops in enumerate(param_grads) if grad_ops is None
+            ]
             if len(absent_params) > 0:
                 raise ValueError(
                     "The following parameters do not appear in the provided operator: ",
-                    absent_params)
+                    absent_params,
+                )
             return ListOp(absent_params)
 
         # By this point, it's only one parameter
@@ -160,9 +174,9 @@ class ParamShift(CircuitGradient):
             if len(trimmed_oplist) == 0:
                 return None
             # Rebuild the operator with the trimmed down oplist
-            properties = {'coeff': return_op._coeff, 'abelian': return_op._abelian}
+            properties = {"coeff": return_op._coeff, "abelian": return_op._abelian}
             if return_op.__class__ == ListOp:
-                properties['combo_fn'] = return_op.combo_fn
+                properties["combo_fn"] = return_op.combo_fn
             return return_op.__class__(oplist=trimmed_oplist, **properties)
 
         else:
@@ -170,8 +184,9 @@ class ParamShift(CircuitGradient):
 
             if len(circs) > 1:
                 raise TypeError(
-                    'Please define an operator with a single circuit representing '
-                    'the quantum state.')
+                    "Please define an operator with a single circuit representing "
+                    "the quantum state."
+                )
             if len(circs) == 0:
                 return operator
             circ = circs[0]
@@ -205,14 +220,14 @@ class ParamShift(CircuitGradient):
                 # once by -pi/2.
                 if self.analytic:
                     shift_constant = 0.5
-                    pshift_gate.params[param_index] = (p_param + (np.pi / (4 * shift_constant)))
-                    mshift_gate.params[param_index] = (m_param - (np.pi / (4 * shift_constant)))
+                    pshift_gate.params[param_index] = p_param + (np.pi / (4 * shift_constant))
+                    mshift_gate.params[param_index] = m_param - (np.pi / (4 * shift_constant))
                 # For finite difference gradients the circuit parameters are shifted once by
                 # +epsilon and once by -epsilon.
                 else:
-                    shift_constant = 1. / (2 * self._epsilon)
-                    pshift_gate.params[param_index] = (p_param + self._epsilon)
-                    mshift_gate.params[param_index] = (m_param - self._epsilon)
+                    shift_constant = 1.0 / (2 * self._epsilon)
+                    pshift_gate.params[param_index] = p_param + self._epsilon
+                    mshift_gate.params[param_index] = m_param - self._epsilon
                 # The results of the shifted operators are now evaluated according the parameter
                 # shift / finite difference formula.
                 if isinstance(operator, ComposedOp):
@@ -222,14 +237,15 @@ class ParamShift(CircuitGradient):
                 elif isinstance(operator, StateFn):
                     shifted_op = ListOp(
                         [pshift_op, mshift_op],
-                        combo_fn=partial(self._prob_combo_fn, shift_constant=shift_constant))
+                        combo_fn=partial(self._prob_combo_fn, shift_constant=shift_constant),
+                    )
                 else:
-                    raise TypeError('Probability gradients are not supported for the given '
-                                    'operator type')
+                    raise TypeError(
+                        "Probability gradients are not supported for the given operator type"
+                    )
 
-                if isinstance(p_param, ParameterExpression) and not isinstance(p_param,
-                                                                               Parameter):
-                    expr_grad = DerivativeBase.parameter_expression_grad(p_param, param)
+                if isinstance(p_param, ParameterExpression) and not isinstance(p_param, Parameter):
+                    expr_grad = _coeff_derivative(p_param, param)
                     shifted_op *= expr_grad
                 if not summed_shifted_op:
                     summed_shifted_op = shifted_op
@@ -244,9 +260,15 @@ class ParamShift(CircuitGradient):
                 return SummedOp(shifted_ops).reduce()
 
     @staticmethod
-    def _prob_combo_fn(x: Union[DictStateFn, VectorStateFn,
-                                List[Union[DictStateFn, VectorStateFn]]],
-                       shift_constant: float) -> Union[Dict, np.ndarray]:
+    def _prob_combo_fn(
+        x: Union[
+            DictStateFn,
+            VectorStateFn,
+            SparseVectorStateFn,
+            List[Union[DictStateFn, VectorStateFn, SparseVectorStateFn]],
+        ],
+        shift_constant: float,
+    ) -> Union[Dict, np.ndarray]:
         """Implement the combo_fn used to evaluate probability gradients
 
         Args:
@@ -260,11 +282,11 @@ class ParamShift(CircuitGradient):
             TypeError: if ``x`` is not DictStateFn, VectorStateFn or their list.
 
         """
-
         # In the probability gradient case, the amplitudes still need to be converted
         # into sampling probabilities.
+
         def get_primitives(item):
-            if isinstance(item, DictStateFn):
+            if isinstance(item, (DictStateFn, SparseVectorStateFn)):
                 item = item.primitive
             if isinstance(item, VectorStateFn):
                 item = item.primitive.data
@@ -285,23 +307,40 @@ class ParamShift(CircuitGradient):
             prob_dict: Dict[str, float] = {}
             for i, item in enumerate(items):
                 for key, prob_counts in item.items():
-                    prob_dict[key] = prob_dict.get(key, 0) + \
-                                     shift_constant * ((-1) ** i) * prob_counts
+                    prob_dict[key] = (
+                        prob_dict.get(key, 0) + shift_constant * ((-1) ** i) * prob_counts
+                    )
             return prob_dict
+        elif isinstance(items[0], scipy.sparse.spmatrix):
+            # If x was given as StateFn the state amplitudes need to be multiplied in order to
+            # evaluate the sampling probabilities which are then subtracted according to the
+            # parameter shift rule.
+            if is_statefn:
+                return shift_constant * np.subtract(
+                    items[0].multiply(np.conj(items[0])), items[1].multiply(np.conj(items[1]))
+                )
+            # If x was not given as a StateFn the state amplitudes were already converted into
+            # sampling probabilities which are then only subtracted according to the
+            # parameter shift rule.
+            else:
+                return shift_constant * np.subtract(items[0], items[1])
         elif isinstance(items[0], Iterable):
             # If x was given as StateFn the state amplitudes need to be multiplied in order to
             # evaluate the sampling probabilities which are then subtracted according to the
             # parameter shift rule.
             if is_statefn:
-                return shift_constant * np.subtract(np.multiply(items[0], np.conj(items[0])),
-                                                    np.multiply(items[1], np.conj(items[1])))
+                return shift_constant * np.subtract(
+                    np.multiply(items[0], np.conj(items[0])),
+                    np.multiply(items[1], np.conj(items[1])),
+                )
             # If x was not given as a StateFn the state amplitudes were already converted into
             # sampling probabilities which are then only subtracted according to the
             # parameter shift rule.
             else:
                 return shift_constant * np.subtract(items[0], items[1])
         raise TypeError(
-            'Probability gradients can only be evaluated from VectorStateFs or DictStateFns.')
+            "Probability gradients can only be evaluated from VectorStateFs or DictStateFns."
+        )
 
     @staticmethod
     def _unroll_to_supported_operations(circuit: QuantumCircuit) -> QuantumCircuit:
@@ -315,15 +354,14 @@ class ParamShift(CircuitGradient):
             Quantum circuit which is unrolled into supported operations
 
         """
-        supported = {'x', 'y', 'z', 'h', 'rx', 'ry', 'rz', 'p', 'u', 'cx', 'cy', 'cz'}
+        supported = {"x", "y", "z", "h", "rx", "ry", "rz", "p", "u", "cx", "cy", "cz"}
         unique_ops = set(circuit.count_ops().keys())
         if not unique_ops.issubset(supported):
             circuit = transpile(circuit, basis_gates=list(supported), optimization_level=0)
         return circuit
 
     @staticmethod
-    def _replace_operator_circuit(operator: OperatorBase,
-                                  circuit: QuantumCircuit) -> OperatorBase:
+    def _replace_operator_circuit(operator: OperatorBase, circuit: QuantumCircuit) -> OperatorBase:
         """Replace a circuit element in an operator with a single element given as circuit
 
         Args:
@@ -340,8 +378,7 @@ class ParamShift(CircuitGradient):
         elif isinstance(operator, CircuitOp):
             return CircuitOp(circuit, coeff=operator.coeff)
         elif isinstance(operator, (ComposedOp, ListOp)):
-            return operator.traverse(
-                partial(ParamShift._replace_operator_circuit, circuit=circuit))
+            return operator.traverse(partial(ParamShift._replace_operator_circuit, circuit=circuit))
         else:
             return operator
 
@@ -390,6 +427,6 @@ class ParamShift(CircuitGradient):
         """
         if isinstance(operator, ListOp):
             return [cls.unroll_operator(op) for op in operator]
-        if hasattr(operator, 'primitive') and isinstance(operator.primitive, ListOp):
+        if hasattr(operator, "primitive") and isinstance(operator.primitive, ListOp):
             return [operator.__class__(op) for op in operator.primitive]
         return operator

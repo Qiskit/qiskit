@@ -38,45 +38,55 @@ class Id(Node):
 
     def to_string(self, indent):
         """Print the node with indent."""
-        ind = indent * ' '
-        print(ind, 'id', self.name)
+        ind = indent * " "
+        print(ind, "id", self.name)
 
     def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
         if prec is not None:
-            warnings.warn('Parameter \'Id.qasm(..., prec)\' is no longer used and is being '
-                          'deprecated.', DeprecationWarning, 2)
+            warnings.warn(
+                "Parameter 'Id.qasm(..., prec)' is no longer used and is being deprecated.",
+                DeprecationWarning,
+                2,
+            )
         return self.name
 
     def latex(self, prec=None, nested_scope=None):
         """Return the correspond math mode latex string."""
         if prec is not None:
-            warnings.warn('Parameter \'Id.latex(..., prec)\' is no longer used and is being '
-                          'deprecated.', DeprecationWarning, 2)
+            warnings.warn(
+                "Parameter 'Id.latex(..., prec)' is no longer used and is being deprecated.",
+                DeprecationWarning,
+                2,
+            )
         if not nested_scope:
             return "\textrm{" + self.name + "}"
         else:
             if self.name not in nested_scope[-1]:
-                raise NodeException("Expected local parameter name: ",
-                                    "name=%s, " % self.name,
-                                    "line=%s, " % self.line,
-                                    "file=%s" % self.file)
+                raise NodeException(
+                    "Expected local parameter name: ",
+                    "name=%s, " % self.name,
+                    "line=%s, " % self.line,
+                    "file=%s" % self.file,
+                )
 
             return nested_scope[-1][self.name].latex(nested_scope[0:-1])
 
     def sym(self, nested_scope=None):
         """Return the correspond symbolic number."""
         if not nested_scope or self.name not in nested_scope[-1]:
-            raise NodeException("Expected local parameter name: ",
-                                "name=%s, line=%s, file=%s" % (
-                                    self.name, self.line, self.file))
+            raise NodeException(
+                "Expected local parameter name: ",
+                f"name={self.name}, line={self.line}, file={self.file}",
+            )
         return nested_scope[-1][self.name].sym(nested_scope[0:-1])
 
     def real(self, nested_scope=None):
         """Return the correspond floating point number."""
         if not nested_scope or self.name not in nested_scope[-1]:
-            raise NodeException("Expected local parameter name: ",
-                                "name=%s, line=%s, file=%s" % (
-                                    self.name, self.line, self.file))
+            raise NodeException(
+                "Expected local parameter name: ",
+                f"name={self.name}, line={self.line}, file={self.file}",
+            )
 
         return nested_scope[-1][self.name].real(nested_scope[0:-1])

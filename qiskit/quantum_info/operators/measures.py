@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 """
 A collection of useful quantum information functions for operators.
 """
@@ -20,7 +19,7 @@ import warnings
 import numpy as np
 from scipy import sparse
 
-from qiskit.exceptions import QiskitError
+from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 from qiskit.circuit.gate import Gate
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.operator import Operator
@@ -31,6 +30,7 @@ from qiskit.quantum_info.states.measures import state_fidelity
 
 try:
     import cvxpy
+
     _HAS_CVX = True
 except ImportError:
     _HAS_CVX = False
@@ -38,17 +38,14 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-def process_fidelity(channel,
-                     target=None,
-                     require_cp=True,
-                     require_tp=True):
+def process_fidelity(channel, target=None, require_cp=True, require_tp=True):
     r"""Return the process fidelity of a noisy quantum channel.
 
 
-    The process fidelity :math:`F_{\text{pro}}(\mathcal{E}, \methcal{F})`
+    The process fidelity :math:`F_{\text{pro}}(\mathcal{E}, \mathcal{F})`
     between two quantum channels :math:`\mathcal{E}, \mathcal{F}` is given by
 
-    .. math:
+    .. math::
         F_{\text{pro}}(\mathcal{E}, \mathcal{F})
             = F(\rho_{\mathcal{E}}, \rho_{\mathcal{F}})
 
@@ -90,40 +87,42 @@ def process_fidelity(channel,
         QiskitError: if the channel and target do not have the same dimensions.
     """
     # Format inputs
-    channel = _input_formatter(
-        channel, SuperOp, 'process_fidelity', 'channel')
-    target = _input_formatter(
-        target, Operator, 'process_fidelity', 'target')
+    channel = _input_formatter(channel, SuperOp, "process_fidelity", "channel")
+    target = _input_formatter(target, Operator, "process_fidelity", "target")
 
     if target:
         # Validate dimensions
         if channel.dim != target.dim:
             raise QiskitError(
-                'Input quantum channel and target unitary must have the same '
-                'dimensions ({} != {}).'.format(channel.dim, target.dim))
+                "Input quantum channel and target unitary must have the same "
+                "dimensions ({} != {}).".format(channel.dim, target.dim)
+            )
 
     # Validate complete-positivity and trace-preserving
-    for label, chan in [('Input', channel), ('Target', target)]:
+    for label, chan in [("Input", channel), ("Target", target)]:
         if chan is not None and require_cp:
             cp_cond = _cp_condition(chan)
             neg = cp_cond < -1 * chan.atol
             if np.any(neg):
                 logger.warning(
-                    '%s channel is not CP. Choi-matrix has negative eigenvalues: %s',
-                    label, cp_cond[neg])
+                    "%s channel is not CP. Choi-matrix has negative eigenvalues: %s",
+                    label,
+                    cp_cond[neg],
+                )
         if chan is not None and require_tp:
             tp_cond = _tp_condition(chan)
-            non_zero = np.logical_not(np.isclose(
-                tp_cond, 0, atol=chan.atol, rtol=chan.rtol))
+            non_zero = np.logical_not(np.isclose(tp_cond, 0, atol=chan.atol, rtol=chan.rtol))
             if np.any(non_zero):
                 logger.warning(
-                    '%s channel is not TP. Tr_2[Choi] - I has non-zero eigenvalues: %s',
-                    label, tp_cond[non_zero])
+                    "%s channel is not TP. Tr_2[Choi] - I has non-zero eigenvalues: %s",
+                    label,
+                    tp_cond[non_zero],
+                )
 
     if isinstance(target, Operator):
         # Compute fidelity with unitary target by applying the inverse
         # to channel and computing fidelity with the identity
-        channel = channel @ target.adjoint()
+        channel = channel.compose(target.adjoint())
         target = None
 
     input_dim, _ = channel.dim
@@ -131,10 +130,10 @@ def process_fidelity(channel,
         # Compute process fidelity with identity channel
         if isinstance(channel, Operator):
             # |Tr[U]/dim| ** 2
-            fid = np.abs(np.trace(channel.data) / input_dim)**2
+            fid = np.abs(np.trace(channel.data) / input_dim) ** 2
         else:
             # Tr[S] / (dim ** 2)
-            fid = np.trace(SuperOp(channel).data) / (input_dim**2)
+            fid = np.trace(SuperOp(channel).data) / (input_dim ** 2)
         return float(np.real(fid))
 
     # For comparing two non-unitary channels we compute the state fidelity of
@@ -145,10 +144,7 @@ def process_fidelity(channel,
     return state_fidelity(state1, state2, validate=False)
 
 
-def average_gate_fidelity(channel,
-                          target=None,
-                          require_cp=True,
-                          require_tp=False):
+def average_gate_fidelity(channel, target=None, require_cp=True, require_tp=False):
     r"""Return the average gate fidelity of a noisy quantum channel.
 
     The average gate fidelity :math:`F_{\text{ave}}` is given by
@@ -186,24 +182,20 @@ def average_gate_fidelity(channel,
                      or have different input and output dimensions.
     """
     # Format inputs
-    channel = _input_formatter(
-        channel, SuperOp, 'average_gate_fidelity', 'channel')
-    target = _input_formatter(
-        target, Operator, 'average_gate_fidelity', 'target')
+    channel = _input_formatter(channel, SuperOp, "average_gate_fidelity", "channel")
+    target = _input_formatter(target, Operator, "average_gate_fidelity", "target")
 
     if target is not None:
         try:
             target = Operator(target)
-        except QiskitError:
+        except QiskitError as ex:
             raise QiskitError(
-                'Target channel is not a unitary channel. To compare '
-                'two non-unitary channels use the '
-                '`qiskit.quantum_info.process_fidelity` function instead.')
+                "Target channel is not a unitary channel. To compare "
+                "two non-unitary channels use the "
+                "`qiskit.quantum_info.process_fidelity` function instead."
+            ) from ex
     dim, _ = channel.dim
-    f_pro = process_fidelity(channel,
-                             target=target,
-                             require_cp=require_cp,
-                             require_tp=require_tp)
+    f_pro = process_fidelity(channel, target=target, require_cp=require_cp, require_tp=require_tp)
     return (dim * f_pro + 1) / (dim + 1)
 
 
@@ -242,12 +234,11 @@ def gate_error(channel, target=None, require_cp=True, require_tp=False):
                      or have different input and output dimensions.
     """
     # Format inputs
-    channel = _input_formatter(
-        channel, SuperOp, 'gate_error', 'channel')
-    target = _input_formatter(
-        target, Operator, 'gate_error', 'target')
+    channel = _input_formatter(channel, SuperOp, "gate_error", "channel")
+    target = _input_formatter(target, Operator, "gate_error", "target")
     return 1 - average_gate_fidelity(
-        channel, target=target, require_cp=require_cp, require_tp=require_tp)
+        channel, target=target, require_cp=require_cp, require_tp=require_tp
+    )
 
 
 def diamond_norm(choi, **kwargs):
@@ -286,9 +277,9 @@ def diamond_norm(choi, **kwargs):
         function. See the CVXPY documentation for information on available
         SDP solvers.
     """
-    _cvxpy_check('`diamond_norm`')  # Check CVXPY is installed
+    _cvxpy_check("`diamond_norm`")  # Check CVXPY is installed
 
-    choi = Choi(_input_formatter(choi, Choi, 'diamond_norm', 'choi'))
+    choi = Choi(_input_formatter(choi, Choi, "diamond_norm", "choi"))
 
     def cvx_bmat(mat_r, mat_i):
         """Block matrix for embedding complex matrix in reals"""
@@ -322,16 +313,22 @@ def diamond_norm(choi, **kwargs):
     # Convert col-vec convention Choi-matrix to row-vec convention and
     # then take Transpose: Choi_C -> Choi_R.T
     choi_rt = np.transpose(
-        np.reshape(choi.data, (dim_in, dim_out, dim_in, dim_out)),
-        (3, 2, 1, 0)).reshape(choi.data.shape)
+        np.reshape(choi.data, (dim_in, dim_out, dim_in, dim_out)), (3, 2, 1, 0)
+    ).reshape(choi.data.shape)
     choi_rt_r = choi_rt.real
     choi_rt_i = choi_rt.imag
 
     # Constraints
     cons = [
-        r0 >> 0, r0_r == r0_r.T, r0_i == - r0_i.T, cvxpy.trace(r0_r) == 1,
-        r1 >> 0, r1_r == r1_r.T, r1_i == - r1_i.T, cvxpy.trace(r1_r) == 1,
-        c >> 0
+        r0 >> 0,
+        r0_r == r0_r.T,
+        r0_i == -r0_i.T,
+        cvxpy.trace(r0_r) == 1,
+        r1 >> 0,
+        r1_r == r1_r.T,
+        r1_i == -r1_i.T,
+        cvxpy.trace(r1_r) == 1,
+        c >> 0,
     ]
 
     # Objective function
@@ -346,14 +343,17 @@ def _cvxpy_check(name):
     # Check if CVXPY package is installed
     if not _HAS_CVX:
         raise QiskitError(
-            'CVXPY backage is requried for {}. Install'
-            ' with `pip install cvxpy` to use.'.format(name))
+            "CVXPY backage is requried for {}. Install"
+            " with `pip install cvxpy` to use.".format(name)
+        )
     # Check CVXPY version
     version = cvxpy.__version__
-    if version[0] != '1':
-        raise ImportError(
-            'Incompatible CVXPY version {} found.'
-            ' Install version >=1.0.'.format(version))
+    if version[0] != "1":
+        raise MissingOptionalLibraryError(
+            "CVXPY >= 1.0",
+            "diamond_norm",
+            msg=f"Incompatible CVXPY version {version} found.",
+        )
 
 
 # pylint: disable=too-many-return-statements
@@ -366,25 +366,25 @@ def _input_formatter(obj, fallback_class, func_name, arg_name):
     # Channel-like input
     if isinstance(obj, QuantumChannel):
         return obj
-    if hasattr(obj, 'to_quantumchannel'):
+    if hasattr(obj, "to_quantumchannel"):
         return obj.to_quantumchannel()
-    if hasattr(obj, 'to_channel'):
+    if hasattr(obj, "to_channel"):
         return obj.to_channel()
 
     # Unitary-like input
     if isinstance(obj, (Gate, BaseOperator)):
         return Operator(obj)
-    if hasattr(obj, 'to_operator'):
+    if hasattr(obj, "to_operator"):
         return obj.to_operator()
 
     warnings.warn(
-        'Passing in a list or Numpy array to `{}` `{}` argument is '
-        'deprecated as of 0.17.0 since the matrix representation cannot be inferred '
-        'unambiguously. Use a Gate or BaseOperator subclass (eg. Operator, '
-        'SuperOp, Choi) object instead.'.format(func_name, arg_name),
-        DeprecationWarning)
-    warnings.warn(
-        'Treating array input as a {} object'.format(fallback_class.__name__))
+        "Passing in a list or Numpy array to `{}` `{}` argument is "
+        "deprecated as of 0.17.0 since the matrix representation cannot be inferred "
+        "unambiguously. Use a Gate or BaseOperator subclass (eg. Operator, "
+        "SuperOp, Choi) object instead.".format(func_name, arg_name),
+        DeprecationWarning,
+    )
+    warnings.warn(f"Treating array input as a {fallback_class.__name__} object")
     return fallback_class(obj)
 
 

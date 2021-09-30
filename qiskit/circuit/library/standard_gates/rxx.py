@@ -12,12 +12,14 @@
 
 """Two-qubit XX-rotation gate."""
 
+from typing import Optional
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.parameterexpression import ParameterValueType
 
 
 class RXXGate(Gate):
-    r"""A parameteric 2-qubit :math:`X \otimes X` interaction (rotation about XX).
+    r"""A parametric 2-qubit :math:`X \otimes X` interaction (rotation about XX).
 
     This gate is symmetric, and is maximally entangling at :math:`\theta = \pi/2`.
 
@@ -66,9 +68,9 @@ class RXXGate(Gate):
                                     \end{pmatrix}
     """
 
-    def __init__(self, theta):
+    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new RXX gate."""
-        super().__init__('rxx', 2, [theta])
+        super().__init__("rxx", 2, [theta], label=label)
 
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
@@ -77,8 +79,9 @@ class RXXGate(Gate):
         from .x import CXGate
         from .h import HGate
         from .rz import RZGate
+
         theta = self.params[0]
-        q = QuantumRegister(2, 'q')
+        q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
             (HGate(), [q[0]], []),
@@ -101,11 +104,11 @@ class RXXGate(Gate):
     def __array__(self, dtype=None):
         """Return a Numpy.array for the RXX gate."""
         import numpy
+
         theta2 = float(self.params[0]) / 2
         cos = numpy.cos(theta2)
         isin = 1j * numpy.sin(theta2)
-        return numpy.array([
-            [cos, 0, 0, -isin],
-            [0, cos, -isin, 0],
-            [0, -isin, cos, 0],
-            [-isin, 0, 0, cos]], dtype=dtype)
+        return numpy.array(
+            [[cos, 0, 0, -isin], [0, cos, -isin, 0], [0, -isin, cos, 0], [-isin, 0, 0, cos]],
+            dtype=dtype,
+        )

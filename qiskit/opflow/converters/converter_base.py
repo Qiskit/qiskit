@@ -12,13 +12,9 @@
 
 """ ConverterBase Class """
 
-import logging
-
 from abc import ABC, abstractmethod
 
-from ..operator_base import OperatorBase
-
-logger = logging.getLogger(__name__)
+from qiskit.opflow.operator_base import OperatorBase
 
 
 class ConverterBase(ABC):
@@ -31,11 +27,11 @@ class ConverterBase(ABC):
     converters, such as a ``MatrixExpectation`` or ``MatrixEvolution``, which convert
     ``PauliOps`` to ``MatrixOps`` internally, will require time or space exponential
     in the number of qubits unless a clever trick is known (such as the use of sparse
-    matrices). """
+    matrices)."""
 
     @abstractmethod
     def convert(self, operator: OperatorBase) -> OperatorBase:
-        """ Accept the Operator and return the converted Operator
+        """Accept the Operator and return the converted Operator
 
         Args:
             operator: The Operator to convert.

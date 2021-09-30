@@ -54,8 +54,7 @@ class TestStinespring(ChannelTestCase):
         self.assertEqual(chan.num_qubits, 1)
 
         # Wrong input or output dims should raise exception
-        self.assertRaises(
-            QiskitError, Stinespring, stine_l, input_dims=4, output_dims=4)
+        self.assertRaises(QiskitError, Stinespring, stine_l, input_dims=4, output_dims=4)
 
     def test_circuit_init(self):
         """Test initialization from a circuit."""
@@ -155,9 +154,7 @@ class TestStinespring(ChannelTestCase):
 
     def test_compose_except(self):
         """Test compose different dimension exception"""
-        self.assertRaises(QiskitError,
-                          Stinespring(np.eye(2)).compose, Stinespring(
-                              np.eye(4)))
+        self.assertRaises(QiskitError, Stinespring(np.eye(2)).compose, Stinespring(np.eye(4)))
         self.assertRaises(QiskitError, Stinespring(np.eye(2)).compose, 2)
 
     def test_compose(self):
@@ -169,24 +166,24 @@ class TestStinespring(ChannelTestCase):
         chan1 = Stinespring(self.UX)
         chan2 = Stinespring(self.UY)
         chan = chan1.compose(chan2)
-        rho_targ = rho_init @ Stinespring(self.UZ)
+        rho_targ = rho_init & Stinespring(self.UZ)
         self.assertEqual(rho_init.evolve(chan), rho_targ)
 
         # 50% depolarizing channel
         chan1 = Stinespring(self.depol_stine(0.5))
         chan = chan1.compose(chan1)
-        rho_targ = rho_init @ Stinespring(self.depol_stine(0.75))
+        rho_targ = rho_init & Stinespring(self.depol_stine(0.75))
         self.assertEqual(rho_init.evolve(chan), rho_targ)
 
         # Compose different dimensions
         stine1, stine2 = self.rand_matrix(16, 2), self.rand_matrix(8, 4)
         chan1 = Stinespring(stine1, input_dims=2, output_dims=4)
         chan2 = Stinespring(stine2, input_dims=4, output_dims=2)
-        rho_targ = rho_init @ chan1 @ chan2
+        rho_targ = rho_init & chan1 & chan2
         chan = chan1.compose(chan2)
         self.assertEqual(chan.dim, (2, 2))
         self.assertEqual(rho_init.evolve(chan), rho_targ)
-        chan = chan1 @ chan2
+        chan = chan1 & chan2
         self.assertEqual(chan.dim, (2, 2))
         self.assertEqual(rho_init.evolve(chan), rho_targ)
 
@@ -204,7 +201,7 @@ class TestStinespring(ChannelTestCase):
 
         # 50% depolarizing channel
         chan1 = Stinespring(self.depol_stine(0.5))
-        rho_targ = rho_init @ Stinespring(self.depol_stine(0.75))
+        rho_targ = rho_init & Stinespring(self.depol_stine(0.75))
         self.assertEqual(rho_init.evolve(chan1.dot(chan1)), rho_targ)
         self.assertEqual(rho_init.evolve(chan1 * chan1), rho_targ)
 
@@ -212,7 +209,7 @@ class TestStinespring(ChannelTestCase):
         stine1, stine2 = self.rand_matrix(16, 2), self.rand_matrix(8, 4)
         chan1 = Stinespring(stine1, input_dims=2, output_dims=4)
         chan2 = Stinespring(stine2, input_dims=4, output_dims=2)
-        rho_targ = rho_init @ chan1 @ chan2
+        rho_targ = rho_init & chan1 & chan2
         self.assertEqual(rho_init.evolve(chan2.dot(chan1)), rho_targ)
         self.assertEqual(rho_init.evolve(chan2 * chan1), rho_targ)
 
@@ -225,20 +222,20 @@ class TestStinespring(ChannelTestCase):
         chan1 = Stinespring(self.UX)
         chan2 = Stinespring(self.UY)
         chan = chan1.compose(chan2, front=True)
-        rho_targ = rho_init @ Stinespring(self.UZ)
+        rho_targ = rho_init & Stinespring(self.UZ)
         self.assertEqual(rho_init.evolve(chan), rho_targ)
 
         # 50% depolarizing channel
         chan1 = Stinespring(self.depol_stine(0.5))
         chan = chan1.compose(chan1, front=True)
-        rho_targ = rho_init @ Stinespring(self.depol_stine(0.75))
+        rho_targ = rho_init & Stinespring(self.depol_stine(0.75))
         self.assertEqual(rho_init.evolve(chan), rho_targ)
 
         # Compose different dimensions
         stine1, stine2 = self.rand_matrix(16, 2), self.rand_matrix(8, 4)
         chan1 = Stinespring(stine1, input_dims=2, output_dims=4)
         chan2 = Stinespring(stine2, input_dims=4, output_dims=2)
-        rho_targ = rho_init @ chan1 @ chan2
+        rho_targ = rho_init & chan1 & chan2
         chan = chan2.compose(chan1, front=True)
         self.assertEqual(chan.dim, (2, 2))
         self.assertEqual(rho_init.evolve(chan), rho_targ)
@@ -303,18 +300,12 @@ class TestStinespring(ChannelTestCase):
         chan1 = Stinespring(self.depol_stine(1 - p_id))
 
         # Compose 3 times
-        p_id3 = p_id**3
+        p_id3 = p_id ** 3
         chan = chan1.power(3)
-        rho_targ = rho_init @ chan1 @ chan1 @ chan1
-        self.assertEqual(rho_init @ chan, rho_targ)
-        rho_targ = rho_init @ Stinespring(self.depol_stine(1 - p_id3))
-        self.assertEqual(rho_init @ chan, rho_targ)
-
-    def test_power_except(self):
-        """Test power method raises exceptions."""
-        chan = Stinespring(self.depol_stine(0.9))
-        # Non-integer power raises error
-        self.assertRaises(QiskitError, chan.power, 0.5)
+        rho_targ = rho_init & chan1 & chan1 & chan1
+        self.assertEqual(rho_init & chan, rho_targ)
+        rho_targ = rho_init & Stinespring(self.depol_stine(1 - p_id3))
+        self.assertEqual(rho_init & chan, rho_targ)
 
     def test_add(self):
         """Test add method."""
@@ -325,7 +316,7 @@ class TestStinespring(ChannelTestCase):
         # Random Single-Stinespring maps
         chan1 = Stinespring(stine1, input_dims=2, output_dims=4)
         chan2 = Stinespring(stine2, input_dims=2, output_dims=4)
-        rho_targ = (rho_init @ chan1) + (rho_init @ chan2)
+        rho_targ = (rho_init & chan1) + (rho_init & chan2)
         chan = chan1._add(chan2)
         self.assertEqual(rho_init.evolve(chan), rho_targ)
         chan = chan1 + chan2
@@ -333,7 +324,7 @@ class TestStinespring(ChannelTestCase):
 
         # Random Single-Stinespring maps
         chan = Stinespring((stine1, stine2))
-        rho_targ = 2 * (rho_init @ chan)
+        rho_targ = 2 * (rho_init & chan)
         chan = chan._add(chan)
         self.assertEqual(rho_init.evolve(chan), rho_targ)
 
@@ -346,13 +337,13 @@ class TestStinespring(ChannelTestCase):
         # Random Single-Stinespring maps
         chan1 = Stinespring(stine1, input_dims=2, output_dims=4)
         chan2 = Stinespring(stine2, input_dims=2, output_dims=4)
-        rho_targ = (rho_init @ chan1) - (rho_init @ chan2)
+        rho_targ = (rho_init & chan1) - (rho_init & chan2)
         chan = chan1 - chan2
         self.assertEqual(rho_init.evolve(chan), rho_targ)
 
         # Random Single-Stinespring maps
         chan = Stinespring((stine1, stine2))
-        rho_targ = 0 * (rho_init @ chan)
+        rho_targ = 0 * (rho_init & chan)
         chan = chan - chan
         self.assertEqual(rho_init.evolve(chan), rho_targ)
 
@@ -366,20 +357,20 @@ class TestStinespring(ChannelTestCase):
         op0 = Stinespring(stine0)
         eye = Stinespring(self.UI)
 
-        with self.subTest(msg='qargs=[0]'):
+        with self.subTest(msg="qargs=[0]"):
             value = op + op0([0])
             target = op + eye.tensor(eye).tensor(op0)
-            self.assertEqual(rho @ value, rho @ target)
+            self.assertEqual(rho & value, rho & target)
 
-        with self.subTest(msg='qargs=[1]'):
+        with self.subTest(msg="qargs=[1]"):
             value = op + op0([1])
             target = op + eye.tensor(op0).tensor(eye)
-            self.assertEqual(rho @ value, rho @ target)
+            self.assertEqual(rho & value, rho & target)
 
-        with self.subTest(msg='qargs=[2]'):
+        with self.subTest(msg="qargs=[2]"):
             value = op + op0([2])
             target = op + op0.tensor(eye).tensor(eye)
-            self.assertEqual(rho @ value, rho @ target)
+            self.assertEqual(rho & value, rho & target)
 
     def test_sub_qargs(self):
         """Test sub method with qargs."""
@@ -391,20 +382,20 @@ class TestStinespring(ChannelTestCase):
         op0 = Stinespring(stine0)
         eye = Stinespring(self.UI)
 
-        with self.subTest(msg='qargs=[0]'):
+        with self.subTest(msg="qargs=[0]"):
             value = op - op0([0])
             target = op - eye.tensor(eye).tensor(op0)
-            self.assertEqual(rho @ value, rho @ target)
+            self.assertEqual(rho & value, rho & target)
 
-        with self.subTest(msg='qargs=[1]'):
+        with self.subTest(msg="qargs=[1]"):
             value = op - op0([1])
             target = op - eye.tensor(op0).tensor(eye)
-            self.assertEqual(rho @ value, rho @ target)
+            self.assertEqual(rho & value, rho & target)
 
-        with self.subTest(msg='qargs=[2]'):
+        with self.subTest(msg="qargs=[2]"):
             value = op - op0([2])
             target = op - op0.tensor(eye).tensor(eye)
-            self.assertEqual(rho @ value, rho @ target)
+            self.assertEqual(rho & value, rho & target)
 
     def test_multiply(self):
         """Test multiply method."""
@@ -415,7 +406,7 @@ class TestStinespring(ChannelTestCase):
 
         # Single Stinespring set
         chan1 = Stinespring(stine1, input_dims=2, output_dims=4)
-        rho_targ = val * (rho_init @ chan1)
+        rho_targ = val * (rho_init & chan1)
         chan = chan1._multiply(val)
         self.assertEqual(rho_init.evolve(chan), rho_targ)
         chan = val * chan1
@@ -423,7 +414,7 @@ class TestStinespring(ChannelTestCase):
 
         # Double Stinespring set
         chan2 = Stinespring((stine1, stine2), input_dims=2, output_dims=4)
-        rho_targ = val * (rho_init @ chan2)
+        rho_targ = val * (rho_init & chan2)
         chan = chan2._multiply(val)
         self.assertEqual(rho_init.evolve(chan), rho_targ)
         chan = val * chan2
@@ -432,8 +423,8 @@ class TestStinespring(ChannelTestCase):
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""
         chan = Stinespring(self.depol_stine(1))
-        self.assertRaises(QiskitError, chan._multiply, 's')
-        self.assertRaises(QiskitError, chan.__rmul__, 's')
+        self.assertRaises(QiskitError, chan._multiply, "s")
+        self.assertRaises(QiskitError, chan.__rmul__, "s")
         self.assertRaises(QiskitError, chan._multiply, chan)
         self.assertRaises(QiskitError, chan.__rmul__, chan)
 
@@ -445,5 +436,5 @@ class TestStinespring(ChannelTestCase):
         self.assertEqual(rho_init.evolve(chan), rho_targ)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

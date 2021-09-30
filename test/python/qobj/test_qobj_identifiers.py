@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring
+# pylint: disable=missing-function-docstring
 
 """Non-string identifiers for circuit and record identifiers test"""
 
@@ -54,5 +54,5 @@ class TestQobjIdentifiers(QiskitTestCase):
         self.assertIn(self.cr_name, map(lambda x: x[0], exp.header.clbit_labels))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main(verbosity=2)

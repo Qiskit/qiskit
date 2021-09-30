@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    This change exposes the cost dictionary used in template matching to the user. This will
-    allow users to give the template matching their own cost dictionaries.

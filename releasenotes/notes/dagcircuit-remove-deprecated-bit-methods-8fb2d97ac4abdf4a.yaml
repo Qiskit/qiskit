@@ -1,8 +1,0 @@
----
-upgrade:
-  - |
-    The ``qubits()`` and ``clbits()`` methods on the
-    :class:`~qiskit.dagcircuit.DAGCircuit` class, which were deprecated in the
-    0.15.0 Terra release, have been removed. They are replaced by the
-    :attr:`~qiskit.dagcircuit.DAGCircuit.qubits` and
-    :attr:`~qiskit.dagcircuit.DAGCircuit.clbits` attributes.

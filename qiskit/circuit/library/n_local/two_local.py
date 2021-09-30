@@ -19,9 +19,30 @@ from qiskit.circuit import Gate, Instruction, Parameter
 
 from .n_local import NLocal
 from ..standard_gates import (
-    IGate, XGate, YGate, ZGate, RXGate, RYGate, RZGate, HGate, SGate, SdgGate, TGate, TdgGate,
-    RXXGate, RYYGate, RZXGate, RZZGate, SwapGate, CXGate, CYGate, CZGate, CRXGate, CRYGate, CRZGate,
-    CHGate
+    IGate,
+    XGate,
+    YGate,
+    ZGate,
+    RXGate,
+    RYGate,
+    RZGate,
+    HGate,
+    SGate,
+    SdgGate,
+    TGate,
+    TdgGate,
+    RXXGate,
+    RYYGate,
+    RZXGate,
+    RZZGate,
+    SwapGate,
+    CXGate,
+    CYGate,
+    CZGate,
+    CRXGate,
+    CRYGate,
+    CRZGate,
+    CHGate,
 )
 
 
@@ -127,20 +148,24 @@ class TwoLocal(NLocal):
 
     """
 
-    def __init__(self,
-                 num_qubits: Optional[int] = None,
-                 rotation_blocks: Optional[Union[str, List[str], type, List[type],
-                                                 QuantumCircuit, List[QuantumCircuit]]] = None,
-                 entanglement_blocks: Optional[Union[str, List[str], type, List[type],
-                                                     QuantumCircuit, List[QuantumCircuit]]] = None,
-                 entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = 'full',
-                 reps: int = 3,
-                 skip_unentangled_qubits: bool = False,
-                 skip_final_rotation_layer: bool = False,
-                 parameter_prefix: str = 'θ',
-                 insert_barriers: bool = False,
-                 initial_state: Optional[Any] = None,
-                 ) -> None:
+    def __init__(
+        self,
+        num_qubits: Optional[int] = None,
+        rotation_blocks: Optional[
+            Union[str, List[str], type, List[type], QuantumCircuit, List[QuantumCircuit]]
+        ] = None,
+        entanglement_blocks: Optional[
+            Union[str, List[str], type, List[type], QuantumCircuit, List[QuantumCircuit]]
+        ] = None,
+        entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = "full",
+        reps: int = 3,
+        skip_unentangled_qubits: bool = False,
+        skip_final_rotation_layer: bool = False,
+        parameter_prefix: str = "θ",
+        insert_barriers: bool = False,
+        initial_state: Optional[Any] = None,
+        name: str = "TwoLocal",
+    ) -> None:
         """Construct a new two-local circuit.
 
         Args:
@@ -171,19 +196,22 @@ class TwoLocal(NLocal):
                 be this specified prefix plus its index.
             insert_barriers: If True, barriers are inserted in between each layer. If False,
                 no barriers are inserted. Defaults to False.
-            initial_state: An `InitialState` object to prepend to the circuit.
+            initial_state: A `QuantumCircuit` object to prepend to the circuit.
 
         """
-        super().__init__(num_qubits=num_qubits,
-                         rotation_blocks=rotation_blocks,
-                         entanglement_blocks=entanglement_blocks,
-                         entanglement=entanglement,
-                         reps=reps,
-                         skip_final_rotation_layer=skip_final_rotation_layer,
-                         skip_unentangled_qubits=skip_unentangled_qubits,
-                         insert_barriers=insert_barriers,
-                         initial_state=initial_state,
-                         parameter_prefix=parameter_prefix)
+        super().__init__(
+            num_qubits=num_qubits,
+            rotation_blocks=rotation_blocks,
+            entanglement_blocks=entanglement_blocks,
+            entanglement=entanglement,
+            reps=reps,
+            skip_final_rotation_layer=skip_final_rotation_layer,
+            skip_unentangled_qubits=skip_unentangled_qubits,
+            insert_barriers=insert_barriers,
+            initial_state=initial_state,
+            parameter_prefix=parameter_prefix,
+            name=name,
+        )
 
     def _convert_to_block(self, layer: Union[str, type, Gate, QuantumCircuit]) -> QuantumCircuit:
         """For a layer provided as str (e.g. 'ry') or type (e.g. RYGate) this function returns the
@@ -210,42 +238,42 @@ class TwoLocal(NLocal):
         # check the list of valid layers
         # this could be a lot easier if the standard layers would have `name` and `num_params`
         # as static types, which might be something they should have anyways
-        theta = Parameter('θ')
+        theta = Parameter("θ")
         valid_layers = {
-            'ch': CHGate(),
-            'cx': CXGate(),
-            'cy': CYGate(),
-            'cz': CZGate(),
-            'crx': CRXGate(theta),
-            'cry': CRYGate(theta),
-            'crz': CRZGate(theta),
-            'h': HGate(),
-            'i': IGate(),
-            'id': IGate(),
-            'iden': IGate(),
-            'rx': RXGate(theta),
-            'rxx': RXXGate(theta),
-            'ry': RYGate(theta),
-            'ryy': RYYGate(theta),
-            'rz': RZGate(theta),
-            'rzx': RZXGate(theta),
-            'rzz': RZZGate(theta),
-            's': SGate(),
-            'sdg': SdgGate(),
-            'swap': SwapGate(),
-            'x': XGate(),
-            'y': YGate(),
-            'z': ZGate(),
-            't': TGate(),
-            'tdg': TdgGate(),
+            "ch": CHGate(),
+            "cx": CXGate(),
+            "cy": CYGate(),
+            "cz": CZGate(),
+            "crx": CRXGate(theta),
+            "cry": CRYGate(theta),
+            "crz": CRZGate(theta),
+            "h": HGate(),
+            "i": IGate(),
+            "id": IGate(),
+            "iden": IGate(),
+            "rx": RXGate(theta),
+            "rxx": RXXGate(theta),
+            "ry": RYGate(theta),
+            "ryy": RYYGate(theta),
+            "rz": RZGate(theta),
+            "rzx": RZXGate(theta),
+            "rzz": RZZGate(theta),
+            "s": SGate(),
+            "sdg": SdgGate(),
+            "swap": SwapGate(),
+            "x": XGate(),
+            "y": YGate(),
+            "z": ZGate(),
+            "t": TGate(),
+            "tdg": TdgGate(),
         }
 
         # try to exchange `layer` from a string to a gate instance
         if isinstance(layer, str):
             try:
                 layer = valid_layers[layer]
-            except KeyError:
-                raise ValueError('Unknown layer name `{}`.'.format(layer))
+            except KeyError as ex:
+                raise ValueError(f"Unknown layer name `{layer}`.") from ex
 
         # try to exchange `layer` from a type to a gate instance
         if isinstance(layer, type):
@@ -255,7 +283,7 @@ class TwoLocal(NLocal):
                 if isinstance(gate, layer):
                     instance = gate
             if instance is None:
-                raise ValueError('Unknown layer type`{}`.'.format(layer))
+                raise ValueError(f"Unknown layer type`{layer}`.")
             layer = instance
 
         if isinstance(layer, Instruction):
@@ -263,11 +291,13 @@ class TwoLocal(NLocal):
             circuit.append(layer, list(range(layer.num_qubits)))
             return circuit
 
-        raise TypeError('Invalid input type {}. '.format(type(layer))
-                        + '`layer` must be a type, str or QuantumCircuit.')
+        raise TypeError(
+            f"Invalid input type {type(layer)}. " + "`layer` must be a type, str or QuantumCircuit."
+        )
 
-    def get_entangler_map(self, rep_num: int, block_num: int, num_block_qubits: int
-                          ) -> List[List[int]]:
+    def get_entangler_map(
+        self, rep_num: int, block_num: int, num_block_qubits: int
+    ) -> List[List[int]]:
         """Overloading to handle the special case of 1 qubit where the entanglement are ignored."""
         if self.num_qubits <= 1:
             return []
