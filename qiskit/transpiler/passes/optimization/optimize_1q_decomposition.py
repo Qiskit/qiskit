@@ -152,6 +152,16 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 except BackendPropertyError:
                     pass
 
+        # incorporate a possible trace distance from approximate synthesis
+        operator = old_run[0].op.to_matrix()
+        for gate in old_run[1:]:
+            operator = gate.op.to_matrix().dot(operator)
+        decomp_unitary = new_circ[0][0].to_matrix()
+        for gate, _, _ in new_circ[1:]:
+            decomp_unitary = gate.to_matrix().dot(decomp_unitary)
+        trace_pairing = np.trace(decomp_unitary @ np.conj(operator.data).transpose(1, 0))
+        new_infidelity += (4 - abs(trace_pairing) ** 2) / 6
+
         if rewriteable_and_in_basis_p and (
             (old_infidelity + atol < new_infidelity) or
             (abs(old_infidelity - new_infidelity) < atol and len(old_run) < len(new_circ))
