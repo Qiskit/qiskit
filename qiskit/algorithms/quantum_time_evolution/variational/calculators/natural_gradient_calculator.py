@@ -46,6 +46,8 @@ def calculate(
     grad_method = variational_principle._grad_method
     qfi_method = variational_principle._qfi_method
 
+    # TODO aux_meas_op need to go here for imag and real
+
     # VarQRTE
     if isinstance(variational_principle, RealVariationalPrinciple):
         nat_grad = _calc_op_natural_gradient(
@@ -71,7 +73,7 @@ def calculate(
         raise Warning("The imaginary part of the gradient are non-negligible.")
 
     print("nat grad result", nat_grad_result)
-    return NaturalGradient(grad_method).convert(operator, parameters)
+    return nat_grad_result
 
 
 def _calc_op_natural_gradient(

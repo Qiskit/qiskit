@@ -100,7 +100,7 @@ class VariationalPrinciple(ABC):
             regularization=regularization,
         ).convert(raw_operator * 0.5, list(param_dict.keys()))
 
-        # TODO should be bind here?
+        # TODO should be bind here? also need to bind time as ODE progresses
         # nat_grad = nat_grad.bind_parameters(param_dict)
 
         return PauliExpectation().convert(nat_grad)

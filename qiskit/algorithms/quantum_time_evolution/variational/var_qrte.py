@@ -108,11 +108,7 @@ class VarQrte(VarQte, EvolutionBase):
         self._operator = 1j * self._operator / self._operator.coeff
         self._operator_eval = PauliExpectation().convert(self._operator / self._operator.coeff)
 
-        self._init_grad_objects(
-            self._variational_principle._grad_method,
-            self._variational_principle._qfi_method,
-            init_state_parameters,
-        )
+        self._init_grad_objects()
         error_calculator = RealErrorCalculator(
             self._h_squared,
             self._operator,
@@ -137,6 +133,7 @@ class VarQrte(VarQte, EvolutionBase):
             self._regularization,
             self._state_circ_sampler,
             self._backend,
+            t_param,
         )
 
         ode_solver = VarQteOdeSolver(init_state_parameter_values, ode_function_generator)

@@ -40,6 +40,7 @@ class ErrorBaseOdeFunctionGenerator:
         nat_grad_circ_sampler: CircuitSampler,
         regularization: Optional[str] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
+        t_param: Parameter = None
     ):
         self._error_calculator = error_calculator
         self._param_dict = param_dict
@@ -56,10 +57,11 @@ class ErrorBaseOdeFunctionGenerator:
             self._regularization,
             self._backend,
         )
+        self._t_param = t_param
 
-    def error_based_ode_fun(self):
+    def error_based_ode_fun(self, t : float):
         nat_grad_res, grad_res, metric_res = self._linear_solver._solve_sle(
-            self._variational_principle, self._param_dict
+            self._variational_principle, self._param_dict, self._t_param, t
         )
 
         def argmin_fun(dt_param_values: Union[List, np.ndarray]) -> float:

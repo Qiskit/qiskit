@@ -51,6 +51,7 @@ class OdeFunctionGenerator:
         state_circ_sampler: Optional[CircuitSampler] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
         error_based_ode: Optional[bool] = False,
+        t_param: Parameter = None
     ):
         self._error_calculator = error_calculator
         self._param_dict = param_dict
@@ -73,6 +74,7 @@ class OdeFunctionGenerator:
             self._regularization,
             self._backend,
         )
+        self._t_param = t_param
 
     def var_qte_ode_function(self, t: float, x: Iterable) -> Iterable:
         error = max(x[-1], 0)
@@ -88,11 +90,12 @@ class OdeFunctionGenerator:
                 self._nat_grad_circ_sampler,
                 self._regularization,
                 self._backend,
+                self._t_param
             )
-            nat_grad_res, grad_res, metric_res = error_based_ode_fun_gen.error_based_ode_fun()
+            nat_grad_res, grad_res, metric_res = error_based_ode_fun_gen.error_based_ode_fun(t)
         else:
             nat_grad_res, grad_res, metric_res = self._linear_solver._solve_sle(
-                self._variational_principle, self._param_dict
+                self._variational_principle, self._param_dict, self._t_param, t
             )
         # TODO log
         print("Gradient ", grad_res)

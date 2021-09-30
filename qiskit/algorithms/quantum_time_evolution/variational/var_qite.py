@@ -93,7 +93,6 @@ class VarQite(VarQte, EvolutionBase):
             respective
             time evolution.
         """
-        # TODO how does t_param fit in here?
         if observable is not None:
             raise TypeError(
                 "Observable argument provided. Observable evolution not supported by VarQite."
@@ -154,6 +153,7 @@ class VarQite(VarQte, EvolutionBase):
             self._state_circ_sampler,
             self._backend,
             self._error_based_ode,
+            t_param,
         )
 
         ode_solver = VarQteOdeSolver(init_state_parameter_values, ode_function_generator)
