@@ -147,13 +147,15 @@ class AlignMeasures(TransformationPass):
 
         for node in dag.topological_op_nodes():
             # choose appropriate clbit available time depending on op
-            clbit_time_available = clbit_writeable if isinstance(node.op, Measure) else clbit_readable
+            clbit_time_available = (
+                clbit_writeable if isinstance(node.op, Measure) else clbit_readable
+            )
             # correction to change clbit start time to qubit start time
-            start_delta = node.op.duration if isinstance(node.op, Measure) else 0
+            delta = node.op.duration if isinstance(node.op, Measure) else 0
             start_time = max(
                 itertools.chain(
                     (qubit_time_available[q] for q in node.qargs),
-                    (clbit_time_available[c] - start_delta for c in node.cargs + node.op.condition_bits),
+                    (clbit_time_available[c] - delta for c in node.cargs + node.op.condition_bits),
                 )
             )
 
@@ -174,7 +176,7 @@ class AlignMeasures(TransformationPass):
             for c in node.cargs:  # measure
                 clbit_writeable[c] = clbit_readable[c] = stop_time
             for c in node.op.condition_bits:  # conditional op
-                clbit_writeable[c] = start_time
+                clbit_writeable[c] = max(start_time, clbit_writeable[c])
 
         working_qubits = qubit_time_available.keys()
         circuit_duration = max(qubit_time_available[q] for q in working_qubits)

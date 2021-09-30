@@ -49,7 +49,7 @@ class TestSchedulingPass(QiskitTestCase):
         self.assertEqual(alap_qc, new_qc)
 
     @data(ALAPSchedule, ASAPSchedule)
-    def test_classically_controlled_gate_after_measure(self, SchedulePass):
+    def test_classically_controlled_gate_after_measure(self, schedule_pass):
         """Test if ALAP/ASAP schedules circuits with c_if after measure with a common clbit.
         See: https://github.com/Qiskit/qiskit-terra/issues/7006
 
@@ -78,13 +78,13 @@ class TestSchedulingPass(QiskitTestCase):
         qc.x(1).c_if(0, 1)
 
         durations = InstructionDurations([("x", None, 200), ("measure", None, 1000)])
-        pm = PassManager(SchedulePass(durations))
+        pm = PassManager(schedule_pass(durations))
         scheduled = pm.run(qc)
 
         self.assertEqual(1000, scheduled.qubit_start_time(1))  # x.c_if starts after measure
 
     @data(ALAPSchedule, ASAPSchedule)
-    def test_measure_after_measure(self, SchedulePass):
+    def test_measure_after_measure(self, schedule_pass):
         """Test if ALAP/ASAP schedules circuits with measure after measure with a common clbit.
         See: https://github.com/Qiskit/qiskit-terra/issues/7006
 
@@ -112,7 +112,7 @@ class TestSchedulingPass(QiskitTestCase):
         qc.measure(1, 0)
 
         durations = InstructionDurations([("x", None, 200), ("measure", None, 1000)])
-        pm = PassManager(SchedulePass(durations))
+        pm = PassManager(schedule_pass(durations))
         scheduled = pm.run(qc)
 
         self.assertEqual(1200, scheduled.qubit_stop_time(0))  # 1st measure (stop time)
@@ -121,7 +121,7 @@ class TestSchedulingPass(QiskitTestCase):
         )  # 2nd measure starts at the same time as 1st measure starts
 
     @data(ALAPSchedule, ASAPSchedule)
-    def test_c_if_on_different_qubits(self, SchedulePass):
+    def test_c_if_on_different_qubits(self, schedule_pass):
         """Test if ALAP/ASAP schedules circuits with `c_if`s on different qubits.
 
         (input)
@@ -154,14 +154,14 @@ class TestSchedulingPass(QiskitTestCase):
         qc.x(2).c_if(0, True)
 
         durations = InstructionDurations([("x", None, 200), ("measure", None, 1000)])
-        pm = PassManager(SchedulePass(durations))
+        pm = PassManager(schedule_pass(durations))
         scheduled = pm.run(qc)
 
         self.assertEqual(1000, scheduled.qubit_start_time(1))  # x(1).c_if (start time)
         self.assertEqual(1000, scheduled.qubit_start_time(2))  # x(2).c_if (start time)
 
     @data(ALAPSchedule, ASAPSchedule)
-    def test_shorter_measure_after_measure(self, SchedulePass):
+    def test_shorter_measure_after_measure(self, schedule_pass):
         """Test if ALAP/ASAP schedules circuits with shorter measure after measure with a common clbit.
 
         (input)
@@ -187,7 +187,7 @@ class TestSchedulingPass(QiskitTestCase):
         qc.measure(1, 0)
 
         durations = InstructionDurations([("measure", 0, 1000), ("measure", 1, 700)])
-        pm = PassManager(SchedulePass(durations))
+        pm = PassManager(schedule_pass(durations))
         scheduled = pm.run(qc)
 
         self.assertEqual(300, scheduled.qubit_start_time(1))  # 2nd measure (start time)
@@ -243,6 +243,7 @@ class TestSchedulingPass(QiskitTestCase):
         # start times of 2nd measure depends on ASAP/ALAP
         self.assertEqual(0, asap.qubit_start_time(2))
         self.assertEqual(200, alap.qubit_start_time(2))
+
 
 if __name__ == "__main__":
     unittest.main()
