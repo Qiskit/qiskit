@@ -19,28 +19,39 @@ import warnings
 import numpy as np
 
 from qiskit.circuit.library.standard_gates import U3Gate
+from qiskit.converters import circuit_to_dag
+from qiskit.dagcircuit import DAGOpNode
+from qiskit.providers.models import BackendProperties
+from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info.synthesis import one_qubit_decompose
-from qiskit.converters import circuit_to_dag
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_ATOL = 1.0e-12
+"""Threshold for fidelity drop in re-synthesized sequences before emitting a warning."""
 
 
 class Optimize1qGatesDecomposition(TransformationPass):
     """Optimize chains of single-qubit gates by combining them into a single gate."""
 
-    def __init__(self, basis=None):
+    def __init__(
+            self,
+            basis=None,
+            backend_properties: BackendProperties = None,
+    ):
         """Optimize1qGatesDecomposition initializer.
 
         Args:
-            basis (list[str]): Basis gates to consider, e.g. `['u3', 'cx']`. For the effects
-                of this pass, the basis is the set intersection between the `basis` parameter
-                and the Euler basis.
+            basis (list[str]): Basis gates to consider, e.g. `['u3', 'cx']`. For the effects of this
+                pass, the basis is the set intersection between the `basis` parameter and the Euler
+                basis.
         """
         super().__init__()
 
         self._target_basis = basis
         self._decomposers = None
+        self._backend_properties = backend_properties
 
         if basis:
             self._decomposers = {}
@@ -60,11 +71,10 @@ class Optimize1qGatesDecomposition(TransformationPass):
                             break
                     # if not a subset, add it to the list
                     else:
-                        self._decomposers[
-                            tuple(gates)
-                        ] = one_qubit_decompose.OneQubitEulerDecomposer(euler_basis_name)
+                        decomposer = one_qubit_decompose.OneQubitEulerDecomposer(euler_basis_name)
+                        self._decomposers[tuple(gates)] = decomposer
 
-    def _resynthesize_run(self, run):
+    def _resynthesize_run(self, dag, run):
         """
         Resynthesizes one `run`, typically extracted via `dag.collect_1q_runs`.
 
@@ -72,11 +82,24 @@ class Optimize1qGatesDecomposition(TransformationPass):
         (None, None) if no synthesis routine applied.
         """
 
+        qubit = next((index for (index, qubit) in enumerate(dag.qubits)
+                      if qubit == run[0].qargs[0]), None)
         operator = run[0].op.to_matrix()
         for gate in run[1:]:
             operator = gate.op.to_matrix().dot(operator)
 
-        new_circs = {k: v._decompose(operator) for k, v in self._decomposers.items()}
+        def fidelity_lookup(gate_name, default=1.0):
+            nonlocal self, qubit
+
+            if self._backend_properties is None:
+                return default
+            try:
+                return 1.0 - self._backend_properties.gate_error(gate_name, [qubit])
+            except BackendPropertyError:
+                return default
+
+        new_circs = {k: v._decompose(operator, fidelity_mapping=fidelity_lookup)
+                     for k, v in self._decomposers.items()}
 
         new_basis, new_circ = None, None
         if len(new_circs) > 0:
@@ -84,7 +107,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
 
         return new_basis, new_circ
 
-    def _substitution_checks(self, dag, old_run, new_circ, new_basis):
+    def _substitution_checks(self, dag, old_run, new_circ, new_basis, atol=DEFAULT_ATOL):
         """
         Returns `True` when it is recommended to replace `old_run` with `new_circ`.
         """
@@ -107,9 +130,33 @@ class Optimize1qGatesDecomposition(TransformationPass):
             for g in old_run
         )
 
-        if rewriteable_and_in_basis_p and len(old_run) < len(new_circ):
-            # NOTE: This is short-circuited on calibrated gates, which we're timid about
-            #       reducing.
+        old_infidelity = 0
+        new_infidelity = 0
+        # look up physical qubit index in layout
+        # (this snippet is adapted from UnitarySynthesis._synth_natural_direction)
+        qubit = next((index for (index, qubit) in enumerate(dag.qubits)
+                      if qubit == old_run[0].qargs[0]), None)
+
+        if self._backend_properties is not None:
+            try:
+                for op in old_run:
+                    if not isinstance(op, DAGOpNode):
+                        continue
+                    old_infidelity += self._backend_properties.gate_error(op.op.name, [qubit])
+            except BackendPropertyError:
+                old_infidelity += float("inf")
+
+            for instr, qregs, cregs in new_circ.data:
+                try:
+                    new_infidelity += self._backend_properties.gate_error(instr.name, [qubit])
+                except BackendPropertyError:
+                    pass
+
+        if rewriteable_and_in_basis_p and (
+            (old_infidelity + atol < new_infidelity) or
+            (abs(old_infidelity - new_infidelity) < atol and len(old_run) < len(new_circ))
+        ):
+            # NOTE: This is short-circuited on calibrated gates, which we're timid about reducing.
             warnings.warn(
                 "Resynthesized \n\n"
                 + "\n".join([str(node.op) for node in old_run])
@@ -123,20 +170,14 @@ class Optimize1qGatesDecomposition(TransformationPass):
             )
 
         # if we're outside of the basis set, we're obligated to logically decompose.
-        # if we're outside of the set of gates for which we have physical definitions,
-        #    then we _try_ to decompose, using the results if we see improvement.
-        # NOTE: Here we use circuit length as a weak proxy for "improvement"; in reality,
-        #       we care about something more like fidelity at runtime, which would mean,
-        #       e.g., a preference for `RZGate`s over `RXGate`s.  In fact, users sometimes
-        #       express a preference for a "canonical form" of a circuit, which may come in
-        #       the form of some parameter values, also not visible at the level of circuit
-        #       length.  Since we don't have a framework for the caller to programmatically
-        #       express what they want here, we include some special casing for particular
-        #       gates which we've promised to normalize --- but this is fragile and should
-        #       ultimately be done away with.
+        # if we're outside of the set of gates for which we have physical definitions, then we _try_
+        #    to decompose, using the results if we see improvement.
         return (
             uncalibrated_and_not_basis_p
-            or (uncalibrated_p and len(old_run) > len(new_circ))
+            or (uncalibrated_p and
+                ((new_infidelity < old_infidelity - atol) or
+                 (abs(new_infidelity - old_infidelity) < atol and
+                  len(new_circ) < len(old_run))))
             or isinstance(old_run[0].op, U3Gate)
         )
 
@@ -166,7 +207,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 if "u2" not in self._target_basis and "u1" not in self._target_basis:
                     continue
 
-            new_basis, new_circ = self._resynthesize_run(run)
+            new_basis, new_circ = self._resynthesize_run(dag, run)
 
             if new_circ is not None and self._substitution_checks(dag, run, new_circ, new_basis):
                 new_dag = circuit_to_dag(new_circ)

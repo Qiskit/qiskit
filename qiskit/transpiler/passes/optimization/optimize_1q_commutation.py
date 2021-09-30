@@ -71,6 +71,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
         super().__init__()
 
         self._basis = basis
+        # TODO: pass backend properties through here
         self._optimize1q = Optimize1qGatesDecomposition(basis)
         self._run_to_completion = run_to_completion
 
@@ -144,7 +145,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
             assert run_clone + commuted == run
             return run_clone, commuted
 
-    def _resynthesize(self, new_run):
+    def _resynthesize(self, dag, new_run):
         """
         Synthesizes an efficient circuit from a sequence `new_run` of `DAGOpNode`s.
 
@@ -153,7 +154,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
         if len(new_run) == 0:
             return (), QuantumCircuit(1)
 
-        return self._optimize1q._resynthesize_run(new_run)
+        return self._optimize1q._resynthesize_run(dag, new_run)
 
     @staticmethod
     def _replace_subdag(dag, old_run, new_circ):
@@ -205,12 +206,12 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
 
             # re-synthesize
             new_preceding_basis, new_preceding_run = self._resynthesize(
-                preceding_run + commuted_preceding
+                dag, preceding_run + commuted_preceding
             )
             new_succeeding_basis, new_succeeding_run = self._resynthesize(
-                commuted_succeeding + succeeding_run
+                dag, commuted_succeeding + succeeding_run
             )
-            new_basis, new_run = self._resynthesize(run_clone)
+            new_basis, new_run = self._resynthesize(dag, run_clone)
 
             # perform the replacement if it was indeed a good idea
             if self._optimize1q._substitution_checks(
