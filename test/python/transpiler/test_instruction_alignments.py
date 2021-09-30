@@ -40,8 +40,7 @@ class TestAlignMeasures(QiskitTestCase):
                 ("sx", (1,), 160),
                 ("cx", (0, 1), 800),
                 ("cx", (1, 0), 800),
-                ("measure", (0,), 1600),
-                ("measure", (1,), 1600),
+                ("measure", None, 1600),
             ]
         )
         self.time_conversion_pass = TimeUnitConversion(inst_durations=instruction_durations)
@@ -262,6 +261,56 @@ class TestAlignMeasures(QiskitTestCase):
         transpiled = self.align_measure_pass(circuit, property_set={"time_unit": "dt"})
 
         self.assertEqual(transpiled, circuit)
+
+    def test_circuit_using_clbit(self):
+        """Test a circuit with instructions using a common clbit.
+
+        (input)
+             ┌───┐┌────────────────┐┌─┐
+        q_0: ┤ X ├┤ Delay(100[dt]) ├┤M├──────────────
+             └───┘└────────────────┘└╥┘   ┌───┐
+        q_1: ────────────────────────╫────┤ X ├──────
+                                     ║    └─╥─┘   ┌─┐
+        q_2: ────────────────────────╫──────╫─────┤M├
+                                     ║ ┌────╨────┐└╥┘
+        c: 1/════════════════════════╩═╡ c_0 = T ╞═╩═
+                                     0 └─────────┘ 0
+
+        (aligned)
+                    ┌───┐       ┌────────────────┐┌─┐┌────────────────┐
+        q_0: ───────┤ X ├───────┤ Delay(112[dt]) ├┤M├┤ Delay(160[dt]) ├───
+             ┌──────┴───┴──────┐└────────────────┘└╥┘└─────┬───┬──────┘
+        q_1: ┤ Delay(1872[dt]) ├───────────────────╫───────┤ X ├──────────
+             └┬────────────────┤                   ║       └─╥─┘       ┌─┐
+        q_2: ─┤ Delay(432[dt]) ├───────────────────╫─────────╫─────────┤M├
+              └────────────────┘                   ║    ┌────╨────┐    └╥┘
+        c: 1/══════════════════════════════════════╩════╡ c_0 = T ╞═════╩═
+                                                   0    └─────────┘     0
+        """
+        circuit = QuantumCircuit(3, 1)
+        circuit.x(0)
+        circuit.delay(100, 0, unit="dt")
+        circuit.measure(0, 0)
+        circuit.x(1).c_if(0, 1)
+        circuit.measure(2, 0)
+
+        timed_circuit = self.time_conversion_pass(circuit)
+        scheduled_circuit = self.scheduling_pass(timed_circuit, property_set={"time_unit": "dt"})
+        aligned_circuit = self.align_measure_pass(
+            scheduled_circuit, property_set={"time_unit": "dt"}
+        )
+
+        ref_circuit = QuantumCircuit(3, 1)
+        ref_circuit.x(0)
+        ref_circuit.delay(112, 0, unit="dt")
+        ref_circuit.delay(1872, 1, unit="dt")
+        ref_circuit.delay(432, 2, unit="dt")
+        ref_circuit.measure(0, 0)
+        ref_circuit.x(1).c_if(0, 1)
+        ref_circuit.delay(160, 0, unit="dt")
+        ref_circuit.measure(2, 0)
+
+        self.assertEqual(aligned_circuit, ref_circuit)
 
 
 class TestPulseGateValidation(QiskitTestCase):

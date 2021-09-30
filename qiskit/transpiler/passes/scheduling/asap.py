@@ -11,14 +11,16 @@
 # that they have been altered from the originals.
 
 """ASAP Scheduling."""
+import itertools
 from collections import defaultdict
 from typing import List
-from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
-from qiskit.circuit.delay import Delay
+
+from qiskit.circuit import Delay, Measure
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
 
 
 class ASAPSchedule(TransformationPass):
@@ -59,6 +61,8 @@ class ASAPSchedule(TransformationPass):
             new_dag.add_creg(creg)
 
         qubit_time_available = defaultdict(int)
+        clbit_readable = defaultdict(int)
+        clbit_writeable = defaultdict(int)
 
         def pad_with_delays(qubits: List[int], until, unit) -> None:
             """Pad idle time-slots in ``qubits`` with delays in ``unit`` until ``until``."""
@@ -67,13 +71,8 @@ class ASAPSchedule(TransformationPass):
                     idle_duration = until - qubit_time_available[q]
                     new_dag.apply_operation_back(Delay(idle_duration, unit), [q])
 
-        bit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
+        bit_indices = {q: index for index, q in enumerate(dag.qubits)}
         for node in dag.topological_op_nodes():
-            start_time = max(qubit_time_available[q] for q in node.qargs)
-            pad_with_delays(node.qargs, until=start_time, unit=time_unit)
-
-            new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
-
             # validate node.op.duration
             if node.op.duration is None:
                 indices = [bit_indices[qarg] for qarg in node.qargs]
@@ -86,11 +85,30 @@ class ASAPSchedule(TransformationPass):
                     f"Parameterized duration ({node.op.duration}) "
                     f"of {node.op.name} on qubits {indices} is not bounded."
                 )
+            # choose appropriate clbit available time depending on op
+            clbit_time_available = clbit_writeable if isinstance(node.op, Measure) else clbit_readable
+            # correction to change clbit start time to qubit start time
+            start_delta = node.op.duration if isinstance(node.op, Measure) else 0
+            # must wait for op.condition_bits as well as node.cargs
+            start_time = max(
+                itertools.chain(
+                    (qubit_time_available[q] for q in node.qargs),
+                    (clbit_time_available[c] - start_delta for c in node.cargs + node.op.condition_bits),
+                )
+            )
+
+            pad_with_delays(node.qargs, until=start_time, unit=time_unit)
+
+            new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
 
             stop_time = start_time + node.op.duration
             # update time table
             for q in node.qargs:
                 qubit_time_available[q] = stop_time
+            for c in node.cargs:  # measure
+                clbit_writeable[c] = clbit_readable[c] = stop_time
+            for c in node.op.condition_bits:  # conditional op
+                clbit_writeable[c] = start_time
 
         working_qubits = qubit_time_available.keys()
         circuit_duration = max(qubit_time_available[q] for q in working_qubits)
