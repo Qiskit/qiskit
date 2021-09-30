@@ -19,7 +19,7 @@ import itertools
 import functools
 import multiprocessing as mp
 import string
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
     Union,
     Optional,
@@ -66,6 +66,8 @@ try:
     HAS_PYGMENTS = True
 except Exception:  # pylint: disable=broad-except
     HAS_PYGMENTS = False
+
+BitLocations = namedtuple("BitLocations", ("index", "registers"))
 
 
 # The following types are not marked private to avoid leaking this "private/public" abstraction out
@@ -236,13 +238,17 @@ class QuantumCircuit:
         # in the order they were applied.
         self._data = []
 
-        # This is a map of registers bound to this circuit, by name.
         self.qregs = []
         self.cregs = []
         self._qubits = []
-        self._qubit_set = set()
         self._clbits = []
-        self._clbit_set = set()
+
+        # Dict mapping Qubt or Clbit instances to tuple comprised of 0) the
+        # corresponding index in circuit.{qubits,clbits} and 1) a list of
+        # Register-int pairs for each Register containing the Bit and its index
+        # within that register.
+        self._qubit_indices = dict()
+        self._clbit_indices = dict()
 
         self._ancillas = []
         self._calibrations = defaultdict(dict)
@@ -703,14 +709,11 @@ class QuantumCircuit:
         # Add new registers
         for element in rhs.qregs:
             if element not in self.qregs:
-                self.qregs.append(element)
-                self._qubits += element[:]
-                self._qubit_set.update(element[:])
+                self.add_register(element)
+
         for element in rhs.cregs:
             if element not in self.cregs:
-                self.cregs.append(element)
-                self._clbits += element[:]
-                self._clbit_set.update(element[:])
+                self.add_register(element)
 
         # Copy the circuit data if rhs and self are the same, otherwise the data of rhs is
         # appended to both self and rhs resulting in an infinite loop
@@ -1283,14 +1286,28 @@ class QuantumCircuit:
 
             if isinstance(register, QuantumRegister):
                 self.qregs.append(register)
-                new_bits = [bit for bit in register if bit not in self._qubit_set]
-                self._qubits.extend(new_bits)
-                self._qubit_set.update(new_bits)
+
+                for idx, bit in enumerate(register):
+                    if bit in self._qubit_indices:
+                        self._qubit_indices[bit].registers.append((register, idx))
+                    else:
+                        self._qubits.append(bit)
+                        self._qubit_indices[bit] = BitLocations(
+                            len(self._qubits) - 1, [(register, idx)]
+                        )
+
             elif isinstance(register, ClassicalRegister):
                 self.cregs.append(register)
-                new_bits = [bit for bit in register if bit not in self._clbit_set]
-                self._clbits.extend(new_bits)
-                self._clbit_set.update(new_bits)
+
+                for idx, bit in enumerate(register):
+                    if bit in self._clbit_indices:
+                        self._clbit_indices[bit].registers.append((register, idx))
+                    else:
+                        self._clbits.append(bit)
+                        self._clbit_indices[bit] = BitLocations(
+                            len(self._clbits) - 1, [(register, idx)]
+                        )
+
             elif isinstance(register, list):
                 self.add_bits(register)
             else:
@@ -1298,25 +1315,59 @@ class QuantumCircuit:
 
     def add_bits(self, bits: Sequence[Bit]) -> None:
         """Add Bits to the circuit."""
-        duplicate_bits = set(self.qubits + self.clbits).intersection(bits)
+        duplicate_bits = set(self._qubit_indices).union(self._clbit_indices).intersection(bits)
         if duplicate_bits:
             raise CircuitError(f"Attempted to add bits found already in circuit: {duplicate_bits}")
 
         for bit in bits:
             if isinstance(bit, AncillaQubit):
                 self._ancillas.append(bit)
-
             if isinstance(bit, Qubit):
                 self._qubits.append(bit)
-                self._qubit_set.add(bit)
+                self._qubit_indices[bit] = BitLocations(len(self._qubits) - 1, [])
             elif isinstance(bit, Clbit):
                 self._clbits.append(bit)
-                self._clbit_set.add(bit)
+                self._clbit_indices[bit] = BitLocations(len(self._clbits) - 1, [])
             else:
                 raise CircuitError(
                     "Expected an instance of Qubit, Clbit, or "
                     "AncillaQubit, but was passed {}".format(bit)
                 )
+
+    def find_bit(self, bit: Bit) -> BitLocations:
+        """Find locations in the circuit which can be used to reference a given :obj:`~Bit`.
+
+        Args:
+            bit (Bit): The bit to locate.
+
+        Returns:
+            namedtuple(int, List[Tuple(Register, int)]): A 2-tuple. The first element (``index``)
+                contains the index at which the ``Bit`` can be found (in either
+                :obj:`~QuantumCircuit.qubits`, :obj:`~QuantumCircuit.clbits`, depending on its
+                type). The second element (``registers``) is a list of ``(register, index)``
+                pairs with an entry for each :obj:`~Register` in the circuit which contains the
+                :obj:`~Bit` (and the index in the :obj:`~Register` at which it can be found).
+
+        Notes:
+            The circuit index of an :obj:`~AncillaQubit` will be its index in
+            :obj:`~QuantumCircuit.qubits`, not :obj:`~QuantumCircuit.ancillas`.
+
+        Raises:
+            CircuitError: If the supplied :obj:`~Bit` was of an unknown type.
+            CircuitError: If the supplied :obj:`~Bit` could not be found on the circuit.
+        """
+
+        try:
+            if isinstance(bit, Qubit):
+                return self._qubit_indices[bit]
+            elif isinstance(bit, Clbit):
+                return self._clbit_indices[bit]
+            else:
+                raise CircuitError(f"Could not locate bit of unknown type: {type(bit)}")
+        except KeyError as err:
+            raise CircuitError(
+                f"Could not locate provided bit: {bit}. Has it been added to the QuantumCircuit?"
+            ) from err
 
     def _check_dups(self, qubits: Sequence[Qubit]) -> None:
         """Raise exception if list of qubits contains duplicates."""
@@ -1328,14 +1379,14 @@ class QuantumCircuit:
         """Raise exception if a qarg is not in this circuit or bad format."""
         if not all(isinstance(i, Qubit) for i in qargs):
             raise CircuitError("qarg is not a Qubit")
-        if not set(qargs).issubset(self._qubit_set):
+        if not set(qargs).issubset(self._qubit_indices):
             raise CircuitError("qargs not in this circuit")
 
     def _check_cargs(self, cargs: Sequence[Clbit]) -> None:
         """Raise exception if clbit is not in this circuit or bad format."""
         if not all(isinstance(i, Clbit) for i in cargs):
             raise CircuitError("carg is not a Clbit")
-        if not set(cargs).issubset(self._clbit_set):
+        if not set(cargs).issubset(self._clbit_indices):
             raise CircuitError("cargs not in this circuit")
 
     def to_instruction(
@@ -2002,9 +2053,10 @@ class QuantumCircuit:
         cpy.qregs = self.qregs.copy()
         cpy.cregs = self.cregs.copy()
         cpy._qubits = self._qubits.copy()
+        cpy._ancillas = self._ancillas.copy()
         cpy._clbits = self._clbits.copy()
-        cpy._qubit_set = self._qubit_set.copy()
-        cpy._clbit_set = self._clbit_set.copy()
+        cpy._qubit_indices = self._qubit_indices.copy()
+        cpy._clbit_indices = self._clbit_indices.copy()
 
         instr_instances = {id(instr): instr for instr, _, __ in self._data}
 
