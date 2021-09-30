@@ -64,6 +64,7 @@ class RealVariationalPrinciple(VariationalPrinciple):
     ) -> OperatorBase:
         pass
 
+    @abstractmethod
     def _calc_nat_grad(
         self,
         raw_operator: OperatorBase,
