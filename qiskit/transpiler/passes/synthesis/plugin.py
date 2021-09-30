@@ -89,7 +89,7 @@ something like::
             return None
 
         @property
-        def supported_basis(self):
+        def supported_bases(self):
             return None
 
         def run(self, unitary, **options):
@@ -291,11 +291,11 @@ class UnitarySynthesisPlugin(abc.ABC):
     @property
     @abc.abstractmethod
     def supported_bases(self):
-        """Returns a dictionary of supported basis for synthesis
+        """Returns a dictionary of supported bases for synthesis
 
         This is expected to return a dictionary where the key is a string
         basis and the value is a list of gate names that the basis works in.
-        If the synthesis method doesn't support multiple basis this should
+        If the synthesis method doesn't support multiple bases this should
         return ``None``. For example::
 
             {
@@ -305,7 +305,7 @@ class UnitarySynthesisPlugin(abc.ABC):
 
         If a dictionary is returned by this method the run kwargs will be
         passed a parameter ``matched_basis`` which contains a list of the
-        basis strings (ie keys in the dictionary) which match the target basis
+        basis strings (i.e. keys in the dictionary) which match the target basis
         gate set for the transpilation.
         """
         pass
