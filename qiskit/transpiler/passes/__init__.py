@@ -197,6 +197,7 @@ from .analysis import DAGLongestPath
 
 # synthesis
 from .synthesis import UnitarySynthesis
+from .synthesis import unitary_synthesis_plugin_names
 
 # calibration
 from .calibration import PulseGates
