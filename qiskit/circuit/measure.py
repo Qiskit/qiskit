@@ -20,9 +20,11 @@ from qiskit.circuit.exceptions import CircuitError
 class Measure(Instruction):
     """Quantum measurement"""
 
-    # pylint: disable=dangerous-default-value
-    def __init__(self, name="measure", num_qubits=1, num_clbits=1, params=[]):
+    def __init__(self, name="measure", num_qubits=1, num_clbits=1, params=None):
         """Create new measurement instruction."""
+        if params is None:
+            params = []
+            
         super().__init__(name, num_qubits, num_clbits, params=params)
 
     def broadcast_arguments(self, qargs, cargs):
