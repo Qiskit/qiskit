@@ -33,7 +33,7 @@ class Prefix(Node):
         """Return the corresponding OPENQASM string."""
         if prec is not None:
             warnings.warn(
-                "Parameter 'Prefix.qasm(..., prec)' is no longer used and is being " "deprecated.",
+                "Parameter 'Prefix.qasm(..., prec)' is no longer used and is being deprecated.",
                 DeprecationWarning,
                 2,
             )
@@ -43,7 +43,7 @@ class Prefix(Node):
         """Return the corresponding math mode latex string."""
         if prec is not None:
             warnings.warn(
-                "Parameter 'Prefix.latex(..., prec)' is no longer used and is being " "deprecated.",
+                "Parameter 'Prefix.latex(..., prec)' is no longer used and is being deprecated.",
                 DeprecationWarning,
                 2,
             )

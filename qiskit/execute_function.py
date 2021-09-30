@@ -25,7 +25,7 @@ from qiskit.compiler import transpile, assemble, schedule
 from qiskit.providers import BaseBackend
 from qiskit.providers.backend import Backend
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
-from qiskit.pulse import Schedule
+from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.exceptions import QiskitError
 
 logger = logging.getLogger(__name__)
@@ -49,7 +49,7 @@ def execute(
     qobj_id=None,
     qobj_header=None,
     shots=None,  # common run options
-    memory=False,
+    memory=None,
     max_credits=None,
     seed_simulator=None,
     default_qubit_los=None,
@@ -272,8 +272,8 @@ def execute(
 
             job = execute(qc, backend, shots=4321)
     """
-    if isinstance(experiments, Schedule) or (
-        isinstance(experiments, list) and isinstance(experiments[0], Schedule)
+    if isinstance(experiments, (Schedule, ScheduleBlock)) or (
+        isinstance(experiments, list) and isinstance(experiments[0], (Schedule, ScheduleBlock))
     ):
         # do not transpile a schedule circuit
         if schedule_circuit:
@@ -315,6 +315,8 @@ def execute(
         # assembling the circuits into a qobj to be run on the backend
         if shots is None:
             shots = 1024
+        if memory is None:
+            memory = False
         if max_credits is None:
             max_credits = 10
         if meas_level is None:
@@ -383,18 +385,11 @@ def execute(
                         key,
                     )
                 del run_kwargs[key]
-            elif key == "shots" and run_kwargs[key] is None:
-                run_kwargs[key] = 1024
-            elif key == "max_credits" and run_kwargs[key] is None:
-                run_kwargs[key] = 10
-            elif key == "meas_level" and run_kwargs[key] is None:
-                run_kwargs[key] = MeasLevel.CLASSIFIED
-            elif key == "meas_return" and run_kwargs[key] is None:
-                run_kwargs[key] = MeasReturnType.AVERAGE
-            elif key == "memory_slot_size" and run_kwargs[key] is None:
-                run_kwargs[key] = 100
+            elif run_kwargs[key] is None:
+                del run_kwargs[key]
 
-        run_kwargs["parameter_binds"] = parameter_binds
+        if parameter_binds:
+            run_kwargs["parameter_binds"] = parameter_binds
         run_kwargs.update(run_config)
         job = backend.run(experiments, **run_kwargs)
         end_time = time()

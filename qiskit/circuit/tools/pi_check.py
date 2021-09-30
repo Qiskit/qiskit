@@ -81,7 +81,7 @@ def pi_check(inpt, eps=1e-6, output="text", ndigits=5):
         elif output == "mpl":
             pi = "$\\pi$"
         else:
-            raise QiskitError("pi_check parameter output should be text, " "latex, mpl, or qasm.")
+            raise QiskitError("pi_check parameter output should be text, latex, mpl, or qasm.")
 
         neg_str = "-" if single_inpt < 0 else ""
 
@@ -125,7 +125,7 @@ def pi_check(inpt, eps=1e-6, output="text", ndigits=5):
         if abs(abs(val) - abs(round(val))) < eps:
             val = int(abs(round(val)))
             if output == "latex":
-                str_out = "\\frac{%s%s}{%s}" % (neg_str, pi, val)
+                str_out = f"\\frac{{{neg_str}{pi}}}{{{val}}}"
             else:
                 str_out = f"{neg_str}{pi}/{val}"
             return str_out
@@ -138,7 +138,7 @@ def pi_check(inpt, eps=1e-6, output="text", ndigits=5):
             numer = int(frac[1][0]) + 1
             denom = int(frac[0][0]) + 1
             if output == "latex":
-                str_out = "\\frac{%s%s%s}{%s}" % (neg_str, numer, pi, denom)
+                str_out = f"\\frac{{{neg_str}{numer}{pi}}}{{{denom}}}"
             elif output == "qasm":
                 str_out = f"{neg_str}{numer}*{pi}/{denom}"
             else:
@@ -155,7 +155,7 @@ def pi_check(inpt, eps=1e-6, output="text", ndigits=5):
             if denom == 1 and output != "qasm":
                 denom = ""
             if output == "latex":
-                str_out = "\\frac{%s%s}{%s%s}" % (neg_str, numer, denom, pi)
+                str_out = f"\\frac{{{neg_str}{numer}}}{{{denom}{pi}}}"
             elif output == "qasm":
                 str_out = f"{neg_str}{numer}/({denom}*{pi})"
             else:
