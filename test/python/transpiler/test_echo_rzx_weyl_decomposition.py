@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Test the EchoRZXWeylDecomposition pass"""
+
 import unittest
 from math import pi
 import numpy as np
@@ -38,50 +39,12 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
         super().setUp()
         self.backend = FakeParis()
 
-    def test_rzx_number_native_weyl_decomposition(self):
-        """Check the number of RZX gates for a hardware-native cx"""
-        qr = QuantumRegister(2, "qr")
-        circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0], qr[1])
-
-        unitary_circuit = qi.Operator(circuit).data
-
-        after = EchoRZXWeylDecomposition(self.backend)(circuit)
-
-        unitary_after = qi.Operator(after).data
-
-        self.assertTrue(np.allclose(unitary_circuit, unitary_after))
-
-        # check whether after circuit has correct number of rzx gates
-        self.assertRZXgates(unitary_circuit, after)
-
-    def test_non_native_weyl_decomposition(self):
-        """Check the number of RZX gates for a non-hardware-native rzz"""
-        theta = pi / 9
-        qr = QuantumRegister(2, "qr")
-        circuit = QuantumCircuit(qr)
-        circuit.rzz(theta, qr[1], qr[0])
-
-        unitary_circuit = qi.Operator(circuit).data
-
-        dag = circuit_to_dag(circuit)
-        pass_ = EchoRZXWeylDecomposition(self.backend)
-        after = dag_to_circuit(pass_.run(dag))
-
-        unitary_after = qi.Operator(after).data
-
-        self.assertTrue(np.allclose(unitary_circuit, unitary_after))
-
-        # check whether after circuit has correct number of rzx gates
-        self.assertRZXgates(unitary_circuit, after)
-
     def assertRZXgates(self, unitary_circuit, after):
         """Check the number of rzx gates"""
         alpha = TwoQubitWeylDecomposition(unitary_circuit).a
         beta = TwoQubitWeylDecomposition(unitary_circuit).b
         gamma = TwoQubitWeylDecomposition(unitary_circuit).c
 
-        # check whether after circuit has correct number of rzx gates
         expected_rzx_number = 0
         if not alpha == 0:
             expected_rzx_number += 2
@@ -103,8 +66,25 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
             gate_number = QuantumCircuit.count_ops(circuit)[gate]
         return gate_number
 
+    def test_rzx_number_native_weyl_decomposition(self):
+        """Check the number of RZX gates for a hardware-native cx"""
+        qr = QuantumRegister(2, "qr")
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[0], qr[1])
+
+        unitary_circuit = qi.Operator(circuit).data
+
+        after = EchoRZXWeylDecomposition(self.backend)(circuit)
+
+        unitary_after = qi.Operator(after).data
+
+        self.assertTrue(np.allclose(unitary_circuit, unitary_after))
+
+        # check whether the after circuit has the correct number of rzx gates.
+        self.assertRZXgates(unitary_circuit, after)
+
     def test_h_number_non_native_weyl_decomposition_1(self):
-        """Check the number of added Hadamard gates for an rzz gate"""
+        """Check the number of added Hadamard gates for a native and non-native rzz gate"""
         theta = pi / 11
         qr = QuantumRegister(2, "qr")
         # rzz gate in native direction
@@ -137,11 +117,11 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
     def test_h_number_non_native_weyl_decomposition_2(self):
         """Check the number of added Hadamard gates for a swap gate"""
         qr = QuantumRegister(2, "qr")
-        # swap gate in native direction
+        # swap gate in native direction.
         circuit = QuantumCircuit(qr)
         circuit.swap(qr[0], qr[1])
 
-        # swap gate in non-native direction
+        # swap gate in non-native direction.
         circuit_non_native = QuantumCircuit(qr)
         circuit_non_native.swap(qr[1], qr[0])
 
@@ -164,8 +144,57 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
             (circuit_rzx_number / 2) * 4, circuit_non_native_h_number - circuit_h_number
         )
 
+    def test_weyl_decomposition_gate_angles(self):
+        """Check the number and angles of the RZX gates for different gates"""
+        thetas = [pi / 9, 2.1, -0.2]
+
+        qr = QuantumRegister(2, "qr")
+        circuit_rxx = QuantumCircuit(qr)
+        circuit_rxx.rxx(thetas[0], qr[1], qr[0])
+
+        circuit_ryy = QuantumCircuit(qr)
+        circuit_ryy.ryy(thetas[1], qr[0], qr[1])
+
+        circuit_rzz = QuantumCircuit(qr)
+        circuit_rzz.rzz(thetas[2], qr[1], qr[0])
+
+        circuits = [circuit_rxx, circuit_ryy, circuit_rzz]
+
+        for circuit in circuits:
+
+            unitary_circuit = qi.Operator(circuit).data
+
+            dag = circuit_to_dag(circuit)
+            pass_ = EchoRZXWeylDecomposition(self.backend)
+            after = dag_to_circuit(pass_.run(dag))
+            dag_after = circuit_to_dag(after)
+
+            unitary_after = qi.Operator(after).data
+
+            # check whether the unitaries are equivalent.
+            self.assertTrue(np.allclose(unitary_circuit, unitary_after))
+
+            # check whether the after circuit has the correct number of rzx gates.
+            self.assertRZXgates(unitary_circuit, after)
+
+            alpha = TwoQubitWeylDecomposition(unitary_circuit).a
+
+            rzx_angles = []
+            for node in dag_after.two_qubit_ops():
+                if node.name == "rzx":
+                    rzx_angle = node.op.params[0]
+                    # check whether the absolute values of the RZX gate angles
+                    # are equivalent to the corresponding Weyl parameter.
+                    self.assertAlmostEqual(np.abs(rzx_angle), alpha)
+                    rzx_angles.append(rzx_angle)
+
+            # check whether the angles of every RZX gate pair of an echoed RZX gate
+            # have opposite signs.
+            for idx in range(1, len(rzx_angles), 2):
+                self.assertAlmostEqual(rzx_angles[idx - 1], -rzx_angles[idx])
+
     def test_weyl_unitaries_random_circuit(self):
-        """Weyl decomposition for random two-qubit circuit."""
+        """Weyl decomposition for a random two-qubit circuit."""
         theta = pi / 9
         epsilon = 5
         delta = -1
@@ -173,7 +202,7 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
         qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
 
-        # random two-qubit circuit
+        # random two-qubit circuit.
         circuit.rzx(theta, 0, 1)
         circuit.rzz(epsilon, 0, 1)
         circuit.rz(eta, 0)
