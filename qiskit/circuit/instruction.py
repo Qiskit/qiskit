@@ -544,4 +544,3 @@ class Instruction(CircuitElement):
 
     def num_params(self):
         return self.num_params()
-
