@@ -156,7 +156,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         operator = old_run[0].op.to_matrix()
         for gate in old_run[1:]:
             operator = gate.op.to_matrix().dot(operator)
-        decomp_unitary = new_circ[0][0].to_matrix()
+        decomp_unitary = new_circ[0][0].to_matrix() if new_circ else np.eye(2)
         for gate, _, _ in new_circ[1:]:
             decomp_unitary = gate.to_matrix().dot(decomp_unitary)
         trace_pairing = np.trace(decomp_unitary @ np.conj(operator.data).transpose(1, 0))
