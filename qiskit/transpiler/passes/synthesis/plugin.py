@@ -306,7 +306,10 @@ class UnitarySynthesisPlugin(abc.ABC):
         If a dictionary is returned by this method the run kwargs will be
         passed a parameter ``matched_basis`` which contains a list of the
         basis strings (i.e. keys in the dictionary) which match the target basis
-        gate set for the transpilation.
+        gate set for the transpilation. If no entry in the dictionary matches
+        the target basis gate set then the ``matched_basis`` kwarg will be set
+        to an empty list, and a plugin can choose how to deal with the target
+        basis gate set not matching the plugin's capabilities.
         """
         pass
 
