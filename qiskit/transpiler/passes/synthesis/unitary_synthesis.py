@@ -91,6 +91,7 @@ class UnitarySynthesis(TransformationPass):
         natural_direction: Union[bool, None] = None,
         synth_gates: Union[List[str], None] = None,
         method: str = "default",
+        min_qubits: int = None,
     ):
         """Synthesize unitaries over some basis gates.
 
@@ -131,11 +132,14 @@ class UnitarySynthesis(TransformationPass):
                 ['unitary']. If None and `pulse_optimzie` == True,
                 default to ['unitary', 'swap']
             method (str): The unitary synthesis method plugin to use.
-
+            min_qubits: The minimum number of qubits in the unitary to synthesize. If this is set
+                and the unitary is less than the specified number of qubits it will not be
+                synthesized.
         """
         super().__init__()
         self._basis_gates = basis_gates
         self._approximation_degree = approximation_degree
+        self._min_qubits = min_qubits
         self.method = method
         self.plugins = plugin.UnitarySynthesisPluginManager()
         self._coupling_map = coupling_map
@@ -194,6 +198,8 @@ class UnitarySynthesis(TransformationPass):
             plugin_method._approximation_degree = self._approximation_degree
 
         for node in dag.named_nodes(*self._synth_gates):
+            if self._min_qubits is not None and len(node.qargs) < self._min_qubits:
+                continue
             if plugin_method.supports_coupling_map:
                 kwargs["coupling_map"] = (
                     self._coupling_map,
