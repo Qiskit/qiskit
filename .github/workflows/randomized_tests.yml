@@ -30,7 +30,7 @@ jobs:
         if: ${{ failure() }}
         uses: peter-evans/create-or-update-comment@v1
         with:
-          issue-number: 5351
+          issue-number: 2645
           body: |
-            Randomized tests check:
+            Randomized tests check failed:
             ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
