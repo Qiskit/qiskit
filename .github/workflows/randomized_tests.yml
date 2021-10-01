@@ -1,6 +1,5 @@
 name: Randomized tests
 on:
-  push:
   schedule:
     - cron:  '42 3 * * *'
   workflow_dispatch:
@@ -28,7 +27,7 @@ jobs:
       - name: Run randomized tests
         run: make test_randomized
       - name: Create comment on failed test run
-        #if: ${{ failure() }}
+        if: ${{ failure() }}
         uses: peter-evans/create-or-update-comment@v1
         with:
           issue-number: 5351
