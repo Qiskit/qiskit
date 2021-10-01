@@ -24,7 +24,15 @@ from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit
 from qiskit.tools.visualization import HAS_MATPLOTLIB
 from qiskit.visualization.counts_visualization import plot_histogram
-
+from qiskit.visualization.gate_map import plot_gate_map, plot_coupling_map
+from qiskit.test.mock.fake_provider import (
+    FakeArmonk,
+    FakeBelem,
+    FakeCasablanca,
+    FakeRueschlikon,
+    FakeMumbai,
+    FakeManhattan,
+)
 
 if HAS_MATPLOTLIB:
     from matplotlib.pyplot import close as mpl_close
@@ -55,6 +63,12 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         self.graph_count_drawer = TestGraphMatplotlibDrawer.save_data_wrap(
             plot_histogram, str(self)
         )
+        self.graph_plot_gate_map = TestGraphMatplotlibDrawer.save_data_wrap(
+            plot_gate_map, str(self)
+        )
+        self.graph_plot_coupling_map = TestGraphMatplotlibDrawer.save_data_wrap(
+            plot_coupling_map, str(self)
+        )
 
     def tearDown(self):
         super().tearDown()
@@ -78,12 +92,12 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Saves result data of a test"""
         datafilename = "result_test.json"
         if os.path.exists(datafilename):
-            with open(datafilename) as datafile:
+            with open(datafilename, encoding="UTF-8") as datafile:
                 data = json.load(datafile)
         else:
             data = {}
         data[image_filename] = {"testname": testname}
-        with open(datafilename, "w") as datafile:
+        with open(datafilename, "w", encoding="UTF-8") as datafile:
             json.dump(data, datafile)
 
     def test_plot_bloch_multivector(self):
@@ -156,6 +170,122 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         counts = {"11": 500, "00": 500}
 
         self.graph_count_drawer(counts, filename="histogram.png")
+
+    def test_plot_1_qubit_gate_map(self):
+        """Test plot_gate_map using 1 qubit backend"""
+        # getting the mock backend from FakeProvider
+
+        backend = FakeArmonk()
+
+        self.graph_plot_gate_map(backend=backend, filename="1_qubit_gate_map.png")
+
+    def test_plot_5_qubit_gate_map(self):
+        """Test plot_gate_map using 5 qubit backend"""
+        # getting the mock backend from FakeProvider
+
+        backend = FakeBelem()
+
+        self.graph_plot_gate_map(backend=backend, filename="5_qubit_gate_map.png")
+
+    def test_plot_7_qubit_gate_map(self):
+        """Test plot_gate_map using 7 qubit backend"""
+        # getting the mock backend from FakeProvider
+
+        backend = FakeCasablanca()
+
+        self.graph_plot_gate_map(backend=backend, filename="7_qubit_gate_map.png")
+
+    def test_plot_16_qubit_gate_map(self):
+        """Test plot_gate_map using 16 qubit backend"""
+        # getting the mock backend from FakeProvider
+
+        backend = FakeRueschlikon()
+
+        self.graph_plot_gate_map(backend=backend, filename="16_qubit_gate_map.png")
+
+    def test_plot_27_qubit_gate_map(self):
+        """Test plot_gate_map using 27 qubit backend"""
+        # getting the mock backend from FakeProvider
+
+        backend = FakeMumbai()
+
+        self.graph_plot_gate_map(backend=backend, filename="27_qubit_gate_map.png")
+
+    def test_plot_65_qubit_gate_map(self):
+        """test for plot_gate_map using 65 qubit backend"""
+        # getting the mock backend from FakeProvider
+
+        backend = FakeManhattan()
+
+        self.graph_plot_gate_map(backend=backend, filename="65_qubit_gate_map.png")
+
+    def test_figsize(self):
+        """Test figsize parameter of plot_gate_map"""
+        # getting the mock backend from FakeProvider
+
+        backend = FakeBelem()
+
+        self.graph_plot_gate_map(backend=backend, figsize=(10, 10), filename="figsize.png")
+
+    def test_qubit_size(self):
+        """Test qubit_size parameter of plot_gate_map"""
+        # getting the mock backend from FakeProvider
+
+        backend = FakeBelem()
+
+        self.graph_plot_gate_map(backend=backend, qubit_size=38, filename="qubit_size.png")
+
+    def test_qubit_color(self):
+        """Test qubit_color parameter of plot_gate_map"""
+        # getting the mock backend from FakeProvider
+
+        backend = FakeCasablanca()
+
+        self.graph_plot_gate_map(
+            backend=backend, qubit_color=["#ff0000"] * 7, filename="qubit_color.png"
+        )
+
+    def test_qubit_labels(self):
+        """Test qubit_labels parameter of plot_gate_map"""
+        # getting the mock backend from FakeProvider
+
+        backend = FakeCasablanca()
+
+        self.graph_plot_gate_map(
+            backend=backend, qubit_labels=list(range(10, 17, 1)), filename="qubit_labels.png"
+        )
+
+    def test_line_color(self):
+        """Test line_color parameter of plot_gate_map"""
+        # getting the mock backend from FakeProvider
+
+        backend = FakeManhattan()
+
+        self.graph_plot_gate_map(
+            backend=backend, line_color=["#00ff00"] * 144, filename="line_color.png"
+        )
+
+    def test_font_color(self):
+        """Test font_color parameter of plot_gate_map"""
+        # getting the mock backend from FakeProvider
+
+        backend = FakeManhattan()
+
+        self.graph_plot_gate_map(backend=backend, font_color="#ff00ff", filename="font_color.png")
+
+    def test_plot_coupling_map(self):
+        """Test plot_coupling_map"""
+
+        num_qubits = 5
+        qubit_coordinates = [[1, 0], [0, 1], [1, 1], [1, 2], [2, 1]]
+        coupling_map = [[1, 0], [1, 2], [1, 3], [3, 4]]
+
+        self.graph_plot_coupling_map(
+            num_qubits=num_qubits,
+            qubit_coordinates=qubit_coordinates,
+            coupling_map=coupling_map,
+            filename="coupling_map.png",
+        )
 
 
 if __name__ == "__main__":
