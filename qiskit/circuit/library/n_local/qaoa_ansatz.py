@@ -12,18 +12,19 @@
 
 """A generalized QAOA quantum circuit with a support of custom initial states and mixers."""
 # pylint: disable=cyclic-import
-from qiskit.opflow.primitive_ops.pauli_op import PauliOp
+import itertools
+from qiskit.circuit.parametervector import ParameterVector
+import numpy as np
 from typing import Optional, Set, List, Tuple
 
+from qiskit.opflow.primitive_ops.pauli_op import PauliOp
 from qiskit.circuit.library.evolved_operator_ansatz import EvolvedOperatorAnsatz
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit import QuantumRegister
-from qiskit.circuit import ParameterVector
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.exceptions import QiskitError
-import itertools
-import numpy as np
+
 
 class QAOAAnsatz(EvolvedOperatorAnsatz):
     """A generalized QAOA quantum circuit with a support of custom initial states and mixers.
@@ -52,9 +53,9 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
             initial_state (QuantumCircuit, optional): An optional initial state to use.
                 If `None` is passed then a set of Hadamard gates is applied as an initial state
                 to all qubits.
-            mixer_operator (OperatorBase or QuantumCircuit, List[QuantumCircuit], optional): An optional 
-                custom mixer or list of mixer to be used instead of the global X-rotations, denoted 
-                as :math:`U(B, \beta)` in the original paper. Can be an operator or an optionally 
+            mixer_operator (OperatorBase or QuantumCircuit, List[QuantumCircuit], optional): An optional
+                custom mixer or list of mixer to be used instead of the global X-rotations, denoted
+                as :math:`U(B, \beta)` in the original paper. Can be an operator or an optionally
                 parameterized quantum circuit.
             name (str): A name of the circuit, default 'qaoa'
         """
@@ -71,6 +72,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
 
         # store cost operator and set the registers if the operator is not None
         self.cost_operator = cost_operator
+        print("HELLO FROM PR")
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         valid = True
@@ -125,7 +127,6 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         return valid
 
     def _build(self):
-    
         if self._data is not None:
             return
         self._check_configuration()
@@ -156,9 +157,13 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
                 self.add_register(qr)
             except CircuitError:
                 # the register already exists, probably because of a previous composition
-                pass         
-            #times = ParameterVector("t", self.reps * sum(is_evolved_operator))
+                pass
+            print(is_evolved_operator)
+            times = ParameterVector("t", sum(is_evolved_operator))
+            times_it = iter(times)
+
             evolution_ = QuantumCircuit(*self.qregs, name=self.name)            # ------- need to figure out how initial_point is passed/ updated with reps
+            evolution_.compose(self.initial_state, inplace = True)
             first = True
             for _ in range(self.reps):
                 for is_evolved, circuit in zip(is_evolved_operator, circuits):
@@ -167,15 +172,15 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
                     else:
                         if self._insert_barriers:
                             evolution_.barrier()
-
                     if is_evolved:
-                        bound = circuit.assign_parameters({circuit.parameter})
+                        # not sure what this line does
+                        bound = circuit.assign_parameters({coeff: next(times_it)})
                     else:
                         bound = circuit
                     evolution_.compose(bound, inplace=True)
                 # then append opt params to self.gamma_values and self.beta_values
             return evolution_
-        varied_operators = list(itertools.chain.from_iterable([[self.operators[0],_] for _ in self.operators[-1]]))
+        varied_operators = list(itertools.chain.from_iterable([[self.operators[0],mixer] for mixer in self.operators[-1]]))
         evolution = build_ansatz_circuit(varied_operators)
         try:
             instr = evolution.to_gate()
