@@ -63,9 +63,6 @@ class LinearAmplitudeFunction(QuantumCircuit):
     :math:`[a, b]` and otherwise 0. The breakpoints :math:`p_i` can be specified by the
     ``breakpoints`` argument.
 
-    Examples:
-
-
     References:
 
         [1]: Woerner, S., & Egger, D. J. (2018).
@@ -148,12 +145,11 @@ class LinearAmplitudeFunction(QuantumCircuit):
 
         # use PWLPauliRotations to implement the function
         pwl_pauli_rotation = PiecewiseLinearPauliRotations(
-            num_state_qubits, mapped_breakpoints, 2 * slope_angles, 2 * offset_angles
+            num_state_qubits, mapped_breakpoints, 2 * slope_angles, 2 * offset_angles, name=name
         )
 
         super().__init__(*pwl_pauli_rotation.qregs, name=name)
-        self._data = pwl_pauli_rotation.data.copy()
-        # self.compose(pwl_pauli_rotation, inplace=True)
+        self.append(pwl_pauli_rotation.to_gate(), self.qubits)
 
     def post_processing(self, scaled_value: float) -> float:
         r"""Map the function value of the approximated :math:`\hat{f}` to :math:`f`.

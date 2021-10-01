@@ -36,9 +36,8 @@ class Gate(Instruction):
             params: A list of parameters.
             label: An optional label for the gate.
         """
-        self._label = label
         self.definition = None
-        super().__init__(name, num_qubits, 0, params)
+        super().__init__(name, num_qubits, 0, params, label=label)
 
     # Set higher priority than Numpy array and matrix classes
     __array_priority__ = 20
@@ -92,36 +91,9 @@ class Gate(Instruction):
     def _return_repeat(self, exponent: float) -> "Gate":
         return Gate(name=f"{self.name}*{exponent}", num_qubits=self.num_qubits, params=self.params)
 
-    def assemble(self) -> "Instruction":
-        """Assemble a QasmQobjInstruction"""
-        instruction = super().assemble()
-        if self.label:
-            instruction.label = self.label
-        return instruction
-
-    @property
-    def label(self) -> str:
-        """Return gate label"""
-        return self._label
-
-    @label.setter
-    def label(self, name: str):
-        """Set gate label to name
-
-        Args:
-            name (str or None): label to assign unitary
-
-        Raises:
-            TypeError: name is not string or None.
-        """
-        if isinstance(name, (str, type(None))):
-            self._label = name
-        else:
-            raise TypeError("label expects a string or None")
-
     def control(
         self,
-        num_ctrl_qubits: Optional[int] = 1,
+        num_ctrl_qubits: int = 1,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[int, str]] = None,
     ):

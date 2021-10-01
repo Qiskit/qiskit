@@ -15,7 +15,7 @@
 from typing import List, Optional
 import numpy as np
 
-from qiskit.circuit import QuantumRegister, AncillaRegister
+from qiskit.circuit import QuantumRegister, AncillaRegister, QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 
 from .functional_pauli_rotations import FunctionalPauliRotations
@@ -46,6 +46,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
     :math:`x_{J+1} = 2^n`.
 
     .. note::
+
         Note the :math:`1/2` factor in the coefficients of :math:`f(x)`, this is consistent with
         Qiskit's Pauli rotations.
 
@@ -58,10 +59,8 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
         ...breakpoints=breakpoints, coeffs=coeffs)
         >>>
         >>> qc = QuantumCircuit(poly_r.num_qubits)
-        >>> qc.h(list(range(qubits)))
-        <qiskit.circuit.instructionset.InstructionSet object at 0x0000027AA5EDC9E8>
-        >>> qc.append(poly_r.to_instruction(), list(range(qc.num_qubits)))
-        <qiskit.circuit.instructionset.InstructionSet object at 0x0000027AFF183C50>
+        >>> qc.h(list(range(qubits)));
+        >>> qc.append(poly_r.to_instruction(), list(range(qc.num_qubits)));
         >>> qc.draw()
              ┌───┐┌──────────┐
         q_0: ┤ H ├┤0         ├
@@ -247,6 +246,8 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
         return valid
 
     def _reset_registers(self, num_state_qubits: Optional[int]) -> None:
+        self.qregs = []
+
         if num_state_qubits:
             qr_state = QuantumRegister(num_state_qubits)
             qr_target = QuantumRegister(1)
@@ -259,17 +260,6 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
             if num_ancillas > 0:
                 qr_ancilla = AncillaRegister(num_ancillas)
                 self.add_register(qr_ancilla)
-            else:
-                qr_ancilla = []
-
-            self._qubits = qr_state[:] + qr_target[:] + qr_ancilla[:]
-            self._qubit_set = set(self._qubits)
-            self._ancillas = qr_ancilla[:]
-        else:
-            self.qregs = []
-            self._qubits = []
-            self._qubit_set = set()
-            self._ancillas = []
 
     def _build(self):
         # do not build the circuit if _data is already populated
@@ -281,10 +271,11 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
         # check whether the configuration is valid
         self._check_configuration()
 
-        qr_state = self.qubits[: self.num_state_qubits]
-        qr_target = [self.qubits[self.num_state_qubits]]
+        circuit = QuantumCircuit(*self.qregs, name=self.name)
+        qr_state = circuit.qubits[: self.num_state_qubits]
+        qr_target = [circuit.qubits[self.num_state_qubits]]
         # Ancilla for the comparator circuit
-        qr_ancilla = self.qubits[self.num_state_qubits + 1 :]
+        qr_ancilla = circuit.qubits[self.num_state_qubits + 1 :]
 
         # apply comparators and controlled linear rotations
         for i, point in enumerate(self.breakpoints[:-1]):
@@ -295,7 +286,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
                     coeffs=self.mapped_coeffs[i],
                     basis=self.basis,
                 )
-                self.append(poly_r.to_gate(), qr_state[:] + qr_target)
+                circuit.append(poly_r.to_gate(), qr_state[:] + qr_target)
 
             else:
                 # apply Comparator
@@ -303,7 +294,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
                 qr_state_full = qr_state[:] + [qr_ancilla[0]]  # add compare qubit
                 qr_remaining_ancilla = qr_ancilla[1:]  # take remaining ancillas
 
-                self.append(
+                circuit.append(
                     comp.to_gate(), qr_state_full[:] + qr_remaining_ancilla[: comp.num_ancillas]
                 )
 
@@ -313,10 +304,14 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
                     coeffs=self.mapped_coeffs[i],
                     basis=self.basis,
                 )
-                self.append(poly_r.to_gate().control(), [qr_ancilla[0]] + qr_state[:] + qr_target)
+                circuit.append(
+                    poly_r.to_gate().control(), [qr_ancilla[0]] + qr_state[:] + qr_target
+                )
 
                 # uncompute comparator
-                self.append(
+                circuit.append(
                     comp.to_gate().inverse(),
                     qr_state_full[:] + qr_remaining_ancilla[: comp.num_ancillas],
                 )
+
+        self.append(circuit.to_gate(), self.qubits)

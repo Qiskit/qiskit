@@ -129,6 +129,11 @@ class PrimitiveOp(OperatorBase):
     def num_qubits(self) -> int:
         raise NotImplementedError
 
+    @property
+    def settings(self) -> Dict:
+        """Return operator settings."""
+        return {"primitive": self._primitive, "coeff": self._coeff}
+
     def primitive_strings(self) -> Set[str]:
         raise NotImplementedError
 
@@ -241,7 +246,9 @@ class PrimitiveOp(OperatorBase):
                 return ListOp([self.assign_parameters(param_dict) for param_dict in unrolled_dict])
             if self.coeff.parameters <= set(unrolled_dict.keys()):
                 binds = {param: unrolled_dict[param] for param in self.coeff.parameters}
-                param_value = float(self.coeff.bind(binds))
+                param_value = complex(self.coeff.bind(binds))
+                if abs(param_value.imag) == 0:
+                    param_value = param_value.real
         return self.__class__(self.primitive, coeff=param_value)
 
     # Nothing to collapse here.

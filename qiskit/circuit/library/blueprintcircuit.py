@@ -40,7 +40,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         self._qregs = []
         self._cregs = []
         self._qubits = []
-        self._qubit_set = set()
+        self._qubit_indices = dict()
 
     @abstractmethod
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
@@ -82,9 +82,13 @@ class BlueprintCircuit(QuantumCircuit, ABC):
     @qregs.setter
     def qregs(self, qregs):
         """Set the quantum registers associated with the circuit."""
-        self._qregs = qregs
-        self._qubits = [qbit for qreg in qregs for qbit in qreg]
-        self._qubit_set = set(self._qubits)
+        self._qregs = []
+        self._qubits = []
+        self._ancillas = []
+        self._qubit_indices = {}
+
+        self.add_register(*qregs)
+
         self._invalidate()
 
     @property
@@ -115,10 +119,10 @@ class BlueprintCircuit(QuantumCircuit, ABC):
             self._build()
         return super().append(instruction, qargs, cargs)
 
-    def compose(self, other, qubits=None, clbits=None, front=False, inplace=False):
+    def compose(self, other, qubits=None, clbits=None, front=False, inplace=False, wrap=False):
         if self._data is None:
             self._build()
-        return super().compose(other, qubits, clbits, front, inplace)
+        return super().compose(other, qubits, clbits, front, inplace, wrap)
 
     def inverse(self):
         if self._data is None:
@@ -131,25 +135,25 @@ class BlueprintCircuit(QuantumCircuit, ABC):
     def __getitem__(self, item):
         return self.data[item]
 
-    def size(self):
+    def size(self, *args, **kwargs):
         if self._data is None:
             self._build()
-        return super().size()
+        return super().size(*args, **kwargs)
 
-    def to_instruction(self, parameter_map=None):
+    def to_instruction(self, parameter_map=None, label=None):
         if self._data is None:
             self._build()
-        return super().to_instruction(parameter_map)
+        return super().to_instruction(parameter_map, label=label)
 
     def to_gate(self, parameter_map=None, label=None):
         if self._data is None:
             self._build()
         return super().to_gate(parameter_map, label=label)
 
-    def depth(self):
+    def depth(self, *args, **kwargs):
         if self._data is None:
             self._build()
-        return super().depth()
+        return super().depth(*args, **kwargs)
 
     def count_ops(self):
         if self._data is None:

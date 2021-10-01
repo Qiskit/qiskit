@@ -250,11 +250,6 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
         self.assertIsInstance(observable[0], CircuitStateFn)
         self.assertTrue(observable[0].is_measurement)
 
-    def test_pauli_expectation_non_hermite_op(self):
-        """Test PauliExpectation for non hermitian operator"""
-        exp = ~StateFn(1j * Z) @ One
-        self.assertEqual(self.sampler.convert(self.expect.convert(exp)).eval(), 1j)
-
     def test_expectation_with_coeff(self):
         """Test AerPauliExpectation with coefficients."""
         with self.subTest("integer coefficients"):

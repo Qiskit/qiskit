@@ -13,6 +13,7 @@
 """ Quantum Instance module """
 
 from typing import Optional, List, Union, Dict, Callable, Tuple
+from enum import Enum
 import copy
 import logging
 import time
@@ -32,6 +33,59 @@ from .backend_utils import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class _MeasFitterType(Enum):
+    """Meas Fitter Type."""
+
+    COMPLETE_MEAS_FITTER = 0
+    TENSORED_MEAS_FITTER = 1
+
+    @staticmethod
+    def type_from_class(meas_class):
+        """
+        Returns fitter type from class
+        """
+        try:
+            from qiskit.ignis.mitigation.measurement import (
+                CompleteMeasFitter,
+                TensoredMeasFitter,
+            )
+        except ImportError as ex:
+            raise MissingOptionalLibraryError(
+                libname="qiskit-ignis",
+                name="QuantumInstance",
+                pip_install="pip install qiskit-ignis",
+            ) from ex
+        if meas_class == CompleteMeasFitter:
+            return _MeasFitterType.COMPLETE_MEAS_FITTER
+        elif meas_class == TensoredMeasFitter:
+            return _MeasFitterType.TENSORED_MEAS_FITTER
+        else:
+            raise QiskitError(f"Unknown fitter {meas_class}")
+
+    @staticmethod
+    def type_from_instance(meas_instance):
+        """
+        Returns fitter type from instance
+        """
+        try:
+            from qiskit.ignis.mitigation.measurement import (
+                CompleteMeasFitter,
+                TensoredMeasFitter,
+            )
+        except ImportError as ex:
+            raise MissingOptionalLibraryError(
+                libname="qiskit-ignis",
+                name="QuantumInstance",
+                pip_install="pip install qiskit-ignis",
+            ) from ex
+        if isinstance(meas_instance, CompleteMeasFitter):
+            return _MeasFitterType.COMPLETE_MEAS_FITTER
+        elif isinstance(meas_instance, TensoredMeasFitter):
+            return _MeasFitterType.TENSORED_MEAS_FITTER
+        else:
+            raise QiskitError(f"Unknown fitter {meas_instance}")
 
 
 class QuantumInstance:
@@ -82,6 +136,7 @@ class QuantumInstance:
         measurement_error_mitigation_shots: Optional[int] = None,
         job_callback: Optional[Callable] = None,
         mit_pattern: Optional[List[List[int]]] = None,
+        max_job_retries: int = 50,
     ) -> None:
         """
         Quantum Instance holds a Qiskit Terra backend as well as configuration for circuit
@@ -130,6 +185,8 @@ class QuantumInstance:
                 measurement correction, divided to groups according to tensors.
                 If `None` and `qr` is given then assumed to be performed over the entire
                 `qr` as one group (default `None`).
+            max_job_retries(int): positive non-zero number of trials for the job set (-1 for
+                infinite trials) (default: 50)
 
         Raises:
             QiskitError: the shots exceeds the maximum number of shots
@@ -204,7 +261,7 @@ class QuantumInstance:
                 self._backend_options = {"backend_options": backend_options}
             else:
                 raise QiskitError(
-                    "backend_options can not used with the backends in " "IBMQ provider."
+                    "backend_options can not used with the backends in IBMQ provider."
                 )
 
         # setup measurement error mitigation
@@ -212,7 +269,7 @@ class QuantumInstance:
         if self.is_statevector:
             if measurement_error_mitigation_cls is not None:
                 raise QiskitError(
-                    "Measurement error mitigation does not work " "with the statevector simulation."
+                    "Measurement error mitigation does not work with the statevector simulation."
                 )
         else:
             self._meas_error_mitigation_cls = measurement_error_mitigation_cls
@@ -248,6 +305,7 @@ class QuantumInstance:
         self._circuit_summary = False
         self._job_callback = job_callback
         self._time_taken = 0.0
+        self._max_job_retries = max_job_retries
         logger.info(self)
 
     def __str__(self) -> str:
@@ -269,6 +327,7 @@ class QuantumInstance:
             self._backend_options,
             self._noise_config,
         )
+
         info += f"\nMeasurement mitigation: {self._meas_error_mitigation_cls}"
 
         return info
@@ -324,6 +383,7 @@ class QuantumInstance:
             QiskitError: TensoredMeasFitter class doesn't support subset fitter
             MissingOptionalLibraryError: Ignis not installed
 
+
         Returns:
             Result: result object
 
@@ -331,7 +391,6 @@ class QuantumInstance:
               assembling to the qobj.
         """
         from qiskit.utils.run_circuits import run_qobj, run_circuits
-
         from qiskit.utils.measurement_error_mitigation import (
             get_measured_qubits_from_qobj,
             get_measured_qubits,
@@ -448,6 +507,7 @@ class QuantumInstance:
                             noise_config=self._noise_config,
                             run_config=self._run_config.to_dict(),
                             job_callback=self._job_callback,
+                            max_job_retries=self._max_job_retries,
                         )
                         self._time_taken += cals_result.time_taken
                         result = run_circuits(
@@ -458,6 +518,7 @@ class QuantumInstance:
                             noise_config=self._noise_config,
                             run_config=self.run_config.to_dict(),
                             job_callback=self._job_callback,
+                            max_job_retries=self._max_job_retries,
                         )
                         self._time_taken += result.time_taken
                     else:
@@ -470,6 +531,7 @@ class QuantumInstance:
                             noise_config=self._noise_config,
                             run_config=self.run_config.to_dict(),
                             job_callback=self._job_callback,
+                            max_job_retries=self._max_job_retries,
                         )
                         self._time_taken += result.time_taken
                         cals_result = result
@@ -506,6 +568,7 @@ class QuantumInstance:
                             self._noise_config,
                             self._skip_qobj_validation,
                             self._job_callback,
+                            self._max_job_retries,
                         )
                         self._time_taken += cals_result.time_taken
                         result = run_qobj(
@@ -516,6 +579,7 @@ class QuantumInstance:
                             self._noise_config,
                             self._skip_qobj_validation,
                             self._job_callback,
+                            self._max_job_retries,
                         )
                         self._time_taken += result.time_taken
                     else:
@@ -529,33 +593,21 @@ class QuantumInstance:
                             self._noise_config,
                             self._skip_qobj_validation,
                             self._job_callback,
+                            self._max_job_retries,
                         )
                         self._time_taken += result.time_taken
                         cals_result = result
 
                 logger.info("Building calibration matrix for measurement error mitigation.")
-                try:
-                    from qiskit.ignis.mitigation.measurement import (
-                        CompleteMeasFitter,
-                        TensoredMeasFitter,
-                    )
-                except ImportError as ex:
-                    raise MissingOptionalLibraryError(
-                        libname="qiskit-ignis",
-                        name="execute",
-                        pip_install="pip install qiskit-ignis",
-                    ) from ex
-                if self._meas_error_mitigation_cls == CompleteMeasFitter:
+                meas_type = _MeasFitterType.type_from_class(self._meas_error_mitigation_cls)
+                if meas_type == _MeasFitterType.COMPLETE_MEAS_FITTER:
                     meas_error_mitigation_fitter = self._meas_error_mitigation_cls(
                         cals_result, state_labels, qubit_list=qubit_index, circlabel=circuit_labels
                     )
-                elif self._meas_error_mitigation_cls == TensoredMeasFitter:
+                elif meas_type == _MeasFitterType.TENSORED_MEAS_FITTER:
                     meas_error_mitigation_fitter = self._meas_error_mitigation_cls(
                         cals_result, mit_pattern=state_labels, circlabel=circuit_labels
                     )
-                else:
-                    raise QiskitError(f"Unknown fitter {self._meas_error_mitigation_cls}")
-
                 self._meas_error_mitigation_fitters[qubit_index_str] = (
                     meas_error_mitigation_fitter,
                     time.time(),
@@ -570,6 +622,7 @@ class QuantumInstance:
                         noise_config=self._noise_config,
                         run_config=self._run_config.to_dict(),
                         job_callback=self._job_callback,
+                        max_job_retries=self._max_job_retries,
                     )
                     if circuit_job
                     else run_qobj(
@@ -580,6 +633,7 @@ class QuantumInstance:
                         self._noise_config,
                         self._skip_qobj_validation,
                         self._job_callback,
+                        self._max_job_retries,
                     )
                 )
                 self._time_taken += result.time_taken
@@ -607,7 +661,9 @@ class QuantumInstance:
                     tmp_result.results = [result.results[i] for i in c_idx]
                     if curr_qubit_index == qubit_index:
                         tmp_fitter = meas_error_mitigation_fitter
-                    elif isinstance(meas_error_mitigation_fitter, CompleteMeasFitter):
+                    elif _MeasFitterType.COMPLETE_MEAS_FITTER == _MeasFitterType.type_from_instance(
+                        meas_error_mitigation_fitter
+                    ):
                         tmp_fitter = meas_error_mitigation_fitter.subset_fitter(curr_qubit_index)
                     else:
                         raise QiskitError(
@@ -631,6 +687,7 @@ class QuantumInstance:
                     noise_config=self._noise_config,
                     run_config=self._run_config.to_dict(),
                     job_callback=self._job_callback,
+                    max_job_retries=self._max_job_retries,
                 )
                 if circuit_job
                 else run_qobj(
@@ -641,6 +698,7 @@ class QuantumInstance:
                     self._noise_config,
                     self._skip_qobj_validation,
                     self._job_callback,
+                    self._max_job_retries,
                 )
             )
             self._time_taken += result.time_taken
@@ -738,6 +796,25 @@ class QuantumInstance:
     def circuit_summary(self, new_value):
         """sets circuit summary"""
         self._circuit_summary = new_value
+
+    @property
+    def max_job_retries(self):
+        """Getter of max tries"""
+        return self._max_job_retries
+
+    @max_job_retries.setter
+    def max_job_retries(self, new_value):
+        """Sets the maximum tries"""
+        if not isinstance(new_value, int):
+            raise TypeError("max_job_retries parameter must be an integer")
+        if new_value < -1 or new_value == 0:
+            raise ValueError(
+                "max_job_retries must either be a positive integer or -1(for infinite trials)"
+            )
+        if new_value == -1:
+            self._max_job_retries = int(1e18)
+        else:
+            self._max_job_retries = new_value
 
     @property
     def measurement_error_mitigation_cls(self):  # pylint: disable=invalid-name

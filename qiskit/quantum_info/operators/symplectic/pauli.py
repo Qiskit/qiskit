@@ -16,6 +16,7 @@ N-qubit Pauli Operator Class
 # pylint: disable=bad-docstring-quotes  # for deprecate_function decorator
 
 import re
+from typing import Dict
 
 import numpy as np
 
@@ -252,6 +253,11 @@ class Pauli(BasePauli):
             except QiskitError:
                 return False
         return np.all(self._z == other._z) and np.all(self._x == other._x)
+
+    @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        return {"data": self.to_label()}
 
     # ---------------------------------------------------------------------
     # Direct array access
@@ -829,7 +835,7 @@ class Pauli(BasePauli):
         if indices is None:
             if len(self.z) != len(z):
                 raise QiskitError(
-                    "During updating whole z, you can not " "change the number of qubits."
+                    "During updating whole z, you can not change the number of qubits."
                 )
             self.z = z
         else:
@@ -866,7 +872,7 @@ class Pauli(BasePauli):
         if indices is None:
             if len(self.x) != len(x):
                 raise QiskitError(
-                    "During updating whole x, you can not change " "the number of qubits."
+                    "During updating whole x, you can not change the number of qubits."
                 )
             self.x = x
         else:
@@ -1018,7 +1024,9 @@ class Pauli(BasePauli):
             Pauli: the random pauli
         """
         # pylint: disable=cyclic-import
-        from qiskit.quantum_info.operators.symplectic.random import random_pauli
+        from qiskit.quantum_info.operators.symplectic.random import (
+            random_pauli,
+        )
 
         return random_pauli(num_qubits, group_phase=False, seed=seed)
 
@@ -1036,7 +1044,7 @@ def _split_pauli_label(label):
     if span[1] != len(label):
         invalid = set(re.sub(r"[IXYZ]+", "", label[span[0] :]))
         raise QiskitError(
-            "Pauli string contains invalid characters " "{} ∉ ['I', 'X', 'Y', 'Z']".format(invalid)
+            f"Pauli string contains invalid characters {invalid} ∉ ['I', 'X', 'Y', 'Z']"
         )
     return pauli, coeff
 
@@ -1047,7 +1055,7 @@ def _phase_from_label(label):
     label = label.replace("+", "", 1).replace("1", "", 1).replace("j", "i", 1)
     phases = {"": 0, "-i": 1, "-": 2, "i": 3}
     if label not in phases:
-        raise QiskitError("Invalid Pauli phase label '{}'".format(label))
+        raise QiskitError(f"Invalid Pauli phase label '{label}'")
     return phases[label]
 
 

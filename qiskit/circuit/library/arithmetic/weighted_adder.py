@@ -16,7 +16,7 @@ from typing import List, Optional
 import warnings
 import numpy as np
 
-from qiskit.circuit import QuantumRegister, AncillaRegister
+from qiskit.circuit import QuantumRegister, AncillaRegister, QuantumCircuit
 
 from ..blueprintcircuit import BlueprintCircuit
 
@@ -159,25 +159,20 @@ class WeightedAdder(BlueprintCircuit):
             self._reset_registers()
 
     def _reset_registers(self):
+        self.qregs = []
+
         if self.num_state_qubits:
             qr_state = QuantumRegister(self.num_state_qubits, name="state")
             qr_sum = QuantumRegister(self.num_sum_qubits, name="sum")
             self.qregs = [qr_state, qr_sum]
-            self._ancillas = []
 
             if self.num_carry_qubits > 0:
                 qr_carry = AncillaRegister(self.num_carry_qubits, name="carry")
-                self.qregs += [qr_carry]
-                self._ancillas += qr_carry[:]
+                self.add_register(qr_carry)
 
             if self.num_control_qubits > 0:
                 qr_control = AncillaRegister(self.num_control_qubits, name="control")
-                self.qregs += [qr_control]
-                self._ancillas += qr_control[:]
-
-        else:
-            self.qregs = []
-            self._ancillas = []
+                self.add_register(qr_control)
 
     @property
     def num_carry_qubits(self) -> int:
@@ -235,10 +230,11 @@ class WeightedAdder(BlueprintCircuit):
 
         num_result_qubits = self.num_state_qubits + self.num_sum_qubits
 
-        qr_state = self.qubits[: self.num_state_qubits]
-        qr_sum = self.qubits[self.num_state_qubits : num_result_qubits]
-        qr_carry = self.qubits[num_result_qubits : num_result_qubits + self.num_carry_qubits]
-        qr_control = self.qubits[num_result_qubits + self.num_carry_qubits :]
+        circuit = QuantumCircuit(*self.qregs)
+        qr_state = circuit.qubits[: self.num_state_qubits]
+        qr_sum = circuit.qubits[self.num_state_qubits : num_result_qubits]
+        qr_carry = circuit.qubits[num_result_qubits : num_result_qubits + self.num_carry_qubits]
+        qr_control = circuit.qubits[num_result_qubits + self.num_carry_qubits :]
 
         # loop over state qubits and corresponding weights
         for i, weight in enumerate(self.weights):
@@ -256,34 +252,34 @@ class WeightedAdder(BlueprintCircuit):
             for j, bit in enumerate(weight_binary):
                 if bit == "1":
                     if self.num_sum_qubits == 1:
-                        self.cx(q_state, qr_sum[j])
+                        circuit.cx(q_state, qr_sum[j])
                     elif j == 0:
                         # compute (q_sum[0] + 1) into (q_sum[0], q_carry[0])
                         # - controlled by q_state[i]
-                        self.ccx(q_state, qr_sum[j], qr_carry[j])
-                        self.cx(q_state, qr_sum[j])
+                        circuit.ccx(q_state, qr_sum[j], qr_carry[j])
+                        circuit.cx(q_state, qr_sum[j])
                     elif j == self.num_sum_qubits - 1:
                         # compute (q_sum[j] + q_carry[j-1] + 1) into (q_sum[j])
                         # - controlled by q_state[i] / last qubit,
                         # no carry needed by construction
-                        self.cx(q_state, qr_sum[j])
-                        self.ccx(q_state, qr_carry[j - 1], qr_sum[j])
+                        circuit.cx(q_state, qr_sum[j])
+                        circuit.ccx(q_state, qr_carry[j - 1], qr_sum[j])
                     else:
                         # compute (q_sum[j] + q_carry[j-1] + 1) into (q_sum[j], q_carry[j])
                         # - controlled by q_state[i]
-                        self.x(qr_sum[j])
-                        self.x(qr_carry[j - 1])
-                        self.mct(
+                        circuit.x(qr_sum[j])
+                        circuit.x(qr_carry[j - 1])
+                        circuit.mct(
                             [q_state, qr_sum[j], qr_carry[j - 1]],
                             qr_carry[j],
                             qr_control,
                             mode="v-chain",
                         )
-                        self.cx(q_state, qr_carry[j])
-                        self.x(qr_sum[j])
-                        self.x(qr_carry[j - 1])
-                        self.cx(q_state, qr_sum[j])
-                        self.ccx(q_state, qr_carry[j - 1], qr_sum[j])
+                        circuit.cx(q_state, qr_carry[j])
+                        circuit.x(qr_sum[j])
+                        circuit.x(qr_carry[j - 1])
+                        circuit.cx(q_state, qr_sum[j])
+                        circuit.ccx(q_state, qr_carry[j - 1], qr_sum[j])
                 else:
                     if self.num_sum_qubits == 1:
                         pass  # nothing to do, since nothing to add
@@ -293,17 +289,17 @@ class WeightedAdder(BlueprintCircuit):
                         # compute (q_sum[j] + q_carry[j-1]) into (q_sum[j])
                         # - controlled by q_state[i] / last qubit,
                         # no carry needed by construction
-                        self.ccx(q_state, qr_carry[j - 1], qr_sum[j])
+                        circuit.ccx(q_state, qr_carry[j - 1], qr_sum[j])
                     else:
                         # compute (q_sum[j] + q_carry[j-1]) into (q_sum[j], q_carry[j])
                         # - controlled by q_state[i]
-                        self.mcx(
+                        circuit.mcx(
                             [q_state, qr_sum[j], qr_carry[j - 1]],
                             qr_carry[j],
                             qr_control,
                             mode="v-chain",
                         )
-                        self.ccx(q_state, qr_carry[j - 1], qr_sum[j])
+                        circuit.ccx(q_state, qr_carry[j - 1], qr_sum[j])
 
             # uncompute carry qubits
             for j in reversed(range(len(weight_binary))):
@@ -312,21 +308,21 @@ class WeightedAdder(BlueprintCircuit):
                     if self.num_sum_qubits == 1:
                         pass
                     elif j == 0:
-                        self.x(qr_sum[j])
-                        self.ccx(q_state, qr_sum[j], qr_carry[j])
-                        self.x(qr_sum[j])
+                        circuit.x(qr_sum[j])
+                        circuit.ccx(q_state, qr_sum[j], qr_carry[j])
+                        circuit.x(qr_sum[j])
                     elif j == self.num_sum_qubits - 1:
                         pass
                     else:
-                        self.x(qr_carry[j - 1])
-                        self.mcx(
+                        circuit.x(qr_carry[j - 1])
+                        circuit.mcx(
                             [q_state, qr_sum[j], qr_carry[j - 1]],
                             qr_carry[j],
                             qr_control,
                             mode="v-chain",
                         )
-                        self.cx(q_state, qr_carry[j])
-                        self.x(qr_carry[j - 1])
+                        circuit.cx(q_state, qr_carry[j])
+                        circuit.x(qr_carry[j - 1])
                 else:
                     if self.num_sum_qubits == 1:
                         pass
@@ -337,11 +333,13 @@ class WeightedAdder(BlueprintCircuit):
                     else:
                         # compute (q_sum[j] + q_carry[j-1]) into (q_sum[j], q_carry[j])
                         # - controlled by q_state[i]
-                        self.x(qr_sum[j])
-                        self.mcx(
+                        circuit.x(qr_sum[j])
+                        circuit.mcx(
                             [q_state, qr_sum[j], qr_carry[j - 1]],
                             qr_carry[j],
                             qr_control,
                             mode="v-chain",
                         )
-                        self.x(qr_sum[j])
+                        circuit.x(qr_sum[j])
+
+        self.append(circuit.to_gate(), self.qubits)
