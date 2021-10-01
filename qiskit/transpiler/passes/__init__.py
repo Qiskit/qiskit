@@ -71,6 +71,7 @@ Optimizations
    CXCancellation
    CommutationAnalysis
    CommutativeCancellation
+   Optimize1qGatesSimpleCommutation
    RemoveDiagonalGatesBeforeMeasure
    RemoveResetInZeroState
    CrosstalkAdaptiveSchedule
@@ -175,6 +176,7 @@ from .optimization import ConsolidateBlocks
 from .optimization import CommutationAnalysis
 from .optimization import CommutativeCancellation
 from .optimization import CXCancellation
+from .optimization import Optimize1qGatesSimpleCommutation
 from .optimization import OptimizeSwapBeforeMeasure
 from .optimization import RemoveResetInZeroState
 from .optimization import RemoveDiagonalGatesBeforeMeasure
@@ -195,6 +197,7 @@ from .analysis import DAGLongestPath
 
 # synthesis
 from .synthesis import UnitarySynthesis
+from .synthesis import unitary_synthesis_plugin_names
 
 # calibration
 from .calibration import PulseGates

@@ -98,6 +98,105 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename="empty_circut.png")
 
+    def test_calibrations(self):
+        """Test calibrations annotations
+        See https://github.com/Qiskit/qiskit-terra/issues/5920
+        """
+
+        circuit = QuantumCircuit(2, 2)
+        circuit.h(0)
+
+        from qiskit import pulse
+
+        with pulse.build(name="hadamard") as h_q0:
+            pulse.play(
+                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(0)
+            )
+
+        circuit.add_calibration("h", [0], h_q0)
+
+        self.circuit_drawer(circuit, filename="calibrations.png")
+
+    def test_calibrations_with_control_gates(self):
+        """Test calibrations annotations
+        See https://github.com/Qiskit/qiskit-terra/issues/5920
+        """
+
+        circuit = QuantumCircuit(2, 2)
+        circuit.cx(0, 1)
+        circuit.ch(0, 1)
+
+        from qiskit import pulse
+
+        with pulse.build(name="cnot") as cx_q01:
+            pulse.play(
+                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
+            )
+
+        circuit.add_calibration("cx", [0, 1], cx_q01)
+
+        with pulse.build(name="ch") as ch_q01:
+            pulse.play(
+                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
+            )
+
+        circuit.add_calibration("ch", [0, 1], ch_q01)
+
+        self.circuit_drawer(circuit, filename="calibrations_with_control_gates.png")
+
+    def test_calibrations_with_swap_and_reset(self):
+        """Test calibrations annotations
+        See https://github.com/Qiskit/qiskit-terra/issues/5920
+        """
+
+        circuit = QuantumCircuit(2, 2)
+        circuit.swap(0, 1)
+        circuit.reset(0)
+
+        from qiskit import pulse
+
+        with pulse.build(name="swap") as swap_q01:
+            pulse.play(
+                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
+            )
+
+        circuit.add_calibration("swap", [0, 1], swap_q01)
+
+        with pulse.build(name="reset") as reset_q0:
+            pulse.play(
+                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
+            )
+
+        circuit.add_calibration("reset", [0], reset_q0)
+
+        self.circuit_drawer(circuit, filename="calibrations_with_swap_and_reset.png")
+
+    def test_calibrations_with_rzz_and_rxx(self):
+        """Test calibrations annotations
+        See https://github.com/Qiskit/qiskit-terra/issues/5920
+        """
+        circuit = QuantumCircuit(2, 2)
+        circuit.rzz(pi, 0, 1)
+        circuit.rxx(pi, 0, 1)
+
+        from qiskit import pulse
+
+        with pulse.build(name="rzz") as rzz_q01:
+            pulse.play(
+                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
+            )
+
+        circuit.add_calibration("rzz", [0, 1], rzz_q01)
+
+        with pulse.build(name="rxx") as rxx_q01:
+            pulse.play(
+                pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.DriveChannel(1)
+            )
+
+        circuit.add_calibration("rxx", [0, 1], rxx_q01)
+
+        self.circuit_drawer(circuit, filename="calibrations_with_rzz_and_rxx.png")
+
     def test_no_ops(self):
         """Test circuit with no ops.
         See https://github.com/Qiskit/qiskit-terra/issues/5393"""
@@ -133,7 +232,35 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.measure(qr, cr)
         circuit.h(qr[0]).c_if(cr, 2)
 
-        self.circuit_drawer(circuit, filename="conditional.png")
+        self.circuit_drawer(circuit, filename="reg_conditional.png")
+
+    def test_bit_conditional_with_cregbundle(self):
+        """Test that circuits with single bit conditionals draw correctly
+        with cregbundle=True."""
+        qr = QuantumRegister(2, "q")
+        cr = ClassicalRegister(2, "c")
+        circuit = QuantumCircuit(qr, cr)
+
+        circuit.x(qr[0])
+        circuit.measure(qr, cr)
+        circuit.h(qr[0]).c_if(cr[0], 1)
+        circuit.x(qr[1]).c_if(cr[1], 0)
+
+        self.circuit_drawer(circuit, filename="bit_conditional_bundle.png")
+
+    def test_bit_conditional_no_cregbundle(self):
+        """Test that circuits with single bit conditionals draw correctly
+        with cregbundle=False."""
+        qr = QuantumRegister(2, "q")
+        cr = ClassicalRegister(2, "c")
+        circuit = QuantumCircuit(qr, cr)
+
+        circuit.x(qr[0])
+        circuit.measure(qr, cr)
+        circuit.h(qr[0]).c_if(cr[0], 1)
+        circuit.x(qr[1]).c_if(cr[1], 0)
+
+        self.circuit_drawer(circuit, filename="bit_conditional_no_bundle.png", cregbundle=False)
 
     def test_plot_partial_barrier(self):
         """Test plotting of partial barriers."""
@@ -619,6 +746,17 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.initialize(initial_state)
         self.circuit_drawer(circuit, filename="wide_params.png")
 
+    def test_one_bit_regs(self):
+        """Test registers with only one bit display without number"""
+        qr1 = QuantumRegister(1, "qr1")
+        qr2 = QuantumRegister(2, "qr2")
+        cr1 = ClassicalRegister(1, "cr1")
+        cr2 = ClassicalRegister(2, "cr2")
+        circuit = QuantumCircuit(qr1, qr2, cr1, cr2)
+        circuit.h(0)
+        circuit.measure(0, 0)
+        self.circuit_drawer(circuit, cregbundle=False, filename="one_bit_regs.png")
+
     def test_user_ax_subplot(self):
         """Test for when user supplies ax for a subplot"""
         import matplotlib.pyplot as plt
@@ -646,6 +784,16 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.cx(1, 2)
         circuit.x(2)
         self.circuit_drawer(circuit, style={"figwidth": 5}, filename="figwidth.png")
+
+    def test_registerless_one_bit(self):
+        """Test circuit with one-bit registers and registerless bits."""
+        from qiskit.circuit import Qubit, Clbit
+
+        qrx = QuantumRegister(2, "qrx")
+        qry = QuantumRegister(1, "qry")
+        crx = ClassicalRegister(2, "crx")
+        circuit = QuantumCircuit(qrx, [Qubit(), Qubit()], qry, [Clbit(), Clbit()], crx)
+        self.circuit_drawer(circuit, filename="registerless_one_bit.png")
 
     def test_measures_with_conditions(self):
         """Test that a measure containing a condition displays"""
