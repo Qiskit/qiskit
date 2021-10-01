@@ -96,42 +96,13 @@ def make_cnot_network(
         if connectivity_type != "full":
             raise ValueError(f"'{network_layout}' layout expects 'full' connectivity")
 
-        cnots = np.zeros((2, depth), dtype=int)
-        z = 0
-        while True:
-            for i in range(0, num_qubits, 2):
-                if i + 1 <= num_qubits - 1:
-                    cnots[0, z] = i
-                    cnots[1, z] = i + 1
-                    z += 1
-                if z >= depth:
-                    cnots += 1  # 1-based index
-                    return cnots
-
-            for i in range(1, num_qubits, 2):
-                if i + 1 <= num_qubits - 1:
-                    cnots[0, z] = i
-                    cnots[1, z] = i + 1
-                    z += 1
-                elif i == num_qubits - 1:
-                    cnots[0, z] = i
-                    cnots[1, z] = 0
-                    z += 1
-                if z >= depth:
-                    cnots += 1  # 1-based index
-                    return cnots
+        return _cyclic_spin_network(num_qubits, depth)
 
     elif network_layout == "cyclic_line":
         if connectivity_type != "line":
             raise ValueError(f"'{network_layout}' layout expects 'line' connectivity")
 
-        cnots = np.zeros((2, depth), dtype=int)
-        for i in range(depth):
-            cnots[0, i] = (i + 0) % num_qubits
-            cnots[1, i] = (i + 1) % num_qubits
-        cnots += 1  # 1-based index
-        return cnots
-
+        return _cyclic_line_network(num_qubits, depth)
     else:
         raise ValueError(
             f"Unknown type of CNOT-network layout, expects one of {_NETWORK_LAYOUTS}, "
@@ -184,7 +155,7 @@ def _get_connectivity(num_qubits: int, connectivity: str) -> dict:
     return links
 
 
-def _sequential_network(num_qubits: int, links: dict, depth: int = 0) -> np.ndarray:
+def _sequential_network(num_qubits: int, links: dict, depth: int) -> np.ndarray:
     """
     Generates a sequential network.
 
@@ -209,7 +180,7 @@ def _sequential_network(num_qubits: int, links: dict, depth: int = 0) -> np.ndar
                         return cnots
 
 
-def _spin_network(num_qubits: int, depth: int = 0) -> np.ndarray:
+def _spin_network(num_qubits: int, depth: int) -> np.ndarray:
     """
     Generates a spin-like network.
 
@@ -270,4 +241,59 @@ def _cartan_network(num_qubits: int) -> np.ndarray:
     else:
         raise ValueError(f"The number of qubits must be >= 3, got {n}.")
 
+    return cnots
+
+
+def _cyclic_spin_network(num_qubits: int, depth: int) -> np.ndarray:
+    """
+    Same as in the spin-like network, but the first and the last qubits are also connected.
+
+    Args:
+        num_qubits: number of qubits.
+        depth: depth of the network (number of layers of building blocks).
+
+    Returns:
+        A matrix of size ``2 x L`` that defines layers in qubit network.
+    """
+
+    cnots = np.zeros((2, depth), dtype=int)
+    z = 0
+    while True:
+        for i in range(0, num_qubits, 2):
+            if i + 1 <= num_qubits - 1:
+                cnots[0, z] = i
+                cnots[1, z] = i + 1
+                z += 1
+            if z >= depth:
+                return cnots
+
+        for i in range(1, num_qubits, 2):
+            if i + 1 <= num_qubits - 1:
+                cnots[0, z] = i
+                cnots[1, z] = i + 1
+                z += 1
+            elif i == num_qubits - 1:
+                cnots[0, z] = i
+                cnots[1, z] = 0
+                z += 1
+            if z >= depth:
+                return cnots
+
+
+def _cyclic_line_network(num_qubits: int, depth: int) -> np.ndarray:
+    """
+    Generates a line based CNOT structure.
+
+    Args:
+        num_qubits: number of qubits.
+        depth: depth of the network (number of layers of building blocks).
+
+    Returns:
+        A matrix of size ``2 x L`` that defines layers in qubit network.
+    """
+
+    cnots = np.zeros((2, depth), dtype=int)
+    for i in range(depth):
+        cnots[0, i] = (i + 0) % num_qubits
+        cnots[1, i] = (i + 1) % num_qubits
     return cnots

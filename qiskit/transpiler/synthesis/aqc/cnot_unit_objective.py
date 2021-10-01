@@ -13,7 +13,7 @@
 A definition of the approximate circuit compilation optimization problem based on CNOT unit
 definition.
 """
-from abc import abstractmethod
+from abc import ABC
 
 import numpy as np
 from numpy import linalg as la
@@ -22,7 +22,7 @@ from .approximate import ApproximatingObjective
 from .elementary_operations import ry_matrix, rz_matrix, place_unitary, place_cnot, rx_matrix
 
 
-class CNOTUnitObjective(ApproximatingObjective):
+class CNOTUnitObjective(ApproximatingObjective, ABC):
     """
     A base class for a problem definition based on CNOT unit. This class may have different
     subclasses for objective and gradient computations.
@@ -39,13 +39,13 @@ class CNOTUnitObjective(ApproximatingObjective):
         self._cnots = cnots
         self._num_cnots = cnots.shape[1]
 
-    @abstractmethod
-    def objective(self, param_values: np.ndarray) -> float:
-        raise NotImplementedError
-
-    @abstractmethod
-    def gradient(self, param_values: np.ndarray) -> np.ndarray:
-        raise NotImplementedError
+    @property
+    def num_cnots(self):
+        """
+        Returns:
+            A number of CNOT units to be used by the approximate circuit.
+        """
+        return self._num_cnots
 
     @property
     def num_thetas(self):
@@ -80,7 +80,7 @@ class DefaultCNOTUnitObjective(CNOTUnitObjective):
         n = self._num_qubits
         d = int(2 ** n)
         cnots = self._cnots
-        num_cnots = np.shape(cnots)[1]
+        num_cnots = self.num_cnots
 
         # to save intermediate computations we define the following matrices
         # this is the collection of cnot unit matrices ordered from left to
@@ -185,7 +185,7 @@ class DefaultCNOTUnitObjective(CNOTUnitObjective):
         n = self._num_qubits
         d = int(2 ** n)
         cnots = self._cnots
-        num_cnots = np.shape(cnots)[1]
+        num_cnots = self.num_cnots
 
         # the partial derivative of the cost function is -Re<V',U>
         # where V' is the partial derivative of the circuit

@@ -174,8 +174,7 @@ class AQC:
             jac=approximating_objective.gradient,
         )
 
-        approximate_circuit.thetas = opt_result.x
-        approximate_circuit.build()
+        approximate_circuit.build(opt_result.x)
 
         approx_matrix = Operator(approximate_circuit).data
 

@@ -30,6 +30,7 @@ class ApproximateCircuit(QuantumCircuit, ABC):
         super().__init__(num_qubits, name=name)
 
     @property
+    @abstractmethod
     def thetas(self) -> np.ndarray:
         """
         The property is not implemented and raises a ``NotImplementedException`` exception.
@@ -39,21 +40,14 @@ class ApproximateCircuit(QuantumCircuit, ABC):
         """
         raise NotImplementedError
 
-    @thetas.setter
-    def thetas(self, thetas: np.ndarray) -> None:
-        """
-        The property is not implemented and raises a ``NotImplementedException`` exception.
-
-        Args:
-            thetas: a vector of parameters to be set in this circuit.
-        """
-        raise NotImplementedError
-
     @abstractmethod
-    def build(self) -> None:
+    def build(self, thetas: np.ndarray) -> None:
         """
         Constructs this circuit out of the parameters(thetas). Parameter values must be set before
             constructing the circuit.
+
+        Args:
+            thetas: a vector of parameters to be set in this circuit.
         """
         raise NotImplementedError
 
@@ -112,6 +106,7 @@ class ApproximatingObjective(ABC):
         self._target_matrix = target_matrix
 
     @property
+    @abstractmethod
     def num_thetas(self) -> int:
         """
 

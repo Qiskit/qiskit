@@ -14,9 +14,9 @@ Tests analytical gradient vs the one computed via finite differences.
 """
 
 import unittest
+from test.python.transpiler.aqc.sample_data import ORIGINAL_CIRCUIT
 
 import numpy as np
-from scipy.stats import unitary_group
 
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.synthesis.aqc.cnot_structures import make_cnot_network
@@ -42,19 +42,14 @@ class TestGradientAgainstFiniteDiff(QiskitTestCase):
             num_qubits=num_qubits, network_layout="spin", connectivity_type="full", depth=num_cnots
         )
 
-        # Generate random target matrix and random starting point. Repeat until
-        # sufficiently large gradient has been encountered.
-        # This operation is pretty fast.
-        while True:
-            target_matrix = self._random_special_unitary(num_qubits=num_qubits)
-            objective = DefaultCNOTUnitObjective(num_qubits, cnots)
-            objective.target_matrix = target_matrix
+        # we pick a target matrix from the existing sample data
+        target_matrix = ORIGINAL_CIRCUIT
+        objective = DefaultCNOTUnitObjective(num_qubits, cnots)
+        objective.target_matrix = target_matrix
 
-            thetas = np.random.rand(objective.num_thetas) * (2.0 * np.pi)
-            fobj0 = objective.objective(thetas)
-            grad0 = objective.gradient(thetas)
-            if np.linalg.norm(grad0) > 1e-2:
-                break
+        thetas = np.random.rand(objective.num_thetas) * (2.0 * np.pi)
+        fobj0 = objective.objective(thetas)
+        grad0 = objective.gradient(thetas)
 
         grad0_dir = grad0 / np.linalg.norm(grad0)
         numerical_grad = np.zeros(thetas.size)
@@ -108,21 +103,6 @@ class TestGradientAgainstFiniteDiff(QiskitTestCase):
         # pylint:disable=misplaced-comparison-constant
         self.assertTrue(np.all(2 <= orders))
         self.assertTrue(np.all(orders < 3))
-
-    def _random_special_unitary(self, num_qubits: int) -> np.ndarray:
-        """
-        Generates a random SU matrix.
-
-        Args:
-            num_qubits: number of qubits.
-
-        Returns:
-            random SU matrix of size 2^n x 2^n.
-        """
-        d = int(2 ** num_qubits)
-        unitary = unitary_group.rvs(d)
-        unitary = unitary / (np.linalg.det(unitary) ** (1.0 / float(d)))
-        return unitary
 
 
 if __name__ == "__main__":

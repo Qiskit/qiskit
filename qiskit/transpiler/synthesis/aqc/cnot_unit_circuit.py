@@ -65,27 +65,14 @@ class CNOTUnitCircuit(ApproximateCircuit):
         """
         return self._thetas
 
-    @thetas.setter
-    def thetas(self, thetas: np.ndarray) -> None:
-        """
-        Sets a vector of rotation angles used by CNOT units in this circuit.
-
-        Args:
-            thetas: parameters of the rotation gates in this circuit.
-
-        Returns:
-
-        """
-        self._thetas = thetas
-
-    def build(self) -> None:
+    def build(self, thetas: np.ndarray) -> None:
         """
         Constructs a Qiskit quantum circuit out of the parameters (angles) of this circuit. If a
             parameter value is less in absolute value than the specified tolerance then the
             corresponding rotation gate will be skipped in the circuit.
         """
         n = self.num_qubits
-        thetas = self._thetas
+        self._thetas = thetas
         cnots = self._cnots
 
         for k in range(n):
