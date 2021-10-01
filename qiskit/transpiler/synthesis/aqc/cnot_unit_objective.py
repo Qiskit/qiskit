@@ -38,8 +38,6 @@ class CNOTUnitObjective(ApproximatingObjective):
         self._num_qubits = num_qubits
         self._cnots = cnots
         self._num_cnots = cnots.shape[1]
-        # must be defined later
-        self._target_matrix = None
 
     @abstractmethod
     def objective(self, param_values: np.ndarray) -> float:
