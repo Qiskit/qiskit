@@ -131,13 +131,13 @@ class LinearPauliRotations(FunctionalPauliRotations):
         Args:
             num_state_qubits: The new number of qubits.
         """
+        self.qregs = []
+
         if num_state_qubits:
             # set new register of appropriate size
             qr_state = QuantumRegister(num_state_qubits, name="state")
             qr_target = QuantumRegister(1, name="target")
             self.qregs = [qr_state, qr_target]
-        else:
-            self.qregs = []
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         valid = True

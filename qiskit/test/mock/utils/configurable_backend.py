@@ -99,7 +99,7 @@ class ConfigurableFakeBackend(FakeBackend):
         if dt is None:
             dt = 1.33
 
-        self.name = name
+        self.backend_name = name
         self.version = version
         self.basis_gates = basis_gates
         self.qubit_t1 = qubit_t1
@@ -196,7 +196,7 @@ class ConfigurableFakeBackend(FakeBackend):
                 raise QiskitError(f"{gate} is not supported by fake backend builder.")
 
         return BackendProperties(
-            backend_name=self.name,
+            backend_name=self.backend_name,
             backend_version=self.version,
             last_update_date=self.now,
             qubits=qubits,
@@ -235,7 +235,7 @@ class ConfigurableFakeBackend(FakeBackend):
         u_channel_lo = [[UchannelLO(q=i, scale=1.0 + 0.0j)] for i in range(len(self.coupling_map))]
 
         return PulseBackendConfiguration(
-            backend_name=self.name,
+            backend_name=self.backend_name,
             backend_version=self.version,
             n_qubits=self.n_qubits,
             meas_levels=[0, 1, 2],
