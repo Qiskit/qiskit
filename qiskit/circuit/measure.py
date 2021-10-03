@@ -14,7 +14,6 @@
 Quantum measurement
 """
 from qiskit.circuit.instruction import Instruction
-from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 
 
@@ -78,6 +77,8 @@ class MeasurePauli(Measure):
         yield [qarg[0] for qarg in qargs], [carg[0] for carg in cargs]
 
     def _define(self):
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         qc = QuantumCircuit(self.num_qubits, self.num_clbits)
 
         for i, qubit_basis in enumerate(self.params):
