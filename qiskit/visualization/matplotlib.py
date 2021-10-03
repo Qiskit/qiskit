@@ -974,7 +974,7 @@ class MatplotlibDrawer:
                 qx - 0.4 * WID,
                 qy + 0.25 * HIG,
                 basis.upper(),
-                color=self._style["not_gate_lc"],
+                color=self._style["lc"],
                 clip_on=True,
                 zorder=PORDER_TEXT,
                 fontsize=0.5 * self._style["fs"],
