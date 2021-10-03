@@ -79,6 +79,7 @@ class MeasurePauli(Measure):
     def _define(self):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         qc = QuantumCircuit(self.num_qubits, self.num_clbits)
 
         for i, qubit_basis in enumerate(self.params):
