@@ -14,6 +14,7 @@
 Quantum measurement
 """
 from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 
 
@@ -24,7 +25,7 @@ class Measure(Instruction):
         """Create new measurement instruction."""
         if params is None:
             params = []
-            
+
         super().__init__(name, num_qubits, num_clbits, params=params)
 
     def broadcast_arguments(self, qargs, cargs):
@@ -77,34 +78,21 @@ class MeasurePauli(Measure):
         yield [qarg[0] for qarg in qargs], [carg[0] for carg in cargs]
 
     def _define(self):
-        definition = []
-        q = QuantumRegister(self.num_qubits, "q")
-        c = ClassicalRegister(self.num_clbits, "c")
-
-        # pylint: disable=cyclic-import
-        from .library import HGate, SGate, SdgGate
+        qc = QuantumCircuit(self.num_qubits, self.num_clbits)
 
         for i, qubit_basis in enumerate(self.params):
             if qubit_basis == "X":
-                pre_rotation = post_rotation = [HGate()]
+                qc.h(i)
+                qc.measure(i, i)
+                qc.h(i)
             elif qubit_basis == "Y":
                 # since measure and S commute, S and Sdg cancel each other
-                pre_rotation = [SdgGate(), HGate()]
-                post_rotation = [HGate(), SGate()]
+                qc.sdg(i)
+                qc.h(i)
+                qc.measure(i, i)
+                qc.h(i)
+                qc.s(i)
             else:  # Z
-                pre_rotation = post_rotation = []
+                qc.measure(i, i)
 
-            # switch to the measurement basis
-            for gate in pre_rotation:
-                definition += [(gate, [q[i]], [])]
-
-            # measure
-            definition += [(Measure(), [q[i]], [c[i]])]
-
-            # apply inverse basis transformation for correct post-measurement state
-            for gate in post_rotation:
-                definition += [(gate, [q[i]], [])]
-
-        qc = QuantumCircuit(q, c)
-        qc._data = definition
         self.definition = qc

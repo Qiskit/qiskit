@@ -363,11 +363,7 @@ class MatplotlibDrawer:
             widest_box = WID
             for node in layer:
                 op = node.op
-                if (
-                    self._cregbundle
-                    and node.cargs
-                    and not (isinstance(op, Measure) or isinstance(op, MeasurePauli))
-                ):
+                if self._cregbundle and node.cargs and not isinstance(op, (Measure, MeasurePauli)):
                     self._cregbundle = False
                     warn(
                         "Cregbundle set to False since an instruction needs to refer"
@@ -378,7 +374,7 @@ class MatplotlibDrawer:
                 self._data[node] = {}
                 self._data[node]["width"] = WID
                 num_ctrl_qubits = 0 if not hasattr(op, "num_ctrl_qubits") else op.num_ctrl_qubits
-                if op._directive or isinstance(op, Measure) or isinstance(op, MeasurePauli):
+                if op._directive or isinstance(op, (Measure, MeasurePauli)):
                     self._data[node]["raw_gate_text"] = op.name
                     continue
 
@@ -763,7 +759,7 @@ class MatplotlibDrawer:
                     self._condition(node, cond_xy)
 
                 # draw measure
-                if isinstance(op, Measure) or isinstance(op, MeasurePauli):
+                if isinstance(op, (Measure, MeasurePauli)):
                     if isinstance(op, Measure):
                         basis = "Z"
                     else:
@@ -897,7 +893,7 @@ class MatplotlibDrawer:
             label = "%s_%s=%s" % (cond_reg.name, ctrl_bit, hex(val))
         else:
             label = hex(val)
-        if isinstance(node.op, Measure) or isisntance(node.op, MeasurePauli):
+        if isinstance(node.op, (Measure, MeasurePauli)):
             xpos += 0.3
         self._ax.text(
             xpos,

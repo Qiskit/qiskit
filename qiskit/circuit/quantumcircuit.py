@@ -54,7 +54,6 @@ from .register import Register
 from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData
 from .delay import Delay
-from .measure import Measure, MeasurePauli
 from .reset import Reset
 
 try:
@@ -2130,6 +2129,8 @@ class QuantumCircuit:
         Raises:
             CircuitError: if arguments have bad format.
         """
+        from .measure import Measure
+
         return self.append(Measure(), [qubit], [cbit])
 
     def measure_pauli(
@@ -2138,6 +2139,7 @@ class QuantumCircuit:
         """Measure in the the Pauli X, Y, or Z basis.
 
         Args:
+            basis: measurement basis.
             qubits: qubits to measure.
             cbits: classical bit to place the measurement in.
 
@@ -2147,6 +2149,8 @@ class QuantumCircuit:
         Raises:
             CircuitError: if arguments have bad format.
         """
+        from .measure import MeasurePauli
+
         return self.append(MeasurePauli(basis, len(qubits), len(cbits)), qubits, cbits)
 
     def measure_active(self, inplace: bool = True) -> Optional["QuantumCircuit"]:

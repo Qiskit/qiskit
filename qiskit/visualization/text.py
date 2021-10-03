@@ -21,7 +21,7 @@ import sys
 from qiskit.circuit import Clbit
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import Reset
-from qiskit.circuit import Measure
+from qiskit.circuit import Measure, MeasurePauli
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
 from qiskit.circuit.tools.pi_check import pi_check
 from qiskit.visualization.utils import get_gate_ctrl_text, get_param_str, get_bit_label
@@ -1018,11 +1018,11 @@ class TextDrawing:
                     layer.set_qubit(node.qargs[i], gate)
                     current_cons.append((actual_index, gate))
 
-        if isinstance(op, Measure) or isinstance(op, MeasurePauli):
+        if isinstance(op, (Measure, MeasurePauli)):
             if isinstance(op, Measure):
                 gate = MeasureFrom()
             else:
-                basis = instruction.params.upper()
+                basis = op.params.upper()
                 gate = MeasureFrom(basis)
             layer.set_qubit(node.qargs[0], gate)
             if self.cregbundle:
