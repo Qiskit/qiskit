@@ -443,10 +443,10 @@ class TestCircuitOperations(QiskitTestCase):
     def test_measure_pauli(self):
         """Test measurements in Pauli basis."""
         circuit = QuantumCircuit(6, 6)
-        circuit.measure_pauli('x', [0], [0])
-        circuit.measure_pauli('y', [1], [1])
-        circuit.measure_pauli('z', [2], [2])
-        circuit.measure_pauli('xyz', [3, 4, 5], [3, 4, 5])
+        circuit.measure_pauli("x", [0], [0])
+        circuit.measure_pauli("y", [1], [1])
+        circuit.measure_pauli("z", [2], [2])
+        circuit.measure_pauli("xyz", [3, 4, 5], [3, 4, 5])
 
         expected = QuantumCircuit(6, 6)
         # measurement in X basis

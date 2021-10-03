@@ -89,8 +89,8 @@ class TestTextDrawerElement(QiskitTestCase):
         self.assertEqualElement(expected, element)
 
     def test_measure_from(self):
-        """ MeasureFrom element. """
-        with self.subTest(msg='standard measure'):
+        """MeasureFrom element."""
+        with self.subTest(msg="standard measure"):
             element = elements.MeasureFrom()
             # fmt: off
             expected = ["┌─┐",
@@ -99,8 +99,8 @@ class TestTextDrawerElement(QiskitTestCase):
             # fmt: on
             self.assertEqualElement(expected, element)
 
-        with self.subTest(msg='measure X basis'):
-            element = elements.MeasureFrom(basis='X')
+        with self.subTest(msg="measure X basis"):
+            element = elements.MeasureFrom(basis="X")
             # fmt: off
             expected = ["┌───┐",
                         "┤M_X├",
@@ -108,8 +108,8 @@ class TestTextDrawerElement(QiskitTestCase):
             # fmt: on
             self.assertEqualElement(expected, element)
 
-        with self.subTest(msg='measure Y basis'):
-            element = elements.MeasureFrom(basis='Y')
+        with self.subTest(msg="measure Y basis"):
+            element = elements.MeasureFrom(basis="Y")
             # fmt: off
             expected = ["┌───┐",
                         "┤M_Y├",
@@ -117,8 +117,8 @@ class TestTextDrawerElement(QiskitTestCase):
             # fmt: on
             self.assertEqualElement(expected, element)
 
-        with self.subTest(msg='explicit Z basis'):
-            element = elements.MeasureFrom(basis='Z')
+        with self.subTest(msg="explicit Z basis"):
+            element = elements.MeasureFrom(basis="Z")
             # fmt: off
             expected = ["┌─┐",
                         "┤M├",
