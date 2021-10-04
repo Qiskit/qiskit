@@ -14,6 +14,7 @@
 
 import warnings
 
+from qiskit.exceptions import MissingOptionalLibraryError
 from .node import Node
 
 
@@ -32,7 +33,7 @@ class Prefix(Node):
         """Return the corresponding OPENQASM string."""
         if prec is not None:
             warnings.warn(
-                "Parameter 'Prefix.qasm(..., prec)' is no longer used and is being " "deprecated.",
+                "Parameter 'Prefix.qasm(..., prec)' is no longer used and is being deprecated.",
                 DeprecationWarning,
                 2,
             )
@@ -42,7 +43,7 @@ class Prefix(Node):
         """Return the corresponding math mode latex string."""
         if prec is not None:
             warnings.warn(
-                "Parameter 'Prefix.latex(..., prec)' is no longer used and is being " "deprecated.",
+                "Parameter 'Prefix.latex(..., prec)' is no longer used and is being deprecated.",
                 DeprecationWarning,
                 2,
             )
@@ -56,11 +57,8 @@ class Prefix(Node):
         try:
             from pylatexenc.latexencode import utf8tolatex
         except ImportError as ex:
-            raise ImportError(
-                "To export latex from qasm "
-                "pylatexenc needs to be installed. Run "
-                "'pip install pylatexenc' before using this "
-                "method."
+            raise MissingOptionalLibraryError(
+                "pylatexenc", "latex-from-qasm exporter", "pip install pylatexenc"
             ) from ex
         return utf8tolatex(self.sym())
 

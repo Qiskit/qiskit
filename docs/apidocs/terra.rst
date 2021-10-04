@@ -23,6 +23,7 @@ Qiskit Terra API Reference
    scheduler
    qasm
    qobj
+   qpy
    quantum_info
    result
    tools
@@ -30,8 +31,8 @@ Qiskit Terra API Reference
    transpiler
    transpiler_passes
    transpiler_preset
+   transpiler_plugins
    utils
-   validation
-   visualization
+   utils_mitigation
    opflow
    algorithms

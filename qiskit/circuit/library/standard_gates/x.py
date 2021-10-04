@@ -12,11 +12,13 @@
 
 """X, CX, CCX and multi-controlled X gates."""
 
+from typing import Optional, Union
 import warnings
 from math import ceil
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import _compute_control_matrix, _ctrl_state_to_int
 from qiskit.qasm import pi
@@ -70,7 +72,7 @@ class XGate(Gate):
         |1\rangle \rightarrow |0\rangle
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label: Optional[str] = None):
         """Create new X gate."""
         super().__init__("x", 1, [], label=label)
 
@@ -90,7 +92,12 @@ class XGate(Gate):
 
         self.definition = qc
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Return a (multi-)controlled-X gate.
 
         One control returns a CX gate. Two controls returns a CCX gate.
@@ -176,13 +183,18 @@ class CXGate(ControlledGate):
         `|a, b\rangle \rightarrow |a, a \oplus b\rangle`
     """
 
-    def __init__(self, label=None, ctrl_state=None):
+    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CX gate."""
         super().__init__(
             "cx", 2, [], num_ctrl_qubits=1, label=label, ctrl_state=ctrl_state, base_gate=XGate()
         )
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Return a controlled-X gate with more control lines.
 
         Args:
@@ -280,7 +292,7 @@ class CCXGate(ControlledGate):
 
     """
 
-    def __init__(self, label=None, ctrl_state=None):
+    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CCX gate."""
         super().__init__(
             "ccx", 3, [], num_ctrl_qubits=2, label=label, ctrl_state=ctrl_state, base_gate=XGate()
@@ -322,7 +334,12 @@ class CCXGate(ControlledGate):
 
         self.definition = qc
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Controlled version of this gate.
 
         Args:
@@ -367,7 +384,7 @@ class RCCXGate(Gate):
     of Fig. 3.
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label: Optional[str] = None):
         """Create a new simplified CCX gate."""
         super().__init__("rccx", 3, [], label=label)
 
@@ -432,7 +449,13 @@ class C3SXGate(ControlledGate):
         [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
     """
 
-    def __init__(self, label=None, ctrl_state=None, *, angle=None):
+    def __init__(
+        self,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        angle: Optional[ParameterValueType] = None,
+    ):
         """Create a new 3-qubit controlled sqrt-X gate.
 
         Args:
@@ -531,12 +554,17 @@ class C3SXGate(ControlledGate):
 
 
 class C3XGate(ControlledGate):
-    r"""The 4-qubit controlled X gate.
+    r"""The X gate controlled on 3 qubits.
 
     This implementation uses :math:`\sqrt{T}` and 14 CNOT gates.
     """
 
-    def __new__(cls, angle=None, label=None, ctrl_state=None):
+    def __new__(
+        cls,
+        angle: Optional[ParameterValueType] = None,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         if angle is not None:
             return C3SXGate(label, ctrl_state, angle=angle)
 
@@ -545,7 +573,12 @@ class C3XGate(ControlledGate):
         return instance
 
     # pylint: disable=unused-argument
-    def __init__(self, angle=None, label=None, ctrl_state=None):
+    def __init__(
+        self,
+        angle: Optional[ParameterValueType] = None,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Create a new 3-qubit controlled X gate."""
         super().__init__(
             "mcx", 4, [], num_ctrl_qubits=3, label=label, ctrl_state=ctrl_state, base_gate=XGate()
@@ -624,7 +657,12 @@ class C3XGate(ControlledGate):
 
         self.definition = qc
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Controlled version of this gate.
 
         Args:
@@ -667,7 +705,7 @@ class RC3XGate(Gate):
     of Fig. 4.
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label: Optional[str] = None):
         """Create a new RC3X gate."""
         super().__init__("rcccx", 4, [], label=label)
 
@@ -760,7 +798,7 @@ class C4XGate(ControlledGate):
         [2] Maslov, 2015. https://arxiv.org/abs/1508.03273
     """
 
-    def __init__(self, label=None, ctrl_state=None):
+    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create a new 4-qubit controlled X gate."""
         super().__init__(
             "mcx", 5, [], num_ctrl_qubits=4, label=label, ctrl_state=ctrl_state, base_gate=XGate()
@@ -816,7 +854,12 @@ class C4XGate(ControlledGate):
 
         self.definition = qc
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Controlled version of this gate.
 
         Args:
@@ -851,7 +894,12 @@ class C4XGate(ControlledGate):
 class MCXGate(ControlledGate):
     """The general, multi-controlled X gate."""
 
-    def __new__(cls, num_ctrl_qubits=None, label=None, ctrl_state=None):
+    def __new__(
+        cls,
+        num_ctrl_qubits: Optional[int] = None,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Create a new MCX instance.
 
         Depending on the number of controls and which mode of the MCX, this creates an
@@ -868,7 +916,13 @@ class MCXGate(ControlledGate):
             return gate
         return super().__new__(cls)
 
-    def __init__(self, num_ctrl_qubits, label=None, ctrl_state=None, _name="mcx"):
+    def __init__(
+        self,
+        num_ctrl_qubits: int,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+        _name="mcx",
+    ):
         """Create new MCX gate."""
         num_ancilla_qubits = self.__class__.get_num_ancilla_qubits(num_ctrl_qubits)
         super().__init__(
@@ -886,7 +940,7 @@ class MCXGate(ControlledGate):
         return MCXGate(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
 
     @staticmethod
-    def get_num_ancilla_qubits(num_ctrl_qubits, mode="noancilla"):
+    def get_num_ancilla_qubits(num_ctrl_qubits: int, mode: str = "noancilla") -> int:
         """Get the number of required ancilla qubits without instantiating the class.
 
         This staticmethod might be necessary to check the number of ancillas before
@@ -898,7 +952,7 @@ class MCXGate(ControlledGate):
             return int(num_ctrl_qubits > 4)
         if mode[:7] == "v-chain" or mode[:5] == "basic":
             return max(0, num_ctrl_qubits - 2)
-        raise AttributeError("Unsupported mode ({}) specified!".format(mode))
+        raise AttributeError(f"Unsupported mode ({mode}) specified!")
 
     def _define(self):
         """The standard definition used the Gray code implementation."""
@@ -915,7 +969,12 @@ class MCXGate(ControlledGate):
         """The number of ancilla qubits."""
         return self.__class__.get_num_ancilla_qubits(self.num_ctrl_qubits)
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Return a multi-controlled-X gate with more control lines.
 
         Args:
@@ -943,7 +1002,12 @@ class MCXGrayCode(MCXGate):
     This delegates the implementation to the MCU1 gate, since :math:`X = H \cdot U1(\pi) \cdot H`.
     """
 
-    def __new__(cls, num_ctrl_qubits=None, label=None, ctrl_state=None):
+    def __new__(
+        cls,
+        num_ctrl_qubits: Optional[int] = None,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Create a new MCXGrayCode instance"""
         # if 1 to 4 control qubits, create explicit gates
         explicit = {1: CXGate, 2: CCXGate, 3: C3XGate, 4: C4XGate}
@@ -955,7 +1019,12 @@ class MCXGrayCode(MCXGate):
             return gate
         return super().__new__(cls)
 
-    def __init__(self, num_ctrl_qubits, label=None, ctrl_state=None):
+    def __init__(
+        self,
+        num_ctrl_qubits: int,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_gray")
 
     def inverse(self):
@@ -984,11 +1053,16 @@ class MCXRecursive(MCXGate):
     for these we have a concrete implementation that do not require ancillas.
     """
 
-    def __init__(self, num_ctrl_qubits, label=None, ctrl_state=None):
+    def __init__(
+        self,
+        num_ctrl_qubits: int,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_recursive")
 
     @staticmethod
-    def get_num_ancilla_qubits(num_ctrl_qubits, mode="recursion"):
+    def get_num_ancilla_qubits(num_ctrl_qubits: int, mode: str = "recursion"):
         """Get the number of required ancilla qubits."""
         return MCXGate.get_num_ancilla_qubits(num_ctrl_qubits, mode)
 
@@ -1043,10 +1117,10 @@ class MCXVChain(MCXGate):
 
     def __new__(
         cls,
-        num_ctrl_qubits=None,
-        dirty_ancillas=False,  # pylint: disable=unused-argument
-        label=None,
-        ctrl_state=None,
+        num_ctrl_qubits: Optional[int] = None,
+        dirty_ancillas: bool = False,  # pylint: disable=unused-argument
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
     ):
         """Create a new MCX instance.
 
@@ -1054,7 +1128,13 @@ class MCXVChain(MCXGate):
         """
         return super().__new__(cls, num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
-    def __init__(self, num_ctrl_qubits, dirty_ancillas=False, label=None, ctrl_state=None):
+    def __init__(
+        self,
+        num_ctrl_qubits: int,
+        dirty_ancillas: bool = False,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_vchain")
         self._dirty_ancillas = dirty_ancillas
 
@@ -1067,7 +1147,7 @@ class MCXVChain(MCXGate):
         )
 
     @staticmethod
-    def get_num_ancilla_qubits(num_ctrl_qubits, mode="v-chain"):
+    def get_num_ancilla_qubits(num_ctrl_qubits: int, mode: str = "v-chain"):
         """Get the number of required ancilla qubits."""
         return MCXGate.get_num_ancilla_qubits(num_ctrl_qubits, mode)
 

@@ -21,7 +21,7 @@ from ddt import ddt, data
 from qiskit import BasicAer, QuantumCircuit
 from qiskit.utils import QuantumInstance
 from qiskit.algorithms import Grover, AmplificationProblem
-from qiskit.circuit.library import GroverOperator
+from qiskit.circuit.library import GroverOperator, PhaseOracle
 from qiskit.quantum_info import Operator, Statevector
 
 
@@ -42,12 +42,14 @@ class TestAmplificationProblem(QiskitAlgorithmsTestCase):
         oracle.cz(0, 1)
 
         if kind == "oracle_only":
-            problem = AmplificationProblem(oracle)
+            problem = AmplificationProblem(oracle, is_good_state=["11"])
             expected = GroverOperator(oracle)
         else:
             stateprep = QuantumCircuit(2)
             stateprep.ry(0.2, [0, 1])
-            problem = AmplificationProblem(oracle, state_preparation=stateprep)
+            problem = AmplificationProblem(
+                oracle, state_preparation=stateprep, is_good_state=["11"]
+            )
             expected = GroverOperator(oracle, stateprep)
 
         self.assertEqual(Operator(expected), Operator(problem.grover_operator))
@@ -92,6 +94,14 @@ class TestGrover(QiskitAlgorithmsTestCase):
         self.qasm = QuantumInstance(
             BasicAer.get_backend("qasm_simulator"), seed_simulator=12, seed_transpiler=32
         )
+
+    def test_implicit_phase_oracle_is_good_state(self):
+        """Test implicit default for is_good_state with PhaseOracle."""
+        grover = Grover(iterations=2, quantum_instance=self.statevector)
+        oracle = PhaseOracle("x | x")
+        problem = AmplificationProblem(oracle)
+        result = grover.amplify(problem)
+        self.assertEqual(result.top_measurement, "0")
 
     def test_fixed_iterations(self):
         """Test the iterations argument"""
@@ -197,7 +207,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
         """Test construct_circuit"""
         oracle = QuantumCircuit(2)
         oracle.cz(0, 1)
-        problem = AmplificationProblem(oracle)
+        problem = AmplificationProblem(oracle, is_good_state=["11"])
         grover = Grover()
         constructed = grover.construct_circuit(problem, 2, measurement=False)
 
@@ -232,6 +242,15 @@ class TestGrover(QiskitAlgorithmsTestCase):
         grover = Grover(quantum_instance=self.qasm)
         result = grover.amplify(problem)
         self.assertEqual(result.max_probability, 1.0)
+
+    def test_oracle_evaluation(self):
+        """Test oracle_evaluation for PhaseOracle"""
+        oracle = PhaseOracle("x1 & x2 & (not x3)")
+        problem = AmplificationProblem(oracle, is_good_state=oracle.evaluate_bitstring)
+        grover = Grover(quantum_instance=self.qasm)
+        result = grover.amplify(problem)
+        self.assertTrue(result.oracle_evaluation)
+        self.assertEqual("011", result.top_measurement)
 
 
 if __name__ == "__main__":

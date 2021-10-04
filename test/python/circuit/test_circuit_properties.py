@@ -203,6 +203,64 @@ class TestCircuitProperties(QiskitTestCase):
         qc.measure(q[3], c[3])
         self.assertEqual(qc.depth(), 4)
 
+    def test_circuit_depth_bit_conditionals1(self):
+        """Test circuit depth for single bit conditional gates #1."""
+        size = 4
+        q = QuantumRegister(size, "q")
+        c = ClassicalRegister(size, "c")
+        qc = QuantumCircuit(q, c)
+
+        qc.h(q[0])
+        qc.h(q[1])
+        qc.h(q[2])
+        qc.h(q[3])
+        qc.measure(q[0], c[0])
+        qc.measure(q[2], c[2])
+        qc.h(q[1]).c_if(c[0], True)
+        qc.h(q[3]).c_if(c[2], False)
+        self.assertEqual(qc.depth(), 3)
+
+    def test_circuit_depth_bit_conditionals2(self):
+        """Test circuit depth for single bit conditional gates #2."""
+        size = 4
+        q = QuantumRegister(size, "q")
+        c = ClassicalRegister(size, "c")
+        qc = QuantumCircuit(q, c)
+
+        qc.h(q[0])
+        qc.h(q[1])
+        qc.h(q[2])
+        qc.h(q[3])
+        qc.measure(q[0], c[0])
+        qc.measure(q[2], c[2])
+        qc.h(q[1]).c_if(c[1], True)
+        qc.h(q[3]).c_if(c[3], True)
+        qc.cx(0, 1).c_if(c[0], False)
+        qc.cx(2, 3).c_if(c[2], False)
+        qc.ch(0, 2).c_if(c[1], True)
+        qc.ch(1, 3).c_if(c[3], True)
+        self.assertEqual(qc.depth(), 4)
+
+    def test_circuit_depth_bit_conditionals3(self):
+        """Test circuit depth for single bit conditional gates #3."""
+        size = 4
+        q = QuantumRegister(size, "q")
+        c = ClassicalRegister(size, "c")
+        qc = QuantumCircuit(q, c)
+
+        qc.h(q[0])
+        qc.h(q[1])
+        qc.h(q[2])
+        qc.h(q[3])
+        qc.measure(q[0], c[0])
+        qc.h(1).c_if(c[0], True)
+        qc.h(q[2]).c_if(c, 2)
+        qc.h(3).c_if(c[3], True)
+        qc.measure(q[1], c[1])
+        qc.measure(q[2], c[2])
+        qc.measure(q[3], c[3])
+        self.assertEqual(qc.depth(), 6)
+
     def test_circuit_depth_measurements1(self):
         """Test circuit depth for measurements #1."""
         size = 4
@@ -335,6 +393,85 @@ class TestCircuitProperties(QiskitTestCase):
         circ.cx(2, 3)
         self.assertEqual(circ.depth(), 4)
 
+    def test_circuit_depth_2qubit(self):
+        """Test finding depth of two-qubit gates only.
+
+             ┌───┐
+        q_0: ┤ H ├──■───────────────────
+             └───┘┌─┴─┐┌─────────┐   ┌─┐
+        q_1: ─────┤ X ├┤ Rz(0.1) ├─■─┤M├
+             ┌───┐└───┘└─────────┘ │ └╥┘
+        q_2: ┤ H ├──■──────────────┼──╫─
+             └───┘┌─┴─┐            │  ║
+        q_3: ─────┤ X ├────────────■──╫─
+                  └───┘               ║
+        c: 1/═════════════════════════╩═
+                                      0
+        """
+        circ = QuantumCircuit(4, 1)
+        circ.h(0)
+        circ.cx(0, 1)
+        circ.h(2)
+        circ.cx(2, 3)
+        circ.rz(0.1, 1)
+        circ.cz(1, 3)
+        circ.measure(1, 0)
+        self.assertEqual(circ.depth(lambda x: x[0].num_qubits == 2), 2)
+
+    def test_circuit_depth_multiqubit_or_conditional(self):
+        """Test finding depth of multi-qubit or conditional gates.
+
+             ┌───┐                              ┌───┐
+        q_0: ┤ H ├──■───────────────────────────┤ X ├───
+             └───┘  │  ┌─────────┐        ┌─┐   └─╥─┘
+        q_1: ───────■──┤ Rz(0.1) ├──────■─┤M├─────╫─────
+                  ┌─┴─┐└──┬───┬──┘      │ └╥┘     ║
+        q_2: ─────┤ X ├───┤ H ├─────■───┼──╫──────╫─────
+                  └───┘   └───┘   ┌─┴─┐ │  ║      ║
+        q_3: ─────────────────────┤ X ├─■──╫──────╫─────
+                                  └───┘    ║ ┌────╨────┐
+        c: 1/══════════════════════════════╩═╡ c_0 = T ╞
+                                           0 └─────────┘
+        """
+        circ = QuantumCircuit(4, 1)
+        circ.h(0)
+        circ.ccx(0, 1, 2)
+        circ.h(2)
+        circ.cx(2, 3)
+        circ.rz(0.1, 1)
+        circ.cz(1, 3)
+        circ.measure(1, 0)
+        circ.x(0).c_if(0, 1)
+        self.assertEqual(
+            circ.depth(lambda x: x[0].num_qubits >= 2 or x[0].condition is not None), 4
+        )
+
+    def test_circuit_depth_first_qubit(self):
+        """Test finding depth of gates touching q0 only.
+
+             ┌───┐        ┌───┐
+        q_0: ┤ H ├──■─────┤ T ├─────────
+             └───┘┌─┴─┐┌──┴───┴──┐   ┌─┐
+        q_1: ─────┤ X ├┤ Rz(0.1) ├─■─┤M├
+             ┌───┐└───┘└─────────┘ │ └╥┘
+        q_2: ┤ H ├──■──────────────┼──╫─
+             └───┘┌─┴─┐            │  ║
+        q_3: ─────┤ X ├────────────■──╫─
+                  └───┘               ║
+        c: 1/═════════════════════════╩═
+                                      0
+        """
+        circ = QuantumCircuit(4, 1)
+        circ.h(0)
+        circ.cx(0, 1)
+        circ.t(0)
+        circ.h(2)
+        circ.cx(2, 3)
+        circ.rz(0.1, 1)
+        circ.cz(1, 3)
+        circ.measure(1, 0)
+        self.assertEqual(circ.depth(lambda x: circ.qubits[0] in x[1]), 3)
+
     def test_circuit_size_empty(self):
         """Circuit.size should return 0 for an empty circuit."""
         size = 4
@@ -356,17 +493,17 @@ class TestCircuitProperties(QiskitTestCase):
         qc.h(q[1])
         self.assertEqual(qc.size(), 2)
 
-    def test_circuit_size_two_qubit_gates(self):
-        """Circuit.size should increment for each added two qubit gate."""
-        size = 4
+    def test_circuit_size_2qubit(self):
+        """Circuit.size of only 2-qubit gates."""
+        size = 3
         q = QuantumRegister(size, "q")
         c = ClassicalRegister(size, "c")
         qc = QuantumCircuit(q, c)
 
         qc.cx(q[0], q[1])
-        self.assertEqual(qc.size(), 1)
-        qc.cx(q[2], q[3])
-        self.assertEqual(qc.size(), 2)
+        qc.rz(0.1, q[1])
+        qc.rzz(0.1, q[1], q[2])
+        self.assertEqual(qc.size(lambda x: x[0].num_qubits == 2), 2)
 
     def test_circuit_size_ignores_barriers_snapshots(self):
         """Circuit.size should not count barriers or snapshots."""
@@ -484,7 +621,7 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.num_connected_components(), 4)
 
     def test_circuit_connected_components_with_cond(self):
-        """Test tensor components with conditional gate."""
+        """Test tensor components with one conditional gate."""
         size = 4
         q = QuantumRegister(size, "q")
         c = ClassicalRegister(size, "c")
@@ -498,6 +635,84 @@ class TestCircuitProperties(QiskitTestCase):
         qc.measure(q[1], c[1])
         qc.measure(q[2], c[2])
         qc.measure(q[3], c[3])
+        self.assertEqual(qc.num_connected_components(), 1)
+
+    def test_circuit_connected_components_with_cond2(self):
+        """Test tensor components with two conditional gates."""
+        size = 4
+        q = QuantumRegister(size, "q")
+        c = ClassicalRegister(2 * size, "c")
+        qc = QuantumCircuit(q, c)
+        qc.h(q[0])
+        qc.h(q[1])
+        qc.h(q[2])
+        qc.h(q[3])
+        qc.h(0).c_if(c, 0)
+        qc.cx(1, 2).c_if(c, 4)
+        self.assertEqual(qc.num_connected_components(), 2)
+
+    def test_circuit_connected_components_with_cond3(self):
+        """Test tensor components with three conditional gates and measurements."""
+        size = 4
+        q = QuantumRegister(size)
+        c = ClassicalRegister(size)
+        qc = QuantumCircuit(q, c)
+        qc.h(q[0])
+        qc.h(q[1])
+        qc.h(q[2])
+        qc.h(q[3])
+        qc.measure(q[0], c[0])
+        qc.h(q[0]).c_if(c, 0)
+        qc.cx(q[1], q[2]).c_if(c, 1)
+        qc.measure(q[2], c[2])
+        qc.x(q[3]).c_if(c, 2)
+        self.assertEqual(qc.num_connected_components(), 1)
+
+    def test_circuit_connected_components_with_bit_cond(self):
+        """Test tensor components with one single bit conditional gate."""
+        size = 4
+        q = QuantumRegister(size, "q")
+        c = ClassicalRegister(size, "c")
+        qc = QuantumCircuit(q, c)
+        qc.h(q[0])
+        qc.h(q[1])
+        qc.h(q[2])
+        qc.h(q[3])
+        qc.measure(q[0], c[0])
+        qc.cx(q[0], q[3]).c_if(c[0], True)
+        qc.measure(q[1], c[1])
+        qc.measure(q[2], c[2])
+        qc.measure(q[3], c[3])
+        self.assertEqual(qc.num_connected_components(), 3)
+
+    def test_circuit_connected_components_with_bit_cond2(self):
+        """Test tensor components with two bit conditional gates."""
+        size = 4
+        q = QuantumRegister(size, "q")
+        c = ClassicalRegister(size + 2, "c")
+        qc = QuantumCircuit(q, c)
+        qc.h(q[0])
+        qc.h(q[1])
+        qc.h(q[2])
+        qc.h(q[3])
+        qc.h(0).c_if(c[1], True)
+        qc.cx(1, 0).c_if(c[4], False)
+        qc.cz(2, 3).c_if(c[0], True)
+        self.assertEqual(qc.num_connected_components(), 5)
+
+    def test_circuit_connected_components_with_bit_cond3(self):
+        """Test tensor components with register and bit conditional gates."""
+        size = 4
+        q = QuantumRegister(size)
+        c = ClassicalRegister(size)
+        qc = QuantumCircuit(q, c)
+        qc.h(q[0])
+        qc.h(q[1])
+        qc.h(q[2])
+        qc.h(q[3])
+        qc.h(q[0]).c_if(c[0], True)
+        qc.cx(q[1], q[2]).c_if(c, 1)
+        qc.x(q[3]).c_if(c[2], True)
         self.assertEqual(qc.num_connected_components(), 1)
 
     def test_circuit_unitary_factors1(self):

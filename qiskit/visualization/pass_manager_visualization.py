@@ -27,6 +27,7 @@ except ImportError:
 
 from qiskit.visualization import utils
 from qiskit.visualization.exceptions import VisualizationError
+from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.transpiler.basepasses import AnalysisPass, TransformationPass
 
 DEFAULT_STYLE = {AnalysisPass: "red", TransformationPass: "blue"}
@@ -53,7 +54,7 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
         PIL.Image or None: an in-memory representation of the pass manager. Or None if
         no image was generated or PIL is not installed.
     Raises:
-        ImportError: when nxpd or pydot not installed.
+        MissingOptionalLibraryError: when nxpd or pydot not installed.
         VisualizationError: If raw=True and filename=None.
 
     Example:
@@ -81,16 +82,14 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
     try:
         import subprocess
 
-        _PROC = subprocess.Popen(  # pylint: disable=invalid-name
-            ["dot", "-V"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        _PROC.communicate()
-        if _PROC.returncode != 0:
-            has_graphviz = False
-        else:
-            has_graphviz = True
+        with subprocess.Popen(
+            ["dot", "-V"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        ) as _proc:
+            _proc.communicate()
+            if _proc.returncode != 0:
+                has_graphviz = False
+            else:
+                has_graphviz = True
     except Exception:  # pylint: disable=broad-except
         # this is raised when the dot command cannot be found, which means GraphViz
         # isn't installed
@@ -98,17 +97,17 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
 
     HAS_GRAPHVIZ = has_graphviz  # pylint: disable=invalid-name
 
+    if not HAS_GRAPHVIZ:
+        raise MissingOptionalLibraryError(
+            libname="graphviz",
+            name="pass_manager_drawer",
+            pip_install="'brew install graphviz' on Mac or by downloading it from the website.",
+        )
     try:
         import pydot
-
-        if not HAS_GRAPHVIZ:
-            raise ImportError
     except ImportError as ex:
-        raise ImportError(
-            "pass_manager_drawer requires pydot and graphviz. "
-            "Run 'pip install pydot'. "
-            "Graphviz can be installed using 'brew install graphviz' on Mac"
-            " or by downloading it from the website."
+        raise MissingOptionalLibraryError(
+            libname="pydot", name="pass_manager_drawer", pip_install="pip install pydot"
         ) from ex
 
     passes = pass_manager.passes()
@@ -129,7 +128,7 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
     for index, controller_group in enumerate(passes):
 
         # label is the name of the flow controller parameter
-        label = "[%s] %s" % (index, ", ".join(controller_group["flow_controllers"]))
+        label = "[{}] {}".format(index, ", ".join(controller_group["flow_controllers"]))
 
         # create the subgraph for this controller
         subgraph = pydot.Cluster(

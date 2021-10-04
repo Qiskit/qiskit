@@ -44,18 +44,17 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-# pylint: disable=unsubscriptable-object
-
 """Bloch sphere"""
 
 __all__ = ["Bloch"]
 
 import os
 import numpy as np
-from matplotlib import get_backend
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import Axes3D, proj3d
+
+from .utils import matplotlib_close_if_inline
 
 
 class Arrow3D(FancyArrowPatch):
@@ -697,8 +696,7 @@ class Bloch:
             self.fig.savefig(name)
         self.savenum += 1
         if self.fig:
-            if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
-                plt.close(self.fig)
+            matplotlib_close_if_inline(self.fig)
 
 
 def _hide_tick_lines_and_labels(axis):

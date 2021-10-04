@@ -12,11 +12,11 @@
 
 """Line search with Gaussian-smoothed samples on a sphere."""
 
-from typing import Dict, Optional, Tuple, List, Callable
+from typing import Dict, Optional, Tuple, List, Callable, Any
 import numpy as np
 
 from qiskit.utils import algorithm_globals
-from .optimizer import Optimizer, OptimizerSupportLevel
+from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
 
 class GSLS(Optimizer):
@@ -25,6 +25,12 @@ class GSLS(Optimizer):
     An implementation of the line search algorithm described in
     https://arxiv.org/pdf/1905.01332.pdf, using gradient approximation
     based on Gaussian-smoothed samples on a sphere.
+
+    .. note::
+
+        This component has some function that is normally random. If you want to reproduce behavior
+        then you should set the random number generator seed in the algorithm_globals
+        (``qiskit.utils.algorithm_globals.random_seed = seed``).
     """
 
     _OPTIONS = [
@@ -91,6 +97,37 @@ class GSLS(Optimizer):
             "initial_point": OptimizerSupportLevel.required,
         }
 
+    @property
+    def settings(self) -> Dict[str, Any]:
+        return {key: self._options.get(key, None) for key in self._OPTIONS}
+
+    def minimize(
+        self,
+        fun: Callable[[POINT], float],
+        x0: POINT,
+        jac: Optional[Callable[[POINT], POINT]] = None,
+        bounds: Optional[List[Tuple[float, float]]] = None,
+    ) -> OptimizerResult:
+        if not isinstance(x0, np.ndarray):
+            x0 = np.asarray(x0)
+
+        if bounds is None:
+            var_lb = np.array([-np.inf] * x0.size)
+            var_ub = np.array([np.inf] * x0.size)
+        else:
+            var_lb = np.array([l for (l, _) in bounds])
+            var_ub = np.array([u for (_, u) in bounds])
+
+        x, fun, nfev, njev = self.ls_optimize(x0.size, fun, x0, var_lb, var_ub)
+
+        result = OptimizerResult()
+        result.x = x
+        result.fun = fun
+        result.nfev = nfev
+        result.njev = njev
+
+        return result
+
     def optimize(
         self,
         num_vars: int,
@@ -102,24 +139,16 @@ class GSLS(Optimizer):
         super().optimize(
             num_vars, objective_function, gradient_function, variable_bounds, initial_point
         )
-
         if initial_point is None:
             initial_point = algorithm_globals.random.normal(size=num_vars)
         else:
             initial_point = np.array(initial_point)
 
-        if variable_bounds is None:
-            var_lb = np.array([-np.inf] * num_vars)
-            var_ub = np.array([np.inf] * num_vars)
-        else:
-            var_lb = np.array([l for (l, _) in variable_bounds])
-            var_ub = np.array([u for (_, u) in variable_bounds])
-
-        x, x_value, n_evals, _ = self.ls_optimize(
-            num_vars, objective_function, initial_point, var_lb, var_ub
+        result = self.minimize(
+            objective_function, initial_point, gradient_function, variable_bounds
         )
 
-        return x, x_value, n_evals
+        return result.x, result.fun, result.nfev
 
     def ls_optimize(
         self,
@@ -199,13 +228,11 @@ class GSLS(Optimizer):
 
             # Print information
             if self._options["disp"]:
-                print("Iter {:d}".format(iter_count))
-                print("Point {} obj {}".format(x, x_value))
-                print("Gradient {}".format(grad))
-                print(
-                    "Grad norm {} new_x_value {} step_size {}".format(grad_norm, new_x_value, alpha)
-                )
-                print("Direction {}".format(directions))
+                print(f"Iter {iter_count:d}")
+                print(f"Point {x} obj {x_value}")
+                print(f"Gradient {grad}")
+                print(f"Grad norm {grad_norm} new_x_value {new_x_value} step_size {alpha}")
+                print(f"Direction {directions}")
 
             # Test Armijo condition for sufficient decrease
             if new_x_value <= x_value - self._options["armijo_parameter"] * alpha * grad_norm:
@@ -326,7 +353,7 @@ class GSLS(Optimizer):
             # If we still do not have enough sampling points, we have failed.
             if len(accepted) < num_points:
                 raise RuntimeError(
-                    "Could not generate enough samples " "within bounds; try smaller radius."
+                    "Could not generate enough samples within bounds; try smaller radius."
                 )
 
             return (

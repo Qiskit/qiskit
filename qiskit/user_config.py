@@ -124,7 +124,7 @@ class UserConfig:
             if transpile_optimization_level != -1:
                 if transpile_optimization_level < 0 or transpile_optimization_level > 3:
                     raise exceptions.QiskitUserConfigError(
-                        "%s is not a valid optimization level. Must be " "0, 1, 2, or 3."
+                        "%s is not a valid optimization level. Must be 0, 1, 2, or 3."
                     )
                 self.settings["transpile_optimization_level"] = transpile_optimization_level
 
@@ -138,9 +138,73 @@ class UserConfig:
             if num_processes != -1:
                 if num_processes <= 0:
                     raise exceptions.QiskitUserConfigError(
-                        "%s is not a valid number of processes. Must be " "greater than 0"
+                        "%s is not a valid number of processes. Must be greater than 0"
                     )
                 self.settings["num_processes"] = num_processes
+
+
+def set_config(key, value, section=None, file_path=None):
+    """Adds or modifies a user configuration
+
+    It will add configuration to the currently configured location
+    or the value of file argument.
+
+    Only valid user config can be set in 'default' section. Custom
+    user config can be added in any other sections.
+
+    Changes to the existing config file will not be reflected in
+    the current session since the config file is parsed at import time.
+
+    Args:
+        key (str): name of the config
+        value (obj): value of the config
+        section (str, optional): if not specified, adds it to the
+            `default` section of the config file.
+        file_path (str, optional): the file to which config is added.
+            If not specified, adds it to the default config file or
+            if set, the value of `QISKIT_SETTINGS` env variable.
+
+    Raises:
+        QiskitUserConfigError: if the config is invalid
+    """
+    filename = file_path or os.getenv("QISKIT_SETTINGS", DEFAULT_FILENAME)
+    section = "default" if section is None else section
+
+    if not isinstance(key, str):
+        raise exceptions.QiskitUserConfigError("Key must be string type")
+
+    valid_config = {
+        "circuit_drawer",
+        "circuit_mpl_style",
+        "circuit_mpl_style_path",
+        "transpile_optimization_level",
+        "parallel",
+        "num_processes",
+    }
+
+    if section in [None, "default"]:
+        if key not in valid_config:
+            raise exceptions.QiskitUserConfigError(f"{key} is not a valid user config.")
+
+    config = configparser.ConfigParser()
+    config.read(filename)
+
+    if section not in config.sections():
+        config.add_section(section)
+
+    config.set(section, key, str(value))
+
+    try:
+        with open(filename, "w") as cfgfile:
+            config.write(cfgfile)
+    except OSError as ex:
+        raise exceptions.QiskitUserConfigError(
+            f"Unable to load the config file {filename}. Error: '{str(ex)}'"
+        )
+
+    # validates config
+    user_config = UserConfig(filename)
+    user_config.read_config_file()
 
 
 def get_config():

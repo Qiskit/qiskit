@@ -27,7 +27,7 @@ def validate_in_set(name: str, value: object, values: Set[object]) -> None:
         ValueError: invalid value
     """
     if value not in values:
-        raise ValueError("{} must be one of '{}', was '{}'.".format(name, values, value))
+        raise ValueError(f"{name} must be one of '{values}', was '{value}'.")
 
 
 def validate_min(name: str, value: float, minimum: float) -> None:
@@ -40,7 +40,7 @@ def validate_min(name: str, value: float, minimum: float) -> None:
         ValueError: invalid value
     """
     if value < minimum:
-        raise ValueError("{} must have value >= {}, was {}".format(name, minimum, value))
+        raise ValueError(f"{name} must have value >= {minimum}, was {value}")
 
 
 def validate_min_exclusive(name: str, value: float, minimum: float) -> None:
@@ -53,7 +53,7 @@ def validate_min_exclusive(name: str, value: float, minimum: float) -> None:
         ValueError: invalid value
     """
     if value <= minimum:
-        raise ValueError("{} must have value > {}, was {}".format(name, minimum, value))
+        raise ValueError(f"{name} must have value > {minimum}, was {value}")
 
 
 def validate_max(name: str, value: float, maximum: float) -> None:
@@ -66,7 +66,7 @@ def validate_max(name: str, value: float, maximum: float) -> None:
         ValueError: invalid value
     """
     if value > maximum:
-        raise ValueError("{} must have value <= {}, was {}".format(name, maximum, value))
+        raise ValueError(f"{name} must have value <= {maximum}, was {value}")
 
 
 def validate_max_exclusive(name: str, value: float, maximum: float) -> None:
@@ -79,7 +79,7 @@ def validate_max_exclusive(name: str, value: float, maximum: float) -> None:
         ValueError: invalid value
     """
     if value >= maximum:
-        raise ValueError("{} must have value < {}, was {}".format(name, maximum, value))
+        raise ValueError(f"{name} must have value < {maximum}, was {value}")
 
 
 def validate_range(name: str, value: float, minimum: float, maximum: float) -> None:
@@ -93,9 +93,7 @@ def validate_range(name: str, value: float, minimum: float, maximum: float) -> N
         ValueError: invalid value
     """
     if value < minimum or value > maximum:
-        raise ValueError(
-            "{} must have value >= {} and <= {}, was {}".format(name, minimum, maximum, value)
-        )
+        raise ValueError(f"{name} must have value >= {minimum} and <= {maximum}, was {value}")
 
 
 def validate_range_exclusive(name: str, value: float, minimum: float, maximum: float) -> None:
@@ -109,9 +107,7 @@ def validate_range_exclusive(name: str, value: float, minimum: float, maximum: f
         ValueError: invalid value
     """
     if value <= minimum or value >= maximum:
-        raise ValueError(
-            "{} must have value > {} and < {}, was {}".format(name, minimum, maximum, value)
-        )
+        raise ValueError(f"{name} must have value > {minimum} and < {maximum}, was {value}")
 
 
 def validate_range_exclusive_min(name: str, value: float, minimum: float, maximum: float) -> None:
@@ -125,9 +121,7 @@ def validate_range_exclusive_min(name: str, value: float, minimum: float, maximu
         ValueError: invalid value
     """
     if value <= minimum or value > maximum:
-        raise ValueError(
-            "{} must have value > {} and <= {}, was {}".format(name, minimum, maximum, value)
-        )
+        raise ValueError(f"{name} must have value > {minimum} and <= {maximum}, was {value}")
 
 
 def validate_range_exclusive_max(name: str, value: float, minimum: float, maximum: float) -> None:
@@ -141,6 +135,4 @@ def validate_range_exclusive_max(name: str, value: float, minimum: float, maximu
         ValueError: invalid value
     """
     if value < minimum or value >= maximum:
-        raise ValueError(
-            "{} must have value >= {} and < {}, was {}".format(name, minimum, maximum, value)
-        )
+        raise ValueError(f"{name} must have value >= {minimum} and < {maximum}, was {value}")

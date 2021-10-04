@@ -47,7 +47,7 @@ class PauliGate(Gate):
 
         gates = {"I": IGate, "X": XGate, "Y": YGate, "Z": ZGate}
         q = QuantumRegister(len(self.params[0]), "q")
-        qc = QuantumCircuit(q, name="{}({})".format(self.name, self.params[0]))
+        qc = QuantumCircuit(q, name=f"{self.name}({self.params[0]})")
 
         rules = [(gates[p](), [q[i]], []) for (i, p) in enumerate(reversed(self.params[0]))]
         qc._data = rules
@@ -71,9 +71,7 @@ class PauliGate(Gate):
                 return parameter
             else:
                 raise CircuitError(
-                    "Parameter string {0} should contain only " "'I', 'X', 'Y', 'Z' characters"
+                    "Parameter string {0} should contain only 'I', 'X', 'Y', 'Z' characters"
                 )
         else:
-            raise CircuitError(
-                "Parameter {0} should be a string of " "'I', 'X', 'Y', 'Z' characters"
-            )
+            raise CircuitError("Parameter {0} should be a string of 'I', 'X', 'Y', 'Z' characters")

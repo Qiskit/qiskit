@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Added two new classes :class:`~qiskit.result.ProbDistribution` and
+    :class:`~qiskit.result.QuasiDistribution` for dealing with probability
+    distributions and quasiprobability distributions respectively. These objects
+    both are dictionary subclasses that add additional methods for working
+    with probability and quasiprobability distributions.

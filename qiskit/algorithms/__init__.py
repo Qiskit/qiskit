@@ -11,8 +11,9 @@
 # that they have been altered from the originals.
 
 """
+=====================================
 Algorithms (:mod:`qiskit.algorithms`)
-==========================================
+=====================================
 It contains a collection of quantum algorithms, for use with quantum computers, to
 carry out research and investigate how to solve problems in different domains on
 near-term quantum devices with short depth circuits.
@@ -37,8 +38,9 @@ Algorithms
 It contains a variety of quantum algorithms and these have been grouped by logical function such
 as minimum eigensolvers and amplitude amplifiers.
 
+
 Amplitude Amplifiers
-++++++++++++++++++++
+--------------------
 
 .. autosummary::
    :toctree: ../stubs/
@@ -48,8 +50,9 @@ Amplitude Amplifiers
    Grover
    GroverResult
 
+
 Amplitude Estimators
-++++++++++++++++++++
+--------------------
 
 .. autosummary::
    :toctree: ../stubs/
@@ -67,8 +70,10 @@ Amplitude Estimators
    MaximumLikelihoodAmplitudeEstimation
    MaximumLikelihoodAmplitudeEstimationResult
 
+
 Eigensolvers
-++++++++++++
+------------
+
 Algorithms to find eigenvalues of an operator. For chemistry these can be used to find excited
 states of a molecule and qiskit.chemistry has some algorithms that leverage chemistry specific
 knowledge to do this in that application domain.
@@ -86,8 +91,10 @@ knowledge to do this in that application domain.
 
    NumPyEigensolver
 
+
 Factorizers
-+++++++++++
+-----------
+
 Algorithms to find factors of a number.
 
 .. autosummary::
@@ -97,8 +104,10 @@ Algorithms to find factors of a number.
    Shor
    ShorResult
 
+
 Linear Solvers
-++++++++++++++
+--------------
+
 Algorithms to solve linear systems of equations.
 
 .. autosummary::
@@ -110,8 +119,10 @@ Algorithms to solve linear systems of equations.
    LinearSolver
    LinearSolverResult
 
+
 Minimum Eigensolvers
-++++++++++++++++++++
+--------------------
+
 Algorithms that can find the minimum eigenvalue of an operator.
 
 .. autosummary::
@@ -129,17 +140,21 @@ Algorithms that can find the minimum eigenvalue of an operator.
    QAOA
    VQE
 
+
 Optimizers
-++++++++++
+----------
+
 Classical optimizers for use by quantum variational algorithms.
 
 .. autosummary::
-   :toctree:
+   :toctree: ../stubs/
 
    optimizers
 
+
 Phase Estimators
-++++++++++++++++
+----------------
+
 Algorithms that estimate the phases of eigenstates of a unitary.
 
 .. autosummary::
@@ -151,6 +166,7 @@ Algorithms that estimate the phases of eigenstates of a unitary.
    PhaseEstimationScale
    PhaseEstimation
    PhaseEstimationResult
+   IterativePhaseEstimation
 
 Exceptions
 ==========
@@ -194,6 +210,7 @@ from .phase_estimators import (
     PhaseEstimationScale,
     PhaseEstimation,
     PhaseEstimationResult,
+    IterativePhaseEstimation,
 )
 from .exceptions import AlgorithmError
 
@@ -235,5 +252,6 @@ __all__ = [
     "PhaseEstimationScale",
     "PhaseEstimation",
     "PhaseEstimationResult",
+    "IterativePhaseEstimation",
     "AlgorithmError",
 ]

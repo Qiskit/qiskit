@@ -13,6 +13,7 @@
 """Remove final measurements and barriers at the end of a circuit."""
 
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.dagcircuit import DAGOpNode
 
 
 class RemoveFinalMeasurements(TransformationPass):
@@ -33,24 +34,16 @@ class RemoveFinalMeasurements(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
-        final_op_types = ["measure", "barrier"]
+        final_op_types = {"measure", "barrier"}
         final_ops = []
         cregs_to_remove = dict()
         clbits_with_final_measures = set()
         clbit_registers = {clbit: creg for creg in dag.cregs.values() for clbit in creg}
 
-        for candidate_node in dag.named_nodes(*final_op_types):
-            is_final_op = True
-
-            for _, child_successors in dag.bfs_successors(candidate_node):
-                if any(
-                    suc.type == "op" and suc.name not in final_op_types for suc in child_successors
-                ):
-                    is_final_op = False
-                    break
-
-            if is_final_op:
-                final_ops.append(candidate_node)
+        for qubit in dag.qubits:
+            op_node = next(dag.predecessors(dag.output_map[qubit]))
+            if isinstance(op_node, DAGOpNode) and op_node.op.name in final_op_types:
+                final_ops.append(op_node)
 
         if not final_ops:
             return dag
@@ -75,10 +68,4 @@ class RemoveFinalMeasurements(TransformationPass):
             if val in cregs_to_remove and cregs_to_remove[val] == val.size:
                 del dag.cregs[key]
 
-        new_dag = dag._copy_circuit_metadata()
-
-        for node in dag.topological_op_nodes():
-            # copy the condition over too
-            new_dag.apply_operation_back(node.op, qargs=node.qargs, cargs=node.cargs)
-
-        return new_dag
+        return dag

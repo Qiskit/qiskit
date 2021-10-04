@@ -12,14 +12,14 @@
 
 """A quantum oracle constructed from a logical expression or a string in the DIMACS format."""
 
+from os.path import basename, isfile
 from typing import Callable, Optional
 
-from os.path import basename, isfile
+from tweedledum import BitVec, BoolFunction
+from tweedledum.synthesis import pkrm_synth
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.exceptions import MissingOptionalLibraryError
 from .classical_element import ClassicalElement
-from .utils import HAS_TWEEDLEDUM
 
 
 class BooleanExpression(ClassicalElement):
@@ -31,17 +31,7 @@ class BooleanExpression(ClassicalElement):
             expression (str): The logical expression string.
             name (str): Optional. Instruction gate name. Otherwise part of
                         the expression is going to be used.
-
-        Raises:
-            MissingOptionalLibraryError: If tweedledum is not installed. Tweedledum is required.
         """
-        if not HAS_TWEEDLEDUM:
-            raise MissingOptionalLibraryError(
-                libname="tweedledum",
-                name="BooleanExpression compiler",
-                pip_install="pip install tweedledum",
-            )
-        from tweedledum import BoolFunction
 
         self._tweedledum_bool_expression = BoolFunction.from_expression(expression)
 
@@ -63,8 +53,6 @@ class BooleanExpression(ClassicalElement):
         Returns:
             bool: result of the evaluation.
         """
-        from tweedledum import BitVec
-
         bits = []
         for bit in bitstring:
             bits.append(BitVec(1, bit))
@@ -92,8 +80,7 @@ class BooleanExpression(ClassicalElement):
             qregs = None  # TODO: Probably from self._tweedledum_bool_expression._signature
 
         if synthesizer is None:
-            from tweedledum.synthesis import pkrm_synth  # pylint: disable=no-name-in-module
-            from .utils import tweedledum2qiskit
+            from .utils import tweedledum2qiskit  # Avoid an import cycle
 
             truth_table = self._tweedledum_bool_expression.truth_table(output_bit=0)
             return tweedledum2qiskit(pkrm_synth(truth_table), name=self.name, qregs=qregs)
@@ -113,16 +100,8 @@ class BooleanExpression(ClassicalElement):
             BooleanExpression: A gate for the input string
 
         Raises:
-            MissingOptionalLibraryError: If tweedledum is not installed. Tweedledum is required.
             FileNotFoundError: If filename is not found.
         """
-        if not HAS_TWEEDLEDUM:
-            raise MissingOptionalLibraryError(
-                libname="tweedledum",
-                name="BooleanExpression compiler",
-                pip_install="pip install tweedledum",
-            )
-        from tweedledum import BoolFunction
 
         expr_obj = cls.__new__(cls)
         if not isfile(filename):
