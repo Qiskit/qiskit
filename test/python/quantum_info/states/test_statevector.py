@@ -314,7 +314,7 @@ class TestStatevector(QiskitTestCase):
             self.assertEqual(state.dims(), (3, 2))
             assert_allclose(state.data, target)
 
-    def test_inner(self):
+     def test_inner(self):
         """Test inner method."""
         for _ in range(10):
             seed = np.random.randint(0, np.iinfo(np.int32).max)
