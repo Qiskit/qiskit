@@ -314,12 +314,12 @@ class TestStatevector(QiskitTestCase):
             self.assertEqual(state.dims(), (3, 2))
             assert_allclose(state.data, target)
 
-     def test_inner(self):
+    def test_inner(self):
         """Test inner method."""
         for _ in range(10):
             seed = np.random.randint(0, np.iinfo(np.int32).max)
             rng = np.random.default_rng(seed)
-            dim = 2**rng.integers(1,4)
+            dim = 2**rng.integers(1, 4)
             vec0 = Statevector(self.rand_vec(dim))
             vec1 = Statevector(self.rand_vec(dim))
             target = 0

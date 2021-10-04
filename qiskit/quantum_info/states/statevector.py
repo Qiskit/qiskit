@@ -169,7 +169,6 @@ class Statevector(QuantumState):
         data = np.kron(self._data, other._data)
         return Statevector(data, dims)
 
-
     def inner(self, other):
         r"""Return the inner product of self and other as
         :math:`\langle self| other \rangle`.
@@ -189,7 +188,6 @@ class Statevector(QuantumState):
             raise QiskitError("Other Statevector has different dimensions.")
         inner = np.dot(self.conjugate().data, other.data)
         return inner
-
 
     def expand(self, other):
         """Return the tensor product state other ⊗ self.
