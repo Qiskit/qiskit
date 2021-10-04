@@ -89,6 +89,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     backend_properties = pass_manager_config.backend_properties
     approximation_degree = pass_manager_config.approximation_degree
     timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
+    unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
 
     # 1. Choose an initial layout if not set by user (default: trivial layout)
     _given_layout = SetLayout(initial_layout)
@@ -111,7 +112,18 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
 
     # 3. Decompose so only 1-qubit and 2-qubit gates remain
-    _unroll3q = Unroll3qOrMore()
+    _unroll3q = [
+        # Use unitary synthesis for basis aware decomposition of UnitaryGates
+        UnitarySynthesis(
+            basis_gates,
+            approximation_degree=approximation_degree,
+            coupling_map=coupling_map,
+            backend_props=backend_properties,
+            method=unitary_synthesis_method,
+            min_qubits=3,
+        ),
+        Unroll3qOrMore(),
+    ]
 
     # 4. Swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
@@ -145,13 +157,37 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     elif translation_method == "translator":
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 
-        _unroll = [UnrollCustomDefinitions(sel, basis_gates), BasisTranslator(sel, basis_gates)]
+        _unroll = [
+            UnitarySynthesis(
+                basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                backend_props=backend_properties,
+                method=unitary_synthesis_method,
+            ),
+            UnrollCustomDefinitions(sel, basis_gates),
+            BasisTranslator(sel, basis_gates),
+        ]
     elif translation_method == "synthesis":
         _unroll = [
+            UnitarySynthesis(
+                basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                backend_props=backend_properties,
+                method=unitary_synthesis_method,
+                min_qubits=3,
+            ),
             Unroll3qOrMore(),
             Collect2qBlocks(),
             ConsolidateBlocks(basis_gates=basis_gates),
-            UnitarySynthesis(basis_gates, approximation_degree=approximation_degree),
+            UnitarySynthesis(
+                basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                backend_props=backend_properties,
+                method=unitary_synthesis_method,
+            ),
         ]
     else:
         raise TranspilerError("Invalid translation method %s." % translation_method)

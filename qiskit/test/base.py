@@ -221,6 +221,7 @@ class QiskitTestCase(BaseQiskitTestCase):
             "test.python.quantum_info.operators.channel.test_stinespring",
             "test.python.quantum_info.operators.symplectic.test_sparse_pauli_op",
             "test.python.quantum_info.operators.channel.test_ptm",
+            "importlib_metadata",
         ]
         for mod in allow_DeprecationWarning_modules:
             warnings.filterwarnings("default", category=DeprecationWarning, module=mod)
