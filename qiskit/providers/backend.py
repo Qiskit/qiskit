@@ -243,6 +243,9 @@ class BackendV2(Backend, ABC):
     This abstract class is to be used for all Backend objects created by a
     provider. This version differs from earlier abstract Backend classes in
     that the configuration attribute no longer exists instead attributes
+    exposing equivalent required immutable properties of the backend device
+    are added. For example ``backend.configuration().n_qubits`` is accessible
+    from ``backend.num_qubits`` now.
 
     The ``options`` attribute of the backend is used to contain the dynamic
     user configurable options of the backend. It should be used more for
@@ -272,13 +275,13 @@ class BackendV2(Backend, ABC):
 
     @property
     def instructions(self) -> List[Gate]:
-        """A list of Gate instances that the backend supports."""
-        return list(self.target.gates)
+        """A list of :class:`~qiskit.circuit.Instruction` instances that the backend supports."""
+        return list(self.target.instructions)
 
     @property
-    def instructions_names(self) -> List[str]:
-        """A list of Gate names that the backend supports."""
-        return list(self.target.gate_names)
+    def instruction_names(self) -> List[str]:
+        """A list of instruction names that the backend supports."""
+        return list(self.target.instruction_names)
 
     @property
     @abstractmethod

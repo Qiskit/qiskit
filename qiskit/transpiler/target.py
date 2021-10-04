@@ -245,13 +245,13 @@ class Target:
         return output
 
     @property
-    def gate_names(self):
-        """Gate the basis gate names in the gate map"""
+    def instruction_names(self):
+        """Gate the basis instruction names in the gate map"""
         return set(self._gate_map)
 
     @property
-    def gates(self):
-        """Gate the basis gates in the gate map"""
+    def instructions(self):
+        """Gate the instruction gates in the gate map"""
         return list(self._gate_name_map.values())
 
     def size(self):
