@@ -33,6 +33,7 @@ from qiskit.circuit.library import (
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.parameter import Parameter
 from qiskit.transpiler.coupling import CouplingMap
+from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler import Target
 from qiskit.transpiler import InstructionProperties
 from qiskit.test import QiskitTestCase
@@ -400,6 +401,87 @@ class TestTarget(QiskitTestCase):
             ]
         )
         self.assertTrue(np.allclose(self.ibm_target.distance_matrix("length"), expected))
+
+    def test_distance_matrix_3q(self):
+        fake_target = Target()
+        ccx_props = {
+            (0, 1, 2): None,
+            (1, 0, 2): None,
+            (2, 1, 0): None,
+        }
+        fake_target.add_instruction(CCXGate(), ccx_props)
+        with self.assertLogs("qiskit.transpiler.target", level="WARN") as log:
+            mat = fake_target.distance_matrix()
+        self.assertEqual(
+            log.output,
+            [
+                "WARNING:qiskit.transpiler.target:"
+                "This Target object contains multiqubit gates that "
+                "operate on > 2 qubits. These gates will not be reflected in "
+                "the output matrix."
+            ],
+        )
+        self.assertTrue(np.array_equal(np.zeros((3, 3)), mat))
+
+    def test_physical_qubits(self):
+        self.assertEqual([], self.empty_target.physical_qubits)
+        self.assertEqual(list(range(5)), self.ibm_target.physical_qubits)
+        self.assertEqual(list(range(5)), self.aqt_target.physical_qubits)
+        self.assertEqual(list(range(2)), self.fake_backend_target.physical_qubits)
+
+    def test_duplicate_instruction_add_instruction(self):
+        target = Target()
+        target.add_instruction(XGate(), {(0,): None})
+        with self.assertRaises(AttributeError):
+            target.add_instruction(XGate(), {(1,): None})
+
+    def test_durations(self):
+        empty_durations = self.empty_target.durations()
+        self.assertEqual(
+            empty_durations.duration_by_name_qubits, InstructionDurations().duration_by_name_qubits
+        )
+        aqt_durations = self.aqt_target.durations()
+        self.assertEqual(aqt_durations.duration_by_name_qubits, {})
+        ibm_durations = self.ibm_target.durations()
+        import pprint
+
+        pprint.pprint(ibm_durations.duration_by_name_qubits)
+        expected = {
+            ("cx", (0, 1)): (5.1911e-07, "s"),
+            ("cx", (1, 0)): (5.5466e-07, "s"),
+            ("cx", (1, 2)): (2.2755e-07, "s"),
+            ("cx", (1, 3)): (4.9777e-07, "s"),
+            ("cx", (2, 1)): (2.6311e-07, "s"),
+            ("cx", (3, 1)): (4.6222e-07, "s"),
+            ("cx", (3, 4)): (2.7022e-07, "s"),
+            ("cx", (4, 3)): (3.0577e-07, "s"),
+            ("id", (0,)): (3.55e-08, "s"),
+            ("id", (1,)): (3.55e-08, "s"),
+            ("id", (2,)): (3.55e-08, "s"),
+            ("id", (3,)): (3.55e-08, "s"),
+            ("id", (4,)): (3.55e-08, "s"),
+            ("measure", (0,)): (5.813e-06, "s"),
+            ("measure", (1,)): (5.813e-06, "s"),
+            ("measure", (2,)): (5.813e-06, "s"),
+            ("measure", (3,)): (5.813e-06, "s"),
+            ("measure", (4,)): (5.813e-06, "s"),
+            ("rz", (0,)): (0, "s"),
+            ("rz", (1,)): (0, "s"),
+            ("rz", (2,)): (0, "s"),
+            ("rz", (3,)): (0, "s"),
+            ("rz", (4,)): (0, "s"),
+            ("sx", (0,)): (3.55e-08, "s"),
+            ("sx", (1,)): (3.55e-08, "s"),
+            ("sx", (2,)): (3.55e-08, "s"),
+            ("sx", (3,)): (3.55e-08, "s"),
+            ("sx", (4,)): (3.55e-08, "s"),
+            ("x", (0,)): (3.55e-08, "s"),
+            ("x", (1,)): (3.55e-08, "s"),
+            ("x", (2,)): (3.55e-08, "s"),
+            ("x", (3,)): (3.55e-08, "s"),
+            ("x", (4,)): (3.55e-08, "s"),
+        }
+        self.assertEqual(ibm_durations.duration_by_name_qubits, expected)
 
 
 class TestInstructionProperties(QiskitTestCase):
