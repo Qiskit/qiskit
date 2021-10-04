@@ -1,0 +1,25 @@
+---
+features:
+  - |
+    Added a :class:`~qiskit.circuit.library.PiecewiseChebyshev` to the
+    :mod:`qiskit.circuit.library` for implementing a piecewise Chebyshev
+    approximation of an input function. For a given function :math:`f(x)`
+    and degree :math:`d`, this class class implements
+    a piecewise polynomial Chebyshev approximation on :math:`n` qubits
+    to :math:`f(x)` on the given intervals. All the polynomials in the
+    approximation are of degree :math:`d`.
+
+    For example:
+
+    .. jupyter-execute::
+
+        import numpy as np
+        from qiskit import QuantumCircuit
+        from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
+        f_x, degree, breakpoints, num_state_qubits = lambda x: np.arcsin(1 / x), 2, [2, 4], 2
+        pw_approximation = PiecewiseChebyshev(f_x, degree, breakpoints, num_state_qubits)
+        pw_approximation._build()
+        qc = QuantumCircuit(pw_approximation.num_qubits)
+        qc.h(list(range(num_state_qubits)))
+        qc.append(pw_approximation.to_instruction(), qc.qubits)
+        qc.draw(output='mpl')

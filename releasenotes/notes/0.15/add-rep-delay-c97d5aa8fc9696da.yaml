@@ -26,6 +26,6 @@ features:
     property for pulse qobjs.
   - |
     The ``backend_configuration_schema.json`` JSON Schema file in
-    mod:`qiskit.schemas` has been updated to include ``rep_delay_range`` and
+    :mod:`qiskit.schemas` has been updated to include ``rep_delay_range`` and
     ``default_rep_delay`` as optional properties for a pulse backend
     configuration.

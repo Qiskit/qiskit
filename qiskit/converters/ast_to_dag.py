@@ -21,10 +21,10 @@ from qiskit.exceptions import QiskitError
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, Gate, QuantumCircuit
 from qiskit.qasm.node.real import Real
-from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
 from qiskit.circuit.barrier import Barrier
+from qiskit.circuit.delay import Delay
 from qiskit.circuit.library.standard_gates.x import CCXGate
 from qiskit.circuit.library.standard_gates.swap import CSwapGate
 from qiskit.circuit.library.standard_gates.x import CXGate
@@ -35,11 +35,15 @@ from qiskit.circuit.library.standard_gates.h import HGate
 from qiskit.circuit.library.standard_gates.i import IGate
 from qiskit.circuit.library.standard_gates.s import SGate
 from qiskit.circuit.library.standard_gates.s import SdgGate
+from qiskit.circuit.library.standard_gates.sx import SXGate
+from qiskit.circuit.library.standard_gates.sx import SXdgGate
 from qiskit.circuit.library.standard_gates.t import TGate
 from qiskit.circuit.library.standard_gates.t import TdgGate
+from qiskit.circuit.library.standard_gates.p import PhaseGate
 from qiskit.circuit.library.standard_gates.u1 import U1Gate
 from qiskit.circuit.library.standard_gates.u2 import U2Gate
 from qiskit.circuit.library.standard_gates.u3 import U3Gate
+from qiskit.circuit.library.standard_gates.u import UGate
 from qiskit.circuit.library.standard_gates.x import XGate
 from qiskit.circuit.library.standard_gates.y import YGate
 from qiskit.circuit.library.standard_gates.z import ZGate
@@ -48,12 +52,15 @@ from qiskit.circuit.library.standard_gates.ry import RYGate
 from qiskit.circuit.library.standard_gates.rz import RZGate
 from qiskit.circuit.library.standard_gates.rxx import RXXGate
 from qiskit.circuit.library.standard_gates.rzz import RZZGate
+from qiskit.circuit.library.standard_gates.p import CPhaseGate
+from qiskit.circuit.library.standard_gates.u import CUGate
 from qiskit.circuit.library.standard_gates.u1 import CU1Gate
 from qiskit.circuit.library.standard_gates.u3 import CU3Gate
 from qiskit.circuit.library.standard_gates.h import CHGate
 from qiskit.circuit.library.standard_gates.rx import CRXGate
 from qiskit.circuit.library.standard_gates.ry import CRYGate
 from qiskit.circuit.library.standard_gates.rz import CRZGate
+from qiskit.circuit.library.standard_gates.sx import CSXGate
 
 
 def ast_to_dag(ast):
@@ -97,35 +104,45 @@ def ast_to_dag(ast):
 class AstInterpreter:
     """Interprets an OpenQASM by expanding subroutines and unrolling loops."""
 
-    standard_extension = {"u1": U1Gate,
-                          "u2": U2Gate,
-                          "u3": U3Gate,
-                          "x": XGate,
-                          "y": YGate,
-                          "z": ZGate,
-                          "t": TGate,
-                          "tdg": TdgGate,
-                          "s": SGate,
-                          "sdg": SdgGate,
-                          "swap": SwapGate,
-                          "rx": RXGate,
-                          "rxx": RXXGate,
-                          "ry": RYGate,
-                          "rz": RZGate,
-                          "rzz": RZZGate,
-                          "id": IGate,
-                          "h": HGate,
-                          "cx": CXGate,
-                          "cy": CYGate,
-                          "cz": CZGate,
-                          "ch": CHGate,
-                          "crx": CRXGate,
-                          "cry": CRYGate,
-                          "crz": CRZGate,
-                          "cu1": CU1Gate,
-                          "cu3": CU3Gate,
-                          "ccx": CCXGate,
-                          "cswap": CSwapGate}
+    standard_extension = {
+        "u1": U1Gate,
+        "u2": U2Gate,
+        "u3": U3Gate,
+        "u": UGate,
+        "p": PhaseGate,
+        "x": XGate,
+        "y": YGate,
+        "z": ZGate,
+        "t": TGate,
+        "tdg": TdgGate,
+        "s": SGate,
+        "sdg": SdgGate,
+        "sx": SXGate,
+        "sxdg": SXdgGate,
+        "swap": SwapGate,
+        "rx": RXGate,
+        "rxx": RXXGate,
+        "ry": RYGate,
+        "rz": RZGate,
+        "rzz": RZZGate,
+        "id": IGate,
+        "h": HGate,
+        "cx": CXGate,
+        "cy": CYGate,
+        "cz": CZGate,
+        "ch": CHGate,
+        "crx": CRXGate,
+        "cry": CRYGate,
+        "crz": CRZGate,
+        "csx": CSXGate,
+        "cu1": CU1Gate,
+        "cp": CPhaseGate,
+        "cu": CUGate,
+        "cu3": CU3Gate,
+        "ccx": CCXGate,
+        "cswap": CSwapGate,
+        "delay": Delay,
+    }
 
     def __init__(self, dag):
         """Initialize interpreter's data."""
@@ -154,9 +171,9 @@ class AstInterpreter:
         elif node.name in self.dag.cregs:
             reg = self.dag.cregs[node.name]
         else:
-            raise QiskitError("expected qreg or creg name:",
-                              "line=%s" % node.line,
-                              "file=%s" % node.file)
+            raise QiskitError(
+                "expected qreg or creg name:", "line=%s" % node.line, "file=%s" % node.file
+            )
 
         if node.type == "indexed_id":
             # An indexed bit or qubit
@@ -170,9 +187,9 @@ class AstInterpreter:
                 # local scope
                 if node.name in self.bit_stack[-1]:
                     return [self.bit_stack[-1][node.name]]
-                raise QiskitError("expected local bit name:",
-                                  "line=%s" % node.line,
-                                  "file=%s" % node.file)
+                raise QiskitError(
+                    "expected local bit name:", "line=%s" % node.line, "file=%s" % node.file
+                )
         return None
 
     def _process_custom_unitary(self, node):
@@ -182,29 +199,39 @@ class AstInterpreter:
             args = self._process_node(node.arguments)
         else:
             args = []
-        bits = [self._process_bit_id(node_element)
-                for node_element in node.bitlist.children]
+        bits = [self._process_bit_id(node_element) for node_element in node.bitlist.children]
+
         if name in self.gates:
-            gargs = self.gates[name]["args"]
-            gbits = self.gates[name]["bits"]
-            # Loop over register arguments, if any.
-            maxidx = max(map(len, bits))
-            for idx in range(maxidx):
-                self.arg_stack.append({gargs[j]: args[j]
-                                       for j in range(len(gargs))})
-                # Only index into register arguments.
-                element = [idx * x for x in
-                           [len(bits[j]) > 1 for j in range(len(bits))]]
-                self.bit_stack.append({gbits[j]: bits[j][element[j]]
-                                       for j in range(len(gbits))})
-                self._create_dag_op(name,
-                                    [self.arg_stack[-1][s].sym() for s in gargs],
-                                    [self.bit_stack[-1][s] for s in gbits])
-                self.arg_stack.pop()
-                self.bit_stack.pop()
+            self._arguments(name, bits, args)
         else:
-            raise QiskitError("internal error undefined gate:",
-                              "line=%s" % node.line, "file=%s" % node.file)
+            raise QiskitError(
+                "internal error undefined gate:", "line=%s" % node.line, "file=%s" % node.file
+            )
+
+    def _process_u(self, node):
+        """Process a U gate node."""
+        args = self._process_node(node.arguments)
+        bits = [self._process_bit_id(node.bitlist)]
+
+        self._arguments("u", bits, args)
+
+    def _arguments(self, name, bits, args):
+        gargs = self.gates[name]["args"]
+        gbits = self.gates[name]["bits"]
+
+        maxidx = max(map(len, bits))
+        for idx in range(maxidx):
+            self.arg_stack.append({gargs[j]: args[j] for j in range(len(gargs))})
+            # Only index into register arguments.
+            element = [idx * x for x in [len(bits[j]) > 1 for j in range(len(bits))]]
+            self.bit_stack.append({gbits[j]: bits[j][element[j]] for j in range(len(gbits))})
+            self._create_dag_op(
+                name,
+                [self.arg_stack[-1][s].sym() for s in gargs],
+                [self.bit_stack[-1][s] for s in gbits],
+            )
+            self.arg_stack.pop()
+            self.bit_stack.pop()
 
     def _process_gate(self, node, opaque=False):
         """Process a gate node.
@@ -234,8 +261,9 @@ class AstInterpreter:
         id0 = self._process_bit_id(node.children[0])
         id1 = self._process_bit_id(node.children[1])
         if not (len(id0) == len(id1) or len(id0) == 1 or len(id1) == 1):
-            raise QiskitError("internal error: qreg size mismatch",
-                              "line=%s" % node.line, "file=%s" % node.file)
+            raise QiskitError(
+                "internal error: qreg size mismatch", "line=%s" % node.line, "file=%s" % node.file
+            )
         maxidx = max([len(id0), len(id1)])
         for idx in range(maxidx):
             cx_gate = CXGate()
@@ -252,8 +280,9 @@ class AstInterpreter:
         id0 = self._process_bit_id(node.children[0])
         id1 = self._process_bit_id(node.children[1])
         if len(id0) != len(id1):
-            raise QiskitError("internal error: reg size mismatch",
-                              "line=%s" % node.line, "file=%s" % node.file)
+            raise QiskitError(
+                "internal error: reg size mismatch", "line=%s" % node.line, "file=%s" % node.file
+            )
         for idx, idy in zip(id0, id1):
             meas_gate = Measure()
             meas_gate.condition = self.condition
@@ -300,8 +329,7 @@ class AstInterpreter:
 
         elif node.type == "id_list":
             # We process id_list nodes when they are leaves of barriers.
-            return [self._process_bit_id(node_children)
-                    for node_children in node.children]
+            return [self._process_bit_id(node_children) for node_children in node.children]
 
         elif node.type == "primary_list":
             # We should only be called for a barrier.
@@ -314,12 +342,7 @@ class AstInterpreter:
             self._process_custom_unitary(node)
 
         elif node.type == "universal_unitary":
-            args = self._process_node(node.children[0])
-            qid = self._process_bit_id(node.children[1])
-            for element in qid:
-                u3_gate = U3Gate(*args, element)
-                u3_gate.condition = self.condition
-                self.dag.apply_operation_back(u3_gate)
+            self._process_u(node)
 
         elif node.type == "cnot":
             self._process_cnot(node)
@@ -364,31 +387,35 @@ class AstInterpreter:
             raise QiskitError("internal error: _process_node on external")
 
         else:
-            raise QiskitError("internal error: undefined node type",
-                              node.type, "line=%s" % node.line,
-                              "file=%s" % node.file)
+            raise QiskitError(
+                "internal error: undefined node type",
+                node.type,
+                "line=%s" % node.line,
+                "file=%s" % node.file,
+            )
         return None
 
     def _gate_rules_to_qiskit_circuit(self, node, params):
         """From a gate definition in qasm, to a QuantumCircuit format."""
         rules = []
-        qreg = QuantumRegister(node['n_bits'])
-        bit_args = {node['bits'][i]: q for i, q in enumerate(qreg)}
-        exp_args = {node['args'][i]: Real(q) for i, q in enumerate(params)}
+        qreg = QuantumRegister(node["n_bits"])
+        bit_args = {node["bits"][i]: q for i, q in enumerate(qreg)}
+        exp_args = {node["args"][i]: Real(q) for i, q in enumerate(params)}
 
-        for child_op in node['body'].children:
+        for child_op in node["body"].children:
             qparams = []
             eparams = []
             for param_list in child_op.children[1:]:
-                if param_list.type == 'id_list':
+                if param_list.type == "id_list":
                     qparams = [bit_args[param.name] for param in param_list.children]
-                elif param_list.type == 'expression_list':
+                elif param_list.type == "expression_list":
                     for param in param_list.children:
                         eparams.append(param.sym(nested_scope=[exp_args]))
             op = self._create_op(child_op.name, params=eparams)
             rules.append((op, qparams, []))
         circ = QuantumCircuit(qreg)
-        circ._data = rules
+        for instr, qargs, cargs in rules:
+            circ._append(instr, qargs, cargs)
         return circ
 
     def _create_dag_op(self, name, params, qargs):
@@ -411,17 +438,10 @@ class AstInterpreter:
         if name in self.standard_extension:
             op = self.standard_extension[name](*params)
         elif name in self.gates:
-            if self.gates[name]['opaque']:
-                # call an opaque gate
-                op = Gate(name=name, num_qubits=self.gates[name]['n_bits'], params=params)
-            else:
-                # call a custom gate
-                op = Instruction(name=name,
-                                 num_qubits=self.gates[name]['n_bits'],
-                                 num_clbits=0,
-                                 params=params)
-                op.definition = self._gate_rules_to_qiskit_circuit(self.gates[name],
-                                                                   params=params)
+            op = Gate(name=name, num_qubits=self.gates[name]["n_bits"], params=params)
+            if not self.gates[name]["opaque"]:
+                # call a custom gate (otherwise, opaque)
+                op.definition = self._gate_rules_to_qiskit_circuit(self.gates[name], params=params)
         else:
             raise QiskitError("unknown operation for ast node name %s" % name)
         return op

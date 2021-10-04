@@ -21,4 +21,4 @@ Pulse scheduling methods.
    basic
 """
 
-from qiskit.scheduler.methods.basic import *
+from qiskit.scheduler.methods.basic import as_soon_as_possible, as_late_as_possible

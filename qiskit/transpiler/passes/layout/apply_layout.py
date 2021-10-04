@@ -42,20 +42,25 @@ class ApplyLayout(TransformationPass):
         layout = self.property_set["layout"]
         if not layout:
             raise TranspilerError(
-                "No 'layout' is found in property_set. Please run a Layout pass in advance.")
+                "No 'layout' is found in property_set. Please run a Layout pass in advance."
+            )
         if len(layout) != (1 + max(layout.get_physical_bits())):
-            raise TranspilerError(
-                "The 'layout' must be full (with ancilla).")
+            raise TranspilerError("The 'layout' must be full (with ancilla).")
 
-        q = QuantumRegister(len(layout), 'q')
+        for qreg in dag.qregs.values():
+            self.property_set["layout"].add_register(qreg)
+
+        q = QuantumRegister(len(layout), "q")
 
         new_dag = DAGCircuit()
         new_dag.add_qreg(q)
+        new_dag.metadata = dag.metadata
+        new_dag.add_clbits(dag.clbits)
         for creg in dag.cregs.values():
             new_dag.add_creg(creg)
         for node in dag.topological_op_nodes():
-            if node.type == 'op':
-                qargs = [q[layout[qarg]] for qarg in node.qargs]
-                new_dag.apply_operation_back(node.op, qargs, node.cargs)
+            qargs = [q[layout[qarg]] for qarg in node.qargs]
+            new_dag.apply_operation_back(node.op, qargs, node.cargs)
+        new_dag._global_phase = dag._global_phase
 
         return new_dag

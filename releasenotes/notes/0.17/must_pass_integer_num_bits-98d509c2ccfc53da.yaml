@@ -1,0 +1,13 @@
+---
+upgrade:
+  - |
+    When creating a new :class:`~qiskit.circuit.Register` (which is the parent
+    class for :class:`~qiskit.circuit.QuantumRegister` and
+    :class:`~qiskit.circuit.ClassicalRegister`) or
+    :class:`~qiskit.circuit.QuantumCircuit` object with a number of bits (eg
+    ``QuantumCircuit(2)``), it is now required that number of bits are
+    specified as an integer or another type which is castable to unambiguous
+    integers(e.g. ``2.0``). Non-integer values will now raise an error as the
+    intent in those cases was unclear (you can't have fractional bits). For
+    more, information on why this was changed refer to:
+    `#4855 <https://github.com/Qiskit/qiskit-terra/issues/4885>`__

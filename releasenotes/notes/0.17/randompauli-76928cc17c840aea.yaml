@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    A new class, :class:`~qiskit.circuit.library.PauliTwoDesign`, was added
+    to the :mod:`qiskit.circuit.library` which implements a particular form
+    of a 2-design circuit from https://arxiv.org/pdf/1803.11173.pdf
+    For instance, this circuit can look like:
+    
+    .. jupyter-execute::
+
+      from qiskit.circuit.library import PauliTwoDesign
+      circuit = PauliTwoDesign(4, reps=2, seed=5, insert_barriers=True)
+      circuit.decompose().draw(output='mpl')

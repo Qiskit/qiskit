@@ -12,6 +12,7 @@
 
 """Convert a circuit in ``U3, CX`` to ``Rx, Ry, Rxx`` without unrolling or simplification."""
 
+import warnings
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.exceptions import QiskitError
 
@@ -29,18 +30,28 @@ class MSBasisDecomposer(TransformationPass):
     supported_input_gates = (U3Gate, CXGate)
 
     def __init__(self, basis_gates):
-        """MSBasisDecomposer initializer.
+        """Deprecated
+        MSBasisDecomposer initializer.
 
         Args:
             basis_gates (list[str]): Target basis names, e.g. `['rx', 'ry', 'rxx', 'ms']` .
         """
+        warnings.warn(
+            "The qiskit.transpiler.passes.basis.MSBasisDecomposer class is "
+            "deprecated as of 0.16.0, and will be removed no earlier "
+            "than 3 months after that release date. You should use the "
+            "qiskit.transpiler.passes.basis.BasisTranslator class "
+            "instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         super().__init__()
 
         self.basis_gates = basis_gates
 
         # Require all gates be unrolled to either a basis gate or U3,CX before
         # running the decomposer.
-        input_basis = set(basis_gates).union(['u3', 'cx'])
+        input_basis = set(basis_gates).union(["u3", "cx"])
         self.requires = [Unroller(list(input_basis))]
 
     def run(self, dag):
@@ -57,11 +68,11 @@ class MSBasisDecomposer(TransformationPass):
         Returns:
             DAGCircuit: output dag
         """
-        one_q_decomposer = OneQubitEulerDecomposer(basis='XYX')
+        one_q_decomposer = OneQubitEulerDecomposer(basis="XYX")
         cnot_decomposition = cnot_rxx_decompose()
 
         for node in dag.op_nodes():
-            basic_insts = ['measure', 'reset', 'barrier', 'snapshot']
+            basic_insts = ["measure", "reset", "barrier", "snapshot", "delay"]
             if node.name in basic_insts:
                 # TODO: this is legacy behavior. basic_insts should be removed and these
                 #  instructions should be part of the device-reported basis. Currently, no
@@ -71,9 +82,10 @@ class MSBasisDecomposer(TransformationPass):
                 continue
 
             if not isinstance(node.op, self.supported_input_gates):
-                raise QiskitError("Cannot convert the circuit to the given basis, %s. "
-                                  "No rule to expand instruction %s." %
-                                  (str(self.basis_gates), node.op.name))
+                raise QiskitError(
+                    "Cannot convert the circuit to the given basis, %s. "
+                    "No rule to expand instruction %s." % (str(self.basis_gates), node.op.name)
+                )
 
             if isinstance(node.op, U3Gate):
                 replacement_circuit = one_q_decomposer(node.op)
@@ -84,8 +96,9 @@ class MSBasisDecomposer(TransformationPass):
 
                 replacement_circuit = cnot_decomposition
             else:
-                raise QiskitError("Unable to handle instruction (%s, %s)."
-                                  % (node.op.name, type(node.op)))
+                raise QiskitError(
+                    f"Unable to handle instruction ({node.op.name}, {type(node.op)})."
+                )
 
             replacement_dag = circuit_to_dag(replacement_circuit)
 

@@ -26,35 +26,59 @@ class TestCircuitToInstruction(QiskitTestCase):
 
     def test_flatten_circuit_registers(self):
         """Check correct flattening"""
-        qr1 = QuantumRegister(4, 'qr1')
-        qr2 = QuantumRegister(3, 'qr2')
-        qr3 = QuantumRegister(3, 'qr3')
-        cr1 = ClassicalRegister(4, 'cr1')
-        cr2 = ClassicalRegister(1, 'cr2')
+        qr1 = QuantumRegister(4, "qr1")
+        qr2 = QuantumRegister(3, "qr2")
+        qr3 = QuantumRegister(3, "qr3")
+        cr1 = ClassicalRegister(4, "cr1")
+        cr2 = ClassicalRegister(1, "cr2")
         circ = QuantumCircuit(qr1, qr2, qr3, cr1, cr2)
         circ.cx(qr1[1], qr2[2])
         circ.measure(qr3[0], cr2[0])
 
         inst = circuit_to_instruction(circ)
-        q = QuantumRegister(10, 'q')
-        c = ClassicalRegister(5, 'c')
+        q = QuantumRegister(10, "q")
+        c = ClassicalRegister(5, "c")
 
         self.assertEqual(inst.definition[0][1], [q[1], q[6]])
         self.assertEqual(inst.definition[1][1], [q[7]])
         self.assertEqual(inst.definition[1][2], [c[4]])
 
+    def test_flatten_registers_of_circuit_single_bit_cond(self):
+        """Check correct mapping of registers gates conditioned on single classical bits."""
+        qr1 = QuantumRegister(2, "qr1")
+        qr2 = QuantumRegister(3, "qr2")
+        cr1 = ClassicalRegister(3, "cr1")
+        cr2 = ClassicalRegister(3, "cr2")
+        circ = QuantumCircuit(qr1, qr2, cr1, cr2)
+        circ.h(qr1[0]).c_if(cr1[1], True)
+        circ.h(qr2[1]).c_if(cr2[0], False)
+        circ.cx(qr1[1], qr2[2]).c_if(cr2[2], True)
+        circ.measure(qr2[2], cr2[0])
+
+        inst = circuit_to_instruction(circ)
+        q = QuantumRegister(5, "q")
+        c = ClassicalRegister(6, "c")
+
+        self.assertEqual(inst.definition[0][1], [q[0]])
+        self.assertEqual(inst.definition[1][1], [q[3]])
+        self.assertEqual(inst.definition[2][1], [q[1], q[4]])
+
+        self.assertEqual(inst.definition[0][0].condition, (c[1], True))
+        self.assertEqual(inst.definition[1][0].condition, (c[3], False))
+        self.assertEqual(inst.definition[2][0].condition, (c[5], True))
+
     def test_flatten_parameters(self):
         """Verify parameters from circuit are moved to instruction.params"""
-        qr = QuantumRegister(3, 'qr')
+        qr = QuantumRegister(3, "qr")
         qc = QuantumCircuit(qr)
 
-        theta = Parameter('theta')
-        phi = Parameter('phi')
+        theta = Parameter("theta")
+        phi = Parameter("phi")
         sum_ = theta + phi
 
         qc.rz(theta, qr[0])
         qc.rz(phi, qr[1])
-        qc.u2(theta, phi, qr[2])
+        qc.u(theta, phi, 0, qr[2])
         qc.rz(sum_, qr[0])
 
         inst = circuit_to_instruction(qc)
@@ -62,46 +86,47 @@ class TestCircuitToInstruction(QiskitTestCase):
         self.assertEqual(inst.params, [phi, theta])
         self.assertEqual(inst.definition[0][0].params, [theta])
         self.assertEqual(inst.definition[1][0].params, [phi])
-        self.assertEqual(inst.definition[2][0].params, [theta, phi])
-        self.assertEqual(str(inst.definition[3][0].params[0]), 'phi + theta')
+        self.assertEqual(inst.definition[2][0].params, [theta, phi, 0])
+        self.assertEqual(str(inst.definition[3][0].params[0]), "phi + theta")
 
     def test_underspecified_parameter_map_raises(self):
         """Verify we raise if not all circuit parameters are present in parameter_map."""
-        qr = QuantumRegister(3, 'qr')
+        qr = QuantumRegister(3, "qr")
         qc = QuantumCircuit(qr)
 
-        theta = Parameter('theta')
-        phi = Parameter('phi')
+        theta = Parameter("theta")
+        phi = Parameter("phi")
         sum_ = theta + phi
 
-        gamma = Parameter('gamma')
+        gamma = Parameter("gamma")
 
         qc.rz(theta, qr[0])
         qc.rz(phi, qr[1])
-        qc.u2(theta, phi, qr[2])
+        qc.u(theta, phi, 0, qr[2])
         qc.rz(sum_, qr[0])
 
         self.assertRaises(QiskitError, circuit_to_instruction, qc, {theta: gamma})
 
         # Raise if provided more parameters than present in the circuit
-        delta = Parameter('delta')
-        self.assertRaises(QiskitError, circuit_to_instruction, qc,
-                          {theta: gamma, phi: phi, delta: delta})
+        delta = Parameter("delta")
+        self.assertRaises(
+            QiskitError, circuit_to_instruction, qc, {theta: gamma, phi: phi, delta: delta}
+        )
 
     def test_parameter_map(self):
         """Verify alternate parameter specification"""
-        qr = QuantumRegister(3, 'qr')
+        qr = QuantumRegister(3, "qr")
         qc = QuantumCircuit(qr)
 
-        theta = Parameter('theta')
-        phi = Parameter('phi')
+        theta = Parameter("theta")
+        phi = Parameter("phi")
         sum_ = theta + phi
 
-        gamma = Parameter('gamma')
+        gamma = Parameter("gamma")
 
         qc.rz(theta, qr[0])
         qc.rz(phi, qr[1])
-        qc.u2(theta, phi, qr[2])
+        qc.u(theta, phi, 0, qr[2])
         qc.rz(sum_, qr[0])
 
         inst = circuit_to_instruction(qc, {theta: gamma, phi: phi})
@@ -109,10 +134,9 @@ class TestCircuitToInstruction(QiskitTestCase):
         self.assertEqual(inst.params, [gamma, phi])
         self.assertEqual(inst.definition[0][0].params, [gamma])
         self.assertEqual(inst.definition[1][0].params, [phi])
-        self.assertEqual(inst.definition[2][0].params, [gamma, phi])
-        self.assertEqual(
-            str(inst.definition[3][0].params[0]), 'gamma + phi')
+        self.assertEqual(inst.definition[2][0].params, [gamma, phi, 0])
+        self.assertEqual(str(inst.definition[3][0].params[0]), "gamma + phi")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main(verbosity=2)

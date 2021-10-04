@@ -12,6 +12,7 @@
 
 """T and Tdg gate."""
 
+from typing import Optional
 import numpy
 from qiskit.qasm import pi
 from qiskit.circuit.gate import Gate
@@ -46,9 +47,9 @@ class TGate(Gate):
     Equivalent to a :math:`\pi/4` radian rotation about the Z axis.
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label: Optional[str] = None):
         """Create new T gate."""
-        super().__init__('t', 1, [], label=label)
+        super().__init__("t", 1, [], label=label)
 
     def _define(self):
         """
@@ -57,22 +58,22 @@ class TGate(Gate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
-        q = QuantumRegister(1, 'q')
+
+        q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (U1Gate(pi / 4), [q[0]], [])
-        ]
-        qc._data = rules
+        rules = [(U1Gate(pi / 4), [q[0]], [])]
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def inverse(self):
         """Return inverse T gate (i.e. Tdg)."""
         return TdgGate()
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the T gate."""
-        return numpy.array([[1, 0],
-                            [0, (1 + 1j) / numpy.sqrt(2)]], dtype=complex)
+        return numpy.array([[1, 0], [0, (1 + 1j) / numpy.sqrt(2)]], dtype=dtype)
 
 
 class TdgGate(Gate):
@@ -102,9 +103,9 @@ class TdgGate(Gate):
     Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label: Optional[str] = None):
         """Create new Tdg gate."""
-        super().__init__('tdg', 1, [], label=label)
+        super().__init__("tdg", 1, [], label=label)
 
     def _define(self):
         """
@@ -113,19 +114,19 @@ class TdgGate(Gate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
-        q = QuantumRegister(1, 'q')
+
+        q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (U1Gate(-pi / 4), [q[0]], [])
-        ]
-        qc._data = rules
+        rules = [(U1Gate(-pi / 4), [q[0]], [])]
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def inverse(self):
         """Return inverse Tdg gate (i.e. T)."""
         return TGate()
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the inverse T gate."""
-        return numpy.array([[1, 0],
-                            [0, (1 - 1j) / numpy.sqrt(2)]], dtype=complex)
+        return numpy.array([[1, 0], [0, (1 - 1j) / numpy.sqrt(2)]], dtype=dtype)

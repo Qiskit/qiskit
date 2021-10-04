@@ -12,8 +12,10 @@
 
 """Y and CY gates."""
 
+from typing import Optional, Union
 import numpy
 from qiskit.qasm import pi
+
 # pylint: disable=cyclic-import
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
@@ -63,24 +65,30 @@ class YGate(Gate):
         |1\rangle \rightarrow -i|0\rangle
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label: Optional[str] = None):
         """Create new Y gate."""
-        super().__init__('y', 1, [], label=label)
+        super().__init__("y", 1, [], label=label)
 
     def _define(self):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u3 import U3Gate
-        q = QuantumRegister(1, 'q')
+
+        q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (U3Gate(pi, pi / 2, pi / 2), [q[0]], [])
-        ]
-        qc._data = rules
+        rules = [(U3Gate(pi, pi / 2, pi / 2), [q[0]], [])]
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Return a (mutli-)controlled-Y gate.
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
+        """Return a (multi-)controlled-Y gate.
 
         One control returns a CY gate.
 
@@ -103,10 +111,9 @@ class YGate(Gate):
         r"""Return inverted Y gate (:math:`Y{\dagger} = Y`)"""
         return YGate()  # self-inverse
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the Y gate."""
-        return numpy.array([[0, -1j],
-                            [1j, 0]], dtype=complex)
+        return numpy.array([[0, -1j], [1j, 0]], dtype=dtype)
 
 
 class CYGate(ControlledGate):
@@ -162,20 +169,14 @@ class CYGate(ControlledGate):
 
     """
     # Define class constants. This saves future allocation time.
-    _matrix1 = numpy.array([[1, 0, 0, 0],
-                            [0, 0, 0, -1j],
-                            [0, 0, 1, 0],
-                            [0, 1j, 0, 0]], dtype=complex)
-    _matrix0 = numpy.array([[0, 0, -1j, 0],
-                            [0, 1, 0, 0],
-                            [1j, 0, 0, 0],
-                            [0, 0, 0, 1]], dtype=complex)
+    _matrix1 = numpy.array([[1, 0, 0, 0], [0, 0, 0, -1j], [0, 0, 1, 0], [0, 1j, 0, 0]])
+    _matrix0 = numpy.array([[0, 0, -1j, 0], [0, 1, 0, 0], [1j, 0, 0, 0], [0, 0, 0, 1]])
 
-    def __init__(self, label=None, ctrl_state=None):
+    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CY gate."""
-        super().__init__('cy', 2, [], num_ctrl_qubits=1, label=label,
-                         ctrl_state=ctrl_state)
-        self.base_gate = YGate()
+        super().__init__(
+            "cy", 2, [], num_ctrl_qubits=1, label=label, ctrl_state=ctrl_state, base_gate=YGate()
+        )
 
     def _define(self):
         """
@@ -185,23 +186,22 @@ class CYGate(ControlledGate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .s import SGate, SdgGate
         from .x import CXGate
-        q = QuantumRegister(2, 'q')
+
+        q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (SdgGate(), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (SGate(), [q[1]], [])
-        ]
-        qc._data = rules
+        rules = [(SdgGate(), [q[1]], []), (CXGate(), [q[0], q[1]], []), (SGate(), [q[1]], [])]
+        for instr, qargs, cargs in rules:
+            qc._append(instr, qargs, cargs)
+
         self.definition = qc
 
     def inverse(self):
         """Return inverted CY gate (itself)."""
-        return CYGate()  # self-inverse
+        return CYGate(ctrl_state=self.ctrl_state)  # self-inverse
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the CY gate."""
-        if self.ctrl_state:
-            return self._matrix1
-        else:
-            return self._matrix0
+        mat = self._matrix1 if self.ctrl_state else self._matrix0
+        if dtype:
+            return numpy.asarray(mat, dtype=dtype)
+        return mat

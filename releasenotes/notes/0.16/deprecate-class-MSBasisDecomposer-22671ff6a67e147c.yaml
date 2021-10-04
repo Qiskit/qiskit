@@ -1,0 +1,7 @@
+---
+deprecations:
+  - |
+    The :class:`~qiskit.transpiler.passes.MSBasisDecomposer` transpiler pass
+    has been deprecated and will be removed in a future release.
+    The :class:`qiskit.transpiler.passes.BasisTranslator` pass can be used
+    instead.

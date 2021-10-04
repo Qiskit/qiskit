@@ -13,14 +13,13 @@
 """The Acquire instruction is used to trigger the qubit measurement unit and provide
 some metadata for the acquisition process, for example, where to store classified readout data.
 """
-import warnings
+from typing import Optional, Union, Tuple
 
-from typing import List, Optional
-
-from ..channels import MemorySlot, RegisterSlot, AcquireChannel
-from ..configuration import Kernel, Discriminator
-from ..exceptions import PulseError
-from .instruction import Instruction
+from qiskit.circuit import ParameterExpression
+from qiskit.pulse.channels import MemorySlot, RegisterSlot, AcquireChannel
+from qiskit.pulse.configuration import Kernel, Discriminator
+from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.instructions.instruction import Instruction
 
 
 class Acquire(Instruction):
@@ -40,14 +39,16 @@ class Acquire(Instruction):
      * the discriminator to classify kerneled IQ points.
     """
 
-    def __init__(self,
-                 duration: int,
-                 channel: AcquireChannel,
-                 mem_slot: Optional[MemorySlot] = None,
-                 reg_slot: Optional[RegisterSlot] = None,
-                 kernel: Optional[Kernel] = None,
-                 discriminator: Optional[Discriminator] = None,
-                 name: Optional[str] = None):
+    def __init__(
+        self,
+        duration: Union[int, ParameterExpression],
+        channel: AcquireChannel,
+        mem_slot: Optional[MemorySlot] = None,
+        reg_slot: Optional[RegisterSlot] = None,
+        kernel: Optional[Kernel] = None,
+        discriminator: Optional[Discriminator] = None,
+        name: Optional[str] = None,
+    ):
         """Create a new Acquire instruction.
 
         Args:
@@ -66,28 +67,35 @@ class Acquire(Instruction):
                         does not equal the number of channels.
         """
         if isinstance(channel, list) or isinstance(mem_slot, list) or isinstance(reg_slot, list):
-            raise PulseError("The Acquire instruction takes only one AcquireChannel and one "
-                             "classical memory destination for the measurement result.")
+            raise PulseError(
+                "The Acquire instruction takes only one AcquireChannel and one "
+                "classical memory destination for the measurement result."
+            )
 
         if not (mem_slot or reg_slot):
-            raise PulseError('Neither MemorySlots nor RegisterSlots were supplied.')
+            raise PulseError("Neither MemorySlots nor RegisterSlots were supplied.")
 
-        self._channel = channel
-        self._mem_slot = mem_slot
-        self._reg_slot = reg_slot
         self._kernel = kernel
         self._discriminator = discriminator
 
-        all_channels = [chan for chan in [channel, mem_slot, reg_slot] if chan is not None]
-        super().__init__((duration, self.channel, self.mem_slot, self.reg_slot),
-                         duration, all_channels, name=name)
+        super().__init__(operands=(duration, channel, mem_slot, reg_slot), name=name)
 
     @property
     def channel(self) -> AcquireChannel:
         """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
         scheduled on.
         """
-        return self._channel
+        return self.operands[1]
+
+    @property
+    def channels(self) -> Tuple[Union[AcquireChannel, MemorySlot, RegisterSlot]]:
+        """Returns the channels that this schedule uses."""
+        return tuple(self.operands[ind] for ind in (1, 2, 3) if self.operands[ind] is not None)
+
+    @property
+    def duration(self) -> Union[int, ParameterExpression]:
+        """Duration of this instruction."""
+        return self.operands[0]
 
     @property
     def kernel(self) -> Kernel:
@@ -104,47 +112,31 @@ class Acquire(Instruction):
         """Acquire channel to acquire data. The ``AcquireChannel`` index maps trivially to
         qubit index.
         """
-        return self._channel
+        return self.channel
 
     @property
     def mem_slot(self) -> MemorySlot:
         """The classical memory slot which will store the classified readout result."""
-        return self._mem_slot
+        return self.operands[2]
 
     @property
     def reg_slot(self) -> RegisterSlot:
         """The fast-access register slot which will store the classified readout result for
         fast-feedback computation.
         """
-        return self._reg_slot
+        return self.operands[3]
 
-    @property
-    def acquires(self) -> List[AcquireChannel]:
-        """Acquire channels to be acquired on."""
-        warnings.warn("Acquire.acquires is deprecated. Use the channel attribute instead.",
-                      DeprecationWarning)
-        return [self._channel]
-
-    @property
-    def mem_slots(self) -> List[MemorySlot]:
-        """MemorySlots."""
-        warnings.warn("Acquire.mem_slots is deprecated. Use the mem_slot attribute instead.",
-                      DeprecationWarning)
-        return [self._mem_slot]
-
-    @property
-    def reg_slots(self) -> List[RegisterSlot]:
-        """RegisterSlots."""
-        warnings.warn("Acquire.reg_slots is deprecated. Use the reg_slot attribute instead.",
-                      DeprecationWarning)
-        return [self._reg_slot]
+    def is_parameterized(self) -> bool:
+        """Return True iff the instruction is parameterized."""
+        return isinstance(self.duration, ParameterExpression) or super().is_parameterized()
 
     def __repr__(self) -> str:
         return "{}({}{}{}{}{}{})".format(
             self.__class__.__name__,
             self.duration,
-            ', ' + str(self.channel),
-            ', ' + str(self.mem_slot) if self.mem_slot else '',
-            ', ' + str(self.reg_slot) if self.reg_slot else '',
-            ', ' + str(self.kernel) if self.kernel else '',
-            ', ' + str(self.discriminator) if self.discriminator else '')
+            ", " + str(self.channel),
+            ", " + str(self.mem_slot) if self.mem_slot else "",
+            ", " + str(self.reg_slot) if self.reg_slot else "",
+            ", " + str(self.kernel) if self.kernel else "",
+            ", " + str(self.discriminator) if self.discriminator else "",
+        )

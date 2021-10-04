@@ -15,7 +15,7 @@
 from typing import Optional
 from abc import ABC, abstractmethod
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.parametertable import ParameterTable
+from qiskit.circuit.parametertable import ParameterTable, ParameterView
 
 
 class BlueprintCircuit(QuantumCircuit, ABC):
@@ -40,6 +40,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         self._qregs = []
         self._cregs = []
         self._qubits = []
+        self._qubit_indices = dict()
 
     @abstractmethod
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
@@ -59,7 +60,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
     def _build(self) -> None:
         """Build the circuit."""
         # do not build the circuit if _data is already populated
-        if self._data:
+        if self._data is not None:
             return
 
         self._data = []
@@ -71,6 +72,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         """Invalidate the current circuit build."""
         self._data = None
         self._parameter_table = ParameterTable()
+        self.global_phase = 0
 
     @property
     def qregs(self):
@@ -80,8 +82,13 @@ class BlueprintCircuit(QuantumCircuit, ABC):
     @qregs.setter
     def qregs(self, qregs):
         """Set the quantum registers associated with the circuit."""
-        self._qregs = qregs
-        self._qubits = [qbit for qreg in qregs for qbit in qreg]
+        self._qregs = []
+        self._qubits = []
+        self._ancillas = []
+        self._qubit_indices = {}
+
+        self.add_register(*qregs)
+
         self._invalidate()
 
     @property
@@ -90,15 +97,37 @@ class BlueprintCircuit(QuantumCircuit, ABC):
             self._build()
         return super().data
 
-    def qasm(self, formatted=False, filename=None):
+    @property
+    def num_parameters(self) -> int:
         if self._data is None:
             self._build()
-        return super().qasm(formatted, filename)
+        return super().num_parameters
+
+    @property
+    def parameters(self) -> ParameterView:
+        if self._data is None:
+            self._build()
+        return super().parameters
+
+    def qasm(self, formatted=False, filename=None, encoding=None):
+        if self._data is None:
+            self._build()
+        return super().qasm(formatted, filename, encoding)
 
     def append(self, instruction, qargs=None, cargs=None):
         if self._data is None:
             self._build()
         return super().append(instruction, qargs, cargs)
+
+    def compose(self, other, qubits=None, clbits=None, front=False, inplace=False, wrap=False):
+        if self._data is None:
+            self._build()
+        return super().compose(other, qubits, clbits, front, inplace, wrap)
+
+    def inverse(self):
+        if self._data is None:
+            self._build()
+        return super().inverse()
 
     def __len__(self):
         return len(self.data)
@@ -106,15 +135,25 @@ class BlueprintCircuit(QuantumCircuit, ABC):
     def __getitem__(self, item):
         return self.data[item]
 
-    def size(self):
+    def size(self, *args, **kwargs):
         if self._data is None:
             self._build()
-        return super().size()
+        return super().size(*args, **kwargs)
 
-    def depth(self):
+    def to_instruction(self, parameter_map=None, label=None):
         if self._data is None:
             self._build()
-        return super().depth()
+        return super().to_instruction(parameter_map, label=label)
+
+    def to_gate(self, parameter_map=None, label=None):
+        if self._data is None:
+            self._build()
+        return super().to_gate(parameter_map, label=label)
+
+    def depth(self, *args, **kwargs):
+        if self._data is None:
+            self._build()
+        return super().depth(*args, **kwargs)
 
     def count_ops(self):
         if self._data is None:

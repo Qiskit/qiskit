@@ -42,36 +42,35 @@ def partial_trace(state, qargs):
     """
     state = _format_state(state, validate=False)
 
+    # Compute traced shape
+    traced_shape = state._op_shape.remove(qargs=qargs)
+    # Convert vector shape to matrix shape
+    traced_shape._dims_r = traced_shape._dims_l
+    traced_shape._num_qargs_r = traced_shape._num_qargs_l
+
     # If we are tracing over all subsystems we return the trace
-    if sorted(qargs) == list(range(len(state.dims()))):
-        # Should this raise an exception instead?
-        # Or return a 1x1 density matrix?
+    if traced_shape.size == 0:
         return state.trace()
 
     # Statevector case
     if isinstance(state, Statevector):
-        trace_systems = len(state._dims) - 1 - np.array(qargs)
-        new_dims = tuple(np.delete(np.array(state._dims), qargs))
-        new_dim = np.product(new_dims)
-        arr = state._data.reshape(state._shape)
-        rho = np.tensordot(arr, arr.conj(),
-                           axes=(trace_systems, trace_systems))
-        rho = np.reshape(rho, (new_dim, new_dim))
-        return DensityMatrix(rho, dims=new_dims)
+        trace_systems = len(state._op_shape.dims_l()) - 1 - np.array(qargs)
+        arr = state._data.reshape(state._op_shape.tensor_shape)
+        rho = np.tensordot(arr, arr.conj(), axes=(trace_systems, trace_systems))
+        rho = np.reshape(rho, traced_shape.shape)
+        return DensityMatrix(rho, dims=traced_shape._dims_l)
 
     # Density matrix case
     # Trace first subsystem to avoid coping whole density matrix
     dims = state.dims(qargs)
-    tr_op = SuperOp(np.eye(dims[0]).reshape(1, dims[0] ** 2),
-                    input_dims=[dims[0]], output_dims=[1])
+    tr_op = SuperOp(np.eye(dims[0]).reshape(1, dims[0] ** 2), input_dims=[dims[0]], output_dims=[1])
     ret = state.evolve(tr_op, [qargs[0]])
     # Trace over remaining subsystems
     for qarg, dim in zip(qargs[1:], dims[1:]):
-        tr_op = SuperOp(np.eye(dim).reshape(1, dim ** 2),
-                        input_dims=[dim], output_dims=[1])
+        tr_op = SuperOp(np.eye(dim).reshape(1, dim ** 2), input_dims=[dim], output_dims=[1])
         ret = ret.evolve(tr_op, [qarg])
     # Remove traced over subsystems which are listed as dimension 1
-    ret._reshape(tuple(np.delete(np.array(ret._dims), qargs)))
+    ret._op_shape = traced_shape
     return ret
 
 
@@ -81,7 +80,7 @@ def shannon_entropy(pvec, base=2):
     The shannon entropy of a probability vector
     :math:`\vec{p} = [p_0, ..., p_{n-1}]` is defined as
 
-    .. math:
+    .. math::
 
         H(\vec{p}) = \sum_{i=0}^{n-1} p_i \log_b(p_i)
 
@@ -96,16 +95,21 @@ def shannon_entropy(pvec, base=2):
         float: The Shannon entropy H(pvec).
     """
     if base == 2:
+
         def logfn(x):
-            return - x * np.log2(x)
+            return -x * np.log2(x)
+
     elif base == np.e:
+
         def logfn(x):
-            return - x * np.log(x)
+            return -x * np.log(x)
+
     else:
+
         def logfn(x):
             return -x * np.log(x) / np.log(base)
 
-    h_val = 0.
+    h_val = 0.0
     for x in pvec:
         if 0 < x < 1:
             h_val += logfn(x)

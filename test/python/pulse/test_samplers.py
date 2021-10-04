@@ -29,7 +29,7 @@ def linear(times: np.ndarray, m: float, b: float = 0.1) -> np.ndarray:
     Returns:
         np.ndarray
     """
-    return m*times+b
+    return m * times + b
 
 
 class TestSampler(QiskitTestCase):
@@ -41,7 +41,7 @@ class TestSampler(QiskitTestCase):
         b = 0.1
         duration = 2
         left_linear_pulse_fun = samplers.left(linear)
-        reference = np.array([0.1, 0.2], dtype=np.complex)
+        reference = np.array([0.1, 0.2], dtype=complex)
 
         pulse = left_linear_pulse_fun(duration, m=m, b=b)
         self.assertIsInstance(pulse, library.Waveform)
@@ -53,7 +53,7 @@ class TestSampler(QiskitTestCase):
         b = 0.1
         duration = 2
         right_linear_pulse_fun = samplers.right(linear)
-        reference = np.array([0.2, 0.3], dtype=np.complex)
+        reference = np.array([0.2, 0.3], dtype=complex)
 
         pulse = right_linear_pulse_fun(duration, m=m, b=b)
         self.assertIsInstance(pulse, library.Waveform)
@@ -65,7 +65,7 @@ class TestSampler(QiskitTestCase):
         b = 0.1
         duration = 2
         midpoint_linear_pulse_fun = samplers.midpoint(linear)
-        reference = np.array([0.15, 0.25], dtype=np.complex)
+        reference = np.array([0.15, 0.25], dtype=complex)
 
         pulse = midpoint_linear_pulse_fun(duration, m=m, b=b)
         self.assertIsInstance(pulse, library.Waveform)
@@ -78,16 +78,16 @@ class TestSampler(QiskitTestCase):
         duration = 2
         left_linear_pulse_fun = samplers.left(linear)
 
-        pulse = left_linear_pulse_fun(duration, m=m, b=b, name='test')
+        pulse = left_linear_pulse_fun(duration, m=m, b=b, name="test")
         self.assertIsInstance(pulse, library.Waveform)
-        self.assertEqual(pulse.name, 'test')
+        self.assertEqual(pulse.name, "test")
 
     def test_default_arg_sampler(self):
         """Test that default arguments work with sampler."""
         m = 0.1
         duration = 2
         left_linear_pulse_fun = samplers.left(linear)
-        reference = np.array([0.1, 0.2], dtype=np.complex)
+        reference = np.array([0.1, 0.2], dtype=complex)
 
         pulse = left_linear_pulse_fun(duration, m=m)
         self.assertIsInstance(pulse, library.Waveform)

@@ -22,8 +22,9 @@ from qiskit.exceptions import QiskitError
 class ExperimentResultData:
     """Class representing experiment result data"""
 
-    def __init__(self, counts=None, snapshots=None, memory=None,
-                 statevector=None, unitary=None):
+    def __init__(
+        self, counts=None, snapshots=None, memory=None, statevector=None, unitary=None, **kwargs
+    ):
         """Initialize an ExperimentalResult Data class
 
         Args:
@@ -37,20 +38,36 @@ class ExperimentResultData:
                 memory enabled
             statevector (list or numpy.array): A list or numpy array of the
                 statevector result
-            unitary (list or numpy.array): A list or numpy arrray of the
+            unitary (list or numpy.array): A list or numpy array of the
                 unitary result
+            kwargs (any): additional data key-value pairs.
         """
-
+        self._data_attributes = []
         if counts is not None:
+            self._data_attributes.append("counts")
             self.counts = counts
         if snapshots is not None:
+            self._data_attributes.append("snapshots")
             self.snapshots = snapshots
         if memory is not None:
+            self._data_attributes.append("memory")
             self.memory = memory
         if statevector is not None:
+            self._data_attributes.append("statevector")
             self.statevector = statevector
         if unitary is not None:
+            self._data_attributes.append("unitary")
             self.unitary = unitary
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+            self._data_attributes.append(key)
+
+    def __repr__(self):
+        string_list = []
+        for field in self._data_attributes:
+            string_list.append(f"{field}={getattr(self, field)}")
+        out = "ExperimentResultData(%s)" % ", ".join(string_list)
+        return out
 
     def to_dict(self):
         """Return a dictionary format representation of the ExperimentResultData
@@ -59,10 +76,8 @@ class ExperimentResultData:
             dict: The dictionary form of the ExperimentResultData
         """
         out_dict = {}
-        for field in ['counts', 'snapshots', 'memory', 'statevector',
-                      'unitary']:
-            if hasattr(self, field):
-                out_dict[field] = getattr(self, field)
+        for field in self._data_attributes:
+            out_dict[field] = getattr(self, field)
         return out_dict
 
     @classmethod
@@ -93,9 +108,18 @@ class ExperimentResult:
 
     _metadata = {}
 
-    def __init__(self, shots, success, data, meas_level=MeasLevel.CLASSIFIED,
-                 status=None, seed=None, meas_return=None, header=None,
-                 **kwargs):
+    def __init__(
+        self,
+        shots,
+        success,
+        data,
+        meas_level=MeasLevel.CLASSIFIED,
+        status=None,
+        seed=None,
+        meas_return=None,
+        header=None,
+        **kwargs,
+    ):
         """Initialize an ExperimentResult object.
 
         Args:
@@ -128,15 +152,39 @@ class ExperimentResult:
             self.seed = seed
         if meas_return is not None:
             if meas_return not in list(MeasReturnType):
-                raise QiskitError('%s not a valid meas_return value')
+                raise QiskitError("%s not a valid meas_return value")
             self.meas_return = meas_return
         self._metadata.update(kwargs)
+
+    def __repr__(self):
+        out = "ExperimentResult(shots={}, success={}, meas_level={}, data={}".format(
+            self.shots,
+            self.success,
+            self.meas_level,
+            self.data,
+        )
+        if hasattr(self, "header"):
+            out += ", header=%s" % self.header
+        if hasattr(self, "status"):
+            out += ", status=%s" % self.status
+        if hasattr(self, "seed"):
+            out += ", seed=%s" % self.seed
+        if hasattr(self, "meas_return"):
+            out += ", meas_return=%s" % self.meas_return
+        for key in self._metadata:
+            if isinstance(self._metadata[key], str):
+                value_str = "'%s'" % self._metadata[key]
+            else:
+                value_str = repr(self._metadata[key])
+            out += f", {key}={value_str}"
+        out += ")"
+        return out
 
     def __getattr__(self, name):
         try:
             return self._metadata[name]
-        except KeyError:
-            raise AttributeError('Attribute %s is not defined' % name)
+        except KeyError as ex:
+            raise AttributeError(f"Attribute {name} is not defined") from ex
 
     def to_dict(self):
         """Return a dictionary format representation of the ExperimentResult
@@ -145,19 +193,19 @@ class ExperimentResult:
             dict: The dictionary form of the ExperimentResult
         """
         out_dict = {
-            'shots': self.shots,
-            'success': self.success,
-            'data': self.data.to_dict(),
-            'meas_level': self.meas_level,
+            "shots": self.shots,
+            "success": self.success,
+            "data": self.data.to_dict(),
+            "meas_level": self.meas_level,
         }
-        if hasattr(self, 'header'):
-            out_dict['header'] = self.header.to_dict()
-        if hasattr(self, 'status'):
-            out_dict['status'] = self.status
-        if hasattr(self, 'seed'):
-            out_dict['seed'] = self.seed
-        if hasattr(self, 'meas_return'):
-            out_dict['meas_return'] = self.meas_return
+        if hasattr(self, "header"):
+            out_dict["header"] = self.header.to_dict()
+        if hasattr(self, "status"):
+            out_dict["status"] = self.status
+        if hasattr(self, "seed"):
+            out_dict["seed"] = self.seed
+        if hasattr(self, "meas_return"):
+            out_dict["meas_return"] = self.meas_return
         out_dict.update(self._metadata)
         return out_dict
 
@@ -176,11 +224,10 @@ class ExperimentResult:
         """
 
         in_data = copy.copy(data)
-        data_obj = ExperimentResultData.from_dict(in_data.pop('data'))
-        if 'header' in in_data:
-            in_data['header'] = QobjExperimentHeader.from_dict(
-                in_data.pop('header'))
-        shots = in_data.pop('shots')
-        success = in_data.pop('success')
+        data_obj = ExperimentResultData.from_dict(in_data.pop("data"))
+        if "header" in in_data:
+            in_data["header"] = QobjExperimentHeader.from_dict(in_data.pop("header"))
+        shots = in_data.pop("shots")
+        success = in_data.pop("success")
 
         return cls(shots, success, data_obj, **in_data)

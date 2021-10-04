@@ -87,25 +87,25 @@ def graysynth(cnots, angles, section_size=2):
     sta = []
     cnots_copy = np.transpose(np.array(copy.deepcopy(cnots)))
     # This matrix keeps track of the state in the algorithm
-    state = np.eye(num_qubits).astype('int')
+    state = np.eye(num_qubits).astype("int")
 
     # Check if some phase-shift gates can be applied, before adding any C-NOT gates
     for qubit in range(num_qubits):
         index = 0
         for icnots in cnots_copy:
             if np.array_equal(icnots, state[qubit]):
-                if angles[index] == 't':
+                if angles[index] == "t":
                     qcir.t(qubit)
-                elif angles[index] == 'tdg':
+                elif angles[index] == "tdg":
                     qcir.tdg(qubit)
-                elif angles[index] == 's':
+                elif angles[index] == "s":
                     qcir.s(qubit)
-                elif angles[index] == 'sdg':
+                elif angles[index] == "sdg":
                     qcir.sdg(qubit)
-                elif angles[index] == 'z':
+                elif angles[index] == "z":
                     qcir.z(qubit)
                 else:
-                    qcir.u1(angles[index] % np.pi, qubit)
+                    qcir.p(angles[index] % np.pi, qubit)
                 del angles[index]
                 cnots_copy = np.delete(cnots_copy, index, axis=0)
                 if index == len(cnots_copy):
@@ -131,18 +131,18 @@ def graysynth(cnots, angles, section_size=2):
                         index = 0
                         for icnots in cnots_copy:
                             if np.array_equal(icnots, state[qubit]):
-                                if angles[index] == 't':
+                                if angles[index] == "t":
                                     qcir.t(qubit)
-                                elif angles[index] == 'tdg':
+                                elif angles[index] == "tdg":
                                     qcir.tdg(qubit)
-                                elif angles[index] == 's':
+                                elif angles[index] == "s":
                                     qcir.s(qubit)
-                                elif angles[index] == 'sdg':
+                                elif angles[index] == "sdg":
                                     qcir.sdg(qubit)
-                                elif angles[index] == 'z':
+                                elif angles[index] == "z":
                                     qcir.z(qubit)
                                 else:
-                                    qcir.u1(angles[index] % np.pi, qubit)
+                                    qcir.p(angles[index] % np.pi, qubit)
                                 del angles[index]
                                 cnots_copy = np.delete(cnots_copy, index, axis=0)
                                 if index == len(cnots_copy):
@@ -176,7 +176,7 @@ def graysynth(cnots, angles, section_size=2):
         else:
             sta.append([cnots1, list(set(ilist).difference([j])), qubit])
         sta.append([cnots0, list(set(ilist).difference([j])), qubit])
-    qcir += cnot_synth(state, section_size)
+    qcir += cnot_synth(state, section_size).inverse()
     return qcir
 
 
@@ -205,8 +205,10 @@ def cnot_synth(state, section_size=2):
         QiskitError: when variable "state" isn't of type numpy.matrix
     """
     if not isinstance(state, (list, np.ndarray)):
-        raise QiskitError('state should be of type list or numpy.ndarray, '
-                          'but was of the type {}'.format(type(state)))
+        raise QiskitError(
+            "state should be of type list or numpy.ndarray, "
+            "but was of the type {}".format(type(state))
+        )
     state = np.array(state)
     # Synthesize lower triangular part
     [state, circuit_l] = _lwr_cnot_synth(state, section_size)
@@ -241,6 +243,12 @@ def _lwr_cnot_synth(state, section_size):
     Patel, Ketan N., Igor L. Markov, and John P. Hayes.
     Quantum Information & Computation 8.3 (2008): 282-294.
 
+    Note:
+    This implementation tweaks the Patel, Markov, and Hayes algorithm by adding
+    a "back reduce" which adds rows below the pivot row with a high degree of
+    overlap back to it. The intuition is to avoid a high-weight pivot row
+    increasing the weight of lower rows.
+
     Args:
         state (ndarray): n x n matrix, describing a linear quantum circuit
         section_size (int): the section size the matrix columns are divided into
@@ -251,17 +259,14 @@ def _lwr_cnot_synth(state, section_size):
     """
     circuit = []
     num_qubits = state.shape[0]
+    cutoff = 1
 
-    # If the matrix is already an upper triangular one,
-    # there is no need for any transformations
-    if np.allclose(state, np.triu(state)):
-        return [state, circuit]
     # Iterate over column sections
-    for sec in range(1, int(np.ceil(num_qubits/section_size)+1)):
+    for sec in range(1, int(np.floor(num_qubits / section_size) + 1)):
         # Remove duplicate sub-rows in section sec
         patt = {}
-        for row in range((sec-1)*section_size, num_qubits):
-            sub_row_patt = copy.deepcopy(state[row, (sec-1)*section_size:sec*section_size])
+        for row in range((sec - 1) * section_size, num_qubits):
+            sub_row_patt = copy.deepcopy(state[row, (sec - 1) * section_size : sec * section_size])
             if np.sum(sub_row_patt) == 0:
                 continue
             if str(sub_row_patt) not in patt:
@@ -270,13 +275,13 @@ def _lwr_cnot_synth(state, section_size):
                 state[row, :] ^= state[patt[str(sub_row_patt)], :]
                 circuit.append([patt[str(sub_row_patt)], row])
         # Use gaussian elimination for remaining entries in column section
-        for col in range((sec-1)*section_size, sec*section_size):
+        for col in range((sec - 1) * section_size, sec * section_size):
             # Check if 1 on diagonal
             diag_one = 1
             if state[col, col] == 0:
                 diag_one = 0
             # Remove ones in rows below column col
-            for row in range(col+1, num_qubits):
+            for row in range(col + 1, num_qubits):
                 if state[row, col] == 1:
                     if diag_one == 0:
                         state[col, :] ^= state[row, :]
@@ -284,6 +289,10 @@ def _lwr_cnot_synth(state, section_size):
                         diag_one = 1
                     state[row, :] ^= state[col, :]
                     circuit.append([col, row])
+                # Back reduce the pivot row using the current row
+                if sum(state[col, :] & state[row, :]) > cutoff:
+                    state[col, :] ^= state[row, :]
+                    circuit.append([row, col])
     return [state, circuit]
 
 

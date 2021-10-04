@@ -46,9 +46,9 @@ class TestEquivalence(ChannelTestCase):
             else:
                 sop1 = self.rand_matrix(dim * dim, dim * dim)
                 sop2 = self.rand_matrix(dim * dim, dim * dim)
-            targ = SuperOp(sop1 + sop2)
+            target = SuperOp(sop1 + sop2)
             channel = SuperOp(rep(SuperOp(sop1))._add(rep(SuperOp(sop2))))
-            self.assertEqual(channel, targ)
+            self.assertEqual(channel, target)
 
     def _compare_subtract_to_superop(self, rep, dim, samples, unitary=False):
         """Test channel subtraction is equivalent to SuperOp"""
@@ -61,9 +61,22 @@ class TestEquivalence(ChannelTestCase):
             else:
                 sop1 = self.rand_matrix(dim * dim, dim * dim)
                 sop2 = self.rand_matrix(dim * dim, dim * dim)
-            targ = SuperOp(sop1 - sop2)
+            target = SuperOp(sop1 - sop2)
             channel = SuperOp(rep(SuperOp(sop1))._add(rep(-SuperOp(sop2))))
-            self.assertEqual(channel, targ)
+            self.assertEqual(channel, target)
+
+    def _compare_subtract_operator_to_superop(self, rep, dim, samples, unitary=False):
+        """Test channel addition is equivalent to SuperOp"""
+        for _ in range(samples):
+            if unitary:
+                mat1 = self.rand_matrix(dim, dim)
+                sop1 = np.kron(np.conj(mat1), mat1)
+            else:
+                sop1 = self.rand_matrix(dim * dim, dim * dim)
+            mat2 = self.rand_matrix(dim, dim)
+            target = SuperOp(sop1) - SuperOp(Operator(mat2))
+            channel = SuperOp(rep(SuperOp(sop1)) - Operator(mat2))
+            self.assertEqual(channel, target)
 
     def _compare_multiply_to_superop(self, rep, dim, samples, unitary=False):
         """Test channel scalar multiplication is equivalent to SuperOp"""
@@ -74,9 +87,9 @@ class TestEquivalence(ChannelTestCase):
             else:
                 sop1 = self.rand_matrix(dim * dim, dim * dim)
             val = 0.7
-            targ = SuperOp(val * sop1)
+            target = SuperOp(val * sop1)
             channel = SuperOp(rep(SuperOp(sop1))._multiply(val))
-            self.assertEqual(channel, targ)
+            self.assertEqual(channel, target)
 
     def _compare_negate_to_superop(self, rep, dim, samples, unitary=False):
         """Test negative channel is equivalent to SuperOp"""
@@ -86,9 +99,9 @@ class TestEquivalence(ChannelTestCase):
                 sop1 = np.kron(np.conj(mat1), mat1)
             else:
                 sop1 = self.rand_matrix(dim * dim, dim * dim)
-            targ = SuperOp(-1 * sop1)
+            target = SuperOp(-1 * sop1)
             channel = SuperOp(-rep(SuperOp(sop1)))
-            self.assertEqual(channel, targ)
+            self.assertEqual(channel, target)
 
     def _check_add_other_reps(self, chan):
         """Check addition works for other representations"""
@@ -143,6 +156,26 @@ class TestEquivalence(ChannelTestCase):
     def test_ptm_subtract(self):
         """Test subtraction of PTM matrices is correct."""
         self._compare_subtract_to_superop(PTM, 4, 10)
+
+    def test_choi_subtract_operator(self):
+        """Test subtraction of Operator from Choi is correct."""
+        self._compare_subtract_operator_to_superop(Choi, 4, 10)
+
+    def test_kraus_subtract_operator(self):
+        """Test subtraction of Operator from Kraus is correct."""
+        self._compare_subtract_operator_to_superop(Kraus, 4, 10)
+
+    def test_stinespring_subtract_operator(self):
+        """Test subtraction of Operator from Stinespring is correct."""
+        self._compare_subtract_operator_to_superop(Stinespring, 4, 10)
+
+    def test_chi_subtract_operator(self):
+        """Test subtraction of Operator from Chi is correct."""
+        self._compare_subtract_operator_to_superop(Chi, 4, 10)
+
+    def test_ptm_subtract_operator(self):
+        """Test subtraction of Operator from PTM is correct."""
+        self._compare_subtract_operator_to_superop(PTM, 4, 10)
 
     def test_choi_multiply(self):
         """Test scalar multiplication of Choi matrices is correct."""
@@ -225,5 +258,5 @@ class TestEquivalence(ChannelTestCase):
         self._check_subtract_other_reps(chan)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

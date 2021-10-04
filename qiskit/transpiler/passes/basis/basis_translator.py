@@ -82,29 +82,37 @@ class BasisTranslator(TransformationPass):
             return dag
 
         # Names of instructions assumed to supported by any backend.
-        basic_instrs = ['measure', 'reset', 'barrier', 'snapshot']
+        basic_instrs = ["measure", "reset", "barrier", "snapshot", "delay"]
 
         target_basis = set(self._target_basis).union(basic_instrs)
-        source_basis = {(node.op.name, node.op.num_qubits)
-                        for node in dag.op_nodes()}
 
-        logger.info('Begin BasisTranslator from source basis %s to target '
-                    'basis %s.', source_basis, target_basis)
+        source_basis = set()
+        for node in dag.op_nodes():
+            if not dag.has_calibration_for(node):
+                source_basis.add((node.name, node.op.num_qubits))
+
+        logger.info(
+            "Begin BasisTranslator from source basis %s to target basis %s.",
+            source_basis,
+            target_basis,
+        )
 
         # Search for a path from source to target basis.
 
         search_start_time = time.time()
-        basis_transforms = _basis_search(self._equiv_lib, source_basis,
-                                         target_basis, _basis_heuristic)
+        basis_transforms = _basis_search(
+            self._equiv_lib, source_basis, target_basis, _basis_heuristic
+        )
         search_end_time = time.time()
-        logger.info('Basis translation path search completed in %.3fs.',
-                    search_end_time - search_start_time)
+        logger.info(
+            "Basis translation path search completed in %.3fs.", search_end_time - search_start_time
+        )
 
         if basis_transforms is None:
             raise TranspilerError(
-                'Unable to map source basis {} to target basis {} '
-                'over library {}.'.format(
-                    source_basis, target_basis, self._equiv_lib))
+                "Unable to map source basis {} to target basis {} "
+                "over library {}.".format(source_basis, target_basis, self._equiv_lib)
+            )
 
         # Compose found path into a set of instruction substitution rules.
 
@@ -112,8 +120,9 @@ class BasisTranslator(TransformationPass):
         instr_map = _compose_transforms(basis_transforms, source_basis, dag)
 
         compose_end_time = time.time()
-        logger.info('Basis translation paths composed in %.3fs.',
-                    compose_end_time - compose_start_time)
+        logger.info(
+            "Basis translation paths composed in %.3fs.", compose_end_time - compose_start_time
+        )
 
         # Replace source instructions with target translations.
 
@@ -122,41 +131,57 @@ class BasisTranslator(TransformationPass):
             if node.name in target_basis:
                 continue
 
+            if dag.has_calibration_for(node):
+                continue
+
             if (node.op.name, node.op.num_qubits) in instr_map:
                 target_params, target_dag = instr_map[node.op.name, node.op.num_qubits]
 
                 if len(node.op.params) != len(target_params):
                     raise TranspilerError(
-                        'Translation num_params not equal to op num_params.'
-                        'Op: {} {} Translation: {}\n{}'.format(
-                            node.op.params, node.op.name,
-                            target_params, target_dag))
+                        "Translation num_params not equal to op num_params."
+                        "Op: {} {} Translation: {}\n{}".format(
+                            node.op.params, node.op.name, target_params, target_dag
+                        )
+                    )
 
                 if node.op.params:
                     # Convert target to circ and back to assign_parameters, since
                     # DAGCircuits won't have a ParameterTable.
                     from qiskit.converters import dag_to_circuit, circuit_to_dag
+
                     target_circuit = dag_to_circuit(target_dag)
 
                     target_circuit.assign_parameters(
-                        dict(zip_longest(target_params, node.op.params)),
-                        inplace=True)
+                        dict(zip_longest(target_params, node.op.params)), inplace=True
+                    )
 
                     bound_target_dag = circuit_to_dag(target_circuit)
                 else:
                     bound_target_dag = target_dag
 
-                if (len(bound_target_dag.op_nodes()) == 1
-                        and len(bound_target_dag.op_nodes()[0].qargs) == len(node.qargs)):
-                    dag.substitute_node(node, bound_target_dag.op_nodes()[0].op, inplace=True)
+                if len(bound_target_dag.op_nodes()) == 1 and len(
+                    bound_target_dag.op_nodes()[0].qargs
+                ) == len(node.qargs):
+                    dag_op = bound_target_dag.op_nodes()[0].op
+                    # dag_op may be the same instance as other ops in the dag,
+                    # so if there is a condition, need to copy
+                    if node.op.condition:
+                        dag_op = dag_op.copy()
+                    dag.substitute_node(node, dag_op, inplace=True)
+
+                    if bound_target_dag.global_phase:
+                        dag.global_phase += bound_target_dag.global_phase
                 else:
                     dag.substitute_node_with_dag(node, bound_target_dag)
             else:
-                raise TranspilerError('BasisTranslator did not map {}.'.format(node.name))
+                raise TranspilerError(f"BasisTranslator did not map {node.name}.")
 
         replace_end_time = time.time()
-        logger.info('Basis translation instructions replaced in %.3fs.',
-                    replace_end_time - replace_start_time)
+        logger.info(
+            "Basis translation instructions replaced in %.3fs.",
+            replace_end_time - replace_start_time,
+        )
 
         return dag
 
@@ -211,8 +236,7 @@ def _basis_search(equiv_lib, source_basis, target_basis, heuristic):
     est_total_cost = defaultdict(lambda: np.inf)
     est_total_cost[source_basis] = heuristic(source_basis, target_basis)
 
-    logger.debug('Begining basis search from %s to %s.',
-                 source_basis, target_basis)
+    logger.debug("Begining basis search from %s to %s.", source_basis, target_basis)
 
     while open_set:
         _, _, current_basis = heappop(open_heap)
@@ -233,25 +257,33 @@ def _basis_search(equiv_lib, source_basis, target_basis, heuristic):
                 last_basis = prev_basis
             rtn.reverse()
 
-            logger.debug('Transformation path:')
+            logger.debug("Transformation path:")
             for gate_name, gate_num_qubits, params, equiv in rtn:
-                logger.debug('%s/%s => %s\n%s', gate_name, gate_num_qubits, params, equiv)
+                logger.debug("%s/%s => %s\n%s", gate_name, gate_num_qubits, params, equiv)
             return rtn
 
-        logger.debug('Inspecting basis %s.', current_basis)
+        logger.debug("Inspecting basis %s.", current_basis)
         open_set.remove(current_basis)
         closed_set.add(current_basis)
 
         for gate_name, gate_num_qubits in current_basis:
+            if gate_name in target_basis:
+                continue
+
             equivs = equiv_lib._get_equivalences((gate_name, gate_num_qubits))
 
             basis_remain = current_basis - {(gate_name, gate_num_qubits)}
             neighbors = [
-                (frozenset(basis_remain | {(inst.name, inst.num_qubits)
-                                           for inst, qargs, cargs in equiv.data}),
-                 params,
-                 equiv)
-                for params, equiv in equivs]
+                (
+                    frozenset(
+                        basis_remain
+                        | {(inst.name, inst.num_qubits) for inst, qargs, cargs in equiv.data}
+                    ),
+                    params,
+                    equiv,
+                )
+                for params, equiv in equivs
+            ]
 
             # Weight total path length of transformation weakly.
             tentative_cost_from_source = cost_from_source[current_basis] + 1e-3
@@ -266,11 +298,10 @@ def _basis_search(equiv_lib, source_basis, target_basis, heuristic):
                 open_set.add(neighbor)
                 came_from[neighbor] = (current_basis, gate_name, gate_num_qubits, params, equiv)
                 cost_from_source[neighbor] = tentative_cost_from_source
-                est_total_cost[neighbor] = tentative_cost_from_source \
-                    + heuristic(neighbor, target_basis)
-                heappush(open_heap, (est_total_cost[neighbor],
-                                     next(basis_count),
-                                     neighbor))
+                est_total_cost[neighbor] = tentative_cost_from_source + heuristic(
+                    neighbor, target_basis
+                )
+                heappush(open_heap, (est_total_cost[neighbor], next(basis_count), neighbor))
 
     return None
 
@@ -293,8 +324,7 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
             as a key mapping to itself.
     """
 
-    example_gates = {(node.op.name, node.op.num_qubits): node.op
-                     for node in source_dag.op_nodes()}
+    example_gates = {(node.op.name, node.op.num_qubits): node.op for node in source_dag.op_nodes()}
     mapped_instrs = {}
 
     for gate_name, gate_num_qubits in source_basis:
@@ -314,23 +344,37 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
         mapped_instrs[gate_name, gate_num_qubits] = placeholder_params, dag
 
     for gate_name, gate_num_qubits, equiv_params, equiv in basis_transforms:
-        logger.debug('Composing transform step: %s/%s %s =>\n%s',
-                     gate_name, gate_num_qubits, equiv_params, equiv)
+        logger.debug(
+            "Composing transform step: %s/%s %s =>\n%s",
+            gate_name,
+            gate_num_qubits,
+            equiv_params,
+            equiv,
+        )
 
         for mapped_instr_name, (dag_params, dag) in mapped_instrs.items():
-            doomed_nodes = [node for node in dag.op_nodes()
-                            if (node.op.name, node.op.num_qubits) == (gate_name, gate_num_qubits)]
+            doomed_nodes = [
+                node
+                for node in dag.op_nodes()
+                if (node.op.name, node.op.num_qubits) == (gate_name, gate_num_qubits)
+            ]
 
             if doomed_nodes and logger.isEnabledFor(logging.DEBUG):
                 from qiskit.converters import dag_to_circuit
-                logger.debug('Updating transform for mapped instr %s %s from \n%s',
-                             mapped_instr_name, dag_params, dag_to_circuit(dag))
+
+                logger.debug(
+                    "Updating transform for mapped instr %s %s from \n%s",
+                    mapped_instr_name,
+                    dag_params,
+                    dag_to_circuit(dag),
+                )
 
             for node in doomed_nodes:
                 from qiskit.converters import circuit_to_dag
 
                 replacement = equiv.assign_parameters(
-                    dict(zip_longest(equiv_params, node.op.params)))
+                    dict(zip_longest(equiv_params, node.op.params))
+                )
 
                 replacement_dag = circuit_to_dag(replacement)
 
@@ -338,7 +382,12 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
 
             if doomed_nodes and logger.isEnabledFor(logging.DEBUG):
                 from qiskit.converters import dag_to_circuit
-                logger.debug('Updated transform for mapped instr %s %s to\n%s',
-                             mapped_instr_name, dag_params, dag_to_circuit(dag))
+
+                logger.debug(
+                    "Updated transform for mapped instr %s %s to\n%s",
+                    mapped_instr_name,
+                    dag_params,
+                    dag_to_circuit(dag),
+                )
 
     return mapped_instrs

@@ -52,7 +52,7 @@ class RunningPassManager:
         self.valid_passes = set()
 
         # pass manager's overriding options for the passes it runs (for debugging)
-        self.passmanager_options = {'max_iteration': max_iteration}
+        self.passmanager_options = {"max_iteration": max_iteration}
 
         self.count = 0
 
@@ -75,19 +75,29 @@ class RunningPassManager:
         Raises:
             TranspilerError: if a pass in passes is not a proper pass.
         """
-        flow_controller_conditions = self._normalize_flow_controller(flow_controller_conditions)
-
-        self.working_list.append(
-            FlowController.controller_factory(passes,
-                                              self.passmanager_options,
-                                              **flow_controller_conditions))
+        # attaches the property set to the controller so it has access to it.
+        if isinstance(passes, ConditionalController):
+            passes.condition = partial(passes.condition, self.fenced_property_set)
+            self.working_list.append(passes)
+        if isinstance(passes, DoWhileController):
+            if not isinstance(passes.do_while, partial):
+                passes.do_while = partial(passes.do_while, self.fenced_property_set)
+            self.working_list.append(passes)
+        else:
+            flow_controller_conditions = self._normalize_flow_controller(flow_controller_conditions)
+            self.working_list.append(
+                FlowController.controller_factory(
+                    passes, self.passmanager_options, **flow_controller_conditions
+                )
+            )
+            pass
 
     def _normalize_flow_controller(self, flow_controller):
         for name, param in flow_controller.items():
             if callable(param):
                 flow_controller[name] = partial(param, self.fenced_property_set)
             else:
-                raise TranspilerError('The flow controller parameter %s is not callable' % name)
+                raise TranspilerError("The flow controller parameter %s is not callable" % name)
         return flow_controller
 
     def run(self, circuit, output_name=None, callback=None):
@@ -117,7 +127,8 @@ class RunningPassManager:
             circuit.name = output_name
         else:
             circuit.name = name
-        circuit._layout = self.property_set['layout']
+        circuit._layout = self.property_set["layout"]
+
         return circuit
 
     def _do_pass(self, pass_, dag, options):
@@ -157,16 +168,22 @@ class RunningPassManager:
             run_time = end_time - start_time
             # Execute the callback function if one is set
             if self.callback:
-                self.callback(pass_=pass_, dag=new_dag,
-                              time=run_time,
-                              property_set=self.property_set,
-                              count=self.count)
+                self.callback(
+                    pass_=pass_,
+                    dag=new_dag,
+                    time=run_time,
+                    property_set=self.property_set,
+                    count=self.count,
+                )
                 self.count += 1
             self._log_pass(start_time, end_time, pass_.name())
-            if not isinstance(new_dag, DAGCircuit):
-                raise TranspilerError("Transformation passes should return a transformed dag."
-                                      "The pass %s is returning a %s" % (type(pass_).__name__,
-                                                                         type(new_dag)))
+            if isinstance(new_dag, DAGCircuit):
+                new_dag.calibrations = dag.calibrations
+            else:
+                raise TranspilerError(
+                    "Transformation passes should return a transformed dag."
+                    "The pass %s is returning a %s" % (type(pass_).__name__, type(new_dag))
+                )
             dag = new_dag
         elif pass_.is_analysis_pass:
             # Measure time if we have a callback or logging set
@@ -176,10 +193,13 @@ class RunningPassManager:
             run_time = end_time - start_time
             # Execute the callback function if one is set
             if self.callback:
-                self.callback(pass_=pass_, dag=dag,
-                              time=run_time,
-                              property_set=self.property_set,
-                              count=self.count)
+                self.callback(
+                    pass_=pass_,
+                    dag=dag,
+                    time=run_time,
+                    property_set=self.property_set,
+                    count=self.count,
+                )
                 self.count += 1
             self._log_pass(start_time, end_time, pass_.name())
         else:
@@ -187,8 +207,7 @@ class RunningPassManager:
         return dag
 
     def _log_pass(self, start_time, end_time, name):
-        log_msg = "Pass: %s - %.5f (ms)" % (
-            name, (end_time - start_time) * 1000)
+        log_msg = f"Pass: {name} - {(end_time - start_time) * 1000:.5f} (ms)"
         logger.info(log_msg)
 
     def _update_valid_passes(self, pass_):
@@ -197,7 +216,7 @@ class RunningPassManager:
             self.valid_passes.intersection_update(set(pass_.preserves))
 
 
-class FlowController():
+class FlowController:
     """Base class for multiple types of working list.
 
     This class is a base class for multiple types of working list. When you iterate on it, it
@@ -221,12 +240,12 @@ class FlowController():
              dict: {'options': self.options, 'passes': [passes], 'type': type(self)}
         """
         # TODO remove
-        ret = {'options': self.options, 'passes': [], 'type': type(self)}
+        ret = {"options": self.options, "passes": [], "type": type(self)}
         for pass_ in self._passes:
             if isinstance(pass_, FlowController):
-                ret['passes'].append(pass_.dump_passes())
+                ret["passes"].append(pass_.dump_passes())
             else:
-                ret['passes'].append(pass_)
+                ret["passes"].append(pass_)
         return ret
 
     @classmethod
@@ -269,13 +288,14 @@ class FlowController():
             FlowController: A FlowController instance.
         """
         if None in partial_controller.values():
-            raise TranspilerError('The controller needs a condition.')
+            raise TranspilerError("The controller needs a condition.")
 
         if partial_controller:
             for registered_controller in cls.registered_controllers.keys():
                 if registered_controller in partial_controller:
-                    return cls.registered_controllers[registered_controller](passes, options,
-                                                                             **partial_controller)
+                    return cls.registered_controllers[registered_controller](
+                        passes, options, **partial_controller
+                    )
             raise TranspilerError("The controllers for %s are not registered" % partial_controller)
 
         return FlowControllerLinear(passes, options)
@@ -292,10 +312,9 @@ class FlowControllerLinear(FlowController):
 class DoWhileController(FlowController):
     """Implements a set of passes in a do-while loop."""
 
-    def __init__(self, passes, options, do_while=None,
-                 **partial_controller):
+    def __init__(self, passes, options=None, do_while=None, **partial_controller):
         self.do_while = do_while
-        self.max_iteration = options['max_iteration']
+        self.max_iteration = options["max_iteration"] if options else 1000
         super().__init__(passes, options, **partial_controller)
 
     def __iter__(self):
@@ -311,8 +330,7 @@ class DoWhileController(FlowController):
 class ConditionalController(FlowController):
     """Implements a set of passes under a certain condition."""
 
-    def __init__(self, passes, options, condition=None,
-                 **partial_controller):
+    def __init__(self, passes, options=None, condition=None, **partial_controller):
         self.condition = condition
         super().__init__(passes, options, **partial_controller)
 
@@ -322,5 +340,5 @@ class ConditionalController(FlowController):
 
 
 # Default controllers
-FlowController.add_flow_controller('condition', ConditionalController)
-FlowController.add_flow_controller('do_while', DoWhileController)
+FlowController.add_flow_controller("condition", ConditionalController)
+FlowController.add_flow_controller("do_while", DoWhileController)

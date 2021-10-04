@@ -20,7 +20,7 @@ class PulseError(QiskitError):
     def __init__(self, *message):
         """Set the error message."""
         super().__init__(*message)
-        self.message = ' '.join(message)
+        self.message = " ".join(message)
 
     def __str__(self):
         """Return the message."""
@@ -33,3 +33,7 @@ class BackendNotSet(PulseError):
 
 class NoActiveBuilder(PulseError):
     """Raised if no builder context is active."""
+
+
+class UnassignedDurationError(PulseError):
+    """Raised if instruction duration is unassigned."""

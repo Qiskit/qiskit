@@ -12,6 +12,7 @@
 
 """Sqrt(X) and C-Sqrt(X) gates."""
 
+from typing import Optional, Union
 import numpy
 from qiskit.qasm import pi
 from qiskit.circuit.controlledgate import ControlledGate
@@ -54,9 +55,9 @@ class SXGate(Gate):
 
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label: Optional[str] = None):
         """Create new SX gate."""
-        super().__init__('sx', 1, [], label=label)
+        super().__init__("sx", 1, [], label=label)
 
     def _define(self):
         """
@@ -66,17 +67,23 @@ class SXGate(Gate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .s import SdgGate
         from .h import HGate
-        q = QuantumRegister(1, 'q')
+
+        q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name, global_phase=pi / 4)
-        rules = [
-            (SdgGate(), [q[0]], []),
-            (HGate(), [q[0]], []),
-            (SdgGate(), [q[0]], [])
-        ]
+        rules = [(SdgGate(), [q[0]], []), (HGate(), [q[0]], []), (SdgGate(), [q[0]], [])]
         qc.data = rules
         self.definition = qc
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def inverse(self):
+        """Return inverse SX gate (i.e. SXdg)."""
+        return SXdgGate()
+
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Return a (multi-)controlled-SX gate.
 
         One control returns a CSX gate.
@@ -96,10 +103,9 @@ class SXGate(Gate):
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the SX gate."""
-        return numpy.array([[1 + 1j, 1 - 1j],
-                            [1 - 1j, 1 + 1j]], dtype=complex) / 2
+        return numpy.array([[1 + 1j, 1 - 1j], [1 - 1j, 1 + 1j]], dtype=dtype) / 2
 
 
 class SXdgGate(Gate):
@@ -128,9 +134,9 @@ class SXdgGate(Gate):
 
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label: Optional[str] = None):
         """Create new SXdg gate."""
-        super().__init__('sxdg', 1, [], label=label)
+        super().__init__("sxdg", 1, [], label=label)
 
     def _define(self):
         """
@@ -140,20 +146,20 @@ class SXdgGate(Gate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .s import SGate
         from .h import HGate
-        q = QuantumRegister(1, 'q')
+
+        q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name, global_phase=-pi / 4)
-        rules = [
-            (SGate(), [q[0]], []),
-            (HGate(), [q[0]], []),
-            (SGate(), [q[0]], [])
-        ]
+        rules = [(SGate(), [q[0]], []), (HGate(), [q[0]], []), (SGate(), [q[0]], [])]
         qc.data = rules
         self.definition = qc
 
-    def to_matrix(self):
+    def inverse(self):
+        """Return inverse SXdg gate (i.e. SX)."""
+        return SXGate()
+
+    def __array__(self, dtype=None):
         """Return a numpy.array for the SXdg gate."""
-        return numpy.array([[1 - 1j, 1 + 1j],
-                            [1 + 1j, 1 - 1j]], dtype=complex) / 2
+        return numpy.array([[1 - 1j, 1 + 1j], [1 + 1j, 1 - 1j]], dtype=dtype) / 2
 
 
 class CSXGate(ControlledGate):
@@ -209,20 +215,28 @@ class CSXGate(ControlledGate):
 
     """
     # Define class constants. This saves future allocation time.
-    _matrix1 = numpy.array([[1, 0, 0, 0],
-                            [0, (1 + 1j) / 2, 0, (1 - 1j) / 2],
-                            [0, 0, 1, 0],
-                            [0, (1 - 1j) / 2, 0, (1 + 1j) / 2]], dtype=complex)
-    _matrix0 = numpy.array([[(1 + 1j) / 2, 0, (1 - 1j) / 2, 0],
-                            [0, 1, 0, 0],
-                            [(1 - 1j) / 2, 0, (1 + 1j) / 2, 0],
-                            [0, 0, 0, 1]], dtype=complex)
+    _matrix1 = numpy.array(
+        [
+            [1, 0, 0, 0],
+            [0, (1 + 1j) / 2, 0, (1 - 1j) / 2],
+            [0, 0, 1, 0],
+            [0, (1 - 1j) / 2, 0, (1 + 1j) / 2],
+        ]
+    )
+    _matrix0 = numpy.array(
+        [
+            [(1 + 1j) / 2, 0, (1 - 1j) / 2, 0],
+            [0, 1, 0, 0],
+            [(1 - 1j) / 2, 0, (1 + 1j) / 2, 0],
+            [0, 0, 0, 1],
+        ]
+    )
 
-    def __init__(self, label=None, ctrl_state=None):
+    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CSX gate."""
-        super().__init__('csx', 2, [], num_ctrl_qubits=1, label=label,
-                         ctrl_state=ctrl_state)
-        self.base_gate = SXGate()
+        super().__init__(
+            "csx", 2, [], num_ctrl_qubits=1, label=label, ctrl_state=ctrl_state, base_gate=SXGate()
+        )
 
     def _define(self):
         """
@@ -232,19 +246,16 @@ class CSXGate(ControlledGate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .h import HGate
         from .u1 import CU1Gate
-        q = QuantumRegister(2, 'q')
+
+        q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (HGate(), [q[1]], []),
-            (CU1Gate(pi/2), [q[0], q[1]], []),
-            (HGate(), [q[1]], [])
-        ]
+        rules = [(HGate(), [q[1]], []), (CU1Gate(pi / 2), [q[0], q[1]], []), (HGate(), [q[1]], [])]
         qc.data = rules
         self.definition = qc
 
-    def to_matrix(self):
+    def __array__(self, dtype=None):
         """Return a numpy.array for the CSX gate."""
-        if self.ctrl_state:
-            return self._matrix1
-        else:
-            return self._matrix0
+        mat = self._matrix1 if self.ctrl_state else self._matrix0
+        if dtype:
+            return numpy.asarray(mat, dtype=dtype)
+        return mat

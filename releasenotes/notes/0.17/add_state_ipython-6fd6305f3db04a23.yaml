@@ -1,0 +1,29 @@
+---
+features:
+  - |
+    The :class:`~qiskit.quantum_info.Statevector` and
+    :class:`~qiskit.quantum_info.DensityMatrix` classes now have
+    :meth:`~qiskit.quantum_info.StateVector.draw` methods which allow objects
+    to be drawn as either text matrices, IPython Latex objects, Latex source,
+    Q-spheres, Bloch spheres and Hinton plots. By default the output type
+    is the equivalent output from ``__repr__`` but this default can be changed
+    in a user config file by setting the ``state_drawer`` option. For example:
+
+    .. jupyter-execute::
+
+            from qiskit.quantum_info import DensityMatrix
+            dm = DensityMatrix.from_label('r0')
+            dm.draw('latex')
+
+    .. jupyter-execute::
+
+            from qiskit.quantum_info import Statevector
+            sv = Statevector.from_label('+r')
+            sv.draw('qsphere')
+
+    Additionally, the :meth:`~qiskit.quantum_info.DensityMatrix.draw` method
+    is now used for the ipython display of these classes, so if you change the
+    default output type in a user config file then when a
+    :class:`~qiskit.quantum_info.Statevector` or a
+    :class:`~qiskit.quantum_info.DensityMatrix` object are displayed in
+    a jupyter notebook that output type will be used for the object.

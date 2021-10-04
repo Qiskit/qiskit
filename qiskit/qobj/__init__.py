@@ -38,6 +38,8 @@ Qasm
    QasmQobjExperimentConfig
    QasmQobjExperiment
    QasmQobjConfig
+   QasmExperimentCalibrations
+   GateCalibration
 
 Pulse
 =====
@@ -52,17 +54,12 @@ Pulse
    PulseQobjConfig
    QobjMeasurementOption
    PulseLibraryItem
-
-Validation
-==========
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   validate_qobj_against_schema
 """
 
 import warnings
+
+from qiskit.qobj.common import QobjExperimentHeader
+from qiskit.qobj.common import QobjHeader
 
 from qiskit.qobj.pulse_qobj import PulseQobj
 from qiskit.qobj.pulse_qobj import PulseQobjInstruction
@@ -72,25 +69,24 @@ from qiskit.qobj.pulse_qobj import PulseQobjConfig
 from qiskit.qobj.pulse_qobj import QobjMeasurementOption
 from qiskit.qobj.pulse_qobj import PulseLibraryItem
 
+from qiskit.qobj.qasm_qobj import GateCalibration
+from qiskit.qobj.qasm_qobj import QasmExperimentCalibrations
 from qiskit.qobj.qasm_qobj import QasmQobj
 from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.qobj.qasm_qobj import QasmQobjExperiment
 from qiskit.qobj.qasm_qobj import QasmQobjConfig
-from qiskit.qobj.qasm_qobj import QobjExperimentHeader
 from qiskit.qobj.qasm_qobj import QasmQobjExperimentConfig
-from qiskit.qobj.qasm_qobj import QobjHeader
-
-from .utils import validate_qobj_against_schema
 
 
 class Qobj(QasmQobj):
     """A backwards compat alias for QasmQobj."""
 
-    def __init__(self, qobj_id=None, config=None, experiments=None,
-                 header=None):
+    def __init__(self, qobj_id=None, config=None, experiments=None, header=None):
         """Initialize a Qobj object."""
-        warnings.warn('qiskit.qobj.Qobj is deprecated use either QasmQobj or '
-                      'PulseQobj depending on your application instead.',
-                      DeprecationWarning, stacklevel=2)
-        super().__init__(qobj_id=qobj_id, config=config,
-                         experiments=experiments, header=header)
+        warnings.warn(
+            "qiskit.qobj.Qobj is deprecated use either QasmQobj or "
+            "PulseQobj depending on your application instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        super().__init__(qobj_id=qobj_id, config=config, experiments=experiments, header=header)

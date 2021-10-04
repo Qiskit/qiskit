@@ -1,0 +1,42 @@
+---
+features:
+  - |
+    A new kwarg, ``coord_type`` has been added to
+    :func:`qiskit.visualization.plot_bloch_vector`. This kwarg enables
+    changing the coordinate system used for the input parameter that
+    describes the positioning of the vector on the Bloch sphere in the
+    generated visualization. There are 2 supported values for this new kwarg,
+    ``'cartesian'`` (the default value) and ``'spherical'``. If the
+    ``coord_type`` kwarg is set to ``'spherical'`` the list of parameters
+    taken in are of the form ``[r, theta,  phi]`` where ``r`` is the
+    radius, ``theta`` is the inclination from +z direction, and ``phi`` is
+    the azimuth from +x direction. For example:
+    
+    .. jupyter-execute::
+
+      from numpy import pi
+
+      from qiskit.visualization import plot_bloch_vector
+
+      x = 0
+      y = 0
+      z = 1
+      r = 1
+      theta = pi
+      phi = 0
+
+
+      # Cartesian coordinates, where (x,y,z) are cartesian coordinates
+      # for bloch vector 
+      plot_bloch_vector([x,y,z])
+
+    .. jupyter-execute::
+
+      plot_bloch_vector([x,y,z], coord_type="cartesian")  # Same as line above
+
+    .. jupyter-execute::
+
+      # Spherical coordinates, where (r,theta,phi) are spherical coordinates
+      # for bloch vector
+      plot_bloch_vector([r, theta, phi], coord_type="spherical")
+

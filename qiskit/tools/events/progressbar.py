@@ -52,11 +52,11 @@ from qiskit.tools.events.pubsub import Subscriber
 
 
 class BaseProgressBar(Subscriber):
-    """An abstract progress bar with some shared functionality.
-    """
+    """An abstract progress bar with some shared functionality."""
+
     def __init__(self):
         super().__init__()
-        self.type = 'progressbar'
+        self.type = "progressbar"
         self.touched = False
         self.iter = None
         self.t_start = None
@@ -73,8 +73,7 @@ class BaseProgressBar(Subscriber):
         self.t_start = time.time()
 
     def update(self, n):
-        """Update status of progress bar.
-        """
+        """Update status of progress bar."""
         pass
 
     def time_elapsed(self):
@@ -95,19 +94,21 @@ class BaseProgressBar(Subscriber):
             est_time: Estimated time remaining.
         """
         if completed_iter:
-            t_r_est = (time.time() - self.t_start) / \
-                completed_iter*(self.iter-completed_iter)
+            t_r_est = (time.time() - self.t_start) / completed_iter * (self.iter - completed_iter)
         else:
             t_r_est = 0
         date_time = datetime.datetime(1, 1, 1) + datetime.timedelta(seconds=t_r_est)
-        time_string = "%02d:%02d:%02d:%02d" % \
-            (date_time.day - 1, date_time.hour, date_time.minute, date_time.second)
+        time_string = "%02d:%02d:%02d:%02d" % (
+            date_time.day - 1,
+            date_time.hour,
+            date_time.minute,
+            date_time.second,
+        )
 
         return time_string
 
     def finished(self):
-        """Run when progress bar has completed.
-        """
+        """Run when progress bar has completed."""
         pass
 
 
@@ -129,11 +130,13 @@ class TextProgressBar(BaseProgressBar):
         def _initialize_progress_bar(num_tasks):
             """ """
             self.start(num_tasks)
+
         self.subscribe("terra.parallel.start", _initialize_progress_bar)
 
         def _update_progress_bar(progress):
             """ """
             self.update(progress)
+
         self.subscribe("terra.parallel.done", _update_progress_bar)
 
         def _finish_progress_bar():
@@ -142,21 +145,25 @@ class TextProgressBar(BaseProgressBar):
             self.unsubscribe("terra.parallel.done", _update_progress_bar)
             self.unsubscribe("terra.parallel.finish", _finish_progress_bar)
             self.finished()
+
         self.subscribe("terra.parallel.finish", _finish_progress_bar)
 
     def start(self, iterations):
         self.touched = True
         self.iter = int(iterations)
         self.t_start = time.time()
-        pbar = '-' * 50
-        self.output_handler.write('\r|%s| %s%s%s [%s]' %
-                                  (pbar, 0, '/', self.iter, ''))
+        pbar = "-" * 50
+        self.output_handler.write("\r|{}| {}{}{} [{}]".format(pbar, 0, "/", self.iter, ""))
 
     def update(self, n):
+        # Don't update if we are not initialized or
+        # the update iteration number is greater than the total iterations set on start.
+        if not self.touched or n > self.iter:
+            return
         filled_length = int(round(50 * n / self.iter))
-        pbar = '█' * filled_length + '-' * (50 - filled_length)
+        pbar = "█" * filled_length + "-" * (50 - filled_length)
         time_left = self.time_remaining_est(n)
-        self.output_handler.write('\r|%s| %s%s%s [%s]' % (pbar, n, '/', self.iter, time_left))
+        self.output_handler.write("\r|{}| {}{}{} [{}]".format(pbar, n, "/", self.iter, time_left))
         if n == self.iter:
-            self.output_handler.write('\n')
+            self.output_handler.write("\n")
         self.output_handler.flush()

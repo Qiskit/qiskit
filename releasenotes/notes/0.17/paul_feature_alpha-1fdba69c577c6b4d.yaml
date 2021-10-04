@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    The :class:`~qiskit.circuit.library.PauliFeatureMap` class in the
+    :mod:`qiskit.circuit.library` module now supports adjusting the rotational
+    factor, :math:`\alpha`, by either setting using the kwarg ``alpha`` on
+    the constructor or setting the
+    :attr:`~qiskit.circuit.library.PauliFeatureMap.alpha` attribute after
+    creation. Previously this value was fixed at ``2.0``. Adjusting this
+    attribute allows for better control of decision boundaries and provides
+    additional flexibility handling the input features without needing
+    to explicitly scale them in the data set.

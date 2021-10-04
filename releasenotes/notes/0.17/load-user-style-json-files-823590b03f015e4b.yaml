@@ -1,0 +1,22 @@
+---
+features:
+  - |
+    The matplotlib output type for the
+    :func:`~qiskit.visualization.circuit_drawer` and
+    the :meth:`~qiskit.circuit.QuantumCircuit.draw` method for the
+    :class:`~qiskit.circuit.QuantumCircuit` class now supports configuration
+    files for setting the visualization style. In previous releases, there was
+    basic functionality that allowed users to pass in a ``style`` kwarg that
+    took in a ``dict`` to customize the colors and other display features of
+    the ``mpl`` drawer. This has now been expanded so that these dictionaries
+    can be loaded from JSON files directly without needing to pass a dictionary.
+    This enables users to create new style files and use that style for
+    visualizations by passing the style filename as a string to the ``style``
+    kwarg.
+
+    To leverage this feature you must set the ``circuit_mpl_style_path``
+    option in a user config file. This option should be set to the path you
+    want qiskit to search for style JSON files. If specifying multiple path
+    entries they should be separated by ``:``. For example, setting
+    ``circuit_mpl_style_path = ~/.qiskit:~/user_styles`` in a user config
+    file will look for JSON files in both ``~/.qiskit`` and ``~/user_styles``.

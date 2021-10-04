@@ -11,8 +11,6 @@
 # that they have been altered from the originals.
 
 # pylint: disable=unused-variable
-# pylint: disable=missing-param-doc
-# pylint: disable=missing-type-doc
 
 """
 Multi controlled single-qubit unitary up to diagonal.
@@ -27,6 +25,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit.quantumcircuit import QuantumRegister, QuantumCircuit
 from qiskit.quantum_info.operators.predicates import is_isometry
 from qiskit.exceptions import QiskitError
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.extensions.quantum_initializer.uc import UCGate
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
@@ -42,14 +41,14 @@ class MCGupDiag(Gate):
     def __init__(self, gate, num_controls, num_ancillas_zero, num_ancillas_dirty):
         """Initialize a multi controlled gate.
 
-            Args:
-                gate (ndarray): 2*2 unitary (given as a (complex) ndarray)
-                num_controls (int): number of control qubits
-                num_ancillas_zero (int): number of ancilla qubits that start in the state zero
-                num_ancillas_dirty (int): number of anxilla qubits that are allowed to start in an
-                    arbitrary state
-            Raises:
-                QiskitError: if the input format is wrong; if the array gate is not unitary
+        Args:
+            gate (ndarray): 2*2 unitary (given as a (complex) ndarray)
+            num_controls (int): number of control qubits
+            num_ancillas_zero (int): number of ancilla qubits that start in the state zero
+            num_ancillas_dirty (int): number of ancilla qubits that are allowed to start in an
+                arbitrary state
+        Raises:
+            QiskitError: if the input format is wrong; if the array gate is not unitary
         """
 
         self.num_controls = num_controls
@@ -72,6 +71,22 @@ class MCGupDiag(Gate):
         mcg_up_diag_circuit = QuantumCircuit(q)
         mcg_up_diag_circuit.append(gate, q[:])
         self.definition = mcg_up_diag_circuit
+
+    def inverse(self):
+        """Return the inverse.
+
+        Note that the resulting Gate object has an empty ``params`` property.
+        """
+        inverse_gate = Gate(
+            name=self.name + "_dg", num_qubits=self.num_qubits, params=[]
+        )  # removing the params because arrays are deprecated
+
+        inverse_gate.definition = QuantumCircuit(*self.definition.qregs)
+        inverse_gate.definition._data = [
+            (inst.inverse(), qargs, []) for inst, qargs, _ in reversed(self._definition)
+        ]
+
+        return inverse_gate
 
     # Returns the diagonal up to which the gate is implemented.
     def _get_diagonal(self):
@@ -110,7 +125,14 @@ class MCGupDiag(Gate):
     def _define_qubit_role(self, q):
         # Define the role of the qubits
         q_target = q[0]
-        q_controls = q[1:self.num_controls + 1]
-        q_ancillas_zero = q[self.num_controls + 1:self.num_controls + 1 + self.num_ancillas_zero]
-        q_ancillas_dirty = q[self.num_controls + 1 + self.num_ancillas_zero:]
+        q_controls = q[1 : self.num_controls + 1]
+        q_ancillas_zero = q[self.num_controls + 1 : self.num_controls + 1 + self.num_ancillas_zero]
+        q_ancillas_dirty = q[self.num_controls + 1 + self.num_ancillas_zero :]
         return q_target, q_controls, q_ancillas_zero, q_ancillas_dirty
+
+    def validate_parameter(self, parameter):
+        """Multi controlled single-qubit unitary gate parameter has to be an ndarray."""
+        if isinstance(parameter, np.ndarray):
+            return parameter
+        else:
+            raise CircuitError(f"invalid param type {type(parameter)} in gate {self.name}")

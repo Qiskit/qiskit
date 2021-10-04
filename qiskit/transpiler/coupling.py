@@ -18,12 +18,17 @@ directed edges indicate which physical qubits are coupled and the permitted dire
 CNOT gates. The object has a distance function that can be used to map quantum circuits
 onto a device with this coupling.
 """
+
 import io
+import warnings
+
 import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
-import networkx as nx
+import retworkx as rx
+
 from qiskit.transpiler.exceptions import CouplingError
+from qiskit.exceptions import MissingOptionalLibraryError
 
 
 class CouplingMap:
@@ -41,25 +46,30 @@ class CouplingMap:
         Args:
             couplinglist (list or None): An initial coupling graph, specified as
                 an adjacency list containing couplings, e.g. [[0,1], [0,2], [1,2]].
+                It is required that nodes are contiguously indexed starting at 0.
+                Missed nodes will be added as isolated nodes in the coupling map.
             description (str): A string to describe the coupling map.
         """
         self.description = description
         # the coupling map graph
-        self.graph = nx.DiGraph()
+        self.graph = rx.PyDiGraph()
         # a dict of dicts from node pairs to distances
         self._dist_matrix = None
         # a sorted list of physical qubits (integers) in this coupling map
         self._qubit_list = None
+        # number of qubits in the graph
+        self._size = None
         # a sorted list of physical qubits (integers) in this coupling map
         self._is_symmetric = None
 
         if couplinglist is not None:
-            for source, target in couplinglist:
-                self.add_edge(source, target)
+            self.graph.extend_from_edge_list([tuple(x) for x in couplinglist])
 
     def size(self):
         """Return the number of physical qubits in this graph."""
-        return len(self.graph.nodes)
+        if self._size is None:
+            self._size = len(self.graph)
+        return self._size
 
     def get_edges(self):
         """
@@ -68,7 +78,7 @@ class CouplingMap:
         Returns:
             Tuple(int,int): Each edge is a pair of physical qubits.
         """
-        return list(self.graph.edges())
+        return self.graph.edge_list()
 
     def add_physical_qubit(self, physical_qubit):
         """Add a physical qubit to the coupling graph as a node.
@@ -82,10 +92,12 @@ class CouplingMap:
             raise CouplingError("Physical qubits should be integers.")
         if physical_qubit in self.physical_qubits:
             raise CouplingError(
-                "The physical qubit %s is already in the coupling graph" % physical_qubit)
+                "The physical qubit %s is already in the coupling graph" % physical_qubit
+            )
         self.graph.add_node(physical_qubit)
         self._dist_matrix = None  # invalidate
         self._qubit_list = None  # invalidate
+        self._size = None  # invalidate
 
     def add_edge(self, src, dst):
         """
@@ -98,7 +110,7 @@ class CouplingMap:
             self.add_physical_qubit(src)
         if dst not in self.physical_qubits:
             self.add_physical_qubit(dst)
-        self.graph.add_edge(src, dst)
+        self.graph.add_edge(src, dst, None)
         self._dist_matrix = None  # invalidate
         self._is_symmetric = None  # invalidate
 
@@ -107,18 +119,22 @@ class CouplingMap:
 
         nodelist (list): list of integer node labels
         """
+        warnings.warn(
+            "The .subgraph() method is deprecated and will be removed in a "
+            "future release. Instead the .reduce() method should be used "
+            "instead which does the same thing but preserves nodelist order.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         subcoupling = CouplingMap()
         subcoupling.graph = self.graph.subgraph(nodelist)
-        for node in nodelist:
-            if node not in subcoupling.physical_qubits:
-                subcoupling.add_physical_qubit(node)
         return subcoupling
 
     @property
     def physical_qubits(self):
         """Returns a sorted list of physical_qubits"""
         if self._qubit_list is None:
-            self._qubit_list = sorted(self.graph.nodes)
+            self._qubit_list = self.graph.node_indexes()
         return self._qubit_list
 
     def is_connected(self):
@@ -128,8 +144,8 @@ class CouplingMap:
         Return True if connected, False otherwise
         """
         try:
-            return nx.is_weakly_connected(self.graph)
-        except nx.exception.NetworkXException:
+            return rx.is_weakly_connected(self.graph)
+        except rx.NullGraph:
             return False
 
     def neighbors(self, physical_qubit):
@@ -140,6 +156,13 @@ class CouplingMap:
         """
         return self.graph.neighbors(physical_qubit)
 
+    @property
+    def distance_matrix(self):
+        """Return the distance matrix for the coupling map."""
+        if self._dist_matrix is None:
+            self._compute_distance_matrix()
+        return self._dist_matrix
+
     def _compute_distance_matrix(self):
         """Compute the full distance matrix on pairs of nodes.
 
@@ -148,14 +171,7 @@ class CouplingMap:
         """
         if not self.is_connected():
             raise CouplingError("coupling graph not connected")
-        lengths = nx.all_pairs_shortest_path_length(self.graph.to_undirected(as_view=True))
-        lengths = dict(lengths)
-        size = len(lengths)
-        cmap = np.zeros((size, size))
-        for idx in range(size):
-            cmap[idx, np.fromiter(lengths[idx].keys(), dtype=int)] = np.fromiter(
-                lengths[idx].values(), dtype=int)
-        self._dist_matrix = cmap
+        self._dist_matrix = rx.digraph_distance_matrix(self.graph, as_undirected=True)
 
     def distance(self, physical_qubit1, physical_qubit2):
         """Returns the undirected distance between physical_qubit1 and physical_qubit2.
@@ -170,10 +186,10 @@ class CouplingMap:
         Raises:
             CouplingError: if the qubits do not exist in the CouplingMap
         """
-        if physical_qubit1 not in self.physical_qubits:
-            raise CouplingError("%s not in coupling graph" % (physical_qubit1,))
-        if physical_qubit2 not in self.physical_qubits:
-            raise CouplingError("%s not in coupling graph" % (physical_qubit2,))
+        if physical_qubit1 >= self.size():
+            raise CouplingError("%s not in coupling graph" % physical_qubit1)
+        if physical_qubit2 >= self.size():
+            raise CouplingError("%s not in coupling graph" % physical_qubit2)
         if self._dist_matrix is None:
             self._compute_distance_matrix()
         return int(self._dist_matrix[physical_qubit1, physical_qubit2])
@@ -189,12 +205,14 @@ class CouplingMap:
         Raises:
             CouplingError: When there is no path between physical_qubit1, physical_qubit2.
         """
-        try:
-            return nx.shortest_path(self.graph.to_undirected(as_view=True), source=physical_qubit1,
-                                    target=physical_qubit2)
-        except nx.exception.NetworkXNoPath:
+        paths = rx.digraph_dijkstra_shortest_paths(
+            self.graph, source=physical_qubit1, target=physical_qubit2, as_undirected=True
+        )
+        if not paths:
             raise CouplingError(
-                "Nodes %s and %s are not connected" % (str(physical_qubit1), str(physical_qubit2)))
+                f"Nodes {str(physical_qubit1)} and {str(physical_qubit2)} are not connected"
+            )
+        return paths[physical_qubit2]
 
     @property
     def is_symmetric(self):
@@ -225,8 +243,7 @@ class CouplingMap:
         Returns:
             Bool: True if symmetric, False otherwise
         """
-        mat = nx.adjacency_matrix(self.graph)
-        return (mat - mat.T).nnz == 0
+        return self.graph.is_symmetric()
 
     def reduce(self, mapping):
         """Returns a reduced coupling map that
@@ -259,82 +276,129 @@ class CouplingMap:
         cols = np.array([edge[1] for edge in reduced_cmap], dtype=int)
         data = np.ones_like(rows)
 
-        mat = sp.coo_matrix((data, (rows, cols)),
-                            shape=(reduced_qubits, reduced_qubits)).tocsr()
+        mat = sp.coo_matrix((data, (rows, cols)), shape=(reduced_qubits, reduced_qubits)).tocsr()
 
         if cs.connected_components(mat)[0] != 1:
-            raise CouplingError('coupling_map must be connected.')
+            raise CouplingError("coupling_map must be connected.")
 
         return CouplingMap(reduced_cmap)
 
     @classmethod
     def from_full(cls, num_qubits, bidirectional=True):
         """Return a fully connected coupling map on n qubits."""
-        cmap = cls(description='full')
-        for i in range(num_qubits):
-            for j in range(i):
-                cmap.add_edge(j, i)
-                if bidirectional:
-                    cmap.add_edge(i, j)
+        cmap = cls(description="full")
+        if bidirectional:
+            cmap.graph = rx.generators.directed_mesh_graph(num_qubits)
+        else:
+            edge_list = []
+            for i in range(num_qubits):
+                for j in range(i):
+                    edge_list.append((j, i))
+            cmap.graph.extend_from_edge_list(edge_list)
         return cmap
 
     @classmethod
     def from_line(cls, num_qubits, bidirectional=True):
         """Return a fully connected coupling map on n qubits."""
-        cmap = cls(description='line')
-        for i in range(num_qubits-1):
-            cmap.add_edge(i, i+1)
-            if bidirectional:
-                cmap.add_edge(i+1, i)
+        cmap = cls(description="line")
+        cmap.graph = rx.generators.directed_path_graph(num_qubits, bidirectional=bidirectional)
         return cmap
 
     @classmethod
     def from_ring(cls, num_qubits, bidirectional=True):
         """Return a fully connected coupling map on n qubits."""
-        cmap = cls(description='ring')
-        for i in range(num_qubits):
-            if i == num_qubits - 1:
-                k = 0
-            else:
-                k = i + 1
-            cmap.add_edge(i, k)
-            if bidirectional:
-                cmap.add_edge(k, i)
+        cmap = cls(description="ring")
+        cmap.graph = rx.generators.directed_cycle_graph(num_qubits, bidirectional=bidirectional)
         return cmap
 
     @classmethod
     def from_grid(cls, num_rows, num_columns, bidirectional=True):
         """Return qubits connected on a grid of num_rows x num_columns."""
-        cmap = cls(description='grid')
-        for i in range(num_rows):
-            for j in range(num_columns):
-                node = i * num_columns + j
+        cmap = cls(description="grid")
+        cmap.graph = rx.generators.directed_grid_graph(
+            num_rows, num_columns, bidirectional=bidirectional
+        )
+        return cmap
 
-                up = (node-num_columns) if i > 0 else None  # pylint: disable=invalid-name
-                down = (node+num_columns) if i < num_rows-1 else None
-                left = (node-1) if j > 0 else None
-                right = (node+1) if j < num_columns-1 else None
+    @classmethod
+    def from_heavy_hex(cls, distance, bidirectional=True):
+        """Return a heavy hexagon graph coupling map
 
-                if up is not None and bidirectional:
-                    cmap.add_edge(node, up)
-                if left is not None and bidirectional:
-                    cmap.add_edge(node, left)
-                if down is not None:
-                    cmap.add_edge(node, down)
-                if right is not None:
-                    cmap.add_edge(node, right)
+        A heavy hexagon graph is described in:
+
+        https://journals.aps.org/prx/abstract/10.1103/PhysRevX.10.011022
+
+        Args:
+            distance (int): The code distance for the generated heavy hex
+                graph. The value for distance can be any odd positive integer.
+                The distance relates to the number of qubits by:
+                :math:`n = \\frac{5d^2 - 2d - 1}{2}` where :math:`n` is the
+                number of qubits and :math:`d` is the ``distance`` parameter.
+            bidirectional (bool): Whether the edges in the output coupling
+                graph are bidirectional or not. By default this is set to
+                ``True``
+        Returns:
+            CouplingMap: A heavy hex coupling graph
+        """
+        cmap = cls(description="heavy-hex")
+        cmap.graph = rx.generators.directed_heavy_hex_graph(distance, bidirectional=bidirectional)
+        return cmap
+
+    @classmethod
+    def from_heavy_square(cls, distance, bidirectional=True):
+        """Return a heavy square graph coupling map.
+
+        A heavy square graph is described in:
+
+        https://journals.aps.org/prx/abstract/10.1103/PhysRevX.10.011022
+
+        Args:
+            distance (int): The code distance for the generated heavy square
+                graph. The value for distance can be any odd positive integer.
+                The distance relates to the number of qubits by:
+                :math:`n = 3d^2 - 2d` where :math:`n` is the
+                number of qubits and :math:`d` is the ``distance`` parameter.
+            bidirectional (bool): Whether the edges in the output coupling
+                graph are bidirectional or not. By default this is set to
+                ``True``
+        Returns:
+            CouplingMap: A heavy square coupling graph
+        """
+        cmap = cls(description="heavy-square")
+        cmap.graph = rx.generators.directed_heavy_square_graph(
+            distance, bidirectional=bidirectional
+        )
+        return cmap
+
+    @classmethod
+    def from_hexagonal_lattice(cls, rows, cols, bidirectional=True):
+        """Return a hexagonal lattice graph coupling map.
+
+        Args:
+            rows (int): The number of rows to generate the graph with.
+            cols (int): The number of columns to generate the graph with.
+            bidirectional (bool): Whether the edges in the output coupling
+                graph are bidirectional or not. By default this is set to
+                ``True``
+        Returns:
+            CouplingMap: A hexagonal lattice coupling graph
+        """
+        cmap = cls(description="hexagonal-lattice")
+        cmap.graph = rx.generators.directed_hexagonal_lattice_graph(
+            rows, cols, bidirectional=bidirectional
+        )
         return cmap
 
     def largest_connected_component(self):
         """Return a set of qubits in the largest connected component."""
-        return max(nx.strongly_connected_components(self.graph), key=len)
+        return max(rx.weakly_connected_components(self.graph), key=len)
 
     def __str__(self):
         """Return a string representation of the coupling graph."""
         string = ""
         if self.get_edges():
             string += "["
-            string += ", ".join(["[%s, %s]" % (src, dst) for (src, dst) in self.get_edges()])
+            string += ", ".join([f"[{src}, {dst}]" for (src, dst) in self.get_edges()])
             string += "]"
         return string
 
@@ -350,17 +414,27 @@ class CouplingMap:
             PIL.Image: Drawn coupling map.
 
         Raises:
-            ImportError: when pydot or pillow are not installed.
+            MissingOptionalLibraryError: when pydot or pillow are not installed.
         """
+        try:
+            import pydot
+        except ImportError as ex:
+            raise MissingOptionalLibraryError(
+                libname="pydot",
+                name="coupling map drawer",
+                pip_install="pip install pydot",
+            ) from ex
 
         try:
-            import pydot  # pylint: disable=unused-import
             from PIL import Image
-        except ImportError:
-            raise ImportError("CouplingMap.draw requires pydot and pillow. "
-                              "Run 'pip install pydot pillow'.")
-
-        dot = nx.drawing.nx_pydot.to_pydot(self.graph)
-        png = dot.create_png(prog='neato')
+        except ImportError as ex:
+            raise MissingOptionalLibraryError(
+                libname="pillow",
+                name="coupling map drawer",
+                pip_install="pip install pillow",
+            ) from ex
+        dot_str = self.graph.to_dot()
+        dot = pydot.graph_from_dot_data(dot_str)[0]
+        png = dot.create_png(prog="neato")
 
         return Image.open(io.BytesIO(png))

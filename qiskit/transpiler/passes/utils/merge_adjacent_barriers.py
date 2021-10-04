@@ -13,7 +13,6 @@
 """Return a circuit with any adjacent barriers merged together."""
 
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit.barrier import Barrier
 
 
@@ -50,7 +49,7 @@ class MergeAdjacentBarriers(TransformationPass):
 
         # sorted to so that they are in the order they appear in the DAG
         # so ancestors/descendants makes sense
-        barriers = [nd for nd in dag.topological_op_nodes() if nd.name == 'barrier']
+        barriers = [nd for nd in dag.topological_op_nodes() if nd.name == "barrier"]
 
         # get dict of barrier merges
         node_to_barrier_qubits = MergeAdjacentBarriers._collect_potential_merges(dag, barriers)
@@ -59,16 +58,11 @@ class MergeAdjacentBarriers(TransformationPass):
             return dag
 
         # add the merged barriers to a new DAG
-        new_dag = DAGCircuit()
-
-        for qreg in dag.qregs.values():
-            new_dag.add_qreg(qreg)
-        for creg in dag.cregs.values():
-            new_dag.add_creg(creg)
+        new_dag = dag._copy_circuit_metadata()
 
         # go over current nodes, and add them to the new dag
         for node in dag.topological_op_nodes():
-            if node.name == 'barrier':
+            if node.name == "barrier":
                 if node in node_to_barrier_qubits:
                     qubits = node_to_barrier_qubits[node]
                     # qubits are stored as a set, need to convert to a list
@@ -82,8 +76,8 @@ class MergeAdjacentBarriers(TransformationPass):
     def _collect_potential_merges(dag, barriers):
         """Return the potential merges.
 
-        Returns a dict of DAGNode : Barrier objects, where the barrier needs to be
-        inserted where the corresponding DAGNode appears in the main DAG.
+        Returns a dict of DAGOpNode: Barrier objects, where the barrier needs to be
+        inserted where the corresponding DAGOpNode appears in the main DAG.
         """
         # if only got 1 or 0 barriers then can't merge
         if len(barriers) < 2:
@@ -107,22 +101,23 @@ class MergeAdjacentBarriers(TransformationPass):
         for next_barrier in barriers[1:]:
 
             # Ensure barriers are adjacent before checking if they are mergeable.
-            if dag._multi_graph.has_edge(end_of_barrier._node_id,
-                                         next_barrier._node_id):
+            if dag._multi_graph.has_edge(end_of_barrier._node_id, next_barrier._node_id):
 
                 # Remove all barriers that have already been included in this new barrier from the
                 # set of ancestors/descendants as they will be removed from the new DAG when it is
                 # created.
-                next_ancestors = {nd for nd in dag.ancestors(next_barrier)
-                                  if nd not in current_barrier_nodes}
-                next_descendants = {nd for nd in dag.descendants(next_barrier)
-                                    if nd not in current_barrier_nodes}
+                next_ancestors = {
+                    nd for nd in dag.ancestors(next_barrier) if nd not in current_barrier_nodes
+                }
+                next_descendants = {
+                    nd for nd in dag.descendants(next_barrier) if nd not in current_barrier_nodes
+                }
                 next_qubits = set(next_barrier.qargs)
 
                 if (
-                        not current_qubits.isdisjoint(next_qubits)
-                        and current_ancestors.isdisjoint(next_descendants)
-                        and current_descendants.isdisjoint(next_ancestors)
+                    not current_qubits.isdisjoint(next_qubits)
+                    and current_ancestors.isdisjoint(next_descendants)
+                    and current_descendants.isdisjoint(next_ancestors)
                 ):
 
                     # can be merged

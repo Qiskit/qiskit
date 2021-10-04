@@ -1,0 +1,32 @@
+---
+upgrade:
+  - |
+    The previously deprecated methods, arguments, and properties named
+    ``n_qubits`` and ``numberofqubits``  have been removed. These were
+    deprecated in the 0.13.0 release. The full set of changes are:
+
+    .. list-table::
+      :header-rows: 1
+
+      * - Class
+        - Old
+        - New
+      * - :class:`~qiskit.circuit.QuantumCircuit`
+        - ``n_qubits``
+        - :class:`~qiskit.circuit.QuantumCircuit.num_qubits`
+      * - :class:`~qiskit.quantum_info.Pauli`
+        - ``numberofqubits``
+        - :attr:`~qiskit.quantum_info.Pauli.num_qubits`
+
+    .. list-table::
+      :header-rows: 1
+
+      * - Function
+        - Old Argument
+        - New Argument
+      * - :func:`qiskit.circuit.random.random_circuit`
+        - ``n_qubits``
+        - ``num_qubits``
+      * - :class:`qiskit.circuit.library.MSGate`
+        - ``n_qubits``
+        - ``num_qubits``

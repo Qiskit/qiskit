@@ -1,0 +1,24 @@
+---
+upgrade:
+  - |
+    :class:`~qiskit.circuit.Register` (which is the parent class for
+    :class:`~qiskit.circuit.QuantumRegister` and
+    :class:`~qiskit.circuit.ClassicalRegister` and
+    :class:`~qiskit.circuit.Bit` (which is the parent class for
+    :class:`~qiskit.circuit.Qubit` and :class:`~qiskit.circuit.Clbit`) objects
+    are now immutable. In previous releases it was possible to adjust the value
+    of a :attr:`~qiskit.circuit.QuantumRegister.size` or
+    :attr:`~qiskit.circuit.QuantumRegister.name` attributes of a
+    :class:`~qiskit.circuit.Register` object and the
+    :attr:`~qiskit.circuit.Qubit.index` or
+    :attr:`~qiskit.circuit.Qubit.register` attributes of a
+    :class:`~qiskit.circuit.Bit` object after it was initially
+    created. However this would lead to unsound behavior that would corrupt
+    container structure that rely on a hash (such as a `dict`) since these
+    attributes are treated as immutable properties of a register or bit (see
+    `#4705 <https://github.com/Qiskit/qiskit-terra/issues/4705>`__ for more
+    details). To avoid this unsound behavior this attributes of a
+    :class:`~qiskit.circuit.Register` and :class:`~qiskit.circuit.Bit` are
+    no longer settable after initial creation. If you were previously adjusting
+    the objects at runtime you will now need to create a new ``Register``
+    or ``Bit`` object with the new values.

@@ -22,38 +22,38 @@ from qiskit.test import QiskitTestCase
 
 
 class TestCheckMapCX(QiskitTestCase):
-    """ Tests the CheckMap pass with CX gates"""
+    """Tests the CheckMap pass with CX gates"""
 
     def test_trivial_nop_map(self):
-        """ Trivial map in a circuit without entanglement
-         qr0:---[H]---
+        """Trivial map in a circuit without entanglement
+        qr0:---[H]---
 
-         qr1:---[H]---
+        qr1:---[H]---
 
-         qr2:---[H]---
+        qr2:---[H]---
 
-         CouplingMap map: None
+        CouplingMap map: None
         """
-        qr = QuantumRegister(3, 'qr')
+        qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr)
         circuit.h(qr)
         coupling = CouplingMap()
         dag = circuit_to_dag(circuit)
         pass_ = CheckMap(coupling)
         pass_.run(dag)
-        self.assertTrue(pass_.property_set['is_swap_mapped'])
+        self.assertTrue(pass_.property_set["is_swap_mapped"])
 
     def test_swap_mapped_true(self):
-        """ Mapped is easy to check
-         qr0:--(+)-[H]-(+)-
-                |       |
-         qr1:---.-------|--
-                        |
-         qr2:-----------.--
+        """Mapped is easy to check
+        qr0:--(+)-[H]-(+)-
+               |       |
+        qr1:---.-------|--
+                       |
+        qr2:-----------.--
 
-         CouplingMap map: [1]--[0]--[2]
+        CouplingMap map: [1]--[0]--[2]
         """
-        qr = QuantumRegister(3, 'qr')
+        qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.h(qr[0])
@@ -64,17 +64,17 @@ class TestCheckMapCX(QiskitTestCase):
         pass_ = CheckMap(coupling)
         pass_.run(dag)
 
-        self.assertTrue(pass_.property_set['is_swap_mapped'])
+        self.assertTrue(pass_.property_set["is_swap_mapped"])
 
     def test_swap_mapped_false(self):
-        """ Needs [0]-[1] in a [0]--[2]--[1]
-         qr0:--(+)--
-                |
-         qr1:---.---
+        """Needs [0]-[1] in a [0]--[2]--[1]
+        qr0:--(+)--
+               |
+        qr1:---.---
 
-         CouplingMap map: [0]--[2]--[1]
+        CouplingMap map: [0]--[2]--[1]
         """
-        qr = QuantumRegister(2, 'qr')
+        qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         coupling = CouplingMap([[0, 2], [2, 1]])
@@ -83,8 +83,8 @@ class TestCheckMapCX(QiskitTestCase):
         pass_ = CheckMap(coupling)
         pass_.run(dag)
 
-        self.assertFalse(pass_.property_set['is_swap_mapped'])
+        self.assertFalse(pass_.property_set["is_swap_mapped"])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -56,11 +56,8 @@ defined as:
 Supplementary Information
 =========================
 
-.. container:: toggle
-
-   .. container:: header
-
-      **Quantum Circuit Properties**
+.. dropdown:: Quantum Circuit Properties
+   :animate: fade-in-slide-down
 
    When constructing quantum circuits, there are several properties that help quantify
    the "size" of the circuits, and their ability to be run on a noisy quantum device.
@@ -189,6 +186,7 @@ Gates and Instructions
 
    Gate
    ControlledGate
+   Delay
    Measure
    Reset
    Instruction
@@ -217,14 +215,18 @@ from .quantumcircuit import QuantumCircuit
 from .classicalregister import ClassicalRegister, Clbit
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .gate import Gate
+
 # pylint: disable=cyclic-import
 from .controlledgate import ControlledGate
 from .instruction import Instruction
 from .instructionset import InstructionSet
 from .barrier import Barrier
+from .delay import Delay
 from .measure import Measure
 from .reset import Reset
 from .parameter import Parameter
 from .parametervector import ParameterVector
 from .parameterexpression import ParameterExpression
 from .equivalence import EquivalenceLibrary
+from .classicalfunction.types import Int1, Int2
+from .classicalfunction import classical_function, BooleanExpression
