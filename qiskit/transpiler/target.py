@@ -90,6 +90,10 @@ class Target:
         }
         gmap.add_instruction(CXGate(), [(0, 1), (1, 0)], properties=cx_props)
 
+    The intent of the ``Target`` object is to inform Qiskit's compiler about
+    the constraints of a particular backend so the compiler can compile an
+    input circuit to something that works and is optimized for a device.
+
     .. note::
 
         This class assumes that qubit indices start at 0 and are a contiguous
@@ -141,43 +145,70 @@ class Target:
         self._error_distance_matrix = None
         self._instruction_durations = None
 
-    def add_instruction(self, instruction, qargs, name=None, properties=None):
-        """A a new gate to the gate_map
+    def add_instruction(self, instruction, properties, name=None):
+        """Add a new instruction to the :class:`~qiskit.transpiler.Target`
+
+        As ``Target`` objects are strictly additive this is the primary method
+        for modifying a ``Target``. Typically you will use this to fully populate
+        a ``Target`` before using it in :class:`~qiskit.providers.BackendV2`. For
+        example::
+
+            from qiskit.circuit.library import CXGate
+            from qiskit.transpiler import Target, InstructionProperties
+
+            target = Target()
+            cx_properties = {
+                (0, 1): None,
+                (1, 0): None,
+                (0, 2): None,
+                (2, 0): None,
+                (0, 3): None,
+                (2, 3): None,
+                (3, 0): None,
+                (3, 2): None
+            }
+            target.add_instruction(CXGate(), cx_properties)
+
+        Will add a :class:`~qiskit.circuit.library.CXGate` to the target with no
+        properties (duration, error, etc) with the coupling edge list:
+        ``(0, 1), (1, 0), (0, 2), (2, 0), (0, 3), (2, 3), (3, 0), (3, 2)``. If
+        there are properties available for the instruction you can replace the
+        ``None`` value in the properties dictionary with an
+        :class:`~qiskit.transpiler.InstructionProperties` object. This pattern
+        is repeated for each :class:`~qiskit.circuit.Instruction` the target
+        supports.
 
         Args:
             instruction (Instruction): The gate object to add to the map. If it's
                 paramerterized any value of the parameter can be set
-            qargs (list): A list of qubit indices the gate applies to. In the case
-                of multiqubit gates this will be the tuple of qubits the gate can
-                be applied to.
+            properties (dict): A dictionary of qarg entries to an
+                :class:`~qiskit.transpiler.InstructionProperties` object for that
+                instruction implementation on the backend. Properties are optional
+                for any instruction implementation, if there are no
+                :class:`~qiskit.transpiler.InstructionProperties` available for the
+                backend the value can be None.
             name (str): An optional name to use for identifying the gate. If not
                 specified the :attr:`~qiskit.circuit.Instruction.name` attribute
                 of ``gate`` will be used. All gates in the ``Target`` need unique
                 names. Using a custom name allows a backend to specify duplicate
                 gates with different parameters.
-            properties (dict): An optional dictionary of qarg entries to a
-                InstructionProperties object for that gate implementation on the backend
         Raises:
             AttributeError: If gate is already in map
         """
         instruction_name = name or instruction.name
         if instruction_name in self._gate_map:
-            raise AttributeError("already in map")
+            raise AttributeError("Instruction %s is already in the target" % instruction_name)
         self._gate_name_map[instruction_name] = instruction
         qargs_val = {}
-        for qarg in qargs:
+        for qarg in properties:
             self.num_qubits = max(self.num_qubits, max(qarg) + 1)
-            if properties:
-                if qarg in properties:
-                    qargs_val[qarg] = properties[qarg]
-                else:
-                    qargs_val[qarg] = None
-            else:
-                qargs_val[qarg] = None
+            qargs_val[qarg] = properties[qarg]
             if qarg in self._qarg_gate_map:
                 self._qarg_gate_map[qarg].add(instruction_name)
             else:
-                self._qarg_gate_map[qarg] = set(instruction_name)
+                self._qarg_gate_map[qarg] = {
+                    instruction_name,
+                }
         self._gate_map[instruction_name] = qargs_val
         self._coupling_graph = None
         self._unweighted_dist_matrix = None
@@ -191,7 +222,7 @@ class Target:
         return set(self._qarg_gate_map)
 
     def get_qargs(self, gate):
-        """Get the qargs for a given gate instance
+        """Get the qargs for a given gate name
 
         Args:
            gate (str): The gate instance to get qargs for
@@ -235,10 +266,10 @@ class Target:
                 to it. For example, ``(0,)`` will return the set of all
                 instructions that apply to qubit 0.
         Returns:
-            set: The set of :class:`~qiskit.circuit.Instruction` instances
+            list: The set of :class:`~qiskit.circuit.Instruction` instances
             that apply to the specified qarg.
         """
-        return set(self._gate_name_map[x] for x in self._qarg_gate_map[qarg])
+        return [self._gate_name_map[x] for x in self._qarg_gate_map[qarg]]
 
     @property
     def instruction_names(self):
@@ -249,10 +280,6 @@ class Target:
     def instructions(self):
         """Gate the instruction gates in the gate map"""
         return list(self._gate_name_map.values())
-
-    def size(self):
-        """Return the number of physical qubits in this graph."""
-        return self.num_qubits
 
     def _build_coupling_graph(self):
         self._coupling_graph = rx.PyDiGraph(multigraph=False)
@@ -279,6 +306,11 @@ class Target:
         Returns:
             CouplingMap: The :class:`~qiskit.transpiler.CouplingMap` object
                 for this target.
+
+        Raises:
+            ValueError: If a non-two qubit gate is passed in for ``two_q_gate``.
+            IndexError: If an Instruction not in the Target is passed in for
+                ``two_q_gate``.
         """
         if any(len(x) > 2 for x in self.qargs):
             logger.warning(
@@ -290,7 +322,11 @@ class Target:
         if two_q_gate is not None:
             coupling_graph = rx.PyDiGraph(multigraph=False)
             coupling_graph.add_nodes_from(list(None for _ in range(self.num_qubits)))
-            for qargs, properties in self._gate_map[two_q_gate]:
+            for qargs, properties in self._gate_map[two_q_gate].items():
+                if len(qargs) != 2:
+                    raise ValueError(
+                        "Specified two_q_gate: %s is not a 2 qubit instruction" % two_q_gate
+                    )
                 coupling_graph.add_edge(*qargs, {two_q_gate: properties})
             cmap = CouplingMap()
             cmap.graph = coupling_graph
@@ -331,6 +367,8 @@ class Target:
             raise TypeError("Invalid weight type %s" % weight)
 
     def _compute_distance_matrix(self, weight=None):
+        if self._coupling_graph is None:
+            self._build_coupling_graph()
         if weight is None:
             self._unweighted_dist_matrix = rx.digraph_distance_matrix(
                 self._coupling_graph, as_undirected=True
@@ -392,9 +430,9 @@ class Target:
                 "reflected in the output matrix."
             )
 
-        if physical_qubit1 >= self.size():
+        if physical_qubit1 >= self.num_qubits:
             raise CouplingError("%s not in coupling graph" % physical_qubit1)
-        if physical_qubit2 >= self.size():
+        if physical_qubit2 >= self.num_qubits:
             raise CouplingError("%s not in coupling graph" % physical_qubit2)
         if weight is None:
             if self._unweighted_dist_matrix is None:

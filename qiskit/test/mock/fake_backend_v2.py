@@ -31,40 +31,38 @@ class FakeBackendV2(BackendV2):
     def __init__(self):
         super().__init__(None)
         self._target = Target()
-        theta = Parameter("theta")
-        phi = Parameter("phi")
-        lam = Parameter("lambda")
+        self._theta = Parameter("theta")
+        self._phi = Parameter("phi")
+        self._lam = Parameter("lambda")
         rx_props = {
             (0,): InstructionProperties(length=5.23e-8, error=0.00038115),
             (1,): InstructionProperties(length=4.52e-8, error=0.00032115),
         }
-        self._target.add_instruction(RXGate(theta), [(0,), (1,)], properties=rx_props)
+        self._target.add_instruction(RXGate(self._theta), rx_props)
         rx_30_props = {
             (0,): InstructionProperties(length=1.23e-8, error=0.00018115),
             (1,): InstructionProperties(length=1.52e-8, error=0.00012115),
         }
-        self._target.add_instruction(
-            RXGate(np.pi / 6), [(0,), (1,)], name="rx_30", properties=rx_30_props
-        )
+        self._target.add_instruction(RXGate(np.pi / 6), rx_30_props, name="rx_30")
         u_props = {
             (0,): InstructionProperties(length=5.23e-8, error=0.00038115),
             (1,): InstructionProperties(length=4.52e-8, error=0.00032115),
         }
-        self._target.add_instruction(UGate(theta, phi, lam), [(0,), (1,)], properties=u_props)
+        self._target.add_instruction(UGate(self._theta, self._phi, self._lam), u_props)
         cx_props = {
             (0, 1): InstructionProperties(length=5.23e-7, error=0.00098115),
             (1, 0): InstructionProperties(length=4.52e-7, error=0.00132115),
         }
-        self._target.add_instruction(CXGate(), [(0, 1), (1, 0)], properties=cx_props)
+        self._target.add_instruction(CXGate(), cx_props)
         measure_props = {
             (0,): InstructionProperties(length=6e-6, error=5e-6),
             (1,): InstructionProperties(length=1e-6, error=9e-6),
         }
-        self._target.add_instruction(Measure(), [(0,), (1,)], properties=measure_props)
+        self._target.add_instruction(Measure(), measure_props)
         ecr_props = {
             (1, 0): InstructionProperties(length=4.52e-9, error=0.0000132115),
         }
-        self._target.add_instruction(ECRGate(), [(1, 0)], properties=ecr_props)
+        self._target.add_instruction(ECRGate(), ecr_props)
 
     @property
     def target(self):
