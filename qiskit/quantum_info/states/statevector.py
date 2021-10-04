@@ -199,8 +199,8 @@ class Statevector(QuantumState, TolerancesMixin):
             QiskitError: if key is not valid.
         """
         if isinstance(key, str):
-            if re.match(r'^[01]+$', key) is None:
-                raise QiskitError('Key contains invalid characters.')
+            if re.match(r"^[01]+$", key) is None:
+                raise QiskitError("Key contains invalid characters.")
             else:
                 key = int(key, 2)
         if isinstance(key, int):
@@ -209,7 +209,7 @@ class Statevector(QuantumState, TolerancesMixin):
             else:
                 raise QiskitError("Key is greater than Statevector dimension.")
         else:
-            raise QiskitError('Key must be int or a valid binary string.')
+            raise QiskitError("Key must be int or a valid binary string.")
 
     @property
     def data(self):

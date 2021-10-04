@@ -215,7 +215,7 @@ class TestStatevector(QiskitTestCase):
             state = Statevector(vec)
             for i in range(4):
                 self.assertEqual(state[i], vec[i])
-                self.assertEqual(state[format(i, 'b')], vec[i])
+                self.assertEqual(state[format(i, "b")], vec[i])
 
     def test_copy(self):
         """Test Statevector copy method"""
@@ -349,12 +349,12 @@ class TestStatevector(QiskitTestCase):
         for _ in range(10):
             seed = np.random.randint(0, np.iinfo(np.int32).max)
             rng = np.random.default_rng(seed)
-            dim = 2**rng.integers(1, 4)
+            dim = 2 ** rng.integers(1, 4)
             vec0 = Statevector(self.rand_vec(dim))
             vec1 = Statevector(self.rand_vec(dim))
             target = 0
             for i in range(vec0.dim):
-                target += np.conj(vec0.data[i])*vec1.data[i]
+                target += np.conj(vec0.data[i]) * vec1.data[i]
             result = vec0.inner(vec1)
             assert_almost_equal(result, target)
 
