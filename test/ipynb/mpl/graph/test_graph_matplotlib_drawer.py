@@ -170,6 +170,13 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         counts = {"11": 500, "00": 500}
 
         self.graph_count_drawer(counts, filename="histogram.png")
+        
+    def test_plot_histogram_hamming(self):
+        """Test histogram with hamming distance"""
+
+        counts = {"11": 500, "10": 500, "01": 500, "00": 500}
+
+        self.graph_count_drawer(data=counts, sort="hamming", filename="histogram_hamming.png")
 
     def test_plot_1_qubit_gate_map(self):
         """Test plot_gate_map using 1 qubit backend"""
