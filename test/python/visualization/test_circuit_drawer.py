@@ -27,6 +27,19 @@ if visualization.HAS_MATPLOTLIB:
     from matplotlib import figure
 
 
+_latex_drawer_condition = unittest.skipUnless(
+    all(
+        (
+            visualization.HAS_PYLATEX,
+            visualization.HAS_PIL,
+            visualization.HAS_PDFLATEX,
+            visualization.HAS_PDFTOCAIRO,
+        )
+    ),
+    "Skipped because not all of PIL, pylatex, pdflatex and pdftocairo are available",
+)
+
+
 class TestCircuitDrawer(QiskitTestCase):
     def test_default_output(self):
         with patch("qiskit.user_config.get_config", return_value={}):
@@ -77,25 +90,15 @@ class TestCircuitDrawer(QiskitTestCase):
                 out = visualization.circuit_drawer(circuit)
                 self.assertIsInstance(out, text.TextDrawing)
 
-    @unittest.skipUnless(
-        visualization.HAS_PYLATEX and visualization.HAS_PIL and visualization.HAS_PDFLATEX,
-        "Skipped because PIL and pylatex is not available",
-    )
-    def test_unsupported_image_format_error_message(self):
+    @_latex_drawer_condition
+    def test_latex_unsupported_image_format_error_message(self):
         with patch("qiskit.user_config.get_config", return_value={"circuit_drawer": "latex"}):
             circuit = QuantumCircuit()
-            with self.assertRaises(VisualizationError) as ve:
+            with self.assertRaises(VisualizationError, msg="Pillow could not write the image file"):
                 visualization.circuit_drawer(circuit, filename="file.spooky")
-                self.assertEqual(
-                    str(ve.exception),
-                    "ERROR: filename parameter does not use a supported extension.",
-                )
 
-    @unittest.skipUnless(
-        visualization.HAS_PYLATEX and visualization.HAS_PIL and visualization.HAS_PDFLATEX,
-        "Skipped because PIL and pylatex is not available",
-    )
-    def test_output_file_correct_format(self):
+    @_latex_drawer_condition
+    def test_latex_output_file_correct_format(self):
         with patch("qiskit.user_config.get_config", return_value={"circuit_drawer": "latex"}):
             circuit = QuantumCircuit()
             filename = "file.gif"

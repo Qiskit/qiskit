@@ -119,13 +119,13 @@ class FakeBackend(BackendV1):
         """Main job in simulator"""
         circuits = run_input
         pulse_job = None
-        if isinstance(circuits, pulse.Schedule):
+        if isinstance(circuits, (pulse.Schedule, pulse.ScheduleBlock)):
             pulse_job = True
         elif isinstance(circuits, circuit.QuantumCircuit):
             pulse_job = False
         elif isinstance(circuits, list):
             if circuits:
-                if all(isinstance(x, pulse.Schedule) for x in circuits):
+                if all(isinstance(x, (pulse.Schedule, pulse.ScheduleBlock)) for x in circuits):
                     pulse_job = True
                 elif all(isinstance(x, circuit.QuantumCircuit) for x in circuits):
                     pulse_job = False
@@ -140,7 +140,7 @@ class FakeBackend(BackendV1):
 
                 system_model = PulseSystemModel.from_backend(self)
                 sim = aer.Aer.get_backend("pulse_simulator")
-                job = sim.run(circuits, system_model, **kwargs)
+                job = sim.run(circuits, system_model=system_model, **kwargs)
             else:
                 sim = aer.Aer.get_backend("qasm_simulator")
                 if self.properties():
