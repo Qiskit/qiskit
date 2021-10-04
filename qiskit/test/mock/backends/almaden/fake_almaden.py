@@ -15,53 +15,42 @@ Fake Almaden device (20 qubit).
 """
 
 import os
-import json
-
-from qiskit.providers.models import (PulseBackendConfiguration,
-                                     BackendProperties, PulseDefaults)
-from qiskit.test.mock.fake_backend import FakeBackend
+from qiskit.test.mock import fake_pulse_backend
 
 
-class FakeAlmaden(FakeBackend):
-    """A fake Almaden backend."""
+class FakeAlmaden(fake_pulse_backend.FakePulseBackend):
+    """A fake Almaden backend.
 
-    def __init__(self):
-        """
-          00 ↔ 01 ↔ 02 ↔ 03 ↔ 04
-                ↕         ↕
-          05 ↔ 06 ↔ 07 ↔ 08 ↔ 09
-           ↕         ↕         ↕
-          10 ↔ 11 ↔ 12 ↔ 13 ↔ 14
-                ↕         ↕
-          15 ↔ 16 ↔ 17 ↔ 18 ↔ 19
-        """
-        dirname = os.path.dirname(__file__)
-        filename = "conf_almaden.json"
-        with open(os.path.join(dirname, filename)) as f_conf:
-            conf = json.load(f_conf)
+    00 ↔ 01 ↔ 02 ↔ 03 ↔ 04
+          ↕         ↕
+    05 ↔ 06 ↔ 07 ↔ 08 ↔ 09
+     ↕         ↕         ↕
+    10 ↔ 11 ↔ 12 ↔ 13 ↔ 14
+          ↕         ↕
+    15 ↔ 16 ↔ 17 ↔ 18 ↔ 19
+    """
 
-        configuration = PulseBackendConfiguration.from_dict(conf)
-        configuration.backend_name = 'fake_almaden'
-        self._defaults = None
-        self._properties = None
-        super().__init__(configuration)
+    dirname = os.path.dirname(__file__)
+    conf_filename = "conf_almaden.json"
+    props_filename = "props_almaden.json"
+    defs_filename = "defs_almaden.json"
+    backend_name = "fake_almaden"
 
-    def properties(self):
-        """Returns a snapshot of device properties"""
-        if not self._properties:
-            dirname = os.path.dirname(__file__)
-            filename = "props_almaden.json"
-            with open(os.path.join(dirname, filename)) as f_prop:
-                props = json.load(f_prop)
-            self._properties = BackendProperties.from_dict(props)
-        return self._properties
 
-    def defaults(self):
-        """Returns a snapshot of device defaults"""
-        if not self._defaults:
-            dirname = os.path.dirname(__file__)
-            filename = "defs_almaden.json"
-            with open(os.path.join(dirname, filename)) as f_defs:
-                defs = json.load(f_defs)
-            self._defaults = PulseDefaults.from_dict(defs)
-        return self._defaults
+class FakeLegacyAlmaden(fake_pulse_backend.FakePulseLegacyBackend):
+    """A fake Almaden backend.
+
+    00 ↔ 01 ↔ 02 ↔ 03 ↔ 04
+          ↕         ↕
+    05 ↔ 06 ↔ 07 ↔ 08 ↔ 09
+     ↕         ↕         ↕
+    10 ↔ 11 ↔ 12 ↔ 13 ↔ 14
+          ↕         ↕
+    15 ↔ 16 ↔ 17 ↔ 18 ↔ 19
+    """
+
+    dirname = os.path.dirname(__file__)
+    conf_filename = "conf_almaden.json"
+    props_filename = "props_almaden.json"
+    defs_filename = "defs_almaden.json"
+    backend_name = "fake_almaden"

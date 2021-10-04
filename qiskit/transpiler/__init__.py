@@ -20,7 +20,7 @@ Transpiler (:mod:`qiskit.transpiler`)
 Overview
 ========
 Transpilation is the process of rewriting a given input circuit to match
-the topoplogy of a specific quantum device, and/or to optimize the circuit
+the topology of a specific quantum device, and/or to optimize the circuit
 for execution on present day noisy quantum systems.
 
 Most circuits must undergo a series of transformations that make them compatible with
@@ -46,11 +46,8 @@ these ready-made routines.
 Supplementary Information
 =========================
 
-.. container:: toggle
-
-   .. container:: header
-
-      **Basis Gates**
+.. dropdown:: Basis gates
+   :animate: fade-in-slide-down
 
    When writing a quantum circuit you are free to use any quantum gate (unitary operator) that
    you like, along with a collection of non-gate operations such as qubit measurements and
@@ -84,12 +81,12 @@ Supplementary Information
 
       qc.h(0)
       qc.x(1)
-      qc.cu1(np.pi/4, 0, 1)
+      qc.cp(np.pi/4, 0, 1)
       qc.h(0)
       qc.measure([0], [0])
       qc.draw(output='mpl')
 
-   We have :math:`H`, :math:`X`, and controlled-:math:`U_{1}` gates, all of which are
+   We have :math:`H`, :math:`X`, and controlled-:math:`P` gates, all of which are
    not in our devices basis gate set, and must be expanded.  This expansion is taken
    care of for us in the :func:`qiskit.execute` function. However, we can
    decompose the circuit to show what it would look like in the native gate set of
@@ -152,11 +149,8 @@ Supplementary Information
 
       <br>
 
-.. container:: toggle
-
-   .. container:: header
-
-      **Initial Layout**
+.. dropdown:: Initial layout
+   :animate: fade-in-slide-down
 
    Quantum circuits are abstract entities whose qubits are "virtual" representations of actual
    qubits used in computations.  We need to be able to map these virtual qubits in a one-to-one
@@ -247,11 +241,8 @@ Supplementary Information
       <br>
 
 
-.. container:: toggle
-
-   .. container:: header
-
-      **Mapping Circuits to Hardware Topology**
+.. dropdown:: Mapping circuits to hardware topology
+   :animate: fade-in-slide-down
 
    In order to implement a CNOT gate between qubits in a quantum circuit that are not directly
    connected on a quantum device one or more SWAP gates must be inserted into the circuit to
@@ -317,11 +308,8 @@ Supplementary Information
       <br>
 
 
-.. container:: toggle
-
-   .. container:: header
-
-      **Gate Optimization**
+.. dropdown:: Gate optimization
+   :animate: fade-in-slide-down
 
    Decomposing quantum circuits into the basis gate set of the IBM Quantum devices,
    and the addition of SWAP gates needed to match hardware topology, conspire to
@@ -390,6 +378,14 @@ Layout and Topology
    Layout
    CouplingMap
 
+Scheduling
+----------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   InstructionDurations
+
 Fenced Objects
 --------------
 
@@ -398,6 +394,15 @@ Fenced Objects
 
    FencedDAGCircuit
    FencedPropertySet
+
+Abstract Passes
+---------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   TransformationPass
+   AnalysisPass
 
 Exceptions
 ----------
@@ -418,3 +423,4 @@ from .fencedobjs import FencedDAGCircuit, FencedPropertySet
 from .basepasses import AnalysisPass, TransformationPass
 from .coupling import CouplingMap
 from .layout import Layout
+from .instruction_durations import InstructionDurations

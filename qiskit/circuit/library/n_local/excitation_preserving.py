@@ -21,7 +21,7 @@ from .two_local import TwoLocal
 
 
 class ExcitationPreserving(TwoLocal):
-    r"""The heurisitic excitation-preserving wave function ansatz.
+    r"""The heuristic excitation-preserving wave function ansatz.
 
     The ``ExcitationPreserving`` circuit preserves the ratio of :math:`|00\rangle`,
     :math:`|01\rangle + |10\rangle` and :math:`|11\rangle` states. The matrix representing
@@ -88,17 +88,19 @@ class ExcitationPreserving(TwoLocal):
              └──────────┘ ░ └────────────┘└────────────┘        ░ └──────────┘
     """
 
-    def __init__(self,
-                 num_qubits: Optional[int] = None,
-                 mode: str = 'iswap',
-                 entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = 'full',
-                 reps: int = 3,
-                 skip_unentangled_qubits: bool = False,
-                 skip_final_rotation_layer: bool = False,
-                 parameter_prefix: str = 'θ',
-                 insert_barriers: bool = False,
-                 initial_state: Optional[Any] = None,
-                 ) -> None:
+    def __init__(
+        self,
+        num_qubits: Optional[int] = None,
+        mode: str = "iswap",
+        entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = "full",
+        reps: int = 3,
+        skip_unentangled_qubits: bool = False,
+        skip_final_rotation_layer: bool = False,
+        parameter_prefix: str = "θ",
+        insert_barriers: bool = False,
+        initial_state: Optional[Any] = None,
+        name: str = "ExcitationPreserving",
+    ) -> None:
         """Create a new ExcitationPreserving 2-local circuit.
 
         Args:
@@ -112,7 +114,7 @@ class ExcitationPreserving(TwoLocal):
                 the index of the entanglement layer.
                 See the Examples section of :class:`~qiskit.circuit.library.TwoLocal` for more
                 detail.
-            initial_state: An `InitialState` object to prepend to the circuit.
+            initial_state: A `QuantumCircuit` object to prepend to the circuit.
             skip_unentangled_qubits: If True, the single qubit gates are only applied to qubits
                 that are entangled with another qubit. If False, the single qubit gates are applied
                 to each qubit in the Ansatz. Defaults to False.
@@ -129,28 +131,31 @@ class ExcitationPreserving(TwoLocal):
         Raises:
             ValueError: If the selected mode is not supported.
         """
-        supported_modes = ['iswap', 'fsim']
+        supported_modes = ["iswap", "fsim"]
         if mode not in supported_modes:
-            raise ValueError('Unsupported mode {}, choose one of {}'.format(mode, supported_modes))
+            raise ValueError(f"Unsupported mode {mode}, choose one of {supported_modes}")
 
-        theta = Parameter('θ')
-        swap = QuantumCircuit(2, name='Interaction')
+        theta = Parameter("θ")
+        swap = QuantumCircuit(2, name="Interaction")
         swap.rxx(theta, 0, 1)
         swap.ryy(theta, 0, 1)
-        if mode == 'fsim':
-            phi = Parameter('φ')
-            swap.cu1(phi, 0, 1)
+        if mode == "fsim":
+            phi = Parameter("φ")
+            swap.cp(phi, 0, 1)
 
-        super().__init__(num_qubits=num_qubits,
-                         rotation_blocks=RZGate,
-                         entanglement_blocks=swap,
-                         entanglement=entanglement,
-                         reps=reps,
-                         skip_unentangled_qubits=skip_unentangled_qubits,
-                         skip_final_rotation_layer=skip_final_rotation_layer,
-                         parameter_prefix=parameter_prefix,
-                         insert_barriers=insert_barriers,
-                         initial_state=initial_state)
+        super().__init__(
+            num_qubits=num_qubits,
+            rotation_blocks=RZGate,
+            entanglement_blocks=swap,
+            entanglement=entanglement,
+            reps=reps,
+            skip_unentangled_qubits=skip_unentangled_qubits,
+            skip_final_rotation_layer=skip_final_rotation_layer,
+            parameter_prefix=parameter_prefix,
+            insert_barriers=insert_barriers,
+            initial_state=initial_state,
+            name=name,
+        )
 
     @property
     def parameter_bounds(self) -> List[Tuple[float, float]]:

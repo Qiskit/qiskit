@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member
-
 """Permutation circuit."""
 
 from typing import List, Optional
@@ -25,11 +23,12 @@ from qiskit.circuit.exceptions import CircuitError
 class Permutation(QuantumCircuit):
     """An n_qubit circuit that permutes qubits."""
 
-    def __init__(self,
-                 num_qubits: int,
-                 pattern: Optional[List[int]] = None,
-                 seed: Optional[int] = None,
-                 ) -> None:
+    def __init__(
+        self,
+        num_qubits: int,
+        pattern: Optional[List[int]] = None,
+        seed: Optional[int] = None,
+    ) -> None:
         """Return an n_qubit permutation circuit implemented using SWAPs.
 
         Args:
@@ -62,22 +61,38 @@ class Permutation(QuantumCircuit):
         """
         if pattern is not None:
             if sorted(pattern) != list(range(num_qubits)):
-                raise CircuitError("Permutation pattern must be some "
-                                   "ordering of 0..num_qubits-1 in a list.")
+                raise CircuitError(
+                    "Permutation pattern must be some ordering of 0..num_qubits-1 in a list."
+                )
             pattern = np.array(pattern)
         else:
             rng = np.random.default_rng(seed)
             pattern = np.arange(num_qubits)
             rng.shuffle(pattern)
 
-        name = "permutation_" + np.array_str(pattern).replace(' ', ',')
+        name = "permutation_" + np.array_str(pattern).replace(" ", ",")
 
-        inner = QuantumCircuit(num_qubits, name=name)
+        circuit = QuantumCircuit(num_qubits, name=name)
 
         super().__init__(num_qubits, name=name)
-        for i in range(num_qubits):
-            if (pattern[i] != -1) and (pattern[i] != i):
-                inner.swap(i, int(pattern[i]))
-                pattern[pattern[i]] = -1
+        for i, j in _get_ordered_swap(pattern):
+            circuit.swap(i, j)
+
         all_qubits = self.qubits
-        self.append(inner, all_qubits)
+        self.append(circuit.to_gate(), all_qubits)
+
+
+def _get_ordered_swap(permutation_in):
+    """This attempts to sort the input permutation by iterating through the
+    permutation list and swapping the element with where the actual index occurs and
+    and tracking the swaps.
+    """
+    permutation = list(permutation_in[:])
+    swap_list = []
+    for i, val in enumerate(permutation):
+        if val != i:
+            j = permutation.index(i)
+            swap_list.append((i, j))
+            permutation[i], permutation[j] = permutation[j], permutation[i]
+    swap_list.reverse()
+    return swap_list

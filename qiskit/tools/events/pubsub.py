@@ -51,8 +51,9 @@ class _Broker:
         def __eq__(self, other):
             """Overrides the default implementation"""
             if isinstance(other, self.__class__):
-                return self.event == other.event and \
-                       self.callback.__name__ == other.callback.__name__
+                return self.event == other.event and id(self.callback) == id(
+                    other.callback
+                )  # Allow 1:N subscribers
             return False
 
     def subscribe(self, event, callback):
@@ -95,7 +96,7 @@ class _Broker:
             subscriber.callback(*args, **kwargs)
 
     def unsubscribe(self, event, callback):
-        """ Unsubscribe the specific callback to the event.
+        """Unsubscribe the specific callback to the event.
 
         Args
             event (String): The event to unsubscribe
@@ -114,43 +115,44 @@ class _Broker:
         return True
 
     def clear(self):
-        """ Unsubscribe everything, leaving the Broker without subscribers/events.
-        """
+        """Unsubscribe everything, leaving the Broker without subscribers/events."""
         self._subscribers.clear()
 
 
 class Publisher:
-    """ Represents a Publisher, every component (class) can become a Publisher and
+    """Represents a Publisher, every component (class) can become a Publisher and
     send events by inheriting this class. Functions can call this class like:
     Publisher().publish("event", args, ... )
     """
+
     def __init__(self):
         self._broker = _Broker()
 
     def publish(self, event, *args, **kwargs):
-        """ Triggers an event, and associates some data to it, so if there are any
-        subscribers, their callback will be called synchronously. """
+        """Triggers an event, and associates some data to it, so if there are any
+        subscribers, their callback will be called synchronously."""
         return self._broker.dispatch(event, *args, **kwargs)
 
 
 class Subscriber:
-    """ Represents a Subscriber, every component (class) can become a Subscriber and
+    """Represents a Subscriber, every component (class) can become a Subscriber and
     subscribe to events, that will call callback functions when they are emitted.
     """
+
     def __init__(self):
         self._broker = _Broker()
 
     def subscribe(self, event, callback):
-        """ Subscribes to an event, associating a callback function to that event, so
+        """Subscribes to an event, associating a callback function to that event, so
         when the event occurs, the callback will be called.
-        This is a blocking call, so try to keep callbacks as lightweight as possible. """
+        This is a blocking call, so try to keep callbacks as lightweight as possible."""
         return self._broker.subscribe(event, callback)
 
     def unsubscribe(self, event, callback):
-        """ Unsubscribe a pair event-callback, so the callback will not be called anymore
+        """Unsubscribe a pair event-callback, so the callback will not be called anymore
         when the event occurs."""
         return self._broker.unsubscribe(event, callback)
 
     def clear(self):
-        """ Unsubscribe everything"""
+        """Unsubscribe everything"""
         self._broker.clear()

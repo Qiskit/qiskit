@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    The :attr:`~qiskit.circuit.QuantumCircuit.calibrations` attribute
+    of :class:`~qiskit.circuit.QuantumCircuit` objects are now preserved when
+    the ``+=`` (ie the :meth:`~qiskit.circuit.QuantumCircuit.extend`
+    method) and the ``+`` (ie the :meth:`~qiskit.circuit.QuantumCircuit.combine`
+    method) are used.
+    Fixed `#5930 <https://github.com/Qiskit/qiskit-terra/pull/5930>`__ and
+    `#5908 <https://github.com/Qiskit/qiskit-terra/issues/5908>`__

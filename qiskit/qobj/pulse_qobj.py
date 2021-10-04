@@ -10,22 +10,20 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,redefined-builtin,method-hidden,arguments-differ
+# pylint: disable=invalid-name,redefined-builtin,arguments-differ
 # pylint: disable=super-init-not-called
 
 """Module providing definitions of Pulse Qobj classes."""
 
 import copy
-import json
 import pprint
 from typing import Union, List
 
 import numpy
 
-from qiskit.qobj.qasm_qobj import QobjDictField
-from qiskit.qobj.qasm_qobj import QobjHeader
-from qiskit.qobj.qasm_qobj import QobjExperimentHeader
-from qiskit.qobj.qasm_qobj import validator
+from qiskit.qobj.common import QobjDictField
+from qiskit.qobj.common import QobjHeader
+from qiskit.qobj.common import QobjExperimentHeader
 
 
 class QobjMeasurementOption:
@@ -48,9 +46,9 @@ class QobjMeasurementOption:
         Returns:
             dict: The dictionary form of the QasmMeasurementOption.
         """
-        out_dict = {'name': self.name}
-        if hasattr(self, 'params'):
-            out_dict['params'] = self.params
+        out_dict = {"name": self.name}
+        if hasattr(self, "params"):
+            out_dict["params"] = self.params
         return out_dict
 
     @classmethod
@@ -63,7 +61,7 @@ class QobjMeasurementOption:
         Returns:
             QobjMeasurementOption: The object from the input dictionary.
         """
-        name = data.pop('name')
+        name = data.pop("name")
         return cls(name, **data)
 
     def __eq__(self, other):
@@ -76,11 +74,42 @@ class QobjMeasurementOption:
 class PulseQobjInstruction:
     """A class representing a single instruction in an PulseQobj Experiment."""
 
-    def __init__(self, name, t0, ch=None, conditional=None, val=None, phase=None,
-                 duration=None, qubits=None, memory_slot=None,
-                 register_slot=None, kernels=None, discriminators=None,
-                 label=None, type=None, pulse_shape=None,
-                 parameters=None, frequency=None):
+    _COMMON_ATTRS = [
+        "ch",
+        "conditional",
+        "val",
+        "phase",
+        "frequency",
+        "duration",
+        "qubits",
+        "memory_slot",
+        "register_slot",
+        "label",
+        "type",
+        "pulse_shape",
+        "parameters",
+    ]
+
+    def __init__(
+        self,
+        name,
+        t0,
+        ch=None,
+        conditional=None,
+        val=None,
+        phase=None,
+        duration=None,
+        qubits=None,
+        memory_slot=None,
+        register_slot=None,
+        kernels=None,
+        discriminators=None,
+        label=None,
+        type=None,
+        pulse_shape=None,
+        parameters=None,
+        frequency=None,
+    ):
         """Instantiate a new PulseQobjInstruction object.
 
         Args:
@@ -158,44 +187,34 @@ class PulseQobjInstruction:
         Returns:
             dict: The dictionary form of the PulseQobjInstruction.
         """
-        out_dict = {
-            'name': self.name,
-            't0': self.t0
-        }
-        for attr in ['ch', 'conditional', 'val', 'phase', 'frequency',
-                     'duration', 'qubits', 'memory_slot', 'register_slot',
-                     'label', 'type', 'pulse_shape', 'parameters']:
+        out_dict = {"name": self.name, "t0": self.t0}
+        for attr in self._COMMON_ATTRS:
             if hasattr(self, attr):
                 out_dict[attr] = getattr(self, attr)
-        if hasattr(self, 'kernels'):
-            out_dict['kernels'] = [x.to_dict() for x in self.kernels]
-        if hasattr(self, 'discriminators'):
-            out_dict['discriminators'] = [
-                x.to_dict() for x in self.discriminators]
+        if hasattr(self, "kernels"):
+            out_dict["kernels"] = [x.to_dict() for x in self.kernels]
+        if hasattr(self, "discriminators"):
+            out_dict["discriminators"] = [x.to_dict() for x in self.discriminators]
         return out_dict
 
     def __repr__(self):
-        out = "PulseQobjInstruction(name='%s', t0=%s" % (self.name, self.t0)
-        for attr in ['ch', 'conditional', 'val', 'phase', 'duration',
-                     'qubits', 'memory_slot', 'register_slot',
-                     'label', 'type', 'pulse_shape', 'parameters']:
+        out = f'PulseQobjInstruction(name="{self.name}", t0={self.t0}'
+        for attr in self._COMMON_ATTRS:
             attr_val = getattr(self, attr, None)
             if attr_val is not None:
                 if isinstance(attr_val, str):
-                    out += ', %s="%s"' % (attr, attr_val)
+                    out += f', {attr}="{attr_val}"'
                 else:
-                    out += ", %s=%s" % (attr, attr_val)
-        out += ')'
+                    out += f", {attr}={attr_val}"
+        out += ")"
         return out
 
     def __str__(self):
         out = "Instruction: %s\n" % self.name
         out += "\t\tt0: %s\n" % self.t0
-        for attr in ['ch', 'conditional', 'val', 'phase', 'duration',
-                     'qubits', 'memory_slot', 'register_slot',
-                     'label', 'type', 'pulse_shape', 'parameters']:
+        for attr in self._COMMON_ATTRS:
             if hasattr(self, attr):
-                out += '\t\t%s: %s\n' % (attr, getattr(self, attr))
+                out += f"\t\t{attr}: {getattr(self, attr)}\n"
         return out
 
     @classmethod
@@ -208,19 +227,18 @@ class PulseQobjInstruction:
         Returns:
             PulseQobjInstruction: The object from the input dictionary.
         """
-        t0 = data.pop('t0')
-        name = data.pop('name')
-        if 'kernels' in data:
-            kernels = data.pop('kernels')
+        t0 = data.pop("t0")
+        name = data.pop("name")
+        if "kernels" in data:
+            kernels = data.pop("kernels")
             kernel_obj = [QobjMeasurementOption.from_dict(x) for x in kernels]
-            data['kernels'] = kernel_obj
-        if 'discriminators' in data:
-            discriminators = data.pop('discriminators')
-            discriminators_obj = [
-                QobjMeasurementOption.from_dict(x) for x in discriminators]
-            data['discriminators'] = discriminators_obj
-        if 'parameters' in data and 'amp' in data['parameters']:
-            data['parameters']['amp'] = _to_complex(data['parameters']['amp'])
+            data["kernels"] = kernel_obj
+        if "discriminators" in data:
+            discriminators = data.pop("discriminators")
+            discriminators_obj = [QobjMeasurementOption.from_dict(x) for x in discriminators]
+            data["discriminators"] = discriminators_obj
+        if "parameters" in data and "amp" in data["parameters"]:
+            data["parameters"]["amp"] = _to_complex(data["parameters"]["amp"])
 
         return cls(name, t0, **data)
 
@@ -245,23 +263,35 @@ def _to_complex(value: Union[List[float], complex]) -> complex:
     elif isinstance(value, complex):
         return value
 
-    raise TypeError("{} is not in a valid complex number format.".format(value))
+    raise TypeError(f"{value} is not in a valid complex number format.")
 
 
 class PulseQobjConfig(QobjDictField):
     """A configuration for a Pulse Qobj."""
 
-    def __init__(self, meas_level, meas_return, pulse_library,
-                 qubit_lo_freq, meas_lo_freq, memory_slot_size=None,
-                 rep_time=None, rep_delay=None, shots=None, max_credits=None,
-                 seed_simulator=None, memory_slots=None, **kwargs):
+    def __init__(
+        self,
+        meas_level,
+        meas_return,
+        pulse_library,
+        qubit_lo_freq,
+        meas_lo_freq,
+        memory_slot_size=None,
+        rep_time=None,
+        rep_delay=None,
+        shots=None,
+        max_credits=None,
+        seed_simulator=None,
+        memory_slots=None,
+        **kwargs,
+    ):
         """Instantiate a PulseQobjConfig object.
 
         Args:
             meas_level (int): The measurement level to use.
             meas_return (int): The level of measurement information to return.
             pulse_library (list): A list of :class:`PulseLibraryItem` objects
-                which define the set of primative pulses
+                which define the set of primitive pulses
             qubit_lo_freq (list): List of frequencies (as floats) for the qubit
                 driver LO's in GHz.
             meas_lo_freq (list): List of frequencies (as floats) for the'
@@ -316,9 +346,8 @@ class PulseQobjConfig(QobjDictField):
             dict: The dictionary form of the PulseQobjConfig.
         """
         out_dict = copy.copy(self.__dict__)
-        if hasattr(self, 'pulse_library'):
-            out_dict['pulse_library'] = [
-                x.to_dict() for x in self.pulse_library]
+        if hasattr(self, "pulse_library"):
+            out_dict["pulse_library"] = [x.to_dict() for x in self.pulse_library]
 
         return out_dict
 
@@ -332,10 +361,10 @@ class PulseQobjConfig(QobjDictField):
         Returns:
             PulseQobjConfig: The object from the input dictionary.
         """
-        if 'pulse_library' in data:
-            pulse_lib = data.pop('pulse_library')
+        if "pulse_library" in data:
+            pulse_lib = data.pop("pulse_library")
             pulse_lib_obj = [PulseLibraryItem.from_dict(x) for x in pulse_lib]
-            data['pulse_library'] = pulse_lib_obj
+            data["pulse_library"] = pulse_lib_obj
         return cls(**data)
 
 
@@ -366,43 +395,41 @@ class PulseQobjExperiment:
         Returns:
             dict: The dictionary form of the PulseQobjExperiment.
         """
-        out_dict = {
-            'instructions': [x.to_dict() for x in self.instructions]
-        }
-        if hasattr(self, 'config'):
-            out_dict['config'] = self.config.to_dict()
-        if hasattr(self, 'header'):
-            out_dict['header'] = self.header.to_dict()
+        out_dict = {"instructions": [x.to_dict() for x in self.instructions]}
+        if hasattr(self, "config"):
+            out_dict["config"] = self.config.to_dict()
+        if hasattr(self, "header"):
+            out_dict["header"] = self.header.to_dict()
         return out_dict
 
     def __repr__(self):
         instructions_str = [repr(x) for x in self.instructions]
-        instructions_repr = '[' + ', '.join(instructions_str) + ']'
+        instructions_repr = "[" + ", ".join(instructions_str) + "]"
         out = "PulseQobjExperiment("
         out += instructions_repr
-        if hasattr(self, 'config') or hasattr(self, 'header'):
-            out += ', '
-        if hasattr(self, 'config'):
+        if hasattr(self, "config") or hasattr(self, "header"):
+            out += ", "
+        if hasattr(self, "config"):
             out += "config=" + str(repr(self.config)) + ", "
-        if hasattr(self, 'header'):
+        if hasattr(self, "header"):
             out += "header=" + str(repr(self.header)) + ", "
-        out += ')'
+        out += ")"
         return out
 
     def __str__(self):
-        out = '\nPulse Experiment:\n'
-        if hasattr(self, 'config'):
+        out = "\nPulse Experiment:\n"
+        if hasattr(self, "config"):
             config = pprint.pformat(self.config.to_dict())
         else:
-            config = '{}'
-        if hasattr(self, 'header'):
+            config = "{}"
+        if hasattr(self, "header"):
             header = pprint.pformat(self.header.to_dict() or {})
         else:
-            header = '{}'
-        out += 'Header:\n%s\n' % header
-        out += 'Config:\n%s\n\n' % config
+            header = "{}"
+        out += "Header:\n%s\n" % header
+        out += "Config:\n%s\n\n" % config
         for instruction in self.instructions:
-            out += '\t%s\n' % instruction
+            out += "\t%s\n" % instruction
         return out
 
     @classmethod
@@ -416,16 +443,16 @@ class PulseQobjExperiment:
             PulseQobjExperiment: The object from the input dictionary.
         """
         config = None
-        if 'config' in data:
-            config = PulseQobjExperimentConfig.from_dict(data.pop('config'))
+        if "config" in data:
+            config = PulseQobjExperimentConfig.from_dict(data.pop("config"))
         header = None
-        if 'header' in data:
-            header = QobjExperimentHeader.from_dict(data.pop('header'))
+        if "header" in data:
+            header = QobjExperimentHeader.from_dict(data.pop("header"))
         instructions = None
-        if 'instructions' in data:
+        if "instructions" in data:
             instructions = [
-                PulseQobjInstruction.from_dict(
-                    inst) for inst in data.pop('instructions')]
+                PulseQobjInstruction.from_dict(inst) for inst in data.pop("instructions")
+            ]
         return cls(instructions, config, header)
 
     def __eq__(self, other):
@@ -442,12 +469,9 @@ class PulseQobjExperimentConfig(QobjDictField):
         """Instantiate a PulseQobjExperimentConfig object.
 
         Args:
-            qubit_lo_freq (list): List of frequencies (as floats) for the qubit
-                driver LO's in GHz.
-            meas_lo_freq (list): List of frequencies (as floats) for the'
-                measurement driver LO's in GHz.
-            kwargs: Additional free form key value fields to add to the
-                configuration
+            qubit_lo_freq (List[float]): List of qubit LO frequencies in GHz.
+            meas_lo_freq (List[float]): List of meas readout LO frequencies in GHz.
+            kwargs: Additional free form key value fields to add to the configuration
         """
         if qubit_lo_freq is not None:
             self.qubit_lo_freq = qubit_lo_freq
@@ -470,8 +494,7 @@ class PulseLibraryItem:
         """
         self.name = name
         if isinstance(samples[0], list):
-            self.samples = numpy.array(
-                [complex(sample[0], sample[1]) for sample in samples])
+            self.samples = numpy.array([complex(sample[0], sample[1]) for sample in samples])
         else:
             self.samples = samples
 
@@ -481,7 +504,7 @@ class PulseLibraryItem:
         Returns:
             dict: The dictionary form of the PulseLibraryItem.
         """
-        return {'name': self.name, 'samples': self.samples}
+        return {"name": self.name, "samples": self.samples}
 
     @classmethod
     def from_dict(cls, data):
@@ -496,11 +519,10 @@ class PulseLibraryItem:
         return cls(**data)
 
     def __repr__(self):
-        return "PulseLibraryItem(%s, %s)" % (self.name, repr(self.samples))
+        return f"PulseLibraryItem({self.name}, {repr(self.samples)})"
 
     def __str__(self):
-        return "Pulse Library Item:\n\tname: %s\n\tsamples: %s" % (
-            self.name, self.samples)
+        return f"Pulse Library Item:\n\tname: {self.name}\n\tsamples: {self.samples}"
 
     def __eq__(self, other):
         if isinstance(other, PulseLibraryItem):
@@ -512,9 +534,8 @@ class PulseLibraryItem:
 class PulseQobj:
     """A Pulse Qobj."""
 
-    def __init__(self, qobj_id, config, experiments,
-                 header=None):
-        """Instatiate a new Pulse Qobj Object.
+    def __init__(self, qobj_id, config, experiments, header=None):
+        """Instantiate a new Pulse Qobj Object.
 
         Each Pulse Qobj object is used to represent a single payload that will
         be passed to a Qiskit provider. It mirrors the Qobj the published
@@ -532,28 +553,18 @@ class PulseQobj:
         self.config = config
         self.header = header or QobjHeader()
         self.experiments = experiments
-        self.type = 'PULSE'
-        self.schema_version = '1.2.0'
-
-    def _validate_json_schema(self, out_dict):
-        class PulseQobjEncoder(json.JSONEncoder):
-            """A json encoder for pulse qobj"""
-            def default(self, obj):
-                if isinstance(obj, numpy.ndarray):
-                    return obj.tolist()
-                if isinstance(obj, complex):
-                    return (obj.real, obj.imag)
-                return json.JSONEncoder.default(self, obj)
-
-        json_str = json.dumps(out_dict, cls=PulseQobjEncoder)
-        validator(json.loads(json_str))
+        self.type = "PULSE"
+        self.schema_version = "1.2.0"
 
     def __repr__(self):
         experiments_str = [repr(x) for x in self.experiments]
-        experiments_repr = '[' + ', '.join(experiments_str) + ']'
-        out = "PulseQobj(qobj_id='%s', config=%s, experiments=%s, header=%s)" % (
-            self.qobj_id, repr(self.config), experiments_repr,
-            repr(self.header))
+        experiments_repr = "[" + ", ".join(experiments_str) + "]"
+        out = "PulseQobj(qobj_id='{}', config={}, experiments={}, header={})".format(
+            self.qobj_id,
+            repr(self.config),
+            experiments_repr,
+            repr(self.header),
+        )
         return out
 
     def __str__(self):
@@ -567,7 +578,7 @@ class PulseQobj:
             out += "%s" % str(experiment)
         return out
 
-    def to_dict(self, validate=False):
+    def to_dict(self):
         """Return a dictionary format representation of the Pulse Qobj.
 
         Note this dict is not in the json wire format expected by IBMQ and qobj
@@ -591,24 +602,17 @@ class PulseQobj:
 
             json.dumps(qobj.to_dict(), cls=QobjEncoder)
 
-        Args:
-            validate (bool): When set to true validate the output dictionary
-                against the jsonschema for qobj spec.
-
         Returns:
-            dict: A dictionary representation of the QasmQobj object
+            dict: A dictionary representation of the PulseQobj object
         """
         out_dict = {
-            'qobj_id': self.qobj_id,
-            'header': self.header.to_dict(),
-            'config': self.config.to_dict(),
-            'schema_version': self.schema_version,
-            'type': self.type,
-            'experiments': [x.to_dict() for x in self.experiments]
+            "qobj_id": self.qobj_id,
+            "header": self.header.to_dict(),
+            "config": self.config.to_dict(),
+            "schema_version": self.schema_version,
+            "type": self.type,
+            "experiments": [x.to_dict() for x in self.experiments],
         }
-        if validate:
-            self._validate_json_schema(out_dict)
-
         return out_dict
 
     @classmethod
@@ -623,19 +627,18 @@ class PulseQobj:
             PulseQobj: The PulseQobj from the input dictionary.
         """
         config = None
-        if 'config' in data:
-            config = PulseQobjConfig.from_dict(data['config'])
+        if "config" in data:
+            config = PulseQobjConfig.from_dict(data["config"])
         experiments = None
-        if 'experiments' in data:
-            experiments = [
-                PulseQobjExperiment.from_dict(
-                    exp) for exp in data['experiments']]
+        if "experiments" in data:
+            experiments = [PulseQobjExperiment.from_dict(exp) for exp in data["experiments"]]
         header = None
-        if 'header' in data:
-            header = QobjHeader.from_dict(data['header'])
+        if "header" in data:
+            header = QobjHeader.from_dict(data["header"])
 
-        return cls(qobj_id=data.get('qobj_id'), config=config,
-                   experiments=experiments, header=header)
+        return cls(
+            qobj_id=data.get("qobj_id"), config=config, experiments=experiments, header=header
+        )
 
     def __eq__(self, other):
         if isinstance(other, PulseQobj):

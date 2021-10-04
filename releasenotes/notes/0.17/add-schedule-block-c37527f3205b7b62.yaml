@@ -1,0 +1,59 @@
+---
+features:
+  - |
+    A new class, :py:class:`~qiskit.pulse.ScheduleBlock`, has been added to
+    the :class:`qiskit.pulse` module. This class provides a new representation
+    of a pulse program. This representation is best suited for the pulse
+    builder syntax and is based on relative instruction ordering.
+
+    This representation takes ``alignment_context`` instead of specifying
+    starting time ``t0`` for each instruction. The start time of instruction is
+    implicitly allocated with the specified transformation and relative
+    position of instructions.
+
+    The :py:class:`~qiskit.pulse.ScheduleBlock` allows for lazy instruction
+    scheduling, meaning we can assign arbitrary parameters to the duration of
+    instructions.
+
+    For example:
+
+    .. code-block:: python
+
+        from qiskit.pulse import ScheduleBlock, DriveChannel, Gaussian
+        from qiskit.pulse.instructions import Play, Call
+        from qiskit.pulse.transforms import AlignRight
+        from qiskit.circuit import Parameter
+
+        dur = Parameter('rabi_duration')
+
+        block = ScheduleBlock(alignment_context=AlignRight())
+        block += Play(Gaussian(dur, 0.1, dur/4), DriveChannel(0))
+        block += Call(measure_sched)  # subroutine defined elsewhere
+
+    this code defines an experiment scanning a Gaussian pulse's duration
+    followed by a measurement ``measure_sched``, i.e. a Rabi experiment.
+    You can reuse the ``block`` object for every scanned duration
+    by assigning a target duration value.
+deprecations:
+  - |
+    The :meth:`~qiskit.pulse.channels.Channel.assign_parameters` for the
+    following classes:
+
+     * :py:class:`qiskit.pulse.channels.Channel`,
+     * :py:class:`qiskit.pulse.library.Pulse`,
+     * :py:class:`qiskit.pulse.instructions.Instruction`,
+
+    and all their subclasses is now deprecated and will be removed in a future
+    release. This functionality has been subsumed
+    :py:class:`~qiskit.pulse.ScheduleBlock` which is the future direction for
+    constructing parameterized pulse programs.
+  - |
+    The :attr:`~qiskit.pulse.channels.Channel.parameters` attribute for
+    the following clasess:
+
+      * :py:class:`~qiskit.pulse.channels.Channel`
+      * :py:class:`~qiskit.pulse.instructions.Instruction`.
+
+    is deprecated and will be removed in a future release. This functionality
+    has been subsumed :py:class:`~qiskit.pulse.ScheduleBlock` which is the
+    future direction for constructing parameterized pulse programs.

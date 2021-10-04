@@ -16,15 +16,21 @@ Methods to create random operators.
 
 import numpy as np
 from numpy.random import default_rng
-from scipy import stats
 
-from qiskit.quantum_info.operators import Operator, Stinespring
 from qiskit.exceptions import QiskitError
+from qiskit.quantum_info.operators import Operator, Stinespring
 
 # pylint: disable=unused-import
-from .symplectic.random import random_clifford
-from .symplectic.random import random_pauli_table
-from .symplectic.random import random_stabilizer_table
+from .dihedral.random import random_cnotdihedral
+from .symplectic.random import (
+    random_clifford,
+    random_pauli,
+    random_pauli_list,
+    random_pauli_table,
+    random_stabilizer_table,
+)
+
+DEFAULT_RNG = default_rng()
 
 
 def random_unitary(dims, seed=None):
@@ -41,13 +47,15 @@ def random_unitary(dims, seed=None):
         Operator: a unitary operator.
     """
     if seed is None:
-        random_state = np.random.default_rng()
+        random_state = DEFAULT_RNG
     elif isinstance(seed, np.random.Generator):
         random_state = seed
     else:
         random_state = default_rng(seed)
 
     dim = np.product(dims)
+    from scipy import stats
+
     mat = stats.unitary_group.rvs(dim, random_state=random_state)
     return Operator(mat, input_dims=dims, output_dims=dims)
 
@@ -69,7 +77,7 @@ def random_hermitian(dims, traceless=False, seed=None):
         Operator: a Hermitian operator.
     """
     if seed is None:
-        rng = np.random.default_rng()
+        rng = DEFAULT_RNG
     elif isinstance(seed, np.random.Generator):
         rng = seed
     else:
@@ -77,31 +85,26 @@ def random_hermitian(dims, traceless=False, seed=None):
 
     # Total dimension
     dim = np.product(dims)
+    from scipy import stats
 
     if traceless:
         mat = np.zeros((dim, dim), dtype=complex)
     else:
         # Generate diagonal part of matrix for Gaussian N(0, 1)
-        mat = np.diag(stats.norm.rvs(
-            scale=1, size=dim, random_state=rng).astype(complex))
+        mat = np.diag(stats.norm.rvs(scale=1, size=dim, random_state=rng).astype(complex))
 
     # Generate lower triangular values from Gaussian N(0, 0.5)
     num_tril = (dim * (dim - 1)) // 2
-    real_tril = stats.norm.rvs(
-        scale=0.5, size=num_tril, random_state=rng)
-    imag_tril = stats.norm.rvs(
-        scale=0.5, size=num_tril, random_state=rng)
-    # Get lower triangular indicies
+    real_tril = stats.norm.rvs(scale=0.5, size=num_tril, random_state=rng)
+    imag_tril = stats.norm.rvs(scale=0.5, size=num_tril, random_state=rng)
+    # Get lower triangular indices
     rows, cols = np.tril_indices(dim, -1)
     mat[(rows, cols)] = real_tril + 1j * imag_tril
     mat[(cols, rows)] = real_tril - 1j * imag_tril
     return Operator(mat, input_dims=dims, output_dims=dims)
 
 
-def random_quantum_channel(input_dims=None,
-                           output_dims=None,
-                           rank=None,
-                           seed=None):
+def random_quantum_channel(input_dims=None, output_dims=None, rank=None, seed=None):
     """Return a random CPTP quantum channel.
 
     This constructs the Stinespring operator for the quantum channel by
@@ -123,8 +126,8 @@ def random_quantum_channel(input_dims=None,
     # Determine total input and output dimensions
     if input_dims is None and output_dims is None:
         raise QiskitError(
-            'No dimensions specified: input_dims and output_dims cannot'
-            ' both be None.')
+            "No dimensions specified: input_dims and output_dims cannot both be None."
+        )
     if input_dims is None:
         input_dims = output_dims
     elif output_dims is None:
@@ -138,12 +141,11 @@ def random_quantum_channel(input_dims=None,
     if rank is None or rank > d_in * d_out:
         rank = d_in * d_out
     if rank < 1:
-        raise QiskitError("Rank {} must be greater than 0.".format(rank))
+        raise QiskitError(f"Rank {rank} must be greater than 0.")
+    from scipy import stats
 
     # Generate a random unitary matrix
-    unitary = stats.unitary_group.rvs(
-        max(rank * d_out, d_in), random_state=seed)
+    unitary = stats.unitary_group.rvs(max(rank * d_out, d_in), random_state=seed)
 
     # Truncate columns to produce an isometry
-    return Stinespring(
-        unitary[:, :d_in], input_dims=input_dims, output_dims=output_dims)
+    return Stinespring(unitary[:, :d_in], input_dims=input_dims, output_dims=output_dims)

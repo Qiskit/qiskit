@@ -57,13 +57,15 @@ class ZZFeatureMap(PauliFeatureMap):
         OrderedDict([('u1', 12), ('cx', 12), ('ry', 12), ('cz', 9), ('h', 6)])
     """
 
-    def __init__(self,
-                 feature_dimension: int,
-                 reps: int = 2,
-                 entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = 'full',
-                 data_map_func: Optional[Callable[[np.ndarray], float]] = None,
-                 insert_barriers: bool = False,
-                 ) -> None:
+    def __init__(
+        self,
+        feature_dimension: int,
+        reps: int = 2,
+        entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = "full",
+        data_map_func: Optional[Callable[[np.ndarray], float]] = None,
+        insert_barriers: bool = False,
+        name: str = "ZZFeatureMap",
+    ) -> None:
         """Create a new second-order Pauli-Z expansion.
 
         Args:
@@ -75,10 +77,21 @@ class ZZFeatureMap(PauliFeatureMap):
             insert_barriers: If True, barriers are inserted in between the evolution instructions
                 and hadamard layers.
 
+        Raises:
+            ValueError: If the feature dimension is smaller than 2.
         """
-        super().__init__(feature_dimension=feature_dimension,
-                         reps=reps,
-                         entanglement=entanglement,
-                         paulis=['Z', 'ZZ'],
-                         data_map_func=data_map_func,
-                         insert_barriers=insert_barriers)
+        if feature_dimension < 2:
+            raise ValueError(
+                "The ZZFeatureMap contains 2-local interactions and cannot be "
+                f"defined for less than 2 qubits. You provided {feature_dimension}."
+            )
+
+        super().__init__(
+            feature_dimension=feature_dimension,
+            reps=reps,
+            entanglement=entanglement,
+            paulis=["Z", "ZZ"],
+            data_map_func=data_map_func,
+            insert_barriers=insert_barriers,
+            name=name,
+        )

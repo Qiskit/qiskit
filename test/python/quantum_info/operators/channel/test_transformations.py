@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 
 """Tests for quantum channel representation transformations."""
 
@@ -35,24 +34,39 @@ class TestTransformations(ChannelTestCase):
     """Tests for Operator channel representation."""
 
     unitary_mat = [
-        ChannelTestCase.UI, ChannelTestCase.UX, ChannelTestCase.UY,
-        ChannelTestCase.UZ, ChannelTestCase.UH
+        ChannelTestCase.UI,
+        ChannelTestCase.UX,
+        ChannelTestCase.UY,
+        ChannelTestCase.UZ,
+        ChannelTestCase.UH,
     ]
     unitary_choi = [
-        ChannelTestCase.choiI, ChannelTestCase.choiX, ChannelTestCase.choiY,
-        ChannelTestCase.choiZ, ChannelTestCase.choiH
+        ChannelTestCase.choiI,
+        ChannelTestCase.choiX,
+        ChannelTestCase.choiY,
+        ChannelTestCase.choiZ,
+        ChannelTestCase.choiH,
     ]
     unitary_chi = [
-        ChannelTestCase.chiI, ChannelTestCase.chiX, ChannelTestCase.chiY,
-        ChannelTestCase.chiZ, ChannelTestCase.chiH
+        ChannelTestCase.chiI,
+        ChannelTestCase.chiX,
+        ChannelTestCase.chiY,
+        ChannelTestCase.chiZ,
+        ChannelTestCase.chiH,
     ]
     unitary_sop = [
-        ChannelTestCase.sopI, ChannelTestCase.sopX, ChannelTestCase.sopY,
-        ChannelTestCase.sopZ, ChannelTestCase.sopH
+        ChannelTestCase.sopI,
+        ChannelTestCase.sopX,
+        ChannelTestCase.sopY,
+        ChannelTestCase.sopZ,
+        ChannelTestCase.sopH,
     ]
     unitary_ptm = [
-        ChannelTestCase.ptmI, ChannelTestCase.ptmX, ChannelTestCase.ptmY,
-        ChannelTestCase.ptmZ, ChannelTestCase.ptmH
+        ChannelTestCase.ptmI,
+        ChannelTestCase.ptmX,
+        ChannelTestCase.ptmY,
+        ChannelTestCase.ptmZ,
+        ChannelTestCase.ptmH,
     ]
 
     def test_operator_to_operator(self):
@@ -117,8 +131,7 @@ class TestTransformations(ChannelTestCase):
         for mat, choi in zip(self.unitary_mat, self.unitary_choi):
             chan1 = Operator(mat)
             chan2 = Operator(Choi(choi))
-            self.assertTrue(
-                matrix_equal(chan2.data, chan1.data, ignore_phase=True))
+            self.assertTrue(matrix_equal(chan2.data, chan1.data, ignore_phase=True))
 
     def test_choi_to_choi(self):
         """Test Choi to Choi transformation."""
@@ -152,8 +165,7 @@ class TestTransformations(ChannelTestCase):
         for mat, choi in zip(self.unitary_mat, self.unitary_choi):
             chan1 = Kraus(mat)
             chan2 = Kraus(Choi(choi))
-            self.assertTrue(
-                matrix_equal(chan2.data[0], chan1.data[0], ignore_phase=True))
+            self.assertTrue(matrix_equal(chan2.data[0], chan1.data[0], ignore_phase=True))
         # Test depolarizing channels
         rho = DensityMatrix(np.diag([1, 0]))
         for p in [0.25, 0.5, 0.75, 1]:
@@ -167,8 +179,7 @@ class TestTransformations(ChannelTestCase):
         for mat, choi in zip(self.unitary_mat, self.unitary_choi):
             chan1 = Kraus(mat)
             chan2 = Kraus(Choi(choi))
-            self.assertTrue(
-                matrix_equal(chan2.data[0], chan1.data[0], ignore_phase=True))
+            self.assertTrue(matrix_equal(chan2.data[0], chan1.data[0], ignore_phase=True))
         # Test depolarizing channels
         rho = DensityMatrix(np.diag([1, 0]))
         for p in [0.25, 0.5, 0.75, 1]:
@@ -207,8 +218,7 @@ class TestTransformations(ChannelTestCase):
         for mat, sop in zip(self.unitary_mat, self.unitary_sop):
             chan1 = Operator(mat)
             chan2 = Operator(SuperOp(sop))
-            self.assertTrue(
-                matrix_equal(chan2.data, chan1.data, ignore_phase=True))
+            self.assertTrue(matrix_equal(chan2.data, chan1.data, ignore_phase=True))
         self.assertRaises(QiskitError, Operator, SuperOp(self.depol_sop(0.5)))
 
     def test_superop_to_choi(self):
@@ -243,8 +253,7 @@ class TestTransformations(ChannelTestCase):
         for mat, sop in zip(self.unitary_mat, self.unitary_sop):
             chan1 = Kraus(mat)
             chan2 = Kraus(SuperOp(sop))
-            self.assertTrue(
-                matrix_equal(chan2.data[0], chan1.data[0], ignore_phase=True))
+            self.assertTrue(matrix_equal(chan2.data[0], chan1.data[0], ignore_phase=True))
         # Test depolarizing channels
         rho = DensityMatrix(np.diag([1, 0]))
         for p in [0.25, 0.5, 0.75, 1]:
@@ -258,8 +267,7 @@ class TestTransformations(ChannelTestCase):
         for mat, sop in zip(self.unitary_mat, self.unitary_sop):
             chan1 = Stinespring(mat)
             chan2 = Stinespring(SuperOp(sop))
-            self.assertTrue(
-                matrix_equal(chan2.data[0], chan1.data[0], ignore_phase=True))
+            self.assertTrue(matrix_equal(chan2.data[0], chan1.data[0], ignore_phase=True))
         # Test depolarizing channels
         rho = DensityMatrix(np.diag([1, 0]))
         for p in [0.25, 0.5, 0.75, 1]:
@@ -298,8 +306,7 @@ class TestTransformations(ChannelTestCase):
         for mat in self.unitary_mat:
             chan1 = Operator(mat)
             chan2 = Operator(Kraus(mat))
-            self.assertTrue(
-                matrix_equal(chan2.data, chan1.data, ignore_phase=True))
+            self.assertTrue(matrix_equal(chan2.data, chan1.data, ignore_phase=True))
         self.assertRaises(QiskitError, Operator, Kraus(self.depol_kraus(0.5)))
 
     def test_kraus_to_choi(self):
@@ -347,8 +354,7 @@ class TestTransformations(ChannelTestCase):
         for mat in self.unitary_mat:
             chan1 = Stinespring(mat)
             chan2 = Stinespring(Kraus(mat))
-            self.assertTrue(
-                matrix_equal(chan2.data[0], chan1.data[0], ignore_phase=True))
+            self.assertTrue(matrix_equal(chan2.data[0], chan1.data[0], ignore_phase=True))
         # Test depolarizing channels
         rho = DensityMatrix(np.diag([1, 0]))
         for p in [0.25, 0.5, 0.75, 1]:
@@ -387,10 +393,8 @@ class TestTransformations(ChannelTestCase):
         for mat in self.unitary_mat:
             chan1 = Operator(mat)
             chan2 = Operator(Stinespring(mat))
-            self.assertTrue(
-                matrix_equal(chan2.data, chan1.data, ignore_phase=True))
-        self.assertRaises(QiskitError, Operator,
-                          Stinespring(self.depol_stine(0.5)))
+            self.assertTrue(matrix_equal(chan2.data, chan1.data, ignore_phase=True))
+        self.assertRaises(QiskitError, Operator, Stinespring(self.depol_stine(0.5)))
 
     def test_stinespring_to_choi(self):
         """Test Stinespring to Choi transformation."""
@@ -475,8 +479,7 @@ class TestTransformations(ChannelTestCase):
         for mat, chi in zip(self.unitary_mat, self.unitary_chi):
             chan1 = Operator(mat)
             chan2 = Operator(Chi(chi))
-            self.assertTrue(
-                matrix_equal(chan2.data, chan1.data, ignore_phase=True))
+            self.assertTrue(matrix_equal(chan2.data, chan1.data, ignore_phase=True))
         self.assertRaises(QiskitError, Operator, Chi(self.depol_chi(0.5)))
 
     def test_chi_to_choi(self):
@@ -511,8 +514,7 @@ class TestTransformations(ChannelTestCase):
         for mat, chi in zip(self.unitary_mat, self.unitary_chi):
             chan1 = Kraus(mat)
             chan2 = Kraus(Chi(chi))
-            self.assertTrue(
-                matrix_equal(chan2.data[0], chan1.data[0], ignore_phase=True))
+            self.assertTrue(matrix_equal(chan2.data[0], chan1.data[0], ignore_phase=True))
         # Test depolarizing channels
         rho = DensityMatrix(np.diag([1, 0]))
         for p in [0.25, 0.5, 0.75, 1]:
@@ -526,8 +528,7 @@ class TestTransformations(ChannelTestCase):
         for mat, chi in zip(self.unitary_mat, self.unitary_chi):
             chan1 = Kraus(mat)
             chan2 = Kraus(Chi(chi))
-            self.assertTrue(
-                matrix_equal(chan2.data[0], chan1.data[0], ignore_phase=True))
+            self.assertTrue(matrix_equal(chan2.data[0], chan1.data[0], ignore_phase=True))
         # Test depolarizing channels
         rho = DensityMatrix(np.diag([1, 0]))
         for p in [0.25, 0.5, 0.75, 1]:
@@ -566,8 +567,7 @@ class TestTransformations(ChannelTestCase):
         for mat, ptm in zip(self.unitary_mat, self.unitary_ptm):
             chan1 = Operator(mat)
             chan2 = Operator(PTM(ptm))
-            self.assertTrue(
-                matrix_equal(chan2.data, chan1.data, ignore_phase=True))
+            self.assertTrue(matrix_equal(chan2.data, chan1.data, ignore_phase=True))
         self.assertRaises(QiskitError, Operator, PTM(self.depol_ptm(0.5)))
 
     def test_ptm_to_choi(self):
@@ -602,8 +602,7 @@ class TestTransformations(ChannelTestCase):
         for mat, ptm in zip(self.unitary_mat, self.unitary_ptm):
             chan1 = Kraus(mat)
             chan2 = Kraus(PTM(ptm))
-            self.assertTrue(
-                matrix_equal(chan2.data[0], chan1.data[0], ignore_phase=True))
+            self.assertTrue(matrix_equal(chan2.data[0], chan1.data[0], ignore_phase=True))
         # Test depolarizing channels
         rho = DensityMatrix(np.diag([1, 0]))
         for p in [0.25, 0.5, 0.75, 1]:
@@ -617,8 +616,7 @@ class TestTransformations(ChannelTestCase):
         for mat, ptm in zip(self.unitary_mat, self.unitary_ptm):
             chan1 = Kraus(mat)
             chan2 = Kraus(PTM(ptm))
-            self.assertTrue(
-                matrix_equal(chan2.data[0], chan1.data[0], ignore_phase=True))
+            self.assertTrue(matrix_equal(chan2.data[0], chan1.data[0], ignore_phase=True))
         # Test depolarizing channels
         rho = DensityMatrix(np.diag([1, 0]))
         for p in [0.25, 0.5, 0.75, 1]:
@@ -653,5 +651,5 @@ class TestTransformations(ChannelTestCase):
             self.assertEqual(chan1, chan2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

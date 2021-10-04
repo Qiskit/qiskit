@@ -25,7 +25,8 @@ class TestDagDrawer(QiskitTestCase):
     """Qiskit DAG drawer tests."""
 
     def setUp(self):
-        qr = QuantumRegister(2, 'qr')
+        super().setUp()
+        qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[0], qr[1])
@@ -33,9 +34,8 @@ class TestDagDrawer(QiskitTestCase):
 
     def test_dag_drawer_invalid_style(self):
         """Test dag draw with invalid style."""
-        self.assertRaises(VisualizationError, dag_drawer, self.dag,
-                          style='multicolor')
+        self.assertRaises(VisualizationError, dag_drawer, self.dag, style="multicolor")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main(verbosity=2)

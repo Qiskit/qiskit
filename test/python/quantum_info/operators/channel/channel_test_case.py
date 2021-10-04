@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """Tests for quantum channel representation class."""
 
 import numpy as np
@@ -33,12 +31,9 @@ class ChannelTestCase(OperatorTestCase):
     # Choi-matrices for Pauli-matrix unitaries
     choiI = np.array([[1, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0], [1, 0, 0, 1]])
     choiX = np.array([[0, 0, 0, 0], [0, 1, 1, 0], [0, 1, 1, 0], [0, 0, 0, 0]])
-    choiY = np.array([[0, 0, 0, 0], [0, 1, -1, 0], [0, -1, 1, 0], [0, 0, 0,
-                                                                   0]])
-    choiZ = np.array([[1, 0, 0, -1], [0, 0, 0, 0], [0, 0, 0, 0], [-1, 0, 0,
-                                                                  1]])
-    choiH = np.array([[1, 1, 1, -1], [1, 1, 1, -1], [1, 1, 1, -1],
-                      [-1, -1, -1, 1]]) / 2
+    choiY = np.array([[0, 0, 0, 0], [0, 1, -1, 0], [0, -1, 1, 0], [0, 0, 0, 0]])
+    choiZ = np.array([[1, 0, 0, -1], [0, 0, 0, 0], [0, 0, 0, 0], [-1, 0, 0, 1]])
+    choiH = np.array([[1, 1, 1, -1], [1, 1, 1, -1], [1, 1, 1, -1], [-1, -1, -1, 1]]) / 2
 
     # Chi-matrices for Pauli-matrix unitaries
     chiI = np.diag([2, 0, 0, 0])
@@ -67,13 +62,14 @@ class ChannelTestCase(OperatorTestCase):
             np.sqrt(1 - p * 3 / 4) * self.UI,
             np.sqrt(p / 4) * self.UX,
             np.sqrt(p / 4) * self.UY,
-            np.sqrt(p / 4) * self.UZ
+            np.sqrt(p / 4) * self.UZ,
         ]
 
     def depol_sop(self, p):
         """Depolarizing channel superoperator matrix"""
         return (1 - p) * self.sopI + p * np.array(
-            [[1, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0], [1, 0, 0, 1]]) / 2
+            [[1, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0], [1, 0, 0, 1]]
+        ) / 2
 
     def depol_choi(self, p):
         """Depolarizing channel Choi-matrix"""

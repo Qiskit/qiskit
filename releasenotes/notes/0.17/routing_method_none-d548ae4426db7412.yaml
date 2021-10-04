@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    The ``routing_method`` kwarg for the :func:`~qiskit.compiler.transpile`
+    function now accepts a new option, ``'none'``. When
+    ``routing_method='none'`` no routing pass will be run as part of the
+    transpilation. If the circuit does not fit coupling map a
+    :class:`~qiskit.transpiler.exceptions.TranspilerError` exception will be
+    raised.

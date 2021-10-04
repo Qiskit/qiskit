@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    A new optimization pass,
+    :class:`qiskit.transpiler.passes.TemplateOptimization` has been added to
+    the transpiler. This pass applies a template matching algorithm described
+    in `arXiv:1909.05270 <https://arxiv.org/pdf/1909.05270.pdf>`__ that
+    replaces all compatible maximal matches in the circuit.
+
+    To implement this new transpiler pass a new module, ``template_circuits``,
+    was added to the circuit library (:mod:`qiskit.circuit.library`). This new
+    module contains all the Toffoli circuit templates used in the
+    :class:`~qiskit.transpiler.passes.TemplateOptimization`.
+
+    This new pass is **not** currently included in the preset pass managers
+    (:mod:`qiskit.transpiler.preset_passmanagers`), to use it you will need
+    to create a custom :class:`~qiskit.transpiler.PassManager`.

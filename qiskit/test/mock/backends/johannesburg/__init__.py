@@ -10,6 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring
+"""Mock johannesburg backend"""
 
 from .fake_johannesburg import FakeJohannesburg
+from .fake_johannesburg import FakeLegacyJohannesburg

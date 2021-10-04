@@ -15,47 +15,30 @@ Fake Armonk device (5 qubit).
 """
 
 import os
-import json
-
-from qiskit.providers.models import (PulseDefaults, PulseBackendConfiguration,
-                                     BackendProperties)
-from qiskit.test.mock.fake_backend import FakeBackend
+from qiskit.test.mock import fake_pulse_backend
 
 
-class FakeArmonk(FakeBackend):
-    """A fake 1 qubit backend."""
+class FakeArmonk(fake_pulse_backend.FakePulseBackend):
+    """A fake 1 qubit backend.
 
-    def __init__(self):
-        """
-         0
-        """
-        dirname = os.path.dirname(__file__)
-        filename = "conf_armonk.json"
-        with open(os.path.join(dirname, filename)) as f_conf:
-            conf = json.load(f_conf)
+    0
+    """
 
-        configuration = PulseBackendConfiguration.from_dict(conf)
-        configuration.backend_name = 'fake_armonk'
-        self._defaults = None
-        self._properties = None
-        super().__init__(configuration)
+    dirname = os.path.dirname(__file__)
+    conf_filename = "conf_armonk.json"
+    props_filename = "props_armonk.json"
+    defs_filename = "defs_armonk.json"
+    backend_name = "fake_armonk"
 
-    def properties(self):
-        """Returns a snapshot of device properties"""
-        if not self._properties:
-            dirname = os.path.dirname(__file__)
-            filename = "props_armonk.json"
-            with open(os.path.join(dirname, filename)) as f_prop:
-                props = json.load(f_prop)
-            self._properties = BackendProperties.from_dict(props)
-        return self._properties
 
-    def defaults(self):
-        """Returns a snapshot of device defaults"""
-        if not self._defaults:
-            dirname = os.path.dirname(__file__)
-            filename = "defs_armonk.json"
-            with open(os.path.join(dirname, filename)) as f_defs:
-                defs = json.load(f_defs)
-            self._defaults = PulseDefaults.from_dict(defs)
-        return self._defaults
+class FakeLegacyArmonk(fake_pulse_backend.FakePulseLegacyBackend):
+    """A fake 1 qubit backend.
+
+    0
+    """
+
+    dirname = os.path.dirname(__file__)
+    conf_filename = "conf_armonk.json"
+    props_filename = "props_armonk.json"
+    defs_filename = "defs_armonk.json"
+    backend_name = "fake_armonk"

@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Two alignment contexts are added to the pulse builder
+    (:mod:`qiskit.pulse.builder`) to facilitate writing a repeated pulse
+    sequence with delays.
+
+    * :func:`qiskit.pulse.builder.align_equispaced` inserts delays with
+      equivalent length in between pulse schedules within the context.
+    * :func:`qiskit.pulse.builder.align_func` offers more advanced control of
+      pulse position. This context takes a callable that calculates a fractional
+      coordinate of i-th pulse and aligns pulses within the context. This makes
+      coding of dynamical decoupling easy.

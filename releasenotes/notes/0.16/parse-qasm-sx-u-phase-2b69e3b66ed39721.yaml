@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed an error where loading a QASM file via
+    :meth:`~qiskit.circuit.QuantumCircuit.from_qasm_file` or
+    :meth:`~qiskit.circuit.QuantumCircuit.from_qasm_str` would fail
+    if a ``u``, ``phase(p)``, ``sx``, or ``sxdg`` gate were present in
+    the QASM file.
+    Fixes `#5156 <https://github.com/Qiskit/qiskit-terra/issues/5151>`__

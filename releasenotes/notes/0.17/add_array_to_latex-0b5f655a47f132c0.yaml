@@ -1,0 +1,14 @@
+---
+features:
+  - |
+    Added a new function :func:`~qiskit.visualization.array_to_latex` to
+    the :mod:`qiskit.visualization` module that can be used to represent
+    and visualize vectors and matrices with LaTeX.
+
+    .. jupyter-execute::
+
+            from qiskit.visualization import array_to_latex
+            from numpy import sqrt, exp, pi
+            mat = [[0, exp(pi*.75j)],
+                   [1/sqrt(8), 0.875]]
+            array_to_latex(mat)
