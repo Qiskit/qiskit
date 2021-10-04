@@ -227,22 +227,18 @@ class Target:
         """
         return self._gate_name_map[gate]
 
-    def get_qargs_from_name(self, gate_name):
+    def get_instructions_for_qargs(self, qarg):
         """Get the qargs for a given gate by name
 
         Args:
-           gate_name (str): The gate name to get qargs for. Note that gates
-            are not necessarily unique by name (ie different parameters, user
-            override, etc) this will return the qargs for any gate object that
-            has a name that mateches
+            qarg (tuple): A qarg tuple of the qubits to get the gates that apply
+                to it. For example, ``(0,)`` will return the set of all
+                instructions that apply to qubit 0.
         Returns:
-            set: The set of qargs the gate applies to.
+            set: The set of :class:`~qiskit.circuit.Instruction` instances
+            that apply to the specified qarg.
         """
-        output = set()
-        for gate, qarg_map in self._gate_map.items():
-            if gate == gate_name:
-                output.union(set(qarg_map))
-        return output
+        return set(self._gate_name_map[x] for x in self._qarg_gate_map[qarg])
 
     @property
     def instruction_names(self):
