@@ -144,6 +144,16 @@ class Instruction:
 
         return True
 
+    def __repr__(self) -> str:
+        """Generates a representation of the Intruction object instance
+        Returns:
+            str: A representation of the Instruction instance with the name,
+                 number of qubits, classical bits and params( if any )
+        """
+        return "Instruction(name='{}', num_qubits={}, num_clbits={}, params={})".format(
+            self.name, self.num_qubits, self.num_clbits, self.params
+        )
+
     def soft_compare(self, other: "Instruction") -> bool:
         """
         Soft comparison between gates. Their names, number of qubits, and classical

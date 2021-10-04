@@ -221,6 +221,7 @@ class QiskitTestCase(BaseQiskitTestCase):
             "test.python.quantum_info.operators.channel.test_stinespring",
             "test.python.quantum_info.operators.symplectic.test_sparse_pauli_op",
             "test.python.quantum_info.operators.channel.test_ptm",
+            "importlib_metadata",
         ]
         for mod in allow_DeprecationWarning_modules:
             warnings.filterwarnings("default", category=DeprecationWarning, module=mod)
@@ -241,6 +242,8 @@ class QiskitTestCase(BaseQiskitTestCase):
             r"The QuantumCircuit.u. method.*",
             r"The QuantumCircuit.cu.",
             r"The CXDirection pass has been deprecated",
+            r".*SparsePauliOp.table.*",
+            r"The pauli_basis function with PauliTable.*",
         ]
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)

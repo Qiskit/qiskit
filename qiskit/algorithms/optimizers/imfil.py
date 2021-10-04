@@ -12,10 +12,10 @@
 
 """IMplicit FILtering (IMFIL) optimizer."""
 
-from typing import Any, Dict
+from typing import Any, Dict, Callable, Optional, List, Tuple
 
 from qiskit.exceptions import MissingOptionalLibraryError
-from .optimizer import Optimizer, OptimizerSupportLevel
+from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
 try:
     import skquant.opt as skq
@@ -70,6 +70,27 @@ class IMFIL(Optimizer):
             "maxiter": self._maxiter,
         }
 
+    def minimize(
+        self,
+        fun: Callable[[POINT], float],
+        x0: POINT,
+        jac: Optional[Callable[[POINT], POINT]] = None,
+        bounds: Optional[List[Tuple[float, float]]] = None,
+    ) -> OptimizerResult:
+        res, history = skq.minimize(
+            func=fun,
+            x0=x0,
+            bounds=bounds,
+            budget=self._maxiter,
+            method="imfil",
+        )
+
+        optimizer_result = OptimizerResult()
+        optimizer_result.x = res.optpar
+        optimizer_result.fun = res.optval
+        optimizer_result.nfev = len(history)
+        return optimizer_result
+
     def optimize(
         self,
         num_vars,
@@ -82,11 +103,7 @@ class IMFIL(Optimizer):
         super().optimize(
             num_vars, objective_function, gradient_function, variable_bounds, initial_point
         )
-        res, history = skq.minimize(
-            func=objective_function,
-            x0=initial_point,
-            bounds=variable_bounds,
-            budget=self._maxiter,
-            method="imfil",
+        result = self.minimize(
+            objective_function, initial_point, gradient_function, variable_bounds
         )
-        return res.optpar, res.optval, len(history)
+        return result.x, result.fun, result.nfev
