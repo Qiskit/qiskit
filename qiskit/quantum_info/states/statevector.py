@@ -195,14 +195,16 @@ class Statevector(QuantumState, TolerancesMixin):
         Args:
             key (int or str): index or corresponding binary label, e.g. '01' = 1.
 
+        Returns:
+            np.complex128: Statevector item.
+
         Raises:
             QiskitError: if key is not valid.
         """
         if isinstance(key, str):
             if re.match(r"^[01]+$", key) is None:
                 raise QiskitError("Key contains invalid characters.")
-            else:
-                key = int(key, 2)
+            key = int(key, 2)
         if isinstance(key, int):
             if key < self.dim:
                 return self._data[key]
