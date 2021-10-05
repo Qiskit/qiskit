@@ -99,7 +99,9 @@ class TestPresetPassManager(QiskitTestCase):
         result = transpile(circuit, basis_gates=None, optimization_level=0)
         self.assertEqual(result, circuit)
 
-    @combine(level=[0, 1, 2, 3], name="level{level}")
+    # Level 3 is skipped because the 2q synthesis optimization pass decomposes
+    # the unitary
+    @combine(level=[0, 1, 2], name="level{level}")
     def test_unitary_is_preserved_if_in_basis(self, level):
         """Test that a unitary is not synthesized if in the basis."""
         qc = QuantumCircuit(2)
