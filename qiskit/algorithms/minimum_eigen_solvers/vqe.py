@@ -151,7 +151,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self._expectation = None
         self.expectation = expectation
         self._include_custom = None
-        self.include_custum = include_custom
+        self.include_custom = include_custom
 
         # set ansatz -- still supporting pre 0.18.0 sorting
         self._sort_parameters_by_name = None
