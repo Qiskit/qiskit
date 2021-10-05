@@ -72,7 +72,6 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
 
         # store cost operator and set the registers if the operator is not None
         self.cost_operator = cost_operator
-        print("HELLO FROM PR")
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         valid = True
@@ -165,20 +164,19 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
             evolution_ = QuantumCircuit(*self.qregs, name=self.name)            # ------- need to figure out how initial_point is passed/ updated with reps
             evolution_.compose(self.initial_state, inplace = True)
             first = True
-            for _ in range(self.reps):
-                for is_evolved, circuit in zip(is_evolved_operator, circuits):
-                    if first:
-                        first = False
-                    else:
-                        if self._insert_barriers:
-                            evolution_.barrier()
-                    if is_evolved:
-                        # not sure what this line does
-                        bound = circuit.assign_parameters({coeff: next(times_it)})
-                    else:
-                        bound = circuit
-                    evolution_.compose(bound, inplace=True)
-                # then append opt params to self.gamma_values and self.beta_values
+            for is_evolved, circuit in zip(is_evolved_operator, circuits):
+                if first:
+                    first = False
+                else:
+                    if self._insert_barriers:
+                        evolution_.barrier()
+                if is_evolved:
+                    # not sure what this line does
+                    bound = circuit.assign_parameters({coeff: next(times_it)})
+                else:
+                    bound = circuit
+                evolution_.compose(bound, inplace=True)
+            # then append opt params to self.gamma_values and self.beta_values
             return evolution_
         varied_operators = list(itertools.chain.from_iterable([[self.operators[0],mixer] for mixer in self.operators[-1]]))
         evolution = build_ansatz_circuit(varied_operators)

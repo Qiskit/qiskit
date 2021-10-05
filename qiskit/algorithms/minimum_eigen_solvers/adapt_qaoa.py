@@ -2,6 +2,7 @@ import numpy as np
 from itertools import combinations_with_replacement, permutations, product
 
 from qiskit.opflow.list_ops.list_op import ListOp
+from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
 from qiskit.opflow.state_fns.state_fn import StateFn
 from qiskit.opflow.expectations.expectation_factory import ExpectationFactory
@@ -15,7 +16,8 @@ from qiskit.opflow.gradients import GradientBase
 from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.opflow.primitive_ops import MatrixOp
 from qiskit.algorithms.optimizers import Optimizer
-from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
+#CHANGEBACK TODO
+from ...circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
 from qiskit.algorithms import QAOA
 
 def translate_mixer_str_opn(opn: str) -> Dict:
@@ -86,17 +88,16 @@ class AdaptQAOA(QAOA):
 
         return self.ansatz
 
-
-        
-    def compute_energy_gradient(self, mixer, ansatz):
+  
+    def compute_energy_gradient(self, mixer,cost_operator, ansatz):
         from qiskit.opflow import commutator
         """Computes the energy gradient of the cost operator wrt the mixer pool at an ansatz layer specified by
             the input 'state' and initial point.
             Returns: The mixer operator with the largest energy gradient along with the associated energy
                      gradient."""
 
-        if not isinstance(self.cost_operator, MatrixOp):
-            cost_op = MatrixOp(Operator(self.cost_operator))
+        if not isinstance(cost_operator, MatrixOp):
+            cost_operator = MatrixOp(Operator(cost_operator.to_matrix()))
 
         if not ansatz:
             ansatz = self.initial_state
@@ -107,21 +108,19 @@ class AdaptQAOA(QAOA):
         wave_function = self.ansatz.assign_parameters(param_dict)
 
         #construct expectation operator
-        exp_hc = (self.gamma_init*cost_op).exp_i()
+        exp_hc = (self.gamma_init*cost_operator).exp_i()
         exp_hc, exp_hc_ad = [_.to_matrix() for _ in [exp_hc, exp_hc.adjoint()]]
-        energy_grad_op = exp_hc_ad@(commutator(1j*cost_op,mixer).to_matrix())@exp_hc
+        energy_grad_op = exp_hc_ad@(commutator(1j*cost_operator,mixer).to_matrix())@exp_hc
 
         
         expectation = ExpectationFactory.build(
-                operator=energy_grad_op,
+                operator= PrimitiveOp(energy_grad_op),
                 backend=self.quantum_instance,
                 include_custom=self._include_custom,
             )
-        
         observable_meas = expectation.convert(StateFn(energy_grad_op, is_measurement=True))
         ansatz_circuit_op = CircuitStateFn(wave_function)
         expect_op = observable_meas.compose(ansatz_circuit_op).reduce()
-
 
         return expect_op, param_dict
 
@@ -134,7 +133,7 @@ class AdaptQAOA(QAOA):
             new_mixer_list = self.optimal_mixer_list + [mixer]
             check_ansatz = self._check_operator_ansatz(operator, mixer_list = new_mixer_list)
             #parameterise ansatz
-            expect_op, param_dict = self.compute_energy_gradient(mixer, check_ansatz)
+            expect_op, param_dict = self.compute_energy_gradient(mixer,operator, check_ansatz)
             #run expectation circuit
             sampled_expect_op = self._circuit_sampler.convert(expect_op, params= param_dict)
             meas = np.abs(np.real(sampled_expect_op.eval()))
