@@ -28,7 +28,7 @@ import math
 import io
 import base64
 import warnings
-from typing import ClassVar, Optional
+from typing import ClassVar, Optional, Type
 
 import logging
 
@@ -36,7 +36,7 @@ import numpy as np
 import scipy.linalg as la
 
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumcircuit import QuantumCircuit, Gate
 from qiskit.circuit.library.standard_gates import CXGate, RXGate, RYGate, RZGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
@@ -554,6 +554,169 @@ class TwoQubitWeylControlledEquiv(TwoQubitWeylDecomposition):
         self.K1r = self.K1r @ np.asarray(RXGate(k2rphi))
         self.K2l = np.asarray(RYGate(k2ltheta)) @ np.asarray(RXGate(k2llambda))
         self.K2r = np.asarray(RYGate(k2rtheta)) @ np.asarray(RXGate(k2rlambda))
+
+
+class TwoQubitControlledUDecomposer:
+    """Decompose two-qubit unitary in terms of a desired U ~ Ud(α, 0, 0) ~ Ctrl-U gate
+    that is locally equivalent to an RXXGate."""
+
+    def __init__(self, rxx_equivalent_gate: Type[Gate]):
+        """Initialize the KAK decomposition.
+
+        Args:
+            rxx_equivalent_gate: Gate that is locally equivalent to an RXXGate:
+            U ~ Ud(α, 0, 0) ~ Ctrl-U gate.
+        Raises:
+            QiskitError: If the gate is not locally equivalent to an RXXGate.
+        """
+        atol = DEFAULT_ATOL
+
+        scales, test_angles, scale = [], [0.2, 0.3, np.pi / 2], None
+
+        for test_angle in test_angles:
+            # Check that gate takes a single angle parameter
+            try:
+                rxx_equivalent_gate(test_angle, label="foo")
+            except TypeError as _:
+                raise QiskitError("Equivalent gate needs to take exactly 1 angle parameter.") from _
+            decomp = TwoQubitWeylDecomposition(rxx_equivalent_gate(test_angle))
+
+            circ = QuantumCircuit(2)
+            circ.rxx(test_angle, 0, 1)
+            decomposer_rxx = TwoQubitWeylControlledEquiv(Operator(circ).data)
+
+            circ = QuantumCircuit(2)
+            circ.append(rxx_equivalent_gate(test_angle), qargs=[0, 1])
+            decomposer_equiv = TwoQubitWeylControlledEquiv(Operator(circ).data)
+
+            scale = decomposer_rxx.a / decomposer_equiv.a
+
+            if (
+                not isinstance(decomp, TwoQubitWeylControlledEquiv)
+                or abs(decomp.a * 2 - test_angle / scale) > atol
+            ):
+                raise QiskitError(
+                    f"{rxx_equivalent_gate.__name__} is not equivalent to an RXXGate."
+                )
+
+            scales.append(scale)
+
+        # Check that all three tested angles give the same scale
+        if not np.allclose(scales, [scale] * len(test_angles)):
+            raise QiskitError(
+                f"Cannot initialize {self.__class__.__name__}: with gate {rxx_equivalent_gate}. "
+                "Inconsistent scaling parameters in checks."
+            )
+
+        self.scale = scales[0]
+
+        self.rxx_equivalent_gate = rxx_equivalent_gate
+
+    def __call__(self, unitary, *, atol=DEFAULT_ATOL) -> QuantumCircuit:
+        """Returns the Weyl decomposition in circuit form.
+
+        Note: atol ist passed to OneQubitEulerDecomposer.
+        """
+
+        # pylint: disable=attribute-defined-outside-init
+        self.decomposer = TwoQubitWeylDecomposition(unitary)
+
+        oneq_decompose = OneQubitEulerDecomposer("ZYZ")
+        c1l, c1r, c2l, c2r = (
+            oneq_decompose(k, atol=atol)
+            for k in (
+                self.decomposer.K1l,
+                self.decomposer.K1r,
+                self.decomposer.K2l,
+                self.decomposer.K2r,
+            )
+        )
+        circ = QuantumCircuit(2, global_phase=self.decomposer.global_phase)
+        circ.compose(c2r, [0], inplace=True)
+        circ.compose(c2l, [1], inplace=True)
+        self._weyl_gate(circ)
+        circ.compose(c1r, [0], inplace=True)
+        circ.compose(c1l, [1], inplace=True)
+        return circ
+
+    def _to_rxx_gate(self, angle: float):
+        """
+        Takes an angle and returns the circuit equivalent to an RXXGate with the
+        RXX equivalent gate as the two-qubit unitary.
+
+        Args:
+            angle: Rotation angle (in this case one of the Weyl parameters a, b, or c)
+
+        Returns:
+            Circuit: Circuit equivalent to an RXXGate.
+
+        Raises:
+            QiskitError: If the circuit is not equivalent to an RXXGate.
+        """
+
+        # The user-provided RXXGate equivalent gate may be locally equivalent to the RXXGate
+        # but with some scaling in the rotation angle. For example, RXXGate(angle) has Weyl
+        # parameters (angle, 0, 0) for angle in [0, pi/2] but the user provided gate, i.e.
+        # :code:`self.rxx_equivalent_gate(angle)` might produce the Weyl parameters
+        # (scale * angle, 0, 0) where scale != 1. This is the case for the CPhaseGate.
+
+        circ = QuantumCircuit(2)
+        circ.append(self.rxx_equivalent_gate(self.scale * angle), qargs=[0, 1])
+        decomposer_inv = TwoQubitWeylControlledEquiv(Operator(circ).data)
+
+        oneq_decompose = OneQubitEulerDecomposer("ZYZ")
+
+        # Express the RXXGate in terms of the user-provided RXXGate equivalent gate.
+        rxx_circ = QuantumCircuit(2, global_phase=-decomposer_inv.global_phase)
+        rxx_circ.compose(oneq_decompose(decomposer_inv.K2r).inverse(), inplace=True, qubits=[0])
+        rxx_circ.compose(oneq_decompose(decomposer_inv.K2l).inverse(), inplace=True, qubits=[1])
+        rxx_circ.compose(circ, inplace=True)
+        rxx_circ.compose(oneq_decompose(decomposer_inv.K1r).inverse(), inplace=True, qubits=[0])
+        rxx_circ.compose(oneq_decompose(decomposer_inv.K1l).inverse(), inplace=True, qubits=[1])
+
+        return rxx_circ
+
+    def _weyl_gate(self, circ: QuantumCircuit, atol=1.0e-13):
+        """Appends Ud(a, b, c) to the circuit."""
+
+        circ_rxx = self._to_rxx_gate(-2 * self.decomposer.a)
+        circ.compose(circ_rxx, inplace=True)
+
+        # translate the RYYGate(b) into a circuit based on the desired Ctrl-U gate.
+        if abs(self.decomposer.b) > atol:
+            circ_ryy = QuantumCircuit(2)
+            circ_ryy.sdg(0)
+            circ_ryy.sdg(1)
+            circ_ryy.compose(self._to_rxx_gate(-2 * self.decomposer.b), inplace=True)
+            circ_ryy.s(0)
+            circ_ryy.s(1)
+            circ.compose(circ_ryy, inplace=True)
+
+        # translate the RZZGate(c) into a circuit based on the desired Ctrl-U gate.
+        if abs(self.decomposer.c) > atol:
+            # Since the Weyl chamber is here defined as a > b > |c| we may have
+            # negative c. This will cause issues in _to_rxx_gate
+            # as TwoQubitWeylControlledEquiv will map (c, 0, 0) to (|c|, 0, 0).
+            # We therefore produce RZZGate(|c|) and append its inverse to the
+            # circuit if c < 0.
+            gamma, invert = -2 * self.decomposer.c, False
+            if gamma > 0:
+                gamma *= -1
+                invert = True
+
+            circ_rzz = QuantumCircuit(2)
+            circ_rzz.h(0)
+            circ_rzz.h(1)
+            circ_rzz.compose(self._to_rxx_gate(gamma), inplace=True)
+            circ_rzz.h(0)
+            circ_rzz.h(1)
+
+            if invert:
+                circ.compose(circ_rzz.inverse(), inplace=True)
+            else:
+                circ.compose(circ_rzz, inplace=True)
+
+        return circ
 
 
 class TwoQubitWeylMirrorControlledEquiv(TwoQubitWeylDecomposition):
