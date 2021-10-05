@@ -154,13 +154,15 @@ class ParameterExpression:
         Returns:
             A new expression with the specified parameters replaced.
         """
-
-        inbound_parameters = {
-            p for replacement_expr in parameter_map.values() for p in replacement_expr.parameters
-        }
+        inbound_parameters = set()
+        inbound_names = {}
+        for replacement_expr in parameter_map.values():
+            for p in replacement_expr.parameters:
+                inbound_parameters.add(p)
+                inbound_names[p.name] = p
 
         self._raise_if_passed_unknown_parameters(parameter_map.keys())
-        self._raise_if_parameter_names_conflict(inbound_parameters, parameter_map.keys())
+        self._raise_if_parameter_names_conflict(inbound_names, parameter_map.keys())
         if HAS_SYMENGINE:
             new_parameter_symbols = {p: symengine.Symbol(p.name) for p in inbound_parameters}
         else:
@@ -205,17 +207,19 @@ class ParameterExpression:
     def _raise_if_parameter_names_conflict(self, inbound_parameters, outbound_parameters=None):
         if outbound_parameters is None:
             outbound_parameters = set()
+            outbound_names = {}
+        else:
+            outbound_names = {p.name: p for p in outbound_parameters}
 
         if self._names is None:
             self._names = {p.name: p for p in self._parameters}
 
-        inbound_names = {p.name: p for p in inbound_parameters}
-        outbound_names = {p.name: p for p in outbound_parameters}
-
-        shared_names = (self._names.keys() - outbound_names.keys()) & inbound_names.keys()
-        conflicting_names = {
-            name for name in shared_names if self._names[name] != inbound_names[name]
-        }
+        inbound_names = inbound_parameters
+        conflicting_names = []
+        for name, param in inbound_names.items():
+            if name in self._names and name not in outbound_names:
+                if param != self._names[name]:
+                    conflicting_names.append(name)
         if conflicting_names:
             raise CircuitError(
                 f"Name conflict applying operation for parameters: {conflicting_names}"
@@ -249,7 +253,7 @@ class ParameterExpression:
             if other._names is None:
                 other._names = {p.name: p for p in other._parameters}
 
-            self._raise_if_parameter_names_conflict(other._parameter_symbols.keys())
+            self._raise_if_parameter_names_conflict(other._names)
 
             parameter_symbols = {**self._parameter_symbols, **other._parameter_symbols}
             other_expr = other._symbol_expr
