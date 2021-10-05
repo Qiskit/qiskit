@@ -193,14 +193,15 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             ansatz: The parameterized circuit used as an ansatz.
 
         """
+        if ansatz is None:
+            ansatz = RealAmplitudes()
+
         self._ansatz = ansatz
-        if ansatz is not None:
-            if self._sort_parameters_by_name:
-                self._ansatz_params = sorted(ansatz.parameters, key=lambda p: p.name)
-            else:
-                self._ansatz_params = list(ansatz.parameters)
+        
+        if self.sort_parameters_by_name:
+            self._ansatz_params = sorted(ansatz.parameters, key=lambda p: p.name)
         else:
-            self.ansatz = RealAmplitudes()
+            self._ansatz_params = list(ansatz.parameters)
 
     @property
     def gradient(self) -> Optional[Union[GradientBase, Callable]]:
@@ -327,12 +328,11 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     @optimizer.setter
     def optimizer(self, optimizer: Optimizer):
         """Sets optimizer"""
-        self._optimizer = optimizer
+        if optimizer is None:
+            optimizer = SLSQP()
 
-        if optimizer is not None:
-            optimizer.set_max_evals_grouped(self.max_evals_grouped)
-        else:
-            self.optimizer = SLSQP()
+        optimizer.set_max_evals_grouped(self.max_evals_grouped)
+        self._optimizer = optimizer
 
     @property
     def setting(self):
