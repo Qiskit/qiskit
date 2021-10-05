@@ -258,7 +258,7 @@ class Target(Mapping):
         Returns:
             Instruction: The Instruction instance corresponding to the name
         """
-        return self._gate_name_map[gate]
+        return self._gate_name_map[instruction]
 
     def get_instructions_for_qargs(self, qarg):
         """Get the qargs for a given gate by name

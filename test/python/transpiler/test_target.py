@@ -270,13 +270,16 @@ class TestTarget(QiskitTestCase):
         for gate in fake_expected:
             self.assertIn(gate, self.fake_backend_target.instructions)
 
-    def test_get_gates_from_name(self):
+    def test_get_instruction_from_name(self):
         with self.assertRaises(KeyError):
-            self.empty_target.get_gate_from_name("measure")
-        self.assertEqual(self.ibm_target.get_gate_from_name("measure"), Measure())
-        self.assertEqual(self.fake_backend_target.get_gate_from_name("rx_30"), RXGate(math.pi / 6))
+            self.empty_target.get_instruction_from_name("measure")
+        self.assertEqual(self.ibm_target.get_instruction_from_name("measure"), Measure())
         self.assertEqual(
-            self.fake_backend_target.get_gate_from_name("rx"), RXGate(self.fake_backend._theta)
+            self.fake_backend_target.get_instruction_from_name("rx_30"), RXGate(math.pi / 6)
+        )
+        self.assertEqual(
+            self.fake_backend_target.get_instruction_from_name("rx"),
+            RXGate(self.fake_backend._theta),
         )
 
     def test_get_instructions_for_qargs(self):
