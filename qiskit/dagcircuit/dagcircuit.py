@@ -89,6 +89,8 @@ class DAGCircuit:
         self._global_phase = 0
         self._calibrations = defaultdict(dict)
 
+        self._ops = {}
+
         self.duration = None
         self.unit = "dt"
 
@@ -388,6 +390,10 @@ class DAGCircuit:
         new_node = DAGOpNode(op=op, qargs=qargs, cargs=cargs)
         node_index = self._multi_graph.add_node(new_node)
         new_node._node_id = node_index
+        if op.name in self._ops:
+            self._ops[op.name] += 1
+        else:
+            self._ops[op.name] = 1
         return node_index
 
     def _copy_circuit_metadata(self):
@@ -1089,6 +1095,10 @@ class DAGCircuit:
         node_map = self._multi_graph.substitute_node_with_subgraph(
             node._node_id, in_dag._multi_graph, edge_map_fn, filter_fn, edge_weight_map
         )
+        if self._ops[node.op.name] == 1:
+            del self._ops[node.op.name]
+        else:
+            self._ops[node.op.name] -= 1
 
         # Iterate over nodes of input_circuit and update wires in node objects migrated
         # from in_dag
@@ -1102,6 +1112,10 @@ class DAGCircuit:
             new_node._node_id = new_node_index
             new_node.op.condition = condition
             self._multi_graph[new_node_index] = new_node
+            if old_node.op.name in self._ops:
+                self._ops[old_node.op.name] += 1
+            else:
+                self._ops[old_node.op.name] = 1
 
         return {k: self._multi_graph[v] for k, v in node_map.items()}
 
@@ -1139,16 +1153,36 @@ class DAGCircuit:
             )
 
         if inplace:
+            if op.name != node.op.name:
+                if op.name in self._ops:
+                    self._ops[op.name] += 1
+                else:
+                    self._ops[op.name] = 1
+                if self._ops[node.op.name] == 1:
+                    del self._ops[node.op.name]
+                else:
+                    self._ops[node.op.name] -= 1
             save_condition = node.op.condition
             node.op = op
             node.op.condition = save_condition
             return node
+
 
         new_node = copy.copy(node)
         save_condition = new_node.op.condition
         new_node.op = op
         new_node.op.condition = save_condition
         self._multi_graph[node._node_id] = new_node
+        if op.name != node.op.name:
+            if op.name in self._ops:
+                self._ops[op.name] += 1
+            else:
+                self._ops[op.name] = 1
+            if self._ops[node.op.name] == 1:
+                del self._ops[node.op.name]
+            else:
+                self._ops[node.op.name] -= 1
+
         return new_node
 
     def node(self, node_id):
@@ -1346,6 +1380,10 @@ class DAGCircuit:
         self._multi_graph.remove_node_retain_edges(
             node._node_id, use_outgoing=False, condition=lambda edge1, edge2: edge1 == edge2
         )
+        if self._ops[node.op.name] == 1:
+            del self._ops[node.op.name]
+        else:
+            self._ops[node.op.name] -= 1
 
     def remove_ancestors_of(self, node):
         """Remove all of the ancestor operation nodes of node."""
