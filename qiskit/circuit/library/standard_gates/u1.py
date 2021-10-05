@@ -281,7 +281,6 @@ class MCU1Gate(ControlledGate):
     """
     name = "mcu1"
     num_params = 1
-    num_int_params = 1
 
     def __init__(
         self,

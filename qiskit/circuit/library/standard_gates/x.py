@@ -917,7 +917,6 @@ class MCXGate(ControlledGate):
 
     name = "mcx"
     num_params = 0
-    num_int_params = 1
 
     def __new__(
         cls,
