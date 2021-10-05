@@ -197,7 +197,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             ansatz = RealAmplitudes()
 
         self._ansatz = ansatz
-        
+
         if self.sort_parameters_by_name:
             self._ansatz_params = sorted(ansatz.parameters, key=lambda p: p.name)
         else:
