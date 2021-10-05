@@ -121,7 +121,14 @@ K1K2S = [
 class CheckDecompositions(QiskitTestCase):
     """Implements decomposition checkers."""
 
-    def check_one_qubit_euler_angles(self, operator, basis="U3", tolerance=1e-14, simplify=False):
+    def check_one_qubit_euler_angles(
+        self,
+        operator,
+        basis="U3",
+        tolerance=1e-14,
+        simplify=False,
+        fidelity_mapping=DEFAULT_FIDELITY,
+    ):
         """Check OneQubitEulerDecomposer works for the given unitary"""
         target_unitary = operator.data
         if basis is None:
