@@ -1167,7 +1167,6 @@ class DAGCircuit:
             node.op.condition = save_condition
             return node
 
-
         new_node = copy.copy(node)
         save_condition = new_node.op.condition
         new_node.op = op
