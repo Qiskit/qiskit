@@ -10,16 +10,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Check if a property reached a fixed point."""
+"""Check if all gates in the DAGCircuit are in the specified basis gates."""
 
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
 class GatesInBasis(AnalysisPass):
-    """Check if a a dag is all in the basis"""
+    """Check if all gates in a DAG are in a given set of gates"""
 
     def __init__(self, basis_gates):
-        """FixedPoint initializer.
+        """Initialize the GatesInBasis pass.
 
         Args:
             basis_gates (list): The list of basis gate names to check
