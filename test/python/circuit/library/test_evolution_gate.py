@@ -103,7 +103,9 @@ class TestEvolutionGate(QiskitTestCase):
         grouped_ops = [(X ^ Y) + (Y ^ X), (Z ^ I) + (Z ^ Z) + (I ^ Z), (X ^ X)]
         evo_gate = EvolutionGate(grouped_ops, time=0.12, synthesis=LieTrotter())
         decomposed = evo_gate.definition.decompose()
-        self.assertEqual(decomposed.count_ops()["rz"], 6)
+        self.assertEqual(decomposed.count_ops()["rz"], 4)
+        self.assertEqual(decomposed.count_ops()["rzz"], 1)
+        self.assertEqual(decomposed.count_ops()["rxx"], 1)
 
     def test_list_from_grouped_paulis(self):
         """Test getting a string representation from grouped Paulis."""
@@ -189,9 +191,9 @@ class TestEvolutionGate(QiskitTestCase):
 
     def test_pauliop_coefficients_respected(self):
         """Test that global ``PauliOp`` coefficients are being taken care of."""
-        evo = EvolutionGate(5 * (Z ^ Z), time=1, synthesis=LieTrotter())
+        evo = EvolutionGate(5 * (Z ^ I), time=1, synthesis=LieTrotter())
         circuit = evo.definition.decompose()
-        rz_angle = circuit.data[1][0].params[0]
+        rz_angle = circuit.data[0][0].params[0]
         self.assertEqual(rz_angle, 10)
 
     def test_paulisumop_coefficients_respected(self):

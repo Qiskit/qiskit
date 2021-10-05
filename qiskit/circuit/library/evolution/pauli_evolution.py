@@ -13,6 +13,7 @@
 """A gate to implement time-evolution of a single Pauli string."""
 
 from typing import Union, Optional
+import numpy as np
 from qiskit.quantum_info import Pauli
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.gate import Gate
@@ -56,8 +57,11 @@ class PauliEvolutionGate(Gate):
         if num_non_identity == 0:
             self.definition = QuantumCircuit(self.pauli.num_qubits, global_phase=-time)
         # if we evolve on a single qubit, if yes use the corresponding qubit rotation
-        elif num_non_identity <= 1:
+        elif num_non_identity == 1:
             self.definition = self._single_qubit_evolution()
+        # same for two qubits, use Qiskit's native rotations
+        elif num_non_identity == 2:
+            self.definition = self._two_qubit_evolution()
         # otherwise do basis transformation and CX chains
         else:
             self.definition = self._multi_qubit_evolution()
@@ -72,6 +76,31 @@ class PauliEvolutionGate(Gate):
                 definition.ry(2 * time, i)
             elif pauli_i == "Z":
                 definition.rz(2 * time, i)
+
+        return definition
+
+    def _two_qubit_evolution(self):
+        # get the Paulis and the qubits they act on
+        labels_as_array = np.array(list(self.pauli.to_label()))
+        qubits = np.where(labels_as_array != "I")[0]
+        labels = np.array([labels_as_array[idx] for idx in qubits])
+
+        definition = QuantumCircuit(self.pauli.num_qubits)
+        time = self.params[0]
+
+        # go through all cases we have implemented in Qiskit
+        if all(labels == "X"):  # RXX
+            definition.rxx(2 * time, qubits[0], qubits[1])
+        elif all(labels == "Y"):  # RYY
+            definition.ryy(2 * time, qubits[0], qubits[1])
+        elif all(labels == "Z"):  # RZZ
+            definition.rzz(2 * time, qubits[0], qubits[1])
+        elif labels[0] == "Z" and labels[1] == "X":  # RZX
+            definition.rzx(2 * time, qubits[0], qubits[1])
+        elif labels[0] == "X" and labels[1] == "Z":  # RXZ
+            definition.rzx(2 * time, qubits[1], qubits[0])
+        else:  # all the others are not native in Qiskit, so use default the decomposition
+            definition = self._multi_qubit_evolution()
 
         return definition
 
