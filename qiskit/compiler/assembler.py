@@ -157,6 +157,7 @@ def assemble(
     """
     start_time = time()
     experiments = experiments if isinstance(experiments, list) else [experiments]
+    pulse_qobj = any(isinstance(exp, (ScheduleBlock, Schedule, Instruction)) for exp in experiments)
     qobj_id, qobj_header, run_config_common_dict = _parse_common_args(
         backend,
         qobj_id,
@@ -172,6 +173,7 @@ def assemble(
         qubit_lo_range,
         meas_lo_range,
         schedule_los,
+        pulse_qobj=pulse_qobj,
         **run_config,
     )
 
@@ -237,6 +239,7 @@ def _parse_common_args(
     qubit_lo_range,
     meas_lo_range,
     schedule_los,
+    pulse_qobj=False,
     **run_config,
 ):
     """Resolve the various types of args allowed to the assemble() function through
@@ -272,7 +275,14 @@ def _parse_common_args(
             raise QiskitError(f"memory not supported by backend {backend_config.backend_name}")
 
         # try to set defaults for pulse, other leave as None
-        if backend_config.open_pulse:
+        pulse_param_set = (
+            qubit_lo_freq is not None
+            or meas_lo_freq is not None
+            or qubit_lo_range is not None
+            or meas_lo_range is not None
+            or schedule_los is not None
+        )
+        if pulse_qobj or (backend_config.open_pulse and pulse_param_set):
             try:
                 backend_defaults = backend.defaults()
             except AttributeError:

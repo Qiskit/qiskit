@@ -12,15 +12,26 @@
 
 """ Test Pauli Change of Basis Converter """
 
-import unittest
-from test.python.opflow import QiskitOpflowTestCase
 import itertools
+import unittest
 from functools import reduce
+from test.python.opflow import QiskitOpflowTestCase
+
 import numpy as np
 
-from qiskit.quantum_info import Pauli
-from qiskit.opflow import X, Y, Z, I, SummedOp, ComposedOp, PauliSumOp
+from qiskit import QuantumCircuit
+from qiskit.opflow import (
+    ComposedOp,
+    I,
+    OperatorStateFn,
+    PauliSumOp,
+    SummedOp,
+    X,
+    Y,
+    Z,
+)
 from qiskit.opflow.converters import PauliBasisChange
+from qiskit.quantum_info import Pauli, SparsePauliOp
 
 
 class TestPauliCoB(QiskitOpflowTestCase):
@@ -124,6 +135,21 @@ class TestPauliCoB(QiskitOpflowTestCase):
             ]
         )
         np.testing.assert_array_almost_equal(inst.to_matrix(), expected_inst)
+
+    def test_grouped_pauli_statefn(self):
+        """grouped pauli test with statefn"""
+        grouped_pauli = PauliSumOp(SparsePauliOp(["Y"]), grouping_type="TPB")
+        observable = OperatorStateFn(grouped_pauli, is_measurement=True)
+
+        converter = PauliBasisChange(replacement_fn=PauliBasisChange.measurement_replacement_fn)
+        cob = converter.convert(observable)
+
+        expected = PauliSumOp(SparsePauliOp(["Z"]), grouping_type="TPB")
+        self.assertEqual(cob[0].primitive, expected)
+        circuit = QuantumCircuit(1)
+        circuit.sdg(0)
+        circuit.h(0)
+        self.assertEqual(cob[1].primitive, circuit)
 
 
 if __name__ == "__main__":

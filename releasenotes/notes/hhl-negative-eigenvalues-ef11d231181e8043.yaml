@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Modified the HHL class within the linear solvers package and the ExactReciprocal 
+    class in the arithmetics package so that the quantum algorithm for linear systems
+    can find the solution when the matrix has negative eigenvalues. The modification
+    was required because the eigenvalues are represented digitally within the algorithm
+    but there was no logic in place to store the sign. Now there is an additional qubit 
+    storing the sign and the appropriate logic in ExactReciprocal to process the right
+    value.
