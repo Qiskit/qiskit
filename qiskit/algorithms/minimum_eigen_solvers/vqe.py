@@ -487,22 +487,37 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         )
 
         start_time = time()
-        opt_params, opt_value, nfev = self.optimizer.optimize(
-            num_vars=len(initial_point),
-            objective_function=energy_evaluation,
-            gradient_function=gradient,
-            variable_bounds=bounds,
-            initial_point=initial_point,
-        )
+
+        # keep this until Optimizer.optimize is removed
+        try:
+            opt_result = self.optimizer.minimize(
+                fun=energy_evaluation, x0=initial_point, jac=gradient, bounds=bounds
+            )
+        except AttributeError:
+            # self.optimizer is an optimizer with the deprecated interface that uses
+            # ``optimize`` instead of ``minimize```
+            warnings.warn(
+                "Using an optimizer that is run with the ``optimize`` method is "
+                "deprecated as of Qiskit Terra 0.19.0 and will be unsupported no "
+                "sooner than 3 months after the release date. Instead use an optimizer "
+                "providing ``minimize`` (see qiskit.algorithms.optimizers.Optimizer).",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
+            opt_result = self.optimizer.optimize(
+                len(initial_point), energy_evaluation, gradient, bounds, initial_point
+            )
+
         eval_time = time() - start_time
 
         result = VQEResult()
-        result.optimal_point = opt_params
-        result.optimal_parameters = dict(zip(self._ansatz_params, opt_params))
-        result.optimal_value = opt_value
-        result.cost_function_evals = nfev
+        result.optimal_point = opt_result.x
+        result.optimal_parameters = dict(zip(self._ansatz_params, opt_result.x))
+        result.optimal_value = opt_result.fun
+        result.cost_function_evals = opt_result.nfev
         result.optimizer_time = eval_time
-        result.eigenvalue = opt_value + 0j
+        result.eigenvalue = opt_result.fun + 0j
         result.eigenstate = self._get_eigenstate(result.optimal_parameters)
 
         logger.info(
@@ -516,7 +531,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self._ret = result
 
         if aux_operators is not None:
-            aux_values = self._eval_aux_ops(opt_params, aux_operators, expectation=expectation)
+            aux_values = self._eval_aux_ops(opt_result.x, aux_operators, expectation=expectation)
             result.aux_operator_eigenvalues = aux_values[0]
 
         return result
