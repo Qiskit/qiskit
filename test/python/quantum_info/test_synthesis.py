@@ -134,14 +134,15 @@ class CheckDecompositions(QiskitTestCase):
         basis="U3",
         tolerance=1e-14,
         simplify=False,
-        fidelity_mapping=DEFAULT_FIDELITY,
+        fidelity_mapping=None,
     ):
         """Check OneQubitEulerDecomposer works for the given unitary"""
+        fidelity_mapping = DEFAULT_FIDELITY if fidelity_mapping is None else fidelity_mapping
         target_unitary = operator.data
         if basis is None:
             angles = OneQubitEulerDecomposer().angles(target_unitary)
             qc = QuantumCircuit(1)
-            qc.u3(*angles)
+            qc.u3(*angles, 0)
         else:
             decomposer = OneQubitEulerDecomposer(basis)
             qc = decomposer(target_unitary, simplify=simplify, fidelity_mapping=fidelity_mapping)
@@ -363,14 +364,14 @@ class TestOneQubitEulerSpecial(CheckDecompositions):
         """Check OneQubitEulerDecomposer produces the expected gates"""
         decomposer = OneQubitEulerDecomposer(basis)
         circ = decomposer(target, simplify=True)
-        data = Operator(circ).data
-        maxdist = np.max(np.abs(target.data - data))
-        trace = np.trace(data.T.conj() @ target)
+        synth = Operator(circ).data
+        maxdist = np.max(np.abs(target.data - synth))
+        trace = np.trace(synth.T.conj() @ target)
         self.assertLess(
             np.abs(maxdist),
             tolerance,
             f"Worst case distance: {maxdist}, trace: {trace}\n"
-            f"Target:\n{target}\nActual:\n{data}\n{circ}",
+            f"Target:\n{target}\nActual:\n{synth}\n{circ}",
         )
         if expected_gates is not None:
             self.assertDictEqual(dict(circ.count_ops()), expected_gates, f"Circuit:\n{circ}")
@@ -578,12 +579,16 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
 
 @ddt
 class TestOneQubitFidelityDecomposition(CheckDecompositions):
+    """Tests the approximation features of 1Q synthesis."""
+
     @data(
         {"rz": 1.0, "sx": 0.0, "x": 1.0},
         {"rz": 1.0, "sx": 1.0, "x": 0.0},
         {"rz": 1.0, "sx": 0.0, "x": 0.0},
     )
     def test_discouraging_fidelities(self, fidelity_mapping, seed=42):
+        """Checks that approximate 1Q synthesis prefers not to use low-fidelity gates."""
+
         fidelity_mapping = defaultdict(lambda: 1.0, **fidelity_mapping)
         for j in range(100):
             target_unitary = random_unitary(2, seed=j + seed)
