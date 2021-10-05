@@ -265,9 +265,9 @@ class ParameterExpression:
             expr = operation(self_expr, other_expr)
 
         out_expr = ParameterExpression(parameter_symbols, expr)
-        out_expr._names = self._names
+        out_expr._names = self._names.copy()
         if isinstance(other, ParameterExpression):
-            out_expr._names.update(other._names)
+            out_expr._names.update(other._names.copy())
 
         return out_expr
 
