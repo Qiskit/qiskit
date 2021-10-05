@@ -15,6 +15,7 @@ A target object represents the minimum set of information the transpiler needs
 from a backend
 """
 
+from collections.abc import Mapping
 import logging
 from typing import Union, Dict, Any
 
@@ -62,7 +63,7 @@ class InstructionProperties:
         )
 
 
-class Target:
+class Target(Mapping):
     """
     A description of gates on a backend. It exists around a central mapping of
     :class:`~qiskit.circuit.Instruction` objects to their properties on the
@@ -447,3 +448,24 @@ class Target:
                 self._compute_distance_matrix(weight)
             return self._error_distance_matrix[physical_qubit1, physical_qubit2]
         raise TypeError("Invalid weight %s" % weight)
+
+    def __iter__(self):
+        return iter(self._gate_map)
+
+    def __getitem__(self, key):
+        return self._gate_map[key]
+
+    def __len__(self):
+        return len(self._gate_map)
+
+    def __contains__(self, item):
+        return item in self._gate_map
+
+    def keys(self):
+        return self._gate_map.keys()
+
+    def values(self):
+        return self._gate_map.values()
+
+    def items(self):
+        return self._gate_map.items()

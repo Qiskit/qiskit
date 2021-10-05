@@ -480,6 +480,142 @@ class TestTarget(QiskitTestCase):
         }
         self.assertEqual(ibm_durations.duration_by_name_qubits, expected)
 
+    def test_mapping(self):
+        with self.assertRaises(KeyError):
+            res = self.empty_target["cx"]
+        expected = {
+            (0,): None,
+            (1,): None,
+            (2,): None,
+            (3,): None,
+            (4,): None,
+        }
+        self.assertEqual(self.aqt_target["r"], expected)
+        self.assertEqual(["rx", "ry", "rz", "r", "rxx", "measure"], list(self.aqt_target))
+        expected_values = [
+            {
+                (0,): None,
+                (1,): None,
+                (2,): None,
+                (3,): None,
+                (4,): None,
+            },
+            {
+                (0,): None,
+                (1,): None,
+                (2,): None,
+                (3,): None,
+                (4,): None,
+            },
+            {
+                (0,): None,
+                (1,): None,
+                (2,): None,
+                (3,): None,
+                (4,): None,
+            },
+            {
+                (0,): None,
+                (1,): None,
+                (2,): None,
+                (3,): None,
+                (4,): None,
+            },
+            {
+                (0, 1): None,
+                (0, 2): None,
+                (0, 3): None,
+                (0, 4): None,
+                (1, 0): None,
+                (2, 0): None,
+                (3, 0): None,
+                (4, 0): None,
+                (1, 2): None,
+                (1, 3): None,
+                (1, 4): None,
+                (2, 1): None,
+                (3, 1): None,
+                (4, 1): None,
+                (2, 3): None,
+                (2, 4): None,
+                (3, 2): None,
+                (4, 2): None,
+                (3, 4): None,
+                (4, 3): None,
+            },
+            {
+                (0,): None,
+                (1,): None,
+                (2,): None,
+                (3,): None,
+                (4,): None,
+            },
+        ]
+        self.assertEqual(expected_values, list(self.aqt_target.values()))
+        expected_items = {
+            "rx": {
+                (0,): None,
+                (1,): None,
+                (2,): None,
+                (3,): None,
+                (4,): None,
+            },
+            "ry": {
+                (0,): None,
+                (1,): None,
+                (2,): None,
+                (3,): None,
+                (4,): None,
+            },
+            "rz": {
+                (0,): None,
+                (1,): None,
+                (2,): None,
+                (3,): None,
+                (4,): None,
+            },
+            "r": {
+                (0,): None,
+                (1,): None,
+                (2,): None,
+                (3,): None,
+                (4,): None,
+            },
+            "rxx": {
+                (0, 1): None,
+                (0, 2): None,
+                (0, 3): None,
+                (0, 4): None,
+                (1, 0): None,
+                (2, 0): None,
+                (3, 0): None,
+                (4, 0): None,
+                (1, 2): None,
+                (1, 3): None,
+                (1, 4): None,
+                (2, 1): None,
+                (3, 1): None,
+                (4, 1): None,
+                (2, 3): None,
+                (2, 4): None,
+                (3, 2): None,
+                (4, 2): None,
+                (3, 4): None,
+                (4, 3): None,
+            },
+            "measure": {
+                (0,): None,
+                (1,): None,
+                (2,): None,
+                (3,): None,
+                (4,): None,
+            },
+        }
+        self.assertEqual(expected_items, dict(self.aqt_target.items()))
+        self.assertIn("cx", self.ibm_target)
+        self.assertNotIn("ecr", self.ibm_target)
+        self.assertEqual(len(self.ibm_target), 6)
+
 
 class TestInstructionProperties(QiskitTestCase):
     def test_empty_repr(self):
