@@ -38,7 +38,7 @@ ParameterValueType = Union["ParameterExpression", float]
 class ParameterExpression:
     """ParameterExpression class to enable creating expressions of Parameters."""
 
-    __slots__ = ["_parameter_symbols", "_parameters", "_symbol_expr", "_names"]
+    __slots__ = ["_parameter_symbols", "_parameters", "_symbol_expr", "_name_map"]
 
     def __init__(self, symbol_map: Dict, expr):
         """Create a new :class:`ParameterExpression`.
@@ -55,12 +55,19 @@ class ParameterExpression:
         self._parameter_symbols = symbol_map
         self._parameters = set(self._parameter_symbols)
         self._symbol_expr = expr
-        self._names = None
+        self._name_map = None
 
     @property
     def parameters(self) -> Set:
         """Returns a set of the unbound Parameters in the expression."""
         return self._parameters
+
+    @property
+    def _names(self) -> Dict:
+        """Returns a mapping of parameter names to Parameters in the expression."""
+        if self._name_map is None:
+            self._name_map = {p.name: p for p in self._parameters}
+        return self._name_map
 
     def conjugate(self) -> "ParameterExpression":
         """Return the conjugate."""
@@ -211,9 +218,6 @@ class ParameterExpression:
         else:
             outbound_names = {p.name: p for p in outbound_parameters}
 
-        if self._names is None:
-            self._names = {p.name: p for p in self._parameters}
-
         inbound_names = inbound_parameters
         conflicting_names = []
         for name, param in inbound_names.items():
@@ -250,11 +254,7 @@ class ParameterExpression:
         self_expr = self._symbol_expr
 
         if isinstance(other, ParameterExpression):
-            if other._names is None:
-                other._names = {p.name: p for p in other._parameters}
-
             self._raise_if_parameter_names_conflict(other._names)
-
             parameter_symbols = {**self._parameter_symbols, **other._parameter_symbols}
             other_expr = other._symbol_expr
         elif isinstance(other, numbers.Number) and numpy.isfinite(other):
@@ -269,9 +269,7 @@ class ParameterExpression:
             expr = operation(self_expr, other_expr)
 
         out_expr = ParameterExpression(parameter_symbols, expr)
-        if self._names is None:
-            self._names = {p.name: p for p in self._parameters}
-        out_expr._names = self._names.copy()
+        out_expr._name_map = self._names.copy()
         if isinstance(other, ParameterExpression):
             out_expr._names.update(other._names.copy())
 
@@ -510,7 +508,7 @@ class ParameterExpression:
             self._symbol_expr = state["expr"]
             self._parameter_symbols = state["symbols"]
             self._parameters = set(self._parameter_symbols)
-        self._names = state["names"]
+        self._name_map = state["names"]
 
     def is_real(self):
         """Return whether the expression is real"""
