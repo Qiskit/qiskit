@@ -202,9 +202,10 @@ class Statevector(QuantumState, TolerancesMixin):
             QiskitError: if key is not valid.
         """
         if isinstance(key, str):
-            if re.match(r"^[01]+$", key) is None:
-                raise QiskitError("Key contains invalid characters.")
-            key = int(key, 2)
+            try:
+                key = int(key, 2)
+            except ValueError:
+                raise QiskitError(f"Key '{key}' contains invalid characters.") from None
         if isinstance(key, int):
             if key < self.dim:
                 return self._data[key]
