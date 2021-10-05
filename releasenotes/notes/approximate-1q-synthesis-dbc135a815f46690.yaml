@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    "PSX"-style circuit synthesis for single-qubit operators now supports
+    options for approximate and fidelity-aware decompositions.
+fixes:
+  - |
+    Certain cases of numerical instability could previously erroneously trigger
+    a warning that Qiskit was emitting inefficient synthesized circuits.  This
+    is now triggered only by an unanticipated drop in expected operational
+    fidelity, which should eliminate these unnecessary warnings.
