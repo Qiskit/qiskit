@@ -31,7 +31,7 @@ class GatesInBasis(AnalysisPass):
         """Run the GatesInBasis pass on `dag`."""
         gates_out_of_basis = False
         basic_instrs = {"measure", "reset", "barrier", "snapshot", "delay"}
-        for gate in dag._ops:
+        for gate in dag._op_names:
             if gate not in self._basis_gates and gate not in basic_instrs:
                 gates_out_of_basis = True
                 break

@@ -89,7 +89,7 @@ class DAGCircuit:
         self._global_phase = 0
         self._calibrations = defaultdict(dict)
 
-        self._ops = {}
+        self._op_names = {}
 
         self.duration = None
         self.unit = "dt"
@@ -377,16 +377,16 @@ class DAGCircuit:
             raise CircuitError("Condition must be used with ClassicalRegister or Clbit.")
 
     def _increment_op(self, op):
-        if op.name in self._ops:
-            self._ops[op.name] += 1
+        if op.name in self._op_names:
+            self._op_names[op.name] += 1
         else:
-            self._ops[op.name] = 1
+            self._op_names[op.name] = 1
 
     def _decrement_op(self, op):
-        if self._ops[op.name] == 1:
-            del self._ops[op.name]
+        if self._op_names[op.name] == 1:
+            del self._op_names[op.name]
         else:
-            self._ops[op.name] -= 1
+            self._op_names[op.name] -= 1
 
     def _add_op_node(self, op, qargs, cargs):
         """Add a new operation node to the graph and assign properties.
