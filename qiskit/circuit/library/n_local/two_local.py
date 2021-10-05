@@ -12,38 +12,13 @@
 
 """The two-local gate circuit."""
 
-from typing import Union, Optional, List, Callable, Any
+from typing import Union, Optional, List, Callable, Any, Type
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit import Gate, Instruction, Parameter
+from qiskit.circuit.library import standard_gates as gates
 
 from .n_local import NLocal
-from ..standard_gates import (
-    IGate,
-    XGate,
-    YGate,
-    ZGate,
-    RXGate,
-    RYGate,
-    RZGate,
-    HGate,
-    SGate,
-    SdgGate,
-    TGate,
-    TdgGate,
-    RXXGate,
-    RYYGate,
-    RZXGate,
-    RZZGate,
-    SwapGate,
-    CXGate,
-    CYGate,
-    CZGate,
-    CRXGate,
-    CRYGate,
-    CRZGate,
-    CHGate,
-)
 
 
 class TwoLocal(NLocal):
@@ -235,55 +210,11 @@ class TwoLocal(NLocal):
         if isinstance(layer, QuantumCircuit):
             return layer
 
-        # check the list of valid layers
-        # this could be a lot easier if the standard layers would have `name` and `num_params`
-        # as static types, which might be something they should have anyways
-        theta = Parameter("θ")
-        valid_layers = {
-            "ch": CHGate(),
-            "cx": CXGate(),
-            "cy": CYGate(),
-            "cz": CZGate(),
-            "crx": CRXGate(theta),
-            "cry": CRYGate(theta),
-            "crz": CRZGate(theta),
-            "h": HGate(),
-            "i": IGate(),
-            "id": IGate(),
-            "iden": IGate(),
-            "rx": RXGate(theta),
-            "rxx": RXXGate(theta),
-            "ry": RYGate(theta),
-            "ryy": RYYGate(theta),
-            "rz": RZGate(theta),
-            "rzx": RZXGate(theta),
-            "rzz": RZZGate(theta),
-            "s": SGate(),
-            "sdg": SdgGate(),
-            "swap": SwapGate(),
-            "x": XGate(),
-            "y": YGate(),
-            "z": ZGate(),
-            "t": TGate(),
-            "tdg": TdgGate(),
-        }
-
-        # try to exchange `layer` from a string to a gate instance
-        if isinstance(layer, str):
-            try:
-                layer = valid_layers[layer]
-            except KeyError as ex:
-                raise ValueError(f"Unknown layer name `{layer}`.") from ex
-
-        # try to exchange `layer` from a type to a gate instance
-        if isinstance(layer, type):
-            # iterate over the layer types and look for the specified layer
-            instance = None
-            for gate in valid_layers.values():
-                if isinstance(gate, layer):
-                    instance = gate
+        # try to exchange `layer` from a string/type to a gate instance
+        if isinstance(layer, (str, type)):
+            instance = self._get_gate_instance(layer)
             if instance is None:
-                raise ValueError(f"Unknown layer type`{layer}`.")
+                raise ValueError(f"Unknown layer `{layer}`.")
             layer = instance
 
         if isinstance(layer, Instruction):
@@ -302,3 +233,30 @@ class TwoLocal(NLocal):
         if self.num_qubits <= 1:
             return []
         return super().get_entangler_map(rep_num, block_num, num_block_qubits)
+
+    def _get_gate_instance(self, val: Union[str, Type[Gate]]) -> Gate:
+        """Iterate over the standard gates library and return an instance of required gate"""
+        instance = None
+        # dictionary of standard gates
+        gates_dict = {
+            cls_name: cls for (cls_name, cls) in gates.__dict__.items() if isinstance(cls, type)
+        }
+
+        for gate in gates_dict.values():
+            params = []
+            # Check if gate is in standard gate library and has required static attributes
+            if (hasattr(gate, "name") and gate.name == val) or (gate == val):
+                if hasattr(gate, "num_params"):
+                    for i in range(gate.num_params):
+                        params.append(Parameter(f"θ{i}"))
+                if hasattr(gate, "num_int_params"):
+                    for _ in range(gate.num_int_params):
+                        params.append(1)
+                # instantiate gate with appropriate params
+                try:
+                    instance = gate(*params)
+                except TypeError as ex:
+                    raise ValueError(
+                        f"Unable to instantiate {val}. Failed with error: {ex}"
+                    ) from ex
+        return instance
