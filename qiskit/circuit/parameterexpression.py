@@ -269,6 +269,8 @@ class ParameterExpression:
             expr = operation(self_expr, other_expr)
 
         out_expr = ParameterExpression(parameter_symbols, expr)
+        if self._names is None:
+            self._names = {p.name: p for p in self._parameters}
         out_expr._names = self._names.copy()
         if isinstance(other, ParameterExpression):
             out_expr._names.update(other._names.copy())
