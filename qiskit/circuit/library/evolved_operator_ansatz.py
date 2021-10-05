@@ -12,7 +12,7 @@
 
 """The evolved operator ansatz."""
 
-from typing import Optional
+from typing import Optional, Union, List
 
 import numpy as np
 
@@ -31,7 +31,7 @@ class EvolvedOperatorAnsatz(NLocal):
         evolution=None,
         insert_barriers: bool = False,
         name: str = "EvolvedOps",
-        parameter_prefix: str = "t",
+        parameter_prefix: Union[str, List[str]] = "t",
         initial_state: Optional[QuantumCircuit] = None,
     ):
         """
@@ -201,5 +201,5 @@ def _is_pauli_identity(operator):
     from qiskit.opflow import PauliOp
 
     if isinstance(operator, PauliOp):
-        return len(np.logical_or(operator.primitive.x, operator.primitive.z)) == 0
+        return not np.any(np.logical_or(operator.primitive.x, operator.primitive.z))
     return False
