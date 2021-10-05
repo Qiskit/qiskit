@@ -22,7 +22,7 @@ class GatesInBasis(AnalysisPass):
         """Initialize the GatesInBasis pass.
 
         Args:
-            basis_gates (list): The list of basis gate names to check
+            basis_gates (list): The list of strings representing the set of basis gates.
         """
         super().__init__()
         self._basis_gates = set(basis_gates)
