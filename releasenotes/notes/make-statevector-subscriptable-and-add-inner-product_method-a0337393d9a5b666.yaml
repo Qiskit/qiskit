@@ -6,7 +6,7 @@ features:
 
     See `#4916 <https://github.com/Qiskit/qiskit-terra/issues/4916>`__ from more information.
 
-    Add inner product method to :class:`qiskit.quantum_info.states.statevector.Statevector`.
+    Add inner product method to :class:`~qiskit.quantum_info.states.statevector.Statevector`.
     It takes as imput an other statevector an outputs the inner product.
 
     For example::
