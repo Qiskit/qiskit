@@ -443,9 +443,6 @@ class TestTarget(QiskitTestCase):
         aqt_durations = self.aqt_target.durations()
         self.assertEqual(aqt_durations.duration_by_name_qubits, {})
         ibm_durations = self.ibm_target.durations()
-        import pprint
-
-        pprint.pprint(ibm_durations.duration_by_name_qubits)
         expected = {
             ("cx", (0, 1)): (5.1911e-07, "s"),
             ("cx", (1, 0)): (5.5466e-07, "s"),
