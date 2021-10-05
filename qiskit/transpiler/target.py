@@ -249,13 +249,14 @@ class Target(Mapping):
         self._instruction_durations = InstructionDurations(out_durations)
         return self._instruction_durations
 
-    def get_gate_from_name(self, gate):
-        """Get the gate object for a given name
+    def get_instruction_from_name(self, instruction):
+        """Get the :class:`~qiskit.circuit.Instruction` object for a given name
 
         Args:
-           gate (str): The gate name to get the gate instance for
+            instruction (str): The instruction name to get the
+                :class:`~qiskit.circuit.Instruction` instance for
         Returns:
-            Gate: The gate instance corresponding to the name
+            Instruction: The Instruction instance corresponding to the name
         """
         return self._gate_name_map[gate]
 
