@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Make :class:`qiskit.quantum_info.states.statevector.Statevector` subscriptable.
+    Make :class:`~qiskit.quantum_info.states.statevector.Statevector` subscriptable.
     User can now retrieve the i-th elementh in a Statevector by index as statevec[i].
 
     See `#4916 <https://github.com/Qiskit/qiskit-terra/issues/4916>`__ from more information.
