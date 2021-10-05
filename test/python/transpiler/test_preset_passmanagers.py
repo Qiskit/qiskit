@@ -32,6 +32,7 @@ from qiskit.test.mock import (
 )
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import GraphState
+from qiskit.quantum_info import random_unitary
 
 
 def emptycircuit():
@@ -97,6 +98,15 @@ class TestPresetPassManager(QiskitTestCase):
         circuit.reset(q[0])
         result = transpile(circuit, basis_gates=None, optimization_level=0)
         self.assertEqual(result, circuit)
+
+    @combine(level=[0, 1, 2, 3], name="level{level}")
+    def test_unitary_is_preserved_if_in_basis(self, level):
+        """Test that a unitary is not synthesized if in the basis."""
+        qc = QuantumCircuit(2)
+        qc.unitary(random_unitary(4, seed=42), [0, 1])
+        qc.measure_all()
+        result = transpile(qc, basis_gates=["cx", "u", "unitary"], optimization_level=level)
+        self.assertEqual(result, qc)
 
     @combine(level=[0, 1, 2, 3], name="level{level}")
     def test_respect_basis(self, level):
