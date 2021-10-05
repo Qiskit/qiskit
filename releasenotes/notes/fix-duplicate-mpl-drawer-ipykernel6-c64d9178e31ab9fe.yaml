@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The Matplotlib circuit drawer will no longer duplicate drawings when using
+    ``ipykernel>=6.0.0``.
+    Fixes `#6889 <https://github.com/Qiskit/qiskit-terra/issues/6889>`__.

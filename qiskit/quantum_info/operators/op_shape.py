@@ -50,6 +50,16 @@ class OpShape:
             self._dims_l = tuple(dims_l)
             self._num_qargs_l = len(self._dims_l)
 
+    @property
+    def settings(self):
+        """Return the settings of the ``OpShape`` as dictionary."""
+        return {
+            "dims_l": self._dims_l,
+            "dims_r": self._dims_r,
+            "num_qargs_l": self._num_qargs_l,
+            "num_qargs_r": self._num_qargs_r,
+        }
+
     def __repr__(self):
         if self._dims_l:
             left = f"dims_l={self._dims_l}"
@@ -487,7 +497,7 @@ class OpShape:
         if qargs:
             if self._num_qargs_l != self._num_qargs_r:
                 raise QiskitError(
-                    "Cannot add using qargs if number of left and right " "qargs are not equal."
+                    "Cannot add using qargs if number of left and right qargs are not equal."
                 )
             if self.dims_l(qargs) != other.dims_l():
                 raise QiskitError(

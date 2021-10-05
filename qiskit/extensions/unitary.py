@@ -208,9 +208,7 @@ class UnitaryGate(Gate):
         if isinstance(parameter, numpy.ndarray):
             return parameter
         else:
-            raise CircuitError(
-                "invalid param type {} in gate " "{}".format(type(parameter), self.name)
-            )
+            raise CircuitError(f"invalid param type {type(parameter)} in gate {self.name}")
 
 
 def unitary(self, obj, qubits, label=None):

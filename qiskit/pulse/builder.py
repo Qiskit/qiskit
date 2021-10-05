@@ -262,7 +262,7 @@ def _requires_backend(function: Callable[..., T]) -> Callable[..., T]:
     def wrapper(self, *args, **kwargs):
         if self.backend is None:
             raise exceptions.BackendNotSet(
-                "This function requires the builder to " 'have a "backend" set.'
+                'This function requires the builder to have a "backend" set.'
             )
         return function(self, *args, **kwargs)
 
@@ -692,7 +692,7 @@ def active_backend():
     builder = _active_builder().backend
     if builder is None:
         raise exceptions.BackendNotSet(
-            "This function requires the active builder to " 'have a "backend" set.'
+            'This function requires the active builder to have a "backend" set.'
         )
     return builder
 
@@ -821,7 +821,7 @@ def _qubits_to_channels(*channels_or_qubits: Union[int, chans.Channel]) -> Set[c
             channels.add(channel_or_qubit)
         else:
             raise exceptions.PulseError(
-                '{} is not a "Channel" or ' "qubit (integer).".format(channel_or_qubit)
+                f'{channel_or_qubit} is not a "Channel" or qubit (integer).'
             )
     return channels
 

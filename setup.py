@@ -87,13 +87,9 @@ visualization_extras = [
     "seaborn>=0.9.0",
     "pygments>=2.4",
 ]
-
-
 z3_requirements = [
     "z3-solver>=4.7",
 ]
-
-
 bip_requirements = ["cplex", "docplex"]
 
 
@@ -132,7 +128,10 @@ setup(
         "visualization": visualization_extras,
         "bip-mapper": bip_requirements,
         "crosstalk-pass": z3_requirements,
-        "all": visualization_extras + z3_requirements + bip_requirements,
+        # Note: 'all' does not include 'bip-mapper' because cplex is too fiddly and too little
+        # supported on various Python versions and OSes compared to Terra.  You have to ask for it
+        # explicitly.
+        "all": visualization_extras + z3_requirements,
     },
     project_urls={
         "Bug Tracker": "https://github.com/Qiskit/qiskit-terra/issues",
@@ -141,4 +140,9 @@ setup(
     },
     ext_modules=cythonize(EXT_MODULES),
     zip_safe=False,
+    entry_points={
+        "qiskit.unitary_synthesis": [
+            "default = qiskit.transpiler.passes.synthesis.unitary_synthesis:DefaultUnitarySynthesis",
+        ]
+    },
 )
