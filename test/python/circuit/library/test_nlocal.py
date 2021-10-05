@@ -37,7 +37,6 @@ from qiskit.circuit.library import (
     RXXGate,
     RYYGate,
     CXGate,
-    standard_gates,
 )
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
@@ -783,33 +782,6 @@ class TestTwoLocal(QiskitTestCase):
 
         self.assertEqual(two_np32.decompose().count_ops()["cx"], expected_cx)
         self.assertEqual(two_np64.decompose().count_ops()["cx"], expected_cx)
-
-    def test_unknown_layer_error(self):
-        """Test if TwoLocal throws error with unknown layer name"""
-        with self.assertRaisesRegex(ValueError, "Unknown layer `abc`"):
-            TwoLocal(3, "ry", "abc", "linear", reps=2)
-
-    def test_unsupported_layer_error(self):
-        """Test if TwoLocal throws error with unsupported gate"""
-        with self.assertRaisesRegex(ValueError, f"Unable to instantiate {standard_gates.MSGate}"):
-            TwoLocal(3, "ry", standard_gates.MSGate, "linear", reps=2)
-
-    def test_all_standard_gates(self):
-        """Test TwoLocal works with every standard gate"""
-        gates_dict = {
-            cls_name: cls
-            for (cls_name, cls) in standard_gates.__dict__.items()
-            if isinstance(cls, type)
-        }
-        unsupported_gates = ["MSGate", "MCXGate", "MCXGrayCode", "MCXRecursive", "MCXVChain"]
-
-        for key in unsupported_gates:
-            del gates_dict[key]
-
-        for gate in gates_dict.values():
-            two = TwoLocal(4, "ry", gate, "linear", reps=2)
-            print(gate)
-            self.assertIsInstance(two.entanglement_blocks[0].data[0][0], gate)
 
 
 if __name__ == "__main__":
