@@ -16,6 +16,8 @@ from abc import ABC, abstractmethod
 
 
 class CircuitElement(ABC):
+    """Circuit Element Mixin Class."""
+
     @property
     @abstractmethod
     def name(self):
@@ -25,19 +27,23 @@ class CircuitElement(ABC):
     @property
     @abstractmethod
     def num_qubits(self):
+        """Number of qubits."""
         raise NotImplementedError
 
     @property
     @abstractmethod
     def num_clbits(self):
+        """Number of classical bits."""
         raise NotImplementedError
 
     @property
     @abstractmethod
     def num_params(self):
+        """Number of parameters."""
         raise NotImplementedError
 
     @property
     @abstractmethod
     def params(self):
+        """List of parameters to specialize a specific CircuitElement instance."""
         raise NotImplementedError
