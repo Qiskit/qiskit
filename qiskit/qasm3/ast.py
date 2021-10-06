@@ -125,7 +125,7 @@ class Identifier(ASTNode):
 
 class PhysicalQubitIdentifier(Identifier):
     """
-    TOOD
+    Phisical qubit identifier
     """
 
     def __init__(self, identifier: Identifier):
