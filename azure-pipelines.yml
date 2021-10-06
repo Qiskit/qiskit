@@ -130,7 +130,7 @@ stages:
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.8', architecture: x64}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.9', architecture: x86}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.9', architecture: x64}}
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.10'. architecture: x86}}
+        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.10', architecture: x86}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.10', architecture: x64}}
         - bash: |
             set -e
