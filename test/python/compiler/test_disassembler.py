@@ -243,6 +243,39 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         self.assertEqual(circuits[0], qc)
         self.assertEqual({}, header)
 
+    def test_circuit_with_bit_conditional_1(self):
+        """Verify disassemble handles conditional on a single bit."""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        qc = QuantumCircuit(qr, cr)
+        qc.h(qr[0]).c_if(cr[1], True)
+        qobj = assemble(qc)
+        circuits, run_config_out, header = disassemble(qobj)
+        run_config_out = RunConfig(**run_config_out)
+        self.assertEqual(run_config_out.n_qubits, 2)
+        self.assertEqual(run_config_out.memory_slots, 2)
+        self.assertEqual(len(circuits), 1)
+        self.assertEqual(circuits[0], qc)
+        self.assertEqual({}, header)
+
+    def test_circuit_with_bit_conditional_2(self):
+        """Verify disassemble handles multiple single bit conditionals."""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        cr1 = ClassicalRegister(2)
+        qc = QuantumCircuit(qr, cr, cr1)
+        qc.h(qr[0]).c_if(cr1[1], False)
+        qc.h(qr[1]).c_if(cr[0], True)
+        qc.cx(qr[0], qr[1]).c_if(cr1[0], False)
+        qobj = assemble(qc)
+        circuits, run_config_out, header = disassemble(qobj)
+        run_config_out = RunConfig(**run_config_out)
+        self.assertEqual(run_config_out.n_qubits, 2)
+        self.assertEqual(run_config_out.memory_slots, 4)
+        self.assertEqual(len(circuits), 1)
+        self.assertEqual(circuits[0], qc)
+        self.assertEqual({}, header)
+
     def assertCircuitCalibrationsEqual(self, in_circuits, out_circuits):
         """Verify circuit calibrations are equivalent pre-assembly and post-disassembly"""
         self.assertEqual(len(in_circuits), len(out_circuits))

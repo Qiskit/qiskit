@@ -64,6 +64,82 @@ class Optimize1qGatesDecomposition(TransformationPass):
                             tuple(gates)
                         ] = one_qubit_decompose.OneQubitEulerDecomposer(euler_basis_name)
 
+    def _resynthesize_run(self, run):
+        """
+        Resynthesizes one `run`, typically extracted via `dag.collect_1q_runs`.
+
+        Returns (basis, circuit) containing the newly synthesized circuit in the indicated basis, or
+        (None, None) if no synthesis routine applied.
+        """
+
+        operator = run[0].op.to_matrix()
+        for gate in run[1:]:
+            operator = gate.op.to_matrix().dot(operator)
+
+        new_circs = {k: v._decompose(operator) for k, v in self._decomposers.items()}
+
+        new_basis, new_circ = None, None
+        if len(new_circs) > 0:
+            new_basis, new_circ = min(new_circs.items(), key=lambda x: len(x[1]))
+
+        return new_basis, new_circ
+
+    def _substitution_checks(self, dag, old_run, new_circ, new_basis):
+        """
+        Returns `True` when it is recommended to replace `old_run` with `new_circ`.
+        """
+
+        if new_circ is None:
+            return False
+
+        # do we even have calibrations?
+        has_cals_p = dag.calibrations is not None and len(dag.calibrations) > 0
+        # is this run in the target set of this particular decomposer and also uncalibrated?
+        rewriteable_and_in_basis_p = all(
+            g.name in new_basis and (not has_cals_p or not dag.has_calibration_for(g))
+            for g in old_run
+        )
+        # does this run have uncalibrated gates?
+        uncalibrated_p = not has_cals_p or any(not dag.has_calibration_for(g) for g in old_run)
+        # does this run have gates not in the image of ._decomposers _and_ uncalibrated?
+        uncalibrated_and_not_basis_p = any(
+            g.name not in self._target_basis and (not has_cals_p or not dag.has_calibration_for(g))
+            for g in old_run
+        )
+
+        if rewriteable_and_in_basis_p and len(old_run) < len(new_circ):
+            # NOTE: This is short-circuited on calibrated gates, which we're timid about
+            #       reducing.
+            warnings.warn(
+                "Resynthesized \n\n"
+                + "\n".join([str(node.op) for node in old_run])
+                + "\n\nand got\n\n"
+                + "\n".join([str(node[0]) for node in new_circ])
+                + f"\n\nbut the original was native (for {self._target_basis}) and the new value "
+                f"is longer.  This indicates an efficiency bug in synthesis.  Please report it by "
+                f"opening an issue here: "
+                f"https://github.com/Qiskit/qiskit-terra/issues/new/choose",
+                stacklevel=2,
+            )
+
+        # if we're outside of the basis set, we're obligated to logically decompose.
+        # if we're outside of the set of gates for which we have physical definitions,
+        #    then we _try_ to decompose, using the results if we see improvement.
+        # NOTE: Here we use circuit length as a weak proxy for "improvement"; in reality,
+        #       we care about something more like fidelity at runtime, which would mean,
+        #       e.g., a preference for `RZGate`s over `RXGate`s.  In fact, users sometimes
+        #       express a preference for a "canonical form" of a circuit, which may come in
+        #       the form of some parameter values, also not visible at the level of circuit
+        #       length.  Since we don't have a framework for the caller to programmatically
+        #       express what they want here, we include some special casing for particular
+        #       gates which we've promised to normalize --- but this is fragile and should
+        #       ultimately be done away with.
+        return (
+            uncalibrated_and_not_basis_p
+            or (uncalibrated_p and len(old_run) > len(new_circ))
+            or isinstance(old_run[0].op, U3Gate)
+        )
+
     def run(self, dag):
         """Run the Optimize1qGatesDecomposition pass on `dag`.
 
@@ -76,6 +152,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         if self._decomposers is None:
             logger.info("Skipping pass because no basis is set")
             return dag
+
         runs = dag.collect_1q_runs()
         for run in runs:
             # SPECIAL CASE: Don't bother to optimize single U3 gates which are in the basis set.
@@ -89,62 +166,13 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 if "u2" not in self._target_basis and "u1" not in self._target_basis:
                     continue
 
-            operator = run[0].op.to_matrix()
-            for gate in run[1:]:
-                operator = gate.op.to_matrix().dot(operator)
+            new_basis, new_circ = self._resynthesize_run(run)
 
-            new_circs = {k: v._decompose(operator) for k, v in self._decomposers.items()}
+            if new_circ is not None and self._substitution_checks(dag, run, new_circ, new_basis):
+                new_dag = circuit_to_dag(new_circ)
+                dag.substitute_node_with_dag(run[0], new_dag)
+                # Delete the other nodes in the run
+                for current_node in run[1:]:
+                    dag.remove_op_node(current_node)
 
-            if len(new_circs) > 0:
-                new_basis, new_circ = min(new_circs.items(), key=lambda x: len(x[1]))
-
-                # do we even have calibrations?
-                has_cals_p = dag.calibrations is not None and len(dag.calibrations) > 0
-                # is this run in the target set of this particular decomposer and also uncalibrated?
-                rewriteable_and_in_basis_p = all(
-                    g.name in new_basis and (not has_cals_p or not dag.has_calibration_for(g))
-                    for g in run
-                )
-                # does this run have uncalibrated gates?
-                uncalibrated_p = not has_cals_p or any(not dag.has_calibration_for(g) for g in run)
-                # does this run have gates not in the image of ._decomposers _and_ uncalibrated?
-                uncalibrated_and_not_basis_p = any(
-                    g.name not in self._target_basis
-                    and (not has_cals_p or not dag.has_calibration_for(g))
-                    for g in run
-                )
-
-                if rewriteable_and_in_basis_p and len(run) < len(new_circ):
-                    # NOTE: This is short-circuited on calibrated gates, which we're timid about
-                    #       reducing.
-                    warnings.warn(
-                        f"Resynthesized {run} and got {new_circ}, "
-                        f"but the original was native and the new value is longer.  This "
-                        f"indicates an efficiency bug in synthesis.  Please report it by "
-                        f"opening an issue here: "
-                        f"https://github.com/Qiskit/qiskit-terra/issues/new/choose",
-                        stacklevel=2,
-                    )
-                # if we're outside of the basis set, we're obligated to logically decompose.
-                # if we're outside of the set of gates for which we have physical definitions,
-                #    then we _try_ to decompose, using the results if we see improvement.
-                # NOTE: Here we use circuit length as a weak proxy for "improvement"; in reality,
-                #       we care about something more like fidelity at runtime, which would mean,
-                #       e.g., a preference for `RZGate`s over `RXGate`s.  In fact, users sometimes
-                #       express a preference for a "canonical form" of a circuit, which may come in
-                #       the form of some parameter values, also not visible at the level of circuit
-                #       length.  Since we don't have a framework for the caller to programmatically
-                #       express what they want here, we include some special casing for particular
-                #       gates which we've promised to normalize --- but this is fragile and should
-                #       ultimately be done away with.
-                if (
-                    uncalibrated_and_not_basis_p
-                    or (uncalibrated_p and len(run) > len(new_circ))
-                    or isinstance(run[0].op, U3Gate)
-                ):
-                    new_dag = circuit_to_dag(new_circ)
-                    dag.substitute_node_with_dag(run[0], new_dag)
-                    # Delete the other nodes in the run
-                    for current_node in run[1:]:
-                        dag.remove_op_node(current_node)
         return dag

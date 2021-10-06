@@ -87,42 +87,87 @@ class CommutationAnalysis(AnalysisPass):
                 self.property_set["commutation_set"][(current_gate, wire)] = temp_len - 1
 
 
-def _commute(node1, node2, cache):
+_COMMUTE_ID_OP = {}
 
+
+def _hashable_parameters(params):
+    """Convert the parameters of a gate into a hashable format for lookup in a dictionary.
+
+    This aims to be fast in common cases, and is not intended to work outside of the lifetime of a
+    single commutation pass; it does not handle mutable state correctly if the state is actually
+    changed."""
+    try:
+        hash(params)
+        return params
+    except TypeError:
+        pass
+    if isinstance(params, (list, tuple)):
+        return tuple(_hashable_parameters(x) for x in params)
+    if isinstance(params, np.ndarray):
+        # We trust that the arrays will not be mutated during the commutation pass, since nothing
+        # would work if they were anyway. Using the id can potentially cause some additional cache
+        # misses if two UnitaryGate instances are being compared that have been separately
+        # constructed to have the same underlying matrix, but in practice the cost of string-ifying
+        # the matrix to get a cache key is far more expensive than just doing a small matmul.
+        return (np.ndarray, id(params))
+    # Catch anything else with a slow conversion.
+    return ("fallback", str(params))
+
+
+def _commute(node1, node2, cache):
     if not isinstance(node1, DAGOpNode) or not isinstance(node2, DAGOpNode):
         return False
-
     for nd in [node1, node2]:
         if nd.op._directive or nd.name in {"measure", "reset", "delay"}:
             return False
-
     if node1.op.condition or node2.op.condition:
         return False
-
     if node1.op.is_parameterized() or node2.op.is_parameterized():
         return False
 
-    qarg = list(set(node1.qargs + node2.qargs))
-    qbit_num = len(qarg)
+    # Assign indices to each of the qubits such that all `node1`'s qubits come first, followed by
+    # any _additional_ qubits `node2` addresses.  This helps later when we need to compose one
+    # operator with the other, since we can easily expand `node1` with a suitable identity.
+    qarg = {q: i for i, q in enumerate(node1.qargs)}
+    num_qubits = len(qarg)
+    for q in node2.qargs:
+        if q not in qarg:
+            qarg[q] = num_qubits
+            num_qubits += 1
+    qarg1 = tuple(qarg[q] for q in node1.qargs)
+    qarg2 = tuple(qarg[q] for q in node2.qargs)
 
-    qarg1 = [qarg.index(q) for q in node1.qargs]
-    qarg2 = [qarg.index(q) for q in node2.qargs]
+    node1_key = (node1.op.name, _hashable_parameters(node1.op.params), qarg1)
+    node2_key = (node2.op.name, _hashable_parameters(node2.op.params), qarg2)
+    try:
+        # We only need to try one orientation of the keys, since if we've seen the compound key
+        # before, we've set it in both orientations.
+        return cache[node1_key, node2_key]
+    except KeyError:
+        pass
 
-    id_op = Operator(np.eye(2 ** qbit_num))
+    operator_1 = Operator(node1.op, input_dims=(2,) * len(qarg1), output_dims=(2,) * len(qarg1))
+    operator_2 = Operator(node2.op, input_dims=(2,) * len(qarg2), output_dims=(2,) * len(qarg2))
 
-    node1_key = (node1.op.name, str(node1.op.params), str(qarg1))
-    node2_key = (node2.op.name, str(node2.op.params), str(qarg2))
-    if (node1_key, node2_key) in cache:
-        op12 = cache[(node1_key, node2_key)]
+    if qarg1 == qarg2:
+        # Use full composition if possible to get the fastest matmul paths.
+        op12 = operator_1.compose(operator_2)
+        op21 = operator_2.compose(operator_1)
     else:
-        op12 = id_op.compose(node1.op, qargs=qarg1).compose(node2.op, qargs=qarg2)
-        cache[(node1_key, node2_key)] = op12
-    if (node2_key, node1_key) in cache:
-        op21 = cache[(node2_key, node1_key)]
-    else:
-        op21 = id_op.compose(node2.op, qargs=qarg2).compose(node1.op, qargs=qarg1)
-        cache[(node2_key, node1_key)] = op21
-
-    if_commute = op12 == op21
-
-    return if_commute
+        # Expand operator_1 to be large enough to contain operator_2 as well; this relies on qargs1
+        # being the lowest possible indices so the identity can be tensored before it.
+        extra_qarg2 = num_qubits - len(qarg1)
+        if extra_qarg2:
+            try:
+                id_op = _COMMUTE_ID_OP[extra_qarg2]
+            except KeyError:
+                id_op = _COMMUTE_ID_OP[extra_qarg2] = Operator(
+                    np.eye(2 ** extra_qarg2),
+                    input_dims=(2,) * extra_qarg2,
+                    output_dims=(2,) * extra_qarg2,
+                )
+            operator_1 = id_op.tensor(operator_1)
+        op12 = operator_1.compose(operator_2, qargs=qarg2, front=False)
+        op21 = operator_1.compose(operator_2, qargs=qarg2, front=True)
+    cache[node1_key, node2_key] = cache[node2_key, node1_key] = ret = op12 == op21
+    return ret
