@@ -14,7 +14,6 @@
 Instruction collection.
 """
 from qiskit.circuit.exceptions import CircuitError
-from .instruction import Instruction
 from .classicalregister import Clbit
 from .circuit_element import CircuitElement
 
