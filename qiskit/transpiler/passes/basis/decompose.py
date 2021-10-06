@@ -87,7 +87,7 @@ class Decompose(TransformationPass):
         # Walk through the DAG and expand each non-basis node
         for node in dag.op_nodes():
             if self._should_decompose(node):
-                if not node.op.definition:
+                if node.op.definition is None:
                     continue
                 # TODO: allow choosing among multiple decomposition rules
                 rule = node.op.definition.data

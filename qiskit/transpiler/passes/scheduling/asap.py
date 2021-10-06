@@ -78,7 +78,7 @@ class ASAPSchedule(TransformationPass):
             if node.op.duration is None:
                 indices = [bit_indices[qarg] for qarg in node.qargs]
                 raise TranspilerError(
-                    f"Duration of {node.op.name} on qubits " f"{indices} is not found."
+                    f"Duration of {node.op.name} on qubits {indices} is not found."
                 )
             if isinstance(node.op.duration, ParameterExpression):
                 indices = [bit_indices[qarg] for qarg in node.qargs]

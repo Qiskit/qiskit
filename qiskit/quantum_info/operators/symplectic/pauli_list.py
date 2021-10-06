@@ -13,7 +13,10 @@
 Optimized list of Pauli operators
 """
 
+from collections import defaultdict
+
 import numpy as np
+import retworkx as rx
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
@@ -129,6 +132,10 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
     # ---------------------------------------------------------------------
     # Representation conversions
     # ---------------------------------------------------------------------
+
+    @property
+    def settings(self):
+        return {"data": self.to_labels()}
 
     def __array__(self, dtype=None):
         """Convert to numpy array"""
@@ -284,7 +291,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             if len(index) == 1:
                 index = index[0]
             elif len(index) > 2:
-                raise IndexError("Invalid PauliList index {}".format(index))
+                raise IndexError(f"Invalid PauliList index {index}")
 
         # Row-only indexing
         if isinstance(index, (int, np.integer)):
@@ -309,7 +316,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             if len(index) == 1:
                 index = index[0]
             elif len(index) > 2:
-                raise IndexError("Invalid PauliList index {}".format(index))
+                raise IndexError(f"Invalid PauliList index {index}")
 
         # Modify specified rows of the PauliList
         if not isinstance(value, PauliList):
@@ -629,11 +636,6 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         """
         if not isinstance(other, PauliList):
             other = PauliList(other)
-        if len(other) not in [1, len(self)]:
-            raise QiskitError(
-                "Incompatible PauliLists. Other list must "
-                "have either 1 or the same number of Paulis."
-            )
         return PauliList(super().tensor(other))
 
     def expand(self, other):
@@ -1008,7 +1010,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             """Label representation iteration and item access."""
 
             def __repr__(self):
-                return "<PauliList_label_iterator at {}>".format(hex(id(self)))
+                return f"<PauliList_label_iterator at {hex(id(self))}>"
 
             def __getitem__(self, key):
                 return self.obj._to_label(self.obj._z[key], self.obj._x[key], self.obj._phase[key])
@@ -1035,7 +1037,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             """Matrix representation iteration and item access."""
 
             def __repr__(self):
-                return "<PauliList_matrix_iterator at {}>".format(hex(id(self)))
+                return f"<PauliList_matrix_iterator at {hex(id(self))}>"
 
             def __getitem__(self, key):
                 return self.obj._to_matrix(
@@ -1062,3 +1064,40 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         """
         base_z, base_x, base_phase = cls._from_array(z, x, phase)
         return cls(BasePauli(base_z, base_x, base_phase))
+
+    def _noncommutation_graph(self):
+        """Create an edge list representing the qubit-wise non-commutation graph.
+
+        An edge (i, j) is present if i and j are not commutable.
+
+        Returns:
+            List[Tuple(int,int)]: A list of pairs of indices of the PauliList that are not commutable.
+        """
+        # convert a Pauli operator into int vector where {I: 0, X: 2, Y: 3, Z: 1}
+        mat1 = np.array(
+            [op.z + 2 * op.x for op in self],
+            dtype=np.int8,
+        )
+        mat2 = mat1[:, None]
+        # mat3[i, j] is True if i and j are qubit-wise commutable
+        mat3 = (((mat1 * mat2) * (mat1 - mat2)) == 0).all(axis=2)
+        # convert into list where tuple elements are qubit-wise non-commuting operators
+        return list(zip(*np.where(np.triu(np.logical_not(mat3), k=1))))
+
+    def group_qubit_wise_commuting(self):
+        """Partition a PauliList into sets of mutually qubit-wise commuting Pauli strings.
+
+        Returns:
+            List[PauliList]: List of PauliLists where each PauliList contains commutable Pauli operators.
+        """
+        nodes = range(self._num_paulis)
+        edges = self._noncommutation_graph()
+        graph = rx.PyGraph()
+        graph.add_nodes_from(nodes)
+        graph.add_edges_from_no_data(edges)
+        # Keys in coloring_dict are nodes, values are colors
+        coloring_dict = rx.graph_greedy_color(graph)
+        groups = defaultdict(list)
+        for idx, color in coloring_dict.items():
+            groups[color].append(idx)
+        return [PauliList([self[i] for i in x]) for x in groups.values()]

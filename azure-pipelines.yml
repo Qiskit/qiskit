@@ -68,7 +68,7 @@ stages:
             TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'macos'
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
-      pool: {vmImage: 'macOS-latest'}
+      pool: {vmImage: 'macOS-10.15'}
       variables:
         python.version: '3.7'
         CIBW_BEFORE_BUILD: pip install -U Cython
@@ -92,7 +92,7 @@ stages:
           TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'macos_arm'
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
-      pool: {vmImage: 'macOS-latest'}
+      pool: {vmImage: 'macOS-10.15'}
       variables:
         python.version: '3.7'
         CIBW_BEFORE_BUILD: pip install -U Cython
@@ -145,7 +145,7 @@ stages:
             twine upload wheelhouse\*
           env:
             TWINE_PASSWORD: $(TWINE_PASSWORD)
-  - stage: 'Lint_and_Tests'
+  - stage: 'Lint_Docs_and_Tests'
     dependsOn: []
     jobs:
     - job: 'Linux_Tests'
@@ -193,6 +193,7 @@ stages:
             mkdir -p /tmp/terra-tests
             cp -r test /tmp/terra-tests/.
             cp .stestr.conf /tmp/terra-tests/.
+            cp -r .stestr /tmp/terra-tests/. || :
             sudo apt install -y graphviz
             pip check
           displayName: 'Install dependencies'
@@ -225,11 +226,12 @@ stages:
             pushd /tmp/terra-tests
             mkdir -p junit
             stestr last --subunit | ./subunit_to_junit.py -o junit/test-results.xml
-            popd
-            cp -r /tmp/terra-tests/junit .
             pushd .stestr
             ls | grep -P "^\d" | xargs -d "\n" rm -f
             popd
+            popd
+            cp -r /tmp/terra-tests/junit .
+            cp -r /tmp/terra-tests/.stestr .
           condition: succeededOrFailed()
           displayName: 'Generate results'
         - task: PublishTestResults@2
@@ -295,8 +297,54 @@ stages:
             python tools/find_optional_imports.py
             reno lint
           displayName: 'Style and lint'
+    - job: 'Docs'
+      pool: {vmImage: 'ubuntu-latest'}
+      strategy:
+        matrix:
+          Python37:
+            python.version: '3.7'
+      variables:
+        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+      steps:
+        - checkout: self
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '$(python.version)'
+          displayName: 'Use Python $(python.version)'
+        - task: Cache@2
+          inputs:
+            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
+            restoreKeys: |
+              pip | "$(Agent.OS)" | "$(python.version)"
+              pip | "$(Agent.OS)"
+              pip
+            path: $(PIP_CACHE_DIR)
+          displayName: Cache pip
+        - bash: |
+            set -e
+            python -m pip install --upgrade pip setuptools wheel
+            pip install -U tox
+            python setup.py build_ext --inplace
+            sudo apt install -y graphviz
+          displayName: 'Install dependencies'
+        - bash: |
+            tox -edocs
+          displayName: 'Run Docs build'
+        - task: ArchiveFiles@2
+          inputs:
+            rootFolderOrFile: 'docs/_build/html'
+            archiveType: tar
+            archiveFile: '$(Build.ArtifactStagingDirectory)/html_docs.tar.gz'
+            verbose: true
+        - task: PublishBuildArtifacts@1
+          displayName: 'Publish docs'
+          inputs:
+            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            artifactName: 'html_docs'
+            Parallel: true
+            ParallelCount: 8
     - job: 'MacOS_Catalina_Tests'
-      pool: {vmImage: 'macOS-latest'}
+      pool: {vmImage: 'macOS-10.15'}
       strategy:
         matrix:
           Python37:
@@ -451,8 +499,8 @@ stages:
           inputs:
             testResultsFiles: '**/test-*.xml'
             testRunTitle: 'Test results for Windows Python $(python.version)'
-  - stage: 'Python_Tests'
-    condition: and(succeeded('Lint_and_Tests'), not(startsWith(variables['Build.SourceBranch'], 'refs/tags')))
+  - stage: 'Python_Tests_and_Tutorials'
+    condition: and(succeeded('Lint_Docs_and_Tests'), not(startsWith(variables['Build.SourceBranch'], 'refs/tags')))
     jobs:
     - job: 'Windows_Tests'
       pool: {vmImage: 'windows-latest'}
@@ -620,7 +668,7 @@ stages:
             testResultsFiles: '**/test-*.xml'
             testRunTitle: 'Test results for Linux Python $(python.version)'
     - job: 'MacOS_Catalina_Tests'
-      pool: {vmImage: 'macOS-latest'}
+      pool: {vmImage: 'macOS-10.15'}
       strategy:
         matrix:
           Python36:
@@ -701,55 +749,6 @@ stages:
           inputs:
             testResultsFiles: '**/test-*.xml'
             testRunTitle: 'Test results for macOS Python $(python.version)'
-  - stage: 'Docs_and_Tutorials'
-    condition: and(succeeded('Python_Tests'), not(startsWith(variables['Build.SourceBranch'], 'refs/tags')))
-    jobs:
-    - job: 'Docs'
-      pool: {vmImage: 'ubuntu-latest'}
-      strategy:
-        matrix:
-          Python37:
-            python.version: '3.7'
-      variables:
-        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
-      steps:
-        - checkout: self
-        - task: UsePythonVersion@0
-          inputs:
-            versionSpec: '$(python.version)'
-          displayName: 'Use Python $(python.version)'
-        - task: Cache@2
-          inputs:
-            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
-            restoreKeys: |
-              pip | "$(Agent.OS)" | "$(python.version)"
-              pip | "$(Agent.OS)"
-              pip
-            path: $(PIP_CACHE_DIR)
-          displayName: Cache pip
-        - bash: |
-            set -e
-            python -m pip install --upgrade pip setuptools wheel
-            pip install -U tox
-            python setup.py build_ext --inplace
-            sudo apt install -y graphviz
-          displayName: 'Install dependencies'
-        - bash: |
-            tox -edocs
-          displayName: 'Run Docs build'
-        - task: ArchiveFiles@2
-          inputs:
-            rootFolderOrFile: 'docs/_build/html'
-            archiveType: tar
-            archiveFile: '$(Build.ArtifactStagingDirectory)/html_docs.tar.gz'
-            verbose: true
-        - task: PublishBuildArtifacts@1
-          displayName: 'Publish docs'
-          inputs:
-            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
-            artifactName: 'html_docs'
-            Parallel: true
-            ParallelCount: 8
     - job: 'Tutorials'
       pool: {vmImage: 'ubuntu-latest'}
       strategy:

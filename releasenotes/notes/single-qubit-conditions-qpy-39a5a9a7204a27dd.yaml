@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixed the generation and loading of QPY files with
+    :func:`qiskit.circuit.qpy_serialization.dump` and
+    :func:`qiskit.circuit.qpy_serialization.load` for
+    :class:`~qiskit.circuit.QuantumCircuit` objects that contain instructions
+    with classical conditions on a single :class:`~qiskit.circuit.Clbit` instead
+    of a :class:`~qiskit.circuit.ClassicalRegister`. While the use of single
+    :class:`~qiskit.circuit.Clbit` conditions is not yet fully supported, if you
+    were using them in a circuit they are now correctly serialized by QPY.

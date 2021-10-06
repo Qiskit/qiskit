@@ -32,6 +32,7 @@ from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse
 from qiskit.circuit import Parameter, Gate, Qubit, Clbit
 from qiskit.compiler import transpile
+from qiskit.dagcircuit import DAGOutNode
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import CXGate, U3Gate, U2Gate, U1Gate, RXGate, RYGate, RZGate
 from qiskit.test import QiskitTestCase
@@ -678,7 +679,7 @@ class TestTranspile(QiskitTestCase):
         meas_nodes = out_dag.named_nodes("measure")
         for meas_node in meas_nodes:
             is_last_measure = all(
-                after_measure.type == "out"
+                isinstance(after_measure, DAGOutNode)
                 for after_measure in out_dag.quantum_successors(meas_node)
             )
             self.assertTrue(is_last_measure)
