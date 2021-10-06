@@ -529,7 +529,7 @@ class Clifford(BaseOperator, AdjointMixin, CircuitElement):
 
     @property
     def name(self):
-        return 'clifford'
+        return "clifford"
 
     @property
     def num_params(self):
@@ -537,7 +537,7 @@ class Clifford(BaseOperator, AdjointMixin, CircuitElement):
 
     @property
     def num_clbits(self):
-        return  0
+        return 0
 
     @property
     def params(self):
