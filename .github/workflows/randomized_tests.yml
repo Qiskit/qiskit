@@ -13,6 +13,10 @@ jobs:
         name: Install Python
         with:
           python-version: '3.8'
+      - name: Get commit sha
+        id: vars
+        shell: bash
+        run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
       - name: Install dependencies
         run: |
           pip install -U -r requirements.txt -c constraints.txt
@@ -20,10 +24,6 @@ jobs:
           pip install -c constraints.txt -e .
           pip install "qiskit-ibmq-provider" -c constraints.txt
           pip install "qiskit-aer"
-      - name: Prepare executables
-        run: |
-          pip install -U pip
-          python setup.py build_ext --inplace
       - name: Run randomized tests
         run: make test_randomized
       - name: Create comment on failed test run
@@ -33,4 +33,5 @@ jobs:
           issue-number: 2645
           body: |
             Randomized tests check failed:
-            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            _Logs_: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            _Commit_: ${{ github.server_url }}/${{ github.repository }}/tree/${{ steps.vars.outputs.sha_short }}
