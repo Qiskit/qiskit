@@ -514,6 +514,11 @@ class ParameterExpression:
                 return False
         return True
 
+    def get_expr(self):
+        from sympy import sympify
+
+        return sympify(self._symbol_expr)
+
 
 # Redefine the type so external imports get an evaluated reference; Sphinx needs this to understand
 # the type hints.

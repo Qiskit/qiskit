@@ -498,8 +498,11 @@ class TemplateSubstitution:
         equations, circ_dict, temp_symbols, sol, fake_bind = [], {}, {}, {}, {}
         for t_idx, temp_params in enumerate(template_params):
             if isinstance(temp_params, ParameterExpression):
-                circ_param_str = str(circuit_params[t_idx])
-                equations.append(sym.Eq(parse_expr(str(temp_params)), parse_expr(circ_param_str)))
+                if isinstance(circuit_params[t_idx], ParameterExpression):
+                    circ_param_sym = circuit_params[t_idx].get_expr()
+                else:
+                    circ_param_sym = parse_expr(str(circuit_params[t_idx]))
+                equations.append(sym.Eq(temp_params.get_expr(), circ_param_sym))
 
                 for param in temp_params.parameters:
                     temp_symbols[param] = sym.Symbol(str(param))
