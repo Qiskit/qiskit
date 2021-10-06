@@ -16,7 +16,7 @@ import re
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import QuantumCircuit, Instruction
+from qiskit.circuit import QuantumCircuit, Instruction, CircuitElement
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate, HGate, SGate
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.operator import Operator
@@ -27,7 +27,7 @@ from .stabilizer_table import StabilizerTable
 from .clifford_circuits import _append_circuit
 
 
-class Clifford(BaseOperator, AdjointMixin):
+class Clifford(BaseOperator, AdjointMixin, CircuitElement):
     """An N-qubit unitary operator from the Clifford group.
 
     **Representation**
@@ -524,6 +524,24 @@ class Clifford(BaseOperator, AdjointMixin):
         padded.table.phase[inds] = clifford.table.phase
 
         return padded
+
+    # These implement the required methods of the CircuitElement mixin
+
+    @property
+    def name(self):
+        return 'clifford'
+
+    @property
+    def num_params(self):
+        return 1
+
+    @property
+    def num_clbits(self):
+        return  0
+
+    @property
+    def params(self):
+        return (self._table,)
 
 
 # Update docstrings for API docs
