@@ -539,8 +539,5 @@ class Instruction(CircuitElement):
     def num_clbits(self):
         return self.num_clbits()
 
-    def params(self):
-        return self.params()
-
     def num_params(self):
         return self.num_params()
