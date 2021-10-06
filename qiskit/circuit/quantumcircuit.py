@@ -56,6 +56,7 @@ from .quantumcircuitdata import QuantumCircuitData
 from .delay import Delay
 from .measure import Measure
 from .reset import Reset
+from .circuit_element import CircuitElement
 
 try:
     import pygments
@@ -1124,7 +1125,7 @@ class QuantumCircuit:
 
     def append(
         self,
-        instruction: Instruction,
+        instruction: CircuitElement,
         qargs: Optional[Sequence[QubitSpecifier]] = None,
         cargs: Optional[Sequence[ClbitSpecifier]] = None,
     ) -> InstructionSet:
@@ -1144,7 +1145,7 @@ class QuantumCircuit:
             CircuitError: if object passed is neither subclass nor an instance of Instruction
         """
         # Convert input to instruction
-        if not isinstance(instruction, Instruction) and not hasattr(instruction, "to_instruction"):
+        if not isinstance(instruction, CircuitElement) and not hasattr(instruction, "to_instruction"):
             if issubclass(instruction, Instruction):
                 raise CircuitError(
                     "Object is a subclass of Instruction, please add () to "
@@ -1154,7 +1155,7 @@ class QuantumCircuit:
             raise CircuitError(
                 "Object to append must be an Instruction or have a to_instruction() method."
             )
-        if not isinstance(instruction, Instruction) and hasattr(instruction, "to_instruction"):
+        if not isinstance(instruction, CircuitElement) and hasattr(instruction, "to_instruction"):
             instruction = instruction.to_instruction()
 
         # Make copy of parameterized gate instances
@@ -1172,7 +1173,7 @@ class QuantumCircuit:
         return instructions
 
     def _append(
-        self, instruction: Instruction, qargs: Sequence[Qubit], cargs: Sequence[Clbit]
+        self, instruction: CircuitElement, qargs: Sequence[Qubit], cargs: Sequence[Clbit]
     ) -> Instruction:
         """Append an instruction to the end of the circuit, modifying
         the circuit in place.
@@ -1189,8 +1190,8 @@ class QuantumCircuit:
             CircuitError: if the gate is of a different shape than the wires
                 it is being attached to.
         """
-        if not isinstance(instruction, Instruction):
-            raise CircuitError("object is not an Instruction.")
+        if not isinstance(instruction, CircuitElement):
+            raise CircuitError("object is not a CircuitElement.")
 
         # do some compatibility checks
         self._check_dups(qargs)
