@@ -229,7 +229,7 @@ class QFT(BlueprintCircuit):
 
         # data consists of the QFT gate only
         iqft = self._data[0][0].inverse()
-        iqft.name = name
+        iqft._name = name
 
         inverted._data = []
         inverted._append(iqft, inverted.qubits, [])

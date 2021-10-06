@@ -259,7 +259,7 @@ class TestTemplateMatching(QiskitTestCase):
 
             def inverse(self):
                 inverse = UnitaryGate(np.diag([1.0, 1.0, 1.0, np.exp(-2.0j * self.params[0])]))
-                inverse.name = "icz"
+                inverse._name = "icz"
                 return inverse
 
         def template_czp2():

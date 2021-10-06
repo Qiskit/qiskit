@@ -342,7 +342,7 @@ mcx_vchain q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8];\n"""
         custom.h(0)
         custom.y(0)
         gate = custom.to_gate()
-        gate.name = "custom"
+        gate._name = "custom"
         # Another random custom gate named "custom" as well
         custom2 = QuantumCircuit(2)
         custom2.x(0)

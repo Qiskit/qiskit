@@ -75,7 +75,7 @@ class Instruction:
             raise CircuitError(
                 "bad instruction dimensions: %d qubits, %d clbits." % num_qubits, num_clbits
             )
-        self.name = name
+        self._name = name
         self.num_qubits = num_qubits
         self.num_clbits = num_clbits
 
@@ -97,6 +97,10 @@ class Instruction:
         self._unit = unit
 
         self.params = params  # must be at last (other properties may be required for validation)
+
+    @property
+    def name(self):
+        return self._name
 
     def __eq__(self, other):
         """Two instructions are the same if they have the same name,
@@ -430,7 +434,7 @@ class Instruction:
         cpy = self.__deepcopy__()
 
         if name:
-            cpy.name = name
+            cpy._name = name
         return cpy
 
     def __deepcopy__(self, _memo=None):

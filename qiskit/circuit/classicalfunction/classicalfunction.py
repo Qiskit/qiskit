@@ -60,7 +60,7 @@ class ClassicalFunction(ClassicalElement):
         self._network = _classical_function_visitor._network
         self._scopes = _classical_function_visitor.scopes
         self._args = _classical_function_visitor.args
-        self.name = _classical_function_visitor.name
+        self._name = _classical_function_visitor.name
 
     @property
     def network(self):
