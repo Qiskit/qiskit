@@ -157,19 +157,14 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     elif translation_method == "translator":
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 
-        if basis_gates is not None and "unitary" not in basis_gates:
-            _unroll = [
-                UnitarySynthesis(
-                    basis_gates,
-                    approximation_degree=approximation_degree,
-                    coupling_map=coupling_map,
-                    backend_props=backend_properties,
-                    method=unitary_synthesis_method,
-                )
-            ]
-        else:
-            _unroll = []
-        _unroll += [
+        _unroll = [
+            UnitarySynthesis(
+                basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                backend_props=backend_properties,
+                method=unitary_synthesis_method,
+            ),
             UnrollCustomDefinitions(sel, basis_gates),
             BasisTranslator(sel, basis_gates),
         ]

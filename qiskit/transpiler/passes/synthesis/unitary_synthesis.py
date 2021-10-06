@@ -198,6 +198,8 @@ class UnitarySynthesis(TransformationPass):
             plugin_method._approximation_degree = self._approximation_degree
 
         for node in dag.named_nodes(*self._synth_gates):
+            if self._basis_gates and node.name in self._basis_gates:
+                continue
             if self._min_qubits is not None and len(node.qargs) < self._min_qubits:
                 continue
             if plugin_method.supports_coupling_map:
