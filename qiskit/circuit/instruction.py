@@ -530,14 +530,22 @@ class Instruction(CircuitElement):
         instruction.definition = qc
         return instruction
 
+    @property
     def name(self):
+        """Unique string identifier for operation type."""
         return self.name()
 
+    @property
     def num_qubits(self):
+        """Number of qubits."""
         return self.num_qubits()
 
+    @property
     def num_clbits(self):
+        """Number of classical bits."""
         return self.num_clbits()
 
+    @property
     def num_params(self):
+        """Number of parameters."""
         return self.num_params()
