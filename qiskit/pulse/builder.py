@@ -262,7 +262,7 @@ def _requires_backend(function: Callable[..., T]) -> Callable[..., T]:
     def wrapper(self, *args, **kwargs):
         if self.backend is None:
             raise exceptions.BackendNotSet(
-                "This function requires the builder to " 'have a "backend" set.'
+                'This function requires the builder to have a "backend" set.'
             )
         return function(self, *args, **kwargs)
 
@@ -692,7 +692,7 @@ def active_backend():
     builder = _active_builder().backend
     if builder is None:
         raise exceptions.BackendNotSet(
-            "This function requires the active builder to " 'have a "backend" set.'
+            'This function requires the active builder to have a "backend" set.'
         )
     return builder
 
@@ -821,7 +821,7 @@ def _qubits_to_channels(*channels_or_qubits: Union[int, chans.Channel]) -> Set[c
             channels.add(channel_or_qubit)
         else:
             raise exceptions.PulseError(
-                '{} is not a "Channel" or ' "qubit (integer).".format(channel_or_qubit)
+                f'{channel_or_qubit} is not a "Channel" or qubit (integer).'
             )
     return channels
 
@@ -1399,7 +1399,7 @@ def acquire_channel(qubit: int) -> chans.AcquireChannel:
 
 
 def control_channels(*qubits: Iterable[int]) -> List[chans.ControlChannel]:
-    """Return ``AcquireChannel`` for ``qubit`` on the active builder backend.
+    """Return ``ControlChannel`` for ``qubit`` on the active builder backend.
 
     Return the secondary drive channel for the given qubit -- typically
     utilized for controlling multi-qubit interactions.
@@ -1529,9 +1529,7 @@ def acquire(
             instructions.Acquire(duration, qubit_or_channel, reg_slot=register, **metadata)
         )
     else:
-        raise exceptions.PulseError(
-            'Register of type: "{}" is not supported'.format(type(register))
-        )
+        raise exceptions.PulseError(f'Register of type: "{type(register)}" is not supported')
 
 
 def set_frequency(frequency: float, channel: chans.PulseChannel, name: Optional[str] = None):

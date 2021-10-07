@@ -77,6 +77,13 @@ class PauliSumOp(PrimitiveOp):
         """Return the Pauli coefficients."""
         return self.coeff * self.primitive.coeffs
 
+    @property
+    def settings(self) -> Dict:
+        """Return operator settings."""
+        data = super().settings
+        data.update({"grouping_type": self._grouping_type})
+        return data
+
     def matrix_iter(self, sparse=False):
         """Return a matrix representation iterator.
 
@@ -97,7 +104,7 @@ class PauliSumOp(PrimitiveOp):
             """Matrix representation iteration and item access."""
 
             def __repr__(self):
-                return "<PauliSumOp_matrix_iterator at {}>".format(hex(id(self)))
+                return f"<PauliSumOp_matrix_iterator at {hex(id(self))}>"
 
             def __getitem__(self, key):
                 sumopcoeff = self.obj.coeff * self.obj.primitive.coeffs[key]
@@ -194,14 +201,14 @@ class PauliSumOp(PrimitiveOp):
         """
         if len(permutation) != self.num_qubits:
             raise OpflowError(
-                "List of indices to permute must have the " "same size as Pauli Operator"
+                "List of indices to permute must have the same size as Pauli Operator"
             )
         length = max(permutation) + 1
         spop = self.primitive.tensor(SparsePauliOp(Pauli("I" * (length - self.num_qubits))))
         permutation = [i for i in range(length) if i not in permutation] + permutation
         permu_arr = np.arange(length)[np.argsort(permutation)]
-        permu_arr = np.hstack([permu_arr, permu_arr + length])
-        spop.table.array = spop.table.array[:, permu_arr]
+        spop.paulis.x = spop.paulis.x[:, permu_arr]
+        spop.paulis.z = spop.paulis.z[:, permu_arr]
         return PauliSumOp(spop, self.coeff)
 
     def compose(
@@ -418,7 +425,7 @@ class PauliSumOp(PrimitiveOp):
     @classmethod
     def from_list(
         cls,
-        pauli_list: List[Tuple[str, Union[complex]]],
+        pauli_list: List[Tuple[str, complex]],
         coeff: Union[complex, ParameterExpression] = 1.0,
     ) -> "PauliSumOp":
         """Construct from a pauli_list with the form [(pauli_str, coeffs)]

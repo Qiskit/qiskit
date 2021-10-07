@@ -112,7 +112,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         cr = ClassicalRegister(3, "c")
         circuit = QuantumCircuit(qr, cr)
         # Prepare an initial state
-        circuit.u3(0.3, 0.2, 0.1, [qr[0]])
+        circuit.u(0.3, 0.2, 0.1, [qr[0]])
         # Prepare a Bell pair
         circuit.h(qr[1])
         circuit.cx(qr[1], qr[2])
@@ -492,13 +492,13 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.t(4)
         circuit.tdg(4)
         circuit.p(pi / 2, 4)
-        circuit.u1(pi / 2, 4)
+        circuit.p(pi / 2, 4)
         circuit.cz(5, 6)
-        circuit.cu1(pi / 2, 5, 6)
+        circuit.cp(pi / 2, 5, 6)
         circuit.y(5)
         circuit.rx(pi / 3, 5)
         circuit.rzx(pi / 2, 5, 6)
-        circuit.u2(pi / 2, pi / 2, 5)
+        circuit.u(pi / 2, pi / 2, pi / 2, 5)
         circuit.barrier(5, 6)
         circuit.reset(5)
 
@@ -547,6 +547,63 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit_drawer(circuit, filename=filename, output="latex_source")
 
         self.assertEqualToReference(filename)
+
+    def test_cif_single_bit(self):
+        """Tests conditioning gates on single classical bit"""
+
+        filename = self._get_resource_path("test_latex_cif_single_bit.tex")
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(2, "cr")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr[0]).c_if(cr[1], 0)
+        circuit.x(qr[1]).c_if(cr[0], 1)
+        circuit_drawer(circuit, cregbundle=False, filename=filename, output="latex_source")
+
+        self.assertEqualToReference(filename)
+
+    def test_cif_single_bit_cregbundle(self):
+        """Tests conditioning gates on single classical bit with cregbundle"""
+
+        filename = self._get_resource_path("test_latex_cif_single_bit_bundle.tex")
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(2, "cr")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr[0]).c_if(cr[1], 0)
+        circuit.x(qr[1]).c_if(cr[0], 1)
+        circuit_drawer(circuit, cregbundle=True, filename=filename, output="latex_source")
+
+        self.assertEqualToReference(filename)
+
+    def test_registerless_one_bit(self):
+        """Text circuit with one-bit registers and registerless bits."""
+        from qiskit.circuit import Qubit, Clbit
+
+        filename = self._get_resource_path("test_latex_registerless_one_bit.tex")
+        qrx = QuantumRegister(2, "qrx")
+        qry = QuantumRegister(1, "qry")
+        crx = ClassicalRegister(2, "crx")
+        circuit = QuantumCircuit(qrx, [Qubit(), Qubit()], qry, [Clbit(), Clbit()], crx)
+        circuit_drawer(circuit, filename=filename, output="latex_source")
+
+        self.assertEqualToReference(filename)
+
+    def test_measures_with_conditions(self):
+        """Test that a measure containing a condition displays"""
+        filename1 = self._get_resource_path("test_latex_meas_cond_false.tex")
+        filename2 = self._get_resource_path("test_latex_meas_cond_true.tex")
+        qr = QuantumRegister(2, "qr")
+        cr1 = ClassicalRegister(2, "cr1")
+        cr2 = ClassicalRegister(2, "cr2")
+        circuit = QuantumCircuit(qr, cr1, cr2)
+        circuit.h(0)
+        circuit.h(1)
+        circuit.measure(0, cr1[1])
+        circuit.measure(1, cr2[0]).c_if(cr1, 1)
+        circuit.h(0).c_if(cr2, 3)
+        circuit_drawer(circuit, cregbundle=False, filename=filename1, output="latex_source")
+        circuit_drawer(circuit, cregbundle=True, filename=filename2, output="latex_source")
+        self.assertEqualToReference(filename1)
+        self.assertEqualToReference(filename2)
 
 
 if __name__ == "__main__":

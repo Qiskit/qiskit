@@ -72,6 +72,7 @@ class PauliTwoDesign(TwoLocal):
         reps: int = 3,
         seed: Optional[int] = None,
         insert_barriers: bool = False,
+        name: str = "PauliTwoDesign",
     ):
         from qiskit.circuit.library import RYGate  # pylint: disable=cyclic-import
 
@@ -88,6 +89,7 @@ class PauliTwoDesign(TwoLocal):
             entanglement_blocks="cz",
             entanglement="pairwise",
             insert_barriers=insert_barriers,
+            name=name,
         )
 
         # set the initial layer
@@ -98,7 +100,7 @@ class PauliTwoDesign(TwoLocal):
         self._rng = np.random.default_rng(self._seed)  # reset number generator
         super()._invalidate()
 
-    def _build_rotation_layer(self, param_iter, i):
+    def _build_rotation_layer(self, circuit, param_iter, i):
         """Build a rotation layer."""
         layer = QuantumCircuit(*self.qregs)
         qubits = range(self.num_qubits)
@@ -115,7 +117,7 @@ class PauliTwoDesign(TwoLocal):
             getattr(layer, self._gates[i][j])(next(param_iter), j)
 
         # add the layer to the circuit
-        self.compose(layer, inplace=True)
+        circuit.compose(layer, inplace=True)
 
     @property
     def num_parameters_settable(self) -> int:

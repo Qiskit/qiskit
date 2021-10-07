@@ -124,7 +124,7 @@ class UserConfig:
             if transpile_optimization_level != -1:
                 if transpile_optimization_level < 0 or transpile_optimization_level > 3:
                     raise exceptions.QiskitUserConfigError(
-                        "%s is not a valid optimization level. Must be " "0, 1, 2, or 3."
+                        "%s is not a valid optimization level. Must be 0, 1, 2, or 3."
                     )
                 self.settings["transpile_optimization_level"] = transpile_optimization_level
 
@@ -138,7 +138,7 @@ class UserConfig:
             if num_processes != -1:
                 if num_processes <= 0:
                     raise exceptions.QiskitUserConfigError(
-                        "%s is not a valid number of processes. Must be " "greater than 0"
+                        "%s is not a valid number of processes. Must be greater than 0"
                     )
                 self.settings["num_processes"] = num_processes
 
@@ -184,7 +184,7 @@ def set_config(key, value, section=None, file_path=None):
 
     if section in [None, "default"]:
         if key not in valid_config:
-            raise exceptions.QiskitUserConfigError("{} is not a valid user config.".format(key))
+            raise exceptions.QiskitUserConfigError(f"{key} is not a valid user config.")
 
     config = configparser.ConfigParser()
     config.read(filename)
@@ -199,7 +199,7 @@ def set_config(key, value, section=None, file_path=None):
             config.write(cfgfile)
     except OSError as ex:
         raise exceptions.QiskitUserConfigError(
-            "Unable to load the config file {}. Error: '{}'".format(filename, str(ex))
+            f"Unable to load the config file {filename}. Error: '{str(ex)}'"
         )
 
     # validates config

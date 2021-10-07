@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Previously, :obj:`~qiskit.transpiler.passes.Optimize1qGatesDecomposition`
+    failed to properly optimize one qubit gates that are sufficiently close to
+    the identity matrix. This was fixed so that any gates that differ from the
+    identity by less than 1e-15 are removed.

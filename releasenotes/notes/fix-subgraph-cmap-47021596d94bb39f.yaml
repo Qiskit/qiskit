@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :meth:`~qiskit.transpiler.CouplingMap.subgraph`
+    method of the :class:`~qiskit.transpiler.CouplingMap` class where it would
+    incorrectly add nodes to the output :class:`~qiskit.transpiler.CouplingMap`
+    object when the ``nodelist`` argument contained a non-contiguous list
+    of qubit indices. This has been fixed so regardless of the input
+    indices in ``nodelist`` the output
+    :class:`~qiskit.transpiler.CouplingMap` will only contained the specified
+    nodes reindexed starting at 0.
+    Fixes `#6736 <https://github.com/Qiskit/qiskit-terra/issues/6736>`__

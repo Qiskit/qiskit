@@ -53,7 +53,7 @@ class Instruction:
     # NOTE: Using this attribute may change in the future (See issue # 5811)
     _directive = False
 
-    def __init__(self, name, num_qubits, num_clbits, params, duration=None, unit="dt"):
+    def __init__(self, name, num_qubits, num_clbits, params, duration=None, unit="dt", label=None):
         """Create a new instruction.
 
         Args:
@@ -64,6 +64,7 @@ class Instruction:
                 list of parameters
             duration (int or float): instruction's duration. it must be integer if ``unit`` is 'dt'
             unit (str): time unit of duration
+            label (str or None): An optional label for identifying the instruction.
 
         Raises:
             CircuitError: when the register is not in the correct format.
@@ -79,7 +80,12 @@ class Instruction:
         self.num_clbits = num_clbits
 
         self._params = []  # a list of gate params stored
-
+        # Custom instruction label
+        # NOTE: The conditional statement checking if the `_label` attribute is
+        #       already set is a temporary work around that can be removed after
+        #       the next stable qiskit-aer release
+        if not hasattr(self, "_label"):
+            self._label = label
         # tuple (ClassicalRegister, int), tuple (Clbit, bool) or tuple (Clbit, int)
         # when the instruction has a conditional ("if")
         self.condition = None
@@ -137,6 +143,16 @@ class Instruction:
             return False
 
         return True
+
+    def __repr__(self) -> str:
+        """Generates a representation of the Intruction object instance
+        Returns:
+            str: A representation of the Instruction instance with the name,
+                 number of qubits, classical bits and params( if any )
+        """
+        return "Instruction(name='{}', num_qubits={}, num_clbits={}, params={})".format(
+            self.name, self.num_qubits, self.num_clbits, self.params
+        )
 
     def soft_compare(self, other: "Instruction") -> bool:
         """
@@ -275,12 +291,35 @@ class Instruction:
             instruction.qubits = list(range(self.num_qubits))
         if self.num_clbits:
             instruction.memory = list(range(self.num_clbits))
+        # Add label if defined
+        if self.label:
+            instruction.label = self.label
         # Add condition parameters for assembler. This is needed to convert
         # to a qobj conditional instruction at assemble time and after
         # conversion will be deleted by the assembler.
         if self.condition:
             instruction._condition = self.condition
         return instruction
+
+    @property
+    def label(self) -> str:
+        """Return instruction label"""
+        return self._label
+
+    @label.setter
+    def label(self, name: str):
+        """Set instruction label to name
+
+        Args:
+            name (str or None): label to assign instruction
+
+        Raises:
+            TypeError: name is not string or None.
+        """
+        if isinstance(name, (str, type(None))):
+            self._label = name
+        else:
+            raise TypeError("label expects a string or None")
 
     def mirror(self):
         """DEPRECATED: use instruction.reverse_ops().
@@ -337,18 +376,20 @@ class Instruction:
 
         from qiskit.circuit import QuantumCircuit, Gate  # pylint: disable=cyclic-import
 
+        if self.name.endswith("_dg"):
+            name = self.name[:-3]
+        else:
+            name = self.name + "_dg"
         if self.num_clbits:
             inverse_gate = Instruction(
-                name=self.name + "_dg",
+                name=name,
                 num_qubits=self.num_qubits,
                 num_clbits=self.num_clbits,
                 params=self.params.copy(),
             )
 
         else:
-            inverse_gate = Gate(
-                name=self.name + "_dg", num_qubits=self.num_qubits, params=self.params.copy()
-            )
+            inverse_gate = Gate(name=name, num_qubits=self.num_qubits, params=self.params.copy())
 
         inverse_gate.definition = QuantumCircuit(
             *self.definition.qregs,
@@ -413,7 +454,7 @@ class Instruction:
         """
         name_param = self.name
         if self.params:
-            name_param = "%s(%s)" % (
+            name_param = "{}({})".format(
                 name_param,
                 ",".join([pi_check(i, ndigits=8, output="qasm") for i in self.params]),
             )
@@ -448,7 +489,7 @@ class Instruction:
 
     def _return_repeat(self, exponent):
         return Instruction(
-            name="%s*%s" % (self.name, exponent),
+            name=f"{self.name}*{exponent}",
             num_qubits=self.num_qubits,
             num_clbits=self.num_clbits,
             params=self.params,

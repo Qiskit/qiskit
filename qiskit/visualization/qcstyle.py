@@ -12,7 +12,12 @@
 
 """mpl circuit visualization style."""
 
+import json
+import os
 from warnings import warn
+
+
+from qiskit import user_config
 
 
 class DefaultStyle:
@@ -21,8 +26,8 @@ class DefaultStyle:
     **Style Dict Details**
 
     The style dict contains numerous options that define the style of the
-    output circuit visualization. The style dict is only used by the `mpl`
-    output. The options available in the style dict are defined below:
+    output circuit visualization. The style dict is used by the `mpl` or
+    `latex` output. The options available in the style dict are defined below:
 
     name (str): the name of the style. The name can be set to ``iqx``,
         ``bw``, ``default``, or the name of a user-created json file. This
@@ -80,46 +85,39 @@ class DefaultStyle:
     displaytext (dict): a dictionary of the text to use for certain element
         types in the output visualization. These items allow the use of
         LaTeX formatting for gate names. The 'displaytext' dict can contain
-        any number of elements from one to the entire dict above.The default
+        any number of elements. User created names and labels may be used as
+        keys, which allow these to have Latex formatting. The default
         values are (`default.json`)::
 
             {
-                'u1': '$\\mathrm{U}_1$',
-                'u2': '$\\mathrm{U}_2$',
-                'u3': '$\\mathrm{U}_3$',
-                'u': 'U',
-                'p': 'P',
-                'id': 'I',
-                'x': 'X',
-                'y': 'Y',
-                'z': 'Z',
-                'h': 'H',
-                's': 'S',
-                'sdg': '$\\mathrm{S}^\\dagger$',
-                'sx': '$\\sqrt{\\mathrm{X}}$',
-                'sxdg': '$\\sqrt{\\mathrm{X}}^\\dagger$',
+                'u1': 'U_1',
+                'u2': 'U_2',
+                'u3': 'U_3',
+                'sdg': 'S^\\dagger',
+                'sx': '\\sqrt{X}',
+                'sxdg': '\\sqrt{X}^\\dagger',
                 't': 'T',
-                'tdg': '$\\mathrm{T}^\\dagger$',
+                'tdg': 'T^\\dagger',
                 'dcx': 'Dcx',
                 'iswap': 'Iswap',
                 'ms': 'MS',
-                'r': 'R',
-                'rx': '$\\mathrm{R}_\\mathrm{X}$',
-                'ry': '$\\mathrm{R}_\\mathrm{Y}$',
-                'rz': '$\\mathrm{R}_\\mathrm{Z}$',
-                'rxx': '$\\mathrm{R}_{\\mathrm{XX}}$',
-                'ryy': '$\\mathrm{R}_{\\mathrm{YY}}$',
-                'rzx': '$\\mathrm{R}_{\\mathrm{ZX}}$',
-                'rzz': '$\\mathrm{R}_{\\mathrm{ZZ}}$',
-                'reset': '$\\left|0\\right\\rangle$',
-                'initialize': '$|\\psi\\rangle$'
+                'rx': 'R_X',
+                'ry': 'R_Y',
+                'rz': 'R_Z',
+                'rxx': 'R_{XX}',
+                'ryy': 'R_{YY}',
+                'rzx': 'R_{ZX}',
+                'rzz': 'ZZ',
+                'reset': '\\left|0\\right\\rangle',
+                'initialize': '|\\psi\\rangle'
             }
 
     displaycolor (dict): the color codes to use for each circuit element in
         the form (gate_color, text_color). Colors can also be entered without
         the text color, such as 'u1': '#FA74A6', in which case the text color
         will always be `gatetextcolor`. The `displaycolor` dict can contain
-        any number of elements from one to the entire dict above. The default
+        any number of elements. User names and labels may be used as keys,
+        which allows for custom colors for user-created gates. The default
         values are (`default.json`)::
 
             {
@@ -150,8 +148,8 @@ class DefaultStyle:
                 'sdg': ('#6FA4FF', '#000000'),
                 't': ('#BB8BFF', '#000000'),
                 'tdg': ('#BB8BFF', '#000000'),
-                'sx': ('#BB8BFF', '#000000'),
-                'sxdg': ('#BB8BFF', '#000000')
+                'sx': ('#6FA4FF', '#000000'),
+                'sxdg': ('#6FA4FF', '#000000')
                 'r': ('#BB8BFF', '#000000'),
                 'rx': ('#BB8BFF', '#000000'),
                 'ry': ('#BB8BFF', '#000000'),
@@ -204,34 +202,23 @@ class DefaultStyle:
             "margin": [2.0, 0.1, 0.1, 0.3],
             "cline": "doublet",
             "disptex": {
-                "u1": "$\\mathrm{U}_1$",
-                "u2": "$\\mathrm{U}_2$",
-                "u3": "$\\mathrm{U}_3$",
-                "u": "U",
-                "p": "P",
+                "u1": "U_1",
+                "u2": "U_2",
+                "u3": "U_3",
                 "id": "I",
-                "x": "X",
-                "y": "Y",
-                "z": "Z",
-                "h": "H",
-                "s": "S",
-                "sdg": "$\\mathrm{S}^\\dagger$",
-                "sx": "$\\sqrt{\\mathrm{X}}$",
-                "sxdg": "$\\sqrt{\\mathrm{X}}^\\dagger$",
-                "t": "T",
-                "tdg": "$\\mathrm{T}^\\dagger$",
-                "dcx": "Dcx",
-                "iswap": "Iswap",
+                "sdg": "S^\\dagger",
+                "sx": "\\sqrt{X}",
+                "sxdg": "\\sqrt{X}^\\dagger",
+                "tdg": "T^\\dagger",
                 "ms": "MS",
-                "r": "R",
-                "rx": "$\\mathrm{R}_\\mathrm{X}$",
-                "ry": "$\\mathrm{R}_\\mathrm{Y}$",
-                "rz": "$\\mathrm{R}_\\mathrm{Z}$",
-                "rxx": "$\\mathrm{R}_{\\mathrm{XX}}$",
-                "ryy": "$\\mathrm{R}_{\\mathrm{YY}}$",
-                "rzx": "$\\mathrm{R}_{\\mathrm{ZX}}$",
-                "rzz": "$\\mathrm{ZZ}$",
-                "reset": "$\\left|0\\right\\rangle$",
+                "rx": "R_X",
+                "ry": "R_Y",
+                "rz": "R_Z",
+                "rxx": "R_{XX}",
+                "ryy": "R_{YY}",
+                "rzx": "R_{ZX}",
+                "rzz": "ZZ",
+                "reset": "\\left|0\\right\\rangle",
                 "initialize": "$|\\psi\\rangle$",
             },
             "dispcol": {
@@ -262,8 +249,8 @@ class DefaultStyle:
                 "sdg": (colors["clifford"], colors["black"]),
                 "t": (colors["def_other"], colors["black"]),
                 "tdg": (colors["def_other"], colors["black"]),
-                "sx": (colors["def_other"], colors["black"]),
-                "sxdg": (colors["def_other"], colors["black"]),
+                "sx": (colors["clifford"], colors["black"]),
+                "sxdg": (colors["clifford"], colors["black"]),
                 "r": (colors["def_other"], colors["black"]),
                 "rx": (colors["def_other"], colors["black"]),
                 "ry": (colors["def_other"], colors["black"]),
@@ -278,11 +265,88 @@ class DefaultStyle:
         }
 
 
+def load_style(style):
+    """Utility function to load style from json files and call set_style."""
+    current_style = DefaultStyle().style
+    style_name = "default"
+    def_font_ratio = current_style["fs"] / current_style["sfs"]
+
+    config = user_config.get_config()
+    if style is not None:
+        if style is False:
+            style_name = "bw"
+        elif isinstance(style, dict) and "name" in style:
+            style_name = style["name"]
+        elif isinstance(style, str):
+            style_name = style
+        elif config:
+            style_name = config.get("circuit_mpl_style", "default")
+        elif not isinstance(style, (str, dict)):
+            warn(
+                f"style parameter '{style}' must be a str or a dictionary."
+                " Will use default style.",
+                UserWarning,
+                2,
+            )
+    if style_name.endswith(".json"):
+        style_name = style_name[:-5]
+
+    # Search for file in 'styles' dir, then config_path, and finally 'cwd'
+    style_path = []
+    if style_name != "default":
+        style_name = style_name + ".json"
+        spath = os.path.dirname(os.path.abspath(__file__))
+        style_path.append(os.path.join(spath, "styles", style_name))
+        if config:
+            config_path = config.get("circuit_mpl_style_path", "")
+            if config_path:
+                for path in config_path:
+                    style_path.append(os.path.normpath(os.path.join(path, style_name)))
+        style_path.append(os.path.normpath(os.path.join("", style_name)))
+
+        for path in style_path:
+            exp_user = os.path.expanduser(path)
+            if os.path.isfile(exp_user):
+                try:
+                    with open(exp_user) as infile:
+                        json_style = json.load(infile)
+                    set_style(current_style, json_style)
+                    break
+                except json.JSONDecodeError as err:
+                    warn(
+                        f"Could not decode JSON in file '{path}': {str(err)}. "
+                        "Will use default style.",
+                        UserWarning,
+                        2,
+                    )
+                    break
+                except (OSError, FileNotFoundError):
+                    warn(
+                        f"Error loading JSON file '{path}'. Will use default style.",
+                        UserWarning,
+                        2,
+                    )
+                    break
+        else:
+            warn(
+                f"Style JSON file '{style_name}' not found in any of these locations: "
+                f"{', '.join(style_path)}. "
+                "Will use default style.",
+                UserWarning,
+                2,
+            )
+
+    if isinstance(style, dict):
+        set_style(current_style, style)
+
+    return current_style, def_font_ratio
+
+
 def set_style(current_style, new_style):
     """Utility function to take elements in new_style and
     write them into current_style.
     """
-    valid_fieds = {
+    valid_fields = {
         "name",
         "textcolor",
         "gatetextcolor",
@@ -321,10 +385,10 @@ def set_style(current_style, new_style):
     current_style["disptex"] = {**current_style["disptex"], **new_style.get("displaytext", {})}
     current_style["dispcol"] = {**current_style["dispcol"], **new_style.get("displaycolor", {})}
 
-    unsupported_keys = set(new_style) - valid_fieds
+    unsupported_keys = set(new_style) - valid_fields
     if unsupported_keys:
         warn(
-            "style option/s ({}) is/are not supported".format(", ".join(unsupported_keys)),
+            f"style option/s ({', '.join(unsupported_keys)}) is/are not supported",
             UserWarning,
             2,
         )

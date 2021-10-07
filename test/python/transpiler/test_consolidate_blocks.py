@@ -94,7 +94,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         pass_.property_set["block_list"] = [block_1, block_2]
         new_dag = pass_.run(dag)
 
-        new_topo_ops = [i for i in new_dag.topological_op_nodes() if i.type == "op"]
+        new_topo_ops = list(new_dag.topological_op_nodes())
         self.assertEqual(len(new_topo_ops), 2)
         self.assertEqual(new_topo_ops[0].qargs, [qr[1], qr[2]])
         self.assertEqual(new_topo_ops[1].qargs, [qr[0], qr[1]])
