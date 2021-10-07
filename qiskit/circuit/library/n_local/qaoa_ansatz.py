@@ -102,16 +102,22 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
                 )
 
         if self.mixer_operator is not None:
-            if isinstance(self.mixer_operator,list):
-                mixer_qubit_check = np.argwhere([_.num_qubits!=self.num_qubits for _ in self.mixer_operator] is True)
-                if 0<len(mixer_qubit_check):
-                    valid =  False
+            if isinstance(self.mixer_operator, list):
+                mixer_qubit_check = np.argwhere(
+                    [_.num_qubits != self.num_qubits for _ in self.mixer_operator] is True
+                )
+                if 0 < len(mixer_qubit_check):
+                    valid = False
                     if raise_on_failure:
-                        raise AttributeError("The number of qubits of the mixer operator(s) {} at "
-                                            "argument(s) {} does not match the number of qubits of "
-                                            "the cost operator {}"
-                                            .format([_.num_qubits for _ in self.mixer_operator[mixer_qubit_check]],
-                                                     mixer_qubit_check[0], self.num_qubits)) 
+                        raise AttributeError(
+                            "The number of qubits of the mixer operator(s) {} at "
+                            "argument(s) {} does not match the number of qubits of "
+                            "the cost operator {}".format(
+                                [_.num_qubits for _ in self.mixer_operator[mixer_qubit_check]],
+                                mixer_qubit_check[0],
+                                self.num_qubits,
+                            )
+                        )
             else:
                 if self.mixer_operator.num_qubits != self.num_qubits:
                     valid = False
@@ -130,7 +136,8 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
             return
         self._check_configuration()
         self._data = []
-        def build_ansatz_circuit(operators_): # builds the ansatz from the list of mixer operators
+
+        def build_ansatz_circuit(operators_):  # builds the ansatz from the list of mixer operators
             circuits = []
             is_evolved_operator = []
             coeff = Parameter("c")
@@ -146,7 +153,9 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
                         sig_qubits = np.logical_or(op.primitive.x, op.primitive.z)
                         if sum(sig_qubits) == 0:
                             continue
-                    evolved_op = self.evolution.convert((coeff*op).exp_i()).reduce()  # ------------ check this, might need negative?
+                    evolved_op = self.evolution.convert(
+                        (coeff * op).exp_i()
+                    ).reduce()  # ------------ check this, might need negative?
                     circuits.append(evolved_op.to_circuit())
                     is_evolved_operator.append(True)  # has time coeff
 
@@ -161,8 +170,10 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
             times = ParameterVector("t", sum(is_evolved_operator))
             times_it = iter(times)
 
-            evolution_ = QuantumCircuit(*self.qregs, name=self.name)            # ------- need to figure out how initial_point is passed/ updated with reps
-            evolution_.compose(self.initial_state, inplace = True)
+            evolution_ = QuantumCircuit(
+                *self.qregs, name=self.name
+            )  # ------- need to figure out how initial_point is passed/ updated with reps
+            evolution_.compose(self.initial_state, inplace=True)
             first = True
             for is_evolved, circuit in zip(is_evolved_operator, circuits):
                 if first:
@@ -178,13 +189,18 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
                 evolution_.compose(bound, inplace=True)
             # then append opt params to self.gamma_values and self.beta_values
             return evolution_
-        varied_operators = list(itertools.chain.from_iterable([[self.operators[0],mixer] for mixer in self.operators[-1]]))
+
+        varied_operators = list(
+            itertools.chain.from_iterable(
+                [[self.operators[0], mixer] for mixer in self.operators[-1]]
+            )
+        )
         evolution = build_ansatz_circuit(varied_operators)
         try:
             instr = evolution.to_gate()
         except QiskitError:
             instr = evolution.to_instruction()
-        
+
         self.append(instr, self.qubits)
 
     @property

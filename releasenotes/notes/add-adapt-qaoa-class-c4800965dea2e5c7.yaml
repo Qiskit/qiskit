@@ -1,0 +1,6 @@
+features:
+  - |
+    Introduction of a new class :class:`qiskit.algorithms.minimum_eigen_solvers.AdaptQAOA`.
+    This is a variation of the QAOA algorithm which chooses optimal mixers from a mixer pool for each repetition
+    and inherits from the pre-existing :class:`QAOA` class.
+    With this new class is a new test based on the pre-existing QAOA test script as the functionality is the same.
