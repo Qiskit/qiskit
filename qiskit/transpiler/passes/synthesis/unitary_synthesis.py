@@ -16,8 +16,6 @@ from math import pi, inf
 from typing import List, Union
 from copy import deepcopy
 
-from monodromy.xx_decompose.qiskit import MonodromyZXDecomposer
-
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.basepasses import TransformationPass
@@ -25,8 +23,11 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.extensions.quantum_initializer import isometry
 from qiskit.quantum_info.synthesis import one_qubit_decompose
+from qiskit.quantum_info.synthesis.rzx_decompose import MonodromyZXDecomposer
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitBasisDecomposer
-from qiskit.circuit.library.standard_gates import iSwapGate, CXGate, CZGate, RXXGate, RZXGate, ECRGate
+from qiskit.circuit.library.standard_gates import (
+    iSwapGate, CXGate, CZGate, RXXGate, RZXGate, ECRGate
+)
 from qiskit.transpiler.passes.synthesis import plugin
 from qiskit.providers.models import BackendProperties
 
