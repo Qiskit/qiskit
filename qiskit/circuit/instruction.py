@@ -76,9 +76,9 @@ class Instruction(CircuitElement):
             raise CircuitError(
                 "bad instruction dimensions: %d qubits, %d clbits." % num_qubits, num_clbits
             )
-        self.name = name
-        self.num_qubits = num_qubits
-        self.num_clbits = num_clbits
+        self._name = name
+        self._num_qubits = num_qubits
+        self._num_clbits = num_clbits
 
         self._params = []  # a list of gate params stored
         # Custom instruction label
@@ -431,7 +431,7 @@ class Instruction(CircuitElement):
         cpy = self.__deepcopy__()
 
         if name:
-            cpy.name = name
+            cpy._name = name
         return cpy
 
     def __deepcopy__(self, _memo=None):
@@ -533,19 +533,39 @@ class Instruction(CircuitElement):
     @property
     def name(self):
         """Unique string identifier for operation type."""
-        return self.name()
+        return self._name
+
+    @name.setter
+    def name(self, name):
+        """Set the name."""
+        self._name = name
 
     @property
     def num_qubits(self):
         """Number of qubits."""
-        return self.num_qubits()
+        return self._num_qubits
+
+    @num_qubits.setter
+    def num_qubits(self, num_qubits):
+        """Set num_qubits."""
+        self._num_qubits = num_qubits
 
     @property
     def num_clbits(self):
         """Number of classical bits."""
-        return self.num_clbits()
+        return self._num_clbits
+
+    @num_clbits.setter
+    def num_clbits(self, num_clbits):
+        """Set num_clbits."""
+        self._num_clbits = num_clbits
 
     @property
     def num_params(self):
         """Number of parameters."""
-        return self.num_params()
+        return self._num_params
+
+    @num_params.setter
+    def num_params(self, num_params):
+        """Set num_params."""
+        self._num_params = num_params
