@@ -21,19 +21,6 @@ from qiskit.utils.quantum_instance import QuantumInstance
 from ...circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
 
 
-def translate_mixer_str_opn(opn: str) -> Dict:
-    opn = opn.lower()
-    if opn == "multi":
-        return {"add_single": True, "add_multi": True}
-    elif opn == "singular":
-        return {"add_single": True, "add_multi": False}
-    elif opn == "single":
-        return {"add_single": False, "add_multi": False}
-    else:
-        # TODO raise errors
-        return None
-
-
 class AdaptQAOA(QAOA):
     """
     The Adaptive Derivative Assembled Problem Tailored - Quantum Approximate Optimization Algorithm.
@@ -60,7 +47,8 @@ class AdaptQAOA(QAOA):
         initial_state: Optional[QuantumCircuit] = None,
         gamma_init: Optional[float] = 0.01,
         beta_init: Optional[float] = np.pi / 4,
-        mixer_pool: Optional[Union[str, List]] = None,
+        mixer_pool: Optional[List] = None, # todo: make this list either Operator or QuantumCircuit
+        mixer_pool_type: Optional[str] = 'multi', 
         threshold: Optional[
             Callable[[int, float], None]
         ] = None,  # todo: add default value for threshold
@@ -78,7 +66,12 @@ class AdaptQAOA(QAOA):
             initial_state: An optional initial state to prepend the ADAPT-QAOA circuit with.
             gamma_init: An optional initial value for the parameter gamma to use as a starting value for the optimizer.
             beta_init: An optional initial value for the parameter beta to use as a starting value for the optimizer.
-            mixer_pool: An optional list of operators that make up a pool from which mixers are chosen from.
+            mixer_pool: An optional custom list of Operators or QuantumCircuits that make up a pool from which mixers are chosen from.
+                Cannot be used in conjunction with `mixer_pool_type`.
+            mixer_pool_type: An optional string representing different mixer pool types `single` creates the same mixer pool as the 
+                standard QAOA. `singular` creates a mixer pool including mixers in `single` as well as additional single qubit 
+                mixers. `multi` creates a mixer pool including mixers from `single`, `singular` as well as multi-qubit entangling mixers.
+                Cannot be used in conjuction with `mixer_pool`.
             threshold: A value in which the algorithm stops once the norm of the gradient is below this threshold.
             gradient: An optional gradient operator respectively a gradient function used for
                       optimization.
@@ -122,17 +115,26 @@ class AdaptQAOA(QAOA):
         )
         self.gamma_init, self.beta_init = gamma_init, beta_init
         self.threshold = threshold
-        self.mixer_pool = mixer_pool
+        self.mixer_pool_type = mixer_pool_type
         self.optimal_mixer_list = []  # --------------> Will be appending optimal mixers to this.
         self.cost_operator = None
         self.max_reps = max_reps
         self.best_gamma = []
         self.best_beta = []
+        self.num = 4 #todo: change this to num qubits
 
-        if self.mixer_pool is None:
-            self.mixers = "multi"
-        self._check_mixer_pool()
+        if self.mixer_pool is not None and self.mixer_pool_type is not None:
+            raise AttributeError("A custom mixer can be passed in or a mixer pool type can be passed in but not both")
 
+        if self.mixer_pool_type == "multi":
+            self.mixer_pool = self.adapt_mixer_pool(num=self.num, add_single=True, add_multi=True)
+        elif self.mixer_pool_type == "singular":
+            self.mixer_pool = self.adapt_mixer_pool(num=self.num, add_single=True, add_multi=False)
+        elif self.mixer_pool_type == "single":
+            self.mixer_pool = self.adapt_mixer_pool(num=self.num, add_single=False, add_multi=False)
+        elif self.mixer_pool_type is None:
+            self.mixer_pool = mixer_pool #todo: check if this list of operators/circuits needs more preprocessing before use
+        
     def _check_operator_ansatz(self, operator: OperatorBase, mixer_list=None) -> OperatorBase:
         # Recreates a circuit based on operator parameter.
         if mixer_list is None:
@@ -197,21 +199,6 @@ class AdaptQAOA(QAOA):
             meas = np.abs(np.real(sampled_expect_op.eval()))
             energy_gradients.append(meas)
         return self.mixer_pool[np.argmax(energy_gradients)]
-
-    def _check_mixer_pool(self, mixer_pool: Optional[Union[str, List]] = None):
-        if mixer_pool is None:
-            mixer_pool = self.mixer_pool
-        if isinstance(mixer_pool, str):
-            mixer_pool = translate_mixer_str_opn(mixer_pool)
-        elif isinstance(mixer_pool, Iterable):
-            for mixer in mixer_pool:
-                # TODO do some checks here
-                pass
-        else:
-            # TODO raise correct error
-            print(f"Type of {type(mixer_pool)} is not understood")
-
-        self.mixer_pool = mixer_pool
 
     def constuct_adapt_ansatz(self, operator: OperatorBase) -> OperatorBase:
         energy_norm, p = 0, 0
