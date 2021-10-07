@@ -23,6 +23,7 @@ from qiskit.circuit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.circuit.library.standard_gates import UGate, SXGate, PhaseGate
 from qiskit.circuit.library.standard_gates import U3Gate, U2Gate, U1Gate
 from qiskit.circuit.random import random_circuit
+from qiskit.compiler import transpile
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import BasisTranslator
@@ -523,6 +524,23 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         result = passmanager.run(qc)
         expected = QuantumCircuit(1)
         expected.p(np.pi / 6, 0)
+        msg = f"expected:\n{expected}\nresult:\n{result}"
+        self.assertEqual(expected, result, msg=msg)
+
+    def test_no_warning_on_hadamard(self):
+        """
+        Test Hadamards don't trigger the inefficiency warning when they're part of the basis.
+
+        See #6848.
+        """
+        qc = QuantumCircuit(2)
+        qc.cz(0, 1)
+        basis = ["h", "cx", "rz", "sx", "x"]
+        result = transpile(qc, basis_gates=basis)
+        expected = QuantumCircuit(2)
+        expected.h(1)
+        expected.cx(0, 1)
+        expected.h(1)
         msg = f"expected:\n{expected}\nresult:\n{result}"
         self.assertEqual(expected, result, msg=msg)
 

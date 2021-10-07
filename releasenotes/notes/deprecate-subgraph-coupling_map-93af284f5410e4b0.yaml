@@ -1,0 +1,11 @@
+---
+deprecations:
+  - |
+    The :meth:`~qiskit.transpiler.CouplingMap.subgraph` method of the
+    :class:`~qiskit.transpiler.CouplingMap` class is deprecated and will
+    be removed in a future release. Instead the
+    :meth:`~qiskit.transpiler.CouplingMap.reduce` method should be used, which
+    does the same thing except it preserves the nodelist order for the output
+    :class:`~qiskit.transpiler.CouplingMap` (while
+    :meth:`~qiskit.transpiler.CouplingMap.subgraph` did not preserve list
+    order).
