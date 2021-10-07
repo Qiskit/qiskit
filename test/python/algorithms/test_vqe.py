@@ -33,7 +33,7 @@ from qiskit.algorithms.optimizers import (
     SPSA,
     TNC,
 )
-from qiskit.circuit.library import EfficientSU2, TwoLocal
+from qiskit.circuit.library import EfficientSU2, RealAmplitudes, TwoLocal
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.opflow import (
     AerPauliExpectation,
@@ -475,30 +475,23 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
     def test_set_ansatz_to_none(self):
         """Tests that setting the ansatz to None results in the default behavior"""
-        none_ansatz_vqe = VQE(
+        vqe = VQE(
             ansatz=self.ryrz_wavefunction,
             optimizer=L_BFGS_B(),
             quantum_instance=self.statevector_simulator,
         )
-        none_ansatz_vqe.ansatz = None
-        self.assertIsInstance(non_ansatz_vqe.ansatz, RealAmplitudes)
+        vqe.ansatz = None
+        self.assertIsInstance(vqe.ansatz, RealAmplitudes)
 
     def test_set_optimizer_to_none(self):
         """Tests that setting the optimizer to None results in the default behavior"""
-        # Can't use self.ryrz_wavefunction as an ansatz, since it would be optimized
-        # in the computation of ref_result and would be unavailable when computing
-        # none_optimizer_result
-        ref_vqe = VQE(optimizer=None, quantum_instance=self.statevector_simulator)
-        none_optimizer_vqe = VQE(
+        vqe = VQE(
+            ansatz=self.ryrz_wavefunction,
             optimizer=L_BFGS_B(),
             quantum_instance=self.statevector_simulator,
         )
-        none_optimizer_vqe.optimizer = None
-        ref_result = ref_vqe.compute_minimum_eigenvalue(operator=self.h2_op)
-        none_optimizer_result = none_optimizer_vqe.compute_minimum_eigenvalue(operator=self.h2_op)
-        self.assertAlmostEqual(
-            ref_result.eigenvalue.real, none_optimizer_result.eigenvalue.real, places=5
-        )
+        vqe.optimizer = None
+        self.assertIsInstance(vqe.optimizer, SLSQP)
 
 
 if __name__ == "__main__":

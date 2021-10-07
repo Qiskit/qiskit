@@ -143,15 +143,11 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         super().__init__()
 
-        # We don't use the setter for max_evals_grouped here, since it uses
-        # the getter for optimizer, and the setter for optimizer uses the
-        # getter for max_evals_grouped.
         self._max_evals_grouped = max_evals_grouped
         self._circuit_sampler = None  # type: Optional[CircuitSampler]
         self._expectation = None
         self.expectation = expectation
-        self._include_custom = None
-        self.include_custom = include_custom
+        self._include_custom = include_custom
 
         # set ansatz -- still supporting pre 0.18.0 sorting
         self._sort_parameters_by_name = None

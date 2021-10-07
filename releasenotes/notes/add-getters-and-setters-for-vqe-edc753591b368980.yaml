@@ -1,11 +1,11 @@
 ---
 features:
   - |
-    The `max_evals_grouped`, `include_custom`, `callback` and `sort_parameters_by_name` attributes are now accessible without having to having their private counterpart.
+    Every attribute of the `VQE` class that is set at the initialization is now accessible without having to having its private counterpart.
   - |
-    Setting the `ansatz` or the `optimizer` attributes to `None` now results in the same default behavior as instantiating the `VQE` class while setting these parameters to `None`.
+    Setting the `ansatz` or the `optimizer` attributes of a `VQE` instance to `None` now results in the same default behavior as instantiating the `VQE` class while setting these parameters to `None`.
   - |
     The `quantum_instance` attribute is now always defined even if the associated parameter during the `VQE` instantiation is set to `None`.
 fixes:
   - |
-    Fixes the fact that setting the `ansatz` or `optimizer` attributes to `None` resulted in a buggy behavior, as explained in `#7093 <https://github.com/Qiskit/qiskit-terra/issues/7093>`.
+    Fixes the fact that setting the `ansatz` or `optimizer` attributes of a `VQE` instance to `None` resulted in a buggy behavior, as explained in `#7093 <https://github.com/Qiskit/qiskit-terra/issues/7093>`.
