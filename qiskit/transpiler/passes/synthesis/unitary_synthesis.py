@@ -137,7 +137,7 @@ class UnitarySynthesis(TransformationPass):
                 synthesized.
         """
         super().__init__()
-        self._basis_gates = basis_gates
+        self._basis_gates = set(basis_gates or ())
         self._approximation_degree = approximation_degree
         self._min_qubits = min_qubits
         self.method = method
@@ -153,6 +153,8 @@ class UnitarySynthesis(TransformationPass):
                 self._synth_gates = ["unitary", "swap"]
             else:
                 self._synth_gates = ["unitary"]
+
+        self._synth_gates = set(self._synth_gates) - self._basis_gates
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the UnitarySynthesis pass on `dag`.
@@ -171,6 +173,11 @@ class UnitarySynthesis(TransformationPass):
         """
         if self.method not in self.plugins.ext_plugins:
             raise TranspilerError("Specified method: %s not found in plugin list" % self.method)
+        # Return fast if we have no synth gates (ie user specified an empty
+        # list or the synth gates are all in the basis
+        if not self._synth_gates:
+            return dag
+
         default_method = self.plugins.ext_plugins["default"].obj
         plugin_method = self.plugins.ext_plugins[self.method].obj
         if plugin_method.supports_coupling_map:
