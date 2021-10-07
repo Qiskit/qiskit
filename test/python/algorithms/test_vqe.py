@@ -475,20 +475,13 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
     def test_set_ansatz_to_none(self):
         """Tests that setting the ansatz to None results in the default behavior"""
-        ref_vqe = VQE(
-            ansatz=None, optimizer=L_BFGS_B(), quantum_instance=self.statevector_simulator
-        )
         none_ansatz_vqe = VQE(
             ansatz=self.ryrz_wavefunction,
             optimizer=L_BFGS_B(),
             quantum_instance=self.statevector_simulator,
         )
         none_ansatz_vqe.ansatz = None
-        ref_result = ref_vqe.compute_minimum_eigenvalue(operator=self.h2_op)
-        none_ansatz_result = none_ansatz_vqe.compute_minimum_eigenvalue(operator=self.h2_op)
-        self.assertAlmostEqual(
-            ref_result.eigenvalue.real, none_ansatz_result.eigenvalue.real, places=5
-        )
+        self.assertIsInstance(non_ansatz_vqe.ansatz, RealAmplitudes)
 
     def test_set_optimizer_to_none(self):
         """Tests that setting the optimizer to None results in the default behavior"""
