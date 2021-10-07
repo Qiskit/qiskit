@@ -155,6 +155,9 @@ class EvolvedOperatorAnsatz(NLocal):
         if self._data is not None:
             return
 
+        # need to check configuration here to ensure the operators are not None
+        self._check_configuration()
+
         coeff = Parameter("c")
         circuits = []
 

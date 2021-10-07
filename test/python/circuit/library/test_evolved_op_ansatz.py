@@ -81,6 +81,12 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
 
         self.assertEqual(evo.decompose(), ref)
 
+    def test_empty_build_fails(self):
+        """Test setting no operators to evolve raises the appropriate error."""
+        evo = EvolvedOperatorAnsatz()
+        with self.assertRaises(ValueError):
+            _ = evo.draw()
+
 
 def evolve(pauli_string, time):
     """Get the reference evolution circuit for a single Pauli string."""
