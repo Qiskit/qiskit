@@ -18,7 +18,7 @@ import logging
 from itertools import permutations
 from ddt import ddt, data
 import numpy as np
-from numpy.testing import assert_allclose, assert_almost_equal
+from numpy.testing import assert_allclose
 
 from qiskit.test import QiskitTestCase
 from qiskit import QiskitError
@@ -347,11 +347,8 @@ class TestStatevector(QiskitTestCase):
     def test_inner(self):
         """Test inner method."""
         for _ in range(10):
-            seed = np.random.randint(0, np.iinfo(np.int32).max)
-            rng = np.random.default_rng(seed)
-            dim = 2 ** rng.integers(1, 4)
-            vec0 = Statevector(self.rand_vec(dim))
-            vec1 = Statevector(self.rand_vec(dim))
+            vec0 = Statevector(self.rand_vec(4))
+            vec1 = Statevector(self.rand_vec(4))
             target = np.vdot(vec0.data, vec1.data)
             result = vec0.inner(vec1)
             self.assertAlmostEqual(result, target)
