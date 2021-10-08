@@ -73,7 +73,7 @@ class Target(Mapping):
     :class:`~qiskit.circuit.library.CXGate` in both directions you would create
     the gate map like::
 
-        from qiskit.transpiler import Target
+        from qiskit.transpiler import Target, InstructionProperties
         from qiskit.circuit.library import UGate, CXGate
         from qiskit.circuit import Parameter
 
@@ -95,6 +95,39 @@ class Target(Mapping):
     The intent of the ``Target`` object is to inform Qiskit's compiler about
     the constraints of a particular backend so the compiler can compile an
     input circuit to something that works and is optimized for a device.
+
+    Each instruction in the Target is indexed by a unique string name that uniquely
+    identifies that instance of an :class:`~qiskit.circuit.Instruction` object in
+    the Target. There is a 1:1 mapping between a name and an
+    :class:`~qiskit.circuit.Instruction` instance in the target and each name must
+    be unique. By default the name is the :attr:`~qiskit.circuit.Instruction.name`
+    attribute of the instruction, but can be set to anything. This lets a single
+    target have multiple instances of the same instruction class with different
+    parameters. For example, if a backend target has two instances of an
+    :class:`~qiskit.circuit.library.RXGate` one is parameterized over any theta
+    while the other is tuned up for a theta of pi/6 you can add these by doing something
+    like::
+
+        import math
+
+        from qiskit.transpiler import Target, InstructionProperties
+        from qiskit.circuit.library import RXGate
+        from qiskit.circuit import Parameter
+
+        target = Target()
+        theta = Parameter('theta')
+        rx_props = {
+            (0,): InstructionProperties(length=5.23e-8, error=0.00038115),
+        }
+        target.add_instruction(RXGate(theta), rx_props)
+        rx_30_props = {
+            (0,): InstructionProperties(length=5.23e-6, error=1.2e-5
+        }
+        target.add_instruction(RXGate(math.pi / 6), rx_props, name='rx_30')
+
+    Then in the ``target`` object accessing by ``rx_30`` will get the fixed
+    angle :class:`~qiskit.circuit.library.RXGate` while ``rx`` will get the
+    parameterized :class:`~qiskit.circuit.library.RXGate`.
 
     .. note::
 
@@ -217,6 +250,22 @@ class Target(Mapping):
         self._length_distance_matrix = None
         self._error_distance_matrix = None
         self._instruction_durations = None
+
+    def update_instruction_properties(self, instruction, qarg, properties):
+        """Update the property object for an instruction qarg pair already in the Target
+
+        Args:
+            instruction (str): The instruction name to update
+            qarg (tuple): The qarg to update the properties of
+            properties (InstructionProperties): The properties to set for this nstruction
+        Raises:
+            KeyError: If ``instruction`` or ``qarg`` are not in the target
+        """
+        if instruction not in self._gate_map:
+            raise KeyError(f"Provided instruction: '{instruction}' not in this Target")
+        if qarg not in self._gate_map[instruction]:
+            raise KeyError(f"Provided qarg: '{qarg}' not in this Target for {instruction}")
+        self._gate_map[instruction][qarg] = properties
 
     @property
     def qargs(self):
