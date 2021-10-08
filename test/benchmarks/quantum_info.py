@@ -15,7 +15,10 @@
 # pylint: disable=missing-docstring,invalid-name,no-member
 # pylint: disable=attribute-defined-outside-init
 
-from qiskit.quantum_info import random_clifford, Clifford, decompose_clifford
+import random
+from qiskit.quantum_info import random_clifford, Clifford, \
+    decompose_clifford, random_pauli, SparsePauliOp
+from qiskit.quantum_info.operators.symplectic.random import random_pauli_list
 from qiskit.quantum_info import random_cnotdihedral, CNOTDihedral
 import numpy as np
 
@@ -85,3 +88,117 @@ class CnotDihedralComposeBench:
         cxdihedral = CNOTDihedral(num_qubits=nqubits)
         for i in range(length):
             cxdihedral.compose(self.random_cnotdihedral[i])
+
+
+class PauliBench:
+    params = [100, 200, 300, 400, 500]
+    param_names = ["num_qubits"]
+
+    def setup(self, num_qubits):
+        self.p1 = random_pauli(num_qubits, True)
+        self.p2 = random_pauli(num_qubits, True)
+
+    def time_compose(self, _):
+        self.p1.compose(self.p2)
+
+    def time_evolve(self, _):
+        self.p1.evolve(self.p2)  # by another Pauli, so by composition
+
+    def time_commutes(self, _):
+        self.p1.commutes(self.p2)
+
+    def time_to_instruction(self, _):
+        self.p1.to_instruction()
+
+    def time_to_label(self, _):
+        self.p1.to_label()
+
+    def time_evolve_by_clifford(self, num_qubits):
+        c1 = random_clifford(num_qubits)
+
+        self.p1.evolve(c1)
+    time_evolve_by_clifford.params = [10]
+
+
+class PauliListBench:
+    params = [[100, 200, 300, 400, 500], [500]]
+    param_names = ["num_qubits", "length"]
+
+    def setup(self, num_qubits, length):
+        self.pl1 = random_pauli_list(num_qubits=num_qubits, size=length,
+                                     phase=True)
+        self.pl2 = random_pauli_list(num_qubits=num_qubits, size=length,
+                                     phase=True)
+
+    def time_commutes(self, _, __):
+        self.pl1.commutes(self.pl2)
+
+    def time_commutes_with_all(self, _, __):
+        self.pl1.commutes_with_all(self.pl2)
+
+    def time_argsort(self, _, __):
+        self.pl1.argsort()
+
+    def time_compose(self, _, __):
+        self.pl1.compose(self.pl2)
+
+    def time_group_qubit_wise_commuting(self, _, __):
+        self.pl1.group_qubit_wise_commuting()  # exercise retworkx-based code
+
+    def time_evolve_by_clifford(self, num_qubits, __):
+        c1 = random_clifford(num_qubits)
+        self.pl1.evolve(c1)
+    time_evolve_by_clifford.params = [[20], [100]]
+
+
+class PauliListQargsBench:
+    params = [[100, 200, 300, 400, 500], [500]]
+    param_names = ["num_qubits", "length"]
+
+    def setup(self, num_qubits, length):
+        half_qubits = int(num_qubits/2)
+
+        self.pl1 = random_pauli_list(num_qubits=num_qubits, size=length,
+                                     phase=True)
+        self.pl2 = random_pauli_list(num_qubits=half_qubits, size=length,
+                                     phase=True)
+        self.qargs = [random.randint(0, num_qubits - 1)
+                      for _ in range(half_qubits)]
+
+    def time_commutes_with_qargs(self, _, __):
+        self.pl1.commutes(self.pl2, self.qargs)
+
+    def time_compose_with_qargs(self, _, __):
+        self.pl1.compose(self.pl2, self.qargs)
+
+
+class SparsePauliOpBench:
+    params = [[50, 100, 150, 200], [100]]
+    param_names = ["num_qubits", "length"]
+
+    def setup(self, num_qubits, length):
+        self.p1 = SparsePauliOp(
+            random_pauli_list(num_qubits=num_qubits, size=length, phase=True))
+        self.p2 = SparsePauliOp(
+            random_pauli_list(num_qubits=num_qubits, size=length, phase=True))
+
+    def time_compose(self, _, __):
+        self.p1.compose(self.p2)
+
+    def time_simplify(self, _, __):
+        self.p1.simplify()
+
+    def time_tensor(self, _, __):
+        self.p1.tensor(self.p2)
+
+    def time_to_list(self, _, __):
+        self.p1.to_list()
+    time_to_list.params = [[2, 4, 6, 8, 10], [50]]
+
+    def time_to_operator(self, _, __):
+        self.p1.to_operator()
+    time_to_operator.params = [[2, 4, 6, 8, 10], [50]]
+
+    def time_to_matrix(self, _, __):
+        self.p1.to_matrix()
+    time_to_matrix.params = [[2, 4, 6, 8, 10], [50]]
