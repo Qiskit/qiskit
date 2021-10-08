@@ -352,9 +352,7 @@ class TestStatevector(QiskitTestCase):
             dim = 2 ** rng.integers(1, 4)
             vec0 = Statevector(self.rand_vec(dim))
             vec1 = Statevector(self.rand_vec(dim))
-            target = 0
-            for i in range(vec0.dim):
-                target += np.conj(vec0.data[i]) * vec1.data[i]
+            target = np.vdot(vec0.data, vec1.data)
             result = vec0.inner(vec1)
             assert_almost_equal(result, target)
 
