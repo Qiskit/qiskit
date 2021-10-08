@@ -33,6 +33,7 @@ from qiskit.circuit.library import (
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.parameter import Parameter
 from qiskit import pulse
+from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler import Target
@@ -703,6 +704,25 @@ class TestPulseTarget(QiskitTestCase):
         self.assertIn("sx", inst_map.instructions)
         self.assertEqual(inst_map.qubits_with_instruction("sx"), [0, 1])
         self.assertTrue("sx" in inst_map.qubit_instructions(0))
+
+    def test_instruction_schedule_map_ideal_sim_backend(self):
+        ideal_sim_target = Target(num_qubits=3)
+        theta = Parameter("theta")
+        phi = Parameter("phi")
+        lam = Parameter("lambda")
+        for inst in [
+            UGate(theta, phi, lam),
+            RXGate(theta),
+            RYGate(theta),
+            RZGate(theta),
+            CXGate(),
+            ECRGate(),
+            CCXGate(),
+            Measure(),
+        ]:
+            ideal_sim_target.add_instruction(inst, {None: None})
+        inst_map = ideal_sim_target.instruction_schedule_map()
+        self.assertEqual(InstructionScheduleMap(), inst_map)
 
 
 class TestInstructionProperties(QiskitTestCase):
