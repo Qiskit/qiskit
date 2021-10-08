@@ -553,4 +553,4 @@ class Instruction(CircuitElement):
     @property
     def num_params(self):
         """Number of parameters."""
-        return self._num_params
+        return self.num_params
