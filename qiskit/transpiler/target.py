@@ -158,16 +158,21 @@ class Target(Mapping):
         "_instruction_schedule_map",
     )
 
-    def __init__(self, description=None):
+    def __init__(self, description=None, num_qubits=0):
         """
-        Create a new gate map class
+        Create a new Target object
 
         Args:
-            gate_map (dict): A dictionary of gate_weight classes for keys and a list
-                qargs for
-            description (str): A string to describe the coupling map.
+            description (str): An optional string to describe the Target.
+            num_qubits (int): An optional int to specify the number of qubits
+                the backend target has. If not set it will beimplicitly set
+                based on the qargs when :meth:`~qiskit.Target.add_instruction`
+                is called. Note this must be set if the backend target is for a
+                noiseless simulator that doesn't have constraints on the
+                instructions so the transpiler knows how many qubits are
+                available.
         """
-        self.num_qubits = 0
+        self.num_qubits = num_qubits
         # A mapping of gate name -> gate instance
         self._gate_name_map = {}
         # A nested mapping of gate name -> qargs -> properties
@@ -223,7 +228,10 @@ class Target(Mapping):
                 instruction implementation on the backend. Properties are optional
                 for any instruction implementation, if there are no
                 :class:`~qiskit.transpiler.InstructionProperties` available for the
-                backend the value can be None.
+                backend the value can be None. If there are no constraints on the
+                instruction (as in a noisless/ideal simulation) this can be set to
+                ``{None, None}`` which will indicate it runs on all qubits (or all
+                available permutations of qubits for multi-qubit gates).
             name (str): An optional name to use for identifying the gate. If not
                 specified the :attr:`~qiskit.circuit.Instruction.name` attribute
                 of ``gate`` will be used. All gates in the ``Target`` need unique
@@ -238,7 +246,8 @@ class Target(Mapping):
         self._gate_name_map[instruction_name] = instruction
         qargs_val = {}
         for qarg in properties:
-            self.num_qubits = max(self.num_qubits, max(qarg) + 1)
+            if qarg is not None:
+                self.num_qubits = max(self.num_qubits, max(qarg) + 1)
             qargs_val[qarg] = properties[qarg]
             if qarg in self._qarg_gate_map:
                 self._qarg_gate_map[qarg].add(instruction_name)
@@ -275,6 +284,8 @@ class Target(Mapping):
     @property
     def qargs(self):
         """The set of qargs in the gate map."""
+        if None in self._qarg_gate_map:
+            return None
         return set(self._qarg_gate_map)
 
     def get_qargs(self, gate):
@@ -285,6 +296,8 @@ class Target(Mapping):
         Returns:
             set: The set of qargs the gate instance applies to
         """
+        if None in self._gate_map:
+            return None
         return set(self._gate_map[gate])
 
     def durations(self):
@@ -319,6 +332,7 @@ class Target(Mapping):
             for qarg, properties in qargs.items():
                 if properties is not None and properties.pulse is not None:
                     out_inst_schedule_map.add(instruction, qarg, properties.pulse)
+        self._instruction_schedule_map = out_inst_schedule_map
         return out_inst_schedule_map
 
     def get_instruction_from_name(self, instruction):
@@ -386,6 +400,8 @@ class Target(Mapping):
             IndexError: If an Instruction not in the Target is passed in for
                 ``two_q_gate``.
         """
+        if None in self._qarg_gate_map:
+            return None
         if any(len(x) > 2 for x in self.qargs):
             logger.warning(
                 "This Target object contains multiqubit gates that "
@@ -419,6 +435,9 @@ class Target(Mapping):
 
     def distance_matrix(self, weight=None):
         """Return the distance matrix for the coupling map."""
+        if None in self._qarg_gate_map:
+            return None
+
         if any(len(x) > 2 for x in self.qargs):
             logger.warning(
                 "This Target object contains multiqubit gates that "
@@ -497,6 +516,8 @@ class Target(Mapping):
             CouplingError: if the qubits do not exist in the CouplingMap
             TypeError: If an invalid weight is specified
         """
+        if None in self._gate_map:
+            return None
         if any(len(x) > 2 for x in self.qargs):
             logger.warning(
                 "This Target object contains multiqubit gates that "

@@ -166,6 +166,19 @@ class TestTarget(QiskitTestCase):
         }
         self.aqt_target.add_instruction(Measure(), measure_props)
         self.empty_target = Target()
+        self.ideal_sim_target = Target(num_qubits=3)
+        self.lam = Parameter("lam")
+        for inst in [
+            UGate(self.theta, self.phi, self.lam),
+            RXGate(self.theta),
+            RYGate(self.theta),
+            RZGate(self.theta),
+            CXGate(),
+            ECRGate(),
+            CCXGate(),
+            Measure(),
+        ]:
+            self.ideal_sim_target.add_instruction(inst, {None: None})
 
     def test_qargs(self):
         self.assertEqual(set(), self.empty_target.qargs)
@@ -220,6 +233,7 @@ class TestTarget(QiskitTestCase):
             (1, 0),
         }
         self.assertEqual(expected_fake, self.fake_backend_target.qargs)
+        self.assertEqual(None, self.ideal_sim_target.qargs)
 
     def test_get_qargs(self):
         with self.assertRaises(KeyError):
@@ -233,6 +247,7 @@ class TestTarget(QiskitTestCase):
                 (1, 0),
             },
         )
+        self.assertEqual(self.ideal_sim_target.get_qargs("cx"), {None})
 
     def test_instruction_names(self):
         self.assertEqual(self.empty_target.instruction_names, set())
@@ -244,6 +259,10 @@ class TestTarget(QiskitTestCase):
         )
         self.assertEqual(
             self.fake_backend_target.instruction_names, {"u", "cx", "measure", "ecr", "rx_30", "rx"}
+        )
+        self.assertEqual(
+            self.ideal_sim_target.instruction_names,
+            {"u", "rz", "ry", "rx", "cx", "ecr", "ccx", "measure"},
         )
 
     def test_instructions(self):
@@ -270,6 +289,18 @@ class TestTarget(QiskitTestCase):
         ]
         for gate in fake_expected:
             self.assertIn(gate, self.fake_backend_target.instructions)
+        ideal_sim_expected = [
+            UGate(self.theta, self.phi, self.lam),
+            RXGate(self.theta),
+            RYGate(self.theta),
+            RZGate(self.theta),
+            CXGate(),
+            ECRGate(),
+            CCXGate(),
+            Measure(),
+        ]
+        for gate in ideal_sim_expected:
+            self.assertIn(gate, self.ideal_sim_target.instructions)
 
     def test_get_instruction_from_name(self):
         with self.assertRaises(KeyError):
@@ -282,6 +313,7 @@ class TestTarget(QiskitTestCase):
             self.fake_backend_target.get_instruction_from_name("rx"),
             RXGate(self.fake_backend._theta),
         )
+        self.assertEqual(self.ideal_sim_target.get_instruction_from_name("ccx"), CCXGate())
 
     def test_get_instructions_for_qargs(self):
         with self.assertRaises(KeyError):
@@ -297,6 +329,18 @@ class TestTarget(QiskitTestCase):
         expected = [CXGate()]
         res = self.fake_backend_target.get_instructions_for_qargs((0, 1))
         self.assertEqual(expected, res)
+        ideal_sim_expected = [
+            UGate(self.theta, self.phi, self.lam),
+            RXGate(self.theta),
+            RYGate(self.theta),
+            RZGate(self.theta),
+            CXGate(),
+            ECRGate(),
+            CCXGate(),
+            Measure(),
+        ]
+        for gate in ideal_sim_expected:
+            self.assertIn(gate, self.ideal_sim_target.get_instructions_for_qargs(None))
 
     def test_coupling_map(self):
         self.assertEqual(CouplingMap().get_edges(), self.empty_target.coupling_map().get_edges())
@@ -318,6 +362,7 @@ class TestTarget(QiskitTestCase):
             },
             set(self.ibm_target.coupling_map().get_edges()),
         )
+        self.assertEqual(None, self.ideal_sim_target.coupling_map())
 
     def test_coupling_map_2q_gate(self):
         cmap = self.fake_backend_target.coupling_map("ecr")
@@ -354,10 +399,7 @@ class TestTarget(QiskitTestCase):
     def test_distance_matrix_no_weight(self):
         expected = np.array(
             [
-                [
-                    0,
-                    1,
-                ],
+                [0, 1],
                 [1, 0],
             ]
         )
@@ -377,6 +419,7 @@ class TestTarget(QiskitTestCase):
             ]
         )
         self.assertTrue(np.array_equal(self.ibm_target.distance_matrix(), expected))
+        self.assertEqual(None, self.ideal_sim_target.distance_matrix())
 
     def test_distance_matrix_error(self):
         expected = np.zeros((5, 5))
@@ -391,6 +434,7 @@ class TestTarget(QiskitTestCase):
             ]
         )
         self.assertTrue(np.allclose(self.ibm_target.distance_matrix("error"), expected))
+        self.assertEqual(None, self.ideal_sim_target.distance_matrix("error"))
 
     def test_distance_matrix_length(self):
         expected = np.zeros((5, 5))
@@ -405,6 +449,7 @@ class TestTarget(QiskitTestCase):
             ]
         )
         self.assertTrue(np.allclose(self.ibm_target.distance_matrix("length"), expected))
+        self.assertEqual(None, self.ideal_sim_target.distance_matrix("length"))
 
     def test_distance_matrix_3q(self):
         fake_target = Target()
@@ -432,6 +477,7 @@ class TestTarget(QiskitTestCase):
         self.assertEqual(list(range(5)), self.ibm_target.physical_qubits)
         self.assertEqual(list(range(5)), self.aqt_target.physical_qubits)
         self.assertEqual(list(range(2)), self.fake_backend_target.physical_qubits)
+        self.assertEqual(list(range(3)), self.ideal_sim_target.physical_qubits)
 
     def test_duplicate_instruction_add_instruction(self):
         target = Target()
