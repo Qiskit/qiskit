@@ -92,6 +92,7 @@ Backend
 
    Backend
    BackendV1
+   BackendV2
 
 Options
 -------
@@ -547,6 +548,7 @@ from qiskit.providers.provider import Provider
 from qiskit.providers.provider import ProviderV1
 from qiskit.providers.backend import Backend
 from qiskit.providers.backend import BackendV1
+from qiskit.providers.backend import BackendV2
 from qiskit.providers.options import Options
 from qiskit.providers.job import Job
 from qiskit.providers.job import JobV1
