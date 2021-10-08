@@ -13,10 +13,6 @@ jobs:
         name: Install Python
         with:
           python-version: '3.8'
-      - name: Get commit sha
-        id: vars
-        shell: bash
-        run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
       - name: Install dependencies
         run: |
           pip install -U -r requirements.txt -c constraints.txt
@@ -32,6 +28,6 @@ jobs:
         with:
           issue-number: 2645
           body: |
-            Randomized tests check failed:
-            _Logs_: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-            _Commit_: ${{ github.server_url }}/${{ github.repository }}/tree/${{ steps.vars.outputs.sha_short }}
+            Randomized tests failed at commit ${{ github.sha }}.
+
+            _Logs_: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}.
