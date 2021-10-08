@@ -1195,4 +1195,3 @@ class TestListOpComboFn(QiskitOpflowTestCase):
 
 if __name__ == "__main__":
     unittest.main()
-    unittest.main()
