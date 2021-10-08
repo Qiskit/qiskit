@@ -77,7 +77,7 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
         def objective(x):
             return np.linalg.norm(x)
 
-        _ = optimizer.optimize(2, objective, initial_point=np.array([1, -1]))
+        _ = optimizer.minimize(objective, np.array([1, -1]))
 
         self.assertEqual(len(history), 1)
         self.assertIsInstance(history[0][0], int)  # nfevs
@@ -109,8 +109,6 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
         initial_point = np.array([1, 0.5, -2])
 
         optimizer = GradientDescent(maxiter=20, learning_rate=learning_rate)
-        _, fx_opt, _ = optimizer.optimize(
-            initial_point.size, objective, gradient_function=grad, initial_point=initial_point
-        )
+        result = optimizer.minimize(objective, initial_point, grad)
 
-        self.assertLess(fx_opt, 1e-5)
+        self.assertLess(result.fun, 1e-5)

@@ -55,14 +55,22 @@ class ParametricPulse(Pulse):
     """The abstract superclass for parametric pulses."""
 
     @abstractmethod
-    def __init__(self, duration: Union[int, ParameterExpression], name: Optional[str] = None):
+    def __init__(
+        self,
+        duration: Union[int, ParameterExpression],
+        name: Optional[str] = None,
+        limit_amplitude: Optional[bool] = None,
+    ):
         """Create a parametric pulse and validate the input parameters.
 
         Args:
             duration: Pulse length in terms of the the sampling period `dt`.
             name: Display name for this pulse envelope.
+            limit_amplitude: If ``True``, then limit the amplitude of the
+                             waveform to 1. The default is ``True`` and the
+                             amplitude is constrained to 1.
         """
-        super().__init__(duration=duration, name=name)
+        super().__init__(duration=duration, name=name, limit_amplitude=limit_amplitude)
         self.validate_parameters()
 
     @abstractmethod
@@ -141,6 +149,7 @@ class Gaussian(ParametricPulse):
         amp: Union[complex, ParameterExpression],
         sigma: Union[float, ParameterExpression],
         name: Optional[str] = None,
+        limit_amplitude: Optional[bool] = None,
     ):
         """Initialize the gaussian pulse.
 
@@ -150,12 +159,15 @@ class Gaussian(ParametricPulse):
             sigma: A measure of how wide or narrow the Gaussian peak is; described mathematically
                    in the class docstring.
             name: Display name for this pulse envelope.
+            limit_amplitude: If ``True``, then limit the amplitude of the
+                             waveform to 1. The default is ``True`` and the
+                             amplitude is constrained to 1.
         """
         if not _is_parameterized(amp):
             amp = complex(amp)
         self._amp = amp
         self._sigma = sigma
-        super().__init__(duration=duration, name=name)
+        super().__init__(duration=duration, name=name, limit_amplitude=limit_amplitude)
 
     @property
     def amp(self) -> Union[complex, ParameterExpression]:
@@ -234,6 +246,7 @@ class GaussianSquare(ParametricPulse):
         width: Union[float, ParameterExpression] = None,
         risefall_sigma_ratio: Union[float, ParameterExpression] = None,
         name: Optional[str] = None,
+        limit_amplitude: Optional[bool] = None,
     ):
         """Initialize the gaussian square pulse.
 
@@ -245,6 +258,9 @@ class GaussianSquare(ParametricPulse):
             width: The duration of the embedded square pulse.
             risefall_sigma_ratio: The ratio of each risefall duration to sigma.
             name: Display name for this pulse envelope.
+            limit_amplitude: If ``True``, then limit the amplitude of the
+                             waveform to 1. The default is ``True`` and the
+                             amplitude is constrained to 1.
         """
         if not _is_parameterized(amp):
             amp = complex(amp)
@@ -252,7 +268,7 @@ class GaussianSquare(ParametricPulse):
         self._sigma = sigma
         self._risefall_sigma_ratio = risefall_sigma_ratio
         self._width = width
-        super().__init__(duration=duration, name=name)
+        super().__init__(duration=duration, name=name, limit_amplitude=limit_amplitude)
 
     @property
     def amp(self) -> Union[complex, ParameterExpression]:
@@ -381,6 +397,7 @@ class Drag(ParametricPulse):
         sigma: Union[float, ParameterExpression],
         beta: Union[float, ParameterExpression],
         name: Optional[str] = None,
+        limit_amplitude: Optional[bool] = None,
     ):
         """Initialize the drag pulse.
 
@@ -391,13 +408,16 @@ class Drag(ParametricPulse):
                    in the class docstring.
             beta: The correction amplitude.
             name: Display name for this pulse envelope.
+            limit_amplitude: If ``True``, then limit the amplitude of the
+                             waveform to 1. The default is ``True`` and the
+                             amplitude is constrained to 1.
         """
         if not _is_parameterized(amp):
             amp = complex(amp)
         self._amp = amp
         self._sigma = sigma
         self._beta = beta
-        super().__init__(duration=duration, name=name)
+        super().__init__(duration=duration, name=name, limit_amplitude=limit_amplitude)
 
     @property
     def amp(self) -> Union[complex, ParameterExpression]:
@@ -434,9 +454,10 @@ class Drag(ParametricPulse):
             not _is_parameterized(self.beta)
             and not _is_parameterized(self.sigma)
             and self.beta > self.sigma
+            and self.limit_amplitude
         ):
             # If beta <= sigma, then the maximum amplitude is at duration / 2, which is
-            # already constrainted by self.amp <= 1
+            # already constrained by self.amp <= 1
 
             # 1. Find the first maxima associated with the beta * d/dx gaussian term
             #    This eq is derived from solving for the roots of the norm of the drag function.
@@ -489,6 +510,7 @@ class Constant(ParametricPulse):
         duration: Union[int, ParameterExpression],
         amp: Union[complex, ParameterExpression],
         name: Optional[str] = None,
+        limit_amplitude: Optional[bool] = None,
     ):
         """
         Initialize the constant-valued pulse.
@@ -497,11 +519,14 @@ class Constant(ParametricPulse):
             duration: Pulse length in terms of the the sampling period `dt`.
             amp: The amplitude of the constant square pulse.
             name: Display name for this pulse envelope.
+            limit_amplitude: If ``True``, then limit the amplitude of the
+                             waveform to 1. The default is ``True`` and the
+                             amplitude is constrained to 1.
         """
         if not _is_parameterized(amp):
             amp = complex(amp)
         self._amp = amp
-        super().__init__(duration=duration, name=name)
+        super().__init__(duration=duration, name=name, limit_amplitude=limit_amplitude)
 
     @property
     def amp(self) -> Union[complex, ParameterExpression]:

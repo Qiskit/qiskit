@@ -25,7 +25,7 @@ from qiskit.providers import BaseBackend
 from qiskit.providers.backend import Backend
 from qiskit.providers.models import BackendProperties
 from qiskit.providers.models.backendproperties import Gate
-from qiskit.pulse import Schedule
+from qiskit.pulse import Schedule, InstructionScheduleMap
 from qiskit.tools.parallel import parallel_map
 from qiskit.transpiler import Layout, CouplingMap, PropertySet, PassManager
 from qiskit.transpiler.basepasses import BasePass
@@ -33,13 +33,13 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations, InstructionDurationsType
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
-from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.preset_passmanagers import (
     level_0_pass_manager,
     level_1_pass_manager,
     level_2_pass_manager,
     level_3_pass_manager,
 )
+from qiskit.transpiler.timing_constraints import TimingConstraints
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +48,7 @@ def transpile(
     circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     backend: Optional[Union[Backend, BaseBackend]] = None,
     basis_gates: Optional[List[str]] = None,
+    inst_map: Optional[List[InstructionScheduleMap]] = None,
     coupling_map: Optional[Union[CouplingMap, List[List[int]]]] = None,
     backend_properties: Optional[BackendProperties] = None,
     initial_layout: Optional[Union[Layout, Dict, List]] = None,
@@ -64,6 +65,7 @@ def transpile(
     pass_manager: Optional[PassManager] = None,
     callback: Optional[Callable[[BasePass, DAGCircuit, float, PropertySet, int], Any]] = None,
     output_name: Optional[Union[str, List[str]]] = None,
+    unitary_synthesis_method: str = "default",
 ) -> Union[QuantumCircuit, List[QuantumCircuit]]:
     """Transpile one or more circuits, according to some desired transpilation targets.
 
@@ -85,6 +87,12 @@ def transpile(
                 circuit may be run on any backend as long as it is compatible.
         basis_gates: List of basis gate names to unroll to
             (e.g: ``['u1', 'u2', 'u3', 'cx']``). If ``None``, do not unroll.
+        inst_map: Mapping of unrolled gates to pulse schedules. If this is not provided,
+            transpiler tries to get from the backend. If any user defined calibration
+            is found in the map and this is used in a circuit, transpiler attaches
+            the custom gate definition to the circuit. This enables one to flexibly
+            override the low-level instruction implementation. This feature is available
+            iff the backend supports the pulse gate experiment.
         coupling_map: Coupling map (perhaps custom) to target in mapping.
             Multiple formats are supported:
 
@@ -136,6 +144,7 @@ def transpile(
             in the ground state when possible. (alias: ``'alap'``)
             If ``None``, no scheduling will be done.
         instruction_durations: Durations of instructions.
+            Applicable only if scheduling_method is specified.
             The gate lengths defined in ``backend.properties`` are used as default.
             They are overwritten if this ``instruction_durations`` is specified.
             The format of ``instruction_durations`` must be as follows.
@@ -207,6 +216,10 @@ def transpile(
 
         output_name: A list with strings to identify the output circuits. The length of
             the list should be exactly the length of the ``circuits`` parameter.
+        unitary_synthesis_method (str): The name of the unitary synthesis
+            method to use. By default 'default' is used, which is the only
+            method included with qiskit. If you have installed any unitary
+            synthesis plugins you can use the name exported by the plugin.
 
     Returns:
         The transpiled circuit(s).
@@ -241,6 +254,7 @@ def transpile(
             routing_method=routing_method,
             translation_method=translation_method,
             approximation_degree=approximation_degree,
+            unitary_synthesis_method=unitary_synthesis_method,
             backend=backend,
         )
 
@@ -270,6 +284,7 @@ def transpile(
         circuits,
         backend,
         basis_gates,
+        inst_map,
         coupling_map,
         backend_properties,
         initial_layout,
@@ -285,6 +300,7 @@ def transpile(
         callback,
         output_name,
         timing_constraints,
+        unitary_synthesis_method,
     )
 
     _check_circuits_coupling_map(circuits, transpile_args, backend)
@@ -451,6 +467,7 @@ def _parse_transpile_args(
     circuits,
     backend,
     basis_gates,
+    inst_map,
     coupling_map,
     backend_properties,
     initial_layout,
@@ -466,6 +483,7 @@ def _parse_transpile_args(
     callback,
     output_name,
     timing_constraints,
+    unitary_synthesis_method,
 ) -> List[Dict]:
     """Resolve the various types of args allowed to the transpile() function through
     duck typing, overriding args, etc. Refer to the transpile() docstring for details on
@@ -488,6 +506,7 @@ def _parse_transpile_args(
     num_circuits = len(circuits)
 
     basis_gates = _parse_basis_gates(basis_gates, backend, circuits)
+    inst_map = _parse_inst_map(inst_map, backend, num_circuits)
     faulty_qubits_map = _parse_faulty_qubits_map(backend, num_circuits)
     coupling_map = _parse_coupling_map(coupling_map, backend, num_circuits)
     backend_properties = _parse_backend_properties(backend_properties, backend, num_circuits)
@@ -497,6 +516,9 @@ def _parse_transpile_args(
     routing_method = _parse_routing_method(routing_method, num_circuits)
     translation_method = _parse_translation_method(translation_method, num_circuits)
     approximation_degree = _parse_approximation_degree(approximation_degree, num_circuits)
+    unitary_synthesis_method = _parse_unitary_synthesis_method(
+        unitary_synthesis_method, num_circuits
+    )
     seed_transpiler = _parse_seed_transpiler(seed_transpiler, num_circuits)
     optimization_level = _parse_optimization_level(optimization_level, num_circuits)
     output_name = _parse_output_name(output_name, circuits)
@@ -514,6 +536,7 @@ def _parse_transpile_args(
     for kwargs in _zip_dict(
         {
             "basis_gates": basis_gates,
+            "inst_map": inst_map,
             "coupling_map": coupling_map,
             "backend_properties": backend_properties,
             "initial_layout": initial_layout,
@@ -530,11 +553,13 @@ def _parse_transpile_args(
             "callback": callback,
             "backend_num_qubits": backend_num_qubits,
             "faulty_qubits_map": faulty_qubits_map,
+            "unitary_synthesis_method": unitary_synthesis_method,
         }
     ):
         transpile_args = {
             "pass_manager_config": PassManagerConfig(
                 basis_gates=kwargs["basis_gates"],
+                inst_map=kwargs["inst_map"],
                 coupling_map=kwargs["coupling_map"],
                 backend_properties=kwargs["backend_properties"],
                 initial_layout=kwargs["initial_layout"],
@@ -546,6 +571,7 @@ def _parse_transpile_args(
                 approximation_degree=kwargs["approximation_degree"],
                 timing_constraints=kwargs["timing_constraints"],
                 seed_transpiler=kwargs["seed_transpiler"],
+                unitary_synthesis_method=kwargs["unitary_synthesis_method"],
             ),
             "optimization_level": kwargs["optimization_level"],
             "output_name": kwargs["output_name"],
@@ -603,6 +629,19 @@ def _parse_basis_gates(basis_gates, backend, circuits):
         basis_gates = [basis_gates] * len(circuits)
 
     return basis_gates
+
+
+def _parse_inst_map(inst_map, backend, num_circuits):
+    # try getting inst_map from user, else backend
+    if inst_map is None:
+        if hasattr(backend, "defaults"):
+            inst_map = getattr(backend.defaults(), "instruction_schedule_map", None)
+
+    # inst_maps could be None, or single entry
+    if inst_map is None or isinstance(inst_map, InstructionScheduleMap):
+        inst_map = [inst_map] * num_circuits
+
+    return inst_map
 
 
 def _parse_coupling_map(coupling_map, backend, num_circuits):
@@ -790,6 +829,12 @@ def _parse_approximation_degree(approximation_degree, num_circuits):
     if not all(0.0 <= d <= 1.0 for d in approximation_degree if d):
         raise TranspilerError("Approximation degree must be in [0.0, 1.0]")
     return approximation_degree
+
+
+def _parse_unitary_synthesis_method(unitary_synthesis_method, num_circuits):
+    if not isinstance(unitary_synthesis_method, list):
+        unitary_synthesis_method = [unitary_synthesis_method] * num_circuits
+    return unitary_synthesis_method
 
 
 def _parse_seed_transpiler(seed_transpiler, num_circuits):
