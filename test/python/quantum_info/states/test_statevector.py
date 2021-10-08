@@ -354,7 +354,7 @@ class TestStatevector(QiskitTestCase):
             vec1 = Statevector(self.rand_vec(dim))
             target = np.vdot(vec0.data, vec1.data)
             result = vec0.inner(vec1)
-            assert_almost_equal(result, target)
+            self.assertAlmostEqual(result, target)
 
     def test_add(self):
         """Test add method."""
