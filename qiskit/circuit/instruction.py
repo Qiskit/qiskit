@@ -535,6 +535,11 @@ class Instruction(CircuitElement):
         """Unique string identifier for operation type."""
         return self._name
 
+    @name.setter
+    def name(self, name):
+        """Set the name."""
+        self._name = name
+
     @property
     def num_qubits(self):
         """Number of qubits."""
