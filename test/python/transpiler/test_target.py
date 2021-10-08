@@ -32,6 +32,7 @@ from qiskit.circuit.library import (
 )
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.parameter import Parameter
+from qiskit import pulse
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler import Target
@@ -618,6 +619,40 @@ class TestTarget(QiskitTestCase):
         self.assertIn("cx", self.ibm_target)
         self.assertNotIn("ecr", self.ibm_target)
         self.assertEqual(len(self.ibm_target), 6)
+
+    def test_update_instruction_properties(self):
+        self.aqt_target.update_instruction_properties('rxx', (0, 1), InstructionProperties(length=1e-6, error=1e-5, properties={'updated': True}))
+        self.assertEqual(self.aqt_target['rxx'][(0, 1)].length, 1e-6)
+        self.assertEqual(self.aqt_target['rxx'][(0, 1)].error, 1e-5)
+
+    def test_update_instruction_properties_invalid_instruction(self):
+        with self.assertRaises(KeyError):
+            self.ibm_target.update_instruction_properties('rxx', (0, 1), None)
+
+    def test_update_instruction_properties_invalid_qarg(self):
+        with self.assertRaises(KeyError):
+            self.fake_backend_target.update_instruction_properties('ecr', (0, 1), None)
+
+
+class TestPulseTarget(QiskitTestCase):
+    def setUp(self):
+        super().setUp()
+        self.pulse_target = Target()
+        with pulse.build(name="sx_q0") as custom_sx_q0:
+            pulse.play(pulse.Constant(100, 0.1), pulse.DriveChannel(0))
+        with pulse.build(name="sx_q1") as custom_sx_q1:
+            pulse.play(pulse.Constant(100, 0.2), pulse.DriveChannel(1))
+        sx_props = {
+            (0,): InstructionProperties(length=35.5e-9, error=0.000413, pulse=custom_sx_q0),
+            (1,): InstructionProperties(length=35.5e-9, error=0.000502, pulse=custom_sx_q1),
+        }
+        self.pulse_target.add_instruction(SXGate(), sx_props)
+
+    def test_instruction_schedule_map(self):
+        inst_map = self.pulse_target.instruction_schedule_map()
+        self.assertIn("sx", inst_map.instructions)
+        self.assertEqual(inst_map.qubits_with_instruction("sx"), [0, 1])
+        self.assertTrue("sx" in inst_map.qubit_instructions(0))
 
 
 class TestInstructionProperties(QiskitTestCase):

@@ -315,8 +315,8 @@ class Target(Mapping):
         if self._instruction_schedule_map is not None:
             return self._instruction_schedule_map
         out_inst_schedule_map = InstructionScheduleMap()
-        for instruction, qargs in self._gate_map:
-            for qarg, properties in qargs:
+        for instruction, qargs in self._gate_map.items():
+            for qarg, properties in qargs.items():
                 if properties is not None and properties.pulse is not None:
                     out_inst_schedule_map.add(instruction, qarg, properties.pulse)
         return out_inst_schedule_map
