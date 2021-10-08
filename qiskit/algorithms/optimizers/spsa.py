@@ -349,8 +349,12 @@ class SPSA(Optimizer):
             a = target_magnitude
 
         logger.info("Finished calibration:")
-        logger.info(" -- Learning rate: a / ((A + n) ^ alpha) with a = %s, A = %s, alpha = %s",
-                    a, stability_constant, alpha)
+        logger.info(
+            " -- Learning rate: a / ((A + n) ^ alpha) with a = %s, A = %s, alpha = %s",
+            a,
+            stability_constant,
+            alpha,
+        )
         logger.info(" -- Perturbation: c / (n ^ gamma) with c = %s, gamma = %s", c, gamma)
 
         # set up the powerseries
