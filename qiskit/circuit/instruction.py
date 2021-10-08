@@ -535,37 +535,17 @@ class Instruction(CircuitElement):
         """Unique string identifier for operation type."""
         return self._name
 
-    @name.setter
-    def name(self, name):
-        """Set the name."""
-        self._name = name
-
     @property
     def num_qubits(self):
         """Number of qubits."""
         return self._num_qubits
-
-    @num_qubits.setter
-    def num_qubits(self, num_qubits):
-        """Set num_qubits."""
-        self._num_qubits = num_qubits
 
     @property
     def num_clbits(self):
         """Number of classical bits."""
         return self._num_clbits
 
-    @num_clbits.setter
-    def num_clbits(self, num_clbits):
-        """Set num_clbits."""
-        self._num_clbits = num_clbits
-
     @property
     def num_params(self):
         """Number of parameters."""
         return self._num_params
-
-    @num_params.setter
-    def num_params(self, num_params):
-        """Set num_params."""
-        self._num_params = num_params
