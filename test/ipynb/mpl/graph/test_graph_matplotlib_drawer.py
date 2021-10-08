@@ -170,7 +170,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         counts = {"11": 500, "00": 500}
 
         self.graph_count_drawer(counts, filename="histogram.png")
-    
+
     def test_plot_histogram_color(self):
         """Test histogram with single color"""
 
@@ -181,37 +181,53 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
     def test_plot_histogram_multiple_colors(self):
         """Test histogram with multiple custom colors"""
 
-        counts = [{"00": 10, "01": 15, "10": 20, "11": 25}, {"00": 25, "01": 20, "10": 15, "11": 10}]
+        counts = [
+            {"00": 10, "01": 15, "10": 20, "11": 25},
+            {"00": 25, "01": 20, "10": 15, "11": 10},
+        ]
 
-        self.graph_count_drawer(data=counts, color=["#204940", "#c26219"], filename="histogram_multiple_colors.png")
-    
+        self.graph_count_drawer(
+            data=counts, color=["#204940", "#c26219"], filename="histogram_multiple_colors.png"
+        )
+
     def test_plot_histogram_hamming(self):
         """Test histogram with hamming distance"""
 
         counts = {"101": 500, "010": 500, "001": 500, "100": 500}
 
-        self.graph_count_drawer(data=counts, sort="hamming", target_string="101", filename="histogram_hamming.png")
+        self.graph_count_drawer(
+            data=counts, sort="hamming", target_string="101", filename="histogram_hamming.png"
+        )
 
     def test_plot_histogram_value_sort(self):
         """Test histogram with sorting by value"""
 
         counts = {"101": 300, "010": 240, "001": 80, "100": 150, "110": 160, "000": 280, "111": 60}
 
-        self.graph_count_drawer(data=counts, sort="value", target_string="000", filename="histogram_value_sort.png")
+        self.graph_count_drawer(
+            data=counts, sort="value", target_string="000", filename="histogram_value_sort.png"
+        )
 
     def test_plot_histogram_desc_value_sort(self):
         """Test histogram with sorting by descending value"""
 
         counts = {"101": 150, "010": 50, "001": 180, "100": 10, "110": 190, "000": 80, "111": 260}
 
-        self.graph_count_drawer(data=counts, sort="value_desc", target_string="000", filename="histogram_desc_value_sort.png")
+        self.graph_count_drawer(
+            data=counts,
+            sort="value_desc",
+            target_string="000",
+            filename="histogram_desc_value_sort.png",
+        )
 
     def test_plot_histogram_legend(self):
         """Test histogram with legend"""
 
         counts = [{"0": 50, "1": 30}, {"0": 30, "1": 40}]
 
-        self.graph_count_drawer(data=counts, legend=["first", "second"], filename="histogram_legend.png")
+        self.graph_count_drawer(
+            data=counts, legend=["first", "second"], filename="histogram_legend.png"
+        )
 
     def test_plot_histogram_title(self):
         """Test histogram with title"""
