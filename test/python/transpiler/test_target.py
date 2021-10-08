@@ -486,7 +486,7 @@ class TestTarget(QiskitTestCase):
 
     def test_mapping(self):
         with self.assertRaises(KeyError):
-            res = self.empty_target["cx"]
+            _res = self.empty_target["cx"]
         expected = {
             (0,): None,
             (1,): None,
@@ -621,17 +621,21 @@ class TestTarget(QiskitTestCase):
         self.assertEqual(len(self.ibm_target), 6)
 
     def test_update_instruction_properties(self):
-        self.aqt_target.update_instruction_properties('rxx', (0, 1), InstructionProperties(length=1e-6, error=1e-5, properties={'updated': True}))
-        self.assertEqual(self.aqt_target['rxx'][(0, 1)].length, 1e-6)
-        self.assertEqual(self.aqt_target['rxx'][(0, 1)].error, 1e-5)
+        self.aqt_target.update_instruction_properties(
+            "rxx",
+            (0, 1),
+            InstructionProperties(length=1e-6, error=1e-5, properties={"updated": True}),
+        )
+        self.assertEqual(self.aqt_target["rxx"][(0, 1)].length, 1e-6)
+        self.assertEqual(self.aqt_target["rxx"][(0, 1)].error, 1e-5)
 
     def test_update_instruction_properties_invalid_instruction(self):
         with self.assertRaises(KeyError):
-            self.ibm_target.update_instruction_properties('rxx', (0, 1), None)
+            self.ibm_target.update_instruction_properties("rxx", (0, 1), None)
 
     def test_update_instruction_properties_invalid_qarg(self):
         with self.assertRaises(KeyError):
-            self.fake_backend_target.update_instruction_properties('ecr', (0, 1), None)
+            self.fake_backend_target.update_instruction_properties("ecr", (0, 1), None)
 
 
 class TestPulseTarget(QiskitTestCase):
