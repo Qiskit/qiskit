@@ -21,6 +21,7 @@ from typing import Union, Dict, Any
 
 import retworkx as rx
 
+from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import CouplingError
 from qiskit.transpiler.instruction_durations import InstructionDurations
@@ -248,6 +249,21 @@ class Target(Mapping):
                     out_durations.append((instruction, list(qarg), properties.length, "s"))
         self._instruction_durations = InstructionDurations(out_durations)
         return self._instruction_durations
+
+    def instruction_schedule_map(self):
+        """Return an :class:`~qiskit.pulse.InstructionScheduleMap` for the
+        instructions in the target with a pulse schedule defined.
+
+        Returns:
+            InstructionScheduleMap: The instruction schedule map for the
+            instructions in this target with a pulse schedule defined.
+        """
+        out_inst_schedule_map = InstructionScheduleMap()
+        for instruction, qargs in self._gate_map:
+            for qarg, properties in qargs:
+                if properties is not None and properties.pulse is not None:
+                    out_inst_schedule_map.add(instruction, qarg, properties.pulse)
+        return out_inst_schedule_map
 
     def get_instruction_from_name(self, instruction):
         """Get the :class:`~qiskit.circuit.Instruction` object for a given name

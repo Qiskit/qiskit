@@ -384,6 +384,9 @@ class BackendV2(Backend, ABC):
     def dt(self) -> float:
         """Return the qubit drive channel timestep in seconds
 
+        This is required to be implemented if the backend supports Pulse
+        scheduling.
+
         Returns:
             dt: The qubit drive channel timestep in seconds.
 
@@ -405,6 +408,28 @@ class BackendV2(Backend, ABC):
                 measurement drive channel timestep
         """
         raise NotImplementedError
+
+    @property
+    def meas_map(self) -> List[List[int]]:
+        """Return the grouping of measurements which are multiplexed
+
+        This is required to be implemented if the backend supports Pulse
+        scheduling.
+
+        Returns:
+            meas_map: The grouping of measurements which are multiplexed
+
+        Raises:
+            NotImplementedError: if the backend doesn't support querying the
+                measurement mapping
+        """
+        raise NotImplementedError
+
+    @property
+    def instruction_schedule_map(self):
+        """Return the :class:`~qiskit.pulse.InstructionScheduleMap` for the
+        instructions defined in this backend's target."""
+        return self.target.instruction_schedule_map()
 
     def set_options(self, **fields):
         """Set the options fields for the backend
