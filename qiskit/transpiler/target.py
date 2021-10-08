@@ -155,6 +155,7 @@ class Target(Mapping):
         "_length_distance_matrix",
         "_error_distance_matrix",
         "_instruction_durations",
+        "_instruction_schedule_map",
     )
 
     def __init__(self, description=None):
@@ -179,6 +180,7 @@ class Target(Mapping):
         self._length_distance_matrix = None
         self._error_distance_matrix = None
         self._instruction_durations = None
+        self._instruction_schedule_map = None
 
     def add_instruction(self, instruction, properties, name=None):
         """Add a new instruction to the :class:`~qiskit.transpiler.Target`
@@ -266,6 +268,9 @@ class Target(Mapping):
         if qarg not in self._gate_map[instruction]:
             raise KeyError(f"Provided qarg: '{qarg}' not in this Target for {instruction}")
         self._gate_map[instruction][qarg] = properties
+        self._length_distance_matrix = None
+        self._error_distance_matrix = None
+        self._instruction_durations = None
 
     @property
     def qargs(self):
@@ -307,6 +312,8 @@ class Target(Mapping):
             InstructionScheduleMap: The instruction schedule map for the
             instructions in this target with a pulse schedule defined.
         """
+        if self._instruction_schedule_map is not None:
+            return self._instruction_schedule_map
         out_inst_schedule_map = InstructionScheduleMap()
         for instruction, qargs in self._gate_map:
             for qarg, properties in qargs:
