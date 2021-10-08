@@ -320,7 +320,7 @@ class TestPauliSumOp(QiskitOpflowTestCase):
             )
             self.assertTrue(target.is_hermitian())
 
-        with self.subTest("True test"):
+        with self.subTest("False test"):
             target = PauliSumOp.from_list(
                 [
                     ("II", -1.052373245772859),
