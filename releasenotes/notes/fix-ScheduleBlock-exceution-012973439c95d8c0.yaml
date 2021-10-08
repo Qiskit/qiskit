@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed `#7004 <https://github.com/Qiskit/qiskit-terra/issues/7004>`__ where
+    ``AttributeError`` was raised when executing
+    :obj:`~qiskit.pulse.ScheduleBlock` on a pulse backend. These blocks are now
+    correctly treated as pulse jobs, like :obj:`~qiskit.pulse.Schedule`.

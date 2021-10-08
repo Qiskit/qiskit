@@ -65,6 +65,7 @@ def transpile(
     pass_manager: Optional[PassManager] = None,
     callback: Optional[Callable[[BasePass, DAGCircuit, float, PropertySet, int], Any]] = None,
     output_name: Optional[Union[str, List[str]]] = None,
+    unitary_synthesis_method: str = "default",
 ) -> Union[QuantumCircuit, List[QuantumCircuit]]:
     """Transpile one or more circuits, according to some desired transpilation targets.
 
@@ -215,6 +216,10 @@ def transpile(
 
         output_name: A list with strings to identify the output circuits. The length of
             the list should be exactly the length of the ``circuits`` parameter.
+        unitary_synthesis_method (str): The name of the unitary synthesis
+            method to use. By default 'default' is used, which is the only
+            method included with qiskit. If you have installed any unitary
+            synthesis plugins you can use the name exported by the plugin.
 
     Returns:
         The transpiled circuit(s).
@@ -249,6 +254,7 @@ def transpile(
             routing_method=routing_method,
             translation_method=translation_method,
             approximation_degree=approximation_degree,
+            unitary_synthesis_method=unitary_synthesis_method,
             backend=backend,
         )
 
@@ -294,6 +300,7 @@ def transpile(
         callback,
         output_name,
         timing_constraints,
+        unitary_synthesis_method,
     )
 
     _check_circuits_coupling_map(circuits, transpile_args, backend)
@@ -476,6 +483,7 @@ def _parse_transpile_args(
     callback,
     output_name,
     timing_constraints,
+    unitary_synthesis_method,
 ) -> List[Dict]:
     """Resolve the various types of args allowed to the transpile() function through
     duck typing, overriding args, etc. Refer to the transpile() docstring for details on
@@ -508,6 +516,9 @@ def _parse_transpile_args(
     routing_method = _parse_routing_method(routing_method, num_circuits)
     translation_method = _parse_translation_method(translation_method, num_circuits)
     approximation_degree = _parse_approximation_degree(approximation_degree, num_circuits)
+    unitary_synthesis_method = _parse_unitary_synthesis_method(
+        unitary_synthesis_method, num_circuits
+    )
     seed_transpiler = _parse_seed_transpiler(seed_transpiler, num_circuits)
     optimization_level = _parse_optimization_level(optimization_level, num_circuits)
     output_name = _parse_output_name(output_name, circuits)
@@ -542,6 +553,7 @@ def _parse_transpile_args(
             "callback": callback,
             "backend_num_qubits": backend_num_qubits,
             "faulty_qubits_map": faulty_qubits_map,
+            "unitary_synthesis_method": unitary_synthesis_method,
         }
     ):
         transpile_args = {
@@ -559,6 +571,7 @@ def _parse_transpile_args(
                 approximation_degree=kwargs["approximation_degree"],
                 timing_constraints=kwargs["timing_constraints"],
                 seed_transpiler=kwargs["seed_transpiler"],
+                unitary_synthesis_method=kwargs["unitary_synthesis_method"],
             ),
             "optimization_level": kwargs["optimization_level"],
             "output_name": kwargs["output_name"],
@@ -816,6 +829,12 @@ def _parse_approximation_degree(approximation_degree, num_circuits):
     if not all(0.0 <= d <= 1.0 for d in approximation_degree if d):
         raise TranspilerError("Approximation degree must be in [0.0, 1.0]")
     return approximation_degree
+
+
+def _parse_unitary_synthesis_method(unitary_synthesis_method, num_circuits):
+    if not isinstance(unitary_synthesis_method, list):
+        unitary_synthesis_method = [unitary_synthesis_method] * num_circuits
+    return unitary_synthesis_method
 
 
 def _parse_seed_transpiler(seed_transpiler, num_circuits):

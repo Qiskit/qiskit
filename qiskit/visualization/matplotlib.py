@@ -27,7 +27,7 @@ try:
 except ImportError:
     HAS_PYLATEX = False
 
-from qiskit.circuit import ControlledGate
+from qiskit.circuit import ControlledGate, Clbit
 from qiskit.circuit import Measure
 from qiskit.circuit.library.standard_gates import (
     SwapGate,
@@ -81,6 +81,7 @@ class MatplotlibDrawer:
         global_phase=None,
         qregs=None,
         cregs=None,
+        calibrations=None,
     ):
 
         if not HAS_MATPLOTLIB:
@@ -149,6 +150,7 @@ class MatplotlibDrawer:
         self._initial_state = initial_state
         self._cregbundle = cregbundle
         self._global_phase = global_phase
+        self._calibrations = calibrations
 
         self._fs = self._style["fs"]
         self._sfs = self._style["sfs"]
@@ -378,7 +380,7 @@ class MatplotlibDrawer:
 
                 base_type = None if not hasattr(op, "base_gate") else op.base_gate
                 gate_text, ctrl_text, raw_gate_text = get_gate_ctrl_text(
-                    op, "mpl", style=self._style
+                    op, "mpl", style=self._style, calibrations=self._calibrations
                 )
                 self._data[node]["gate_text"] = gate_text
                 self._data[node]["ctrl_text"] = ctrl_text
@@ -424,7 +426,7 @@ class MatplotlibDrawer:
                         self._get_text_width(gate_text + " ()", fontsize=self._sfs)
                         + raw_param_width
                     )
-                    gate_width = (raw_gate_width + 0.08) * 1.5
+                    gate_width = (raw_gate_width + 0.08) * 1.58
 
                 # otherwise, standard gate or multiqubit gate
                 else:
@@ -834,11 +836,18 @@ class MatplotlibDrawer:
 
     def _condition(self, node, cond_xy):
         """Add a conditional to a gate"""
+        cond_is_bit = bool(isinstance(node.op.condition[0], Clbit))
         mask = 0
         qubit_b = min(self._data[node]["q_xy"], key=lambda xy: xy[1])
-        for index, cbit in enumerate(self._clbit):
-            if self._bit_locations[cbit]["register"] == node.op.condition[0]:
-                mask |= 1 << index
+        if cond_is_bit:
+            for index, cbit in enumerate(self._clbit):
+                if cbit == node.op.condition[0]:
+                    mask = 1 << index
+                    break
+        else:
+            for index, cbit in enumerate(self._clbit):
+                if self._bit_locations[cbit]["register"] == node.op.condition[0]:
+                    mask |= 1 << index
         val = node.op.condition[1]
 
         # cbit list to consider
@@ -874,12 +883,18 @@ class MatplotlibDrawer:
                 v_ind += 1
         clbit_b = min(xy_plot, key=lambda xy: xy[1])
         xpos, ypos = clbit_b
+        if cond_is_bit and self._cregbundle:
+            cond_reg = self._bit_locations[node.op.condition[0]]["register"]
+            ctrl_bit = self._bit_locations[node.op.condition[0]]["index"]
+            label = "%s_%s=%s" % (cond_reg.name, ctrl_bit, hex(val))
+        else:
+            label = hex(val)
         if isinstance(node.op, Measure):
             xpos += 0.3
         self._ax.text(
             xpos,
             ypos - 0.3 * HIG,
-            hex(val),
+            label,
             ha="center",
             va="top",
             fontsize=self._sfs,
@@ -1026,7 +1041,7 @@ class MatplotlibDrawer:
 
         # Swap gate
         if isinstance(op, SwapGate):
-            self._swap(xy, self._data[node]["lc"])
+            self._swap(xy, node, self._data[node]["lc"])
             return
 
         # RZZ Gate
@@ -1144,7 +1159,7 @@ class MatplotlibDrawer:
             self._gate(node, xy[num_ctrl_qubits:][0])
 
         elif isinstance(base_type, SwapGate):
-            self._swap(xy[num_ctrl_qubits:], self._data[node]["lc"])
+            self._swap(xy[num_ctrl_qubits:], node, self._data[node]["lc"])
 
         else:
             self._multiqubit_gate(node, xy[num_ctrl_qubits:])
@@ -1186,11 +1201,20 @@ class MatplotlibDrawer:
             zorder=PORDER_GATE,
         )
         self._ax.add_patch(box)
+
+        # adjust label height according to number of lines of text
+        label_padding = 0.7
+        if text is not None:
+            text_lines = text.count("\n")
+            if not text.endswith("(cal)\n"):
+                for _ in range(text_lines):
+                    label_padding += 0.3
+
         if text_top is None:
             return
 
         # display the control label at the top or bottom if there is one
-        ctrl_ypos = ypos + 0.7 * HIG if text_top else ypos - 0.3 * HIG
+        ctrl_ypos = ypos + label_padding * HIG if text_top else ypos - 0.3 * HIG
         self._ax.text(
             xpos,
             ctrl_ypos,
@@ -1258,14 +1282,31 @@ class MatplotlibDrawer:
             self._ctrl_qubit(xy[num_ctrl_qubits], fc=ec, ec=ec, tc=tc)
             if not isinstance(base_type, (U1Gate, PhaseGate)):
                 self._ctrl_qubit(xy[num_ctrl_qubits + 1], fc=ec, ec=ec, tc=tc)
+
             self._sidetext(node, qubit_b, tc=tc, text=f"{gate_text} ({self._data[node]['param']})")
             self._line(qubit_b, qubit_t, lc=lc)
 
-    def _swap(self, xy, color=None):
+    def _swap(self, xy, node, color=None):
         """Draw a Swap gate"""
         self._swap_cross(xy[0], color=color)
         self._swap_cross(xy[1], color=color)
         self._line(xy[0], xy[1], lc=color)
+
+        # add calibration text
+        gate_text = self._data[node]["gate_text"].split("\n")[-1]
+        if self._data[node]["raw_gate_text"] in self._calibrations:
+            xpos, ypos = xy[0]
+            self._ax.text(
+                xpos,
+                ypos + 0.7 * HIG,
+                gate_text,
+                ha="center",
+                va="top",
+                fontsize=self._style["sfs"],
+                color=self._style["tc"],
+                clip_on=True,
+                zorder=PORDER_TEXT,
+            )
 
     def _swap_cross(self, xy, color=None):
         """Draw the Swap cross symbol"""
