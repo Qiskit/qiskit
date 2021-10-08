@@ -1,3 +1,4 @@
+from functools import reduce
 from itertools import combinations_with_replacement, permutations, product
 from typing import Callable, Dict, Iterable, List, Optional, Union
 
@@ -8,7 +9,6 @@ from qiskit.algorithms.optimizers import Optimizer
 from qiskit.opflow import ExpectationBase, OperatorBase
 from qiskit.opflow.expectations.expectation_factory import ExpectationFactory
 from qiskit.opflow.gradients import GradientBase
-from qiskit.opflow.list_ops.list_op import ListOp
 from qiskit.opflow.primitive_ops import MatrixOp
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
@@ -16,6 +16,7 @@ from qiskit.opflow.state_fns.state_fn import StateFn
 from qiskit.providers import Backend, BaseBackend
 from qiskit.quantum_info import Operator
 from qiskit.utils.quantum_instance import QuantumInstance
+from qiskit.opflow import I, X, Y, Z
 
 # CHANGEBACK TODO
 from ...circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
@@ -48,7 +49,7 @@ class AdaptQAOA(QAOA):
         gamma_init: Optional[float] = 0.01,
         beta_init: Optional[float] = np.pi / 4,
         mixer_pool: Optional[List] = None, # todo: make this list either Operator or QuantumCircuit
-        mixer_pool_type: Optional[str] = 'multi', 
+        mixer_pool_type: Optional[str] = 'multi',
         threshold: Optional[
             Callable[[int, float], None]
         ] = None,  # todo: add default value for threshold
@@ -115,25 +116,26 @@ class AdaptQAOA(QAOA):
         )
         self.gamma_init, self.beta_init = gamma_init, beta_init
         self.threshold = threshold
+        self.mixer_pool = mixer_pool
         self.mixer_pool_type = mixer_pool_type
         self.optimal_mixer_list = []  # --------------> Will be appending optimal mixers to this.
         self.cost_operator = None
         self.max_reps = max_reps
         self.best_gamma = []
         self.best_beta = []
-        self.num = 4 #todo: change this to num qubits
+        self.num_qubits = 5 #TODO: change this to num qubits, should read directly from cost operator
 
         if self.mixer_pool is not None and self.mixer_pool_type is not None:
             raise AttributeError("A custom mixer can be passed in or a mixer pool type can be passed in but not both")
-
         if self.mixer_pool_type == "multi":
-            self.mixer_pool = self.adapt_mixer_pool(num=self.num, add_single=True, add_multi=True)
+            self.mixer_pool = adapt_mixer_pool(num_qubits=self.num_qubits, add_single=True, add_multi=True)
         elif self.mixer_pool_type == "singular":
-            self.mixer_pool = self.adapt_mixer_pool(num=self.num, add_single=True, add_multi=False)
+            self.mixer_pool = adapt_mixer_pool(num_qubits=self.num_qubits, add_single=True, add_multi=False)
         elif self.mixer_pool_type == "single":
-            self.mixer_pool = self.adapt_mixer_pool(num=self.num, add_single=False, add_multi=False)
+            self.mixer_pool = adapt_mixer_pool(num_qubits=self.num_qubits, add_single=False, add_multi=False)
         elif self.mixer_pool_type is None:
             self.mixer_pool = mixer_pool #todo: check if this list of operators/circuits needs more preprocessing before use
+
         
     def _check_operator_ansatz(self, operator: OperatorBase, mixer_list=None) -> OperatorBase:
         # Recreates a circuit based on operator parameter.
@@ -142,7 +144,9 @@ class AdaptQAOA(QAOA):
 
         self.ansatz = QAOAAnsatz(
             operator, self._reps, initial_state=self._initial_state, mixer_operator=mixer_list
-        ).decompose()  # TODO remove decompose once #6674 is fixed
+        )
+        
+        self._ansatz_params = sorted(self.ansatz.parameters, key=lambda p: p.name)
 
         return self.ansatz
 
@@ -168,14 +172,14 @@ class AdaptQAOA(QAOA):
             )
         )  # type: Dict
         wave_function = self.ansatz.assign_parameters(param_dict)
-
         # construct expectation operator
         exp_hc = (self.gamma_init * cost_operator).exp_i()
         exp_hc, exp_hc_ad = [_.to_matrix() for _ in [exp_hc, exp_hc.adjoint()]]
         energy_grad_op = exp_hc_ad @ (commutator(1j * cost_operator, mixer).to_matrix()) @ exp_hc
-
+        energy_grad_op = PrimitiveOp(energy_grad_op)
+        
         expectation = ExpectationFactory.build(
-            operator=PrimitiveOp(energy_grad_op),
+            operator=energy_grad_op,
             backend=self.quantum_instance,
             include_custom=self._include_custom,
         )
@@ -198,7 +202,9 @@ class AdaptQAOA(QAOA):
             sampled_expect_op = self._circuit_sampler.convert(expect_op, params=param_dict)
             meas = np.abs(np.real(sampled_expect_op.eval()))
             energy_gradients.append(meas)
+        print(energy_gradients)
         return self.mixer_pool[np.argmax(energy_gradients)]
+
 
     def constuct_adapt_ansatz(self, operator: OperatorBase) -> OperatorBase:
         energy_norm, p = 0, 0
@@ -241,6 +247,7 @@ class AdaptQAOA(QAOA):
         self, operator: OperatorBase, aux_operators: Optional[List[Optional[OperatorBase]]] = None
     ):
         # main loop
+        self.num_qubits = operator.num_qubits
         layer_reps = 0
         while layer_reps < self.max_reps:
             best_mixer = self._test_mixer_pool(operator)
@@ -309,6 +316,22 @@ def adapt_mixer_pool(num_qubits: int, add_single: bool = True, add_multi: bool =
             iden_str[item[0][0]] = item[1][0]
             iden_str[item[0][1]] = item[1][1]
             mixer_pool.append("".join(iden_str))
+
+    op_dict = {"I": I, "X": X, "Y": Y, "Z": Z} 
+    def is_all_same(items):
+        return all(x == items[0] for x in items)
+
+    def string_to_op(qstring):
+        if is_all_same(qstring):
+            # case where its all X's or Y's
+            gate = qstring[0]
+            list_string = [
+                i * "I" + gate + (len(qstring) - i - 1) * "I" for i in range(len(qstring))]
+            return sum([reduce(lambda a, b: a ^ b, [op_dict[char.upper()] for char in x]) for x in list_string])
+
+        return reduce(lambda a, b: a ^ b, [op_dict[char.upper()] for char in qstring])
+
+    mixer_pool = [string_to_op(mixer) for mixer in mixer_pool]
     return mixer_pool
 
 
@@ -327,7 +350,6 @@ def adapt_mixer_pool(num_qubits: int, add_single: bool = True, add_multi: bool =
 # G = nx.random_regular_graph(5, 6, seed=1234) # connectivity, vertices
 # for (u, v) in G.edges():
 #     G.edges[u,v]['weight'] = random.randint(0,1000)/1000
-
 # Hc = MatrixOp(build_maxcut_hamiltonian(G).full())
 # init_params_gamma  = [0.01 for i in range(0, reps)]
 # init_params_beta = [-np.pi/4 for i in range(0, reps)]
@@ -338,3 +360,4 @@ def adapt_mixer_pool(num_qubits: int, add_single: bool = True, add_multi: bool =
 #             initial_point=init_guess)
 # # print(adqaoa.compute_minimum_eigenvalue(Hc))
 # print(adqaoa.construct_circuit(init_guess,Hc))
+

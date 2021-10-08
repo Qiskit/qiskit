@@ -16,7 +16,6 @@ import itertools
 from qiskit.circuit.parametervector import ParameterVector
 import numpy as np
 from typing import Optional, Set, List, Tuple
-
 from qiskit.opflow.primitive_ops.pauli_op import PauliOp
 from qiskit.circuit.library.evolved_operator_ansatz import EvolvedOperatorAnsatz
 from qiskit.circuit.parameter import Parameter
@@ -106,7 +105,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
                 mixer_qubit_check = np.argwhere(
                     [_.num_qubits != self.num_qubits for _ in self.mixer_operator] is True
                 )
-                if 0 < len(mixer_qubit_check):
+                if len(mixer_qubit_check) > 0:
                     valid = False
                     if raise_on_failure:
                         raise AttributeError(
@@ -158,7 +157,10 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
                     ).reduce()  # ------------ check this, might need negative?
                     circuits.append(evolved_op.to_circuit())
                     is_evolved_operator.append(True)  # has time coeff
-
+            if not circuits:
+                # ADD WARNING HERE TODO
+                print("At least one mixer needs to be defined")
+                return None
             num_qubits = circuits[0].num_qubits
             try:
                 qr = QuantumRegister(num_qubits, "q")
@@ -166,7 +168,6 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
             except CircuitError:
                 # the register already exists, probably because of a previous composition
                 pass
-            print(is_evolved_operator)
             times = ParameterVector("t", sum(is_evolved_operator))
             times_it = iter(times)
 
