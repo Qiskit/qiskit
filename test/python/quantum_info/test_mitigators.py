@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -91,6 +91,7 @@ class NoisySimulationTest(QiskitTestCase):
 @ddt
 class TestReadoutMitigation(NoisySimulationTest):
     """Testing standard readout mitigation"""
+
     def setUp(self):
         qc = QuantumCircuit(self.num_qubits)
         qc.h(0)
