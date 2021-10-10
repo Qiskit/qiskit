@@ -90,6 +90,7 @@ class NoisySimulationTest(QiskitTestCase):
 
 @ddt
 class TestReadoutMitigation(NoisySimulationTest):
+    """Testing standard readout mitigation"""
     def setUp(self):
         qc = QuantumCircuit(self.num_qubits)
         qc.h(0)
@@ -102,7 +103,7 @@ class TestReadoutMitigation(NoisySimulationTest):
         self.counts_noise = result_noise.get_counts(0)
         self.set_mitigation_matrix()
 
-    def set_mitigation_matrix(self):
+    def _set_mitigation_matrix(self):
         qr = QuantumRegister(self.num_qubits)
         qubit_list = range(self.num_qubits)
         meas_calibs, state_labels = mit.complete_meas_cal(
