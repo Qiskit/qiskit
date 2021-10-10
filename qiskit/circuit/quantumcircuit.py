@@ -1932,6 +1932,7 @@ class QuantumCircuit(CircuitElement):
 
     @property
     def params(self):
+        """Return params."""
         return ()
 
     # The stringified return type is because OrderedDict can't be subscripted before Python 3.9, and
