@@ -1157,7 +1157,8 @@ class QuantumCircuit(CircuitElement):
             raise CircuitError(
                 "Object to append must be an Instruction or have a to_instruction() method."
             )
-        if not isinstance(instruction, CircuitElement) and hasattr(instruction, "to_instruction"):
+        # We are not ready yet to skip calling to_instruction for Cliffords / QuantumCircuits, etc.
+        if not isinstance(instruction, Instruction) and hasattr(instruction, "to_instruction"):
             instruction = instruction.to_instruction()
 
         # Make copy of parameterized gate instances
