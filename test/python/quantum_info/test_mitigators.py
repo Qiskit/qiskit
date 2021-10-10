@@ -14,22 +14,25 @@
 """Tests for error mitigation routines."""
 
 import unittest
-
-from ddt import ddt
 from typing import List
+from ddt import ddt
 
 from qiskit import execute
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info.mitigation import CompleteReadoutMitigator
 
-# Noisy Simulation
-from qiskit.providers.aer import QasmSimulator
-
 # For simulation
-import qiskit.ignis.mitigation as mit
+import qiskit.utils.mitigation as mit
 from qiskit.result import Result
-from qiskit.providers.aer import noise
 from qiskit.test import QiskitTestCase
+
+try:
+    from qiskit import Aer
+    from qiskit.providers.aer import noise
+
+    HAS_AER = True
+except ImportError:
+    HAS_AER = False
 
 
 class NoisySimulationTest(QiskitTestCase):
@@ -38,28 +41,27 @@ class NoisySimulationTest(QiskitTestCase):
     readout errors.
     """
 
-    sim = QasmSimulator()
-
     # Example max qubit number
     num_qubits = 4
 
-    # Create readout errors
-    readout_errors = []
-    for i in range(num_qubits):
-        p_error1 = (i + 1) * 0.002
-        p_error0 = 2 * p_error1
-        ro_error = noise.ReadoutError([[1 - p_error0, p_error0], [p_error1, 1 - p_error1]])
-        readout_errors.append(ro_error)
-    # TODO: Needs 2q errors?
+    if HAS_AER:
+        sim = Aer.get_backend("aer_simulator")
 
-    # Readout Error only
-    noise_model = noise.NoiseModel()
-    for i in range(num_qubits):
-        noise_model.add_readout_error(readout_errors[i], [i])
+        # Create readout errors
+        readout_errors = []
+        for i in range(num_qubits):
+            p_error1 = (i + 1) * 0.002
+            p_error0 = 2 * p_error1
+            ro_error = noise.ReadoutError([[1 - p_error0, p_error0], [p_error1, 1 - p_error1]])
+            readout_errors.append(ro_error)
+
+        # Readout Error only
+        noise_model = noise.NoiseModel()
+        for i in range(num_qubits):
+            noise_model.add_readout_error(readout_errors[i], [i])
+
     seed_simulator = 100
-
     shots = 10000
-
     tolerance = 0.05
 
     def execute_circs(self, qc_list: List[QuantumCircuit], noise_model=None) -> Result:
@@ -74,6 +76,7 @@ class NoisySimulationTest(QiskitTestCase):
         ).result()
 
     def compare_results(self, res1, res2):
+        """Compare the results between two runs"""
         res1_total_shots = sum(res1.values())
         res2_total_shots = sum(res2.values())
         keys = set(res1.keys()).union(set(res2.keys()))
@@ -119,7 +122,9 @@ class TestReadoutMitigation(NoisySimulationTest):
         )
         self.mat = meas_fitter.cal_matrix
 
+    @unittest.skipUnless(HAS_AER, "qiskit-aer is required for this test")
     def test_mitigation_improvement(self):
+        """Test whether readout mitigation led to more accurate results"""
         unmitigated_error = self.compare_results(self.counts_ideal, self.counts_noise)
         CRM = CompleteReadoutMitigator(self.mat)
         mitigated_counts = (
