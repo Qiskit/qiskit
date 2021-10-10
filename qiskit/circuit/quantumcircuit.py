@@ -104,7 +104,7 @@ ClbitSpecifier = Union[
 BitType = TypeVar("BitType", Qubit, Clbit)
 
 
-class QuantumCircuit:
+class QuantumCircuit(CircuitElement):
     """Create a new circuit.
 
     A circuit is a list of instructions bound to some registers.
@@ -232,7 +232,7 @@ class QuantumCircuit:
             )
         else:
             self._base_name = name
-            self.name = name
+            self._name = name
         self._increment_instances()
 
         # Data contains a list of instructions and their contexts,
@@ -379,7 +379,7 @@ class QuantumCircuit:
         else:
             pid_name = ""
 
-        self.name = f"{self._base_name}-{self.cls_instances()}{pid_name}"
+        self._name = f"{self._base_name}-{self.cls_instances()}{pid_name}"
 
     def has_register(self, register: Register) -> bool:
         """
@@ -1157,7 +1157,8 @@ class QuantumCircuit:
             raise CircuitError(
                 "Object to append must be an Instruction or have a to_instruction() method."
             )
-        if not isinstance(instruction, CircuitElement) and hasattr(instruction, "to_instruction"):
+        # We are not ready yet to skip calling to_instruction for Cliffords / QuantumCircuits, etc.
+        if not isinstance(instruction, Instruction) and hasattr(instruction, "to_instruction"):
             instruction = instruction.to_instruction()
 
         # Make copy of parameterized gate instances
@@ -1913,6 +1914,26 @@ class QuantumCircuit:
     def num_clbits(self) -> int:
         """Return number of classical bits."""
         return len(self.clbits)
+
+    @property
+    def name(self):
+        """Return the name."""
+        return self._name
+
+    @name.setter
+    def name(self, name):
+        """Set the name."""
+        self._name = name
+
+    @property
+    def num_params(self):
+        """Return num_params."""
+        return 0
+
+    @property
+    def params(self):
+        """Return params."""
+        return ()
 
     # The stringified return type is because OrderedDict can't be subscripted before Python 3.9, and
     # typing.OrderedDict wasn't added until 3.7.2.  It can be turned into a proper type once 3.6
