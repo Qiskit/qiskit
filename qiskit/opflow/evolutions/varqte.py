@@ -692,7 +692,8 @@ class VarQTE(EvolutionBase):
         if np.any([[np.abs(np.imag(metric_res_item)) > 1e-3 for metric_res_item in metric_res_row]
                 for metric_res_row in metric_res]):
             raise Warning('The imaginary part of the gradient are non-negligible.')
-
+        print('Metric', metric_res)
+        print('grad', grad_res)
         metric_res = np.real(metric_res)
         grad_res = np.real(grad_res)
 
