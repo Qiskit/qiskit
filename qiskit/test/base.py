@@ -203,6 +203,7 @@ class QiskitTestCase(BaseQiskitTestCase):
             "qiskit.quantum_info.operators.pauli",
             "pybobyqa",
             "numba",
+            "sympy",
             "qiskit.utils.measurement_error_mitigation",
             "qiskit.circuit.library.standard_gates.x",
             "qiskit.pulse.schedule",
