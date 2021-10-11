@@ -172,7 +172,7 @@ class DefaultCNOTUnitObjective(CNOTUnitObjective):
         thetas = param_values
         # if given thetas are the same as used at the previous objective computations, then
         # we re-use computations, otherwise we have to re-compute objective
-        if thetas is not self._last_thetas:
+        if not np.all(np.isclose(thetas, self._last_thetas)):
             self.objective(thetas)
 
         # the partial derivative of the circuit with respect to an angle
