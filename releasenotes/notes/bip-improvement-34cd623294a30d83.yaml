@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    The ``balanced`` objective function of the ``BIPMapping`` no longer
+    requires a ``BackendProperties``. It will use ``BackendProperties`` if
+    available, otherwise it assumes a CX error rate as given in the new
+    parameter ``default_cx_error_rate``. A new parameter ``depth_obj_weight``
+    now controls the weight of the two objectives combined in the ``balanced``
+    objective.
+upgrade:
+  - |
+    The default method for ``BIPMapping`` is now ``balanced`` rather than
+    ``depth``.
