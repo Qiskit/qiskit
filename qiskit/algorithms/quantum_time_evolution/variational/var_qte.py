@@ -114,8 +114,6 @@ class VarQte(ABC):
         Initialize the gradient objects needed to perform VarQTE
         """
         self._h = self._operator.oplist[0].primitive * self._operator.oplist[0].coeff
-        self._h_matrix = self._h.to_matrix(massive=True)
-        self._h_norm = np.linalg.norm(self._h_matrix, np.infty)
         self._h_squared = self._h_pow(2)
         self._h_trip = self._h_pow(3)
 

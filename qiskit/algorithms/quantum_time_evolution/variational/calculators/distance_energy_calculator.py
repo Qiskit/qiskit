@@ -12,22 +12,16 @@
 from typing import Union, Dict, Iterable
 
 import numpy as np
-
-from qiskit.algorithms.quantum_time_evolution.variational.calculators.bures_distance_calculator import (
-    _calculate_bures_distance,
-)
 from qiskit.circuit import Parameter
 from qiskit.opflow import CircuitSampler
-from qiskit.quantum_info import state_fidelity
 
 
 def _calculate_distance_energy(
     state,
-    exact_state,
     h_matrix,
     param_dict: Dict[Parameter, Union[float, complex]],
     state_circ_sampler: CircuitSampler = None,
-) -> (float, float, float):
+) -> float:
     """
     Evaluate the fidelity to the target state, the energy w.r.t. the target state and
     the energy w.r.t. the trained state for a given time and the current parameter set
@@ -46,19 +40,11 @@ def _calculate_distance_energy(
         # TODO state was already bound earlier, error
         trained_state = state.assign_parameters(param_dict)
     trained_state = trained_state.eval().primitive.data
-    target_state = exact_state
 
-    # Fidelity
-    f = state_fidelity(target_state, trained_state)
-    # Actual error
-    act_err = np.linalg.norm(np.subtract(target_state, trained_state), ord=2)
-    phase_agnostic_act_err = _calculate_bures_distance(target_state, trained_state)
-    # Target Energy
-    act_en = _inner_prod(target_state, np.dot(h_matrix, target_state))
     # Trained Energy
     trained_en = _inner_prod(trained_state, np.dot(h_matrix, trained_state))
 
-    return f, act_err, phase_agnostic_act_err, np.real(act_en), np.real(trained_en)
+    return np.real(trained_en)
 
 
 def _inner_prod(x: Iterable, y: Iterable) -> Union[np.ndarray, np.complex, np.float]:

@@ -117,16 +117,12 @@ class VarQrte(VarQte, EvolutionBase):
             init_state_param_dict,
         )
 
-        exact_state = self._exact_state(time)
-
         ode_function_generator = OdeFunctionGenerator(
             error_calculator,
             init_state_param_dict,
             self._variational_principle,
             self._initial_state,
-            exact_state,
-            self._h_matrix,
-            self._h_norm,
+            self._h,
             self._grad_circ_sampler,
             self._metric_circ_sampler,
             self._nat_grad_circ_sampler,

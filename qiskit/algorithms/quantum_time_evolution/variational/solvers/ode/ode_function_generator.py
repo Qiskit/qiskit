@@ -41,9 +41,7 @@ class OdeFunctionGenerator:
         param_dict: Dict[Parameter, Union[float, complex]],
         variational_principle: VariationalPrinciple,
         state,
-        exact_state,
-        h_matrix,
-        h_norm,
+        h,
         grad_circ_sampler: CircuitSampler,
         metric_circ_sampler: CircuitSampler,
         nat_grad_circ_sampler: CircuitSampler,
@@ -51,16 +49,14 @@ class OdeFunctionGenerator:
         state_circ_sampler: Optional[CircuitSampler] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
         error_based_ode: Optional[bool] = False,
-        t_param: Parameter = None
+        t_param: Parameter = None,
     ):
         self._error_calculator = error_calculator
         self._param_dict = param_dict
         self._variational_principle = variational_principle
         self._state_circ_sampler = state_circ_sampler
         self._state = state
-        self._exact_state = exact_state
-        self._h_matrix = h_matrix
-        self._h_norm = h_norm
+        self._h = h
         self._grad_circ_sampler = grad_circ_sampler
         self._metric_circ_sampler = metric_circ_sampler
         self._nat_grad_circ_sampler = nat_grad_circ_sampler
@@ -90,7 +86,7 @@ class OdeFunctionGenerator:
                 self._nat_grad_circ_sampler,
                 self._regularization,
                 self._backend,
-                self._t_param
+                self._t_param,
             )
             nat_grad_res, grad_res, metric_res = error_based_ode_fun_gen.error_based_ode_fun(t)
         else:
@@ -111,16 +107,14 @@ class OdeFunctionGenerator:
             reimgrad,
         ) = self._error_calculator._calc_single_step_error(nat_grad_res, grad_res, metric_res)
 
+        if self._t_param:
+            self._h = self._h.bind({self._t_param: t})
+        self._h_matrix = self._h.to_matrix(massive=True)
+        self._h_norm = np.linalg.norm(self._h_matrix, np.infty)
+
         et = self._inspect_fix_et_negative_part(et)
-        (
-            f,
-            true_error,
-            phase_agnostic_true_error,
-            true_energy,
-            trained_energy,
-        ) = _calculate_distance_energy(
+        trained_energy = _calculate_distance_energy(
             self._state,
-            self._exact_state,
             self._h_matrix,
             self._param_dict,
             self._state_circ_sampler,

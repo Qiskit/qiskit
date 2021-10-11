@@ -13,14 +13,11 @@
 import unittest
 
 import numpy as np
-from scipy.linalg import expm
 
 from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.var_qte_ode_solver import (
     VarQteOdeSolver,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.calculators.distance_energy_calculator import (
-    _inner_prod,
-)
+
 from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.imaginary_error_calculator import (
     ImaginaryErrorCalculator,
 )
@@ -77,12 +74,8 @@ class TestVarQteOdeSolver(QiskitAlgorithmsTestCase):
 
         backend = Aer.get_backend("statevector_simulator")
         state = operator[-1]
-        init_state = CircuitSampler(backend).convert(state, params=param_dict)
-        init_state = init_state.eval().primitive.data
 
         h = operator.oplist[0].primitive * operator.oplist[0].coeff
-        h_matrix = h.to_matrix(massive=True)
-        h_norm = np.linalg.norm(h_matrix, np.infty)
         h_squared = h ** 2
         h_squared = ComposedOp([~StateFn(h_squared.reduce()), state])
         h_squared = PauliExpectation().convert(h_squared)
@@ -101,10 +94,6 @@ class TestVarQteOdeSolver(QiskitAlgorithmsTestCase):
         var_principle._lazy_init(observable, ansatz, param_dict, regularization)
         time = 1
 
-        target_state = np.dot(expm(-1 * h_matrix * time), init_state)
-        # Normalization
-        target_state /= np.sqrt(_inner_prod(target_state, target_state))
-
         reg = "ridge"
         error_based_ode = True
 
@@ -112,10 +101,8 @@ class TestVarQteOdeSolver(QiskitAlgorithmsTestCase):
             error_calculator,
             param_dict,
             var_principle,
-            state,
-            target_state,
-            h_matrix,
-            h_norm,
+            state,  # TODO or init_state? from other tests
+            h,
             CircuitSampler(backend),
             CircuitSampler(backend),
             CircuitSampler(backend),
