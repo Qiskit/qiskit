@@ -107,8 +107,9 @@ class LinComb(CircuitGradient):
             ParameterVector,
             List[ParameterExpression],
             Tuple[ParameterExpression, ParameterExpression],
-            List[Tuple[ParameterExpression, ParameterExpression]],
+            List[Tuple[ParameterExpression, ParameterExpression]]
         ],
+        aux_meas_op: OperatorBase = Z
     ) -> OperatorBase:
         """Convert ``operator`` into an operator that represents the gradient w.r.t. ``params``.
 
@@ -120,13 +121,19 @@ class LinComb(CircuitGradient):
                     If a Tuple[ParameterExpression, ParameterExpression] or
                     List[Tuple[ParameterExpression, ParameterExpression]]
                     is given, then the 2nd order derivative of the operator is calculated.
+            aux_meas_op: The operator that the auxiliary qubit is measured with respect to.
+                         for aux_meas_op = Z we compute Re[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]
+                         for aux_meas_op = -iY we compute Im[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]
 
         Returns:
             An operator corresponding to the gradient resp. Hessian. The order is in accordance with
             the order of the given parameters.
         """
-
-        return self._prepare_operator(operator, params)
+        if aux_meas_op.num_qubits != 1:
+            raise Warning('The auxiliary measurement operator is only used to evaluate an '
+                          'expectation value on one auxiliary qubit. Please define it '
+                          'accordingly. ')
+        return self._prepare_operator(operator, params, aux_meas_op)
 
     # pylint: disable=too-many-return-statements
     def _prepare_operator(
@@ -139,6 +146,7 @@ class LinComb(CircuitGradient):
             Tuple[ParameterExpression, ParameterExpression],
             List[Tuple[ParameterExpression, ParameterExpression]],
         ],
+        aux_meas_op: OperatorBase = Z
     ) -> OperatorBase:
         """Traverse ``operator`` to get back the adapted operator representing the gradient.
 
@@ -150,6 +158,9 @@ class LinComb(CircuitGradient):
                 If a ``Tuple[ParameterExpression, ParameterExpression]`` or
                 ``List[Tuple[ParameterExpression, ParameterExpression]]``
                 is given, then the 2nd order derivative of the operator is calculated.
+            aux_meas_op: The operator that the auxiliary qubit is measured with respect to.
+                 for aux_meas_op = Z we compute Re[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]
+                 for aux_meas_op = -iY we compute Im[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]
 
         Returns:
             The adapted operator.
@@ -193,14 +204,14 @@ class LinComb(CircuitGradient):
                     if isinstance(params, (ParameterExpression, ParameterVector)) or \
                             (isinstance(params, list) and all(isinstance(param, ParameterExpression)
                                                               for param in params)):
-                        return self._gradient_states(state_op, meas_op=(2 * Z ^ meas),
+                        return self._gradient_states(state_op, meas_op=(2 * aux_meas_op ^ meas),
                                                         target_params=params)
                     elif isinstance(params, tuple) or \
                             (isinstance(params, list) and all(isinstance(param, tuple)
                                                               for param in params)):
 
                         return self._hessian_states(state_op,
-                                                    meas_op=(4 * (Z ^ I ^ meas)),
+                                                    meas_op=(4 * (aux_meas_op ^ I ^ meas)),
                                                     target_params=params)  # type: ignore
                     else:
                         raise OpflowError('The linear combination gradient does only support the '
@@ -218,14 +229,14 @@ class LinComb(CircuitGradient):
                                                               for param in params)):
 
                         return state_op.traverse(partial(self._gradient_states,
-                                                         meas_op=(2 * Z ^ meas),
+                                                         meas_op=(2 * aux_meas_op ^ meas),
                                                          target_params=params))
                     elif isinstance(params, tuple) or \
                         (isinstance(params, list) and all(isinstance(param, tuple)
                                                           for param in params)):
                         return state_op.traverse(
                                 partial(self._hessian_states,
-                                        meas_op=(4 * Z ^ I ^ meas),
+                                        meas_op=(4 * aux_meas_op ^ I ^ meas),
                                         target_params=params))
 
                     raise OpflowError('The linear combination gradient does onYly support the '
@@ -258,7 +269,8 @@ class LinComb(CircuitGradient):
 
 
     @staticmethod
-    def _grad_combo_fn(x, state_op):
+    def _grad_combo_fn(x, state_op, aux_meas_op):
+
         def get_result(item):
             if isinstance(item, (DictStateFn, SparseVectorStateFn)):
                 item = item.primitive
@@ -281,7 +293,7 @@ class LinComb(CircuitGradient):
                 return trace
             elif isinstance(item, Iterable):
                 # Generate the operator which computes the linear combination
-                lin_comb_op = 2 * Z ^ (I ^ state_op.num_qubits)
+                lin_comb_op = 2 * aux_meas_op ^ (I ^ state_op.num_qubits)
                 lin_comb_op = lin_comb_op.to_matrix()
                 outer = np.outer(item, item.conj())
                 return list(
@@ -303,7 +315,7 @@ class LinComb(CircuitGradient):
             return result
 
     @staticmethod
-    def _hess_combo_fn(x, state_op):
+    def _hess_combo_fn(x, state_op, aux_meas_op):
         def get_result(item):
             if isinstance(item, DictStateFn):
                 item = item.primitive
@@ -311,7 +323,7 @@ class LinComb(CircuitGradient):
                 item = item.primitive.data
             if isinstance(item, Iterable):
                 # Generate the operator which computes the linear combination
-                lin_comb_op = 4 * (I ^ (state_op.num_qubits + 1)) ^ Z
+                lin_comb_op = 4 * (I ^ (state_op.num_qubits + 1)) ^ aux_meas_op
                 lin_comb_op = lin_comb_op.to_matrix()
                 return list(
                     np.diag(
@@ -590,6 +602,7 @@ class LinComb(CircuitGradient):
         target_params: Optional[Union[Parameter, List[Parameter]]] = None,
         open_ctrl: bool = False,
         trim_after_grad_gate: bool = False,
+        aux_meas_op: OperatorBase = Z,
     ) -> ListOp:
         """Generate the gradient states.
 
@@ -597,6 +610,9 @@ class LinComb(CircuitGradient):
             state_op: The operator representing the quantum state for which we compute the gradient.
             meas_op: The operator representing the observable for which we compute the gradient.
             target_params: The parameters we are taking the gradient wrt: ω
+            aux_meas_op: The operator that the auxiliary qubit is measured with respect to.
+                 for aux_meas_op = Z we compute Re[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]
+                 for aux_meas_op = -iY we compute Im[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]
         Returns:
             ListOp of StateFns as quantum circuits which are the states w.r.t. which we compute the
             gradient. If a parameter appears multiple times, one circuit is created per
@@ -667,7 +683,8 @@ class LinComb(CircuitGradient):
                             # state = PauliExpectation().convert(state).reduce()
                         elif meas_op is True:
                             state = ListOp(
-                                [state], combo_fn=partial(self._grad_combo_fn, state_op=state_op)
+                                [state], combo_fn=partial(self._grad_combo_fn, state_op=state_op,
+                                                          aux_meas_op=aux_meas_op)
                             )
 
                         if param_expression != param:  # parameter is not identity, apply chain rule
@@ -682,11 +699,11 @@ class LinComb(CircuitGradient):
         state_op: StateFn,
         meas_op: Optional[OperatorBase] = None,
         target_params: Optional[
-            Union[
-                Tuple[ParameterExpression, ParameterExpression],
-                List[Tuple[ParameterExpression, ParameterExpression]],
-            ]
+            Union[Tuple[ParameterExpression, ParameterExpression],
+                  List[Tuple[ParameterExpression, ParameterExpression]],
+            ],
         ] = None,
+        aux_meas_op: OperatorBase = Z
     ) -> OperatorBase:
         """Generate the operator states whose evaluation returns the Hessian (items).
 
@@ -773,7 +790,8 @@ class LinComb(CircuitGradient):
                                     # uses combo_fn on list op with a single operator
                                     state = ListOp(
                                         [state],
-                                        combo_fn=partial(self._hess_combo_fn, state_op=state_op),
+                                        combo_fn=partial(self._hess_combo_fn, state_op=state_op,
+                                                         aux_meas_op=aux_meas_op),
                                     )
 
                                 # Chain Rule Parameter Expression
@@ -796,7 +814,8 @@ class LinComb(CircuitGradient):
 
 
 def _z_exp(spmatrix):
-    """Compute the sampling probabilities of the qubits after applying Z on the ancilla."""
+    """Compute the sampling probabilities of the qubits after applying measurement on the
+    auxiliary qubit."""
 
     dok = spmatrix.todok()
     num_qubits = int(np.log2(dok.shape[1]))
