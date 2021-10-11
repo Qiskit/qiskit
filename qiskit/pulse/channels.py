@@ -59,7 +59,7 @@ class Channel(metaclass=ABCMeta):
                 "See Channel documentation for more information."
             )
 
-        return super().__new__(cls)
+        return super(Channel, cls).__new__(cls)
 
     def __init__(self, index: int):
         """Channel class.
@@ -99,21 +99,20 @@ class Channel(metaclass=ABCMeta):
                 index = int(index)
 
         if not isinstance(index, (int, np.integer)) and index < 0:
-            raise PulseError("Channel index must be a nonnegative integer")
+            raise PulseError('Channel index must be a nonnegative integer')
 
     @property
+    @deprecated_functionality
     def parameters(self) -> Set:
         """Parameters which determine the channel index."""
-        if isinstance(self.index, ParameterExpression):
-            return self.index.parameters
-        return set()
+        return self._parameters
 
     def is_parameterized(self) -> bool:
         """Return True iff the channel is parameterized."""
         return isinstance(self.index, ParameterExpression)
 
     @deprecated_functionality
-    def assign(self, parameter: Parameter, value: ParameterValueType) -> "Channel":
+    def assign(self, parameter: Parameter, value: ParameterValueType) -> 'Channel':
         """Return a new channel with the input Parameter assigned to value.
 
         Args:
@@ -127,9 +126,8 @@ class Channel(metaclass=ABCMeta):
             PulseError: If the parameter is not present in the channel.
         """
         if parameter not in self.parameters:
-            raise PulseError(
-                "Cannot bind parameters ({}) not present in the channel." "".format(parameter)
-            )
+            raise PulseError('Cannot bind parameters ({}) not present in the channel.'
+                             ''.format(parameter))
 
         new_index = self.index.assign(parameter, value)
         if not new_index.parameters:
@@ -141,12 +139,12 @@ class Channel(metaclass=ABCMeta):
     @property
     def name(self) -> str:
         """Return the shorthand alias for this channel, which is based on its type and index."""
-        return f"{self.__class__.prefix}{self._index}"
+        return '{}{}'.format(self.__class__.prefix, self._index)
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self._index})"
+        return '{}({})'.format(self.__class__.__name__, self._index)
 
-    def __eq__(self, other: "Channel") -> bool:
+    def __eq__(self, other: 'Channel') -> bool:
         """Return True iff self and other are equal, specifically, iff they have the same type
         and the same index.
 
@@ -164,20 +162,17 @@ class Channel(metaclass=ABCMeta):
 
 class PulseChannel(Channel, metaclass=ABCMeta):
     """Base class of transmit Channels. Pulses can be played on these channels."""
-
     pass
 
 
 class DriveChannel(PulseChannel):
     """Drive channels transmit signals to qubits which enact gate operations."""
-
-    prefix = "d"
+    prefix = 'd'
 
 
 class MeasureChannel(PulseChannel):
     """Measure channels transmit measurement stimulus pulses for readout."""
-
-    prefix = "m"
+    prefix = 'm'
 
 
 class ControlChannel(PulseChannel):
@@ -185,20 +180,17 @@ class ControlChannel(PulseChannel):
     These are often associated with multi-qubit gate operations. They may not map trivially
     to a particular qubit index.
     """
-
-    prefix = "u"
+    prefix = 'u'
 
 
 class AcquireChannel(Channel):
     """Acquire channels are used to collect data."""
-
-    prefix = "a"
+    prefix = 'a'
 
 
 class SnapshotChannel(Channel):
     """Snapshot channels are used to specify instructions for simulators."""
-
-    prefix = "s"
+    prefix = 's'
 
     def __init__(self):
         """Create new snapshot channel."""
@@ -207,13 +199,11 @@ class SnapshotChannel(Channel):
 
 class MemorySlot(Channel):
     """Memory slot channels represent classical memory storage."""
-
-    prefix = "m"
+    prefix = 'm'
 
 
 class RegisterSlot(Channel):
     """Classical resister slot channels represent classical registers (low-latency classical
     memory).
     """
-
-    prefix = "c"
+    prefix = 'c'

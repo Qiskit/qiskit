@@ -39,12 +39,9 @@ class ShiftPhase(Instruction):
     by using a ShiftPhase to update the frame tracking the qubit state.
     """
 
-    def __init__(
-        self,
-        phase: Union[complex, ParameterExpression],
-        channel: PulseChannel,
-        name: Optional[str] = None,
-    ):
+    def __init__(self, phase: Union[complex, ParameterExpression],
+                 channel: PulseChannel,
+                 name: Optional[str] = None):
         """Instantiate a shift phase instruction, increasing the output signal phase on ``channel``
         by ``phase`` [radians].
 
@@ -70,7 +67,7 @@ class ShiftPhase(Instruction):
     @property
     def channels(self) -> Tuple[PulseChannel]:
         """Returns the channels that this schedule uses."""
-        return (self.channel,)
+        return (self.channel, )
 
     @property
     def duration(self) -> int:
@@ -95,12 +92,10 @@ class SetPhase(Instruction):
     The ``SetPhase`` instruction sets :math:`\phi` to the instruction's ``phase`` operand.
     """
 
-    def __init__(
-        self,
-        phase: Union[complex, ParameterExpression],
-        channel: PulseChannel,
-        name: Optional[str] = None,
-    ):
+    def __init__(self,
+                 phase: Union[complex, ParameterExpression],
+                 channel: PulseChannel,
+                 name: Optional[str] = None):
         """Instantiate a set phase instruction, setting the output signal phase on ``channel``
         to ``phase`` [radians].
 
@@ -126,7 +121,7 @@ class SetPhase(Instruction):
     @property
     def channels(self) -> Tuple[PulseChannel]:
         """Returns the channels that this schedule uses."""
-        return (self.channel,)
+        return (self.channel, )
 
     @property
     def duration(self) -> int:

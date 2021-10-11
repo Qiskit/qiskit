@@ -14,7 +14,8 @@
 import math
 import unittest
 
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, schedule, transpile, assemble
+from qiskit import (QuantumRegister, ClassicalRegister, QuantumCircuit,
+                    schedule, transpile, assemble)
 from qiskit.pulse import Schedule
 from qiskit.qobj import PulseQobj
 from qiskit.test import QiskitTestCase
@@ -27,7 +28,7 @@ def get_test_circuit():
     """Generates simple circuit for tests."""
     desired_vector = [1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)]
     qr = QuantumRegister(2, "qr")
-    cr = ClassicalRegister(2, "cr")
+    cr = ClassicalRegister(2, 'cr')
     qc = QuantumCircuit(qr, cr)
     qc.initialize(desired_vector, [qr[0], qr[1]])
     qc.measure(qr[0], cr[0])
@@ -41,8 +42,8 @@ class GeneratedFakeBackendsTest(QiskitTestCase):
     def setUp(self) -> None:
         self.backend = ConfigurableFakeBackend("Tashkent", n_qubits=4)
 
-    @unittest.skip("Skipped until qiskit-aer#741 is fixed and released")
-    @unittest.skipUnless(HAS_AER, "qiskit-aer is required to run this test")
+    @unittest.skip('Skipped until qiskit-aer#741 is fixed and released')
+    @unittest.skipUnless(HAS_AER, 'qiskit-aer is required to run this test')
     def test_transpile_schedule_and_assemble(self):
         """Test transpile, schedule and assemble on generated backend."""
         qc = get_test_circuit()

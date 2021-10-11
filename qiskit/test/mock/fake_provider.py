@@ -16,7 +16,6 @@
 Fake provider class that provides access to fake backends.
 """
 
-from qiskit.providers.provider import ProviderV1
 from qiskit.providers.baseprovider import BaseProvider
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
 
@@ -26,7 +25,7 @@ from .fake_openpulse_2q import FakeOpenPulse2Q
 from .fake_openpulse_3q import FakeOpenPulse3Q
 
 
-class FakeProvider(ProviderV1):
+class FakeProvider(BaseProvider):
     """Dummy provider just for testing purposes.
 
     Only filtering backends by name is implemented.
@@ -35,7 +34,8 @@ class FakeProvider(ProviderV1):
     def get_backend(self, name=None, **kwargs):
         backend = self._backends[0]
         if name:
-            filtered_backends = [backend for backend in self._backends if backend.name() == name]
+            filtered_backends = [backend for backend in self._backends
+                                 if backend.name() == name]
             if not filtered_backends:
                 raise QiskitBackendNotFoundError()
 
@@ -47,46 +47,43 @@ class FakeProvider(ProviderV1):
         return self._backends
 
     def __init__(self):
-        self._backends = [
-            FakeAlmaden(),
-            FakeArmonk(),
-            FakeAthens(),
-            FakeBelem(),
-            FakeBoeblingen(),
-            FakeBogota(),
-            FakeBurlington(),
-            FakeCambridge(),
-            FakeCambridgeAlternativeBasis(),
-            FakeCasablanca(),
-            FakeEssex(),
-            FakeGuadalupe(),
-            FakeJohannesburg(),
-            FakeLima(),
-            FakeLondon(),
-            FakeManhattan(),
-            FakeMelbourne(),
-            FakeMontreal(),
-            FakeMumbai(),
-            FakeOpenPulse2Q(),
-            FakeOpenPulse3Q(),
-            FakeOurense(),
-            FakeParis(),
-            FakePoughkeepsie(),
-            FakeQasmSimulator(),
-            FakeQuito(),
-            FakeRochester(),
-            FakeRome(),
-            FakeRueschlikon(),
-            FakeSantiago(),
-            FakeSingapore(),
-            FakeSydney(),
-            FakeTenerife(),
-            FakeTokyo(),
-            FakeToronto(),
-            FakeValencia(),
-            FakeVigo(),
-            FakeYorktown(),
-        ]
+        self._backends = [FakeQasmSimulator(),
+                          FakeOpenPulse2Q(),
+                          FakeOpenPulse3Q(),
+                          FakeArmonk(),
+                          FakeYorktown(),
+                          FakeTenerife(),
+                          FakeOurense(),
+                          FakeVigo(),
+                          FakeValencia(),
+                          FakeEssex(),
+                          FakeLondon(),
+                          FakeBurlington(),
+                          FakeMelbourne(),
+                          FakeRueschlikon(),
+                          FakeTokyo(),
+                          FakePoughkeepsie(),
+                          FakeAlmaden(),
+                          FakeSingapore(),
+                          FakeJohannesburg(),
+                          FakeBoeblingen(),
+                          FakeCambridge(),
+                          FakeCambridgeAlternativeBasis(),
+                          FakeParis(),
+                          FakeRochester(),
+                          FakeRome(),
+                          FakeAthens(),
+                          FakeBogota(),
+                          FakeMontreal(),
+                          FakeToronto(),
+                          FakeManhattan(),
+                          FakeSantiago(),
+                          FakeCasablanca(),
+                          FakeSydney(),
+                          FakeMumbai(),
+                          FakeLima(),
+                          FakeBelem(),
+                          FakeQuito()]
 
         super().__init__()
 
@@ -129,64 +126,3 @@ class FakeProviderFactory:
     def get_provider(self, hub=None, group=None, project=None):
         """Fake get_provider method to mirror the IBMQ provider."""
         return self.fake_provider
-
-
-class FakeLegacyProvider(BaseProvider):
-    """Dummy provider just for testing purposes.
-
-    Only filtering backends by name is implemented.
-    """
-
-    def get_backend(self, name=None, **kwargs):
-        backend = self._backends[0]
-        if name:
-            filtered_backends = [backend for backend in self._backends if backend.name() == name]
-            if not filtered_backends:
-                raise QiskitBackendNotFoundError()
-
-            backend = filtered_backends[0]
-
-        return backend
-
-    def backends(self, name=None, **kwargs):
-        return self._backends
-
-    def __init__(self):
-        self._backends = [
-            FakeLegacyAlmaden(),
-            FakeLegacyArmonk(),
-            FakeLegacyAthens(),
-            FakeLegacyBelem(),
-            FakeLegacyBoeblingen(),
-            FakeLegacyBogota(),
-            FakeLegacyBurlington(),
-            FakeLegacyCambridge(),
-            FakeLegacyCambridgeAlternativeBasis(),
-            FakeLegacyCasablanca(),
-            FakeLegacyEssex(),
-            FakeLegacyJohannesburg(),
-            FakeLegacyLima(),
-            FakeLegacyLondon(),
-            FakeLegacyManhattan(),
-            FakeLegacyMelbourne(),
-            FakeLegacyMontreal(),
-            FakeLegacyMumbai(),
-            FakeLegacyOurense(),
-            FakeLegacyParis(),
-            FakeLegacyPoughkeepsie(),
-            FakeLegacyQuito(),
-            FakeLegacyRochester(),
-            FakeLegacyRome(),
-            FakeLegacyRueschlikon(),
-            FakeLegacySantiago(),
-            FakeLegacySingapore(),
-            FakeLegacySydney(),
-            FakeLegacyTenerife(),
-            FakeLegacyTokyo(),
-            FakeLegacyToronto(),
-            FakeLegacyValencia(),
-            FakeLegacyVigo(),
-            FakeLegacyYorktown(),
-        ]
-
-        super().__init__()

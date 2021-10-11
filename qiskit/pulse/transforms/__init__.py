@@ -31,6 +31,7 @@ These transformations are called to create ``Schedule``s from ``ScheduleBlock``s
    AlignLeft
    AlignRight
    AlignSequential
+   pad
 
 
 Canonicalization
@@ -48,7 +49,6 @@ Openpulse backends.
    compress_pulses
    flatten
    inline_subroutines
-   pad
    remove_directives
    remove_trivial_barriers
 
@@ -64,17 +64,6 @@ optimization of instructions and equality checks.
 
    block_to_dag
 
-
-Composite transform
-===================
-
-A sequence of transformations to generate a target code.
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   target_qobj_transform
-
 """
 
 from qiskit.pulse.transforms.alignments import (
@@ -88,9 +77,8 @@ from qiskit.pulse.transforms.alignments import (
     align_left,
     align_right,
     align_sequential,
+    pad
 )
-
-from qiskit.pulse.transforms.base_transforms import target_qobj_transform
 
 from qiskit.pulse.transforms.canonicalization import (
     add_implicit_acquires,
@@ -99,9 +87,10 @@ from qiskit.pulse.transforms.canonicalization import (
     compress_pulses,
     flatten,
     inline_subroutines,
-    pad,
     remove_directives,
     remove_trivial_barriers,
 )
 
-from qiskit.pulse.transforms.dag import block_to_dag
+from qiskit.pulse.transforms.dag import (
+    block_to_dag
+)

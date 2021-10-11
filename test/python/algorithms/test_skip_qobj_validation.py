@@ -34,8 +34,7 @@ def _compare_dict(dict1, dict2):
 
 
 class TestSkipQobjValidation(QiskitAlgorithmsTestCase):
-    """Test Skip Qobj Validation"""
-
+    """ Test Skip Qobj Validation """
     def setUp(self):
         super().setUp()
         self.random_seed = 10598
@@ -52,56 +51,50 @@ class TestSkipQobjValidation(QiskitAlgorithmsTestCase):
         qc.measure(qr[1], cr[1])
 
         self.qc = qc
-        self.backend = BasicAer.get_backend("qasm_simulator")
+        self.backend = BasicAer.get_backend('qasm_simulator')
 
     def test_wo_backend_options(self):
-        """without backend options test"""
-        quantum_instance = QuantumInstance(
-            self.backend,
-            seed_transpiler=self.random_seed,
-            seed_simulator=self.random_seed,
-            shots=1024,
-        )
+        """ without backend options test """
+        quantum_instance = QuantumInstance(self.backend,
+                                           seed_transpiler=self.random_seed,
+                                           seed_simulator=self.random_seed,
+                                           shots=1024)
         # run without backend_options and without noise
         res_wo_bo = quantum_instance.execute(self.qc).get_counts(self.qc)
-        self.assertGreaterEqual(quantum_instance.time_taken, 0.0)
+        self.assertGreaterEqual(quantum_instance.time_taken, 0.)
         quantum_instance.reset_execution_results()
         quantum_instance.skip_qobj_validation = True
         res_wo_bo_skip_validation = quantum_instance.execute(self.qc).get_counts(self.qc)
-        self.assertGreaterEqual(quantum_instance.time_taken, 0.0)
+        self.assertGreaterEqual(quantum_instance.time_taken, 0.)
         quantum_instance.reset_execution_results()
         self.assertTrue(_compare_dict(res_wo_bo, res_wo_bo_skip_validation))
 
     def test_w_backend_options(self):
-        """with backend options test"""
+        """ with backend options test """
         # run with backend_options
-        quantum_instance = QuantumInstance(
-            self.backend,
-            seed_transpiler=self.random_seed,
-            seed_simulator=self.random_seed,
-            shots=1024,
-            backend_options={"initial_statevector": [0.5, 0.5, 0.5, 0.5]},
-        )
+        quantum_instance = QuantumInstance(self.backend, seed_transpiler=self.random_seed,
+                                           seed_simulator=self.random_seed, shots=1024,
+                                           backend_options={
+                                               'initial_statevector': [.5, .5, .5, .5]})
         res_w_bo = quantum_instance.execute(self.qc).get_counts(self.qc)
-        self.assertGreaterEqual(quantum_instance.time_taken, 0.0)
+        self.assertGreaterEqual(quantum_instance.time_taken, 0.)
         quantum_instance.reset_execution_results()
         quantum_instance.skip_qobj_validation = True
         res_w_bo_skip_validation = quantum_instance.execute(self.qc).get_counts(self.qc)
-        self.assertGreaterEqual(quantum_instance.time_taken, 0.0)
+        self.assertGreaterEqual(quantum_instance.time_taken, 0.)
         quantum_instance.reset_execution_results()
         self.assertTrue(_compare_dict(res_w_bo, res_w_bo_skip_validation))
 
     def test_w_noise(self):
-        """with noise test"""
+        """ with noise test """
         # build noise model
         # Asymmetric readout error on qubit-0 only
         try:
             from qiskit.providers.aer.noise import NoiseModel
             from qiskit import Aer
-
-            self.backend = Aer.get_backend("qasm_simulator")
+            self.backend = Aer.get_backend('qasm_simulator')
         except ImportError as ex:
-            self.skipTest(f"Aer doesn't appear to be installed. Error: '{str(ex)}'")
+            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
 
         probs_given0 = [0.9, 0.1]
@@ -109,13 +102,9 @@ class TestSkipQobjValidation(QiskitAlgorithmsTestCase):
         noise_model = NoiseModel()
         noise_model.add_readout_error([probs_given0, probs_given1], [0])
 
-        quantum_instance = QuantumInstance(
-            self.backend,
-            seed_transpiler=self.random_seed,
-            seed_simulator=self.random_seed,
-            shots=1024,
-            noise_model=noise_model,
-        )
+        quantum_instance = QuantumInstance(self.backend, seed_transpiler=self.random_seed,
+                                           seed_simulator=self.random_seed, shots=1024,
+                                           noise_model=noise_model)
         res_w_noise = quantum_instance.execute(self.qc).get_counts(self.qc)
 
         quantum_instance.skip_qobj_validation = True
@@ -124,12 +113,13 @@ class TestSkipQobjValidation(QiskitAlgorithmsTestCase):
 
         # BasicAer should fail:
         with self.assertRaises(QiskitError):
-            _ = QuantumInstance(BasicAer.get_backend("qasm_simulator"), noise_model=noise_model)
+            _ = QuantumInstance(BasicAer.get_backend('qasm_simulator'),
+                                noise_model=noise_model)
 
         with self.assertRaises(QiskitError):
-            quantum_instance = QuantumInstance(BasicAer.get_backend("qasm_simulator"))
+            quantum_instance = QuantumInstance(BasicAer.get_backend('qasm_simulator'))
             quantum_instance.set_config(noise_model=noise_model)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

@@ -32,11 +32,9 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.library.templates import template_nct_2a_1, template_nct_2a_2, template_nct_2a_3
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes.optimization.template_matching import (
-    TemplateMatching,
-    TemplateSubstitution,
-    MaximalMatches,
-)
+from qiskit.transpiler.passes.optimization.template_matching import (TemplateMatching,
+                                                                     TemplateSubstitution,
+                                                                     MaximalMatches)
 
 
 class TemplateOptimization(TransformationPass):
@@ -44,13 +42,10 @@ class TemplateOptimization(TransformationPass):
     Class for the template optimization pass.
     """
 
-    def __init__(
-        self,
-        template_list=None,
-        heuristics_qubits_param=None,
-        heuristics_backward_param=None,
-        user_cost_dict=None,
-    ):
+    def __init__(self, template_list=None,
+                 heuristics_qubits_param=None,
+                 heuristics_backward_param=None,
+                 user_cost_dict=None):
         """
         Args:
             template_list (list[QuantumCircuit()]): list of the different template circuit to apply.
@@ -77,12 +72,10 @@ class TemplateOptimization(TransformationPass):
         if template_list is None:
             template_list = [template_nct_2a_1(), template_nct_2a_2(), template_nct_2a_3()]
         self.template_list = template_list
-        self.heuristics_qubits_param = (
-            heuristics_qubits_param if heuristics_qubits_param is not None else []
-        )
-        self.heuristics_backward_param = (
-            heuristics_backward_param if heuristics_backward_param is not None else []
-        )
+        self.heuristics_qubits_param = heuristics_qubits_param \
+            if heuristics_qubits_param is not None else []
+        self.heuristics_backward_param = heuristics_backward_param \
+            if heuristics_backward_param is not None else []
 
         self.user_cost_dict = user_cost_dict
 
@@ -101,7 +94,7 @@ class TemplateOptimization(TransformationPass):
 
         for template in self.template_list:
             if not isinstance(template, (QuantumCircuit, DAGDependency)):
-                raise TranspilerError("A template is a Quantumciruit or a DAGDependency.")
+                raise TranspilerError('A template is a Quantumciruit or a DAGDependency.')
 
             if len(template.qubits) > len(circuit_dag_dep.qubits):
                 continue
@@ -116,9 +109,8 @@ class TemplateOptimization(TransformationPass):
                 comparison = np.allclose(data, identity)
 
                 if not comparison:
-                    raise TranspilerError(
-                        "A template is a Quantumciruit() that " "performs the identity."
-                    )
+                    raise TranspilerError('A template is a Quantumciruit() that '
+                                          'performs the identity.')
             except TypeError:
                 pass
 
@@ -127,12 +119,10 @@ class TemplateOptimization(TransformationPass):
             else:
                 template_dag_dep = template
 
-            template_m = TemplateMatching(
-                circuit_dag_dep,
-                template_dag_dep,
-                self.heuristics_qubits_param,
-                self.heuristics_backward_param,
-            )
+            template_m = TemplateMatching(circuit_dag_dep,
+                                          template_dag_dep,
+                                          self.heuristics_qubits_param,
+                                          self.heuristics_backward_param)
 
             template_m.run_template_matching()
 
@@ -143,12 +133,10 @@ class TemplateOptimization(TransformationPass):
                 maximal.run_maximal_matches()
                 max_matches = maximal.max_match_list
 
-                substitution = TemplateSubstitution(
-                    max_matches,
-                    template_m.circuit_dag_dep,
-                    template_m.template_dag_dep,
-                    self.user_cost_dict,
-                )
+                substitution = TemplateSubstitution(max_matches,
+                                                    template_m.circuit_dag_dep,
+                                                    template_m.template_dag_dep,
+                                                    self.user_cost_dict)
                 substitution.run_dag_opt()
 
                 circuit_dag_dep = substitution.dag_dep_optimized

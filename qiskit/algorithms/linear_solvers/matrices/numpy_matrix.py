@@ -44,13 +44,8 @@ class NumPyMatrix(LinearSystemMatrix):
             qc.append(matrix.power(power).control(), list(range(circ_qubits)))
     """
 
-    def __init__(
-        self,
-        matrix: np.ndarray,
-        tolerance: float = 1e-2,
-        evolution_time: float = 1.0,
-        name: str = "np_matrix",
-    ) -> None:
+    def __init__(self, matrix: np.ndarray, tolerance: float = 1e-2, evolution_time: float = 1.0,
+                 name: str = 'np_matrix') -> None:
         """
         Args:
             matrix: The matrix defining the linear system problem.
@@ -70,12 +65,8 @@ class NumPyMatrix(LinearSystemMatrix):
         self.tolerance = tolerance
         self.evolution_time = evolution_time
         self.matrix = matrix
-        super().__init__(
-            num_state_qubits=int(np.log2(matrix.shape[0])),
-            tolerance=tolerance,
-            evolution_time=evolution_time,
-            name=name,
-        )
+        super().__init__(num_state_qubits=int(np.log2(matrix.shape[0])), tolerance=tolerance,
+                         evolution_time=evolution_time, name=name)
 
     @property
     def num_state_qubits(self) -> int:
@@ -179,7 +170,7 @@ class NumPyMatrix(LinearSystemMatrix):
         Args:
             num_state_qubits: The number of qubits to represent the matrix.
         """
-        qr_state = QuantumRegister(num_state_qubits, "state")
+        qr_state = QuantumRegister(num_state_qubits, 'state')
         self.qregs = [qr_state]
         self._qubits = qr_state[:]
 

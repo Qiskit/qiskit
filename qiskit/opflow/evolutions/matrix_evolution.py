@@ -44,11 +44,9 @@ class MatrixEvolution(EvolutionBase):
             The converted operator.
         """
         if isinstance(operator, EvolvedOp):
-            if not {"Matrix"} == operator.primitive_strings():
-                logger.warning(
-                    "Evolved Hamiltonian is not composed of only MatrixOps, converting "
-                    "to Matrix representation, which can be expensive."
-                )
+            if not {'Matrix'} == operator.primitive_strings():
+                logger.warning('Evolved Hamiltonian is not composed of only MatrixOps, converting '
+                               'to Matrix representation, which can be expensive.')
                 # Setting massive=False because this conversion is implicit. User can perform this
                 # action on the Hamiltonian with massive=True explicitly if they so choose.
                 # TODO explore performance to see whether we should avoid doing this repeatedly

@@ -1,0 +1,5 @@
+---
+other:
+  - |
+    Qubit.index has been deprecated. The CalibrationCreator was still using
+    this functionality which this PR fixes.

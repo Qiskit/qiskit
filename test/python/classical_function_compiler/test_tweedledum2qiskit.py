@@ -47,7 +47,7 @@ class TestTweedledum2Qiskit(QiskitTestCase):
         circuit = tweedledum2qiskit(tweedledum_circuit)
 
         expected = QuantumCircuit(2)
-        expected.append(XGate().control(1, ctrl_state="1"), [0, 1])
+        expected.append(XGate().control(1, ctrl_state='1'), [0, 1])
 
         self.assertEqual(circuit, expected)
 
@@ -62,7 +62,7 @@ class TestTweedledum2Qiskit(QiskitTestCase):
         circuit = tweedledum2qiskit(tweedledum_circuit)
 
         expected = QuantumCircuit(2)
-        expected.append(XGate().control(1, ctrl_state="1"), [1, 0])
+        expected.append(XGate().control(1, ctrl_state='1'), [1, 0])
 
         self.assertEqual(expected, circuit)
 
@@ -74,10 +74,10 @@ class TestTweedledum2Qiskit(QiskitTestCase):
         qubits.append(tweedledum_circuit.create_qubit())
         tweedledum_circuit.apply_operator(X(), [qubits[1], qubits[0]])
 
-        qr = QuantumRegister(2, "qr")
+        qr = QuantumRegister(2, 'qr')
         circuit = tweedledum2qiskit(tweedledum_circuit, qregs=[qr])
 
         expected = QuantumCircuit(qr)
-        expected.append(XGate().control(1, ctrl_state="1"), [qr[1], qr[0]])
+        expected.append(XGate().control(1, ctrl_state='1'), [qr[1], qr[0]])
 
         self.assertEqual(expected, circuit)

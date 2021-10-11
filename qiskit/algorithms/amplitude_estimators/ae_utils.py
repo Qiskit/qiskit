@@ -171,10 +171,10 @@ def _derivative_beta(x, p):
 
 def _pdf_a_single_angle(x, p, m, pi_delta):
     """Helper function for `pdf_a`."""
-    M = 2 ** m
+    M = 2**m
 
     d = pi_delta(x, p)
-    res = np.sin(M * d) ** 2 / (M * np.sin(d)) ** 2 if d != 0 else 1
+    res = np.sin(M * d)**2 / (M * np.sin(d))**2 if d != 0 else 1
 
     return res
 
@@ -201,14 +201,10 @@ def pdf_a(x, p, m):
     # Compute the probabilities: Add up both angles that produce the given
     # value, except for the angles 0 and 0.5, which map to the unique a-values,
     # 0 and 1, respectively
-    pr = np.array(
-        [
-            _pdf_a_single_angle(xi, p, m, _alpha) + _pdf_a_single_angle(xi, p, m, _beta)
-            if (xi not in [0, 1])
-            else _pdf_a_single_angle(xi, p, m, _alpha)
-            for xi in x
-        ]
-    ).flatten()
+    pr = np.array([_pdf_a_single_angle(xi, p, m, _alpha) + _pdf_a_single_angle(xi, p, m, _beta)
+                   if (xi not in [0, 1]) else _pdf_a_single_angle(xi, p, m, _alpha)
+                   for xi in x
+                   ]).flatten()
 
     # If is was a scalar return scalar otherwise the array
     return pr[0] if scalar else pr
@@ -226,29 +222,24 @@ def derivative_log_pdf_a(x, p, m):
     Returns:
         float: d/dp log(PDF(x|p))
     """
-    M = 2 ** m
+    M = 2**m
 
     if x not in [0, 1]:
         num_p1 = 0
-        for A, dA, B, dB in zip(
-            [_alpha, _beta],
-            [_derivative_alpha, _derivative_beta],
-            [_beta, _alpha],
-            [_derivative_beta, _derivative_alpha],
-        ):
-            num_p1 += 2 * M * np.sin(M * A(x, p)) * np.cos(M * A(x, p)) * dA(x, p) * np.sin(
-                B(x, p)
-            ) ** 2 + 2 * np.sin(M * A(x, p)) ** 2 * np.sin(B(x, p)) * np.cos(B(x, p)) * dB(x, p)
+        for A, dA, B, dB in zip([_alpha, _beta],
+                                [_derivative_alpha, _derivative_beta],
+                                [_beta, _alpha], [_derivative_beta, _derivative_alpha]):
+            num_p1 += 2 * M * np.sin(M * A(x, p)) * np.cos(M * A(x, p)) \
+                * dA(x, p) * np.sin(B(x, p))**2 \
+                + 2 * np.sin(M * A(x, p))**2 * np.sin(B(x, p)) * np.cos(B(x, p)) * dB(x, p)
 
-        den_p1 = (
-            np.sin(M * _alpha(x, p)) ** 2 * np.sin(_beta(x, p)) ** 2
-            + np.sin(M * _beta(x, p)) ** 2 * np.sin(_alpha(x, p)) ** 2
-        )
+        den_p1 = np.sin(M * _alpha(x, p))**2 * np.sin(_beta(x, p))**2 + \
+            np.sin(M * _beta(x, p))**2 * np.sin(_alpha(x, p))**2
 
         num_p2 = 0
-        for A, dA, B in zip(
-            [_alpha, _beta], [_derivative_alpha, _derivative_beta], [_beta, _alpha]
-        ):
+        for A, dA, B in zip([_alpha, _beta],
+                            [_derivative_alpha, _derivative_beta],
+                            [_beta, _alpha]):
             num_p2 += 2 * np.cos(A(x, p)) * dA(x, p) * np.sin(B(x, p))
 
         den_p2 = np.sin(_alpha(x, p)) * np.sin(_beta(x, p))

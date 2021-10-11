@@ -23,4 +23,4 @@ class NumTensorFactors(AnalysisPass):
 
     def run(self, dag):
         """Run the NumTensorFactors pass on `dag`."""
-        self.property_set["num_tensor_factors"] = dag.num_tensor_factors()
+        self.property_set['num_tensor_factors'] = dag.num_tensor_factors()

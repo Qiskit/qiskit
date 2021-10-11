@@ -39,10 +39,12 @@ from qiskit.visualization.timeline import types
 
 class BitEvents:
     """Bit event table."""
+    _non_gates = (circuit.Barrier, )
 
-    _non_gates = (circuit.Barrier,)
-
-    def __init__(self, bit: types.Bits, instructions: List[types.ScheduledGate], t_stop: int):
+    def __init__(self,
+                 bit: types.Bits,
+                 instructions: List[types.ScheduledGate],
+                 t_stop: int):
         """Create new event for the specified bit.
 
         Args:
@@ -55,7 +57,9 @@ class BitEvents:
         self.stop_time = t_stop
 
     @classmethod
-    def load_program(cls, scheduled_circuit: circuit.QuantumCircuit, bit: types.Bits):
+    def load_program(cls,
+                     scheduled_circuit: circuit.QuantumCircuit,
+                     bit: types.Bits):
         """Build new BitEvents from scheduled circuit.
 
         Args:
@@ -79,21 +83,15 @@ class BitEvents:
 
             duration = inst.duration
             if duration is None:
-                raise VisualizationError(
-                    "Instruction {oper} has no duration. "
-                    "You need to transpile the QuantumCircuit with "
-                    "gate durations before drawing.".format(oper=inst)
-                )
+                raise VisualizationError('Instruction {oper} has no duration. '
+                                         'You need to transpile the QuantumCircuit with '
+                                         'gate durations before drawing.'.format(oper=inst))
 
-            instructions.append(
-                types.ScheduledGate(
-                    t0=t0,
-                    operand=inst,
-                    duration=duration,
-                    bits=associated_bits,
-                    bit_position=associated_bits.index(bit),
-                )
-            )
+            instructions.append(types.ScheduledGate(t0=t0,
+                                                    operand=inst,
+                                                    duration=duration,
+                                                    bits=associated_bits,
+                                                    bit_position=associated_bits.index(bit)))
             t0 += duration
 
         return BitEvents(bit, instructions, tf)
@@ -108,7 +106,9 @@ class BitEvents:
         """Return barriers."""
         for inst in self.instructions:
             if isinstance(inst.operand, circuit.Barrier):
-                barrier = types.Barrier(t0=inst.t0, bits=inst.bits, bit_position=inst.bit_position)
+                barrier = types.Barrier(t0=inst.t0,
+                                        bits=inst.bits,
+                                        bit_position=inst.bit_position)
                 yield barrier
 
     def get_gate_links(self) -> Iterator[types.GateLink]:
@@ -117,5 +117,7 @@ class BitEvents:
             # generate link iff this is the primary bit.
             if len(inst.bits) > 1 and inst.bit_position == 0:
                 t0 = inst.t0 + 0.5 * inst.duration
-                link = types.GateLink(t0=t0, opname=inst.operand.name, bits=inst.bits)
+                link = types.GateLink(t0=t0,
+                                      opname=inst.operand.name,
+                                      bits=inst.bits)
                 yield link

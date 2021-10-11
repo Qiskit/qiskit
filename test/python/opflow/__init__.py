@@ -14,4 +14,4 @@
 
 from .opflow_test_case import QiskitOpflowTestCase
 
-__all__ = ["QiskitOpflowTestCase"]
+__all__ = ['QiskitOpflowTestCase']

@@ -32,14 +32,14 @@ class TestDataPreparation(QiskitTestCase):
         """Test instantiating an empty Pauli expansion."""
         encoding = PauliFeatureMap()
 
-        with self.subTest(msg="equal to empty circuit"):
+        with self.subTest(msg='equal to empty circuit'):
             self.assertTrue(Operator(encoding).equiv(QuantumCircuit()))
 
-        with self.subTest(msg="rotation blocks is H gate"):
+        with self.subTest(msg='rotation blocks is H gate'):
             self.assertEqual(len(encoding.rotation_blocks), 1)
             self.assertIsInstance(encoding.rotation_blocks[0].data[0][0], HGate)
 
-    @data((2, 3, ["X", "YY"]), (5, 2, ["ZZZXZ", "XZ"]))
+    @data((2, 3, ['X', 'YY']), (5, 2, ['ZZZXZ', 'XZ']))
     @unpack
     def test_num_parameters(self, num_qubits, reps, pauli_strings):
         """Test the number of parameters equals the number of qubits, independent of reps."""
@@ -51,16 +51,16 @@ class TestDataPreparation(QiskitTestCase):
         """Test the generation of Pauli blocks."""
         encoding = PauliFeatureMap()
         time = 1.4
-        with self.subTest(pauli_string="ZZ"):
+        with self.subTest(pauli_string='ZZ'):
             evo = QuantumCircuit(2)
             evo.cx(0, 1)
             evo.p(2 * time, 1)
             evo.cx(0, 1)
 
-            pauli = encoding.pauli_evolution("ZZ", time)
+            pauli = encoding.pauli_evolution('ZZ', time)
             self.assertTrue(Operator(pauli).equiv(evo))
 
-        with self.subTest(pauli_string="XYZ"):
+        with self.subTest(pauli_string='XYZ'):
             evo = QuantumCircuit(3)
             # X on the most-significant, bottom qubit, Z on the top
             evo.h(2)
@@ -73,12 +73,12 @@ class TestDataPreparation(QiskitTestCase):
             evo.rx(-np.pi / 2, 1)
             evo.h(2)
 
-            pauli = encoding.pauli_evolution("XYZ", time)
+            pauli = encoding.pauli_evolution('XYZ', time)
             self.assertTrue(Operator(pauli).equiv(evo))
 
-        with self.subTest(pauli_string="I"):
+        with self.subTest(pauli_string='I'):
             evo = QuantumCircuit(1)
-            pauli = encoding.pauli_evolution("I", time)
+            pauli = encoding.pauli_evolution('I', time)
             self.assertTrue(Operator(pauli).equiv(evo))
 
     def test_first_order_circuit(self):
@@ -129,5 +129,5 @@ class TestDataPreparation(QiskitTestCase):
             _ = ZZFeatureMap(1)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

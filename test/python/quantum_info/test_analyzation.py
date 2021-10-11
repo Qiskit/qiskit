@@ -35,7 +35,7 @@ class TestAnalyzation(QiskitTestCase):
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
         shots = 10000
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicAer.get_backend('qasm_simulator')
         result = qiskit.execute(qc, backend, shots=shots).result()
         counts = result.get_counts(qc)
         observable = {"00": 1, "11": 1, "01": -1, "10": -1}
@@ -60,7 +60,7 @@ class TestAnalyzation(QiskitTestCase):
         qc.measure(qr[1], cr[1])
         qc.measure(qr[2], cr[2])
         shots = 10000
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicAer.get_backend('qasm_simulator')
         result = qiskit.execute(qc, backend, shots=shots).result()
         counts = result.get_counts(qc)
         observable = [1, -1, -1, 1, -1, 1, 1, -1]
@@ -86,14 +86,23 @@ class TestAnalyzation(QiskitTestCase):
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
         shots = 10000
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicAer.get_backend('qasm_simulator')
         result = qiskit.execute(qc, backend, shots=shots).result()
         counts = result.get_counts(qc)
-        observable = [[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]
+        observable = [[1, 0, 0, 0],
+                      [0, -1, 0, 0],
+                      [0, 0, -1, 0],
+                      [0, 0, 0, 1]]
         mean_zz = average_data(counts=counts, observable=observable)
-        observable = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, -1, 0], [0, 0, 0, -1]]
+        observable = [[1, 0, 0, 0],
+                      [0, 1, 0, 0],
+                      [0, 0, -1, 0],
+                      [0, 0, 0, -1]]
         mean_zi = average_data(counts, observable)
-        observable = [[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, -1]]
+        observable = [[1, 0, 0, 0],
+                      [0, -1, 0, 0],
+                      [0, 0, 1, 0],
+                      [0, 0, 0, -1]]
         mean_iz = average_data(counts, observable)
         self.assertAlmostEqual(mean_zz, 1, places=1)
         self.assertAlmostEqual(mean_zi, 0, places=1)
@@ -104,21 +113,22 @@ class TestAnalyzation(QiskitTestCase):
         list_in = [1, 1, -1, -1]
         list_out = make_dict_observable(list_in)
         list_expected = {"00": 1, "01": 1, "10": -1, "11": -1}
-        matrix_in = [[4, 0, 0, 0], [0, -3, 0, 0], [0, 0, 2, 0], [0, 0, 0, -1]]
+        matrix_in = [[4, 0, 0, 0],
+                     [0, -3, 0, 0],
+                     [0, 0, 2, 0],
+                     [0, 0, 0, -1]]
         matrix_out = make_dict_observable(matrix_in)
         matrix_expected = {"00": 4, "01": -3, "10": 2, "11": -1}
         long_list_in = [1, 1, -1, -1, -1, -1, 1, 1]
         long_list_out = make_dict_observable(long_list_in)
-        long_list_expected = {
-            "000": 1,
-            "001": 1,
-            "010": -1,
-            "011": -1,
-            "100": -1,
-            "101": -1,
-            "110": 1,
-            "111": 1,
-        }
+        long_list_expected = {"000": 1,
+                              "001": 1,
+                              "010": -1,
+                              "011": -1,
+                              "100": -1,
+                              "101": -1,
+                              "110": 1,
+                              "111": 1}
         self.assertEqual(list_out, list_expected)
         self.assertEqual(matrix_out, matrix_expected)
         self.assertEqual(long_list_out, long_list_expected)
@@ -133,7 +143,7 @@ class TestAnalyzation(QiskitTestCase):
         qc.cx(1, 0)
         qc.measure(range(5), range(5))
 
-        sim = BasicAer.get_backend("qasm_simulator")
+        sim = BasicAer.get_backend('qasm_simulator')
 
         res = qiskit.execute(qc, sim).result()
 
@@ -159,7 +169,7 @@ class TestAnalyzation(QiskitTestCase):
         qc2.cx(1, 0)
         qc2.measure(range(5), range(5))
 
-        sim = BasicAer.get_backend("qasm_simulator")
+        sim = BasicAer.get_backend('qasm_simulator')
 
         res1 = qiskit.execute(qc, sim).result()
         res2 = qiskit.execute(qc2, sim).result()
@@ -169,5 +179,5 @@ class TestAnalyzation(QiskitTestCase):
         self.assertEqual(ans, 0.0)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main(verbosity=2)

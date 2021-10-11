@@ -26,24 +26,24 @@ def rzx_templates(template_list: List[str] = None):
     """
 
     if template_list is None:
-        template_list = ["zz1", "zz2", "zz3", "yz", "xz", "cy"]
+        template_list = ['zz1', 'zz2', 'zz3', 'yz', 'xz', 'cy']
 
     templates = []
-    if "zz1" in template_list:
+    if 'zz1' in template_list:
         templates.append(rzx_zz1())
-    if "zz2" in template_list:
+    if 'zz2' in template_list:
         templates.append(rzx_zz2())
-    if "zz3" in template_list:
+    if 'zz3' in template_list:
         templates.append(rzx_zz3())
-    if "yz" in template_list:
+    if 'yz' in template_list:
         templates.append(rzx_yz())
-    if "xz" in template_list:
+    if 'xz' in template_list:
         templates.append(rzx_xz())
-    if "cy" in template_list:
+    if 'cy' in template_list:
         templates.append(rzx_cy())
 
-    cost_dict = {"rzx": 0, "cx": 6, "rz": 0, "sx": 1, "p": 0, "h": 1, "rx": 1, "ry": 1}
+    cost_dict = {'rzx': 0, 'cx': 6, 'rz': 0, 'sx': 1, 'p': 0, 'h': 1, 'rx': 1, 'ry': 1}
 
-    rzx_dict = {"template_list": templates, "user_cost_dict": cost_dict}
+    rzx_dict = {'template_list': templates, 'user_cost_dict': cost_dict}
 
     return rzx_dict

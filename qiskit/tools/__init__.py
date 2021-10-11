@@ -38,4 +38,4 @@ Monitoring
 """
 
 from .parallel import parallel_map
-from .monitor import job_monitor, backend_monitor, backend_overview
+from .monitor import (job_monitor, backend_monitor, backend_overview)

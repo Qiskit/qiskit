@@ -29,10 +29,11 @@ class TestPowerSgate(QiskitTestCase):
 
     @data(2, 1, 0, -1, -2)
     def test_sgate_int(self, n):
-        """Test Sgate.power(n) method with n as integer."""
+        """Test Sgate.power(n) method with n as integer.
+        """
         result = SGate().power(n)
 
-        self.assertEqual(result.label, "s^%s" % n)
+        self.assertEqual(result.label, 's^%s' % n)
         self.assertIsInstance(result, UnitaryGate)
         self.assertEqual(Operator(result), Operator(SGate()).power(n))
 
@@ -40,16 +41,17 @@ class TestPowerSgate(QiskitTestCase):
         1.5: array([[1, 0], [0, -0.70710678 + 0.70710678j]], dtype=complex),
         0.1: array([[1, 0], [0, 0.98768834 + 0.15643447j]], dtype=complex),
         -1.5: array([[1, 0], [0, -0.70710678 - 0.70710678j]], dtype=complex),
-        -0.1: array([[1, 0], [0, 0.98768834 - 0.15643447j]], dtype=complex),
+        -0.1: array([[1, 0], [0, 0.98768834 - 0.15643447j]], dtype=complex)
     }
 
     @data(1.5, 0.1, -1.5, -0.1)
     def test_sgate_float(self, n):
-        """Test Sgate.power(<float>) method."""
+        """Test Sgate.power(<float>) method.
+        """
         result = SGate().power(n)
 
         expected = self.results[n]
-        self.assertEqual(result.label, "s^%s" % n)
+        self.assertEqual(result.label, 's^%s' % n)
         self.assertIsInstance(result, UnitaryGate)
         self.assertEqual(Operator(result), Operator(expected))
 
@@ -63,15 +65,16 @@ class TestPowerIntCX(QiskitTestCase):
         1: array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]], dtype=complex),
         0: array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=complex),
         -1: array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]], dtype=complex),
-        -2: array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=complex),
+        -2: array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=complex)
     }
 
     @data(2, 1, 0, -2)
     def test_cx_int(self, n):
-        """Test CX.power(<int>) method."""
+        """Test CX.power(<int>) method.
+        """
         result = CXGate().power(n)
 
-        self.assertEqual(result.label, "cx^" + str(n))
+        self.assertEqual(result.label, 'cx^' + str(n))
         self.assertIsInstance(result, UnitaryGate)
         self.assertEqual(Operator(result), Operator(self.results[n]))
 
@@ -80,32 +83,36 @@ class TestGateSqrt(QiskitTestCase):
     """Test square root using Gate.power()"""
 
     def test_unitary_sqrt(self):
-        """Test UnitaryGate.power(1/2) method."""
-        expected = array([[0.5 + 0.5j, 0.5 + 0.5j], [-0.5 - 0.5j, 0.5 + 0.5j]], dtype=complex)
+        """Test UnitaryGate.power(1/2) method.
+        """
+        expected = array([[0.5+0.5j, 0.5+0.5j],
+                          [-0.5-0.5j, 0.5+0.5j]], dtype=complex)
 
         result = UnitaryGate([[0, 1j], [-1j, 0]]).power(1 / 2)
 
-        self.assertEqual(result.label, "unitary^0.5")
+        self.assertEqual(result.label, 'unitary^0.5')
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
         self.assertEqual(Operator(result), Operator(expected))
 
     def test_standard_sqrt(self):
-        """Test standard Gate.power(1/2) method."""
-        expected = array([[1, 0], [0, 0.70710678118 + 0.70710678118j]], dtype=complex)
+        """Test standard Gate.power(1/2) method.
+        """
+        expected = array([[1, 0],
+                          [0, 0.70710678118 + 0.70710678118j]], dtype=complex)
 
         result = SGate().power(1 / 2)
 
-        self.assertEqual(result.label, "s^0.5")
+        self.assertEqual(result.label, 's^0.5')
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
         self.assertEqual(Operator(result), Operator(expected))
 
     def test_composite_sqrt(self):
-        """Test composite Gate.power(1/2) method."""
-        circ = QuantumCircuit(1, name="my_gate")
+        """Test composite Gate.power(1/2) method.
+        """
+        circ = QuantumCircuit(1, name='my_gate')
         import numpy as np
-
         thetaz = 0.1
         thetax = 0.2
         circ.rz(thetaz, 0)
@@ -114,9 +121,9 @@ class TestGateSqrt(QiskitTestCase):
 
         result = gate.power(1 / 2)
 
-        iden = Operator.from_label("I")
-        xgen = Operator.from_label("X")
-        zgen = Operator.from_label("Z")
+        iden = Operator.from_label('I')
+        xgen = Operator.from_label('X')
+        zgen = Operator.from_label('Z')
 
         def rzgate(theta):
             return np.cos(0.5 * theta) * iden - 1j * np.sin(0.5 * theta) * zgen
@@ -126,7 +133,7 @@ class TestGateSqrt(QiskitTestCase):
 
         rxrz = rxgate(thetax) * rzgate(thetaz)
 
-        self.assertEqual(result.label, "my_gate^0.5")
+        self.assertEqual(result.label, 'my_gate^0.5')
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
         self.assertEqual(Operator(result) @ Operator(result), rxrz)
@@ -141,17 +148,18 @@ class TestGateFloat(QiskitTestCase):
         """Test nth root"""
         result = SGate().power(1 / degree)
 
-        self.assertEqual(result.label, "s^" + str(1 / degree))
+        self.assertEqual(result.label, 's^' + str(1 / degree))
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
-        self.assertEqual(Operator(result).power(degree), Operator(SGate()))
+        self.assertEqual(Operator(result).power(degree),
+                         Operator(SGate()))
 
     @data(2.1, 3.2, 4.3, 5.4, 6.5, 7.6, 8.7, 9.8, 0.2)
     def test_float_gt_one(self, exponent):
-        """Test greater-than-one exponents"""
+        """Test greater-than-one exponents """
         result = SGate().power(exponent)
 
-        self.assertEqual(result.label, "s^" + str(exponent))
+        self.assertEqual(result.label, 's^' + str(exponent))
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
         # SGate().to_matrix() is diagonal so `**` is equivalent.
@@ -161,13 +169,12 @@ class TestGateFloat(QiskitTestCase):
         """Test Sgate^(-0.2)"""
         result = SGate().power(exponent)
 
-        self.assertEqual(result.label, "s^" + str(exponent))
+        self.assertEqual(result.label, 's^' + str(exponent))
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
-        self.assertEqual(
-            Operator(array([[1, 0], [0, 0.95105652 - 0.30901699j]], dtype=complex)),
-            Operator(result),
-        )
+        self.assertEqual(Operator(array([[1, 0],
+                                         [0, 0.95105652 - 0.30901699j]], dtype=complex)),
+                         Operator(result))
 
 
 @ddt
@@ -176,16 +183,18 @@ class TestPowerInvariant(QiskitTestCase):
 
     @data(-3, -2, -1, 1, 2, 3)
     def test_invariant1_int(self, n):
-        """Test (op^(1/n))^(n) == op, integer n"""
+        """Test (op^(1/n))^(n) == op, integer n
+        """
         result = SGate().power(1 / n).power(n)
-        self.assertEqual(result.label, "unitary^" + str(n))
+        self.assertEqual(result.label, 'unitary^' + str(n))
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
         self.assertTrue(Operator(SGate()), Operator(result))
 
     @data(-3, -2, -1, 1, 2, 3)
     def test_invariant2(self, n):
-        """Test op^(n) * op^(-n) == I"""
+        """Test op^(n) * op^(-n) == I
+        """
         result = Operator(SGate()).power(n) @ Operator(SGate()).power(-n)
         expected = Operator(eye(2))
 
@@ -193,5 +202,5 @@ class TestPowerInvariant(QiskitTestCase):
         self.assertEqual(result, expected)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

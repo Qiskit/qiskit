@@ -16,4 +16,7 @@ from .circuit_gradient import CircuitGradient
 from .lin_comb import LinComb
 from .param_shift import ParamShift
 
-__all__ = ["CircuitGradient", "LinComb", "ParamShift"]
+__all__ = ['CircuitGradient',
+           'LinComb',
+           'ParamShift'
+           ]

@@ -55,7 +55,7 @@ def right_sample(continuous_pulse: Callable, duration: int, *args, **kwargs) -> 
         *args: Continuous pulse function args.
         **kwargs: Continuous pulse function kwargs.
     """
-    times = np.arange(1, duration + 1)
+    times = np.arange(1, duration+1)
     return continuous_pulse(times, *args, **kwargs)
 
 
@@ -68,5 +68,5 @@ def midpoint_sample(continuous_pulse: Callable, duration: int, *args, **kwargs) 
         *args: Continuous pulse function args.
         **kwargs: Continuous pulse function kwargs.
     """
-    times = np.arange(1 / 2, duration + 1 / 2)
+    times = np.arange(1/2, duration + 1/2)
     return continuous_pulse(times, *args, **kwargs)

@@ -14,7 +14,6 @@
 
 import warnings
 
-from qiskit.exceptions import MissingOptionalLibraryError
 from .node import Node
 
 
@@ -27,49 +26,37 @@ class Prefix(Node):
 
     def __init__(self, children):
         """Create the prefix node."""
-        super().__init__("prefix", children, None)
+        super().__init__('prefix', children, None)
 
     def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
         if prec is not None:
-            warnings.warn(
-                "Parameter 'Prefix.qasm(..., prec)' is no longer used and is being " "deprecated.",
-                DeprecationWarning,
-                2,
-            )
+            warnings.warn('Parameter \'Prefix.qasm(..., prec)\' is no longer used and is being '
+                          'deprecated.', DeprecationWarning, 2)
         return self.children[0].value + "(" + self.children[1].qasm() + ")"
 
     def latex(self, prec=None, nested_scope=None):
         """Return the corresponding math mode latex string."""
         if prec is not None:
-            warnings.warn(
-                "Parameter 'Prefix.latex(..., prec)' is no longer used and is being " "deprecated.",
-                DeprecationWarning,
-                2,
-            )
+            warnings.warn('Parameter \'Prefix.latex(..., prec)\' is no longer used and is being '
+                          'deprecated.', DeprecationWarning, 2)
         if nested_scope is not None:
-            warnings.warn(
-                "Parameter 'Prefix.latex(..., nested_scope)' is no longer used and is "
-                "being deprecated.",
-                DeprecationWarning,
-                2,
-            )
+            warnings.warn('Parameter \'Prefix.latex(..., nested_scope)\' is no longer used and is '
+                          'being deprecated.', DeprecationWarning, 2)
         try:
             from pylatexenc.latexencode import utf8tolatex
         except ImportError as ex:
-            raise MissingOptionalLibraryError(
-                "pylatexenc", "latex-from-qasm exporter", "pip install pylatexenc"
-            ) from ex
+            raise ImportError("To export latex from qasm "
+                              "pylatexenc needs to be installed. Run "
+                              "'pip install pylatexenc' before using this "
+                              "method.") from ex
         return utf8tolatex(self.sym())
 
     def real(self, nested_scope=None):
         """Return the correspond floating point number."""
         if nested_scope is not None:
-            warnings.warn(
-                "Parameter 'Prefix.real(..., nested_scope)' is no longer "
-                "used and is being deprecated.",
-                DeprecationWarning,
-            )
+            warnings.warn('Parameter \'Prefix.real(..., nested_scope)\' is no longer '
+                          'used and is being deprecated.', DeprecationWarning)
         operation = self.children[0].operation()
         expr = self.children[1].real()
         return operation(expr)

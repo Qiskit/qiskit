@@ -19,28 +19,27 @@ from qiskit.utils import get_entangler_map, validate_entangler_map
 
 
 class TestEntanglerMap(QiskitAlgorithmsTestCase):
-    """Test Entangler Map"""
-
+    """ Test Entangler Map """
     def test_map_type_linear(self):
-        """,ap type linear test"""
+        """ ,ap type linear test """
         ref_map = [[0, 1], [1, 2], [2, 3]]
-        entangler_map = get_entangler_map("linear", 4)
+        entangler_map = get_entangler_map('linear', 4)
 
         for (ref_src, ref_targ), (exp_src, exp_targ) in zip(ref_map, entangler_map):
             self.assertEqual(ref_src, exp_src)
             self.assertEqual(ref_targ, exp_targ)
 
     def test_map_type_full(self):
-        """map type full test"""
+        """ map type full test """
         ref_map = [[0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3]]
-        entangler_map = get_entangler_map("full", 4)
+        entangler_map = get_entangler_map('full', 4)
 
         for (ref_src, ref_targ), (exp_src, exp_targ) in zip(ref_map, entangler_map):
             self.assertEqual(ref_src, exp_src)
             self.assertEqual(ref_targ, exp_targ)
 
     def test_validate_entangler_map(self):
-        """validate entangler map test"""
+        """ validate entangler map test """
         valid_map = [[0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3]]
         self.assertTrue(validate_entangler_map(valid_map, 4))
 
@@ -64,5 +63,5 @@ class TestEntanglerMap(QiskitAlgorithmsTestCase):
             validate_entangler_map(wrong_type_map_2, 4)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

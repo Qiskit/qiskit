@@ -26,7 +26,7 @@ class IndexedId(Node):
 
     def __init__(self, children):
         """Create the indexed id node."""
-        super().__init__("indexed_id", children, None)
+        super().__init__('indexed_id', children, None)
         self.id = children[0]  # pylint: disable=invalid-name
         self.name = self.id.name
         self.line = self.id.line
@@ -35,16 +35,12 @@ class IndexedId(Node):
 
     def to_string(self, indent):
         """Print with indent."""
-        ind = indent * " "
-        print(ind, "indexed_id", self.name, self.index)
+        ind = indent * ' '
+        print(ind, 'indexed_id', self.name, self.index)
 
     def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
         if prec is not None:
-            warnings.warn(
-                "Parameter 'IndexedId.qasm(..., prec)' is no longer used and is being "
-                "deprecated.",
-                DeprecationWarning,
-                2,
-            )
+            warnings.warn('Parameter \'IndexedId.qasm(..., prec)\' is no longer used and is being '
+                          'deprecated.', DeprecationWarning, 2)
         return self.name + "[%d]" % self.index

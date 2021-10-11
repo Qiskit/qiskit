@@ -22,21 +22,18 @@ from qiskit.validation.jsonschema.exceptions import SchemaValidationError
 
 class QobjType(str, Enum):
     """Qobj.type allowed values."""
-
-    QASM = "QASM"
-    PULSE = "PULSE"
+    QASM = 'QASM'
+    PULSE = 'PULSE'
 
 
 class MeasReturnType(str, Enum):
     """PulseQobjConfig meas_return allowed values."""
-
-    AVERAGE = "avg"
-    SINGLE = "single"
+    AVERAGE = 'avg'
+    SINGLE = 'single'
 
 
 class MeasLevel(IntEnum):
     """MeasLevel allowed values."""
-
     RAW = 0
     KERNELED = 1
     CLASSIFIED = 2
@@ -56,14 +53,12 @@ def validate_qobj_against_schema(qobj):
         "deprecated and will be removed in a future release. "
         "If you're relying on this schema validation you should "
         "pull the schemas from the Qiskit/ibmq-schemas and directly "
-        "validate your payloads with that",
-        DeprecationWarning,
-        stacklevel=2,
-    )
+        "validate your payloads with that", DeprecationWarning,
+        stacklevel=2)
     try:
         qobj.to_dict(validate=True)
     except JsonSchemaException as err:
         raise SchemaValidationError(
             f"Qobj validation failed. Specifically path: {err.path}"  # pylint: disable=no-member
-            f" failed to fulfil {err.definition}"
+            f" failed to fulfil {err.definition}"  # pylint: disable=no-member
         ) from err

@@ -96,11 +96,8 @@ Exceptions
 
 """
 from .classicalfunction import ClassicalFunction
-from .exceptions import (
-    ClassicalFunctionParseError,
-    ClassicalFunctionCompilerError,
-    ClassicalFunctionCompilerTypeError,
-)
+from .exceptions import (ClassicalFunctionParseError, ClassicalFunctionCompilerError,
+                         ClassicalFunctionCompilerTypeError)
 from .boolean_expression import BooleanExpression
 
 

@@ -13,4 +13,3 @@
 """Mock poughkeepsie backend"""
 
 from .fake_poughkeepsie import FakePoughkeepsie
-from .fake_poughkeepsie import FakeLegacyPoughkeepsie

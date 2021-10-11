@@ -55,12 +55,10 @@ class PauliBasisChange(ConverterBase):
     this method, such as the placement of the CNOT chains.
     """
 
-    def __init__(
-        self,
-        destination_basis: Optional[Union[Pauli, PauliOp]] = None,
-        traverse: bool = True,
-        replacement_fn: Optional[Callable] = None,
-    ) -> None:
+    def __init__(self,
+                 destination_basis: Optional[Union[Pauli, PauliOp]] = None,
+                 traverse: bool = True,
+                 replacement_fn: Optional[Callable] = None) -> None:
         """
         Args:
             destination_basis: The Pauli into the basis of which the operators
@@ -108,9 +106,8 @@ class PauliBasisChange(ConverterBase):
             dest = PauliOp(dest)
 
         if not isinstance(dest, PauliOp):
-            raise TypeError(
-                "PauliBasisChange can only convert into Pauli bases, " "not {}.".format(type(dest))
-            )
+            raise TypeError('PauliBasisChange can only convert into Pauli bases, '
+                            'not {}.'.format(type(dest)))
         self._destination = dest
 
     # TODO see whether we should make this performant by handling ListOps of Paulis later.
@@ -166,7 +163,7 @@ class PauliBasisChange(ConverterBase):
             operator = OperatorStateFn(
                 operator.primitive.to_pauli_op(),
                 coeff=operator.coeff,
-                is_measurement=operator.is_measurement,
+                is_measurement=operator.is_measurement
             )
 
         if isinstance(operator, PauliSumOp):
@@ -175,11 +172,11 @@ class PauliBasisChange(ConverterBase):
         if isinstance(operator, (Pauli, PauliOp)):
             cob_instr_op, dest_pauli_op = self.get_cob_circuit(operator)
             return self._replacement_fn(cob_instr_op, dest_pauli_op)
-        if isinstance(operator, StateFn) and "Pauli" in operator.primitive_strings():
+        if isinstance(operator, StateFn) and 'Pauli' in operator.primitive_strings():
             # If the StateFn/Meas only contains a Pauli, use it directly.
             if isinstance(operator.primitive, PauliOp):
                 cob_instr_op, dest_pauli_op = self.get_cob_circuit(operator.primitive)
-                return self._replacement_fn(cob_instr_op, dest_pauli_op * operator.coeff)
+                return self._replacement_fn(cob_instr_op, dest_pauli_op)
             # TODO make a canonical "distribute" or graph swap as method in ListOp?
             elif operator.primitive.distributive:
                 if operator.primitive.abelian:
@@ -188,25 +185,18 @@ class PauliBasisChange(ConverterBase):
                     diag_ops: List[OperatorBase] = [
                         self.get_diagonal_pauli_op(op) for op in operator.primitive.oplist
                     ]
-                    dest_pauli_op = operator.primitive.__class__(
-                        diag_ops, coeff=operator.coeff, abelian=True
-                    )
+                    dest_pauli_op = operator.primitive.__class__(diag_ops,
+                                                                 coeff=operator.coeff, abelian=True)
                     return self._replacement_fn(cob_instr_op, dest_pauli_op)
                 else:
-                    sf_list = [
-                        StateFn(op, is_measurement=operator.is_measurement)
-                        for op in operator.primitive.oplist
-                    ]
-                    listop_of_statefns = operator.primitive.__class__(
-                        oplist=sf_list, coeff=operator.coeff
-                    )
+                    sf_list = [StateFn(op, is_measurement=operator.is_measurement)
+                               for op in operator.primitive.oplist]
+                    listop_of_statefns = operator.primitive.__class__(oplist=sf_list,
+                                                                      coeff=operator.coeff)
                     return listop_of_statefns.traverse(self.convert)
 
-        elif (
-            isinstance(operator, ListOp)
-            and self._traverse
-            and "Pauli" in operator.primitive_strings()
-        ):
+        elif isinstance(operator, ListOp) and self._traverse and \
+                'Pauli' in operator.primitive_strings():
             # If ListOp is abelian we can find a single post-rotation circuit
             # for the whole set. For now,
             # assume operator can only be abelian if all elements are
@@ -225,7 +215,8 @@ class PauliBasisChange(ConverterBase):
 
     @staticmethod
     def measurement_replacement_fn(
-        cob_instr_op: PrimitiveOp, dest_pauli_op: Union[PauliOp, PauliSumOp, ListOp]
+        cob_instr_op: PrimitiveOp,
+        dest_pauli_op: Union[PauliOp, PauliSumOp, ListOp]
     ) -> OperatorBase:
         r"""
         A built-in convenience replacement function which produces measurements
@@ -239,12 +230,11 @@ class PauliBasisChange(ConverterBase):
             The ``~StateFn @ CircuitOp`` composition equivalent to a measurement by the original
             ``PauliOp``.
         """
-        return ComposedOp([StateFn(dest_pauli_op, is_measurement=True), cob_instr_op])
+        return PauliBasisChange.statefn_replacement_fn(cob_instr_op, dest_pauli_op).adjoint()
 
     @staticmethod
-    def statefn_replacement_fn(
-        cob_instr_op: PrimitiveOp, dest_pauli_op: Union[PauliOp, PauliSumOp, ListOp]
-    ) -> OperatorBase:
+    def statefn_replacement_fn(cob_instr_op: PrimitiveOp,
+                               dest_pauli_op: Union[PauliOp, PauliSumOp, ListOp]) -> OperatorBase:
         r"""
         A built-in convenience replacement function which produces state functions
         isomorphic to an ``OperatorStateFn`` state function holding the origin ``PauliOp``.
@@ -260,9 +250,8 @@ class PauliBasisChange(ConverterBase):
         return ComposedOp([cob_instr_op.adjoint(), StateFn(dest_pauli_op)])
 
     @staticmethod
-    def operator_replacement_fn(
-        cob_instr_op: PrimitiveOp, dest_pauli_op: Union[PauliOp, PauliSumOp, ListOp]
-    ) -> OperatorBase:
+    def operator_replacement_fn(cob_instr_op: PrimitiveOp,
+                                dest_pauli_op: Union[PauliOp, PauliSumOp, ListOp]) -> OperatorBase:
         r"""
         A built-in convenience replacement function which produces Operators
         isomorphic to the origin ``PauliOp``.
@@ -296,7 +285,7 @@ class PauliBasisChange(ConverterBase):
         return Pauli((origin_z, origin_x))
 
     def get_diagonal_pauli_op(self, pauli_op: PauliOp) -> PauliOp:
-        """Get the diagonal ``PualiOp`` to which ``pauli_op`` could be rotated with only
+        """ Get the diagonal ``PualiOp`` to which ``pauli_op`` could be rotated with only
         single-qubit operations.
 
         Args:
@@ -306,14 +295,8 @@ class PauliBasisChange(ConverterBase):
             The diagonal ``PauliOp``.
         """
         return PauliOp(
-            Pauli(
-                (
-                    np.logical_or(pauli_op.primitive.z, pauli_op.primitive.x),
-                    [False] * pauli_op.num_qubits,
-                )
-            ),
-            coeff=pauli_op.coeff,
-        )
+            Pauli((np.logical_or(pauli_op.primitive.z, pauli_op.primitive.x),
+                   [False] * pauli_op.num_qubits)), coeff=pauli_op.coeff)
 
     def get_diagonalizing_clifford(self, pauli: Union[Pauli, PauliOp]) -> OperatorBase:
         r"""
@@ -345,9 +328,9 @@ class PauliBasisChange(ConverterBase):
         x_to_z_origin = tensorall([H if has_x else I for has_x in reversed(pauli.x)])
         return x_to_z_origin.compose(y_to_x_origin)
 
-    def pad_paulis_to_equal_length(
-        self, pauli_op1: PauliOp, pauli_op2: PauliOp
-    ) -> Tuple[PauliOp, PauliOp]:
+    def pad_paulis_to_equal_length(self,
+                                   pauli_op1: PauliOp,
+                                   pauli_op2: PauliOp) -> Tuple[PauliOp, PauliOp]:
         r"""
         If ``pauli_op1`` and ``pauli_op2`` do not act over the same number of qubits, pad
         identities to the end of the shorter of the two so they are of equal length. Padding is
@@ -368,24 +351,18 @@ class PauliBasisChange(ConverterBase):
         # Padding to the end of the Pauli, but remember that Paulis are in reverse endianness.
         if not len(pauli_1.z) == num_qubits:
             missing_qubits = num_qubits - len(pauli_1.z)
-            pauli_1 = Pauli(
-                (
-                    ([False] * missing_qubits) + pauli_1.z.tolist(),
-                    ([False] * missing_qubits) + pauli_1.x.tolist(),
-                )
-            )
+            pauli_1 = Pauli((([False] * missing_qubits) + pauli_1.z.tolist(),
+                             ([False] * missing_qubits) + pauli_1.x.tolist()))
         if not len(pauli_2.z) == num_qubits:
             missing_qubits = num_qubits - len(pauli_2.z)
-            pauli_2 = Pauli(
-                (
-                    ([False] * missing_qubits) + pauli_2.z.tolist(),
-                    ([False] * missing_qubits) + pauli_2.x.tolist(),
-                )
-            )
+            pauli_2 = Pauli((([False] * missing_qubits) + pauli_2.z.tolist(),
+                             ([False] * missing_qubits) + pauli_2.x.tolist()))
 
         return PauliOp(pauli_1, coeff=pauli_op1.coeff), PauliOp(pauli_2, coeff=pauli_op2.coeff)
 
-    def construct_cnot_chain(self, diag_pauli_op1: PauliOp, diag_pauli_op2: PauliOp) -> PrimitiveOp:
+    def construct_cnot_chain(self,
+                             diag_pauli_op1: PauliOp,
+                             diag_pauli_op2: PauliOp) -> PrimitiveOp:
         r"""
         Construct a ``CircuitOp`` (or ``PauliOp`` if equal to the identity) which takes the
         eigenvectors of ``diag_pauli_op1`` to the eigenvectors of ``diag_pauli_op2``,
@@ -406,12 +383,10 @@ class PauliBasisChange(ConverterBase):
         # TODO be smarter about connectivity and actual distance between pauli and destination
         # TODO be smarter in general
 
-        pauli_1 = (
-            diag_pauli_op1.primitive if isinstance(diag_pauli_op1, PauliOp) else diag_pauli_op1
-        )
-        pauli_2 = (
-            diag_pauli_op2.primitive if isinstance(diag_pauli_op2, PauliOp) else diag_pauli_op2
-        )
+        pauli_1 = diag_pauli_op1.primitive if isinstance(diag_pauli_op1, PauliOp) \
+            else diag_pauli_op1
+        pauli_2 = diag_pauli_op2.primitive if isinstance(diag_pauli_op2, PauliOp) \
+            else diag_pauli_op2
         origin_sig_bits = np.logical_or(pauli_1.z, pauli_1.x)
         destination_sig_bits = np.logical_or(pauli_2.z, pauli_2.x)
         num_qubits = max(len(pauli_1.z), len(pauli_2.z))
@@ -425,11 +400,11 @@ class PauliBasisChange(ConverterBase):
 
         # I am deeply sorry for this code, but I don't know another way to do it.
         sig_in_origin_only_indices = np.extract(
-            np.logical_and(non_equal_sig_bits, origin_sig_bits), np.arange(num_qubits)
-        )
+            np.logical_and(non_equal_sig_bits, origin_sig_bits),
+            np.arange(num_qubits))
         sig_in_dest_only_indices = np.extract(
-            np.logical_and(non_equal_sig_bits, destination_sig_bits), np.arange(num_qubits)
-        )
+            np.logical_and(non_equal_sig_bits, destination_sig_bits),
+            np.arange(num_qubits))
 
         if len(sig_in_origin_only_indices) > 0 and len(sig_in_dest_only_indices) > 0:
             origin_anchor_bit = min(sig_in_origin_only_indices)
@@ -509,7 +484,7 @@ class PauliBasisChange(ConverterBase):
 
         if not isinstance(origin, PauliOp):
             raise TypeError(
-                f"PauliBasisChange can only convert Pauli-based OpPrimitives, not {type(origin)}"
+                f'PauliBasisChange can only convert Pauli-based OpPrimitives, not {type(origin)}'
             )
 
         # If no destination specified, assume nearest Pauli in {Z,I}^n basis,
@@ -520,14 +495,15 @@ class PauliBasisChange(ConverterBase):
         origin, destination = self.pad_paulis_to_equal_length(origin, destination)
 
         origin_sig_bits = np.logical_or(origin.primitive.x, origin.primitive.z)
-        destination_sig_bits = np.logical_or(destination.primitive.x, destination.primitive.z)
+        destination_sig_bits = \
+            np.logical_or(destination.primitive.x, destination.primitive.z)
         if not any(origin_sig_bits) or not any(destination_sig_bits):
             if not (any(origin_sig_bits) or any(destination_sig_bits)):
                 # Both all Identity, just return Identities
                 return I ^ origin.num_qubits, destination
             else:
                 # One is Identity, one is not
-                raise ValueError("Cannot change to or from a fully Identity Pauli.")
+                raise ValueError('Cannot change to or from a fully Identity Pauli.')
 
         # Steps 1 and 2
         cob_instruction = self.get_diagonalizing_clifford(origin)

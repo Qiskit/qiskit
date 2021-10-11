@@ -13,4 +13,3 @@
 """Mock belem backend"""
 
 from .fake_belem import FakeBelem
-from .fake_belem import FakeLegacyBelem

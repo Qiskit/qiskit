@@ -12,12 +12,7 @@
 
 """mpl circuit visualization style."""
 
-import json
-import os
 from warnings import warn
-
-
-from qiskit import user_config
 
 
 class DefaultStyle:
@@ -26,8 +21,8 @@ class DefaultStyle:
     **Style Dict Details**
 
     The style dict contains numerous options that define the style of the
-    output circuit visualization. The style dict is used by the `mpl` or
-    `latex` output. The options available in the style dict are defined below:
+    output circuit visualization. The style dict is only used by the `mpl`
+    output. The options available in the style dict are defined below:
 
     name (str): the name of the style. The name can be set to ``iqx``,
         ``bw``, ``default``, or the name of a user-created json file. This
@@ -85,39 +80,46 @@ class DefaultStyle:
     displaytext (dict): a dictionary of the text to use for certain element
         types in the output visualization. These items allow the use of
         LaTeX formatting for gate names. The 'displaytext' dict can contain
-        any number of elements. User created names and labels may be used as
-        keys, which allow these to have Latex formatting. The default
+        any number of elements from one to the entire dict above.The default
         values are (`default.json`)::
 
             {
-                'u1': 'U_1',
-                'u2': 'U_2',
-                'u3': 'U_3',
-                'sdg': 'S^\\dagger',
-                'sx': '\\sqrt{X}',
-                'sxdg': '\\sqrt{X}^\\dagger',
+                'u1': '$\\mathrm{U}_1$',
+                'u2': '$\\mathrm{U}_2$',
+                'u3': '$\\mathrm{U}_3$',
+                'u': 'U',
+                'p': 'P',
+                'id': 'I',
+                'x': 'X',
+                'y': 'Y',
+                'z': 'Z',
+                'h': 'H',
+                's': 'S',
+                'sdg': '$\\mathrm{S}^\\dagger$',
+                'sx': '$\\sqrt{\\mathrm{X}}$',
+                'sxdg': '$\\sqrt{\\mathrm{X}}^\\dagger$',
                 't': 'T',
-                'tdg': 'T^\\dagger',
+                'tdg': '$\\mathrm{T}^\\dagger$',
                 'dcx': 'Dcx',
                 'iswap': 'Iswap',
                 'ms': 'MS',
-                'rx': 'R_X',
-                'ry': 'R_Y',
-                'rz': 'R_Z',
-                'rxx': 'R_{XX}',
-                'ryy': 'R_{YY}',
-                'rzx': 'R_{ZX}',
-                'rzz': 'ZZ',
-                'reset': '\\left|0\\right\\rangle',
-                'initialize': '|\\psi\\rangle'
+                'r': 'R',
+                'rx': '$\\mathrm{R}_\\mathrm{X}$',
+                'ry': '$\\mathrm{R}_\\mathrm{Y}$',
+                'rz': '$\\mathrm{R}_\\mathrm{Z}$',
+                'rxx': '$\\mathrm{R}_{\\mathrm{XX}}$',
+                'ryy': '$\\mathrm{R}_{\\mathrm{YY}}$',
+                'rzx': '$\\mathrm{R}_{\\mathrm{ZX}}$',
+                'rzz': '$\\mathrm{R}_{\\mathrm{ZZ}}$',
+                'reset': '$\\left|0\\right\\rangle$',
+                'initialize': '$|\\psi\\rangle$'
             }
 
     displaycolor (dict): the color codes to use for each circuit element in
         the form (gate_color, text_color). Colors can also be entered without
         the text color, such as 'u1': '#FA74A6', in which case the text color
         will always be `gatetextcolor`. The `displaycolor` dict can contain
-        any number of elements. User names and labels may be used as keys,
-        which allows for custom colors for user-created gates. The default
+        any number of elements from one to the entire dict above. The default
         values are (`default.json`)::
 
             {
@@ -163,232 +165,151 @@ class DefaultStyle:
             }
 
     """
-
     def __init__(self):
         colors = {
-            "### Default Colors": "Default Colors",
-            "basis": "#FA74A6",  # Red
-            "clifford": "#6FA4FF",  # Light Blue
-            "pauli": "#05BAB6",  # Green
-            "def_other": "#BB8BFF",  # Purple
-            "### IQX Colors": "IQX Colors",
-            "classical": "#002D9C",  # Dark Blue
-            "phase": "#33B1FF",  # Cyan
-            "hadamard": "#FA4D56",  # Light Red
-            "non_unitary": "#A8A8A8",  # Medium Gray
-            "iqx_other": "#9F1853",  # Dark Red
-            "### B/W": "B/W",
-            "black": "#000000",
-            "white": "#FFFFFF",
-            "dark_gray": "#778899",
-            "light_gray": "#BDBDBD",
+            '### Default Colors': 'Default Colors',
+            'basis': '#FA74A6',         # Red
+            'clifford': '#6FA4FF',      # Light Blue
+            'pauli': '#05BAB6',         # Green
+            'def_other': '#BB8BFF',     # Purple
+            '### IQX Colors': 'IQX Colors',
+            'classical': '#002D9C',     # Dark Blue
+            'phase': '#33B1FF',         # Cyan
+            'hadamard': '#FA4D56',      # Light Red
+            'non_unitary': '#A8A8A8',   # Medium Gray
+            'iqx_other': '#9F1853',     # Dark Red
+            '### B/W': 'B/W',
+            'black': '#000000',
+            'white': '#FFFFFF',
+            'dark_gray': '#778899',
+            'light_gray': '#BDBDBD'
         }
         self.style = {
-            "name": "default",
-            "tc": colors["black"],  # Non-gate Text Color
-            "gt": colors["black"],  # Gate Text Color
-            "sc": colors["black"],  # Gate Subtext Color
-            "lc": colors["black"],  # Line Color
-            "cc": colors["dark_gray"],  # creg Line Color
-            "gc": colors["def_other"],  # Default Gate Color
-            "bc": colors["light_gray"],  # Barrier Color
-            "bg": colors["white"],  # Background Color
-            "ec": None,  # Edge Color (B/W only)
-            "fs": 13,  # Gate Font Size
-            "sfs": 8,  # Subtext Font Size
-            "index": False,
-            "figwidth": -1,
-            "dpi": 150,
-            "margin": [2.0, 0.1, 0.1, 0.3],
-            "cline": "doublet",
-            "disptex": {
-                "u1": "U_1",
-                "u2": "U_2",
-                "u3": "U_3",
-                "id": "I",
-                "sdg": "S^\\dagger",
-                "sx": "\\sqrt{X}",
-                "sxdg": "\\sqrt{X}^\\dagger",
-                "tdg": "T^\\dagger",
-                "ms": "MS",
-                "rx": "R_X",
-                "ry": "R_Y",
-                "rz": "R_Z",
-                "rxx": "R_{XX}",
-                "ryy": "R_{YY}",
-                "rzx": "R_{ZX}",
-                "rzz": "ZZ",
-                "reset": "\\left|0\\right\\rangle",
-                "initialize": "$|\\psi\\rangle$",
+            'name': 'default',
+            'tc': colors['black'],          # Non-gate Text Color
+            'gt': colors['black'],          # Gate Text Color
+            'sc': colors['black'],          # Gate Subtext Color
+            'lc': colors['black'],          # Line Color
+            'cc': colors['dark_gray'],      # creg Line Color
+            'gc': colors['def_other'],      # Default Gate Color
+            'bc': colors['light_gray'],     # Barrier Color
+            'bg': colors['white'],          # Background Color
+            'ec': None,                     # Edge Color (B/W only)
+            'fs': 13,                       # Gate Font Size
+            'sfs': 8,                       # Subtext Font Size
+            'index': False,
+            'figwidth': -1,
+            'dpi': 150,
+            'margin': [2.0, 0.1, 0.1, 0.3],
+            'cline': 'doublet',
+
+            'disptex': {
+                'u1': '$\\mathrm{U}_1$',
+                'u2': '$\\mathrm{U}_2$',
+                'u3': '$\\mathrm{U}_3$',
+                'u': 'U',
+                'p': 'P',
+                'id': 'I',
+                'x': 'X',
+                'y': 'Y',
+                'z': 'Z',
+                'h': 'H',
+                's': 'S',
+                'sdg': '$\\mathrm{S}^\\dagger$',
+                'sx': '$\\sqrt{\\mathrm{X}}$',
+                'sxdg': '$\\sqrt{\\mathrm{X}}^\\dagger$',
+                't': 'T',
+                'tdg': '$\\mathrm{T}^\\dagger$',
+                'dcx': 'Dcx',
+                'iswap': 'Iswap',
+                'ms': 'MS',
+                'r': 'R',
+                'rx': '$\\mathrm{R}_\\mathrm{X}$',
+                'ry': '$\\mathrm{R}_\\mathrm{Y}$',
+                'rz': '$\\mathrm{R}_\\mathrm{Z}$',
+                'rxx': '$\\mathrm{R}_{\\mathrm{XX}}$',
+                'ryy': '$\\mathrm{R}_{\\mathrm{YY}}$',
+                'rzx': '$\\mathrm{R}_{\\mathrm{ZX}}$',
+                'rzz': '$\\mathrm{ZZ}$',
+                'reset': '$\\left|0\\right\\rangle$',
+                'initialize': '$|\\psi\\rangle$'
             },
-            "dispcol": {
-                "u1": (colors["basis"], colors["black"]),
-                "u2": (colors["basis"], colors["black"]),
-                "u3": (colors["basis"], colors["black"]),
-                "u": (colors["def_other"], colors["black"]),
-                "p": (colors["def_other"], colors["black"]),
-                "id": (colors["pauli"], colors["black"]),
-                "x": (colors["pauli"], colors["black"]),
-                "y": (colors["pauli"], colors["black"]),
-                "z": (colors["pauli"], colors["black"]),
-                "h": (colors["clifford"], colors["black"]),
-                "cx": (colors["clifford"], colors["black"]),
-                "ccx": (colors["def_other"], colors["black"]),
-                "mcx": (colors["def_other"], colors["black"]),
-                "mcx_gray": (colors["def_other"], colors["black"]),
-                "cy": (colors["clifford"], colors["black"]),
-                "cz": (colors["clifford"], colors["black"]),
-                "swap": (colors["clifford"], colors["black"]),
-                "cswap": (colors["def_other"], colors["black"]),
-                "ccswap": (colors["def_other"], colors["black"]),
-                "dcx": (colors["clifford"], colors["black"]),
-                "cdcx": (colors["def_other"], colors["black"]),
-                "ccdcx": (colors["def_other"], colors["black"]),
-                "iswap": (colors["clifford"], colors["black"]),
-                "s": (colors["clifford"], colors["black"]),
-                "sdg": (colors["clifford"], colors["black"]),
-                "t": (colors["def_other"], colors["black"]),
-                "tdg": (colors["def_other"], colors["black"]),
-                "sx": (colors["def_other"], colors["black"]),
-                "sxdg": (colors["def_other"], colors["black"]),
-                "r": (colors["def_other"], colors["black"]),
-                "rx": (colors["def_other"], colors["black"]),
-                "ry": (colors["def_other"], colors["black"]),
-                "rz": (colors["def_other"], colors["black"]),
-                "rxx": (colors["def_other"], colors["black"]),
-                "ryy": (colors["def_other"], colors["black"]),
-                "rzx": (colors["def_other"], colors["black"]),
-                "reset": (colors["black"], colors["white"]),
-                "target": (colors["white"], colors["white"]),
-                "measure": (colors["black"], colors["white"]),
-            },
+            'dispcol': {
+                'u1': (colors['basis'], colors['black']),
+                'u2': (colors['basis'], colors['black']),
+                'u3': (colors['basis'], colors['black']),
+                'u': (colors['def_other'], colors['black']),
+                'p': (colors['def_other'], colors['black']),
+                'id': (colors['pauli'], colors['black']),
+                'x': (colors['pauli'], colors['black']),
+                'y': (colors['pauli'], colors['black']),
+                'z': (colors['pauli'], colors['black']),
+                'h': (colors['clifford'], colors['black']),
+                'cx': (colors['clifford'], colors['black']),
+                'ccx': (colors['def_other'], colors['black']),
+                'mcx': (colors['def_other'], colors['black']),
+                'mcx_gray': (colors['def_other'], colors['black']),
+                'cy': (colors['clifford'], colors['black']),
+                'cz': (colors['clifford'], colors['black']),
+                'swap': (colors['clifford'], colors['black']),
+                'cswap': (colors['def_other'], colors['black']),
+                'ccswap': (colors['def_other'], colors['black']),
+                'dcx': (colors['clifford'], colors['black']),
+                'cdcx': (colors['def_other'], colors['black']),
+                'ccdcx': (colors['def_other'], colors['black']),
+                'iswap': (colors['clifford'], colors['black']),
+                's': (colors['clifford'], colors['black']),
+                'sdg': (colors['clifford'], colors['black']),
+                't': (colors['def_other'], colors['black']),
+                'tdg': (colors['def_other'], colors['black']),
+                'sx': (colors['def_other'], colors['black']),
+                'sxdg': (colors['def_other'], colors['black']),
+                'r': (colors['def_other'], colors['black']),
+                'rx': (colors['def_other'], colors['black']),
+                'ry': (colors['def_other'], colors['black']),
+                'rz': (colors['def_other'], colors['black']),
+                'rxx': (colors['def_other'], colors['black']),
+                'ryy': (colors['def_other'], colors['black']),
+                'rzx': (colors['def_other'], colors['black']),
+                'reset': (colors['black'], colors['white']),
+                'target': (colors['white'], colors['white']),
+                'measure': (colors['black'], colors['white'])
+            }
         }
-
-
-def load_style(style):
-    """Utility function to load style from json files and call set_style."""
-    current_style = DefaultStyle().style
-    style_name = "default"
-    def_font_ratio = current_style["fs"] / current_style["sfs"]
-
-    config = user_config.get_config()
-    if style is not None:
-        if style is False:
-            style_name = "bw"
-        elif isinstance(style, dict) and "name" in style:
-            style_name = style["name"]
-        elif isinstance(style, str):
-            style_name = style
-        elif config:
-            style_name = config.get("circuit_mpl_style", "default")
-        elif not isinstance(style, (str, dict)):
-            warn(
-                f"style parameter '{style}' must be a str or a dictionary."
-                " Will use default style.",
-                UserWarning,
-                2,
-            )
-    if style_name.endswith(".json"):
-        style_name = style_name[:-5]
-
-    # Search for file in 'styles' dir, then config_path, and finally 'cwd'
-    style_path = []
-    if style_name != "default":
-        style_name = style_name + ".json"
-        spath = os.path.dirname(os.path.abspath(__file__))
-        style_path.append(os.path.join(spath, "styles", style_name))
-        if config:
-            config_path = config.get("circuit_mpl_style_path", "")
-            if config_path:
-                for path in config_path:
-                    style_path.append(os.path.normpath(os.path.join(path, style_name)))
-        style_path.append(os.path.normpath(os.path.join("", style_name)))
-
-        for path in style_path:
-            exp_user = os.path.expanduser(path)
-            if os.path.isfile(exp_user):
-                try:
-                    with open(exp_user) as infile:
-                        json_style = json.load(infile)
-                    set_style(current_style, json_style)
-                    break
-                except json.JSONDecodeError as err:
-                    warn(
-                        f"Could not decode JSON in file '{path}': {str(err)}. "
-                        "Will use default style.",
-                        UserWarning,
-                        2,
-                    )
-                    break
-                except (OSError, FileNotFoundError):
-                    warn(
-                        f"Error loading JSON file '{path}'. Will use default style.",
-                        UserWarning,
-                        2,
-                    )
-                    break
-        else:
-            warn(
-                f"Style JSON file '{style_name}' not found in any of these locations: "
-                f"{', '.join(style_path)}. "
-                "Will use default style.",
-                UserWarning,
-                2,
-            )
-
-    if isinstance(style, dict):
-        set_style(current_style, style)
-
-    return current_style, def_font_ratio
 
 
 def set_style(current_style, new_style):
     """Utility function to take elements in new_style and
     write them into current_style.
     """
-    valid_fields = {
-        "name",
-        "textcolor",
-        "gatetextcolor",
-        "subtextcolor",
-        "linecolor",
-        "creglinecolor",
-        "gatefacecolor",
-        "barrierfacecolor",
-        "backgroundcolor",
-        "edgecolor",
-        "fontsize",
-        "subfontsize",
-        "showindex",
-        "figwidth",
-        "dpi",
-        "margin",
-        "creglinestyle",
-        "displaytext",
-        "displaycolor",
-    }
+    current_style['name'] = new_style.pop('name', current_style['name'])
+    current_style['tc'] = new_style.pop('textcolor', current_style['tc'])
+    current_style['gt'] = new_style.pop('gatetextcolor', current_style['gt'])
+    current_style['sc'] = new_style.pop('subtextcolor', current_style['sc'])
+    current_style['lc'] = new_style.pop('linecolor', current_style['lc'])
+    current_style['cc'] = new_style.pop('creglinecolor', current_style['cc'])
+    current_style['gc'] = new_style.pop('gatefacecolor', current_style['gc'])
+    current_style['bc'] = new_style.pop('barrierfacecolor', current_style['bc'])
+    current_style['bg'] = new_style.pop('backgroundcolor', current_style['bg'])
+    current_style['ec'] = new_style.pop('edgecolor', current_style['ec'])
+    current_style['fs'] = new_style.pop('fontsize', current_style['fs'])
+    current_style['sfs'] = new_style.pop('subfontsize', current_style['sfs'])
+    current_style['index'] = new_style.pop('showindex', current_style['index'])
+    current_style['figwidth'] = new_style.pop('figwidth', current_style['figwidth'])
+    current_style['dpi'] = new_style.pop('dpi', current_style['dpi'])
+    current_style['margin'] = new_style.pop('margin', current_style['margin'])
+    current_style['cline'] = new_style.pop('creglinestyle', current_style['cline'])
+    dtex = new_style.pop('displaytext', current_style['disptex'])
+    for tex in dtex.keys():
+        if tex in current_style['disptex'].keys():
+            current_style['disptex'][tex] = dtex[tex]
+    dcol = new_style.pop('displaycolor', current_style['dispcol'])
+    for col in dcol.keys():
+        if col in current_style['dispcol'].keys():
+            current_style['dispcol'][col] = dcol[col]
 
-    current_style.update(new_style)
-    current_style["tc"] = current_style.get("textcolor", current_style["tc"])
-    current_style["gt"] = current_style.get("gatetextcolor", current_style["gt"])
-    current_style["sc"] = current_style.get("subtextcolor", current_style["sc"])
-    current_style["lc"] = current_style.get("linecolor", current_style["lc"])
-    current_style["cc"] = current_style.get("creglinecolor", current_style["cc"])
-    current_style["gc"] = current_style.get("gatefacecolor", current_style["gc"])
-    current_style["bc"] = current_style.get("barrierfacecolor", current_style["bc"])
-    current_style["bg"] = current_style.get("backgroundcolor", current_style["bg"])
-    current_style["ec"] = current_style.get("edgecolor", current_style["ec"])
-    current_style["fs"] = current_style.get("fontsize", current_style["fs"])
-    current_style["sfs"] = current_style.get("subfontsize", current_style["sfs"])
-    current_style["index"] = current_style.get("showindex", current_style["index"])
-    current_style["cline"] = current_style.get("creglinestyle", current_style["cline"])
-    current_style["disptex"] = {**current_style["disptex"], **new_style.get("displaytext", {})}
-    current_style["dispcol"] = {**current_style["dispcol"], **new_style.get("displaycolor", {})}
+    if new_style:
+        warn('style option/s ({}) is/are not supported'.format(', '.join(new_style.keys())),
+             DeprecationWarning, 2)
 
-    unsupported_keys = set(new_style) - valid_fields
-    if unsupported_keys:
-        warn(
-            f"style option/s ({', '.join(unsupported_keys)}) is/are not supported",
-            UserWarning,
-            2,
-        )
+    return current_style

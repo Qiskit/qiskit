@@ -39,12 +39,10 @@ def circuit_3516():
 class Test1QFailing(QiskitTestCase):
     """1Q tests that should fail."""
 
-    @combine(
-        circuit=[circuit_3516],
-        level=[0, 1, 2, 3],
-        dsc="Transpiling {circuit.__name__} at level {level} should fail",
-        name="{circuit.__name__}_level{level}_fail",
-    )
+    @combine(circuit=[circuit_3516],
+             level=[0, 1, 2, 3],
+             dsc='Transpiling {circuit.__name__} at level {level} should fail',
+             name='{circuit.__name__}_level{level}_fail')
     def test(self, circuit, level):
         """All the levels with all the 1Q backend"""
         with self.assertRaises(TranspilerError):
@@ -55,29 +53,25 @@ class Test1QFailing(QiskitTestCase):
 class Test1QWorking(QiskitTestCase):
     """1Q tests that should work."""
 
-    @combine(
-        circuit=[emptycircuit],
-        level=[0, 1, 2, 3],
-        dsc="Transpiling {circuit.__name__} at level {level} should work",
-        name="{circuit.__name__}_level{level}_valid",
-    )
+    @combine(circuit=[emptycircuit],
+             level=[0, 1, 2, 3],
+             dsc='Transpiling {circuit.__name__} at level {level} should work',
+             name='{circuit.__name__}_level{level}_valid')
     def test_device(self, circuit, level):
         """All the levels with all the 1Q backend"""
-        result = transpile(
-            circuit(), backend=Fake1Q(), optimization_level=level, seed_transpiler=42
-        )
+        result = transpile(circuit(), backend=Fake1Q(), optimization_level=level,
+                           seed_transpiler=42)
         self.assertIsInstance(result, QuantumCircuit)
 
-    @combine(
-        circuit=[circuit_3516],
-        level=[0, 1, 2, 3],
-        dsc="Transpiling {circuit.__name__} at level {level} should work for simulator",
-        name="{circuit.__name__}_level{level}_valid",
-    )
+    @combine(circuit=[circuit_3516],
+             level=[0, 1, 2, 3],
+             dsc='Transpiling {circuit.__name__} at level {level} should work for simulator',
+             name='{circuit.__name__}_level{level}_valid')
     def test_simulator(self, circuit, level):
         """All the levels with all the 1Q simulator backend"""
         # Set fake backend config to simulator
         backend = Fake1Q()
         backend._configuration.simulator = True
-        result = transpile(circuit(), backend=backend, optimization_level=level, seed_transpiler=42)
+        result = transpile(circuit(), backend=backend, optimization_level=level,
+                           seed_transpiler=42)
         self.assertIsInstance(result, QuantumCircuit)

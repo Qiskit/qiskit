@@ -15,8 +15,8 @@
 from .exceptions import TranspilerError
 
 
-class FencedObject:
-    """Given an instance and a list of attributes to fence, raises a TranspilerError when one
+class FencedObject():
+    """ Given an instance and a list of attributes to fence, raises a TranspilerError when one
     of these attributes is accessed."""
 
     def __init__(self, instance, attributes_to_fence):
@@ -24,16 +24,16 @@ class FencedObject:
         self._attributes_to_fence = attributes_to_fence
 
     def __getattribute__(self, name):
-        object.__getattribute__(self, "_check_if_fenced")(name)
-        return getattr(object.__getattribute__(self, "_wrapped"), name)
+        object.__getattribute__(self, '_check_if_fenced')(name)
+        return getattr(object.__getattribute__(self, '_wrapped'), name)
 
     def __getitem__(self, key):
-        object.__getattribute__(self, "_check_if_fenced")("__getitem__")
-        return object.__getattribute__(self, "_wrapped")[key]
+        object.__getattribute__(self, '_check_if_fenced')('__getitem__')
+        return object.__getattribute__(self, '_wrapped')[key]
 
     def __setitem__(self, key, value):
-        object.__getattribute__(self, "_check_if_fenced")("__setitem__")
-        object.__getattribute__(self, "_wrapped")[key] = value
+        object.__getattribute__(self, '_check_if_fenced')('__setitem__')
+        object.__getattribute__(self, '_wrapped')[key] = value
 
     def _check_if_fenced(self, name):
         """
@@ -46,23 +46,19 @@ class FencedObject:
         Raises:
             TranspilerError: when name is the list of attributes to protect.
         """
-        if name in object.__getattribute__(self, "_attributes_to_fence"):
-            raise TranspilerError(
-                "The fenced %s has the property %s protected"
-                % (type(object.__getattribute__(self, "_wrapped")), name)
-            )
+        if name in object.__getattribute__(self, '_attributes_to_fence'):
+            raise TranspilerError("The fenced %s has the property %s protected" %
+                                  (type(object.__getattribute__(self, '_wrapped')), name))
 
 
 class FencedPropertySet(FencedObject):
-    """A property set that cannot be written (via __setitem__)"""
-
+    """ A property set that cannot be written (via __setitem__) """
     def __init__(self, property_set_instance):
-        super().__init__(property_set_instance, ["__setitem__"])
+        super().__init__(property_set_instance, ['__setitem__'])
 
 
 class FencedDAGCircuit(FencedObject):
-    """A dag circuit that cannot be modified (via remove_op_node)"""
-
+    """ A dag circuit that cannot be modified (via remove_op_node) """
     # FIXME: add more fenced methods of the dag after dagcircuit rewrite
     def __init__(self, dag_circuit_instance):
-        super().__init__(dag_circuit_instance, ["remove_op_node"])
+        super().__init__(dag_circuit_instance, ['remove_op_node'])

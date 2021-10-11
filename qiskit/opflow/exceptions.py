@@ -17,5 +17,4 @@ from qiskit.exceptions import QiskitError
 
 class OpflowError(QiskitError):
     """For Opflow specific errors."""
-
     pass

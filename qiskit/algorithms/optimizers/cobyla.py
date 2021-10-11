@@ -14,10 +14,11 @@
 
 from typing import Optional
 
-from .scipy_optimizer import SciPyOptimizer
+from scipy.optimize import minimize
+from .optimizer import Optimizer, OptimizerSupportLevel
 
 
-class COBYLA(SciPyOptimizer):
+class COBYLA(Optimizer):
     """
     Constrained Optimization By Linear Approximation optimizer.
 
@@ -29,18 +30,14 @@ class COBYLA(SciPyOptimizer):
     https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
     """
 
-    _OPTIONS = ["maxiter", "disp", "rhobeg"]
+    _OPTIONS = ['maxiter', 'disp', 'rhobeg']
 
     # pylint: disable=unused-argument
-    def __init__(
-        self,
-        maxiter: int = 1000,
-        disp: bool = False,
-        rhobeg: float = 1.0,
-        tol: Optional[float] = None,
-        options: Optional[dict] = None,
-        **kwargs,
-    ) -> None:
+    def __init__(self,
+                 maxiter: int = 1000,
+                 disp: bool = False,
+                 rhobeg: float = 1.0,
+                 tol: Optional[float] = None) -> None:
         """
         Args:
             maxiter: Maximum number of function evaluations.
@@ -48,12 +45,26 @@ class COBYLA(SciPyOptimizer):
             rhobeg: Reasonable initial changes to the variables.
             tol: Final accuracy in the optimization (not precisely guaranteed).
                  This is a lower bound on the size of the trust region.
-            options: A dictionary of solver options.
-            kwargs: additional kwargs for scipy.optimize.minimize.
         """
-        if options is None:
-            options = {}
+        super().__init__()
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
-                options[k] = v
-        super().__init__(method="COBYLA", options=options, tol=tol, **kwargs)
+                self._options[k] = v
+        self._tol = tol
+
+    def get_support_level(self):
+        """ Return support level dictionary """
+        return {
+            'gradient': OptimizerSupportLevel.ignored,
+            'bounds': OptimizerSupportLevel.ignored,
+            'initial_point': OptimizerSupportLevel.required
+        }
+
+    def optimize(self, num_vars, objective_function, gradient_function=None,
+                 variable_bounds=None, initial_point=None):
+        super().optimize(num_vars, objective_function, gradient_function,
+                         variable_bounds, initial_point)
+
+        res = minimize(objective_function, initial_point, tol=self._tol,
+                       method="COBYLA", options=self._options)
+        return res.x, res.fun, res.nfev

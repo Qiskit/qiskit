@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #!python
 #cython: language_level = 3, cdivision = True, nonecheck = False
 #distutils: language = c++
@@ -13,7 +14,6 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 from libcpp.vector cimport vector
 
 # Numeric layout --------------------------------------------------------------

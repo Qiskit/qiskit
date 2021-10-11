@@ -46,7 +46,8 @@ class CustomSolver(RecursiveBacktrackingSolver):
                 return True
         return False
 
-    def getSolution(self, domains, constraints, vconstraints):
+    def getSolution(self,
+                    domains, constraints, vconstraints):
         """Wrap RecursiveBacktrackingSolver.getSolution to add the limits."""
         if self.call_limit is not None:
             self.call_current = 0
@@ -54,20 +55,21 @@ class CustomSolver(RecursiveBacktrackingSolver):
             self.time_start = time()
         return super().getSolution(domains, constraints, vconstraints)
 
-    def recursiveBacktracking(self, solutions, domains, vconstraints, assignments, single):
+    def recursiveBacktracking(self,  # pylint: disable=invalid-name
+                              solutions, domains, vconstraints, assignments, single):
         """Like ``constraint.RecursiveBacktrackingSolver.recursiveBacktracking`` but
-        limited in the amount of calls by ``self.call_limit``"""
+        limited in the amount of calls by ``self.call_limit`` """
         if self.limit_reached():
             return None
-        return super().recursiveBacktracking(solutions, domains, vconstraints, assignments, single)
+        return super().recursiveBacktracking(solutions, domains, vconstraints, assignments,
+                                             single)
 
 
 class CSPLayout(AnalysisPass):
     """If possible, chooses a Layout as a CSP, using backtracking."""
 
-    def __init__(
-        self, coupling_map, strict_direction=False, seed=None, call_limit=1000, time_limit=10
-    ):
+    def __init__(self, coupling_map, strict_direction=False, seed=None, call_limit=1000,
+                 time_limit=10):
         """If possible, chooses a Layout as a CSP, using backtracking.
 
         If not possible, does not set the layout property. In all the cases,
@@ -98,12 +100,13 @@ class CSPLayout(AnalysisPass):
         self.seed = seed
 
     def run(self, dag):
-        """run the layout method"""
+        """ run the layout method """
         qubits = dag.qubits
         cxs = set()
 
         for gate in dag.two_qubit_ops():
-            cxs.add((qubits.index(gate.qargs[0]), qubits.index(gate.qargs[1])))
+            cxs.add((qubits.index(gate.qargs[0]),
+                     qubits.index(gate.qargs[1])))
         edges = set(self.coupling_map.get_edges())
 
         if self.time_limit is None and self.call_limit is None:
@@ -120,12 +123,9 @@ class CSPLayout(AnalysisPass):
         problem.addConstraint(AllDifferentConstraint())  # each wire is map to a single qubit
 
         if self.strict_direction:
-
             def constraint(control, target):
                 return (control, target) in edges
-
         else:
-
             def constraint(control, target):
                 return (control, target) in edges or (target, control) in edges
 
@@ -135,16 +135,16 @@ class CSPLayout(AnalysisPass):
         solution = problem.getSolution()
 
         if solution is None:
-            stop_reason = "nonexistent solution"
+            stop_reason = 'nonexistent solution'
             if isinstance(solver, CustomSolver):
                 if solver.time_current is not None and solver.time_current >= self.time_limit:
-                    stop_reason = "time limit reached"
+                    stop_reason = 'time limit reached'
                 elif solver.call_current is not None and solver.call_current >= self.call_limit:
-                    stop_reason = "call limit reached"
+                    stop_reason = 'call limit reached'
         else:
-            stop_reason = "solution found"
-            self.property_set["layout"] = Layout({v: qubits[k] for k, v in solution.items()})
+            stop_reason = 'solution found'
+            self.property_set['layout'] = Layout({v: qubits[k] for k, v in solution.items()})
             for reg in dag.qregs.values():
-                self.property_set["layout"].add_register(reg)
+                self.property_set['layout'].add_register(reg)
 
-        self.property_set["CSPLayout_stop_reason"] = stop_reason
+        self.property_set['CSPLayout_stop_reason'] = stop_reason

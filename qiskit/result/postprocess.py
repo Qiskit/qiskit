@@ -30,7 +30,7 @@ def _bin_to_hex(bitstring):
 def _pad_zeros(bitstring, memory_slots):
     """If the bitstring is truncated, pad extra zeros to make its
     length equal to memory_slots"""
-    return format(int(bitstring, 2), f"0{memory_slots}b")
+    return format(int(bitstring, 2), '0{}b'.format(memory_slots))
 
 
 def _separate_bitstring(bitstring, creg_sizes):
@@ -38,9 +38,9 @@ def _separate_bitstring(bitstring, creg_sizes):
     substrings = []
     running_index = 0
     for _, size in reversed(creg_sizes):
-        substrings.append(bitstring[running_index : running_index + size])
+        substrings.append(bitstring[running_index: running_index + size])
         running_index += size
-    return " ".join(substrings)
+    return ' '.join(substrings)
 
 
 def format_counts_memory(shot_memory, header=None):
@@ -62,11 +62,11 @@ def format_counts_memory(shot_memory, header=None):
     Returns:
         dict: a formatted memory
     """
-    if shot_memory.startswith("0x"):
+    if shot_memory.startswith('0x'):
         shot_memory = _hex_to_bin(shot_memory)
     if header:
-        creg_sizes = header.get("creg_sizes", None)
-        memory_slots = header.get("memory_slots", None)
+        creg_sizes = header.get('creg_sizes', None)
+        memory_slots = header.get('memory_slots', None)
         if memory_slots:
             shot_memory = _pad_zeros(shot_memory, memory_slots)
         if creg_sizes and memory_slots:
@@ -88,13 +88,13 @@ def _list_to_complex_array(complex_list):
     """
     arr = np.asarray(complex_list, dtype=np.complex_)
     if not arr.shape[-1] == 2:
-        raise QiskitError("Inner most nested list is not of length 2.")
+        raise QiskitError('Inner most nested list is not of length 2.')
 
-    return arr[..., 0] + 1j * arr[..., 1]
+    return arr[..., 0] + 1j*arr[..., 1]
 
 
 def format_level_0_memory(memory):
-    """Format an experiment result memory object for measurement level 0.
+    """ Format an experiment result memory object for measurement level 0.
 
     Args:
         memory (list): Memory from experiment with `meas_level==1`. `avg` or
@@ -110,12 +110,12 @@ def format_level_0_memory(memory):
     formatted_memory = _list_to_complex_array(memory)
     # infer meas_return from shape of returned data.
     if not 2 <= len(formatted_memory.shape) <= 3:
-        raise QiskitError("Level zero memory is not of correct shape.")
+        raise QiskitError('Level zero memory is not of correct shape.')
     return formatted_memory
 
 
 def format_level_1_memory(memory):
-    """Format an experiment result memory object for measurement level 1.
+    """ Format an experiment result memory object for measurement level 1.
 
     Args:
         memory (list): Memory from experiment with `meas_level==1`. `avg` or
@@ -131,12 +131,12 @@ def format_level_1_memory(memory):
     formatted_memory = _list_to_complex_array(memory)
     # infer meas_return from shape of returned data.
     if not 1 <= len(formatted_memory.shape) <= 2:
-        raise QiskitError("Level one memory is not of correct shape.")
+        raise QiskitError('Level one memory is not of correct shape.')
     return formatted_memory
 
 
 def format_level_2_memory(memory, header=None):
-    """Format an experiment result memory object for measurement level 2.
+    """ Format an experiment result memory object for measurement level 2.
 
     Args:
         memory (list): Memory from experiment with `meas_level==2` and `memory==True`.

@@ -15,7 +15,6 @@
 from typing import List, Optional, Union
 import numpy
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
-from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Statevector, Operator, DensityMatrix
 from .standard_gates import MCXGate
 
@@ -93,7 +92,7 @@ class GroverOperator(QuantumCircuit):
         >>> oracle = QuantumCircuit(2)
         >>> oracle.z(0)  # good state = first qubit is |1>
         >>> grover_op = GroverOperator(oracle, insert_barriers=True)
-        >>> grover_op.decompose().draw()
+        >>> grover_op.draw()
                  ┌───┐ ░ ┌───┐ ░ ┌───┐          ┌───┐      ░ ┌───┐
         state_0: ┤ Z ├─░─┤ H ├─░─┤ X ├───────■──┤ X ├──────░─┤ H ├
                  └───┘ ░ ├───┤ ░ ├───┤┌───┐┌─┴─┐├───┤┌───┐ ░ ├───┤
@@ -105,7 +104,7 @@ class GroverOperator(QuantumCircuit):
         >>> state_preparation = QuantumCircuit(1)
         >>> state_preparation.ry(0.2, 0)  # non-uniform state preparation
         >>> grover_op = GroverOperator(oracle, state_preparation)
-        >>> grover_op.decompose().draw()
+        >>> grover_op.draw()
                  ┌───┐┌──────────┐┌───┐┌───┐┌───┐┌─────────┐
         state_0: ┤ Z ├┤ RY(-0.2) ├┤ X ├┤ Z ├┤ X ├┤ RY(0.2) ├
                  └───┘└──────────┘└───┘└───┘└───┘└─────────┘
@@ -118,7 +117,7 @@ class GroverOperator(QuantumCircuit):
         >>> state_preparation.ry(0.5, 3)
         >>> grover_op = GroverOperator(oracle, state_preparation,
         ... reflection_qubits=reflection_qubits)
-        >>> grover_op.decompose().draw()
+        >>> grover_op.draw()
                                               ┌───┐          ┌───┐
         state_0: ──────────────────────■──────┤ X ├───────■──┤ X ├──────────■────────────────
                                        │      └───┘       │  └───┘          │
@@ -132,7 +131,7 @@ class GroverOperator(QuantumCircuit):
         >>> mark_state = Statevector.from_label('011')
         >>> diffuse_operator = 2 * DensityMatrix.from_label('000') - Operator.from_label('III')
         >>> grover_op = GroverOperator(oracle=mark_state, zero_reflection=diffuse_operator)
-        >>> grover_op.decompose().draw(fold=70)
+        >>> grover_op.draw(fold=70)
                  ┌─────────────────┐      ┌───┐                          »
         state_0: ┤0                ├──────┤ H ├──────────────────────────»
                  │                 │┌─────┴───┴─────┐     ┌───┐          »
@@ -158,16 +157,13 @@ class GroverOperator(QuantumCircuit):
             `arXiv:quant-ph/0005055 <http://arxiv.org/abs/quant-ph/0005055>`_.
     """
 
-    def __init__(
-        self,
-        oracle: Union[QuantumCircuit, Statevector],
-        state_preparation: Optional[QuantumCircuit] = None,
-        zero_reflection: Optional[Union[QuantumCircuit, DensityMatrix, Operator]] = None,
-        reflection_qubits: Optional[List[int]] = None,
-        insert_barriers: bool = False,
-        mcx_mode: str = "noancilla",
-        name: str = "Q",
-    ) -> None:
+    def __init__(self, oracle: Union[QuantumCircuit, Statevector],
+                 state_preparation: Optional[QuantumCircuit] = None,
+                 zero_reflection: Optional[Union[QuantumCircuit, DensityMatrix, Operator]] = None,
+                 reflection_qubits: Optional[List[int]] = None,
+                 insert_barriers: bool = False,
+                 mcx_mode: str = 'noancilla',
+                 name: str = 'Q') -> None:
         r"""
         Args:
             oracle: The phase oracle implementing a reflection about the bad state. Note that this
@@ -186,13 +182,11 @@ class GroverOperator(QuantumCircuit):
         # store inputs
         if isinstance(oracle, Statevector):
             from qiskit.circuit.library import Diagonal  # pylint: disable=cyclic-import
-
             oracle = Diagonal((-1) ** oracle.data)
         self._oracle = oracle
 
         if isinstance(zero_reflection, (Operator, DensityMatrix)):
             from qiskit.circuit.library import Diagonal  # pylint: disable=cyclic-import
-
             zero_reflection = Diagonal(zero_reflection.data.diagonal())
         self._zero_reflection = zero_reflection
 
@@ -229,7 +223,7 @@ class GroverOperator(QuantumCircuit):
             return self._state_preparation
 
         num_state_qubits = self.oracle.num_qubits - self.oracle.num_ancillas
-        hadamards = QuantumCircuit(num_state_qubits, name="H")
+        hadamards = QuantumCircuit(num_state_qubits, name='H')
         # apply Hadamards only on reflection qubits, rest will cancel out
         hadamards.h(self.reflection_qubits)
         return hadamards
@@ -241,58 +235,41 @@ class GroverOperator(QuantumCircuit):
 
     def _build(self):
         num_state_qubits = self.oracle.num_qubits - self.oracle.num_ancillas
-        circuit = QuantumCircuit(QuantumRegister(num_state_qubits, name="state"), name="Q")
-        num_ancillas = numpy.max(
-            [
-                self.oracle.num_ancillas,
-                self.zero_reflection.num_ancillas,
-                self.state_preparation.num_ancillas,
-            ]
-        )
+        self.add_register(QuantumRegister(num_state_qubits, name='state'))
+        num_ancillas = numpy.max([self.oracle.num_ancillas,
+                                  self.zero_reflection.num_ancillas,
+                                  self.state_preparation.num_ancillas])
         if num_ancillas > 0:
-            circuit.add_register(AncillaRegister(num_ancillas, name="ancilla"))
+            self.add_register(AncillaRegister(num_ancillas, name='ancilla'))
 
-        circuit.compose(self.oracle, list(range(self.oracle.num_qubits)), inplace=True)
+        self.compose(self.oracle, list(range(self.oracle.num_qubits)), inplace=True)
         if self._insert_barriers:
-            circuit.barrier()
-        circuit.compose(
-            self.state_preparation.inverse(),
-            list(range(self.state_preparation.num_qubits)),
-            inplace=True,
-        )
+            self.barrier()
+        self.compose(self.state_preparation.inverse(),
+                     list(range(self.state_preparation.num_qubits)),
+                     inplace=True)
         if self._insert_barriers:
-            circuit.barrier()
-        circuit.compose(
-            self.zero_reflection, list(range(self.zero_reflection.num_qubits)), inplace=True
-        )
+            self.barrier()
+        self.compose(self.zero_reflection, list(range(self.zero_reflection.num_qubits)),
+                     inplace=True)
         if self._insert_barriers:
-            circuit.barrier()
-        circuit.compose(
-            self.state_preparation, list(range(self.state_preparation.num_qubits)), inplace=True
-        )
+            self.barrier()
+        self.compose(self.state_preparation, list(range(self.state_preparation.num_qubits)),
+                     inplace=True)
 
         # minus sign
-        circuit.global_phase = numpy.pi
-
-        self.add_register(*circuit.qregs)
-        try:
-            circuit_wrapped = circuit.to_gate()
-        except QiskitError:
-            circuit_wrapped = circuit.to_instruction()
-
-        self.compose(circuit_wrapped, qubits=self.qubits, inplace=True)
+        self.global_phase = numpy.pi
 
 
 # TODO use the oracle compiler or the bit string oracle
-def _zero_reflection(
-    num_state_qubits: int, qubits: List[int], mcx_mode: Optional[str] = None
-) -> QuantumCircuit:
-    qr_state = QuantumRegister(num_state_qubits, "state")
-    reflection = QuantumCircuit(qr_state, name="S_0")
+def _zero_reflection(num_state_qubits: int, qubits: List[int], mcx_mode: Optional[str] = None
+                     ) -> QuantumCircuit:
+    qr_state = QuantumRegister(num_state_qubits, 'state')
+    reflection = QuantumCircuit(qr_state, name='S_0')
 
     num_ancillas = MCXGate.get_num_ancilla_qubits(len(qubits) - 1, mcx_mode)
     if num_ancillas > 0:
-        qr_ancilla = AncillaRegister(num_ancillas, "ancilla")
+        qr_ancilla = AncillaRegister(num_ancillas, 'ancilla')
         reflection.add_register(qr_ancilla)
     else:
         qr_ancilla = []

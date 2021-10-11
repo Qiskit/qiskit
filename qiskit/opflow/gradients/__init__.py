@@ -173,15 +173,13 @@ from .hessian import Hessian
 from .qfi_base import QFIBase
 from .qfi import QFI
 
-__all__ = [
-    "DerivativeBase",
-    "CircuitGradient",
-    "GradientBase",
-    "Gradient",
-    "NaturalGradient",
-    "HessianBase",
-    "Hessian",
-    "QFIBase",
-    "QFI",
-    "CircuitQFI",
-]
+__all__ = ['DerivativeBase',
+           'CircuitGradient',
+           'GradientBase',
+           'Gradient',
+           'NaturalGradient',
+           'HessianBase',
+           'Hessian',
+           'QFIBase',
+           'QFI',
+           'CircuitQFI']

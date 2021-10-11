@@ -11,9 +11,12 @@
 # that they have been altered from the originals.
 
 """Tests classicalfunction compiler synthesis."""
+import unittest
+
 from qiskit.test import QiskitTestCase
 
 from qiskit.circuit.classicalfunction import classical_function as compile_classical_function
+from qiskit.circuit.classicalfunction.classicalfunction import HAS_TWEEDLEDUM
 
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library.standard_gates import XGate
@@ -24,32 +27,32 @@ from . import examples
 class TestSynthesis(QiskitTestCase):
     """Tests ClassicalFunction.synth method."""
 
+    @unittest.skipUnless(HAS_TWEEDLEDUM, 'tweedledum not available')
     def test_grover_oracle(self):
         """Synthesis of grover_oracle example"""
         oracle = compile_classical_function(examples.grover_oracle)
         quantum_circuit = oracle.synth()
 
         expected = QuantumCircuit(5)
-        expected.append(XGate().control(4, ctrl_state="1010"), [0, 1, 2, 3, 4])
+        expected.append(XGate().control(4, ctrl_state='1010'), [0, 1, 2, 3, 4])
 
-        self.assertEqual(quantum_circuit.name, "grover_oracle")
+        self.assertEqual(quantum_circuit.name, 'grover_oracle')
         self.assertEqual(quantum_circuit, expected)
 
+    @unittest.skipUnless(HAS_TWEEDLEDUM, 'tweedledum not available')
     def test_grover_oracle_arg_regs(self):
         """Synthesis of grover_oracle example with arg_regs"""
         oracle = compile_classical_function(examples.grover_oracle)
         quantum_circuit = oracle.synth(registerless=False)
 
-        qr_a = QuantumRegister(1, "a")
-        qr_b = QuantumRegister(1, "b")
-        qr_c = QuantumRegister(1, "c")
-        qr_d = QuantumRegister(1, "d")
-        qr_return = QuantumRegister(1, "return")
+        qr_a = QuantumRegister(1, 'a')
+        qr_b = QuantumRegister(1, 'b')
+        qr_c = QuantumRegister(1, 'c')
+        qr_d = QuantumRegister(1, 'd')
+        qr_return = QuantumRegister(1, 'return')
         expected = QuantumCircuit(qr_d, qr_c, qr_b, qr_a, qr_return)
-        expected.append(
-            XGate().control(4, ctrl_state="1010"),
-            [qr_d[0], qr_c[0], qr_b[0], qr_a[0], qr_return[0]],
-        )
+        expected.append(XGate().control(4, ctrl_state='1010'),
+                        [qr_d[0], qr_c[0], qr_b[0], qr_a[0], qr_return[0]])
 
-        self.assertEqual(quantum_circuit.name, "grover_oracle")
+        self.assertEqual(quantum_circuit.name, 'grover_oracle')
         self.assertEqual(quantum_circuit, expected)

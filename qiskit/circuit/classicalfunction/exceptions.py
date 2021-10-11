@@ -17,19 +17,16 @@ from qiskit.exceptions import QiskitError
 
 class ClassicalFunctionCompilerError(QiskitError):
     """ClassicalFunction compiler generic error."""
-
     pass
 
 
 class ClassicalFunctionParseError(ClassicalFunctionCompilerError):
     """ClassicalFunction compiler parse error.
     The classicalfunction function fails at parsing time."""
-
     pass
 
 
 class ClassicalFunctionCompilerTypeError(ClassicalFunctionCompilerError):
     """ClassicalFunction compiler type error.
     The classicalfunction function fails at type checking time."""
-
     pass

@@ -37,18 +37,16 @@ class Qubit(Bit):
         if register is None or isinstance(register, QuantumRegister):
             super().__init__(register, index)
         else:
-            raise CircuitError(
-                "Qubit needs a QuantumRegister and %s was provided" % type(register).__name__
-            )
+            raise CircuitError('Qubit needs a QuantumRegister and %s was provided' %
+                               type(register).__name__)
 
 
 class QuantumRegister(Register):
     """Implement a quantum register."""
-
     # Counter for the number of instances in this class.
     instances_counter = itertools.count()
     # Prefix to use for auto naming.
-    prefix = "q"
+    prefix = 'q'
     bit_type = Qubit
 
     def qasm(self):
@@ -58,15 +56,13 @@ class QuantumRegister(Register):
 
 class AncillaQubit(Qubit):
     """A qubit used as ancillary qubit."""
-
     pass
 
 
 class AncillaRegister(QuantumRegister):
     """Implement an ancilla register."""
-
     # Counter for the number of instances in this class.
     instances_counter = itertools.count()
     # Prefix to use for auto naming.
-    prefix = "a"
+    prefix = 'a'
     bit_type = AncillaQubit

@@ -25,13 +25,25 @@ from qiskit.qobj.converters import QobjToInstructionConverter
 # It is currently a list of quantum circuits to execute, a run Qobj dictionary
 # and a header dictionary.
 CircuitModule = NewType(
-    "CircuitModule", Tuple[List[QuantumCircuit], Dict[str, Any], Dict[str, Any]]
+    'CircuitModule',
+    Tuple[
+        List[QuantumCircuit],
+        Dict[str, Any],
+        Dict[str, Any]
+    ]
 )
 
 # A ``PulseModule`` is a representation of a pulse execution on the backend.
 # It is currently a list of pulse schedules to execute, a run Qobj dictionary
 # and a header dictionary.
-PulseModule = NewType("PulseModule", Tuple[List[pulse.Schedule], Dict[str, Any], Dict[str, Any]])
+PulseModule = NewType(
+    'PulseModule',
+    Tuple[
+        List[pulse.Schedule],
+        Dict[str, Any],
+        Dict[str, Any]
+    ]
+)
 
 
 def disassemble(qobj) -> Union[CircuitModule, PulseModule]:
@@ -47,7 +59,7 @@ def disassemble(qobj) -> Union[CircuitModule, PulseModule]:
             * run_config: The dict of the run config
             * user_qobj_header: The dict of any user headers in the qobj
     """
-    if qobj.type == "PULSE":
+    if qobj.type == 'PULSE':
         return _disassemble_pulse_schedule(qobj)
     else:
         return _disassemble_circuit(qobj)
@@ -55,16 +67,6 @@ def disassemble(qobj) -> Union[CircuitModule, PulseModule]:
 
 def _disassemble_circuit(qobj) -> CircuitModule:
     run_config = qobj.config.to_dict()
-
-    # convert lo freq back to Hz
-    qubit_lo_freq = run_config.get("qubit_lo_freq", [])
-    if qubit_lo_freq:
-        run_config["qubit_lo_freq"] = [freq * 1e9 for freq in qubit_lo_freq]
-
-    meas_lo_freq = run_config.get("meas_lo_freq", [])
-    if meas_lo_freq:
-        run_config["meas_lo_freq"] = [freq * 1e9 for freq in meas_lo_freq]
-
     user_qobj_header = qobj.header.to_dict()
     return CircuitModule((_experiments_to_circuits(qobj), run_config, user_qobj_header))
 
@@ -96,37 +98,39 @@ def _experiments_to_circuits(qobj):
         for i in exp.instructions:
             name = i.name
             qubits = []
-            params = getattr(i, "params", [])
+            params = getattr(i, 'params', [])
             try:
                 for qubit in i.qubits:
                     qubit_label = exp.header.qubit_labels[qubit]
-                    qubits.append(qreg_dict[qubit_label[0]][qubit_label[1]])
+                    qubits.append(
+                        qreg_dict[qubit_label[0]][qubit_label[1]])
             except Exception:  # pylint: disable=broad-except
                 pass
             clbits = []
             try:
                 for clbit in i.memory:
                     clbit_label = exp.header.clbit_labels[clbit]
-                    clbits.append(creg_dict[clbit_label[0]][clbit_label[1]])
+                    clbits.append(
+                        creg_dict[clbit_label[0]][clbit_label[1]])
             except Exception:  # pylint: disable=broad-except
                 pass
             if hasattr(circuit, name):
                 instr_method = getattr(circuit, name)
-                if i.name in ["snapshot"]:
+                if i.name in ['snapshot']:
                     _inst = instr_method(
-                        i.label, snapshot_type=i.snapshot_type, qubits=qubits, params=params
-                    )
-                elif i.name == "initialize":
+                        i.label,
+                        snapshot_type=i.snapshot_type,
+                        qubits=qubits,
+                        params=params)
+                elif i.name == 'initialize':
                     _inst = instr_method(params, qubits)
-                elif i.name == "isometry":
+                elif i.name == 'isometry':
                     _inst = instr_method(*params, qubits, clbits)
-                elif i.name in ["mcx", "mcu1", "mcp"]:
-                    _inst = instr_method(*params, qubits[:-1], qubits[-1], *clbits)
                 else:
                     _inst = instr_method(*params, *qubits, *clbits)
-            elif name == "bfunc":
-                conditional["value"] = int(i.val, 16)
-                full_bit_size = sum(creg_dict[x].size for x in creg_dict)
+            elif name == 'bfunc':
+                conditional['value'] = int(i.val, 16)
+                full_bit_size = sum([creg_dict[x].size for x in creg_dict])
                 mask_map = {}
                 raw_map = {}
                 raw = []
@@ -145,22 +149,22 @@ def _experiments_to_circuits(qobj):
                     raw_map[creg] = mask
                     mask_map[int("".join(str(x) for x in mask), 2)] = creg
                 creg = mask_map[int(i.mask, 16)]
-                conditional["register"] = creg_dict[creg]
+                conditional['register'] = creg_dict[creg]
                 val = int(i.val, 16)
                 mask = raw_map[creg]
                 for j in reversed(mask):
                     if j == 0:
                         val = val >> 1
                     else:
-                        conditional["value"] = val
+                        conditional['value'] = val
                         break
             else:
                 _inst = temp_opaque_instruction = Instruction(
-                    name=name, num_qubits=len(qubits), num_clbits=len(clbits), params=params
-                )
+                    name=name, num_qubits=len(qubits),
+                    num_clbits=len(clbits), params=params)
                 circuit.append(temp_opaque_instruction, qubits, clbits)
-            if conditional and name != "bfunc":
-                _inst.c_if(conditional["register"], conditional["value"])
+            if conditional and name != 'bfunc':
+                _inst.c_if(conditional['register'], conditional['value'])
                 conditional = {}
         circuits.append(circuit)
     return circuits
@@ -168,15 +172,15 @@ def _experiments_to_circuits(qobj):
 
 def _disassemble_pulse_schedule(qobj) -> PulseModule:
     run_config = qobj.config.to_dict()
-    run_config.pop("pulse_library")
+    run_config.pop('pulse_library')
 
-    qubit_lo_freq = run_config.get("qubit_lo_freq")
+    qubit_lo_freq = run_config.get('qubit_lo_freq')
     if qubit_lo_freq:
-        run_config["qubit_lo_freq"] = [freq * 1e9 for freq in qubit_lo_freq]
+        run_config['qubit_lo_freq'] = [freq*1e9 for freq in qubit_lo_freq]
 
-    meas_lo_freq = run_config.get("meas_lo_freq")
+    meas_lo_freq = run_config.get('meas_lo_freq')
     if meas_lo_freq:
-        run_config["meas_lo_freq"] = [freq * 1e9 for freq in meas_lo_freq]
+        run_config['meas_lo_freq'] = [freq*1e9 for freq in meas_lo_freq]
 
     user_qobj_header = qobj.header.to_dict()
 
@@ -184,19 +188,19 @@ def _disassemble_pulse_schedule(qobj) -> PulseModule:
     schedule_los = []
     for program in qobj.experiments:
         program_los = {}
-        if hasattr(program, "config"):
-            if hasattr(program.config, "qubit_lo_freq"):
+        if hasattr(program, 'config'):
+            if hasattr(program.config, 'qubit_lo_freq'):
                 for i, lo in enumerate(program.config.qubit_lo_freq):
-                    program_los[pulse.DriveChannel(i)] = lo * 1e9
+                    program_los[pulse.DriveChannel(i)] = lo*1e9
 
-            if hasattr(program.config, "meas_lo_freq"):
+            if hasattr(program.config, 'meas_lo_freq'):
                 for i, lo in enumerate(program.config.meas_lo_freq):
-                    program_los[pulse.MeasureChannel(i)] = lo * 1e9
+                    program_los[pulse.MeasureChannel(i)] = lo*1e9
 
         schedule_los.append(program_los)
 
     if any(schedule_los):
-        run_config["schedule_los"] = schedule_los
+        run_config['schedule_los'] = schedule_los
 
     return PulseModule((_experiments_to_schedules(qobj), run_config, user_qobj_header))
 

@@ -31,15 +31,14 @@ from qiskit.utils import arithmetic
 
 
 class MatrixOp(PrimitiveOp):
-    """Class for Operators represented by matrices, backed by Terra's ``Operator`` module."""
+    """ Class for Operators represented by matrices, backed by Terra's ``Operator`` module.
+    """
 
     primitive: Operator
 
-    def __init__(
-        self,
-        primitive: Union[list, np.ndarray, spmatrix, Operator],
-        coeff: Union[complex, ParameterExpression] = 1.0,
-    ) -> None:
+    def __init__(self,
+                 primitive: Union[list, np.ndarray, spmatrix, Operator],
+                 coeff: Union[complex, ParameterExpression] = 1.0) -> None:
         """
         Args:
             primitive: The matrix-like object which defines the behavior of the underlying function.
@@ -57,20 +56,18 @@ class MatrixOp(PrimitiveOp):
             primitive = Operator(primitive)
 
         if not isinstance(primitive, Operator):
-            type_hints = get_type_hints(MatrixOp.__init__).get("primitive")
+            type_hints = get_type_hints(MatrixOp.__init__).get('primitive')
             valid_cls = [cls.__name__ for cls in type_hints.__args__]
-            raise TypeError(
-                f"MatrixOp can only be instantiated with {valid_cls}, "
-                f"not '{primitive_orig.__class__.__name__}'"
-            )
+            raise TypeError(f"MatrixOp can only be instantiated with {valid_cls}, "
+                            f"not '{primitive_orig.__class__.__name__}'")
 
         if not primitive.input_dims() == primitive.output_dims():
-            raise ValueError("Cannot handle non-square matrices yet.")
+            raise ValueError('Cannot handle non-square matrices yet.')
 
         super().__init__(primitive, coeff=coeff)
 
     def primitive_strings(self) -> Set[str]:
-        return {"Matrix"}
+        return {'Matrix'}
 
     @property
     def num_qubits(self) -> int:
@@ -79,20 +76,18 @@ class MatrixOp(PrimitiveOp):
     def add(self, other: OperatorBase) -> Union["MatrixOp", SummedOp]:
         if not self.num_qubits == other.num_qubits:
             raise ValueError(
-                "Sum over operators with different numbers of qubits, {} and {}, is not well "
-                "defined".format(self.num_qubits, other.num_qubits)
-            )
+                'Sum over operators with different numbers of qubits, {} and {}, is not well '
+                'defined'.format(self.num_qubits, other.num_qubits))
 
         if isinstance(other, MatrixOp) and self.primitive == other.primitive:
             return MatrixOp(self.primitive, coeff=self.coeff + other.coeff)
 
         # Terra's Operator cannot handle ParameterExpressions
-        if (
-            isinstance(other, MatrixOp)
-            and not isinstance(self.coeff, ParameterExpression)
-            and not isinstance(other.coeff, ParameterExpression)
-        ):
-            return MatrixOp((self.coeff * self.primitive) + (other.coeff * other.primitive))
+        if isinstance(other, MatrixOp) and \
+                not isinstance(self.coeff, ParameterExpression) and \
+                not isinstance(other.coeff, ParameterExpression):
+            return MatrixOp(
+                (self.coeff * self.primitive) + (other.coeff * other.primitive))
 
         # Covers Paulis, Circuits, and all else.
         return SummedOp([self, other])
@@ -103,29 +98,27 @@ class MatrixOp(PrimitiveOp):
     def equals(self, other: OperatorBase) -> bool:
         if not isinstance(other, MatrixOp):
             return False
-        if isinstance(self.coeff, ParameterExpression) ^ isinstance(
-            other.coeff, ParameterExpression
-        ):
+        if isinstance(self.coeff, ParameterExpression) ^ \
+                isinstance(other.coeff, ParameterExpression):
             return False
-        if isinstance(self.coeff, ParameterExpression) and isinstance(
-            other.coeff, ParameterExpression
-        ):
+        if isinstance(self.coeff, ParameterExpression) and \
+                isinstance(other.coeff, ParameterExpression):
             return self.coeff == other.coeff and self.primitive == other.primitive
         return self.coeff * self.primitive == other.coeff * other.primitive
 
-    def _expand_dim(self, num_qubits: int) -> "MatrixOp":
-        identity = np.identity(2 ** num_qubits, dtype=complex)
+    def _expand_dim(self, num_qubits: int) -> 'MatrixOp':
+        identity = np.identity(2**num_qubits, dtype=complex)
         return MatrixOp(self.primitive.tensor(Operator(identity)), coeff=self.coeff)
 
     def tensor(self, other: OperatorBase) -> Union["MatrixOp", TensoredOp]:
         if isinstance(other, MatrixOp):
-            return MatrixOp(self.primitive.tensor(other.primitive), coeff=self.coeff * other.coeff)
+            return MatrixOp(self.primitive.tensor(other.primitive),
+                            coeff=self.coeff * other.coeff)
 
         return TensoredOp([self, other])
 
-    def compose(
-        self, other: OperatorBase, permutation: Optional[List[int]] = None, front: bool = False
-    ) -> OperatorBase:
+    def compose(self, other: OperatorBase,
+                permutation: Optional[List[int]] = None, front: bool = False) -> OperatorBase:
 
         new_self, other = self._expand_shorter_operator_and_permute(other, permutation)
         new_self = cast(MatrixOp, new_self)
@@ -133,10 +126,8 @@ class MatrixOp(PrimitiveOp):
         if front:
             return other.compose(new_self)
         if isinstance(other, MatrixOp):
-            return MatrixOp(
-                new_self.primitive.compose(other.primitive, front=True),
-                coeff=new_self.coeff * other.coeff,
-            )
+            return MatrixOp(new_self.primitive.compose(other.primitive, front=True),
+                            coeff=new_self.coeff * other.coeff)
 
         return super(MatrixOp, new_self).compose(other)
 
@@ -164,9 +155,8 @@ class MatrixOp(PrimitiveOp):
         qc = QuantumCircuit(new_matrix_size)
 
         # extend the indices to match the size of the new matrix
-        permutation = (
-            list(filter(lambda x: x not in permutation, range(new_matrix_size))) + permutation
-        )
+        permutation \
+            = list(filter(lambda x: x not in permutation, range(new_matrix_size))) + permutation
 
         # decompose permutation into sequence of transpositions
         transpositions = arithmetic.transpositions(permutation)
@@ -183,7 +173,7 @@ class MatrixOp(PrimitiveOp):
         if self.coeff == 1.0:
             return prim_str
         else:
-            return f"{self.coeff} * {prim_str}"
+            return "{} * {}".format(self.coeff, prim_str)
 
     def eval(
         self,
@@ -206,9 +196,8 @@ class MatrixOp(PrimitiveOp):
             front = StateFn(front, is_measurement=False)
 
         if isinstance(front, ListOp) and front.distributive:
-            new_front = front.combo_fn(
-                [self.eval(front.coeff * front_elem) for front_elem in front.oplist]
-            )
+            new_front = front.combo_fn([self.eval(front.coeff * front_elem)
+                                        for front_elem in front.oplist])
 
         elif isinstance(front, OperatorStateFn):
             new_front = OperatorStateFn(self.adjoint().compose(front.to_matrix_op()).compose(self))

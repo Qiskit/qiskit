@@ -37,14 +37,10 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
         """
         swaps = dag.op_nodes(SwapGate)
         for swap in swaps[::-1]:
-            if swap.op.condition is not None:
-                continue
             final_successor = []
             for successor in dag.successors(swap):
-                final_successor.append(
-                    successor.type == "out"
-                    or (successor.type == "op" and isinstance(successor.op, Measure))
-                )
+                final_successor.append(successor.type == 'out' or (successor.type == 'op' and
+                                                                   successor.op.name == 'measure'))
             if all(final_successor):
                 # the node swap needs to be removed and, if a measure follows, needs to be adapted
                 swap_qargs = swap.qargs
@@ -54,15 +50,14 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
                 for creg in dag.cregs.values():
                     measure_layer.add_creg(creg)
                 for successor in list(dag.successors(swap)):
-                    if successor.type == "op" and successor.op.name == "measure":
+                    if successor.type == 'op' and successor.op.name == 'measure':
                         # replace measure node with a new one, where qargs is set with the "other"
                         # swap qarg.
                         dag.remove_op_node(successor)
                         old_measure_qarg = successor.qargs[0]
                         new_measure_qarg = swap_qargs[swap_qargs.index(old_measure_qarg) - 1]
-                        measure_layer.apply_operation_back(
-                            Measure(), [new_measure_qarg], [successor.cargs[0]]
-                        )
+                        measure_layer.apply_operation_back(Measure(), [new_measure_qarg],
+                                                           [successor.cargs[0]])
                 dag.compose(measure_layer)
                 dag.remove_op_node(swap)
         return dag

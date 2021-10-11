@@ -18,7 +18,6 @@ from abc import ABC, abstractmethod
 
 class CustomIterator(ABC):
     """Lazy custom iteration and item access."""
-
     def __init__(self, obj):
         self.obj = obj
         self._iter = 0
@@ -31,7 +30,8 @@ class CustomIterator(ABC):
         pass
 
     def __repr__(self):
-        return f"<{type(self.obj)}_iterator at {hex(id(self))}>"
+        return "<{}_iterator at {}>".format(type(self.obj),
+                                            hex(id(self)))
 
     def __len__(self):
         return len(self.obj)

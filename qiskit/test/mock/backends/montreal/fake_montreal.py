@@ -15,20 +15,10 @@ Fake Montreal device (27 qubit).
 """
 
 import os
-from qiskit.test.mock import fake_pulse_backend
+from qiskit.test.mock.fake_pulse_backend import FakePulseBackend
 
 
-class FakeMontreal(fake_pulse_backend.FakePulseBackend):
-    """A fake 27 qubit backend."""
-
-    dirname = os.path.dirname(__file__)
-    conf_filename = "conf_montreal.json"
-    props_filename = "props_montreal.json"
-    defs_filename = "defs_montreal.json"
-    backend_name = "fake_montreal"
-
-
-class FakeLegacyMontreal(fake_pulse_backend.FakePulseLegacyBackend):
+class FakeMontreal(FakePulseBackend):
     """A fake 27 qubit backend."""
 
     dirname = os.path.dirname(__file__)

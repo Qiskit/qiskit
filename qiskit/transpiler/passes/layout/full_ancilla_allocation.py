@@ -39,7 +39,7 @@ class FullAncillaAllocation(AnalysisPass):
         """
         super().__init__()
         self.coupling_map = coupling_map
-        self.ancilla_name = "ancilla"
+        self.ancilla_name = 'ancilla'
 
     def run(self, dag):
         """Run the FullAncillaAllocation pass on `dag`.
@@ -60,7 +60,7 @@ class FullAncillaAllocation(AnalysisPass):
         Raises:
             TranspilerError: If there is not layout in the property set or not set at init time.
         """
-        layout = self.property_set.get("layout")
+        layout = self.property_set.get('layout')
 
         if layout is None:
             raise TranspilerError('FullAncillaAllocation pass requires property_set["layout"].')
@@ -71,14 +71,12 @@ class FullAncillaAllocation(AnalysisPass):
         else:
             layout_physical_qubits = []
 
-        idle_physical_qubits = [
-            q for q in layout_physical_qubits if q not in layout.get_physical_bits()
-        ]
+        idle_physical_qubits = [q for q in layout_physical_qubits
+                                if q not in layout.get_physical_bits()]
 
         if self.coupling_map:
-            idle_physical_qubits = [
-                q for q in self.coupling_map.physical_qubits if q not in layout.get_physical_bits()
-            ]
+            idle_physical_qubits = [q for q in self.coupling_map.physical_qubits
+                                    if q not in layout.get_physical_bits()]
 
         if idle_physical_qubits:
             if self.ancilla_name in dag.qregs:
@@ -90,8 +88,8 @@ class FullAncillaAllocation(AnalysisPass):
                 qreg = QuantumRegister(len(idle_physical_qubits), name=self.ancilla_name)
 
             for idx, idle_q in enumerate(idle_physical_qubits):
-                self.property_set["layout"][idle_q] = qreg[idx]
-            self.property_set["layout"].add_register(qreg)
+                self.property_set['layout'][idle_q] = qreg[idx]
+            self.property_set['layout'].add_register(qreg)
         return dag
 
     @staticmethod
@@ -101,7 +99,5 @@ class FullAncillaAllocation(AnalysisPass):
         """
         for qreg in layout_qubits:
             if qreg not in dag_qubits:
-                raise TranspilerError(
-                    "FullAncillaAllocation: The layout refers to a qubit "
-                    "that does not exist in circuit."
-                )
+                raise TranspilerError('FullAncillaAllocation: The layout refers to a qubit '
+                                      'that does not exist in circuit.')

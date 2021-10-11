@@ -49,8 +49,8 @@ def square(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np
         freq: Pulse frequency. units of 1/dt.
         phase: Pulse phase.
     """
-    x = times * freq + phase / np.pi
-    return amp * (2 * (2 * np.floor(x) - np.floor(2 * x)) + 1).astype(np.complex_)
+    x = times*freq+phase/np.pi
+    return amp*(2*(2*np.floor(x) - np.floor(2*x)) + 1).astype(np.complex_)
 
 
 def sawtooth(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.ndarray:
@@ -62,8 +62,8 @@ def sawtooth(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> 
         freq: Pulse frequency. units of 1/dt.
         phase: Pulse phase.
     """
-    x = times * freq + phase / np.pi
-    return amp * 2 * (x - np.floor(1 / 2 + x)).astype(np.complex_)
+    x = times*freq+phase/np.pi
+    return amp*2*(x-np.floor(1/2+x)).astype(np.complex_)
 
 
 def triangle(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.ndarray:
@@ -75,9 +75,8 @@ def triangle(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> 
         freq: Pulse frequency. units of 1/dt.
         phase: Pulse phase.
     """
-    return amp * (-2 * np.abs(sawtooth(times, 1, freq, phase=(phase - np.pi / 2) / 2)) + 1).astype(
-        np.complex_
-    )
+    return amp*(-2*np.abs(
+        sawtooth(times, 1, freq, phase=(phase-np.pi/2)/2)) + 1).astype(np.complex_)
 
 
 def cos(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.ndarray:
@@ -89,7 +88,7 @@ def cos(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.nd
         freq: Pulse frequency, units of 1/dt.
         phase: Pulse phase.
     """
-    return amp * np.cos(2 * np.pi * freq * times + phase).astype(np.complex_)
+    return amp*np.cos(2*np.pi*freq*times+phase).astype(np.complex_)
 
 
 def sin(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.ndarray:
@@ -101,18 +100,12 @@ def sin(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.nd
         freq: Pulse frequency, units of 1/dt.
         phase: Pulse phase.
     """
-    return amp * np.sin(2 * np.pi * freq * times + phase).astype(np.complex_)
+    return amp*np.sin(2*np.pi*freq*times+phase).astype(np.complex_)
 
 
-def _fix_gaussian_width(
-    gaussian_samples,
-    amp: float,
-    center: float,
-    sigma: float,
-    zeroed_width: Optional[float] = None,
-    rescale_amp: bool = False,
-    ret_scale_factor: bool = False,
-) -> np.ndarray:
+def _fix_gaussian_width(gaussian_samples, amp: float, center: float, sigma: float,
+                        zeroed_width: Optional[float] = None, rescale_amp: bool = False,
+                        ret_scale_factor: bool = False) -> np.ndarray:
     r"""Enforce that the supplied gaussian pulse is zeroed at a specific width.
 
     This is achieved by subtracting $\Omega_g(center \pm zeroed_width/2)$ from all samples.
@@ -128,13 +121,13 @@ def _fix_gaussian_width(
     ret_scale_factor: Return amplitude scale factor.
     """
     if zeroed_width is None:
-        zeroed_width = 2 * (center + 1)
+        zeroed_width = 2*(center + 1)
 
-    zero_offset = gaussian(np.array([zeroed_width / 2]), amp, 0, sigma)
+    zero_offset = gaussian(np.array([zeroed_width/2]), amp, 0, sigma)
     gaussian_samples -= zero_offset
-    amp_scale_factor = 1.0
+    amp_scale_factor = 1.
     if rescale_amp:
-        amp_scale_factor = amp / (amp - zero_offset) if amp - zero_offset != 0 else 1.0
+        amp_scale_factor = amp/(amp-zero_offset) if amp-zero_offset != 0 else 1.
         gaussian_samples *= amp_scale_factor
 
     if ret_scale_factor:
@@ -142,15 +135,9 @@ def _fix_gaussian_width(
     return gaussian_samples
 
 
-def gaussian(
-    times: np.ndarray,
-    amp: complex,
-    center: float,
-    sigma: float,
-    zeroed_width: Optional[float] = None,
-    rescale_amp: bool = False,
-    ret_x: bool = False,
-) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+def gaussian(times: np.ndarray, amp: complex, center: float, sigma: float,
+             zeroed_width: Optional[float] = None, rescale_amp: bool = False,
+             ret_x: bool = False) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
     r"""Continuous unnormalized gaussian pulse.
 
     Integrated area under curve is $\Omega_g(amp, sigma) = amp \times np.sqrt(2\pi \sigma^2)$
@@ -172,33 +159,21 @@ def gaussian(
                $x=(times-center)/sigma.
     """
     times = np.asarray(times, dtype=np.complex_)
-    x = (times - center) / sigma
-    gauss = amp * np.exp(-(x ** 2) / 2).astype(np.complex_)
+    x = (times-center)/sigma
+    gauss = amp*np.exp(-x**2/2).astype(np.complex_)
 
     if zeroed_width is not None:
-        gauss = _fix_gaussian_width(
-            gauss,
-            amp=amp,
-            center=center,
-            sigma=sigma,
-            zeroed_width=zeroed_width,
-            rescale_amp=rescale_amp,
-        )
+        gauss = _fix_gaussian_width(gauss, amp=amp, center=center, sigma=sigma,
+                                    zeroed_width=zeroed_width, rescale_amp=rescale_amp)
 
     if ret_x:
         return gauss, x
     return gauss
 
 
-def gaussian_deriv(
-    times: np.ndarray,
-    amp: complex,
-    center: float,
-    sigma: float,
-    ret_gaussian: bool = False,
-    zeroed_width: Optional[float] = None,
-    rescale_amp: bool = False,
-) -> np.ndarray:
+def gaussian_deriv(times: np.ndarray, amp: complex, center: float, sigma: float,
+                   ret_gaussian: bool = False, zeroed_width: Optional[float] = None,
+                   rescale_amp: bool = False) -> np.ndarray:
     r"""Continuous unnormalized gaussian derivative pulse.
 
     Args:
@@ -213,30 +188,17 @@ def gaussian_deriv(
         rescale_amp: If `zeroed_width` is not `None` and `rescale_amp=True` the pulse will
             be rescaled so that $\Omega_g(center)=amp$.
     """
-    gauss, x = gaussian(
-        times,
-        amp=amp,
-        center=center,
-        sigma=sigma,
-        zeroed_width=zeroed_width,
-        rescale_amp=rescale_amp,
-        ret_x=True,
-    )
+    gauss, x = gaussian(times, amp=amp, center=center, sigma=sigma, zeroed_width=zeroed_width,
+                        rescale_amp=rescale_amp, ret_x=True)
     gauss_deriv = -x / sigma * gauss
     if ret_gaussian:
         return gauss_deriv, gauss
     return gauss_deriv
 
 
-def _fix_sech_width(
-    sech_samples,
-    amp: float,
-    center: float,
-    sigma: float,
-    zeroed_width: Optional[float] = None,
-    rescale_amp: bool = False,
-    ret_scale_factor: bool = False,
-) -> np.ndarray:
+def _fix_sech_width(sech_samples, amp: float, center: float, sigma: float,
+                    zeroed_width: Optional[float] = None, rescale_amp: bool = False,
+                    ret_scale_factor: bool = False) -> np.ndarray:
     r"""Enforce that the supplied sech pulse is zeroed at a specific width.
 
     This is achieved by subtracting $\Omega_g(center \pm zeroed_width/2)$ from all samples.
@@ -252,13 +214,13 @@ def _fix_sech_width(
     ret_scale_factor: Return amplitude scale factor.
     """
     if zeroed_width is None:
-        zeroed_width = 2 * (center + 1)
+        zeroed_width = 2*(center + 1)
 
-    zero_offset = sech(np.array([zeroed_width / 2]), amp, 0, sigma)
+    zero_offset = sech(np.array([zeroed_width/2]), amp, 0, sigma)
     sech_samples -= zero_offset
-    amp_scale_factor = 1.0
+    amp_scale_factor = 1.
     if rescale_amp:
-        amp_scale_factor = amp / (amp - zero_offset) if amp - zero_offset != 0 else 1.0
+        amp_scale_factor = amp/(amp-zero_offset) if amp-zero_offset != 0 else 1.
         sech_samples *= amp_scale_factor
 
     if ret_scale_factor:
@@ -271,15 +233,9 @@ def sech_fn(x, *args, **kwargs):
     return 1.0 / np.cosh(x, *args, **kwargs)
 
 
-def sech(
-    times: np.ndarray,
-    amp: complex,
-    center: float,
-    sigma: float,
-    zeroed_width: Optional[float] = None,
-    rescale_amp: bool = False,
-    ret_x: bool = False,
-) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+def sech(times: np.ndarray, amp: complex, center: float, sigma: float,
+         zeroed_width: Optional[float] = None, rescale_amp: bool = False,
+         ret_x: bool = False) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
     r"""Continuous unnormalized sech pulse.
 
     Args:
@@ -296,27 +252,20 @@ def sech(
             $x=(times-center)/sigma$.
     """
     times = np.asarray(times, dtype=np.complex_)
-    x = (times - center) / sigma
-    sech_out = amp * sech_fn(x).astype(np.complex_)
+    x = (times-center)/sigma
+    sech_out = amp*sech_fn(x).astype(np.complex_)
 
     if zeroed_width is not None:
-        sech_out = _fix_sech_width(
-            sech_out,
-            amp=amp,
-            center=center,
-            sigma=sigma,
-            zeroed_width=zeroed_width,
-            rescale_amp=rescale_amp,
-        )
+        sech_out = _fix_sech_width(sech_out, amp=amp, center=center, sigma=sigma,
+                                   zeroed_width=zeroed_width, rescale_amp=rescale_amp)
 
     if ret_x:
         return sech_out, x
     return sech_out
 
 
-def sech_deriv(
-    times: np.ndarray, amp: complex, center: float, sigma: float, ret_sech: bool = False
-) -> np.ndarray:
+def sech_deriv(times: np.ndarray, amp: complex, center: float, sigma: float,
+               ret_sech: bool = False) -> np.ndarray:
     """Continuous unnormalized sech derivative pulse.
 
     Args:
@@ -327,20 +276,14 @@ def sech_deriv(
         ret_sech: Return sech with which derivative was taken with.
     """
     sech_out, x = sech(times, amp=amp, center=center, sigma=sigma, ret_x=True)
-    sech_out_deriv = -sech_out * np.tanh(x) / sigma
+    sech_out_deriv = - sech_out * np.tanh(x) / sigma
     if ret_sech:
         return sech_out_deriv, sech_out
     return sech_out_deriv
 
 
-def gaussian_square(
-    times: np.ndarray,
-    amp: complex,
-    center: float,
-    square_width: float,
-    sigma: float,
-    zeroed_width: Optional[float] = None,
-) -> np.ndarray:
+def gaussian_square(times: np.ndarray, amp: complex, center: float, square_width: float,
+                    sigma: float, zeroed_width: Optional[float] = None) -> np.ndarray:
     r"""Continuous gaussian square pulse.
 
     Args:
@@ -355,47 +298,26 @@ def gaussian_square(
     Raises:
         PulseError: if zeroed_width is not compatible with square_width.
     """
-    square_start = center - square_width / 2
-    square_stop = center + square_width / 2
+    square_start = center-square_width/2
+    square_stop = center+square_width/2
     if zeroed_width:
         if zeroed_width < square_width:
             raise PulseError("zeroed_width cannot be smaller than square_width.")
-        gaussian_zeroed_width = zeroed_width - square_width
+        gaussian_zeroed_width = zeroed_width-square_width
     else:
         gaussian_zeroed_width = None
 
-    funclist = [
-        functools.partial(
-            gaussian,
-            amp=amp,
-            center=square_start,
-            sigma=sigma,
-            zeroed_width=gaussian_zeroed_width,
-            rescale_amp=True,
-        ),
-        functools.partial(
-            gaussian,
-            amp=amp,
-            center=square_stop,
-            sigma=sigma,
-            zeroed_width=gaussian_zeroed_width,
-            rescale_amp=True,
-        ),
-        functools.partial(constant, amp=amp),
-    ]
+    funclist = [functools.partial(gaussian, amp=amp, center=square_start, sigma=sigma,
+                                  zeroed_width=gaussian_zeroed_width, rescale_amp=True),
+                functools.partial(gaussian, amp=amp, center=square_stop, sigma=sigma,
+                                  zeroed_width=gaussian_zeroed_width, rescale_amp=True),
+                functools.partial(constant, amp=amp)]
     condlist = [times <= square_start, times >= square_stop]
     return np.piecewise(times.astype(np.complex_), condlist, funclist)
 
 
-def drag(
-    times: np.ndarray,
-    amp: complex,
-    center: float,
-    sigma: float,
-    beta: float,
-    zeroed_width: Optional[float] = None,
-    rescale_amp: bool = False,
-) -> np.ndarray:
+def drag(times: np.ndarray, amp: complex, center: float, sigma: float, beta: float,
+         zeroed_width: Optional[float] = None, rescale_amp: bool = False) -> np.ndarray:
     r"""Continuous Y-only correction DRAG pulse for standard nonlinear oscillator (SNO) [1].
 
     [1] Gambetta, J. M., Motzoi, F., Merkel, S. T. & Wilhelm, F. K.
@@ -417,14 +339,8 @@ def drag(
             be rescaled so that $\Omega_g(center)=amp$.
 
     """
-    gauss_deriv, gauss = gaussian_deriv(
-        times,
-        amp=amp,
-        center=center,
-        sigma=sigma,
-        ret_gaussian=True,
-        zeroed_width=zeroed_width,
-        rescale_amp=rescale_amp,
-    )
+    gauss_deriv, gauss = gaussian_deriv(times, amp=amp, center=center, sigma=sigma,
+                                        ret_gaussian=True, zeroed_width=zeroed_width,
+                                        rescale_amp=rescale_amp)
 
-    return gauss + 1j * beta * gauss_deriv
+    return gauss + 1j*beta*gauss_deriv

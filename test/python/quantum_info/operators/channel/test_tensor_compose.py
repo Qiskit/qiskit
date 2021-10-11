@@ -35,43 +35,28 @@ class TestEquivalence(ChannelTestCase):
     """
 
     unitaries = [
-        ChannelTestCase.UI,
-        ChannelTestCase.UX,
-        ChannelTestCase.UY,
-        ChannelTestCase.UZ,
-        ChannelTestCase.UH,
+        ChannelTestCase.UI, ChannelTestCase.UX, ChannelTestCase.UY,
+        ChannelTestCase.UZ, ChannelTestCase.UH
     ]
 
     chois = [
-        ChannelTestCase.choiI,
-        ChannelTestCase.choiX,
-        ChannelTestCase.choiY,
-        ChannelTestCase.choiZ,
-        ChannelTestCase.choiH,
+        ChannelTestCase.choiI, ChannelTestCase.choiX, ChannelTestCase.choiY,
+        ChannelTestCase.choiZ, ChannelTestCase.choiH
     ]
 
     chis = [
-        ChannelTestCase.chiI,
-        ChannelTestCase.chiX,
-        ChannelTestCase.chiY,
-        ChannelTestCase.chiZ,
-        ChannelTestCase.chiH,
+        ChannelTestCase.chiI, ChannelTestCase.chiX, ChannelTestCase.chiY,
+        ChannelTestCase.chiZ, ChannelTestCase.chiH
     ]
 
     sops = [
-        ChannelTestCase.sopI,
-        ChannelTestCase.sopX,
-        ChannelTestCase.sopY,
-        ChannelTestCase.sopZ,
-        ChannelTestCase.sopH,
+        ChannelTestCase.sopI, ChannelTestCase.sopX, ChannelTestCase.sopY,
+        ChannelTestCase.sopZ, ChannelTestCase.sopH
     ]
 
     ptms = [
-        ChannelTestCase.ptmI,
-        ChannelTestCase.ptmX,
-        ChannelTestCase.ptmY,
-        ChannelTestCase.ptmZ,
-        ChannelTestCase.ptmH,
+        ChannelTestCase.ptmI, ChannelTestCase.ptmX, ChannelTestCase.ptmY,
+        ChannelTestCase.ptmZ, ChannelTestCase.ptmH
     ]
 
     def _compare_tensor_to_operator(self, chans, mats):
@@ -119,7 +104,10 @@ class TestEquivalence(ChannelTestCase):
     def test_choi_tensor(self):
         """Test tensor of Choi matrices is correct."""
         mats = [self.UI, self.UX, self.UY, self.UZ, self.UH]
-        chans = [Choi(mat) for mat in [self.choiI, self.choiX, self.choiY, self.choiZ, self.choiH]]
+        chans = [
+            Choi(mat) for mat in
+            [self.choiI, self.choiX, self.choiY, self.choiZ, self.choiH]
+        ]
         self._compare_tensor_to_operator(chans, mats)
 
     def test_choi_tensor_random(self):
@@ -136,7 +124,10 @@ class TestEquivalence(ChannelTestCase):
     def test_superop_tensor(self):
         """Test tensor of SuperOp matrices is correct."""
         mats = [self.UI, self.UX, self.UY, self.UZ, self.UH]
-        chans = [SuperOp(mat) for mat in [self.sopI, self.sopX, self.sopY, self.sopZ, self.sopH]]
+        chans = [
+            SuperOp(mat)
+            for mat in [self.sopI, self.sopX, self.sopY, self.sopZ, self.sopH]
+        ]
         self._compare_tensor_to_operator(chans, mats)
 
     def test_superop_tensor_random(self):
@@ -187,7 +178,10 @@ class TestEquivalence(ChannelTestCase):
     def test_chi_tensor(self):
         """Test tensor of Chi matrices is correct."""
         mats = [self.UI, self.UX, self.UY, self.UZ, self.UH]
-        chans = [Chi(mat) for mat in [self.chiI, self.chiX, self.chiY, self.chiZ, self.chiH]]
+        chans = [
+            Chi(mat)
+            for mat in [self.chiI, self.chiX, self.chiY, self.chiZ, self.chiH]
+        ]
         self._compare_tensor_to_operator(chans, mats)
 
     def test_chi_tensor_random(self):
@@ -204,7 +198,10 @@ class TestEquivalence(ChannelTestCase):
     def test_ptm_tensor(self):
         """Test tensor of PTM matrices is correct."""
         mats = [self.UI, self.UX, self.UY, self.UZ, self.UH]
-        chans = [PTM(mat) for mat in [self.ptmI, self.ptmX, self.ptmY, self.ptmZ, self.ptmH]]
+        chans = [
+            PTM(mat)
+            for mat in [self.ptmI, self.ptmX, self.ptmY, self.ptmZ, self.ptmH]
+        ]
         self._compare_tensor_to_operator(chans, mats)
 
     def test_ptm_tensor_random(self):
@@ -221,7 +218,10 @@ class TestEquivalence(ChannelTestCase):
     def test_choi_expand(self):
         """Test expand of Choi matrices is correct."""
         mats = [self.UI, self.UX, self.UY, self.UZ, self.UH]
-        chans = [Choi(mat) for mat in [self.choiI, self.choiX, self.choiY, self.choiZ, self.choiH]]
+        chans = [
+            Choi(mat) for mat in
+            [self.choiI, self.choiX, self.choiY, self.choiZ, self.choiH]
+        ]
         self._compare_expand_to_operator(chans, mats)
 
     def test_choi_expand_random(self):
@@ -238,7 +238,10 @@ class TestEquivalence(ChannelTestCase):
     def test_superop_expand(self):
         """Test expand of SuperOp matrices is correct."""
         mats = [self.UI, self.UX, self.UY, self.UZ, self.UH]
-        chans = [SuperOp(mat) for mat in [self.sopI, self.sopX, self.sopY, self.sopZ, self.sopH]]
+        chans = [
+            SuperOp(mat)
+            for mat in [self.sopI, self.sopX, self.sopY, self.sopZ, self.sopH]
+        ]
         self._compare_expand_to_operator(chans, mats)
 
     def test_superop_expand_random(self):
@@ -289,7 +292,10 @@ class TestEquivalence(ChannelTestCase):
     def test_chi_expand(self):
         """Test expand of Chi matrices is correct."""
         mats = [self.UI, self.UX, self.UY, self.UZ, self.UH]
-        chans = [Chi(mat) for mat in [self.chiI, self.chiX, self.chiY, self.chiZ, self.chiH]]
+        chans = [
+            Chi(mat)
+            for mat in [self.chiI, self.chiX, self.chiY, self.chiZ, self.chiH]
+        ]
         self._compare_expand_to_operator(chans, mats)
 
     def test_chi_expand_random(self):
@@ -306,7 +312,10 @@ class TestEquivalence(ChannelTestCase):
     def test_ptm_expand(self):
         """Test expand of PTM matrices is correct."""
         mats = [self.UI, self.UX, self.UY, self.UZ, self.UH]
-        chans = [PTM(mat) for mat in [self.ptmI, self.ptmX, self.ptmY, self.ptmZ, self.ptmH]]
+        chans = [
+            PTM(mat)
+            for mat in [self.ptmI, self.ptmX, self.ptmY, self.ptmZ, self.ptmH]
+        ]
         self._compare_expand_to_operator(chans, mats)
 
     def test_ptm_expand_random(self):
@@ -323,7 +332,10 @@ class TestEquivalence(ChannelTestCase):
     def test_choi_compose(self):
         """Test compose of Choi matrices is correct."""
         mats = [self.UI, self.UX, self.UY, self.UZ, self.UH]
-        chans = [Choi(mat) for mat in [self.choiI, self.choiX, self.choiY, self.choiZ, self.choiH]]
+        chans = [
+            Choi(mat) for mat in
+            [self.choiI, self.choiX, self.choiY, self.choiZ, self.choiH]
+        ]
         self._compare_compose_to_operator(chans, mats)
 
     def test_choi_compose_random(self):
@@ -340,7 +352,10 @@ class TestEquivalence(ChannelTestCase):
     def test_superop_compose(self):
         """Test compose of SuperOp matrices is correct."""
         mats = [self.UI, self.UX, self.UY, self.UZ, self.UH]
-        chans = [SuperOp(mat) for mat in [self.sopI, self.sopX, self.sopY, self.sopZ, self.sopH]]
+        chans = [
+            SuperOp(mat)
+            for mat in [self.sopI, self.sopX, self.sopY, self.sopZ, self.sopH]
+        ]
         self._compare_compose_to_operator(chans, mats)
 
     def test_superop_compose_random(self):
@@ -391,7 +406,10 @@ class TestEquivalence(ChannelTestCase):
     def test_chi_compose(self):
         """Test compose of Chi matrices is correct."""
         mats = [self.UI, self.UX, self.UY, self.UZ, self.UH]
-        chans = [Chi(mat) for mat in [self.chiI, self.chiX, self.chiY, self.chiZ, self.chiH]]
+        chans = [
+            Chi(mat)
+            for mat in [self.chiI, self.chiX, self.chiY, self.chiZ, self.chiH]
+        ]
         self._compare_compose_to_operator(chans, mats)
 
     def test_chi_compose_random(self):
@@ -408,7 +426,10 @@ class TestEquivalence(ChannelTestCase):
     def test_ptm_compose(self):
         """Test compose of PTM matrices is correct."""
         mats = [self.UI, self.UX, self.UY, self.UZ, self.UH]
-        chans = [PTM(mat) for mat in [self.ptmI, self.ptmX, self.ptmY, self.ptmZ, self.ptmH]]
+        chans = [
+            PTM(mat)
+            for mat in [self.ptmI, self.ptmX, self.ptmY, self.ptmZ, self.ptmH]
+        ]
         self._compare_compose_to_operator(chans, mats)
 
     def test_ptm_compose_random(self):
@@ -423,5 +444,5 @@ class TestEquivalence(ChannelTestCase):
         self._check_compose_other_reps(chan)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

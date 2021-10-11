@@ -33,7 +33,7 @@ class TestUniformDistribution(QiskitTestCase):
         expected = QuantumCircuit(3)
         expected.h([0, 1, 2])
 
-        self.assertEqual(circuit.decompose(), expected)
+        self.assertEqual(circuit, expected)
 
 
 @ddt
@@ -57,14 +57,9 @@ class TestNormalDistribution(QiskitTestCase):
             bounds = [bounds]
 
         # compute the points
-        meshgrid = np.meshgrid(
-            *(
-                np.linspace(bound[0], bound[1], num=2 ** num_qubits[i])
-                for i, bound in enumerate(bounds)
-            ),
-            indexing="ij",
-        )
-        x = list(zip(*(grid.flatten() for grid in meshgrid)))
+        meshgrid = np.meshgrid(*[np.linspace(bound[0], bound[1], num=2**num_qubits[i])
+                                 for i, bound in enumerate(bounds)], indexing='ij')
+        x = list(zip(*[grid.flatten() for grid in meshgrid]))
 
         # compute the normalized, truncated probabilities
         probabilities = multivariate_normal.pdf(x, mu, sigma)
@@ -83,13 +78,8 @@ class TestNormalDistribution(QiskitTestCase):
         [3, 1.75, 2.5, None, True],
         [2, 1.75, 2.5, (0, 3), False],
         [[1, 2, 2], None, None, None, True],
-        [
-            [1, 2, 1],
-            [0, 1, 1],
-            [[1.2, 0, 0], [0, 0.5, 0], [0, 0, 0.1]],
-            [(0, 2), (-1, 1), (-3, 3)],
-            False,
-        ],
+        [[1, 2, 1], [0, 1, 1], [[1.2, 0, 0], [0, 0.5, 0], [0, 0, 0.1]], [(0, 2), (-1, 1), (-3, 3)],
+         False]
     )
     @unpack
     def test_normal(self, num_qubits, mu, sigma, bounds, upto_diag):
@@ -98,22 +88,22 @@ class TestNormalDistribution(QiskitTestCase):
         # construct default values and kwargs dictionary to call the constructor of
         # NormalDistribution. The kwargs dictionary is used to not pass any arguments which are
         # None to test the default values of the class.
-        kwargs = {"num_qubits": num_qubits, "upto_diag": upto_diag}
+        kwargs = {'num_qubits': num_qubits, 'upto_diag': upto_diag}
 
         if mu is None:
             mu = np.zeros(len(num_qubits)) if isinstance(num_qubits, list) else 0
         else:
-            kwargs["mu"] = mu
+            kwargs['mu'] = mu
 
         if sigma is None:
             sigma = np.eye(len(num_qubits)).tolist() if isinstance(num_qubits, list) else 1
         else:
-            kwargs["sigma"] = sigma
+            kwargs['sigma'] = sigma
 
         if bounds is None:
             bounds = [(-1, 1)] * (len(num_qubits) if isinstance(num_qubits, list) else 1)
         else:
-            kwargs["bounds"] = bounds
+            kwargs['bounds'] = bounds
 
         normal = NormalDistribution(**kwargs)
         self.assertDistributionIsCorrect(normal, num_qubits, mu, sigma, bounds, upto_diag)
@@ -124,7 +114,7 @@ class TestNormalDistribution(QiskitTestCase):
         [2, 1.2, 1, [(0, 1), (0, 1)]],  # invalid bounds
         [[1, 2], 1, [[1, 0], [0, 1]], [(0, 1), (0, 1)]],  # invalid mu
         [[1, 2], [0, 0], [[2]], [(0, 1), (0, 1)]],  # invalid sigma
-        [[1, 2], [0, 0], [[1, 0], [0, 1]], [0, 1]],  # invalid bounds
+        [[1, 2], [0, 0], [[1, 0], [0, 1]], [0, 1]]  # invalid bounds
     )
     @unpack
     def test_mismatching_dimensions(self, num_qubits, mu, sigma, bounds):
@@ -133,7 +123,10 @@ class TestNormalDistribution(QiskitTestCase):
         with self.assertRaises(ValueError):
             _ = NormalDistribution(num_qubits, mu, sigma, bounds)
 
-    @data([(0, 0), (0, 1)], [(-2, -1), (1, 0)])
+    @data(
+        [(0, 0), (0, 1)],
+        [(-2, -1), (1, 0)]
+    )
     def test_bounds_invalid(self, bounds):
         """Test passing invalid bounds raises."""
 
@@ -162,14 +155,9 @@ class TestLogNormalDistribution(QiskitTestCase):
             bounds = [bounds]
 
         # compute the points
-        meshgrid = np.meshgrid(
-            *(
-                np.linspace(bound[0], bound[1], num=2 ** num_qubits[i])
-                for i, bound in enumerate(bounds)
-            ),
-            indexing="ij",
-        )
-        x = list(zip(*(grid.flatten() for grid in meshgrid)))
+        meshgrid = np.meshgrid(*[np.linspace(bound[0], bound[1], num=2**num_qubits[i])
+                                 for i, bound in enumerate(bounds)], indexing='ij')
+        x = list(zip(*[grid.flatten() for grid in meshgrid]))
 
         # compute the normalized, truncated probabilities
         probabilities = []
@@ -194,13 +182,8 @@ class TestLogNormalDistribution(QiskitTestCase):
         [3, 1.75, 2.5, None, True],
         [2, 1.75, 2.5, (0, 3), False],
         [[1, 2, 2], None, None, None, True],
-        [
-            [1, 2, 1],
-            [0, 1, 1],
-            [[1.2, 0, 0], [0, 0.5, 0], [0, 0, 0.1]],
-            [(0, 2), (-1, 1), (-3, 3)],
-            False,
-        ],
+        [[1, 2, 1], [0, 1, 1], [[1.2, 0, 0], [0, 0.5, 0], [0, 0, 0.1]], [(0, 2), (-1, 1), (-3, 3)],
+         False]
     )
     @unpack
     def test_lognormal(self, num_qubits, mu, sigma, bounds, upto_diag):
@@ -209,26 +192,26 @@ class TestLogNormalDistribution(QiskitTestCase):
         # construct default values and kwargs dictionary to call the constructor of
         # NormalDistribution. The kwargs dictionary is used to not pass any arguments which are
         # None to test the default values of the class.
-        kwargs = {"num_qubits": num_qubits, "upto_diag": upto_diag}
+        kwargs = {'num_qubits': num_qubits, 'upto_diag': upto_diag}
 
         if mu is None:
             mu = np.zeros(len(num_qubits)) if isinstance(num_qubits, list) else 0
         else:
-            kwargs["mu"] = mu
+            kwargs['mu'] = mu
 
         if sigma is None:
             sigma = np.eye(len(num_qubits)).tolist() if isinstance(num_qubits, list) else 1
         else:
-            kwargs["sigma"] = sigma
+            kwargs['sigma'] = sigma
 
         if bounds is None:
             bounds = [(0, 1)] * (len(num_qubits) if isinstance(num_qubits, list) else 1)
         else:
-            kwargs["bounds"] = bounds
+            kwargs['bounds'] = bounds
 
         normal = LogNormalDistribution(**kwargs)
         self.assertDistributionIsCorrect(normal, num_qubits, mu, sigma, bounds, upto_diag)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

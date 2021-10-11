@@ -15,7 +15,7 @@ about the current state of the circuit """
 
 
 class PropertySet(dict):
-    """A default dictionary-like object"""
+    """ A default dictionary-like object """
 
     def __missing__(self, key):
         return None

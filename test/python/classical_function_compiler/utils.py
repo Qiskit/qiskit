@@ -21,18 +21,14 @@ def get_truthtable_from_function(function):
     amount_bit_input = len(getfullargspec(function).args)
     result = ""
     for decimal in range(2 ** amount_bit_input):
-        entry = bin(decimal)[2:].rjust(amount_bit_input, "0")
-        result += str(int(function(*(i == "1" for i in entry[::-1]))))
+        entry = bin(decimal)[2:].rjust(amount_bit_input, '0')
+        result += str(int(function(*[i == '1' for i in entry[::-1]])))
     return result[::-1]
 
 
 def example_list():
     """Creates a list with all the examples in examples.py"""
-    callables = [
-        getattr(examples, example_name) for example_name in dir(examples) if example_name[0] != "_"
-    ]
-    return [
-        func
-        for func in callables
-        if isfunction(func) and "examples.py" in func.__code__.co_filename
-    ]
+    callables = [getattr(examples, example_name) for example_name in dir(examples)
+                 if example_name[0] != '_']
+    return [func for func in callables
+            if isfunction(func) and 'examples.py' in func.__code__.co_filename]

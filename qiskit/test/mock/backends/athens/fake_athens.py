@@ -15,20 +15,10 @@ Fake Athens device (5 qubit).
 """
 
 import os
-from qiskit.test.mock import fake_pulse_backend
+from qiskit.test.mock.fake_pulse_backend import FakePulseBackend
 
 
-class FakeAthens(fake_pulse_backend.FakePulseBackend):
-    """A fake 5 qubit backend."""
-
-    dirname = os.path.dirname(__file__)
-    conf_filename = "conf_athens.json"
-    props_filename = "props_athens.json"
-    defs_filename = "defs_athens.json"
-    backend_name = "fake_athens"
-
-
-class FakeLegacyAthens(fake_pulse_backend.FakePulseLegacyBackend):
+class FakeAthens(FakePulseBackend):
     """A fake 5 qubit backend."""
 
     dirname = os.path.dirname(__file__)

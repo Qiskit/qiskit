@@ -13,8 +13,6 @@
 """ AerPauliExpectation Class """
 
 import logging
-from functools import reduce
-from operator import add
 from typing import Union
 
 from qiskit.exceptions import MissingOptionalLibraryError
@@ -27,19 +25,18 @@ from qiskit.opflow.primitive_ops.pauli_op import PauliOp
 from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
 from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
 from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
-from qiskit.quantum_info import SparsePauliOp
 
 logger = logging.getLogger(__name__)
 
 
 class AerPauliExpectation(ExpectationBase):
-    r"""An Expectation converter for using Aer's operator snapshot to
+    r""" An Expectation converter for using Aer's operator snapshot to
     take expectations of quantum state circuits over Pauli observables.
 
     """
 
     def convert(self, operator: OperatorBase) -> OperatorBase:
-        """Accept an Operator and return a new Operator with the Pauli measurements replaced by
+        """ Accept an Operator and return a new Operator with the Pauli measurements replaced by
         AerSnapshot-based expectation circuits.
 
         Args:
@@ -55,56 +52,46 @@ class AerPauliExpectation(ExpectationBase):
         else:
             return operator
 
+    # pylint: disable=inconsistent-return-statements
     @classmethod
     def _replace_pauli_sums(cls, operator):
         try:
-            from qiskit.providers.aer.library import SaveExpectationValue
+            from qiskit.providers.aer.extensions import SnapshotExpectationValue
         except ImportError as ex:
             raise MissingOptionalLibraryError(
-                libname="qiskit-aer",
-                name="AerPauliExpectation",
-                pip_install="pip install qiskit-aer",
-            ) from ex
-        # The 'expval_measurement' label on the save instruction is special - the
+                libname='qiskit-aer',
+                name='AerPauliExpectation',
+                pip_install='pip install qiskit-aer') from ex
+        # The 'expval_measurement' label on the snapshot instruction is special - the
         # CircuitSampler will look for it to know that the circuit is a Expectation
         # measurement, and not simply a
         # circuit to replace with a DictStateFn
-        if operator.__class__ == ListOp:
-            return operator.traverse(cls._replace_pauli_sums)
 
         if isinstance(operator, PauliSumOp):
-            save_instruction = SaveExpectationValue(operator.primitive, "expval_measurement")
-            return CircuitStateFn(
-                save_instruction, coeff=operator.coeff, is_measurement=True, from_operator=True
-            )
+            paulis = [(meas[1], meas[0]) for meas in operator.primitive.to_list()]
+            snapshot_instruction = SnapshotExpectationValue('expval_measurement', paulis)
+            return CircuitStateFn(snapshot_instruction, coeff=operator.coeff, is_measurement=True)
 
         # Change to Pauli representation if necessary
-        if {"Pauli"} != operator.primitive_strings():
-            logger.warning(
-                "Measured Observable is not composed of only Paulis, converting to "
-                "Pauli representation, which can be expensive."
-            )
+        if not {'Pauli'} == operator.primitive_strings():
+            logger.warning('Measured Observable is not composed of only Paulis, converting to '
+                           'Pauli representation, which can be expensive.')
             # Setting massive=False because this conversion is implicit. User can perform this
             # action on the Observable with massive=True explicitly if they so choose.
             operator = operator.to_pauli_op(massive=False)
 
         if isinstance(operator, SummedOp):
-            sparse_pauli = reduce(
-                add, (meas.coeff * SparsePauliOp(meas.primitive) for meas in operator.oplist)
-            )
-            save_instruction = SaveExpectationValue(sparse_pauli, "expval_measurement")
-            return CircuitStateFn(
-                save_instruction, coeff=operator.coeff, is_measurement=True, from_operator=True
-            )
-
+            paulis = [[meas.coeff, meas.primitive] for meas in operator.oplist]
+            snapshot_instruction = SnapshotExpectationValue('expval_measurement', paulis)
+            snapshot_op = CircuitStateFn(snapshot_instruction, is_measurement=True)
+            return snapshot_op
         if isinstance(operator, PauliOp):
-            sparse_pauli = operator.coeff * SparsePauliOp(operator.primitive)
-            save_instruction = SaveExpectationValue(sparse_pauli, "expval_measurement")
-            return CircuitStateFn(save_instruction, is_measurement=True, from_operator=True)
-
-        raise TypeError(
-            f"Conversion of OperatorStateFn of {operator.__class__.__name__} is not defined."
-        )
+            paulis = [[operator.coeff, operator.primitive]]
+            snapshot_instruction = SnapshotExpectationValue('expval_measurement', paulis)
+            snapshot_op = CircuitStateFn(snapshot_instruction, is_measurement=True)
+            return snapshot_op
+        if isinstance(operator, ListOp):
+            return operator.traverse(cls._replace_pauli_sums)
 
     def compute_variance(self, exp_op: OperatorBase) -> Union[list, float]:
         r"""
@@ -125,7 +112,6 @@ class AerPauliExpectation(ExpectationBase):
             if isinstance(operator, ComposedOp):
                 return 0.0
             elif isinstance(operator, ListOp):
-                return operator.combo_fn([sum_variance(op) for op in operator.oplist])
-            raise TypeError(f"Variance cannot be computed for {operator.__class__.__name__}.")
+                return operator._combo_fn([sum_variance(op) for op in operator.oplist])
 
         return sum_variance(exp_op)

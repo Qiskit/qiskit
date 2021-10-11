@@ -25,12 +25,12 @@ def decode_pulse_defaults(defaults: Dict) -> None:
     Args:
         defaults: A ``PulseDefaults`` in dictionary format.
     """
-    for item in defaults["pulse_library"]:
+    for item in defaults['pulse_library']:
         _decode_pulse_library_item(item)
 
-    for cmd in defaults["cmd_def"]:
-        if "sequence" in cmd:
-            for instr in cmd["sequence"]:
+    for cmd in defaults['cmd_def']:
+        if 'sequence' in cmd:
+            for instr in cmd['sequence']:
                 _decode_pulse_qobj_instr(instr)
 
 
@@ -40,15 +40,15 @@ def decode_backend_properties(properties: Dict) -> None:
     Args:
         properties: A ``BackendProperties`` in dictionary format.
     """
-    properties["last_update_date"] = dateutil.parser.isoparse(properties["last_update_date"])
-    for qubit in properties["qubits"]:
+    properties['last_update_date'] = dateutil.parser.isoparse(properties['last_update_date'])
+    for qubit in properties['qubits']:
         for nduv in qubit:
-            nduv["date"] = dateutil.parser.isoparse(nduv["date"])
-    for gate in properties["gates"]:
-        for param in gate["parameters"]:
-            param["date"] = dateutil.parser.isoparse(param["date"])
-    for gen in properties["general"]:
-        gen["date"] = dateutil.parser.isoparse(gen["date"])
+            nduv['date'] = dateutil.parser.isoparse(nduv['date'])
+    for gate in properties['gates']:
+        for param in gate['parameters']:
+            param['date'] = dateutil.parser.isoparse(param['date'])
+    for gen in properties['general']:
+        gen['date'] = dateutil.parser.isoparse(gen['date'])
 
 
 def decode_backend_configuration(config: Dict) -> None:
@@ -58,12 +58,12 @@ def decode_backend_configuration(config: Dict) -> None:
         config: A ``QasmBackendConfiguration`` or ``PulseBackendConfiguration``
             in dictionary format.
     """
-    config["online_date"] = dateutil.parser.isoparse(config["online_date"])
+    config['online_date'] = dateutil.parser.isoparse(config['online_date'])
 
-    if "u_channel_lo" in config:
-        for u_channle_list in config["u_channel_lo"]:
+    if 'u_channel_lo' in config:
+        for u_channle_list in config['u_channel_lo']:
             for u_channle_lo in u_channle_list:
-                u_channle_lo["scale"] = _to_complex(u_channle_lo["scale"])
+                u_channle_lo['scale'] = _to_complex(u_channle_lo['scale'])
 
 
 def _to_complex(value: Union[List[float], complex]) -> complex:
@@ -83,7 +83,7 @@ def _to_complex(value: Union[List[float], complex]) -> complex:
     elif isinstance(value, complex):
         return value
 
-    raise TypeError(f"{value} is not in a valid complex number format.")
+    raise TypeError("{} is not in a valid complex number format.".format(value))
 
 
 def _decode_pulse_library_item(pulse_library_item: Dict) -> None:
@@ -92,9 +92,8 @@ def _decode_pulse_library_item(pulse_library_item: Dict) -> None:
     Args:
         pulse_library_item: A ``PulseLibraryItem`` in dictionary format.
     """
-    pulse_library_item["samples"] = [
-        _to_complex(sample) for sample in pulse_library_item["samples"]
-    ]
+    pulse_library_item['samples'] =\
+        [_to_complex(sample) for sample in pulse_library_item['samples']]
 
 
 def _decode_pulse_qobj_instr(pulse_qobj_instr: Dict) -> None:
@@ -103,7 +102,7 @@ def _decode_pulse_qobj_instr(pulse_qobj_instr: Dict) -> None:
     Args:
         pulse_qobj_instr: A ``PulseQobjInstruction`` in dictionary format.
     """
-    if "val" in pulse_qobj_instr:
-        pulse_qobj_instr["val"] = _to_complex(pulse_qobj_instr["val"])
-    if "parameters" in pulse_qobj_instr and "amp" in pulse_qobj_instr["parameters"]:
-        pulse_qobj_instr["parameters"]["amp"] = _to_complex(pulse_qobj_instr["parameters"]["amp"])
+    if 'val' in pulse_qobj_instr:
+        pulse_qobj_instr['val'] = _to_complex(pulse_qobj_instr['val'])
+    if 'parameters' in pulse_qobj_instr and 'amp' in pulse_qobj_instr['parameters']:
+        pulse_qobj_instr['parameters']['amp'] = _to_complex(pulse_qobj_instr['parameters']['amp'])

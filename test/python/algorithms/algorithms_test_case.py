@@ -17,5 +17,4 @@ from qiskit.test import QiskitTestCase
 
 class QiskitAlgorithmsTestCase(QiskitTestCase):
     """Algorithms test Case"""
-
     pass

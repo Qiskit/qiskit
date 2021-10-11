@@ -14,7 +14,6 @@
 """The Quantum Phase Estimation Algorithm."""
 
 
-import warnings
 from typing import Optional, Union
 import numpy
 from qiskit.circuit import QuantumCircuit
@@ -55,18 +54,15 @@ class PhaseEstimation(PhaseEstimator):
     across bitstrings, with amplitudes that decrease with distance from the bitstring most
     closely approximating the eigenphase.
 
-    The main input to the constructor is the number of qubits in the phase-reading register.
-    For phase estimation, there are two methods:
+    The main inputs are the number of qubits in the phase-reading register, a state preparation
+    circuit to prepare an input state, and either
 
-    first. `estimate`, which takes a state preparation circuit to prepare an input state, and
-      a unitary that will act on the the input state. In this case, an instance of
-      :class:`qiskit.circuit.PhaseEstimation`, a QPE circuit, containing
-      the state preparation and input unitary will be constructed.
-    second. `estimate_from_pe_circuit`, which takes a quantum-phase-estimation circuit in which
-      the unitary and state preparation are already embedded.
+    1) A unitary that will act on the the input state, or
+    2) A quantum-phase-estimation circuit in which the unitary is already embedded.
 
-    In both estimation methods, the QPE circuit is run on a backend
-    and the frequencies or counts of the phases represented by bitstrings
+    In case 1), an instance of :class:`qiskit.circuit.PhaseEstimation`, a QPE circuit, containing
+    the input unitary will be constructed. After construction, the QPE circuit is run on a backend
+    via the `run` method, and the frequencies or counts of the phases represented by bitstrings
     are recorded. The results are returned as an instance of
     :class:`~qiskit.algorithms.phase_estimator_result.PhaseEstimationResult`.
 
@@ -78,11 +74,10 @@ class PhaseEstimation(PhaseEstimator):
 
     """
 
-    def __init__(
-        self,
-        num_evaluation_qubits: int,
-        quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
-    ) -> None:
+    def __init__(self,
+                 num_evaluation_qubits: int,
+                 quantum_instance: Optional[Union[QuantumInstance,
+                                                  BaseBackend, Backend]] = None) -> None:
         """
         Args:
             num_evaluation_qubits: The number of qubits used in estimating the phase. The phase will
@@ -98,9 +93,9 @@ class PhaseEstimation(PhaseEstimator):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
 
-    def construct_circuit(
-        self, unitary: QuantumCircuit, state_preparation: Optional[QuantumCircuit] = None
-    ) -> QuantumCircuit:
+    def construct_circuit(self,
+                          unitary: QuantumCircuit,
+                          state_preparation: Optional[QuantumCircuit] = None) -> QuantumCircuit:
         """Return the circuit to be executed to estimate phases.
 
         This circuit includes as sub-circuits the core phase estimation circuit,
@@ -114,29 +109,30 @@ class PhaseEstimation(PhaseEstimator):
         if state_preparation is not None:
             pe_circuit.compose(
                 state_preparation,
-                qubits=range(num_evaluation_qubits, num_evaluation_qubits + num_unitary_qubits),
+                qubits=range(num_evaluation_qubits,
+                             num_evaluation_qubits + num_unitary_qubits),
                 inplace=True,
-                front=True,
-            )
+                front=True)
+
+        self._add_measurement_if_required(pe_circuit)
 
         return pe_circuit
 
     def _add_measurement_if_required(self, pe_circuit):
         if not self._quantum_instance.is_statevector:
             # Measure only the evaluation qubits.
-            regname = "meas"
+            regname = 'meas'
             creg = ClassicalRegister(self._num_evaluation_qubits, regname)
             pe_circuit.add_register(creg)
             pe_circuit.barrier()
-            pe_circuit.measure(
-                range(self._num_evaluation_qubits), range(self._num_evaluation_qubits)
-            )
+            pe_circuit.measure(range(self._num_evaluation_qubits),
+                               range(self._num_evaluation_qubits))
 
         return circuit
 
-    def _compute_phases(
-        self, num_unitary_qubits: int, circuit_result: Result
-    ) -> Union[numpy.ndarray, qiskit.result.Counts]:
+    def _compute_phases(self,
+                        num_unitary_qubits: int,
+                        circuit_result: Result) -> Union[numpy.ndarray, qiskit.result.Counts]:
         """Compute frequencies/counts of phases from the result of running the QPE circuit.
 
         How the frequencies are computed depends on whether the backend computes amplitude or
@@ -168,9 +164,8 @@ class PhaseEstimation(PhaseEstimator):
             state_vec = circuit_result.get_statevector()
             evaluation_density_matrix = qiskit.quantum_info.partial_trace(
                 state_vec,
-                range(
-                    self._num_evaluation_qubits, self._num_evaluation_qubits + num_unitary_qubits
-                ),
+                range(self._num_evaluation_qubits,
+                      self._num_evaluation_qubits + num_unitary_qubits)
             )
             phases = evaluation_density_matrix.probabilities()
         else:
@@ -179,71 +174,52 @@ class PhaseEstimation(PhaseEstimator):
             counts = circuit_result.get_counts()
             phases = {k[::-1]: counts[k] / num_shots for k in counts.keys()}
             phases = _sort_phases(phases)
-            phases = qiskit.result.Counts(
-                phases, memory_slots=counts.memory_slots, creg_sizes=counts.creg_sizes
-            )
+            phases = qiskit.result.Counts(phases, memory_slots=counts.memory_slots,
+                                          creg_sizes=counts.creg_sizes)
 
         return phases
 
-    def estimate_from_pe_circuit(
-        self, pe_circuit: QuantumCircuit, num_unitary_qubits: int
-    ) -> PhaseEstimationResult:
-        """Run the the phase estimation algorithm on a phase estimation circuit
-
-        Args:
-            pe_circuit: The phase estimation circuit.
-            num_unitary_qubits: Must agree with the number of qubits in the unitary in `pe_circuit`.
-
-        Returns:
-            An instance of qiskit.algorithms.phase_estimator_result.PhaseEstimationResult.
-        """
-        self._add_measurement_if_required(pe_circuit)
-        circuit_result = self._quantum_instance.execute(pe_circuit)
-        phases = self._compute_phases(num_unitary_qubits, circuit_result)
-        return PhaseEstimationResult(
-            self._num_evaluation_qubits, circuit_result=circuit_result, phases=phases
-        )
-
-    # pylint: disable=missing-raises-doc
-    # pylint: disable=missing-param-doc
-    def estimate(
-        self,
-        unitary: Optional[QuantumCircuit] = None,
-        state_preparation: Optional[QuantumCircuit] = None,
-        pe_circuit: Optional[QuantumCircuit] = None,
-        num_unitary_qubits: Optional[int] = None,
-    ) -> PhaseEstimationResult:
-        """Build a phase estimation circuit and run the corresponding algorithm.
+    def estimate(self,
+                 unitary: Optional[QuantumCircuit] = None,
+                 state_preparation: Optional[QuantumCircuit] = None,
+                 pe_circuit: Optional[QuantumCircuit] = None,
+                 num_unitary_qubits: Optional[int] = None) -> PhaseEstimationResult:
+        """Run the the phase estimation algorithm.
 
         Args:
             unitary: The circuit representing the unitary operator whose eigenvalues (via phase)
-                will be measured.
+                will be measured. Exactly one of `pe_circuit` and `unitary` must be passed.
             state_preparation: The circuit that prepares the state whose eigenphase will be
                 measured.  If this parameter is omitted, no preparation circuit
                 will be run and input state will be the all-zero state in the
                 computational basis.
+            pe_circuit: The phase estimation circuit.
+            num_unitary_qubits: Must agree with the number of qubits in the unitary in `pe_circuit`
+                if `pe_circuit` is passed. This parameter will be set from `unitary`
+                if `unitary` is passed.
+
+        Raises:
+            ValueError: If both `pe_circuit` and `unitary` are passed.
+            ValueError: If neither `pe_circuit` nor `unitary` are passed.
 
         Returns:
             An instance of qiskit.algorithms.phase_estimator_result.PhaseEstimationResult.
         """
+        num_evaluation_qubits = self._num_evaluation_qubits
+
         if unitary is not None:
             if pe_circuit is not None:
-                raise ValueError("Only one of `pe_circuit` and `unitary` may be passed.")
+                raise ValueError('Only one of `pe_circuit` and `unitary` may be passed.')
             pe_circuit = self.construct_circuit(unitary, state_preparation)
             num_unitary_qubits = unitary.num_qubits
 
         elif pe_circuit is not None:
-            warnings.warn(
-                "Passing `pe_circuit` to the PhaseEstimation.estimate() method "
-                "is deprecated as of 0.18, and will be removed no earlier than "
-                "3 months after that release date. "
-                "You should use the PhaseEstimation.estimate_from_pe_circuit() method "
-                "instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
+            self._add_measurement_if_required(pe_circuit)
 
         else:
-            raise ValueError("One of `pe_circuit` and `unitary` must be passed.")
+            raise ValueError('One of `pe_circuit` and `unitary` must be passed.')
 
-        return self.estimate_from_pe_circuit(pe_circuit, num_unitary_qubits)
+        circuit_result = self._quantum_instance.execute(pe_circuit)
+        phases = self._compute_phases(num_unitary_qubits, circuit_result)
+        return PhaseEstimationResult(num_evaluation_qubits, circuit_result=circuit_result,
+                                     phases=phases)

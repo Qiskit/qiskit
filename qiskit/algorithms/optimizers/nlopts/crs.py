@@ -31,5 +31,5 @@ class CRS(NLoptOptimizer):
     """
 
     def get_nlopt_optimizer(self) -> NLoptOptimizerType:
-        """Return NLopt optimizer type"""
+        """ Return NLopt optimizer type """
         return NLoptOptimizerType.GN_CRS2_LM

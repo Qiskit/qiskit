@@ -29,21 +29,21 @@ class OneQubitZeroParamGate(Gate):
     """Mock one qubit zero param gate."""
 
     def __init__(self):
-        super().__init__("1q0p", 1, [])
+        super().__init__('1q0p', 1, [])
 
 
 class OneQubitOneParamGate(Gate):
     """Mock one qubit one  param gate."""
 
     def __init__(self, theta):
-        super().__init__("1q1p", 1, [theta])
+        super().__init__('1q1p', 1, [theta])
 
 
 class OneQubitTwoParamGate(Gate):
     """Mock one qubit two param gate."""
 
     def __init__(self, phi, lam):
-        super().__init__("1q2p", 1, [phi, lam])
+        super().__init__('1q2p', 1, [phi, lam])
 
 
 class TestEquivalenceLibraryWithoutBase(QiskitTestCase):
@@ -269,8 +269,8 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
         """Verify we raise if adding a circuit and gate with different sets of parameters."""
         eq_lib = EquivalenceLibrary()
 
-        theta = Parameter("theta")
-        phi = Parameter("phi")
+        theta = Parameter('theta')
+        phi = Parameter('phi')
 
         gate = OneQubitOneParamGate(theta)
         equiv = QuantumCircuit(1)
@@ -286,7 +286,7 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
         """Verify query parameters will be included in returned entry."""
         eq_lib = EquivalenceLibrary()
 
-        theta = Parameter("theta")
+        theta = Parameter('theta')
 
         gate = OneQubitOneParamGate(theta)
         equiv = QuantumCircuit(1)
@@ -294,7 +294,7 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
 
         eq_lib.add_equivalence(gate, equiv)
 
-        phi = Parameter("phi")
+        phi = Parameter('phi')
         gate_phi = OneQubitOneParamGate(phi)
 
         entry = eq_lib.get_entry(gate_phi)
@@ -309,8 +309,8 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
         """Verify numeric query parameters will be included in returned entry."""
         eq_lib = EquivalenceLibrary()
 
-        theta = Parameter("theta")
-        phi = Parameter("phi")
+        theta = Parameter('theta')
+        phi = Parameter('phi')
 
         gate = OneQubitTwoParamGate(theta, phi)
         equiv = QuantumCircuit(1)
@@ -318,7 +318,7 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
 
         eq_lib.add_equivalence(gate, equiv)
 
-        lam = Parameter("lam")
+        lam = Parameter('lam')
         gate_partial = OneQubitTwoParamGate(lam, 1.59)
 
         entry = eq_lib.get_entry(gate_partial)
@@ -333,7 +333,7 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
         """Verify a gate can be added under different sets of parameters."""
         eq_lib = EquivalenceLibrary()
 
-        theta = Parameter("theta")
+        theta = Parameter('theta')
 
         gate_theta = OneQubitOneParamGate(theta)
         equiv_theta = QuantumCircuit(1)
@@ -341,14 +341,14 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
 
         eq_lib.add_equivalence(gate_theta, equiv_theta)
 
-        phi = Parameter("phi")
+        phi = Parameter('phi')
         gate_phi = OneQubitOneParamGate(phi)
         equiv_phi = QuantumCircuit(1)
         equiv_phi.rz(phi, 0)
 
         eq_lib.add_equivalence(gate_phi, equiv_phi)
 
-        lam = Parameter("lam")
+        lam = Parameter('lam')
         gate_query = OneQubitOneParamGate(lam)
 
         entry = eq_lib.get_entry(gate_query)
@@ -367,8 +367,8 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
         """Verify entries will different numbers of parameters will be returned."""
         eq_lib = EquivalenceLibrary()
 
-        theta = Parameter("theta")
-        phi = Parameter("phi")
+        theta = Parameter('theta')
+        phi = Parameter('phi')
 
         # e.g. RGate(theta, phi)
         gate_full = OneQubitTwoParamGate(theta, phi)
@@ -383,7 +383,7 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
 
         eq_lib.add_equivalence(gate_partial, equiv_partial)
 
-        lam = Parameter("lam")
+        lam = Parameter('lam')
         gate_query = OneQubitTwoParamGate(lam, 0)
 
         entry = eq_lib.get_entry(gate_query)
@@ -409,7 +409,6 @@ class TestSessionEquivalenceLibrary(QiskitTestCase):
         qc_gate.cx(0, 1)
 
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
-
         bell_gate = circuit_to_gate(qc_gate, equivalence_library=sel)
 
         qc_inst = QuantumCircuit(2)
@@ -434,7 +433,6 @@ class TestSessionEquivalenceLibrary(QiskitTestCase):
         qc.cx(0, 1)
 
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
-
         gate = circuit_to_gate(qc, equivalence_library=sel)
 
         decomps = gate.decompositions

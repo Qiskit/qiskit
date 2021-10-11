@@ -16,4 +16,8 @@ from .lognormal import LogNormalDistribution
 from .normal import NormalDistribution
 from .uniform import UniformDistribution
 
-__all__ = ["LogNormalDistribution", "NormalDistribution", "UniformDistribution"]
+__all__ = [
+    'LogNormalDistribution',
+    'NormalDistribution',
+    'UniformDistribution'
+]

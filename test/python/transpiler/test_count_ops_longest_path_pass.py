@@ -21,20 +21,20 @@ from qiskit.test import QiskitTestCase
 
 
 class TestCountOpsLongestPathPass(QiskitTestCase):
-    """Tests for CountOpsLongestPath analysis methods."""
+    """ Tests for CountOpsLongestPath analysis methods. """
 
     def test_empty_dag(self):
-        """Empty DAG has empty counts."""
+        """ Empty DAG has empty counts."""
         circuit = QuantumCircuit()
         dag = circuit_to_dag(circuit)
 
         pass_ = CountOpsLongestPath()
         _ = pass_.run(dag)
 
-        self.assertDictEqual(pass_.property_set["count_ops_longest_path"], {})
+        self.assertDictEqual(pass_.property_set['count_ops_longest_path'], {})
 
     def test_just_qubits(self):
-        """A dag with 9 operations (3 CXs, 2Xs, 2Ys and 2 Hs) on the longest
+        """ A dag with 9 operations (3 CXs, 2Xs, 2Ys and 2 Hs) on the longest
         path
         """
         qr = QuantumRegister(2)
@@ -53,9 +53,9 @@ class TestCountOpsLongestPathPass(QiskitTestCase):
         pass_ = CountOpsLongestPath()
         _ = pass_.run(dag)
 
-        count_ops = pass_.property_set["count_ops_longest_path"]
-        self.assertDictEqual(count_ops, {"cx": 3, "x": 2, "y": 2, "h": 2})
+        count_ops = pass_.property_set['count_ops_longest_path']
+        self.assertDictEqual(count_ops, {'cx': 3, 'x': 2, 'y': 2, 'h': 2})
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

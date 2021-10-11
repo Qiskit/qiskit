@@ -22,39 +22,35 @@ class TestTwoQubitReduction(QiskitOpflowTestCase):
     """TwoQubitReduction tests."""
 
     def test_convert(self):
-        """convert test"""
+        """ convert test """
 
-        qubit_op = PauliSumOp.from_list(
-            [
-                ("IIII", -0.8105479805373266),
-                ("IIIZ", 0.17218393261915552),
-                ("IIZZ", -0.22575349222402472),
-                ("IZZI", 0.1721839326191556),
-                ("ZZII", -0.22575349222402466),
-                ("IIZI", 0.1209126326177663),
-                ("IZZZ", 0.16892753870087912),
-                ("IXZX", -0.045232799946057854),
-                ("ZXIX", 0.045232799946057854),
-                ("IXIX", 0.045232799946057854),
-                ("ZXZX", -0.045232799946057854),
-                ("ZZIZ", 0.16614543256382414),
-                ("IZIZ", 0.16614543256382414),
-                ("ZZZZ", 0.17464343068300453),
-                ("ZIZI", 0.1209126326177663),
-            ]
-        )
+        qubit_op = PauliSumOp.from_list([
+            ("IIII", -0.8105479805373266),
+            ("IIIZ", 0.17218393261915552),
+            ("IIZZ", -0.22575349222402472),
+            ("IZZI", 0.1721839326191556),
+            ("ZZII", -0.22575349222402466),
+            ("IIZI", 0.1209126326177663),
+            ("IZZZ", 0.16892753870087912),
+            ("IXZX", -0.045232799946057854),
+            ("ZXIX", 0.045232799946057854),
+            ("IXIX", 0.045232799946057854),
+            ("ZXZX", -0.045232799946057854),
+            ("ZZIZ", 0.16614543256382414),
+            ("IZIZ", 0.16614543256382414),
+            ("ZZZZ", 0.17464343068300453),
+            ("ZIZI", 0.1209126326177663),
+        ])
         tapered_qubit_op = TwoQubitReduction(num_particles=2).convert(qubit_op)
         self.assertIsInstance(tapered_qubit_op, TaperedPauliSumOp)
 
-        primitive = SparsePauliOp.from_list(
-            [
-                ("II", -1.052373245772859),
-                ("ZI", -0.39793742484318007),
-                ("IZ", 0.39793742484318007),
-                ("ZZ", -0.01128010425623538),
-                ("XX", 0.18093119978423142),
-            ]
-        )
+        primitive = SparsePauliOp.from_list([
+            ("II", -1.052373245772859),
+            ("ZI", -0.39793742484318007),
+            ("IZ", 0.39793742484318007),
+            ("ZZ", -0.01128010425623538),
+            ("XX", 0.18093119978423142),
+        ])
         symmetries = [Pauli("IIZI"), Pauli("ZIII")]
         sq_paulis = [Pauli("IIXI"), Pauli("XIII")]
         sq_list = [1, 3]

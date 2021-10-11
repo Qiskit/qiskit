@@ -23,32 +23,33 @@ from qiskit.transpiler.exceptions import TranspilerError
 
 
 class TestApplyLayout(QiskitTestCase):
-    """Tests the ApplyLayout pass."""
+    """ Tests the ApplyLayout pass."""
 
     def test_trivial(self):
         """Test if the bell circuit with virtual qubits is transformed into
         the circuit with physical qubits under trivial layout.
         """
-        v = QuantumRegister(2, "v")
+        v = QuantumRegister(2, 'v')
         circuit = QuantumCircuit(v)
         circuit.h(v[0])
         circuit.cx(v[0], v[1])
 
-        q = QuantumRegister(2, "q")
+        q = QuantumRegister(2, 'q')
         expected = QuantumCircuit(q)
         expected.h(q[0])
         expected.cx(q[0], q[1])
 
         dag = circuit_to_dag(circuit)
         pass_ = ApplyLayout()
-        pass_.property_set["layout"] = Layout({v[0]: 0, v[1]: 1})
+        pass_.property_set['layout'] = Layout({v[0]: 0, v[1]: 1})
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
 
     def test_raise_when_no_layout_is_supplied(self):
-        """Test error is raised if no layout is found in property_set."""
-        v = QuantumRegister(2, "v")
+        """Test error is raised if no layout is found in property_set.
+        """
+        v = QuantumRegister(2, 'v')
         circuit = QuantumCircuit(v)
         circuit.h(v[0])
         circuit.cx(v[0], v[1])
@@ -59,15 +60,16 @@ class TestApplyLayout(QiskitTestCase):
             pass_.run(dag)
 
     def test_raise_when_no_full_layout_is_given(self):
-        """Test error is raised if no full layout is given."""
-        v = QuantumRegister(2, "v")
+        """Test error is raised if no full layout is given.
+        """
+        v = QuantumRegister(2, 'v')
         circuit = QuantumCircuit(v)
         circuit.h(v[0])
         circuit.cx(v[0], v[1])
 
         dag = circuit_to_dag(circuit)
         pass_ = ApplyLayout()
-        pass_.property_set["layout"] = Layout({v[0]: 2, v[1]: 1})
+        pass_.property_set['layout'] = Layout({v[0]: 2, v[1]: 1})
         with self.assertRaises(TranspilerError):
             pass_.run(dag)
 
@@ -91,8 +93,8 @@ class TestApplyLayout(QiskitTestCase):
                    |
           q0:-----(+)--M(q0->c2)
         """
-        v = QuantumRegister(3, "v")
-        cr = ClassicalRegister(3, "c")
+        v = QuantumRegister(3, 'v')
+        cr = ClassicalRegister(3, 'c')
         circuit = QuantumCircuit(v, cr)
         circuit.swap(v[0], v[1])
         circuit.cx(v[0], v[2])
@@ -100,7 +102,7 @@ class TestApplyLayout(QiskitTestCase):
         circuit.measure(v[1], cr[1])
         circuit.measure(v[2], cr[2])
 
-        q = QuantumRegister(3, "q")
+        q = QuantumRegister(3, 'q')
         expected = QuantumCircuit(q, cr)
         expected.swap(q[2], q[1])
         expected.cx(q[2], q[0])
@@ -110,11 +112,11 @@ class TestApplyLayout(QiskitTestCase):
 
         dag = circuit_to_dag(circuit)
         pass_ = ApplyLayout()
-        pass_.property_set["layout"] = Layout({v[0]: 2, v[1]: 1, v[2]: 0})
+        pass_.property_set['layout'] = Layout({v[0]: 2, v[1]: 1, v[2]: 0})
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

@@ -28,9 +28,10 @@ class DictToCircuitSum(ConverterBase):
     or ``VectorStateFns``, rather than both.
     """
 
-    def __init__(
-        self, traverse: bool = True, convert_dicts: bool = True, convert_vectors: bool = True
-    ) -> None:
+    def __init__(self,
+                 traverse: bool = True,
+                 convert_dicts: bool = True,
+                 convert_vectors: bool = True) -> None:
         """
         Args:
             traverse: Whether to recurse down into Operators with internal sub-operators for
@@ -43,7 +44,7 @@ class DictToCircuitSum(ConverterBase):
         self._convert_vectors = convert_vectors
 
     def convert(self, operator: OperatorBase) -> OperatorBase:
-        """Convert the Operator to ``CircuitStateFns``, recursively if ``traverse`` is True.
+        """ Convert the Operator to ``CircuitStateFns``, recursively if ``traverse`` is True.
 
         Args:
             operator: The Operator to convert
@@ -56,7 +57,7 @@ class DictToCircuitSum(ConverterBase):
             return CircuitStateFn.from_dict(operator.primitive)
         if isinstance(operator, VectorStateFn) and self._convert_vectors:
             return CircuitStateFn.from_vector(operator.to_matrix(massive=True))
-        elif isinstance(operator, ListOp) and "Dict" in operator.primitive_strings():
+        elif isinstance(operator, ListOp) and 'Dict' in operator.primitive_strings():
             return operator.traverse(self.convert)
         else:
             return operator

@@ -17,19 +17,21 @@ from collections import namedtuple
 
 import retworkx as rx
 
-from qiskit.exceptions import MissingOptionalLibraryError
 from .exceptions import CircuitError
 from .parameterexpression import ParameterExpression
 
 
-Key = namedtuple("Key", ["name", "num_qubits"])
+Key = namedtuple('Key', ['name',
+                         'num_qubits'])
 
-Entry = namedtuple("Entry", ["search_base", "equivalences"])
+Entry = namedtuple('Entry', ['search_base',
+                             'equivalences'])
 
-Equivalence = namedtuple("Equivalence", ["params", "circuit"])  # Ordered to match Gate.params
+Equivalence = namedtuple('Equivalence', ['params',  # Ordered to match Gate.params
+                                         'circuit'])
 
 
-class EquivalenceLibrary:
+class EquivalenceLibrary():
     """A library providing a one-way mapping of Gates to their equivalent
     implementations as QuantumCircuits."""
 
@@ -62,9 +64,11 @@ class EquivalenceLibrary:
         _raise_if_shape_mismatch(gate, equivalent_circuit)
         _raise_if_param_mismatch(gate.params, equivalent_circuit.parameters)
 
-        key = Key(name=gate.name, num_qubits=gate.num_qubits)
+        key = Key(name=gate.name,
+                  num_qubits=gate.num_qubits)
 
-        equiv = Equivalence(params=gate.params.copy(), circuit=equivalent_circuit.copy())
+        equiv = Equivalence(params=gate.params.copy(),
+                            circuit=equivalent_circuit.copy())
 
         if key not in self._map:
             self._map[key] = Entry(search_base=True, equivalences=[])
@@ -82,9 +86,11 @@ class EquivalenceLibrary:
                 False otherwise.
         """
 
-        key = Key(name=gate.name, num_qubits=gate.num_qubits)
+        key = Key(name=gate.name,
+                  num_qubits=gate.num_qubits)
 
-        return key in self._map or (self._base.has_entry(gate) if self._base is not None else False)
+        return (key in self._map or
+                (self._base.has_entry(gate) if self._base is not None else False))
 
     def set_entry(self, gate, entry):
         """Set the equivalence record for a Gate. Future queries for the Gate
@@ -104,11 +110,15 @@ class EquivalenceLibrary:
             _raise_if_shape_mismatch(gate, equiv)
             _raise_if_param_mismatch(gate.params, equiv.parameters)
 
-        key = Key(name=gate.name, num_qubits=gate.num_qubits)
+        key = Key(name=gate.name,
+                  num_qubits=gate.num_qubits)
 
-        equivs = [Equivalence(params=gate.params.copy(), circuit=equiv.copy()) for equiv in entry]
+        equivs = [Equivalence(params=gate.params.copy(),
+                              circuit=equiv.copy())
+                  for equiv in entry]
 
-        self._map[key] = Entry(search_base=False, equivalences=equivs)
+        self._map[key] = Entry(search_base=False,
+                               equivalences=equivs)
 
     def get_entry(self, gate):
         """Gets the set of QuantumCircuits circuits from the library which
@@ -130,11 +140,13 @@ class EquivalenceLibrary:
                 consistent across Qiskit versions.
         """
 
-        key = Key(name=gate.name, num_qubits=gate.num_qubits)
+        key = Key(name=gate.name,
+                  num_qubits=gate.num_qubits)
 
         query_params = gate.params
 
-        return [_rebind_equiv(equiv, query_params) for equiv in self._get_equivalences(key)]
+        return [_rebind_equiv(equiv, query_params)
+                for equiv in self._get_equivalences(key)]
 
     def draw(self, filename=None):
         """Draws the equivalence relations available in the library.
@@ -148,55 +160,45 @@ class EquivalenceLibrary:
                 IPython SVG if in a jupyter notebook, or as a PIL.Image otherwise.
 
         Raises:
-            MissingOptionalLibraryError: when pydot or pillow are not installed.
+            ImportError: when pydot or pillow are not installed.
         """
         try:
             import pydot
-
             has_pydot = True
         except ImportError:
             has_pydot = False
         try:
             from PIL import Image
-
             has_pil = True
         except ImportError:
             has_pil = False
 
         if not has_pydot:
-            raise MissingOptionalLibraryError(
-                libname="pydot",
-                name="EquivalenceLibrary.draw",
-                pip_install="pip install pydot",
-            )
+            raise ImportError('EquivalenceLibrary.draw requires pydot. '
+                              "You can use 'pip install pydot' to install")
         if not has_pil and not filename:
-            raise MissingOptionalLibraryError(
-                libname="pillow",
-                name="EquivalenceLibrary.draw",
-                pip_install="pip install pillow",
-            )
+            raise ImportError('EquivalenceLibrary.draw requires pillow. '
+                              "You can use 'pip install pillow' to install")
 
         try:
             from IPython.display import SVG
-
             has_ipython = True
         except ImportError:
             has_ipython = False
 
         dot_str = self._build_basis_graph().to_dot(
-            lambda node: {"label": node["label"]}, lambda edge: edge
-        )
+            lambda node: {'label': node['label']}, lambda edge: edge)
         dot = pydot.graph_from_dot_data(dot_str)[0]
         if filename:
-            extension = filename.split(".")[-1]
+            extension = filename.split('.')[-1]
             dot.write(filename, format=extension)
             return None
 
         if has_ipython:
-            svg = dot.create_svg(prog="dot")
+            svg = dot.create_svg(prog='dot')
             return SVG(svg)
 
-        png = dot.create_png(prog="dot")
+        png = dot.create_png(prog='dot')
         return Image.open(io.BytesIO(png))
 
     def _build_basis_graph(self):
@@ -207,29 +209,26 @@ class EquivalenceLibrary:
             name, num_qubits = key
             equivalences = self._get_equivalences(key)
 
-            basis = frozenset([f"{name}/{num_qubits}"])
+            basis = frozenset(['{}/{}'.format(name, num_qubits)])
             for params, decomp in equivalences:
-                decomp_basis = frozenset(
-                    f"{name}/{num_qubits}"
-                    for name, num_qubits in {
-                        (inst.name, inst.num_qubits) for inst, _, __ in decomp.data
-                    }
-                )
+                decomp_basis = frozenset('{}/{}'.format(name, num_qubits)
+                                         for name, num_qubits in
+                                         {(inst.name, inst.num_qubits)
+                                          for inst, _, __ in decomp.data})
                 if basis not in node_map:
-                    basis_node = graph.add_node({"basis": basis, "label": str(set(basis))})
+                    basis_node = graph.add_node({'basis': basis,
+                                                 'label': str(set(basis))})
                     node_map[basis] = basis_node
                 if decomp_basis not in node_map:
-                    decomp_basis_node = graph.add_node(
-                        {"basis": decomp_basis, "label": str(set(decomp_basis))}
-                    )
+                    decomp_basis_node = graph.add_node({'basis': decomp_basis,
+                                                        'label': str(set(decomp_basis))})
                     node_map[decomp_basis] = decomp_basis_node
 
-                label = "{}\n{}".format(str(params), str(decomp) if num_qubits <= 5 else "...")
-                graph.add_edge(
-                    node_map[basis],
-                    node_map[decomp_basis],
-                    dict(label=label, fontname="Courier", fontsize=str(8)),
-                )
+                label = "%s\n%s" % (
+                    str(params), str(decomp) if num_qubits <= 5 else '...')
+                graph.add_edge(node_map[basis],
+                               node_map[decomp_basis],
+                               dict(label=label, fontname='Courier', fontsize=str(8)))
 
         return graph
 
@@ -238,11 +237,10 @@ class EquivalenceLibrary:
 
         self_keys = set(self._map.keys())
 
-        return self_keys | {
-            base_key
-            for base_key in base_keys
-            if base_key not in self._map or self._map[base_key].search_base
-        }
+        return self_keys | {base_key
+                            for base_key in base_keys
+                            if base_key not in self._map
+                            or self._map[base_key].search_base}
 
     def _get_equivalences(self, key):
         search_base, equivalences = self._map.get(key, (True, []))
@@ -253,25 +251,25 @@ class EquivalenceLibrary:
 
 
 def _raise_if_param_mismatch(gate_params, circuit_parameters):
-    gate_parameters = [p for p in gate_params if isinstance(p, ParameterExpression)]
+    gate_parameters = [p for p in gate_params
+                       if isinstance(p, ParameterExpression)]
 
     if set(gate_parameters) != circuit_parameters:
-        raise CircuitError(
-            "Cannot add equivalence between circuit and gate "
-            "of different parameters. Gate params: {}. "
-            "Circuit params: {}.".format(gate_parameters, circuit_parameters)
-        )
+        raise CircuitError('Cannot add equivalence between circuit and gate '
+                           'of different parameters. Gate params: {}. '
+                           'Circuit params: {}.'.format(
+                               gate_parameters,
+                               circuit_parameters))
 
 
 def _raise_if_shape_mismatch(gate, circuit):
-    if gate.num_qubits != circuit.num_qubits or gate.num_clbits != circuit.num_clbits:
-        raise CircuitError(
-            "Cannot add equivalence between circuit and gate "
-            "of different shapes. Gate: {} qubits and {} clbits. "
-            "Circuit: {} qubits and {} clbits.".format(
-                gate.num_qubits, gate.num_clbits, circuit.num_qubits, circuit.num_clbits
-            )
-        )
+    if (gate.num_qubits != circuit.num_qubits
+            or gate.num_clbits != circuit.num_clbits):
+        raise CircuitError('Cannot add equivalence between circuit and gate '
+                           'of different shapes. Gate: {} qubits and {} clbits. '
+                           'Circuit: {} qubits and {} clbits.'.format(
+                               gate.num_qubits, gate.num_clbits,
+                               circuit.num_qubits, circuit.num_clbits))
 
 
 def _rebind_equiv(equiv, query_params):

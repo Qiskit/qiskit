@@ -12,14 +12,18 @@
 
 """A generalized QAOA quantum circuit with a support of custom initial states and mixers."""
 # pylint: disable=cyclic-import
-from typing import Optional, Set, List, Tuple
+from typing import Optional, cast, Set, List, Tuple
 
-from qiskit.circuit.library.evolved_operator_ansatz import EvolvedOperatorAnsatz
+import numpy as np
+
 from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.parametervector import ParameterVector
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumregister import QuantumRegister
+from ..blueprintcircuit import BlueprintCircuit
 
 
-class QAOAAnsatz(EvolvedOperatorAnsatz):
+class QAOAAnsatz(BlueprintCircuit):
     """A generalized QAOA quantum circuit with a support of custom initial states and mixers.
 
     References:
@@ -28,14 +32,12 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
             `arXiv:1411.4028 <https://arxiv.org/pdf/1411.4028>`_
     """
 
-    def __init__(
-        self,
-        cost_operator=None,
-        reps: int = 1,
-        initial_state: Optional[QuantumCircuit] = None,
-        mixer_operator=None,
-        name: str = "QAOA",
-    ):
+    def __init__(self,
+                 cost_operator=None,
+                 reps: int = 1,
+                 initial_state: Optional[QuantumCircuit] = None,
+                 mixer_operator=None,
+                 name: str = "qaoa"):
         r"""
         Args:
             cost_operator (OperatorBase, optional): The operator representing the cost of
@@ -69,49 +71,61 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         valid = True
 
-        if self.cost_operator is None:
+        if self._cost_operator is None:
             valid = False
             if raise_on_failure:
-                raise AttributeError(
-                    "The operator representing the cost of the optimization problem is not set"
-                )
-
-        if self.reps is None or self.reps < 0:
+                raise AttributeError("The operator representing the cost of "
+                                     "the optimization problem is not set")
+        if self._reps is None or self._reps < 1:
             valid = False
             if raise_on_failure:
-                raise AttributeError(
-                    "The integer parameter reps, which determines the depth "
-                    "of the circuit, needs to be >= 0 but has value {}".format(self._reps)
-                )
+                raise AttributeError("The integer parameter reps, which determines the depth "
+                                     "of the circuit, needs to be >= 1 but has value {}"
+                                     .format(self._reps))
 
         if self.initial_state is not None and self.initial_state.num_qubits != self.num_qubits:
             valid = False
             if raise_on_failure:
-                raise AttributeError(
-                    "The number of qubits of the initial state {} does not match "
-                    "the number of qubits of the cost operator {}".format(
-                        self.initial_state.num_qubits, self.num_qubits
-                    )
-                )
+                raise AttributeError("The number of qubits of the initial state {} does not match "
+                                     "the number of qubits of the cost operator {}"
+                                     .format(self.initial_state.num_qubits, self.num_qubits))
 
         if self.mixer_operator is not None and self.mixer_operator.num_qubits != self.num_qubits:
             valid = False
             if raise_on_failure:
-                raise AttributeError(
-                    "The number of qubits of the mixer {} does not match "
-                    "the number of qubits of the cost operator {}".format(
-                        self.mixer_operator.num_qubits, self.num_qubits
-                    )
-                )
+                raise AttributeError("The number of qubits of the mixer {} does not match "
+                                     "the number of qubits of the cost operator {}"
+                                     .format(self.mixer_operator.num_qubits, self.num_qubits))
 
         return valid
 
-    @property
-    def num_qubits(self) -> int:
-        """Return the number of qubits, specified by the size of the cost operator."""
-        if self.cost_operator is not None:
-            return self.cost_operator.num_qubits
-        return 0
+    def _build(self) -> None:
+        """Build the circuit."""
+        if self._data:
+            return
+
+        self._check_configuration()
+        self._data = []
+
+        # calculate bounds, num_parameters, mixer
+        self._calculate_parameters()
+
+        # parameterize circuit and build it
+        param_vector = ParameterVector("θ", self._num_parameters)
+        circuit = self._construct_circuit(param_vector)
+
+        # append(replace) the circuit to this
+        self.compose(circuit, inplace=True)
+
+    def _reset_registers(self, num_qubits):
+        """Set the registers and qubits to the new size."""
+        self._qregs = []
+        self._qubits = []
+        self._qubit_set = set()
+
+        if num_qubits > 0:
+            qr = QuantumRegister(num_qubits, 'q')
+            self.add_register(qr)
 
     @property
     def parameters(self) -> Set[Parameter]:
@@ -134,15 +148,59 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
 
         return self._bounds
 
-    @property
-    def operators(self):
-        """The operators that are evolved in this circuit.
+    def _calculate_parameters(self):
+        """Calculated internal parameters of the circuit to be built."""
+        from qiskit.opflow import OperatorBase
+        if isinstance(self._mixer, QuantumCircuit):
+            self._num_parameters = (1 + self._mixer.num_parameters) * self._reps
+            self._bounds = [(None, None)] * self._reps + \
+                           [(None, None)] * self._reps * self._mixer.num_parameters
+        elif isinstance(self._mixer, OperatorBase):
+            self._num_parameters = 2 * self._reps
+            self._bounds = [(None, None)] * self._reps + [(None, None)] * self._reps
+        elif self._mixer is None:
+            self._num_parameters = 2 * self._reps
+            self._bounds = [(None, None)] * self._reps + [(0, 2 * np.pi)] * self._reps
 
-        Returns:
-             List[Union[OperatorBase, QuantumCircuit]]: The operators to be evolved (and circuits)
-                in this ansatz.
-        """
-        return [self.cost_operator, self.mixer_operator]
+    def _construct_circuit(self, parameters) -> QuantumCircuit:
+        """Construct a parameterized circuit."""
+        if not len(parameters) == self._num_parameters:
+            raise ValueError('Incorrect number of angles: expecting {}, but {} given.'.format(
+                self._num_parameters, len(parameters)
+            ))
+
+        # local imports to avoid circular imports
+        from qiskit.opflow import CircuitStateFn
+        from qiskit.opflow import CircuitOp, EvolutionFactory
+        from qiskit.opflow import OperatorBase
+
+        circuit_op = CircuitStateFn(self.initial_state)
+
+        # iterate over layers
+        for idx in range(self._reps):
+            # the first [:self._reps] parameters are used for the cost operator,
+            # so we apply them here
+            circuit_op = (self._cost_operator * parameters[idx]).exp_i().compose(circuit_op)
+            mixer = self.mixer_operator
+            if isinstance(mixer, OperatorBase):
+                mixer = cast(OperatorBase, mixer)
+                # we apply beta parameter in case of operator based mixer.
+                circuit_op = (mixer * parameters[idx + self._reps]).exp_i().compose(circuit_op)
+            else:
+                # mixer as a quantum circuit that can be parameterized
+                mixer = cast(QuantumCircuit, mixer)
+                num_params = mixer.num_parameters
+                # the remaining [self._p:] parameters are used for the mixer,
+                # there may be multiple layers, so parameters are grouped by layers.
+                param_values = parameters[self._reps + num_params * idx:
+                                          self._reps + num_params * (idx + 1)]
+                param_dict = dict(zip(mixer.parameters, param_values))
+                mixer = mixer.assign_parameters(param_dict)
+                circuit_op = CircuitOp(mixer).compose(circuit_op)
+
+        evolution = EvolutionFactory.build(self._cost_operator)
+        circuit_op = evolution.convert(circuit_op)
+        return circuit_op.to_circuit()
 
     @property
     def cost_operator(self):
@@ -162,6 +220,9 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         """
         self._cost_operator = cost_operator
         self._invalidate()
+
+        num_qubits = cost_operator.num_qubits if cost_operator else None
+        self._reset_registers(num_qubits)
 
     @property
     def reps(self) -> int:
@@ -197,6 +258,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
 
     # we can't directly specify OperatorBase as a return type, it causes a circular import
     # and pylint objects if return type is not documented
+    # pylint: disable=missing-return-type-doc
     @property
     def mixer_operator(self):
         """Returns an optional mixer operator expressed as an operator or a quantum circuit.
@@ -211,13 +273,10 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         if self.num_qubits > 0:
             # local imports to avoid circular imports
             from qiskit.opflow import I, X
-
             # Mixer is just a sum of single qubit X's on each qubit. Evolving by this operator
             # will simply produce rx's on each qubit.
-            mixer_terms = [
-                (I ^ left) ^ X ^ (I ^ (self.num_qubits - left - 1))
-                for left in range(self.num_qubits)
-            ]
+            mixer_terms = [(I ^ left) ^ X ^ (I ^ (self.num_qubits - left - 1))
+                           for left in range(self.num_qubits)]
             mixer = sum(mixer_terms)
             return mixer
 

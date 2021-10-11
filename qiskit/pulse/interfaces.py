@@ -32,24 +32,18 @@ class ScheduleComponent(metaclass=ABCMeta):
     @abstractmethod
     def name(self) -> str:
         """Name of ScheduleComponent."""
-        warnings.warn(
-            "ScheduleComponent is deprecated and will be removed in a future release. "
-            "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
-            "accept a ``Union[Schedule, Instruction]`` ",
-            DeprecationWarning,
-        )
+        warnings.warn("ScheduleComponent is deprecated and will be removed in a future release. "
+                      "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
+                      "accept a ``Union[Schedule, Instruction]`` ", DeprecationWarning)
         pass
 
     @property
     @abstractmethod
     def channels(self) -> List[Channel]:
         """Return channels used by schedule."""
-        warnings.warn(
-            "ScheduleComponent is deprecated and will be removed in a future release. "
-            "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
-            "accept a ``Union[Schedule, Instruction]`` ",
-            DeprecationWarning,
-        )
+        warnings.warn("ScheduleComponent is deprecated and will be removed in a future release. "
+                      "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
+                      "accept a ``Union[Schedule, Instruction]`` ", DeprecationWarning)
 
         pass
 
@@ -57,12 +51,9 @@ class ScheduleComponent(metaclass=ABCMeta):
     @abstractmethod
     def duration(self) -> int:
         """Duration of this schedule component."""
-        warnings.warn(
-            "ScheduleComponent is deprecated and will be removed in a future release. "
-            "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
-            "accept a ``Union[Schedule, Instruction]`` ",
-            DeprecationWarning,
-        )
+        warnings.warn("ScheduleComponent is deprecated and will be removed in a future release. "
+                      "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
+                      "accept a ``Union[Schedule, Instruction]`` ", DeprecationWarning)
 
         pass
 
@@ -70,12 +61,9 @@ class ScheduleComponent(metaclass=ABCMeta):
     @abstractmethod
     def start_time(self) -> int:
         """Starting time of this schedule component."""
-        warnings.warn(
-            "ScheduleComponent is deprecated and will be removed in a future release. "
-            "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
-            "accept a ``Union[Schedule, Instruction]`` ",
-            DeprecationWarning,
-        )
+        warnings.warn("ScheduleComponent is deprecated and will be removed in a future release. "
+                      "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
+                      "accept a ``Union[Schedule, Instruction]`` ", DeprecationWarning)
 
         pass
 
@@ -83,104 +71,78 @@ class ScheduleComponent(metaclass=ABCMeta):
     @abstractmethod
     def stop_time(self) -> int:
         """Stopping time of this schedule component."""
-        warnings.warn(
-            "ScheduleComponent is deprecated and will be removed in a future release. "
-            "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
-            "accept a ``Union[Schedule, Instruction]`` ",
-            DeprecationWarning,
-        )
+        warnings.warn("ScheduleComponent is deprecated and will be removed in a future release. "
+                      "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
+                      "accept a ``Union[Schedule, Instruction]`` ", DeprecationWarning)
         pass
 
     @abstractmethod
     def ch_duration(self, *channels: List[Channel]) -> int:
         """Duration of the `channels` in schedule component."""
-        warnings.warn(
-            "ScheduleComponent is deprecated and will be removed in a future release. "
-            "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
-            "accept a ``Union[Schedule, Instruction]`` ",
-            DeprecationWarning,
-        )
+        warnings.warn("ScheduleComponent is deprecated and will be removed in a future release. "
+                      "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
+                      "accept a ``Union[Schedule, Instruction]`` ", DeprecationWarning)
         pass
 
     @abstractmethod
     def ch_start_time(self, *channels: List[Channel]) -> int:
-        """Starting time of the `channels` in schedule component."""
-        warnings.warn(
-            "ScheduleComponent is deprecated and will be removed in a future release. "
-            "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
-            "accept a ``Union[Schedule, Instruction]`` ",
-            DeprecationWarning,
-        )
+        """Starting time of the `channels` in schedule component. """
+        warnings.warn("ScheduleComponent is deprecated and will be removed in a future release. "
+                      "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
+                      "accept a ``Union[Schedule, Instruction]`` ", DeprecationWarning)
         pass
 
     @abstractmethod
     def ch_stop_time(self, *channels: List[Channel]) -> int:
         """Stopping of the `channels` in schedule component."""
-        warnings.warn(
-            "ScheduleComponent is deprecated and will be removed in a future release. "
-            "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
-            "accept a ``Union[Schedule, Instruction]`` ",
-            DeprecationWarning,
-        )
+        warnings.warn("ScheduleComponent is deprecated and will be removed in a future release. "
+                      "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
+                      "accept a ``Union[Schedule, Instruction]`` ", DeprecationWarning)
         pass
 
     @property
     @abstractmethod
-    def _children(self) -> Tuple[Union[int, "ScheduleComponent"]]:
-        """Child nodes of this schedule component."""
-        warnings.warn(
-            "ScheduleComponent is deprecated and will be removed in a future release. "
-            "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
-            "accept a ``Union[Schedule, Instruction]`` ",
-            DeprecationWarning,
-        )
+    def _children(self) -> Tuple[Union[int, 'ScheduleComponent']]:
+        """Child nodes of this schedule component. """
+        warnings.warn("ScheduleComponent is deprecated and will be removed in a future release. "
+                      "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
+                      "accept a ``Union[Schedule, Instruction]`` ", DeprecationWarning)
         pass
 
     @property
     @abstractmethod
-    def instructions(self) -> Tuple[Tuple[int, "Instructions"]]:
+    def instructions(self) -> Tuple[Tuple[int, 'Instructions']]:
         """Return iterable for all `Instruction`s in `Schedule` tree."""
-        warnings.warn(
-            "ScheduleComponent is deprecated and will be removed in a future release. "
-            "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
-            "accept a ``Union[Schedule, Instruction]`` ",
-            DeprecationWarning,
-        )
+        warnings.warn("ScheduleComponent is deprecated and will be removed in a future release. "
+                      "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
+                      "accept a ``Union[Schedule, Instruction]`` ", DeprecationWarning)
         pass
 
     @abstractmethod
-    def flatten(self) -> "ScheduleComponent":
+    def flatten(self) -> 'ScheduleComponent':
         """Return a new schedule which is the flattened schedule contained all `instructions`."""
-        warnings.warn(
-            "ScheduleComponent is deprecated and will be removed in a future release. "
-            "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
-            "accept a ``Union[Schedule, Instruction]`` ",
-            DeprecationWarning,
-        )
+        warnings.warn("ScheduleComponent is deprecated and will be removed in a future release. "
+                      "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
+                      "accept a ``Union[Schedule, Instruction]`` ", DeprecationWarning)
         pass
 
     @abstractmethod
-    def shift(
-        self: "ScheduleComponent", time: int, name: Optional[str] = None
-    ) -> "ScheduleComponent":
+    def shift(self: 'ScheduleComponent', time: int,
+              name: Optional[str] = None) -> 'ScheduleComponent':
         """Return a new schedule shifted forward by `time`.
 
         Args:
             time: Time to shift by
             name: Name of the new schedule. Defaults to name of parent
         """
-        warnings.warn(
-            "ScheduleComponent is deprecated and will be removed in a future release. "
-            "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
-            "accept a ``Union[Schedule, Instruction]`` ",
-            DeprecationWarning,
-        )
+        warnings.warn("ScheduleComponent is deprecated and will be removed in a future release. "
+                      "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
+                      "accept a ``Union[Schedule, Instruction]`` ", DeprecationWarning)
         pass
 
     @abstractmethod
-    def insert(
-        self, start_time: int, schedule: "ScheduleComponent", name: Optional[str] = None
-    ) -> "ScheduleComponent":
+    def insert(self, start_time: int, schedule: 'ScheduleComponent',
+               name: Optional[str] = None) -> 'ScheduleComponent':
         """Return a new schedule with `schedule` inserted at `start_time` of `self`.
 
         Args:
@@ -188,18 +150,14 @@ class ScheduleComponent(metaclass=ABCMeta):
             schedule: schedule to be inserted
             name: Name of the new schedule. Defaults to name of parent
         """
-        warnings.warn(
-            "ScheduleComponent is deprecated and will be removed in a future release. "
-            "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
-            "accept a ``Union[Schedule, Instruction]`` ",
-            DeprecationWarning,
-        )
+        warnings.warn("ScheduleComponent is deprecated and will be removed in a future release. "
+                      "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
+                      "accept a ``Union[Schedule, Instruction]`` ", DeprecationWarning)
         pass
 
     @abstractmethod
-    def append(
-        self, schedule: "ScheduleComponent", name: Optional[str] = None
-    ) -> "ScheduleComponent":
+    def append(self, schedule: 'ScheduleComponent',
+               name: Optional[str] = None) -> 'ScheduleComponent':
         """Return a new schedule with `schedule` inserted at the maximum time over
         all channels shared between `self` and `schedule`.
 
@@ -207,43 +165,31 @@ class ScheduleComponent(metaclass=ABCMeta):
             schedule: schedule to be appended
             name: Name of the new schedule. Defaults to name of parent
         """
-        warnings.warn(
-            "ScheduleComponent is deprecated and will be removed in a future release. "
-            "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
-            "accept a ``Union[Schedule, Instruction]`` ",
-            DeprecationWarning,
-        )
+        warnings.warn("ScheduleComponent is deprecated and will be removed in a future release. "
+                      "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
+                      "accept a ``Union[Schedule, Instruction]`` ", DeprecationWarning)
         pass
 
     @abstractmethod
-    def __add__(self, schedule: "ScheduleComponent") -> "ScheduleComponent":
+    def __add__(self, schedule: 'ScheduleComponent') -> 'ScheduleComponent':
         """Return a new schedule with `schedule` inserted within `self` at `start_time`."""
-        warnings.warn(
-            "ScheduleComponent is deprecated and will be removed in a future release. "
-            "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
-            "accept a ``Union[Schedule, Instruction]`` ",
-            DeprecationWarning,
-        )
+        warnings.warn("ScheduleComponent is deprecated and will be removed in a future release. "
+                      "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
+                      "accept a ``Union[Schedule, Instruction]`` ", DeprecationWarning)
         pass
 
     @abstractmethod
-    def __or__(self, schedule: "ScheduleComponent") -> "ScheduleComponent":
+    def __or__(self, schedule: 'ScheduleComponent') -> 'ScheduleComponent':
         """Return a new schedule which is the union of `self` and `schedule`."""
-        warnings.warn(
-            "ScheduleComponent is deprecated and will be removed in a future release. "
-            "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
-            "accept a ``Union[Schedule, Instruction]`` ",
-            DeprecationWarning,
-        )
+        warnings.warn("ScheduleComponent is deprecated and will be removed in a future release. "
+                      "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
+                      "accept a ``Union[Schedule, Instruction]`` ", DeprecationWarning)
         pass
 
     @abstractmethod
-    def __lshift__(self, time: int) -> "ScheduleComponent":
+    def __lshift__(self, time: int) -> 'ScheduleComponent':
         """Return a new schedule which is shifted forward by `time`."""
-        warnings.warn(
-            "ScheduleComponent is deprecated and will be removed in a future release. "
-            "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
-            "accept a ``Union[Schedule, Instruction]`` ",
-            DeprecationWarning,
-        )
+        warnings.warn("ScheduleComponent is deprecated and will be removed in a future release. "
+                      "Anywhere that currently accepts a ``ScheduleComponent`` should instead "
+                      "accept a ``Union[Schedule, Instruction]`` ", DeprecationWarning)
         pass

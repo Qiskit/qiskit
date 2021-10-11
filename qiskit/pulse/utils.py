@@ -41,9 +41,8 @@ def format_meas_map(meas_map: List[List[int]]) -> Dict[int, List[int]]:
 
 
 @functools.lru_cache(maxsize=None)
-def format_parameter_value(
-    operand: Union[ParameterExpression],
-) -> Union[ParameterExpression, complex]:
+def format_parameter_value(operand: Union[ParameterExpression]
+                           ) -> Union[ParameterExpression, int, float, complex]:
     """Convert ParameterExpression into the most suitable data type.
 
     Args:
@@ -60,7 +59,7 @@ def format_parameter_value(
     # no DAC that recognizes the resolution of 1e-15 but they are AlmostEqual in tests.
     from sympy import srepr
 
-    math_expr = srepr(operand).replace("*I", "j")
+    math_expr = srepr(operand)
     try:
         # value is assigned
         evaluated = complex(math_expr)
@@ -88,32 +87,26 @@ def instruction_duration_validation(duration: int):
     """
     if isinstance(duration, ParameterExpression):
         raise UnassignedDurationError(
-            "Instruction duration {} is not assigned. "
-            "Please bind all durations to an integer value before playing in the Schedule, "
-            "or use ScheduleBlock to align instructions with unassigned duration."
-            "".format(repr(duration))
-        )
+            'Instruction duration {} is not assigned. '
+            'Please bind all durations to an integer value before playing in the Schedule, '
+            'or use ScheduleBlock to align instructions with unassigned duration.'
+            ''.format(repr(duration)))
 
     if not isinstance(duration, (int, np.integer)) or duration < 0:
         raise QiskitError(
-            "Instruction duration must be a non-negative integer, "
-            "got {} instead.".format(duration)
-        )
+            'Instruction duration must be a non-negative integer, '
+            'got {} instead.'.format(duration))
 
 
 def deprecated_functionality(func):
     """A decorator that raises deprecation warning without showing alternative method."""
-
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        warnings.warn(
-            f"Calling {func.__name__} is being deprecated and will be removed soon. "
-            "No alternative method will be provided with this change. "
-            "If there is any practical usage of this functionality, please write "
-            "an issue in Qiskit/qiskit-terra repository.",
-            category=DeprecationWarning,
-            stacklevel=2,
-        )
+        warnings.warn(f'Calling {func.__name__} is being deprecated and will be removed soon. '
+                      'No alternative method will be provided with this change. '
+                      'If there is any practical usage of this functionality, please write '
+                      'an issue in Qiskit/qiskit-terra repository.',
+                      category=DeprecationWarning,
+                      stacklevel=2)
         return func(*args, **kwargs)
-
     return wrapper

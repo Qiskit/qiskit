@@ -55,7 +55,10 @@ class GR(QuantumCircuit):
 
     """
 
-    def __init__(self, num_qubits: int, theta: float, phi: float) -> None:
+    def __init__(self,
+                 num_qubits: int,
+                 theta: float,
+                 phi: float) -> None:
         """Create a new Global R (GR) gate.
 
         Args:
@@ -63,12 +66,8 @@ class GR(QuantumCircuit):
             theta: rotation angle about axis determined by phi
             phi: angle of rotation axis in xy-plane
         """
-        name = f"GR({theta:.2f}, {phi:.2f})"
-        circuit = QuantumCircuit(num_qubits, name=name)
-        circuit.r(theta, phi, circuit.qubits)
-
-        super().__init__(num_qubits, name=name)
-        self.append(circuit.to_gate(), self.qubits)
+        super().__init__(num_qubits, name="gr")
+        self.r(theta, phi, self.qubits)
 
 
 class GRX(GR):
@@ -110,7 +109,9 @@ class GRX(GR):
 
     """
 
-    def __init__(self, num_qubits: int, theta: float) -> None:
+    def __init__(self,
+                 num_qubits: int,
+                 theta: float) -> None:
         """Create a new Global RX (GRX) gate.
 
         Args:
@@ -159,14 +160,16 @@ class GRY(GR):
 
     """
 
-    def __init__(self, num_qubits: int, theta: float) -> None:
+    def __init__(self,
+                 num_qubits: int,
+                 theta: float) -> None:
         """Create a new Global RY (GRY) gate.
 
         Args:
             num_qubits: number of qubits.
             theta: rotation angle about y-axis
         """
-        super().__init__(num_qubits, theta, phi=np.pi / 2)
+        super().__init__(num_qubits, theta, phi=np.pi/2)
 
 
 class GRZ(QuantumCircuit):
@@ -208,7 +211,9 @@ class GRZ(QuantumCircuit):
 
     """
 
-    def __init__(self, num_qubits: int, phi: float) -> None:
+    def __init__(self,
+                 num_qubits: int,
+                 phi: float) -> None:
         """Create a new Global RZ (GRZ) gate.
 
         Args:

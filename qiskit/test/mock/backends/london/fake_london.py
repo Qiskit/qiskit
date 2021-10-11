@@ -15,33 +15,17 @@ Fake London device (5 qubit).
 """
 
 import os
-from qiskit.test.mock import fake_qasm_backend
+from qiskit.test.mock.fake_qasm_backend import FakeQasmBackend
 
 
-class FakeLondon(fake_qasm_backend.FakeQasmBackend):
+class FakeLondon(FakeQasmBackend):
     """A fake 5 qubit backend.
 
-    0 ↔ 1 ↔ 2
-        ↕
-        3
-        ↕
-        4
-    """
-
-    dirname = os.path.dirname(__file__)
-    conf_filename = "conf_london.json"
-    props_filename = "props_london.json"
-    backend_name = "fake_london"
-
-
-class FakeLegacyLondon(fake_qasm_backend.FakeQasmLegacyBackend):
-    """A fake 5 qubit backend.
-
-    0 ↔ 1 ↔ 2
-        ↕
-        3
-        ↕
-        4
+     0 ↔ 1 ↔ 2
+         ↕
+         3
+         ↕
+         4
     """
 
     dirname = os.path.dirname(__file__)

@@ -96,23 +96,14 @@ class LinearSolver(ABC):
     """An abstract class for linear system solvers in Qiskit."""
 
     @abstractmethod
-    def solve(
-        self,
-        matrix: Union[np.ndarray, QuantumCircuit],
-        vector: Union[np.ndarray, QuantumCircuit],
-        observable: Optional[
-            Union[
-                LinearSystemObservable,
-                BaseOperator,
-                List[LinearSystemObservable],
-                List[BaseOperator],
-            ]
-        ] = None,
-        observable_circuit: Optional[Union[QuantumCircuit, List[QuantumCircuit]]] = None,
-        post_processing: Optional[
-            Callable[[Union[float, List[float]]], Union[float, List[float]]]
-        ] = None,
-    ) -> LinearSolverResult:
+    def solve(self, matrix: Union[np.ndarray, QuantumCircuit],
+              vector: Union[np.ndarray, QuantumCircuit],
+              observable: Optional[Union[LinearSystemObservable, BaseOperator,
+                                         List[LinearSystemObservable], List[BaseOperator]]] = None,
+              observable_circuit: Optional[Union[QuantumCircuit, List[QuantumCircuit]]] = None,
+              post_processing: Optional[Callable[[Union[float, List[float]]],
+                                                 Union[float, List[float]]]] = None) \
+            -> LinearSolverResult:
         """Solve the system and compute the observable(s)
 
         Args:

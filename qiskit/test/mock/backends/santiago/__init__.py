@@ -13,4 +13,3 @@
 """Mock santiago backend"""
 
 from .fake_santiago import FakeSantiago
-from .fake_santiago import FakeLegacySantiago

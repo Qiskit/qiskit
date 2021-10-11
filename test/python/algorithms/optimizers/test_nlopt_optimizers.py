@@ -24,7 +24,7 @@ from qiskit.algorithms.optimizers import CRS, DIRECT_L, DIRECT_L_RAND
 
 @ddt
 class TestNLOptOptimizers(QiskitAlgorithmsTestCase):
-    """Test NLOpt Optimizers"""
+    """ Test NLOpt Optimizers """
 
     def _optimize(self, optimizer, use_bound):
         x_0 = [1.3, 0.7, 0.8, 1.9, 1.2]
@@ -34,27 +34,25 @@ class TestNLOptOptimizers(QiskitAlgorithmsTestCase):
         return res
 
     # ESCH and ISRES do not do well with rosen
-    @idata(
-        [
-            [CRS, True],
-            [DIRECT_L, True],
-            [DIRECT_L_RAND, True],
-            [CRS, False],
-            [DIRECT_L, False],
-            [DIRECT_L_RAND, False],
-        ]
-    )
+    @idata([
+        [CRS, True],
+        [DIRECT_L, True],
+        [DIRECT_L_RAND, True],
+        [CRS, False],
+        [DIRECT_L, False],
+        [DIRECT_L_RAND, False],
+    ])
     @unpack
     def test_nlopt(self, optimizer_cls, use_bound):
-        """NLopt test"""
+        """ NLopt test """
         try:
             optimizer = optimizer_cls()
-            optimizer.set_options(**{"max_evals": 50000})
+            optimizer.set_options(**{'max_evals': 50000})
             res = self._optimize(optimizer, use_bound)
             self.assertLessEqual(res[2], 50000)
         except MissingOptionalLibraryError as ex:
             self.skipTest(str(ex))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

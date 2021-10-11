@@ -15,20 +15,10 @@ Fake Mumbai device (27 qubit).
 """
 
 import os
-from qiskit.test.mock import fake_pulse_backend
+from qiskit.test.mock.fake_pulse_backend import FakePulseBackend
 
 
-class FakeMumbai(fake_pulse_backend.FakePulseBackend):
-    """A fake 27 qubit backend."""
-
-    dirname = os.path.dirname(__file__)
-    conf_filename = "conf_mumbai.json"
-    props_filename = "props_mumbai.json"
-    defs_filename = "defs_mumbai.json"
-    backend_name = "fake_mumbai"
-
-
-class FakeLegacyMumbai(fake_pulse_backend.FakePulseLegacyBackend):
+class FakeMumbai(FakePulseBackend):
     """A fake 27 qubit backend."""
 
     dirname = os.path.dirname(__file__)

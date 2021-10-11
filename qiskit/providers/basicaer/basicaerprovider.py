@@ -28,7 +28,11 @@ from .unitary_simulator import UnitarySimulatorPy
 
 logger = logging.getLogger(__name__)
 
-SIMULATORS = [QasmSimulatorPy, StatevectorSimulatorPy, UnitarySimulatorPy]
+SIMULATORS = [
+    QasmSimulatorPy,
+    StatevectorSimulatorPy,
+    UnitarySimulatorPy
+]
 
 
 class BasicAerProvider(ProviderV1):
@@ -48,7 +52,9 @@ class BasicAerProvider(ProviderV1):
         if name:
             try:
                 resolved_name = resolve_backend_name(
-                    name, backends, self._deprecated_backend_names(), {}
+                    name, backends,
+                    self._deprecated_backend_names(),
+                    {}
                 )
                 name = resolved_name
             except LookupError as ex:
@@ -67,9 +73,12 @@ class BasicAerProvider(ProviderV1):
         if name:
             try:
                 resolved_name = resolve_backend_name(
-                    name, backends, self._deprecated_backend_names(), {}
+                    name, backends,
+                    self._deprecated_backend_names(),
+                    {}
                 )
-                backends = [backend for backend in backends if backend.name() == resolved_name]
+                backends = [backend for backend in backends if
+                            backend.name() == resolved_name]
             except LookupError:
                 return []
 
@@ -79,14 +88,14 @@ class BasicAerProvider(ProviderV1):
     def _deprecated_backend_names():
         """Returns deprecated backend names."""
         return {
-            "qasm_simulator_py": "qasm_simulator",
-            "statevector_simulator_py": "statevector_simulator",
-            "unitary_simulator_py": "unitary_simulator",
-            "local_qasm_simulator_py": "qasm_simulator",
-            "local_statevector_simulator_py": "statevector_simulator",
-            "local_unitary_simulator_py": "unitary_simulator",
-            "local_unitary_simulator": "unitary_simulator",
-        }
+            'qasm_simulator_py': 'qasm_simulator',
+            'statevector_simulator_py': 'statevector_simulator',
+            'unitary_simulator_py': 'unitary_simulator',
+            'local_qasm_simulator_py': 'qasm_simulator',
+            'local_statevector_simulator_py': 'statevector_simulator',
+            'local_unitary_simulator_py': 'unitary_simulator',
+            'local_unitary_simulator': 'unitary_simulator',
+            }
 
     def _verify_backends(self):
         """
@@ -120,9 +129,9 @@ class BasicAerProvider(ProviderV1):
         try:
             backend_instance = backend_cls(provider=self)
         except Exception as err:
-            raise QiskitError(f"Backend {backend_cls} could not be instantiated: {err}") from err
+            raise QiskitError(f'Backend {backend_cls} could not be instantiated: {err}') from err
 
         return backend_instance
 
     def __str__(self):
-        return "BasicAer"
+        return 'BasicAer'

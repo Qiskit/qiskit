@@ -78,7 +78,7 @@ class ECRGate(Gate):
 
     def __init__(self):
         """Create new ECR gate."""
-        super().__init__("ecr", 2, [])
+        super().__init__('ecr', 2, [])
 
     def _define(self):
         """
@@ -86,13 +86,12 @@ class ECRGate(Gate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
-
-        q = QuantumRegister(2, "q")
+        q = QuantumRegister(2, 'q')
         qc = QuantumCircuit(q, name=self.name)
         rules = [
-            (RZXGate(np.pi / 4), [q[0], q[1]], []),
+            (RZXGate(np.pi/4), [q[0], q[1]], []),
             (XGate(), [q[0]], []),
-            (RZXGate(-np.pi / 4), [q[0], q[1]], []),
+            (RZXGate(-np.pi/4), [q[0], q[1]], [])
         ]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
@@ -101,11 +100,8 @@ class ECRGate(Gate):
 
     def to_matrix(self):
         """Return a numpy.array for the ECR gate."""
-        return (
-            1
-            / np.sqrt(2)
-            * np.array(
-                [[0, 1, 0, 1.0j], [1, 0, -1.0j, 0], [0, 1.0j, 0, 1], [-1.0j, 0, 1, 0]],
-                dtype=complex,
-            )
-        )
+        return 1/np.sqrt(2) * \
+            np.array([[0, 1, 0, 1.j],
+                      [1, 0, -1.j, 0],
+                      [0, 1.j, 0, 1],
+                      [-1.j, 0, 1, 0]], dtype=complex)

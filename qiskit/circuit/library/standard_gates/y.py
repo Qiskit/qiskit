@@ -14,7 +14,6 @@
 
 import numpy
 from qiskit.qasm import pi
-
 # pylint: disable=cyclic-import
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
@@ -66,16 +65,17 @@ class YGate(Gate):
 
     def __init__(self, label=None):
         """Create new Y gate."""
-        super().__init__("y", 1, [], label=label)
+        super().__init__('y', 1, [], label=label)
 
     def _define(self):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u3 import U3Gate
-
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         qc = QuantumCircuit(q, name=self.name)
-        rules = [(U3Gate(pi, pi / 2, pi / 2), [q[0]], [])]
+        rules = [
+            (U3Gate(pi, pi / 2, pi / 2), [q[0]], [])
+        ]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 
@@ -107,7 +107,8 @@ class YGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the Y gate."""
-        return numpy.array([[0, -1j], [1j, 0]], dtype=dtype)
+        return numpy.array([[0, -1j],
+                            [1j, 0]], dtype=dtype)
 
 
 class CYGate(ControlledGate):
@@ -163,14 +164,19 @@ class CYGate(ControlledGate):
 
     """
     # Define class constants. This saves future allocation time.
-    _matrix1 = numpy.array([[1, 0, 0, 0], [0, 0, 0, -1j], [0, 0, 1, 0], [0, 1j, 0, 0]])
-    _matrix0 = numpy.array([[0, 0, -1j, 0], [0, 1, 0, 0], [1j, 0, 0, 0], [0, 0, 0, 1]])
+    _matrix1 = numpy.array([[1, 0, 0, 0],
+                            [0, 0, 0, -1j],
+                            [0, 0, 1, 0],
+                            [0, 1j, 0, 0]])
+    _matrix0 = numpy.array([[0, 0, -1j, 0],
+                            [0, 1, 0, 0],
+                            [1j, 0, 0, 0],
+                            [0, 0, 0, 1]])
 
     def __init__(self, label=None, ctrl_state=None):
         """Create new CY gate."""
-        super().__init__(
-            "cy", 2, [], num_ctrl_qubits=1, label=label, ctrl_state=ctrl_state, base_gate=YGate()
-        )
+        super().__init__('cy', 2, [], num_ctrl_qubits=1, label=label,
+                         ctrl_state=ctrl_state, base_gate=YGate())
 
     def _define(self):
         """
@@ -180,10 +186,13 @@ class CYGate(ControlledGate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .s import SGate, SdgGate
         from .x import CXGate
-
-        q = QuantumRegister(2, "q")
+        q = QuantumRegister(2, 'q')
         qc = QuantumCircuit(q, name=self.name)
-        rules = [(SdgGate(), [q[1]], []), (CXGate(), [q[0], q[1]], []), (SGate(), [q[1]], [])]
+        rules = [
+            (SdgGate(), [q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
+            (SGate(), [q[1]], [])
+        ]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 

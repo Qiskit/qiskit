@@ -17,5 +17,4 @@ from qiskit.test import QiskitTestCase
 
 class QiskitOpflowTestCase(QiskitTestCase):
     """Opflow test Case"""
-
     pass

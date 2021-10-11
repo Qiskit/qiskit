@@ -46,12 +46,10 @@ class BasicAerJob(JobV1):
             qiskit.Result: Result object
         """
         if timeout is not None:
-            warnings.warn(
-                "The timeout kwarg doesn't have any meaning with "
-                "BasicAer because execution is synchronous and the "
-                "result already exists when run() returns.",
-                UserWarning,
-            )
+            warnings.warn("The timeout kwarg doesn't have any meaning with "
+                          "BasicAer because execution is synchronous and the "
+                          "result already exists when run() returns.",
+                          UserWarning)
 
         return self._result
 

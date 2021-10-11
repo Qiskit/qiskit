@@ -15,6 +15,6 @@
 from .shor import Shor, ShorResult
 
 __all__ = [
-    "Shor",
-    "ShorResult",
+    'Shor',
+    'ShorResult',
 ]

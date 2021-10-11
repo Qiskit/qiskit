@@ -27,15 +27,14 @@ from qiskit.quantum_info import Statevector
 
 
 class CircuitOp(PrimitiveOp):
-    """Class for Operators backed by Terra's ``QuantumCircuit`` module."""
+    """ Class for Operators backed by Terra's ``QuantumCircuit`` module.
+    """
 
     primitive: QuantumCircuit
 
-    def __init__(
-        self,
-        primitive: Union[Instruction, QuantumCircuit],
-        coeff: Union[complex, ParameterExpression] = 1.0,
-    ) -> None:
+    def __init__(self,
+                 primitive: Union[Instruction, QuantumCircuit],
+                 coeff: Union[complex, ParameterExpression] = 1.0) -> None:
         """
         Args:
             primitive: The QuantumCircuit which defines the
@@ -51,19 +50,17 @@ class CircuitOp(PrimitiveOp):
             primitive = qc
 
         if not isinstance(primitive, QuantumCircuit):
-            raise TypeError(
-                "CircuitOp can only be instantiated with "
-                "QuantumCircuit, not {}".format(type(primitive))
-            )
+            raise TypeError('CircuitOp can only be instantiated with '
+                            'QuantumCircuit, not {}'.format(type(primitive)))
 
         if len(primitive.clbits) != 0:
-            raise TypeError("CircuitOp does not support QuantumCircuits with ClassicalRegisters.")
+            raise TypeError('CircuitOp does not support QuantumCircuits with ClassicalRegisters.')
 
         super().__init__(primitive, coeff)
         self._coeff = coeff
 
     def primitive_strings(self) -> Set[str]:
-        return {"QuantumCircuit"}
+        return {'QuantumCircuit'}
 
     @property
     def num_qubits(self) -> int:
@@ -72,9 +69,8 @@ class CircuitOp(PrimitiveOp):
     def add(self, other: OperatorBase) -> OperatorBase:
         if not self.num_qubits == other.num_qubits:
             raise ValueError(
-                "Sum over operators with different numbers of qubits, {} and {}, is not well "
-                "defined".format(self.num_qubits, other.num_qubits)
-            )
+                'Sum over operators with different numbers of qubits, {} and {}, is not well '
+                'defined'.format(self.num_qubits, other.num_qubits))
 
         if isinstance(other, CircuitOp) and self.primitive == other.primitive:
             return CircuitOp(self.primitive, coeff=self.coeff + other.coeff)
@@ -82,7 +78,6 @@ class CircuitOp(PrimitiveOp):
         # Covers all else.
         # pylint: disable=cyclic-import
         from ..list_ops.summed_op import SummedOp
-
         return SummedOp([self, other])
 
     def adjoint(self) -> "CircuitOp":
@@ -98,25 +93,23 @@ class CircuitOp(PrimitiveOp):
         # pylint: disable=cyclic-import
         from .pauli_op import PauliOp
         from .matrix_op import MatrixOp
-
         if isinstance(other, (PauliOp, CircuitOp, MatrixOp)):
             other = other.to_circuit_op()
 
         if isinstance(other, CircuitOp):
             new_qc = QuantumCircuit(self.num_qubits + other.num_qubits)
             # NOTE!!! REVERSING QISKIT ENDIANNESS HERE
-            new_qc.append(
-                other.to_instruction(), qargs=new_qc.qubits[0 : other.primitive.num_qubits]
-            )
-            new_qc.append(self.to_instruction(), qargs=new_qc.qubits[other.primitive.num_qubits :])
+            new_qc.append(other.to_instruction(),
+                          qargs=new_qc.qubits[0:other.primitive.num_qubits])
+            new_qc.append(self.to_instruction(),
+                          qargs=new_qc.qubits[other.primitive.num_qubits:])
             new_qc = new_qc.decompose()
             return CircuitOp(new_qc, coeff=self.coeff * other.coeff)
 
         return TensoredOp([self, other])
 
-    def compose(
-        self, other: OperatorBase, permutation: Optional[List[int]] = None, front: bool = False
-    ) -> OperatorBase:
+    def compose(self, other: OperatorBase,
+                permutation: Optional[List[int]] = None, front: bool = False) -> OperatorBase:
 
         new_self, other = self._expand_shorter_operator_and_permute(other, permutation)
         new_self = cast(CircuitOp, new_self)
@@ -138,26 +131,26 @@ class CircuitOp(PrimitiveOp):
         if isinstance(other, (CircuitOp, CircuitStateFn)):
             new_qc = other.primitive.compose(new_self.primitive)
             if isinstance(other, CircuitStateFn):
-                return CircuitStateFn(
-                    new_qc, is_measurement=other.is_measurement, coeff=new_self.coeff * other.coeff
-                )
+                return CircuitStateFn(new_qc,
+                                      is_measurement=other.is_measurement,
+                                      coeff=new_self.coeff * other.coeff)
             else:
                 return CircuitOp(new_qc, coeff=new_self.coeff * other.coeff)
 
         return super(CircuitOp, new_self).compose(other)
 
     def to_matrix(self, massive: bool = False) -> np.ndarray:
-        OperatorBase._check_massive("to_matrix", True, self.num_qubits, massive)
+        OperatorBase._check_massive('to_matrix', True, self.num_qubits, massive)
         unitary = qiskit.quantum_info.Operator(self.to_circuit()).data
         return unitary * self.coeff
 
     def __str__(self) -> str:
         qc = self.to_circuit()
-        prim_str = str(qc.draw(output="text"))
+        prim_str = str(qc.draw(output='text'))
         if self.coeff == 1.0:
             return prim_str
         else:
-            return f"{self.coeff} * {prim_str}"
+            return "{} * {}".format(self.coeff, prim_str)
 
     def assign_parameters(self, param_dict: dict) -> OperatorBase:
         param_value = self.coeff
@@ -166,11 +159,9 @@ class CircuitOp(PrimitiveOp):
             unrolled_dict = self._unroll_param_dict(param_dict)
             if isinstance(unrolled_dict, list):
                 from ..list_ops.list_op import ListOp
-
                 return ListOp([self.assign_parameters(param_dict) for param_dict in unrolled_dict])
-            if isinstance(self.coeff, ParameterExpression) and self.coeff.parameters <= set(
-                unrolled_dict.keys()
-            ):
+            if isinstance(self.coeff, ParameterExpression) \
+                    and self.coeff.parameters <= set(unrolled_dict.keys()):
                 param_instersection = set(unrolled_dict.keys()) & self.coeff.parameters
                 binds = {param: unrolled_dict[param] for param in param_instersection}
                 param_value = float(self.coeff.bind(binds))
@@ -178,7 +169,8 @@ class CircuitOp(PrimitiveOp):
             # This is different from bind_parameters in Terra because they check for set equality
             if set(unrolled_dict.keys()) & self.primitive.parameters:
                 # Only bind the params found in the circuit
-                param_instersection = set(unrolled_dict.keys()) & self.primitive.parameters
+                param_instersection = \
+                    set(unrolled_dict.keys()) & self.primitive.parameters
                 binds = {param: unrolled_dict[param] for param in param_instersection}
                 qc = self.to_circuit().assign_parameters(binds)
         return self.__class__(qc, coeff=param_value)
@@ -195,9 +187,8 @@ class CircuitOp(PrimitiveOp):
         from .matrix_op import MatrixOp
 
         if isinstance(front, ListOp) and front.distributive:
-            return front.combo_fn(
-                [self.eval(front.coeff * front_elem) for front_elem in front.oplist]
-            )
+            return front.combo_fn([self.eval(front.coeff * front_elem)
+                                   for front_elem in front.oplist])
 
         # Composable with circuit
         if isinstance(front, (PauliOp, CircuitOp, MatrixOp, CircuitStateFn)):
@@ -223,16 +214,15 @@ class CircuitOp(PrimitiveOp):
                 # Check if Identity or empty instruction (need to check that type is exactly
                 # Instruction because some gates have lazy gate.definition population)
                 # pylint: disable=unidiomatic-typecheck
-                if isinstance(gate, IGate) or (
-                    type(gate) == Instruction and gate.definition.data == []
-                ):
+                if isinstance(gate, IGate) or (type(gate) == Instruction and
+                                               gate.definition.data == []):
                     del self.primitive.data[i]
         return self
 
-    def _expand_dim(self, num_qubits: int) -> "CircuitOp":
+    def _expand_dim(self, num_qubits: int) -> 'CircuitOp':
         return self.permute(list(range(num_qubits, num_qubits + self.num_qubits)))
 
-    def permute(self, permutation: List[int]) -> "CircuitOp":
+    def permute(self, permutation: List[int]) -> 'CircuitOp':
         r"""
         Permute the qubits of the circuit.
 

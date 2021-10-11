@@ -24,22 +24,9 @@ Experiment Results (:mod:`qiskit.result`)
    ResultError
    Counts
    marginal_counts
-
-Distributions
-=============
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   ProbDistribution
-   QuasiDistribution
-
 """
 
 from .result import Result
 from .exceptions import ResultError
 from .utils import marginal_counts
 from .counts import Counts
-
-from .distributions.probability import ProbDistribution
-from .distributions.quasi import QuasiDistribution

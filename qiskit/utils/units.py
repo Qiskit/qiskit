@@ -28,8 +28,18 @@ def apply_prefix(value: float, unit: str) -> float:
     Raises:
         Exception: If the units aren't recognized.
     """
-    downfactors = {"p": 1e12, "n": 1e9, "u": 1e6, "µ": 1e6, "m": 1e3}
-    upfactors = {"k": 1e3, "M": 1e6, "G": 1e9}
+    downfactors = {
+        'p': 1e12,
+        'n': 1e9,
+        'u': 1e6,
+        'µ': 1e6,
+        'm': 1e3
+    }
+    upfactors = {
+        'k': 1e3,
+        'M': 1e6,
+        'G': 1e9
+    }
     if not unit:
         return value
     if unit[0] in downfactors:
@@ -37,4 +47,4 @@ def apply_prefix(value: float, unit: str) -> float:
     elif unit[0] in upfactors:
         return value * upfactors[unit[0]]
     else:
-        raise Exception(f"Could not understand units: {unit}")
+        raise Exception("Could not understand units: {u}".format(u=unit))

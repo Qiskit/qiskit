@@ -18,13 +18,15 @@ from .circuit_gradients.circuit_gradient import CircuitGradient
 from .derivative_base import DerivativeBase
 
 
-class GradientBase(DerivativeBase):
+class GradientBase(DerivativeBase):  # pylint: disable=abstract-method
     """Base class for first-order operator gradient.
 
     Convert an operator expression to the first-order gradient.
     """
 
-    def __init__(self, grad_method: Union[str, CircuitGradient] = "param_shift", **kwargs):
+    def __init__(self,
+                 grad_method: Union[str, CircuitGradient] = 'param_shift',
+                 **kwargs):
         r"""
         Args:
             grad_method: The method used to compute the state/probability gradient. Can be either
@@ -38,27 +40,22 @@ class GradientBase(DerivativeBase):
 
         if isinstance(grad_method, CircuitGradient):
             self._grad_method = grad_method
-        elif grad_method == "param_shift":
+        elif grad_method == 'param_shift':
             from .circuit_gradients.param_shift import ParamShift
-
             self._grad_method = ParamShift(analytic=True)
 
-        elif grad_method == "fin_diff":
+        elif grad_method == 'fin_diff':
             from .circuit_gradients.param_shift import ParamShift
-
-            epsilon = kwargs.get("epsilon", 1e-6)
+            epsilon = kwargs.get('epsilon', 1e-6)
             self._grad_method = ParamShift(analytic=False, epsilon=epsilon)
 
-        elif grad_method == "lin_comb":
+        elif grad_method == 'lin_comb':
             from .circuit_gradients.lin_comb import LinComb
-
             self._grad_method = LinComb()
         else:
-            raise ValueError(
-                "Unrecognized input provided for `grad_method`. Please provide"
-                " a CircuitGradient object or one of the pre-defined string"
-                " arguments: {'param_shift', 'fin_diff', 'lin_comb'}. "
-            )
+            raise ValueError("Unrecognized input provided for `grad_method`. Please provide"
+                             " a CircuitGradient object or one of the pre-defined string"
+                             " arguments: {'param_shift', 'fin_diff', 'lin_comb'}. ")
 
     @property
     def grad_method(self) -> CircuitGradient:

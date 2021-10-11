@@ -29,14 +29,13 @@ class EstimationProblem:
     or a custom Grover operator.
     """
 
-    def __init__(
-        self,
-        state_preparation: QuantumCircuit,
-        objective_qubits: Union[int, List[int]],
-        grover_operator: Optional[QuantumCircuit] = None,
-        post_processing: Optional[Callable[[float], float]] = None,
-        is_good_state: Optional[Callable[[str], bool]] = None,
-    ) -> None:
+    def __init__(self,
+                 state_preparation: QuantumCircuit,
+                 objective_qubits: Union[int, List[int]],
+                 grover_operator: Optional[QuantumCircuit] = None,
+                 post_processing: Optional[Callable[[float], float]] = None,
+                 is_good_state: Optional[Callable[[str], bool]] = None,
+                 ) -> None:
         r"""
         Args:
             state_preparation: A circuit preparing the input state, referred to as
@@ -127,7 +126,7 @@ class EstimationProblem:
             Handle to the ``is_good_state`` callable.
         """
         if self._is_good_state is None:
-            return lambda x: all(bit == "1" for bit in x)
+            return lambda x: all(bit == '1' for bit in x)
 
         return self._is_good_state
 
@@ -158,7 +157,8 @@ class EstimationProblem:
         # build the reflection about the bad state: a MCZ with open controls (thus X gates
         # around the controls) and X gates around the target to change from a phaseflip on
         # |1> to a phaseflip on |0>
-        num_state_qubits = self.state_preparation.num_qubits - self.state_preparation.num_ancillas
+        num_state_qubits = self.state_preparation.num_qubits \
+            - self.state_preparation.num_ancillas
 
         oracle = QuantumCircuit(num_state_qubits)
         oracle.h(self.objective_qubits[-1])
@@ -181,7 +181,7 @@ class EstimationProblem:
         """
         self._grover_operator = grover_operator
 
-    def rescale(self, scaling_factor: float) -> "EstimationProblem":
+    def rescale(self, scaling_factor: float) -> 'EstimationProblem':
         """Rescale the good state amplitude in the estimation problem.
 
         Args:
@@ -191,7 +191,7 @@ class EstimationProblem:
             A rescaled estimation problem.
         """
         if self._grover_operator is not None:
-            warnings.warn("Rescaling discards the Grover operator.")
+            warnings.warn('Rescaling discards the Grover operator.')
 
         # rescale the amplitude by a factor of 1/4 by adding an auxiliary qubit
         rescaled_stateprep = _rescale_amplitudes(self.state_preparation, scaling_factor)
@@ -201,15 +201,13 @@ class EstimationProblem:
         # add the scaling qubit to the good state qualifier
         def is_good_state(bitstr):
             # pylint: disable=not-callable
-            return self.is_good_state(bitstr[1:]) and bitstr[0] == "1"
+            return self.is_good_state(bitstr[1:]) and bitstr[0] == '1'
 
         # rescaled estimation problem
-        problem = EstimationProblem(
-            rescaled_stateprep,
-            objective_qubits=objective_qubits,
-            post_processing=self.post_processing,
-            is_good_state=is_good_state,
-        )
+        problem = EstimationProblem(rescaled_stateprep,
+                                    objective_qubits=objective_qubits,
+                                    post_processing=self.post_processing,
+                                    is_good_state=is_good_state)
 
         return problem
 
@@ -253,7 +251,7 @@ def _rescale_amplitudes(circuit: QuantumCircuit, scaling_factor: float) -> Quant
     Returns:
         A copy of the circuit with an additional qubit and RY gate for the rescaling.
     """
-    qr = QuantumRegister(1, "scaling")
+    qr = QuantumRegister(1, 'scaling')
     rescaled = QuantumCircuit(*circuit.qregs, qr)
     rescaled.compose(circuit, circuit.qubits, inplace=True)
     rescaled.ry(2 * numpy.arcsin(scaling_factor), qr)

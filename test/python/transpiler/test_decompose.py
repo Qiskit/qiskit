@@ -26,8 +26,9 @@ class TestDecompose(QiskitTestCase):
     """Tests the decompose pass."""
 
     def test_basic(self):
-        """Test decompose a single H into u2."""
-        qr = QuantumRegister(1, "qr")
+        """Test decompose a single H into u2.
+        """
+        qr = QuantumRegister(1, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
         dag = circuit_to_dag(circuit)
@@ -35,11 +36,12 @@ class TestDecompose(QiskitTestCase):
         after_dag = pass_.run(dag)
         op_nodes = after_dag.op_nodes()
         self.assertEqual(len(op_nodes), 1)
-        self.assertEqual(op_nodes[0].name, "u2")
+        self.assertEqual(op_nodes[0].name, 'u2')
 
     def test_decompose_only_h(self):
-        """Test to decompose a single H, without the rest"""
-        qr = QuantumRegister(2, "qr")
+        """Test to decompose a single H, without the rest
+        """
+        qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
         circuit.cx(qr[0], qr[1])
@@ -49,12 +51,13 @@ class TestDecompose(QiskitTestCase):
         op_nodes = after_dag.op_nodes()
         self.assertEqual(len(op_nodes), 2)
         for node in op_nodes:
-            self.assertIn(node.name, ["cx", "u2"])
+            self.assertIn(node.name, ['cx', 'u2'])
 
     def test_decompose_toffoli(self):
-        """Test decompose CCX."""
-        qr1 = QuantumRegister(2, "qr1")
-        qr2 = QuantumRegister(1, "qr2")
+        """Test decompose CCX.
+        """
+        qr1 = QuantumRegister(2, 'qr1')
+        qr2 = QuantumRegister(1, 'qr2')
         circuit = QuantumCircuit(qr1, qr2)
         circuit.ccx(qr1[0], qr1[1], qr2[0])
         dag = circuit_to_dag(circuit)
@@ -63,12 +66,13 @@ class TestDecompose(QiskitTestCase):
         op_nodes = after_dag.op_nodes()
         self.assertEqual(len(op_nodes), 15)
         for node in op_nodes:
-            self.assertIn(node.name, ["h", "t", "tdg", "cx"])
+            self.assertIn(node.name, ['h', 't', 'tdg', 'cx'])
 
     def test_decompose_conditional(self):
-        """Test decompose a 1-qubit gates with a conditional."""
-        qr = QuantumRegister(1, "qr")
-        cr = ClassicalRegister(1, "cr")
+        """Test decompose a 1-qubit gates with a conditional.
+        """
+        qr = QuantumRegister(1, 'qr')
+        cr = ClassicalRegister(1, 'cr')
         circuit = QuantumCircuit(qr, cr)
         circuit.h(qr).c_if(cr, 1)
         circuit.x(qr).c_if(cr, 1)
@@ -99,12 +103,12 @@ class TestDecompose(QiskitTestCase):
 
     def test_decomposition_preserves_qregs_order(self):
         """Test decomposing a gate preserves it's definition registers order"""
-        qr = QuantumRegister(2, "qr1")
+        qr = QuantumRegister(2, 'qr1')
         qc = QuantumCircuit(qr)
         qc.cx(1, 0)
         gate = qc.to_gate()
 
-        qr2 = QuantumRegister(2, "qr2")
+        qr2 = QuantumRegister(2, 'qr2')
         qc2 = QuantumCircuit(qr2)
         qc2.append(gate, qr2)
 
@@ -118,13 +122,13 @@ class TestDecompose(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.rz(0.1, 0)
         qc.ry(0.5, 0)
-        qc.global_phase += pi / 4
+        qc.global_phase += pi/4
         qcd = qc.decompose()
         self.assertEqual(Operator(qc), Operator(qcd))
 
     def test_decompose_global_phase_2q(self):
         """Test decomposition of circuit with global phase"""
-        qc = QuantumCircuit(2, global_phase=pi / 4)
+        qc = QuantumCircuit(2, global_phase=pi/4)
         qc.rz(0.1, 0)
         qc.rxx(0.2, 0, 1)
         qcd = qc.decompose()

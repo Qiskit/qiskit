@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 class QiskitAlgorithmGlobals:
     """Class for global properties."""
 
-    CPU_COUNT = parallel.local_hardware_info()["cpus"]
+    CPU_COUNT = parallel.local_hardware_info()['cpus']
 
     def __init__(self) -> None:
         self._random_seed = None  # type: Optional[int]
@@ -37,9 +37,10 @@ class QiskitAlgorithmGlobals:
         self._massive = False
         try:
             settings = get_config()
-            self.num_processes = settings.get("num_processes", QiskitAlgorithmGlobals.CPU_COUNT)
+            self.num_processes = settings.get('num_processes',
+                                              QiskitAlgorithmGlobals.CPU_COUNT)
         except Exception as ex:  # pylint: disable=broad-except
-            logger.debug("User Config read error %s", str(ex))
+            logger.debug('User Config read error %s', str(ex))
 
     @property
     def random_seed(self) -> Optional[int]:
@@ -60,29 +61,23 @@ class QiskitAlgorithmGlobals:
     @num_processes.setter
     def num_processes(self, num_processes: Optional[int]) -> None:
         """Set num processes.
-        If 'None' is passed, it resets to QiskitAlgorithmGlobals.CPU_COUNT
+           If 'None' is passed, it resets to QiskitAlgorithmGlobals.CPU_COUNT
         """
         if num_processes is None:
             num_processes = QiskitAlgorithmGlobals.CPU_COUNT
         elif num_processes < 1:
-            raise QiskitError(f"Invalid Number of Processes {num_processes}.")
+            raise QiskitError('Invalid Number of Processes {}.'.format(num_processes))
         elif num_processes > QiskitAlgorithmGlobals.CPU_COUNT:
-            raise QiskitError(
-                "Number of Processes {} cannot be greater than cpu count {}.".format(
-                    num_processes, QiskitAlgorithmGlobals.CPU_COUNT
-                )
-            )
+            raise QiskitError('Number of Processes {} cannot be greater than cpu count {}.'
+                              .format(num_processes, QiskitAlgorithmGlobals.CPU_COUNT))
         self._num_processes = num_processes
         # TODO: change Terra CPU_COUNT until issue
         # gets resolved: https://github.com/Qiskit/qiskit-terra/issues/1963
         try:
             parallel.CPU_COUNT = self.num_processes
         except Exception as ex:  # pylint: disable=broad-except
-            logger.warning(
-                "Failed to set qiskit.tools.parallel.CPU_COUNT " "to value: '%s': Error: '%s'",
-                self.num_processes,
-                str(ex),
-            )
+            logger.warning("Failed to set qiskit.tools.parallel.CPU_COUNT "
+                           "to value: '%s': Error: '%s'", self.num_processes, str(ex))
 
     @property
     def random(self) -> np.random.Generator:
@@ -103,4 +98,4 @@ class QiskitAlgorithmGlobals:
 
 
 # Global instance to be used as the entry point for globals.
-algorithm_globals = QiskitAlgorithmGlobals()
+algorithm_globals = QiskitAlgorithmGlobals()  # pylint: disable=invalid-name

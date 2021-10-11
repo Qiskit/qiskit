@@ -62,12 +62,11 @@ from .circuit_op import CircuitOp
 from .pauli_sum_op import PauliSumOp
 from .tapered_pauli_sum_op import TaperedPauliSumOp, Z2Symmetries
 
-__all__ = [
-    "PrimitiveOp",
-    "PauliOp",
-    "MatrixOp",
-    "CircuitOp",
-    "PauliSumOp",
-    "TaperedPauliSumOp",
-    "Z2Symmetries",
-]
+__all__ = ['PrimitiveOp',
+           'PauliOp',
+           'MatrixOp',
+           'CircuitOp',
+           'PauliSumOp',
+           'TaperedPauliSumOp',
+           'Z2Symmetries'
+           ]

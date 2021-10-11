@@ -44,7 +44,7 @@ class TestCircuitToDagCanonical(QiskitTestCase):
     def test_calibrations(self):
         """Test that calibrations are properly copied over."""
         circuit_in = QuantumCircuit(1)
-        circuit_in.add_calibration("h", [0], None)
+        circuit_in.add_calibration('h', [0], None)
         self.assertEqual(len(circuit_in.calibrations), 1)
 
         dag_dependency = circuit_to_dagdependency(circuit_in)
@@ -55,7 +55,7 @@ class TestCircuitToDagCanonical(QiskitTestCase):
 
     def test_metadata(self):
         """Test circuit metadata is preservered through conversion."""
-        meta_dict = dict(experiment_id="1234", execution_number=4)
+        meta_dict = dict(experiment_id='1234', execution_number=4)
         qr = QuantumRegister(2)
         circuit_in = QuantumCircuit(qr, metadata=meta_dict)
         circuit_in.h(qr[0])
@@ -67,5 +67,5 @@ class TestCircuitToDagCanonical(QiskitTestCase):
         self.assertEqual(circuit_out.metadata, meta_dict)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main(verbosity=2)

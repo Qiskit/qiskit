@@ -96,7 +96,6 @@ Generalized Gates
    GRY
    GRZ
    RVGate
-   PauliGate
 
 Boolean Logic Circuits
 ======================
@@ -147,19 +146,7 @@ Adders
 .. autosummary::
    :toctree: ../stubs/
 
-   DraperQFTAdder
-   CDKMRippleCarryAdder
-   VBERippleCarryAdder
    WeightedAdder
-
-Multipliers
-+++++++++++
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   HRSCumulativeMultiplier
-   RGQFTMultiplier
 
 Comparators
 +++++++++++
@@ -199,7 +186,6 @@ Particular Quantum Circuits
    PhaseEstimation
    GroverOperator
    PhaseOracle
-   EvolvedOperatorAnsatz
 
 Probability distributions
 =========================
@@ -349,8 +335,7 @@ from .generalized_gates import (
     GRX,
     GRY,
     GRZ,
-    RVGate,
-    PauliGate,
+    RVGate
 )
 from .boolean_logic import (
     AND,
@@ -369,14 +354,8 @@ from .arithmetic import (
     WeightedAdder,
     QuadraticForm,
     LinearAmplitudeFunction,
-    VBERippleCarryAdder,
-    CDKMRippleCarryAdder,
-    DraperQFTAdder,
     PiecewiseChebyshev,
-    HRSCumulativeMultiplier,
-    RGQFTMultiplier,
 )
-
 from .n_local import (
     NLocal,
     TwoLocal,
@@ -384,13 +363,17 @@ from .n_local import (
     RealAmplitudes,
     EfficientSU2,
     ExcitationPreserving,
-    QAOAAnsatz,
+    QAOAAnsatz
 )
-from .data_preparation import PauliFeatureMap, ZFeatureMap, ZZFeatureMap
+from .data_preparation import (
+    PauliFeatureMap,
+    ZFeatureMap,
+    ZZFeatureMap
+)
 from .probability_distributions import (
     LogNormalDistribution,
     NormalDistribution,
-    UniformDistribution,
+    UniformDistribution
 )
 from .quantum_volume import QuantumVolume
 from .fourier_checking import FourierChecking
@@ -400,4 +383,3 @@ from .iqp import IQP
 from .phase_estimation import PhaseEstimation
 from .grover_operator import GroverOperator
 from .phase_oracle import PhaseOracle
-from .evolved_operator_ansatz import EvolvedOperatorAnsatz

@@ -20,20 +20,17 @@
 """Individual test case execution."""
 
 __all__ = [
-    "MultipleExceptions",
-    "RunTest",
-]
+    'MultipleExceptions',
+    'RunTest',
+    ]
 
 import sys
 
 try:
     from testtools.testresult import ExtendedToOriginalDecorator
-
     HAS_TESTTOOLS = True
 except ImportError:
     HAS_TESTTOOLS = False
-
-from qiskit.exceptions import MissingOptionalLibraryError
 
 
 class MultipleExceptions(Exception):
@@ -80,14 +77,12 @@ class RunTest:
                 raised - aborting the test run as this is inside the runner
                 machinery rather than the confined context of the test.
         Raises:
-            MissingOptionalLibraryError: If test requirements aren't installed
+            ImportError: If test requirements aren't installed
         """
         if not HAS_TESTTOOLS:
-            raise MissingOptionalLibraryError(
-                libname="testtools",
-                name="test runner",
-                pip_install="pip install testtools",
-            )
+            raise ImportError(
+                "Test runner requirements testtools and fixtures are missing. "
+                "Install them with 'pip install testtools fixtures'")
         self.case = case
         self.handlers = handlers or []
         self.exception_caught = object()
@@ -132,7 +127,8 @@ class RunTest:
         self.result = result
         try:
             self._exceptions = []
-            self.case.__testtools_tb_locals__ = getattr(result, "tb_locals", False)
+            self.case.__testtools_tb_locals__ = getattr(
+                result, 'tb_locals', False)
             self._run_core()
             if self._exceptions:
                 # One or more caught exceptions, now trigger the test's
@@ -152,17 +148,17 @@ class RunTest:
     def _run_core(self):
         """Run the user supplied test code."""
         test_method = self.case._get_test_method()
-        skip_case = getattr(self.case, "__unittest_skip__", False)
-        if skip_case or getattr(test_method, "__unittest_skip__", False):
+        skip_case = getattr(self.case, '__unittest_skip__', False)
+        if skip_case or getattr(test_method, '__unittest_skip__', False):
             self.result.addSkip(
                 self.case,
-                reason=getattr(
-                    self.case if skip_case else test_method, "__unittest_skip_why__", None
-                ),
+                reason=getattr(self.case if skip_case else test_method,
+                               '__unittest_skip_why__', None)
             )
             return
 
-        if self.exception_caught == self._run_user(self.case._run_setup, self.result):
+        if self.exception_caught == self._run_user(self.case._run_setup,
+                                                   self.result):
             # Don't run the test method if we failed getting here.
             self._run_cleanups(self.result)
             return
@@ -170,22 +166,26 @@ class RunTest:
         # exception we'll have failed.
         failed = False
         try:
-            if self.exception_caught == self._run_user(self.case._run_test_method, self.result):
+            if self.exception_caught == self._run_user(
+                    self.case._run_test_method, self.result):
                 failed = True
         finally:
             try:
-                if self.exception_caught == self._run_user(self.case._run_teardown, self.result):
+                if self.exception_caught == self._run_user(
+                        self.case._run_teardown, self.result):
                     failed = True
             finally:
                 try:
-                    if self.exception_caught == self._run_user(self._run_cleanups, self.result):
+                    if self.exception_caught == self._run_user(
+                            self._run_cleanups, self.result):
                         failed = True
                 finally:
-                    if getattr(self.case, "force_failure", None):
+                    if getattr(self.case, 'force_failure', None):
                         self._run_user(_raise_force_fail_error)
                         failed = True
                     if not failed:
-                        self.result.addSuccess(self.case, details=self.case.getDetails())
+                        self.result.addSuccess(self.case,
+                                               details=self.case.getDetails())
 
     def _run_cleanups(self, result):
         """Run the cleanups that have been added with addCleanup.
@@ -196,7 +196,8 @@ class RunTest:
         failing = False
         while self.case._cleanups:
             function, arguments, keywordArguments = self.case._cleanups.pop()
-            got_exception = self._run_user(function, *arguments, **keywordArguments)
+            got_exception = self._run_user(
+                function, *arguments, **keywordArguments)
             if got_exception == self.exception_caught:
                 failing = True
         if failing:
@@ -213,7 +214,7 @@ class RunTest:
         except Exception:
             return self._got_user_exception(sys.exc_info())
 
-    def _got_user_exception(self, exc_info, tb_label="traceback"):
+    def _got_user_exception(self, exc_info, tb_label='traceback'):
         """Called when user code raises an exception.
         If 'exc_info' is a `MultipleExceptions`, then we recurse into it
         unpacking the errors that it's made up from.

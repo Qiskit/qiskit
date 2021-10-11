@@ -27,7 +27,6 @@ class Backend:
     the versioned abstract classes as the parent class and not this class
     directly.
     """
-
     version = 0
 
 
@@ -57,7 +56,6 @@ class BackendV1(Backend, ABC):
     Expect, future versions of this abstract class to change the data model and
     interface.
     """
-
     version = 1
 
     def __init__(self, configuration, provider=None, **fields):
@@ -79,7 +77,8 @@ class BackendV1(Backend, ABC):
         if fields:
             for field in fields:
                 if field not in self._options.data:
-                    raise AttributeError("Options field %s is not valid for this backend" % field)
+                    raise AttributeError(
+                        "Options field %s is not valid for this backend" % field)
             self._options.update_config(**fields)
 
     @classmethod
@@ -114,7 +113,9 @@ class BackendV1(Backend, ABC):
         """
         for field in fields:
             if not hasattr(self._options, field):
-                raise AttributeError("Options field %s is not valid for this " "backend" % field)
+                raise AttributeError(
+                    "Options field %s is not valid for this "
+                    "backend" % field)
         self._options.update_options(**fields)
 
     def configuration(self):
@@ -148,13 +149,11 @@ class BackendV1(Backend, ABC):
         Returns:
             BackendStatus: the status of the backend.
         """
-        return BackendStatus(
-            backend_name=self.name(),
-            backend_version="1",
-            operational=True,
-            pending_jobs=0,
-            status_msg="",
-        )
+        return BackendStatus(backend_name=self.name(),
+                             backend_version='1',
+                             operational=True,
+                             pending_jobs=0,
+                             status_msg='')
 
     def name(self):
         """Return the backend name.
@@ -176,7 +175,7 @@ class BackendV1(Backend, ABC):
 
         [0] https://docs.python.org/3/reference/datamodel.html#object.__repr__
         """
-        return f"<{self.__class__.__name__}('{self.name()}')>"
+        return "<{}('{}')>".format(self.__class__.__name__, self.name())
 
     @property
     def options(self):

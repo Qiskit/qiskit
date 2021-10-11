@@ -57,32 +57,26 @@ class TimeUnitConversion(TransformationPass):
         """
         # Choose unit
         if self.inst_durations.dt is not None:
-            time_unit = "dt"
+            time_unit = 'dt'
         else:
             # Check what units are used in delays and other instructions: dt or SI or mixed
             units_delay = self._units_used_in_delays(dag)
             if self._unified(units_delay) == "mixed":
-                raise TranspilerError(
-                    "Fail to unify time units in delays. SI units "
-                    "and dt unit must not be mixed when dt is not supplied."
-                )
+                raise TranspilerError("Fail to unify time units in delays. SI units "
+                                      "and dt unit must not be mixed when dt is not supplied.")
             units_other = self.inst_durations.units_used()
             if self._unified(units_other) == "mixed":
-                raise TranspilerError(
-                    "Fail to unify time units in instruction_durations. SI units "
-                    "and dt unit must not be mixed when dt is not supplied."
-                )
+                raise TranspilerError("Fail to unify time units in instruction_durations. SI units "
+                                      "and dt unit must not be mixed when dt is not supplied.")
 
             unified_unit = self._unified(units_delay | units_other)
             if unified_unit == "SI":
-                time_unit = "s"
+                time_unit = 's'
             elif unified_unit == "dt":
-                time_unit = "dt"
+                time_unit = 'dt'
             else:
-                raise TranspilerError(
-                    "Fail to unify time units. SI units "
-                    "and dt unit must not be mixed when dt is not supplied."
-                )
+                raise TranspilerError("Fail to unify time units. SI units "
+                                      "and dt unit must not be mixed when dt is not supplied.")
 
         # Make units consistent
         bit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
@@ -90,13 +84,14 @@ class TimeUnitConversion(TransformationPass):
             try:
                 node.op = node.op.copy()
                 node.op.duration = self.inst_durations.get(
-                    node.op, [bit_indices[qarg] for qarg in node.qargs], unit=time_unit
-                )
+                        node.op,
+                        [bit_indices[qarg] for qarg in node.qargs],
+                        unit=time_unit)
                 node.op.unit = time_unit
             except TranspilerError:
                 pass
 
-        self.property_set["time_unit"] = time_unit
+        self.property_set['time_unit'] = time_unit
         return dag
 
     @staticmethod
@@ -111,12 +106,12 @@ class TimeUnitConversion(TransformationPass):
         if not unit_set:
             return "dt"
 
-        if len(unit_set) == 1 and "dt" in unit_set:
+        if len(unit_set) == 1 and 'dt' in unit_set:
             return "dt"
 
         all_si = True
         for unit in unit_set:
-            if not unit.endswith("s"):
+            if not unit.endswith('s'):
                 all_si = False
                 break
 

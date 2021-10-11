@@ -33,22 +33,22 @@ def hellinger_distance(dist_p, dist_q):
 
     p_normed = {}
     for key, val in dist_p.items():
-        p_normed[key] = val / p_sum
+        p_normed[key] = val/p_sum
 
     q_normed = {}
     for key, val in dist_q.items():
-        q_normed[key] = val / q_sum
+        q_normed[key] = val/q_sum
 
     total = 0
     for key, val in p_normed.items():
         if key in q_normed.keys():
-            total += (np.sqrt(val) - np.sqrt(q_normed[key])) ** 2
+            total += (np.sqrt(val) - np.sqrt(q_normed[key]))**2
             del q_normed[key]
         else:
             total += val
     total += sum(q_normed.values())
 
-    dist = np.sqrt(total) / np.sqrt(2)
+    dist = np.sqrt(total)/np.sqrt(2)
 
     return dist
 
@@ -97,4 +97,4 @@ def hellinger_fidelity(dist_p, dist_q):
         `Hellinger Distance @ wikipedia <https://en.wikipedia.org/wiki/Hellinger_distance>`_
     """
     dist = hellinger_distance(dist_p, dist_q)
-    return (1 - dist ** 2) ** 2
+    return (1-dist**2)**2

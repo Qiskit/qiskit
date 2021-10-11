@@ -13,4 +13,3 @@
 """Mock london backend"""
 
 from .fake_london import FakeLondon
-from .fake_london import FakeLegacyLondon

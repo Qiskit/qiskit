@@ -43,10 +43,10 @@ class SingleQubitUnitary(Gate):
     """
 
     # pylint: disable=unused-argument
-    @deprecate_arguments({"u": "unitary_matrix"})
-    def __init__(self, unitary_matrix, mode="ZYZ", up_to_diagonal=False, u=None):
+    @deprecate_arguments({'u': 'unitary_matrix'})
+    def __init__(self, unitary_matrix, mode='ZYZ', up_to_diagonal=False, u=None):
         """Create a new single qubit gate based on the unitary ``u``."""
-        if mode not in ["ZYZ"]:
+        if mode not in ['ZYZ']:
             raise QiskitError("The decomposition mode is not known.")
         # Check if the matrix u has the right dimensions and if it is a unitary
         if unitary_matrix.shape != (2, 2):
@@ -66,14 +66,13 @@ class SingleQubitUnitary(Gate):
 
         Note that the resulting gate has an empty ``params`` property.
         """
-        inverse_gate = Gate(
-            name=self.name + "_dg", num_qubits=self.num_qubits, params=[]
-        )  # removing the params because arrays are deprecated
+        inverse_gate = Gate(name=self.name + '_dg',
+                            num_qubits=self.num_qubits,
+                            params=[])  # removing the params because arrays are deprecated
 
         inverse_gate.definition = QuantumCircuit(*self.definition.qregs)
-        inverse_gate.definition._data = [
-            (inst.inverse(), qargs, []) for inst, qargs, _ in reversed(self._definition)
-        ]
+        inverse_gate.definition._data = [(inst.inverse(), qargs, [])
+                                         for inst, qargs, _ in reversed(self._definition)]
 
         return inverse_gate
 
@@ -90,10 +89,10 @@ class SingleQubitUnitary(Gate):
     def _define(self):
         """Define the gate using the decomposition."""
 
-        if self.mode == "ZYZ":
+        if self.mode == 'ZYZ':
             circuit, diag = self._zyz_circuit()
         else:
-            raise QiskitError("The decomposition mode is not known.")
+            raise QiskitError('The decomposition mode is not known.')
 
         self._diag = diag
 
@@ -104,7 +103,7 @@ class SingleQubitUnitary(Gate):
         q = QuantumRegister(self.num_qubits)
         qc = QuantumCircuit(q, name=self.name)
 
-        diag = [1.0, 1.0]
+        diag = [1., 1.]
         alpha, beta, gamma, _ = self._zyz_dec()
 
         if abs(alpha) > _EPS:
@@ -113,7 +112,7 @@ class SingleQubitUnitary(Gate):
             qc.ry(beta, q[0])
         if abs(gamma) > _EPS:
             if self.up_to_diagonal:
-                diag = [np.exp(-1j * gamma / 2.0), np.exp(1j * gamma / 2.0)]
+                diag = [np.exp(-1j * gamma / 2.), np.exp(1j * gamma / 2.)]
             else:
                 qc.rz(gamma, q[0])
 
@@ -134,13 +133,13 @@ class SingleQubitUnitary(Gate):
             # Note that u10 can't be zero, since u is unitary (and u00 == 0)
             gamma = cmath.phase(-u01 / u10)
             delta = cmath.phase(u01 * np.exp(-1j * gamma / 2))
-            return 0.0, -np.pi, -gamma, delta
+            return 0., -np.pi, -gamma, delta
         # Handle special case if the entry (0,1) of the unitary is equal to zero
         if np.abs(u01) < _EPS:
             # Note that u11 can't be zero, since u is unitary (and u01 == 0)
             gamma = cmath.phase(u00 / u11)
             delta = cmath.phase(u00 * np.exp(-1j * gamma / 2))
-            return 0.0, 0.0, -gamma, delta
+            return 0., 0., -gamma, delta
         beta = 2 * np.arccos(np.abs(u00))
         if np.sin(beta / 2) - np.cos(beta / 2) > 0:
             gamma = cmath.phase(-u00 / u10)
@@ -159,14 +158,13 @@ class SingleQubitUnitary(Gate):
         if isinstance(parameter, np.ndarray):
             return parameter
         else:
-            raise CircuitError(
-                "invalid param type {} in gate " "{}".format(type(parameter), self.name)
-            )
+            raise CircuitError("invalid param type {0} in gate "
+                               "{1}".format(type(parameter), self.name))
 
 
 # pylint: disable=unused-argument, invalid-name, missing-type-doc, missing-param-doc
-@deprecate_arguments({"u": "unitary"})
-def squ(self, unitary_matrix, qubit, mode="ZYZ", up_to_diagonal=False, *, u=None):
+@deprecate_arguments({'u': 'unitary'})
+def squ(self, unitary_matrix, qubit, mode='ZYZ', up_to_diagonal=False, *, u=None):
     """Decompose an arbitrary 2*2 unitary into three rotation gates.
 
     Note that the decomposition is up to a global phase shift.
@@ -195,9 +193,8 @@ def squ(self, unitary_matrix, qubit, mode="ZYZ", up_to_diagonal=False, *, u=None
         if len(qubit) == 1:
             qubit = qubit[0]
         else:
-            raise QiskitError(
-                "The target qubit is a QuantumRegister containing more than" " one qubits."
-            )
+            raise QiskitError("The target qubit is a QuantumRegister containing more than"
+                              " one qubits.")
     # Check if there is one target qubit provided
     if not isinstance(qubit, Qubit):
         raise QiskitError("The target qubit is not a single qubit from a QuantumRegister.")

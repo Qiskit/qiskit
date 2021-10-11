@@ -64,16 +64,17 @@ class ZGate(Gate):
 
     def __init__(self, label=None):
         """Create new Z gate."""
-        super().__init__("z", 1, [], label=label)
+        super().__init__('z', 1, [], label=label)
 
     def _define(self):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
-
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         qc = QuantumCircuit(q, name=self.name)
-        rules = [(U1Gate(pi), [q[0]], [])]
+        rules = [
+            (U1Gate(pi), [q[0]], [])
+        ]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 
@@ -105,7 +106,8 @@ class ZGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the Z gate."""
-        return numpy.array([[1, 0], [0, -1]], dtype=dtype)
+        return numpy.array([[1, 0],
+                            [0, -1]], dtype=dtype)
 
 
 class CZGate(ControlledGate):
@@ -140,9 +142,8 @@ class CZGate(ControlledGate):
 
     def __init__(self, label=None, ctrl_state=None):
         """Create new CZ gate."""
-        super().__init__(
-            "cz", 2, [], label=label, num_ctrl_qubits=1, ctrl_state=ctrl_state, base_gate=ZGate()
-        )
+        super().__init__('cz', 2, [], label=label, num_ctrl_qubits=1,
+                         ctrl_state=ctrl_state, base_gate=ZGate())
 
     def _define(self):
         """
@@ -152,10 +153,13 @@ class CZGate(ControlledGate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .h import HGate
         from .x import CXGate
-
-        q = QuantumRegister(2, "q")
+        q = QuantumRegister(2, 'q')
         qc = QuantumCircuit(q, name=self.name)
-        rules = [(HGate(), [q[1]], []), (CXGate(), [q[0], q[1]], []), (HGate(), [q[1]], [])]
+        rules = [
+            (HGate(), [q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
+            (HGate(), [q[1]], [])
+        ]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 
@@ -168,10 +172,12 @@ class CZGate(ControlledGate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the CZ gate."""
         if self.ctrl_state:
-            return numpy.array(
-                [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, -1]], dtype=dtype
-            )
+            return numpy.array([[1, 0, 0, 0],
+                                [0, 1, 0, 0],
+                                [0, 0, 1, 0],
+                                [0, 0, 0, -1]], dtype=dtype)
         else:
-            return numpy.array(
-                [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]], dtype=dtype
-            )
+            return numpy.array([[1, 0, 0, 0],
+                                [0, 1, 0, 0],
+                                [0, 0, -1, 0],
+                                [0, 0, 0, 1]], dtype=dtype)

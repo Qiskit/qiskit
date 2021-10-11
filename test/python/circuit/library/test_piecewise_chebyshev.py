@@ -36,7 +36,7 @@ class TestPiecewiseChebyshev(QiskitTestCase):
         circuit.h(list(range(num_state_qubits)))
         circuit.append(function_circuit.to_instruction(), list(range(circuit.num_qubits)))
 
-        backend = BasicAer.get_backend("statevector_simulator")
+        backend = BasicAer.get_backend('statevector_simulator')
         statevector = execute(circuit, backend).result().get_statevector()
 
         probabilities = defaultdict(float)
@@ -48,7 +48,7 @@ class TestPiecewiseChebyshev(QiskitTestCase):
         unrolled_expectations = []
         for i, probability in probabilities.items():
             x, last_qubit = int(i[1:], 2), i[0]
-            if last_qubit == "0":
+            if last_qubit == '0':
                 expected_amplitude = np.cos(reference(x)) / np.sqrt(2 ** num_state_qubits)
             else:
                 expected_amplitude = np.sin(reference(x)) / np.sqrt(2 ** num_state_qubits)
@@ -56,31 +56,18 @@ class TestPiecewiseChebyshev(QiskitTestCase):
             unrolled_probabilities += [probability]
             unrolled_expectations += [np.real(np.abs(expected_amplitude) ** 2)]
 
-        np.testing.assert_array_almost_equal(
-            unrolled_probabilities, unrolled_expectations, decimal=1
-        )
+        np.testing.assert_array_almost_equal(unrolled_probabilities, unrolled_expectations,
+                                             decimal=3)
 
-    @data(
-        (lambda x: np.arcsin(1 / x), 2, [2, 4], 2),
-        (lambda x: x / 8, 1, [1, 8], 3),
-        (np.sqrt, 2, None, 2),
-    )
-    @unpack
+    @ data((lambda x: np.arcsin(1 / x), 2, [2, 4], 2),
+           (lambda x: x / 8, 1, [1, 8], 3)
+           )
+    @ unpack
     def test_piecewise_chebyshev(self, f_x, degree, breakpoints, num_state_qubits):
         """Test the piecewise Chebyshev approximation."""
 
         def pw_poly(x):
-            if breakpoints:
-                if len(breakpoints) > 1:
-                    start = breakpoints[0]
-                    end = breakpoints[-1]
-                else:
-                    start = breakpoints[0]
-                    end = 2 ** num_state_qubits
-            else:
-                start = 0
-                end = 2 ** num_state_qubits
-            if start <= x < end:
+            if breakpoints[0] <= x < breakpoints[-1]:
                 return f_x(x)
             return np.arcsin(1)
 
@@ -101,11 +88,11 @@ class TestPiecewiseChebyshev(QiskitTestCase):
 
         pw_approximation = PiecewiseChebyshev(f_x_1)
 
-        with self.subTest(msg="missing number of state qubits"):
+        with self.subTest(msg='missing number of state qubits'):
             with self.assertRaises(AttributeError):  # no state qubits set
                 print(pw_approximation.draw())
 
-        with self.subTest(msg="default setup, just setting number of state qubits"):
+        with self.subTest(msg='default setup, just setting number of state qubits'):
             pw_approximation.num_state_qubits = 2
             pw_approximation.f_x = f_x_1
             # set to the default breakpoints for pw_poly
@@ -115,8 +102,7 @@ class TestPiecewiseChebyshev(QiskitTestCase):
 
         def f_x_2(x):
             return x / 4
-
-        with self.subTest(msg="setting non-default values"):
+        with self.subTest(msg='setting non-default values'):
             breakpoints = [0, 2]
             degree = 2
             pw_approximation.breakpoints = breakpoints
@@ -127,7 +113,7 @@ class TestPiecewiseChebyshev(QiskitTestCase):
         def f_x_3(x):
             return x ** 2
 
-        with self.subTest(msg="changing all values"):
+        with self.subTest(msg='changing all values'):
             pw_approximation.num_state_qubits = 4
             breakpoints = [1, 3, 6]
             degree = 3
@@ -137,5 +123,5 @@ class TestPiecewiseChebyshev(QiskitTestCase):
             self.assertFunctionIsCorrect(pw_approximation, lambda x: pw_poly(x, f_x_3))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

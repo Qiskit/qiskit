@@ -13,4 +13,3 @@
 """Mock rome backend"""
 
 from .fake_rome import FakeRome
-from .fake_rome import FakeLegacyRome

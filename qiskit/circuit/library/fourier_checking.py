@@ -52,7 +52,9 @@ class FourierChecking(QuantumCircuit):
     `arXiv:1411.5729 <https://arxiv.org/abs/1411.5729>`_
     """
 
-    def __init__(self, f: List[int], g: List[int]) -> None:
+    def __init__(self,
+                 f: List[int],
+                 g: List[int]) -> None:
         """Create Fourier checking circuit.
 
         Args:
@@ -76,23 +78,18 @@ class FourierChecking(QuantumCircuit):
         num_qubits = math.log2(len(f))
 
         if len(f) != len(g) or num_qubits == 0 or not num_qubits.is_integer():
-            raise CircuitError(
-                "The functions f and g must be given as truth "
-                "tables, each as a list of 2**n entries of "
-                "{1, -1}."
-            )
+            raise CircuitError("The functions f and g must be given as truth "
+                               "tables, each as a list of 2**n entries of "
+                               "{1, -1}.")
 
-        circuit = QuantumCircuit(num_qubits, name=f"fc: {f}, {g}")
+        super().__init__(num_qubits, name="fc: %s, %s" % (f, g))
 
-        circuit.h(circuit.qubits)
+        self.h(self.qubits)
 
-        circuit.diagonal(f, circuit.qubits)
+        self.diagonal(f, self.qubits)
 
-        circuit.h(circuit.qubits)
+        self.h(self.qubits)
 
-        circuit.diagonal(g, circuit.qubits)
+        self.diagonal(g, self.qubits)
 
-        circuit.h(circuit.qubits)
-
-        super().__init__(*circuit.qregs, name=circuit.name)
-        self.compose(circuit.to_gate(), qubits=self.qubits, inplace=True)
+        self.h(self.qubits)

@@ -19,7 +19,7 @@ from qiskit.opflow.evolutions.matrix_evolution import MatrixEvolution
 
 
 class EvolutionFactory:
-    """A factory class for convenient automatic selection of an Evolution algorithm based on the
+    """ A factory class for convenient automatic selection of an Evolution algorithm based on the
     Operator to be converted.
     """
 
@@ -41,12 +41,12 @@ class EvolutionFactory:
 
         """
         primitive_strings = operator.primitive_strings()
-        if "Matrix" in primitive_strings:
+        if 'Matrix' in primitive_strings:
             return MatrixEvolution()
 
-        elif "Pauli" in primitive_strings or "SparsePauliOp" in primitive_strings:
+        elif 'Pauli' in primitive_strings or 'SparsePauliOp' in primitive_strings:
             # TODO figure out what to do based on qubits and hamming weight.
             return PauliTrotterEvolution()
 
         else:
-            raise ValueError("Evolutions of mixed Operators not yet supported.")
+            raise ValueError('Evolutions of mixed Operators not yet supported.')

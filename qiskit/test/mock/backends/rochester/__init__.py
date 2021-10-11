@@ -13,4 +13,3 @@
 """Mock rochester backend"""
 
 from .fake_rochester import FakeRochester
-from .fake_rochester import FakeLegacyRochester

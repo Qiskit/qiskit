@@ -86,15 +86,13 @@ from .trotterizations import TrotterizationBase, TrotterizationFactory, Trotter,
 # TODO evolve by density matrix (need to add iexp to operator_state_fn)
 # TODO linear combination evolution
 
-__all__ = [
-    "EvolutionBase",
-    "EvolutionFactory",
-    "EvolvedOp",
-    "PauliTrotterEvolution",
-    "MatrixEvolution",
-    "TrotterizationBase",
-    "TrotterizationFactory",
-    "Trotter",
-    "Suzuki",
-    "QDrift",
-]
+__all__ = ['EvolutionBase',
+           'EvolutionFactory',
+           'EvolvedOp',
+           'PauliTrotterEvolution',
+           'MatrixEvolution',
+           'TrotterizationBase',
+           'TrotterizationFactory',
+           'Trotter',
+           'Suzuki',
+           'QDrift']

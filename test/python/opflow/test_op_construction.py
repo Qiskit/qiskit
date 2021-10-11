@@ -13,163 +13,133 @@
 """ Test Operator construction, including OpPrimitives and singletons. """
 
 
-import itertools
 import unittest
-from math import pi
 from test.python.opflow import QiskitOpflowTestCase
-
-import numpy as np
+import itertools
 import scipy
-from ddt import data, ddt
 from scipy.stats import unitary_group
+import numpy as np
+from ddt import ddt, data
 
 from qiskit import QiskitError
-from qiskit.circuit import Instruction, Parameter, ParameterVector, QuantumCircuit, QuantumRegister
-from qiskit.circuit.library import CZGate, ZGate
+from qiskit.circuit import QuantumCircuit, QuantumRegister, Instruction, Parameter, ParameterVector
+
 from qiskit.extensions.exceptions import ExtensionError
-from qiskit.opflow import (
-    CX,
-    CircuitOp,
-    CircuitStateFn,
-    ComposedOp,
-    DictStateFn,
-    EvolvedOp,
-    H,
-    I,
-    ListOp,
-    MatrixOp,
-    Minus,
-    OperatorBase,
-    OperatorStateFn,
-    OpflowError,
-    PauliOp,
-    PrimitiveOp,
-    SparseVectorStateFn,
-    StateFn,
-    SummedOp,
-    T,
-    TensoredOp,
-    VectorStateFn,
-    X,
-    Y,
-    Z,
-    Zero,
-)
 from qiskit.quantum_info import Operator, Pauli, Statevector
+from qiskit.circuit.library import CZGate, ZGate
+
+from qiskit.opflow import (
+    X, Y, Z, I, CX, T, H, Minus, PrimitiveOp, PauliOp, CircuitOp, MatrixOp, EvolvedOp, StateFn,
+    CircuitStateFn, VectorStateFn, DictStateFn, OperatorStateFn, ListOp, ComposedOp, TensoredOp,
+    SummedOp, OperatorBase, Zero, OpflowError
+)
+
 
 # pylint: disable=invalid-name
-
 
 @ddt
 class TestOpConstruction(QiskitOpflowTestCase):
     """Operator Construction tests."""
 
     def test_pauli_primitives(self):
-        """from to file test"""
+        """ from to file test """
         newop = X ^ Y ^ Z ^ I
-        self.assertEqual(newop.primitive, Pauli("XYZI"))
+        self.assertEqual(newop.primitive, Pauli('XYZI'))
 
         kpower_op = (Y ^ 5) ^ (I ^ 3)
-        self.assertEqual(kpower_op.primitive, Pauli("YYYYYIII"))
+        self.assertEqual(kpower_op.primitive, Pauli('YYYYYIII'))
 
         kpower_op2 = (Y ^ I) ^ 4
-        self.assertEqual(kpower_op2.primitive, Pauli("YIYIYIYI"))
+        self.assertEqual(kpower_op2.primitive, Pauli('YIYIYIYI'))
 
         # Check immutability
-        self.assertEqual(X.primitive, Pauli("X"))
-        self.assertEqual(Y.primitive, Pauli("Y"))
-        self.assertEqual(Z.primitive, Pauli("Z"))
-        self.assertEqual(I.primitive, Pauli("I"))
+        self.assertEqual(X.primitive, Pauli('X'))
+        self.assertEqual(Y.primitive, Pauli('Y'))
+        self.assertEqual(Z.primitive, Pauli('Z'))
+        self.assertEqual(I.primitive, Pauli('I'))
 
     def test_composed_eval(self):
-        """Test eval of ComposedOp"""
-        self.assertAlmostEqual(Minus.eval("1"), -(0.5 ** 0.5))
+        """ Test eval of ComposedOp """
+        self.assertAlmostEqual(Minus.eval('1'), -.5 ** .5)
 
     def test_xz_compose_phase(self):
-        """Test phase composition"""
-        self.assertEqual((-1j * Y).eval("0").eval("0"), 0)
-        self.assertEqual((-1j * Y).eval("0").eval("1"), 1)
-        self.assertEqual((-1j * Y).eval("1").eval("0"), -1)
-        self.assertEqual((-1j * Y).eval("1").eval("1"), 0)
-        self.assertEqual((X @ Z).eval("0").eval("0"), 0)
-        self.assertEqual((X @ Z).eval("0").eval("1"), 1)
-        self.assertEqual((X @ Z).eval("1").eval("0"), -1)
-        self.assertEqual((X @ Z).eval("1").eval("1"), 0)
-        self.assertEqual((1j * Y).eval("0").eval("0"), 0)
-        self.assertEqual((1j * Y).eval("0").eval("1"), -1)
-        self.assertEqual((1j * Y).eval("1").eval("0"), 1)
-        self.assertEqual((1j * Y).eval("1").eval("1"), 0)
-        self.assertEqual((Z @ X).eval("0").eval("0"), 0)
-        self.assertEqual((Z @ X).eval("0").eval("1"), -1)
-        self.assertEqual((Z @ X).eval("1").eval("0"), 1)
-        self.assertEqual((Z @ X).eval("1").eval("1"), 0)
+        """ Test phase composition """
+        self.assertEqual((-1j * Y).eval('0').eval('0'), 0)
+        self.assertEqual((-1j * Y).eval('0').eval('1'), 1)
+        self.assertEqual((-1j * Y).eval('1').eval('0'), -1)
+        self.assertEqual((-1j * Y).eval('1').eval('1'), 0)
+        self.assertEqual((X @ Z).eval('0').eval('0'), 0)
+        self.assertEqual((X @ Z).eval('0').eval('1'), 1)
+        self.assertEqual((X @ Z).eval('1').eval('0'), -1)
+        self.assertEqual((X @ Z).eval('1').eval('1'), 0)
+        self.assertEqual((1j * Y).eval('0').eval('0'), 0)
+        self.assertEqual((1j * Y).eval('0').eval('1'), -1)
+        self.assertEqual((1j * Y).eval('1').eval('0'), 1)
+        self.assertEqual((1j * Y).eval('1').eval('1'), 0)
+        self.assertEqual((Z @ X).eval('0').eval('0'), 0)
+        self.assertEqual((Z @ X).eval('0').eval('1'), -1)
+        self.assertEqual((Z @ X).eval('1').eval('0'), 1)
+        self.assertEqual((Z @ X).eval('1').eval('1'), 0)
 
     def test_evals(self):
-        """evals test"""
+        """ evals test """
         # TODO: Think about eval names
-        self.assertEqual(Z.eval("0").eval("0"), 1)
-        self.assertEqual(Z.eval("1").eval("0"), 0)
-        self.assertEqual(Z.eval("0").eval("1"), 0)
-        self.assertEqual(Z.eval("1").eval("1"), -1)
-        self.assertEqual(X.eval("0").eval("0"), 0)
-        self.assertEqual(X.eval("1").eval("0"), 1)
-        self.assertEqual(X.eval("0").eval("1"), 1)
-        self.assertEqual(X.eval("1").eval("1"), 0)
-        self.assertEqual(Y.eval("0").eval("0"), 0)
-        self.assertEqual(Y.eval("1").eval("0"), -1j)
-        self.assertEqual(Y.eval("0").eval("1"), 1j)
-        self.assertEqual(Y.eval("1").eval("1"), 0)
+        self.assertEqual(Z.eval('0').eval('0'), 1)
+        self.assertEqual(Z.eval('1').eval('0'), 0)
+        self.assertEqual(Z.eval('0').eval('1'), 0)
+        self.assertEqual(Z.eval('1').eval('1'), -1)
+        self.assertEqual(X.eval('0').eval('0'), 0)
+        self.assertEqual(X.eval('1').eval('0'), 1)
+        self.assertEqual(X.eval('0').eval('1'), 1)
+        self.assertEqual(X.eval('1').eval('1'), 0)
+        self.assertEqual(Y.eval('0').eval('0'), 0)
+        self.assertEqual(Y.eval('1').eval('0'), -1j)
+        self.assertEqual(Y.eval('0').eval('1'), 1j)
+        self.assertEqual(Y.eval('1').eval('1'), 0)
 
         with self.assertRaises(ValueError):
-            Y.eval("11")
+            Y.eval('11')
 
         with self.assertRaises(ValueError):
-            (X ^ Y).eval("1111")
+            (X ^ Y).eval('1111')
 
         with self.assertRaises(ValueError):
             Y.eval((X ^ X).to_matrix_op())
 
         # Check that Pauli logic eval returns same as matrix logic
-        self.assertEqual(PrimitiveOp(Z.to_matrix()).eval("0").eval("0"), 1)
-        self.assertEqual(PrimitiveOp(Z.to_matrix()).eval("1").eval("0"), 0)
-        self.assertEqual(PrimitiveOp(Z.to_matrix()).eval("0").eval("1"), 0)
-        self.assertEqual(PrimitiveOp(Z.to_matrix()).eval("1").eval("1"), -1)
-        self.assertEqual(PrimitiveOp(X.to_matrix()).eval("0").eval("0"), 0)
-        self.assertEqual(PrimitiveOp(X.to_matrix()).eval("1").eval("0"), 1)
-        self.assertEqual(PrimitiveOp(X.to_matrix()).eval("0").eval("1"), 1)
-        self.assertEqual(PrimitiveOp(X.to_matrix()).eval("1").eval("1"), 0)
-        self.assertEqual(PrimitiveOp(Y.to_matrix()).eval("0").eval("0"), 0)
-        self.assertEqual(PrimitiveOp(Y.to_matrix()).eval("1").eval("0"), -1j)
-        self.assertEqual(PrimitiveOp(Y.to_matrix()).eval("0").eval("1"), 1j)
-        self.assertEqual(PrimitiveOp(Y.to_matrix()).eval("1").eval("1"), 0)
+        self.assertEqual(PrimitiveOp(Z.to_matrix()).eval('0').eval('0'), 1)
+        self.assertEqual(PrimitiveOp(Z.to_matrix()).eval('1').eval('0'), 0)
+        self.assertEqual(PrimitiveOp(Z.to_matrix()).eval('0').eval('1'), 0)
+        self.assertEqual(PrimitiveOp(Z.to_matrix()).eval('1').eval('1'), -1)
+        self.assertEqual(PrimitiveOp(X.to_matrix()).eval('0').eval('0'), 0)
+        self.assertEqual(PrimitiveOp(X.to_matrix()).eval('1').eval('0'), 1)
+        self.assertEqual(PrimitiveOp(X.to_matrix()).eval('0').eval('1'), 1)
+        self.assertEqual(PrimitiveOp(X.to_matrix()).eval('1').eval('1'), 0)
+        self.assertEqual(PrimitiveOp(Y.to_matrix()).eval('0').eval('0'), 0)
+        self.assertEqual(PrimitiveOp(Y.to_matrix()).eval('1').eval('0'), -1j)
+        self.assertEqual(PrimitiveOp(Y.to_matrix()).eval('0').eval('1'), 1j)
+        self.assertEqual(PrimitiveOp(Y.to_matrix()).eval('1').eval('1'), 0)
 
         pauli_op = Z ^ I ^ X ^ Y
         mat_op = PrimitiveOp(pauli_op.to_matrix())
-        full_basis = list(map("".join, itertools.product("01", repeat=pauli_op.num_qubits)))
+        full_basis = list(map(''.join, itertools.product('01', repeat=pauli_op.num_qubits)))
         for bstr1, bstr2 in itertools.product(full_basis, full_basis):
             # print('{} {} {} {}'.format(bstr1, bstr2, pauli_op.eval(bstr1, bstr2),
             # mat_op.eval(bstr1, bstr2)))
-            np.testing.assert_array_almost_equal(
-                pauli_op.eval(bstr1).eval(bstr2), mat_op.eval(bstr1).eval(bstr2)
-            )
+            np.testing.assert_array_almost_equal(pauli_op.eval(bstr1).eval(bstr2),
+                                                 mat_op.eval(bstr1).eval(bstr2))
 
-        gnarly_op = SummedOp(
-            [
-                (H ^ I ^ Y).compose(X ^ X ^ Z).tensor(Z),
-                PrimitiveOp(Operator.from_label("+r0I")),
-                3 * (X ^ CX ^ T),
-            ],
-            coeff=3 + 0.2j,
-        )
+        gnarly_op = SummedOp([(H ^ I ^ Y).compose(X ^ X ^ Z).tensor(Z),
+                              PrimitiveOp(Operator.from_label('+r0I')),
+                              3 * (X ^ CX ^ T)], coeff=3 + .2j)
         gnarly_mat_op = PrimitiveOp(gnarly_op.to_matrix())
-        full_basis = list(map("".join, itertools.product("01", repeat=gnarly_op.num_qubits)))
+        full_basis = list(map(''.join, itertools.product('01', repeat=gnarly_op.num_qubits)))
         for bstr1, bstr2 in itertools.product(full_basis, full_basis):
-            np.testing.assert_array_almost_equal(
-                gnarly_op.eval(bstr1).eval(bstr2), gnarly_mat_op.eval(bstr1).eval(bstr2)
-            )
+            np.testing.assert_array_almost_equal(gnarly_op.eval(bstr1).eval(bstr2),
+                                                 gnarly_mat_op.eval(bstr1).eval(bstr2))
 
     def test_circuit_construction(self):
-        """circuit construction test"""
+        """ circuit construction test """
         hadq2 = H ^ I
         cz = hadq2.compose(CX).compose(hadq2)
         qc = QuantumCircuit(2)
@@ -179,45 +149,40 @@ class TestOpConstruction(QiskitOpflowTestCase):
         np.testing.assert_array_almost_equal(cz.to_matrix(), ref_cz_mat)
 
     def test_io_consistency(self):
-        """consistency test"""
+        """ consistency test """
         new_op = X ^ Y ^ I
-        label = "XYI"
+        label = 'XYI'
         # label = new_op.primitive.to_label()
         self.assertEqual(str(new_op.primitive), label)
-        np.testing.assert_array_almost_equal(
-            new_op.primitive.to_matrix(), Operator.from_label(label).data
-        )
+        np.testing.assert_array_almost_equal(new_op.primitive.to_matrix(),
+                                             Operator.from_label(label).data)
         self.assertEqual(new_op.primitive, Pauli(label))
 
         x_mat = X.primitive.to_matrix()
         y_mat = Y.primitive.to_matrix()
         i_mat = np.eye(2, 2)
-        np.testing.assert_array_almost_equal(
-            new_op.primitive.to_matrix(), np.kron(np.kron(x_mat, y_mat), i_mat)
-        )
+        np.testing.assert_array_almost_equal(new_op.primitive.to_matrix(),
+                                             np.kron(np.kron(x_mat, y_mat), i_mat))
 
         hi = np.kron(H.to_matrix(), I.to_matrix())
-        hi2 = Operator.from_label("HI").data
+        hi2 = Operator.from_label('HI').data
         hi3 = (H ^ I).to_matrix()
         np.testing.assert_array_almost_equal(hi, hi2)
         np.testing.assert_array_almost_equal(hi2, hi3)
 
         xy = np.kron(X.to_matrix(), Y.to_matrix())
-        xy2 = Operator.from_label("XY").data
+        xy2 = Operator.from_label('XY').data
         xy3 = (X ^ Y).to_matrix()
         np.testing.assert_array_almost_equal(xy, xy2)
         np.testing.assert_array_almost_equal(xy2, xy3)
 
         # Check if numpy array instantiation is the same as from Operator
-        matrix_op = Operator.from_label("+r")
-        np.testing.assert_array_almost_equal(
-            PrimitiveOp(matrix_op).to_matrix(), PrimitiveOp(matrix_op.data).to_matrix()
-        )
+        matrix_op = Operator.from_label('+r')
+        np.testing.assert_array_almost_equal(PrimitiveOp(matrix_op).to_matrix(),
+                                             PrimitiveOp(matrix_op.data).to_matrix())
         # Ditto list of lists
-        np.testing.assert_array_almost_equal(
-            PrimitiveOp(matrix_op.data.tolist()).to_matrix(),
-            PrimitiveOp(matrix_op.data).to_matrix(),
-        )
+        np.testing.assert_array_almost_equal(PrimitiveOp(matrix_op.data.tolist()).to_matrix(),
+                                             PrimitiveOp(matrix_op.data).to_matrix())
 
         # TODO make sure this works once we resolve endianness mayhem
         # qc = QuantumCircuit(3)
@@ -228,34 +193,31 @@ class TestOpConstruction(QiskitOpflowTestCase):
         # np.testing.assert_array_almost_equal(new_op.primitive.to_matrix(), unitary)
 
     def test_to_matrix(self):
-        """to matrix text"""
-        np.testing.assert_array_equal(X.to_matrix(), Operator.from_label("X").data)
-        np.testing.assert_array_equal(Y.to_matrix(), Operator.from_label("Y").data)
-        np.testing.assert_array_equal(Z.to_matrix(), Operator.from_label("Z").data)
+        """to matrix text """
+        np.testing.assert_array_equal(X.to_matrix(), Operator.from_label('X').data)
+        np.testing.assert_array_equal(Y.to_matrix(), Operator.from_label('Y').data)
+        np.testing.assert_array_equal(Z.to_matrix(), Operator.from_label('Z').data)
 
         op1 = Y + H
         np.testing.assert_array_almost_equal(op1.to_matrix(), Y.to_matrix() + H.to_matrix())
 
-        op2 = op1 * 0.5
-        np.testing.assert_array_almost_equal(op2.to_matrix(), op1.to_matrix() * 0.5)
+        op2 = op1 * .5
+        np.testing.assert_array_almost_equal(op2.to_matrix(), op1.to_matrix() * .5)
 
-        op3 = (4 - 0.6j) * op2
-        np.testing.assert_array_almost_equal(op3.to_matrix(), op2.to_matrix() * (4 - 0.6j))
+        op3 = (4 - .6j) * op2
+        np.testing.assert_array_almost_equal(op3.to_matrix(), op2.to_matrix() * (4 - .6j))
 
         op4 = op3.tensor(X)
-        np.testing.assert_array_almost_equal(
-            op4.to_matrix(), np.kron(op3.to_matrix(), X.to_matrix())
-        )
+        np.testing.assert_array_almost_equal(op4.to_matrix(),
+                                             np.kron(op3.to_matrix(), X.to_matrix()))
 
         op5 = op4.compose(H ^ I)
-        np.testing.assert_array_almost_equal(
-            op5.to_matrix(), np.dot(op4.to_matrix(), (H ^ I).to_matrix())
-        )
+        np.testing.assert_array_almost_equal(op5.to_matrix(), np.dot(op4.to_matrix(),
+                                                                     (H ^ I).to_matrix()))
 
-        op6 = op5 + PrimitiveOp(Operator.from_label("+r").data)
+        op6 = op5 + PrimitiveOp(Operator.from_label('+r').data)
         np.testing.assert_array_almost_equal(
-            op6.to_matrix(), op5.to_matrix() + Operator.from_label("+r").data
-        )
+            op6.to_matrix(), op5.to_matrix() + Operator.from_label('+r').data)
 
         param = Parameter("α")
         m = np.array([[0, -1j], [1j, 0]])
@@ -274,48 +236,43 @@ class TestOpConstruction(QiskitOpflowTestCase):
         np.testing.assert_array_equal(op9.to_matrix(), m * param)
 
     def test_circuit_op_to_matrix(self):
-        """test CircuitOp.to_matrix"""
+        """ test CircuitOp.to_matrix """
         qc = QuantumCircuit(1)
         qc.rz(1.0, 0)
         qcop = CircuitOp(qc)
         np.testing.assert_array_almost_equal(
-            qcop.to_matrix(), scipy.linalg.expm(-0.5j * Z.to_matrix())
-        )
+            qcop.to_matrix(), scipy.linalg.expm(-0.5j * Z.to_matrix()))
 
     def test_matrix_to_instruction(self):
         """Test MatrixOp.to_instruction yields an Instruction object."""
         matop = (H ^ 3).to_matrix_op()
-        with self.subTest("assert to_instruction returns Instruction"):
+        with self.subTest('assert to_instruction returns Instruction'):
             self.assertIsInstance(matop.to_instruction(), Instruction)
 
         matop = ((H ^ 3) + (Z ^ 3)).to_matrix_op()
-        with self.subTest("matrix operator is not unitary"):
+        with self.subTest('matrix operator is not unitary'):
             with self.assertRaises(ExtensionError):
                 matop.to_instruction()
 
     def test_adjoint(self):
-        """adjoint test"""
-        gnarly_op = 3 * (H ^ I ^ Y).compose(X ^ X ^ Z).tensor(T ^ Z) + PrimitiveOp(
-            Operator.from_label("+r0IX").data
-        )
-        np.testing.assert_array_almost_equal(
-            np.conj(np.transpose(gnarly_op.to_matrix())), gnarly_op.adjoint().to_matrix()
-        )
+        """ adjoint test """
+        gnarly_op = 3 * (H ^ I ^ Y).compose(X ^ X ^ Z).tensor(T ^ Z) + \
+            PrimitiveOp(Operator.from_label('+r0IX').data)
+        np.testing.assert_array_almost_equal(np.conj(np.transpose(gnarly_op.to_matrix())),
+                                             gnarly_op.adjoint().to_matrix())
 
     def test_primitive_strings(self):
-        """get primitives test"""
-        self.assertEqual(X.primitive_strings(), {"Pauli"})
+        """ get primitives test """
+        self.assertEqual(X.primitive_strings(), {'Pauli'})
 
-        gnarly_op = 3 * (H ^ I ^ Y).compose(X ^ X ^ Z).tensor(T ^ Z) + PrimitiveOp(
-            Operator.from_label("+r0IX").data
-        )
-        self.assertEqual(gnarly_op.primitive_strings(), {"QuantumCircuit", "Matrix"})
+        gnarly_op = 3 * (H ^ I ^ Y).compose(X ^ X ^ Z).tensor(T ^ Z) + \
+            PrimitiveOp(Operator.from_label('+r0IX').data)
+        self.assertEqual(gnarly_op.primitive_strings(), {'QuantumCircuit', 'Matrix'})
 
     def test_to_pauli_op(self):
-        """Test to_pauli_op method"""
-        gnarly_op = 3 * (H ^ I ^ Y).compose(X ^ X ^ Z).tensor(T ^ Z) + PrimitiveOp(
-            Operator.from_label("+r0IX").data
-        )
+        """ Test to_pauli_op method """
+        gnarly_op = 3 * (H ^ I ^ Y).compose(X ^ X ^ Z).tensor(T ^ Z) + \
+            PrimitiveOp(Operator.from_label('+r0IX').data)
         mat_op = gnarly_op.to_matrix_op()
         pauli_op = gnarly_op.to_pauli_op()
         self.assertIsInstance(pauli_op, SummedOp)
@@ -324,15 +281,13 @@ class TestOpConstruction(QiskitOpflowTestCase):
         np.testing.assert_array_almost_equal(mat_op.to_matrix(), pauli_op.to_matrix())
 
     def test_circuit_permute(self):
-        r"""Test the CircuitOp's .permute method"""
+        r""" Test the CircuitOp's .permute method """
         perm = range(7)[::-1]
-        c_op = (
-            ((CX ^ 3) ^ X)
-            @ (H ^ 7)
-            @ (X ^ Y ^ Z ^ I ^ X ^ X ^ X)
-            @ (Y ^ (CX ^ 3))
-            @ (X ^ Y ^ Z ^ I ^ X ^ X ^ X)
-        )
+        c_op = (((CX ^ 3) ^ X) @
+                (H ^ 7) @
+                (X ^ Y ^ Z ^ I ^ X ^ X ^ X) @
+                (Y ^ (CX ^ 3)) @
+                (X ^ Y ^ Z ^ I ^ X ^ X ^ X))
         c_op_perm = c_op.permute(perm)
         self.assertNotEqual(c_op, c_op_perm)
         c_op_id = c_op_perm.permute(perm)
@@ -342,109 +297,109 @@ class TestOpConstruction(QiskitOpflowTestCase):
         """Test SummedOp"""
         sum_op = (X ^ X * 2) + (Y ^ Y)  # type: PauliSumOp
         sum_op = sum_op.to_pauli_op()  # type: SummedOp[PauliOp]
-        with self.subTest("SummedOp test 1"):
+        with self.subTest('SummedOp test 1'):
             self.assertEqual(sum_op.coeff, 1)
-            self.assertListEqual([str(op.primitive) for op in sum_op], ["XX", "YY"])
+            self.assertListEqual([str(op.primitive) for op in sum_op], ['XX', 'YY'])
             self.assertListEqual([op.coeff for op in sum_op], [2, 1])
 
         sum_op = (X ^ X * 2) + (Y ^ Y)
         sum_op += Y ^ Y
         sum_op = sum_op.to_pauli_op()  # type: SummedOp[PauliOp]
-        with self.subTest("SummedOp test 2-a"):
+        with self.subTest('SummedOp test 2-a'):
             self.assertEqual(sum_op.coeff, 1)
-            self.assertListEqual([str(op.primitive) for op in sum_op], ["XX", "YY", "YY"])
+            self.assertListEqual([str(op.primitive) for op in sum_op], ['XX', 'YY', 'YY'])
             self.assertListEqual([op.coeff for op in sum_op], [2, 1, 1])
 
         sum_op = sum_op.collapse_summands()
-        with self.subTest("SummedOp test 2-b"):
+        with self.subTest('SummedOp test 2-b'):
             self.assertEqual(sum_op.coeff, 1)
-            self.assertListEqual([str(op.primitive) for op in sum_op], ["XX", "YY"])
+            self.assertListEqual([str(op.primitive) for op in sum_op], ['XX', 'YY'])
             self.assertListEqual([op.coeff for op in sum_op], [2, 2])
 
         sum_op = (X ^ X * 2) + (Y ^ Y)
         sum_op += (Y ^ Y) + (X ^ X * 2)
         sum_op = sum_op.to_pauli_op()  # type: SummedOp[PauliOp]
-        with self.subTest("SummedOp test 3-a"):
+        with self.subTest('SummedOp test 3-a'):
             self.assertEqual(sum_op.coeff, 1)
-            self.assertListEqual([str(op.primitive) for op in sum_op], ["XX", "YY", "YY", "XX"])
+            self.assertListEqual([str(op.primitive) for op in sum_op], ['XX', 'YY', 'YY', 'XX'])
             self.assertListEqual([op.coeff for op in sum_op], [2, 1, 1, 2])
 
         sum_op = sum_op.reduce().to_pauli_op()
-        with self.subTest("SummedOp test 3-b"):
+        with self.subTest('SummedOp test 3-b'):
             self.assertEqual(sum_op.coeff, 1)
-            self.assertListEqual([str(op.primitive) for op in sum_op], ["XX", "YY"])
+            self.assertListEqual([str(op.primitive) for op in sum_op], ['XX', 'YY'])
             self.assertListEqual([op.coeff for op in sum_op], [4, 2])
 
         sum_op = SummedOp([X ^ X * 2, Y ^ Y], 2)
-        with self.subTest("SummedOp test 4-a"):
+        with self.subTest('SummedOp test 4-a'):
             self.assertEqual(sum_op.coeff, 2)
-            self.assertListEqual([str(op.primitive) for op in sum_op], ["XX", "YY"])
+            self.assertListEqual([str(op.primitive) for op in sum_op], ['XX', 'YY'])
             self.assertListEqual([op.coeff for op in sum_op], [2, 1])
 
         sum_op = sum_op.collapse_summands()
-        with self.subTest("SummedOp test 4-b"):
+        with self.subTest('SummedOp test 4-b'):
             self.assertEqual(sum_op.coeff, 1)
-            self.assertListEqual([str(op.primitive) for op in sum_op], ["XX", "YY"])
+            self.assertListEqual([str(op.primitive) for op in sum_op], ['XX', 'YY'])
             self.assertListEqual([op.coeff for op in sum_op], [4, 2])
 
         sum_op = SummedOp([X ^ X * 2, Y ^ Y], 2)
         sum_op += Y ^ Y
-        with self.subTest("SummedOp test 5-a"):
+        with self.subTest('SummedOp test 5-a'):
             self.assertEqual(sum_op.coeff, 1)
-            self.assertListEqual([str(op.primitive) for op in sum_op], ["XX", "YY", "YY"])
+            self.assertListEqual([str(op.primitive) for op in sum_op], ['XX', 'YY', 'YY'])
             self.assertListEqual([op.coeff for op in sum_op], [4, 2, 1])
 
         sum_op = sum_op.collapse_summands()
-        with self.subTest("SummedOp test 5-b"):
+        with self.subTest('SummedOp test 5-b'):
             self.assertEqual(sum_op.coeff, 1)
-            self.assertListEqual([str(op.primitive) for op in sum_op], ["XX", "YY"])
+            self.assertListEqual([str(op.primitive) for op in sum_op], ['XX', 'YY'])
             self.assertListEqual([op.coeff for op in sum_op], [4, 3])
 
         sum_op = SummedOp([X ^ X * 2, Y ^ Y], 2)
         sum_op += ((X ^ X) * 2 + (Y ^ Y)).to_pauli_op()
-        with self.subTest("SummedOp test 6-a"):
+        with self.subTest('SummedOp test 6-a'):
             self.assertEqual(sum_op.coeff, 1)
-            self.assertListEqual([str(op.primitive) for op in sum_op], ["XX", "YY", "XX", "YY"])
+            self.assertListEqual([str(op.primitive) for op in sum_op], ['XX', 'YY', 'XX', 'YY'])
             self.assertListEqual([op.coeff for op in sum_op], [4, 2, 2, 1])
 
         sum_op = sum_op.collapse_summands()
-        with self.subTest("SummedOp test 6-b"):
+        with self.subTest('SummedOp test 6-b'):
             self.assertEqual(sum_op.coeff, 1)
-            self.assertListEqual([str(op.primitive) for op in sum_op], ["XX", "YY"])
+            self.assertListEqual([str(op.primitive) for op in sum_op], ['XX', 'YY'])
             self.assertListEqual([op.coeff for op in sum_op], [6, 3])
 
         sum_op = SummedOp([X ^ X * 2, Y ^ Y], 2)
         sum_op += sum_op
-        with self.subTest("SummedOp test 7-a"):
+        with self.subTest('SummedOp test 7-a'):
             self.assertEqual(sum_op.coeff, 1)
-            self.assertListEqual([str(op.primitive) for op in sum_op], ["XX", "YY", "XX", "YY"])
+            self.assertListEqual([str(op.primitive) for op in sum_op], ['XX', 'YY', 'XX', 'YY'])
             self.assertListEqual([op.coeff for op in sum_op], [4, 2, 4, 2])
 
         sum_op = sum_op.collapse_summands()
-        with self.subTest("SummedOp test 7-b"):
+        with self.subTest('SummedOp test 7-b'):
             self.assertEqual(sum_op.coeff, 1)
-            self.assertListEqual([str(op.primitive) for op in sum_op], ["XX", "YY"])
+            self.assertListEqual([str(op.primitive) for op in sum_op], ['XX', 'YY'])
             self.assertListEqual([op.coeff for op in sum_op], [8, 4])
 
         sum_op = SummedOp([X ^ X * 2, Y ^ Y], 2) + SummedOp([X ^ X * 2, Z ^ Z], 3)
-        with self.subTest("SummedOp test 8-a"):
+        with self.subTest('SummedOp test 8-a'):
             self.assertEqual(sum_op.coeff, 1)
-            self.assertListEqual([str(op.primitive) for op in sum_op], ["XX", "YY", "XX", "ZZ"])
+            self.assertListEqual([str(op.primitive) for op in sum_op], ['XX', 'YY', 'XX', 'ZZ'])
             self.assertListEqual([op.coeff for op in sum_op], [4, 2, 6, 3])
 
         sum_op = sum_op.collapse_summands()
-        with self.subTest("SummedOp test 8-b"):
+        with self.subTest('SummedOp test 8-b'):
             self.assertEqual(sum_op.coeff, 1)
-            self.assertListEqual([str(op.primitive) for op in sum_op], ["XX", "YY", "ZZ"])
+            self.assertListEqual([str(op.primitive) for op in sum_op], ['XX', 'YY', 'ZZ'])
             self.assertListEqual([op.coeff for op in sum_op], [10, 2, 3])
 
         sum_op = SummedOp([])
-        with self.subTest("SummedOp test 9"):
+        with self.subTest('SummedOp test 9'):
             self.assertEqual(sum_op.reduce(), sum_op)
 
         sum_op = ((Z + I) ^ Z) + (Z ^ X)
-        with self.subTest("SummedOp test 10"):
-            expected = SummedOp([PauliOp(Pauli("ZZ")), PauliOp(Pauli("IZ")), PauliOp(Pauli("ZX"))])
+        with self.subTest('SummedOp test 10'):
+            expected = SummedOp([PauliOp(Pauli('ZZ')), PauliOp(Pauli('IZ')), PauliOp(Pauli('ZX'))])
             self.assertEqual(sum_op.to_pauli_op(), expected)
 
     def test_compose_op_of_different_dim(self):
@@ -453,11 +408,11 @@ class TestOpConstruction(QiskitOpflowTestCase):
         Test if PrimitiveOps compose methods are consistent.
         """
         # PauliOps of different dim
-        xy_p = X ^ Y
-        xyz_p = X ^ Y ^ Z
+        xy_p = (X ^ Y)
+        xyz_p = (X ^ Y ^ Z)
 
         pauli_op = xy_p @ xyz_p
-        expected_result = I ^ I ^ Z
+        expected_result = (I ^ I ^ Z)
         self.assertEqual(pauli_op, expected_result)
 
         # MatrixOps of different dim
@@ -478,13 +433,13 @@ class TestOpConstruction(QiskitOpflowTestCase):
         self.assertTrue(np.allclose(matrix_op.to_matrix(), circuit_op.to_matrix(), rtol=1e-14))
 
     def test_permute_on_primitive_op(self):
-        """Test if permute methods of PrimitiveOps are consistent and work as expected."""
+        """ Test if permute methods of PrimitiveOps are consistent and work as expected. """
         indices = [1, 2, 4]
 
         # PauliOp
-        pauli_op = X ^ Y ^ Z
+        pauli_op = (X ^ Y ^ Z)
         permuted_pauli_op = pauli_op.permute(indices)
-        expected_pauli_op = X ^ I ^ Y ^ Z ^ I
+        expected_pauli_op = (X ^ I ^ Y ^ Z ^ I)
 
         self.assertEqual(permuted_pauli_op, expected_pauli_op)
 
@@ -493,9 +448,8 @@ class TestOpConstruction(QiskitOpflowTestCase):
         permuted_circuit_op = circuit_op.permute(indices)
         expected_circuit_op = expected_pauli_op.to_circuit_op()
 
-        self.assertEqual(
-            Operator(permuted_circuit_op.primitive), Operator(expected_circuit_op.primitive)
-        )
+        self.assertEqual(permuted_circuit_op.primitive.__str__(),
+                         expected_circuit_op.primitive.__str__())
 
         # MatrixOp
         matrix_op = pauli_op.to_matrix_op()
@@ -506,10 +460,10 @@ class TestOpConstruction(QiskitOpflowTestCase):
         self.assertTrue(equal)
 
     def test_permute_on_list_op(self):
-        """Test if ListOp permute method is consistent with PrimitiveOps permute methods."""
+        """ Test if ListOp permute method is consistent with PrimitiveOps permute methods. """
 
         op1 = (X ^ Y ^ Z).to_circuit_op()
-        op2 = Z ^ X ^ Y
+        op2 = (Z ^ X ^ Y)
 
         # ComposedOp
         indices = [1, 2, 0]
@@ -535,18 +489,16 @@ class TestOpConstruction(QiskitOpflowTestCase):
 
         # reduce the ListOp to PrimitiveOp
         composed_oplist = tensored_op_perm.oplist
-        to_primitive = (
-            composed_oplist[0]
-            @ (composed_oplist[1].oplist[0] ^ composed_oplist[1].oplist[1])
-            @ composed_oplist[2]
-        )
+        to_primitive = \
+            composed_oplist[0] @ (composed_oplist[1].oplist[0] ^ composed_oplist[1].oplist[1]) @ \
+            composed_oplist[2]
 
         # compare resulting PrimitiveOps
         equal = np.allclose(primitive_op_perm.to_matrix(), to_primitive.to_matrix())
         self.assertTrue(equal)
 
         # SummedOp
-        primitive_op = X ^ Y ^ Z
+        primitive_op = (X ^ Y ^ Z)
         summed_op = SummedOp([primitive_op])
 
         indices = [1, 2, 0]
@@ -561,7 +513,7 @@ class TestOpConstruction(QiskitOpflowTestCase):
         self.assertTrue(equal)
 
     def test_expand_on_list_op(self):
-        """Test if expanded ListOp has expected num_qubits."""
+        """ Test if expanded ListOp has expected num_qubits. """
         add_qubits = 3
 
         # ComposedOp
@@ -580,7 +532,7 @@ class TestOpConstruction(QiskitOpflowTestCase):
         self.assertEqual(summed_op.num_qubits + add_qubits, expanded.num_qubits)
 
     def test_expand_on_state_fn(self):
-        """Test if expanded StateFn has expected num_qubits."""
+        """ Test if expanded StateFn has expected num_qubits. """
         num_qubits = 3
         add_qubits = 2
 
@@ -600,26 +552,26 @@ class TestOpConstruction(QiskitOpflowTestCase):
         self.assertEqual(osfn_exp.num_qubits, add_qubits + num_qubits)
 
         # case DictStateFn
-        dsfn = DictStateFn("1" * num_qubits, is_measurement=True)
+        dsfn = DictStateFn('1'*num_qubits, is_measurement=True)
         self.assertEqual(dsfn.num_qubits, num_qubits)
 
         dsfn_exp = dsfn._expand_dim(add_qubits)
         self.assertEqual(dsfn_exp.num_qubits, num_qubits + add_qubits)
 
         # case VectorStateFn
-        vsfn = VectorStateFn(np.ones(2 ** num_qubits, dtype=complex))
+        vsfn = VectorStateFn(np.ones(2**num_qubits, dtype=complex))
         self.assertEqual(vsfn.num_qubits, num_qubits)
 
         vsfn_exp = vsfn._expand_dim(add_qubits)
         self.assertEqual(vsfn_exp.num_qubits, num_qubits + add_qubits)
 
     def test_permute_on_state_fn(self):
-        """Test if StateFns permute are consistent."""
+        """ Test if StateFns permute are consistent. """
 
         num_qubits = 4
-        dim = 2 ** num_qubits
-        primitive_list = [1.0 / (i + 1) for i in range(dim)]
-        primitive_dict = {format(i, "b").zfill(num_qubits): 1.0 / (i + 1) for i in range(dim)}
+        dim = 2**num_qubits
+        primitive_list = [1.0/(i+1) for i in range(dim)]
+        primitive_dict = {format(i, 'b').zfill(num_qubits): 1.0/(i+1) for i in range(dim)}
 
         dict_fn = DictStateFn(primitive=primitive_dict, is_measurement=True)
         vec_fn = VectorStateFn(primitive=primitive_list, is_measurement=True)
@@ -640,8 +592,8 @@ class TestOpConstruction(QiskitOpflowTestCase):
         """Test if PrimitiveOp @ ComposedOp is consistent with ComposedOp @ PrimitiveOp."""
 
         # PauliOp
-        op1 = X ^ Y ^ Z
-        op2 = X ^ Y ^ Z
+        op1 = (X ^ Y ^ Z)
+        op2 = (X ^ Y ^ Z)
         op3 = (X ^ Y ^ Z).to_circuit_op()
 
         comp1 = op1 @ ComposedOp([op2, op3])
@@ -667,10 +619,10 @@ class TestOpConstruction(QiskitOpflowTestCase):
         self.assertListEqual(comp1.oplist, list(reversed(comp2.oplist)))
 
     def test_compose_with_indices(self):
-        """Test compose method using its permutation feature."""
+        """ Test compose method using its permutation feature."""
 
-        pauli_op = X ^ Y ^ Z
-        circuit_op = T ^ H
+        pauli_op = (X ^ Y ^ Z)
+        circuit_op = (T ^ H)
         matrix_op = (X ^ Y ^ H ^ T).to_matrix_op()
         evolved_op = EvolvedOp(matrix_op)
 
@@ -685,13 +637,11 @@ class TestOpConstruction(QiskitOpflowTestCase):
         num_qubits = 5
         indices = [1, 4]
         permuted_primitive_op = evolved_op @ circuit_op.permute(indices) @ pauli_op @ matrix_op
-        composed_primitive_op = (
+        composed_primitive_op = \
             evolved_op @ pauli_op.compose(circuit_op, permutation=indices, front=True) @ matrix_op
-        )
 
-        self.assertTrue(
-            np.allclose(permuted_primitive_op.to_matrix(), composed_primitive_op.to_matrix())
-        )
+        self.assertTrue(np.allclose(permuted_primitive_op.to_matrix(),
+                                    composed_primitive_op.to_matrix()))
         self.assertEqual(num_qubits, permuted_primitive_op.num_qubits)
 
         # ListOp
@@ -700,9 +650,8 @@ class TestOpConstruction(QiskitOpflowTestCase):
         summed_op = pauli_op + circuit_op.permute([2, 1])
         composed_op = circuit_op @ evolved_op @ matrix_op
 
-        list_op = summed_op @ composed_op.compose(
-            tensored_op, permutation=[1, 2, 3, 5, 4], front=True
-        )
+        list_op = summed_op @ composed_op.compose(tensored_op, permutation=[1, 2, 3, 5, 4],
+                                                  front=True)
         self.assertEqual(num_qubits, list_op.num_qubits)
 
         num_qubits = 4
@@ -718,9 +667,9 @@ class TestOpConstruction(QiskitOpflowTestCase):
 
         # StateFn
         num_qubits = 3
-        dim = 2 ** num_qubits
-        vec = [1.0 / (i + 1) for i in range(dim)]
-        dic = {format(i, "b").zfill(num_qubits): 1.0 / (i + 1) for i in range(dim)}
+        dim = 2**num_qubits
+        vec = [1.0/(i+1) for i in range(dim)]
+        dic = {format(i, 'b').zfill(num_qubits): 1.0/(i+1) for i in range(dim)}
 
         is_measurement = True
         op_state_fn = OperatorStateFn(matrix_op, is_measurement=is_measurement)  # num_qubit = 4
@@ -733,44 +682,42 @@ class TestOpConstruction(QiskitOpflowTestCase):
 
         # with permutation
         perm = [2, 4, 6]
-        composed = (
-            op_state_fn
-            @ dic_state_fn.compose(vec_state_fn, permutation=perm, front=True)
-            @ circ_state_fn
-        )
+        composed = \
+            op_state_fn @ dic_state_fn.compose(vec_state_fn, permutation=perm, front=True) @ \
+            circ_state_fn
         self.assertEqual(composed.num_qubits, max(perm) + 1)
 
     def test_summed_op_equals(self):
         """Test corner cases of SummedOp's equals function."""
-        with self.subTest("multiplicative factor"):
+        with self.subTest('multiplicative factor'):
             self.assertEqual(2 * X, X + X)
 
-        with self.subTest("commutative"):
+        with self.subTest('commutative'):
             self.assertEqual(X + Z, Z + X)
 
-        with self.subTest("circuit and paulis"):
+        with self.subTest('circuit and paulis'):
             z = CircuitOp(ZGate())
             self.assertEqual(Z + z, z + Z)
 
-        with self.subTest("matrix op and paulis"):
+        with self.subTest('matrix op and paulis'):
             z = MatrixOp([[1, 0], [0, -1]])
             self.assertEqual(Z + z, z + Z)
 
-        with self.subTest("matrix multiplicative"):
+        with self.subTest('matrix multiplicative'):
             z = MatrixOp([[1, 0], [0, -1]])
             self.assertEqual(2 * z, z + z)
 
-        with self.subTest("parameter coefficients"):
-            expr = Parameter("theta")
+        with self.subTest('parameter coefficients'):
+            expr = Parameter('theta')
             z = MatrixOp([[1, 0], [0, -1]])
             self.assertEqual(expr * z, expr * z)
 
-        with self.subTest("different coefficient types"):
-            expr = Parameter("theta")
+        with self.subTest('different coefficient types'):
+            expr = Parameter('theta')
             z = MatrixOp([[1, 0], [0, -1]])
             self.assertNotEqual(expr * z, 2 * z)
 
-        with self.subTest("additions aggregation"):
+        with self.subTest('additions aggregation'):
             z = MatrixOp([[1, 0], [0, -1]])
             a = z + z + Z
             b = 2 * z + Z
@@ -785,7 +732,7 @@ class TestOpConstruction(QiskitOpflowTestCase):
         I.e. that is uses ``QuantumCircuit.compose`` over ``combine`` or ``extend``.
         """
         op = Z ^ 2
-        qr = QuantumRegister(2, "my_qr")
+        qr = QuantumRegister(2, 'my_qr')
         circuit = QuantumCircuit(qr)
         composed = op.compose(CircuitOp(circuit))
 
@@ -795,14 +742,14 @@ class TestOpConstruction(QiskitOpflowTestCase):
         """Test to reveal QiskitError when to_instruction or to_circuit method is called on
         parameterized matrix op."""
         m = np.array([[0, 0, 1, 0], [0, 0, 0, -1], [1, 0, 0, 0], [0, -1, 0, 0]])
-        matrix_op = MatrixOp(m, Parameter("beta"))
-        for method in ["to_instruction", "to_circuit"]:
+        matrix_op = MatrixOp(m, Parameter('beta'))
+        for method in ['to_instruction', 'to_circuit']:
             with self.subTest(method):
                 # QiskitError: multiplication of Operator with ParameterExpression isn't implemented
                 self.assertRaises(QiskitError, getattr(matrix_op, method))
 
     def test_list_op_to_circuit(self):
-        """Test if unitary ListOps transpile to circuit."""
+        """Test if unitary ListOps transpile to circuit. """
 
         # generate unitary matrices of dimension 2,4,8, seed is fixed
         np.random.seed(233423)
@@ -866,51 +813,14 @@ class TestOpConstruction(QiskitOpflowTestCase):
 
         self.assertTrue(Operator(unitary).equiv(circuit))
 
-    def test_pauli_op_to_circuit(self):
-        """Test PauliOp.to_circuit()"""
-        with self.subTest("single Pauli"):
-            pauli = PauliOp(Pauli("Y"))
-            expected = QuantumCircuit(1)
-            expected.y(0)
-            self.assertEqual(pauli.to_circuit(), expected)
-
-        with self.subTest("single Pauli with phase"):
-            pauli = PauliOp(Pauli("-iX"))
-            expected = QuantumCircuit(1)
-            expected.x(0)
-            expected.global_phase = -pi / 2
-            self.assertEqual(Operator(pauli.to_circuit()), Operator(expected))
-
-        with self.subTest("two qubit"):
-            pauli = PauliOp(Pauli("IX"))
-            expected = QuantumCircuit(2)
-            expected.pauli("IX", range(2))
-            self.assertEqual(pauli.to_circuit(), expected)
-            expected = QuantumCircuit(2)
-            expected.x(0)
-            expected.id(1)
-            self.assertEqual(pauli.to_circuit().decompose(), expected)
-
-        with self.subTest("two qubit with phase"):
-            pauli = PauliOp(Pauli("iXZ"))
-            expected = QuantumCircuit(2)
-            expected.pauli("XZ", range(2))
-            expected.global_phase = pi / 2
-            self.assertEqual(pauli.to_circuit(), expected)
-            expected = QuantumCircuit(2)
-            expected.z(0)
-            expected.x(1)
-            expected.global_phase = pi / 2
-            self.assertEqual(pauli.to_circuit().decompose(), expected)
-
     def test_op_to_circuit_with_parameters(self):
         """On parameterized SummedOp, to_matrix_op returns ListOp, instead of MatrixOp. To avoid
-        the infinite recursion, OpflowError is raised."""
+        the infinite recursion, OpflowError is raised. """
         m1 = np.array([[0, 0, 1, 0], [0, 0, 0, -1], [0, 0, 0, 0], [0, 0, 0, 0]])  # non-unitary
         m2 = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [1, 0, 0, 0], [0, -1, 0, 0]])  # non-unitary
 
-        op1_with_param = MatrixOp(m1, Parameter("alpha"))  # non-unitary
-        op2_with_param = MatrixOp(m2, Parameter("beta"))  # non-unitary
+        op1_with_param = MatrixOp(m1, Parameter('alpha'))  # non-unitary
+        op2_with_param = MatrixOp(m2, Parameter('beta'))  # non-unitary
 
         summed_op_with_param = op1_with_param + op2_with_param  # unitary
         # should raise OpflowError error
@@ -928,7 +838,9 @@ class TestOpConstruction(QiskitOpflowTestCase):
         indented_str = op._indent(initial_str)
         starts_with_indent = indented_str.startswith(op.INDENTATION)
         self.assertTrue(starts_with_indent)
-        indented_str_content = (indented_str[len(op.INDENTATION) :]).split(f"\n{op.INDENTATION}")
+        indented_str_content = (
+            indented_str[len(op.INDENTATION):]
+        ).split("\n{}".format(op.INDENTATION))
         self.assertListEqual(indented_str_content, initial_str.split("\n"))
 
     def test_composed_op_immutable_under_eval(self):
@@ -940,8 +852,9 @@ class TestOpConstruction(QiskitOpflowTestCase):
 
     def test_op_parameters(self):
         """Test that Parameters are stored correctly"""
-        phi = Parameter("φ")
-        theta = ParameterVector(name="θ", length=2)
+        phi = Parameter('φ')
+        theta = ParameterVector(name='θ',
+                                length=2)
 
         qc = QuantumCircuit(2)
         qc.rz(phi, 0)
@@ -951,10 +864,11 @@ class TestOpConstruction(QiskitOpflowTestCase):
         qc.h(0)
         qc.x(1)
 
-        l = Parameter("λ")
-        op = PrimitiveOp(qc, coeff=l)
+        l = Parameter('λ')
+        op = PrimitiveOp(qc,
+                         coeff=l)
 
-        params = {phi, l, *theta.params}
+        params = set([phi, l, *theta.params])
 
         self.assertEqual(params, op.parameters)
         self.assertEqual(params, StateFn(op).parameters)
@@ -962,11 +876,13 @@ class TestOpConstruction(QiskitOpflowTestCase):
 
     def test_list_op_parameters(self):
         """Test that Parameters are stored correctly in a List Operator"""
-        lam = Parameter("λ")
-        phi = Parameter("φ")
-        omega = Parameter("ω")
+        lam = Parameter('λ')
+        phi = Parameter('φ')
+        omega = Parameter('ω')
 
-        mat_op = PrimitiveOp([[0, 1], [1, 0]], coeff=omega)
+        mat_op = PrimitiveOp([[0, 1],
+                              [1, 0]],
+                             coeff=omega)
 
         qc = QuantumCircuit(1)
         qc.rx(phi, 0)
@@ -978,20 +894,20 @@ class TestOpConstruction(QiskitOpflowTestCase):
         self.assertEqual(op1.parameters, set(params))
 
         # check list nesting case
-        op2 = PrimitiveOp([[1, 0], [0, -1]], coeff=lam)
+        op2 = PrimitiveOp([[1, 0],
+                           [0, -1]],
+                          coeff=lam)
 
         list_op = ListOp([op1, op2])
 
         params.append(lam)
         self.assertEqual(list_op.parameters, set(params))
 
-    @data(
-        VectorStateFn([1, 0]),
-        CircuitStateFn(QuantumCircuit(1)),
-        OperatorStateFn(I),
-        OperatorStateFn(MatrixOp([[1, 0], [0, 1]])),
-        OperatorStateFn(CircuitOp(QuantumCircuit(1))),
-    )
+    @data(VectorStateFn([1, 0]),
+          CircuitStateFn(QuantumCircuit(1)),
+          OperatorStateFn(I),
+          OperatorStateFn(MatrixOp([[1, 0], [0, 1]])),
+          OperatorStateFn(CircuitOp(QuantumCircuit(1))))
     def test_statefn_eval(self, op):
         """Test calling eval on StateFn returns the statevector."""
         expected = Statevector([1, 0])
@@ -999,41 +915,28 @@ class TestOpConstruction(QiskitOpflowTestCase):
 
     def test_sparse_eval(self):
         """Test calling eval on a DictStateFn returns a sparse statevector."""
-        op = DictStateFn({"0": 1})
+        op = DictStateFn({'0': 1})
         expected = scipy.sparse.csr_matrix([[1, 0]])
         self.assertFalse((op.eval().primitive != expected).toarray().any())
-
-    def test_sparse_to_dict(self):
-        """Test converting a sparse vector state function to a dict state function."""
-        isqrt2 = 1 / np.sqrt(2)
-        sparse = scipy.sparse.csr_matrix([[0, isqrt2, 0, isqrt2]])
-        sparse_fn = SparseVectorStateFn(sparse)
-        dict_fn = DictStateFn({"01": isqrt2, "11": isqrt2})
-
-        with self.subTest("sparse to dict"):
-            self.assertEqual(dict_fn, sparse_fn.to_dict_fn())
-
-        with self.subTest("dict to sparse"):
-            self.assertEqual(dict_fn.to_spmatrix_op(), sparse_fn)
 
     def test_to_circuit_op(self):
         """Test to_circuit_op method."""
         vector = np.array([2, 2])
         vsfn = VectorStateFn([1, 1], coeff=2)
-        dsfn = DictStateFn({"0": 1, "1": 1}, coeff=2)
+        dsfn = DictStateFn({'0': 1, '1': 1}, coeff=2)
 
         for sfn in [vsfn, dsfn]:
-            np.testing.assert_array_almost_equal(sfn.to_circuit_op().eval().primitive.data, vector)
+            np.testing.assert_array_almost_equal(
+                sfn.to_circuit_op().eval().primitive.data, vector
+            )
 
     def test_invalid_primitive(self):
         """Test invalid MatrixOp construction"""
-        msg = (
-            "MatrixOp can only be instantiated with "
-            "['list', 'ndarray', 'spmatrix', 'Operator'], not "
-        )
+        msg = "MatrixOp can only be instantiated with " \
+              "['list', 'ndarray', 'spmatrix', 'Operator'], not "
 
         with self.assertRaises(TypeError) as cm:
-            _ = MatrixOp("invalid")
+            _ = MatrixOp('invalid')
 
         self.assertEqual(str(cm.exception), msg + "'str'")
 
@@ -1048,7 +951,7 @@ class TestOpConstruction(QiskitOpflowTestCase):
         self.assertEqual(str(cm.exception), msg + "'float'")
 
     def test_summedop_equals(self):
-        """Test SummedOp.equals"""
+        """Test SummedOp.equals """
         ops = [Z, CircuitOp(ZGate()), MatrixOp([[1, 0], [0, -1]]), Zero, Minus]
         sum_op = sum(ops + [ListOp(ops)])
         self.assertEqual(sum_op, sum_op)
@@ -1065,13 +968,13 @@ class TestOpConstruction(QiskitOpflowTestCase):
 
     def test_empty_listops(self):
         """Test reduce and eval on ListOp with empty oplist."""
-        with self.subTest("reduce empty ComposedOp "):
+        with self.subTest('reduce empty ComposedOp '):
             self.assertEqual(ComposedOp([]).reduce(), ComposedOp([]))
-        with self.subTest("reduce empty TensoredOp "):
+        with self.subTest('reduce empty TensoredOp '):
             self.assertEqual(TensoredOp([]).reduce(), TensoredOp([]))
-        with self.subTest("eval empty ComposedOp "):
+        with self.subTest('eval empty ComposedOp '):
             self.assertEqual(ComposedOp([]).eval(), 0.0)
-        with self.subTest("eval empty TensoredOp "):
+        with self.subTest('eval empty TensoredOp '):
             self.assertEqual(TensoredOp([]).eval(), 0.0)
 
 
@@ -1081,11 +984,11 @@ class TestOpMethods(QiskitOpflowTestCase):
     def test_listop_num_qubits(self):
         """Test that ListOp.num_qubits checks that all operators have the same number of qubits."""
         op = ListOp([X ^ Y, Y ^ Z])
-        with self.subTest("All operators have the same numbers of qubits"):
+        with self.subTest('All operators have the same numbers of qubits'):
             self.assertEqual(op.num_qubits, 2)
 
         op = ListOp([X ^ Y, Y])
-        with self.subTest("Operators have different numbers of qubits"):
+        with self.subTest('Operators have different numbers of qubits'):
             with self.assertRaises(ValueError):
                 op.num_qubits  # pylint: disable=pointless-statement
 
@@ -1100,7 +1003,7 @@ class TestListOpMethods(QiskitOpflowTestCase):
     @data(ListOp, SummedOp, ComposedOp, TensoredOp)
     def test_indexing(self, list_op_type):
         """Test indexing and slicing"""
-        coeff = 3 + 0.2j
+        coeff = 3 + .2j
         states_op = list_op_type([X, Y, Z, I], coeff=coeff)
 
         single_op = states_op[1]
@@ -1137,7 +1040,7 @@ class TestListOpComboFn(QiskitOpflowTestCase):
 
     def test_at_conversion(self):
         """Test after conversion the combo_fn is preserved."""
-        for method in ["to_matrix_op", "to_pauli_op", "to_circuit_op"]:
+        for method in ['to_matrix_op', 'to_pauli_op', 'to_circuit_op']:
             with self.subTest(method):
                 converted = getattr(self.listop, method)()
                 self.assertComboFnPreserved(converted)
@@ -1148,7 +1051,6 @@ class TestListOpComboFn(QiskitOpflowTestCase):
 
     def test_at_traverse(self):
         """Test after traversing the combo_fn is preserved."""
-
         def traverse_fn(op):
             return -op
 
@@ -1164,5 +1066,5 @@ class TestListOpComboFn(QiskitOpflowTestCase):
         self.assertComboFnPreserved(self.listop.reduce())
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

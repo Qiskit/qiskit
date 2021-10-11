@@ -44,7 +44,6 @@ Routing
    LookaheadSwap
    StochasticSwap
    SabreSwap
-   BIPMapping
 
 Basis Change
 ============
@@ -82,14 +81,9 @@ Scheduling
 .. autosummary::
    :toctree: ../stubs/
 
-   TimeUnitConversion
    ALAPSchedule
    ASAPSchedule
-   DynamicalDecoupling
-   AlignMeasures
-   ValidatePulseGates
    RZXCalibrationBuilder
-   RZXCalibrationBuilderNoEcho
 
 Circuit Analysis
 ================
@@ -125,7 +119,6 @@ Additional Passes
    CXDirection
    GateDirection
    MergeAdjacentBarriers
-   RemoveBarriers
    BarrierBeforeFinalMeasurements
    RemoveFinalMeasurements
    DAGFixedPoint
@@ -150,7 +143,6 @@ from .routing import LayoutTransformation
 from .routing import LookaheadSwap
 from .routing import StochasticSwap
 from .routing import SabreSwap
-from .routing import BIPMapping
 
 # basis change
 from .basis import Decompose
@@ -188,14 +180,10 @@ from .analysis import DAGLongestPath
 from .synthesis import UnitarySynthesis
 
 # circuit scheduling
-from .scheduling import TimeUnitConversion
 from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
 from .scheduling import RZXCalibrationBuilder
-from .scheduling import RZXCalibrationBuilderNoEcho
-from .scheduling import DynamicalDecoupling
-from .scheduling import AlignMeasures
-from .scheduling import ValidatePulseGates
+from .scheduling import TimeUnitConversion
 
 # additional utility passes
 from .utils import CheckMap
@@ -209,4 +197,3 @@ from .utils import MergeAdjacentBarriers
 from .utils import DAGFixedPoint
 from .utils import FixedPoint
 from .utils import Error
-from .utils import RemoveBarriers

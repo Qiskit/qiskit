@@ -12,6 +12,8 @@
 
 """Session gates."""
 
+# pylint: disable=invalid-name
+
 from .library.standard_gates.equivalence_library import StandardEquivalenceLibrary
 from .equivalence import EquivalenceLibrary
 

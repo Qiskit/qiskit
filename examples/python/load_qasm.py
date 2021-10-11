@@ -19,7 +19,7 @@ circ = QuantumCircuit.from_qasm_file("examples/qasm/entangled_registers.qasm")
 print(circ)
 
 # See the backend
-sim_backend = BasicAer.get_backend("qasm_simulator")
+sim_backend = BasicAer.get_backend('qasm_simulator')
 
 
 # Compile and run the Quantum circuit on a local simulator backend

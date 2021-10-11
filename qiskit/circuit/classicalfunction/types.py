@@ -14,5 +14,5 @@
 
 from typing import NewType
 
-Int1 = NewType("Int1", bool)
-Int2 = NewType("Int2", int)
+Int1 = NewType('Int1', bool)
+Int2 = NewType('Int2', int)

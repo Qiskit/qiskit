@@ -27,16 +27,16 @@ from qiskit.circuit import Parameter, QuantumCircuit
 def rzx_cy(theta: float = None):
     """Template for CX - RYGate - CX."""
     if theta is None:
-        theta = Parameter("ϴ")
+        theta = Parameter('ϴ')
 
     circ = QuantumCircuit(2)
     circ.cx(0, 1)
     circ.ry(theta, 1)
     circ.cx(0, 1)
-    circ.ry(-1 * theta, 1)
+    circ.ry(-1*theta, 1)
     circ.rz(-np.pi / 2, 1)
     circ.rx(theta, 1)
-    circ.rzx(-1 * theta, 0, 1)
+    circ.rzx(-1*theta, 0, 1)
     circ.rz(np.pi / 2, 1)
 
     return circ

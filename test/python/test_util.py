@@ -23,17 +23,18 @@ from qiskit.utils.arithmetic import triu_to_dense
 class TestUtil(QiskitTestCase):
     """Tests for qiskit/_util.py"""
 
-    @mock.patch("platform.system", return_value="Linux")
-    @mock.patch("psutil.virtual_memory")
-    @mock.patch("psutil.cpu_count", return_value=None)
-    def test_local_hardware_none_cpu_count(self, cpu_count_mock, vmem_mock, platform_mock):
+    @mock.patch('platform.system', return_value='Linux')
+    @mock.patch('psutil.virtual_memory')
+    @mock.patch('psutil.cpu_count', return_value=None)
+    def test_local_hardware_none_cpu_count(self, cpu_count_mock, vmem_mock,
+                                           platform_mock):
         """Test cpu count fallback to 1 when true value can't be determined"""
         del cpu_count_mock, vmem_mock, platform_mock  # unused
         result = util.local_hardware_info()
-        self.assertEqual(1, result["cpus"])
+        self.assertEqual(1, result['cpus'])
 
     def test_triu_to_dense(self):
-        """Test conversion of upper triangular matrix to dense matrix."""
+        """ Test conversion of upper triangular matrix to dense matrix. """
         np.random.seed(50)
         n = np.random.randint(5, 15)
         m = np.random.randint(-100, 100, size=(n, n))

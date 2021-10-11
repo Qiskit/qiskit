@@ -75,22 +75,19 @@ def ucrx(self, angle_list, q_controls, q_target):
         if len(q_target) == 1:
             q_target = q_target[0]
         else:
-            raise QiskitError(
-                "The target qubit is a QuantumRegister containing more" " than one qubits."
-            )
+            raise QiskitError("The target qubit is a QuantumRegister containing more"
+                              " than one qubits.")
     # Check if q_controls has type "list"
     if not isinstance(angle_list, list):
         raise QiskitError("The angles must be provided as a list.")
     num_contr = math.log2(len(angle_list))
     if num_contr < 0 or not num_contr.is_integer():
-        raise QiskitError(
-            "The number of controlled rotation gates is not a non-negative" " power of 2."
-        )
+        raise QiskitError("The number of controlled rotation gates is not a non-negative"
+                          " power of 2.")
     # Check if number of control qubits does correspond to the number of rotations
     if num_contr != len(q_controls):
-        raise QiskitError(
-            "Number of controlled rotations does not correspond to the number of" " control-qubits."
-        )
+        raise QiskitError("Number of controlled rotations does not correspond to the number of"
+                          " control-qubits.")
     return self.append(UCRXGate(angle_list), [q_target] + q_controls, [])
 
 

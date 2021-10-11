@@ -42,17 +42,18 @@ def _job_checker(job, status, watcher):
     interval = 2
     exception_count = 0
 
-    while status.name not in ["DONE", "CANCELLED", "ERROR"]:
+    while status.name not in ['DONE', 'CANCELLED', 'ERROR']:
         time.sleep(interval)
         try:
             status = job.status()
             exception_count = 0
 
-            if status.name == "QUEUED":
+            if status.name == 'QUEUED':
                 queue_pos = job.queue_position()
                 if queue_pos != prev_queue_pos:
 
-                    update_info = (job.job_id(), status.name, queue_pos, status.value)
+                    update_info = (job.job_id(), status.name,
+                                   queue_pos, status.value)
 
                     watcher.update_single_job(update_info)
                     interval = max(queue_pos, 2)
@@ -69,6 +70,6 @@ def _job_checker(job, status, watcher):
         except Exception:
             exception_count += 1
             if exception_count == 5:
-                update_info = (job.job_id(), "NA", 0, "Could not query job.")
+                update_info = (job.job_id(), 'NA', 0, "Could not query job.")
                 watcher.update_single_job(update_info)
                 sys.exit()

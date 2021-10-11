@@ -32,23 +32,26 @@ class QuantumCircuitData(MutableSequence):
     def __setitem__(self, key, value):
         instruction, qargs, cargs = value
 
-        if not isinstance(instruction, Instruction) and hasattr(instruction, "to_instruction"):
+        if not isinstance(instruction, Instruction) \
+           and hasattr(instruction, 'to_instruction'):
             instruction = instruction.to_instruction()
 
-        expanded_qargs = [self._circuit.qbit_argument_conversion(qarg) for qarg in qargs or []]
-        expanded_cargs = [self._circuit.cbit_argument_conversion(carg) for carg in cargs or []]
+        expanded_qargs = [self._circuit.qbit_argument_conversion(qarg)
+                          for qarg in qargs or []]
+        expanded_cargs = [self._circuit.cbit_argument_conversion(carg)
+                          for carg in cargs or []]
 
-        broadcast_args = list(instruction.broadcast_arguments(expanded_qargs, expanded_cargs))
+        broadcast_args = list(instruction.broadcast_arguments(expanded_qargs,
+                                                              expanded_cargs))
 
         if len(broadcast_args) > 1:
-            raise CircuitError(
-                "QuantumCircuit.data modification does not " "support argument broadcasting."
-            )
+            raise CircuitError('QuantumCircuit.data modification does not '
+                               'support argument broadcasting.')
 
         qargs, cargs = broadcast_args[0]
 
         if not isinstance(instruction, Instruction):
-            raise CircuitError("object is not an Instruction.")
+            raise CircuitError('object is not an Instruction.')
 
         self._circuit._check_dups(qargs)
         self._circuit._check_qargs(qargs)

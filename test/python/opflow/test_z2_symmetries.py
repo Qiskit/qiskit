@@ -21,18 +21,16 @@ from qiskit.quantum_info import Pauli, SparsePauliOp
 class TestZ2Symmetries(QiskitOpflowTestCase):
     """Z2Symmetries tests."""
 
-    def test_find_Z2_symmetries(self):
-        """test for find_Z2_symmetries"""
+    def test_find_Z2_symmetries(self):  # pylint: disable=invalid-name
+        """ test for find_Z2_symmetries """
 
-        qubit_op = PauliSumOp.from_list(
-            [
-                ("II", -1.0537076071291125),
-                ("IZ", 0.393983679438514),
-                ("ZI", -0.39398367943851387),
-                ("ZZ", -0.01123658523318205),
-                ("XX", 0.1812888082114961),
-            ]
-        )
+        qubit_op = PauliSumOp.from_list([
+            ("II", -1.0537076071291125),
+            ("IZ", 0.393983679438514),
+            ("ZI", -0.39398367943851387),
+            ("ZZ", -0.01123658523318205),
+            ("XX", 0.1812888082114961),
+        ])
         z2_symmetries = Z2Symmetries.find_Z2_symmetries(qubit_op)
         self.assertEqual(z2_symmetries.symmetries, [Pauli("ZZ")])
         self.assertEqual(z2_symmetries.sq_paulis, [Pauli("IX")])
@@ -46,12 +44,10 @@ class TestZ2Symmetries(QiskitOpflowTestCase):
         self.assertEqual(tapered_op.z2_symmetries.tapering_values, [-1])
 
         z2_symmetries.tapering_values = [-1]
-        primitive = SparsePauliOp.from_list(
-            [
-                ("I", -1.0424710218959303),
-                ("Z", -0.7879673588770277),
-                ("X", -0.18128880821149604),
-            ]
-        )
+        primitive = SparsePauliOp.from_list([
+            ("I", -1.0424710218959303),
+            ("Z", -0.7879673588770277),
+            ("X", -0.18128880821149604),
+        ])
         expected_op = TaperedPauliSumOp(primitive, z2_symmetries)
         self.assertEqual(tapered_op, expected_op)

@@ -105,20 +105,20 @@ class BlueprintCircuit(QuantumCircuit, ABC):
             self._build()
         return super().parameters
 
-    def qasm(self, formatted=False, filename=None, encoding=None):
+    def qasm(self, formatted=False, filename=None):
         if self._data is None:
             self._build()
-        return super().qasm(formatted, filename, encoding)
+        return super().qasm(formatted, filename)
 
     def append(self, instruction, qargs=None, cargs=None):
         if self._data is None:
             self._build()
         return super().append(instruction, qargs, cargs)
 
-    def compose(self, other, qubits=None, clbits=None, front=False, inplace=False, wrap=False):
+    def compose(self, other, qubits=None, clbits=None, front=False, inplace=False):
         if self._data is None:
             self._build()
-        return super().compose(other, qubits, clbits, front, inplace, wrap)
+        return super().compose(other, qubits, clbits, front, inplace)
 
     def inverse(self):
         if self._data is None:
@@ -136,10 +136,10 @@ class BlueprintCircuit(QuantumCircuit, ABC):
             self._build()
         return super().size()
 
-    def to_instruction(self, parameter_map=None, label=None):
+    def to_instruction(self, parameter_map=None):
         if self._data is None:
             self._build()
-        return super().to_instruction(parameter_map, label=label)
+        return super().to_instruction(parameter_map)
 
     def to_gate(self, parameter_map=None, label=None):
         if self._data is None:

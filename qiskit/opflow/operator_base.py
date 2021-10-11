@@ -22,13 +22,12 @@ from scipy.sparse import csr_matrix, spmatrix
 
 from qiskit.circuit import ParameterExpression, ParameterVector
 from qiskit.opflow.exceptions import OpflowError
-from qiskit.opflow.mixins import StarAlgebraMixin, TensorMixin
 from qiskit.quantum_info import Statevector
 from qiskit.utils import algorithm_globals
 
 
-class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
-    """A base class for all Operators: PrimitiveOps, StateFns, ListOps, etc. Operators are
+class OperatorBase(ABC):
+    """ A base class for all Operators: PrimitiveOps, StateFns, ListOps, etc. Operators are
     defined as functions which take one complex binary function to another. These complex binary
     functions are represented by StateFns, which are themselves a special class of Operators
     taking only the ``Zero`` StateFn to the complex binary function they represent.
@@ -37,29 +36,14 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
     building blocks for algorithms.
 
     """
-
     # Indentation used in string representation of list operators
     # Can be changed to use another indentation than two whitespaces
-    INDENTATION = "  "
+    INDENTATION = '  '
 
     _count = itertools.count()
 
     def __init__(self) -> None:
         self._instance_id = next(self._count)
-
-    @property
-    @abstractmethod
-    def settings(self) -> Dict:
-        """Return settings of this object in a dictionary.
-
-        You can, for example, use this ``settings`` dictionary to serialize the
-        object in JSON format, if the JSON encoder you use supports all types in
-        the dictionary.
-
-        Returns:
-            Object settings in a dictionary.
-        """
-        raise NotImplementedError
 
     @property
     def instance_id(self) -> int:
@@ -69,7 +53,7 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
     @property
     @abstractmethod
     def num_qubits(self) -> int:
-        r"""The number of qubits over which the Operator is defined. If
+        r""" The number of qubits over which the Operator is defined. If
         ``op.num_qubits == 5``, then ``op.eval('1' * 5)`` will be valid, but
         ``op.eval('11')`` will not.
 
@@ -80,7 +64,7 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
 
     @abstractmethod
     def primitive_strings(self) -> Set[str]:
-        r"""Return a set of strings describing the primitives contained in the Operator. For
+        r""" Return a set of strings describing the primitives contained in the Operator. For
         example, ``{'QuantumCircuit', 'Pauli'}``. For hierarchical Operators, such as ``ListOps``,
         this can help illuminate the primitives represented in the various recursive levels,
         and therefore which conversions can be applied.
@@ -130,7 +114,7 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
 
     @abstractmethod
     def reduce(self):
-        r"""Try collapsing the Operator structure, usually after some type of conversion,
+        r""" Try collapsing the Operator structure, usually after some type of conversion,
         e.g. trying to add Operators in a SummedOp or delete needless IGates in a CircuitOp.
         If no reduction is available, just returns self.
 
@@ -141,7 +125,7 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
 
     @abstractmethod
     def to_matrix(self, massive: bool = False) -> np.ndarray:
-        r"""Return NumPy representation of the Operator. Represents the evaluation of
+        r""" Return NumPy representation of the Operator. Represents the evaluation of
         the Operator's underlying function on every combination of basis binary strings.
         Warn if more than 16 qubits to force having to set ``massive=True`` if such a
         large vector is desired.
@@ -153,16 +137,16 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
 
     @abstractmethod
     def to_matrix_op(self, massive: bool = False) -> "OperatorBase":
-        """Returns a ``MatrixOp`` equivalent to this Operator."""
+        """ Returns a ``MatrixOp`` equivalent to this Operator. """
         raise NotImplementedError
 
     @abstractmethod
     def to_circuit_op(self) -> "OperatorBase":
-        """Returns a ``CircuitOp`` equivalent to this Operator."""
+        """ Returns a ``CircuitOp`` equivalent to this Operator. """
         raise NotImplementedError
 
     def to_spmatrix(self) -> spmatrix:
-        r"""Return SciPy sparse matrix representation of the Operator. Represents the evaluation of
+        r""" Return SciPy sparse matrix representation of the Operator. Represents the evaluation of
         the Operator's underlying function on every combination of basis binary strings.
 
         Returns:
@@ -172,17 +156,53 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
 
     @staticmethod
     def _indent(lines: str, indentation: str = INDENTATION) -> str:
-        """Indented representation to allow pretty representation of nested operators."""
-        indented_str = indentation + lines.replace("\n", f"\n{indentation}")
-        if indented_str.endswith(f"\n{indentation}"):
-            indented_str = indented_str[: -len(indentation)]
+        """ Indented representation to allow pretty representation of nested operators. """
+        indented_str = indentation + lines.replace("\n", "\n{}".format(indentation))
+        if indented_str.endswith("\n{}".format(indentation)):
+            indented_str = indented_str[:-len(indentation)]
         return indented_str
 
     # Addition / Subtraction
 
+    def __add__(self, other: 'OperatorBase') -> 'OperatorBase':
+        r""" Overload ``+`` operation for Operator addition.
+
+        Args:
+            other: An ``OperatorBase`` with the same number of qubits as self, and in the same
+                'Operator', 'State function', or 'Measurement' category as self (i.e. the same type
+                of underlying function).
+
+        Returns:
+            An ``OperatorBase`` equivalent to the sum of self and other.
+        """
+        # Hack to be able to use sum(list_of_ops) nicely,
+        # because sum adds 0 to the first element of the list.
+        if other == 0:
+            return self
+
+        return self.add(other)
+
+    def __radd__(self, other: 'OperatorBase') -> 'OperatorBase':
+        r""" Overload right ``+`` operation for Operator addition.
+
+        Args:
+            other: An ``OperatorBase`` with the same number of qubits as self, and in the same
+                'Operator', 'State function', or 'Measurement' category as self (i.e. the same type
+                of underlying function).
+
+        Returns:
+            An ``OperatorBase`` equivalent to the sum of self and other.
+        """
+        # Hack to be able to use sum(list_of_ops) nicely because
+        # sum adds 0 to the first element of the list.
+        if other == 0:
+            return self
+
+        return self.add(other)
+
     @abstractmethod
-    def add(self, other: "OperatorBase") -> "OperatorBase":
-        r"""Return Operator addition of self and other, overloaded by ``+``.
+    def add(self, other: 'OperatorBase') -> 'OperatorBase':
+        r""" Return Operator addition of self and other, overloaded by ``+``.
 
         Args:
             other: An ``OperatorBase`` with the same number of qubits as self, and in the same
@@ -194,10 +214,44 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
         """
         raise NotImplementedError
 
+    def __sub__(self, other: 'OperatorBase') -> 'OperatorBase':
+        r""" Overload ``-`` operation for Operator subtraction.
+
+        Args:
+            other: An ``OperatorBase`` with the same number of qubits as self, and in the same
+                'Operator', 'State function', or 'Measurement' category as self (i.e. the same type
+                of underlying function).
+
+        Returns:
+            An ``OperatorBase`` equivalent to self - other.
+        """
+        return self.add(-other)
+
+    def __rsub__(self, other: 'OperatorBase') -> 'OperatorBase':
+        r""" Overload right ``-`` operation for Operator subtraction.
+
+        Args:
+            other: An ``OperatorBase`` with the same number of qubits as self, and in the same
+                'Operator', 'State function', or 'Measurement' category as self (i.e. the same type
+                of underlying function).
+
+        Returns:
+            An ``OperatorBase`` equivalent to self - other.
+        """
+        return self.neg().add(other)
+
     # Negation
 
-    def neg(self) -> "OperatorBase":
-        r"""Return the Operator's negation, effectively just multiplying by -1.0,
+    def __neg__(self) -> 'OperatorBase':
+        r""" Overload unary ``-`` to return Operator negation.
+
+        Returns:
+            An ``OperatorBase`` equivalent to the negation of self.
+        """
+        return self.neg()
+
+    def neg(self) -> 'OperatorBase':
+        r""" Return the Operator's negation, effectively just multiplying by -1.0,
         overloaded by ``-``.
 
         Returns:
@@ -207,9 +261,17 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
 
     # Adjoint
 
+    def __invert__(self) -> 'OperatorBase':
+        r""" Overload unary ``~`` to return Operator adjoint.
+
+        Returns:
+            An ``OperatorBase`` equivalent to the adjoint of self.
+        """
+        return self.adjoint()
+
     @abstractmethod
-    def adjoint(self) -> "OperatorBase":
-        r"""Return a new Operator equal to the Operator's adjoint (conjugate transpose),
+    def adjoint(self) -> 'OperatorBase':
+        r""" Return a new Operator equal to the Operator's adjoint (conjugate transpose),
         overloaded by ``~``. For StateFns, this also turns the StateFn into a measurement.
 
         Returns:
@@ -220,7 +282,7 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
     # Equality
 
     def __eq__(self, other: object) -> bool:
-        r"""Overload ``==`` operation to evaluate equality between Operators.
+        r""" Overload ``==`` operation to evaluate equality between Operators.
 
         Args:
             other: The ``OperatorBase`` to compare to self.
@@ -233,7 +295,7 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
         return self.equals(cast(OperatorBase, other))
 
     @abstractmethod
-    def equals(self, other: "OperatorBase") -> bool:
+    def equals(self, other: 'OperatorBase') -> bool:
         r"""
         Evaluate Equality between Operators, overloaded by ``==``. Only returns True if self and
         other are of the same representation (e.g. a DictStateFn and CircuitStateFn will never be
@@ -252,9 +314,8 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
 
     # Scalar Multiplication
 
-    # pylint: disable=arguments-differ
     @abstractmethod
-    def mul(self, scalar: Union[complex, ParameterExpression]) -> "OperatorBase":
+    def mul(self, scalar: Union[complex, ParameterExpression]) -> 'OperatorBase':
         r"""
         Returns the scalar multiplication of the Operator, overloaded by ``*``, including
         support for Terra's ``Parameters``, which can be bound to values later (via
@@ -269,9 +330,76 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
         """
         raise NotImplementedError
 
+    def __mul__(self, other: complex) -> 'OperatorBase':
+        r""" Overload ``*`` for Operator scalar multiplication.
+
+        Args:
+            other: The real or complex scalar by which to multiply the Operator,
+                or the ``ParameterExpression`` to serve as a placeholder for a scalar factor.
+
+        Returns:
+            An ``OperatorBase`` equivalent to product of self and scalar.
+        """
+        return self.mul(other)
+
+    def __rmul__(self, other: complex) -> 'OperatorBase':
+        r""" Overload right ``*`` for Operator scalar multiplication.
+
+        Args:
+            other: The real or complex scalar by which to multiply the Operator,
+                or the ``ParameterExpression`` to serve as a placeholder for a scalar factor.
+
+        Returns:
+            An ``OperatorBase`` equivalent to product of self and scalar.
+        """
+        return self.mul(other)
+
+    def __truediv__(self, other: complex) -> 'OperatorBase':
+        r""" Overload ``/`` for scalar Operator division.
+
+        Args:
+            other: The real or complex scalar by which to divide the Operator,
+                or the ``ParameterExpression`` to serve as a placeholder for a scalar divisor.
+
+        Returns:
+            An ``OperatorBase`` equivalent to self divided by scalar.
+        """
+        return self.mul(1 / other)
+
+    def __xor__(self, other: Union['OperatorBase', int]) -> 'OperatorBase':
+        r""" Overload ``^`` for tensor product or tensorpower if other is an int.
+
+        Args:
+            other: The ``OperatorBase`` to tensor product with self, or the int number of times
+                to tensor self with itself via ``tensorpower``.
+
+        Returns:
+            An ``OperatorBase`` equivalent to tensor product of self and other,
+                or the tensorpower of self by other.
+        """
+        if isinstance(other, int):
+            return cast(OperatorBase, self.tensorpower(other))
+        else:
+            return self.tensor(other)
+
+    def __rxor__(self, other: Union['OperatorBase', int]) -> 'OperatorBase':
+        r""" Overload right ``^`` for tensor product, a hack to make (I^0)^Z work as intended.
+
+        Args:
+            other: The ``OperatorBase`` for self to tensor product with, or 1, which indicates to
+                return self.
+
+        Returns:
+            An ``OperatorBase`` equivalent to the tensor product of other and self, or self.
+        """
+        if other == 1:
+            return self
+        else:
+            return cast(OperatorBase, other).tensor(self)
+
     @abstractmethod
-    def tensor(self, other: "OperatorBase") -> "OperatorBase":
-        r"""Return tensor product between self and other, overloaded by ``^``.
+    def tensor(self, other: 'OperatorBase') -> 'OperatorBase':
+        r""" Return tensor product between self and other, overloaded by ``^``.
         Note: You must be conscious of Qiskit's big-endian bit printing convention.
         Meaning, X.tensor(Y) produces an X on qubit 0 and an Y on qubit 1, or X⨂Y,
         but would produce a QuantumCircuit which looks like
@@ -291,8 +419,8 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def tensorpower(self, other: int) -> Union["OperatorBase", int]:
-        r"""Return tensor product with self multiple times, overloaded by ``^``.
+    def tensorpower(self, other: int) -> Union['OperatorBase', int]:
+        r""" Return tensor product with self multiple times, overloaded by ``^``.
 
         Args:
             other: The int number of times to tensor product self with itself via ``tensorpower``.
@@ -305,20 +433,20 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
     @property
     @abstractmethod
     def parameters(self):
-        r"""Return a set of Parameter objects contained in the Operator."""
+        r""" Return a set of Parameter objects contained in the Operator.
+        """
         raise NotImplementedError
 
     # Utility functions for parameter binding
 
     @abstractmethod
-    def assign_parameters(
-        self,
-        param_dict: Dict[
-            ParameterExpression,
-            Union[complex, ParameterExpression, List[Union[complex, ParameterExpression]]],
-        ],
-    ) -> "OperatorBase":
-        """Binds scalar values to any Terra ``Parameters`` in the coefficients or primitives of
+    def assign_parameters(self,
+                          param_dict: Dict[ParameterExpression,
+                                           Union[complex,
+                                                 ParameterExpression,
+                                                 List[Union[complex, ParameterExpression]]]]
+                          ) -> 'OperatorBase':
+        """ Binds scalar values to any Terra ``Parameters`` in the coefficients or primitives of
         the Operator, or substitutes one ``Parameter`` for another. This method differs from
         Terra's ``assign_parameters`` in that it also supports lists of values to assign for a
         give ``Parameter``, in which case self will be copied for each parameterization in the
@@ -338,7 +466,7 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def _expand_dim(self, num_qubits: int) -> "OperatorBase":
+    def _expand_dim(self, num_qubits: int) -> 'OperatorBase':
         """Expands the operator with identity operator of dimension 2**num_qubits.
 
         Returns:
@@ -348,7 +476,7 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def permute(self, permutation: List[int]) -> "OperatorBase":
+    def permute(self, permutation: List[int]) -> 'OperatorBase':
         """Permutes the qubits of the operator.
 
         Args:
@@ -363,13 +491,12 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
         """
         raise NotImplementedError
 
-    def bind_parameters(
-        self,
-        param_dict: Dict[
-            ParameterExpression,
-            Union[complex, ParameterExpression, List[Union[complex, ParameterExpression]]],
-        ],
-    ) -> "OperatorBase":
+    def bind_parameters(self,
+                        param_dict: Dict[ParameterExpression,
+                                         Union[complex,
+                                               ParameterExpression,
+                                               List[Union[complex, ParameterExpression]]]]
+                        ) -> 'OperatorBase':
         r"""
         Same as assign_parameters, but maintained for consistency with QuantumCircuit in
         Terra (which has both assign_parameters and bind_parameters).
@@ -378,11 +505,12 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
 
     # Mostly copied from terra, but with list unrolling added:
     @staticmethod
-    def _unroll_param_dict(
-        value_dict: Dict[Union[ParameterExpression, ParameterVector], Union[complex, List[complex]]]
-    ) -> Union[Dict[ParameterExpression, complex], List[Dict[ParameterExpression, complex]]]:
-        """Unrolls the ParameterVectors in a param_dict into separate Parameters, and unrolls
-        parameterization value lists into separate param_dicts without list nesting."""
+    def _unroll_param_dict(value_dict: Dict[Union[ParameterExpression, ParameterVector],
+                                            Union[complex, List[complex]]]
+                           ) -> Union[Dict[ParameterExpression, complex],
+                                      List[Dict[ParameterExpression, complex]]]:
+        """ Unrolls the ParameterVectors in a param_dict into separate Parameters, and unrolls
+        parameterization value lists into separate param_dicts without list nesting. """
         unrolled_value_dict = {}
         for (param, value) in value_dict.items():
             if isinstance(param, ParameterExpression):
@@ -390,9 +518,8 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
             if isinstance(param, ParameterVector) and isinstance(value, (list, np.ndarray)):
                 if not len(param) == len(value):
                     raise ValueError(
-                        "ParameterVector {} has length {}, which differs from value list {} of "
-                        "len {}".format(param, len(param), value, len(value))
-                    )
+                        'ParameterVector {} has length {}, which differs from value list {} of '
+                        'len {}'.format(param, len(param), value, len(value)))
                 unrolled_value_dict.update(zip(param, value))
         if isinstance(list(unrolled_value_dict.values())[0], list):
             # check that all are same length
@@ -400,33 +527,31 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
             try:
                 for i in range(len(list(unrolled_value_dict.values())[0])):  # type: ignore
                     unrolled_value_dict_list.append(
-                        OperatorBase._get_param_dict_for_index(
-                            unrolled_value_dict, i  # type: ignore
-                        )
-                    )
+                        OperatorBase._get_param_dict_for_index(unrolled_value_dict,  # type: ignore
+                                                               i))
                 return unrolled_value_dict_list
             except IndexError as ex:
-                raise OpflowError("Parameter binding lists must all be the same length.") from ex
+                raise OpflowError('Parameter binding lists must all be the same length.') from ex
         return unrolled_value_dict  # type: ignore
 
     @staticmethod
-    def _get_param_dict_for_index(unrolled_dict: Dict[ParameterExpression, List[complex]], i: int):
-        """Gets a single non-list-nested param_dict for a given list index from a nested one."""
+    def _get_param_dict_for_index(unrolled_dict: Dict[ParameterExpression, List[complex]],
+                                  i: int):
+        """ Gets a single non-list-nested param_dict for a given list index from a nested one. """
         return {k: v[i] for (k, v) in unrolled_dict.items()}
 
-    def _expand_shorter_operator_and_permute(
-        self, other: "OperatorBase", permutation: Optional[List[int]] = None
-    ) -> Tuple["OperatorBase", "OperatorBase"]:
+    def _expand_shorter_operator_and_permute(self, other: 'OperatorBase',
+                                             permutation: Optional[List[int]] = None) \
+            -> Tuple['OperatorBase', 'OperatorBase']:
         if permutation is not None:
             other = other.permute(permutation)
         new_self = self
         if not self.num_qubits == other.num_qubits:
             # pylint: disable=cyclic-import
             from .operator_globals import Zero
-
             if other == Zero:
                 # Zero is special - we'll expand it to the correct qubit number.
-                other = Zero.__class__("0" * self.num_qubits)
+                other = Zero.__class__('0' * self.num_qubits)
             elif other.num_qubits < self.num_qubits:
                 other = other._expand_dim(self.num_qubits - other.num_qubits)
             elif other.num_qubits > self.num_qubits:
@@ -439,12 +564,21 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
 
     # Composition
 
-    # pylint: disable=arguments-differ
+    def __matmul__(self, other: 'OperatorBase') -> 'OperatorBase':
+        r""" Overload ``@`` for Operator composition.
+
+        Args:
+            other: The ``OperatorBase`` with which to compose self.
+
+        Returns:
+            An ``OperatorBase`` equivalent to the function composition of self and other.
+        """
+        return self.compose(other)
+
     @abstractmethod
-    def compose(
-        self, other: "OperatorBase", permutation: Optional[List[int]] = None, front: bool = False
-    ) -> "OperatorBase":
-        r"""Return Operator Composition between self and other (linear algebra-style:
+    def compose(self, other: 'OperatorBase',
+                permutation: Optional[List[int]] = None, front: bool = False) -> 'OperatorBase':
+        r""" Return Operator Composition between self and other (linear algebra-style:
         A@B(x) = A(B(x))), overloaded by ``@``.
 
         Note: You must be conscious of Quantum Circuit vs. Linear Algebra ordering
@@ -465,8 +599,34 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def power(self, exponent: int) -> 'OperatorBase':
+        r""" Return Operator composed with self multiple times, overloaded by ``**``.
+
+        Args:
+            exponent: The int number of times to compose self with itself.
+
+        Returns:
+            An ``OperatorBase`` equivalent to self composed with itself exponent times.
+        """
+        raise NotImplementedError
+
+    def __pow__(self, exponent: int) -> 'OperatorBase':
+        r""" Overload ``**`` for composition power.
+
+        Args:
+            exponent: The int number of times to compose self with itself.
+
+        Returns:
+            An ``OperatorBase`` equivalent to self composed with itself exponent times.
+        """
+        return self.power(exponent)
+
     @staticmethod
-    def _check_massive(method: str, matrix: bool, num_qubits: int, massive: bool) -> None:
+    def _check_massive(method: str,
+                       matrix: bool,
+                       num_qubits: int,
+                       massive: bool) -> None:
         """
         Checks if matrix or vector generated will be too large.
 
@@ -482,17 +642,16 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
         if num_qubits > 16 and not massive and not algorithm_globals.massive:
             dim = 2 ** num_qubits
             if matrix:
-                obj_type = "matrix"
-                dimensions = f"{dim}x{dim}"
+                obj_type = 'matrix'
+                dimensions = f'{dim}x{dim}'
             else:
-                obj_type = "vector"
-                dimensions = f"{dim}"
+                obj_type = 'vector'
+                dimensions = f'{dim}'
             raise ValueError(
                 f"'{method}' will return an exponentially large {obj_type}, "
                 f"in this case '{dimensions}' elements. "
                 "Set algorithm_globals.massive=True or the method argument massive=True "
-                "if you want to proceed."
-            )
+                "if you want to proceed.")
 
     # Printing
 

@@ -31,18 +31,15 @@ class Unroll3qOrMore(TransformationPass):
             QiskitError: if a 3q+ gate is not decomposable
         """
         for node in dag.multi_qubit_ops():
-            if dag.has_calibration_for(node):
-                continue
             # TODO: allow choosing other possible decompositions
             rule = node.op.definition.data
             if not rule:
                 if rule == []:  # empty node
                     dag.remove_op_node(node)
                     continue
-                raise QiskitError(
-                    "Cannot unroll all 3q or more gates. "
-                    "No rule to expand instruction %s." % node.op.name
-                )
+                raise QiskitError("Cannot unroll all 3q or more gates. "
+                                  "No rule to expand instruction %s." %
+                                  node.op.name)
             decomposition = circuit_to_dag(node.op.definition)
             decomposition = self.run(decomposition)  # recursively unroll
             dag.substitute_node_with_dag(node, decomposition)

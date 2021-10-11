@@ -14,7 +14,6 @@
 
 
 from typing import Dict, Union, cast
-from qiskit.utils.deprecation import deprecate_function
 from qiskit.algorithms.algorithm_result import AlgorithmResult
 from .phase_estimation_result import PhaseEstimationResult
 from .phase_estimation_scale import PhaseEstimationScale
@@ -32,12 +31,11 @@ class HamiltonianPhaseEstimationResult(AlgorithmResult):
     This class is meant to be instantiated via `HamiltonianPhaseEstimation.estimate`.
     """
 
-    def __init__(
-        self,
-        phase_estimation_result: PhaseEstimationResult,
-        phase_estimation_scale: PhaseEstimationScale,
-        id_coefficient: float,
-    ) -> None:
+    def __init__(self,
+                 phase_estimation_result: PhaseEstimationResult,
+                 phase_estimation_scale: PhaseEstimationScale,
+                 id_coefficient: float,
+                 ) -> None:
         """
         Args:
             phase_estimation_result: The result object returned by PhaseEstimation.estimate.
@@ -53,9 +51,8 @@ class HamiltonianPhaseEstimationResult(AlgorithmResult):
         self._phase_estimation_result = phase_estimation_result
 
     # pylint: disable=arguments-differ
-    def filter_phases(
-        self, cutoff: float = 0.0, scaled: bool = True, as_float: bool = True
-    ) -> Dict[Union[str, float], float]:
+    def filter_phases(self, cutoff: float = 0.0, scaled: bool = True,
+                      as_float: bool = True) -> Dict[Union[str, float], float]:
         """Filter phases as does `PhaseEstimatorResult.filter_phases`, with
         the addition that `phi` is shifted and translated to return eigenvalues
         of the Hamiltonian.
@@ -75,38 +72,23 @@ class HamiltonianPhaseEstimationResult(AlgorithmResult):
             A dict of filtered phases.
         """
         if scaled and not as_float:
-            raise ValueError("`as_float` must be `True` if `scaled` is `True`.")
+            raise ValueError('`as_float` must be `True` if `scaled` is `True`.')
 
         phases = self._phase_estimation_result.filter_phases(cutoff, as_float=as_float)
         if scaled:
-            return cast(
-                Dict, self._phase_estimation_scale.scale_phases(phases, self._id_coefficient)
-            )
+            return cast(Dict, self._phase_estimation_scale.scale_phases(phases,
+                                                                        self._id_coefficient))
         else:
             return cast(Dict, phases)
 
     @property
-    @deprecate_function(
-        """The 'HamiltonianPhaseEstimationResult.most_likely_phase' attribute
-                        is deprecated as of 0.18.0 and will be removed no earlier than 3 months
-                        after the release date. It has been renamed as the 'phase' attribute."""
-    )
     def most_likely_phase(self) -> float:
-        """DEPRECATED - The most likely phase of the unitary corresponding to the Hamiltonian.
-
-        Returns:
-            The most likely phase.
-        """
-        return self.phase
-
-    @property
-    def phase(self) -> float:
         """The most likely phase of the unitary corresponding to the Hamiltonian.
 
         Returns:
             The most likely phase.
         """
-        return self._phase_estimation_result.phase
+        return self._phase_estimation_result.most_likely_phase
 
     @property
     def most_likely_eigenvalue(self) -> float:
@@ -118,5 +100,5 @@ class HamiltonianPhaseEstimationResult(AlgorithmResult):
         Returns:
             The most likely eigenvalue of the Hamiltonian.
         """
-        phase = self.phase
+        phase = self._phase_estimation_result.most_likely_phase
         return self._phase_estimation_scale.scale_phase(phase, self._id_coefficient)

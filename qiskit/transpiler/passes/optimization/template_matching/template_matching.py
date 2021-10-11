@@ -35,13 +35,8 @@ class TemplateMatching:
     Class TemplatingMatching allows to apply the full template matching algorithm.
     """
 
-    def __init__(
-        self,
-        circuit_dag_dep,
-        template_dag_dep,
-        heuristics_qubits_param=None,
-        heuristics_backward_param=None,
-    ):
+    def __init__(self, circuit_dag_dep, template_dag_dep,
+                 heuristics_qubits_param=None, heuristics_backward_param=None):
         """
         Create a TemplateMatching object with necessary arguments.
         Args:
@@ -53,12 +48,10 @@ class TemplateMatching:
         self.circuit_dag_dep = circuit_dag_dep
         self.template_dag_dep = template_dag_dep
         self.match_list = []
-        self.heuristics_qubits_param = (
-            heuristics_qubits_param if heuristics_qubits_param is not None else []
-        )
-        self.heuristics_backward_param = (
-            heuristics_backward_param if heuristics_backward_param is not None else []
-        )
+        self.heuristics_qubits_param = heuristics_qubits_param\
+            if heuristics_qubits_param is not None else []
+        self.heuristics_backward_param = heuristics_backward_param\
+            if heuristics_backward_param is not None else []
 
     def _list_first_match_new(self, node_circuit, node_template, n_qubits_t, n_clbits_t):
         """
@@ -81,7 +74,7 @@ class TemplateMatching:
             not_control_qubits_circuit = node_circuit.qindices[control::]
 
             # Symmetric base gate
-            if node_template.op.base_gate.name not in ["rxx", "ryy", "rzz", "swap", "iswap", "ms"]:
+            if node_template.op.base_gate.name not in ['rxx', 'ryy', 'rzz', 'swap', 'iswap', 'ms']:
                 for control_perm_q in itertools.permutations(control_qubits_circuit):
                     control_perm_q = list(control_perm_q)
                     l_q_sub = [-1] * n_qubits_t
@@ -103,7 +96,7 @@ class TemplateMatching:
         # Not controlled
         else:
             # Symmetric gate
-            if node_template.op.name not in ["rxx", "ryy", "rzz", "swap", "iswap", "ms"]:
+            if node_template.op.name not in ['rxx', 'ryy', 'rzz', 'swap', 'iswap', 'ms']:
                 l_q_sub = [-1] * n_qubits_t
                 for q in node_template.qindices:
                     l_q_sub[q] = node_circuit.qindices[node_template.qindices.index(q)]
@@ -215,13 +208,10 @@ class TemplateMatching:
             return list(qubit_set)
 
         else:
-            not_successors = list(
-                set(circuit_nodes) - set(self.circuit_dag_dep.get_node(node_id_c).successors)
-            )
-            candidate = [
-                not_successors[j]
-                for j in range(len(not_successors) - 1, len(not_successors) - 1 - length, -1)
-            ]
+            not_successors = list(set(circuit_nodes) - set(
+                self.circuit_dag_dep.get_node(node_id_c).successors))
+            candidate = [not_successors[j] for j in
+                         range(len(not_successors) - 1, len(not_successors) - 1 - length, -1)]
 
             for not_succ in candidate:
                 qarg = self.circuit_dag_dep.get_node(not_succ).qindices
@@ -254,8 +244,7 @@ class TemplateMatching:
             for circuit_index in range(0, self.circuit_dag_dep.size()):
                 # Operations match up to ParameterExpressions.
                 if self.circuit_dag_dep.get_node(circuit_index).op.soft_compare(
-                    self.template_dag_dep.get_node(template_index).op
-                ):
+                        self.template_dag_dep.get_node(template_index).op):
 
                     qarg_c = self.circuit_dag_dep.get_node(circuit_index).qindices
                     carg_c = self.circuit_dag_dep.get_node(circuit_index).cindices
@@ -268,12 +257,11 @@ class TemplateMatching:
 
                     # Fix the qubits and clbits configuration given the first match.
 
-                    all_list_first_match_q, list_first_match_c = self._list_first_match_new(
-                        self.circuit_dag_dep.get_node(circuit_index),
-                        self.template_dag_dep.get_node(template_index),
-                        n_qubits_t,
-                        n_clbits_t,
-                    )
+                    all_list_first_match_q, list_first_match_c = \
+                        self._list_first_match_new(self.circuit_dag_dep.get_node(circuit_index),
+                                                   self.template_dag_dep.get_node(template_index),
+                                                   n_qubits_t,
+                                                   n_clbits_t)
 
                     list_circuit_q = list(range(0, n_qubits_c))
                     list_circuit_c = list(range(0, n_clbits_c))
@@ -282,9 +270,10 @@ class TemplateMatching:
                     # the list of qubits for the successors (length(int)) in the circuit.
 
                     if self.heuristics_qubits_param:
-                        heuristics_qubits = self._explore_circuit(
-                            node_id_c, node_id_t, n_qubits_t, self.heuristics_qubits_param[0]
-                        )
+                        heuristics_qubits = self._explore_circuit(node_id_c,
+                                                                  node_id_t,
+                                                                  n_qubits_t,
+                                                                  self.heuristics_qubits_param[0])
                     else:
                         heuristics_qubits = []
 
@@ -296,31 +285,28 @@ class TemplateMatching:
                             for perm_q in itertools.permutations(sub_q):
                                 perm_q = list(perm_q)
                                 for list_first_match_q in all_list_first_match_q:
-                                    list_qubit_circuit = self._list_qubit_clbit_circuit(
-                                        list_first_match_q, perm_q
-                                    )
+                                    list_qubit_circuit =\
+                                        self._list_qubit_clbit_circuit(list_first_match_q, perm_q)
 
                                     # Check for clbits configurations if there are clbits.
                                     if list_circuit_c:
-                                        for sub_c in self._sublist(
-                                            list_circuit_c, carg_c, n_clbits_t - len(carg_t)
-                                        ):
+                                        for sub_c in self._sublist(list_circuit_c, carg_c,
+                                                                   n_clbits_t - len(carg_t)):
                                             for perm_c in itertools.permutations(sub_c):
                                                 perm_c = list(perm_c)
 
-                                                list_clbit_circuit = self._list_qubit_clbit_circuit(
-                                                    list_first_match_c, perm_c
-                                                )
+                                                list_clbit_circuit =\
+                                                    self._list_qubit_clbit_circuit(
+                                                        list_first_match_c,
+                                                        perm_c)
 
                                                 # Apply the forward match part of the algorithm.
-                                                forward = ForwardMatch(
-                                                    self.circuit_dag_dep,
-                                                    self.template_dag_dep,
-                                                    node_id_c,
-                                                    node_id_t,
-                                                    list_qubit_circuit,
-                                                    list_clbit_circuit,
-                                                )
+                                                forward = ForwardMatch(self.circuit_dag_dep,
+                                                                       self.template_dag_dep,
+                                                                       node_id_c,
+                                                                       node_id_t,
+                                                                       list_qubit_circuit,
+                                                                       list_clbit_circuit)
                                                 forward.run_forward_match()
 
                                                 # Apply the backward match part of the algorithm.
@@ -332,8 +318,7 @@ class TemplateMatching:
                                                     node_id_t,
                                                     list_qubit_circuit,
                                                     list_clbit_circuit,
-                                                    self.heuristics_backward_param,
-                                                )
+                                                    self.heuristics_backward_param)
 
                                                 backward.run_backward_match()
 
@@ -341,26 +326,21 @@ class TemplateMatching:
                                                 self._add_match(backward.match_final)
                                     else:
                                         # Apply the forward match part of the algorithm.
-                                        forward = ForwardMatch(
-                                            self.circuit_dag_dep,
-                                            self.template_dag_dep,
-                                            node_id_c,
-                                            node_id_t,
-                                            list_qubit_circuit,
-                                        )
+                                        forward = ForwardMatch(self.circuit_dag_dep,
+                                                               self.template_dag_dep,
+                                                               node_id_c, node_id_t,
+                                                               list_qubit_circuit)
                                         forward.run_forward_match()
 
                                         # Apply the backward match part of the algorithm.
-                                        backward = BackwardMatch(
-                                            forward.circuit_dag_dep,
-                                            forward.template_dag_dep,
-                                            forward.match,
-                                            node_id_c,
-                                            node_id_t,
-                                            list_qubit_circuit,
-                                            [],
-                                            self.heuristics_backward_param,
-                                        )
+                                        backward = BackwardMatch(forward.circuit_dag_dep,
+                                                                 forward.template_dag_dep,
+                                                                 forward.match,
+                                                                 node_id_c,
+                                                                 node_id_t,
+                                                                 list_qubit_circuit,
+                                                                 [],
+                                                                 self.heuristics_backward_param)
                                         backward.run_backward_match()
 
                                         # Add the matches to the list.

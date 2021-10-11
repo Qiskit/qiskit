@@ -41,14 +41,14 @@ class MCGupDiag(Gate):
     def __init__(self, gate, num_controls, num_ancillas_zero, num_ancillas_dirty):
         """Initialize a multi controlled gate.
 
-        Args:
-            gate (ndarray): 2*2 unitary (given as a (complex) ndarray)
-            num_controls (int): number of control qubits
-            num_ancillas_zero (int): number of ancilla qubits that start in the state zero
-            num_ancillas_dirty (int): number of ancilla qubits that are allowed to start in an
-                arbitrary state
-        Raises:
-            QiskitError: if the input format is wrong; if the array gate is not unitary
+            Args:
+                gate (ndarray): 2*2 unitary (given as a (complex) ndarray)
+                num_controls (int): number of control qubits
+                num_ancillas_zero (int): number of ancilla qubits that start in the state zero
+                num_ancillas_dirty (int): number of ancilla qubits that are allowed to start in an
+                    arbitrary state
+            Raises:
+                QiskitError: if the input format is wrong; if the array gate is not unitary
         """
 
         self.num_controls = num_controls
@@ -77,14 +77,13 @@ class MCGupDiag(Gate):
 
         Note that the resulting Gate object has an empty ``params`` property.
         """
-        inverse_gate = Gate(
-            name=self.name + "_dg", num_qubits=self.num_qubits, params=[]
-        )  # removing the params because arrays are deprecated
+        inverse_gate = Gate(name=self.name + '_dg',
+                            num_qubits=self.num_qubits,
+                            params=[])  # removing the params because arrays are deprecated
 
         inverse_gate.definition = QuantumCircuit(*self.definition.qregs)
-        inverse_gate.definition._data = [
-            (inst.inverse(), qargs, []) for inst, qargs, _ in reversed(self._definition)
-        ]
+        inverse_gate.definition._data = [(inst.inverse(), qargs, [])
+                                         for inst, qargs, _ in reversed(self._definition)]
 
         return inverse_gate
 
@@ -125,9 +124,9 @@ class MCGupDiag(Gate):
     def _define_qubit_role(self, q):
         # Define the role of the qubits
         q_target = q[0]
-        q_controls = q[1 : self.num_controls + 1]
-        q_ancillas_zero = q[self.num_controls + 1 : self.num_controls + 1 + self.num_ancillas_zero]
-        q_ancillas_dirty = q[self.num_controls + 1 + self.num_ancillas_zero :]
+        q_controls = q[1:self.num_controls + 1]
+        q_ancillas_zero = q[self.num_controls + 1:self.num_controls + 1 + self.num_ancillas_zero]
+        q_ancillas_dirty = q[self.num_controls + 1 + self.num_ancillas_zero:]
         return q_target, q_controls, q_ancillas_zero, q_ancillas_dirty
 
     def validate_parameter(self, parameter):
@@ -135,6 +134,5 @@ class MCGupDiag(Gate):
         if isinstance(parameter, np.ndarray):
             return parameter
         else:
-            raise CircuitError(
-                "invalid param type {} in gate " "{}".format(type(parameter), self.name)
-            )
+            raise CircuitError("invalid param type {0} in gate "
+                               "{1}".format(type(parameter), self.name))

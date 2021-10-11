@@ -46,9 +46,8 @@ class ApproximateTokenSwapper:
     Internally caches the graph and associated datastructures for re-use.
     """
 
-    def __init__(
-        self, graph: rx.PyGraph, seed: Union[int, np.random.Generator, None] = None
-    ) -> None:
+    def __init__(self, graph: rx.PyGraph,
+                 seed: Union[int, np.random.Generator, None] = None) -> None:
         """Construct an ApproximateTokenSwapping object.
 
         Args:
@@ -66,7 +65,8 @@ class ApproximateTokenSwapper:
         """Compute the distance between two nodes in `graph`."""
         return self.shortest_paths[vertex0, vertex1]
 
-    def permutation_circuit(self, permutation: Permutation, trials: int = 4) -> PermutationCircuit:
+    def permutation_circuit(self, permutation: Permutation,
+                            trials: int = 4) -> PermutationCircuit:
         """Perform an approximately optimal Token Swapping algorithm to implement the permutation.
 
         Args:
@@ -80,7 +80,8 @@ class ApproximateTokenSwapper:
         parallel_swaps = [[swap] for swap in sequential_swaps]
         return permutation_circuit(parallel_swaps)
 
-    def map(self, mapping: Mapping[int, int], trials: int = 4) -> List[Swap[int]]:
+    def map(self, mapping: Mapping[int, int],
+            trials: int = 4) -> List[Swap[int]]:
         """Perform an approximately optimal Token Swapping algorithm to implement the permutation.
 
         Supports partial mappings (i.e. not-permutations) for graphs with missing tokens.
@@ -103,14 +104,11 @@ class ApproximateTokenSwapper:
         for node in self.graph.node_indexes():
             self._add_token_edges(node, tokens, digraph, sub_digraph)
 
-        trial_results = iter(
-            list(
-                self._trial_map(
-                    copy.copy(digraph), copy.copy(sub_digraph), todo_nodes.copy(), tokens.copy()
-                )
-            )
-            for _ in range(trials)
-        )
+        trial_results = iter(list(self._trial_map(copy.copy(digraph),
+                                                  copy.copy(sub_digraph),
+                                                  todo_nodes.copy(),
+                                                  tokens.copy()))
+                             for _ in range(trials))
 
         # Once we find a zero solution we stop.
         def take_until_zero(results: Iterable[List[int]]) -> Iterator[List[int]]:
@@ -123,13 +121,11 @@ class ApproximateTokenSwapper:
         trial_results = take_until_zero(trial_results)
         return min(trial_results, key=len)
 
-    def _trial_map(
-        self,
-        digraph: rx.PyDiGraph,
-        sub_digraph: rx.PyDiGraph,
-        todo_nodes: MutableSet[int],
-        tokens: MutableMapping[int, int],
-    ) -> Iterator[Swap[int]]:
+    def _trial_map(self,
+                   digraph: rx.PyDiGraph,
+                   sub_digraph: rx.PyDiGraph,
+                   todo_nodes: MutableSet[int],
+                   tokens: MutableMapping[int, int]) -> Iterator[Swap[int]]:
         """Try to map the tokens to their destinations and minimize the number of swaps."""
 
         def swap(node0: int, node1: int) -> None:
@@ -164,11 +160,8 @@ class ApproximateTokenSwapper:
             else:
                 # Try to find a node without a token to swap with.
                 try:
-                    edge = next(
-                        edge
-                        for edge in rx.digraph_dfs_edges(sub_digraph, todo_node)
-                        if edge[1] not in tokens
-                    )
+                    edge = next(edge for edge in rx.digraph_dfs_edges(sub_digraph, todo_node)
+                                if edge[1] not in tokens)
                     # Swap predecessor and successor, because successor does not have a token
                     yield edge
                     swap(edge[0], edge[1])
@@ -181,15 +174,11 @@ class ApproximateTokenSwapper:
                     # Find a node that wants to swap with this node.
                     try:
                         predecessor = next(
-                            predecessor
-                            for predecessor in digraph.predecessor_indices(unhappy_node)
-                            if predecessor != unhappy_node
-                        )
+                            predecessor for predecessor in digraph.predecessor_indices(unhappy_node)
+                            if predecessor != unhappy_node)
                     except StopIteration:
-                        logger.error(
-                            "Unexpected StopIteration raised when getting predecessors"
-                            "in unhappy swap case."
-                        )
+                        logger.error("Unexpected StopIteration raised when getting predecessors"
+                                     "in unhappy swap case.")
                         return
                     yield unhappy_node, predecessor
                     swap(unhappy_node, predecessor)
@@ -197,9 +186,11 @@ class ApproximateTokenSwapper:
         if todo_nodes:
             raise RuntimeError("Too many iterations while approximating the Token Swaps.")
 
-    def _add_token_edges(
-        self, node: int, tokens: Mapping[int, int], digraph: rx.PyDiGraph, sub_digraph: rx.PyDiGraph
-    ) -> None:
+    def _add_token_edges(self,
+                         node: int,
+                         tokens: Mapping[int, int],
+                         digraph: rx.PyDiGraph,
+                         sub_digraph: rx.PyDiGraph) -> None:
         """Add diedges to the graph wherever a token can be moved closer to its destination."""
         if node not in tokens:
             return
@@ -213,19 +204,14 @@ class ApproximateTokenSwapper:
                 digraph.extend_from_edge_list([(node, neighbor)])
                 sub_digraph.extend_from_edge_list([(node, neighbor)])
 
-    def _swap(
-        self,
-        node1: int,
-        node2: int,
-        tokens: MutableMapping[int, int],
-        digraph: rx.PyDiGraph,
-        sub_digraph: rx.PyDiGraph,
-        todo_nodes: MutableSet[int],
-    ) -> None:
+    def _swap(self, node1: int, node2: int,
+              tokens: MutableMapping[int, int],
+              digraph: rx.PyDiGraph,
+              sub_digraph: rx.PyDiGraph,
+              todo_nodes: MutableSet[int]) -> None:
         """Swap two nodes, maintaining the data structures."""
-        assert self.graph.has_edge(
-            node1, node2
-        ), "The swap is being performed on a non-existent edge."
+        assert self.graph.has_edge(node1,
+                                   node2), "The swap is being performed on a non-existent edge."
         # Swap the tokens on the nodes, taking into account no-token nodes.
         token1 = tokens.pop(node1, None)
         token2 = tokens.pop(node2, None)
@@ -236,11 +222,9 @@ class ApproximateTokenSwapper:
         # Recompute the edges incident to node 1 and 2
         for node in [node1, node2]:
             digraph.remove_edges_from(
-                [(node, successor) for successor in digraph.successor_indices(node)]
-            )
+                [(node, successor) for successor in digraph.successor_indices(node)])
             sub_digraph.remove_edges_from(
-                [(node, successor) for successor in sub_digraph.successor_indices(node)]
-            )
+                [(node, successor) for successor in sub_digraph.successor_indices(node)])
             self._add_token_edges(node, tokens, digraph, sub_digraph)
             if node in tokens and tokens[node] != node:
                 todo_nodes.add(node)

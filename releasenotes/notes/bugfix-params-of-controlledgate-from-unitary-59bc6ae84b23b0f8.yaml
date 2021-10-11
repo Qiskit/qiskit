@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Parameter attribute of :class:`~qiskit.circuit.ControlledGate` built from
+    :class:`~qiskit.extensions.UnitaryGate` should be the unitary matrix of
+    :class:`~qiskit.extensions.UnitaryGate`. Previously,
+    :meth:`~qiskit.extensions.UnitaryGate.control` was building a
+    :class:`~qiskit.circuit.ControlledGate` with parameter attribute set to the
+    controlled version of :class:`~qiskit.extensions.UnitaryGate` matrix.
+    This led to a modification of the parameter of base :class:`~qiskit.extensions.UnitaryGate`
+    and subsequent call on :meth:`~qiskit.circuit.ControlledGate.inverse` was creating
+    the inverse of a double-controlled :class:`~qiskit.extensions.UnitaryGate`.

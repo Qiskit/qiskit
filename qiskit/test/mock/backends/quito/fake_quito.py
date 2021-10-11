@@ -15,20 +15,10 @@ Fake Quito device (5 qubit).
 """
 
 import os
-from qiskit.test.mock import fake_pulse_backend
+from qiskit.test.mock.fake_pulse_backend import FakePulseBackend
 
 
-class FakeQuito(fake_pulse_backend.FakePulseBackend):
-    """A fake 5 qubit backend."""
-
-    dirname = os.path.dirname(__file__)
-    conf_filename = "conf_quito.json"
-    props_filename = "props_quito.json"
-    defs_filename = "defs_quito.json"
-    backend_name = "fake_quito"
-
-
-class FakeLegacyQuito(fake_pulse_backend.FakePulseLegacyBackend):
+class FakeQuito(FakePulseBackend):
     """A fake 5 qubit backend."""
 
     dirname = os.path.dirname(__file__)

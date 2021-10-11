@@ -44,4 +44,4 @@ class TestCXCancellation(QiskitTestCase):
         out_circuit = pass_manager.run(circuit)
         resources_after = out_circuit.count_ops()
 
-        self.assertNotIn("cx", resources_after)
+        self.assertNotIn('cx', resources_after)

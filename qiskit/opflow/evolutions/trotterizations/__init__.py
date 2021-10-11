@@ -21,4 +21,8 @@ from .trotter import Trotter
 from .suzuki import Suzuki
 from .qdrift import QDrift
 
-__all__ = ["TrotterizationBase", "TrotterizationFactory", "Trotter", "Suzuki", "QDrift"]
+__all__ = ['TrotterizationBase',
+           'TrotterizationFactory',
+           'Trotter',
+           'Suzuki',
+           'QDrift']

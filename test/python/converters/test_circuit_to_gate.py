@@ -23,14 +23,14 @@ class TestCircuitToGate(QiskitTestCase):
 
     def test_simple_circuit(self):
         """test simple circuit"""
-        qr1 = QuantumRegister(4, "qr1")
-        qr2 = QuantumRegister(3, "qr2")
-        qr3 = QuantumRegister(3, "qr3")
+        qr1 = QuantumRegister(4, 'qr1')
+        qr2 = QuantumRegister(3, 'qr2')
+        qr3 = QuantumRegister(3, 'qr3')
         circ = QuantumCircuit(qr1, qr2, qr3)
         circ.cx(qr1[1], qr2[2])
 
         gate = circ.to_gate()
-        q = QuantumRegister(10, "q")
+        q = QuantumRegister(10, 'q')
 
         self.assertIsInstance(gate, Gate)
         self.assertEqual(gate.definition[0][1], [q[1], q[6]])
@@ -57,7 +57,7 @@ class TestCircuitToGate(QiskitTestCase):
 
     def test_generated_gate_inverse(self):
         """Test inverse of generated gate works."""
-        qr1 = QuantumRegister(2, "qr1")
+        qr1 = QuantumRegister(2, 'qr1')
         circ = QuantumCircuit(qr1)
         circ.cx(qr1[1], qr1[0])
 
@@ -67,9 +67,9 @@ class TestCircuitToGate(QiskitTestCase):
 
     def test_to_gate_label(self):
         """Test label setting."""
-        qr1 = QuantumRegister(2, "qr1")
-        circ = QuantumCircuit(qr1, name="a circuit name")
+        qr1 = QuantumRegister(2, 'qr1')
+        circ = QuantumCircuit(qr1, name='a circuit name')
         circ.cx(qr1[1], qr1[0])
-        gate = circ.to_gate(label="a label")
+        gate = circ.to_gate(label='a label')
 
-        self.assertEqual(gate.label, "a label")
+        self.assertEqual(gate.label, 'a label')

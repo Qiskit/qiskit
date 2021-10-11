@@ -22,14 +22,13 @@ from .exceptions import SchemaValidationError, _SummaryValidationError
 
 
 _DEFAULT_SCHEMA_PATHS = {
-    "backend_configuration": "schemas/backend_configuration_schema.json",
-    "backend_properties": "schemas/backend_properties_schema.json",
-    "backend_status": "schemas/backend_status_schema.json",
-    "default_pulse_configuration": "schemas/default_pulse_configuration_schema.json",
-    "job_status": "schemas/job_status_schema.json",
-    "qobj": "schemas/qobj_schema.json",
-    "result": "schemas/result_schema.json",
-}
+    'backend_configuration': 'schemas/backend_configuration_schema.json',
+    'backend_properties': 'schemas/backend_properties_schema.json',
+    'backend_status': 'schemas/backend_status_schema.json',
+    'default_pulse_configuration': 'schemas/default_pulse_configuration_schema.json',
+    'job_status': 'schemas/job_status_schema.json',
+    'qobj': 'schemas/qobj_schema.json',
+    'result': 'schemas/result_schema.json'}
 # Schema and Validator storage
 _SCHEMAS = {}
 _VALIDATORS = {}
@@ -38,14 +37,14 @@ _VALIDATORS = {}
 def _load_schema(file_path, name=None):
     """Loads the QObj schema for use in future validations.
 
-    Caches schema in _SCHEMAS module attribute.
+   Caches schema in _SCHEMAS module attribute.
 
-    Args:
-         file_path(str): Path to schema.
-         name(str): Given name for schema. Defaults to file_path filename
-             without schema.
-    Return:
-         schema(dict): Loaded schema.
+   Args:
+        file_path(str): Path to schema.
+        name(str): Given name for schema. Defaults to file_path filename
+            without schema.
+   Return:
+        schema(dict): Loaded schema.
     """
     if name is None:
         # filename without extension
@@ -57,7 +56,8 @@ def _load_schema(file_path, name=None):
     return _SCHEMAS[name]
 
 
-def _get_validator(name, schema=None, check_schema=True, validator_class=None, **validator_kwargs):
+def _get_validator(name, schema=None, check_schema=True,
+                   validator_class=None, **validator_kwargs):
     """Generate validator for JSON schema.
 
     Args:
@@ -99,7 +99,7 @@ def _get_validator(name, schema=None, check_schema=True, validator_class=None, *
 
 def _load_schemas_and_validators():
     """Load all default schemas into `_SCHEMAS`."""
-    schema_base_path = os.path.join(os.path.dirname(__file__), "../..")
+    schema_base_path = os.path.join(os.path.dirname(__file__), '../..')
     for name, path in _DEFAULT_SCHEMA_PATHS.items():
         _load_schema(os.path.join(schema_base_path, path), name)
         _get_validator(name)
@@ -109,7 +109,8 @@ def _load_schemas_and_validators():
 _load_schemas_and_validators()
 
 
-def validate_json_against_schema(json_dict, schema, err_msg=None):
+def validate_json_against_schema(json_dict, schema,
+                                 err_msg=None):
     """Validates JSON dict against a schema.
 
     Args:
@@ -125,15 +126,12 @@ def validate_json_against_schema(json_dict, schema, err_msg=None):
     Raises:
         SchemaValidationError: Raised if validation fails.
     """
-    warnings.warn(
-        "The jsonschema validation included in qiskit-terra is "
-        "deprecated and will be removed in a future release. "
-        "If you're relying on this schema validation you should "
-        "pull the schemas from the Qiskit/ibmq-schemas and directly "
-        "validate your payloads with that",
-        DeprecationWarning,
-        stacklevel=2,
-    )
+    warnings.warn("The jsonschema validation included in qiskit-terra is "
+                  "deprecated and will be removed in a future release. "
+                  "If you're relying on this schema validation you should "
+                  "pull the schemas from the Qiskit/ibmq-schemas and directly "
+                  "validate your payloads with that", DeprecationWarning,
+                  stacklevel=2)
     if isinstance(schema, str):
         schema_name = schema
         schema = _SCHEMAS[schema_name]
@@ -162,10 +160,8 @@ def validate_json_against_schema(json_dict, schema, err_msg=None):
             jsonschema.validate(json_dict, schema)
         except jsonschema.ValidationError as err:
             if err_msg is None:
-                err_msg = (
-                    "JSON failed validation. Set Qiskit log level to "
-                    "DEBUG for further information."
-                )
+                err_msg = ("JSON failed validation. Set Qiskit log level to "
+                           "DEBUG for further information.")
             newerr = SchemaValidationError(err_msg)
             newerr.__cause__ = _SummaryValidationError(err)
         raise newerr
@@ -212,25 +208,26 @@ def _format_causes(err, level=0):
         lines.append(_pad(string, offset=offset))
 
     def _pad(string, offset=0):
-        padding = "  " * (level + offset)
-        padded_lines = [padding + line for line in string.split("\n")]
-        return "\n".join(padded_lines)
+        padding = '  ' * (level + offset)
+        padded_lines = [padding + line for line in string.split('\n')]
+        return '\n'.join(padded_lines)
 
     def _format_path(path):
         def _format(item):
             if isinstance(item, str):
-                return f".{item}"
+                return '.{}'.format(item)
 
-            return f"[{item}]"
+            return '[{}]'.format(item)
 
-        return "".join(["<root>"] + list(map(_format, path)))
+        return ''.join(['<root>'] + list(map(_format, path)))
 
-    _print(f"'{err.validator}' failed @ '{_format_path(err.absolute_path)}' because of:")
+    _print('\'{}\' failed @ \'{}\' because of:'.format(
+        err.validator, _format_path(err.absolute_path)))
 
     if not err.context:
         _print(str(err.message), offset=1)
     else:
         for suberr in err.context:
-            lines.append(_format_causes(suberr, level + 1))
+            lines.append(_format_causes(suberr, level+1))
 
-    return "\n".join(lines)
+    return '\n'.join(lines)

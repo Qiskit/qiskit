@@ -43,10 +43,8 @@ from numpy import pi
 
 from .qasm import Qasm
 from .exceptions import QasmError
-
 try:
     import pygments
-
     HAS_PYGMENTS = True
 except ImportError:
     HAS_PYGMENTS = False

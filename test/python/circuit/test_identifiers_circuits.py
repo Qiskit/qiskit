@@ -89,12 +89,12 @@ class TestInvalidIds(QiskitTestCase):
 
     def test_invalid_qasmname_qr(self):
         """QuantumRegister() with invalid name."""
-        self.assertRaises(CircuitError, QuantumRegister, size=3, name="Qr")
+        self.assertRaises(CircuitError, QuantumRegister, size=3, name='Qr')
 
     def test_invalid_qasmname_cr(self):
         """ClassicalRegister() with invalid name."""
-        self.assertRaises(CircuitError, ClassicalRegister, size=3, name="Cr")
+        self.assertRaises(CircuitError, ClassicalRegister, size=3, name='Cr')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main(verbosity=2)

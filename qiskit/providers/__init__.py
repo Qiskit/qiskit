@@ -499,11 +499,6 @@ and for a sync job::
 Legacy Provider Interface Base Objects (:mod:`qiskit.providers`)
 ================================================================
 
-These abstract interfaces are deprecated and will be removed in a future
-release. The documentation here is left for reference purposes while they're
-still supported, but if you're creating or maintaining a provider you should
-be using the versioned interface.
-
 .. currentmodule:: qiskit.providers
 
 Base Objects
@@ -546,18 +541,12 @@ from qiskit.providers.backend import BackendV1
 from qiskit.providers.options import Options
 from qiskit.providers.job import Job
 from qiskit.providers.job import JobV1
-
 # Legacy providers interface
 from qiskit.providers.basebackend import BaseBackend
 from qiskit.providers.baseprovider import BaseProvider
 from qiskit.providers.basejob import BaseJob
-from qiskit.providers.exceptions import (
-    JobError,
-    JobTimeoutError,
-    QiskitBackendNotFoundError,
-    BackendPropertyError,
-    BackendConfigurationError,
-)
+from qiskit.providers.exceptions import (JobError, JobTimeoutError, QiskitBackendNotFoundError,
+                                         BackendPropertyError, BackendConfigurationError)
 from qiskit.providers.jobstatus import JobStatus
 
 

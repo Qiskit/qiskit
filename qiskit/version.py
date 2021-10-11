@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-name-in-module,broad-except,cyclic-import,import-error
+# pylint: disable=no-name-in-module,broad-except,cyclic-import
 
 """Contains the terra version."""
 
@@ -25,34 +25,30 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 def _minimal_ext_cmd(cmd):
     # construct minimal environment
     env = {}
-    for k in ["SYSTEMROOT", "PATH"]:
+    for k in ['SYSTEMROOT', 'PATH']:
         v = os.environ.get(k)
         if v is not None:
             env[k] = v
     # LANGUAGE is used on win32
-    env["LANGUAGE"] = "C"
-    env["LANG"] = "C"
-    env["LC_ALL"] = "C"
-    with subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        env=env,
-        cwd=os.path.join(os.path.dirname(ROOT_DIR)),
-    ) as proc:
-        stdout, stderr = proc.communicate()
-        if proc.returncode > 0:
-            error_message = stderr.strip().decode("ascii")
-            raise OSError(f"Command {cmd} exited with code {proc.returncode}: {error_message}")
+    env['LANGUAGE'] = 'C'
+    env['LANG'] = 'C'
+    env['LC_ALL'] = 'C'
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE, env=env,
+                            cwd=os.path.join(os.path.dirname(ROOT_DIR)))
+    stdout, stderr = proc.communicate()
+    if proc.returncode > 0:
+        raise OSError('Command {} exited with code {}: {}'.format(
+            cmd, proc.returncode, stderr.strip().decode('ascii')))
     return stdout
 
 
 def git_version():
     """Get the current git head sha1."""
-    # Determine if we're at main
+    # Determine if we're at master
     try:
-        out = _minimal_ext_cmd(["git", "rev-parse", "HEAD"])
-        git_revision = out.strip().decode("ascii")
+        out = _minimal_ext_cmd(['git', 'rev-parse', 'HEAD'])
+        git_revision = out.strip().decode('ascii')
     except OSError:
         git_revision = "Unknown"
 
@@ -70,15 +66,15 @@ def get_version_info():
     # up the build under Python 3.
     full_version = VERSION
 
-    if not os.path.exists(os.path.join(os.path.dirname(ROOT_DIR), ".git")):
+    if not os.path.exists(os.path.join(os.path.dirname(ROOT_DIR), '.git')):
         return full_version
     try:
-        release = _minimal_ext_cmd(["git", "tag", "-l", "--points-at", "HEAD"])
+        release = _minimal_ext_cmd(['git', 'tag', '-l', '--points-at', 'HEAD'])
     except Exception:  # pylint: disable=broad-except
         return full_version
     git_revision = git_version()
     if not release:
-        full_version += ".dev0+" + git_revision[:7]
+        full_version += '.dev0+' + git_revision[:7]
 
     return full_version
 
@@ -89,74 +85,43 @@ __version__ = get_version_info()
 class QiskitVersion(Mapping):
     """A lazy loading wrapper to get qiskit versions."""
 
-    __slots__ = ["_version_dict", "_loaded"]
+    __slots__ = ['_version_dict', '_loaded']
 
     def __init__(self):
         self._version_dict = {
-            "qiskit-terra": __version__,
-            "qiskit-aer": None,
-            "qiskit-ignis": None,
-            "qiskit-ibmq-provider": None,
-            "qiskit-aqua": None,
-            "qiskit": None,
-        }
+            'qiskit-terra': __version__,
+            'qiskit-aer': None,
+            'qiskit-ignis': None,
+            'qiskit-ibmq-provider': None,
+            'qiskit-aqua': None,
+            'qiskit': None}
         self._loaded = False
 
     def _load_versions(self):
         try:
             from qiskit.providers import aer
-
-            self._version_dict["qiskit-aer"] = aer.__version__
+            self._version_dict['qiskit-aer'] = aer.__version__
         except Exception:
-            self._version_dict["qiskit-aer"] = None
+            self._version_dict['qiskit-aer'] = None
         try:
             from qiskit import ignis
-
-            self._version_dict["qiskit-ignis"] = ignis.__version__
+            self._version_dict['qiskit-ignis'] = ignis.__version__
         except Exception:
-            self._version_dict["qiskit-ignis"] = None
+            self._version_dict['qiskit-ignis'] = None
         try:
             from qiskit.providers import ibmq
-
-            self._version_dict["qiskit-ibmq-provider"] = ibmq.__version__
+            self._version_dict['qiskit-ibmq-provider'] = ibmq.__version__
         except Exception:
-            self._version_dict["qiskit-ibmq-provider"] = None
-        # TODO: Remove aqua after deprecation is complete and it is removed from
-        # the metapackage
+            self._version_dict['qiskit-ibmq-provider'] = None
         try:
             from qiskit import aqua
-
-            self._version_dict["qiskit-aqua"] = aqua.__version__
+            self._version_dict['qiskit-aqua'] = aqua.__version__
         except Exception:
-            self._version_dict["qiskit-aqua"] = None
+            self._version_dict['qiskit-aqua'] = None
         try:
-            import qiskit_nature
-
-            self._version_dict["qiskit-nature"] = qiskit_nature.__version__
+            self._version_dict['qiskit'] = pkg_resources.get_distribution('qiskit').version
         except Exception:
-            self._version_dict["qiskit-nature"] = None
-        try:
-            import qiskit_finance
-
-            self._version_dict["qiskit-finance"] = qiskit_finance.__version__
-        except Exception:
-            self._version_dict["qiskit-finance"] = None
-        try:
-            import qiskit_optimization
-
-            self._version_dict["qiskit-optimization"] = qiskit_optimization.__version__
-        except Exception:
-            self._version_dict["qiskit-optimization"] = None
-        try:
-            import qiskit_machine_learning
-
-            self._version_dict["qiskit-machine-learning"] = qiskit_machine_learning.__version__
-        except Exception:
-            self._version_dict["qiskit-machine-learning"] = None
-        try:
-            self._version_dict["qiskit"] = pkg_resources.get_distribution("qiskit").version
-        except Exception:
-            self._version_dict["qiskit"] = None
+            self._version_dict['qiskit'] = None
         self._loaded = True
 
     def __repr__(self):

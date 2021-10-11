@@ -21,6 +21,8 @@ from qiskit.opflow.primitive_ops.pauli_op import PauliOp
 from qiskit.opflow.primitive_ops.circuit_op import CircuitOp
 from qiskit.opflow.state_fns.dict_state_fn import DictStateFn
 
+# pylint: disable=invalid-name
+
 # Digits of precision when returning values from eval functions. Without rounding, 1e-17 or 1e-32
 # values often show up in place of 0, etc.
 # Note: care needs to be taken in rounding otherwise some behavior may not be as expected. E.g
@@ -33,7 +35,7 @@ EVAL_SIG_DIGITS = 18
 
 
 def make_immutable(obj):
-    """Delete the __setattr__ property to make the object mostly immutable."""
+    """ Delete the __setattr__ property to make the object mostly immutable. """
 
     # TODO figure out how to get correct error message
     # def throw_immutability_exception(self, *args):
@@ -44,10 +46,10 @@ def make_immutable(obj):
 
 
 # 1-Qubit Paulis
-X = make_immutable(PauliOp(Pauli("X")))
-Y = make_immutable(PauliOp(Pauli("Y")))
-Z = make_immutable(PauliOp(Pauli("Z")))
-I = make_immutable(PauliOp(Pauli("I")))
+X = make_immutable(PauliOp(Pauli('X')))
+Y = make_immutable(PauliOp(Pauli('Y')))
+Z = make_immutable(PauliOp(Pauli('Z')))
+I = make_immutable(PauliOp(Pauli('I')))
 
 # Clifford+T, and some other common non-parameterized gates
 CX = make_immutable(CircuitOp(CXGate()))
@@ -58,7 +60,7 @@ Swap = make_immutable(CircuitOp(SwapGate()))
 CZ = make_immutable(CircuitOp(CZGate()))
 
 # 1-Qubit Paulis
-Zero = make_immutable(DictStateFn("0"))
-One = make_immutable(DictStateFn("1"))
+Zero = make_immutable(DictStateFn('0'))
+One = make_immutable(DictStateFn('1'))
 Plus = make_immutable(H.compose(Zero))
 Minus = make_immutable(H.compose(X).compose(Zero))

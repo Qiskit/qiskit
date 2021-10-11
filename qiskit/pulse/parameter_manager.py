@@ -85,7 +85,6 @@ class NodeVisitor:
     method is called. Usually, this method is provided for operating on object defined
     outside of the Qiskit Pulse module.
     """
-
     def visit(self, node: Any):
         """Visit a node."""
         visitor = self._get_visitor(type(node))
@@ -97,7 +96,7 @@ class NodeVisitor:
             return self.generic_visit
 
         try:
-            return getattr(self, f"visit_{node_class.__name__}")
+            return getattr(self, f'visit_{node_class.__name__}')
         except AttributeError:
             # check super class
             return self._get_visitor(node_class.__base__)
@@ -124,7 +123,6 @@ class ParameterSetter(NodeVisitor):
     This visitor is initialized with a dictionary of parameters to be assigned,
     and assign values to operands of nodes found.
     """
-
     def __init__(self, param_map: Dict[ParameterExpression, ParameterValueType]):
         self._param_map = param_map
 
@@ -136,7 +134,7 @@ class ParameterSetter(NodeVisitor):
         .. note:: ``ScheduleBlock`` can have parameters in blocks and its alignment.
         """
         # accessing to protected member
-        node._blocks = [self.visit(block) for block in node.blocks]
+        node._blocks = [self.visit(block) for block in node.instructions]
         node._alignment_context = self.visit_AlignmentKind(node.alignment_context)
 
         self._update_parameter_manager(node)
@@ -200,7 +198,7 @@ class ParameterSetter(NodeVisitor):
             # validate
             if not isinstance(new_index, ParameterExpression):
                 if not isinstance(new_index, int) or new_index < 0:
-                    raise PulseError("Channel index must be a nonnegative integer")
+                    raise PulseError('Channel index must be a nonnegative integer')
 
             # return new instance to prevent accidentally override timeslots without evaluation
             return node.__class__(index=new_index)
@@ -256,10 +254,10 @@ class ParameterSetter(NodeVisitor):
             else:
                 new_parameters.add(parameter)
 
-        if hasattr(node, "_parameter_manager"):
+        if hasattr(node, '_parameter_manager'):
             node._parameter_manager._parameters = new_parameters
         else:
-            raise PulseError(f"Node type {node.__class__.__name__} has no parameter manager.")
+            raise PulseError(f'Node type {node.__class__.__name__} has no parameter manager.')
 
 
 class ParameterGetter(NodeVisitor):
@@ -268,7 +266,6 @@ class ParameterGetter(NodeVisitor):
     This visitor initializes empty parameter array, and recursively visits nodes
     and add parameters found to the array.
     """
-
     def __init__(self):
         self.parameters = set()
 
@@ -352,7 +349,6 @@ class ParameterManager:
     Parameter assignment logic is implemented based on the visitor pattern.
     Instruction data and its location are not directly associated with this object.
     """
-
     def __init__(self):
         """Create new parameter table for pulse programs."""
         self._parameters = set()
@@ -380,12 +376,11 @@ class ParameterManager:
         """
         return [param for param in self.parameters if param.name == parameter_name]
 
-    def assign_parameters(
-        self,
-        pulse_program: Any,
-        value_dict: Dict[ParameterExpression, ParameterValueType],
-        inplace: bool = True,
-    ) -> Any:
+    def assign_parameters(self,
+                          pulse_program: Any,
+                          value_dict: Dict[ParameterExpression, ParameterValueType],
+                          inplace: bool = True
+                          ) -> Any:
         """Modify and return program data with parameters assigned according to the input.
 
         Args:

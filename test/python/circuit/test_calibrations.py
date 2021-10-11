@@ -52,5 +52,5 @@ class TestCalibrations(QiskitTestCase):
         self.assertEqual(qc_cal.calibrations, qc.calibrations)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

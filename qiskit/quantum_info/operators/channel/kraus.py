@@ -104,20 +104,23 @@ class Kraus(QuantumChannel):
                 for i in data[1:]:
                     op = np.asarray(i, dtype=complex)
                     if op.shape != shape:
-                        raise QiskitError("Kraus operators are different dimensions.")
+                        raise QiskitError(
+                            "Kraus operators are different dimensions.")
                     kraus.append(op)
                 # Convert single Kraus set to general Kraus pair
                 kraus = (kraus, None)
 
             # Check if generalized Kraus set ([A_i], [B_i]) for channel:
             # E(rho) = sum_i A_i * rho * B_i^dagger
-            elif isinstance(data, tuple) and len(data) == 2 and len(data[0]) > 0:
+            elif isinstance(data,
+                            tuple) and len(data) == 2 and len(data[0]) > 0:
                 kraus_left = [np.asarray(data[0][0], dtype=complex)]
                 shape = kraus_left[0].shape
                 for i in data[0][1:]:
                     op = np.asarray(i, dtype=complex)
                     if op.shape != shape:
-                        raise QiskitError("Kraus operators are different dimensions.")
+                        raise QiskitError(
+                            "Kraus operators are different dimensions.")
                     kraus_left.append(op)
                 if data[1] is None:
                     kraus = (kraus_left, None)
@@ -126,12 +129,14 @@ class Kraus(QuantumChannel):
                     for i in data[1]:
                         op = np.asarray(i, dtype=complex)
                         if op.shape != shape:
-                            raise QiskitError("Kraus operators are different dimensions.")
+                            raise QiskitError(
+                                "Kraus operators are different dimensions.")
                         kraus_right.append(op)
                     kraus = (kraus_left, kraus_right)
             else:
                 raise QiskitError("Invalid input for Kraus channel.")
-            op_shape = OpShape.auto(dims_l=output_dims, dims_r=input_dims, shape=kraus[0][0].shape)
+            op_shape = OpShape.auto(dims_l=output_dims, dims_r=input_dims,
+                                    shape=kraus[0][0].shape)
         else:
             # Otherwise we initialize by conversion from another Qiskit
             # object into the QuantumChannel.
@@ -146,7 +151,7 @@ class Kraus(QuantumChannel):
             op_shape = data._op_shape
             output_dim, input_dim = op_shape.shape
             # Now that the input is an operator we convert it to a Kraus
-            rep = getattr(data, "_channel_rep", "Operator")
+            rep = getattr(data, '_channel_rep', 'Operator')
             kraus = _to_kraus(rep, data._data, input_dim, output_dim)
 
         # Initialize either single or general Kraus
@@ -220,9 +225,10 @@ class Kraus(QuantumChannel):
 
     def compose(self, other, qargs=None, front=False):
         if qargs is None:
-            qargs = getattr(other, "qargs", None)
+            qargs = getattr(other, 'qargs', None)
         if qargs is not None:
-            return Kraus(SuperOp(self).compose(other, qargs=qargs, front=front))
+            return Kraus(
+                SuperOp(self).compose(other, qargs=qargs, front=front))
 
         if not isinstance(other, Kraus):
             other = Kraus(other)
@@ -281,13 +287,13 @@ class Kraus(QuantumChannel):
         return ret
 
     def __add__(self, other):
-        qargs = getattr(other, "qargs", None)
+        qargs = getattr(other, 'qargs', None)
         if not isinstance(other, QuantumChannel):
             other = Choi(other)
         return self._add(other, qargs=qargs)
 
     def __sub__(self, other):
-        qargs = getattr(other, "qargs", None)
+        qargs = getattr(other, 'qargs', None)
         if not isinstance(other, QuantumChannel):
             other = Choi(other)
         return self._add(-other, qargs=qargs)

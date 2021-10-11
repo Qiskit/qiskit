@@ -51,7 +51,7 @@ class PauliExpectation(ExpectationBase):
         self._grouper = AbelianGrouper() if group_paulis else None
 
     def convert(self, operator: OperatorBase) -> OperatorBase:
-        """Accepts an Operator and returns a new Operator with the Pauli measurements replaced by
+        """ Accepts an Operator and returns a new Operator with the Pauli measurements replaced by
         diagonal Pauli post-rotation based measurements so they can be evaluated by sampling and
         averaging.
 
@@ -61,20 +61,15 @@ class PauliExpectation(ExpectationBase):
         Returns:
             The converted operator.
         """
-        if isinstance(operator, ListOp):
-            return operator.traverse(self.convert).reduce()
-
         if isinstance(operator, OperatorStateFn) and operator.is_measurement:
             # Change to Pauli representation if necessary
             if (
                 isinstance(operator.primitive, (ListOp, PrimitiveOp))
                 and not isinstance(operator.primitive, PauliSumOp)
-                and {"Pauli", "SparsePauliOp"} < operator.primitive_strings()
+                and {"Pauli"} != operator.primitive_strings()
             ):
-                logger.warning(
-                    "Measured Observable is not composed of only Paulis, converting to "
-                    "Pauli representation, which can be expensive."
-                )
+                logger.warning('Measured Observable is not composed of only Paulis, converting to '
+                               'Pauli representation, which can be expensive.')
                 # Setting massive=False because this conversion is implicit. User can perform this
                 # action on the Observable with massive=True explicitly if they so choose.
                 pauli_obsv = operator.primitive.to_pauli_op(massive=False)
@@ -89,18 +84,20 @@ class PauliExpectation(ExpectationBase):
             cob = PauliBasisChange(replacement_fn=PauliBasisChange.measurement_replacement_fn)
             return cob.convert(operator).reduce()
 
+        if isinstance(operator, ListOp):
+            return operator.traverse(self.convert).reduce()
+
         return operator
 
     def compute_variance(self, exp_op: OperatorBase) -> Union[list, float, np.ndarray]:
+
         def sum_variance(operator):
             if isinstance(operator, ComposedOp):
                 sfdict = operator.oplist[1]
                 measurement = operator.oplist[0]
                 average = measurement.eval(sfdict)
-                variance = sum(
-                    (v * (measurement.eval(b) - average)) ** 2
-                    for (b, v) in sfdict.primitive.items()
-                )
+                variance = sum([(v * (measurement.eval(b) - average))**2
+                                for (b, v) in sfdict.primitive.items()])
                 return operator.coeff * variance
 
             elif isinstance(operator, ListOp):

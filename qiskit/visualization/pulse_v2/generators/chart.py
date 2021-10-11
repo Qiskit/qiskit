@@ -42,9 +42,10 @@ from typing import Dict, Any, List
 from qiskit.visualization.pulse_v2 import drawings, types, device_info
 
 
-def gen_baseline(
-    data: types.ChartAxis, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
-) -> List[drawings.LineData]:
+def gen_baseline(data: types.ChartAxis,
+                 formatter: Dict[str, Any],
+                 device: device_info.DrawerBackendInfo
+                 ) -> List[drawings.LineData]:
     """Generate the baseline associated with the chart.
 
     Stylesheets:
@@ -58,29 +59,27 @@ def gen_baseline(
     Returns:
         List of `LineData` drawings.
     """
-    style = {
-        "alpha": formatter["alpha.baseline"],
-        "zorder": formatter["layer.baseline"],
-        "linewidth": formatter["line_width.baseline"],
-        "linestyle": formatter["line_style.baseline"],
-        "color": formatter["color.baseline"],
-    }
+    style = {'alpha': formatter['alpha.baseline'],
+             'zorder': formatter['layer.baseline'],
+             'linewidth': formatter['line_width.baseline'],
+             'linestyle': formatter['line_style.baseline'],
+             'color': formatter['color.baseline']}
 
-    baseline = drawings.LineData(
-        data_type=types.LineType.BASELINE,
-        channels=data.channels,
-        xvals=[types.AbstractCoordinate.LEFT, types.AbstractCoordinate.RIGHT],
-        yvals=[0, 0],
-        ignore_scaling=True,
-        styles=style,
-    )
+    baseline = drawings.LineData(data_type=types.LineType.BASELINE,
+                                 channels=data.channels,
+                                 xvals=[types.AbstractCoordinate.LEFT,
+                                        types.AbstractCoordinate.RIGHT],
+                                 yvals=[0, 0],
+                                 ignore_scaling=True,
+                                 styles=style)
 
     return [baseline]
 
 
-def gen_chart_name(
-    data: types.ChartAxis, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
-) -> List[drawings.TextData]:
+def gen_chart_name(data: types.ChartAxis,
+                   formatter: Dict[str, Any],
+                   device: device_info.DrawerBackendInfo
+                   ) -> List[drawings.TextData]:
     """Generate the name of chart.
 
     Stylesheets:
@@ -94,30 +93,27 @@ def gen_chart_name(
     Returns:
         List of `TextData` drawings.
     """
-    style = {
-        "zorder": formatter["layer.axis_label"],
-        "color": formatter["color.axis_label"],
-        "size": formatter["text_size.axis_label"],
-        "va": "center",
-        "ha": "right",
-    }
+    style = {'zorder': formatter['layer.axis_label'],
+             'color': formatter['color.axis_label'],
+             'size': formatter['text_size.axis_label'],
+             'va': 'center',
+             'ha': 'right'}
 
-    text = drawings.TextData(
-        data_type=types.LabelType.CH_NAME,
-        channels=data.channels,
-        xvals=[types.AbstractCoordinate.LEFT],
-        yvals=[0],
-        text=data.name,
-        ignore_scaling=True,
-        styles=style,
-    )
+    text = drawings.TextData(data_type=types.LabelType.CH_NAME,
+                             channels=data.channels,
+                             xvals=[types.AbstractCoordinate.LEFT],
+                             yvals=[0],
+                             text=data.name,
+                             ignore_scaling=True,
+                             styles=style)
 
     return [text]
 
 
-def gen_chart_scale(
-    data: types.ChartAxis, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
-) -> List[drawings.TextData]:
+def gen_chart_scale(data: types.ChartAxis,
+                    formatter: Dict[str, Any],
+                    device: device_info.DrawerBackendInfo
+                    ) -> List[drawings.TextData]:
     """Generate the current scaling value of the chart.
 
     Stylesheets:
@@ -132,32 +128,29 @@ def gen_chart_scale(
     Returns:
         List of `TextData` drawings.
     """
-    style = {
-        "zorder": formatter["layer.axis_label"],
-        "color": formatter["color.axis_label"],
-        "size": formatter["text_size.annotate"],
-        "va": "center",
-        "ha": "right",
-    }
+    style = {'zorder': formatter['layer.axis_label'],
+             'color': formatter['color.axis_label'],
+             'size': formatter['text_size.annotate'],
+             'va': 'center',
+             'ha': 'right'}
 
-    scale_val = f"x{types.DynamicString.SCALE}"
+    scale_val = 'x{param}'.format(param=types.DynamicString.SCALE)
 
-    text = drawings.TextData(
-        data_type=types.LabelType.CH_INFO,
-        channels=data.channels,
-        xvals=[types.AbstractCoordinate.LEFT],
-        yvals=[-formatter["label_offset.chart_info"]],
-        text=scale_val,
-        ignore_scaling=True,
-        styles=style,
-    )
+    text = drawings.TextData(data_type=types.LabelType.CH_INFO,
+                             channels=data.channels,
+                             xvals=[types.AbstractCoordinate.LEFT],
+                             yvals=[-formatter['label_offset.chart_info']],
+                             text=scale_val,
+                             ignore_scaling=True,
+                             styles=style)
 
     return [text]
 
 
-def gen_channel_freqs(
-    data: types.ChartAxis, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
-) -> List[drawings.TextData]:
+def gen_channel_freqs(data: types.ChartAxis,
+                      formatter: Dict[str, Any],
+                      device: device_info.DrawerBackendInfo
+                      ) -> List[drawings.TextData]:
     """Generate the frequency values of associated channels.
 
     Stylesheets:
@@ -172,13 +165,11 @@ def gen_channel_freqs(
     Returns:
         List of `TextData` drawings.
     """
-    style = {
-        "zorder": formatter["layer.axis_label"],
-        "color": formatter["color.axis_label"],
-        "size": formatter["text_size.annotate"],
-        "va": "center",
-        "ha": "right",
-    }
+    style = {'zorder': formatter['layer.axis_label'],
+             'color': formatter['color.axis_label'],
+             'size': formatter['text_size.annotate'],
+             'va': 'center',
+             'ha': 'right'}
 
     if len(data.channels) > 1:
         sources = []
@@ -186,23 +177,21 @@ def gen_channel_freqs(
             freq = device.get_channel_frequency(chan)
             if not freq:
                 continue
-            sources.append(f"{chan.name.upper()}: {freq / 1e9:.2f} GHz")
-        freq_text = ", ".join(sources)
+            sources.append('{chan}: {val:.2f} GHz'.format(chan=chan.name.upper(), val=freq/1e9))
+        freq_text = ', '.join(sources)
     else:
         freq = device.get_channel_frequency(data.channels[0])
         if freq:
-            freq_text = f"{freq / 1e9:.2f} GHz"
+            freq_text = '{val:.2f} GHz'.format(val=freq/1e9)
         else:
-            freq_text = ""
+            freq_text = ''
 
-    text = drawings.TextData(
-        data_type=types.LabelType.CH_INFO,
-        channels=data.channels,
-        xvals=[types.AbstractCoordinate.LEFT],
-        yvals=[-formatter["label_offset.chart_info"]],
-        text=freq_text or "no freq.",
-        ignore_scaling=True,
-        styles=style,
-    )
+    text = drawings.TextData(data_type=types.LabelType.CH_INFO,
+                             channels=data.channels,
+                             xvals=[types.AbstractCoordinate.LEFT],
+                             yvals=[-formatter['label_offset.chart_info']],
+                             text=freq_text or 'no freq.',
+                             ignore_scaling=True,
+                             styles=style)
 
     return [text]

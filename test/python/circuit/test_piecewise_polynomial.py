@@ -20,9 +20,8 @@ from ddt import ddt, data, unpack
 from qiskit.test.base import QiskitTestCase
 from qiskit import BasicAer, execute
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library.arithmetic.piecewise_polynomial_pauli_rotations import (
-    PiecewisePolynomialPauliRotations,
-)
+from qiskit.circuit.library.arithmetic.piecewise_polynomial_pauli_rotations import \
+    PiecewisePolynomialPauliRotations
 
 
 @ddt
@@ -37,7 +36,7 @@ class TestPiecewisePolynomialRotations(QiskitTestCase):
         circuit.h(list(range(num_state_qubits)))
         circuit.append(function_circuit.to_instruction(), list(range(circuit.num_qubits)))
 
-        backend = BasicAer.get_backend("statevector_simulator")
+        backend = BasicAer.get_backend('statevector_simulator')
         statevector = execute(circuit, backend).result().get_statevector()
 
         probabilities = defaultdict(float)
@@ -49,7 +48,7 @@ class TestPiecewisePolynomialRotations(QiskitTestCase):
         unrolled_expectations = []
         for i, probability in probabilities.items():
             x, last_qubit = int(i[1:], 2), i[0]
-            if last_qubit == "0":
+            if last_qubit == '0':
                 expected_amplitude = np.cos(reference(x)) / np.sqrt(2 ** num_state_qubits)
             else:
                 expected_amplitude = np.sin(reference(x)) / np.sqrt(2 ** num_state_qubits)
@@ -59,19 +58,18 @@ class TestPiecewisePolynomialRotations(QiskitTestCase):
 
         np.testing.assert_almost_equal(unrolled_probabilities, unrolled_expectations)
 
-    @data(
-        (1, [0], [[1]]),
-        (2, [0, 2], [[2], [-0.5, 1]]),
-        (3, [0, 2, 5], [[1, 0, -1], [2, 1], [1, 1, 1]]),
-        (4, [2, 5, 7, 16], [[1, -1], [1, 2, 3], [1, 2, 3, 4]]),
-        (3, [0, 1], [[1, 0], [1, -2]]),
-    )
+    @data((1, [0], [[1]]),
+          (2, [0, 2], [[2], [-0.5, 1]]),
+          (3, [0, 2, 5], [[1, 0, -1], [2, 1], [1, 1, 1]]),
+          (4, [2, 5, 7, 16], [[1, -1], [1, 2, 3], [1, 2, 3, 4]]),
+          (3, [0, 1], [[1, 0], [1, -2]]),
+          )
     @unpack
     def test_piecewise_polynomial_function(self, num_state_qubits, breakpoints, coeffs):
         """Test the piecewise linear rotations."""
 
         def pw_poly(x):
-            for i, point in enumerate(reversed(breakpoints[: len(coeffs)])):
+            for i, point in enumerate(reversed(breakpoints[:len(coeffs)])):
                 if x >= point:
                     # Rescale the coefficients to take into account the 2 * theta argument from the
                     # rotation gates
@@ -79,9 +77,8 @@ class TestPiecewisePolynomialRotations(QiskitTestCase):
                     return np.poly1d(rescaled_c)(x)
             return 0
 
-        pw_polynomial_rotations = PiecewisePolynomialPauliRotations(
-            num_state_qubits, breakpoints, coeffs
-        )
+        pw_polynomial_rotations = PiecewisePolynomialPauliRotations(num_state_qubits, breakpoints,
+                                                                    coeffs)
 
         self.assertFunctionIsCorrect(pw_polynomial_rotations, pw_poly)
 
@@ -89,7 +86,7 @@ class TestPiecewisePolynomialRotations(QiskitTestCase):
         """Test the mutability of the linear rotations circuit."""
 
         def pw_poly(x):
-            for i, point in enumerate(reversed(breakpoints[: len(coeffs)])):
+            for i, point in enumerate(reversed(breakpoints[:len(coeffs)])):
                 if x >= point:
                     # Rescale the coefficients to take into account the 2 * theta argument from the
                     # rotation gates
@@ -99,22 +96,22 @@ class TestPiecewisePolynomialRotations(QiskitTestCase):
 
         pw_polynomial_rotations = PiecewisePolynomialPauliRotations()
 
-        with self.subTest(msg="missing number of state qubits"):
+        with self.subTest(msg='missing number of state qubits'):
             with self.assertRaises(AttributeError):  # no state qubits set
                 print(pw_polynomial_rotations.draw())
 
-        with self.subTest(msg="default setup, just setting number of state qubits"):
+        with self.subTest(msg='default setup, just setting number of state qubits'):
             pw_polynomial_rotations.num_state_qubits = 2
             self.assertFunctionIsCorrect(pw_polynomial_rotations, lambda x: 1 / 2)
 
-        with self.subTest(msg="setting non-default values"):
+        with self.subTest(msg='setting non-default values'):
             breakpoints = [0, 2]
             coeffs = [[0, -2 * 1.2], [-2 * 1, 2 * 1, 2 * 3]]
             pw_polynomial_rotations.breakpoints = breakpoints
             pw_polynomial_rotations.coeffs = coeffs
             self.assertFunctionIsCorrect(pw_polynomial_rotations, pw_poly)
 
-        with self.subTest(msg="changing all values"):
+        with self.subTest(msg='changing all values'):
             pw_polynomial_rotations.num_state_qubits = 4
             breakpoints = [1, 3, 6]
             coeffs = [[0, -2 * 1.2], [-2 * 1, 2 * 1, 2 * 3], [-2 * 2]]
@@ -123,5 +120,5 @@ class TestPiecewisePolynomialRotations(QiskitTestCase):
             self.assertFunctionIsCorrect(pw_polynomial_rotations, pw_poly)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

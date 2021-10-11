@@ -15,14 +15,11 @@
 import ast
 from typing import Callable, Optional
 
-from tweedledum.classical import simulate
-from tweedledum.synthesis import pkrm_synth
-
 from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.exceptions import QiskitError
+from qiskit.exceptions import MissingOptionalLibraryError, QiskitError
 from .classical_element import ClassicalElement
+from .utils import HAS_TWEEDLEDUM
 from .classical_function_visitor import ClassicalFunctionVisitor
-from .utils import tweedledum2qiskit
 
 
 class ClassicalFunction(ClassicalElement):
@@ -38,20 +35,24 @@ class ClassicalFunction(ClassicalElement):
             name (str): Optional. Default: "*classicalfunction*". ClassicalFunction name.
 
         Raises:
+            MissingOptionalLibraryError: If tweedledum is not installed.
             QiskitError: If source is not a string.
         """
         if not isinstance(source, str):
-            raise QiskitError("ClassicalFunction needs a source code as a string.")
+            raise QiskitError('ClassicalFunction needs a source code as a string.')
+        if not HAS_TWEEDLEDUM:
+            raise MissingOptionalLibraryError(
+                libname='tweedledum',
+                name='classical function compiler',
+                pip_install='pip install tweedledum')
         self._ast = ast.parse(source)
         self._network = None
         self._scopes = None
         self._args = None
         self._truth_table = None
-        super().__init__(
-            name or "*classicalfunction*",
-            num_qubits=sum(qreg.size for qreg in self.qregs),
-            params=[],
-        )
+        super().__init__(name or '*classicalfunction*',
+                         num_qubits=sum([qreg.size for qreg in self.qregs]),
+                         params=[])
 
     def compile(self):
         """Parses and creates the logical circuit"""
@@ -106,7 +107,8 @@ class ClassicalFunction(ClassicalElement):
 
         Returns:
             bool: result of the evaluation.
-        """
+            """
+        from tweedledum.classical import simulate  # pylint: disable=no-name-in-module
         return simulate(self._network, bitstring)
 
     def simulate_all(self):
@@ -118,23 +120,22 @@ class ClassicalFunction(ClassicalElement):
         """
         result = list()
         for position in range(2 ** self._network.num_pis()):
-            sim_result = "".join([str(int(tt[position])) for tt in self.truth_table])
+            sim_result = ''.join([str(int(tt[position])) for tt in self.truth_table])
             result.append(sim_result)
 
-        return "".join(reversed(result))
+        return ''.join(reversed(result))
 
     @property
     def truth_table(self):
         """Returns (and computes) the truth table"""
         if self._truth_table is None:
+            from tweedledum.classical import simulate  # pylint: disable=no-name-in-module
             self._truth_table = simulate(self._network)
         return self._truth_table
 
-    def synth(
-        self,
-        registerless: bool = True,
-        synthesizer: Optional[Callable[[ClassicalElement], QuantumCircuit]] = None,
-    ) -> QuantumCircuit:
+    def synth(self, registerless: bool = True,
+              synthesizer: Optional[Callable[[ClassicalElement], QuantumCircuit]] = None)\
+            -> QuantumCircuit:
         """Synthesis the logic network into a :class:`~qiskit.circuit.QuantumCircuit`.
 
         Args:
@@ -153,7 +154,11 @@ class ClassicalFunction(ClassicalElement):
         if synthesizer:
             return synthesizer(self)
 
-        return tweedledum2qiskit(pkrm_synth(self.truth_table[0]), name=self.name, qregs=qregs)
+        from .utils import tweedledum2qiskit
+        from tweedledum.synthesis import pkrm_synth  # pylint: disable=no-name-in-module
+
+        return tweedledum2qiskit(pkrm_synth(self.truth_table[0]),
+                                 name=self.name, qregs=qregs)
 
     def _define(self):
         """The definition of the classical function is its synthesis"""
@@ -162,8 +167,8 @@ class ClassicalFunction(ClassicalElement):
     @property
     def qregs(self):
         """The list of qregs used by the classicalfunction"""
-        qregs = [QuantumRegister(1, name=arg) for arg in self.args if self.types[0][arg] == "Int1"]
+        qregs = [QuantumRegister(1, name=arg) for arg in self.args if self.types[0][arg] == 'Int1']
         qregs.reverse()
-        if self.types[0]["return"] == "Int1":
-            qregs.append(QuantumRegister(1, name="return"))
+        if self.types[0]['return'] == 'Int1':
+            qregs.append(QuantumRegister(1, name='return'))
         return qregs

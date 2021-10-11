@@ -44,21 +44,22 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+# pylint: disable=unsubscriptable-object
+
 """Bloch sphere"""
 
-__all__ = ["Bloch"]
+__all__ = ['Bloch']
 
 import os
 import numpy as np
 from matplotlib import get_backend
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch
-from mpl_toolkits.mplot3d import Axes3D, proj3d
+from mpl_toolkits.mplot3d import (Axes3D, proj3d)
 
 
 class Arrow3D(FancyArrowPatch):
     """Makes a fancy arrow"""
-
     def __init__(self, xs, ys, zs, *args, **kwargs):
         FancyArrowPatch.__init__(self, (0, 0), (0, 0), *args, **kwargs)
         self._verts3d = xs, ys, zs
@@ -70,7 +71,7 @@ class Arrow3D(FancyArrowPatch):
         FancyArrowPatch.draw(self, renderer)
 
 
-class Bloch:
+class Bloch():
     """Class for plotting data on the Bloch sphere.  Valid data can be
     either points, vectors, or qobj objects.
 
@@ -128,7 +129,8 @@ class Bloch:
             Positions of +z and -z labels respectively.
     """
 
-    def __init__(self, fig=None, axes=None, view=None, figsize=None, background=False):
+    def __init__(self, fig=None, axes=None, view=None, figsize=None,
+                 background=False):
 
         # Figure and axes
         self._ext_fig = False
@@ -147,51 +149,52 @@ class Bloch:
         # Azimuthal and Elevation viewing angles, default = [-60,30].
         self.view = view if view else [-60, 30]
         # Color of Bloch sphere, default = #FFDDDD
-        self.sphere_color = "#FFDDDD"
+        self.sphere_color = '#FFDDDD'
         # Transparency of Bloch sphere, default = 0.2
         self.sphere_alpha = 0.2
         # Color of wireframe, default = 'gray'
-        self.frame_color = "gray"
+        self.frame_color = 'gray'
         # Width of wireframe, default = 1
         self.frame_width = 1
         # Transparency of wireframe, default = 0.2
         self.frame_alpha = 0.2
         # Labels for x-axis (in LaTex), default = ['$x$', '']
-        self.xlabel = ["$x$", ""]
+        self.xlabel = ['$x$', '']
         # Position of x-axis labels, default = [1.2, -1.2]
         self.xlpos = [1.2, -1.2]
         # Labels for y-axis (in LaTex), default = ['$y$', '']
-        self.ylabel = ["$y$", ""]
+        self.ylabel = ['$y$', '']
         # Position of y-axis labels, default = [1.1, -1.1]
         self.ylpos = [1.2, -1.2]
         # Labels for z-axis (in LaTex),
         # default = [r'$\left|1\right>$', r'$\left|0\right>$']
-        self.zlabel = [r"$\left|0\right>$", r"$\left|1\right>$"]
+        self.zlabel = [r'$\left|0\right>$', r'$\left|1\right>$']
         # Position of z-axis labels, default = [1.2, -1.2]
         self.zlpos = [1.2, -1.2]
         # ---font options---
         # Color of fonts, default = 'black'
-        self.font_color = plt.rcParams["axes.labelcolor"]
+        self.font_color = plt.rcParams['axes.labelcolor']
         # Size of fonts, default = 20
         self.font_size = 20
 
         # ---vector options---
         # List of colors for Bloch vectors, default = ['b','g','r','y']
-        self.vector_color = ["#dc267f", "#648fff", "#fe6100", "#785ef0", "#ffb000"]
+        self.vector_color = ['#dc267f', '#648fff', '#fe6100', '#785ef0',
+                             '#ffb000']
         #: Width of Bloch vectors, default = 5
         self.vector_width = 5
         #: Style of Bloch vectors, default = '-|>' (or 'simple')
-        self.vector_style = "-|>"
+        self.vector_style = '-|>'
         #: Sets the width of the vectors arrowhead
         self.vector_mutation = 20
 
         # ---point options---
         # List of colors for Bloch point markers, default = ['b','g','r','y']
-        self.point_color = ["b", "r", "g", "#CC6600"]
+        self.point_color = ['b', 'r', 'g', '#CC6600']
         # Size of point markers, default = 25
         self.point_size = [25, 32, 35, 45]
         # Shape of point markers, default = ['o','^','d','s']
-        self.point_marker = ["o", "s", "d", "^"]
+        self.point_marker = ['o', 's', 'd', '^']
 
         # ---data lists---
         # Data for point markers
@@ -230,37 +233,34 @@ class Bloch:
         # \left.| is on purpose, so that every ket has the same size
 
         if convention == "original":
-            self.xlabel = ["$x$", ""]
-            self.ylabel = ["$y$", ""]
-            self.zlabel = ["$\\left|0\\right>$", "$\\left|1\\right>$"]
+            self.xlabel = ['$x$', '']
+            self.ylabel = ['$y$', '']
+            self.zlabel = ['$\\left|0\\right>$', '$\\left|1\\right>$']
         elif convention == "xyz":
-            self.xlabel = ["$x$", ""]
-            self.ylabel = ["$y$", ""]
-            self.zlabel = ["$z$", ""]
+            self.xlabel = ['$x$', '']
+            self.ylabel = ['$y$', '']
+            self.zlabel = ['$z$', '']
         elif convention == "sx sy sz":
-            self.xlabel = ["$s_x$", ""]
-            self.ylabel = ["$s_y$", ""]
-            self.zlabel = ["$s_z$", ""]
+            self.xlabel = ['$s_x$', '']
+            self.ylabel = ['$s_y$', '']
+            self.zlabel = ['$s_z$', '']
         elif convention == "01":
-            self.xlabel = ["", ""]
-            self.ylabel = ["", ""]
-            self.zlabel = ["$\\left|0\\right>$", "$\\left|1\\right>$"]
+            self.xlabel = ['', '']
+            self.ylabel = ['', '']
+            self.zlabel = ['$\\left|0\\right>$', '$\\left|1\\right>$']
         elif convention == "polarization jones":
-            self.xlabel = [
-                ketex % "\\nearrow\\hspace{-1.46}\\swarrow",
-                ketex % "\\nwarrow\\hspace{-1.46}\\searrow",
-            ]
-            self.ylabel = [ketex % "\\circlearrowleft", ketex % "\\circlearrowright"]
+            self.xlabel = [ketex % "\\nearrow\\hspace{-1.46}\\swarrow",
+                           ketex % "\\nwarrow\\hspace{-1.46}\\searrow"]
+            self.ylabel = [ketex % "\\circlearrowleft", ketex %
+                           "\\circlearrowright"]
             self.zlabel = [ketex % "\\leftrightarrow", ketex % "\\updownarrow"]
         elif convention == "polarization jones letters":
             self.xlabel = [ketex % "D", ketex % "A"]
             self.ylabel = [ketex % "L", ketex % "R"]
             self.zlabel = [ketex % "H", ketex % "V"]
         elif convention == "polarization stokes":
-            self.ylabel = [
-                "$\\nearrow\\hspace{-1.46}\\swarrow$",
-                "$\\nwarrow\\hspace{-1.46}\\searrow$",
-            ]
+            self.ylabel = ["$\\nearrow\\hspace{-1.46}\\swarrow$",
+                           "$\\nwarrow\\hspace{-1.46}\\searrow$"]
             self.zlabel = ["$\\circlearrowleft$", "$\\circlearrowright$"]
             self.xlabel = ["$\\leftrightarrow$", "$\\updownarrow$"]
         else:
@@ -300,13 +300,14 @@ class Bloch:
         return string
 
     def clear(self):
-        """Resets Bloch sphere data sets to empty."""
+        """Resets Bloch sphere data sets to empty.
+        """
         self.points = []
         self.vectors = []
         self.point_style = []
         self.annotations = []
 
-    def add_points(self, points, meth="s"):
+    def add_points(self, points, meth='s'):
         """Add a list of data points to Bloch sphere.
 
         Args:
@@ -319,20 +320,21 @@ class Bloch:
         if not isinstance(points[0], (list, np.ndarray)):
             points = [[points[0]], [points[1]], [points[2]]]
         points = np.array(points)
-        if meth == "s":
+        if meth == 's':
             if len(points[0]) == 1:
-                pnts = np.array([[points[0][0]], [points[1][0]], [points[2][0]]])
+                pnts = np.array([[points[0][0]],
+                                 [points[1][0]], [points[2][0]]])
                 pnts = np.append(pnts, points, axis=1)
             else:
                 pnts = points
             self.points.append(pnts)
-            self.point_style.append("s")
-        elif meth == "l":
+            self.point_style.append('s')
+        elif meth == 'l':
             self.points.append(points)
-            self.point_style.append("l")
+            self.point_style.append('l')
         else:
             self.points.append(points)
-            self.point_style.append("m")
+            self.point_style.append('m')
 
     def add_vectors(self, vectors):
         """Add a list of vectors to Bloch sphere.
@@ -367,11 +369,15 @@ class Bloch:
         Raises:
             Exception: If input not array_like or tuple.
         """
-        if isinstance(state_or_vector, (list, np.ndarray, tuple)) and len(state_or_vector) == 3:
+        if isinstance(state_or_vector, (list, np.ndarray, tuple)) \
+                and len(state_or_vector) == 3:
             vec = state_or_vector
         else:
-            raise Exception("Position needs to be specified by a qubit " + "state or a 3D vector.")
-        self.annotations.append({"position": vec, "text": text, "opts": kwargs})
+            raise Exception("Position needs to be specified by a qubit " +
+                            "state or a 3D vector.")
+        self.annotations.append({'position': vec,
+                                 'text': text,
+                                 'opts': kwargs})
 
     def make_sphere(self):
         """
@@ -379,7 +385,7 @@ class Bloch:
         """
         self.render()
 
-    def render(self, title=""):
+    def render(self, title=''):
         """
         Render the Bloch sphere and its data sets in on given figure and axes.
         """
@@ -409,7 +415,7 @@ class Bloch:
 
         # Force aspect ratio
         # MPL 3.2 or previous do not have set_box_aspect
-        if hasattr(self.axes, "set_box_aspect"):
+        if hasattr(self.axes, 'set_box_aspect'):
             self.axes.set_box_aspect((1, 1, 1))
 
         self.axes.grid(False)
@@ -428,43 +434,18 @@ class Bloch:
         x_dir = np.outer(np.cos(u_angle), np.sin(v_angle))
         y_dir = np.outer(np.sin(u_angle), np.sin(v_angle))
         z_dir = np.outer(np.ones(u_angle.shape[0]), np.cos(v_angle))
-        self.axes.plot_surface(
-            x_dir,
-            y_dir,
-            z_dir,
-            rstride=2,
-            cstride=2,
-            color=self.sphere_color,
-            linewidth=0,
-            alpha=self.sphere_alpha,
-        )
+        self.axes.plot_surface(x_dir, y_dir, z_dir, rstride=2, cstride=2,
+                               color=self.sphere_color, linewidth=0,
+                               alpha=self.sphere_alpha)
         # wireframe
-        self.axes.plot_wireframe(
-            x_dir,
-            y_dir,
-            z_dir,
-            rstride=5,
-            cstride=5,
-            color=self.frame_color,
-            alpha=self.frame_alpha,
-        )
+        self.axes.plot_wireframe(x_dir, y_dir, z_dir, rstride=5, cstride=5,
+                                 color=self.frame_color,
+                                 alpha=self.frame_alpha)
         # equator
-        self.axes.plot(
-            1.0 * np.cos(u_angle),
-            1.0 * np.sin(u_angle),
-            zs=0,
-            zdir="z",
-            lw=self.frame_width,
-            color=self.frame_color,
-        )
-        self.axes.plot(
-            1.0 * np.cos(u_angle),
-            1.0 * np.sin(u_angle),
-            zs=0,
-            zdir="x",
-            lw=self.frame_width,
-            color=self.frame_color,
-        )
+        self.axes.plot(1.0 * np.cos(u_angle), 1.0 * np.sin(u_angle), zs=0, zdir='z',
+                       lw=self.frame_width, color=self.frame_color)
+        self.axes.plot(1.0 * np.cos(u_angle), 1.0 * np.sin(u_angle), zs=0, zdir='x',
+                       lw=self.frame_width, color=self.frame_color)
 
     def plot_front(self):
         """front half of sphere"""
@@ -473,65 +454,37 @@ class Bloch:
         x_dir = np.outer(np.cos(u_angle), np.sin(v_angle))
         y_dir = np.outer(np.sin(u_angle), np.sin(v_angle))
         z_dir = np.outer(np.ones(u_angle.shape[0]), np.cos(v_angle))
-        self.axes.plot_surface(
-            x_dir,
-            y_dir,
-            z_dir,
-            rstride=2,
-            cstride=2,
-            color=self.sphere_color,
-            linewidth=0,
-            alpha=self.sphere_alpha,
-        )
+        self.axes.plot_surface(x_dir, y_dir, z_dir, rstride=2, cstride=2,
+                               color=self.sphere_color, linewidth=0,
+                               alpha=self.sphere_alpha)
         # wireframe
-        self.axes.plot_wireframe(
-            x_dir,
-            y_dir,
-            z_dir,
-            rstride=5,
-            cstride=5,
-            color=self.frame_color,
-            alpha=self.frame_alpha,
-        )
+        self.axes.plot_wireframe(x_dir, y_dir, z_dir, rstride=5, cstride=5,
+                                 color=self.frame_color,
+                                 alpha=self.frame_alpha)
         # equator
-        self.axes.plot(
-            1.0 * np.cos(u_angle),
-            1.0 * np.sin(u_angle),
-            zs=0,
-            zdir="z",
-            lw=self.frame_width,
-            color=self.frame_color,
-        )
-        self.axes.plot(
-            1.0 * np.cos(u_angle),
-            1.0 * np.sin(u_angle),
-            zs=0,
-            zdir="x",
-            lw=self.frame_width,
-            color=self.frame_color,
-        )
+        self.axes.plot(1.0 * np.cos(u_angle), 1.0 * np.sin(u_angle),
+                       zs=0, zdir='z', lw=self.frame_width,
+                       color=self.frame_color)
+        self.axes.plot(1.0 * np.cos(u_angle), 1.0 * np.sin(u_angle),
+                       zs=0, zdir='x', lw=self.frame_width,
+                       color=self.frame_color)
 
     def plot_axes(self):
         """axes"""
         span = np.linspace(-1.0, 1.0, 2)
-        self.axes.plot(
-            span, 0 * span, zs=0, zdir="z", label="X", lw=self.frame_width, color=self.frame_color
-        )
-        self.axes.plot(
-            0 * span, span, zs=0, zdir="z", label="Y", lw=self.frame_width, color=self.frame_color
-        )
-        self.axes.plot(
-            0 * span, span, zs=0, zdir="y", label="Z", lw=self.frame_width, color=self.frame_color
-        )
+        self.axes.plot(span, 0 * span, zs=0, zdir='z', label='X',
+                       lw=self.frame_width, color=self.frame_color)
+        self.axes.plot(0 * span, span, zs=0, zdir='z', label='Y',
+                       lw=self.frame_width, color=self.frame_color)
+        self.axes.plot(0 * span, span, zs=0, zdir='y', label='Z',
+                       lw=self.frame_width, color=self.frame_color)
 
     def plot_axes_labels(self):
         """axes labels"""
-        opts = {
-            "fontsize": self.font_size,
-            "color": self.font_color,
-            "horizontalalignment": "center",
-            "verticalalignment": "center",
-        }
+        opts = {'fontsize': self.font_size,
+                'color': self.font_color,
+                'horizontalalignment': 'center',
+                'verticalalignment': 'center'}
         self.axes.text(0, -self.xlpos[0], 0, self.xlabel[0], **opts)
         self.axes.text(0, -self.xlpos[1], 0, self.xlabel[1], **opts)
 
@@ -541,11 +494,14 @@ class Bloch:
         self.axes.text(0, 0, self.zlpos[0], self.zlabel[0], **opts)
         self.axes.text(0, 0, self.zlpos[1], self.zlabel[1], **opts)
 
-        for item in self.axes.w_xaxis.get_ticklines() + self.axes.w_xaxis.get_ticklabels():
+        for item in (self.axes.w_xaxis.get_ticklines() +
+                     self.axes.w_xaxis.get_ticklabels()):
             item.set_visible(False)
-        for item in self.axes.w_yaxis.get_ticklines() + self.axes.w_yaxis.get_ticklabels():
+        for item in (self.axes.w_yaxis.get_ticklines() +
+                     self.axes.w_yaxis.get_ticklabels()):
             item.set_visible(False)
-        for item in self.axes.w_zaxis.get_ticklines() + self.axes.w_zaxis.get_ticklabels():
+        for item in (self.axes.w_zaxis.get_ticklines() +
+                     self.axes.w_zaxis.get_ticklabels()):
             item.set_visible(False)
 
     def plot_vectors(self):
@@ -559,22 +515,18 @@ class Bloch:
 
             color = self.vector_color[np.mod(k, len(self.vector_color))]
 
-            if self.vector_style == "":
+            if self.vector_style == '':
                 # simple line style
-                self.axes.plot(
-                    xs3d, ys3d, zs3d, zs=0, zdir="z", label="Z", lw=self.vector_width, color=color
-                )
+                self.axes.plot(xs3d, ys3d, zs3d,
+                               zs=0, zdir='z', label='Z',
+                               lw=self.vector_width, color=color)
             else:
                 # decorated style, with arrow heads
-                arr = Arrow3D(
-                    xs3d,
-                    ys3d,
-                    zs3d,
-                    mutation_scale=self.vector_mutation,
-                    lw=self.vector_width,
-                    arrowstyle=self.vector_style,
-                    color=color,
-                )
+                arr = Arrow3D(xs3d, ys3d, zs3d,
+                              mutation_scale=self.vector_mutation,
+                              lw=self.vector_width,
+                              arrowstyle=self.vector_style,
+                              color=color)
 
                 self.axes.add_artist(arr)
 
@@ -583,14 +535,9 @@ class Bloch:
         # -X and Y data are switched for plotting purposes
         for k in range(len(self.points)):
             num = len(self.points[k][0])
-            dist = [
-                np.sqrt(
-                    self.points[k][0][j] ** 2
-                    + self.points[k][1][j] ** 2
-                    + self.points[k][2][j] ** 2
-                )
-                for j in range(num)
-            ]
+            dist = [np.sqrt(self.points[k][0][j] ** 2 +
+                            self.points[k][1][j] ** 2 +
+                            self.points[k][2][j] ** 2) for j in range(num)]
             if any(abs(dist - dist[0]) / dist[0] > 1e-12):
                 # combine arrays so that they can be sorted together
                 zipped = list(zip(dist, range(num)))
@@ -599,66 +546,57 @@ class Bloch:
                 indperm = np.array(indperm)
             else:
                 indperm = np.arange(num)
-            if self.point_style[k] == "s":
+            if self.point_style[k] == 's':
                 self.axes.scatter(
                     np.real(self.points[k][1][indperm]),
-                    -np.real(self.points[k][0][indperm]),
+                    - np.real(self.points[k][0][indperm]),
                     np.real(self.points[k][2][indperm]),
                     s=self.point_size[np.mod(k, len(self.point_size))],
                     alpha=1,
                     edgecolor=None,
-                    zdir="z",
+                    zdir='z',
                     color=self.point_color[np.mod(k, len(self.point_color))],
-                    marker=self.point_marker[np.mod(k, len(self.point_marker))],
-                )
+                    marker=self.point_marker[np.mod(k,
+                                                    len(self.point_marker))])
 
-            elif self.point_style[k] == "m":
-                pnt_colors = np.array(
-                    self.point_color * int(np.ceil(num / float(len(self.point_color))))
-                )
+            elif self.point_style[k] == 'm':
+                pnt_colors = np.array(self.point_color *
+                                      int(np.ceil(num /
+                                                  float(len(self.point_color)))))
 
                 pnt_colors = pnt_colors[0:num]
                 pnt_colors = list(pnt_colors[indperm])
                 marker = self.point_marker[np.mod(k, len(self.point_marker))]
                 pnt_size = self.point_size[np.mod(k, len(self.point_size))]
-                self.axes.scatter(
-                    np.real(self.points[k][1][indperm]),
-                    -np.real(self.points[k][0][indperm]),
-                    np.real(self.points[k][2][indperm]),
-                    s=pnt_size,
-                    alpha=1,
-                    edgecolor=None,
-                    zdir="z",
-                    color=pnt_colors,
-                    marker=marker,
-                )
+                self.axes.scatter(np.real(self.points[k][1][indperm]),
+                                  -np.real(self.points[k][0][indperm]),
+                                  np.real(self.points[k][2][indperm]),
+                                  s=pnt_size, alpha=1, edgecolor=None,
+                                  zdir='z', color=pnt_colors,
+                                  marker=marker)
 
-            elif self.point_style[k] == "l":
+            elif self.point_style[k] == 'l':
                 color = self.point_color[np.mod(k, len(self.point_color))]
-                self.axes.plot(
-                    np.real(self.points[k][1]),
-                    -np.real(self.points[k][0]),
-                    np.real(self.points[k][2]),
-                    alpha=0.75,
-                    zdir="z",
-                    color=color,
-                )
+                self.axes.plot(np.real(self.points[k][1]),
+                               -np.real(self.points[k][0]),
+                               np.real(self.points[k][2]),
+                               alpha=0.75, zdir='z',
+                               color=color)
 
     def plot_annotations(self):
         """Plot annotations"""
         # -X and Y data are switched for plotting purposes
         for annotation in self.annotations:
-            vec = annotation["position"]
-            opts = {
-                "fontsize": self.font_size,
-                "color": self.font_color,
-                "horizontalalignment": "center",
-                "verticalalignment": "center",
-            }
-            opts.update(annotation["opts"])
-            self.axes.text(vec[1], -vec[0], vec[2], annotation["text"], **opts)
+            vec = annotation['position']
+            opts = {'fontsize': self.font_size,
+                    'color': self.font_color,
+                    'horizontalalignment': 'center',
+                    'verticalalignment': 'center'}
+            opts.update(annotation['opts'])
+            self.axes.text(vec[1], -vec[0], vec[2],
+                           annotation['text'], **opts)
 
-    def show(self, title=""):
+    def show(self, title=''):
         """
         Display Bloch sphere and corresponding data sets.
         """
@@ -666,7 +604,7 @@ class Bloch:
         if self.fig:
             plt.show(self.fig)
 
-    def save(self, name=None, output="png", dirc=None):
+    def save(self, name=None, output='png', dirc=None):
         """Saves Bloch sphere to file of type ``format`` in directory ``dirc``.
 
         Args:
@@ -686,16 +624,17 @@ class Bloch:
                 os.makedirs(os.getcwd() + "/" + str(dirc))
         if name is None:
             if dirc:
-                self.fig.savefig(
-                    os.getcwd() + "/" + str(dirc) + "/bloch_" + str(self.savenum) + "." + output
-                )
+                self.fig.savefig(os.getcwd() + "/" + str(dirc) + '/bloch_' +
+                                 str(self.savenum) + '.' + output)
             else:
-                self.fig.savefig(os.getcwd() + "/bloch_" + str(self.savenum) + "." + output)
+                self.fig.savefig(os.getcwd() + '/bloch_' + str(self.savenum) +
+                                 '.' + output)
         else:
             self.fig.savefig(name)
         self.savenum += 1
         if self.fig:
-            if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
+            if get_backend() in ['module://ipykernel.pylab.backend_inline',
+                                 'nbAgg']:
                 plt.close(self.fig)
 
 

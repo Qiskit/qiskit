@@ -2,7 +2,7 @@
     "$schema": "http://json-schema.org/draft-04/schema#",
     "id": "http://www.qiskit.org/schemas/qobj_schema.json",
     "description": "OpenQuantum quantum object data structure for running experiments",
-    "version": "1.5.1",
+    "version": "1.4.0",
     "definitions": {
         "bfunc": {
             "properties": {
@@ -273,7 +273,6 @@
                                 "parametric_pulse"
                             ]
                         },
-                        "label": {"type": "string"},
                         "pulse_shape": {"type": "string"},
                         "parameters": {"type": "object"}
                     },
@@ -1134,24 +1133,6 @@
                                     }
                                 }
                             }
-                        },
-                        "qubit_lo_freq": {
-                            "description": "Qubit drive LO frequencies",
-                            "items": {
-                                "minimum": 0,
-                                "type": "number"
-                            },
-                            "minItems": 1,
-                            "type": "array"
-                        },
-                        "meas_lo_freq": {
-                            "description": "Measurement LO frequencies",
-                            "items": {
-                                "minimum": 0,
-                                "type": "number"
-                            },
-                            "minItems": 1,
-                            "type": "array"
                         }
                     },
                     "title": "Qobj-level configuration",
@@ -1214,6 +1195,15 @@
                                 2
                             ]
                         },
+                        "meas_lo_freq": {
+                            "description": "Measurement LO frequencies",
+                            "items": {
+                                "minimum": 0,
+                                "type": "number"
+                            },
+                            "minItems": 1,
+                            "type": "array"
+                        },
                         "meas_return": {
                             "description": "Return each shot of data or average over the shots",
                             "enum": [
@@ -1229,6 +1219,15 @@
                         },
                         "pulse_library": {
                             "$ref": "#/definitions/pulse_library"
+                        },
+                        "qubit_lo_freq": {
+                            "description": "Qubit drive LO frequencies",
+                            "items": {
+                                "minimum": 0,
+                                "type": "number"
+                            },
+                            "minItems": 1,
+                            "type": "array"
                         },
                         "rep_time": {
                             "minimum": 1,

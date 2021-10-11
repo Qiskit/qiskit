@@ -28,12 +28,10 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
     The Numpy Minimum Eigensolver algorithm.
     """
 
-    def __init__(
-        self,
-        filter_criterion: Callable[
-            [Union[List, np.ndarray], float, Optional[List[float]]], bool
-        ] = None,
-    ) -> None:
+    def __init__(self,
+                 filter_criterion: Callable[[Union[List, np.ndarray], float, Optional[List[float]]],
+                                            bool] = None
+                 ) -> None:
         """
         Args:
             filter_criterion: callable that allows to filter eigenvalues/eigenstates. The minimum
@@ -47,20 +45,15 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
         self._ret = MinimumEigensolverResult()
 
     @property
-    def filter_criterion(
-        self,
-    ) -> Optional[Callable[[Union[List, np.ndarray], float, Optional[List[float]]], bool]]:
-        """returns the filter criterion if set"""
+    def filter_criterion(self) -> Optional[
+            Callable[[Union[List, np.ndarray], float, Optional[List[float]]], bool]]:
+        """ returns the filter criterion if set """
         return self._ces.filter_criterion
 
     @filter_criterion.setter
-    def filter_criterion(
-        self,
-        filter_criterion: Optional[
-            Callable[[Union[List, np.ndarray], float, Optional[List[float]]], bool]
-        ],
-    ) -> None:
-        """set the filter criterion"""
+    def filter_criterion(self, filter_criterion: Optional[
+            Callable[[Union[List, np.ndarray], float, Optional[List[float]]], bool]]) -> None:
+        """ set the filter criterion """
         self._ces.filter_criterion = filter_criterion
 
     @classmethod
@@ -68,7 +61,9 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
         return NumPyEigensolver.supports_aux_operators()
 
     def compute_minimum_eigenvalue(
-        self, operator: OperatorBase, aux_operators: Optional[List[Optional[OperatorBase]]] = None
+            self,
+            operator: OperatorBase,
+            aux_operators: Optional[List[Optional[OperatorBase]]] = None
     ) -> MinimumEigensolverResult:
         super().compute_minimum_eigenvalue(operator, aux_operators)
         result_ces = self._ces.compute_eigenvalues(operator, aux_operators)
@@ -79,6 +74,6 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
             if result_ces.aux_operator_eigenvalues:
                 self._ret.aux_operator_eigenvalues = result_ces.aux_operator_eigenvalues[0]
 
-        logger.debug("MinimumEigensolver:\n%s", self._ret)
+        logger.debug('MinimumEigensolver:\n%s', self._ret)
 
         return self._ret

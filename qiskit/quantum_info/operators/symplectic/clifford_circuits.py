@@ -45,28 +45,22 @@ def _append_circuit(clifford, circuit, qargs=None):
 
     # Basis Clifford Gates
     basis_1q = {
-        "i": _append_i,
-        "id": _append_i,
-        "iden": _append_i,
-        "x": _append_x,
-        "y": _append_y,
-        "z": _append_z,
-        "h": _append_h,
-        "s": _append_s,
-        "sdg": _append_sdg,
-        "sinv": _append_sdg,
-        "v": _append_v,
-        "w": _append_w,
+        'i': _append_i, 'id': _append_i, 'iden': _append_i,
+        'x': _append_x, 'y': _append_y, 'z': _append_z, 'h': _append_h,
+        's': _append_s, 'sdg': _append_sdg, 'sinv': _append_sdg,
+        'v': _append_v, 'w': _append_w
     }
-    basis_2q = {"cx": _append_cx, "cz": _append_cz, "swap": _append_swap}
+    basis_2q = {
+        'cx': _append_cx, 'cz': _append_cz, 'swap': _append_swap
+    }
 
     # Non-clifford gates
-    non_clifford = ["t", "tdg", "ccx", "ccz"]
+    non_clifford = ['t', 'tdg', 'ccx', 'ccz']
 
     if isinstance(gate, str):
         # Check if gate is a valid Clifford basis gate string
         if gate not in basis_1q and gate not in basis_2q:
-            raise QiskitError(f"Invalid Clifford gate name string {gate}")
+            raise QiskitError("Invalid Clifford gate name string {}".format(gate))
         name = gate
     else:
         # Assume gate is an Instruction
@@ -74,7 +68,8 @@ def _append_circuit(clifford, circuit, qargs=None):
 
     # Apply gate if it is a Clifford basis gate
     if name in non_clifford:
-        raise QiskitError(f"Cannot update Clifford with non-Clifford gate {name}")
+        raise QiskitError(
+            "Cannot update Clifford with non-Clifford gate {}".format(name))
     if name in basis_1q:
         if len(qargs) != 1:
             raise QiskitError("Invalid qubits for 1-qubit gate.")
@@ -89,17 +84,16 @@ def _append_circuit(clifford, circuit, qargs=None):
     # TODO: We could also check u3 params to see if they
     # are a single qubit Clifford gate rather than raise an exception.
     if gate.definition is None:
-        raise QiskitError(f"Cannot apply Instruction: {gate.name}")
+        raise QiskitError('Cannot apply Instruction: {}'.format(gate.name))
     if not isinstance(gate.definition, QuantumCircuit):
-        raise QiskitError(
-            "{} instruction definition is {}; expected QuantumCircuit".format(
-                gate.name, type(gate.definition)
-            )
-        )
+        raise QiskitError('{} instruction definition is {}; expected QuantumCircuit'.format(
+            gate.name, type(gate.definition)))
     qubit_indices = {bit: idx for idx, bit in enumerate(gate.definition.qubits)}
     for instr, qregs, cregs in gate.definition:
         if cregs:
-            raise QiskitError(f"Cannot apply Instruction with classical registers: {instr.name}")
+            raise QiskitError(
+                'Cannot apply Instruction with classical registers: {}'.format(
+                    instr.name))
         # Get the integer position of the flat register
         new_qubits = [qargs[qubit_indices[tup]] for tup in qregs]
         _append_circuit(clifford, instr, new_qubits)
@@ -109,7 +103,6 @@ def _append_circuit(clifford, circuit, qargs=None):
 # ---------------------------------------------------------------------
 # Helper functions for applying basis gates
 # ---------------------------------------------------------------------
-
 
 def _append_i(clifford, qubit):
     """Apply an I gate to a Clifford.

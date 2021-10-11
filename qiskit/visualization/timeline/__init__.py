@@ -18,4 +18,8 @@ Scheduled circuit visualization module.
 from qiskit.visualization.timeline.interface import draw
 
 # stylesheets
-from qiskit.visualization.timeline.stylesheet import IQXStandard, IQXSimple, IQXDebugging
+from qiskit.visualization.timeline.stylesheet import (
+    IQXStandard,
+    IQXSimple,
+    IQXDebugging
+)

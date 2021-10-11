@@ -23,11 +23,11 @@ import matplotlib
 
 from qiskit.test import QiskitTestCase
 
-matplotlib.use("ps")
+matplotlib.use('ps')
 
 
 def path_to_diagram_reference(filename):
-    return os.path.join(_this_directory(), "references", filename)
+    return os.path.join(_this_directory(), 'references', filename)
 
 
 def _this_directory():
@@ -37,23 +37,24 @@ def _this_directory():
 class QiskitVisualizationTestCase(QiskitTestCase):
     """Visual accuracy of visualization tools outputs tests."""
 
-    def assertFilesAreEqual(self, current, expected, encoding="cp437"):
+    def assertFilesAreEqual(self, current, expected, encoding='cp437'):
         """Checks if both file are the same."""
         self.assertTrue(os.path.exists(current))
         self.assertTrue(os.path.exists(expected))
-        with open(current, encoding=encoding) as cur, open(expected, encoding=encoding) as exp:
+        with open(current, encoding=encoding) as cur, \
+                open(expected, encoding=encoding) as exp:
             self.assertEqual(cur.read(), exp.read())
 
     def assertEqualToReference(self, result):
         reference = path_to_diagram_reference(os.path.basename(result))
         if not os.path.exists(result):
-            raise self.failureException("Result file was not generated.")
+            raise self.failureException('Result file was not generated.')
         if not os.path.exists(reference):
             copyfile(result, reference)
         if cmpfile(reference, result):
             os.remove(result)
         else:
-            raise self.failureException("Result and reference do not match.")
+            raise self.failureException('Result and reference do not match.')
 
     def assertImagesAreEqual(self, current, expected, diff_tolerance=0.001):
         """Checks if both images are similar enough to be considered equal.
@@ -71,16 +72,15 @@ class QiskitVisualizationTestCase(QiskitTestCase):
         similarity_ratio = black_pixels / total_pixels
         self.assertTrue(
             1 - similarity_ratio < diff_tolerance,
-            f"The images are different by {(1 - similarity_ratio) * 100}%"
-            f" which is more than the allowed {diff_tolerance * 100}%",
-        )
+            'The images are different by {}%'.format((1 - similarity_ratio) * 100) +
+            ' which is more than the allowed {}%'.format(diff_tolerance * 100))
 
 
 def _get_black_pixels(image):
-    black_and_white_version = image.convert("1")
+    black_and_white_version = image.convert('1')
     black_pixels = black_and_white_version.histogram()[0]
     return black_pixels
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main(verbosity=2)

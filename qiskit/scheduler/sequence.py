@@ -63,7 +63,7 @@ def sequence(scheduled_circuit: QuantumCircuit, schedule_config: ScheduleConfig)
     for circ_pulse_def in circ_pulse_defs:
         active_qubits = [q for q in circ_pulse_def.qubits if q in qubit_time_available]
 
-        start_time = max((qubit_time_available[q] for q in active_qubits), default=0)
+        start_time = max([qubit_time_available[q] for q in active_qubits], default=0)
 
         for q in active_qubits:
             if qubit_time_available[q] != start_time:
@@ -77,11 +77,9 @@ def sequence(scheduled_circuit: QuantumCircuit, schedule_config: ScheduleConfig)
         delay_overlaps_meas = False
         for q in circ_pulse_def.qubits:
             qubit_time_available[q] = stop_time
-            if (
-                meas_time is not None
-                and circ_pulse_def.schedule.name == "delay"
-                and stop_time > meas_time
-            ):
+            if meas_time is not None \
+                    and circ_pulse_def.schedule.name == "delay" \
+                    and stop_time > meas_time:
                 qubit_time_available[q] = meas_time
                 delay_overlaps_meas = True
         # skip to delays overlapping measures and barriers

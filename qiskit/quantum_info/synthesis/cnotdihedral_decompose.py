@@ -66,10 +66,8 @@ def decompose_cnotdihedral_2_qubits(elem):
     circuit = QuantumCircuit(elem.num_qubits)
 
     if elem.num_qubits > 2:
-        raise QiskitError(
-            "Cannot decompose a CNOT-Dihedral element with more than 2 qubits. "
-            "use decompose_cnotdihedral_general function instead."
-        )
+        raise QiskitError("Cannot decompose a CNOT-Dihedral element with more than 2 qubits. "
+                          "use decompose_cnotdihedral_general function instead.")
 
     if elem.num_qubits == 1:
         if elem.poly.weight_0 != 0 or elem.linear != [[1]]:
@@ -80,7 +78,7 @@ def decompose_cnotdihedral_2_qubits(elem):
             circuit.p((tpow0 * np.pi / 4), [0])
         if xpow0 == 1:
             circuit.x(0)
-        if tpow0 == 0 and xpow0 == 0:
+        if (tpow0 == 0 and xpow0 == 0):
             circuit.id(0)
         return circuit
 
@@ -107,12 +105,13 @@ def decompose_cnotdihedral_2_qubits(elem):
                 circuit.p((tpow1 * np.pi / 4), [1])
             if xpow1 == 1:
                 circuit.x(1)
-            if tpow0 == 0 and tpow1 == 0 and xpow0 == 0 and xpow1 == 0:
+            if (tpow0 == 0 and tpow1 == 0 and xpow0 == 0 and xpow1 == 0):
                 circuit.id(0)
                 circuit.id(1)
 
         # CS-like class
-        if (weight_2 == [2] and xpow0 == xpow1) or (weight_2 == [6] and xpow0 != xpow1):
+        if ((weight_2 == [2] and xpow0 == xpow1) or
+                (weight_2 == [6] and xpow0 != xpow1)):
             tpow0 = (weight_1[0] - 2 * xpow1 - 4 * xpow0 * xpow1) % 8
             tpow1 = (weight_1[1] - 2 * xpow0 - 4 * xpow0 * xpow1) % 8
             if tpow0 > 0:
@@ -131,7 +130,8 @@ def decompose_cnotdihedral_2_qubits(elem):
             circuit.cx(0, 1)
 
         # CSdg-like class
-        if (weight_2 == [6] and xpow0 == xpow1) or (weight_2 == [2] and xpow0 != xpow1):
+        if ((weight_2 == [6] and xpow0 == xpow1) or
+                (weight_2 == [2] and xpow0 != xpow1)):
             tpow0 = (weight_1[0] - 6 * xpow1 - 4 * xpow0 * xpow1) % 8
             tpow1 = (weight_1[1] - 6 * xpow0 - 4 * xpow0 * xpow1) % 8
             if tpow0 > 0:
@@ -330,7 +330,7 @@ def decompose_cnotdihedral_general(elem):
     for i in range(num_qubits):
         # set i-th element to be 1
         if not elem_cpy.linear[i][i]:
-            for j in range(i + 1, num_qubits):
+            for j in range(i+1, num_qubits):
                 if elem_cpy.linear[j][i]:  # swap qubits i and j
                     circuit.cx(j, i)
                     circuit.cx(i, j)
@@ -346,27 +346,25 @@ def decompose_cnotdihedral_general(elem):
                     circuit.cx(i, j)
                     elem_cpy._append_cx(i, j)
 
-    if (
-        not (elem_cpy.shift == np.zeros(num_qubits)).all()
-        or not (elem_cpy.linear == np.eye(num_qubits)).all()
-    ):
+    if not (elem_cpy.shift == np.zeros(num_qubits)).all() or \
+            not (elem_cpy.linear == np.eye(num_qubits)).all():
         raise QiskitError("Cannot do Gauss elimination on linear part.")
 
     # Initialize new_elem to an identity CNOTDihderal element
     new_elem = elem_cpy.copy()
     new_elem.poly.weight_0 = 0
     new_elem.poly.weight_1 = np.zeros(num_qubits, dtype=np.int8)
-    new_elem.poly.weight_2 = np.zeros(int(num_qubits * (num_qubits - 1) / 2), dtype=np.int8)
-    new_elem.poly.weight_3 = np.zeros(
-        int(num_qubits * (num_qubits - 1) * (num_qubits - 2) / 6), dtype=np.int8
-    )
+    new_elem.poly.weight_2 = np.zeros(int(num_qubits * (num_qubits - 1) / 2),
+                                      dtype=np.int8)
+    new_elem.poly.weight_3 = np.zeros(int(num_qubits * (num_qubits - 1) *
+                                          (num_qubits - 2) / 6), dtype=np.int8)
 
     new_circuit = QuantumCircuit(num_qubits)
 
     # Do cx and phase gates to construct all monomials of weight 3
     for i in range(num_qubits):
-        for j in range(i + 1, num_qubits):
-            for k in range(j + 1, num_qubits):
+        for j in range(i+1, num_qubits):
+            for k in range(j+1, num_qubits):
                 if elem_cpy.poly.get_term([i, j, k]) != 0:
                     new_elem._append_cx(i, k)
                     new_elem._append_cx(j, k)
@@ -381,7 +379,7 @@ def decompose_cnotdihedral_general(elem):
 
     # Do cx and phase gates to construct all monomials of weight 2
     for i in range(num_qubits):
-        for j in range(i + 1, num_qubits):
+        for j in range(i+1, num_qubits):
             tpow1 = elem_cpy.poly.get_term([i, j])
             tpow2 = new_elem.poly.get_term([i, j])
             tpow = ((tpow2 - tpow1) / 2) % 4

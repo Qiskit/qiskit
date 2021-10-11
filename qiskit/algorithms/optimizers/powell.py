@@ -14,10 +14,11 @@
 
 from typing import Optional
 
-from .scipy_optimizer import SciPyOptimizer
+from scipy.optimize import minimize
+from .optimizer import Optimizer, OptimizerSupportLevel
 
 
-class POWELL(SciPyOptimizer):
+class POWELL(Optimizer):
     """
     Powell optimizer.
 
@@ -32,19 +33,15 @@ class POWELL(SciPyOptimizer):
     See https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html
     """
 
-    _OPTIONS = ["maxiter", "maxfev", "disp", "xtol"]
+    _OPTIONS = ['maxiter', 'maxfev', 'disp', 'xtol']
 
     # pylint: disable=unused-argument
-    def __init__(
-        self,
-        maxiter: Optional[int] = None,
-        maxfev: int = 1000,
-        disp: bool = False,
-        xtol: float = 0.0001,
-        tol: Optional[float] = None,
-        options: Optional[dict] = None,
-        **kwargs,
-    ) -> None:
+    def __init__(self,
+                 maxiter: Optional[int] = None,
+                 maxfev: int = 1000,
+                 disp: bool = False,
+                 xtol: float = 0.0001,
+                 tol: Optional[float] = None) -> None:
         """
         Args:
             maxiter: Maximum allowed number of iterations. If both maxiter and maxfev
@@ -54,12 +51,26 @@ class POWELL(SciPyOptimizer):
             disp: Set to True to print convergence messages.
             xtol: Relative error in solution xopt acceptable for convergence.
             tol: Tolerance for termination.
-            options: A dictionary of solver options.
-            kwargs: additional kwargs for scipy.optimize.minimize.
         """
-        if options is None:
-            options = {}
+        super().__init__()
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
-                options[k] = v
-        super().__init__("Powell", options=options, tol=tol, **kwargs)
+                self._options[k] = v
+        self._tol = tol
+
+    def get_support_level(self):
+        """ Return support level dictionary """
+        return {
+            'gradient': OptimizerSupportLevel.ignored,
+            'bounds': OptimizerSupportLevel.ignored,
+            'initial_point': OptimizerSupportLevel.required
+        }
+
+    def optimize(self, num_vars, objective_function, gradient_function=None,
+                 variable_bounds=None, initial_point=None):
+        super().optimize(num_vars, objective_function, gradient_function,
+                         variable_bounds, initial_point)
+
+        res = minimize(objective_function, initial_point, tol=self._tol,
+                       method="Powell", options=self._options)
+        return res.x, res.fun, res.nfev

@@ -25,32 +25,32 @@ class TestGlobalRLibrary(QiskitTestCase):
 
     def test_gr_equivalence(self):
         """Test global R gate is same as 3 individual R gates."""
-        circuit = GR(num_qubits=3, theta=np.pi / 3, phi=2 * np.pi / 3)
+        circuit = GR(num_qubits=3, theta=np.pi/3, phi=2*np.pi/3)
         expected = QuantumCircuit(3, name="gr")
         for i in range(3):
-            expected.append(RGate(theta=np.pi / 3, phi=2 * np.pi / 3), [i])
-        self.assertEqual(expected, circuit.decompose())
+            expected.append(RGate(theta=np.pi/3, phi=2*np.pi/3), [i])
+        self.assertEqual(expected, circuit)
 
     def test_grx_equivalence(self):
         """Test global RX gates is same as 3 individual RX gates."""
-        circuit = GRX(num_qubits=3, theta=np.pi / 3)
-        expected = GR(num_qubits=3, theta=np.pi / 3, phi=0)
+        circuit = GRX(num_qubits=3, theta=np.pi/3)
+        expected = GR(num_qubits=3, theta=np.pi/3, phi=0)
         self.assertEqual(expected, circuit)
 
     def test_gry_equivalence(self):
         """Test global RY gates is same as 3 individual RY gates."""
-        circuit = GRY(num_qubits=3, theta=np.pi / 3)
-        expected = GR(num_qubits=3, theta=np.pi / 3, phi=np.pi / 2)
+        circuit = GRY(num_qubits=3, theta=np.pi/3)
+        expected = GR(num_qubits=3, theta=np.pi/3, phi=np.pi/2)
         self.assertEqual(expected, circuit)
 
     def test_grz_equivalence(self):
         """Test global RZ gate is same as 3 individual RZ gates."""
-        circuit = GRZ(num_qubits=3, phi=2 * np.pi / 3)
+        circuit = GRZ(num_qubits=3, phi=2*np.pi/3)
         expected = QuantumCircuit(3, name="grz")
         for i in range(3):
-            expected.append(RZGate(phi=2 * np.pi / 3), [i])
+            expected.append(RZGate(phi=2*np.pi/3), [i])
         self.assertEqual(expected, circuit)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

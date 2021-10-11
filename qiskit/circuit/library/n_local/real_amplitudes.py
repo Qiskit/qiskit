@@ -104,18 +104,16 @@ class RealAmplitudes(TwoLocal):
 
     """
 
-    def __init__(
-        self,
-        num_qubits: Optional[int] = None,
-        entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = "full",
-        reps: int = 3,
-        skip_unentangled_qubits: bool = False,
-        skip_final_rotation_layer: bool = False,
-        parameter_prefix: str = "θ",
-        insert_barriers: bool = False,
-        initial_state: Optional[Any] = None,
-        name: str = "RealAmplitudes",
-    ) -> None:
+    def __init__(self,
+                 num_qubits: Optional[int] = None,
+                 entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = 'full',
+                 reps: int = 3,
+                 skip_unentangled_qubits: bool = False,
+                 skip_final_rotation_layer: bool = False,
+                 parameter_prefix: str = 'θ',
+                 insert_barriers: bool = False,
+                 initial_state: Optional[Any] = None,
+                 ) -> None:
         """Create a new RealAmplitudes 2-local circuit.
 
         Args:
@@ -143,19 +141,16 @@ class RealAmplitudes(TwoLocal):
                 no barriers are inserted.
 
         """
-        super().__init__(
-            num_qubits=num_qubits,
-            reps=reps,
-            rotation_blocks=RYGate,
-            entanglement_blocks=CXGate,
-            entanglement=entanglement,
-            initial_state=initial_state,
-            skip_unentangled_qubits=skip_unentangled_qubits,
-            skip_final_rotation_layer=skip_final_rotation_layer,
-            parameter_prefix=parameter_prefix,
-            insert_barriers=insert_barriers,
-            name=name,
-        )
+        super().__init__(num_qubits=num_qubits,
+                         reps=reps,
+                         rotation_blocks=RYGate,
+                         entanglement_blocks=CXGate,
+                         entanglement=entanglement,
+                         initial_state=initial_state,
+                         skip_unentangled_qubits=skip_unentangled_qubits,
+                         skip_final_rotation_layer=skip_final_rotation_layer,
+                         parameter_prefix=parameter_prefix,
+                         insert_barriers=insert_barriers)
 
     @property
     def parameter_bounds(self) -> List[Tuple[float, float]]:

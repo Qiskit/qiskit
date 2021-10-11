@@ -20,11 +20,11 @@ from .nodeexception import NodeException
 
 
 VALID_OPERATORS = {
-    "+": operator.add,
-    "-": operator.sub,
-    "*": operator.mul,
-    "/": operator.truediv,
-    "^": operator.pow,
+    '+': operator.add,
+    '-': operator.sub,
+    '*': operator.mul,
+    '/': operator.truediv,
+    '^': operator.pow
 }
 
 
@@ -33,10 +33,9 @@ class BinaryOperator(Node):
 
     This node has no children. The data is in the value field.
     """
-
     def __init__(self, operation):
         """Create the operator node."""
-        super().__init__("operator", None, None)
+        super().__init__('operator', None, None)
         self.value = operation
 
     def operation(self):
@@ -51,10 +50,6 @@ class BinaryOperator(Node):
     def qasm(self, prec=None):
         """Return the QASM representation."""
         if prec is not None:
-            warnings.warn(
-                "Parameter 'BinaryOperator.qasm(..., prec)' is no longer used and is "
-                "being deprecated.",
-                DeprecationWarning,
-                2,
-            )
+            warnings.warn('Parameter \'BinaryOperator.qasm(..., prec)\' is no longer used and is '
+                          'being deprecated.', DeprecationWarning, 2)
         return self.value

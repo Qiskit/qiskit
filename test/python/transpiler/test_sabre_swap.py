@@ -40,17 +40,17 @@ class TestSabreSwap(QiskitTestCase):
         """
         coupling = CouplingMap.from_ring(5)
 
-        qr = QuantumRegister(5, "q")
+        qr = QuantumRegister(5, 'q')
         qc = QuantumCircuit(qr)
         qc.cx(0, 1)  # free
         qc.cx(2, 3)  # free
-        qc.h(0)  # free
+        qc.h(0)      # free
         qc.cx(1, 2)  # F
         qc.cx(1, 0)
         qc.cx(4, 3)  # F
         qc.cx(0, 4)
 
-        passmanager = PassManager(SabreSwap(coupling, "basic"))
+        passmanager = PassManager(SabreSwap(coupling, 'basic'))
         new_qc = passmanager.run(qc)
 
         self.assertEqual(new_qc, qc)
@@ -71,17 +71,17 @@ class TestSabreSwap(QiskitTestCase):
         """
         coupling = CouplingMap.from_line(5)
 
-        qr = QuantumRegister(5, "q")
+        qr = QuantumRegister(5, 'q')
         qc = QuantumCircuit(qr)
         qc.cx(0, 1)  # free
         qc.cx(2, 3)  # free
-        qc.h(0)  # free
+        qc.h(0)      # free
         qc.cx(1, 2)  # free
         qc.cx(1, 3)  # F
         qc.cx(2, 3)  # E
         qc.cx(1, 3)  # E
 
-        pm = PassManager(SabreSwap(coupling, "lookahead"))
+        pm = PassManager(SabreSwap(coupling, 'lookahead'))
         new_qc = pm.run(qc)
 
         self.assertEqual(new_qc.num_nonlocal_gates(), 7)
@@ -98,5 +98,5 @@ class TestSabreSwap(QiskitTestCase):
         self.assertEqual(set(cm_edges), set(coupling.get_edges()))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

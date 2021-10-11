@@ -22,9 +22,10 @@ from qiskit.pulse.channels import Channel
 from qiskit.pulse.schedule import Interval
 
 
-def filter_instructions(
-    sched: Schedule, filters: List[Callable], negate: bool = False, recurse_subroutines: bool = True
-) -> Schedule:
+def filter_instructions(sched: Schedule,
+                        filters: List[Callable],
+                        negate: bool = False,
+                        recurse_subroutines: bool = True) -> Schedule:
     """A filtering function that takes a schedule and returns a schedule consisting of
     filtered instructions.
 
@@ -54,19 +55,13 @@ def filter_instructions(
     if negate and len(filters) > 0:
         valid_insts = ~valid_insts
 
-    filter_schedule = Schedule.initialize_from(sched)
-    for time, inst in time_inst_tuples[valid_insts]:
-        filter_schedule.insert(time, inst, inplace=True)
-
-    return filter_schedule
+    return Schedule(*time_inst_tuples[valid_insts], name=sched.name, metadata=sched.metadata)
 
 
-def composite_filter(
-    channels: Optional[Union[Iterable[Channel], Channel]] = None,
-    instruction_types: Optional[Union[Iterable[abc.ABCMeta], abc.ABCMeta]] = None,
-    time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
-    intervals: Optional[Iterable[Interval]] = None,
-) -> List[Callable]:
+def composite_filter(channels: Optional[Union[Iterable[Channel], Channel]] = None,
+                     instruction_types: Optional[Union[Iterable[abc.ABCMeta], abc.ABCMeta]] = None,
+                     time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
+                     intervals: Optional[Iterable[Interval]] = None) -> List[Callable]:
     """A helper function to generate a list of filter functions based on
     typical elements to be filtered.
 
@@ -117,7 +112,6 @@ def with_channels(channels: Union[Iterable[Channel], Channel]) -> Callable:
             If instruction matches with condition.
         """
         return any(chan in channels for chan in time_inst[1].channels)
-
     return channel_filter
 
 

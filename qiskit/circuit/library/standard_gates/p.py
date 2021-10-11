@@ -71,14 +71,13 @@ class PhaseGate(Gate):
 
     def __init__(self, theta, label=None):
         """Create new Phase gate."""
-        super().__init__("p", 1, [theta], label=label)
+        super().__init__('p', 1, [theta], label=label)
 
     def _define(self):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u import UGate
-
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         qc = QuantumCircuit(q, name=self.name)
         qc.append(UGate(0, 0, self.params[0]), [0])
         self.definition = qc
@@ -100,9 +99,8 @@ class PhaseGate(Gate):
         elif ctrl_state is None and num_ctrl_qubits > 1:
             gate = MCPhaseGate(self.params[0], num_ctrl_qubits, label=label)
         else:
-            return super().control(
-                num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state
-            )
+            return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
+                                   ctrl_state=ctrl_state)
         gate.base_gate.label = self.label
         return gate
 
@@ -155,15 +153,8 @@ class CPhaseGate(ControlledGate):
 
     def __init__(self, theta, label=None, ctrl_state=None):
         """Create new CPhase gate."""
-        super().__init__(
-            "cp",
-            2,
-            [theta],
-            num_ctrl_qubits=1,
-            label=label,
-            ctrl_state=ctrl_state,
-            base_gate=PhaseGate(theta),
-        )
+        super().__init__('cp', 2, [theta], num_ctrl_qubits=1, label=label,
+                         ctrl_state=ctrl_state, base_gate=PhaseGate(theta))
 
     def _define(self):
         """
@@ -175,8 +166,7 @@ class CPhaseGate(ControlledGate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
-
-        q = QuantumRegister(2, "q")
+        q = QuantumRegister(2, 'q')
         qc = QuantumCircuit(q, name=self.name)
         qc.p(self.params[0] / 2, 0)
         qc.cx(0, 1)
@@ -211,10 +201,16 @@ class CPhaseGate(ControlledGate):
         """Return a numpy.array for the CPhase gate."""
         eith = numpy.exp(1j * float(self.params[0]))
         if self.ctrl_state:
-            return numpy.array(
-                [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, eith]], dtype=dtype
-            )
-        return numpy.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, eith, 0], [0, 0, 0, 1]], dtype=dtype)
+            return numpy.array([[1, 0, 0, 0],
+                                [0, 1, 0, 0],
+                                [0, 0, 1, 0],
+                                [0, 0, 0, eith]],
+                               dtype=dtype)
+        return numpy.array([[1, 0, 0, 0],
+                            [0, 1, 0, 0],
+                            [0, 0, eith, 0],
+                            [0, 0, 0, 1]],
+                           dtype=dtype)
 
 
 class MCPhaseGate(ControlledGate):
@@ -244,20 +240,13 @@ class MCPhaseGate(ControlledGate):
 
     def __init__(self, lam, num_ctrl_qubits, label=None):
         """Create new MCPhase gate."""
-        super().__init__(
-            "mcphase",
-            num_ctrl_qubits + 1,
-            [lam],
-            num_ctrl_qubits=num_ctrl_qubits,
-            label=label,
-            base_gate=PhaseGate(lam),
-        )
+        super().__init__('mcphase', num_ctrl_qubits + 1, [lam], num_ctrl_qubits=num_ctrl_qubits,
+                         label=label, base_gate=PhaseGate(lam))
 
     def _define(self):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
-
-        q = QuantumRegister(self.num_qubits, "q")
+        q = QuantumRegister(self.num_qubits, 'q')
         qc = QuantumCircuit(q, name=self.name)
 
         if self.num_ctrl_qubits == 0:
@@ -266,7 +255,6 @@ class MCPhaseGate(ControlledGate):
             qc.cp(self.params[0], 0, 1)
         else:
             from .u3 import _gray_code_chain
-
             scaled_lam = self.params[0] / (2 ** (self.num_ctrl_qubits - 1))
             bottom_gate = CPhaseGate(scaled_lam)
             definition = _gray_code_chain(q, self.num_ctrl_qubits, bottom_gate)
@@ -286,9 +274,9 @@ class MCPhaseGate(ControlledGate):
             ControlledGate: controlled version of this gate.
         """
         if ctrl_state is None:
-            gate = MCPhaseGate(
-                self.params[0], num_ctrl_qubits=num_ctrl_qubits + self.num_ctrl_qubits, label=label
-            )
+            gate = MCPhaseGate(self.params[0],
+                               num_ctrl_qubits=num_ctrl_qubits + self.num_ctrl_qubits,
+                               label=label)
             gate.base_gate.label = self.label
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)

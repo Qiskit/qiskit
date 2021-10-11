@@ -22,12 +22,12 @@ from qiskit.providers.ibmq import least_busy
 # Make a quantum circuit for the GHZ state.
 ###############################################################
 num_qubits = 5
-qc = QuantumCircuit(num_qubits, num_qubits, name="ghz")
+qc = QuantumCircuit(num_qubits, num_qubits, name='ghz')
 
 # Create a GHZ state
 qc.h(0)
-for i in range(num_qubits - 1):
-    qc.cx(i, i + 1)
+for i in range(num_qubits-1):
+    qc.cx(i, i+1)
 # Insert a barrier before measurement
 qc.barrier()
 # Measure all of the qubits in the standard basis
@@ -41,10 +41,10 @@ provider = IBMQ.load_account()
 
 # Second version: real device
 least_busy_device = least_busy(
-    provider.backends(simulator=False, filters=lambda x: x.configuration().n_qubits > 4)
-)
+    provider.backends(simulator=False,
+                      filters=lambda x: x.configuration().n_qubits > 4))
 print("Running on current least busy device: ", least_busy_device)
 job = execute(qc, least_busy_device, shots=1024)
 result = job.result()
-print("Physical device (%s) : " % least_busy_device)
+print('Physical device (%s) : ' % least_busy_device)
 print(result.get_counts(qc))

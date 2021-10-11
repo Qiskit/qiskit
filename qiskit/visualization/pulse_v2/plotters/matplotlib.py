@@ -33,7 +33,9 @@ class Mpl2DPlotter(BasePlotter):
     Each chart is map to X-Y axis of the canvas.
     """
 
-    def __init__(self, canvas: core.DrawerCanvas, axis: Optional[plt.Axes] = None):
+    def __init__(self,
+                 canvas: core.DrawerCanvas,
+                 axis: Optional[plt.Axes] = None):
         """Create new plotter.
 
         Args:
@@ -47,13 +49,13 @@ class Mpl2DPlotter(BasePlotter):
         # calculate height of all charts
         canvas_height = 0
         for chart in self.canvas.charts:
-            if not chart.is_active and not self.canvas.formatter["control.show_empty_channel"]:
+            if not chart.is_active and not self.canvas.formatter['control.show_empty_channel']:
                 continue
             canvas_height += chart.vmax - chart.vmin
 
         if axis is None:
-            fig_h = canvas_height * self.canvas.formatter["general.fig_chart_height"]
-            fig_w = self.canvas.formatter["general.fig_width"]
+            fig_h = canvas_height * self.canvas.formatter['general.fig_chart_height']
+            fig_w = self.canvas.formatter['general.fig_width']
 
             self.figure = plt.figure(figsize=(fig_w, fig_h))
             self.ax = self.figure.add_subplot(1, 1, 1)
@@ -65,7 +67,7 @@ class Mpl2DPlotter(BasePlotter):
 
     def initialize_canvas(self):
         """Format appearance of matplotlib canvas."""
-        self.ax.set_facecolor(self.canvas.formatter["color.background"])
+        self.ax.set_facecolor(self.canvas.formatter['color.background'])
 
         # axis labels
         self.ax.set_yticklabels([])
@@ -74,16 +76,16 @@ class Mpl2DPlotter(BasePlotter):
     def draw(self):
         """Output drawings stored in canvas object."""
         # axis configuration
-        axis_config = self.canvas.layout["time_axis_map"](
+        axis_config = self.canvas.layout['time_axis_map'](
             time_window=self.canvas.time_range,
             axis_breaks=self.canvas.time_breaks,
-            dt=self.canvas.device.dt,
+            dt=self.canvas.device.dt
         )
 
         current_y = 0
-        margin_y = self.canvas.formatter["margin.between_channel"]
+        margin_y = self.canvas.formatter['margin.between_channel']
         for chart in self.canvas.charts:
-            if not chart.is_active and not self.canvas.formatter["control.show_empty_channel"]:
+            if not chart.is_active and not self.canvas.formatter['control.show_empty_channel']:
                 continue
             current_y -= chart.vmax
             for _, data in chart.collections:
@@ -101,38 +103,35 @@ class Mpl2DPlotter(BasePlotter):
                 if isinstance(data, drawings.LineData):
                     # line object
                     if data.fill:
-                        self.ax.fill_between(x, y1=y, y2=current_y * np.ones_like(y), **data.styles)
+                        self.ax.fill_between(x, y1=y, y2=current_y * np.ones_like(y),
+                                             **data.styles)
                     else:
                         self.ax.plot(x, y, **data.styles)
                 elif isinstance(data, drawings.TextData):
                     # text object
-                    text = fr"${data.latex}$" if data.latex else data.text
+                    text = r'${s}$'.format(s=data.latex) if data.latex else data.text
                     # replace dynamic text
-                    text = text.replace(types.DynamicString.SCALE, f"{chart.scale:.1f}")
+                    text = text.replace(types.DynamicString.SCALE,
+                                        '{val:.1f}'.format(val=chart.scale))
                     self.ax.text(x=x[0], y=y[0], s=text, **data.styles)
                 elif isinstance(data, drawings.BoxData):
                     xy = x[0], y[0]
-                    box = Rectangle(
-                        xy, width=x[1] - x[0], height=y[1] - y[0], fill=True, **data.styles
-                    )
+                    box = Rectangle(xy, width=x[1]-x[0], height=y[1]-y[0],
+                                    fill=True, **data.styles)
                     self.ax.add_patch(box)
                 else:
-                    VisualizationError(
-                        "Data {name} is not supported "
-                        "by {plotter}".format(name=data, plotter=self.__class__.__name__)
-                    )
+                    VisualizationError('Data {name} is not supported '
+                                       'by {plotter}'.format(name=data,
+                                                             plotter=self.__class__.__name__))
             # axis break
             for pos in axis_config.axis_break_pos:
-                self.ax.text(
-                    x=pos,
-                    y=current_y,
-                    s="//",
-                    ha="center",
-                    va="center",
-                    zorder=self.canvas.formatter["layer.axis_label"],
-                    fontsize=self.canvas.formatter["text_size.axis_break_symbol"],
-                    rotation=180,
-                )
+                self.ax.text(x=pos, y=current_y,
+                             s='//',
+                             ha='center',
+                             va='center',
+                             zorder=self.canvas.formatter['layer.axis_label'],
+                             fontsize=self.canvas.formatter['text_size.axis_break_symbol'],
+                             rotation=180)
 
             # shift chart position
             current_y += chart.vmin - margin_y
@@ -140,28 +139,22 @@ class Mpl2DPlotter(BasePlotter):
         # remove the last margin
         current_y += margin_y
 
-        y_max = self.canvas.formatter["margin.top"]
-        y_min = current_y - self.canvas.formatter["margin.bottom"]
+        y_max = self.canvas.formatter['margin.top']
+        y_min = current_y - self.canvas.formatter['margin.bottom']
 
         # plot axis break line
         for pos in axis_config.axis_break_pos:
-            self.ax.plot(
-                [pos, pos],
-                [y_min, y_max],
-                zorder=self.canvas.formatter["layer.fill_waveform"] + 1,
-                linewidth=self.canvas.formatter["line_width.axis_break"],
-                color=self.canvas.formatter["color.background"],
-            )
+            self.ax.plot([pos, pos], [y_min, y_max],
+                         zorder=self.canvas.formatter['layer.fill_waveform'] + 1,
+                         linewidth=self.canvas.formatter['line_width.axis_break'],
+                         color=self.canvas.formatter['color.background'])
 
         # label
         self.ax.set_xticks(list(axis_config.axis_map.keys()))
-        self.ax.set_xticklabels(
-            list(axis_config.axis_map.values()),
-            fontsize=self.canvas.formatter["text_size.axis_label"],
-        )
-        self.ax.set_xlabel(
-            axis_config.label, fontsize=self.canvas.formatter["text_size.axis_label"]
-        )
+        self.ax.set_xticklabels(list(axis_config.axis_map.values()),
+                                fontsize=self.canvas.formatter['text_size.axis_label'])
+        self.ax.set_xlabel(axis_config.label,
+                           fontsize=self.canvas.formatter['text_size.axis_label'])
 
         # boundary
         self.ax.set_xlim(*axis_config.window)
@@ -169,16 +162,14 @@ class Mpl2DPlotter(BasePlotter):
 
         # title
         if self.canvas.fig_title:
-            self.ax.text(
-                x=axis_config.window[0],
-                y=y_max,
-                s=self.canvas.fig_title,
-                ha="left",
-                va="bottom",
-                zorder=self.canvas.formatter["layer.fig_title"],
-                color=self.canvas.formatter["color.fig_title"],
-                size=self.canvas.formatter["text_size.fig_title"],
-            )
+            self.ax.text(x=axis_config.window[0],
+                         y=y_max,
+                         s=self.canvas.fig_title,
+                         ha='left',
+                         va='bottom',
+                         zorder=self.canvas.formatter['layer.fig_title'],
+                         color=self.canvas.formatter['color.fig_title'],
+                         size=self.canvas.formatter['text_size.fig_title'])
 
     def get_image(self, interactive: bool = False) -> matplotlib.pyplot.Figure:
         """Get image data to return.
@@ -190,7 +181,8 @@ class Mpl2DPlotter(BasePlotter):
         Returns:
             Matplotlib figure data.
         """
-        if matplotlib.get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
+        if matplotlib.get_backend() in ['module://ipykernel.pylab.backend_inline',
+                                        'nbAgg']:
             plt.close(self.figure)
 
         if self.figure and interactive:

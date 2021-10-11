@@ -20,18 +20,16 @@ import os
 import sys
 import tempfile
 
-from qiskit.exceptions import MissingOptionalLibraryError
 from .exceptions import VisualizationError
 
 try:
     from PIL import Image
-
     HAS_PIL = True
 except ImportError:
     HAS_PIL = False
 
 
-def dag_drawer(dag, scale=0.7, filename=None, style="color"):
+def dag_drawer(dag, scale=0.7, filename=None, style='color'):
     """Plot the directed acyclic graph (dag) to represent operation dependencies
     in a quantum circuit.
 
@@ -57,7 +55,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
 
     Raises:
         VisualizationError: when style is not recognized.
-        MissingOptionalLibraryError: when pydot or pillow are not installed.
+        ImportError: when pydot or pillow are not installed.
 
     Example:
         .. jupyter-execute::
@@ -82,116 +80,106 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
     try:
         import pydot
     except ImportError as ex:
-        raise MissingOptionalLibraryError(
-            libname="PyDot",
-            name="dag_drawer",
-            pip_install="pip install pydot",
-        ) from ex
+        raise ImportError("dag_drawer requires pydot. "
+                          "Run 'pip install pydot'.") from ex
     # NOTE: use type str checking to avoid potential cyclical import
     # the two tradeoffs ere that it will not handle subclasses and it is
     # slower (which doesn't matter for a visualization function)
     type_str = str(type(dag))
-    if "DAGDependency" in type_str:
-        graph_attrs = {"dpi": str(100 * scale)}
+    if 'DAGDependency' in type_str:
+        graph_attrs = {'dpi': str(100 * scale)}
 
         def node_attr_func(node):
-            if style == "plain":
+            if style == 'plain':
                 return {}
-            if style == "color":
+            if style == 'color':
                 n = {}
-                n["label"] = str(node.node_id) + ": " + str(node.name)
-                if node.name == "measure":
-                    n["color"] = "blue"
-                    n["style"] = "filled"
-                    n["fillcolor"] = "lightblue"
-                if node.name == "barrier":
-                    n["color"] = "black"
-                    n["style"] = "filled"
-                    n["fillcolor"] = "green"
+                n['label'] = str(node.node_id) + ': ' + str(node.name)
+                if node.name == 'measure':
+                    n['color'] = 'blue'
+                    n['style'] = 'filled'
+                    n['fillcolor'] = 'lightblue'
+                if node.name == 'barrier':
+                    n['color'] = 'black'
+                    n['style'] = 'filled'
+                    n['fillcolor'] = 'green'
                 if node.op._directive:
-                    n["color"] = "black"
-                    n["style"] = "filled"
-                    n["fillcolor"] = "red"
+                    n['color'] = 'black'
+                    n['style'] = 'filled'
+                    n['fillcolor'] = 'red'
                 if node.op.condition:
-                    n["label"] = str(node.node_id) + ": " + str(node.name) + " (conditional)"
-                    n["color"] = "black"
-                    n["style"] = "filled"
-                    n["fillcolor"] = "lightgreen"
+                    n['label'] = str(node.node_id) + ': ' + str(node.name) + ' (conditional)'
+                    n['color'] = 'black'
+                    n['style'] = 'filled'
+                    n['fillcolor'] = 'lightgreen'
                 return n
             else:
                 raise VisualizationError("Unrecognized style %s for the dag_drawer." % style)
-
         edge_attr_func = None
 
     else:
-        bit_labels = {
-            bit: f"{reg.name}[{idx}]"
-            for reg in list(dag.qregs.values()) + list(dag.cregs.values())
-            for (idx, bit) in enumerate(reg)
-        }
+        bit_labels = {bit: "%s[%s]" % (reg.name, idx)
+                      for reg in list(dag.qregs.values()) + list(dag.cregs.values())
+                      for (idx, bit) in enumerate(reg)}
 
-        graph_attrs = {"dpi": str(100 * scale)}
+        graph_attrs = {'dpi': str(100 * scale)}
 
         def node_attr_func(node):
-            if style == "plain":
+            if style == 'plain':
                 return {}
-            if style == "color":
+            if style == 'color':
                 n = {}
-                if node.type == "op":
-                    n["label"] = node.name
-                    n["color"] = "blue"
-                    n["style"] = "filled"
-                    n["fillcolor"] = "lightblue"
-                if node.type == "in":
-                    n["label"] = bit_labels[node.wire]
-                    n["color"] = "black"
-                    n["style"] = "filled"
-                    n["fillcolor"] = "green"
-                if node.type == "out":
-                    n["label"] = bit_labels[node.wire]
-                    n["color"] = "black"
-                    n["style"] = "filled"
-                    n["fillcolor"] = "red"
+                if node.type == 'op':
+                    n['label'] = node.name
+                    n['color'] = 'blue'
+                    n['style'] = 'filled'
+                    n['fillcolor'] = 'lightblue'
+                if node.type == 'in':
+                    n['label'] = bit_labels[node.wire]
+                    n['color'] = 'black'
+                    n['style'] = 'filled'
+                    n['fillcolor'] = 'green'
+                if node.type == 'out':
+                    n['label'] = bit_labels[node.wire]
+                    n['color'] = 'black'
+                    n['style'] = 'filled'
+                    n['fillcolor'] = 'red'
                 return n
             else:
-                raise VisualizationError("Invalid style %s" % style)
+                raise VisualizationError('Invalid style %s' % style)
 
         def edge_attr_func(edge):
             e = {}
-            e["label"] = bit_labels[edge]
+            e['label'] = bit_labels[edge]
             return e
 
-    dot_str = dag._multi_graph.to_dot(node_attr_func, edge_attr_func, graph_attrs)
+    dot_str = dag._multi_graph.to_dot(node_attr_func, edge_attr_func,
+                                      graph_attrs)
     dot = pydot.graph_from_dot_data(dot_str)[0]
 
     if filename:
-        extension = filename.split(".")[-1]
+        extension = filename.split('.')[-1]
         dot.write(filename, format=extension)
         return None
-    elif ("ipykernel" in sys.modules) and ("spyder" not in sys.modules):
+    elif ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
         if not HAS_PIL:
-            raise MissingOptionalLibraryError(
-                libname="pillow",
-                name="dag_drawer",
-                pip_install="pip install pillow",
-            )
+            raise ImportError(
+                "dag_drawer requires pillow for drawing in jupyter directly. "
+                "Run 'pip install pillow'.")
 
         with tempfile.TemporaryDirectory() as tmpdirname:
-            tmp_path = os.path.join(tmpdirname, "dag.png")
+            tmp_path = os.path.join(tmpdirname, 'dag.png')
             dot.write_png(tmp_path)
-            with Image.open(tmp_path) as test_image:
-                image = test_image.copy()
+            image = Image.open(tmp_path)
             os.remove(tmp_path)
             return image
     else:
         if not HAS_PIL:
-            raise MissingOptionalLibraryError(
-                libname="pillow",
-                name="dag_drawer",
-                pip_install="pip install pillow",
-            )
+            raise ImportError(
+                "dag_drawer requires pillow for drawing to a window directly. "
+                "Run 'pip install pillow'.")
         with tempfile.TemporaryDirectory() as tmpdirname:
-            tmp_path = os.path.join(tmpdirname, "dag.png")
+            tmp_path = os.path.join(tmpdirname, 'dag.png')
             dot.write_png(tmp_path)
             image = Image.open(tmp_path)
             image.show()

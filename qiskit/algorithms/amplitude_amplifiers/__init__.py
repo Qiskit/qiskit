@@ -17,9 +17,9 @@ from .amplification_problem import AmplificationProblem
 from .grover import Grover, GroverResult
 
 __all__ = [
-    "AmplitudeAmplifier",
-    "AmplitudeAmplifierResult",
-    "AmplificationProblem",
-    "Grover",
-    "GroverResult",
+    'AmplitudeAmplifier',
+    'AmplitudeAmplifierResult',
+    'AmplificationProblem',
+    'Grover',
+    'GroverResult'
 ]

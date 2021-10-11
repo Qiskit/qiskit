@@ -28,9 +28,11 @@ def pauli_basis(num_qubits, weight=False):
     Returns:
         PauliTable: the PauliTable for the basis
     """
-    pauli_1q = PauliTable(
-        np.array([[False, False], [True, False], [True, True], [False, True]], dtype=bool)
-    )
+    pauli_1q = PauliTable(np.array([[False, False],
+                                    [True, False],
+                                    [True, True],
+                                    [False, True]],
+                                   dtype=bool))
     if num_qubits == 1:
         return pauli_1q
     pauli = pauli_1q

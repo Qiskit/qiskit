@@ -83,9 +83,8 @@ class AbsoluteAverage(LinearSystemObservable):
         qc.h(qc.qubits)
         return qc
 
-    def post_processing(
-        self, solution: Union[float, List[float]], num_qubits: int, scaling: float = 1
-    ) -> float:
+    def post_processing(self, solution: Union[float, List[float]], num_qubits: int,
+                        scaling: float = 1) -> float:
         """Evaluates the absolute average on the solution to the linear system.
 
         Args:

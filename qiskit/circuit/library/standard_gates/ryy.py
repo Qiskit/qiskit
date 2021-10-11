@@ -69,7 +69,7 @@ class RYYGate(Gate):
 
     def __init__(self, theta):
         """Create new RYY gate."""
-        super().__init__("ryy", 2, [theta])
+        super().__init__('ryy', 2, [theta])
 
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
@@ -79,7 +79,7 @@ class RYYGate(Gate):
         from .rx import RXGate
         from .rz import RZGate
 
-        q = QuantumRegister(2, "q")
+        q = QuantumRegister(2, 'q')
         theta = self.params[0]
         qc = QuantumCircuit(q, name=self.name)
         rules = [
@@ -105,7 +105,9 @@ class RYYGate(Gate):
         theta = float(self.params[0])
         cos = np.cos(theta / 2)
         isin = 1j * np.sin(theta / 2)
-        return np.array(
-            [[cos, 0, 0, isin], [0, cos, -isin, 0], [0, -isin, cos, 0], [isin, 0, 0, cos]],
-            dtype=dtype,
-        )
+        return np.array([
+            [cos, 0, 0, isin],
+            [0, cos, -isin, 0],
+            [0, -isin, cos, 0],
+            [isin, 0, 0, cos]
+        ], dtype=dtype)

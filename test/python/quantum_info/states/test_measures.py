@@ -34,16 +34,22 @@ class TestStateMeasures(QiskitTestCase):
         """Test state_fidelity function for statevector inputs"""
 
         psi1 = [0.70710678118654746, 0, 0, 0.70710678118654746]
-        psi2 = [0.0, 0.70710678118654746, 0.70710678118654746, 0.0]
-        self.assertAlmostEqual(state_fidelity(psi1, psi1), 1.0, places=7, msg="vector-vector input")
-        self.assertAlmostEqual(state_fidelity(psi2, psi2), 1.0, places=7, msg="vector-vector input")
-        self.assertAlmostEqual(state_fidelity(psi1, psi2), 0.0, places=7, msg="vector-vector input")
+        psi2 = [0., 0.70710678118654746, 0.70710678118654746, 0.]
+        self.assertAlmostEqual(state_fidelity(psi1, psi1), 1.0, places=7,
+                               msg='vector-vector input')
+        self.assertAlmostEqual(state_fidelity(psi2, psi2), 1.0, places=7,
+                               msg='vector-vector input')
+        self.assertAlmostEqual(state_fidelity(psi1, psi2), 0.0, places=7,
+                               msg='vector-vector input')
 
         psi1 = Statevector([0.70710678118654746, 0, 0, 0.70710678118654746])
-        psi2 = Statevector([0.0, 0.70710678118654746, 0.70710678118654746, 0.0])
-        self.assertAlmostEqual(state_fidelity(psi1, psi1), 1.0, places=7, msg="vector-vector input")
-        self.assertAlmostEqual(state_fidelity(psi2, psi2), 1.0, places=7, msg="vector-vector input")
-        self.assertAlmostEqual(state_fidelity(psi1, psi2), 0.0, places=7, msg="vector-vector input")
+        psi2 = Statevector([0., 0.70710678118654746, 0.70710678118654746, 0.])
+        self.assertAlmostEqual(state_fidelity(psi1, psi1), 1.0, places=7,
+                               msg='vector-vector input')
+        self.assertAlmostEqual(state_fidelity(psi2, psi2), 1.0, places=7,
+                               msg='vector-vector input')
+        self.assertAlmostEqual(state_fidelity(psi1, psi2), 0.0, places=7,
+                               msg='vector-vector input')
 
         psi1 = Statevector([1, 0, 0, 1])  # invalid state
         psi2 = Statevector([1, 0, 0, 0])
@@ -53,17 +59,29 @@ class TestStateMeasures(QiskitTestCase):
 
     def test_state_fidelity_density_matrix(self):
         """Test state_fidelity function for density matrix inputs"""
-        rho1 = [[0.5, 0, 0, 0.5], [0, 0, 0, 0], [0, 0, 0, 0], [0.5, 0, 0, 0.5]]
-        mix = [[0.25, 0, 0, 0], [0, 0.25, 0, 0], [0, 0, 0.25, 0], [0, 0, 0, 0.25]]
-        self.assertAlmostEqual(state_fidelity(rho1, rho1), 1.0, places=7, msg="matrix-matrix input")
-        self.assertAlmostEqual(state_fidelity(mix, mix), 1.0, places=7, msg="matrix-matrix input")
-        self.assertAlmostEqual(state_fidelity(rho1, mix), 0.25, places=7, msg="matrix-matrix input")
+        rho1 = [[0.5, 0, 0, 0.5],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+                [0.5, 0, 0, 0.5]]
+        mix = [[0.25, 0, 0, 0],
+               [0, 0.25, 0, 0],
+               [0, 0, 0.25, 0],
+               [0, 0, 0, 0.25]]
+        self.assertAlmostEqual(state_fidelity(rho1, rho1), 1.0, places=7,
+                               msg='matrix-matrix input')
+        self.assertAlmostEqual(state_fidelity(mix, mix), 1.0, places=7,
+                               msg='matrix-matrix input')
+        self.assertAlmostEqual(state_fidelity(rho1, mix), 0.25, places=7,
+                               msg='matrix-matrix input')
 
         rho1 = DensityMatrix(rho1)
         mix = DensityMatrix(mix)
-        self.assertAlmostEqual(state_fidelity(rho1, rho1), 1.0, places=7, msg="matrix-matrix input")
-        self.assertAlmostEqual(state_fidelity(mix, mix), 1.0, places=7, msg="matrix-matrix input")
-        self.assertAlmostEqual(state_fidelity(rho1, mix), 0.25, places=7, msg="matrix-matrix input")
+        self.assertAlmostEqual(state_fidelity(rho1, rho1), 1.0, places=7,
+                               msg='matrix-matrix input')
+        self.assertAlmostEqual(state_fidelity(mix, mix), 1.0, places=7,
+                               msg='matrix-matrix input')
+        self.assertAlmostEqual(state_fidelity(rho1, mix), 0.25, places=7,
+                               msg='matrix-matrix input')
 
         rho1 = DensityMatrix([1, 0, 0, 0])
         mix = DensityMatrix(np.diag([1, 0, 0, 1]))
@@ -74,11 +92,20 @@ class TestStateMeasures(QiskitTestCase):
     def test_state_fidelity_mixed(self):
         """Test state_fidelity function for statevector and density matrix inputs"""
         psi1 = Statevector([0.70710678118654746, 0, 0, 0.70710678118654746])
-        rho1 = DensityMatrix([[0.5, 0, 0, 0.5], [0, 0, 0, 0], [0, 0, 0, 0], [0.5, 0, 0, 0.5]])
-        mix = DensityMatrix([[0.25, 0, 0, 0], [0, 0.25, 0, 0], [0, 0, 0.25, 0], [0, 0, 0, 0.25]])
-        self.assertAlmostEqual(state_fidelity(psi1, rho1), 1.0, places=7, msg="vector-matrix input")
-        self.assertAlmostEqual(state_fidelity(psi1, mix), 0.25, places=7, msg="vector-matrix input")
-        self.assertAlmostEqual(state_fidelity(rho1, psi1), 1.0, places=7, msg="matrix-vector input")
+        rho1 = DensityMatrix([[0.5, 0, 0, 0.5],
+                              [0, 0, 0, 0],
+                              [0, 0, 0, 0],
+                              [0.5, 0, 0, 0.5]])
+        mix = DensityMatrix([[0.25, 0, 0, 0],
+                             [0, 0.25, 0, 0],
+                             [0, 0, 0.25, 0],
+                             [0, 0, 0, 0.25]])
+        self.assertAlmostEqual(state_fidelity(psi1, rho1), 1.0, places=7,
+                               msg='vector-matrix input')
+        self.assertAlmostEqual(state_fidelity(psi1, mix), 0.25, places=7,
+                               msg='vector-matrix input')
+        self.assertAlmostEqual(state_fidelity(rho1, psi1), 1.0, places=7,
+                               msg='matrix-vector input')
 
     def test_purity_statevector(self):
         """Test purity function on statevector inputs"""
@@ -114,7 +141,10 @@ class TestStateMeasures(QiskitTestCase):
         self.assertEqual(purity(rho, validate=True), 0.25)
         self.assertEqual(purity(rho, validate=False), 0.25)
 
-        rho = [[0.5, 0, 0, 0.5], [0, 0, 0, 0], [0, 0, 0, 0], [0.5, 0, 0, 0.5]]
+        rho = [[0.5, 0, 0, 0.5],
+               [0, 0, 0, 0],
+               [0, 0, 0, 0],
+               [0.5, 0, 0, 0.5]]
         self.assertEqual(purity(rho), 1)
         self.assertEqual(purity(rho, validate=True), 1)
         self.assertEqual(purity(rho, validate=False), 1)
@@ -126,15 +156,8 @@ class TestStateMeasures(QiskitTestCase):
 
     def test_purity_equivalence(self):
         """Test purity is same for equivalent inputs"""
-        for alpha, beta in [
-            (0, 0),
-            (0, 0.25),
-            (0.25, 0),
-            (0.33, 0.33),
-            (0.5, 0.5),
-            (0.75, 0.25),
-            (0, 0.75),
-        ]:
+        for alpha, beta in [(0, 0), (0, 0.25), (0.25, 0), (0.33, 0.33),
+                            (0.5, 0.5), (0.75, 0.25), (0, 0.75)]:
             psi = Statevector([alpha, beta, 0, 1j * np.sqrt(1 - alpha ** 2 - beta ** 2)])
             rho = DensityMatrix(psi)
             self.assertAlmostEqual(purity(psi), purity(rho))
@@ -147,7 +170,7 @@ class TestStateMeasures(QiskitTestCase):
             [0.5, 0.5, 0.5, 0.5],
             [0.5, 0.5j, -0.5j, 0.5],
             [0.70710678118654746, 0, 0, -0.70710678118654746j],
-            [0.70710678118654746] + (14 * [0]) + [0.70710678118654746j],
+            [0.70710678118654746] + (14 * [0]) + [0.70710678118654746j]
         ]
         for psi_ls in test_psis:
             self.assertEqual(entropy(psi_ls), 0)
@@ -164,26 +187,19 @@ class TestStateMeasures(QiskitTestCase):
         # Array input
         for prob in [0.001, 0.3, 0.7, 0.999]:
             rho = np.diag([prob, 1 - prob])
-            self.assertAlmostEqual(entropy(rho), shannon_entropy([prob, 1 - prob]))
-            self.assertAlmostEqual(
-                entropy(rho, base=np.e), shannon_entropy([prob, 1 - prob], base=np.e)
-            )
-            self.assertAlmostEqual(entropy(rho, base=2), shannon_entropy([prob, 1 - prob], base=2))
+            self.assertAlmostEqual(entropy(rho), shannon_entropy([prob, 1-prob]))
+            self.assertAlmostEqual(entropy(rho, base=np.e),
+                                   shannon_entropy([prob, 1-prob], base=np.e))
+            self.assertAlmostEqual(entropy(rho, base=2),
+                                   shannon_entropy([prob, 1-prob], base=2))
         # List input
         rho = [[0.5, 0], [0, 0.5]]
         self.assertAlmostEqual(entropy(rho), 1)
 
     def test_entropy_equivalence(self):
         """Test entropy is same for equivalent inputs"""
-        for alpha, beta in [
-            (0, 0),
-            (0, 0.25),
-            (0.25, 0),
-            (0.33, 0.33),
-            (0.5, 0.5),
-            (0.75, 0.25),
-            (0, 0.75),
-        ]:
+        for alpha, beta in [(0, 0), (0, 0.25), (0.25, 0), (0.33, 0.33),
+                            (0.5, 0.5), (0.75, 0.25), (0, 0.75)]:
             psi = Statevector([alpha, beta, 0, 1j * np.sqrt(1 - alpha ** 2 - beta ** 2)])
             rho = DensityMatrix(psi)
             self.assertAlmostEqual(entropy(psi), entropy(rho))
@@ -218,7 +234,10 @@ class TestStateMeasures(QiskitTestCase):
         self.assertAlmostEqual(concurrence(0.5 * rho1 + 0.5 * rho2), 0)
         self.assertAlmostEqual(concurrence(0.75 * rho1 + 0.25 * rho2), 0.5)
         # List input
-        rho = [[0.5, 0.5, 0, 0], [0.5, 0.5, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+        rho = [[0.5, 0.5, 0, 0],
+               [0.5, 0.5, 0, 0],
+               [0, 0, 0, 0],
+               [0, 0, 0, 0]]
         self.assertEqual(concurrence(rho), 0)
         # Array input
         rho = np.diag([0.25, 0.25, 0.25, 0.25])
@@ -226,15 +245,8 @@ class TestStateMeasures(QiskitTestCase):
 
     def test_concurrence_equivalence(self):
         """Test concurrence is same for equivalent inputs"""
-        for alpha, beta in [
-            (0, 0),
-            (0, 0.25),
-            (0.25, 0),
-            (0.33, 0.33),
-            (0.5, 0.5),
-            (0.75, 0.25),
-            (0, 0.75),
-        ]:
+        for alpha, beta in [(0, 0), (0, 0.25), (0.25, 0), (0.33, 0.33),
+                            (0.5, 0.5), (0.75, 0.25), (0, 0.75)]:
             psi = Statevector([alpha, beta, 0, 1j * np.sqrt(1 - alpha ** 2 - beta ** 2)])
             rho = DensityMatrix(psi)
             self.assertAlmostEqual(concurrence(psi), concurrence(rho))
@@ -267,11 +279,13 @@ class TestStateMeasures(QiskitTestCase):
         self.assertAlmostEqual(entanglement_of_formation(rho1), 1)
         self.assertAlmostEqual(entanglement_of_formation(rho2), 1)
         self.assertAlmostEqual(entanglement_of_formation(0.5 * rho1 + 0.5 * rho2), 0)
-        self.assertAlmostEqual(
-            entanglement_of_formation(0.75 * rho1 + 0.25 * rho2), 0.35457890266527003
-        )
+        self.assertAlmostEqual(entanglement_of_formation(0.75 * rho1 + 0.25 * rho2),
+                               0.35457890266527003)
         # List input
-        rho = [[0.5, 0.5, 0, 0], [0.5, 0.5, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+        rho = [[0.5, 0.5, 0, 0],
+               [0.5, 0.5, 0, 0],
+               [0, 0, 0, 0],
+               [0, 0, 0, 0]]
         self.assertEqual(entanglement_of_formation(rho), 0)
         # Array input
         rho = np.diag([0.25, 0.25, 0.25, 0.25])
@@ -279,18 +293,12 @@ class TestStateMeasures(QiskitTestCase):
 
     def test_entanglement_of_formation_equivalence(self):
         """Test entanglement of formation is same for equivalent inputs"""
-        for alpha, beta in [
-            (0, 0),
-            (0, 0.25),
-            (0.25, 0),
-            (0.33, 0.33),
-            (0.5, 0.5),
-            (0.75, 0.25),
-            (0, 0.75),
-        ]:
+        for alpha, beta in [(0, 0), (0, 0.25), (0.25, 0), (0.33, 0.33),
+                            (0.5, 0.5), (0.75, 0.25), (0, 0.75)]:
             psi = Statevector([alpha, beta, 0, 1j * np.sqrt(1 - alpha ** 2 - beta ** 2)])
             rho = DensityMatrix(psi)
-            self.assertAlmostEqual(entanglement_of_formation(psi), entanglement_of_formation(rho))
+            self.assertAlmostEqual(entanglement_of_formation(psi),
+                                   entanglement_of_formation(rho))
 
     def test_mutual_information_statevector(self):
         """Test mutual_information function on statevector inputs"""
@@ -320,7 +328,10 @@ class TestStateMeasures(QiskitTestCase):
         self.assertAlmostEqual(mutual_information(rho1), 2)
         self.assertAlmostEqual(mutual_information(rho2), 2)
         # List input
-        rho = [[0.5, 0.5, 0, 0], [0.5, 0.5, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+        rho = [[0.5, 0.5, 0, 0],
+               [0.5, 0.5, 0, 0],
+               [0, 0, 0, 0],
+               [0, 0, 0, 0]]
         self.assertEqual(mutual_information(rho), 0)
         # Array input
         rho = np.diag([0.25, 0.25, 0.25, 0.25])
@@ -328,19 +339,12 @@ class TestStateMeasures(QiskitTestCase):
 
     def test_mutual_information_equivalence(self):
         """Test mutual_information is same for equivalent inputs"""
-        for alpha, beta in [
-            (0, 0),
-            (0, 0.25),
-            (0.25, 0),
-            (0.33, 0.33),
-            (0.5, 0.5),
-            (0.75, 0.25),
-            (0, 0.75),
-        ]:
+        for alpha, beta in [(0, 0), (0, 0.25), (0.25, 0), (0.33, 0.33),
+                            (0.5, 0.5), (0.75, 0.25), (0, 0.75)]:
             psi = Statevector([alpha, beta, 0, 1j * np.sqrt(1 - alpha ** 2 - beta ** 2)])
             rho = DensityMatrix(psi)
             self.assertAlmostEqual(mutual_information(psi), mutual_information(rho))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

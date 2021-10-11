@@ -67,33 +67,33 @@ def block_to_dag(block: ScheduleBlock) -> rx.PyDAG:
 
 def _sequential_allocation(block: ScheduleBlock) -> rx.PyDAG:
     """A helper function to create a DAG of a sequential alignment context."""
-    dag_blocks = rx.PyDAG()
+    dag_instructions = rx.PyDAG()
 
     prev_node = None
     edges = []
-    for inst in block.blocks:
-        current_node = dag_blocks.add_node(inst)
+    for inst in block.instructions:
+        current_node = dag_instructions.add_node(inst)
         if prev_node is not None:
             edges.append((prev_node, current_node))
         prev_node = current_node
-    dag_blocks.add_edges_from_no_data(edges)
+    dag_instructions.add_edges_from_no_data(edges)
 
-    return dag_blocks
+    return dag_instructions
 
 
 def _parallel_allocation(block: ScheduleBlock) -> rx.PyDAG:
     """A helper function to create a DAG of a parallel alignment context."""
-    dag_blocks = rx.PyDAG()
+    dag_instructions = rx.PyDAG()
 
     slots = dict()
     edges = []
-    for inst in block.blocks:
-        current_node = dag_blocks.add_node(inst)
+    for inst in block.instructions:
+        current_node = dag_instructions.add_node(inst)
         for chan in inst.channels:
             prev_node = slots.pop(chan, None)
             if prev_node is not None:
                 edges.append((prev_node, current_node))
             slots[chan] = current_node
-    dag_blocks.add_edges_from_no_data(edges)
+    dag_instructions.add_edges_from_no_data(edges)
 
-    return dag_blocks
+    return dag_instructions

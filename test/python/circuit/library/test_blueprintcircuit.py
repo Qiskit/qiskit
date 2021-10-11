@@ -24,7 +24,7 @@ class MockBlueprint(BlueprintCircuit):
     """A mock blueprint class."""
 
     def __init__(self, num_qubits):
-        super().__init__(name="mock")
+        super().__init__(name='mock')
         self.num_qubits = num_qubits
 
     @property
@@ -35,26 +35,26 @@ class MockBlueprint(BlueprintCircuit):
     def num_qubits(self, num_qubits):
         self._invalidate()
         self._num_qubits = num_qubits
-        self.qregs = [QuantumRegister(self.num_qubits, name="q")]
+        self.qregs = [QuantumRegister(self.num_qubits, name='q')]
 
     def _check_configuration(self, raise_on_failure=True):
         valid = True
         if self.num_qubits is None:
             valid = False
             if raise_on_failure:
-                raise AttributeError("The number of qubits was not set.")
+                raise AttributeError('The number of qubits was not set.')
 
         if self.num_qubits < 1:
             valid = False
             if raise_on_failure:
-                raise ValueError("The number of qubits must at least be 1.")
+                raise ValueError('The number of qubits must at least be 1.')
 
         return valid
 
     def _build(self):
         super()._build()
 
-        self.rx(Parameter("angle"), 0)
+        self.rx(Parameter('angle'), 0)
         self.h(self.qubits)
 
 
@@ -67,48 +67,40 @@ class TestBlueprintCircuit(QiskitTestCase):
         mock = MockBlueprint(5)
         mock._build()
 
-        with self.subTest(msg="after building"):
+        with self.subTest(msg='after building'):
             self.assertGreater(len(mock._data), 0)
             self.assertEqual(len(mock._parameter_table), 1)
 
         mock._invalidate()
-        with self.subTest(msg="after invalidating"):
+        with self.subTest(msg='after invalidating'):
             self.assertTrue(mock._data is None)
             self.assertEqual(len(mock._parameter_table), 0)
 
         mock._build()
-        with self.subTest(msg="after re-building"):
+        with self.subTest(msg='after re-building'):
             self.assertGreater(len(mock._data), 0)
             self.assertEqual(len(mock._parameter_table), 1)
 
     def test_calling_attributes_works(self):
         """Test that the circuit is constructed when attributes are called."""
-        properties = ["data"]
+        properties = ['data']
         for prop in properties:
             with self.subTest(prop=prop):
                 circuit = MockBlueprint(3)
                 getattr(circuit, prop)
                 self.assertGreater(len(circuit._data), 0)
 
-        methods = [
-            "qasm",
-            "count_ops",
-            "num_connected_components",
-            "num_nonlocal_gates",
-            "depth",
-            "__len__",
-            "copy",
-            "inverse",
-        ]
+        methods = ['qasm', 'count_ops', 'num_connected_components', 'num_nonlocal_gates',
+                   'depth', '__len__', 'copy', 'inverse']
         for method in methods:
             with self.subTest(method=method):
                 circuit = MockBlueprint(3)
-                if method == "qasm":
+                if method == 'qasm':
                     continue  # raises since parameterized circuits produce invalid qasm 2.0.
                 getattr(circuit, method)()
                 self.assertGreater(len(circuit._data), 0)
 
-        with self.subTest(method="__get__[0]"):
+        with self.subTest(method='__get__[0]'):
             circuit = MockBlueprint(3)
             _ = circuit[2]
             self.assertGreater(len(circuit._data), 0)
@@ -127,12 +119,12 @@ class TestBlueprintCircuit(QiskitTestCase):
 
         self.assertEqual(reference, circuit)
 
-    @data("gate", "instruction")
+    @data('gate', 'instruction')
     def test_to_gate_and_instruction(self, method):
         """Test calling to_gate and to_instruction works without calling _build first."""
         circuit = MockBlueprint(2)
 
-        if method == "gate":
+        if method == 'gate':
             gate = circuit.to_gate()
             self.assertIsInstance(gate, Gate)
         else:
@@ -140,5 +132,5 @@ class TestBlueprintCircuit(QiskitTestCase):
             self.assertIsInstance(gate, Instruction)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

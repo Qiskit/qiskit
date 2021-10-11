@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-return-doc
+# pylint: disable=missing-return-doc, invalid-name
 
 """Module for builtin discrete pulses.
 
@@ -66,9 +66,8 @@ def zero(duration: int, name: Optional[str] = None) -> Waveform:
 _sampled_square_pulse = samplers.midpoint(continuous.square)
 
 
-def square(
-    duration: int, amp: complex, freq: float = None, phase: float = 0, name: Optional[str] = None
-) -> Waveform:
+def square(duration: int, amp: complex, freq: float = None,
+           phase: float = 0, name: Optional[str] = None) -> Waveform:
     r"""Generates square wave :class:`~qiskit.pulse.Waveform`.
 
     For :math:`A=` ``amp``, :math:`T=` ``period``, and :math:`\phi=` ``phase``,
@@ -90,7 +89,7 @@ def square(
         name: Name of pulse.
     """
     if freq is None:
-        freq = 1.0 / duration
+        freq = 1./duration
 
     return _sampled_square_pulse(duration, amp, freq, phase=phase, name=name)
 
@@ -98,9 +97,8 @@ def square(
 _sampled_sawtooth_pulse = samplers.midpoint(continuous.sawtooth)
 
 
-def sawtooth(
-    duration: int, amp: complex, freq: float = None, phase: float = 0, name: Optional[str] = None
-) -> Waveform:
+def sawtooth(duration: int, amp: complex, freq: float = None,
+             phase: float = 0, name: Optional[str] = None) -> Waveform:
     r"""Generates sawtooth wave :class:`~qiskit.pulse.Waveform`.
 
     For :math:`A=` ``amp``, :math:`T=` ``period``, and :math:`\phi=` ``phase``,
@@ -134,7 +132,7 @@ def sawtooth(
             plt.plot(range(duration), sawtooth_wave)
     """
     if freq is None:
-        freq = 1.0 / duration
+        freq = 1./duration
 
     return _sampled_sawtooth_pulse(duration, amp, freq, phase=phase, name=name)
 
@@ -142,9 +140,8 @@ def sawtooth(
 _sampled_triangle_pulse = samplers.midpoint(continuous.triangle)
 
 
-def triangle(
-    duration: int, amp: complex, freq: float = None, phase: float = 0, name: Optional[str] = None
-) -> Waveform:
+def triangle(duration: int, amp: complex, freq: float = None,
+             phase: float = 0, name: Optional[str] = None) -> Waveform:
     r"""Generates triangle wave :class:`~qiskit.pulse.Waveform`.
 
     For :math:`A=` ``amp``, :math:`T=` ``period``, and :math:`\phi=` ``phase``,
@@ -178,7 +175,7 @@ def triangle(
             plt.plot(range(duration), triangle_wave)
     """
     if freq is None:
-        freq = 1.0 / duration
+        freq = 1./duration
 
     return _sampled_triangle_pulse(duration, amp, freq, phase=phase, name=name)
 
@@ -186,9 +183,8 @@ def triangle(
 _sampled_cos_pulse = samplers.midpoint(continuous.cos)
 
 
-def cos(
-    duration: int, amp: complex, freq: float = None, phase: float = 0, name: Optional[str] = None
-) -> Waveform:
+def cos(duration: int, amp: complex, freq: float = None,
+        phase: float = 0, name: Optional[str] = None) -> Waveform:
     r"""Generates cosine wave :class:`~qiskit.pulse.Waveform`.
 
     For :math:`A=` ``amp``, :math:`\omega=` ``freq``, and :math:`\phi=` ``phase``,
@@ -207,7 +203,7 @@ def cos(
         name: Name of pulse.
     """
     if freq is None:
-        freq = 1 / duration
+        freq = 1/duration
 
     return _sampled_cos_pulse(duration, amp, freq, phase=phase, name=name)
 
@@ -215,9 +211,8 @@ def cos(
 _sampled_sin_pulse = samplers.midpoint(continuous.sin)
 
 
-def sin(
-    duration: int, amp: complex, freq: float = None, phase: float = 0, name: Optional[str] = None
-) -> Waveform:
+def sin(duration: int, amp: complex, freq: float = None,
+        phase: float = 0, name: Optional[str] = None) -> Waveform:
     r"""Generates sine wave :class:`~qiskit.pulse.Waveform`.
 
     For :math:`A=` ``amp``, :math:`\omega=` ``freq``, and :math:`\phi=` ``phase``,
@@ -236,7 +231,7 @@ def sin(
         name: Name of pulse.
     """
     if freq is None:
-        freq = 1 / duration
+        freq = 1/duration
 
     return _sampled_sin_pulse(duration, amp, freq, phase=phase, name=name)
 
@@ -244,9 +239,8 @@ def sin(
 _sampled_gaussian_pulse = samplers.midpoint(continuous.gaussian)
 
 
-def gaussian(
-    duration: int, amp: complex, sigma: float, name: Optional[str] = None, zero_ends: bool = True
-) -> Waveform:
+def gaussian(duration: int, amp: complex, sigma: float, name: Optional[str] = None,
+             zero_ends: bool = True) -> Waveform:
     r"""Generates unnormalized gaussian :class:`~qiskit.pulse.Waveform`.
 
     For :math:`A=` ``amp`` and :math:`\sigma=` ``sigma``, applies the ``midpoint`` sampling strategy
@@ -277,20 +271,19 @@ def gaussian(
         name: Name of pulse.
         zero_ends: If True, zero ends at ``x = -1, x = duration + 1``, but rescale to preserve amp.
     """
-    center = duration / 2
+    center = duration/2
     zeroed_width = duration + 2 if zero_ends else None
     rescale_amp = bool(zero_ends)
-    return _sampled_gaussian_pulse(
-        duration, amp, center, sigma, zeroed_width=zeroed_width, rescale_amp=rescale_amp, name=name
-    )
+    return _sampled_gaussian_pulse(duration, amp, center, sigma,
+                                   zeroed_width=zeroed_width, rescale_amp=rescale_amp,
+                                   name=name)
 
 
 _sampled_gaussian_deriv_pulse = samplers.midpoint(continuous.gaussian_deriv)
 
 
-def gaussian_deriv(
-    duration: int, amp: complex, sigma: float, name: Optional[str] = None
-) -> Waveform:
+def gaussian_deriv(duration: int, amp: complex, sigma: float,
+                   name: Optional[str] = None) -> Waveform:
     r"""Generates unnormalized gaussian derivative :class:`~qiskit.pulse.Waveform`.
 
     For :math:`A=` ``amp`` and :math:`\sigma=` ``sigma`` applies the `midpoint` sampling strategy
@@ -308,16 +301,15 @@ def gaussian_deriv(
         sigma: Width (standard deviation) of pulse.
         name: Name of pulse.
     """
-    center = duration / 2
+    center = duration/2
     return _sampled_gaussian_deriv_pulse(duration, amp, center, sigma, name=name)
 
 
 _sampled_sech_pulse = samplers.midpoint(continuous.sech)
 
 
-def sech(
-    duration: int, amp: complex, sigma: float, name: str = None, zero_ends: bool = True
-) -> Waveform:
+def sech(duration: int, amp: complex, sigma: float, name: str = None,
+         zero_ends: bool = True) -> Waveform:
     r"""Generates unnormalized sech :class:`~qiskit.pulse.Waveform`.
 
     For :math:`A=` ``amp`` and :math:`\sigma=` ``sigma``, applies the ``midpoint`` sampling strategy
@@ -346,12 +338,12 @@ def sech(
         name: Name of pulse.
         zero_ends: If True, zero ends at ``x = -1, x = duration + 1``, but rescale to preserve amp.
     """
-    center = duration / 2
+    center = duration/2
     zeroed_width = duration + 2 if zero_ends else None
     rescale_amp = bool(zero_ends)
-    return _sampled_sech_pulse(
-        duration, amp, center, sigma, zeroed_width=zeroed_width, rescale_amp=rescale_amp, name=name
-    )
+    return _sampled_sech_pulse(duration, amp, center, sigma,
+                               zeroed_width=zeroed_width, rescale_amp=rescale_amp,
+                               name=name)
 
 
 _sampled_sech_deriv_pulse = samplers.midpoint(continuous.sech_deriv)
@@ -375,22 +367,16 @@ def sech_deriv(duration: int, amp: complex, sigma: float, name: str = None) -> W
         sigma: Width (standard deviation) of pulse.
         name: Name of pulse.
     """
-    center = duration / 2
+    center = duration/2
     return _sampled_sech_deriv_pulse(duration, amp, center, sigma, name=name)
 
 
 _sampled_gaussian_square_pulse = samplers.midpoint(continuous.gaussian_square)
 
 
-def gaussian_square(
-    duration: int,
-    amp: complex,
-    sigma: float,
-    risefall: Optional[float] = None,
-    width: Optional[float] = None,
-    name: Optional[str] = None,
-    zero_ends: bool = True,
-) -> Waveform:
+def gaussian_square(duration: int, amp: complex, sigma: float,
+                    risefall: Optional[float] = None, width: Optional[float] = None,
+                    name: Optional[str] = None, zero_ends: bool = True) -> Waveform:
     r"""Generates gaussian square :class:`~qiskit.pulse.Waveform`.
 
     For :math:`d=` ``duration``, :math:`A=` ``amp``, :math:`\sigma=` ``sigma``,
@@ -433,29 +419,20 @@ def gaussian_square(
         if width is None:
             width = duration - 2 * risefall
         elif 2 * risefall + width != duration:
-            raise PulseError(
-                "Both width and risefall were specified, and they are "
-                "inconsistent: 2 * risefall + width == {} != "
-                "duration == {}.".format(2 * risefall + width, duration)
-            )
+            raise PulseError("Both width and risefall were specified, and they are "
+                             "inconsistent: 2 * risefall + width == {} != "
+                             "duration == {}.".format(2 * risefall + width, duration))
     center = duration / 2
     zeroed_width = duration + 2 if zero_ends else None
-    return _sampled_gaussian_square_pulse(
-        duration, amp, center, width, sigma, zeroed_width=zeroed_width, name=name
-    )
+    return _sampled_gaussian_square_pulse(duration, amp, center, width, sigma,
+                                          zeroed_width=zeroed_width, name=name)
 
 
 _sampled_drag_pulse = samplers.midpoint(continuous.drag)
 
 
-def drag(
-    duration: int,
-    amp: complex,
-    sigma: float,
-    beta: float,
-    name: Optional[str] = None,
-    zero_ends: bool = True,
-) -> Waveform:
+def drag(duration: int, amp: complex, sigma: float, beta: float,
+         name: Optional[str] = None, zero_ends: bool = True) -> Waveform:
     r"""Generates Y-only correction DRAG :class:`~qiskit.pulse.Waveform` for standard nonlinear
     oscillator (SNO) [1].
 
@@ -492,16 +469,9 @@ def drag(
         name: Name of pulse.
         zero_ends: If True, zero ends at ``x = -1, x = duration + 1``, but rescale to preserve amp.
     """
-    center = duration / 2
+    center = duration/2
     zeroed_width = duration + 2 if zero_ends else None
     rescale_amp = bool(zero_ends)
-    return _sampled_drag_pulse(
-        duration,
-        amp,
-        center,
-        sigma,
-        beta,
-        zeroed_width=zeroed_width,
-        rescale_amp=rescale_amp,
-        name=name,
-    )
+    return _sampled_drag_pulse(duration, amp, center, sigma, beta,
+                               zeroed_width=zeroed_width, rescale_amp=rescale_amp,
+                               name=name)

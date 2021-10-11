@@ -74,7 +74,7 @@ def _adjust_creg_sizes(creg_sizes, indices):
     # Get creg num values and then convert to the cumulative last index per creg.
     # e.g. [2, 1, 3] => [1, 2, 5]
     creg_nums = [x for _, x in creg_sizes]
-    creg_limits = [sum(creg_nums[0:x:1]) - 1 for x in range(0, len(creg_nums) + 1)][1:]
+    creg_limits = [sum(creg_nums[0:x:1])-1 for x in range(0, len(creg_nums)+1)][1:]
 
     # Now iterate over indices and find which creg that index is in.
     # When found increment the creg size
@@ -92,7 +92,7 @@ def _adjust_creg_sizes(creg_sizes, indices):
 
 def _marginalize(counts, indices=None):
     """Get the marginal counts for the given set of indices"""
-    num_clbits = len(next(iter(counts)).replace(" ", ""))
+    num_clbits = len(next(iter(counts)).replace(' ', ''))
 
     # Check if we do not need to marginalize and if so, trim
     # whitespace and '_' and return
@@ -104,7 +104,7 @@ def _marginalize(counts, indices=None):
         return ret
 
     if not indices or not set(indices).issubset(set(range(num_clbits))):
-        raise QiskitError(f"indices must be in range [0, {num_clbits - 1}].")
+        raise QiskitError('indices must be in range [0, {}].'.format(num_clbits-1))
 
     # Sort the indices to keep in descending order
     # Since bitstrings have qubit-0 as least significant bit
@@ -113,7 +113,7 @@ def _marginalize(counts, indices=None):
     # Build the return list
     new_counts = Counter()
     for key, val in counts.items():
-        new_key = "".join([_remove_space_underscore(key)[-idx - 1] for idx in indices])
+        new_key = ''.join([_remove_space_underscore(key)[-idx-1] for idx in indices])
         new_counts[new_key] += val
     return dict(new_counts)
 
@@ -123,17 +123,16 @@ def _format_marginal(counts, marg_counts, indices):
     multiple cregs and non-indices."""
     format_counts = {}
     counts_template = next(iter(counts))
-    counts_len = len(counts_template.replace(" ", ""))
+    counts_len = len(counts_template.replace(' ', ''))
     indices_rev = sorted(indices, reverse=True)
 
     for count in marg_counts:
         index_dict = dict(zip(indices_rev, count))
-        count_bits = "".join(
-            [index_dict[index] if index in index_dict else "_" for index in range(counts_len)]
-        )[::-1]
+        count_bits = ''.join([index_dict[index] if index in index_dict else '_'
+                              for index in range(counts_len)])[::-1]
         for index, bit in enumerate(counts_template):
-            if bit == " ":
-                count_bits = count_bits[:index] + " " + count_bits[index:]
+            if bit == ' ':
+                count_bits = count_bits[:index] + ' ' + count_bits[index:]
         format_counts[count_bits] = marg_counts[count]
     return format_counts
 

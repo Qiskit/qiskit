@@ -147,7 +147,6 @@ def functional_pulse(func: Callable) -> Callable:
     Raises:
         PulseError: when invalid function is specified.
     """
-
     @functools.wraps(func)
     def to_pulse(duration, *args, name=None, **kwargs):
         """Return Waveform."""
@@ -155,7 +154,7 @@ def functional_pulse(func: Callable) -> Callable:
             samples = func(duration, *args, **kwargs)
             samples = np.asarray(samples, dtype=np.complex128)
             return Waveform(samples=samples, name=name)
-        raise PulseError("The first argument must be an integer value representing duration.")
+        raise PulseError('The first argument must be an integer value representing duration.')
 
     return to_pulse
 
@@ -168,7 +167,7 @@ def _update_annotations(discretized_pulse: Callable) -> Callable:
     """
     undecorated_annotations = list(discretized_pulse.__annotations__.items())
     decorated_annotations = undecorated_annotations[1:]
-    decorated_annotations.insert(0, ("duration", int))
+    decorated_annotations.insert(0, ('duration', int))
     discretized_pulse.__annotations__ = dict(decorated_annotations)
     return discretized_pulse
 
@@ -180,10 +179,10 @@ def _update_docstring(discretized_pulse: Callable, sampler_inst: Callable) -> Ca
         discretized_pulse: Discretized decorated continuous pulse.
         sampler_inst: Applied sampler.
     """
-    wrapped_docstring = pydoc.render_doc(discretized_pulse, "%s")
-    header, body = wrapped_docstring.split("\n", 1)
-    body = textwrap.indent(body, "                    ")
-    wrapped_docstring = header + body
+    wrapped_docstring = pydoc.render_doc(discretized_pulse, '%s')
+    header, body = wrapped_docstring.split('\n', 1)
+    body = textwrap.indent(body, '                    ')
+    wrapped_docstring = header+body
     updated_ds = """
                 Discretized continuous pulse function: `{continuous_name}` using
                 sampler: `{sampler_name}`.
@@ -201,11 +200,9 @@ def _update_docstring(discretized_pulse: Callable, sampler_inst: Callable) -> Ca
                  Sampled continuous function:
 
                     {continuous_doc}
-                """.format(
-        continuous_name=discretized_pulse.__name__,
-        sampler_name=sampler_inst.__name__,
-        continuous_doc=wrapped_docstring,
-    )
+                """.format(continuous_name=discretized_pulse.__name__,
+                           sampler_name=sampler_inst.__name__,
+                           continuous_doc=wrapped_docstring)
 
     discretized_pulse.__doc__ = updated_ds
     return discretized_pulse
@@ -250,7 +247,7 @@ def sampler(sample_function: Callable) -> Callable:
         # Unset wrapped to return base sampler signature
         # but still get rest of benefits of wraps
         # such as __name__, __qualname__
-        call_sampler.__dict__.pop("__wrapped__")
+        call_sampler.__dict__.pop('__wrapped__')
         # wrap with functional pulse
         return functional_pulse(call_sampler)
 

@@ -44,5 +44,5 @@ class TestTemplates(QiskitTestCase):
         self.assertTrue(target.equiv(value))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

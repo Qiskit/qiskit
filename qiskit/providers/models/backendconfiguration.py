@@ -15,18 +15,13 @@ import re
 import copy
 import numbers
 import warnings
-from typing import Dict, List, Any, Iterable, Tuple, Union
+from typing import Dict, List, Any, Iterable, Union
 from collections import defaultdict
 
 from qiskit.exceptions import QiskitError
 from qiskit.providers.exceptions import BackendConfigurationError
-from qiskit.pulse.channels import (
-    AcquireChannel,
-    Channel,
-    ControlChannel,
-    DriveChannel,
-    MeasureChannel,
-)
+from qiskit.pulse.channels import (AcquireChannel, Channel, ControlChannel,
+                                   DriveChannel, MeasureChannel)
 
 
 class GateConfig:
@@ -39,16 +34,8 @@ class GateConfig:
                   and CX.
     """
 
-    def __init__(
-        self,
-        name,
-        parameters,
-        qasm_def,
-        coupling_map=None,
-        latency_map=None,
-        conditional=None,
-        description=None,
-    ):
+    def __init__(self, name, parameters, qasm_def, coupling_map=None,
+                 latency_map=None, conditional=None, description=None):
         """Initialize a GateConfig object
 
         Args:
@@ -106,18 +93,18 @@ class GateConfig:
             dict: The dictionary form of the GateConfig.
         """
         out_dict = {
-            "name": self.name,
-            "parameters": self.parameters,
-            "qasm_def": self.qasm_def,
+            'name': self.name,
+            'parameters': self.parameters,
+            'qasm_def': self.qasm_def,
         }
-        if hasattr(self, "coupling_map"):
-            out_dict["coupling_map"] = self.coupling_map
-        if hasattr(self, "latency_map"):
-            out_dict["latency_map"] = self.latency_map
-        if hasattr(self, "conditional"):
-            out_dict["conditional"] = self.conditional
-        if hasattr(self, "description"):
-            out_dict["description"] = self.description
+        if hasattr(self, 'coupling_map'):
+            out_dict['coupling_map'] = self.coupling_map
+        if hasattr(self, 'latency_map'):
+            out_dict['latency_map'] = self.latency_map
+        if hasattr(self, 'conditional'):
+            out_dict['conditional'] = self.conditional
+        if hasattr(self, 'description'):
+            out_dict['description'] = self.description
         return out_dict
 
     def __eq__(self, other):
@@ -127,11 +114,12 @@ class GateConfig:
         return False
 
     def __repr__(self):
-        out_str = f"GateConfig({self.name}, {self.parameters}, {self.qasm_def}"
-        for i in ["coupling_map", "latency_map", "conditional", "description"]:
+        out_str = "GateConfig(%s, %s, %s" % (self.name, self.parameters,
+                                             self.qasm_def)
+        for i in ['coupling_map', 'latency_map', 'conditional', 'description']:
             if hasattr(self, i):
-                out_str += ", " + repr(getattr(self, i))
-        out_str += ")"
+                out_str += ', ' + repr(getattr(self, i))
+        out_str += ')'
         return out_str
 
 
@@ -154,7 +142,7 @@ class UchannelLO:
             QiskitError: If q is < 0
         """
         if q < 0:
-            raise QiskitError("q must be >=0")
+            raise QiskitError('q must be >=0')
         self.q = q
         self.scale = scale
 
@@ -179,8 +167,8 @@ class UchannelLO:
             dict: The dictionary form of the UChannelLO.
         """
         out_dict = {
-            "q": self.q,
-            "scale": self.scale,
+            'q': self.q,
+            'scale': self.scale,
         }
         return out_dict
 
@@ -191,7 +179,7 @@ class UchannelLO:
         return False
 
     def __repr__(self):
-        return f"UchannelLO({self.q}, {self.scale})"
+        return "UchannelLO(%s, %s)" % (self.q, self.scale)
 
 
 class QasmBackendConfiguration:
@@ -213,40 +201,16 @@ class QasmBackendConfiguration:
 
     _data = {}
 
-    def __init__(
-        self,
-        backend_name,
-        backend_version,
-        n_qubits,
-        basis_gates,
-        gates,
-        local,
-        simulator,
-        conditional,
-        open_pulse,
-        memory,
-        max_shots,
-        coupling_map,
-        supported_instructions=None,
-        dynamic_reprate_enabled=False,
-        rep_delay_range=None,
-        default_rep_delay=None,
-        max_experiments=None,
-        sample_name=None,
-        n_registers=None,
-        register_map=None,
-        configurable=None,
-        credits_required=None,
-        online_date=None,
-        display_name=None,
-        description=None,
-        tags=None,
-        dt=None,
-        dtm=None,
-        processor_type=None,
-        parametric_pulses=None,
-        **kwargs,
-    ):
+    def __init__(self, backend_name, backend_version, n_qubits,
+                 basis_gates, gates, local, simulator,
+                 conditional, open_pulse, memory,
+                 max_shots, coupling_map, supported_instructions=None,
+                 dynamic_reprate_enabled=False, rep_delay_range=None,
+                 default_rep_delay=None, max_experiments=None,
+                 sample_name=None, n_registers=None, register_map=None,
+                 configurable=None, credits_required=None, online_date=None,
+                 display_name=None, description=None, tags=None, dt=None, dtm=None,
+                 processor_type=None, **kwargs):
         """Initialize a QasmBackendConfiguration Object
 
         Args:
@@ -298,8 +262,6 @@ class QasmBackendConfiguration:
                 - family: Processor family of this backend.
                 - revision: Revision version of this processor.
                 - segment: Segment this processor belongs to within a larger chip.
-            parametric_pulses (list): A list of pulse shapes which are supported on the backend.
-                For example: ``['gaussian', 'constant']``
 
             **kwargs: optional fields
         """
@@ -324,7 +286,7 @@ class QasmBackendConfiguration:
         if rep_delay_range:
             self.rep_delay_range = [_rd * 1e-6 for _rd in rep_delay_range]  # convert to sec
         if default_rep_delay is not None:
-            self.default_rep_delay = default_rep_delay * 1e-6  # convert to sec
+            self.default_rep_delay = default_rep_delay * 1e-6   # convert to sec
 
         # max_experiments must be >=1
         if max_experiments:
@@ -357,25 +319,18 @@ class QasmBackendConfiguration:
             self.dtm = dtm * 1e-9
         if processor_type is not None:
             self.processor_type = processor_type
-        if parametric_pulses is not None:
-            self.parametric_pulses = parametric_pulses
 
-        # convert lo range from GHz to Hz
-        if "qubit_lo_range" in kwargs.keys():
-            kwargs["qubit_lo_range"] = [
-                [min_range * 1e9, max_range * 1e9]
-                for (min_range, max_range) in kwargs["qubit_lo_range"]
-            ]
+        if 'qubit_lo_range' in kwargs.keys():
+            kwargs['qubit_lo_range'] = [[min_range * 1e9, max_range * 1e9] for
+                                        (min_range, max_range) in kwargs['qubit_lo_range']]
 
-        if "meas_lo_range" in kwargs.keys():
-            kwargs["meas_lo_range"] = [
-                [min_range * 1e9, max_range * 1e9]
-                for (min_range, max_range) in kwargs["meas_lo_range"]
-            ]
+        if 'meas_lo_range' in kwargs.keys():
+            kwargs['meas_lo_range'] = [[min_range * 1e9, max_range * 1e9] for
+                                       (min_range, max_range) in kwargs['meas_lo_range']]
 
         # convert rep_times from μs to sec
-        if "rep_times" in kwargs.keys():
-            kwargs["rep_times"] = [_rt * 1e-6 for _rt in kwargs["rep_times"]]
+        if 'rep_times' in kwargs.keys():
+            kwargs['rep_times'] = [_rt * 1e-6 for _rt in kwargs['rep_times']]
 
         self._data.update(kwargs)
 
@@ -383,7 +338,7 @@ class QasmBackendConfiguration:
         try:
             return self._data[name]
         except KeyError as ex:
-            raise AttributeError(f"Attribute {name} is not defined") from ex
+            raise AttributeError(f'Attribute {name} is not defined') from ex
 
     @classmethod
     def from_dict(cls, data):
@@ -397,8 +352,8 @@ class QasmBackendConfiguration:
             GateConfig: The GateConfig from the input dictionary.
         """
         in_data = copy.copy(data)
-        gates = [GateConfig.from_dict(x) for x in in_data.pop("gates")]
-        in_data["gates"] = gates
+        gates = [GateConfig.from_dict(x) for x in in_data.pop('gates')]
+        in_data['gates'] = gates
         return cls(**in_data)
 
     def to_dict(self):
@@ -408,66 +363,53 @@ class QasmBackendConfiguration:
             dict: The dictionary form of the GateConfig.
         """
         out_dict = {
-            "backend_name": self.backend_name,
-            "backend_version": self.backend_version,
-            "n_qubits": self.n_qubits,
-            "basis_gates": self.basis_gates,
-            "gates": [x.to_dict() for x in self.gates],
-            "local": self.local,
-            "simulator": self.simulator,
-            "conditional": self.conditional,
-            "open_pulse": self.open_pulse,
-            "memory": self.memory,
-            "max_shots": self.max_shots,
-            "coupling_map": self.coupling_map,
-            "dynamic_reprate_enabled": self.dynamic_reprate_enabled,
+            'backend_name': self.backend_name,
+            'backend_version': self.backend_version,
+            'n_qubits': self.n_qubits,
+            'basis_gates': self.basis_gates,
+            'gates': [x.to_dict() for x in self.gates],
+            'local': self.local,
+            'simulator': self.simulator,
+            'conditional': self.conditional,
+            'open_pulse': self.open_pulse,
+            'memory': self.memory,
+            'max_shots': self.max_shots,
+            'coupling_map': self.coupling_map,
+            'dynamic_reprate_enabled': self.dynamic_reprate_enabled
         }
 
-        if hasattr(self, "supported_instructions"):
-            out_dict["supported_instructions"] = self.supported_instructions
+        if hasattr(self, 'supported_instructions'):
+            out_dict['supported_instructions'] = self.supported_instructions
 
-        if hasattr(self, "rep_delay_range"):
-            out_dict["rep_delay_range"] = [_rd * 1e6 for _rd in self.rep_delay_range]
-        if hasattr(self, "default_rep_delay"):
-            out_dict["default_rep_delay"] = self.default_rep_delay * 1e6
+        if hasattr(self, 'rep_delay_range'):
+            out_dict['rep_delay_range'] = [_rd * 1e6 for _rd in self.rep_delay_range]
+        if hasattr(self, 'default_rep_delay'):
+            out_dict['default_rep_delay'] = self.default_rep_delay*1e6
 
-        for kwarg in [
-            "max_experiments",
-            "sample_name",
-            "n_registers",
-            "register_map",
-            "configurable",
-            "credits_required",
-            "online_date",
-            "display_name",
-            "description",
-            "tags",
-            "dt",
-            "dtm",
-            "processor_type",
-            "parametric_pulses",
-        ]:
+        for kwarg in ['max_experiments', 'sample_name', 'n_registers',
+                      'register_map', 'configurable', 'credits_required',
+                      'online_date', 'display_name', 'description',
+                      'tags', 'dt', 'dtm', 'processor_type']:
             if hasattr(self, kwarg):
                 out_dict[kwarg] = getattr(self, kwarg)
 
         out_dict.update(self._data)
 
-        if "dt" in out_dict:
-            out_dict["dt"] *= 1e9
-        if "dtm" in out_dict:
-            out_dict["dtm"] *= 1e9
+        if 'dt' in out_dict:
+            out_dict['dt'] *= 1e9
+        if 'dtm' in out_dict:
+            out_dict['dtm'] *= 1e9
 
-        # Use GHz in dict
-        if "qubit_lo_range" in out_dict:
-            out_dict["qubit_lo_range"] = [
-                [min_range * 1e-9, max_range * 1e-9]
-                for (min_range, max_range) in out_dict["qubit_lo_range"]
+        if 'qubit_lo_range' in out_dict:
+            out_dict['qubit_lo_range'] = [
+                [min_range * 1e9, max_range * 1e9] for
+                (min_range, max_range) in out_dict['qubit_lo_range']
             ]
 
-        if "meas_lo_range" in out_dict:
-            out_dict["meas_lo_range"] = [
-                [min_range * 1e-9, max_range * 1e-9]
-                for (min_range, max_range) in out_dict["meas_lo_range"]
+        if 'meas_lo_range' in out_dict:
+            out_dict['meas_lo_range'] = [
+                [min_range * 1e9, max_range * 1e9] for
+                (min_range, max_range) in out_dict['meas_lo_range']
             ]
 
         return out_dict
@@ -494,7 +436,6 @@ class QasmBackendConfiguration:
 
 class BackendConfiguration(QasmBackendConfiguration):
     """Backwards compat shim representing an abstract backend configuration."""
-
     pass
 
 
@@ -503,48 +444,46 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
     about the set up of the device which can be useful for building Pulse programs.
     """
 
-    def __init__(
-        self,
-        backend_name: str,
-        backend_version: str,
-        n_qubits: int,
-        basis_gates: List[str],
-        gates: GateConfig,
-        local: bool,
-        simulator: bool,
-        conditional: bool,
-        open_pulse: bool,
-        memory: bool,
-        max_shots: int,
-        coupling_map,
-        n_uchannels: int,
-        u_channel_lo: List[List[UchannelLO]],
-        meas_levels: List[int],
-        qubit_lo_range: List[List[float]],
-        meas_lo_range: List[List[float]],
-        dt: float,
-        dtm: float,
-        rep_times: List[float],
-        meas_kernels: List[str],
-        discriminators: List[str],
-        hamiltonian: Dict[str, Any] = None,
-        channel_bandwidth=None,
-        acquisition_latency=None,
-        conditional_latency=None,
-        meas_map=None,
-        max_experiments=None,
-        sample_name=None,
-        n_registers=None,
-        register_map=None,
-        configurable=None,
-        credits_required=None,
-        online_date=None,
-        display_name=None,
-        description=None,
-        tags=None,
-        channels: Dict[str, Any] = None,
-        **kwargs,
-    ):
+    def __init__(self,
+                 backend_name: str,
+                 backend_version: str,
+                 n_qubits: int,
+                 basis_gates: List[str],
+                 gates: GateConfig,
+                 local: bool,
+                 simulator: bool,
+                 conditional: bool,
+                 open_pulse: bool,
+                 memory: bool,
+                 max_shots: int,
+                 coupling_map,
+                 n_uchannels: int,
+                 u_channel_lo: List[List[UchannelLO]],
+                 meas_levels: List[int],
+                 qubit_lo_range: List[List[float]],
+                 meas_lo_range: List[List[float]],
+                 dt: float,
+                 dtm: float,
+                 rep_times: List[float],
+                 meas_kernels: List[str],
+                 discriminators: List[str],
+                 hamiltonian: Dict[str, Any] = None,
+                 channel_bandwidth=None,
+                 acquisition_latency=None,
+                 conditional_latency=None,
+                 meas_map=None,
+                 max_experiments=None,
+                 sample_name=None,
+                 n_registers=None,
+                 register_map=None,
+                 configurable=None,
+                 credits_required=None,
+                 online_date=None,
+                 display_name=None,
+                 description=None,
+                 tags=None,
+                 channels: Dict[str, Any] = None,
+                 **kwargs):
         """
         Initialize a backend configuration that contains all the extra configuration that is made
         available for OpenPulse backends.
@@ -604,23 +543,18 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         self.n_uchannels = n_uchannels
         self.u_channel_lo = u_channel_lo
         self.meas_levels = meas_levels
-
-        # convert from GHz to Hz
-        self.qubit_lo_range = [
-            [min_range * 1e9, max_range * 1e9] for (min_range, max_range) in qubit_lo_range
-        ]
-        self.meas_lo_range = [
-            [min_range * 1e9, max_range * 1e9] for (min_range, max_range) in meas_lo_range
-        ]
-
+        self.qubit_lo_range = [[min_range * 1e9, max_range * 1e9] for
+                               (min_range, max_range) in qubit_lo_range]
+        self.meas_lo_range = [[min_range * 1e9, max_range * 1e9] for
+                              (min_range, max_range) in meas_lo_range]
         self.meas_kernels = meas_kernels
         self.discriminators = discriminators
         self.hamiltonian = hamiltonian
         if hamiltonian is not None:
             self.hamiltonian = dict(hamiltonian)
-            self.hamiltonian["vars"] = {
+            self.hamiltonian['vars'] = {
                 k: v * 1e9 if isinstance(v, numbers.Number) else v
-                for k, v in self.hamiltonian["vars"].items()
+                for k, v in self.hamiltonian['vars'].items()
             }
 
         self.rep_times = [_rt * 1e-6 for _rt in rep_times]  # convert to sec
@@ -631,49 +565,29 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         if channels is not None:
             self.channels = channels
 
-            (
-                self._qubit_channel_map,
-                self._channel_qubit_map,
-                self._control_channels,
-            ) = self._parse_channels(channels=channels)
-        else:
-            self._control_channels = defaultdict(list)
+            (self._qubit_channel_map,
+             self._channel_qubit_map,
+             self._control_channels) = self._parse_channels(channels=channels)
 
         if channel_bandwidth is not None:
-            self.channel_bandwidth = [
-                [min_range * 1e9, max_range * 1e9] for (min_range, max_range) in channel_bandwidth
-            ]
+            self.channel_bandwidth = [[min_range * 1e9, max_range * 1e9] for
+                                      (min_range, max_range) in channel_bandwidth]
         if acquisition_latency is not None:
             self.acquisition_latency = acquisition_latency
         if conditional_latency is not None:
             self.conditional_latency = conditional_latency
         if meas_map is not None:
             self.meas_map = meas_map
-        super().__init__(
-            backend_name=backend_name,
-            backend_version=backend_version,
-            n_qubits=n_qubits,
-            basis_gates=basis_gates,
-            gates=gates,
-            local=local,
-            simulator=simulator,
-            conditional=conditional,
-            open_pulse=open_pulse,
-            memory=memory,
-            max_shots=max_shots,
-            coupling_map=coupling_map,
-            max_experiments=max_experiments,
-            sample_name=sample_name,
-            n_registers=n_registers,
-            register_map=register_map,
-            configurable=configurable,
-            credits_required=credits_required,
-            online_date=online_date,
-            display_name=display_name,
-            description=description,
-            tags=tags,
-            **kwargs,
-        )
+        super().__init__(backend_name=backend_name, backend_version=backend_version,
+                         n_qubits=n_qubits, basis_gates=basis_gates, gates=gates,
+                         local=local, simulator=simulator, conditional=conditional,
+                         open_pulse=open_pulse, memory=memory, max_shots=max_shots,
+                         coupling_map=coupling_map, max_experiments=max_experiments,
+                         sample_name=sample_name, n_registers=n_registers,
+                         register_map=register_map, configurable=configurable,
+                         credits_required=credits_required, online_date=online_date,
+                         display_name=display_name, description=description,
+                         tags=tags, **kwargs)
 
     @classmethod
     def from_dict(cls, data):
@@ -687,13 +601,13 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             GateConfig: The GateConfig from the input dictionary.
         """
         in_data = copy.copy(data)
-        gates = [GateConfig.from_dict(x) for x in in_data.pop("gates")]
-        in_data["gates"] = gates
-        input_uchannels = in_data.pop("u_channel_lo")
+        gates = [GateConfig.from_dict(x) for x in in_data.pop('gates')]
+        in_data['gates'] = gates
+        input_uchannels = in_data.pop('u_channel_lo')
         u_channels = []
         for channel in input_uchannels:
             u_channels.append([UchannelLO.from_dict(x) for x in channel])
-        in_data["u_channel_lo"] = u_channels
+        in_data['u_channel_lo'] = u_channels
         return cls(**in_data)
 
     def to_dict(self):
@@ -709,69 +623,63 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             for y in x:
                 channel.append(y.to_dict())
             u_channel_lo.append(channel)
-        out_dict.update(
-            {
-                "n_uchannels": self.n_uchannels,
-                "u_channel_lo": u_channel_lo,
-                "meas_levels": self.meas_levels,
-                "qubit_lo_range": self.qubit_lo_range,
-                "meas_lo_range": self.meas_lo_range,
-                "meas_kernels": self.meas_kernels,
-                "discriminators": self.discriminators,
-                "rep_times": self.rep_times,
-                "dt": self.dt,
-                "dtm": self.dtm,
-            }
-        )
+        out_dict.update({
+            'n_uchannels': self.n_uchannels,
+            'u_channel_lo': u_channel_lo,
+            'meas_levels': self.meas_levels,
+            'qubit_lo_range': self.qubit_lo_range,
+            'meas_lo_range': self.meas_lo_range,
+            'meas_kernels': self.meas_kernels,
+            'discriminators': self.discriminators,
+            'rep_times': self.rep_times,
+            'dt': self.dt,
+            'dtm': self.dtm,
+        })
 
-        if hasattr(self, "channel_bandwidth"):
-            out_dict["channel_bandwidth"] = self.channel_bandwidth
-        if hasattr(self, "meas_map"):
-            out_dict["meas_map"] = self.meas_map
-        if hasattr(self, "acquisition_latency"):
-            out_dict["acquisition_latency"] = self.acquisition_latency
-        if hasattr(self, "conditional_latency"):
-            out_dict["conditional_latency"] = self.conditional_latency
-        if "channels" in out_dict:
-            out_dict.pop("_qubit_channel_map")
-            out_dict.pop("_channel_qubit_map")
-            out_dict.pop("_control_channels")
+        if hasattr(self, 'channel_bandwidth'):
+            out_dict['channel_bandwidth'] = self.channel_bandwidth
+        if hasattr(self, 'meas_map'):
+            out_dict['meas_map'] = self.meas_map
+        if hasattr(self, 'acquisition_latency'):
+            out_dict['acquisition_latency'] = self.acquisition_latency
+        if hasattr(self, 'conditional_latency'):
+            out_dict['conditional_latency'] = self.conditional_latency
+        if 'channels' in out_dict:
+            out_dict.pop('_qubit_channel_map')
+            out_dict.pop('_channel_qubit_map')
+            out_dict.pop('_control_channels')
 
-        # Use GHz in dict
         if self.qubit_lo_range:
-            out_dict["qubit_lo_range"] = [
-                [min_range * 1e-9, max_range * 1e-9]
-                for (min_range, max_range) in self.qubit_lo_range
-            ]
+            out_dict['qubit_lo_range'] = [
+                [min_range * 1e-9, max_range * 1e-9] for
+                (min_range, max_range) in self.qubit_lo_range]
 
         if self.meas_lo_range:
-            out_dict["meas_lo_range"] = [
-                [min_range * 1e-9, max_range * 1e-9]
-                for (min_range, max_range) in self.meas_lo_range
-            ]
+            out_dict['meas_lo_range'] = [
+                [min_range * 1e-9, max_range * 1e-9] for
+                (min_range, max_range) in self.meas_lo_range]
 
         if self.rep_times:
-            out_dict["rep_times"] = [_rt * 1e6 for _rt in self.rep_times]
+            out_dict['rep_times'] = [_rt * 1e6 for _rt in self.rep_times]
 
-        out_dict["dt"] *= 1e9
-        out_dict["dtm"] *= 1e9
+        out_dict['dt'] *= 1e9
+        out_dict['dtm'] *= 1e9
 
-        if hasattr(self, "channel_bandwidth"):
-            out_dict["channel_bandwidth"] = [
-                [min_range * 1e-9, max_range * 1e-9]
-                for (min_range, max_range) in self.channel_bandwidth
-            ]
+        if hasattr(self, 'channel_bandwidth'):
+            out_dict['channel_bandwidth'] = [
+                [min_range * 1e-9, max_range * 1e-9] for
+                (min_range, max_range) in self.channel_bandwidth]
 
         if self.hamiltonian:
             hamiltonian = copy.deepcopy(self.hamiltonian)
-            hamiltonian["vars"] = {
+            hamiltonian['vars'] = {
                 k: v * 1e-9 if isinstance(v, numbers.Number) else v
-                for k, v in hamiltonian["vars"].items()
+                for k, v in hamiltonian['vars'].items()
             }
-            out_dict["hamiltonian"] = hamiltonian
+            out_dict['hamiltonian'] = hamiltonian
 
-        if hasattr(self, "channels"):
-            out_dict["channels"] = self.channels
+        if hasattr(self, 'channels'):
+            out_dict['channels'] = self.channels
 
         return out_dict
 
@@ -786,11 +694,6 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         """Sample rate of the signal channels in Hz (1/dt)."""
         return 1.0 / self.dt
 
-    @property
-    def control_channels(self) -> Dict[Tuple[int, ...], List]:
-        """Return the control channels"""
-        return self._control_channels
-
     def drive(self, qubit: int) -> DriveChannel:
         """
         Return the drive channel for the given qubit.
@@ -802,7 +705,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             Qubit drive channel.
         """
         if not 0 <= qubit < self.n_qubits:
-            raise BackendConfigurationError(f"Invalid index for {qubit}-qubit system.")
+            raise BackendConfigurationError("Invalid index for {}-qubit system.".format(qubit))
         return DriveChannel(qubit)
 
     def measure(self, qubit: int) -> MeasureChannel:
@@ -815,7 +718,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             Qubit measurement stimulus line.
         """
         if not 0 <= qubit < self.n_qubits:
-            raise BackendConfigurationError(f"Invalid index for {qubit}-qubit system.")
+            raise BackendConfigurationError("Invalid index for {}-qubit system.".format(qubit))
         return MeasureChannel(qubit)
 
     def acquire(self, qubit: int) -> AcquireChannel:
@@ -828,10 +731,11 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             Qubit measurement acquisition line.
         """
         if not 0 <= qubit < self.n_qubits:
-            raise BackendConfigurationError(f"Invalid index for {qubit}-qubit systems.")
+            raise BackendConfigurationError("Invalid index for {}-qubit systems.".format(qubit))
         return AcquireChannel(qubit)
 
-    def control(self, qubits: Iterable[int] = None, channel: int = None) -> List[ControlChannel]:
+    def control(self, qubits: Iterable[int] = None,
+                channel: int = None) -> List[ControlChannel]:
         """
         Return the secondary drive channel for the given qubit -- typically utilized for
         controlling multiqubit interactions. This channel is derived from other channels.
@@ -848,12 +752,10 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             List of control channels.
         """
         if channel is not None:
-            warnings.warn(
-                "The channel argument has been deprecated in favor of qubits. "
-                "This method will now return accurate ControlChannels determined "
-                "by qubit indices.",
-                DeprecationWarning,
-            )
+            warnings.warn('The channel argument has been deprecated in favor of qubits. '
+                          'This method will now return accurate ControlChannels determined '
+                          'by qubit indices.',
+                          DeprecationWarning)
             qubits = [channel]
         try:
             if isinstance(qubits, list):
@@ -972,12 +874,12 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             DriveChannel.prefix: DriveChannel,
             ControlChannel.prefix: ControlChannel,
             MeasureChannel.prefix: MeasureChannel,
-            "acquire": AcquireChannel,
+            'acquire': AcquireChannel
         }
         for channel, config in channels.items():
             channel_prefix, index = self._get_channel_prefix_index(channel)
             channel_type = channels_dict[channel_prefix]
-            qubits = tuple(config["operates"]["qubits"])
+            qubits = tuple(config['operates']['qubits'])
             if channel_prefix in channels_dict:
                 qubit_channel_map[qubits].append(channel_type(index))
                 channel_qubit_map[(channel_type(index))].extend(list(qubits))
@@ -1000,6 +902,6 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         """
         channel_prefix = re.match(r"(?P<channel>[a-z]+)(?P<index>[0-9]+)", channel)
         try:
-            return channel_prefix.group("channel"), int(channel_prefix.group("index"))
+            return channel_prefix.group('channel'), int(channel_prefix.group('index'))
         except AttributeError as ex:
             raise BackendConfigurationError(f"Invalid channel name - '{channel}' found.") from ex

@@ -20,5 +20,10 @@ from .base_operator import BaseOperator
 from .mixins import LinearMixin, AdjointMixin, TolerancesMixin
 
 
-class LinearOp(BaseOperator, AdjointMixin, LinearMixin, TolerancesMixin, ABC):
-    """Abstract linear operator base class."""
+# pylint: disable = abstract-method
+class LinearOp(BaseOperator,
+               AdjointMixin,
+               LinearMixin,
+               TolerancesMixin,
+               ABC):
+    """Abstract linear operator base class. """

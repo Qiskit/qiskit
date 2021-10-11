@@ -30,47 +30,55 @@ class ParameterTestBase(QiskitTestCase):
         """Just some useful, reusable Parameters, constants, schedules."""
         super().setUp()
 
-        self.amp1_1 = Parameter("amp1_1")
-        self.amp1_2 = Parameter("amp1_2")
-        self.amp2 = Parameter("amp2")
-        self.amp3 = Parameter("amp3")
+        self.amp1_1 = Parameter('amp1_1')
+        self.amp1_2 = Parameter('amp1_2')
+        self.amp2 = Parameter('amp2')
+        self.amp3 = Parameter('amp3')
 
-        self.dur1 = Parameter("dur1")
-        self.dur2 = Parameter("dur2")
-        self.dur3 = Parameter("dur3")
+        self.dur1 = Parameter('dur1')
+        self.dur2 = Parameter('dur2')
+        self.dur3 = Parameter('dur3')
 
         self.parametric_waveform1 = pulse.Gaussian(
-            duration=self.dur1, amp=self.amp1_1 + self.amp1_2, sigma=self.dur1 / 4
+            duration=self.dur1,
+            amp=self.amp1_1 + self.amp1_2,
+            sigma=self.dur1/4
         )
 
         self.parametric_waveform2 = pulse.Gaussian(
-            duration=self.dur2, amp=self.amp2, sigma=self.dur2 / 5
+            duration=self.dur2,
+            amp=self.amp2,
+            sigma=self.dur2/5
         )
 
         self.parametric_waveform3 = pulse.Gaussian(
-            duration=self.dur3, amp=self.amp3, sigma=self.dur3 / 6
+            duration=self.dur3,
+            amp=self.amp3,
+            sigma=self.dur3/6
         )
 
-        self.ch1 = Parameter("ch1")
-        self.ch2 = Parameter("ch2")
-        self.ch3 = Parameter("ch3")
+        self.ch1 = Parameter('ch1')
+        self.ch2 = Parameter('ch2')
+        self.ch3 = Parameter('ch3')
 
         self.d1 = pulse.DriveChannel(self.ch1)
         self.d2 = pulse.DriveChannel(self.ch2)
         self.d3 = pulse.DriveChannel(self.ch3)
 
-        self.phi1 = Parameter("phi1")
-        self.phi2 = Parameter("phi2")
-        self.phi3 = Parameter("phi3")
+        self.phi1 = Parameter('phi1')
+        self.phi2 = Parameter('phi2')
+        self.phi3 = Parameter('phi3')
 
-        self.meas_dur = Parameter("meas_dur")
-        self.mem1 = Parameter("s1")
-        self.reg1 = Parameter("m1")
+        self.meas_dur = Parameter('meas_dur')
+        self.mem1 = Parameter('s1')
+        self.reg1 = Parameter('m1')
 
-        self.context_dur = Parameter("context_dur")
+        self.context_dur = Parameter('context_dur')
 
         # schedule under test
-        subroutine = pulse.ScheduleBlock(alignment_context=AlignLeft())
+        subroutine = pulse.ScheduleBlock(
+            alignment_context=AlignLeft()
+        )
         subroutine += pulse.ShiftPhase(self.phi1, self.d1)
         subroutine += pulse.Play(self.parametric_waveform1, self.d1)
 
@@ -78,7 +86,8 @@ class ParameterTestBase(QiskitTestCase):
         sched += pulse.ShiftPhase(self.phi3, self.d3)
 
         long_schedule = pulse.ScheduleBlock(
-            alignment_context=AlignEquispaced(self.context_dur), name="long_schedule"
+            alignment_context=AlignEquispaced(self.context_dur),
+            name='long_schedule'
         )
 
         long_schedule += subroutine
@@ -87,12 +96,10 @@ class ParameterTestBase(QiskitTestCase):
         long_schedule += pulse.Call(sched)
         long_schedule += pulse.Play(self.parametric_waveform3, self.d3)
 
-        long_schedule += pulse.Acquire(
-            self.meas_dur,
-            pulse.AcquireChannel(self.ch1),
-            mem_slot=pulse.MemorySlot(self.mem1),
-            reg_slot=pulse.RegisterSlot(self.reg1),
-        )
+        long_schedule += pulse.Acquire(self.meas_dur,
+                                       pulse.AcquireChannel(self.ch1),
+                                       mem_slot=pulse.MemorySlot(self.mem1),
+                                       reg_slot=pulse.RegisterSlot(self.reg1))
 
         self.test_sched = long_schedule
 
@@ -242,7 +249,7 @@ class TestParameterSetter(ParameterTestBase):
 
         self.assertEqual(assigned, ref_obj)
 
-    def test_nested_assignment_partial_bind(self):
+    def test_nested_assigment_partial_bind(self):
         """Test nested schedule with call instruction.
         Inline the schedule and partially bind parameters."""
         context = AlignEquispaced(duration=self.context_dur)
@@ -264,32 +271,16 @@ class TestParameterSetter(ParameterTestBase):
 
         ref_context = AlignEquispaced(duration=1000)
         ref_subroutine = pulse.ScheduleBlock(alignment_context=ref_context)
-        ref_subroutine += pulse.Play(
-            pulse.Gaussian(200, self.amp1_1 + self.amp1_2, 50), pulse.DriveChannel(1)
-        )
+        ref_subroutine += pulse.Play(pulse.Gaussian(200, self.amp1_1 + self.amp1_2, 25),
+                                     pulse.DriveChannel(1))
 
         ref_nested_block = pulse.ScheduleBlock()
         ref_nested_block += ref_subroutine
 
         ref_obj = pulse.ScheduleBlock()
-        ref_obj += ref_nested_block
+        ref_obj += nested_block
 
         self.assertEqual(assigned, ref_obj)
-
-    def test_complex_valued_parameter(self):
-        """Test complex valued parameter can be casted to a complex value."""
-        amp = Parameter("amp")
-
-        test_sched = pulse.ScheduleBlock()
-        test_sched.append(
-            pulse.Play(
-                pulse.Constant(160, amp=1j * amp),
-                pulse.DriveChannel(0),
-            ),
-            inplace=True,
-        )
-        test_assigned = test_sched.assign_parameters({amp: 0.1}, inplace=False)
-        self.assertTrue(isinstance(test_assigned.blocks[0].pulse.amp, complex))
 
     def test_set_parameter_to_complex_schedule(self):
         """Test get parameters from complicated schedule."""
@@ -306,36 +297,42 @@ class TestParameterSetter(ParameterTestBase):
             self.ch1: 0,
             self.ch2: 2,
             self.ch3: 4,
-            self.phi1: 1.0,
-            self.phi2: 2.0,
-            self.phi3: 3.0,
+            self.phi1: 1.,
+            self.phi2: 2.,
+            self.phi3: 3.,
             self.meas_dur: 300,
             self.mem1: 3,
             self.reg1: 0,
-            self.context_dur: 1000,
+            self.context_dur: 1000
         }
 
         visitor = ParameterSetter(param_map=value_dict)
         assigned = visitor.visit(test_block)
 
         # create ref schedule
-        subroutine = pulse.ScheduleBlock(alignment_context=AlignLeft())
-        subroutine += pulse.ShiftPhase(1.0, pulse.DriveChannel(0))
+        subroutine = pulse.ScheduleBlock(
+            alignment_context=AlignLeft()
+        )
+        subroutine += pulse.ShiftPhase(1., pulse.DriveChannel(0))
         subroutine += pulse.Play(pulse.Gaussian(100, 0.3, 25), pulse.DriveChannel(0))
 
         sched = pulse.Schedule()
-        sched += pulse.ShiftPhase(3.0, pulse.DriveChannel(4))
+        sched += pulse.ShiftPhase(3., pulse.DriveChannel(4))
 
-        ref_obj = pulse.ScheduleBlock(alignment_context=AlignEquispaced(1000), name="long_schedule")
+        ref_obj = pulse.ScheduleBlock(
+            alignment_context=AlignEquispaced(1000),
+            name='long_schedule'
+        )
 
         ref_obj += subroutine
-        ref_obj += pulse.ShiftPhase(2.0, pulse.DriveChannel(2))
+        ref_obj += pulse.ShiftPhase(2., pulse.DriveChannel(2))
         ref_obj += pulse.Play(pulse.Gaussian(125, 0.3, 25), pulse.DriveChannel(2))
         ref_obj += pulse.Call(sched)
         ref_obj += pulse.Play(pulse.Gaussian(150, 0.4, 25), pulse.DriveChannel(4))
 
-        ref_obj += pulse.Acquire(
-            300, pulse.AcquireChannel(0), pulse.MemorySlot(3), pulse.RegisterSlot(0)
-        )
+        ref_obj += pulse.Acquire(300,
+                                 pulse.AcquireChannel(0),
+                                 pulse.MemorySlot(3),
+                                 pulse.RegisterSlot(0))
 
         self.assertEqual(assigned, ref_obj)

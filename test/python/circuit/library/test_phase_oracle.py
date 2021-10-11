@@ -26,12 +26,10 @@ from qiskit.quantum_info import Statevector
 class TestPhaseOracle(QiskitTestCase):
     """Test phase oracle object."""
 
-    @data(
-        ("x | x", "1", True),
-        ("x & x", "0", False),
-        ("(x0 & x1 | ~x2) ^ x4", "0110", False),
-        ("xx & xxx | ( ~z ^ zz)", "0111", True),
-    )
+    @data(('x | x', '1', True),
+          ('x & x', '0', False),
+          ('(x0 & x1 | ~x2) ^ x4', '0110', False),
+          ('xx & xxx | ( ~z ^ zz)', '0111', True))
     @unpack
     def test_evaluate_bitstring(self, expression, input_bitstring, expected):
         """PhaseOracle(...).evaluate_bitstring"""
@@ -39,12 +37,10 @@ class TestPhaseOracle(QiskitTestCase):
         result = oracle.evaluate_bitstring(input_bitstring)
         self.assertEqual(result, expected)
 
-    @data(
-        ("x | x", [1]),
-        ("x & y", [3]),
-        ("(x0 & x1 | ~x2) ^ x4", [0, 1, 2, 3, 7, 12, 13, 14]),
-        ("x & y ^ ( ~z1 | z2)", [0, 1, 2, 7, 8, 9, 10, 12, 13, 14]),
-    )
+    @data(('x | x', [1]),
+          ('x & y', [3]),
+          ('(x0 & x1 | ~x2) ^ x4', [0, 1, 2, 3, 7, 12, 13, 14]),
+          ('x & y ^ ( ~z1 | z2)', [0, 1, 2, 7, 8, 9, 10, 12, 13, 14]))
     @unpack
     def test_statevector(self, expression, good_states):
         """Circuit generation"""
@@ -68,5 +64,5 @@ class TestPhaseOracle(QiskitTestCase):
         self.assertListEqual(expected_invalid, result_invalid)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

@@ -34,7 +34,7 @@ def summarize_circuits(circuits):
     if not isinstance(circuits, list):
         circuits = [circuits]
     ret = ""
-    ret += f"Submitting {len(circuits)} circuits.\n"
+    ret += "Submitting {} circuits.\n".format(len(circuits))
     ret += "============================================================================\n"
     stats = np.zeros(4)
     for i, circuit in enumerate(circuits):
@@ -47,23 +47,21 @@ def summarize_circuits(circuits):
         stats[1] += num_clbits
         stats[2] += size
         stats[3] += depth
-        ret = "".join(
-            [
-                ret,
-                "{}-th circuit: {} qubits, {} classical bits and {} "
-                "operations with depth {}\nop_counts: {}\n".format(
-                    i, num_qubits, num_clbits, size, depth, op_counts
-                ),
-            ]
-        )
+        ret = ''.join([
+            ret,
+            "{}-th circuit: {} qubits, {} classical bits and {} "
+            "operations with depth {}\nop_counts: {}\n".format(
+                i, num_qubits, num_clbits, size, depth, op_counts
+            )
+        ])
     if len(circuits) > 1:
         stats /= len(circuits)
-        ret = "".join(
-            [
-                ret,
-                "Average: {:.2f} qubits, {:.2f} classical bits and {:.2f} "
-                "operations with depth {:.2f}\n".format(stats[0], stats[1], stats[2], stats[3]),
-            ]
-        )
+        ret = ''.join([
+            ret,
+            "Average: {:.2f} qubits, {:.2f} classical bits and {:.2f} "
+            "operations with depth {:.2f}\n".format(
+                stats[0], stats[1], stats[2], stats[3]
+            )
+        ])
     ret += "============================================================================\n"
     return ret

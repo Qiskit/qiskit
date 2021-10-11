@@ -56,7 +56,7 @@ qc2.measure([0, 1, 2, 3], [0, 1, 2, 3])
 print("(Aer Backends)")
 for backend in BasicAer.backends():
     print(backend.status())
-qasm_simulator = BasicAer.get_backend("qasm_simulator")
+qasm_simulator = BasicAer.get_backend('qasm_simulator')
 
 
 # Compile and run the circuit on a real device backend
@@ -97,7 +97,7 @@ pm.append(Decompose(SwapGate))
 pm.append(CXDirection(coupling_map))
 
 # unroll to single qubit gates
-pm.append(Unroller(["u1", "u2", "u3", "id", "cx"]))
+pm.append(Unroller(['u1', 'u2', 'u3', 'id', 'cx']))
 qc1_new = pm.run(qc1)
 qc2_new = pm.run(qc2)
 

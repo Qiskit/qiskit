@@ -28,48 +28,44 @@ class TestBackendConfiguration(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.provider = FakeProvider()
-        self.config = self.provider.get_backend("fake_openpulse_2q").configuration()
+        self.config = self.provider.get_backend('fake_openpulse_2q').configuration()
 
     def test_simple_config(self):
         """Test the most basic getters."""
-        self.assertEqual(self.config.dt, 1.3333 * 1.0e-9)
-        self.assertEqual(self.config.dtm, 10.5 * 1.0e-9)
-        self.assertEqual(self.config.basis_gates, ["u1", "u2", "u3", "cx", "id"])
+        self.assertEqual(self.config.dt, 1.3333 * 1.e-9)
+        self.assertEqual(self.config.dtm, 10.5 * 1.e-9)
+        self.assertEqual(self.config.basis_gates, ['u1', 'u2', 'u3', 'cx', 'id'])
 
     def test_simple_config_qasm(self):
         """Test the most basic getters for qasm."""
-        qasm_conf = self.provider.get_backend("fake_qasm_simulator").configuration()
-        self.assertEqual(qasm_conf.dt, 1.3333 * 1.0e-9)
-        self.assertEqual(qasm_conf.dtm, 10.5 * 1.0e-9)
-        self.assertEqual(qasm_conf.qubit_lo_range, [[4.95e9, 5.05e9] for _ in range(5)])
-        self.assertEqual(qasm_conf.meas_lo_range, [[6.65e9, 6.75e9] for _ in range(5)])
+        qasm_conf = self.provider.get_backend('fake_qasm_simulator').configuration()
+        self.assertEqual(qasm_conf.dt, 1.3333 * 1.e-9)
+        self.assertEqual(qasm_conf.dtm, 10.5 * 1.e-9)
 
     def test_sample_rate(self):
         """Test that sample rate is 1/dt."""
-        self.assertEqual(self.config.sample_rate, 1.0 / self.config.dt)
+        self.assertEqual(self.config.sample_rate, 1. / self.config.dt)
 
     def test_hamiltonian(self):
         """Test the hamiltonian method."""
-        self.assertEqual(
-            self.config.hamiltonian["description"],
-            "A hamiltonian for a mocked 2Q device, with 1Q and 2Q terms.",
-        )
+        self.assertEqual(self.config.hamiltonian['description'],
+                         "A hamiltonian for a mocked 2Q device, with 1Q and 2Q terms.")
         ref_vars = {
-            "v0": 5.0 * 1e9,
-            "v1": 5.1 * 1e9,
-            "j": 0.01 * 1e9,
-            "r": 0.02 * 1e9,
-            "alpha0": -0.33 * 1e9,
-            "alpha1": -0.33 * 1e9,
+            'v0': 5.0 * 1e9,
+            'v1': 5.1 * 1e9,
+            'j': 0.01 * 1e9,
+            'r': 0.02 * 1e9,
+            'alpha0': -0.33 * 1e9,
+            'alpha1': -0.33 * 1e9
         }
-        self.assertEqual(self.config.hamiltonian["vars"], ref_vars)
+        self.assertEqual(self.config.hamiltonian['vars'], ref_vars)
         # Test that on serialization inverse conversion is done.
         self.assertEqual(
-            self.config.to_dict()["hamiltonian"]["vars"],
-            {k: var * 1e-9 for k, var in ref_vars.items()},
+            self.config.to_dict()['hamiltonian']['vars'],
+            {k: var*1e-9 for k, var in ref_vars.items()}
         )
         # 3Q doesn't offer a hamiltonian -- test that we get a reasonable response
-        backend_3q = self.provider.get_backend("fake_openpulse_3q")
+        backend_3q = self.provider.get_backend('fake_openpulse_3q')
         self.assertEqual(backend_3q.configuration().hamiltonian, None)
 
     def test_get_channels(self):
@@ -89,7 +85,7 @@ class TestBackendConfiguration(QiskitTestCase):
         """Test to get all qubits operated on a given channel."""
         self.assertEqual(self.config.get_channel_qubits(channel=DriveChannel(0)), [0])
         self.assertEqual(self.config.get_channel_qubits(channel=ControlChannel(0)), [0, 1])
-        backend_3q = self.provider.get_backend("fake_openpulse_3q")
+        backend_3q = self.provider.get_backend('fake_openpulse_3q')
         self.assertEqual(backend_3q.configuration().get_channel_qubits(ControlChannel(2)), [2, 1])
         self.assertEqual(backend_3q.configuration().get_channel_qubits(ControlChannel(1)), [1, 0])
         with self.assertRaises(BackendConfigurationError):
@@ -98,38 +94,21 @@ class TestBackendConfiguration(QiskitTestCase):
 
     def test_get_qubit_channels(self):
         """Test to get all channels operated on a given qubit."""
-        self.assertTrue(
-            self._test_lists_equal(
-                actual=self.config.get_qubit_channels(qubit=(1,)),
-                expected=[DriveChannel(1), MeasureChannel(1), AcquireChannel(1)],
-            )
-        )
-        self.assertTrue(
-            self._test_lists_equal(
-                actual=self.config.get_qubit_channels(qubit=1),
-                expected=[
-                    ControlChannel(0),
-                    ControlChannel(1),
-                    AcquireChannel(1),
-                    DriveChannel(1),
-                    MeasureChannel(1),
-                ],
-            )
-        )
-        backend_3q = self.provider.get_backend("fake_openpulse_3q")
-        self.assertTrue(
-            self._test_lists_equal(
-                actual=backend_3q.configuration().get_qubit_channels(1),
-                expected=[
-                    MeasureChannel(1),
-                    ControlChannel(0),
-                    ControlChannel(2),
-                    AcquireChannel(1),
-                    DriveChannel(1),
-                    ControlChannel(1),
-                ],
-            )
-        )
+        self.assertTrue(self._test_lists_equal(
+            actual=self.config.get_qubit_channels(qubit=(1,)),
+            expected=[DriveChannel(1), MeasureChannel(1), AcquireChannel(1)]
+        ))
+        self.assertTrue(self._test_lists_equal(
+            actual=self.config.get_qubit_channels(qubit=1),
+            expected=[ControlChannel(0), ControlChannel(1), AcquireChannel(1),
+                      DriveChannel(1), MeasureChannel(1)]
+        ))
+        backend_3q = self.provider.get_backend('fake_openpulse_3q')
+        self.assertTrue(self._test_lists_equal(
+            actual=backend_3q.configuration().get_qubit_channels(1),
+            expected=[MeasureChannel(1), ControlChannel(0), ControlChannel(2),
+                      AcquireChannel(1), DriveChannel(1), ControlChannel(1)]
+        ))
         with self.assertRaises(BackendConfigurationError):
             # Check that an error is raised if key not found in self._channel_qubit_map
             self.config.get_qubit_channels(10)
@@ -146,33 +125,33 @@ class TestBackendConfiguration(QiskitTestCase):
     def test_get_rep_times(self):
         """Test whether rep time property is the right size"""
         _rep_times_us = [100, 250, 500, 1000]
-        _rep_times_s = [_rt * 1.0e-6 for _rt in _rep_times_us]
+        _rep_times_s = [_rt * 1.e-6 for _rt in _rep_times_us]
 
         for i, time in enumerate(_rep_times_s):
             self.assertAlmostEqual(self.config.rep_times[i], time)
         for i, time in enumerate(_rep_times_us):
-            self.assertEqual(round(self.config.rep_times[i] * 1e6), time)
-        for rep_time in self.config.to_dict()["rep_times"]:
+            self.assertEqual(round(self.config.rep_times[i]*1e6), time)
+        for rep_time in self.config.to_dict()['rep_times']:
             self.assertGreater(rep_time, 0)
 
     def test_get_default_rep_delay_and_range(self):
         """Test whether rep delay property is the right size."""
         _rep_delay_range_us = [100, 1000]
-        _rep_delay_range_s = [_rd * 1.0e-6 for _rd in _rep_delay_range_us]
+        _rep_delay_range_s = [_rd * 1.e-6 for _rd in _rep_delay_range_us]
         _default_rep_delay_us = 500
-        _default_rep_delay_s = 500 * 1.0e-6
+        _default_rep_delay_s = 500 * 1.e-6
 
-        setattr(self.config, "rep_delay_range", _rep_delay_range_s)
-        setattr(self.config, "default_rep_delay", _default_rep_delay_s)
+        setattr(self.config, 'rep_delay_range', _rep_delay_range_s)
+        setattr(self.config, 'default_rep_delay', _default_rep_delay_s)
 
         config_dict = self.config.to_dict()
-        for i, rd in enumerate(config_dict["rep_delay_range"]):
+        for i, rd in enumerate(config_dict['rep_delay_range']):
             self.assertAlmostEqual(rd, _rep_delay_range_us[i], delta=1e-8)
-        self.assertEqual(config_dict["default_rep_delay"], _default_rep_delay_us)
+        self.assertEqual(config_dict['default_rep_delay'], _default_rep_delay_us)
 
     def test_get_channel_prefix_index(self):
         """Test private method to get channel and index."""
-        self.assertEqual(self.config._get_channel_prefix_index("acquire0"), ("acquire", 0))
+        self.assertEqual(self.config._get_channel_prefix_index('acquire0'), ('acquire', 0))
         with self.assertRaises(BackendConfigurationError):
             self.config._get_channel_prefix_index("acquire")
 
@@ -187,7 +166,7 @@ class TestBackendConfiguration(QiskitTestCase):
 
     def test_u_channel_lo_scale(self):
         """Ensure that u_channel_lo scale is a complex number"""
-        valencia_conf = self.provider.get_backend("fake_valencia").configuration()
+        valencia_conf = self.provider.get_backend('fake_valencia').configuration()
         self.assertTrue(isinstance(valencia_conf.u_channel_lo[0][0].scale, complex))
 
     def test_processor_type(self):
@@ -198,4 +177,4 @@ class TestBackendConfiguration(QiskitTestCase):
             "segment": "A",
         }
         self.assertEqual(self.config.processor_type, reference_processor_type)
-        self.assertEqual(self.config.to_dict()["processor_type"], reference_processor_type)
+        self.assertEqual(self.config.to_dict()['processor_type'], reference_processor_type)

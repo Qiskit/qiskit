@@ -15,7 +15,7 @@
 import itertools
 import logging
 from copy import deepcopy
-from typing import List, Optional, Union, cast, Dict
+from typing import List, Optional, Union, cast
 
 import numpy as np
 
@@ -67,22 +67,9 @@ class TaperedPauliSumOp(PauliSumOp):
         """
         return self._z2_symmetries
 
-    @property
-    def settings(self) -> Dict:
-        """Return operator settings."""
-        return {
-            "primitive": self._primitive,
-            "z2_symmetries": self._z2_symmetries,
-            "coeff": self._coeff,
-        }
-
-    def assign_parameters(self, param_dict: dict) -> OperatorBase:
-        pauli_sum = PauliSumOp(self.primitive, self.coeff)  # pylint: disable=no-member
-        return pauli_sum.assign_parameters(param_dict)
-
 
 class Z2Symmetries:
-    """Z2 Symmetries"""
+    """ Z2 Symmetries """
 
     def __init__(
         self,
@@ -127,12 +114,12 @@ class Z2Symmetries:
 
     @property
     def symmetries(self):
-        """return symmetries"""
+        """ return symmetries """
         return self._symmetries
 
     @property
     def sq_paulis(self):
-        """returns sq paulis"""
+        """ returns sq paulis """
         return self._sq_paulis
 
     @property
@@ -150,28 +137,18 @@ class Z2Symmetries:
 
     @property
     def sq_list(self):
-        """returns sq list"""
+        """ returns sq list """
         return self._sq_list
 
     @property
     def tapering_values(self):
-        """returns tapering values"""
+        """ returns tapering values """
         return self._tapering_values
 
     @tapering_values.setter
     def tapering_values(self, new_value):
-        """set tapering values"""
+        """ set tapering values """
         self._tapering_values = new_value
-
-    @property
-    def settings(self) -> Dict:
-        """Return operator settings."""
-        return {
-            "symmetries": self._symmetries,
-            "sq_paulis": self._sq_paulis,
-            "sq_list": self._sq_list,
-            "tapering_values": self._tapering_values,
-        }
 
     def __str__(self):
         ret = ["Z2 symmetries:"]
@@ -257,7 +234,7 @@ class Z2Symmetries:
                 Pauli(
                     (
                         stacked_symmetries[row, : symm_shape[1] // 2],
-                        stacked_symmetries[row, symm_shape[1] // 2 :],
+                        stacked_symmetries[row, symm_shape[1] // 2:],
                     )
                 )
             )
@@ -458,9 +435,9 @@ def _kernel_F2(matrix_in) -> List[np.ndarray]:  # pylint: disable=invalid-name
 
     for col in range(size[1]):
         if np.array_equal(
-            matrix_in_id_ech[0 : size[0], col], np.zeros(size[0])
-        ) and not np.array_equal(matrix_in_id_ech[size[0] :, col], np.zeros(size[1])):
-            kernel.append(matrix_in_id_ech[size[0] :, col])
+            matrix_in_id_ech[0: size[0], col], np.zeros(size[0])
+        ) and not np.array_equal(matrix_in_id_ech[size[0]:, col], np.zeros(size[1])):
+            kernel.append(matrix_in_id_ech[size[0]:, col])
 
     return kernel
 
@@ -495,7 +472,7 @@ def _row_echelon_F2(matrix_in) -> np.ndarray:  # pylint: disable=invalid-name
     for row in np.sort(indices)[::-1]:
         matrix_out_temp = np.delete(matrix_out_temp, (row), axis=0)
 
-    matrix_out[0 : size[0] - len(indices), :] = matrix_out_temp
+    matrix_out[0: size[0] - len(indices), :] = matrix_out_temp
     matrix_out = matrix_out.astype(int)
 
     return matrix_out

@@ -18,12 +18,13 @@ from qiskit.opflow.evolutions.trotterizations.trotter import Trotter
 from qiskit.opflow.evolutions.trotterizations.trotterization_base import TrotterizationBase
 
 
-class TrotterizationFactory:
-    """A factory for conveniently creating TrotterizationBase instances."""
+class TrotterizationFactory():
+    """ A factory for conveniently creating TrotterizationBase instances. """
 
     @staticmethod
-    def build(mode: str = "trotter", reps: int = 1) -> TrotterizationBase:
-        """A factory for conveniently creating TrotterizationBase instances.
+    def build(mode: str = 'trotter',
+              reps: int = 1) -> TrotterizationBase:
+        """ A factory for conveniently creating TrotterizationBase instances.
 
         Args:
             mode: One of 'trotter', 'suzuki', 'qdrift'
@@ -35,13 +36,13 @@ class TrotterizationFactory:
         Raises:
             ValueError: A string not in ['trotter', 'suzuki', 'qdrift'] is given for mode.
         """
-        if mode == "trotter":
+        if mode == 'trotter':
             return Trotter(reps=reps)
 
-        elif mode == "suzuki":
+        elif mode == 'suzuki':
             return Suzuki(reps=reps)
 
-        elif mode == "qdrift":
+        elif mode == 'qdrift':
             return QDrift(reps=reps)
 
-        raise ValueError(f"Trotter mode {mode} not supported")
+        raise ValueError('Trotter mode {} not supported'.format(mode))

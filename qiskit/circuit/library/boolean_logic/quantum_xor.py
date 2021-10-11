@@ -28,12 +28,11 @@ class XOR(QuantumCircuit):
     This circuit can also represent addition by ``amount`` over the finite field GF(2).
     """
 
-    def __init__(
-        self,
-        num_qubits: int,
-        amount: Optional[int] = None,
-        seed: Optional[int] = None,
-    ) -> None:
+    def __init__(self,
+                 num_qubits: int,
+                 amount: Optional[int] = None,
+                 seed: Optional[int] = None,
+                 ) -> None:
         """Return a circuit implementing bitwise xor.
 
         Args:
@@ -53,20 +52,17 @@ class XOR(QuantumCircuit):
                 circuit = XOR(5, seed=42)
                 %circuit_library_info circuit
         """
-        circuit = QuantumCircuit(num_qubits, name="xor")
+        super().__init__(num_qubits, name="xor")
 
         if amount is not None:
             if len(bin(amount)[2:]) > num_qubits:
                 raise CircuitError("Bits in 'amount' exceed circuit width")
         else:
             rng = np.random.default_rng(seed)
-            amount = rng.integers(0, 2 ** num_qubits)
+            amount = rng.integers(0, 2**num_qubits)
 
         for i in range(num_qubits):
             bit = amount & 1
             amount = amount >> 1
             if bit == 1:
-                circuit.x(i)
-
-        super().__init__(*circuit.qregs, name="xor")
-        self.compose(circuit.to_gate(), qubits=self.qubits, inplace=True)
+                self.x(i)

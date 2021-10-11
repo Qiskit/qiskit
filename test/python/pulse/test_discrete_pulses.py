@@ -54,7 +54,7 @@ class TestDiscretePulses(QiskitTestCase):
         np.testing.assert_array_almost_equal(square_pulse.samples, square_ref)
 
         # test single cycle
-        cycle_freq = 1.0 / duration
+        cycle_freq = 1./duration
         square_cycle_ref = continuous.square(times, amp=amp, freq=cycle_freq)
         square_cycle_pulse = library.square(duration, amp=amp)
         np.testing.assert_array_almost_equal(square_cycle_pulse.samples, square_cycle_ref)
@@ -71,7 +71,7 @@ class TestDiscretePulses(QiskitTestCase):
         np.testing.assert_array_equal(sawtooth_pulse.samples, sawtooth_ref)
 
         # test single cycle
-        cycle_freq = 1.0 / duration
+        cycle_freq = 1./duration
         sawtooth_cycle_ref = continuous.sawtooth(times, amp=amp, freq=cycle_freq)
         sawtooth_cycle_pulse = library.sawtooth(duration, amp=amp)
         np.testing.assert_array_almost_equal(sawtooth_cycle_pulse.samples, sawtooth_cycle_ref)
@@ -88,7 +88,7 @@ class TestDiscretePulses(QiskitTestCase):
         np.testing.assert_array_almost_equal(triangle_pulse.samples, triangle_ref)
 
         # test single cycle
-        cycle_freq = 1.0 / duration
+        cycle_freq = 1./duration
         triangle_cycle_ref = continuous.triangle(times, amp=amp, freq=cycle_freq)
         triangle_cycle_pulse = library.triangle(duration, amp=amp)
         np.testing.assert_array_equal(triangle_cycle_pulse.samples, triangle_cycle_ref)
@@ -97,7 +97,7 @@ class TestDiscretePulses(QiskitTestCase):
         """Test discrete sampled cosine wave."""
         amp = 0.5
         period = 5
-        freq = 1 / period
+        freq = 1/period
         duration = 10
         times = np.arange(0, duration) + 0.5
         cos_ref = continuous.cos(times, amp=amp, freq=freq)
@@ -106,7 +106,7 @@ class TestDiscretePulses(QiskitTestCase):
         np.testing.assert_array_almost_equal(cos_pulse.samples, cos_ref)
 
         # test single cycle
-        cycle_freq = 1 / duration
+        cycle_freq = 1/duration
         cos_cycle_ref = continuous.cos(times, amp=amp, freq=cycle_freq)
         cos_cycle_pulse = library.cos(duration, amp=amp)
         np.testing.assert_array_almost_equal(cos_cycle_pulse.samples, cos_cycle_ref)
@@ -115,7 +115,7 @@ class TestDiscretePulses(QiskitTestCase):
         """Test discrete sampled sine wave."""
         amp = 0.5
         period = 5
-        freq = 1 / period
+        freq = 1/period
         duration = 10
         times = np.arange(0, duration) + 0.5
         sin_ref = continuous.sin(times, amp=amp, freq=freq)
@@ -124,7 +124,7 @@ class TestDiscretePulses(QiskitTestCase):
         np.testing.assert_array_equal(sin_pulse.samples, sin_ref)
 
         # test single cycle
-        cycle_freq = 1 / duration
+        cycle_freq = 1/duration
         sin_cycle_ref = continuous.sin(times, amp=amp, freq=cycle_freq)
         sin_cycle_pulse = library.sin(duration, amp=amp)
         np.testing.assert_array_almost_equal(sin_cycle_pulse.samples, sin_cycle_ref)
@@ -134,11 +134,10 @@ class TestDiscretePulses(QiskitTestCase):
         amp = 0.5
         sigma = 2
         duration = 10
-        center = duration / 2
+        center = duration/2
         times = np.arange(0, duration) + 0.5
-        gaussian_ref = continuous.gaussian(
-            times, amp, center, sigma, zeroed_width=2 * (center + 1), rescale_amp=True
-        )
+        gaussian_ref = continuous.gaussian(times, amp, center, sigma,
+                                           zeroed_width=2*(center+1), rescale_amp=True)
         gaussian_pulse = library.gaussian(duration, amp, sigma)
         self.assertIsInstance(gaussian_pulse, Waveform)
         np.testing.assert_array_almost_equal(gaussian_pulse.samples, gaussian_ref)
@@ -148,7 +147,7 @@ class TestDiscretePulses(QiskitTestCase):
         amp = 0.5
         sigma = 2
         duration = 10
-        center = duration / 2
+        center = duration/2
         times = np.arange(0, duration) + 0.5
         gaussian_deriv_ref = continuous.gaussian_deriv(times, amp, center, sigma)
         gaussian_deriv_pulse = library.gaussian_deriv(duration, amp, sigma)
@@ -160,11 +159,10 @@ class TestDiscretePulses(QiskitTestCase):
         amp = 0.5
         sigma = 2
         duration = 10
-        center = duration / 2
+        center = duration/2
         times = np.arange(0, duration) + 0.5
-        sech_ref = continuous.sech(
-            times, amp, center, sigma, zeroed_width=2 * (center + 1), rescale_amp=True
-        )
+        sech_ref = continuous.sech(times, amp, center, sigma,
+                                   zeroed_width=2*(center+1), rescale_amp=True)
         sech_pulse = library.sech(duration, amp, sigma)
         self.assertIsInstance(sech_pulse, Waveform)
         np.testing.assert_array_almost_equal(sech_pulse.samples, sech_ref)
@@ -174,7 +172,7 @@ class TestDiscretePulses(QiskitTestCase):
         amp = 0.5
         sigma = 2
         duration = 10
-        center = duration / 2
+        center = duration/2
         times = np.arange(0, duration) + 0.5
         sech_deriv_ref = continuous.sech_deriv(times, amp, center, sigma)
         sech_deriv_pulse = library.sech_deriv(duration, amp, sigma)
@@ -187,9 +185,9 @@ class TestDiscretePulses(QiskitTestCase):
         sigma = 0.1
         risefall = 2
         duration = 10
-        center = duration / 2
-        width = duration - 2 * risefall
-        center = duration / 2
+        center = duration/2
+        width = duration-2*risefall
+        center = duration/2
         times = np.arange(0, duration) + 0.5
         gaussian_square_ref = continuous.gaussian_square(times, amp, center, width, sigma)
         gaussian_square_pulse = library.gaussian_square(duration, amp, sigma, risefall)
@@ -216,12 +214,11 @@ class TestDiscretePulses(QiskitTestCase):
         sigma = 0.1
         beta = 0
         duration = 10
-        center = 10 / 2
+        center = 10/2
         times = np.arange(0, duration) + 0.5
         # reference drag pulse
-        drag_ref = continuous.drag(
-            times, amp, center, sigma, beta=beta, zeroed_width=2 * (center + 1), rescale_amp=True
-        )
+        drag_ref = continuous.drag(times, amp, center, sigma, beta=beta,
+                                   zeroed_width=2*(center+1), rescale_amp=True)
         drag_pulse = library.drag(duration, amp, sigma, beta=beta)
         self.assertIsInstance(drag_pulse, Waveform)
         np.testing.assert_array_almost_equal(drag_pulse.samples, drag_ref)

@@ -30,8 +30,9 @@ class TestSabreLayout(QiskitTestCase):
         self.cmap20 = FakeAlmaden().configuration().coupling_map
 
     def test_5q_circuit_20q_coupling(self):
-        """Test finds layout for 5q circuit on 20q device."""
-        qr = QuantumRegister(5, "q")
+        """Test finds layout for 5q circuit on 20q device.
+        """
+        qr = QuantumRegister(5, 'q')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[2])
         circuit.cx(qr[1], qr[3])
@@ -45,7 +46,7 @@ class TestSabreLayout(QiskitTestCase):
         pass_ = SabreLayout(CouplingMap(self.cmap20), seed=0)
         pass_.run(dag)
 
-        layout = pass_.property_set["layout"]
+        layout = pass_.property_set['layout']
         self.assertEqual(layout[qr[0]], 10)
         self.assertEqual(layout[qr[1]], 12)
         self.assertEqual(layout[qr[2]], 7)
@@ -53,9 +54,10 @@ class TestSabreLayout(QiskitTestCase):
         self.assertEqual(layout[qr[4]], 13)
 
     def test_6q_circuit_20q_coupling(self):
-        """Test finds layout for 6q circuit on 20q device."""
-        qr0 = QuantumRegister(3, "q0")
-        qr1 = QuantumRegister(3, "q1")
+        """Test finds layout for 6q circuit on 20q device.
+        """
+        qr0 = QuantumRegister(3, 'q0')
+        qr1 = QuantumRegister(3, 'q1')
         circuit = QuantumCircuit(qr0, qr1)
         circuit.cx(qr1[0], qr0[0])
         circuit.cx(qr0[1], qr0[0])
@@ -69,7 +71,7 @@ class TestSabreLayout(QiskitTestCase):
         pass_ = SabreLayout(CouplingMap(self.cmap20), seed=0)
         pass_.run(dag)
 
-        layout = pass_.property_set["layout"]
+        layout = pass_.property_set['layout']
         self.assertEqual(layout[qr0[0]], 2)
         self.assertEqual(layout[qr0[1]], 3)
         self.assertEqual(layout[qr0[2]], 10)
@@ -78,5 +80,5 @@ class TestSabreLayout(QiskitTestCase):
         self.assertEqual(layout[qr1[2]], 5)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

@@ -28,13 +28,13 @@ class TestLayoutTransformation(QiskitTestCase):
 
     def test_three_qubit(self):
         """Test if the permutation {0->2,1->0,2->1} is implemented correctly."""
-        v = QuantumRegister(3, "v")  # virtual qubits
+        v = QuantumRegister(3, 'v')  # virtual qubits
         coupling = CouplingMap([[0, 1], [1, 2]])
         from_layout = Layout({v[0]: 0, v[1]: 1, v[2]: 2})
         to_layout = Layout({v[0]: 2, v[1]: 0, v[2]: 1})
-        ltpass = LayoutTransformation(
-            coupling_map=coupling, from_layout=from_layout, to_layout=to_layout, seed=42
-        )
+        ltpass = LayoutTransformation(coupling_map=coupling,
+                                      from_layout=from_layout,
+                                      to_layout=to_layout, seed=42)
         qc = QuantumCircuit(3)
         dag = circuit_to_dag(qc)
         output_dag = ltpass.run(dag)
@@ -47,13 +47,13 @@ class TestLayoutTransformation(QiskitTestCase):
 
     def test_four_qubit(self):
         """Test if the permutation {0->3,1->0,2->1,3->2} is implemented correctly."""
-        v = QuantumRegister(4, "v")  # virtual qubits
+        v = QuantumRegister(4, 'v')  # virtual qubits
         coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
         from_layout = Layout({v[0]: 0, v[1]: 1, v[2]: 2, v[3]: 3})
         to_layout = Layout({v[0]: 3, v[1]: 0, v[2]: 1, v[3]: 2})
-        ltpass = LayoutTransformation(
-            coupling_map=coupling, from_layout=from_layout, to_layout=to_layout, seed=42
-        )
+        ltpass = LayoutTransformation(coupling_map=coupling,
+                                      from_layout=from_layout,
+                                      to_layout=to_layout, seed=42)
         qc = QuantumCircuit(4)  # input (empty) physical circuit
         dag = circuit_to_dag(qc)
         output_dag = ltpass.run(dag)
@@ -67,12 +67,12 @@ class TestLayoutTransformation(QiskitTestCase):
 
     def test_full_connected_coupling_map(self):
         """Test if the permutation {0->3,1->0,2->1,3->2} in a fully connected map."""
-        v = QuantumRegister(4, "v")  # virtual qubits
+        v = QuantumRegister(4, 'v')  # virtual qubits
         from_layout = Layout({v[0]: 0, v[1]: 1, v[2]: 2, v[3]: 3})
         to_layout = Layout({v[0]: 3, v[1]: 0, v[2]: 1, v[3]: 2})
-        ltpass = LayoutTransformation(
-            coupling_map=None, from_layout=from_layout, to_layout=to_layout, seed=42
-        )
+        ltpass = LayoutTransformation(coupling_map=None,
+                                      from_layout=from_layout,
+                                      to_layout=to_layout, seed=42)
         qc = QuantumCircuit(4)  # input (empty) physical circuit
         dag = circuit_to_dag(qc)
         output_dag = ltpass.run(dag)
@@ -85,5 +85,5 @@ class TestLayoutTransformation(QiskitTestCase):
         self.assertEqual(circuit_to_dag(expected), output_dag)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

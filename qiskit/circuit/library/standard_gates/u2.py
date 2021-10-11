@@ -60,14 +60,13 @@ class U2Gate(Gate):
 
     def __init__(self, phi, lam, label=None):
         """Create new U2 gate."""
-        super().__init__("u2", 1, [phi, lam], label=label)
+        super().__init__('u2', 1, [phi, lam], label=label)
 
     def _define(self):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u3 import U3Gate
-
-        q = QuantumRegister(1, "q")
+        q = QuantumRegister(1, 'q')
         qc = QuantumCircuit(q, name=self.name)
         rules = [(U3Gate(pi / 2, self.params[0], self.params[1]), [q[0]], [])]
         for instr, qargs, cargs in rules:
@@ -87,10 +86,13 @@ class U2Gate(Gate):
         isqrt2 = 1 / numpy.sqrt(2)
         phi, lam = self.params
         phi, lam = float(phi), float(lam)
-        return numpy.array(
+        return numpy.array([
             [
-                [isqrt2, -numpy.exp(1j * lam) * isqrt2],
-                [numpy.exp(1j * phi) * isqrt2, numpy.exp(1j * (phi + lam)) * isqrt2],
+                isqrt2,
+                -numpy.exp(1j * lam) * isqrt2
             ],
-            dtype=dtype,
-        )
+            [
+                numpy.exp(1j * phi) * isqrt2,
+                numpy.exp(1j * (phi + lam)) * isqrt2
+            ]
+        ], dtype=dtype)

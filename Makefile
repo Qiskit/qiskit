@@ -45,16 +45,13 @@ env:
 
 # Ignoring generated ones with .py extension.
 lint:
-	pylint -rn qiskit test tools
-	tools/verify_headers.py qiskit test tools examples
+	pylint -rn qiskit test
+	tools/verify_headers.py qiskit test tools
 	pylint -rn --disable='C0103, C0114, W0621' examples/python/*.py
-	tools/find_optional_imports.py
+	python tools/find_optional_imports.py
 
 style:
-	black --check qiskit test tools examples setup.py
-
-black:
-	black qiskit test tools examples setup.py
+	pycodestyle qiskit test
 
 # Use the -s (starting directory) flag for "unittest discover" is necessary,
 # otherwise the QuantumCircuit header will be modified during the discovery.

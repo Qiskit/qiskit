@@ -23,7 +23,7 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 
 
-class SpecialPolynomial:
+class SpecialPolynomial():
     """Multivariate polynomial with special form.
 
     Maximum degree 3, n Z_2 variables, coefficients in Z_8.
@@ -39,8 +39,8 @@ class SpecialPolynomial:
         if n_vars < 1:
             raise QiskitError("n_vars for SpecialPolynomial is too small.")
         self.n_vars = n_vars
-        self.nc2 = int(n_vars * (n_vars - 1) / 2)
-        self.nc3 = int(n_vars * (n_vars - 1) * (n_vars - 2) / 6)
+        self.nc2 = int(n_vars * (n_vars-1) / 2)
+        self.nc3 = int(n_vars * (n_vars-1) * (n_vars-2) / 6)
         self.weight_0 = 0
         self.weight_1 = np.zeros(n_vars, dtype=np.int8)
         self.weight_2 = np.zeros(self.nc2, dtype=np.int8)
@@ -132,7 +132,7 @@ class SpecialPolynomial:
         check_poly = list(map(lambda x: isinstance(x, SpecialPolynomial), xval))
         if False in check_int and False in check_poly:
             raise QiskitError("Evaluate on a wrong type.")
-        is_int = False not in check_int
+        is_int = (False not in check_int)
         if not is_int:
             if False in [i.n_vars == self.n_vars for i in xval]:
                 raise QiskitError("Evaluate on incompatible polynomials.")
@@ -210,7 +210,8 @@ class SpecialPolynomial:
             return self.weight_1[indices[0]]
         if length == 2:
             # sum(self.n_vars-j, {j, 1, indices[0]})
-            offset_1 = int(indices[0] * self.n_vars - ((indices[0] + 1) * indices[0]) / 2)
+            offset_1 = int(indices[0] * self.n_vars -
+                           ((indices[0] + 1) * indices[0])/2)
             offset_2 = int(indices[1] - indices[0] - 1)
             return self.weight_2[offset_1 + offset_2]
 
@@ -220,9 +221,8 @@ class SpecialPolynomial:
         tmp_2 = self.n_vars - indices[1]
         offset_2 = int((tmp_2 - 2) * (tmp_2 - 1) / 2)
         offset_3 = self.n_vars - indices[2]
-        offset = int(
-            self.n_vars * (self.n_vars - 1) * (self.n_vars - 2) / 6 - offset_1 - offset_2 - offset_3
-        )
+        offset = int(self.n_vars * (self.n_vars - 1) * (self.n_vars - 2) / 6 -
+                     offset_1 - offset_2 - offset_3)
 
         return self.weight_3[offset]
 
@@ -255,7 +255,8 @@ class SpecialPolynomial:
             self.weight_1[indices[0]] = value
         elif length == 2:
             # sum(self.n_vars-j, {j, 1, indices[0]})
-            offset_1 = int(indices[0] * self.n_vars - ((indices[0] + 1) * indices[0]) / 2)
+            offset_1 = int(indices[0] * self.n_vars -
+                           ((indices[0] + 1) * indices[0])/2)
             offset_2 = int(indices[1] - indices[0] - 1)
             self.weight_2[offset_1 + offset_2] = value
         else:  # length = 3
@@ -264,18 +265,15 @@ class SpecialPolynomial:
             tmp_2 = self.n_vars - indices[1]
             offset_2 = int((tmp_2 - 2) * (tmp_2 - 1) / 2)
             offset_3 = self.n_vars - indices[2]
-            offset = int(
-                self.n_vars * (self.n_vars - 1) * (self.n_vars - 2) / 6
-                - offset_1
-                - offset_2
-                - offset_3
-            )
+            offset = int(self.n_vars * (self.n_vars - 1) * (self.n_vars - 2) / 6 -
+                         offset_1 - offset_2 - offset_3)
             self.weight_3[offset] = value
 
     @property
     def key(self):
         """Return a string representation."""
-        tup = (self.weight_0, tuple(self.weight_1), tuple(self.weight_2), tuple(self.weight_3))
+        tup = (self.weight_0, tuple(self.weight_1),
+               tuple(self.weight_2), tuple(self.weight_3))
         return tup
 
     def __eq__(self, x):
@@ -290,23 +288,24 @@ class SpecialPolynomial:
             if value != 0:
                 out += " + "
                 if value != 1:
-                    out += str(value) + "*"
-                out += "x_" + str(i)
-        for i in range(self.n_vars - 1):
-            for j in range(i + 1, self.n_vars):
+                    out += (str(value) + "*")
+                out += ("x_" + str(i))
+        for i in range(self.n_vars-1):
+            for j in range(i+1, self.n_vars):
                 value = self.get_term([i, j])
                 if value != 0:
                     out += " + "
                     if value != 1:
-                        out += str(value) + "*"
-                    out += "x_" + str(i) + "*x_" + str(j)
-        for i in range(self.n_vars - 2):
-            for j in range(i + 1, self.n_vars - 1):
-                for k in range(j + 1, self.n_vars):
+                        out += (str(value) + "*")
+                    out += ("x_" + str(i) + "*x_" + str(j))
+        for i in range(self.n_vars-2):
+            for j in range(i+1, self.n_vars-1):
+                for k in range(j+1, self.n_vars):
                     value = self.get_term([i, j, k])
                     if value != 0:
                         out += " + "
                         if value != 1:
-                            out += str(value) + "*"
-                        out += "x_" + str(i) + "*x_" + str(j) + "*x_" + str(k)
+                            out += (str(value) + "*")
+                        out += ("x_" + str(i) + "*x_" + str(j) +
+                                "*x_" + str(k))
         return out

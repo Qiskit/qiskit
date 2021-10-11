@@ -14,23 +14,21 @@
 
 
 class PassManagerConfig:
-    """Pass Manager Configuration."""
+    """Pass Manager Configuration.
+    """
 
-    def __init__(
-        self,
-        initial_layout=None,
-        basis_gates=None,
-        coupling_map=None,
-        layout_method=None,
-        routing_method=None,
-        translation_method=None,
-        scheduling_method=None,
-        instruction_durations=None,
-        backend_properties=None,
-        approximation_degree=None,
-        seed_transpiler=None,
-        timing_constraints=None,
-    ):
+    def __init__(self,
+                 initial_layout=None,
+                 basis_gates=None,
+                 coupling_map=None,
+                 layout_method=None,
+                 routing_method=None,
+                 translation_method=None,
+                 scheduling_method=None,
+                 instruction_durations=None,
+                 backend_properties=None,
+                 approximation_degree=None,
+                 seed_transpiler=None):
         """Initialize a PassManagerConfig object
 
         Args:
@@ -55,7 +53,6 @@ class PassManagerConfig:
                 (1.0=no approximation, 0.0=maximal approximation)
             seed_transpiler (int): Sets random seed for the stochastic parts of
                 the transpiler.
-            timing_constraints (TimingConstraints): Hardware time alignment restrictions.
         """
         self.initial_layout = initial_layout
         self.basis_gates = basis_gates
@@ -68,4 +65,3 @@ class PassManagerConfig:
         self.backend_properties = backend_properties
         self.approximation_degree = approximation_degree
         self.seed_transpiler = seed_transpiler
-        self.timing_constraints = timing_constraints

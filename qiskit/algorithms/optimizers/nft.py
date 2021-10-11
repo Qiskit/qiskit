@@ -15,30 +15,26 @@
 from typing import Optional
 
 import numpy as np
+from scipy.optimize import minimize
 from scipy.optimize import OptimizeResult
+from .optimizer import Optimizer, OptimizerSupportLevel
 
-from .scipy_optimizer import SciPyOptimizer
 
-
-class NFT(SciPyOptimizer):
+class NFT(Optimizer):
     """
     Nakanishi-Fujii-Todo algorithm.
 
     See https://arxiv.org/abs/1903.12166
     """
 
-    _OPTIONS = ["maxiter", "maxfev", "disp", "reset_interval"]
+    _OPTIONS = ['maxiter', 'maxfev', 'disp', 'reset_interval']
 
     # pylint: disable=unused-argument
-    def __init__(
-        self,
-        maxiter: Optional[int] = None,
-        maxfev: int = 1024,
-        disp: bool = False,
-        reset_interval: int = 32,
-        options: Optional[dict] = None,
-        **kwargs,
-    ) -> None:
+    def __init__(self,
+                 maxiter: Optional[int] = None,
+                 maxfev: int = 1024,
+                 disp: bool = False,
+                 reset_interval: int = 32) -> None:
         """
         Built out using scipy framework, for details, please refer to
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html.
@@ -49,8 +45,6 @@ class NFT(SciPyOptimizer):
             disp: disp
             reset_interval: The minimum estimates directly once
                             in ``reset_interval`` times.
-            options: A dictionary of solver options.
-            kwargs: additional kwargs for scipy.optimize.minimize.
 
         Notes:
             In this optimization method, the optimization function have to satisfy
@@ -61,18 +55,32 @@ class NFT(SciPyOptimizer):
                 Sequential minimal optimization for quantum-classical hybrid algorithms.
                 arXiv preprint arXiv:1903.12166.
         """
-        if options is None:
-            options = {}
+        super().__init__()
         for k, v in list(locals().items()):
             if k in self._OPTIONS:
-                options[k] = v
-        super().__init__(method=nakanishi_fujii_todo, options=options, **kwargs)
+                self._options[k] = v
+
+    def get_support_level(self):
+        """ return support level dictionary """
+        return {
+            'gradient': OptimizerSupportLevel.ignored,
+            'bounds': OptimizerSupportLevel.ignored,
+            'initial_point': OptimizerSupportLevel.required
+        }
+
+    def optimize(self, num_vars, objective_function, gradient_function=None,
+                 variable_bounds=None, initial_point=None):
+        super().optimize(num_vars, objective_function, gradient_function,
+                         variable_bounds, initial_point)
+
+        res = minimize(objective_function, initial_point,
+                       method=nakanishi_fujii_todo, options=self._options)
+        return res.x, res.fun, res.nfev
 
 
 # pylint: disable=invalid-name
-def nakanishi_fujii_todo(
-    fun, x0, args=(), maxiter=None, maxfev=1024, reset_interval=32, eps=1e-32, callback=None, **_
-):
+def nakanishi_fujii_todo(fun, x0, args=(), maxiter=None, maxfev=1024,
+                         reset_interval=32, eps=1e-32, callback=None, **_):
     """
     Find the global minimum of a function using the nakanishi_fujii_todo
     algorithm [1].
@@ -164,6 +172,4 @@ def nakanishi_fujii_todo(
             if niter >= maxiter:
                 break
 
-    return OptimizeResult(
-        fun=fun(np.copy(x0), *args), x=x0, nit=niter, nfev=funcalls, success=(niter > 1)
-    )
+    return OptimizeResult(fun=fun(np.copy(x0)), x=x0, nit=niter, nfev=funcalls, success=(niter > 1))

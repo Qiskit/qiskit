@@ -42,19 +42,8 @@ class Result:
 
     _metadata = {}
 
-    def __init__(
-        self,
-        backend_name,
-        backend_version,
-        qobj_id,
-        job_id,
-        success,
-        results,
-        date=None,
-        status=None,
-        header=None,
-        **kwargs,
-    ):
+    def __init__(self, backend_name, backend_version, qobj_id, job_id, success,
+                 results, date=None, status=None, header=None, **kwargs):
         self._metadata = {}
         self.backend_name = backend_name
         self.backend_version = backend_version
@@ -71,31 +60,24 @@ class Result:
         self._metadata.update(kwargs)
 
     def __repr__(self):
-        out = (
-            "Result(backend_name='%s', backend_version='%s', qobj_id='%s', "
-            "job_id='%s', success=%s, results=%s"
-            % (
-                self.backend_name,
-                self.backend_version,
-                self.qobj_id,
-                self.job_id,
-                self.success,
-                self.results,
-            )
-        )
-        if hasattr(self, "date"):
+        out = ("Result(backend_name='%s', backend_version='%s', qobj_id='%s', "
+               "job_id='%s', success=%s, results=%s" % (
+                   self.backend_name,
+                   self.backend_version, self.qobj_id, self.job_id, self.success,
+                   self.results))
+        if hasattr(self, 'date'):
             out += ", date=%s" % self.date
-        if hasattr(self, "status"):
+        if hasattr(self, 'status'):
             out += ", status=%s" % self.status
-        if hasattr(self, "header"):
+        if hasattr(self, 'header'):
             out += ", status=%s" % self.header
         for key in self._metadata:
             if isinstance(self._metadata[key], str):
                 value_str = "'%s'" % self._metadata[key]
             else:
                 value_str = repr(self._metadata[key])
-            out += f", {key}={value_str}"
-        out += ")"
+            out += ", %s=%s" % (key, value_str)
+        out += ')'
         return out
 
     def to_dict(self):
@@ -105,19 +87,19 @@ class Result:
             dict: The dictionary form of the Result
         """
         out_dict = {
-            "backend_name": self.backend_name,
-            "backend_version": self.backend_version,
-            "qobj_id": self.qobj_id,
-            "job_id": self.job_id,
-            "success": self.success,
-            "results": [x.to_dict() for x in self.results],
+            'backend_name': self.backend_name,
+            'backend_version': self.backend_version,
+            'qobj_id': self.qobj_id,
+            'job_id': self.job_id,
+            'success': self.success,
+            'results': [x.to_dict() for x in self.results]
         }
-        if hasattr(self, "date"):
-            out_dict["date"] = self.date
-        if hasattr(self, "status"):
-            out_dict["status"] = self.status
-        if hasattr(self, "header"):
-            out_dict["header"] = self.header.to_dict()
+        if hasattr(self, 'date'):
+            out_dict['date'] = self.date
+        if hasattr(self, 'status'):
+            out_dict['status'] = self.status
+        if hasattr(self, 'header'):
+            out_dict['header'] = self.header.to_dict()
         out_dict.update(self._metadata)
         return out_dict
 
@@ -125,7 +107,7 @@ class Result:
         try:
             return self._metadata[name]
         except KeyError as ex:
-            raise AttributeError(f"Attribute {name} is not defined") from ex
+            raise AttributeError(f'Attribute {name} is not defined') from ex
 
     @classmethod
     def from_dict(cls, data):
@@ -141,9 +123,10 @@ class Result:
         """
 
         in_data = copy.copy(data)
-        in_data["results"] = [ExperimentResult.from_dict(x) for x in in_data.pop("results")]
-        if "header" in in_data:
-            in_data["header"] = QobjHeader.from_dict(in_data.pop("header"))
+        in_data['results'] = [
+            ExperimentResult.from_dict(x) for x in in_data.pop('results')]
+        if 'header' in in_data:
+            in_data['header'] = QobjHeader.from_dict(in_data.pop('header'))
         return cls(**in_data)
 
     def data(self, experiment=None):
@@ -234,7 +217,7 @@ class Result:
 
             meas_level = exp_result.meas_level
 
-            memory = self.data(experiment)["memory"]
+            memory = self.data(experiment)['memory']
 
             if meas_level == MeasLevel.CLASSIFIED:
                 return postprocess.format_level_2_memory(memory, header)
@@ -243,14 +226,14 @@ class Result:
             elif meas_level == MeasLevel.RAW:
                 return postprocess.format_level_0_memory(memory)
             else:
-                raise QiskitError(f"Measurement level {meas_level} is not supported")
+                raise QiskitError('Measurement level {} is not supported'.format(meas_level))
 
         except KeyError as ex:
             raise QiskitError(
                 'No memory for experiment "{}". '
-                "Please verify that you either ran a measurement level 2 job "
+                'Please verify that you either ran a measurement level 2 job '
                 'with the memory flag set, eg., "memory=True", '
-                "or a measurement level 0/1 job.".format(repr(experiment))
+                'or a measurement level 0/1 job.'.format(repr(experiment))
             ) from ex
 
     def get_counts(self, experiment=None):
@@ -283,21 +266,19 @@ class Result:
             except (AttributeError, QiskitError):  # header is not available
                 header = None
 
-            if "counts" in self.data(key).keys():
+            if 'counts' in self.data(key).keys():
                 if header:
                     counts_header = {
-                        k: v
-                        for k, v in header.items()
-                        if k in {"time_taken", "creg_sizes", "memory_slots"}
-                    }
+                        k: v for k, v in header.items() if k in {
+                            'time_taken', 'creg_sizes', 'memory_slots'}}
                 else:
                     counts_header = {}
-                dict_list.append(Counts(self.data(key)["counts"], **counts_header))
-            elif "statevector" in self.data(key).keys():
-                vec = postprocess.format_statevector(self.data(key)["statevector"])
+                dict_list.append(Counts(self.data(key)['counts'], **counts_header))
+            elif 'statevector' in self.data(key).keys():
+                vec = postprocess.format_statevector(self.data(key)['statevector'])
                 dict_list.append(statevector.Statevector(vec).probabilities_dict(decimals=15))
             else:
-                raise QiskitError(f'No counts for experiment "{repr(key)}"')
+                raise QiskitError('No counts for experiment "{}"'.format(repr(key)))
 
         # Return first item of dict_list if size is 1
         if len(dict_list) == 1:
@@ -321,9 +302,8 @@ class Result:
             QiskitError: if there is no statevector for the experiment.
         """
         try:
-            return postprocess.format_statevector(
-                self.data(experiment)["statevector"], decimals=decimals
-            )
+            return postprocess.format_statevector(self.data(experiment)['statevector'],
+                                                  decimals=decimals)
         except KeyError as ex:
             raise QiskitError(f'No statevector for experiment "{repr(experiment)}"') from ex
 
@@ -344,7 +324,8 @@ class Result:
             QiskitError: if there is no unitary for the experiment.
         """
         try:
-            return postprocess.format_unitary(self.data(experiment)["unitary"], decimals=decimals)
+            return postprocess.format_unitary(self.data(experiment)['unitary'],
+                                              decimals=decimals)
         except KeyError as ex:
             raise QiskitError(f'No unitary for experiment "{repr(experiment)}"') from ex
 
@@ -366,9 +347,8 @@ class Result:
         if key is None:
             if len(self.results) != 1:
                 raise QiskitError(
-                    "You have to select a circuit or schedule when there is more than "
-                    "one available"
-                )
+                    'You have to select a circuit or schedule when there is more than '
+                    'one available')
             key = 0
 
         # Key is a QuantumCircuit/Schedule or str: retrieve result by name.
@@ -382,28 +362,26 @@ class Result:
                 raise QiskitError(f'Result for experiment "{key}" could not be found.') from ex
         else:
             # Look into `result[x].header.name` for the names.
-            exp = [
-                result
-                for result in self.results
-                if getattr(getattr(result, "header", None), "name", "") == key
-            ]
+            exp = [result for result in self.results
+                   if getattr(getattr(result, 'header', None),
+                              'name', '') == key]
 
             if len(exp) == 0:
-                raise QiskitError('Data for experiment "%s" could not be found.' % key)
+                raise QiskitError('Data for experiment "%s" could not be found.' %
+                                  key)
             if len(exp) == 1:
                 exp = exp[0]
             else:
                 warnings.warn(
                     'Result object contained multiple results matching name "%s", '
-                    "only first match will be returned. Use an integer index to "
-                    "retrieve results for all entries." % key
-                )
+                    'only first match will be returned. Use an integer index to '
+                    'retrieve results for all entries.' % key)
                 exp = exp[0]
 
         # Check that the retrieved experiment was successful
-        if getattr(exp, "success", False):
+        if getattr(exp, 'success', False):
             return exp
         # If unsuccessful check experiment and result status and raise exception
-        result_status = getattr(self, "status", "Result was not successful")
-        exp_status = getattr(exp, "status", "Experiment was not successful")
+        result_status = getattr(self, 'status', 'Result was not successful')
+        exp_status = getattr(exp, 'status', 'Experiment was not successful')
         raise QiskitError(result_status, ", ", exp_status)

@@ -24,4 +24,4 @@ class Width(AnalysisPass):
 
     def run(self, dag):
         """Run the Width pass on `dag`."""
-        self.property_set["width"] = dag.width()
+        self.property_set['width'] = dag.width()

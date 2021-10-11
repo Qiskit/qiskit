@@ -25,13 +25,11 @@ class Provider:
     the versioned abstract classes as the parent class and not this class
     directly.
     """
-
     version = 0
 
 
 class ProviderV1(Provider, ABC):
     """Base class for a Backend Provider."""
-
     version = 1
 
     def get_backend(self, name=None, **kwargs):
@@ -50,9 +48,9 @@ class ProviderV1(Provider, ABC):
         """
         backends = self.backends(name, **kwargs)
         if len(backends) > 1:
-            raise QiskitBackendNotFoundError("More than one backend matches the criteria")
+            raise QiskitBackendNotFoundError('More than one backend matches the criteria')
         if not backends:
-            raise QiskitBackendNotFoundError("No backend matches the criteria")
+            raise QiskitBackendNotFoundError('No backend matches the criteria')
 
         return backends[0]
 

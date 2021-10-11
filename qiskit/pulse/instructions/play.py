@@ -13,7 +13,7 @@
 """An instruction to transmit a given pulse on a ``PulseChannel`` (i.e., those which support
 transmitted pulses, such as ``DriveChannel``).
 """
-from typing import Dict, Optional, Union, Tuple, Any, Set
+from typing import Dict, Optional, Union, Tuple, Any
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import PulseChannel
@@ -32,7 +32,9 @@ class Play(Instruction):
     cycle time, dt, of the backend.
     """
 
-    def __init__(self, pulse: Pulse, channel: PulseChannel, name: Optional[str] = None):
+    def __init__(self, pulse: Pulse,
+                 channel: PulseChannel,
+                 name: Optional[str] = None):
         """Create a new pulse instruction.
 
         Args:
@@ -47,9 +49,8 @@ class Play(Instruction):
         if not isinstance(pulse, Pulse):
             raise PulseError("The `pulse` argument to `Play` must be of type `library.Pulse`.")
         if not isinstance(channel, PulseChannel):
-            raise PulseError(
-                "The `channel` argument to `Play` must be of type " "`channels.PulseChannel`."
-            )
+            raise PulseError("The `channel` argument to `Play` must be of type "
+                             "`channels.PulseChannel`.")
         if name is None:
             name = pulse.name
         super().__init__(operands=(pulse, channel), name=name)
@@ -69,14 +70,15 @@ class Play(Instruction):
     @property
     def channels(self) -> Tuple[PulseChannel]:
         """Returns the channels that this schedule uses."""
-        return (self.channel,)
+        return (self.channel, )
 
     @property
     def duration(self) -> Union[int, ParameterExpression]:
         """Duration of this instruction."""
         return self.pulse.duration
 
-    def _initialize_parameter_table(self, operands: Tuple[Any]):
+    def _initialize_parameter_table(self,
+                                    operands: Tuple[Any]):
         """A helper method to initialize parameter table.
 
         Args:
@@ -91,24 +93,10 @@ class Play(Instruction):
                         # Table maps parameter to operand index, 0 for ``pulse``
                         self._parameter_table[param].append(0)
 
-    @property
-    def parameters(self) -> Set:
-        """Parameters which determine the instruction behavior."""
-        parameters = set()
-        for pulse_param_expr in self.pulse.parameters.values():
-            if isinstance(pulse_param_expr, ParameterExpression):
-                for pulse_param in pulse_param_expr.parameters:
-                    parameters.add(pulse_param)
-        if self.channel.is_parameterized():
-            for ch_param in self.channel.parameters:
-                parameters.add(ch_param)
-
-        return parameters
-
     @deprecated_functionality
-    def assign_parameters(
-        self, value_dict: Dict[ParameterExpression, ParameterValueType]
-    ) -> "Play":
+    def assign_parameters(self,
+                          value_dict: Dict[ParameterExpression, ParameterValueType]
+                          ) -> 'Play':
         super().assign_parameters(value_dict)
         pulse = self.pulse.assign_parameters(value_dict)
         self._operands = (pulse, self.channel)
