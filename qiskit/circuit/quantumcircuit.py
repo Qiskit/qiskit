@@ -827,8 +827,8 @@ class QuantumCircuit(CircuitElement):
             qubit_map = identity_qubit_map
         elif len(qubits) != len(other.qubits):
             raise CircuitError(
-                "Number of items in qubits parameter does not"
-                " match number of qubits in the circuit."
+                f"Number of items in qubits parameter ({len(qubits)}) does not"
+                f" match number of qubits in the circuit ({len(other.qubits)})."
             )
         else:
             qubit_map = {
@@ -839,8 +839,8 @@ class QuantumCircuit(CircuitElement):
             clbit_map = identity_clbit_map
         elif len(clbits) != len(other.clbits):
             raise CircuitError(
-                "Number of items in clbits parameter does not"
-                " match number of clbits in the circuit."
+                f"Number of items in clbits parameter ({len(clbits)}) does not"
+                f" match number of clbits in the circuit ({len(other.clbits)})."
             )
         else:
             clbit_map = {
@@ -864,16 +864,14 @@ class QuantumCircuit(CircuitElement):
             mapped_instrs.append((n_instr, n_qargs, n_cargs))
 
         if front:
+            # adjust new instrs before original ones and update all parameters
             dest._data = mapped_instrs + dest._data
-        else:
-            dest._data += mapped_instrs
-
-        if front:
             dest._parameter_table.clear()
             for instr, _, _ in dest._data:
                 dest._update_parameter_table(instr)
         else:
-            # just append new parameters
+            # just append new instrs and parameters
+            dest._data += mapped_instrs
             for instr, _, _ in mapped_instrs:
                 dest._update_parameter_table(instr)
 
@@ -2431,8 +2429,11 @@ class QuantumCircuit(CircuitElement):
                     "Mismatching number of values and parameters. For partial binding "
                     "please pass a dictionary of {parameter: value} pairs."
                 )
+            # use a copy of the parameters, to ensure we don't change the contents of
+            # self.parameters while iterating over them
+            fixed_parameters_copy = self.parameters.copy()
             for i, value in enumerate(parameters):
-                bound_circuit._assign_parameter(self.parameters[i], value)
+                bound_circuit._assign_parameter(fixed_parameters_copy[i], value)
         return None if inplace else bound_circuit
 
     def bind_parameters(

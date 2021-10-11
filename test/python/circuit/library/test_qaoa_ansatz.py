@@ -11,7 +11,9 @@
 # that they have been altered from the originals.
 
 """Test QAOA ansatz from the library."""
-from qiskit.circuit.quantumcircuit import QuantumCircuit
+
+import numpy as np
+from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
 from qiskit.circuit.library import HGate, RXGate, YGate, RYGate, RZGate
 from qiskit.opflow import I, Y, Z
@@ -46,9 +48,8 @@ class TestQAOAAnsatz(QiskitTestCase):
 
     def test_invalid_reps(self):
         """Test negative reps."""
-        circuit = QAOAAnsatz(I, reps=-1)
-        with self.assertRaises(AttributeError):
-            _ = circuit.count_ops()
+        with self.assertRaises(ValueError):
+            _ = QAOAAnsatz(I, reps=-1)
 
     def test_zero_reps(self):
         """Test zero reps."""
@@ -81,6 +82,19 @@ class TestQAOAAnsatz(QiskitTestCase):
         self.assertIsInstance(circuit.data[0][0], HGate)
         self.assertIsInstance(circuit.data[1][0], RYGate)
 
+    def test_parameter_bounds(self):
+        """Test the parameter bounds."""
+        circuit = QAOAAnsatz(Z, reps=2)
+        bounds = circuit.parameter_bounds
+
+        for lower, upper in bounds[:2]:
+            self.assertAlmostEqual(lower, 0)
+            self.assertAlmostEqual(upper, 2 * np.pi)
+
+        for lower, upper in bounds[2:]:
+            self.assertIsNone(lower)
+            self.assertIsNone(upper)
+
     def test_all_custom_parameters(self):
         """Test circuit with all custom parameters."""
         initial_state = QuantumCircuit(1)
@@ -103,7 +117,7 @@ class TestQAOAAnsatz(QiskitTestCase):
         mixer = QuantumCircuit(2)
         circuit = QAOAAnsatz(cost_operator=I, reps=1, mixer_operator=mixer)
 
-        self.assertRaises(AttributeError, lambda: circuit.parameters)
+        self.assertRaises(ValueError, lambda: circuit.parameters)
 
     def test_rebuild(self):
         """Test how a circuit can be rebuilt."""
@@ -114,6 +128,16 @@ class TestQAOAAnsatz(QiskitTestCase):
         circuit.cost_operator = Z  # now it only has 1 qubit
         circuit.reps = 5  # and now 5 repetitions
         # rebuild the circuit
-        _ = circuit.parameters
         self.assertEqual(1, circuit.num_qubits)
         self.assertEqual(10, circuit.num_parameters)
+
+    def test_circuit_mixer(self):
+        """Test using a parameterized circuit as mixer."""
+        x1, x2 = Parameter("x1"), Parameter("x2")
+        mixer = QuantumCircuit(2)
+        mixer.rx(x1, 0)
+        mixer.ry(x2, 1)
+
+        reps = 4
+        circuit = QAOAAnsatz(cost_operator=Z ^ Z, mixer_operator=mixer, reps=reps)
+        self.assertEqual(circuit.num_parameters, 3 * reps)
