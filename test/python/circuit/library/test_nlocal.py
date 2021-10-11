@@ -795,7 +795,7 @@ class TestTwoLocal(QiskitTestCase):
             TwoLocal(3, "ry", standard_gates.MSGate, "linear", reps=2)
 
     def test_all_standard_gates(self):
-        """Test TwoLocal works with every standard gate"""
+        """Test TwoLocal works with every supported standard gate"""
         gates_dict = {
             cls_name: cls
             for (cls_name, cls) in standard_gates.__dict__.items()

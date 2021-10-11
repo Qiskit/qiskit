@@ -214,7 +214,7 @@ class TwoLocal(NLocal):
         if isinstance(layer, (str, type)):
             instance = self._get_gate_instance(layer)
             if instance is None:
-                raise ValueError(f"Unknown layer `{layer}`.")
+                raise ValueError(f"Layer `{layer}` is not supported.")
             layer = instance
 
         if isinstance(layer, Instruction):
@@ -249,9 +249,6 @@ class TwoLocal(NLocal):
                 if hasattr(gate, "num_params"):
                     for i in range(gate.num_params):
                         params.append(Parameter(f"θ{i}"))
-                if hasattr(gate, "num_int_params"):
-                    for _ in range(gate.num_int_params):
-                        params.append(1)
                 # instantiate gate with appropriate params
                 try:
                     instance = gate(*params)
