@@ -131,11 +131,11 @@ class CollectMultiQBlocks(AnalysisPass):
             makes_too_big = False
 
             # check if the node is a gate and if it is parameterized
-            if nd.op.condition is not None:
-                can_process = False
-            if nd.op.is_parameterized():
-                can_process = False
-            if not isinstance(nd.op, Gate):
+            if (
+                nd.op.condition is not None
+                or nd.op.is_parameterized()
+                or not isinstance(nd.op, Gate)
+            ):
                 can_process = False
 
             cur_qubits = {qubit_indices[bit] for bit in nd.qargs}
