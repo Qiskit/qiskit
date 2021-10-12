@@ -289,3 +289,21 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
                 raise QiskitError(f"Invalid diagonal string character {i}")
             ret = np.kron(chars[i], ret)
         return ret
+
+    @staticmethod
+    def _stddev_upper_bound(self, shots, qubits):
+        """Return an upper bound on standard deviation of expval estimator.
+        Args:
+            shots: Number of shots used for expectation value measurement.
+            qubits: qubits being measured for operator expval.
+        Returns:
+            float: the standard deviation upper bound.
+        """
+        gamma = self._compute_gamma(qubits=qubits)
+        return gamma / np.sqrt(shots)
+
+    @staticmethod
+    def _compute_gamma(self, qubits=None):
+        """Compute gamma for N-qubit mitigation"""
+        mitmat = self.mitigation_matrix(qubits=qubits)
+        return np.max(np.sum(np.abs(mitmat), axis=0))
