@@ -928,9 +928,15 @@ class DAGCircuit:
                                            other._multi_graph,
                                            node_eq)
 
-    def topological_nodes(self):
+    def topological_nodes(self, key=None):
         """
         Yield nodes in topological order.
+
+        Args:
+            key (Callable): A callable which will take a DAGNode object and
+                return a string sort key. If not specified the
+                :attr:`~qiskit.dagcircuit.DAGNode.sort_key` attribute will be
+                used as the sort key for each node.
 
         Returns:
             generator(DAGNode): node in topological order
@@ -939,17 +945,21 @@ class DAGCircuit:
         def _key(x):
             return x.sort_key
 
-        return iter(rx.lexicographical_topological_sort(
-            self._multi_graph, key=_key))
+        if key is None:
+            key = _key
 
-    def topological_op_nodes(self):
+        return iter(rx.lexicographical_topological_sort(
+            self._multi_graph, key=key))
+
+    def topological_op_nodes(self, key=None):
         """
         Yield op nodes in topological order.
+        Allowed to pass in specific key to break ties in top order
 
         Returns:
             generator(DAGNode): op node in topological order
         """
-        return (nd for nd in self.topological_nodes() if nd.type == 'op')
+        return (nd for nd in self.topological_nodes(key) if nd.type == 'op')
 
     def substitute_node_with_dag(self, node, input_dag, wires=None):
         """Replace one node with dag.

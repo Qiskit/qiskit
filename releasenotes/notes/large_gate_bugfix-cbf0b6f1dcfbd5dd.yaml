@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed issue where some gates with three or more qubits would fail to compile
+    in certain instances. Refer to 
+    `#4577 <https://github.com/Qiskit/qiskit-terra/issues/4577` for more detail.
+
+
