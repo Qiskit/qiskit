@@ -341,10 +341,10 @@ class SparsePauliOp(LinearOp):
         if rtol is None:
             rtol = self.rtol
 
-        array = np.column_stack((self.paulis.x, self.paulis.z))
-        flatten_paulis, indexes = np.unique(array, return_inverse=True, axis=0)
-        coeffs = np.zeros(flatten_paulis.shape[0], dtype=complex)
-        for i, val in zip(indexes, self.coeffs):
+        array = self.paulis.x * 2 + self.paulis.z
+        _, indexes, inverses = np.unique(array, return_index=True, return_inverse=True, axis=0)
+        coeffs = np.zeros(indexes.shape[0], dtype=complex)
+        for i, val in zip(inverses, self.coeffs):
             coeffs[i] += val
         # Delete zero coefficient rows
         # TODO: Add atol/rtol for zero comparison
@@ -357,11 +357,9 @@ class SparsePauliOp(LinearOp):
             coeffs = np.array([0j], dtype=complex)
         else:
             non_zero = np.logical_not(is_zero)
-            x, z = (
-                flatten_paulis[non_zero]
-                .reshape((non_zero.sum(), 2, self.num_qubits))
-                .transpose(1, 0, 2)
-            )
+            non_zero_indexes = indexes[non_zero]
+            x = self.paulis.x[non_zero_indexes]
+            z = self.paulis.z[non_zero_indexes]
             coeffs = coeffs[non_zero]
         return SparsePauliOp(PauliList.from_symplectic(z, x), coeffs)
 
