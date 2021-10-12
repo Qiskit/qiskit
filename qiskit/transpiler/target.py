@@ -151,9 +151,6 @@ class Target(Mapping):
         "_qarg_gate_map",
         "description",
         "_coupling_graph",
-        "_unweighted_dist_matrix",
-        "_length_distance_matrix",
-        "_error_distance_matrix",
         "_instruction_durations",
         "_instruction_schedule_map",
     )
@@ -181,9 +178,6 @@ class Target(Mapping):
         self._qarg_gate_map = {}
         self.description = description
         self._coupling_graph = None
-        self._unweighted_dist_matrix = None
-        self._length_distance_matrix = None
-        self._error_distance_matrix = None
         self._instruction_durations = None
         self._instruction_schedule_map = None
 
@@ -257,9 +251,6 @@ class Target(Mapping):
                 }
         self._gate_map[instruction_name] = qargs_val
         self._coupling_graph = None
-        self._unweighted_dist_matrix = None
-        self._length_distance_matrix = None
-        self._error_distance_matrix = None
         self._instruction_durations = None
 
     def update_instruction_properties(self, instruction, qarg, properties):
@@ -277,8 +268,6 @@ class Target(Mapping):
         if qarg not in self._gate_map[instruction]:
             raise KeyError(f"Provided qarg: '{qarg}' not in this Target for {instruction}")
         self._gate_map[instruction][qarg] = properties
-        self._length_distance_matrix = None
-        self._error_distance_matrix = None
         self._instruction_durations = None
 
     @property
@@ -432,116 +421,6 @@ class Target(Mapping):
     def physical_qubits(self):
         """Returns a sorted list of physical_qubits"""
         return list(range(self.num_qubits))
-
-    def distance_matrix(self, weight=None):
-        """Return the distance matrix for the coupling map."""
-        if None in self._qarg_gate_map:
-            return None
-
-        if any(len(x) > 2 for x in self.qargs):
-            logger.warning(
-                "This Target object contains multiqubit gates that "
-                "operate on > 2 qubits. These gates will not be "
-                "reflected in the output matrix."
-            )
-        if weight is None:
-            if self._unweighted_dist_matrix is None:
-                self._compute_distance_matrix()
-            return self._unweighted_dist_matrix
-        elif weight == "error":
-            if self._error_distance_matrix is None:
-                self._compute_distance_matrix(weight)
-            return self._error_distance_matrix
-        elif weight == "length":
-            if self._length_distance_matrix is None:
-                self._compute_distance_matrix(weight)
-            return self._length_distance_matrix
-        else:
-            raise TypeError("Invalid weight type %s" % weight)
-
-    def _compute_distance_matrix(self, weight=None):
-        if self._coupling_graph is None:
-            self._build_coupling_graph()
-        if weight is None:
-            self._unweighted_dist_matrix = rx.digraph_distance_matrix(
-                self._coupling_graph, as_undirected=True
-            )
-        elif weight == "error":
-
-            def error_weight_fn(edge):
-                gate_props = []
-                for prop in edge.values():
-                    if prop is not None and prop.error is not None:
-                        gate_props.append(prop.error)
-                if gate_props:
-                    return min(gate_props)
-                else:
-                    return 0
-
-            self._error_distance_matrix = rx.digraph_floyd_warshall_numpy(
-                self._coupling_graph,
-                weight_fn=error_weight_fn,
-                as_undirected=True,
-            )
-        elif weight == "length":
-
-            def length_weight_fn(edge):
-                gate_props = []
-                for prop in edge.values():
-                    if prop is not None and prop.length is not None:
-                        gate_props.append(prop.length)
-                if gate_props:
-                    return min(gate_props)
-                else:
-                    return 0
-
-            self._length_distance_matrix = rx.digraph_floyd_warshall_numpy(
-                self._coupling_graph,
-                weight_fn=length_weight_fn,
-                as_undirected=True,
-            )
-
-    def distance(self, physical_qubit1, physical_qubit2, weight=None):
-        """Returns the undirected distance between physical_qubit1 and physical_qubit2.
-
-        Args:
-            physical_qubit1 (int): A physical qubit
-            physical_qubit2 (int): Another physical qubit
-            weight (str): An optional weight function to use
-
-        Returns:
-            int: The undirected distance
-
-        Raises:
-            CouplingError: if the qubits do not exist in the CouplingMap
-            TypeError: If an invalid weight is specified
-        """
-        if None in self._gate_map:
-            return None
-        if any(len(x) > 2 for x in self.qargs):
-            logger.warning(
-                "This Target object contains multiqubit gates that "
-                "operate on > 2 qubits. These gates will not be "
-                "reflected in the output matrix."
-            )
-
-        if physical_qubit1 >= self.num_qubits:
-            raise CouplingError("%s not in coupling graph" % physical_qubit1)
-        if physical_qubit2 >= self.num_qubits:
-            raise CouplingError("%s not in coupling graph" % physical_qubit2)
-        if weight is None:
-            if self._unweighted_dist_matrix is None:
-                self._compute_distance_matrix()
-            return self._unweighted_dist_matrix[physical_qubit1, physical_qubit2]
-        if weight == "error":
-            if self._error_distance_matrix is None:
-                self._compute_distance_matrix(weight)
-            return self._error_distance_matrix[physical_qubit1, physical_qubit2]
-        if weight == "length":
-            if self._length_distance_matrix is None:
-                self._compute_distance_matrix(weight)
-            return self._error_distance_matrix[physical_qubit1, physical_qubit2]
-        raise TypeError("Invalid weight %s" % weight)
 
     def __iter__(self):
         return iter(self._gate_map)
