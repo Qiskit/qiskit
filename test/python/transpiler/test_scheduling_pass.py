@@ -75,13 +75,19 @@ class TestSchedulingPass(QiskitTestCase):
         """
         qc = QuantumCircuit(2, 1)
         qc.measure(0, 0)
-        qc.x(1).c_if(0, 1)
+        qc.x(1).c_if(0, True)
 
         durations = InstructionDurations([("x", None, 200), ("measure", None, 1000)])
         pm = PassManager(schedule_pass(durations))
         scheduled = pm.run(qc)
 
-        self.assertEqual(1000, scheduled.qubit_start_time(1))  # x.c_if starts after measure
+        expected = QuantumCircuit(2, 1)
+        expected.measure(0, 0)
+        expected.delay(200, 0)
+        expected.delay(1000, 1)  # x.c_if starts after measure
+        expected.x(1).c_if(0, True)
+
+        self.assertEqual(expected, scheduled)
 
     @data(ALAPSchedule, ASAPSchedule)
     def test_measure_after_measure(self, schedule_pass):
@@ -115,10 +121,13 @@ class TestSchedulingPass(QiskitTestCase):
         pm = PassManager(schedule_pass(durations))
         scheduled = pm.run(qc)
 
-        self.assertEqual(1200, scheduled.qubit_stop_time(0))  # 1st measure (stop time)
-        self.assertEqual(
-            200, scheduled.qubit_start_time(1)
-        )  # 2nd measure starts at the same time as 1st measure starts
+        expected = QuantumCircuit(2, 1)
+        expected.x(0)
+        expected.measure(0, 0)
+        expected.delay(200, 1)  # 2nd measure starts at the same time as 1st measure starts
+        expected.measure(1, 0)
+
+        self.assertEqual(expected, scheduled)
 
     @data(ALAPSchedule, ASAPSchedule)
     def test_c_if_on_different_qubits(self, schedule_pass):
@@ -157,8 +166,15 @@ class TestSchedulingPass(QiskitTestCase):
         pm = PassManager(schedule_pass(durations))
         scheduled = pm.run(qc)
 
-        self.assertEqual(1000, scheduled.qubit_start_time(1))  # x(1).c_if (start time)
-        self.assertEqual(1000, scheduled.qubit_start_time(2))  # x(2).c_if (start time)
+        expected = QuantumCircuit(3, 1)
+        expected.measure(0, 0)
+        expected.delay(200, 0)
+        expected.delay(1000, 1)
+        expected.delay(1000, 2)
+        expected.x(1).c_if(0, True)
+        expected.x(2).c_if(0, True)
+
+        self.assertEqual(expected, scheduled)
 
     @data(ALAPSchedule, ASAPSchedule)
     def test_shorter_measure_after_measure(self, schedule_pass):
@@ -190,7 +206,12 @@ class TestSchedulingPass(QiskitTestCase):
         pm = PassManager(schedule_pass(durations))
         scheduled = pm.run(qc)
 
-        self.assertEqual(300, scheduled.qubit_start_time(1))  # 2nd measure (start time)
+        expected = QuantumCircuit(2, 1)
+        expected.measure(0, 0)
+        expected.delay(300, 1)
+        expected.measure(1, 0)
+
+        self.assertEqual(expected, scheduled)
 
     def test_measure_after_c_if(self):
         """Test if ALAP/ASAP schedules circuits with c_if after measure with a common clbit.
@@ -234,15 +255,27 @@ class TestSchedulingPass(QiskitTestCase):
         qc.measure(2, 0)
 
         durations = InstructionDurations([("x", None, 200), ("measure", None, 1000)])
-        asap = PassManager(ASAPSchedule(durations)).run(qc)
-        alap = PassManager(ALAPSchedule(durations)).run(qc)
+        actual_asap = PassManager(ASAPSchedule(durations)).run(qc)
+        actual_alap = PassManager(ALAPSchedule(durations)).run(qc)
 
-        # start time of x.c_if is the same
-        self.assertEqual(1000, asap.qubit_start_time(1))
-        self.assertEqual(1000, alap.qubit_start_time(1))
         # start times of 2nd measure depends on ASAP/ALAP
-        self.assertEqual(0, asap.qubit_start_time(2))
-        self.assertEqual(200, alap.qubit_start_time(2))
+        expected_asap = QuantumCircuit(3, 1)
+        expected_asap.measure(0, 0)
+        expected_asap.delay(200, 0)
+        expected_asap.delay(1000, 1)
+        expected_asap.x(1).c_if(0, 1)
+        expected_asap.measure(2, 0)
+        expected_asap.delay(200, 2)  # delay after measure on q_2
+        self.assertEqual(expected_asap, actual_asap)
+
+        expected_aslp = QuantumCircuit(3, 1)
+        expected_aslp.measure(0, 0)
+        expected_aslp.delay(200, 0)
+        expected_aslp.delay(1000, 1)
+        expected_aslp.x(1).c_if(0, 1)
+        expected_aslp.delay(200, 2)
+        expected_aslp.measure(2, 0)  # delay before measure on q_2
+        self.assertEqual(expected_aslp, actual_alap)
 
 
 if __name__ == "__main__":
