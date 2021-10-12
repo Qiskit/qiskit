@@ -24,7 +24,7 @@ from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitCon
 
 
 class ASAPSchedule(TransformationPass):
-    """ASAP Scheduling pass.
+    """ASAP Scheduling pass, which schedules the start time of instructions as early as possible..
 
     For circuits with instructions writing or reading clbits (e.g. measurements, conditional gates),
     the scheduler assumes clbits I/O operations take no time, ``measure`` locks clbits to be written

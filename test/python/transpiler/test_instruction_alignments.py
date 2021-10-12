@@ -286,6 +286,12 @@ class TestAlignMeasures(QiskitTestCase):
               └────────────────┘                   ║    ┌────╨────┐    └╥┘
         c: 1/══════════════════════════════════════╩════╡ c_0 = T ╞═════╩═
                                                    0    └─────────┘     0
+
+        Looking at te q_0, the total schedule length T becomes
+        160 (x) + 112 (aligned delay) + 1600 (measure) + 160 (delay) = 2032.
+        The last delay comes from ALAP scheduling called before the AlignMeasure pass,
+        which aligns stop times as late as possible, so the start time of x(1).c_if(0)
+        and the stop time of measure(0, 0) become T - 160.
         """
         circuit = QuantumCircuit(3, 1)
         circuit.x(0)
@@ -299,12 +305,13 @@ class TestAlignMeasures(QiskitTestCase):
         aligned_circuit = self.align_measure_pass(
             scheduled_circuit, property_set={"time_unit": "dt"}
         )
+        self.assertEqual(aligned_circuit.duration, 2032)
 
         ref_circuit = QuantumCircuit(3, 1)
         ref_circuit.x(0)
         ref_circuit.delay(112, 0, unit="dt")
-        ref_circuit.delay(1872, 1, unit="dt")
-        ref_circuit.delay(432, 2, unit="dt")
+        ref_circuit.delay(1872, 1, unit="dt")  # 2032 - 160
+        ref_circuit.delay(432, 2, unit="dt")  # 2032 - 1600
         ref_circuit.measure(0, 0)
         ref_circuit.x(1).c_if(0, 1)
         ref_circuit.delay(160, 0, unit="dt")
