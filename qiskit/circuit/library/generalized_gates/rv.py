@@ -42,7 +42,7 @@ class RVGate(Gate):
                 \end{pmatrix}
     """
 
-    def __init__(self, v_x, v_y, v_z, basis='U'):
+    def __init__(self, v_x, v_y, v_z, basis="U"):
         """Create new rv single-qubit gate.
 
         Args:
@@ -54,15 +54,17 @@ class RVGate(Gate):
         """
         # pylint: disable=cyclic-import
         from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
-        super().__init__('rv', 1, [v_x, v_y, v_z])
+
+        super().__init__("rv", 1, [v_x, v_y, v_z])
         self._decomposer = OneQubitEulerDecomposer(basis=basis)
 
     def _define(self):
         try:
             self.definition = self._decomposer(self.to_matrix())
         except TypeError as ex:
-            raise CircuitError(f'The {self.name} gate cannot be decomposed '
-                               'with unbound parameters') from ex
+            raise CircuitError(
+                f"The {self.name} gate cannot be decomposed with unbound parameters"
+            ) from ex
 
     def inverse(self):
         """Invert this gate."""
@@ -78,5 +80,9 @@ class RVGate(Gate):
         nx, ny, nz = v / angle
         sin = numpy.sin(angle / 2)
         cos = numpy.cos(angle / 2)
-        return numpy.array([[cos - 1j * nz * sin, (-ny - 1j * nx) * sin],
-                            [(ny - 1j * nx) * sin, cos + 1j * nz * sin]])
+        return numpy.array(
+            [
+                [cos - 1j * nz * sin, (-ny - 1j * nx) * sin],
+                [(ny - 1j * nx) * sin, cos + 1j * nz * sin],
+            ]
+        )

@@ -30,10 +30,11 @@ class ResultError(QiskitError):
                          'message': 'Your credits are not enough.',
                          'code': 'MAX_CREDITS_EXCEEDED'}
     """
+
     def __init__(self, error):
-        super().__init__(error['message'])
-        self.status = error['status']
-        self.code = error['code']
+        super().__init__(error["message"])
+        self.status = error["status"]
+        self.code = error["code"]
 
     def __str__(self):
-        return '{}: {}'.format(self.code, self.message)
+        return f"{self.code}: {self.message}"

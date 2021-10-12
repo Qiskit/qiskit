@@ -19,8 +19,16 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
 from qiskit.circuit.library import PhaseEstimation
 from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
 from qiskit.circuit.library.arithmetic.exact_reciprocal import ExactReciprocal
-from qiskit.opflow import (Z, I, StateFn, TensoredOp, ExpectationBase, CircuitSampler, ListOp,
-                           ExpectationFactory)
+from qiskit.opflow import (
+    Z,
+    I,
+    StateFn,
+    TensoredOp,
+    ExpectationBase,
+    CircuitSampler,
+    ListOp,
+    ExpectationFactory,
+)
 from qiskit.providers import Backend, BaseBackend
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils import QuantumInstance
@@ -88,11 +96,12 @@ class HHL(LinearSolver):
 
     """
 
-    def __init__(self,
-                 epsilon: float = 1e-2,
-                 expectation: Optional[ExpectationBase] = None,
-                 quantum_instance: Optional[Union[Backend, BaseBackend, QuantumInstance]] = None)\
-            -> None:
+    def __init__(
+        self,
+        epsilon: float = 1e-2,
+        expectation: Optional[ExpectationBase] = None,
+        quantum_instance: Optional[Union[Backend, BaseBackend, QuantumInstance]] = None,
+    ) -> None:
         r"""
         Args:
             epsilon: Error tolerance of the approximation to the solution, i.e. if :math:`x` is the
@@ -135,8 +144,9 @@ class HHL(LinearSolver):
         return self._sampler.quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(self, quantum_instance: Union[QuantumInstance,
-                                                       BaseBackend, Backend]) -> None:
+    def quantum_instance(
+        self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]
+    ) -> None:
         """Set quantum instance.
 
         Args:
@@ -157,7 +167,7 @@ class HHL(LinearSolver):
     @property
     def expectation(self) -> ExpectationBase:
         """The expectation value algorithm used to construct the expectation measurement from
-        the observable. """
+        the observable."""
         return self._expectation
 
     @expectation.setter
@@ -211,13 +221,15 @@ class HHL(LinearSolver):
 
         return np.real(np.sqrt(norm_2) / self.scaling)
 
-    def _calculate_observable(self, solution: QuantumCircuit,
-                              observable: Optional[Union[LinearSystemObservable,
-                                                         BaseOperator]] = None,
-                              observable_circuit: Optional[QuantumCircuit] = None,
-                              post_processing: Optional[Callable[[Union[float, List[float]]],
-                                                                 Union[float, List[float]]]] =
-                              None) -> Tuple[Union[float, List[float]], Union[float, List[float]]]:
+    def _calculate_observable(
+        self,
+        solution: QuantumCircuit,
+        observable: Optional[Union[LinearSystemObservable, BaseOperator]] = None,
+        observable_circuit: Optional[QuantumCircuit] = None,
+        post_processing: Optional[
+            Callable[[Union[float, List[float]]], Union[float, List[float]]]
+        ] = None,
+    ) -> Tuple[Union[float, List[float]], Union[float, List[float]]]:
         """Calculates the value of the observable(s) given.
 
         Args:
@@ -294,13 +306,19 @@ class HHL(LinearSolver):
 
         return result, expectation_results
 
-    def construct_circuit(self, matrix: Union[np.ndarray, QuantumCircuit],
-                          vector: Union[np.ndarray, QuantumCircuit]) -> QuantumCircuit:
+    def construct_circuit(
+        self,
+        matrix: Union[List, np.ndarray, QuantumCircuit],
+        vector: Union[List, np.ndarray, QuantumCircuit],
+        neg_vals: Optional[bool] = True,
+    ) -> QuantumCircuit:
         """Construct the HHL circuit.
 
         Args:
             matrix: The matrix specifying the system, i.e. A in Ax=b.
             vector: The vector specifying the right hand side of the equation in Ax=b.
+            neg_vals: States whether the matrix has negative eigenvalues. If False the
+            computation becomes cheaper.
 
         Returns:
             The HHL circuit.
@@ -313,11 +331,12 @@ class HHL(LinearSolver):
         if isinstance(vector, QuantumCircuit):
             nb = vector.num_qubits
             vector_circuit = vector
-        elif isinstance(vector, np.ndarray):
+        elif isinstance(vector, (list, np.ndarray)):
+            if isinstance(vector, list):
+                vector = np.array(vector)
             nb = int(np.log2(len(vector)))
             vector_circuit = QuantumCircuit(nb)
-            vector_circuit.isometry(vector / np.linalg.norm(vector),
-                                    list(range(nb)), None)
+            vector_circuit.isometry(vector / np.linalg.norm(vector), list(range(nb)), None)
 
         # If state preparation is probabilistic the number of qubit flags should increase
         nf = 1
@@ -336,36 +355,42 @@ class HHL(LinearSolver):
             if not np.allclose(matrix, matrix.conj().T):
                 raise ValueError("Input matrix must be hermitian!")
             if matrix.shape[0] != 2 ** vector_circuit.num_qubits:
-                raise ValueError("Input vector dimension does not match input "
-                                 "matrix dimension! Vector dimension: " +
-                                 str(vector_circuit.num_qubits) +
-                                 ". Matrix dimension: " +
-                                 str(matrix.shape[0]))
+                raise ValueError(
+                    "Input vector dimension does not match input "
+                    "matrix dimension! Vector dimension: "
+                    + str(vector_circuit.num_qubits)
+                    + ". Matrix dimension: "
+                    + str(matrix.shape[0])
+                )
             matrix_circuit = NumPyMatrix(matrix, evolution_time=2 * np.pi)
         else:
-            raise ValueError(f'Invalid type for matrix: {type(matrix)}.')
+            raise ValueError(f"Invalid type for matrix: {type(matrix)}.")
 
         # Set the tolerance for the matrix approximation
         if hasattr(matrix_circuit, "tolerance"):
             matrix_circuit.tolerance = self._epsilon_a
 
         # check if the matrix can calculate the condition number and store the upper bound
-        if hasattr(matrix_circuit, "condition_bounds") and matrix_circuit.condition_bounds() is not\
-                None:
+        if (
+            hasattr(matrix_circuit, "condition_bounds")
+            and matrix_circuit.condition_bounds() is not None
+        ):
             kappa = matrix_circuit.condition_bounds()[1]
         else:
             kappa = 1
         # Update the number of qubits required to represent the eigenvalues
-        nl = max(nb + 1, int(np.log2(kappa)) + 1)
+        # The +neg_vals is to register negative eigenvalues because
+        # e^{-2 \pi i \lambda} = e^{2 \pi i (1 - \lambda)}
+        nl = max(nb + 1, int(np.log2(kappa)) + 1) + neg_vals
 
         # check if the matrix can calculate bounds for the eigenvalues
         if hasattr(matrix_circuit, "eigs_bounds") and matrix_circuit.eigs_bounds() is not None:
             lambda_min, lambda_max = matrix_circuit.eigs_bounds()
             # Constant so that the minimum eigenvalue is represented exactly, since it contributes
-            # the most to the solution of the system
-            delta = self._get_delta(nl, lambda_min, lambda_max)
+            # the most to the solution of the system. -1 to take into account the sign qubit
+            delta = self._get_delta(nl - neg_vals, lambda_min, lambda_max)
             # Update evolution time
-            matrix_circuit.evolution_time = 2 * np.pi * delta / lambda_min
+            matrix_circuit.evolution_time = 2 * np.pi * delta / lambda_min / (2 ** neg_vals)
             # Update the scaling of the solution
             self.scaling = lambda_min
         else:
@@ -373,7 +398,7 @@ class HHL(LinearSolver):
             print("The solution will be calculated up to a scaling factor.")
 
         if self._exact_reciprocal:
-            reciprocal_circuit = ExactReciprocal(nl, delta)
+            reciprocal_circuit = ExactReciprocal(nl, delta, neg_vals=neg_vals)
             # Update number of ancilla qubits
             na = matrix_circuit.num_ancillas
         else:
@@ -384,9 +409,21 @@ class HHL(LinearSolver):
 
             # Calculate the degree of the polynomial and the number of intervals
             r = 2 * constant / a + np.sqrt(np.abs(1 - (2 * constant / a) ** 2))
-            degree = min(nb, int(np.log(1 + (16.23 * np.sqrt(np.log(r) ** 2 + (np.pi / 2) ** 2) *
-                                             kappa * (2 * kappa - self._epsilon_r)) /
-                                        self._epsilon_r)))
+            degree = min(
+                nb,
+                int(
+                    np.log(
+                        1
+                        + (
+                            16.23
+                            * np.sqrt(np.log(r) ** 2 + (np.pi / 2) ** 2)
+                            * kappa
+                            * (2 * kappa - self._epsilon_r)
+                        )
+                        / self._epsilon_r
+                    )
+                ),
+            )
             num_intervals = int(np.ceil(np.log((num_values - 1) / a) / np.log(5)))
 
             # Calculate breakpoints and polynomials
@@ -399,8 +436,9 @@ class HHL(LinearSolver):
                 if i == num_intervals - 1:
                     breakpoints.append(num_values - 1)
 
-            reciprocal_circuit = PiecewiseChebyshev(lambda x: np.arcsin(constant / x), degree,
-                                                    breakpoints, nl)
+            reciprocal_circuit = PiecewiseChebyshev(
+                lambda x: np.arcsin(constant / x), degree, breakpoints, nl
+            )
             na = max(matrix_circuit.num_ancillas, reciprocal_circuit.num_ancillas)
 
         # Initialise the quantum registers
@@ -420,31 +458,41 @@ class HHL(LinearSolver):
         # QPE
         phase_estimation = PhaseEstimation(nl, matrix_circuit)
         if na > 0:
-            qc.append(phase_estimation, ql[:] + qb[:] + qa[:matrix_circuit.num_ancillas])
+            qc.append(phase_estimation, ql[:] + qb[:] + qa[: matrix_circuit.num_ancillas])
         else:
             qc.append(phase_estimation, ql[:] + qb[:])
         # Conditioned rotation
         if self._exact_reciprocal:
             qc.append(reciprocal_circuit, ql[::-1] + [qf[0]])
         else:
-            qc.append(reciprocal_circuit.to_instruction(), ql[:] + [qf[0]] +
-                      qa[:reciprocal_circuit.num_ancillas])
+            qc.append(
+                reciprocal_circuit.to_instruction(),
+                ql[:] + [qf[0]] + qa[: reciprocal_circuit.num_ancillas],
+            )
         # QPE inverse
         if na > 0:
-            qc.append(phase_estimation.inverse(), ql[:] + qb[:] +
-                      qa[:matrix_circuit.num_ancillas])
+            qc.append(phase_estimation.inverse(), ql[:] + qb[:] + qa[: matrix_circuit.num_ancillas])
         else:
             qc.append(phase_estimation.inverse(), ql[:] + qb[:])
         return qc
 
-    def solve(self, matrix: Union[np.ndarray, QuantumCircuit],
-              vector: Union[np.ndarray, QuantumCircuit],
-              observable: Optional[Union[LinearSystemObservable, BaseOperator,
-                                         List[LinearSystemObservable], List[BaseOperator]]] = None,
-              observable_circuit: Optional[Union[QuantumCircuit, List[QuantumCircuit]]] = None,
-              post_processing: Optional[Callable[[Union[float, List[float]]],
-                                                 Union[float, List[float]]]] = None) \
-            -> LinearSolverResult:
+    def solve(
+        self,
+        matrix: Union[List, np.ndarray, QuantumCircuit],
+        vector: Union[List, np.ndarray, QuantumCircuit],
+        observable: Optional[
+            Union[
+                LinearSystemObservable,
+                BaseOperator,
+                List[LinearSystemObservable],
+                List[BaseOperator],
+            ]
+        ] = None,
+        observable_circuit: Optional[Union[QuantumCircuit, List[QuantumCircuit]]] = None,
+        post_processing: Optional[
+            Callable[[Union[float, List[float]]], Union[float, List[float]]]
+        ] = None,
+    ) -> LinearSolverResult:
         """Tries to solve the given linear system of equations.
 
         Args:
@@ -468,16 +516,18 @@ class HHL(LinearSolver):
         # verify input
         if observable is not None:
             if observable_circuit is not None or post_processing is not None:
-                raise ValueError('If observable is passed, observable_circuit and post_processing '
-                                 'cannot be set.')
+                raise ValueError(
+                    "If observable is passed, observable_circuit and post_processing "
+                    "cannot be set."
+                )
 
         solution = LinearSolverResult()
         solution.state = self.construct_circuit(matrix, vector)
         solution.euclidean_norm = self._calculate_norm(solution.state)
 
         if observable is not None or observable_circuit is not None:
-            solution.observable, solution.circuit_results = \
-                self._calculate_observable(solution.state, observable, observable_circuit,
-                                           post_processing)
+            solution.observable, solution.circuit_results = self._calculate_observable(
+                solution.state, observable, observable_circuit, post_processing
+            )
 
         return solution

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2019.
@@ -32,12 +30,12 @@ class TestCollect2qBlocks(QiskitTestCase):
 
     def test_blocks_in_topological_order(self):
         """the pass returns blocks in correct topological order
-                                                     ______
-         q0:--[u1]-------.----      q0:-------------|      |--
-                         |                 ______   |  U2  |
-         q1:--[u2]--(+)-(+)---   =  q1:---|      |--|______|--
-                     |                    |  U1  |
-         q2:---------.--------      q2:---|______|------------
+                                                    ______
+        q0:--[u1]-------.----      q0:-------------|      |--
+                        |                 ______   |  U2  |
+        q1:--[u2]--(+)-(+)---   =  q1:---|      |--|______|--
+                    |                    |  U1  |
+        q2:---------.--------      q2:---|______|------------
         """
         qr = QuantumRegister(3, "qr")
         qc = QuantumCircuit(qr)
@@ -53,7 +51,7 @@ class TestCollect2qBlocks(QiskitTestCase):
 
         pass_ = CollectMultiQBlocks()
         pass_.run(dag)
-        self.assertTrue(pass_.property_set['block_list'], [block_1, block_2])
+        self.assertTrue(pass_.property_set["block_list"], [block_1, block_2])
 
     def test_block_interrupted_by_gate(self):
         """Test that blocks interrupted by a gate that can't be added
@@ -87,14 +85,14 @@ class TestCollect2qBlocks(QiskitTestCase):
         pass_.run(dag)
 
         # list from Collect2QBlocks of nodes that it should have put into blocks
-        good_names = ['cx', 'u1', 'u2', 'u3', 'id']
+        good_names = ["cx", "u1", "u2", "u3", "id"]
         dag_nodes = [node for node in dag.topological_op_nodes() if node.name in good_names]
 
         # we have to convert them to sets as the ordering can be different
         # but equivalent between python 3.5 and 3.7
         # there is no implied topology in a block, so this isn't an issue
         dag_nodes = [set(dag_nodes[:4]), set(dag_nodes[4:])]
-        pass_nodes = [set(bl) for bl in pass_.property_set['block_list']]
+        pass_nodes = [set(bl) for bl in pass_.property_set["block_list"]]
 
         self.assertEqual(dag_nodes, pass_nodes)
 
@@ -134,9 +132,9 @@ class TestCollect2qBlocks(QiskitTestCase):
 
         pass_manager.run(qc)
 
-        self.assertEqual([['cx']],
-                         [[n.name for n in block]
-                          for block in pass_manager.property_set['block_list']])
+        self.assertEqual(
+            [["cx"]], [[n.name for n in block] for block in pass_manager.property_set["block_list"]]
+        )
 
     def test_do_not_merge_conditioned_gates(self):
         """Validate that classically conditioned gates are never considered for
@@ -163,8 +161,8 @@ class TestCollect2qBlocks(QiskitTestCase):
 
         print("BEGIN MERGE CONDITION ")
 
-        qr = QuantumRegister(3, 'qr')
-        cr = ClassicalRegister(2, 'cr')
+        qr = QuantumRegister(3, "qr")
+        cr = ClassicalRegister(2, "cr")
 
         qc = QuantumCircuit(qr, cr)
         qc.u1(0.1, 0)
@@ -178,7 +176,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         pass_manager.append(CollectMultiQBlocks())
 
         pass_manager.run(qc)
-        for block in pass_manager.property_set['block_list']:
+        for block in pass_manager.property_set["block_list"]:
             self.assertTrue(len(block) <= 1)
 
     def test_do_not_go_across_barrier(self):
@@ -191,7 +189,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         q_2: ──────░──────
                    ░
         """
-        qr = QuantumRegister(3, 'qr')
+        qr = QuantumRegister(3, "qr")
         qc = QuantumCircuit(qr)
         qc.cx(0, 1)
         qc.barrier()
@@ -201,11 +199,11 @@ class TestCollect2qBlocks(QiskitTestCase):
         pass_manager.append(CollectMultiQBlocks())
 
         pass_manager.run(qc)
-        for block in pass_manager.property_set['block_list']:
+        for block in pass_manager.property_set["block_list"]:
             self.assertTrue(len(block) <= 1)
 
     def test_optimal_blocking(self):
-        """ Test that blocks are created optimally in at least the two quibit case.
+        """Test that blocks are created optimally in at least the two quibit case.
         Here, if the topological ordering of nodes is wrong then we might create
         an extra block
               ┌───┐
@@ -216,7 +214,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         qr_2: ┤ X ├┤ X ├───────────────
               └───┘└───┘
         """
-        qr = QuantumRegister(3, 'qr')
+        qr = QuantumRegister(3, "qr")
         qc = QuantumCircuit(qr)
         qc.x(0)
         qc.cx(1, 2)
@@ -230,10 +228,10 @@ class TestCollect2qBlocks(QiskitTestCase):
         pass_manager.append(CollectMultiQBlocks())
 
         pass_manager.run(qc)
-        self.assertTrue(len(pass_manager.property_set['block_list']) == 2)
+        self.assertTrue(len(pass_manager.property_set["block_list"]) == 2)
 
     def test_ignore_measurement(self):
-        """ Test that doing a measurement on one qubit will not prevent
+        """Test that doing a measurement on one qubit will not prevent
         gates from being added to the block that do not act on the qubit
         that was measured
                        ┌─┐
@@ -257,10 +255,10 @@ class TestCollect2qBlocks(QiskitTestCase):
         pass_manager.append(CollectMultiQBlocks(max_block_size=3))
 
         pass_manager.run(qc)
-        self.assertTrue(len(pass_manager.property_set['block_list']) == 1)
+        self.assertTrue(len(pass_manager.property_set["block_list"]) == 1)
 
     def test_larger_blocks(self):
-        """ Test that a max block size of 4 is still being processed
+        """Test that a max block size of 4 is still being processed
         reasonably. Currently, this test just makes sure that the circuit can be run.
         This is because the current multiqubit block collector is not optimal for this case
         q_0: ──■──────────────■───────
@@ -288,5 +286,5 @@ class TestCollect2qBlocks(QiskitTestCase):
         pass_manager.run(qc)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

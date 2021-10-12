@@ -28,20 +28,23 @@ from qiskit.pulse import Waveform, ParametricPulse, Schedule, ScheduleBlock
 from qiskit.pulse.channels import Channel
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import core, device_info, stylesheet, types
+from qiskit.exceptions import MissingOptionalLibraryError
 
 
-def draw(program: Union[Waveform, ParametricPulse, Schedule, ScheduleBlock],
-         style: Optional[Dict[str, Any]] = None,
-         backend: Optional[BaseBackend] = None,
-         time_range: Optional[Tuple[int, int]] = None,
-         time_unit: str = types.TimeUnits.CYCLES.value,
-         disable_channels: Optional[List[Channel]] = None,
-         show_snapshot: bool = True,
-         show_framechange: bool = True,
-         show_waveform_info: bool = True,
-         show_barrier: bool = True,
-         plotter: str = types.Plotter.Mpl2D.value,
-         axis: Optional[Any] = None):
+def draw(
+    program: Union[Waveform, ParametricPulse, Schedule, ScheduleBlock],
+    style: Optional[Dict[str, Any]] = None,
+    backend: Optional[BaseBackend] = None,
+    time_range: Optional[Tuple[int, int]] = None,
+    time_unit: str = types.TimeUnits.CYCLES.value,
+    disable_channels: Optional[List[Channel]] = None,
+    show_snapshot: bool = True,
+    show_framechange: bool = True,
+    show_waveform_info: bool = True,
+    show_barrier: bool = True,
+    plotter: str = types.Plotter.Mpl2D.value,
+    axis: Optional[Any] = None,
+):
     """Generate visualization data for pulse programs.
 
     Args:
@@ -369,7 +372,7 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule, ScheduleBlock],
         without modifying the codebase.
 
     Raises:
-        ImportError: When required visualization package is not installed.
+        MissingOptionalLibraryError: When required visualization package is not installed.
         VisualizationError: When invalid plotter API or invalid time range is specified.
     """
     temp_style = stylesheet.QiskitPulseStyle()
@@ -395,8 +398,7 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule, ScheduleBlock],
         elif time_unit == types.TimeUnits.NS.value:
             canvas.set_time_range(*time_range, seconds=True)
         else:
-            raise VisualizationError('Invalid time unit {unit} is '
-                                     'specified.'.format(unit=time_unit))
+            raise VisualizationError(f"Invalid time unit {time_unit} is specified.")
 
     # channels not shown
     if disable_channels:
@@ -432,11 +434,14 @@ def draw(program: Union[Waveform, ParametricPulse, Schedule, ScheduleBlock],
         try:
             from qiskit.visualization.pulse_v2.plotters import Mpl2DPlotter
         except ImportError as ex:
-            raise ImportError('Must have Matplotlib installed.') from ex
-
+            raise MissingOptionalLibraryError(
+                libname="Matplotlib",
+                name="plot_histogram",
+                pip_install="pip install matplotlib",
+            ) from ex
         plotter_api = Mpl2DPlotter(canvas=canvas, axis=axis)
         plotter_api.draw()
     else:
-        raise VisualizationError('Plotter API {name} is not supported.'.format(name=plotter))
+        raise VisualizationError(f"Plotter API {plotter} is not supported.")
 
     return plotter_api.get_image()

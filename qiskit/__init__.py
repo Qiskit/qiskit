@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,wrong-import-position
-
+# pylint: disable=wrong-import-position
 
 """Main Qiskit public functionality."""
 
@@ -21,7 +20,7 @@ import warnings
 import os
 
 # qiskit errors operator
-from qiskit.exceptions import QiskitError
+from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 
 # The main qiskit operators
 from qiskit.circuit import ClassicalRegister
@@ -60,11 +59,12 @@ from .version import QiskitVersion  # noqa
 __qiskit_version__ = QiskitVersion()
 
 
-if sys.version_info[0] == 3 and sys.version_info[1] == 6:
+if sys.version_info < (3, 7):
     warnings.warn(
-        "Using Qiskit with Python 3.6 is deprecated as of the 0.17.0 release. "
-        "Support for running Qiskit with Python 3.6 will be removed in a "
-        "future release.", DeprecationWarning)
+        "Using Qiskit with Python 3.6 is deprecated as of qiskit-terra 0.17.0. "
+        "Support for running Qiskit with Python 3.6 will be removed in qiskit-terra 0.20.0.",
+        DeprecationWarning,
+    )
 
 
 class AerWrapper:
@@ -77,6 +77,7 @@ class AerWrapper:
         if self.aer is None:
             try:
                 from qiskit.providers import aer
+
                 self.aer = aer.Aer
             except ImportError:
                 return False
@@ -86,11 +87,12 @@ class AerWrapper:
         if not self.aer:
             try:
                 from qiskit.providers import aer
+
                 self.aer = aer.Aer
-            except ImportError as exc:
-                raise ImportError('Could not import the Aer provider from the '
-                                  'qiskit-aer package. Install qiskit-aer or '
-                                  'check your installation.') from exc
+            except ImportError as ex:
+                raise MissingOptionalLibraryError(
+                    "qiskit-aer", "Aer provider", "pip install qiskit-aer"
+                ) from ex
         return getattr(self.aer, attr)
 
 
@@ -104,6 +106,7 @@ class IBMQWrapper:
         if self.ibmq is None:
             try:
                 from qiskit.providers import ibmq
+
                 self.ibmq = ibmq.IBMQ
             except ImportError:
                 return False
@@ -113,12 +116,12 @@ class IBMQWrapper:
         if not self.ibmq:
             try:
                 from qiskit.providers import ibmq
+
                 self.ibmq = ibmq.IBMQ
-            except ImportError as exc:
-                raise ImportError('Could not import the IBMQ provider from the '
-                                  'qiskit-ibmq-provider package. Install '
-                                  'qiskit-ibmq-provider or check your  '
-                                  'installation.') from exc
+            except ImportError as ex:
+                raise MissingOptionalLibraryError(
+                    "qiskit-ibmq-provider", "IBMQ provider", "pip install qiskit-ibmq-provider"
+                ) from ex
         return getattr(self.ibmq, attr)
 
 

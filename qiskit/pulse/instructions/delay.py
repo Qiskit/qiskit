@@ -34,9 +34,12 @@ class Delay(Instruction):
         The ``channel`` will output no signal from time=0 up until time=10.
     """
 
-    def __init__(self, duration: Union[int, ParameterExpression],
-                 channel: Channel,
-                 name: Optional[str] = None):
+    def __init__(
+        self,
+        duration: Union[int, ParameterExpression],
+        channel: Channel,
+        name: Optional[str] = None,
+    ):
         """Create a new delay instruction.
 
         No other instruction may be scheduled within a ``Delay``.
@@ -58,7 +61,7 @@ class Delay(Instruction):
     @property
     def channels(self) -> Tuple[Channel]:
         """Returns the channels that this schedule uses."""
-        return (self.channel, )
+        return (self.channel,)
 
     @property
     def duration(self) -> Union[int, ParameterExpression]:

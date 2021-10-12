@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed the missing Linux aarch64 wheels which were not published for the
+    0.18.0 release. They should now continue to be built as expected for all
+    future releases.

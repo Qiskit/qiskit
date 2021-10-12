@@ -49,12 +49,9 @@ from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import drawings, types, device_info
 
 
-def gen_filled_waveform_stepwise(data: types.PulseInstruction,
-                                 formatter: Dict[str, Any],
-                                 device: device_info.DrawerBackendInfo
-                                 ) -> List[Union[drawings.LineData,
-                                                 drawings.BoxData,
-                                                 drawings.TextData]]:
+def gen_filled_waveform_stepwise(
+    data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
+) -> List[Union[drawings.LineData, drawings.BoxData, drawings.TextData]]:
     """Generate filled area objects of the real and the imaginary part of waveform envelope.
 
     The curve of envelope is not interpolated nor smoothed and presented
@@ -81,7 +78,7 @@ def gen_filled_waveform_stepwise(data: types.PulseInstruction,
     # update metadata
     meta = waveform_data.meta
     qind = device.get_qubit_index(channel)
-    meta.update({'qubit': qind if qind is not None else 'N/A'})
+    meta.update({"qubit": qind if qind is not None else "N/A"})
 
     if isinstance(waveform_data, types.ParsedInstruction):
         # Draw waveform with fixed shape
@@ -90,16 +87,14 @@ def gen_filled_waveform_stepwise(data: types.PulseInstruction,
         ydata = waveform_data.yvals
 
         # phase modulation
-        if formatter['control.apply_phase_modulation']:
+        if formatter["control.apply_phase_modulation"]:
             ydata = np.asarray(ydata, dtype=complex) * np.exp(1j * data.frame.phase)
         else:
             ydata = np.asarray(ydata, dtype=complex)
 
-        return _draw_shaped_waveform(xdata=xdata,
-                                     ydata=ydata,
-                                     meta=meta,
-                                     channel=channel,
-                                     formatter=formatter)
+        return _draw_shaped_waveform(
+            xdata=xdata, ydata=ydata, meta=meta, channel=channel, formatter=formatter
+        )
 
     elif isinstance(waveform_data, types.OpaqueShape):
         # Draw parametric pulse with unbound parameters
@@ -110,22 +105,23 @@ def gen_filled_waveform_stepwise(data: types.PulseInstruction,
             if isinstance(pval, circuit.ParameterExpression):
                 unbound_params.append(pname)
 
-        return _draw_opaque_waveform(init_time=data.t0,
-                                     duration=waveform_data.duration,
-                                     pulse_shape=data.inst.pulse.__class__.__name__,
-                                     pnames=unbound_params,
-                                     meta=meta,
-                                     channel=channel,
-                                     formatter=formatter)
+        return _draw_opaque_waveform(
+            init_time=data.t0,
+            duration=waveform_data.duration,
+            pulse_shape=data.inst.pulse.__class__.__name__,
+            pnames=unbound_params,
+            meta=meta,
+            channel=channel,
+            formatter=formatter,
+        )
 
     else:
-        raise VisualizationError('Invalid data format is provided.')
+        raise VisualizationError("Invalid data format is provided.")
 
 
-def gen_ibmq_latex_waveform_name(data: types.PulseInstruction,
-                                 formatter: Dict[str, Any],
-                                 device: device_info.DrawerBackendInfo
-                                 ) -> List[drawings.TextData]:
+def gen_ibmq_latex_waveform_name(
+    data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
+) -> List[drawings.TextData]:
     r"""Generate the formatted instruction name associated with the waveform.
 
     Channel name and ID string are removed and the rotation angle is expressed in units of pi.
@@ -158,73 +154,78 @@ def gen_ibmq_latex_waveform_name(data: types.PulseInstruction,
     if data.is_opaque:
         return []
 
-    style = {'zorder': formatter['layer.annotate'],
-             'color': formatter['color.annotate'],
-             'size': formatter['text_size.annotate'],
-             'va': 'center',
-             'ha': 'center'}
+    style = {
+        "zorder": formatter["layer.annotate"],
+        "color": formatter["color.annotate"],
+        "size": formatter["text_size.annotate"],
+        "va": "center",
+        "ha": "center",
+    }
 
     if isinstance(data.inst, pulse.instructions.Acquire):
-        systematic_name = 'Acquire'
+        systematic_name = "Acquire"
         latex_name = None
     elif isinstance(data.inst, instructions.Delay):
-        systematic_name = data.inst.name or 'Delay'
+        systematic_name = data.inst.name or "Delay"
         latex_name = None
     else:
         systematic_name = data.inst.pulse.name or data.inst.pulse.__class__.__name__
 
-        template = r'(?P<op>[A-Z]+)(?P<angle>[0-9]+)?(?P<sign>[pm])_(?P<ch>[dum])[0-9]+'
+        template = r"(?P<op>[A-Z]+)(?P<angle>[0-9]+)?(?P<sign>[pm])_(?P<ch>[dum])[0-9]+"
         match_result = re.match(template, systematic_name)
         if match_result is not None:
             match_dict = match_result.groupdict()
-            sign = '' if match_dict['sign'] == 'p' else '-'
-            if match_dict['op'] == 'CR':
+            sign = "" if match_dict["sign"] == "p" else "-"
+            if match_dict["op"] == "CR":
                 # cross resonance
-                if match_dict['ch'] == 'u':
-                    op_name = r'{\rm CR}'
+                if match_dict["ch"] == "u":
+                    op_name = r"{\rm CR}"
                 else:
-                    op_name = r'\overline{\rm CR}'
+                    op_name = r"\overline{\rm CR}"
                 # IQX name def is not standard. Echo CR is annotated with pi/4 rather than pi/2
-                angle_val = match_dict['angle']
-                frac = Fraction(int(int(angle_val)/2), 180)
+                angle_val = match_dict["angle"]
+                frac = Fraction(int(int(angle_val) / 2), 180)
                 if frac.numerator == 1:
-                    angle = r'\pi/{denom:d}'.format(denom=frac.denominator)
+                    angle = fr"\pi/{frac.denominator:d}"
                 else:
-                    angle = r'{num:d}/{denom:d} \pi'.format(num=frac.numerator,
-                                                            denom=frac.denominator)
+                    angle = r"{num:d}/{denom:d} \pi".format(
+                        num=frac.numerator, denom=frac.denominator
+                    )
             else:
                 # single qubit pulse
-                op_name = r'{{\rm {}}}'.format(match_dict['op'])
-                angle_val = match_dict['angle']
+                op_name = r"{{\rm {}}}".format(match_dict["op"])
+                angle_val = match_dict["angle"]
                 if angle_val is None:
-                    angle = r'\pi'
+                    angle = r"\pi"
                 else:
                     frac = Fraction(int(angle_val), 180)
                     if frac.numerator == 1:
-                        angle = r'\pi/{denom:d}'.format(denom=frac.denominator)
+                        angle = fr"\pi/{frac.denominator:d}"
                     else:
-                        angle = r'{num:d}/{denom:d} \pi'.format(num=frac.numerator,
-                                                                denom=frac.denominator)
-            latex_name = r'{}({}{})'.format(op_name, sign, angle)
+                        angle = r"{num:d}/{denom:d} \pi".format(
+                            num=frac.numerator, denom=frac.denominator
+                        )
+            latex_name = fr"{op_name}({sign}{angle})"
         else:
             latex_name = None
 
-    text = drawings.TextData(data_type=types.LabelType.PULSE_NAME,
-                             channels=data.inst.channel,
-                             xvals=[data.t0 + 0.5 * data.inst.duration],
-                             yvals=[-formatter['label_offset.pulse_name']],
-                             text=systematic_name,
-                             latex=latex_name,
-                             ignore_scaling=True,
-                             styles=style)
+    text = drawings.TextData(
+        data_type=types.LabelType.PULSE_NAME,
+        channels=data.inst.channel,
+        xvals=[data.t0 + 0.5 * data.inst.duration],
+        yvals=[-formatter["label_offset.pulse_name"]],
+        text=systematic_name,
+        latex=latex_name,
+        ignore_scaling=True,
+        styles=style,
+    )
 
     return [text]
 
 
-def gen_waveform_max_value(data: types.PulseInstruction,
-                           formatter: Dict[str, Any],
-                           device: device_info.DrawerBackendInfo
-                           ) -> List[drawings.TextData]:
+def gen_waveform_max_value(
+    data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
+) -> List[drawings.TextData]:
     """Generate the annotation for the maximum waveform height for
     the real and the imaginary part of the waveform envelope.
 
@@ -244,10 +245,12 @@ def gen_waveform_max_value(data: types.PulseInstruction,
     if data.is_opaque:
         return []
 
-    style = {'zorder': formatter['layer.annotate'],
-             'color': formatter['color.annotate'],
-             'size': formatter['text_size.annotate'],
-             'ha': 'center'}
+    style = {
+        "zorder": formatter["layer.annotate"],
+        "color": formatter["color.annotate"],
+        "size": formatter["text_size.annotate"],
+        "ha": "center",
+    }
 
     # only pulses.
     if isinstance(data.inst, instructions.Play):
@@ -263,7 +266,7 @@ def gen_waveform_max_value(data: types.PulseInstruction,
         return []
 
     # phase modulation
-    if formatter['control.apply_phase_modulation']:
+    if formatter["control.apply_phase_modulation"]:
         ydata = np.asarray(ydata, dtype=complex) * np.exp(1j * data.frame.phase)
     else:
         ydata = np.asarray(ydata, dtype=complex)
@@ -275,18 +278,20 @@ def gen_waveform_max_value(data: types.PulseInstruction,
     if np.abs(ydata.real[re_maxind]) > 0.01:
         # generator shows only 2 digits after the decimal point.
         if ydata.real[re_maxind] > 0:
-            max_val = u'{val:.2f}\n\u25BE'.format(val=ydata.real[re_maxind])
-            re_style = {'va': 'bottom'}
+            max_val = f"{ydata.real[re_maxind]:.2f}\n\u25BE"
+            re_style = {"va": "bottom"}
         else:
-            max_val = u'\u25B4\n{val:.2f}'.format(val=ydata.real[re_maxind])
-            re_style = {'va': 'top'}
+            max_val = f"\u25B4\n{ydata.real[re_maxind]:.2f}"
+            re_style = {"va": "top"}
         re_style.update(style)
-        re_text = drawings.TextData(data_type=types.LabelType.PULSE_INFO,
-                                    channels=data.inst.channel,
-                                    xvals=[xdata[re_maxind]],
-                                    yvals=[ydata.real[re_maxind]],
-                                    text=max_val,
-                                    styles=re_style)
+        re_text = drawings.TextData(
+            data_type=types.LabelType.PULSE_INFO,
+            channels=data.inst.channel,
+            xvals=[xdata[re_maxind]],
+            yvals=[ydata.real[re_maxind]],
+            text=max_val,
+            styles=re_style,
+        )
         texts.append(re_text)
 
     # max of imag part
@@ -294,29 +299,32 @@ def gen_waveform_max_value(data: types.PulseInstruction,
     if np.abs(ydata.imag[im_maxind]) > 0.01:
         # generator shows only 2 digits after the decimal point.
         if ydata.imag[im_maxind] > 0:
-            max_val = u'{val:.2f}\n\u25BE'.format(val=ydata.imag[im_maxind])
-            im_style = {'va': 'bottom'}
+            max_val = f"{ydata.imag[im_maxind]:.2f}\n\u25BE"
+            im_style = {"va": "bottom"}
         else:
-            max_val = u'\u25B4\n{val:.2f}'.format(val=ydata.imag[im_maxind])
-            im_style = {'va': 'top'}
+            max_val = f"\u25B4\n{ydata.imag[im_maxind]:.2f}"
+            im_style = {"va": "top"}
         im_style.update(style)
-        im_text = drawings.TextData(data_type=types.LabelType.PULSE_INFO,
-                                    channels=data.inst.channel,
-                                    xvals=[xdata[im_maxind]],
-                                    yvals=[ydata.imag[im_maxind]],
-                                    text=max_val,
-                                    styles=im_style)
+        im_text = drawings.TextData(
+            data_type=types.LabelType.PULSE_INFO,
+            channels=data.inst.channel,
+            xvals=[xdata[im_maxind]],
+            yvals=[ydata.imag[im_maxind]],
+            text=max_val,
+            styles=im_style,
+        )
         texts.append(im_text)
 
     return texts
 
 
-def _draw_shaped_waveform(xdata: np.ndarray,
-                          ydata: np.ndarray,
-                          meta: Dict[str, Any],
-                          channel: pulse.channels.PulseChannel,
-                          formatter: Dict[str, Any],
-                          ) -> List[Union[drawings.LineData, drawings.BoxData, drawings.TextData]]:
+def _draw_shaped_waveform(
+    xdata: np.ndarray,
+    ydata: np.ndarray,
+    meta: Dict[str, Any],
+    channel: pulse.channels.PulseChannel,
+    formatter: Dict[str, Any],
+) -> List[Union[drawings.LineData, drawings.BoxData, drawings.TextData]]:
     """A private function that generates drawings of stepwise pulse lines.
 
     Args:
@@ -334,7 +342,7 @@ def _draw_shaped_waveform(xdata: np.ndarray,
     """
     fill_objs = []
 
-    resolution = formatter['general.vertical_resolution']
+    resolution = formatter["general.vertical_resolution"]
 
     # stepwise interpolation
     xdata = np.concatenate((xdata, [xdata[-1] + 1]))
@@ -344,13 +352,15 @@ def _draw_shaped_waveform(xdata: np.ndarray,
     time = np.concatenate(([xdata[0]], np.repeat(xdata[1:-1], 2), [xdata[-1]]))
 
     # setup style options
-    style = {'alpha': formatter['alpha.fill_waveform'],
-             'zorder': formatter['layer.fill_waveform'],
-             'linewidth': formatter['line_width.fill_waveform'],
-             'linestyle': formatter['line_style.fill_waveform']}
+    style = {
+        "alpha": formatter["alpha.fill_waveform"],
+        "zorder": formatter["layer.fill_waveform"],
+        "linewidth": formatter["line_width.fill_waveform"],
+        "linestyle": formatter["line_style.fill_waveform"],
+    }
 
     try:
-        color_real, color_imag = formatter['color.waveforms'][channel.prefix.upper()]
+        color_real, color_imag = formatter["color.waveforms"][channel.prefix.upper()]
     except KeyError as ex:
         raise VisualizationError(
             f"Waveform color for channel type {channel.prefix} is not defined"
@@ -361,23 +371,25 @@ def _draw_shaped_waveform(xdata: np.ndarray,
         # data compression
         re_valid_inds = _find_consecutive_index(re_y, resolution)
         # stylesheet
-        re_style = {'color': color_real}
+        re_style = {"color": color_real}
         re_style.update(style)
         # metadata
-        re_meta = {'data': 'real'}
+        re_meta = {"data": "real"}
         re_meta.update(meta)
         # active xy data
         re_xvals = time[re_valid_inds]
         re_yvals = re_y[re_valid_inds]
 
         # object
-        real = drawings.LineData(data_type=types.WaveformType.REAL,
-                                 channels=channel,
-                                 xvals=re_xvals,
-                                 yvals=re_yvals,
-                                 fill=True,
-                                 meta=re_meta,
-                                 styles=re_style)
+        real = drawings.LineData(
+            data_type=types.WaveformType.REAL,
+            channels=channel,
+            xvals=re_xvals,
+            yvals=re_yvals,
+            fill=True,
+            meta=re_meta,
+            styles=re_style,
+        )
         fill_objs.append(real)
 
     # create imaginary part
@@ -385,36 +397,39 @@ def _draw_shaped_waveform(xdata: np.ndarray,
         # data compression
         im_valid_inds = _find_consecutive_index(im_y, resolution)
         # stylesheet
-        im_style = {'color': color_imag}
+        im_style = {"color": color_imag}
         im_style.update(style)
         # metadata
-        im_meta = {'data': 'imag'}
+        im_meta = {"data": "imag"}
         im_meta.update(meta)
         # active xy data
         im_xvals = time[im_valid_inds]
         im_yvals = im_y[im_valid_inds]
 
         # object
-        imag = drawings.LineData(data_type=types.WaveformType.IMAG,
-                                 channels=channel,
-                                 xvals=im_xvals,
-                                 yvals=im_yvals,
-                                 fill=True,
-                                 meta=im_meta,
-                                 styles=im_style)
+        imag = drawings.LineData(
+            data_type=types.WaveformType.IMAG,
+            channels=channel,
+            xvals=im_xvals,
+            yvals=im_yvals,
+            fill=True,
+            meta=im_meta,
+            styles=im_style,
+        )
         fill_objs.append(imag)
 
     return fill_objs
 
 
-def _draw_opaque_waveform(init_time: int,
-                          duration: int,
-                          pulse_shape: str,
-                          pnames: List[str],
-                          meta: Dict[str, Any],
-                          channel: pulse.channels.PulseChannel,
-                          formatter: Dict[str, Any],
-                          ) -> List[Union[drawings.LineData, drawings.BoxData, drawings.TextData]]:
+def _draw_opaque_waveform(
+    init_time: int,
+    duration: int,
+    pulse_shape: str,
+    pnames: List[str],
+    meta: Dict[str, Any],
+    channel: pulse.channels.PulseChannel,
+    formatter: Dict[str, Any],
+) -> List[Union[drawings.LineData, drawings.BoxData, drawings.TextData]]:
     """A private function that generates drawings of stepwise pulse lines.
 
     Args:
@@ -431,44 +446,54 @@ def _draw_opaque_waveform(init_time: int,
     """
     fill_objs = []
 
-    fc, ec = formatter['color.opaque_shape']
+    fc, ec = formatter["color.opaque_shape"]
     # setup style options
-    box_style = {'zorder': formatter['layer.fill_waveform'],
-                 'alpha': formatter['alpha.opaque_shape'],
-                 'linewidth': formatter['line_width.opaque_shape'],
-                 'linestyle': formatter['line_style.opaque_shape'],
-                 'facecolor': fc,
-                 'edgecolor': ec}
+    box_style = {
+        "zorder": formatter["layer.fill_waveform"],
+        "alpha": formatter["alpha.opaque_shape"],
+        "linewidth": formatter["line_width.opaque_shape"],
+        "linestyle": formatter["line_style.opaque_shape"],
+        "facecolor": fc,
+        "edgecolor": ec,
+    }
 
     if duration is None or isinstance(duration, circuit.ParameterExpression):
-        duration = formatter['box_width.opaque_shape']
+        duration = formatter["box_width.opaque_shape"]
 
-    box_obj = drawings.BoxData(data_type=types.WaveformType.OPAQUE,
-                               channels=channel,
-                               xvals=[init_time, init_time + duration],
-                               yvals=[-0.5 * formatter['box_height.opaque_shape'],
-                                      0.5 * formatter['box_height.opaque_shape']],
-                               meta=meta,
-                               ignore_scaling=True,
-                               styles=box_style)
+    box_obj = drawings.BoxData(
+        data_type=types.WaveformType.OPAQUE,
+        channels=channel,
+        xvals=[init_time, init_time + duration],
+        yvals=[
+            -0.5 * formatter["box_height.opaque_shape"],
+            0.5 * formatter["box_height.opaque_shape"],
+        ],
+        meta=meta,
+        ignore_scaling=True,
+        styles=box_style,
+    )
     fill_objs.append(box_obj)
 
     # parameter name
-    func_repr = '{func}({params})'.format(func=pulse_shape, params=', '.join(pnames))
+    func_repr = "{func}({params})".format(func=pulse_shape, params=", ".join(pnames))
 
-    text_style = {'zorder': formatter['layer.annotate'],
-                  'color': formatter['color.annotate'],
-                  'size': formatter['text_size.annotate'],
-                  'va': 'bottom',
-                  'ha': 'center'}
+    text_style = {
+        "zorder": formatter["layer.annotate"],
+        "color": formatter["color.annotate"],
+        "size": formatter["text_size.annotate"],
+        "va": "bottom",
+        "ha": "center",
+    }
 
-    text_obj = drawings.TextData(data_type=types.LabelType.OPAQUE_BOXTEXT,
-                                 channels=channel,
-                                 xvals=[init_time + 0.5 * duration],
-                                 yvals=[0.5 * formatter['box_height.opaque_shape']],
-                                 text=func_repr,
-                                 ignore_scaling=True,
-                                 styles=text_style)
+    text_obj = drawings.TextData(
+        data_type=types.LabelType.OPAQUE_BOXTEXT,
+        channels=channel,
+        xvals=[init_time + 0.5 * duration],
+        yvals=[0.5 * formatter["box_height.opaque_shape"]],
+        text=func_repr,
+        ignore_scaling=True,
+        styles=text_style,
+    )
 
     fill_objs.append(text_obj)
 
@@ -502,8 +527,9 @@ def _find_consecutive_index(data_array: np.ndarray, resolution: float) -> np.nda
         return np.ones_like(data_array).astype(bool)
 
 
-def _parse_waveform(data: types.PulseInstruction
-                    ) -> Union[types.ParsedInstruction, types.OpaqueShape]:
+def _parse_waveform(
+    data: types.PulseInstruction,
+) -> Union[types.ParsedInstruction, types.OpaqueShape]:
     """A helper function that generates an array for the waveform with
     instruction metadata.
 
@@ -525,27 +551,38 @@ def _parse_waveform(data: types.PulseInstruction
         if isinstance(operand, pulse.ParametricPulse):
             # parametric pulse
             params = operand.parameters
-            duration = params.pop('duration', None)
+            duration = params.pop("duration", None)
             if isinstance(duration, circuit.Parameter):
                 duration = None
 
-            meta.update({'waveform shape': operand.__class__.__name__})
-            meta.update({key: val.name if isinstance(val, circuit.Parameter) else val for
-                         key, val in params.items()})
+            meta.update({"waveform shape": operand.__class__.__name__})
+            meta.update(
+                {
+                    key: val.name if isinstance(val, circuit.Parameter) else val
+                    for key, val in params.items()
+                }
+            )
             if data.is_opaque:
                 # parametric pulse with unbound parameter
                 if duration:
-                    meta.update({'duration (cycle time)': inst.duration,
-                                 'duration (sec)': inst.duration * data.dt if data.dt else 'N/A'})
+                    meta.update(
+                        {
+                            "duration (cycle time)": inst.duration,
+                            "duration (sec)": inst.duration * data.dt if data.dt else "N/A",
+                        }
+                    )
                 else:
-                    meta.update({'duration (cycle time)': 'N/A',
-                                 'duration (sec)': 'N/A'})
+                    meta.update({"duration (cycle time)": "N/A", "duration (sec)": "N/A"})
 
-                meta.update({'t0 (cycle time)': data.t0,
-                             't0 (sec)': data.t0 * data.dt if data.dt else 'N/A',
-                             'phase': data.frame.phase,
-                             'frequency': data.frame.freq,
-                             'name': inst.name})
+                meta.update(
+                    {
+                        "t0 (cycle time)": data.t0,
+                        "t0 (sec)": data.t0 * data.dt if data.dt else "N/A",
+                        "phase": data.frame.phase,
+                        "frequency": data.frame.freq,
+                        "name": inst.name,
+                    }
+                )
 
                 return types.OpaqueShape(duration=duration, meta=meta)
             else:
@@ -564,21 +601,29 @@ def _parse_waveform(data: types.PulseInstruction
         # acquire
         xdata = np.arange(inst.duration) + data.t0
         ydata = np.ones(inst.duration)
-        acq_data = {'memory slot': inst.mem_slot.name,
-                    'register slot': inst.reg_slot.name if inst.reg_slot else 'N/A',
-                    'discriminator': inst.discriminator.name if inst.discriminator else 'N/A',
-                    'kernel': inst.kernel.name if inst.kernel else 'N/A'}
+        acq_data = {
+            "memory slot": inst.mem_slot.name,
+            "register slot": inst.reg_slot.name if inst.reg_slot else "N/A",
+            "discriminator": inst.discriminator.name if inst.discriminator else "N/A",
+            "kernel": inst.kernel.name if inst.kernel else "N/A",
+        }
         meta.update(acq_data)
     else:
-        raise VisualizationError('Unsupported instruction {inst} by '
-                                 'filled envelope.'.format(inst=inst.__class__.__name__))
+        raise VisualizationError(
+            "Unsupported instruction {inst} by "
+            "filled envelope.".format(inst=inst.__class__.__name__)
+        )
 
-    meta.update({'duration (cycle time)': inst.duration,
-                 'duration (sec)': inst.duration * data.dt if data.dt else 'N/A',
-                 't0 (cycle time)': data.t0,
-                 't0 (sec)': data.t0 * data.dt if data.dt else 'N/A',
-                 'phase': data.frame.phase,
-                 'frequency': data.frame.freq,
-                 'name': inst.name})
+    meta.update(
+        {
+            "duration (cycle time)": inst.duration,
+            "duration (sec)": inst.duration * data.dt if data.dt else "N/A",
+            "t0 (cycle time)": data.t0,
+            "t0 (sec)": data.t0 * data.dt if data.dt else "N/A",
+            "phase": data.frame.phase,
+            "frequency": data.frame.freq,
+            "name": inst.name,
+        }
+    )
 
     return types.ParsedInstruction(xvals=xdata, yvals=ydata, meta=meta)

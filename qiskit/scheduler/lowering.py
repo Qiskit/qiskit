@@ -29,9 +29,10 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.macros import measure
 from qiskit.scheduler.config import ScheduleConfig
 
-CircuitPulseDef = namedtuple('CircuitPulseDef', [
-    'schedule',  # The schedule which implements the quantum circuit command
-    'qubits'])   # The labels of the qubits involved in the command according to the circuit
+CircuitPulseDef = namedtuple(
+    "CircuitPulseDef",
+    ["schedule", "qubits"],  # The schedule which implements the quantum circuit command
+)  # The labels of the qubits involved in the command according to the circuit
 
 
 def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> List[CircuitPulseDef]:
@@ -77,11 +78,14 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
                     meas_q = circuit.calibrations[Measure().name][((qubit,), params)]
                     meas_q = target_qobj_transform(meas_q)
                     acquire_q = meas_q.filter(channels=[AcquireChannel(qubit)])
-                    mem_slot_index = [chan.index for chan in acquire_q.channels
-                                      if isinstance(chan, MemorySlot)][0]
+                    mem_slot_index = [
+                        chan.index for chan in acquire_q.channels if isinstance(chan, MemorySlot)
+                    ][0]
                     if mem_slot_index != qubit_mem_slots[qubit]:
-                        raise KeyError("The measurement calibration is not defined on "
-                                       "the requested classical bits")
+                        raise KeyError(
+                            "The measurement calibration is not defined on "
+                            "the requested classical bits"
+                        )
                     sched |= meas_q
                     del qubit_mem_slots[qubit]
                     acquire_excludes[qubit] = mem_slot_index
@@ -91,18 +95,22 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
         if qubit_mem_slots:
             qubits = list(qubit_mem_slots.keys())
             qubit_mem_slots.update(acquire_excludes)
-            meas_sched = measure(qubits=qubits,
-                                 inst_map=inst_map,
-                                 meas_map=schedule_config.meas_map,
-                                 qubit_mem_slots=qubit_mem_slots)
+            meas_sched = measure(
+                qubits=qubits,
+                inst_map=inst_map,
+                meas_map=schedule_config.meas_map,
+                qubit_mem_slots=qubit_mem_slots,
+            )
             meas_sched = target_qobj_transform(meas_sched)
-            meas_sched = meas_sched.exclude(channels=[AcquireChannel(qubit) for qubit
-                                                      in acquire_excludes])
+            meas_sched = meas_sched.exclude(
+                channels=[AcquireChannel(qubit) for qubit in acquire_excludes]
+            )
             sched |= meas_sched
         qubit_mem_slots.clear()
-        return CircuitPulseDef(schedule=sched,
-                               qubits=[chan.index for chan in sched.channels
-                                       if isinstance(chan, AcquireChannel)])
+        return CircuitPulseDef(
+            schedule=sched,
+            qubits=[chan.index for chan in sched.channels if isinstance(chan, AcquireChannel)],
+        )
 
     qubit_indices = {bit: idx for idx, bit in enumerate(circuit.qubits)}
     clbit_indices = {bit: idx for idx, bit in enumerate(circuit.clbits)}
@@ -123,18 +131,24 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
                     sched += pulse_inst.Delay(duration=inst.duration, channel=channel(qubit))
             circ_pulse_defs.append(CircuitPulseDef(schedule=sched, qubits=inst_qubits))
         elif isinstance(inst, Measure):
-            if (len(inst_qubits) != 1 and len(clbits) != 1):
-                raise QiskitError("Qubit '{}' or classical bit '{}' errored because the "
-                                  "circuit Measure instruction only takes one of "
-                                  "each.".format(inst_qubits, clbits))
+            if len(inst_qubits) != 1 and len(clbits) != 1:
+                raise QiskitError(
+                    "Qubit '{}' or classical bit '{}' errored because the "
+                    "circuit Measure instruction only takes one of "
+                    "each.".format(inst_qubits, clbits)
+                )
             qubit_mem_slots[inst_qubits[0]] = clbit_indices[clbits[0]]
         else:
             try:
                 gate_cals = circuit.calibrations[inst.name]
-                schedule = gate_cals[(
-                    tuple(inst_qubits),
-                    tuple(p if getattr(p, 'parameters', None) else float(p) for p in inst.params),
-                )]
+                schedule = gate_cals[
+                    (
+                        tuple(inst_qubits),
+                        tuple(
+                            p if getattr(p, "parameters", None) else float(p) for p in inst.params
+                        ),
+                    )
+                ]
                 schedule = target_qobj_transform(schedule)
                 circ_pulse_defs.append(CircuitPulseDef(schedule=schedule, qubits=inst_qubits))
                 continue
@@ -144,8 +158,7 @@ def lower_gates(circuit: QuantumCircuit, schedule_config: ScheduleConfig) -> Lis
             try:
                 schedule = inst_map.get(inst, inst_qubits, *inst.params)
                 schedule = target_qobj_transform(schedule)
-                circ_pulse_defs.append(
-                    CircuitPulseDef(schedule=schedule, qubits=inst_qubits))
+                circ_pulse_defs.append(CircuitPulseDef(schedule=schedule, qubits=inst_qubits))
             except PulseError as ex:
                 raise QiskitError(
                     f"Operation '{inst.name}' on qubit(s) {inst_qubits} not supported by the "

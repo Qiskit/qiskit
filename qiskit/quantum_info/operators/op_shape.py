@@ -26,8 +26,7 @@ from qiskit.exceptions import QiskitError
 class OpShape:
     """Multipartite matrix and vector shape class."""
 
-    def __init__(self, dims_l=None, dims_r=None,
-                 num_qargs_l=None, num_qargs_r=None):
+    def __init__(self, dims_l=None, dims_r=None, num_qargs_l=None, num_qargs_r=None):
         """Initialize an operator object."""
         # The number of left and right qargs
         self._num_qargs_l = 0  # the number of left (output) subsystems
@@ -36,8 +35,8 @@ class OpShape:
         # Subsystem dimensions
         # This is a tuple of dimensions for each subsystem
         # If None each subsystem is assumed to be a dim=2 (qubit)
-        self._dims_l = None    # Tuple of left (output) dimensions
-        self._dims_r = None    # tuple of right (input) dimensions
+        self._dims_l = None  # Tuple of left (output) dimensions
+        self._dims_r = None  # tuple of right (input) dimensions
 
         # Set attributes
         if num_qargs_r:
@@ -51,35 +50,47 @@ class OpShape:
             self._dims_l = tuple(dims_l)
             self._num_qargs_l = len(self._dims_l)
 
+    @property
+    def settings(self):
+        """Return the settings of the ``OpShape`` as dictionary."""
+        return {
+            "dims_l": self._dims_l,
+            "dims_r": self._dims_r,
+            "num_qargs_l": self._num_qargs_l,
+            "num_qargs_r": self._num_qargs_r,
+        }
+
     def __repr__(self):
         if self._dims_l:
-            left = 'dims_l={}'.format(self._dims_l)
+            left = f"dims_l={self._dims_l}"
         elif self._num_qargs_l:
-            left = 'num_qargs_l={}'.format(self._num_qargs_l)
+            left = f"num_qargs_l={self._num_qargs_l}"
         else:
-            left = ''
+            left = ""
         if self._dims_r:
-            right = 'dims_r={}'.format(self._dims_r)
+            right = f"dims_r={self._dims_r}"
         elif self._num_qargs_r:
-            right = 'num_qargs_r={}'.format(self._num_qargs_r)
+            right = f"num_qargs_r={self._num_qargs_r}"
         else:
-            right = ''
+            right = ""
         if left and right:
-            inner = '{}, {}'.format(left, right)
+            inner = f"{left}, {right}"
         elif left:
             inner = left
         else:
             inner = right
-        return 'OpShape({})'.format(inner)
+        return f"OpShape({inner})"
 
     def __eq__(self, other):
         """Check types and subsystem dimensions are equal"""
         if not isinstance(other, OpShape):
             return False
-        return (self._num_qargs_r == other._num_qargs_r and
-                self._num_qargs_l == other._num_qargs_l and
-                self._dims_r == other._dims_r and
-                self._dims_l == other._dims_l)
+        return (
+            self._num_qargs_r == other._num_qargs_r
+            and self._num_qargs_l == other._num_qargs_l
+            and self._dims_r == other._dims_r
+            and self._dims_l == other._dims_l
+        )
 
     def copy(self):
         """Make a deep copy of current operator."""
@@ -114,7 +125,7 @@ class OpShape:
         """Return a tuple of the matrix shape"""
         if not self._num_qargs_r:
             # Vector shape
-            return (self._dim_l, )
+            return (self._dim_l,)
         # Matrix shape
         return self._dim_l, self._dim_r
 
@@ -126,8 +137,7 @@ class OpShape:
     @property
     def is_square(self):
         """Return True if the left and right dimensions are equal."""
-        return (self._num_qargs_l == self._num_qargs_r
-                and self._dims_l == self._dims_r)
+        return self._num_qargs_l == self._num_qargs_r and self._dims_l == self._dims_r
 
     def dims_r(self, qargs=None):
         """Return tuple of input dimension for specified subsystems."""
@@ -136,7 +146,7 @@ class OpShape:
                 return tuple(self._dims_r[i] for i in qargs)
             return self._dims_r
         num = self._num_qargs_r if qargs is None else len(qargs)
-        return num * (2, )
+        return num * (2,)
 
     def dims_l(self, qargs=None):
         """Return tuple of output dimension for specified subsystems."""
@@ -145,7 +155,7 @@ class OpShape:
                 return tuple(self._dims_l[i] for i in qargs)
             return self._dims_l
         num = self._num_qargs_l if qargs is None else len(qargs)
-        return num * (2, )
+        return num * (2,)
 
     @property
     def _dim_r(self):
@@ -171,8 +181,7 @@ class OpShape:
         ndim = len(shape)
         if ndim > 2:
             if raise_exception:
-                raise QiskitError(
-                    "Input shape is not 1 or 2-dimensional (shape = {})".format(shape))
+                raise QiskitError(f"Input shape is not 1 or 2-dimensional (shape = {shape})")
             return False
 
         if self._dims_l:
@@ -180,7 +189,8 @@ class OpShape:
                 if raise_exception:
                     raise QiskitError(
                         "Output dimensions do not match matrix shape "
-                        "({} != {})".format(reduce(mul, self._dims_l), shape[0]))
+                        "({} != {})".format(reduce(mul, self._dims_l), shape[0])
+                    )
                 return False
         elif shape[0] != 2 ** self._num_qargs_l:
             if raise_exception:
@@ -193,7 +203,8 @@ class OpShape:
                     if raise_exception:
                         raise QiskitError(
                             "Input dimensions do not match matrix shape "
-                            "({} != {})".format(reduce(mul, self._dims_r), shape[1]))
+                            "({} != {})".format(reduce(mul, self._dims_r), shape[1])
+                        )
                     return False
             elif shape[1] != 2 ** self._num_qargs_r:
                 if raise_exception:
@@ -201,21 +212,29 @@ class OpShape:
                 return False
         elif self._dims_r or self._num_qargs_r:
             if raise_exception:
-                raise QiskitError('Input dimension should be empty for vector shape.')
+                raise QiskitError("Input dimension should be empty for vector shape.")
             return False
 
         return True
 
     @classmethod
-    def auto(cls, shape=None, dims_l=None, dims_r=None, dims=None,
-             num_qubits_l=None, num_qubits_r=None, num_qubits=None):
+    def auto(
+        cls,
+        shape=None,
+        dims_l=None,
+        dims_r=None,
+        dims=None,
+        num_qubits_l=None,
+        num_qubits_r=None,
+        num_qubits=None,
+    ):
         """Construct TensorShape with automatic checking of qubit dimensions"""
         if dims and (dims_l or dims_r):
-            raise QiskitError(
-                "`dims` kwarg cannot be used with `dims_l` or `dims_r`")
+            raise QiskitError("`dims` kwarg cannot be used with `dims_l` or `dims_r`")
         if num_qubits and (num_qubits_l or num_qubits_r):
             raise QiskitError(
-                "`num_qubits` kwarg cannot be used with `num_qubits_l` or `num_qubits_r`")
+                "`num_qubits` kwarg cannot be used with `num_qubits_l` or `num_qubits_r`"
+            )
 
         if num_qubits:
             num_qubits_l = num_qubits
@@ -225,8 +244,7 @@ class OpShape:
             dims_r = dims
 
         if num_qubits_r and num_qubits_l:
-            matrix_shape = cls(num_qargs_l=num_qubits_r,
-                               num_qargs_r=num_qubits_l)
+            matrix_shape = cls(num_qargs_l=num_qubits_r, num_qargs_r=num_qubits_l)
         else:
             ndim = len(shape) if shape else 0
             if dims_r is None and num_qubits_r is None and ndim > 1:
@@ -241,7 +259,7 @@ class OpShape:
                         num_qubits_r = int(log2(dims_r))
                         dims_r = None
                     else:
-                        dims_r = (dims_r, )
+                        dims_r = (dims_r,)
                 elif dims_r is not None:
                     if set(dims_r) == {2}:
                         num_qubits_r = len(dims_r)
@@ -255,7 +273,7 @@ class OpShape:
                         num_qubits_l = int(log2(dims_l))
                         dims_l = None
                     else:
-                        dims_l = (dims_l, )
+                        dims_l = (dims_l,)
                 elif dims_l is not None:
                     if set(dims_l) == {2}:
                         num_qubits_l = len(dims_l)
@@ -263,9 +281,9 @@ class OpShape:
                     else:
                         dims_l = tuple(dims_l)
 
-            matrix_shape = cls(dims_l=dims_l, dims_r=dims_r,
-                               num_qargs_l=num_qubits_l,
-                               num_qargs_r=num_qubits_r)
+            matrix_shape = cls(
+                dims_l=dims_l, dims_r=dims_r, num_qargs_l=num_qubits_l, num_qargs_r=num_qubits_r
+            )
         # Validate shape
         if shape:
             matrix_shape.validate_shape(shape)
@@ -284,9 +302,9 @@ class OpShape:
 
         # Format integer qargs
         if isinstance(qargs_l, Integral):
-            qargs_l = (qargs_l, )
+            qargs_l = (qargs_l,)
         if isinstance(qargs_r, Integral):
-            qargs_r = (qargs_r, )
+            qargs_r = (qargs_r,)
 
         # Validate qargs
         if qargs_l and max(qargs_l) >= self._num_qargs_l:
@@ -309,9 +327,9 @@ class OpShape:
             if self._dims_r:
                 dims_l = self.dims_r(qargs)
 
-        return OpShape(dims_l=dims_l, dims_r=dims_r,
-                       num_qargs_l=num_qargs_l,
-                       num_qargs_r=num_qargs_r)
+        return OpShape(
+            dims_l=dims_l, dims_r=dims_r, num_qargs_l=num_qargs_l, num_qargs_r=num_qargs_r
+        )
 
     def remove(self, qargs=None, qargs_l=None, qargs_r=None):
         """Return the reduced OpShape with specified qargs removed"""
@@ -328,9 +346,9 @@ class OpShape:
 
         # Format integer qargs
         if isinstance(qargs_l, Integral):
-            qargs_l = (qargs_l, )
+            qargs_l = (qargs_l,)
         if isinstance(qargs_r, Integral):
-            qargs_r = (qargs_r, )
+            qargs_r = (qargs_r,)
 
         # Validate qargs
         if qargs_l and max(qargs_l) >= self._num_qargs_l:
@@ -344,20 +362,18 @@ class OpShape:
         if qargs_l:
             num_qargs_l = self._num_qargs_l - len(qargs_l)
             if self._dims_l:
-                dims_l = self.dims_l(tuple(i for i in range(self._num_qargs_l)
-                                           if i not in qargs_l))
+                dims_l = self.dims_l(tuple(i for i in range(self._num_qargs_l) if i not in qargs_l))
 
         num_qargs_r = 0
         dims_r = None
         if qargs_r:
             num_qargs_r = self._num_qargs_r - len(qargs_r)
             if self._dims_r:
-                dims_l = self.dims_r(tuple(i for i in range(self._num_qargs_r)
-                                           if i not in qargs_r))
+                dims_l = self.dims_r(tuple(i for i in range(self._num_qargs_r) if i not in qargs_r))
 
-        return OpShape(dims_l=dims_l, dims_r=dims_r,
-                       num_qargs_l=num_qargs_l,
-                       num_qargs_r=num_qargs_r)
+        return OpShape(
+            dims_l=dims_l, dims_r=dims_r, num_qargs_l=num_qargs_l, num_qargs_r=num_qargs_r
+        )
 
     def reverse(self):
         """Reverse order of left and right qargs"""
@@ -400,30 +416,28 @@ class OpShape:
         else:
             dims_r = None
             num_qargs_r = b._num_qargs_r + a._num_qargs_r
-        return cls(dims_l=dims_l, dims_r=dims_r,
-                   num_qargs_l=num_qargs_l,
-                   num_qargs_r=num_qargs_r)
+        return cls(dims_l=dims_l, dims_r=dims_r, num_qargs_l=num_qargs_l, num_qargs_r=num_qargs_r)
 
     def compose(self, other, qargs=None, front=False):
         """Return composed OpShape."""
         ret = OpShape()
         if not qargs:
             if front:
-                if (self._num_qargs_r != other._num_qargs_l
-                        or self._dims_r != other._dims_l):
+                if self._num_qargs_r != other._num_qargs_l or self._dims_r != other._dims_l:
                     raise QiskitError(
                         "Left and right compose dimensions don't match "
-                        "({} != {})".format(self.dims_r(), other.dims_l()))
+                        "({} != {})".format(self.dims_r(), other.dims_l())
+                    )
                 ret._dims_l = self._dims_l
                 ret._dims_r = other._dims_r
                 ret._num_qargs_l = self._num_qargs_l
                 ret._num_qargs_r = other._num_qargs_r
             else:
-                if (self._num_qargs_l != other._num_qargs_r
-                        or self._dims_l != other._dims_r):
+                if self._num_qargs_l != other._num_qargs_r or self._dims_l != other._dims_r:
                     raise QiskitError(
                         "Left and right compose dimensions don't match "
-                        "({} != {})".format(self.dims_l(), other.dims_r()))
+                        "({} != {})".format(self.dims_l(), other.dims_r())
+                    )
                 ret._dims_l = other._dims_l
                 ret._dims_r = self._dims_r
                 ret._num_qargs_l = other._num_qargs_l
@@ -434,13 +448,17 @@ class OpShape:
             ret._dims_l = self._dims_l
             ret._num_qargs_l = self._num_qargs_l
             if len(qargs) != other._num_qargs_l:
-                raise QiskitError("Number of qargs does not match ({} != {})".format(
-                    len(qargs), other._num_qargs_l))
+                raise QiskitError(
+                    "Number of qargs does not match ({} != {})".format(
+                        len(qargs), other._num_qargs_l
+                    )
+                )
             if self._dims_r or other._dims_r:
                 if self.dims_r(qargs) != other.dims_l():
                     raise QiskitError(
                         "Subsystem dimension do not match on specified qargs "
-                        "{} != {}".format(self.dims_r(qargs), other.dims_l()))
+                        "{} != {}".format(self.dims_r(qargs), other.dims_l())
+                    )
                 dims_r = list(self.dims_r())
                 for i, dim in zip(qargs, other.dims_r()):
                     dims_r[i] = dim
@@ -451,13 +469,17 @@ class OpShape:
             ret._dims_r = self._dims_r
             ret._num_qargs_r = self._num_qargs_r
             if len(qargs) != other._num_qargs_r:
-                raise QiskitError("Number of qargs does not match ({} != {})".format(
-                    len(qargs), other._num_qargs_r))
+                raise QiskitError(
+                    "Number of qargs does not match ({} != {})".format(
+                        len(qargs), other._num_qargs_r
+                    )
+                )
             if self._dims_l or other._dims_l:
                 if self.dims_l(qargs) != other.dims_r():
                     raise QiskitError(
                         "Subsystem dimension do not match on specified qargs "
-                        "{} != {}".format(self.dims_l(qargs), other.dims_r()))
+                        "{} != {}".format(self.dims_l(qargs), other.dims_r())
+                    )
                 dims_l = list(self.dims_l())
                 for i, dim in zip(qargs, other.dims_l()):
                     dims_l[i] = dim
@@ -475,25 +497,31 @@ class OpShape:
         if qargs:
             if self._num_qargs_l != self._num_qargs_r:
                 raise QiskitError(
-                    "Cannot add using qargs if number of left and right "
-                    "qargs are not equal.")
+                    "Cannot add using qargs if number of left and right qargs are not equal."
+                )
             if self.dims_l(qargs) != other.dims_l():
                 raise QiskitError(
                     "Cannot add shapes width different left "
                     "dimension on specified qargs {} != {}".format(
-                        self.dims_l(qargs), other.dims_l()))
+                        self.dims_l(qargs), other.dims_l()
+                    )
+                )
             if self.dims_r(qargs) != other.dims_r():
                 raise QiskitError(
                     "Cannot add shapes width different total right "
                     "dimension on specified qargs{} != {}".format(
-                        self.dims_r(qargs), other.dims_r()))
+                        self.dims_r(qargs), other.dims_r()
+                    )
+                )
         elif self != other:
             if self._dim_l != other._dim_l:
                 raise QiskitError(
                     "Cannot add shapes width different total left "
-                    "dimension {} != {}".format(self._dim_l, other._dim_l))
+                    "dimension {} != {}".format(self._dim_l, other._dim_l)
+                )
             if self._dim_r != other._dim_r:
                 raise QiskitError(
                     "Cannot add shapes width different total right "
-                    "dimension {} != {}".format(self._dim_r, other._dim_r))
+                    "dimension {} != {}".format(self._dim_r, other._dim_r)
+                )
         return self

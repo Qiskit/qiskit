@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fix :py:class:`~qiskit.pulse.instruction_schedule_map.InstructionScheduleMap`
+    pickling bug in Python3.6. See #6944 for details.

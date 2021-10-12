@@ -32,9 +32,7 @@ class Play(Instruction):
     cycle time, dt, of the backend.
     """
 
-    def __init__(self, pulse: Pulse,
-                 channel: PulseChannel,
-                 name: Optional[str] = None):
+    def __init__(self, pulse: Pulse, channel: PulseChannel, name: Optional[str] = None):
         """Create a new pulse instruction.
 
         Args:
@@ -49,8 +47,9 @@ class Play(Instruction):
         if not isinstance(pulse, Pulse):
             raise PulseError("The `pulse` argument to `Play` must be of type `library.Pulse`.")
         if not isinstance(channel, PulseChannel):
-            raise PulseError("The `channel` argument to `Play` must be of type "
-                             "`channels.PulseChannel`.")
+            raise PulseError(
+                "The `channel` argument to `Play` must be of type `channels.PulseChannel`."
+            )
         if name is None:
             name = pulse.name
         super().__init__(operands=(pulse, channel), name=name)
@@ -70,15 +69,14 @@ class Play(Instruction):
     @property
     def channels(self) -> Tuple[PulseChannel]:
         """Returns the channels that this schedule uses."""
-        return (self.channel, )
+        return (self.channel,)
 
     @property
     def duration(self) -> Union[int, ParameterExpression]:
         """Duration of this instruction."""
         return self.pulse.duration
 
-    def _initialize_parameter_table(self,
-                                    operands: Tuple[Any]):
+    def _initialize_parameter_table(self, operands: Tuple[Any]):
         """A helper method to initialize parameter table.
 
         Args:
@@ -108,9 +106,9 @@ class Play(Instruction):
         return parameters
 
     @deprecated_functionality
-    def assign_parameters(self,
-                          value_dict: Dict[ParameterExpression, ParameterValueType]
-                          ) -> 'Play':
+    def assign_parameters(
+        self, value_dict: Dict[ParameterExpression, ParameterValueType]
+    ) -> "Play":
         super().assign_parameters(value_dict)
         pulse = self.pulse.assign_parameters(value_dict)
         self._operands = (pulse, self.channel)

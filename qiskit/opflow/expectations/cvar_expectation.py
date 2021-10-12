@@ -66,7 +66,7 @@ class CVaRExpectation(ExpectationBase):
         """
         self.alpha = alpha
         if isinstance(expectation, AerPauliExpectation):
-            raise NotImplementedError('AerPauliExpecation currently not supported.')
+            raise NotImplementedError("AerPauliExpecation currently not supported.")
         if expectation is None:
             expectation = PauliExpectation()
         self.expectation = expectation
@@ -104,6 +104,7 @@ class CVaRExpectation(ExpectationBase):
         Raises:
             ValueError: If the exp_op does not correspond to an expectation value.
         """
+
         def cvar_variance(operator):
             if isinstance(operator, ComposedOp):
                 sfdict = operator.oplist[1]
@@ -113,7 +114,7 @@ class CVaRExpectation(ExpectationBase):
             elif isinstance(operator, ListOp):
                 return operator.combo_fn([cvar_variance(op) for op in operator.oplist])
 
-            raise ValueError("Input operator does not correspond to a value "
-                             "expectation value.")
+            raise ValueError("Input operator does not correspond to a value expectation value.")
+
         cvar_op = self.convert(exp_op)
         return cvar_variance(cvar_op)

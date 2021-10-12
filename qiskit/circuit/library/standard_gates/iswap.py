@@ -12,6 +12,7 @@
 
 """iSWAP gate."""
 
+from typing import Optional
 import numpy as np
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -75,9 +76,9 @@ class iSwapGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self):
+    def __init__(self, label: Optional[str] = None):
         """Create new iSwap gate."""
-        super().__init__('iswap', 2, [])
+        super().__init__("iswap", 2, [], label=label)
 
     def _define(self):
         """
@@ -95,7 +96,8 @@ class iSwapGate(Gate):
         from .h import HGate
         from .s import SGate
         from .x import CXGate
-        q = QuantumRegister(2, 'q')
+
+        q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
             (SGate(), [q[0]], []),
@@ -103,7 +105,7 @@ class iSwapGate(Gate):
             (HGate(), [q[0]], []),
             (CXGate(), [q[0], q[1]], []),
             (CXGate(), [q[1], q[0]], []),
-            (HGate(), [q[1]], [])
+            (HGate(), [q[1]], []),
         ]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
@@ -112,7 +114,4 @@ class iSwapGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the iSWAP gate."""
-        return np.array([[1, 0, 0, 0],
-                         [0, 0, 1j, 0],
-                         [0, 1j, 0, 0],
-                         [0, 0, 0, 1]], dtype=dtype)
+        return np.array([[1, 0, 0, 0], [0, 0, 1j, 0], [0, 1j, 0, 0], [0, 0, 0, 1]], dtype=dtype)

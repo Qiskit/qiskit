@@ -14,3 +14,5 @@
 
 from .fake_cambridge import FakeCambridge
 from .fake_cambridge import FakeCambridgeAlternativeBasis
+from .fake_cambridge import FakeLegacyCambridge
+from .fake_cambridge import FakeLegacyCambridgeAlternativeBasis

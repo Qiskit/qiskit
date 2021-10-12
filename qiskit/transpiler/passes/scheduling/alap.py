@@ -47,10 +47,10 @@ class ALAPSchedule(TransformationPass):
         Raises:
             TranspilerError: if the circuit is not mapped on physical qubits.
         """
-        if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
-            raise TranspilerError('ALAP schedule runs on physical circuits only')
+        if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
+            raise TranspilerError("ALAP schedule runs on physical circuits only")
 
-        time_unit = self.property_set['time_unit']
+        time_unit = self.property_set["time_unit"]
         new_dag = DAGCircuit()
         for qreg in dag.qregs.values():
             new_dag.add_qreg(qreg)
@@ -76,12 +76,15 @@ class ALAPSchedule(TransformationPass):
             # validate node.op.duration
             if node.op.duration is None:
                 indices = [bit_indices[qarg] for qarg in node.qargs]
-                raise TranspilerError(f"Duration of {node.op.name} on qubits "
-                                      f"{indices} is not found.")
+                raise TranspilerError(
+                    f"Duration of {node.op.name} on qubits {indices} is not found."
+                )
             if isinstance(node.op.duration, ParameterExpression):
                 indices = [bit_indices[qarg] for qarg in node.qargs]
-                raise TranspilerError(f"Parameterized duration ({node.op.duration}) "
-                                      f"of {node.op.name} on qubits {indices} is not bounded.")
+                raise TranspilerError(
+                    f"Parameterized duration ({node.op.duration}) "
+                    f"of {node.op.name} on qubits {indices} is not bounded."
+                )
 
             stop_time = start_time + node.op.duration
             # update time table

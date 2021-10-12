@@ -46,10 +46,9 @@ from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import drawings, types, device_info
 
 
-def gen_formatted_phase(data: types.PulseInstruction,
-                        formatter: Dict[str, Any],
-                        device: device_info.DrawerBackendInfo
-                        ) -> List[drawings.TextData]:
+def gen_formatted_phase(
+    data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
+) -> List[drawings.TextData]:
     """Generate the formatted virtual Z rotation label from provided frame instruction.
 
     Rotation angle is expressed in units of pi.
@@ -78,33 +77,35 @@ def gen_formatted_phase(data: types.PulseInstruction,
     """
     _max_denom = 10
 
-    style = {'zorder': formatter['layer.frame_change'],
-             'color': formatter['color.frame_change'],
-             'size': formatter['text_size.annotate'],
-             'va': 'center',
-             'ha': 'center'}
+    style = {
+        "zorder": formatter["layer.frame_change"],
+        "color": formatter["color.frame_change"],
+        "size": formatter["text_size.annotate"],
+        "va": "center",
+        "ha": "center",
+    }
 
-    plain_phase, latex_phase = _phase_to_text(formatter=formatter,
-                                              phase=data.frame.phase,
-                                              max_denom=_max_denom,
-                                              flip=True)
+    plain_phase, latex_phase = _phase_to_text(
+        formatter=formatter, phase=data.frame.phase, max_denom=_max_denom, flip=True
+    )
 
-    text = drawings.TextData(data_type=types.LabelType.FRAME,
-                             channels=data.inst[0].channel,
-                             xvals=[data.t0],
-                             yvals=[formatter['label_offset.frame_change']],
-                             text='VZ({phase})'.format(phase=plain_phase),
-                             latex=r'{{\rm VZ}}({phase})'.format(phase=latex_phase),
-                             ignore_scaling=True,
-                             styles=style)
+    text = drawings.TextData(
+        data_type=types.LabelType.FRAME,
+        channels=data.inst[0].channel,
+        xvals=[data.t0],
+        yvals=[formatter["label_offset.frame_change"]],
+        text=f"VZ({plain_phase})",
+        latex=fr"{{\rm VZ}}({latex_phase})",
+        ignore_scaling=True,
+        styles=style,
+    )
 
     return [text]
 
 
-def gen_formatted_freq_mhz(data: types.PulseInstruction,
-                           formatter: Dict[str, Any],
-                           device: device_info.DrawerBackendInfo
-                           ) -> List[drawings.TextData]:
+def gen_formatted_freq_mhz(
+    data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
+) -> List[drawings.TextData]:
     """Generate the formatted frequency change label from provided frame instruction.
 
     Frequency change is expressed in units of MHz.
@@ -124,34 +125,35 @@ def gen_formatted_freq_mhz(data: types.PulseInstruction,
     Returns:
         List of `TextData` drawings.
     """
-    _unit = 'MHz'
+    _unit = "MHz"
 
-    style = {'zorder': formatter['layer.frame_change'],
-             'color': formatter['color.frame_change'],
-             'size': formatter['text_size.annotate'],
-             'va': 'center',
-             'ha': 'center'}
+    style = {
+        "zorder": formatter["layer.frame_change"],
+        "color": formatter["color.frame_change"],
+        "size": formatter["text_size.annotate"],
+        "va": "center",
+        "ha": "center",
+    }
 
-    plain_freq, latex_freq = _freq_to_text(formatter=formatter,
-                                           freq=data.frame.freq,
-                                           unit=_unit)
+    plain_freq, latex_freq = _freq_to_text(formatter=formatter, freq=data.frame.freq, unit=_unit)
 
-    text = drawings.TextData(data_type=types.LabelType.FRAME,
-                             channels=data.inst[0].channel,
-                             xvals=[data.t0],
-                             yvals=[formatter['label_offset.frame_change']],
-                             text=u'\u0394f = {freq}'.format(freq=plain_freq),
-                             latex=r'\Delta f = {freq}'.format(freq=latex_freq),
-                             ignore_scaling=True,
-                             styles=style)
+    text = drawings.TextData(
+        data_type=types.LabelType.FRAME,
+        channels=data.inst[0].channel,
+        xvals=[data.t0],
+        yvals=[formatter["label_offset.frame_change"]],
+        text=f"\u0394f = {plain_freq}",
+        latex=fr"\Delta f = {latex_freq}",
+        ignore_scaling=True,
+        styles=style,
+    )
 
     return [text]
 
 
-def gen_formatted_frame_values(data: types.PulseInstruction,
-                               formatter: Dict[str, Any],
-                               device: device_info.DrawerBackendInfo
-                               ) -> List[drawings.TextData]:
+def gen_formatted_frame_values(
+    data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
+) -> List[drawings.TextData]:
     """Generate the formatted virtual Z rotation label and the frequency change label
     from provided frame instruction.
 
@@ -173,57 +175,61 @@ def gen_formatted_frame_values(data: types.PulseInstruction,
     texts = []
 
     _max_denom = 10
-    _unit = 'MHz'
+    _unit = "MHz"
 
-    style = {'zorder': formatter['layer.frame_change'],
-             'color': formatter['color.frame_change'],
-             'size': formatter['text_size.annotate'],
-             'ha': 'center'}
+    style = {
+        "zorder": formatter["layer.frame_change"],
+        "color": formatter["color.frame_change"],
+        "size": formatter["text_size.annotate"],
+        "ha": "center",
+    }
 
     # phase value
     if data.frame.phase != 0:
-        plain_phase, latex_phase = _phase_to_text(formatter=formatter,
-                                                  phase=data.frame.phase,
-                                                  max_denom=_max_denom,
-                                                  flip=True)
-        phase_style = {'va': 'center'}
+        plain_phase, latex_phase = _phase_to_text(
+            formatter=formatter, phase=data.frame.phase, max_denom=_max_denom, flip=True
+        )
+        phase_style = {"va": "center"}
         phase_style.update(style)
 
-        phase = drawings.TextData(data_type=types.LabelType.FRAME,
-                                  channels=data.inst[0].channel,
-                                  xvals=[data.t0],
-                                  yvals=[formatter['label_offset.frame_change']],
-                                  text='VZ({phase})'.format(phase=plain_phase),
-                                  latex=r'{{\rm VZ}}({phase})'.format(phase=latex_phase),
-                                  ignore_scaling=True,
-                                  styles=phase_style)
+        phase = drawings.TextData(
+            data_type=types.LabelType.FRAME,
+            channels=data.inst[0].channel,
+            xvals=[data.t0],
+            yvals=[formatter["label_offset.frame_change"]],
+            text=f"VZ({plain_phase})",
+            latex=fr"{{\rm VZ}}({latex_phase})",
+            ignore_scaling=True,
+            styles=phase_style,
+        )
         texts.append(phase)
 
     # frequency value
     if data.frame.freq != 0:
-        plain_freq, latex_freq = _freq_to_text(formatter=formatter,
-                                               freq=data.frame.freq,
-                                               unit=_unit)
-        freq_style = {'va': 'center'}
+        plain_freq, latex_freq = _freq_to_text(
+            formatter=formatter, freq=data.frame.freq, unit=_unit
+        )
+        freq_style = {"va": "center"}
         freq_style.update(style)
 
-        freq = drawings.TextData(data_type=types.LabelType.FRAME,
-                                 channels=data.inst[0].channel,
-                                 xvals=[data.t0],
-                                 yvals=[2*formatter['label_offset.frame_change']],
-                                 text=u'\u0394f = {freq}'.format(freq=plain_freq),
-                                 latex=r'\Delta f = {freq}'.format(freq=latex_freq),
-                                 ignore_scaling=True,
-                                 styles=freq_style)
+        freq = drawings.TextData(
+            data_type=types.LabelType.FRAME,
+            channels=data.inst[0].channel,
+            xvals=[data.t0],
+            yvals=[2 * formatter["label_offset.frame_change"]],
+            text=f"\u0394f = {plain_freq}",
+            latex=fr"\Delta f = {latex_freq}",
+            ignore_scaling=True,
+            styles=freq_style,
+        )
         texts.append(freq)
 
     return texts
 
 
-def gen_raw_operand_values_compact(data: types.PulseInstruction,
-                                   formatter: Dict[str, Any],
-                                   device: device_info.DrawerBackendInfo
-                                   ) -> List[drawings.TextData]:
+def gen_raw_operand_values_compact(
+    data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
+) -> List[drawings.TextData]:
     """Generate the formatted virtual Z rotation label and the frequency change label
     from provided frame instruction.
 
@@ -246,38 +252,40 @@ def gen_raw_operand_values_compact(data: types.PulseInstruction,
         List of `TextData` drawings.
     """
 
-    style = {'zorder': formatter['layer.frame_change'],
-             'color': formatter['color.frame_change'],
-             'size': formatter['text_size.annotate'],
-             'va': 'center',
-             'ha': 'center'}
+    style = {
+        "zorder": formatter["layer.frame_change"],
+        "color": formatter["color.frame_change"],
+        "size": formatter["text_size.annotate"],
+        "va": "center",
+        "ha": "center",
+    }
 
     if data.frame.freq == 0:
-        freq_sci_notation = '0.0'
+        freq_sci_notation = "0.0"
     else:
         abs_freq = np.abs(data.frame.freq)
-        freq_sci_notation = '{base:.1f}e{exp:d}'.format(
-            base=data.frame.freq / (10**int(np.floor(np.log10(abs_freq)))),
-            exp=int(np.floor(np.log10(abs_freq)))
+        freq_sci_notation = "{base:.1f}e{exp:d}".format(
+            base=data.frame.freq / (10 ** int(np.floor(np.log10(abs_freq)))),
+            exp=int(np.floor(np.log10(abs_freq))),
         )
-    frame_info = '{phase:.2f}\n{freq}'.format(phase=data.frame.phase,
-                                              freq=freq_sci_notation)
+    frame_info = f"{data.frame.phase:.2f}\n{freq_sci_notation}"
 
-    text = drawings.TextData(data_type=types.LabelType.FRAME,
-                             channels=data.inst[0].channel,
-                             xvals=[data.t0],
-                             yvals=[1.2*formatter['label_offset.frame_change']],
-                             text=frame_info,
-                             ignore_scaling=True,
-                             styles=style)
+    text = drawings.TextData(
+        data_type=types.LabelType.FRAME,
+        channels=data.inst[0].channel,
+        xvals=[data.t0],
+        yvals=[1.2 * formatter["label_offset.frame_change"]],
+        text=frame_info,
+        ignore_scaling=True,
+        styles=style,
+    )
 
     return [text]
 
 
-def gen_frame_symbol(data: types.PulseInstruction,
-                     formatter: Dict[str, Any],
-                     device: device_info.DrawerBackendInfo
-                     ) -> List[drawings.TextData]:
+def gen_frame_symbol(
+    data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
+) -> List[drawings.TextData]:
     """Generate a frame change symbol with instruction meta data from provided frame instruction.
 
     Stylesheets:
@@ -296,50 +304,55 @@ def gen_frame_symbol(data: types.PulseInstruction,
     if data.frame.phase == 0 and data.frame.freq == 0:
         return []
 
-    style = {'zorder': formatter['layer.frame_change'],
-             'color': formatter['color.frame_change'],
-             'size': formatter['text_size.frame_change'],
-             'va': 'center',
-             'ha': 'center'}
+    style = {
+        "zorder": formatter["layer.frame_change"],
+        "color": formatter["color.frame_change"],
+        "size": formatter["text_size.frame_change"],
+        "va": "center",
+        "ha": "center",
+    }
 
     program = []
     for inst in data.inst:
         if isinstance(inst, (instructions.SetFrequency, instructions.ShiftFrequency)):
             try:
-                program.append('{}({:.2e} Hz)'.format(inst.__class__.__name__, inst.frequency))
+                program.append(f"{inst.__class__.__name__}({inst.frequency:.2e} Hz)")
             except TypeError:
                 # parameter expression
-                program.append('{}({})'.format(inst.__class__.__name__, inst.frequency))
+                program.append(f"{inst.__class__.__name__}({inst.frequency})")
         elif isinstance(inst, (instructions.SetPhase, instructions.ShiftPhase)):
             try:
-                program.append('{}({:.2f} rad.)'.format(inst.__class__.__name__, inst.phase))
+                program.append(f"{inst.__class__.__name__}({inst.phase:.2f} rad.)")
             except TypeError:
                 # parameter expression
-                program.append('{}({})'.format(inst.__class__.__name__, inst.phase))
+                program.append(f"{inst.__class__.__name__}({inst.phase})")
 
-    meta = {'total phase change': data.frame.phase,
-            'total frequency change': data.frame.freq,
-            'program': ', '.join(program),
-            't0 (cycle time)': data.t0,
-            't0 (sec)': data.t0 * data.dt if data.dt else 'N/A'}
+    meta = {
+        "total phase change": data.frame.phase,
+        "total frequency change": data.frame.freq,
+        "program": ", ".join(program),
+        "t0 (cycle time)": data.t0,
+        "t0 (sec)": data.t0 * data.dt if data.dt else "N/A",
+    }
 
-    text = drawings.TextData(data_type=types.SymbolType.FRAME,
-                             channels=data.inst[0].channel,
-                             xvals=[data.t0],
-                             yvals=[0],
-                             text=formatter['unicode_symbol.frame_change'],
-                             latex=formatter['latex_symbol.frame_change'],
-                             ignore_scaling=True,
-                             meta=meta,
-                             styles=style)
+    text = drawings.TextData(
+        data_type=types.SymbolType.FRAME,
+        channels=data.inst[0].channel,
+        xvals=[data.t0],
+        yvals=[0],
+        text=formatter["unicode_symbol.frame_change"],
+        latex=formatter["latex_symbol.frame_change"],
+        ignore_scaling=True,
+        meta=meta,
+        styles=style,
+    )
 
     return [text]
 
 
-def _phase_to_text(formatter: Dict[str, Any],
-                   phase: float,
-                   max_denom: int = 10,
-                   flip: bool = True) -> Tuple[str, str]:
+def _phase_to_text(
+    formatter: Dict[str, Any], phase: float, max_denom: int = 10, flip: bool = True
+) -> Tuple[str, str]:
     """A helper function to convert a float value to text with pi.
 
     Args:
@@ -355,43 +368,43 @@ def _phase_to_text(formatter: Dict[str, Any],
         phase = float(phase)
     except TypeError:
         # unbound parameter
-        return formatter['unicode_symbol.phase_parameter'], \
-               formatter['latex_symbol.phase_parameter']
+        return (
+            formatter["unicode_symbol.phase_parameter"],
+            formatter["latex_symbol.phase_parameter"],
+        )
 
     frac = Fraction(np.abs(phase) / np.pi)
 
     if phase == 0:
-        return '0', r'0'
+        return "0", r"0"
 
     num = frac.numerator
     denom = frac.denominator
     if denom > max_denom:
         # denominator is too large
-        latex = r'{val:.2f}'.format(val=np.abs(phase))
-        plain = '{val:.2f}'.format(val=np.abs(phase))
+        latex = fr"{np.abs(phase):.2f}"
+        plain = f"{np.abs(phase):.2f}"
     else:
         if num == 1:
             if denom == 1:
-                latex = r'\pi'
-                plain = 'pi'
+                latex = r"\pi"
+                plain = "pi"
             else:
-                latex = r'\pi/{denom:d}'.format(denom=denom)
-                plain = 'pi/{denom:d}'.format(denom=denom)
+                latex = fr"\pi/{denom:d}"
+                plain = f"pi/{denom:d}"
         else:
-            latex = r'{num:d}/{denom:d} \pi'.format(num=num, denom=denom)
-            plain = '{num:d}/{denom:d} pi'.format(num=num, denom=denom)
+            latex = fr"{num:d}/{denom:d} \pi"
+            plain = f"{num:d}/{denom:d} pi"
 
     if flip:
-        sign = '-' if phase > 0 else ''
+        sign = "-" if phase > 0 else ""
     else:
-        sign = '-' if phase < 0 else ''
+        sign = "-" if phase < 0 else ""
 
     return sign + plain, sign + latex
 
 
-def _freq_to_text(formatter: Dict[str, Any],
-                  freq: float,
-                  unit: str = 'MHz') -> Tuple[str, str]:
+def _freq_to_text(formatter: Dict[str, Any], freq: float, unit: str = "MHz") -> Tuple[str, str]:
     """A helper function to convert a freq value to text with supplementary unit.
 
     Args:
@@ -409,17 +422,16 @@ def _freq_to_text(formatter: Dict[str, Any],
         freq = float(freq)
     except TypeError:
         # unbound parameter
-        return formatter['unicode_symbol.freq_parameter'], \
-               formatter['latex_symbol.freq_parameter']
+        return formatter["unicode_symbol.freq_parameter"], formatter["latex_symbol.freq_parameter"]
 
-    unit_table = {'THz': 1e12, 'GHz': 1e9, 'MHz': 1e6, 'kHz': 1e3, 'Hz': 1}
+    unit_table = {"THz": 1e12, "GHz": 1e9, "MHz": 1e6, "kHz": 1e3, "Hz": 1}
 
     try:
-        value = freq/unit_table[unit]
+        value = freq / unit_table[unit]
     except KeyError as ex:
-        raise VisualizationError(f'Unit {unit} is not supported.') from ex
+        raise VisualizationError(f"Unit {unit} is not supported.") from ex
 
-    latex = r'{val:.2f}~{{\rm {unit}}}'.format(val=value, unit=unit)
-    plain = '{val:.2f} {unit}'.format(val=value, unit=unit)
+    latex = fr"{value:.2f}~{{\rm {unit}}}"
+    plain = f"{value:.2f} {unit}"
 
     return plain, latex

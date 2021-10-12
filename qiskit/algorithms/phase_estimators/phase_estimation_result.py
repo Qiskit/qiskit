@@ -32,9 +32,12 @@ class PhaseEstimationResult(PhaseEstimatorResult):
     attribute `phase`, is the most likely phase.
     """
 
-    def __init__(self, num_evaluation_qubits: int,
-                 circuit_result: Result,
-                 phases: Union[numpy.ndarray, Dict[str, float]]) -> None:
+    def __init__(
+        self,
+        num_evaluation_qubits: int,
+        circuit_result: Result,
+        phases: Union[numpy.ndarray, Dict[str, float]],
+    ) -> None:
         """
         Args:
             num_evaluation_qubits: number of qubits in phase-readout register.
@@ -65,9 +68,11 @@ class PhaseEstimationResult(PhaseEstimatorResult):
         return self._circuit_result
 
     @property
-    @deprecate_function("""The 'PhaseEstimationResult.most_likely_phase' attribute
+    @deprecate_function(
+        """The 'PhaseEstimationResult.most_likely_phase' attribute
                         is deprecated as of 0.18.0 and will be removed no earlier than 3 months
-                        after the release date. It has been renamed as the 'phase' attribute.""")
+                        after the release date. It has been renamed as the 'phase' attribute."""
+    )
     def most_likely_phase(self) -> float:
         r"""DEPRECATED - Return the most likely phase as a number in :math:`[0.0, 1.0)`.
 
@@ -92,8 +97,7 @@ class PhaseEstimationResult(PhaseEstimatorResult):
         phase = _bit_string_to_phase(binary_phase_string)
         return phase
 
-    def filter_phases(self, cutoff: float = 0.0,
-                      as_float: bool = True) -> Dict:
+    def filter_phases(self, cutoff: float = 0.0, as_float: bool = True) -> Dict:
         """Return a filtered dict of phases (keys) and frequencies (values).
 
         Only phases with frequencies (counts) larger than `cutoff` are included.
@@ -116,8 +120,9 @@ class PhaseEstimationResult(PhaseEstimatorResult):
         if isinstance(self.phases, dict):
             counts = self.phases
             if as_float:
-                phases = {_bit_string_to_phase(k): counts[k]
-                          for k in counts.keys() if counts[k] > cutoff}
+                phases = {
+                    _bit_string_to_phase(k): counts[k] for k in counts.keys() if counts[k] > cutoff
+                }
             else:
                 phases = {k: counts[k] for k in counts.keys() if counts[k] > cutoff}
 

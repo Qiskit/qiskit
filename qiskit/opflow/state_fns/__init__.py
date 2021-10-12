@@ -12,7 +12,8 @@
 
 """
 State Functions (:mod:`qiskit.opflow.state_fns`)
-==============================================================
+================================================
+
 State functions are defined to be complex functions over a single binary string (as
 compared to an operator, which is defined as a function over two binary strings, or a
 function taking a binary function to another binary function). This function may be
@@ -37,11 +38,11 @@ Note:
 .. currentmodule:: qiskit.opflow.state_fns
 
 State Functions
-===============
+---------------
 
 .. autosummary::
    :toctree: ../stubs/
-   :nosignatures:
+   :template: autosummary/class_no_inherited_members.rst
 
    StateFn
    CircuitStateFn
@@ -61,9 +62,11 @@ from .sparse_vector_state_fn import SparseVectorStateFn
 from .circuit_state_fn import CircuitStateFn
 from .cvar_measurement import CVaRMeasurement
 
-__all__ = ['StateFn',
-           'DictStateFn',
-           'VectorStateFn',
-           'CircuitStateFn',
-           'OperatorStateFn',
-           'CVaRMeasurement']
+__all__ = [
+    "StateFn",
+    "DictStateFn",
+    "VectorStateFn",
+    "CircuitStateFn",
+    "OperatorStateFn",
+    "CVaRMeasurement",
+]

@@ -65,8 +65,10 @@ class Initialize(Instruction):
             params = params.data
 
         if not isinstance(params, int) and num_qubits is not None:
-            raise QiskitError("The num_qubits parameter to Initialize should only be"
-                              " used when params is an integer")
+            raise QiskitError(
+                "The num_qubits parameter to Initialize should only be"
+                " used when params is an integer"
+            )
         self._from_label = False
         self._from_int = False
 
@@ -86,8 +88,7 @@ class Initialize(Instruction):
                 raise QiskitError("Desired statevector length not a positive power of 2.")
 
             # Check if probabilities (amplitudes squared) sum to 1
-            if not math.isclose(sum(np.absolute(params) ** 2), 1.0,
-                                abs_tol=_EPS):
+            if not math.isclose(sum(np.absolute(params) ** 2), 1.0, abs_tol=_EPS):
                 raise QiskitError("Sum of amplitudes-squared does not equal one.")
 
             num_qubits = int(num_qubits)
@@ -103,45 +104,46 @@ class Initialize(Instruction):
             self.definition = self._define_synthesis()
 
     def _define_from_label(self):
-        q = QuantumRegister(self.num_qubits, 'q')
-        initialize_circuit = QuantumCircuit(q, name='init_def')
+        q = QuantumRegister(self.num_qubits, "q")
+        initialize_circuit = QuantumCircuit(q, name="init_def")
 
         for qubit, param in enumerate(reversed(self.params)):
             initialize_circuit.append(Reset(), [q[qubit]])
 
-            if param == '1':
+            if param == "1":
                 initialize_circuit.append(XGate(), [q[qubit]])
-            elif param == '+':
+            elif param == "+":
                 initialize_circuit.append(HGate(), [q[qubit]])
-            elif param == '-':
+            elif param == "-":
                 initialize_circuit.append(XGate(), [q[qubit]])
                 initialize_circuit.append(HGate(), [q[qubit]])
-            elif param == 'r':  # |+i>
+            elif param == "r":  # |+i>
                 initialize_circuit.append(HGate(), [q[qubit]])
                 initialize_circuit.append(SGate(), [q[qubit]])
-            elif param == 'l':  # |-i>
+            elif param == "l":  # |-i>
                 initialize_circuit.append(HGate(), [q[qubit]])
                 initialize_circuit.append(SdgGate(), [q[qubit]])
 
         return initialize_circuit
 
     def _define_from_int(self):
-        q = QuantumRegister(self.num_qubits, 'q')
-        initialize_circuit = QuantumCircuit(q, name='init_def')
+        q = QuantumRegister(self.num_qubits, "q")
+        initialize_circuit = QuantumCircuit(q, name="init_def")
 
         # Convert to int since QuantumCircuit converted to complex
         # and make a bit string and reverse it
-        intstr = f'{int(np.real(self.params[0])):0{self.num_qubits}b}'[::-1]
+        intstr = f"{int(np.real(self.params[0])):0{self.num_qubits}b}"[::-1]
 
         # Raise if number of bits is greater than num_qubits
         if len(intstr) > self.num_qubits:
-            raise QiskitError("Initialize integer has %s bits, but this exceeds the"
-                              " number of qubits in the circuit, %s." %
-                              (len(intstr), self.num_qubits))
+            raise QiskitError(
+                "Initialize integer has %s bits, but this exceeds the"
+                " number of qubits in the circuit, %s." % (len(intstr), self.num_qubits)
+            )
 
         for qubit, bit in enumerate(intstr):
             initialize_circuit.append(Reset(), [q[qubit]])
-            if bit == '1':
+            if bit == "1":
                 initialize_circuit.append(XGate(), [q[qubit]])
 
         return initialize_circuit
@@ -163,8 +165,8 @@ class Initialize(Instruction):
         # the qubits are in the zero state)
         initialize_instr = disentangling_circuit.to_instruction().inverse()
 
-        q = QuantumRegister(self.num_qubits, 'q')
-        initialize_circuit = QuantumCircuit(q, name='init_def')
+        q = QuantumRegister(self.num_qubits, "q")
+        initialize_circuit = QuantumCircuit(q, name="init_def")
         for qubit in q:
             initialize_circuit.append(Reset(), [qubit])
         initialize_circuit.append(initialize_instr, q[:])
@@ -178,7 +180,7 @@ class Initialize(Instruction):
             QuantumCircuit: circuit to take self.params vector to :math:`|{00\\ldots0}\\rangle`
         """
         q = QuantumRegister(self.num_qubits)
-        circuit = QuantumCircuit(q, name='disentangler')
+        circuit = QuantumCircuit(q, name="disentangler")
 
         # kick start the peeling loop, and disentangle one-by-one from LSB to MSB
         remaining_param = self.params
@@ -186,9 +188,7 @@ class Initialize(Instruction):
         for i in range(self.num_qubits):
             # work out which rotations must be done to disentangle the LSB
             # qubit (we peel away one qubit at a time)
-            (remaining_param,
-             thetas,
-             phis) = Initialize._rotations_to_disentangle(remaining_param)
+            (remaining_param, thetas, phis) = Initialize._rotations_to_disentangle(remaining_param)
 
             # perform the required rotations to decouple the LSB qubit (so that
             # it can be "factored" out, leaving a shorter amplitude vector to peel away)
@@ -199,11 +199,11 @@ class Initialize(Instruction):
 
             if np.linalg.norm(phis) != 0:
                 rz_mult = self._multiplex(RZGate, phis, last_cnot=add_last_cnot)
-                circuit.append(rz_mult.to_instruction(), q[i:self.num_qubits])
+                circuit.append(rz_mult.to_instruction(), q[i : self.num_qubits])
 
             if np.linalg.norm(thetas) != 0:
                 ry_mult = self._multiplex(RYGate, thetas, last_cnot=add_last_cnot)
-                circuit.append(ry_mult.to_instruction().reverse_ops(), q[i:self.num_qubits])
+                circuit.append(ry_mult.to_instruction().reverse_ops(), q[i : self.num_qubits])
         circuit.global_phase -= np.angle(sum(remaining_param))
         return circuit
 
@@ -233,9 +233,9 @@ class Initialize(Instruction):
             # (imagine a qubit state signified by the amplitudes at index 2*i
             # and 2*(i+1), corresponding to the select qubits of the
             # multiplexor being in state |i>)
-            (remains,
-             add_theta,
-             add_phi) = Initialize._bloch_angles(local_param[2 * i: 2 * (i + 1)])
+            (remains, add_theta, add_phi) = Initialize._bloch_angles(
+                local_param[2 * i : 2 * (i + 1)]
+            )
 
             remaining_vector.append(remains)
 
@@ -270,7 +270,7 @@ class Initialize(Instruction):
             final_t = a_arg + b_arg
             phi = b_arg - a_arg
 
-        return final_r * np.exp(1.J * final_t / 2), theta, phi
+        return final_r * np.exp(1.0j * final_t / 2), theta, phi
 
     def _multiplex(self, target_gate, list_of_angles, last_cnot=True):
         """
@@ -305,14 +305,13 @@ class Initialize(Instruction):
 
         # calc angle weights, assuming recursion (that is the lower-level
         # requested angles have been correctly implemented by recursion
-        angle_weight = np.kron([[0.5, 0.5], [0.5, -0.5]],
-                               np.identity(2 ** (local_num_qubits - 2)))
+        angle_weight = np.kron([[0.5, 0.5], [0.5, -0.5]], np.identity(2 ** (local_num_qubits - 2)))
 
         # calc the combo angles
         list_of_angles = angle_weight.dot(np.array(list_of_angles)).tolist()
 
         # recursive step on half the angles fulfilling the above assumption
-        multiplex_1 = self._multiplex(target_gate, list_of_angles[0:(list_len // 2)], False)
+        multiplex_1 = self._multiplex(target_gate, list_of_angles[0 : (list_len // 2)], False)
         circuit.append(multiplex_1.to_instruction(), q[0:-1])
 
         # attach CNOT as follows, thereby flipping the LSB qubit
@@ -321,7 +320,7 @@ class Initialize(Instruction):
         # implement extra efficiency from the paper of cancelling adjacent
         # CNOTs (by leaving out last CNOT and reversing (NOT inverting) the
         # second lower-level multiplex)
-        multiplex_2 = self._multiplex(target_gate, list_of_angles[(list_len // 2):], False)
+        multiplex_2 = self._multiplex(target_gate, list_of_angles[(list_len // 2) :], False)
         if list_len > 1:
             circuit.append(multiplex_2.to_instruction().reverse_ops(), q[0:-1])
         else:
@@ -337,9 +336,11 @@ class Initialize(Instruction):
         flat_qargs = [qarg for sublist in qargs for qarg in sublist]
 
         if self.num_qubits != len(flat_qargs):
-            raise QiskitError("Initialize parameter vector has %d elements, therefore expects %s "
-                              "qubits. However, %s were provided." %
-                              (2**self.num_qubits, self.num_qubits, len(flat_qargs)))
+            raise QiskitError(
+                "Initialize parameter vector has %d elements, therefore expects %s "
+                "qubits. However, %s were provided."
+                % (2 ** self.num_qubits, self.num_qubits, len(flat_qargs))
+            )
         yield flat_qargs, []
 
     def validate_parameter(self, parameter):
@@ -347,10 +348,12 @@ class Initialize(Instruction):
 
         # Initialize instruction parameter can be str
         if self._from_label:
-            if parameter in ['0', '1', '+', '-', 'l', 'r']:
+            if parameter in ["0", "1", "+", "-", "l", "r"]:
                 return parameter
-            raise CircuitError("invalid param label {0} for instruction {1}. Label should be "
-                               "0, 1, +, -, l, or r ".format(type(parameter), self.name))
+            raise CircuitError(
+                "invalid param label {} for instruction {}. Label should be "
+                "0, 1, +, -, l, or r ".format(type(parameter), self.name)
+            )
 
         # Initialize instruction parameter can be int, float, and complex.
         if isinstance(parameter, (int, float, complex)):
@@ -358,8 +361,7 @@ class Initialize(Instruction):
         elif isinstance(parameter, np.number):
             return complex(parameter.item())
         else:
-            raise CircuitError("invalid param type {0} for instruction  "
-                               "{1}".format(type(parameter), self.name))
+            raise CircuitError(f"invalid param type {type(parameter)} for instruction  {self.name}")
 
 
 def initialize(self, params, qubits=None):

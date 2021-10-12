@@ -33,4 +33,4 @@ class Barrier(Instruction):
         yield [qarg for sublist in qargs for qarg in sublist], []
 
     def c_if(self, classical, val):
-        raise QiskitError('Barriers are compiler directives and cannot be conditional.')
+        raise QiskitError("Barriers are compiler directives and cannot be conditional.")

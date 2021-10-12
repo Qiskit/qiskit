@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=too-many-return-statements,unpacking-non-sequence
+# pylint: disable=too-many-return-statements
 
 
 """
@@ -29,158 +29,157 @@ def _transform_rep(input_rep, output_rep, data, input_dim, output_dim):
     """Transform a QuantumChannel between representation."""
     if input_rep == output_rep:
         return data
-    if output_rep == 'Choi':
+    if output_rep == "Choi":
         return _to_choi(input_rep, data, input_dim, output_dim)
-    if output_rep == 'Operator':
+    if output_rep == "Operator":
         return _to_operator(input_rep, data, input_dim, output_dim)
-    if output_rep == 'SuperOp':
+    if output_rep == "SuperOp":
         return _to_superop(input_rep, data, input_dim, output_dim)
-    if output_rep == 'Kraus':
+    if output_rep == "Kraus":
         return _to_kraus(input_rep, data, input_dim, output_dim)
-    if output_rep == 'Chi':
+    if output_rep == "Chi":
         return _to_chi(input_rep, data, input_dim, output_dim)
-    if output_rep == 'PTM':
+    if output_rep == "PTM":
         return _to_ptm(input_rep, data, input_dim, output_dim)
-    if output_rep == 'Stinespring':
+    if output_rep == "Stinespring":
         return _to_stinespring(input_rep, data, input_dim, output_dim)
-    raise QiskitError('Invalid QuantumChannel {}'.format(output_rep))
+    raise QiskitError(f"Invalid QuantumChannel {output_rep}")
 
 
 def _to_choi(rep, data, input_dim, output_dim):
     """Transform a QuantumChannel to the Choi representation."""
-    if rep == 'Choi':
+    if rep == "Choi":
         return data
-    if rep == 'Operator':
-        return _from_operator('Choi', data, input_dim, output_dim)
-    if rep == 'SuperOp':
+    if rep == "Operator":
+        return _from_operator("Choi", data, input_dim, output_dim)
+    if rep == "SuperOp":
         return _superop_to_choi(data, input_dim, output_dim)
-    if rep == 'Kraus':
+    if rep == "Kraus":
         return _kraus_to_choi(data)
-    if rep == 'Chi':
+    if rep == "Chi":
         return _chi_to_choi(data, input_dim)
-    if rep == 'PTM':
+    if rep == "PTM":
         data = _ptm_to_superop(data, input_dim)
         return _superop_to_choi(data, input_dim, output_dim)
-    if rep == 'Stinespring':
+    if rep == "Stinespring":
         return _stinespring_to_choi(data, input_dim, output_dim)
-    raise QiskitError('Invalid QuantumChannel {}'.format(rep))
+    raise QiskitError(f"Invalid QuantumChannel {rep}")
 
 
 def _to_superop(rep, data, input_dim, output_dim):
     """Transform a QuantumChannel to the SuperOp representation."""
-    if rep == 'SuperOp':
+    if rep == "SuperOp":
         return data
-    if rep == 'Operator':
-        return _from_operator('SuperOp', data, input_dim, output_dim)
-    if rep == 'Choi':
+    if rep == "Operator":
+        return _from_operator("SuperOp", data, input_dim, output_dim)
+    if rep == "Choi":
         return _choi_to_superop(data, input_dim, output_dim)
-    if rep == 'Kraus':
+    if rep == "Kraus":
         return _kraus_to_superop(data)
-    if rep == 'Chi':
+    if rep == "Chi":
         data = _chi_to_choi(data, input_dim)
         return _choi_to_superop(data, input_dim, output_dim)
-    if rep == 'PTM':
+    if rep == "PTM":
         return _ptm_to_superop(data, input_dim)
-    if rep == 'Stinespring':
+    if rep == "Stinespring":
         return _stinespring_to_superop(data, input_dim, output_dim)
-    raise QiskitError('Invalid QuantumChannel {}'.format(rep))
+    raise QiskitError(f"Invalid QuantumChannel {rep}")
 
 
 def _to_kraus(rep, data, input_dim, output_dim):
     """Transform a QuantumChannel to the Kraus representation."""
-    if rep == 'Kraus':
+    if rep == "Kraus":
         return data
-    if rep == 'Stinespring':
+    if rep == "Stinespring":
         return _stinespring_to_kraus(data, output_dim)
-    if rep == 'Operator':
-        return _from_operator('Kraus', data, input_dim, output_dim)
+    if rep == "Operator":
+        return _from_operator("Kraus", data, input_dim, output_dim)
     # Convert via Choi and Kraus
-    if rep != 'Choi':
+    if rep != "Choi":
         data = _to_choi(rep, data, input_dim, output_dim)
     return _choi_to_kraus(data, input_dim, output_dim)
 
 
 def _to_chi(rep, data, input_dim, output_dim):
     """Transform a QuantumChannel to the Chi representation."""
-    if rep == 'Chi':
+    if rep == "Chi":
         return data
     # Check valid n-qubit input
     _check_nqubit_dim(input_dim, output_dim)
-    if rep == 'Operator':
-        return _from_operator('Chi', data, input_dim, output_dim)
+    if rep == "Operator":
+        return _from_operator("Chi", data, input_dim, output_dim)
     # Convert via Choi representation
-    if rep != 'Choi':
+    if rep != "Choi":
         data = _to_choi(rep, data, input_dim, output_dim)
     return _choi_to_chi(data, input_dim)
 
 
 def _to_ptm(rep, data, input_dim, output_dim):
     """Transform a QuantumChannel to the PTM representation."""
-    if rep == 'PTM':
+    if rep == "PTM":
         return data
     # Check valid n-qubit input
     _check_nqubit_dim(input_dim, output_dim)
-    if rep == 'Operator':
-        return _from_operator('PTM', data, input_dim, output_dim)
+    if rep == "Operator":
+        return _from_operator("PTM", data, input_dim, output_dim)
     # Convert via Superoperator representation
-    if rep != 'SuperOp':
+    if rep != "SuperOp":
         data = _to_superop(rep, data, input_dim, output_dim)
     return _superop_to_ptm(data, input_dim)
 
 
 def _to_stinespring(rep, data, input_dim, output_dim):
     """Transform a QuantumChannel to the Stinespring representation."""
-    if rep == 'Stinespring':
+    if rep == "Stinespring":
         return data
-    if rep == 'Operator':
-        return _from_operator('Stinespring', data, input_dim, output_dim)
+    if rep == "Operator":
+        return _from_operator("Stinespring", data, input_dim, output_dim)
     # Convert via Superoperator representation
-    if rep != 'Kraus':
+    if rep != "Kraus":
         data = _to_kraus(rep, data, input_dim, output_dim)
     return _kraus_to_stinespring(data, input_dim, output_dim)
 
 
 def _to_operator(rep, data, input_dim, output_dim):
     """Transform a QuantumChannel to the Operator representation."""
-    if rep == 'Operator':
+    if rep == "Operator":
         return data
-    if rep == 'Stinespring':
+    if rep == "Stinespring":
         return _stinespring_to_operator(data, output_dim)
     # Convert via Kraus representation
-    if rep != 'Kraus':
+    if rep != "Kraus":
         data = _to_kraus(rep, data, input_dim, output_dim)
     return _kraus_to_operator(data)
 
 
 def _from_operator(rep, data, input_dim, output_dim):
     """Transform Operator representation to other representation."""
-    if rep == 'Operator':
+    if rep == "Operator":
         return data
-    if rep == 'SuperOp':
+    if rep == "SuperOp":
         return np.kron(np.conj(data), data)
-    if rep == 'Choi':
-        vec = np.ravel(data, order='F')
+    if rep == "Choi":
+        vec = np.ravel(data, order="F")
         return np.outer(vec, np.conj(vec))
-    if rep == 'Kraus':
+    if rep == "Kraus":
         return [data], None
-    if rep == 'Stinespring':
+    if rep == "Stinespring":
         return data, None
-    if rep == 'Chi':
+    if rep == "Chi":
         _check_nqubit_dim(input_dim, output_dim)
-        data = _from_operator('Choi', data, input_dim, output_dim)
+        data = _from_operator("Choi", data, input_dim, output_dim)
         return _choi_to_chi(data, input_dim)
-    if rep == 'PTM':
+    if rep == "PTM":
         _check_nqubit_dim(input_dim, output_dim)
-        data = _from_operator('SuperOp', data, input_dim, output_dim)
+        data = _from_operator("SuperOp", data, input_dim, output_dim)
         return _superop_to_ptm(data, input_dim)
-    raise QiskitError('Invalid QuantumChannel {}'.format(rep))
+    raise QiskitError(f"Invalid QuantumChannel {rep}")
 
 
 def _kraus_to_operator(data):
     """Transform Kraus representation to Operator representation."""
     if data[1] is not None or len(data[0]) > 1:
-        raise QiskitError(
-            'Channel cannot be converted to Operator representation')
+        raise QiskitError("Channel cannot be converted to Operator representation")
     return data[0][0]
 
 
@@ -188,8 +187,7 @@ def _stinespring_to_operator(data, output_dim):
     """Transform Stinespring representation to Operator representation."""
     trace_dim = data[0].shape[0] // output_dim
     if data[1] is not None or trace_dim != 1:
-        raise QiskitError(
-            'Channel cannot be converted to Operator representation')
+        raise QiskitError("Channel cannot be converted to Operator representation")
     return data[0]
 
 
@@ -211,11 +209,11 @@ def _kraus_to_choi(data):
     kraus_l, kraus_r = data
     if kraus_r is None:
         for i in kraus_l:
-            vec = i.ravel(order='F')
+            vec = i.ravel(order="F")
             choi += np.outer(vec, vec.conj())
     else:
         for i, j in zip(kraus_l, kraus_r):
-            choi += np.outer(i.ravel(order='F'), j.ravel(order='F').conj())
+            choi += np.outer(i.ravel(order="F"), j.ravel(order="F").conj())
     return choi
 
 
@@ -228,7 +226,7 @@ def _choi_to_kraus(data, input_dim, output_dim, atol=ATOL_DEFAULT):
         # threading issue that is causing segfaults.
         # Need schur here since la.eig does not
         # guarentee orthogonality in degenerate subspaces
-        w, v = la.schur(data, output='complex')
+        w, v = la.schur(data, output="complex")
         w = w.diagonal().real
         # Check eigenvalues are non-negative
         if len(w[w < -atol]) == 0:
@@ -236,8 +234,7 @@ def _choi_to_kraus(data, input_dim, output_dim, atol=ATOL_DEFAULT):
             kraus = []
             for val, vec in zip(w, v.T):
                 if abs(val) > atol:
-                    k = np.sqrt(val) * vec.reshape(
-                        (output_dim, input_dim), order='F')
+                    k = np.sqrt(val) * vec.reshape((output_dim, input_dim), order="F")
                     kraus.append(k)
             # If we are converting a zero matrix, we need to return a Kraus set
             # with a single zero-element Kraus matrix
@@ -249,10 +246,8 @@ def _choi_to_kraus(data, input_dim, output_dim, atol=ATOL_DEFAULT):
     kraus_l = []
     kraus_r = []
     for val, vec_l, vec_r in zip(svals, mat_u.T, mat_vh.conj()):
-        kraus_l.append(
-            np.sqrt(val) * vec_l.reshape((output_dim, input_dim), order='F'))
-        kraus_r.append(
-            np.sqrt(val) * vec_r.reshape((output_dim, input_dim), order='F'))
+        kraus_l.append(np.sqrt(val) * vec_l.reshape((output_dim, input_dim), order="F"))
+        kraus_r.append(np.sqrt(val) * vec_r.reshape((output_dim, input_dim), order="F"))
     return kraus_l, kraus_r
 
 
@@ -283,8 +278,8 @@ def _stinespring_to_choi(data, input_dim, output_dim):
     else:
         stine_r = np.reshape(data[1], (output_dim, trace_dim, input_dim))
     return np.reshape(
-        np.einsum('iAj,kAl->jilk', stine_l, stine_r.conj()),
-        2 * [input_dim * output_dim])
+        np.einsum("iAj,kAl->jilk", stine_l, stine_r.conj()), 2 * [input_dim * output_dim]
+    )
 
 
 def _stinespring_to_superop(data, input_dim, output_dim):
@@ -296,8 +291,9 @@ def _stinespring_to_superop(data, input_dim, output_dim):
     else:
         stine_r = np.reshape(data[1], (output_dim, trace_dim, input_dim))
     return np.reshape(
-        np.einsum('iAj,kAl->ikjl', stine_r.conj(), stine_l),
-        (output_dim * output_dim, input_dim * input_dim))
+        np.einsum("iAj,kAl->ikjl", stine_r.conj(), stine_l),
+        (output_dim * output_dim, input_dim * input_dim),
+    )
 
 
 def _kraus_to_stinespring(data, input_dim, output_dim):
@@ -306,8 +302,7 @@ def _kraus_to_stinespring(data, input_dim, output_dim):
     for i, kraus in enumerate(data):
         if kraus is not None:
             num_kraus = len(kraus)
-            stine = np.zeros((output_dim * num_kraus, input_dim),
-                             dtype=complex)
+            stine = np.zeros((output_dim * num_kraus, input_dim), dtype=complex)
             for j, mat in enumerate(kraus):
                 vec = np.zeros(num_kraus)
                 vec[j] = 1
@@ -386,11 +381,9 @@ def _bipartite_tensor(mat1, mat2, shape1=None, shape2=None):
         sdim_b1 = int(np.sqrt(dim_b1))
         shape2 = (sdim_b0, sdim_b0, sdim_b1, sdim_b1)
     # Check dimensions
-    if len(shape1) != 4 or shape1[0] * shape1[1] != dim_a0 or \
-            shape1[2] * shape1[3] != dim_a1:
+    if len(shape1) != 4 or shape1[0] * shape1[1] != dim_a0 or shape1[2] * shape1[3] != dim_a1:
         raise QiskitError("Invalid shape_a")
-    if len(shape2) != 4 or shape2[0] * shape2[1] != dim_b0 or \
-            shape2[2] * shape2[3] != dim_b1:
+    if len(shape2) != 4 or shape2[0] * shape2[1] != dim_b0 or shape2[2] * shape2[3] != dim_b1:
         raise QiskitError("Invalid shape_b")
 
     return _reravel(mat1, mat2, shape1, shape2)
@@ -406,8 +399,8 @@ def _reravel(mat1, mat2, shape1, shape2):
     # Tensor product matrices
     data = np.kron(mat1, mat2)
     data = np.reshape(
-        np.transpose(np.reshape(data, tensor_shape), (0, 2, 1, 3, 4, 6, 5, 7)),
-        final_shape)
+        np.transpose(np.reshape(data, tensor_shape), (0, 2, 1, 3, 4, 6, 5, 7)), final_shape
+    )
     return data
 
 
@@ -415,8 +408,8 @@ def _transform_to_pauli(data, num_qubits):
     """Change of basis of bipartite matrix representation."""
     # Change basis: um_{i=0}^3 |i>><\sigma_i|
     basis_mat = np.array(
-        [[1, 0, 0, 1], [0, 1, 1, 0], [0, -1j, 1j, 0], [1, 0j, 0, -1]],
-        dtype=complex)
+        [[1, 0, 0, 1], [0, 1, 1, 0], [0, -1j, 1j, 0], [1, 0j, 0, -1]], dtype=complex
+    )
     # Note that we manually renormalized after change of basis
     # to avoid rounding errors from square-roots of 2.
     cob = basis_mat
@@ -424,18 +417,20 @@ def _transform_to_pauli(data, num_qubits):
         dim = int(np.sqrt(len(cob)))
         cob = np.reshape(
             np.transpose(
-                np.reshape(
-                    np.kron(basis_mat, cob), (4, dim * dim, 2, 2, dim, dim)),
-                (0, 1, 2, 4, 3, 5)), (4 * dim * dim, 4 * dim * dim))
-    return np.dot(np.dot(cob, data), cob.conj().T) / 2**num_qubits
+                np.reshape(np.kron(basis_mat, cob), (4, dim * dim, 2, 2, dim, dim)),
+                (0, 1, 2, 4, 3, 5),
+            ),
+            (4 * dim * dim, 4 * dim * dim),
+        )
+    return np.dot(np.dot(cob, data), cob.conj().T) / 2 ** num_qubits
 
 
 def _transform_from_pauli(data, num_qubits):
     """Change of basis of bipartite matrix representation."""
     # Change basis: sum_{i=0}^3 =|\sigma_i>><i|
     basis_mat = np.array(
-        [[1, 0, 0, 1], [0, 1, 1j, 0], [0, 1, -1j, 0], [1, 0j, 0, -1]],
-        dtype=complex)
+        [[1, 0, 0, 1], [0, 1, 1j, 0], [0, 1, -1j, 0], [1, 0j, 0, -1]], dtype=complex
+    )
     # Note that we manually renormalized after change of basis
     # to avoid rounding errors from square-roots of 2.
     cob = basis_mat
@@ -443,25 +438,28 @@ def _transform_from_pauli(data, num_qubits):
         dim = int(np.sqrt(len(cob)))
         cob = np.reshape(
             np.transpose(
-                np.reshape(
-                    np.kron(basis_mat, cob), (2, 2, dim, dim, 4, dim * dim)),
-                (0, 2, 1, 3, 4, 5)), (4 * dim * dim, 4 * dim * dim))
-    return np.dot(np.dot(cob, data), cob.conj().T) / 2**num_qubits
+                np.reshape(np.kron(basis_mat, cob), (2, 2, dim, dim, 4, dim * dim)),
+                (0, 2, 1, 3, 4, 5),
+            ),
+            (4 * dim * dim, 4 * dim * dim),
+        )
+    return np.dot(np.dot(cob, data), cob.conj().T) / 2 ** num_qubits
 
 
 def _reshuffle(mat, shape):
     """Reshuffle the indices of a bipartite matrix A[ij,kl] -> A[lj,ki]."""
     return np.reshape(
         np.transpose(np.reshape(mat, shape), (3, 1, 2, 0)),
-        (shape[3] * shape[1], shape[0] * shape[2]))
+        (shape[3] * shape[1], shape[0] * shape[2]),
+    )
 
 
 def _check_nqubit_dim(input_dim, output_dim):
     """Return true if dims correspond to an n-qubit channel."""
     if input_dim != output_dim:
         raise QiskitError(
-            'Not an n-qubit channel: input_dim' +
-            ' ({}) != output_dim ({})'.format(input_dim, output_dim))
+            f"Not an n-qubit channel: input_dim ({input_dim}) != output_dim ({output_dim})"
+        )
     num_qubits = int(np.log2(input_dim))
-    if 2**num_qubits != input_dim:
-        raise QiskitError('Not an n-qubit channel: input_dim != 2 ** n')
+    if 2 ** num_qubits != input_dim:
+        raise QiskitError("Not an n-qubit channel: input_dim != 2 ** n")

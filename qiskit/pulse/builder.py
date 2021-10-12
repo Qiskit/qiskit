@@ -211,7 +211,7 @@ from typing import (
     Tuple,
     TypeVar,
     Union,
-    NewType
+    NewType,
 )
 
 import numpy as np
@@ -227,7 +227,7 @@ from qiskit.pulse import (
     macros,
     library,
     transforms,
-    utils
+    utils,
 )
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
@@ -236,19 +236,20 @@ from qiskit.pulse.transforms.alignments import AlignmentKind
 #: contextvars.ContextVar[BuilderContext]: active builder
 BUILDER_CONTEXTVAR = contextvars.ContextVar("backend")
 
-T = TypeVar('T')  # pylint: disable=invalid-name
+T = TypeVar("T")  # pylint: disable=invalid-name
 
-StorageLocation = NewType('StorageLocation', Union[chans.MemorySlot, chans.RegisterSlot])
+StorageLocation = NewType("StorageLocation", Union[chans.MemorySlot, chans.RegisterSlot])
 
 
-def _compile_lazy_circuit_before(function: Callable[..., T]
-                                 ) -> Callable[..., T]:
+def _compile_lazy_circuit_before(function: Callable[..., T]) -> Callable[..., T]:
     """Decorator thats schedules and calls the lazily compiled circuit before
     executing the decorated builder method."""
+
     @functools.wraps(function)
     def wrapper(self, *args, **kwargs):
         self._compile_lazy_circuit()
         return function(self, *args, **kwargs)
+
     return wrapper
 
 
@@ -256,32 +257,36 @@ def _requires_backend(function: Callable[..., T]) -> Callable[..., T]:
     """Decorator a function to raise if it is called without a builder with a
     set backend.
     """
+
     @functools.wraps(function)
     def wrapper(self, *args, **kwargs):
         if self.backend is None:
             raise exceptions.BackendNotSet(
-                'This function requires the builder to '
-                'have a "backend" set.')
+                'This function requires the builder to have a "backend" set.'
+            )
         return function(self, *args, **kwargs)
+
     return wrapper
 
 
-class _PulseBuilder():
+class _PulseBuilder:
     """Builder context class."""
 
     __alignment_kinds__ = {
-        'left': transforms.AlignLeft(),
-        'right': transforms.AlignRight(),
-        'sequential': transforms.AlignSequential()
+        "left": transforms.AlignLeft(),
+        "right": transforms.AlignRight(),
+        "sequential": transforms.AlignSequential(),
     }
 
-    def __init__(self,
-                 backend=None,
-                 block: Optional[ScheduleBlock] = None,
-                 name: Optional[str] = None,
-                 default_alignment: Union[str, AlignmentKind] = 'left',
-                 default_transpiler_settings: Mapping = None,
-                 default_circuit_scheduler_settings: Mapping = None):
+    def __init__(
+        self,
+        backend=None,
+        block: Optional[ScheduleBlock] = None,
+        name: Optional[str] = None,
+        default_alignment: Union[str, AlignmentKind] = "left",
+        default_transpiler_settings: Mapping = None,
+        default_circuit_scheduler_settings: Mapping = None,
+    ):
         """Initialize the builder context.
 
         .. note::
@@ -335,17 +340,21 @@ class _PulseBuilder():
                 root_block = ScheduleBlock()
                 root_block.append(instructions.Call(subroutine=block))
             else:
-                raise exceptions.PulseError(f'Input `block` type {block.__class__.__name__} is '
-                                            'not a valid format. Specify a pulse program.')
+                raise exceptions.PulseError(
+                    f"Input `block` type {block.__class__.__name__} is "
+                    "not a valid format. Specify a pulse program."
+                )
             self._context_stack.append(root_block)
 
         # Set default alignment context
         alignment = _PulseBuilder.__alignment_kinds__.get(default_alignment, default_alignment)
         if not isinstance(alignment, AlignmentKind):
-            raise exceptions.PulseError(f'Given `default_alignment` {repr(default_alignment)} is '
-                                        'not a valid transformation. Set one of '
-                                        f'{", ".join(_PulseBuilder.__alignment_kinds__.keys())}, '
-                                        'or set an instance of `AlignmentKind` subclass.')
+            raise exceptions.PulseError(
+                f"Given `default_alignment` {repr(default_alignment)} is "
+                "not a valid transformation. Set one of "
+                f'{", ".join(_PulseBuilder.__alignment_kinds__.keys())}, '
+                "or set an instance of `AlignmentKind` subclass."
+            )
         self.push_context(alignment)
 
     def __enter__(self) -> ScheduleBlock:
@@ -385,7 +394,7 @@ class _PulseBuilder():
     def pop_context(self) -> ScheduleBlock:
         """Pop the last context from the stack."""
         if len(self._context_stack) == 1:
-            raise exceptions.PulseError('The root context cannot be popped out.')
+            raise exceptions.PulseError("The root context cannot be popped out.")
 
         return self._context_stack.pop()
 
@@ -455,12 +464,10 @@ class _PulseBuilder():
         """Take a QuantumCircuit and output the pulse schedule associated with the circuit."""
         import qiskit.compiler as compiler  # pylint: disable=cyclic-import
 
-        transpiled_circuit = compiler.transpile(circ,
-                                                self.backend,
-                                                **self.transpiler_settings)
-        sched = compiler.schedule(transpiled_circuit,
-                                  self.backend,
-                                  **self.circuit_scheduler_settings)
+        transpiled_circuit = compiler.transpile(circ, self.backend, **self.transpiler_settings)
+        sched = compiler.schedule(
+            transpiled_circuit, self.backend, **self.circuit_scheduler_settings
+        )
         return sched
 
     def _new_circuit(self):
@@ -487,11 +494,13 @@ class _PulseBuilder():
         if len(context_block) > 0:
             self._context_stack[-1].append(context_block)
 
-    def call_subroutine(self,
-                        subroutine: Union[circuit.QuantumCircuit, Schedule, ScheduleBlock],
-                        name: Optional[str] = None,
-                        value_dict: Optional[Dict[ParameterExpression, ParameterValueType]] = None,
-                        **kw_params: ParameterValueType):
+    def call_subroutine(
+        self,
+        subroutine: Union[circuit.QuantumCircuit, Schedule, ScheduleBlock],
+        name: Optional[str] = None,
+        value_dict: Optional[Dict[ParameterExpression, ParameterValueType]] = None,
+        **kw_params: ParameterValueType,
+    ):
         """Call a schedule or circuit defined outside of the current scope.
 
         The ``subroutine`` is appended to the context schedule as a call instruction.
@@ -510,13 +519,29 @@ class _PulseBuilder():
                 these parameters are updated with the same assigned value.
 
         Raises:
-            PulseError: If specified parameter is not contained in the subroutine.
+            PulseError:
+                - When specified parameter is not contained in the subroutine
+                - When input subroutine is not valid data format.
         """
         if isinstance(subroutine, circuit.QuantumCircuit):
             self._compile_lazy_circuit()
             subroutine = self._compile_circuit(subroutine)
 
-        if len(subroutine.instructions) > 0:
+        empty_subroutine = True
+        if isinstance(subroutine, Schedule):
+            if len(subroutine.instructions) > 0:
+                empty_subroutine = False
+        elif isinstance(subroutine, ScheduleBlock):
+            if len(subroutine.blocks) > 0:
+                empty_subroutine = False
+        else:
+            raise exceptions.PulseError(
+                f"Subroutine type {subroutine.__class__.__name__} is "
+                "not valid data format. Call QuantumCircuit, "
+                "Schedule, or ScheduleBlock."
+            )
+
+        if not empty_subroutine:
             param_value_map = dict()
             for param_name, assigned_value in kw_params.items():
                 param_objs = subroutine.get_parameters(param_name)
@@ -525,8 +550,9 @@ class _PulseBuilder():
                         param_value_map[param_obj] = assigned_value
                 else:
                     raise exceptions.PulseError(
-                        f'Parameter {param_name} is not defined in the target subroutine. '
-                        f'{", ".join(map(str, subroutine.parameters))} can be specified.')
+                        f"Parameter {param_name} is not defined in the target subroutine. "
+                        f'{", ".join(map(str, subroutine.parameters))} can be specified.'
+                    )
 
             if value_dict:
                 param_value_map.update(value_dict)
@@ -536,10 +562,7 @@ class _PulseBuilder():
             self.append_instruction(call_def)
 
     @_requires_backend
-    def call_gate(self,
-                  gate: circuit.Gate,
-                  qubits: Tuple[int, ...],
-                  lazy: bool = True):
+    def call_gate(self, gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
         """Call the circuit ``gate`` in the pulse program.
 
         The qubits are assumed to be defined on physical qubits.
@@ -576,13 +599,14 @@ class _PulseBuilder():
         self._lazy_circuit.append(gate, qargs=qargs)
 
 
-def build(backend=None,
-          schedule: Optional[ScheduleBlock] = None,
-          name: Optional[str] = None,
-          default_alignment: Optional[Union[str, AlignmentKind]] = 'left',
-          default_transpiler_settings: Optional[Dict[str, Any]] = None,
-          default_circuit_scheduler_settings: Optional[Dict[str, Any]] = None
-          ) -> ContextManager[ScheduleBlock]:
+def build(
+    backend=None,
+    schedule: Optional[ScheduleBlock] = None,
+    name: Optional[str] = None,
+    default_alignment: Optional[Union[str, AlignmentKind]] = "left",
+    default_transpiler_settings: Optional[Dict[str, Any]] = None,
+    default_circuit_scheduler_settings: Optional[Dict[str, Any]] = None,
+) -> ContextManager[ScheduleBlock]:
     """Create a context manager for launching the imperative pulse builder DSL.
 
     To enter a building context and starting building a pulse program:
@@ -628,10 +652,12 @@ def build(backend=None,
         name=name,
         default_alignment=default_alignment,
         default_transpiler_settings=default_transpiler_settings,
-        default_circuit_scheduler_settings=default_circuit_scheduler_settings)
+        default_circuit_scheduler_settings=default_circuit_scheduler_settings,
+    )
 
 
 # Builder Utilities
+
 
 def _active_builder() -> _PulseBuilder:
     """Get the active builder in the active context.
@@ -647,9 +673,10 @@ def _active_builder() -> _PulseBuilder:
         return BUILDER_CONTEXTVAR.get()
     except LookupError as ex:
         raise exceptions.NoActiveBuilder(
-            'A Pulse builder function was called outside of '
-            'a builder context. Try calling within a builder '
-            'context, eg., "with pulse.build() as schedule: ...".') from ex
+            "A Pulse builder function was called outside of "
+            "a builder context. Try calling within a builder "
+            'context, eg., "with pulse.build() as schedule: ...".'
+        ) from ex
 
 
 def active_backend():
@@ -665,8 +692,8 @@ def active_backend():
     builder = _active_builder().backend
     if builder is None:
         raise exceptions.BackendNotSet(
-            'This function requires the active builder to '
-            'have a "backend" set.')
+            'This function requires the active builder to have a "backend" set.'
+        )
     return builder
 
 
@@ -684,9 +711,11 @@ def append_schedule(schedule: Union[Schedule, ScheduleBlock]):
     elif isinstance(schedule, ScheduleBlock):
         _active_builder().append_block(schedule)
     else:
-        raise exceptions.PulseError(f'Input program {schedule.__class__.__name__} is not '
-                                    'acceptable program format. Input `Schedule` or '
-                                    '`ScheduleBlock`.')
+        raise exceptions.PulseError(
+            f"Input program {schedule.__class__.__name__} is not "
+            "acceptable program format. Input `Schedule` or "
+            "`ScheduleBlock`."
+        )
 
 
 def append_instruction(instruction: instructions.Instruction):
@@ -782,8 +811,7 @@ def qubit_channels(qubit: int) -> Set[chans.Channel]:
     return set(active_backend().configuration().get_qubit_channels(qubit))
 
 
-def _qubits_to_channels(*channels_or_qubits: Union[int, chans.Channel]
-                        ) -> Set[chans.Channel]:
+def _qubits_to_channels(*channels_or_qubits: Union[int, chans.Channel]) -> Set[chans.Channel]:
     """Returns the unique channels of the input qubits."""
     channels = set()
     for channel_or_qubit in channels_or_qubits:
@@ -793,8 +821,8 @@ def _qubits_to_channels(*channels_or_qubits: Union[int, chans.Channel]
             channels.add(channel_or_qubit)
         else:
             raise exceptions.PulseError(
-                '{} is not a "Channel" or '
-                'qubit (integer).'.format(channel_or_qubit))
+                f'{channel_or_qubit} is not a "Channel" or qubit (integer).'
+            )
     return channels
 
 
@@ -844,6 +872,7 @@ def active_circuit_scheduler_settings() -> Dict[str, Any]:  # pylint: disable=in
 
 
 # Contexts
+
 
 @contextmanager
 def align_left() -> ContextManager[None]:
@@ -960,8 +989,7 @@ def align_sequential() -> AlignmentKind:
 
 
 @contextmanager
-def align_equispaced(duration: Union[int, ParameterExpression]
-                     ) -> AlignmentKind:
+def align_equispaced(duration: Union[int, ParameterExpression]) -> AlignmentKind:
     """Equispaced alignment pulse scheduling context.
 
     Pulse instructions within this context are scheduled with the same interval spacing such that
@@ -1012,9 +1040,9 @@ def align_equispaced(duration: Union[int, ParameterExpression]
 
 
 @contextmanager
-def align_func(duration: Union[int, ParameterExpression],
-               func: Callable[[int], float]
-               ) -> AlignmentKind:
+def align_func(
+    duration: Union[int, ParameterExpression], func: Callable[[int], float]
+) -> AlignmentKind:
     """Callback defined alignment pulse scheduling context.
 
     Pulse instructions within this context are scheduled at the location specified by
@@ -1087,7 +1115,7 @@ def general_transforms(alignment_context: AlignmentKind) -> ContextManager[None]
         PulseError: When input ``alignment_context`` is not ``AlignmentKind`` subclasses.
     """
     if not isinstance(alignment_context, AlignmentKind):
-        raise exceptions.PulseError('Input alignment context is not `AlignmentKind` subclass.')
+        raise exceptions.PulseError("Input alignment context is not `AlignmentKind` subclass.")
 
     builder = _active_builder()
     builder.push_context(alignment_context)
@@ -1107,6 +1135,7 @@ def inline() -> ContextManager[None]:
     .. warning:: This will cause all scheduling directives within this context
         to be ignored.
     """
+
     def _flatten(block):
         for inst in block.blocks:
             if isinstance(inst, ScheduleBlock):
@@ -1137,13 +1166,16 @@ def pad(*chs: chans.Channel) -> ContextManager[None]:  # pylint: disable=unused-
     Yields:
         None
     """
-    warnings.warn('Context-wise padding is being deprecated. Requested padding is being ignored. '
-                  'Now the pulse builder generate a program in `ScheduleBlock` representation. '
-                  'The padding with delay as a blocker is no longer necessary for this program. '
-                  'However, if you still want delays, you can convert the output program '
-                  'into `Schedule` representation by calling '
-                  '`qiskit.pulse.transforms.target_qobj_transform`. Then, you can apply '
-                  '`qiskit.pulse.transforms.pad` to the converted schedule. ', DeprecationWarning)
+    warnings.warn(
+        "Context-wise padding is being deprecated. Requested padding is being ignored. "
+        "Now the pulse builder generate a program in `ScheduleBlock` representation. "
+        "The padding with delay as a blocker is no longer necessary for this program. "
+        "However, if you still want delays, you can convert the output program "
+        "into `Schedule` representation by calling "
+        "`qiskit.pulse.transforms.target_qobj_transform`. Then, you can apply "
+        "`qiskit.pulse.transforms.pad` to the converted schedule. ",
+        DeprecationWarning,
+    )
     try:
         yield
     finally:
@@ -1170,8 +1202,7 @@ def transpiler_settings(**settings) -> ContextManager[None]:
     """
     builder = _active_builder()
     curr_transpiler_settings = builder.transpiler_settings
-    builder.transpiler_settings = collections.ChainMap(
-        settings, curr_transpiler_settings)
+    builder.transpiler_settings = collections.ChainMap(settings, curr_transpiler_settings)
     try:
         yield
     finally:
@@ -1199,7 +1230,8 @@ def circuit_scheduler_settings(**settings) -> ContextManager[None]:
     builder = _active_builder()
     curr_circuit_scheduler_settings = builder.circuit_scheduler_settings
     builder.circuit_scheduler_settings = collections.ChainMap(
-        settings, curr_circuit_scheduler_settings)
+        settings, curr_circuit_scheduler_settings
+    )
     try:
         yield
     finally:
@@ -1207,9 +1239,7 @@ def circuit_scheduler_settings(**settings) -> ContextManager[None]:
 
 
 @contextmanager
-def phase_offset(phase: float,
-                 *channels: chans.PulseChannel
-                 ) -> ContextManager[None]:
+def phase_offset(phase: float, *channels: chans.PulseChannel) -> ContextManager[None]:
     """Shift the phase of input channels on entry into context and undo on exit.
 
     Examples:
@@ -1245,10 +1275,9 @@ def phase_offset(phase: float,
 
 
 @contextmanager
-def frequency_offset(frequency: float,
-                     *channels: chans.PulseChannel,
-                     compensate_phase: bool = False
-                     ) -> ContextManager[None]:
+def frequency_offset(
+    frequency: float, *channels: chans.PulseChannel, compensate_phase: bool = False
+) -> ContextManager[None]:
     """Shift the frequency of inputs channels on entry into context and undo on exit.
 
     Examples:
@@ -1370,7 +1399,7 @@ def acquire_channel(qubit: int) -> chans.AcquireChannel:
 
 
 def control_channels(*qubits: Iterable[int]) -> List[chans.ControlChannel]:
-    """Return ``AcquireChannel`` for ``qubit`` on the active builder backend.
+    """Return ``ControlChannel`` for ``qubit`` on the active builder backend.
 
     Return the secondary drive channel for the given qubit -- typically
     utilized for controlling multi-qubit interactions.
@@ -1400,8 +1429,7 @@ def control_channels(*qubits: Iterable[int]) -> List[chans.ControlChannel]:
 
 
 # Base Instructions
-def delay(duration: int,
-          channel: chans.Channel, name: Optional[str] = None):
+def delay(duration: int, channel: chans.Channel, name: Optional[str] = None):
     """Delay on a ``channel`` for a ``duration``.
 
     Examples:
@@ -1423,8 +1451,9 @@ def delay(duration: int,
     append_instruction(instructions.Delay(duration, channel, name=name))
 
 
-def play(pulse: Union[library.Pulse, np.ndarray],
-         channel: chans.PulseChannel, name: Optional[str] = None):
+def play(
+    pulse: Union[library.Pulse, np.ndarray], channel: chans.PulseChannel, name: Optional[str] = None
+):
     """Play a ``pulse`` on a ``channel``.
 
     Examples:
@@ -1449,11 +1478,12 @@ def play(pulse: Union[library.Pulse, np.ndarray],
     append_instruction(instructions.Play(pulse, channel, name=name))
 
 
-def acquire(duration: int,
-            qubit_or_channel: Union[int, chans.AcquireChannel],
-            register: StorageLocation,
-            **metadata: Union[configuration.Kernel,
-                              configuration.Discriminator]):
+def acquire(
+    duration: int,
+    qubit_or_channel: Union[int, chans.AcquireChannel],
+    register: StorageLocation,
+    **metadata: Union[configuration.Kernel, configuration.Discriminator],
+):
     """Acquire for a ``duration`` on a ``channel`` and store the result
     in a ``register``.
 
@@ -1491,18 +1521,18 @@ def acquire(duration: int,
         qubit_or_channel = chans.AcquireChannel(qubit_or_channel)
 
     if isinstance(register, chans.MemorySlot):
-        append_instruction(instructions.Acquire(
-            duration, qubit_or_channel, mem_slot=register, **metadata))
+        append_instruction(
+            instructions.Acquire(duration, qubit_or_channel, mem_slot=register, **metadata)
+        )
     elif isinstance(register, chans.RegisterSlot):
-        append_instruction(instructions.Acquire(
-            duration, qubit_or_channel, reg_slot=register, **metadata))
+        append_instruction(
+            instructions.Acquire(duration, qubit_or_channel, reg_slot=register, **metadata)
+        )
     else:
-        raise exceptions.PulseError(
-            'Register of type: "{}" is not supported'.format(type(register)))
+        raise exceptions.PulseError(f'Register of type: "{type(register)}" is not supported')
 
 
-def set_frequency(frequency: float,
-                  channel: chans.PulseChannel, name: Optional[str] = None):
+def set_frequency(frequency: float, channel: chans.PulseChannel, name: Optional[str] = None):
     """Set the ``frequency`` of a pulse ``channel``.
 
     Examples:
@@ -1524,8 +1554,7 @@ def set_frequency(frequency: float,
     append_instruction(instructions.SetFrequency(frequency, channel, name=name))
 
 
-def shift_frequency(frequency: float,
-                    channel: chans.PulseChannel, name: Optional[str] = None):
+def shift_frequency(frequency: float, channel: chans.PulseChannel, name: Optional[str] = None):
     """Shift the ``frequency`` of a pulse ``channel``.
 
     Examples:
@@ -1548,8 +1577,7 @@ def shift_frequency(frequency: float,
     append_instruction(instructions.ShiftFrequency(frequency, channel, name=name))
 
 
-def set_phase(phase: float,
-              channel: chans.PulseChannel, name: Optional[str] = None):
+def set_phase(phase: float, channel: chans.PulseChannel, name: Optional[str] = None):
     """Set the ``phase`` of a pulse ``channel``.
 
     Examples:
@@ -1574,8 +1602,7 @@ def set_phase(phase: float,
     append_instruction(instructions.SetPhase(phase, channel, name=name))
 
 
-def shift_phase(phase: float,
-                channel: chans.PulseChannel, name: Optional[str] = None):
+def shift_phase(phase: float, channel: chans.PulseChannel, name: Optional[str] = None):
     """Shift the ``phase`` of a pulse ``channel``.
 
     Examples:
@@ -1599,8 +1626,7 @@ def shift_phase(phase: float,
     append_instruction(instructions.ShiftPhase(phase, channel, name))
 
 
-def snapshot(label: str,
-             snapshot_type: str = 'statevector'):
+def snapshot(label: str, snapshot_type: str = "statevector"):
     """Simulator snapshot.
 
     Examples:
@@ -1616,8 +1642,7 @@ def snapshot(label: str,
         label: Label for snapshot.
         snapshot_type: Type of snapshot.
     """
-    append_instruction(
-        instructions.Snapshot(label, snapshot_type=snapshot_type))
+    append_instruction(instructions.Snapshot(label, snapshot_type=snapshot_type))
 
 
 def call_schedule(schedule: Schedule):
@@ -1643,8 +1668,11 @@ def call_schedule(schedule: Schedule):
     Args:
         Schedule to call.
     """
-    warnings.warn('``call_schedule`` is being deprecated. '
-                  '``call`` function can take both a schedule and a circuit.', DeprecationWarning)
+    warnings.warn(
+        "``call_schedule`` is being deprecated. "
+        "``call`` function can take both a schedule and a circuit.",
+        DeprecationWarning,
+    )
 
     call(schedule)
 
@@ -1689,16 +1717,21 @@ def call_circuit(circ: circuit.QuantumCircuit):
     Args:
         Circuit to call.
     """
-    warnings.warn('``call_circuit`` is being deprecated. '
-                  '``call`` function can take both a schedule and a circuit.', DeprecationWarning)
+    warnings.warn(
+        "``call_circuit`` is being deprecated. "
+        "``call`` function can take both a schedule and a circuit.",
+        DeprecationWarning,
+    )
 
     call(circ)
 
 
-def call(target: Union[circuit.QuantumCircuit, Schedule],
-         name: Optional[str] = None,
-         value_dict: Optional[Dict[ParameterValueType, ParameterValueType]] = None,
-         **kw_params: ParameterValueType):
+def call(
+    target: Union[circuit.QuantumCircuit, Schedule, ScheduleBlock],
+    name: Optional[str] = None,
+    value_dict: Optional[Dict[ParameterValueType, ParameterValueType]] = None,
+    **kw_params: ParameterValueType,
+):
     """Call the ``target`` within the currently active builder context with arbitrary
     parameters which will be assigned to the target program.
 
@@ -1773,7 +1806,8 @@ def call(target: Union[circuit.QuantumCircuit, Schedule],
     """
     if not isinstance(target, (circuit.QuantumCircuit, Schedule, ScheduleBlock)):
         raise exceptions.PulseError(
-            f'Target of type "{target.__class__.__name__}" is not supported.')
+            f'Target of type "{target.__class__.__name__}" is not supported.'
+        )
 
     _active_builder().call_subroutine(target, name, value_dict, **kw_params)
 
@@ -1895,7 +1929,7 @@ def macro(func: Callable):
     Returns:
         Callable: The wrapped ``func``.
     """
-    func_name = getattr(func, '__name__', repr(func))
+    func_name = getattr(func, "__name__", repr(func))
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -1910,9 +1944,10 @@ def macro(func: Callable):
     return wrapper
 
 
-def measure(qubits: Union[List[int], int],
-            registers: Union[List[StorageLocation], StorageLocation] = None,
-            ) -> Union[List[StorageLocation], StorageLocation]:
+def measure(
+    qubits: Union[List[int], int],
+    registers: Union[List[StorageLocation], StorageLocation] = None,
+) -> Union[List[StorageLocation], StorageLocation]:
     """Measure a qubit within the currently active builder context.
 
     At the pulse level a measurement is composed of both a stimulus pulse and
@@ -1986,7 +2021,8 @@ def measure(qubits: Union[List[int], int],
         qubits=qubits,
         inst_map=backend.defaults().instruction_schedule_map,
         meas_map=backend.configuration().meas_map,
-        qubit_mem_slots={qubit: register.index for qubit, register in zip(qubits, registers)})
+        qubit_mem_slots={qubit: register.index for qubit, register in zip(qubits, registers)},
+    )
 
     # note this is not a subroutine.
     # just a macro to automate combination of stimulus and acquisition.
@@ -2031,7 +2067,8 @@ def measure_all() -> List[chans.MemorySlot]:
         qubits=qubits,
         inst_map=backend.defaults().instruction_schedule_map,
         meas_map=backend.configuration().meas_map,
-        qubit_mem_slots={qubit: qubit for qubit in qubits})
+        qubit_mem_slots={qubit: qubit for qubit in qubits},
+    )
 
     # note this is not a subroutine.
     # just a macro to automate combination of stimulus and acquisition.
@@ -2040,8 +2077,7 @@ def measure_all() -> List[chans.MemorySlot]:
     return registers
 
 
-def delay_qubits(duration: int,
-                 *qubits: Union[int, Iterable[int]]):
+def delay_qubits(duration: int, *qubits: Union[int, Iterable[int]]):
     r"""Insert delays on all of the :class:`channels.Channel`\s that correspond
     to the input ``qubits`` at the same time.
 
@@ -2065,8 +2101,7 @@ def delay_qubits(duration: int,
         qubits: Physical qubits to delay on. Delays will be inserted based on
             the channels returned by :func:`pulse.qubit_channels`.
     """
-    qubit_chans = set(itertools.chain.from_iterable(
-        qubit_channels(qubit) for qubit in qubits))
+    qubit_chans = set(itertools.chain.from_iterable(qubit_channels(qubit) for qubit in qubits))
     with align_left():  # pylint: disable=not-context-manager
         for chan in qubit_chans:
             delay(duration, chan)

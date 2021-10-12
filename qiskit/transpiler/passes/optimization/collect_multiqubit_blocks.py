@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,6 +14,7 @@
 
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.circuit import Gate
+from qiskit.dagcircuit import DAGOpNode, DAGInNode
 
 
 class CollectMultiQBlocks(AnalysisPass):
@@ -40,17 +39,17 @@ class CollectMultiQBlocks(AnalysisPass):
 
     def __init__(self, max_block_size=2):
         super().__init__()
-        self.parent = {} # parent array for the union
+        self.parent = {}  # parent array for the union
 
         # the dicts belowed are keyed by a qubit signifying the root of a
         #    set in the DSU data structure
-        self.bit_groups = {} # current groups of bits stored at top of trees
-        self.gate_groups = {} # current gate lists for the groups
+        self.bit_groups = {}  # current groups of bits stored at top of trees
+        self.gate_groups = {}  # current gate lists for the groups
 
-        self.max_block_size = max_block_size # maximum block size
+        self.max_block_size = max_block_size  # maximum block size
 
     def find_set(self, index):
-        """ DSU function for finding root of set of items
+        """DSU function for finding root of set of items
         If my parent is myself, I am the root. Otherwise we recursively
         find the root for my parent. After that, we assign my parent to be
         my root, saving recursion in the future.
@@ -66,7 +65,7 @@ class CollectMultiQBlocks(AnalysisPass):
         return self.parent[index]
 
     def union_set(self, set1, set2):
-        """ DSU function for unioning two sets together
+        """DSU function for unioning two sets together
         Find the roots of each set. Then assign one to have the other
         as its parent, thus liking the sets.
         Merges smaller set into larger set in order to have better runtime
@@ -98,14 +97,14 @@ class CollectMultiQBlocks(AnalysisPass):
         a list of tuples of ``DAGNode`` objects
         """
 
-        self.parent = {} #reset all variables on run
+        self.parent = {}  # reset all variables on run
         self.bit_groups = {}
         self.gate_groups = {}
 
         block_list = []
 
         def collect_key(x):
-            """ special key function for topological ordering.
+            """special key function for topological ordering.
             Heuristic for this is to push all gates involving measurement
             or barriers, etc. as far back as possible (because they force
             blocks to end). After that, we process gates in order of lowest
@@ -114,31 +113,32 @@ class CollectMultiQBlocks(AnalysisPass):
             The key also processes all the non operation notes first so that
             input nodes do not mess with the top sort of op nodes
             """
-            if x.type == "in":
+            if isinstance(x, DAGInNode):
                 return "a"
-            if x.type != "op":
+            if not isinstance(x, DAGOpNode):
                 return "d"
             if isinstance(x.op, Gate):
                 if x.op.is_parameterized() or x.op.condition is not None:
                     return "c"
-                return "b" + chr(ord('a') + len(x.qargs))
+                return "b" + chr(ord("a") + len(x.qargs))
             return "d"
 
         op_nodes = dag.topological_op_nodes(key=collect_key)
+        qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
 
         for nd in op_nodes:
             can_process = True
             makes_too_big = False
 
             # check if the node is a gate and if it is parameterized
-            if nd.condition is not None:
+            if nd.op.condition is not None:
                 can_process = False
             if nd.op.is_parameterized():
                 can_process = False
             if not isinstance(nd.op, Gate):
                 can_process = False
 
-            cur_qubits = {bit.index for bit in nd.qargs}
+            cur_qubits = {qubit_indices[bit] for bit in nd.qargs}
 
             if can_process:
                 # if the gate is valid, check if grouping up the bits
@@ -209,7 +209,7 @@ class CollectMultiQBlocks(AnalysisPass):
                     #   be a part of any block and thus we skip them here.
                     # we have already finalized the blocks involving the gate's
                     #   qubits in the above makes_too_big block
-                    continue # unable to be part of a group
+                    continue  # unable to be part of a group
                 prev = -1
                 for bit in cur_qubits:
                     if prev != -1:
@@ -221,6 +221,6 @@ class CollectMultiQBlocks(AnalysisPass):
             if self.parent[index] == index and len(self.gate_groups[index]) != 0:
                 block_list.append(self.gate_groups[index][:])
 
-        self.property_set['block_list'] = block_list
+        self.property_set["block_list"] = block_list
 
         return dag

@@ -14,7 +14,6 @@
 Quantum measurement in the computational basis.
 """
 from qiskit.circuit.instruction import Instruction
-from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 
 
@@ -36,24 +35,4 @@ class Measure(Instruction):
             for each_carg in carg:
                 yield qarg, [each_carg]
         else:
-            raise CircuitError('register size error')
-
-
-def measure(self, qubit, cbit):
-    """Measure quantum bit into classical bit (tuples).
-
-    Args:
-        qubit (QuantumRegister|list|tuple): quantum register
-        cbit (ClassicalRegister|list|tuple): classical register
-
-    Returns:
-        qiskit.Instruction: the attached measure instruction.
-
-    Raises:
-        CircuitError: if qubit is not in this circuit or bad format;
-            if cbit is not in this circuit or not creg.
-    """
-    return self.append(Measure(), [qubit], [cbit])
-
-
-QuantumCircuit.measure = measure
+            raise CircuitError("register size error")

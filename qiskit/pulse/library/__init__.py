@@ -34,7 +34,6 @@ those pulses, which can greatly reduce the size of the job sent to the backend.
 
 """
 from .discrete import *
-from .parametric_pulses import (ParametricPulse, Gaussian, GaussianSquare,
-                                Drag, Constant)
+from .parametric_pulses import ParametricPulse, Gaussian, GaussianSquare, Drag, Constant
 from .pulse import Pulse
 from .waveform import Waveform

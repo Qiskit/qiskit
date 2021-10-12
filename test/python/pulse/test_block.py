@@ -13,12 +13,13 @@
 # pylint: disable=invalid-name
 
 """Test cases for the pulse schedule block."""
-
+import unittest
 from qiskit import pulse, circuit
 from qiskit.pulse import transforms
 from qiskit.pulse.exceptions import PulseError
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeOpenPulse2Q
+from qiskit.test.mock import FakeOpenPulse2Q, FakeArmonk
+from qiskit.utils import has_aer
 
 
 class BaseTestBlock(QiskitTestCase):
@@ -42,6 +43,7 @@ class BaseTestBlock(QiskitTestCase):
 
         def _align_func(j):
             return {1: 0.1, 2: 0.25, 3: 0.7, 4: 0.85}.get(j)
+
         self.func_context = transforms.AlignFunc(duration=1000, func=_align_func)
 
     def assertScheduleEqual(self, target, reference):
@@ -146,6 +148,7 @@ class TestBlockOperation(BaseTestBlock):
     Some tests have dependency on schedule conversion.
     This operation should be tested in `test.python.pulse.test_block.TestTransformation`.
     """
+
     def setUp(self):
         super().setUp()
 
@@ -153,7 +156,7 @@ class TestBlockOperation(BaseTestBlock):
             pulse.Play(self.test_waveform0, self.d0),
             pulse.Play(self.test_waveform1, self.d1),
             pulse.Delay(50, self.d0),
-            pulse.Play(self.test_waveform1, self.d0)
+            pulse.Play(self.test_waveform1, self.d0),
         ]
 
     def test_append_an_instruction_to_empty_block(self):
@@ -219,10 +222,7 @@ class TestBlockOperation(BaseTestBlock):
         for inst in self.test_blocks:
             block.append(inst)
 
-        ref_slots = {
-            self.d0: [(0, 100), (100, 150), (150, 350)],
-            self.d1: [(0, 200)]
-        }
+        ref_slots = {self.d0: [(0, 100), (100, 150), (150, 350)], self.d1: [(0, 200)]}
 
         self.assertDictEqual(block.timeslots, ref_slots)
 
@@ -376,7 +376,7 @@ class TestBlockOperation(BaseTestBlock):
             pulse.Play(self.test_waveform0, self.d0),
             pulse.Delay(100, self.d0),
             sub_block2,
-            pulse.Play(self.test_waveform0, self.d1)
+            pulse.Play(self.test_waveform0, self.d1),
         ]
 
         self.assertListEqual(list(replaced.blocks), ref_blocks)
@@ -405,7 +405,7 @@ class TestBlockOperation(BaseTestBlock):
             pulse.Play(self.test_waveform0, self.d0),
             sub_block1,
             sub_block2,
-            pulse.Play(self.test_waveform0, self.d1)
+            pulse.Play(self.test_waveform0, self.d1),
         ]
 
         self.assertListEqual(list(replaced.blocks), ref_blocks)
@@ -419,6 +419,29 @@ class TestBlockOperation(BaseTestBlock):
             block = block.append(pulse.Delay(10, self.d0))
             self.assertEqual(len(block), j)
 
+    def test_inherit_from(self):
+        """Test creating schedule with another schedule."""
+        ref_metadata = {"test": "value"}
+        ref_name = "test"
+
+        base_sched = pulse.ScheduleBlock(name=ref_name, metadata=ref_metadata)
+        new_sched = pulse.ScheduleBlock.initialize_from(base_sched)
+
+        self.assertEqual(new_sched.name, ref_name)
+        self.assertDictEqual(new_sched.metadata, ref_metadata)
+
+    @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
+    def test_execute_block(self):
+        """Test executing a ScheduleBlock on a Pulse backend"""
+
+        with pulse.build(name="test_block") as sched_block:
+            pulse.play(pulse.Constant(160, 1.0), pulse.DriveChannel(0))
+            pulse.acquire(50, pulse.MeasureChannel(0), pulse.MemorySlot(0))
+
+        backend = FakeArmonk()
+        test_result = backend.run(sched_block).result()
+        self.assertDictEqual(test_result.get_counts(), {"0": 1024})
+
 
 class TestBlockEquality(BaseTestBlock):
     """Test equality of blocks.
@@ -426,6 +449,7 @@ class TestBlockEquality(BaseTestBlock):
     Equality of instruction ordering is compared on DAG representation.
     This should be tested for each transform.
     """
+
     def test_different_channels(self):
         """Test equality is False if different channels."""
         block1 = pulse.ScheduleBlock()
@@ -642,13 +666,14 @@ class TestBlockEquality(BaseTestBlock):
 
 class TestParametrizedBlockOperation(BaseTestBlock):
     """Test fundamental operation with parametrization."""
+
     def setUp(self):
         super().setUp()
 
-        self.amp0 = circuit.Parameter('amp0')
-        self.amp1 = circuit.Parameter('amp1')
-        self.dur0 = circuit.Parameter('dur0')
-        self.dur1 = circuit.Parameter('dur1')
+        self.amp0 = circuit.Parameter("amp0")
+        self.amp1 = circuit.Parameter("amp1")
+        self.dur0 = circuit.Parameter("dur0")
+        self.dur1 = circuit.Parameter("dur1")
 
         self.test_par_waveform0 = pulse.Constant(self.dur0, self.amp0)
         self.test_par_waveform1 = pulse.Constant(self.dur1, self.amp1)
@@ -707,7 +732,7 @@ class TestParametrizedBlockOperation(BaseTestBlock):
 
     def test_equality_of_parametrized_channels(self):
         """Test check equality of blocks involving parametrized channels."""
-        par_ch = circuit.Parameter('ch')
+        par_ch = circuit.Parameter("ch")
 
         block1 = pulse.ScheduleBlock(alignment_context=self.left_context)
         block1 += pulse.Play(self.test_waveform0, pulse.DriveChannel(par_ch))
@@ -730,8 +755,10 @@ class TestParametrizedBlockOperation(BaseTestBlock):
         block += pulse.Delay(100, self.d0)
         block += pulse.Play(self.test_waveform0, self.d0)
 
-        replaced = block.replace(pulse.Play(self.test_par_waveform0, self.d0),
-                                 pulse.Play(self.test_par_waveform1, self.d0))
+        replaced = block.replace(
+            pulse.Play(self.test_par_waveform0, self.d0),
+            pulse.Play(self.test_par_waveform1, self.d0),
+        )
         self.assertTrue(replaced.is_parameterized())
 
         # check assign parameters
@@ -740,7 +767,7 @@ class TestParametrizedBlockOperation(BaseTestBlock):
 
     def test_parametrized_context(self):
         """Test parametrize context parameter."""
-        duration = circuit.Parameter('dur')
+        duration = circuit.Parameter("dur")
         param_context = transforms.AlignEquispaced(duration=duration)
 
         block = pulse.ScheduleBlock(alignment_context=param_context)

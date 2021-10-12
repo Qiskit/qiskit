@@ -37,8 +37,9 @@ class Clbit(Bit):
         if register is None or isinstance(register, ClassicalRegister):
             super().__init__(register, index)
         else:
-            raise CircuitError('Clbit needs a ClassicalRegister and %s was provided' %
-                               type(register).__name__)
+            raise CircuitError(
+                "Clbit needs a ClassicalRegister and %s was provided" % type(register).__name__
+            )
 
 
 class ClassicalRegister(Register):
@@ -47,7 +48,7 @@ class ClassicalRegister(Register):
     # Counter for the number of instances in this class.
     instances_counter = itertools.count()
     # Prefix to use for auto naming.
-    prefix = 'c'
+    prefix = "c"
     bit_type = Clbit
 
     def qasm(self):

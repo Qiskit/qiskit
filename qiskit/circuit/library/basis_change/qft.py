@@ -15,7 +15,7 @@
 from typing import Optional
 import numpy as np
 
-from qiskit.circuit import QuantumRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister
 
 from ..blueprintcircuit import BlueprintCircuit
 
@@ -75,13 +75,15 @@ class QFT(BlueprintCircuit):
 
     """
 
-    def __init__(self,
-                 num_qubits: Optional[int] = None,
-                 approximation_degree: int = 0,
-                 do_swaps: bool = True,
-                 inverse: bool = False,
-                 insert_barriers: bool = False,
-                 name: str = 'qft') -> None:
+    def __init__(
+        self,
+        num_qubits: Optional[int] = None,
+        approximation_degree: int = 0,
+        do_swaps: bool = True,
+        inverse: bool = False,
+        insert_barriers: bool = False,
+        name: Optional[str] = None,
+    ) -> None:
         """Construct a new QFT circuit.
 
         Args:
@@ -92,6 +94,9 @@ class QFT(BlueprintCircuit):
             insert_barriers: If True, barriers are inserted as visualization improvement.
             name: The name of the circuit.
         """
+        if name is None:
+            name = "IQFT" if inverse else "QFT"
+
         super().__init__(name=name)
         self._approximation_degree = approximation_degree
         self._do_swaps = do_swaps
@@ -125,10 +130,9 @@ class QFT(BlueprintCircuit):
         if num_qubits != self.num_qubits:
             self._invalidate()
 
-            if num_qubits:
-                self.qregs = [QuantumRegister(num_qubits, name='q')]
-            else:
-                self.qregs = []
+            self.qregs = []
+            if num_qubits is not None and num_qubits > 0:
+                self.qregs = [QuantumRegister(num_qubits, name="q")]
 
     @property
     def approximation_degree(self) -> int:
@@ -150,7 +154,7 @@ class QFT(BlueprintCircuit):
             ValueError: If the approximation degree is smaller than 0.
         """
         if approximation_degree < 0:
-            raise ValueError('Approximation degree cannot be smaller than 0.')
+            raise ValueError("Approximation degree cannot be smaller than 0.")
 
         if approximation_degree != self._approximation_degree:
             self._invalidate()
@@ -208,41 +212,37 @@ class QFT(BlueprintCircuit):
         """Invalidate the current build of the circuit."""
         self._data = None
 
-    def inverse(self) -> 'QFT':
+    def inverse(self) -> "QFT":
         """Invert this circuit.
 
         Returns:
             The inverted circuit.
         """
 
-        if self.name in ('qft', 'iqft'):
-            name = 'qft' if self._inverse else 'iqft'
+        if self.name in ("QFT", "IQFT"):
+            name = "QFT" if self._inverse else "IQFT"
         else:
-            name = self.name + '_dg'
+            name = self.name + "_dg"
 
         inverted = self.copy(name=name)
+        super(QFT, inverted)._invalidate()
+
+        # data consists of the QFT gate only
+        iqft = self._data[0][0].inverse()
+        iqft.name = name
+
         inverted._data = []
-
-        from qiskit.circuit.parametertable import ParameterTable
-        inverted._parameter_table = ParameterTable()
-
-        for inst, qargs, cargs in reversed(self._data):
-            inverted._append(inst.inverse(), qargs, cargs)
+        inverted._append(iqft, inverted.qubits, [])
 
         inverted._inverse = not self._inverse
         return inverted
-
-    def _swap_qubits(self):
-        num_qubits = self.num_qubits
-        for i in range(num_qubits // 2):
-            self.swap(i, num_qubits - i - 1)
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         valid = True
         if self.num_qubits is None:
             valid = False
             if raise_on_failure:
-                raise AttributeError('The number of qubits has not been set.')
+                raise AttributeError("The number of qubits has not been set.")
 
         return valid
 
@@ -250,18 +250,28 @@ class QFT(BlueprintCircuit):
         """Construct the circuit representing the desired state vector."""
         super()._build()
 
-        for j in reversed(range(self.num_qubits)):
-            self.h(j)
-            num_entanglements = max(0, j-max(0, self.approximation_degree - (self.num_qubits-j-1)))
+        num_qubits = self.num_qubits
+
+        if num_qubits == 0:
+            return
+
+        circuit = QuantumCircuit(*self.qregs, name=self.name)
+        for j in reversed(range(num_qubits)):
+            circuit.h(j)
+            num_entanglements = max(0, j - max(0, self.approximation_degree - (num_qubits - j - 1)))
             for k in reversed(range(j - num_entanglements, j)):
                 lam = np.pi / (2 ** (j - k))
-                self.cp(lam, j, k)
+                circuit.cp(lam, j, k)
 
             if self.insert_barriers:
-                self.barrier()
+                circuit.barrier()
 
         if self._do_swaps:
-            self._swap_qubits()
+            for i in range(num_qubits // 2):
+                circuit.swap(i, num_qubits - i - 1)
 
         if self._inverse:
-            self._data = super().inverse()
+            circuit._data = circuit.inverse()
+
+        wrapped = circuit.to_instruction() if self.insert_barriers else circuit.to_gate()
+        self.compose(wrapped, qubits=self.qubits, inplace=True)

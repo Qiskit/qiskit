@@ -61,8 +61,7 @@ class TestKraus(ChannelTestCase):
         self.assertIsNone(chan.num_qubits)
 
         # Wrong input or output dims should raise exception
-        self.assertRaises(
-            QiskitError, Kraus, kraus, input_dims=4, output_dims=4)
+        self.assertRaises(QiskitError, Kraus, kraus, input_dims=4, output_dims=4)
 
     def test_circuit_init(self):
         """Test initialization from a circuit."""
@@ -121,8 +120,7 @@ class TestKraus(ChannelTestCase):
         self.assertEqual(chan, targ)
         self.assertEqual(chan.dim, (2, 4))
         # Double Kraus list
-        targ = Kraus(([np.conjugate(k) for k in kraus_l],
-                      [np.conjugate(k) for k in kraus_r]))
+        targ = Kraus(([np.conjugate(k) for k in kraus_l], [np.conjugate(k) for k in kraus_r]))
         chan1 = Kraus((kraus_l, kraus_r))
         chan = chan1.conjugate()
         self.assertEqual(chan, targ)
@@ -138,8 +136,7 @@ class TestKraus(ChannelTestCase):
         self.assertEqual(chan, targ)
         self.assertEqual(chan.dim, (4, 2))
         # Double Kraus list
-        targ = Kraus(([np.transpose(k) for k in kraus_l],
-                      [np.transpose(k) for k in kraus_r]))
+        targ = Kraus(([np.transpose(k) for k in kraus_l], [np.transpose(k) for k in kraus_r]))
         chan1 = Kraus((kraus_l, kraus_r))
         chan = chan1.transpose()
         self.assertEqual(chan, targ)
@@ -155,8 +152,9 @@ class TestKraus(ChannelTestCase):
         self.assertEqual(chan, targ)
         self.assertEqual(chan.dim, (4, 2))
         # Double Kraus list
-        targ = Kraus(([np.transpose(k).conj() for k in kraus_l],
-                      [np.transpose(k).conj() for k in kraus_r]))
+        targ = Kraus(
+            ([np.transpose(k).conj() for k in kraus_l], [np.transpose(k).conj() for k in kraus_r])
+        )
         chan1 = Kraus((kraus_l, kraus_r))
         chan = chan1.adjoint()
         self.assertEqual(chan, targ)
@@ -164,8 +162,7 @@ class TestKraus(ChannelTestCase):
 
     def test_compose_except(self):
         """Test compose different dimension exception"""
-        self.assertRaises(QiskitError,
-                          Kraus(np.eye(2)).compose, Kraus(np.eye(4)))
+        self.assertRaises(QiskitError, Kraus(np.eye(2)).compose, Kraus(np.eye(4)))
         self.assertRaises(QiskitError, Kraus(np.eye(2)).compose, 2)
 
     def test_compose(self):
@@ -311,7 +308,7 @@ class TestKraus(ChannelTestCase):
         chan = Kraus(self.depol_kraus(1 - p_id))
 
         # Compose 3 times
-        p_id3 = p_id**3
+        p_id3 = p_id ** 3
         chan3 = chan.power(3)
         targ3a = rho & chan & chan & chan
         self.assertEqual(rho & chan3, targ3a)
@@ -349,17 +346,17 @@ class TestKraus(ChannelTestCase):
         op0 = Kraus(kraus0)
         eye = Kraus(self.UI)
 
-        with self.subTest(msg='qargs=[0]'):
+        with self.subTest(msg="qargs=[0]"):
             value = op + op0([0])
             target = op + eye.tensor(eye).tensor(op0)
             self.assertEqual(rho & value, rho & target)
 
-        with self.subTest(msg='qargs=[1]'):
+        with self.subTest(msg="qargs=[1]"):
             value = op + op0([1])
             target = op + eye.tensor(op0).tensor(eye)
             self.assertEqual(rho & value, rho & target)
 
-        with self.subTest(msg='qargs=[2]'):
+        with self.subTest(msg="qargs=[2]"):
             value = op + op0([2])
             target = op + op0.tensor(eye).tensor(eye)
             self.assertEqual(rho & value, rho & target)
@@ -374,17 +371,17 @@ class TestKraus(ChannelTestCase):
         op0 = Kraus(kraus0)
         eye = Kraus(self.UI)
 
-        with self.subTest(msg='qargs=[0]'):
+        with self.subTest(msg="qargs=[0]"):
             value = op - op0([0])
             target = op - eye.tensor(eye).tensor(op0)
             self.assertEqual(rho & value, rho & target)
 
-        with self.subTest(msg='qargs=[1]'):
+        with self.subTest(msg="qargs=[1]"):
             value = op - op0([1])
             target = op - eye.tensor(op0).tensor(eye)
             self.assertEqual(rho & value, rho & target)
 
-        with self.subTest(msg='qargs=[2]'):
+        with self.subTest(msg="qargs=[2]"):
             value = op - op0([2])
             target = op - op0.tensor(eye).tensor(eye)
             self.assertEqual(rho & value, rho & target)
@@ -434,8 +431,8 @@ class TestKraus(ChannelTestCase):
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""
         chan = Kraus(self.depol_kraus(1))
-        self.assertRaises(QiskitError, chan._multiply, 's')
-        self.assertRaises(QiskitError, chan.__rmul__, 's')
+        self.assertRaises(QiskitError, chan._multiply, "s")
+        self.assertRaises(QiskitError, chan.__rmul__, "s")
         self.assertRaises(QiskitError, chan._multiply, chan)
         self.assertRaises(QiskitError, chan.__rmul__, chan)
 
@@ -447,5 +444,5 @@ class TestKraus(ChannelTestCase):
         self.assertEqual(rho & chan, targ)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

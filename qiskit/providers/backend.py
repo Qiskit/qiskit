@@ -27,6 +27,7 @@ class Backend:
     the versioned abstract classes as the parent class and not this class
     directly.
     """
+
     version = 0
 
 
@@ -56,6 +57,7 @@ class BackendV1(Backend, ABC):
     Expect, future versions of this abstract class to change the data model and
     interface.
     """
+
     version = 1
 
     def __init__(self, configuration, provider=None, **fields):
@@ -70,6 +72,16 @@ class BackendV1(Backend, ABC):
                 options.
         Raises:
             AttributeError: if input field not a valid options
+
+        ..
+            This next bit is necessary just because autosummary generally won't summarise private
+            methods; changing that behaviour would have annoying knock-on effects through all the
+            rest of the documentation, so instead we just hard-code the automethod directive.
+
+        In addition to the public abstract methods, subclasses should also implement the following
+        private methods:
+
+        .. automethod:: _default_options
         """
         self._configuration = configuration
         self._options = self._default_options()
@@ -77,8 +89,7 @@ class BackendV1(Backend, ABC):
         if fields:
             for field in fields:
                 if field not in self._options.data:
-                    raise AttributeError(
-                        "Options field %s is not valid for this backend" % field)
+                    raise AttributeError("Options field %s is not valid for this backend" % field)
             self._options.update_config(**fields)
 
     @classmethod
@@ -113,9 +124,7 @@ class BackendV1(Backend, ABC):
         """
         for field in fields:
             if not hasattr(self._options, field):
-                raise AttributeError(
-                    "Options field %s is not valid for this "
-                    "backend" % field)
+                raise AttributeError("Options field %s is not valid for this backend" % field)
         self._options.update_options(**fields)
 
     def configuration(self):
@@ -149,11 +158,13 @@ class BackendV1(Backend, ABC):
         Returns:
             BackendStatus: the status of the backend.
         """
-        return BackendStatus(backend_name=self.name(),
-                             backend_version='1',
-                             operational=True,
-                             pending_jobs=0,
-                             status_msg='')
+        return BackendStatus(
+            backend_name=self.name(),
+            backend_version="1",
+            operational=True,
+            pending_jobs=0,
+            status_msg="",
+        )
 
     def name(self):
         """Return the backend name.
@@ -175,7 +186,7 @@ class BackendV1(Backend, ABC):
 
         [0] https://docs.python.org/3/reference/datamodel.html#object.__repr__
         """
-        return "<{}('{}')>".format(self.__class__.__name__, self.name())
+        return f"<{self.__class__.__name__}('{self.name()}')>"
 
     @property
     def options(self):

@@ -13,11 +13,13 @@
 """Rotation around the Y axis."""
 
 import math
+from typing import Optional, Union
 import numpy
 from qiskit.qasm import pi
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.parameterexpression import ParameterValueType
 
 
 class RYGate(Gate):
@@ -44,9 +46,9 @@ class RYGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, theta, label=None):
+    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new RY gate."""
-        super().__init__('ry', 1, [theta], label=label)
+        super().__init__("ry", 1, [theta], label=label)
 
     def _define(self):
         """
@@ -55,17 +57,21 @@ class RYGate(Gate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .r import RGate
-        q = QuantumRegister(1, 'q')
+
+        q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (RGate(self.params[0], pi / 2), [q[0]], [])
-        ]
+        rules = [(RGate(self.params[0], pi / 2), [q[0]], [])]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 
         self.definition = qc
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Return a (multi-)controlled-RY gate.
 
         Args:
@@ -94,8 +100,7 @@ class RYGate(Gate):
         """Return a numpy.array for the RY gate."""
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)
-        return numpy.array([[cos, -sin],
-                            [sin, cos]], dtype=dtype)
+        return numpy.array([[cos, -sin], [sin, cos]], dtype=dtype)
 
 
 class CRYGate(ControlledGate):
@@ -153,10 +158,22 @@ class CRYGate(ControlledGate):
                 \end{pmatrix}
     """
 
-    def __init__(self, theta, label=None, ctrl_state=None):
+    def __init__(
+        self,
+        theta: ParameterValueType,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Create new CRY gate."""
-        super().__init__('cry', 2, [theta], num_ctrl_qubits=1, label=label,
-                         ctrl_state=ctrl_state, base_gate=RYGate(theta))
+        super().__init__(
+            "cry",
+            2,
+            [theta],
+            num_ctrl_qubits=1,
+            label=label,
+            ctrl_state=ctrl_state,
+            base_gate=RYGate(theta),
+        )
 
     def _define(self):
         """
@@ -168,13 +185,14 @@ class CRYGate(ControlledGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate
-        q = QuantumRegister(2, 'q')
+
+        q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
             (RYGate(self.params[0] / 2), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
             (RYGate(-self.params[0] / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], [])
+            (CXGate(), [q[0], q[1]], []),
         ]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
@@ -191,14 +209,10 @@ class CRYGate(ControlledGate):
         cos = numpy.cos(half_theta)
         sin = numpy.sin(half_theta)
         if self.ctrl_state:
-            return numpy.array([[1, 0, 0, 0],
-                                [0, cos, 0, -sin],
-                                [0, 0, 1, 0],
-                                [0, sin, 0, cos]],
-                               dtype=dtype)
+            return numpy.array(
+                [[1, 0, 0, 0], [0, cos, 0, -sin], [0, 0, 1, 0], [0, sin, 0, cos]], dtype=dtype
+            )
         else:
-            return numpy.array([[cos, 0, -sin, 0],
-                                [0, 1, 0, 0],
-                                [sin, 0, cos, 0],
-                                [0, 0, 0, 1]],
-                               dtype=dtype)
+            return numpy.array(
+                [[cos, 0, -sin, 0], [0, 1, 0, 0], [sin, 0, cos, 0], [0, 0, 0, 1]], dtype=dtype
+            )

@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    Introduced a new feature ``InverseCancellation`` that generalizes the ``CXInverseCancellation`` 
+    pass to cancel any self-inverse gates or gate-inverse pairs. It can be used by 
+    initializing ``InverseCancellation`` and passing a gate to cancel, for example::
+
+      from qiskit.transpiler.passes import InverseCancellation
+      from qiskit import QuantumCircuit
+      from qiskit.circuit.library import HGate
+      from qiskit.transpiler import PassManager
+      qc = QuantumCircuit(2, 2)
+      qc.h(0)
+      qc.h(0)
+      pass_ = InverseCancellation([HGate()])
+      pm = PassManager(pass_)
+      new_circ = pm.run(qc)

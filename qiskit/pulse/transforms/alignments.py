@@ -24,6 +24,7 @@ from qiskit.pulse.utils import instruction_duration_validation, deprecated_funct
 
 class AlignmentKind(abc.ABC):
     """An abstract class for schedule alignment."""
+
     is_sequential = None
 
     def __init__(self):
@@ -47,7 +48,7 @@ class AlignmentKind(abc.ABC):
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns dictionary to represent this alignment."""
-        return {'alignment': self.__class__.__name__}
+        return {"alignment": self.__class__.__name__}
 
     def __eq__(self, other):
         """Check equality of two transforms."""
@@ -56,9 +57,9 @@ class AlignmentKind(abc.ABC):
     def __repr__(self):
         name = self.__class__.__name__
         opts = self.to_dict()
-        opts.pop('alignment')
-        opts_str = ', '.join(f'{key}={val}' for key, val in opts.items())
-        return f'{name}({opts_str})'
+        opts.pop("alignment")
+        opts_str = ", ".join(f"{key}={val}" for key, val in opts.items())
+        return f"{name}({opts_str})"
 
 
 class AlignLeft(AlignmentKind):
@@ -66,6 +67,7 @@ class AlignLeft(AlignmentKind):
 
     Instructions are placed at earliest available timeslots.
     """
+
     is_sequential = False
 
     def align(self, schedule: Schedule) -> Schedule:
@@ -80,8 +82,8 @@ class AlignLeft(AlignmentKind):
         Returns:
             Schedule with reallocated instructions.
         """
-        aligned = Schedule()
-        for _, child in schedule._children:
+        aligned = Schedule.initialize_from(schedule)
+        for _, child in schedule.children:
             self._push_left_append(aligned, child)
 
         return aligned
@@ -101,8 +103,10 @@ class AlignLeft(AlignmentKind):
         this_channels = set(this.channels)
         other_channels = set(other.channels)
         shared_channels = list(this_channels & other_channels)
-        ch_slacks = [this.stop_time - this.ch_stop_time(channel) + other.ch_start_time(channel)
-                     for channel in shared_channels]
+        ch_slacks = [
+            this.stop_time - this.ch_stop_time(channel) + other.ch_start_time(channel)
+            for channel in shared_channels
+        ]
 
         if ch_slacks:
             slack_chan = shared_channels[np.argmin(ch_slacks)]
@@ -124,6 +128,7 @@ class AlignRight(AlignmentKind):
 
     Instructions are placed at latest available timeslots.
     """
+
     is_sequential = False
 
     def align(self, schedule: Schedule) -> Schedule:
@@ -138,8 +143,8 @@ class AlignRight(AlignmentKind):
         Returns:
             Schedule with reallocated instructions.
         """
-        aligned = Schedule()
-        for _, child in reversed(schedule._children):
+        aligned = Schedule.initialize_from(schedule)
+        for _, child in reversed(schedule.children):
             aligned = self._push_right_prepend(aligned, child)
 
         return aligned
@@ -162,8 +167,9 @@ class AlignRight(AlignmentKind):
         this_channels = set(this.channels)
         other_channels = set(other.channels)
         shared_channels = list(this_channels & other_channels)
-        ch_slacks = [this.ch_start_time(channel) - other.ch_stop_time(channel)
-                     for channel in shared_channels]
+        ch_slacks = [
+            this.ch_start_time(channel) - other.ch_stop_time(channel) for channel in shared_channels
+        ]
 
         if ch_slacks:
             insert_time = min(ch_slacks) + other.start_time
@@ -185,6 +191,7 @@ class AlignSequential(AlignmentKind):
     Instructions played on different channels are also arranged in a sequence.
     No buffer time is inserted in between instructions.
     """
+
     is_sequential = True
 
     def align(self, schedule: Schedule) -> Schedule:
@@ -199,8 +206,8 @@ class AlignSequential(AlignmentKind):
         Returns:
             Schedule with reallocated instructions.
         """
-        aligned = Schedule()
-        for _, child in schedule._children:
+        aligned = Schedule.initialize_from(schedule)
+        for _, child in schedule.children:
             aligned.insert(aligned.duration, child, inplace=True)
 
         return aligned
@@ -212,10 +219,10 @@ class AlignEquispaced(AlignmentKind):
     Instructions played on different channels are also arranged in a sequence.
     This alignment is convenient to create dynamical decoupling sequences such as PDD.
     """
+
     is_sequential = True
 
-    def __init__(self,
-                 duration: Union[int, ParameterExpression]):
+    def __init__(self, duration: Union[int, ParameterExpression]):
         """Create new equispaced context.
 
         Args:
@@ -226,7 +233,7 @@ class AlignEquispaced(AlignmentKind):
         """
         super().__init__()
 
-        self._context_params = (duration, )
+        self._context_params = (duration,)
 
     @property
     def duration(self):
@@ -247,17 +254,17 @@ class AlignEquispaced(AlignmentKind):
         """
         instruction_duration_validation(self.duration)
 
-        total_duration = sum([child.duration for _, child in schedule._children])
+        total_duration = sum(child.duration for _, child in schedule.children)
         if self.duration < total_duration:
             return schedule
 
         total_delay = self.duration - total_duration
 
-        if len(schedule._children) > 1:
+        if len(schedule.children) > 1:
             # Calculate the interval in between sub-schedules.
             # If the duration cannot be divided by the number of sub-schedules,
             # the modulo is appended and prepended to the input schedule.
-            interval, mod = np.divmod(total_delay, len(schedule._children) - 1)
+            interval, mod = np.divmod(total_delay, len(schedule.children) - 1)
         else:
             interval = 0
             mod = total_delay
@@ -265,10 +272,10 @@ class AlignEquispaced(AlignmentKind):
         # Calculate pre schedule delay
         delay, mod = np.divmod(mod, 2)
 
-        aligned = Schedule()
+        aligned = Schedule.initialize_from(schedule)
         # Insert sub-schedules with interval
         _t0 = int(aligned.stop_time + delay + mod)
-        for _, child in schedule._children:
+        for _, child in schedule.children:
             aligned.insert(_t0, child, inplace=True)
             _t0 = int(aligned.stop_time + interval)
 
@@ -276,8 +283,7 @@ class AlignEquispaced(AlignmentKind):
 
     def to_dict(self) -> Dict[str, Any]:
         """Returns dictionary to represent this alignment."""
-        return {'alignment': self.__class__.__name__,
-                'duration': self.duration}
+        return {"alignment": self.__class__.__name__, "duration": self.duration}
 
 
 class AlignFunc(AlignmentKind):
@@ -296,6 +302,7 @@ class AlignFunc(AlignmentKind):
         def udd10_pos(j):
         return np.sin(np.pi*j/(2*10 + 2))**2
     """
+
     is_sequential = True
 
     def __init__(self, duration: Union[int, ParameterExpression], func: Callable):
@@ -312,7 +319,7 @@ class AlignFunc(AlignmentKind):
         """
         super().__init__()
 
-        self._context_params = (duration, )
+        self._context_params = (duration,)
         self._func = func
 
     @property
@@ -337,12 +344,12 @@ class AlignFunc(AlignmentKind):
         if self.duration < schedule.duration:
             return schedule
 
-        aligned = Schedule()
-        for ind, (_, child) in enumerate(schedule._children):
+        aligned = Schedule.initialize_from(schedule)
+        for ind, (_, child) in enumerate(schedule.children):
             _t_center = self.duration * self._func(ind + 1)
             _t0 = int(_t_center - 0.5 * child.duration)
             if _t0 < 0 or _t0 > self.duration:
-                PulseError('Invalid schedule position t=%d is specified at index=%d' % (_t0, ind))
+                PulseError("Invalid schedule position t=%d is specified at index=%d" % (_t0, ind))
             aligned.insert(_t0, child, inplace=True)
 
         return aligned
@@ -352,9 +359,11 @@ class AlignFunc(AlignmentKind):
 
         .. note:: ``func`` is not presented in this dictionary. Just name.
         """
-        return {'alignment': self.__class__.__name__,
-                'duration': self._context_params[0],
-                'func': self._func.__name__}
+        return {
+            "alignment": self.__class__.__name__,
+            "duration": self._context_params[0],
+            "func": self._func.__name__,
+        }
 
 
 @deprecated_functionality

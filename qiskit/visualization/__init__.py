@@ -115,20 +115,22 @@ import os
 import sys
 
 from qiskit.visualization.counts_visualization import plot_histogram
-from qiskit.visualization.state_visualization import (plot_state_hinton,
-                                                      plot_bloch_vector,
-                                                      plot_bloch_multivector,
-                                                      plot_state_city,
-                                                      plot_state_paulivec,
-                                                      plot_state_qsphere)
+from qiskit.visualization.state_visualization import (
+    plot_state_hinton,
+    plot_bloch_vector,
+    plot_bloch_multivector,
+    plot_state_city,
+    plot_state_paulivec,
+    plot_state_qsphere,
+)
 from qiskit.visualization.transition_visualization import visualize_transition
 from qiskit.visualization.array import array_to_latex
 
-from .circuit_visualization import circuit_drawer
+from .circuit_visualization import circuit_drawer, HAS_PIL, HAS_PDFLATEX, HAS_PDFTOCAIRO
 from .dag_visualization import dag_drawer
 from .exceptions import VisualizationError
 from .gate_map import plot_gate_map, plot_circuit_layout, plot_error_map
-from .matplotlib import HAS_MATPLOTLIB
+from .matplotlib import HAS_MATPLOTLIB, HAS_PYLATEX
 from .pass_manager_visualization import pass_manager_drawer
 from .pulse.interpolation import step_wise, linear, cubic_spline
 from .pulse.qcstyle import PulseStyle, SchedStyle

@@ -52,8 +52,9 @@ class DiagonalGate(Gate):
             try:
                 complex(z)
             except TypeError as ex:
-                raise QiskitError("Not all of the diagonal entries can be converted to "
-                                  "complex numbers.") from ex
+                raise QiskitError(
+                    "Not all of the diagonal entries can be converted to complex numbers."
+                ) from ex
             if not np.abs(z) - 1 < _EPS:
                 raise QiskitError("A diagonal entry has not absolute value one.")
         # Create new gate.
@@ -95,7 +96,7 @@ class DiagonalGate(Gate):
                 diag_phases[i // 2], rz_angle = _extract_rz(diag_phases[i], diag_phases[i + 1])
                 angles_rz.append(rz_angle)
             num_act_qubits = int(np.log2(n))
-            contr_qubits = q[self.num_qubits - num_act_qubits + 1:self.num_qubits]
+            contr_qubits = q[self.num_qubits - num_act_qubits + 1 : self.num_qubits]
             target_qubit = q[self.num_qubits - num_act_qubits]
             circuit.ucrz(angles_rz, contr_qubits, target_qubit)
             n //= 2
@@ -139,15 +140,17 @@ def diagonal(self, diag, qubit):
         qubit = qubit[:]
     # Check if q has type "list"
     if not isinstance(qubit, list):
-        raise QiskitError("The qubits must be provided as a list "
-                          "(also if there is only one qubit).")
+        raise QiskitError(
+            "The qubits must be provided as a list (also if there is only one qubit)."
+        )
     # Check if diag has type "list"
     if not isinstance(diag, list):
         raise QiskitError("The diagonal entries are not provided in a list.")
     num_action_qubits = math.log2(len(diag))
     if not len(qubit) == num_action_qubits:
-        raise QiskitError("The number of diagonal entries does not correspond to"
-                          " the number of qubits.")
+        raise QiskitError(
+            "The number of diagonal entries does not correspond to the number of qubits."
+        )
     return self.append(DiagonalGate(diag), qubit)
 
 

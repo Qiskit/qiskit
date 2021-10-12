@@ -85,13 +85,11 @@ class TestScalarOpMethods(ScalarOpTestCase):
         """Test to_matrix and to_operator methods (dims={dims}, coeff={coeff})"""
         dim = np.product(dims)
         iden = ScalarOp(dims, coeff=coeff)
-        target = Operator(coeff * np.eye(dim),
-                          input_dims=dims,
-                          output_dims=dims)
-        with self.subTest(msg='to_operator'):
+        target = Operator(coeff * np.eye(dim), input_dims=dims, output_dims=dims)
+        with self.subTest(msg="to_operator"):
             self.assertEqual(iden.to_operator(), target)
 
-        with self.subTest(msg='to_matrix'):
+        with self.subTest(msg="to_matrix"):
             self.assertTrue(np.allclose(iden.to_matrix(), target.data))
 
     @combine(coeff=[0, 1, 5, -1j, 2.3 - 5.2j])
@@ -148,7 +146,7 @@ class TestScalarOpLinearMethods(ScalarOpTestCase):
 
     @combine(coeff1=[0, 1, -3.1, 1 + 3j], coeff2=[1, -1, -5.1 - 2j])
     def test_multiply(self, coeff1, coeff2):
-        """Test scalar multiplication. ({coeff1}, {coeff2}) """
+        """Test scalar multiplication. ({coeff1}, {coeff2})"""
         dims = (3, 2)
         val = coeff2 * ScalarOp(dims, coeff=coeff1)
         target = coeff1 * coeff2
@@ -177,8 +175,11 @@ class TestScalarOpLinearMethods(ScalarOpTestCase):
         target = coeff1 - coeff2
         self.assertScalarOp(val, dims, target)
 
-    @combine(coeff1=[0, 1, -3.1, 1 + 3j], coeff2=[-1, -5.1 - 2j],
-             qargs=[[0], [1], [2], [0, 1], [1, 0], [0, 2], [2, 0], [0, 1, 2], [0, 2, 1]])
+    @combine(
+        coeff1=[0, 1, -3.1, 1 + 3j],
+        coeff2=[-1, -5.1 - 2j],
+        qargs=[[0], [1], [2], [0, 1], [1, 0], [0, 2], [2, 0], [0, 1, 2], [0, 2, 1]],
+    )
     def test_add_qargs(self, coeff1, coeff2, qargs):
         """Test add operation with ScalarOp. ({coeff1} + {coeff2}({qargs}))"""
         # Add two ScalarOps
@@ -192,8 +193,11 @@ class TestScalarOpLinearMethods(ScalarOpTestCase):
         target = coeff1 + coeff2
         self.assertScalarOp(val, dims1, target)
 
-    @combine(coeff1=[0, 1, -3.1, 1 + 3j], coeff2=[-1, -5.1 - 2j],
-             qargs=[[0], [1], [2], [0, 1], [1, 0], [0, 2], [2, 0], [0, 1, 2], [0, 2, 1]])
+    @combine(
+        coeff1=[0, 1, -3.1, 1 + 3j],
+        coeff2=[-1, -5.1 - 2j],
+        qargs=[[0], [1], [2], [0, 1], [1, 0], [0, 2], [2, 0], [0, 1, 2], [0, 2, 1]],
+    )
     def test_subtract_qargs(self, coeff1, coeff2, qargs):
         """Test subtract operation with ScalarOp. ({coeff1} - {coeff2}({qargs}))"""
         # Add two ScalarOps
@@ -207,70 +211,72 @@ class TestScalarOpLinearMethods(ScalarOpTestCase):
         target = coeff1 - coeff2
         self.assertScalarOp(val, dims1, target)
 
-    @combine(coeff=[0, 1, -3.1, 1 + 3j], label=['II', 'XX', 'YY', 'ZZ'])
+    @combine(coeff=[0, 1, -3.1, 1 + 3j], label=["II", "XX", "YY", "ZZ"])
     def test_add_operator(self, coeff, label):
         """Test add operation with Operator (coeff={coeff}, label={label})"""
         dims = (2, 2)
         iden = ScalarOp(4, coeff=coeff)
         op = Operator.from_label(label)
-        with self.subTest(msg='{} + Operator({})'.format(iden, label)):
+        with self.subTest(msg=f"{iden} + Operator({label})"):
             val = iden + op
-            target = coeff * Operator.from_label('II') + op
+            target = coeff * Operator.from_label("II") + op
             self.assertOperator(val, dims, target)
 
-        with self.subTest(msg='Operator({}) + {}'.format(label, iden)):
+        with self.subTest(msg=f"Operator({label}) + {iden}"):
             val = op + iden
-            target = coeff * Operator.from_label('II') + op
+            target = coeff * Operator.from_label("II") + op
             self.assertOperator(val, dims, target)
 
-    @combine(coeff=[0, 1, -3.1, 1 + 3j], label=['II', 'XX', 'YY', 'ZZ'])
+    @combine(coeff=[0, 1, -3.1, 1 + 3j], label=["II", "XX", "YY", "ZZ"])
     def test_subtract_operator(self, coeff, label):
         """Test subtract operation with Operator (coeff={coeff}, label={label})"""
         dims = (2, 2)
         iden = ScalarOp(4, coeff=coeff)
         op = Operator.from_label(label)
-        with self.subTest(msg='{} - Operator({})'.format(iden, label)):
+        with self.subTest(msg=f"{iden} - Operator({label})"):
             val = iden - op
-            target = coeff * Operator.from_label('II') - op
+            target = coeff * Operator.from_label("II") - op
             self.assertOperator(val, dims, target)
 
-        with self.subTest(msg='Operator({}) - {}'.format(label, iden)):
+        with self.subTest(msg=f"Operator({label}) - {iden}"):
             val = op - iden
-            target = op - coeff * Operator.from_label('II')
+            target = op - coeff * Operator.from_label("II")
             self.assertOperator(val, dims, target)
 
-    @combine(coeff=[0, 1, -3.1, 1 + 3j],
-             qargs=[[0], [1], [2], [0, 1], [1, 0], [0, 2], [2, 0],
-                    [0, 1, 2], [2, 0, 1], [1, 2, 0]])
+    @combine(
+        coeff=[0, 1, -3.1, 1 + 3j],
+        qargs=[[0], [1], [2], [0, 1], [1, 0], [0, 2], [2, 0], [0, 1, 2], [2, 0, 1], [1, 2, 0]],
+    )
     def test_add_operator_qargs(self, coeff, qargs):
         """Test qargs add operation with Operator (coeff={coeff}, qargs={qargs})"""
         # Get labels for qarg addition
-        part_array = np.array(['X', 'Y', 'Z'])[range(len(qargs))]
-        label = ''.join(part_array)
-        full_array = np.array(3 * ['I'])
+        part_array = np.array(["X", "Y", "Z"])[range(len(qargs))]
+        label = "".join(part_array)
+        full_array = np.array(3 * ["I"])
         inds = [2 - i for i in reversed(qargs)]
         full_array[inds] = part_array
-        full_label = ''.join(full_array)
-        dims = 3 * (2, )
+        full_label = "".join(full_array)
+        dims = 3 * (2,)
         val = ScalarOp(dims, coeff=coeff) + Operator.from_label(label)(qargs)
-        target = (coeff * Operator.from_label(3 * 'I')) + Operator.from_label(full_label)
+        target = (coeff * Operator.from_label(3 * "I")) + Operator.from_label(full_label)
         self.assertOperator(val, dims, target)
 
-    @combine(coeff=[0, 1, -3.1, 1 + 3j],
-             qargs=[[0], [1], [2], [0, 1], [1, 0], [0, 2], [2, 0],
-                    [0, 1, 2], [2, 0, 1], [1, 2, 0]])
+    @combine(
+        coeff=[0, 1, -3.1, 1 + 3j],
+        qargs=[[0], [1], [2], [0, 1], [1, 0], [0, 2], [2, 0], [0, 1, 2], [2, 0, 1], [1, 2, 0]],
+    )
     def test_subtract_operator_qargs(self, coeff, qargs):
         """Test qargs subtract operation with Operator (coeff={coeff}, qargs={qargs})"""
         # Get labels for qarg addition
-        part_array = np.array(['X', 'Y', 'Z'])[range(len(qargs))]
-        label = ''.join(part_array)
-        full_array = np.array(3 * ['I'])
+        part_array = np.array(["X", "Y", "Z"])[range(len(qargs))]
+        label = "".join(part_array)
+        full_array = np.array(3 * ["I"])
         inds = [2 - i for i in reversed(qargs)]
         full_array[inds] = part_array
-        full_label = ''.join(full_array)
-        dims = 3 * (2, )
+        full_label = "".join(full_array)
+        dims = 3 * (2,)
         val = ScalarOp(dims, coeff=coeff) - Operator.from_label(label)(qargs)
-        target = (coeff * Operator.from_label(3 * 'I')) - Operator.from_label(full_label)
+        target = (coeff * Operator.from_label(3 * "I")) - Operator.from_label(full_label)
         self.assertOperator(val, dims, target)
 
 
@@ -302,29 +308,29 @@ class TestScalarOpTensor(ScalarOpTestCase):
         target = coeff1 * coeff2
         self.assertScalarOp(val, dims2 + dims1, target)
 
-    @combine(coeff=[0, 1, -3.1, 1 + 3j], label=['I', 'X', 'Y', 'Z'])
+    @combine(coeff=[0, 1, -3.1, 1 + 3j], label=["I", "X", "Y", "Z"])
     def test_tensor_operator(self, coeff, label):
         """Test tensor and expand methods with ScalarOp and Operator. ({coeff}, {label})"""
         dim = 3
         iden = ScalarOp(dim, coeff=coeff)
         op = Operator.from_label(label)
 
-        with self.subTest(msg='{}.expand(Operator({}))'.format(iden, label)):
+        with self.subTest(msg=f"{iden}.expand(Operator({label}))"):
             val = iden.expand(op)
             target = iden.to_operator().expand(op)
             self.assertOperator(val, (3, 2), target)
 
-        with self.subTest(msg='Operator({}).expand({})'.format(label, iden)):
+        with self.subTest(msg=f"Operator({label}).expand({iden})"):
             val = op.expand(iden)
             target = op.expand(iden.to_operator())
             self.assertOperator(val, (2, 3), target)
 
-        with self.subTest(msg='{}.tensor(Operator({}))'.format(iden, label)):
+        with self.subTest(msg=f"{iden}.tensor(Operator({label}))"):
             val = iden.tensor(op)
             target = iden.to_operator().tensor(op)
             self.assertOperator(val, (2, 3), target)
 
-        with self.subTest(msg='Operator({}).tensor({})'.format(label, iden)):
+        with self.subTest(msg=f"Operator({label}).tensor({iden})"):
             val = op.tensor(iden)
             target = op.tensor(iden.to_operator())
             self.assertOperator(val, (3, 2), target)
@@ -384,17 +390,17 @@ class TestScalarOpCompose(ScalarOpTestCase):
         op2 = ScalarOp(2, coeff=coeff2)
         op3 = ScalarOp(3, coeff=coeff2)
 
-        with self.subTest(msg='{}.compose({}, qargs=[0])'.format(op1, op2)):
+        with self.subTest(msg=f"{op1}.compose({op2}, qargs=[0])"):
             val = op1.compose(op2, qargs=[0])
             target = coeff1 * coeff2
             self.assertScalarOp(val, dims, target)
 
-        with self.subTest(msg='{}.compose({}, qargs=[1])'.format(op1, op3)):
+        with self.subTest(msg=f"{op1}.compose({op3}, qargs=[1])"):
             val = op1.compose(op3, qargs=[1])
             target = coeff1 * coeff2
             self.assertScalarOp(val, dims, target)
 
-        with self.subTest(msg='{}.dot({}, qargs=[0])'.format(op1, op2)):
+        with self.subTest(msg=f"{op1}.dot({op2}, qargs=[0])"):
             val = op1.dot(op2, qargs=[0])
             target = coeff1 * coeff2
             self.assertTrue(isinstance(val, ScalarOp))
@@ -402,7 +408,7 @@ class TestScalarOpCompose(ScalarOpTestCase):
             self.assertEqual(val.output_dims(), dims)
             self.assertAlmostEqual(val.coeff, target)
 
-        with self.subTest(msg='{}.dot({}, qargs=[1])'.format(op1, op3)):
+        with self.subTest(msg=f"{op1}.dot({op3}, qargs=[1])"):
             val = op1.dot(op3, qargs=[1])
             target = coeff1 * coeff2
             self.assertTrue(isinstance(val, ScalarOp))
@@ -410,7 +416,7 @@ class TestScalarOpCompose(ScalarOpTestCase):
             self.assertEqual(val.output_dims(), dims)
             self.assertAlmostEqual(val.coeff, target)
 
-        with self.subTest(msg='{} & {}([0])'.format(op1, op2)):
+        with self.subTest(msg=f"{op1} & {op2}([0])"):
             val = op1 & op2([0])
             target = coeff1 * coeff2
             self.assertTrue(isinstance(val, ScalarOp))
@@ -418,7 +424,7 @@ class TestScalarOpCompose(ScalarOpTestCase):
             self.assertEqual(val.output_dims(), dims)
             self.assertAlmostEqual(val.coeff, target)
 
-        with self.subTest(msg='{} & {}([1])'.format(op1, op3)):
+        with self.subTest(msg=f"{op1} & {op3}([1])"):
             val = op1 & op3([1])
             target = coeff1 * coeff2
             self.assertTrue(isinstance(val, ScalarOp))
@@ -426,7 +432,7 @@ class TestScalarOpCompose(ScalarOpTestCase):
             self.assertEqual(val.output_dims(), dims)
             self.assertAlmostEqual(val.coeff, target)
 
-        with self.subTest(msg='{} * {}([0])'.format(op1, op2)):
+        with self.subTest(msg=f"{op1} * {op2}([0])"):
             val = op1.dot(op2([0]))
             target = coeff1 * coeff2
             self.assertTrue(isinstance(val, ScalarOp))
@@ -434,7 +440,7 @@ class TestScalarOpCompose(ScalarOpTestCase):
             self.assertEqual(val.output_dims(), dims)
             self.assertAlmostEqual(val.coeff, target)
 
-        with self.subTest(msg='{} * {}([1])'.format(op1, op3)):
+        with self.subTest(msg=f"{op1} * {op3}([1])"):
             val = op1.dot(op3([1]))
             target = coeff1 * coeff2
             self.assertTrue(isinstance(val, ScalarOp))
@@ -447,14 +453,14 @@ class TestScalarOpCompose(ScalarOpTestCase):
 class TestScalarOpComposeOperator(ScalarOpTestCase):
     """Test ScalarOp compose and dot methods with an Operator."""
 
-    @combine(coeff=[0, 1, -3.1, 1 + 3j], label=['II', 'XX', 'YY', 'ZZ'])
+    @combine(coeff=[0, 1, -3.1, 1 + 3j], label=["II", "XX", "YY", "ZZ"])
     def test_compose_operator(self, coeff, label):
         """Test compose and dot methods with ScalarOp and Operator."""
         dim = 4
         iden = ScalarOp(dim, coeff=coeff)
         op = Operator.from_label(label)
 
-        with self.subTest(msg='{}.compose(Operator({}))'.format(iden, label)):
+        with self.subTest(msg=f"{iden}.compose(Operator({label}))"):
             val = iden.compose(op)
             target = iden.to_operator().compose(op)
             self.assertTrue(isinstance(val, Operator))
@@ -462,7 +468,7 @@ class TestScalarOpComposeOperator(ScalarOpTestCase):
             self.assertEqual(val.output_dims(), (2, 2))
             self.assertEqual(val, target)
 
-        with self.subTest(msg='Operator({}).compose({})'.format(label, iden)):
+        with self.subTest(msg=f"Operator({label}).compose({iden})"):
             val = op.compose(iden)
             target = op.compose(iden.to_operator())
             self.assertTrue(isinstance(val, Operator))
@@ -470,7 +476,7 @@ class TestScalarOpComposeOperator(ScalarOpTestCase):
             self.assertEqual(val.output_dims(), (2, 2))
             self.assertEqual(val, target)
 
-        with self.subTest(msg='{}.dot(Operator({}))'.format(iden, label)):
+        with self.subTest(msg=f"{iden}.dot(Operator({label}))"):
             val = iden.dot(op)
             target = iden.to_operator().dot(op)
             self.assertTrue(isinstance(val, Operator))
@@ -478,7 +484,7 @@ class TestScalarOpComposeOperator(ScalarOpTestCase):
             self.assertEqual(val.output_dims(), (2, 2))
             self.assertEqual(val, target)
 
-        with self.subTest(msg='Operator({}).dot({})'.format(label, iden)):
+        with self.subTest(msg=f"Operator({label}).dot({iden})"):
             val = op.dot(iden)
             target = op.dot(iden.to_operator())
             self.assertTrue(isinstance(val, Operator))
@@ -486,7 +492,7 @@ class TestScalarOpComposeOperator(ScalarOpTestCase):
             self.assertEqual(val.output_dims(), (2, 2))
             self.assertEqual(val, target)
 
-        with self.subTest(msg='{} & Operator({})'.format(iden, label)):
+        with self.subTest(msg=f"{iden} & Operator({label})"):
             val = iden & op
             target = iden.to_operator().compose(op)
             self.assertTrue(isinstance(val, Operator))
@@ -494,7 +500,7 @@ class TestScalarOpComposeOperator(ScalarOpTestCase):
             self.assertEqual(val.output_dims(), (2, 2))
             self.assertEqual(val, target)
 
-        with self.subTest(msg='Operator({}) & {}'.format(label, iden)):
+        with self.subTest(msg=f"Operator({label}) & {iden}"):
             val = op & iden
             target = op.compose(iden.to_operator())
             self.assertTrue(isinstance(val, Operator))
@@ -502,7 +508,7 @@ class TestScalarOpComposeOperator(ScalarOpTestCase):
             self.assertEqual(val.output_dims(), (2, 2))
             self.assertEqual(val, target)
 
-        with self.subTest(msg='{} * Operator({})'.format(iden, label)):
+        with self.subTest(msg=f"{iden} * Operator({label})"):
             val = iden * op
             target = iden.to_operator().dot(op)
             self.assertTrue(isinstance(val, Operator))
@@ -510,7 +516,7 @@ class TestScalarOpComposeOperator(ScalarOpTestCase):
             self.assertEqual(val.output_dims(), (2, 2))
             self.assertEqual(val, target)
 
-        with self.subTest(msg='Operator({}) * {}'.format(label, iden)):
+        with self.subTest(msg=f"Operator({label}) * {iden}"):
             val = op * iden
             target = op.dot(iden.to_operator())
             self.assertTrue(isinstance(val, Operator))
@@ -518,13 +524,13 @@ class TestScalarOpComposeOperator(ScalarOpTestCase):
             self.assertEqual(val.output_dims(), (2, 2))
             self.assertEqual(val, target)
 
-    @combine(coeff=[0, 1, -3.1, 1 + 3j], label=['I', 'X', 'Y', 'Z'])
+    @combine(coeff=[0, 1, -3.1, 1 + 3j], label=["I", "X", "Y", "Z"])
     def test_compose_qargs_operator(self, coeff, label):
         """Test qargs compose and dot methods with ScalarOp and Operator."""
         iden = ScalarOp((2, 2), coeff=coeff)
         op = Operator.from_label(label)
 
-        with self.subTest(msg='{}.compose(Operator({}), qargs=[0])'.format(iden, label)):
+        with self.subTest(msg=f"{iden}.compose(Operator({label}), qargs=[0])"):
             val = iden.compose(op, qargs=[0])
             target = iden.to_operator().compose(op, qargs=[0])
             self.assertTrue(isinstance(val, Operator))
@@ -532,7 +538,7 @@ class TestScalarOpComposeOperator(ScalarOpTestCase):
             self.assertEqual(val.output_dims(), (2, 2))
             self.assertEqual(val, target)
 
-        with self.subTest(msg='{}.compose(Operator({}), qargs=[1])'.format(iden, label)):
+        with self.subTest(msg=f"{iden}.compose(Operator({label}), qargs=[1])"):
             val = iden.compose(op, qargs=[1])
             target = iden.to_operator().compose(op, qargs=[1])
             self.assertTrue(isinstance(val, Operator))
@@ -540,7 +546,7 @@ class TestScalarOpComposeOperator(ScalarOpTestCase):
             self.assertEqual(val.output_dims(), (2, 2))
             self.assertEqual(val, target)
 
-        with self.subTest(msg='{}.dot(Operator({}), qargs=[0])'.format(iden, label)):
+        with self.subTest(msg=f"{iden}.dot(Operator({label}), qargs=[0])"):
             val = iden.dot(op, qargs=[0])
             target = iden.to_operator().dot(op, qargs=[0])
             self.assertTrue(isinstance(val, Operator))
@@ -548,7 +554,7 @@ class TestScalarOpComposeOperator(ScalarOpTestCase):
             self.assertEqual(val.output_dims(), (2, 2))
             self.assertEqual(val, target)
 
-        with self.subTest(msg='{}.dot(Operator({}), qargs=[1])'.format(iden, label)):
+        with self.subTest(msg=f"{iden}.dot(Operator({label}), qargs=[1])"):
             val = iden.dot(op, qargs=[1])
             target = iden.to_operator().dot(op, qargs=[1])
             self.assertTrue(isinstance(val, Operator))
@@ -556,7 +562,7 @@ class TestScalarOpComposeOperator(ScalarOpTestCase):
             self.assertEqual(val.output_dims(), (2, 2))
             self.assertEqual(val, target)
 
-        with self.subTest(msg='{} & Operator({})([0])'.format(iden, label)):
+        with self.subTest(msg=f"{iden} & Operator({label})([0])"):
             val = iden & op([0])
             target = iden.to_operator().compose(op, qargs=[0])
             self.assertTrue(isinstance(val, Operator))
@@ -564,7 +570,7 @@ class TestScalarOpComposeOperator(ScalarOpTestCase):
             self.assertEqual(val.output_dims(), (2, 2))
             self.assertEqual(val, target)
 
-        with self.subTest(msg='{} & Operator({})([1])'.format(iden, label)):
+        with self.subTest(msg=f"{iden} & Operator({label})([1])"):
             val = iden & op([1])
             target = iden.to_operator().compose(op, qargs=[1])
             self.assertTrue(isinstance(val, Operator))
@@ -572,7 +578,7 @@ class TestScalarOpComposeOperator(ScalarOpTestCase):
             self.assertEqual(val.output_dims(), (2, 2))
             self.assertEqual(val, target)
 
-        with self.subTest(msg='{} * Operator({})([0])'.format(iden, label)):
+        with self.subTest(msg=f"{iden} * Operator({label})([0])"):
             val = iden * op([0])
             target = iden.to_operator().dot(op, qargs=[0])
             self.assertTrue(isinstance(val, Operator))
@@ -580,7 +586,7 @@ class TestScalarOpComposeOperator(ScalarOpTestCase):
             self.assertEqual(val.output_dims(), (2, 2))
             self.assertEqual(val, target)
 
-        with self.subTest(msg='{} * Operator({})([1])'.format(iden, label)):
+        with self.subTest(msg=f"{iden} * Operator({label})([1])"):
             val = iden * op([1])
             target = iden.to_operator().dot(op, qargs=[1])
             self.assertTrue(isinstance(val, Operator))
@@ -589,5 +595,5 @@ class TestScalarOpComposeOperator(ScalarOpTestCase):
             self.assertEqual(val, target)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

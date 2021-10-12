@@ -82,15 +82,18 @@ class ElementaryData(ABC):
 
     Note that drawings are mutable.
     """
+
     __hash__ = None
 
-    def __init__(self,
-                 data_type: Union[str, Enum],
-                 xvals: Union[np.ndarray, List[types.Coordinate]],
-                 yvals: Union[np.ndarray, List[types.Coordinate]],
-                 bits: Optional[Union[types.Bits, List[types.Bits]]] = None,
-                 meta: Optional[Dict[str, Any]] = None,
-                 styles: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self,
+        data_type: Union[str, Enum],
+        xvals: Union[np.ndarray, List[types.Coordinate]],
+        yvals: Union[np.ndarray, List[types.Coordinate]],
+        bits: Optional[Union[types.Bits, List[types.Bits]]] = None,
+        meta: Optional[Dict[str, Any]] = None,
+        styles: Optional[Dict[str, Any]] = None,
+    ):
         """Create new drawing.
 
         Args:
@@ -117,16 +120,20 @@ class ElementaryData(ABC):
     @property
     def data_key(self):
         """Return unique hash of this object."""
-        return str(hash((self.__class__.__name__,
-                         self.data_type,
-                         tuple(self.bits),
-                         tuple(self.xvals),
-                         tuple(self.yvals))))
+        return str(
+            hash(
+                (
+                    self.__class__.__name__,
+                    self.data_type,
+                    tuple(self.bits),
+                    tuple(self.xvals),
+                    tuple(self.yvals),
+                )
+            )
+        )
 
     def __repr__(self):
-        return "{}(type={}, key={})".format(self.__class__.__name__,
-                                            self.data_type,
-                                            self.data_key)
+        return f"{self.__class__.__name__}(type={self.data_type}, key={self.data_key})"
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.data_key == other.data_key
@@ -134,13 +141,16 @@ class ElementaryData(ABC):
 
 class LineData(ElementaryData):
     """Drawing object that represents line shape."""
-    def __init__(self,
-                 data_type: Union[str, Enum],
-                 xvals: Union[np.ndarray, List[types.Coordinate]],
-                 yvals: Union[np.ndarray, List[types.Coordinate]],
-                 bit: types.Bits,
-                 meta: Dict[str, Any] = None,
-                 styles: Dict[str, Any] = None):
+
+    def __init__(
+        self,
+        data_type: Union[str, Enum],
+        xvals: Union[np.ndarray, List[types.Coordinate]],
+        yvals: Union[np.ndarray, List[types.Coordinate]],
+        bit: types.Bits,
+        meta: Dict[str, Any] = None,
+        styles: Dict[str, Any] = None,
+    ):
         """Create new line.
 
         Args:
@@ -152,24 +162,22 @@ class LineData(ElementaryData):
             styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
         super().__init__(
-            data_type=data_type,
-            xvals=xvals,
-            yvals=yvals,
-            bits=bit,
-            meta=meta,
-            styles=styles
+            data_type=data_type, xvals=xvals, yvals=yvals, bits=bit, meta=meta, styles=styles
         )
 
 
 class BoxData(ElementaryData):
     """Drawing object that represents box shape."""
-    def __init__(self,
-                 data_type: Union[str, Enum],
-                 xvals: Union[np.ndarray, List[types.Coordinate]],
-                 yvals: Union[np.ndarray, List[types.Coordinate]],
-                 bit: types.Bits,
-                 meta: Dict[str, Any] = None,
-                 styles: Dict[str, Any] = None):
+
+    def __init__(
+        self,
+        data_type: Union[str, Enum],
+        xvals: Union[np.ndarray, List[types.Coordinate]],
+        yvals: Union[np.ndarray, List[types.Coordinate]],
+        bit: types.Bits,
+        meta: Dict[str, Any] = None,
+        styles: Dict[str, Any] = None,
+    ):
         """Create new box.
 
         Args:
@@ -184,29 +192,27 @@ class BoxData(ElementaryData):
             VisualizationError: When number of data points are not equals to 2.
         """
         if len(xvals) != 2 or len(yvals) != 2:
-            raise VisualizationError('Length of data points are not equals to 2.')
+            raise VisualizationError("Length of data points are not equals to 2.")
 
         super().__init__(
-            data_type=data_type,
-            xvals=xvals,
-            yvals=yvals,
-            bits=bit,
-            meta=meta,
-            styles=styles
+            data_type=data_type, xvals=xvals, yvals=yvals, bits=bit, meta=meta, styles=styles
         )
 
 
 class TextData(ElementaryData):
     """Drawing object that represents a text on canvas."""
-    def __init__(self,
-                 data_type: Union[str, Enum],
-                 xval: types.Coordinate,
-                 yval: types.Coordinate,
-                 bit: types.Bits,
-                 text: str,
-                 latex: Optional[str] = None,
-                 meta: Dict[str, Any] = None,
-                 styles: Dict[str, Any] = None):
+
+    def __init__(
+        self,
+        data_type: Union[str, Enum],
+        xval: types.Coordinate,
+        yval: types.Coordinate,
+        bit: types.Bits,
+        text: str,
+        latex: Optional[str] = None,
+        meta: Dict[str, Any] = None,
+        styles: Dict[str, Any] = None,
+    ):
         """Create new text.
 
         Args:
@@ -223,12 +229,7 @@ class TextData(ElementaryData):
         self.latex = latex
 
         super().__init__(
-            data_type=data_type,
-            xvals=[xval],
-            yvals=[yval],
-            bits=bit,
-            meta=meta,
-            styles=styles
+            data_type=data_type, xvals=[xval], yvals=[yval], bits=bit, meta=meta, styles=styles
         )
 
 
@@ -238,10 +239,10 @@ class GateLinkData(ElementaryData):
     Note this object takes multiple bits and dedicates them to the bit link.
     This may appear as a line on the canvas.
     """
-    def __init__(self,
-                 xval: types.Coordinate,
-                 bits: List[types.Bits],
-                 styles: Dict[str, Any] = None):
+
+    def __init__(
+        self, xval: types.Coordinate, bits: List[types.Bits], styles: Dict[str, Any] = None
+    ):
         """Create new bit link.
 
         Args:
@@ -255,5 +256,5 @@ class GateLinkData(ElementaryData):
             yvals=[0],
             bits=bits,
             meta=None,
-            styles=styles
+            styles=styles,
         )

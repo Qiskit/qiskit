@@ -88,17 +88,19 @@ class ExcitationPreserving(TwoLocal):
              └──────────┘ ░ └────────────┘└────────────┘        ░ └──────────┘
     """
 
-    def __init__(self,
-                 num_qubits: Optional[int] = None,
-                 mode: str = 'iswap',
-                 entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = 'full',
-                 reps: int = 3,
-                 skip_unentangled_qubits: bool = False,
-                 skip_final_rotation_layer: bool = False,
-                 parameter_prefix: str = 'θ',
-                 insert_barriers: bool = False,
-                 initial_state: Optional[Any] = None,
-                 ) -> None:
+    def __init__(
+        self,
+        num_qubits: Optional[int] = None,
+        mode: str = "iswap",
+        entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = "full",
+        reps: int = 3,
+        skip_unentangled_qubits: bool = False,
+        skip_final_rotation_layer: bool = False,
+        parameter_prefix: str = "θ",
+        insert_barriers: bool = False,
+        initial_state: Optional[Any] = None,
+        name: str = "ExcitationPreserving",
+    ) -> None:
         """Create a new ExcitationPreserving 2-local circuit.
 
         Args:
@@ -129,28 +131,31 @@ class ExcitationPreserving(TwoLocal):
         Raises:
             ValueError: If the selected mode is not supported.
         """
-        supported_modes = ['iswap', 'fsim']
+        supported_modes = ["iswap", "fsim"]
         if mode not in supported_modes:
-            raise ValueError('Unsupported mode {}, choose one of {}'.format(mode, supported_modes))
+            raise ValueError(f"Unsupported mode {mode}, choose one of {supported_modes}")
 
-        theta = Parameter('θ')
-        swap = QuantumCircuit(2, name='Interaction')
+        theta = Parameter("θ")
+        swap = QuantumCircuit(2, name="Interaction")
         swap.rxx(theta, 0, 1)
         swap.ryy(theta, 0, 1)
-        if mode == 'fsim':
-            phi = Parameter('φ')
+        if mode == "fsim":
+            phi = Parameter("φ")
             swap.cp(phi, 0, 1)
 
-        super().__init__(num_qubits=num_qubits,
-                         rotation_blocks=RZGate,
-                         entanglement_blocks=swap,
-                         entanglement=entanglement,
-                         reps=reps,
-                         skip_unentangled_qubits=skip_unentangled_qubits,
-                         skip_final_rotation_layer=skip_final_rotation_layer,
-                         parameter_prefix=parameter_prefix,
-                         insert_barriers=insert_barriers,
-                         initial_state=initial_state)
+        super().__init__(
+            num_qubits=num_qubits,
+            rotation_blocks=RZGate,
+            entanglement_blocks=swap,
+            entanglement=entanglement,
+            reps=reps,
+            skip_unentangled_qubits=skip_unentangled_qubits,
+            skip_final_rotation_layer=skip_final_rotation_layer,
+            parameter_prefix=parameter_prefix,
+            insert_barriers=insert_barriers,
+            initial_state=initial_state,
+            name=name,
+        )
 
     @property
     def parameter_bounds(self) -> List[Tuple[float, float]]:

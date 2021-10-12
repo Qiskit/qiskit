@@ -29,6 +29,7 @@ from qiskit.opflow.operator_globals import I, Z
 from qiskit.opflow.primitive_ops.pauli_op import PauliOp
 from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
+
 # TODO uncomment when we implement Abelian grouped evolution.
 # from qiskit.opflow.converters.abelian_grouper import AbelianGrouper
 
@@ -76,12 +77,12 @@ class PauliTrotterEvolution(EvolutionBase):
 
     @property
     def trotter(self) -> TrotterizationBase:
-        """ TrotterizationBase used to evolve SummedOps. """
+        """TrotterizationBase used to evolve SummedOps."""
         return self._trotter
 
     @trotter.setter
     def trotter(self, trotter: TrotterizationBase) -> None:
-        """ Set TrotterizationBase used to evolve SummedOps. """
+        """Set TrotterizationBase used to evolve SummedOps."""
         self._trotter = trotter
 
     def convert(self, operator: OperatorBase) -> OperatorBase:
@@ -180,5 +181,5 @@ class PauliTrotterEvolution(EvolutionBase):
 
     # TODO implement Abelian grouped evolution.
     def evolution_for_abelian_paulisum(self, op_sum: SummedOp) -> PrimitiveOp:
-        """ Evolution for abelian pauli sum """
+        """Evolution for abelian pauli sum"""
         raise NotImplementedError

@@ -22,7 +22,7 @@ from .instruction import Instruction
 class ParameterTable(MutableMapping):
     """Class for managing and setting circuit parameters"""
 
-    __slots__ = ['_table', '_keys', '_names']
+    __slots__ = ["_table", "_keys", "_names"]
 
     def __init__(self, *args, **kwargs):
         """
@@ -80,7 +80,7 @@ class ParameterTable(MutableMapping):
         return len(self._table)
 
     def __repr__(self):
-        return 'ParameterTable({})'.format(repr(self._table))
+        return f"ParameterTable({repr(self._table)})"
 
 
 def _deprecated_set_method():
@@ -89,15 +89,21 @@ def _deprecated_set_method():
         def wrapper(*args, **kwargs):
             # warn only once
             if not wrapper._warned:
-                warnings.warn(f'The ParameterView.{func.__name__} method is deprecated as of '
-                              'Qiskit Terra 0.17.0 and will be removed no sooner than 3 months '
-                              'after the release date. Circuit parameters are returned as View '
-                              'object, not set. To use set methods you can explicitly cast to a '
-                              'set.', DeprecationWarning, stacklevel=2)
+                warnings.warn(
+                    f"The ParameterView.{func.__name__} method is deprecated as of "
+                    "Qiskit Terra 0.17.0 and will be removed no sooner than 3 months "
+                    "after the release date. Circuit parameters are returned as View "
+                    "object, not set. To use set methods you can explicitly cast to a "
+                    "set.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
                 wrapper._warned = True
             return func(*args, **kwargs)
+
         wrapper._warned = False
         return wrapper
+
     return deprecate
 
 
@@ -197,7 +203,7 @@ class ParameterView(MappingView):
 
     def __repr__(self):
         """Format the class as string."""
-        return f'ParameterView({self.data})'
+        return f"ParameterView({self.data})"
 
     def __getitem__(self, index):
         """Get items."""
@@ -284,5 +290,4 @@ class ParameterView(MappingView):
         return x in self.data
 
     __hash__: None  # type: ignore
-    __rand__ = __and__
     __ror__ = __or__
