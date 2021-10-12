@@ -17,12 +17,16 @@
 
 from abc import ABC
 from abc import abstractmethod
+import itertools
+import logging
 from typing import List, Union
 
 import numpy as np
 
 from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.circuit.gate import Gate
+
+logger = logging.getLogger(__name__)
 
 
 class Backend:
@@ -272,15 +276,40 @@ class BackendV2(Backend, ABC):
                 if field not in self._options.data:
                     raise AttributeError("Options field %s is not valid for this backend" % field)
             self._options.update_config(**fields)
+        self._basis_gates_all = None
 
     @property
     def instructions(self) -> List[Gate]:
         """A list of :class:`~qiskit.circuit.Instruction` instances that the backend supports."""
         return list(self.target.instructions)
 
+    def _compute_incomplete_basis(self):
+        incomplete_basis_gates = []
+        all_permutations_all_size = {}
+        for inst, qarg_props in self.target.items():
+            qargs = set(qarg_props)
+            size = len(next(iter(qargs)))
+            if size not in all_permutations_all_size:
+                all_permutations_all_size[size] = set(
+                    itertools.permutations(range(self.target.num_qubits), size)
+                )
+            if qargs != all_permutations_all_size[size]:
+                incomplete_basis_gates.append(inst)
+        self._basis_gates_all = incomplete_basis_gates
+
     @property
     def instruction_names(self) -> List[str]:
         """A list of instruction names that the backend supports."""
+        if self._basis_gates_all is None:
+            self._compute_incomplete_basis()
+        if self._basis_gates_all:
+            invalid_str = ",".join(self._basis_gates_all)
+            msg = (
+                f"This backend's instructions: {invalid_str} only apply to a subset of "
+                "qubits. Using this property to get 'basis_gates' for the "
+                "transpiler may potentially create invalid output"
+            )
+            logger.warning(msg)
         return list(self.target.instruction_names)
 
     @property

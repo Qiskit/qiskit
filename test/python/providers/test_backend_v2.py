@@ -33,7 +33,17 @@ class TestBackendV2(QiskitTestCase):
         qc.h(1)
         qc.cz(1, 0)
         qc.measure_all()
-        tqc = transpile(qc, self.backend)
+        with self.assertLogs("qiskit.providers.backend", level="WARN") as log:
+            tqc = transpile(qc, self.backend)
+        self.assertEqual(
+            log.output,
+            [
+                "WARNING:qiskit.providers.backend:This backend's instructions: "
+                "ecr only apply to a subset of qubits. Using this property to "
+                "get 'basis_gates' for the transpiler may potentially create "
+                "invalid output"
+            ],
+        )
         expected = QuantumCircuit(2)
         expected.u(math.pi / 2, 0, -math.pi, 0)
         expected.u(math.pi / 2, 0, -math.pi, 1)
