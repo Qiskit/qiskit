@@ -102,7 +102,7 @@ class TestReadoutMitigation(NoisySimulationTest):
         result_noise = self.execute_circs(qc, noise_model=self.noise_model)
         self.counts_ideal = result_targ.get_counts(0)
         self.counts_noise = result_noise.get_counts(0)
-        self.set_mitigation_matrix()
+        self._set_mitigation_matrix()
 
     def _set_mitigation_matrix(self):
         qr = QuantumRegister(self.num_qubits)
