@@ -14,8 +14,6 @@
 
 import math
 
-import numpy as np
-
 from qiskit.circuit.library import (
     RZGate,
     SXGate,
@@ -102,7 +100,7 @@ class TestTarget(QiskitTestCase):
         }
         self.ibm_target.add_instruction(Measure(), measure_props)
 
-        self.aqt_target = Target()
+        self.aqt_target = Target(description="AQT Target")
         rx_props = {
             (0,): None,
             (1,): None,
@@ -167,7 +165,7 @@ class TestTarget(QiskitTestCase):
         }
         self.aqt_target.add_instruction(Measure(), measure_props)
         self.empty_target = Target()
-        self.ideal_sim_target = Target(num_qubits=3)
+        self.ideal_sim_target = Target(num_qubits=3, description="Ideal Simulator")
         self.lam = Parameter("lam")
         for inst in [
             UGate(self.theta, self.phi, self.lam),
@@ -608,6 +606,211 @@ class TestTarget(QiskitTestCase):
         with self.assertRaises(KeyError):
             self.fake_backend_target.update_instruction_properties("ecr", (0, 1), None)
 
+    def test_str(self):
+        expected = """Target
+Number of qubits: 5
+Instructions:
+	id
+		(0,):
+			Duration: 3.55e-08 sec.
+			Error Rate: 0.000413
+		(1,):
+			Duration: 3.55e-08 sec.
+			Error Rate: 0.000502
+		(2,):
+			Duration: 3.55e-08 sec.
+			Error Rate: 0.0004003
+		(3,):
+			Duration: 3.55e-08 sec.
+			Error Rate: 0.000614
+		(4,):
+			Duration: 3.55e-08 sec.
+			Error Rate: 0.006149
+	rz
+		(0,):
+			Duration: 0 sec.
+			Error Rate: 0
+		(1,):
+			Duration: 0 sec.
+			Error Rate: 0
+		(2,):
+			Duration: 0 sec.
+			Error Rate: 0
+		(3,):
+			Duration: 0 sec.
+			Error Rate: 0
+		(4,):
+			Duration: 0 sec.
+			Error Rate: 0
+	sx
+		(0,):
+			Duration: 3.55e-08 sec.
+			Error Rate: 0.000413
+		(1,):
+			Duration: 3.55e-08 sec.
+			Error Rate: 0.000502
+		(2,):
+			Duration: 3.55e-08 sec.
+			Error Rate: 0.0004003
+		(3,):
+			Duration: 3.55e-08 sec.
+			Error Rate: 0.000614
+		(4,):
+			Duration: 3.55e-08 sec.
+			Error Rate: 0.006149
+	x
+		(0,):
+			Duration: 3.55e-08 sec.
+			Error Rate: 0.000413
+		(1,):
+			Duration: 3.55e-08 sec.
+			Error Rate: 0.000502
+		(2,):
+			Duration: 3.55e-08 sec.
+			Error Rate: 0.0004003
+		(3,):
+			Duration: 3.55e-08 sec.
+			Error Rate: 0.000614
+		(4,):
+			Duration: 3.55e-08 sec.
+			Error Rate: 0.006149
+	cx
+		(3, 4):
+			Duration: 2.7022e-07 sec.
+			Error Rate: 0.00713
+		(4, 3):
+			Duration: 3.0577e-07 sec.
+			Error Rate: 0.00713
+		(3, 1):
+			Duration: 4.6222e-07 sec.
+			Error Rate: 0.00929
+		(1, 3):
+			Duration: 4.9777e-07 sec.
+			Error Rate: 0.00929
+		(1, 2):
+			Duration: 2.2755e-07 sec.
+			Error Rate: 0.00659
+		(2, 1):
+			Duration: 2.6311e-07 sec.
+			Error Rate: 0.00659
+		(0, 1):
+			Duration: 5.1911e-07 sec.
+			Error Rate: 0.01201
+		(1, 0):
+			Duration: 5.5466e-07 sec.
+			Error Rate: 0.01201
+	measure
+		(0,):
+			Duration: 5.813e-06 sec.
+			Error Rate: 0.0751
+		(1,):
+			Duration: 5.813e-06 sec.
+			Error Rate: 0.0225
+		(2,):
+			Duration: 5.813e-06 sec.
+			Error Rate: 0.0146
+		(3,):
+			Duration: 5.813e-06 sec.
+			Error Rate: 0.0215
+		(4,):
+			Duration: 5.813e-06 sec.
+			Error Rate: 0.0333
+"""
+        self.assertEqual(expected, str(self.ibm_target))
+        aqt_expected = """Target: AQT Target
+Number of qubits: 5
+Instructions:
+	rx
+		(0,)
+		(1,)
+		(2,)
+		(3,)
+		(4,)
+	ry
+		(0,)
+		(1,)
+		(2,)
+		(3,)
+		(4,)
+	rz
+		(0,)
+		(1,)
+		(2,)
+		(3,)
+		(4,)
+	r
+		(0,)
+		(1,)
+		(2,)
+		(3,)
+		(4,)
+	rxx
+		(0, 1)
+		(0, 2)
+		(0, 3)
+		(0, 4)
+		(1, 0)
+		(2, 0)
+		(3, 0)
+		(4, 0)
+		(1, 2)
+		(1, 3)
+		(1, 4)
+		(2, 1)
+		(3, 1)
+		(4, 1)
+		(2, 3)
+		(2, 4)
+		(3, 2)
+		(4, 2)
+		(3, 4)
+		(4, 3)
+	measure
+		(0,)
+		(1,)
+		(2,)
+		(3,)
+		(4,)
+"""
+        self.assertEqual(aqt_expected, str(self.aqt_target))
+        sim_expected = """Target: Ideal Simulator
+Number of qubits: 3
+Instructions:
+	u
+	rx
+	ry
+	rz
+	cx
+	ecr
+	ccx
+	measure
+"""
+        self.assertEqual(sim_expected, str(self.ideal_sim_target))
+
+    def test_extra_props_str(self):
+        target = Target(description="Extra Properties")
+        extra_props = {
+            "tuned": False,
+            "diamond_norm_error": 2.12e-6,
+        }
+        cx_props = {
+            (3, 4): InstructionProperties(length=270.22e-9, error=0.00713, properties=extra_props),
+        }
+        target.add_instruction(CXGate(), cx_props)
+        expected = """Target: Extra Properties
+Number of qubits: 5
+Instructions:
+	cx
+		(3, 4):
+			Duration: 2.7022e-07 sec.
+			Error Rate: 0.00713
+			Extra properties:
+				tuned: False
+				diamond_norm_error: 2.12e-06
+
+"""
+        self.assertEqual(expected, str(target))
+
 
 class TestPulseTarget(QiskitTestCase):
     def setUp(self):
@@ -647,6 +850,22 @@ class TestPulseTarget(QiskitTestCase):
             ideal_sim_target.add_instruction(inst, {None: None})
         inst_map = ideal_sim_target.instruction_schedule_map()
         self.assertEqual(InstructionScheduleMap(), inst_map)
+
+    def test_str(self):
+        expected = """Target
+Number of qubits: 2
+Instructions:
+	sx
+		(0,):
+			Duration: 3.55e-08 sec.
+			Error Rate: 0.000413
+			With pulse schedule
+		(1,):
+			Duration: 3.55e-08 sec.
+			Error Rate: 0.000502
+			With pulse schedule
+"""
+        self.assertEqual(expected, str(self.pulse_target))
 
 
 class TestInstructionProperties(QiskitTestCase):

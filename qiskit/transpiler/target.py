@@ -16,6 +16,7 @@ from a backend
 """
 
 from collections.abc import Mapping
+import io
 import logging
 from typing import Union, Dict, Any
 
@@ -23,7 +24,6 @@ import retworkx as rx
 
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.transpiler.coupling import CouplingMap
-from qiskit.transpiler.exceptions import CouplingError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 
 logger = logging.getLogger(__name__)
@@ -442,3 +442,39 @@ class Target(Mapping):
 
     def items(self):
         return self._gate_map.items()
+
+    def __str__(self):
+        output = io.StringIO()
+        if self.description is not None:
+            output.write(f"Target: {self.description}\n")
+        else:
+            output.write("Target\n")
+        output.write(f"Number of qubits: {self.num_qubits}\n")
+        output.write("Instructions:\n")
+        for inst, qarg_props in self._gate_map.items():
+            output.write(f"\t{inst}\n")
+            for qarg, props in qarg_props.items():
+                if qarg is None:
+                    continue
+                if props is None:
+                    output.write(f"\t\t{qarg}\n")
+                    continue
+                prop_str_pieces = [f"\t\t{qarg}:\n"]
+                length = getattr(props, "length", None)
+                if length is not None:
+                    prop_str_pieces.append(f"\t\t\tDuration: {length} sec.\n")
+                error = getattr(props, "error", None)
+                if error is not None:
+                    prop_str_pieces.append(f"\t\t\tError Rate: {error}\n")
+                pulse = getattr(props, "pulse", None)
+                if pulse is not None:
+                    prop_str_pieces.append("\t\t\tWith pulse schedule\n")
+                extra_props = getattr(props, "properties", None)
+                if extra_props is not None:
+                    extra_props_pieces = [
+                        f"\t\t\t\t{key}: {value}\n" for key, value in extra_props.items()
+                    ]
+                    extra_props_str = "".join(extra_props_pieces)
+                    prop_str_pieces.append(f"\t\t\tExtra properties:\n{extra_props_str}\n")
+                output.write("".join(prop_str_pieces))
+        return output.getvalue()
