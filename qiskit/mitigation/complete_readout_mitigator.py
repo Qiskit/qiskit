@@ -290,7 +290,6 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
             ret = np.kron(chars[i], ret)
         return ret
 
-    @staticmethod
     def _stddev_upper_bound(self, shots, qubits):
         """Return an upper bound on standard deviation of expval estimator.
         Args:
@@ -302,7 +301,6 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
         gamma = self._compute_gamma(qubits=qubits)
         return gamma / np.sqrt(shots)
 
-    @staticmethod
     def _compute_gamma(self, qubits=None):
         """Compute gamma for N-qubit mitigation"""
         mitmat = self.mitigation_matrix(qubits=qubits)
