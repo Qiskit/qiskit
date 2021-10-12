@@ -343,24 +343,23 @@ class SparsePauliOp(LinearOp):
 
         array = np.column_stack((self.paulis.x, self.paulis.z))
         flatten_paulis, indexes = np.unique(array, return_inverse=True, axis=0)
-        coeffs = np.zeros(self.size, dtype=complex)
+        coeffs = np.zeros(flatten_paulis.shape[0], dtype=complex)
         for i, val in zip(indexes, self.coeffs):
             coeffs[i] += val
         # Delete zero coefficient rows
         # TODO: Add atol/rtol for zero comparison
-        non_zero = [
-            i for i in range(coeffs.size) if not np.isclose(coeffs[i], 0, atol=atol, rtol=rtol)
-        ]
+        is_zero = np.isclose(coeffs, 0, atol=atol, rtol=rtol)
         # Check edge case that we deleted all Paulis
         # In this case we return an identity Pauli with a zero coefficient
-        if len(non_zero) == 0:
+        if np.all(is_zero):
             x = np.zeros((1, self.num_qubits), dtype=bool)
             z = np.zeros((1, self.num_qubits), dtype=bool)
             coeffs = np.array([0j], dtype=complex)
         else:
+            non_zero = np.logical_not(is_zero)
             x, z = (
                 flatten_paulis[non_zero]
-                .reshape((len(non_zero), 2, self.num_qubits))
+                .reshape((non_zero.sum(), 2, self.num_qubits))
                 .transpose(1, 0, 2)
             )
             coeffs = coeffs[non_zero]
