@@ -646,8 +646,10 @@ class LinComb(CircuitGradient):
         qr_superpos = QuantumRegister(1)
         state_qc = QuantumCircuit(*state_op.primitive.qregs, qr_superpos)
         state_qc.h(qr_superpos)
-
         phase_fix = False
+
+
+
         if not isinstance(meas_op, bool):
             if meas_op is not None:
                 meas_op = meas_op.reduce()
@@ -661,9 +663,14 @@ class LinComb(CircuitGradient):
 
             # print(state_qc)
             # print(meas_op, 'meas_op')
-
+        """
         state_qc.compose(unrolled, inplace=True)
+        """
 
+        # unroll separately from the H gate since we need the H gate to be the first
+        # operation in the data attributes of the circuit
+        unrolled = self._transpile_to_supported_operations(state_op.primitive, self.SUPPORTED_GATES)
+        state_qc.compose(unrolled, inplace=True)
 
         # Define the working qubit to realize the linear combination of unitaries
         if not isinstance(target_params, (list, np.ndarray)):

@@ -72,16 +72,18 @@ class CircuitGradient(ConverterBase):
     def _transpile_to_supported_operations(
         circuit: QuantumCircuit, supported_gates: Set[str]
     ) -> QuantumCircuit:
-        """Unroll the given circuit into a gate set for which the gradients may be computed.
+        """Transpile the given circuit into a gate set for which the gradients may be computed.
 
         Args:
-            circuit: Quantum circuit to be unrolled into supported operations.
+            circuit: Quantum circuit to be transpiled into supported operations.
+            supported_gates: Set of quantum operations supported by a gradient method intended to
+                            be used on the quantum circuit.
 
         Returns:
-            Quantum circuit which is unrolled into supported operations.
+            Quantum circuit which is transpiled into supported operations.
 
         Raises:
-            QiskitError: when circuit unrolling fails.
+            QiskitError: when circuit transpiling fails.
 
         """
         unique_ops = set(circuit.count_ops())

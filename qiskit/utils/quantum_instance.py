@@ -17,12 +17,14 @@ from enum import Enum
 import copy
 import logging
 import time
+import warnings
+
 import numpy as np
 
 from qiskit.qobj import Qobj
 from qiskit.utils import circuit_utils
-from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
-from .backend_utils import (
+from qiskit.exceptions import QiskitError
+from qiskit.utils.backend_utils import (
     is_ibmq_provider,
     is_statevector_backend,
     is_simulator_backend,
@@ -30,6 +32,10 @@ from .backend_utils import (
     is_aer_qasm,
     is_basicaer_provider,
     support_backend_options,
+)
+from qiskit.utils.mitigation import (
+    CompleteMeasFitter,
+    TensoredMeasFitter,
 )
 
 logger = logging.getLogger(__name__)
@@ -46,20 +52,34 @@ class _MeasFitterType(Enum):
         """
         Returns fitter type from class
         """
-        try:
-            from qiskit.ignis.mitigation.measurement import (
-                CompleteMeasFitter,
-                TensoredMeasFitter,
-            )
-        except ImportError as ex:
-            raise MissingOptionalLibraryError(
-                libname="qiskit-ignis",
-                name="QuantumInstance",
-                pip_install="pip install qiskit-ignis",
-            ) from ex
         if meas_class == CompleteMeasFitter:
             return _MeasFitterType.COMPLETE_MEAS_FITTER
         elif meas_class == TensoredMeasFitter:
+            return _MeasFitterType.TENSORED_MEAS_FITTER
+        try:
+            from qiskit.ignis.mitigation.measurement import (
+                CompleteMeasFitter as CompleteMeasFitter_IG,
+                TensoredMeasFitter as TensoredMeasFitter_IG,
+            )
+        except ImportError:
+            pass
+        if meas_class == CompleteMeasFitter_IG:
+            warnings.warn(
+                "The use of qiskit-ignis for measurement mitigation is "
+                "deprecated and will be removed in a future release. Instead "
+                "use the CompleteMeasFitter class from qiskit.utils.mitigation",
+                DeprecationWarning,
+                stacklevel=3,
+            )
+            return _MeasFitterType.COMPLETE_MEAS_FITTER
+        elif meas_class == TensoredMeasFitter_IG:
+            warnings.warn(
+                "The use of qiskit-ignis for measurement mitigation is "
+                "deprecated and will be removed in a future release. Instead "
+                "use the TensoredMeasFitter class from qiskit.utils.mitigation",
+                DeprecationWarning,
+                stacklevel=3,
+            )
             return _MeasFitterType.TENSORED_MEAS_FITTER
         else:
             raise QiskitError(f"Unknown fitter {meas_class}")
@@ -69,20 +89,34 @@ class _MeasFitterType(Enum):
         """
         Returns fitter type from instance
         """
-        try:
-            from qiskit.ignis.mitigation.measurement import (
-                CompleteMeasFitter,
-                TensoredMeasFitter,
-            )
-        except ImportError as ex:
-            raise MissingOptionalLibraryError(
-                libname="qiskit-ignis",
-                name="QuantumInstance",
-                pip_install="pip install qiskit-ignis",
-            ) from ex
         if isinstance(meas_instance, CompleteMeasFitter):
             return _MeasFitterType.COMPLETE_MEAS_FITTER
         elif isinstance(meas_instance, TensoredMeasFitter):
+            return _MeasFitterType.TENSORED_MEAS_FITTER
+        try:
+            from qiskit.ignis.mitigation.measurement import (
+                CompleteMeasFitter as CompleteMeasFitter_IG,
+                TensoredMeasFitter as TensoredMeasFitter_IG,
+            )
+        except ImportError:
+            pass
+        if isinstance(meas_instance, CompleteMeasFitter_IG):
+            warnings.warn(
+                "The use of qiskit-ignis for measurement mitigation is "
+                "deprecated and will be removed in a future release. Instead "
+                "use the CompleteMeasFitter class from qiskit.utils.mitigation",
+                DeprecationWarning,
+                stacklevel=3,
+            )
+            return _MeasFitterType.COMPLETE_MEAS_FITTER
+        elif isinstance(meas_instance, TensoredMeasFitter_IG):
+            warnings.warn(
+                "The use of qiskit-ignis for measurement mitigation is "
+                "deprecated and will be removed in a future release. Instead "
+                "use the TensoredMeasFitter class from qiskit.utils.mitigation",
+                DeprecationWarning,
+                stacklevel=3,
+            )
             return _MeasFitterType.TENSORED_MEAS_FITTER
         else:
             raise QiskitError(f"Unknown fitter {meas_instance}")
@@ -136,6 +170,7 @@ class QuantumInstance:
         measurement_error_mitigation_shots: Optional[int] = None,
         job_callback: Optional[Callable] = None,
         mit_pattern: Optional[List[List[int]]] = None,
+        max_job_retries: int = 50,
     ) -> None:
         """
         Quantum Instance holds a Qiskit Terra backend as well as configuration for circuit
@@ -167,10 +202,11 @@ class QuantumInstance:
             skip_qobj_validation: Bypass Qobj validation to decrease circuit
                 processing time during submission to backend.
             measurement_error_mitigation_cls: The approach to mitigate
-                measurement errors. Qiskit Ignis provides fitter classes for this functionality
-                and CompleteMeasFitter or TensoredMeasFitter
-                from qiskit.ignis.mitigation.measurement module can be used here.
-                TensoredMeasFitter doesn't support subset fitter.
+                measurement errors. The classes :class:`~qiskit.utils.mitigation.CompleteMeasFitter`
+                or :class:`~qiskit.utils.mitigation.TensoredMeasFitter` from the
+                :mod:`qiskit.utils.mitigation` module can be used here as exact values, not
+                instances. ``TensoredMeasFitter`` doesn't support the ``subset_fitter`` method.
+
             cals_matrix_refresh_period: How often to refresh the calibration
                 matrix in measurement mitigation. in minutes
             measurement_error_mitigation_shots: The number of shots number for
@@ -183,6 +219,8 @@ class QuantumInstance:
                 measurement correction, divided to groups according to tensors.
                 If `None` and `qr` is given then assumed to be performed over the entire
                 `qr` as one group (default `None`).
+            max_job_retries(int): positive non-zero number of trials for the job set (-1 for
+                infinite trials) (default: 50)
 
         Raises:
             QiskitError: the shots exceeds the maximum number of shots
@@ -301,6 +339,7 @@ class QuantumInstance:
         self._circuit_summary = False
         self._job_callback = job_callback
         self._time_taken = 0.0
+        self._max_job_retries = max_job_retries
         logger.info(self)
 
     def __str__(self) -> str:
@@ -321,6 +360,7 @@ class QuantumInstance:
             self._backend_options,
             self._noise_config,
         )
+
         info += f"\nMeasurement mitigation: {self._meas_error_mitigation_cls}"
 
         return info
@@ -369,22 +409,18 @@ class QuantumInstance:
             circuits (Union['QuantumCircuit', List['QuantumCircuit']]):
                         circuits to execute
             had_transpiled: whether or not circuits had been transpiled
-<<<<<<< HEAD
-=======
 
         Raises:
             QiskitError: Invalid error mitigation fitter class
             QiskitError: TensoredMeasFitter class doesn't support subset fitter
             MissingOptionalLibraryError: Ignis not installed
 
->>>>>>> ef950e494684624f8487911027b64bf76fd9c5a0
         Returns:
             Result: result object
         TODO: Maybe we can combine the circuits for the main ones and calibration circuits before
               assembling to the qobj.
         """
         from qiskit.utils.run_circuits import run_qobj, run_circuits
-
         from qiskit.utils.measurement_error_mitigation import (
             get_measured_qubits_from_qobj,
             get_measured_qubits,
@@ -501,6 +537,7 @@ class QuantumInstance:
                             noise_config=self._noise_config,
                             run_config=self._run_config.to_dict(),
                             job_callback=self._job_callback,
+                            max_job_retries=self._max_job_retries,
                         )
                         self._time_taken += cals_result.time_taken
                         result = run_circuits(
@@ -511,6 +548,7 @@ class QuantumInstance:
                             noise_config=self._noise_config,
                             run_config=self.run_config.to_dict(),
                             job_callback=self._job_callback,
+                            max_job_retries=self._max_job_retries,
                         )
                         self._time_taken += result.time_taken
                     else:
@@ -523,6 +561,7 @@ class QuantumInstance:
                             noise_config=self._noise_config,
                             run_config=self.run_config.to_dict(),
                             job_callback=self._job_callback,
+                            max_job_retries=self._max_job_retries,
                         )
                         self._time_taken += result.time_taken
                         cals_result = result
@@ -559,6 +598,7 @@ class QuantumInstance:
                             self._noise_config,
                             self._skip_qobj_validation,
                             self._job_callback,
+                            self._max_job_retries,
                         )
                         self._time_taken += cals_result.time_taken
                         result = run_qobj(
@@ -569,6 +609,7 @@ class QuantumInstance:
                             self._noise_config,
                             self._skip_qobj_validation,
                             self._job_callback,
+                            self._max_job_retries,
                         )
                         self._time_taken += result.time_taken
                     else:
@@ -582,6 +623,7 @@ class QuantumInstance:
                             self._noise_config,
                             self._skip_qobj_validation,
                             self._job_callback,
+                            self._max_job_retries,
                         )
                         self._time_taken += result.time_taken
                         cals_result = result
@@ -610,6 +652,7 @@ class QuantumInstance:
                         noise_config=self._noise_config,
                         run_config=self._run_config.to_dict(),
                         job_callback=self._job_callback,
+                        max_job_retries=self._max_job_retries,
                     )
                     if circuit_job
                     else run_qobj(
@@ -620,6 +663,7 @@ class QuantumInstance:
                         self._noise_config,
                         self._skip_qobj_validation,
                         self._job_callback,
+                        self._max_job_retries,
                     )
                 )
                 self._time_taken += result.time_taken
@@ -673,6 +717,7 @@ class QuantumInstance:
                     noise_config=self._noise_config,
                     run_config=self._run_config.to_dict(),
                     job_callback=self._job_callback,
+                    max_job_retries=self._max_job_retries,
                 )
                 if circuit_job
                 else run_qobj(
@@ -683,6 +728,7 @@ class QuantumInstance:
                     self._noise_config,
                     self._skip_qobj_validation,
                     self._job_callback,
+                    self._max_job_retries,
                 )
             )
             self._time_taken += result.time_taken
@@ -780,6 +826,25 @@ class QuantumInstance:
     def circuit_summary(self, new_value):
         """sets circuit summary"""
         self._circuit_summary = new_value
+
+    @property
+    def max_job_retries(self):
+        """Getter of max tries"""
+        return self._max_job_retries
+
+    @max_job_retries.setter
+    def max_job_retries(self, new_value):
+        """Sets the maximum tries"""
+        if not isinstance(new_value, int):
+            raise TypeError("max_job_retries parameter must be an integer")
+        if new_value < -1 or new_value == 0:
+            raise ValueError(
+                "max_job_retries must either be a positive integer or -1(for infinite trials)"
+            )
+        if new_value == -1:
+            self._max_job_retries = int(1e18)
+        else:
+            self._max_job_retries = new_value
 
     @property
     def measurement_error_mitigation_cls(self):  # pylint: disable=invalid-name
