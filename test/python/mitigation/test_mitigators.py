@@ -19,7 +19,7 @@ from ddt import ddt
 
 from qiskit import execute
 from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.quantum_info.mitigation import CompleteReadoutMitigator
+from qiskit.mitigation import CompleteReadoutMitigator
 
 # For simulation
 import qiskit.utils.mitigation as mit
