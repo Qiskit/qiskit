@@ -35,7 +35,7 @@ class QuantumState:
 
         .. note::
 
-            If `op_shape`` is specified it will take precedence over other
+            If ``op_shape`` is specified it will take precedence over other
             kwargs.
         """
         self._op_shape = op_shape

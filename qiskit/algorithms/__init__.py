@@ -168,6 +168,18 @@ Algorithms that estimate the phases of eigenstates of a unitary.
    PhaseEstimationResult
    IterativePhaseEstimation
 
+Equivalence Checkers
+++++++++++++++++++++
+Algorithms that determine whether circuits are equivalent.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   BaseEquivalenceChecker
+   UnitaryEquivalenceChecker
+   EquivalenceCheckerResult
+
 Exceptions
 ==========
 
@@ -212,6 +224,12 @@ from .phase_estimators import (
     PhaseEstimationResult,
     IterativePhaseEstimation,
 )
+from .equivalence_checkers import (
+    BaseEquivalenceChecker,
+    UnitaryEquivalenceChecker,
+    EquivalenceCheckerResult,
+    equivalence_checker,
+)
 from .exceptions import AlgorithmError
 
 __all__ = [
@@ -253,5 +271,8 @@ __all__ = [
     "PhaseEstimation",
     "PhaseEstimationResult",
     "IterativePhaseEstimation",
+    "BaseEquivalenceChecker",
+    "UnitaryEquivalenceChecker",
+    "EquivalenceCheckerResult",
     "AlgorithmError",
 ]

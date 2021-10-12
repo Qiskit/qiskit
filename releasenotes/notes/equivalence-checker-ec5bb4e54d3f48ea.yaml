@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Introduced a base class for tools of circuit equivalence checking,
+    named :class:`qiskit.import_path.BaseEquivalenceChecker`. In addition, wrote a concrete checker,
+    named :class:`qiskit.import_path.UnitaryEquivalenceChecker`, and a wrapper checker function, py:method:`qiskit.import_path.equivalance_checker`.

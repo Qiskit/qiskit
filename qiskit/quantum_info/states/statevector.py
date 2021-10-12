@@ -45,7 +45,7 @@ class Statevector(QuantumState, TolerancesMixin):
             data (np.array or list or Statevector or Operator or QuantumCircuit or
                   qiskit.circuit.Instruction):
                 Data from which the statevector can be constructed. This can be either a complex
-                vector, another statevector, a ``Operator` with only one column or a
+                vector, another statevector, an ``Operator`` with only one column or a
                 ``QuantumCircuit`` or ``Instruction``.  If the data is a circuit or instruction,
                 the statevector is constructed by assuming that all qubits are initialized to the
                 zero state.
@@ -63,7 +63,7 @@ class Statevector(QuantumState, TolerancesMixin):
               with the total number of subsystems given by the length of the list.
 
             * ``Int`` or ``None`` -- the length of the input vector
-              specifies the total dimension of the density matrix. If it is a
+              specifies the total dimension of the state vector. If it is a
               power of two the state will be initialized as an N-qubit state.
               If it is not a power of two the state will have a single
               d-dimensional subsystem.

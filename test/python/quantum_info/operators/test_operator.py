@@ -650,7 +650,7 @@ class TestOperator(OperatorTestCase):
         self.assertEqual(-op, Operator(-1 * mat))
 
     def test_equiv(self):
-        """Test negate method"""
+        """Test equiv method"""
         mat = np.diag([1, np.exp(1j * np.pi / 2)])
         phase = np.exp(-1j * np.pi / 4)
         op = Operator(mat)
