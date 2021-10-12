@@ -71,7 +71,7 @@ class Target(Mapping):
     device. As a basic example, lets assume your device is two qubits, supports
     :class:`~qiskit.circuit.library.UGate` on both qubits and
     :class:`~qiskit.circuit.library.CXGate` in both directions you would create
-    the gate map like::
+    the target like::
 
         from qiskit.transpiler import Target, InstructionProperties
         from qiskit.circuit.library import UGate, CXGate
@@ -85,12 +85,12 @@ class Target(Mapping):
             (0,): InstructionProperties(length=5.23e-8, error=0.00038115),
             (1,): InstructionProperties(length=4.52e-8, error=0.00032115),
         }
-        gmap.add_instruction(UGate(theta, phi, lam), [(0,), (1,)], properties=u_props)
+        gmap.add_instruction(UGate(theta, phi, lam), u_props)
         cx_props = {
             (0,1): InstructionProperties(length=5.23e-7, error=0.00098115),
             (1,0): InstructionProperties(length=4.52e-7, error=0.00132115),
         }
-        gmap.add_instruction(CXGate(), [(0, 1), (1, 0)], properties=cx_props)
+        gmap.add_instruction(CXGate(), cx_props)
 
     The intent of the ``Target`` object is to inform Qiskit's compiler about
     the constraints of a particular backend so the compiler can compile an
@@ -272,7 +272,7 @@ class Target(Mapping):
 
     @property
     def qargs(self):
-        """The set of qargs in the gate map."""
+        """The set of qargs in the target."""
         if None in self._qarg_gate_map:
             return None
         return set(self._qarg_gate_map)
@@ -350,12 +350,12 @@ class Target(Mapping):
 
     @property
     def instruction_names(self):
-        """Gate the basis instruction names in the gate map"""
+        """Get the instruction names in the target."""
         return set(self._gate_map)
 
     @property
     def instructions(self):
-        """Gate the instruction gates in the gate map"""
+        """Get the :class:`~qiskit.circuit.Instruction` objects in the target."""
         return list(self._gate_name_map.values())
 
     def _build_coupling_graph(self):
@@ -373,7 +373,7 @@ class Target(Mapping):
                         self._coupling_graph.add_edge(*qarg, {gate: properties})
 
     def coupling_map(self, two_q_gate=None):
-        """Get a :class:`~qiskit.transpiler.CouplingMap` from this gate map.
+        """Get a :class:`~qiskit.transpiler.CouplingMap` from this target.
 
         Args:
             two_q_gate (str): An optional gate name for a two qubit gate in
