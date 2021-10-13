@@ -86,6 +86,7 @@ Calibration
    PulseGates
    RZXCalibrationBuilder
    RZXCalibrationBuilderNoEcho
+   LabelIdentifier
 
 Scheduling
 =============
@@ -203,6 +204,7 @@ from .synthesis import unitary_synthesis_plugin_names
 from .calibration import PulseGates
 from .calibration import RZXCalibrationBuilder
 from .calibration import RZXCalibrationBuilderNoEcho
+from .calibration import LabelIdentifier
 
 # circuit scheduling
 from .scheduling import TimeUnitConversion

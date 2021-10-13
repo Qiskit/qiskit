@@ -13,3 +13,4 @@
 """Module containing transpiler calibration passes."""
 
 from .builders import RZXCalibrationBuilder, RZXCalibrationBuilderNoEcho, PulseGates
+from .label_identifier import LabelIdentifier

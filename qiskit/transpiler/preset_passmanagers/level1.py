@@ -55,6 +55,7 @@ from qiskit.transpiler.passes import AlignMeasures
 from qiskit.transpiler.passes import ValidatePulseGates
 from qiskit.transpiler.passes import PulseGates
 from qiskit.transpiler.passes import Error
+from qiskit.transpiler.passes import LabelIdentifier
 
 from qiskit.transpiler import TranspilerError
 
@@ -271,6 +272,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     pm1.append(_reset)
     pm1.append(_depth_check + _opt + _unroll, do_while=_opt_control)
     if inst_map and inst_map.has_custom_gate():
+        pm1.append(LabelIdentifier())
         pm1.append(PulseGates(inst_map=inst_map))
     pm1.append(_scheduling)
     pm1.append(_alignments)

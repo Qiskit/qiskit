@@ -434,9 +434,14 @@ def _get_instruction_string(inst: Union[str, Instruction]):
     if isinstance(inst, str):
         return inst
     else:
-        try:
-            return inst.name
-        except AttributeError as ex:
+        if not hasattr(inst, "name"):
             raise PulseError(
                 'Input "inst" has no attribute "name". This should be a circuit "Instruction".'
-            ) from ex
+            )
+        base_name = inst.name
+
+        label = getattr(inst, "label", None)
+        if label:
+            return f"{base_name}_{label}"
+
+        return base_name
