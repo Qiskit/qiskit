@@ -36,6 +36,6 @@ class ContainsInstruction(AnalysisPass):
 
     def run(self, dag):
         """Run the ContainsInstruction pass on dag."""
-        self.property_set[f"contains_{self._instruction_name}"] = bool(
-            dag.named_nodes(self._instruction_name)
+        self.property_set[f"contains_{self._instruction_name}"] = (
+            self._instruction_name in dag._op_names
         )
