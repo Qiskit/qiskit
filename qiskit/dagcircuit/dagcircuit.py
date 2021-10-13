@@ -1118,7 +1118,7 @@ class DAGCircuit:
             new_node._node_id = new_node_index
             new_node.op.condition = condition
             self._multi_graph[new_node_index] = new_node
-            self._increment_op(old_node.op)
+            self._increment_op(new_node.op)
 
         return {k: self._multi_graph[v] for k, v in node_map.items()}
 
