@@ -430,7 +430,7 @@ class BackendV2(Backend, ABC):
         """Return the system time resolution of output signals
 
         Returns:
-            dtm: The output signal timestep in nanoseconds.
+            dtm: The output signal timestep in seconds.
 
         Raises:
             NotImplementedError: if the backend doesn't support querying the

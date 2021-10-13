@@ -44,8 +44,8 @@ class InstructionProperties:
         """Create a new ``InstructionProperties`` object
 
         Args:
-            length: The duration of the instruction on the specified set of
-                qubits
+            length: The duration, in seconds, of the instruction on the
+                specified set of qubits
             error: The average error rate for the instruction on the specified
                 set of qubits.
             pulse: The pulse representation of the instruction
