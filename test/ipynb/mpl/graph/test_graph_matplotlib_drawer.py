@@ -226,7 +226,10 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         counts = [{"0": 50, "1": 30}, {"0": 30, "1": 40}]
 
         self.graph_count_drawer(
-            data=counts, legend=["first", "second"], filename="histogram_legend.png", figsize=(15, 5)
+            data=counts,
+            legend=["first", "second"],
+            filename="histogram_legend.png",
+            figsize=(15, 5),
         )
 
     def test_plot_histogram_title(self):
