@@ -59,13 +59,12 @@ class TestPresetPassManager(QiskitTestCase):
         circuit.cz(q[0], q[1])
         result = transpile(
             circuit,
-            basis_gates=["u1", "u2", "u3", "cx"],
             coupling_map=None,
             layout_method="sabre",
             routing_method="sabre",
             optimization_level=level,
         )
-        self.assertIsInstance(result, QuantumCircuit)
+        self.assertEqual(result, circuit)
 
     @combine(level=[0, 1, 2, 3], name="level{level}")
     def test_no_coupling_map(self, level):
