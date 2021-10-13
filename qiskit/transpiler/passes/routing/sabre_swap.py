@@ -22,7 +22,7 @@ from qiskit.circuit.quantumregister import Qubit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
-from qiskit.dagcircuit import DAGNode
+from qiskit.dagcircuit import DAGOpNode
 
 logger = logging.getLogger(__name__)
 
@@ -201,8 +201,17 @@ class SabreSwap(TransformationPass):
                         self._reset_qubits_decay()
 
                 # Diagnostics
-                logger.debug("free! %s", [(n.name, n.qargs) for n in execute_gate_list])
-                logger.debug("front_layer: %s", [(n.name, n.qargs) for n in front_layer])
+                logger.debug(
+                    "free! %s",
+                    [
+                        (n.name if isinstance(n, DAGOpNode) else None, n.qargs)
+                        for n in execute_gate_list
+                    ],
+                )
+                logger.debug(
+                    "front_layer: %s",
+                    [(n.name if isinstance(n, DAGOpNode) else None, n.qargs) for n in front_layer],
+                )
 
                 continue
 
@@ -223,7 +232,7 @@ class SabreSwap(TransformationPass):
             best_swaps = [k for k, v in swap_scores.items() if v == min_score]
             best_swaps.sort(key=lambda x: (self._bit_indices[x[0]], self._bit_indices[x[1]]))
             best_swap = rng.choice(best_swaps)
-            swap_node = DAGNode(op=SwapGate(), qargs=best_swap, type="op")
+            swap_node = DAGOpNode(op=SwapGate(), qargs=best_swap)
             self._apply_gate(mapped_dag, swap_node, current_layout, canonical_register)
             current_layout.swap(*best_swap)
 
@@ -261,7 +270,7 @@ class SabreSwap(TransformationPass):
 
     def _successors(self, node, dag):
         for _, successor, edge_data in dag.edges(node):
-            if successor.type != "op":
+            if not isinstance(successor, DAGOpNode):
                 continue
             if isinstance(edge_data, Qubit):
                 yield successor
