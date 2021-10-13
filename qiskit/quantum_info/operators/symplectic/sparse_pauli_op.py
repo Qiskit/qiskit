@@ -217,26 +217,28 @@ class SparsePauliOp(LinearOp):
         self._op_shape.compose(other._op_shape, qargs, front)
 
         x1 = np.reshape(
-            np.stack(other.size * [self.paulis.x], axis=1),
+            np.repeat([self.paulis.x], other.size, axis=1),
             (self.size * other.size, self.num_qubits),
         )
         z1 = np.reshape(
-            np.stack(other.size * [self.paulis.z], axis=1),
+            np.repeat([self.paulis.z], other.size, axis=1),
             (self.size * other.size, self.num_qubits),
         )
         p1 = np.reshape(
-            np.stack(other.size * [self.paulis.phase], axis=1),
+            np.repeat([self.paulis.phase], other.size, axis=1),
             self.size * other.size,
         )
         paulis1 = PauliList.from_symplectic(z1, x1, p1)
         x2 = np.reshape(
-            np.stack(self.size * [other.paulis.x]), (self.size * other.size, other.num_qubits)
+            np.repeat([other.paulis.x], self.size, axis=0),
+            (self.size * other.size, other.num_qubits),
         )
         z2 = np.reshape(
-            np.stack(self.size * [other.paulis.z]), (self.size * other.size, other.num_qubits)
+            np.repeat([other.paulis.z], self.size, axis=0),
+            (self.size * other.size, other.num_qubits),
         )
         p2 = np.reshape(
-            np.stack(self.size * [other.paulis.phase]),
+            np.repeat([other.paulis.phase], self.size, axis=0),
             self.size * other.size,
         )
         paulis2 = PauliList.from_symplectic(z2, x2, p2)
