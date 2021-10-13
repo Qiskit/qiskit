@@ -1605,14 +1605,7 @@ class DAGCircuit:
 
         Returns a dictionary of counts keyed on the operation name.
         """
-        op_dict = {}
-        for node in self.topological_op_nodes():
-            name = node.op.name
-            if name not in op_dict:
-                op_dict[name] = 1
-            else:
-                op_dict[name] += 1
-        return op_dict
+        return self._op_names.copy()
 
     def count_ops_longest_path(self):
         """Count the occurrences of operation names on the longest path.
