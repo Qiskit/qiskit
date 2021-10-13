@@ -38,7 +38,7 @@ class InstructionProperties:
         self,
         length: float = None,
         error: float = None,
-        pulse: Union["Schedule", "ScheduleBlock"] = None,
+        schedule: Union["Schedule", "ScheduleBlock"] = None,
         properties: Dict[str, Any] = None,
     ):
         """Create a new ``InstructionProperties`` object
@@ -123,7 +123,7 @@ class Target(Mapping):
         rx_30_props = {
             (0,): InstructionProperties(length=5.23e-6, error=1.2e-5
         }
-        target.add_instruction(RXGate(math.pi / 6), rx_props, name='rx_30')
+        target.add_instruction(RXGate(math.pi / 6), rx_30_props, name='rx_30')
 
     Then in the ``target`` object accessing by ``rx_30`` will get the fixed
     angle :class:`~qiskit.circuit.library.RXGate` while ``rx`` will get the
@@ -226,7 +226,7 @@ class Target(Mapping):
                 instruction (as in a noisless/ideal simulation) this can be set to
                 ``{None, None}`` which will indicate it runs on all qubits (or all
                 available permutations of qubits for multi-qubit gates).
-            name (str): An optional name to use for identifying the gate. If not
+            name (str): An optional name to use for identifying the instruction. If not
                 specified the :attr:`~qiskit.circuit.Instruction.name` attribute
                 of ``gate`` will be used. All gates in the ``Target`` need unique
                 names. Using a custom name allows a backend to specify duplicate

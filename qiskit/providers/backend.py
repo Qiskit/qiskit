@@ -375,7 +375,7 @@ class BackendV2(Backend, ABC):
         """
         pass
 
-    def t1(self, qubit: Union[int, List[int]]) -> Union[float, np.array]:
+    def t1(self, qubits: Union[int, List[int]]) -> Union[float, np.array]:
         """Return the T1 time of a given qubit
 
         Args:
@@ -392,7 +392,7 @@ class BackendV2(Backend, ABC):
         """
         raise NotImplementedError
 
-    def t2(self, qubit: Union[int, List[int]]) -> Union[float, np.array]:
+    def t2(self, qubits: Union[int, List[int]]) -> Union[float, np.array]:
         """Return the T2 time of a given qubit
 
         Args:
@@ -411,30 +411,30 @@ class BackendV2(Backend, ABC):
 
     @property
     def dt(self) -> float:
-        """Return the qubit drive channel timestep in seconds
+        """Return the system time resolution of input signals
 
         This is required to be implemented if the backend supports Pulse
         scheduling.
 
         Returns:
-            dt: The qubit drive channel timestep in seconds.
+            dt: The input signal timestep in seconds.
 
         Raises:
             NotImplementedError: if the backend doesn't support querying the
-                qubit drive channel timestep
+                input signal timestep
         """
         raise NotImplementedError
 
     @property
     def dtm(self) -> float:
-        """Return the measurement drive channel timestep in nanoseconds
+        """Return the system time resolution of output signals
 
         Returns:
-            dtm: The measurement drive channel timestep in nanoseconds.
+            dtm: The output signal timestep in nanoseconds.
 
         Raises:
             NotImplementedError: if the backend doesn't support querying the
-                measurement drive channel timestep
+                output signal timestep
         """
         raise NotImplementedError
 
