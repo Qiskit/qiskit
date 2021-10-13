@@ -821,8 +821,8 @@ class TestPulseTarget(QiskitTestCase):
         with pulse.build(name="sx_q1") as custom_sx_q1:
             pulse.play(pulse.Constant(100, 0.2), pulse.DriveChannel(1))
         sx_props = {
-            (0,): InstructionProperties(length=35.5e-9, error=0.000413, pulse=custom_sx_q0),
-            (1,): InstructionProperties(length=35.5e-9, error=0.000502, pulse=custom_sx_q1),
+            (0,): InstructionProperties(length=35.5e-9, error=0.000413, schedule=custom_sx_q0),
+            (1,): InstructionProperties(length=35.5e-9, error=0.000502, schedule=custom_sx_q1),
         }
         self.pulse_target.add_instruction(SXGate(), sx_props)
 
@@ -873,5 +873,5 @@ class TestInstructionProperties(QiskitTestCase):
         properties = InstructionProperties()
         self.assertEqual(
             repr(properties),
-            "InstructionProperties(length=None, error=None, pulse=None, properties=None)",
+            "InstructionProperties(length=None, error=None, schedule=None, properties=None)",
         )

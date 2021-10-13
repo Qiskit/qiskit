@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 class InstructionProperties:
     """A representation of the properties of a gate implementation."""
 
-    __slots__ = ("length", "error", "pulse", "properties")
+    __slots__ = ("length", "error", "schedule", "properties")
 
     def __init__(
         self,
@@ -48,19 +48,19 @@ class InstructionProperties:
                 specified set of qubits
             error: The average error rate for the instruction on the specified
                 set of qubits.
-            pulse: The pulse representation of the instruction
+            schedule: The pulse representation of the instruction
             properties: A free form dictionary of additional properties the
                 backend has for a specified instruction (operation + arguments).
         """
         self.length = length
         self.error = error
-        self.pulse = pulse
+        self.schedule = schedule
         self.properties = properties
 
     def __repr__(self):
         return (
             f"InstructionProperties(length={self.length}, error={self.error}"
-            f", pulse={self.pulse}, properties={self.properties})"
+            f", schedule={self.schedule}, properties={self.properties})"
         )
 
 
@@ -252,6 +252,7 @@ class Target(Mapping):
         self._gate_map[instruction_name] = qargs_val
         self._coupling_graph = None
         self._instruction_durations = None
+        self._instruction_schedule_map = None
 
     def update_instruction_properties(self, instruction, qarg, properties):
         """Update the property object for an instruction qarg pair already in the Target
@@ -269,6 +270,7 @@ class Target(Mapping):
             raise KeyError(f"Provided qarg: '{qarg}' not in this Target for {instruction}")
         self._gate_map[instruction][qarg] = properties
         self._instruction_durations = None
+        self._instruction_schedule_map = None
 
     @property
     def qargs(self):
@@ -319,8 +321,8 @@ class Target(Mapping):
         out_inst_schedule_map = InstructionScheduleMap()
         for instruction, qargs in self._gate_map.items():
             for qarg, properties in qargs.items():
-                if properties is not None and properties.pulse is not None:
-                    out_inst_schedule_map.add(instruction, qarg, properties.pulse)
+                if properties is not None and properties.schedule is not None:
+                    out_inst_schedule_map.add(instruction, qarg, properties.schedule)
         self._instruction_schedule_map = out_inst_schedule_map
         return out_inst_schedule_map
 
@@ -466,8 +468,8 @@ class Target(Mapping):
                 error = getattr(props, "error", None)
                 if error is not None:
                     prop_str_pieces.append(f"\t\t\tError Rate: {error}\n")
-                pulse = getattr(props, "pulse", None)
-                if pulse is not None:
+                schedule = getattr(props, "schedule", None)
+                if schedule is not None:
                     prop_str_pieces.append("\t\t\tWith pulse schedule\n")
                 extra_props = getattr(props, "properties", None)
                 if extra_props is not None:

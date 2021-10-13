@@ -379,7 +379,7 @@ class BackendV2(Backend, ABC):
         """Return the T1 time of a given qubit
 
         Args:
-            qubit: The qubit index to get the T1 time for. If
+            qubits: The qubit index to get the T1 time for. If
                 a list is specified the output will be a list with the
                 T1 time for the specified qubits in the same order.
 
@@ -396,7 +396,7 @@ class BackendV2(Backend, ABC):
         """Return the T2 time of a given qubit
 
         Args:
-            qubit: The qubit index or indices to get the T2 time for. If
+            qubits: The qubit index or indices to get the T2 time for. If
                 a list is specified the output will be a list with the
                 T2 time for the specified qubits in the same order.
 
