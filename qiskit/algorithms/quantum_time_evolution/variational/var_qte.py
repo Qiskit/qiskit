@@ -11,8 +11,8 @@
 # that they have been altered from the originals.
 
 """The Variational Quantum Time Evolution Interface"""
-from abc import abstractmethod, ABC
-from typing import Optional, Union, Iterable, Dict
+from abc import ABC
+from typing import Optional, Union, Dict
 
 import numpy as np
 
@@ -99,15 +99,6 @@ class VarQte(ABC):
         self._nat_grad_circ_sampler = (
             CircuitSampler(self._backend, caching="all") if self._backend else None
         )
-
-    @abstractmethod
-    def _exact_state(self, time: Union[float, complex]) -> Iterable:
-        """
-        Args:
-            time: current time
-        Raises: NotImplementedError
-        """
-        raise NotImplementedError
 
     def _init_grad_objects(self) -> None:
         """

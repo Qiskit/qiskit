@@ -13,7 +13,6 @@ import unittest
 
 import numpy as np
 from ddt import data, ddt
-from scipy.linalg import expm
 
 from qiskit.algorithms.quantum_time_evolution.variational.calculators.distance_energy_calculator import (
     _calculate_distance_energy,
@@ -45,24 +44,15 @@ class TestDistanceEnergyCalculator(QiskitAlgorithmsTestCase):
         parameters = ansatz.ordered_parameters
 
         operator = ~StateFn(observable) @ StateFn(ansatz)
-        time = 3
         param_dict = {param: np.pi / 4 for param in parameters}
         state1 = operator[-1]
 
         h = operator.oplist[0].primitive * operator.oplist[0].coeff
         h_matrix = h.to_matrix(massive=True)
 
-        init_state = state1.assign_parameters(param_dict).eval().primitive.data
-        exact_state = np.dot(expm(-1j * h_matrix * time), init_state)
+        distance_energy = _calculate_distance_energy(state1, h_matrix, param_dict)
 
-        distance_energy = _calculate_distance_energy(state1, exact_state, h_matrix, param_dict)
-        expected_distance_energy = (
-            0.8018752557985716,
-            1.7058212965327955,
-            0.4572201280422361,
-            0.5345798614138855,
-            0.5345798614138854,
-        )
+        expected_distance_energy = 0.5345798614138854
 
         np.testing.assert_almost_equal(distance_energy, expected_distance_energy)
 

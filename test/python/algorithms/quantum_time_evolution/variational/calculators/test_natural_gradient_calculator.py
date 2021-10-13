@@ -49,24 +49,22 @@ class TestNaturalGradientCalculator(QiskitAlgorithmsTestCase):
         var_principle._lazy_init(observable, ansatz, params_dict, regularization)
 
         correct_values = [
-            -0.8842908,
-            0.0441611,
-            -0.21244606,
-            0.2349356,
-            -0.50246622,
-            -0.6425113,
-            0.12545623,
-            0.07241851,
-            1.01843757,
-            0.3669189,
-            0.10147791,
-            0.18632604,
+            0.442145,
+            -0.022081,
+            0.106223,
+            -0.117468,
+            0.251233,
+            0.321256,
+            -0.062728,
+            -0.036209,
+            -0.509219,
+            -0.183459,
+            -0.050739,
+            -0.093163,
         ]
         natural_grad = calculate(var_principle, params_dict)
 
-        np.testing.assert_array_almost_equal(
-            natural_grad.assign_parameters(params_dict).eval(), correct_values
-        )
+        np.testing.assert_array_almost_equal(natural_grad, correct_values)
 
     def test_calculate_regularized(self):
         observable = SummedOp(
@@ -93,24 +91,22 @@ class TestNaturalGradientCalculator(QiskitAlgorithmsTestCase):
         var_principle._lazy_init(observable, ansatz, params_dict, regularization)
 
         correct_values = [
-            -0.8842908,
-            0.0441611,
-            -0.21244606,
-            0.2349356,
-            -0.50246622,
-            -0.6425113,
-            0.12545623,
-            0.07241851,
-            1.01843757,
-            0.3669189,
-            0.10147791,
-            0.18632604,
+            0.44209285,
+            -0.02368672,
+            0.10331097,
+            -0.11583335,
+            0.24387236,
+            0.31642126,
+            -0.06179241,
+            -0.04077569,
+            -0.50458966,
+            -0.17833621,
+            -0.04812563,
+            -0.09106516,
         ]
         natural_grad = calculate(var_principle, params_dict, "ridge")
 
-        np.testing.assert_array_almost_equal(
-            natural_grad.assign_parameters(params_dict).eval(), correct_values
-        )
+        np.testing.assert_array_almost_equal(natural_grad, correct_values)
 
 
 if __name__ == "__main__":
