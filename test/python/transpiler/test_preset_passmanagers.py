@@ -35,6 +35,7 @@ from qiskit.test.mock import (
 )
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import GraphState
+from qiskit.quantum_info import random_unitary
 
 
 def emptycircuit():
@@ -52,6 +53,21 @@ def circuit_2532():
 @ddt
 class TestPresetPassManager(QiskitTestCase):
     """Test preset passmanagers work as expected."""
+
+    @combine(level=[0, 1, 2, 3], name="level{level}")
+    def test_no_coupling_map_with_sabre(self, level):
+        """Test that coupling_map can be None with Sabre (level={level})"""
+        q = QuantumRegister(2, name="q")
+        circuit = QuantumCircuit(q)
+        circuit.cz(q[0], q[1])
+        result = transpile(
+            circuit,
+            coupling_map=None,
+            layout_method="sabre",
+            routing_method="sabre",
+            optimization_level=level,
+        )
+        self.assertEqual(result, circuit)
 
     @combine(level=[0, 1, 2, 3], name="level{level}")
     def test_no_coupling_map(self, level):
@@ -100,6 +116,49 @@ class TestPresetPassManager(QiskitTestCase):
         circuit.reset(q[0])
         result = transpile(circuit, basis_gates=None, optimization_level=0)
         self.assertEqual(result, circuit)
+
+    @combine(level=[0, 1, 2, 3], name="level{level}")
+    def test_unitary_is_preserved_if_in_basis(self, level):
+        """Test that a unitary is not synthesized if in the basis."""
+        qc = QuantumCircuit(2)
+        qc.unitary(random_unitary(4, seed=42), [0, 1])
+        qc.measure_all()
+        result = transpile(qc, basis_gates=["cx", "u", "unitary"], optimization_level=level)
+        self.assertEqual(result, qc)
+
+    @combine(level=[0, 1, 2, 3], name="level{level}")
+    def test_unitary_is_preserved_if_basis_is_None(self, level):
+        """Test that a unitary is not synthesized if basis is None."""
+        qc = QuantumCircuit(2)
+        qc.unitary(random_unitary(4, seed=4242), [0, 1])
+        qc.measure_all()
+        result = transpile(qc, basis_gates=None, optimization_level=level)
+        self.assertEqual(result, qc)
+
+    @combine(level=[0, 1, 2, 3], name="level{level}")
+    def test_unitary_is_preserved_if_in_basis_synthesis_translation(self, level):
+        """Test that a unitary is not synthesized if in the basis with synthesis translation."""
+        qc = QuantumCircuit(2)
+        qc.unitary(random_unitary(4, seed=424242), [0, 1])
+        qc.measure_all()
+        result = transpile(
+            qc,
+            basis_gates=["cx", "u", "unitary"],
+            optimization_level=level,
+            translation_method="synthesis",
+        )
+        self.assertEqual(result, qc)
+
+    @combine(level=[0, 1, 2, 3], name="level{level}")
+    def test_unitary_is_preserved_if_basis_is_None_synthesis_transltion(self, level):
+        """Test that a unitary is not synthesized if basis is None with synthesis translation."""
+        qc = QuantumCircuit(2)
+        qc.unitary(random_unitary(4, seed=42424242), [0, 1])
+        qc.measure_all()
+        result = transpile(
+            qc, basis_gates=None, optimization_level=level, translation_method="synthesis"
+        )
+        self.assertEqual(result, qc)
 
     @combine(level=[0, 1, 2, 3], name="level{level}")
     def test_respect_basis(self, level):

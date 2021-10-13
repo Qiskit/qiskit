@@ -140,6 +140,7 @@ Additional Passes
    DAGFixedPoint
    FixedPoint
    ContainsInstruction
+   GatesInBasis
 """
 
 # layout selection (placement)
@@ -227,3 +228,4 @@ from .utils import FixedPoint
 from .utils import Error
 from .utils import RemoveBarriers
 from .utils import ContainsInstruction
+from .utils import GatesInBasis
