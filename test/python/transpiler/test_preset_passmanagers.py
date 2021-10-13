@@ -52,6 +52,21 @@ class TestPresetPassManager(QiskitTestCase):
     """Test preset passmanagers work as expected."""
 
     @combine(level=[0, 1, 2, 3], name="level{level}")
+    def test_no_coupling_map_with_sabre(self, level):
+        """Test that coupling_map can be None with Sabre (level={level})"""
+        q = QuantumRegister(2, name="q")
+        circuit = QuantumCircuit(q)
+        circuit.cz(q[0], q[1])
+        result = transpile(
+            circuit,
+            coupling_map=None,
+            layout_method="sabre",
+            routing_method="sabre",
+            optimization_level=level,
+        )
+        self.assertEqual(result, circuit)
+
+    @combine(level=[0, 1, 2, 3], name="level{level}")
     def test_no_coupling_map(self, level):
         """Test that coupling_map can be None (level={level})"""
         q = QuantumRegister(2, name="q")
