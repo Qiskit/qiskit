@@ -56,7 +56,7 @@ from .quantumcircuitdata import QuantumCircuitData
 from .delay import Delay
 from .measure import Measure
 from .reset import Reset
-from .circuit_element import CircuitElement
+from .operation import Operation
 
 try:
     import pygments
@@ -104,7 +104,7 @@ ClbitSpecifier = Union[
 BitType = TypeVar("BitType", Qubit, Clbit)
 
 
-class QuantumCircuit(CircuitElement):
+class QuantumCircuit(Operation):
     """Create a new circuit.
 
     A circuit is a list of instructions bound to some registers.
@@ -1123,7 +1123,7 @@ class QuantumCircuit(CircuitElement):
 
     def append(
         self,
-        instruction: CircuitElement,
+        instruction: Operation,
         qargs: Optional[Sequence[QubitSpecifier]] = None,
         cargs: Optional[Sequence[ClbitSpecifier]] = None,
     ) -> InstructionSet:
@@ -1143,7 +1143,7 @@ class QuantumCircuit(CircuitElement):
             CircuitError: if object passed is neither subclass nor an instance of Instruction
         """
         # Convert input to instruction
-        if not isinstance(instruction, CircuitElement) and not hasattr(
+        if not isinstance(instruction, Operation) and not hasattr(
             instruction, "to_instruction"
         ):
             if issubclass(instruction, Instruction):
@@ -1174,7 +1174,7 @@ class QuantumCircuit(CircuitElement):
         return instructions
 
     def _append(
-        self, instruction: CircuitElement, qargs: Sequence[Qubit], cargs: Sequence[Clbit]
+        self, instruction: Operation, qargs: Sequence[Qubit], cargs: Sequence[Clbit]
     ) -> Instruction:
         """Append an instruction to the end of the circuit, modifying
         the circuit in place.
@@ -1191,8 +1191,8 @@ class QuantumCircuit(CircuitElement):
             CircuitError: if the gate is of a different shape than the wires
                 it is being attached to.
         """
-        if not isinstance(instruction, CircuitElement):
-            raise CircuitError("object is not a CircuitElement.")
+        if not isinstance(instruction, Operation):
+            raise CircuitError("object is not a Operation.")
 
         # do some compatibility checks
         self._check_dups(qargs)

@@ -10,13 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Circuit Element Mixin."""
+"""Quantum Operation Mixin."""
 
 from abc import ABC, abstractmethod
 
 
-class CircuitElement(ABC):
-    """Circuit Element Mixin Class."""
+class Operation(ABC):
+    """Quantum Operation Mixin Class."""
 
     @property
     @abstractmethod

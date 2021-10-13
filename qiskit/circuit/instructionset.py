@@ -15,7 +15,7 @@ Instruction collection.
 """
 from qiskit.circuit.exceptions import CircuitError
 from .classicalregister import Clbit
-from .circuit_element import CircuitElement
+from .operation import Operation
 
 
 class InstructionSet:
@@ -46,8 +46,8 @@ class InstructionSet:
 
     def add(self, gate, qargs, cargs):
         """Add an instruction and its context (where it is attached)."""
-        if not isinstance(gate, CircuitElement):
-            raise CircuitError("attempt to add non-CircuitElement" + " to InstructionSet")
+        if not isinstance(gate, Operation):
+            raise CircuitError("attempt to add non-Operation" + " to InstructionSet")
         self.instructions.append(gate)
         self.qargs.append(qargs)
         self.cargs.append(cargs)
