@@ -139,6 +139,7 @@ Additional Passes
    RemoveFinalMeasurements
    DAGFixedPoint
    FixedPoint
+   GatesInBasis
 """
 
 # layout selection (placement)
@@ -225,3 +226,4 @@ from .utils import DAGFixedPoint
 from .utils import FixedPoint
 from .utils import Error
 from .utils import RemoveBarriers
+from .utils import GatesInBasis
