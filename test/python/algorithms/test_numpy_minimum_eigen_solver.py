@@ -59,7 +59,8 @@ class TestNumPyMinimumEigensolver(QiskitAlgorithmsTestCase):
         # Start with no operator or aux_operators, give via compute method
         algo = NumPyMinimumEigensolver()
         result = algo.compute_minimum_eigenvalue(operator=self.qubit_op)
-        self.assertAlmostEqual(result.eigenvalue, -1.85727503 + 0j)
+        self.assertEqual(result.eigenvalue.dtype, np.float64)
+        self.assertAlmostEqual(result.eigenvalue, -1.85727503)
         self.assertIsNone(result.aux_operator_eigenvalues)
 
         # Add aux_operators and go again
@@ -73,7 +74,8 @@ class TestNumPyMinimumEigensolver(QiskitAlgorithmsTestCase):
 
         # "Remove" aux_operators and go again
         result = algo.compute_minimum_eigenvalue(operator=self.qubit_op, aux_operators=[])
-        self.assertAlmostEqual(result.eigenvalue, -1.85727503 + 0j)
+        self.assertEqual(result.eigenvalue.dtype, np.float64)
+        self.assertAlmostEqual(result.eigenvalue, -1.85727503)
         self.assertIsNone(result.aux_operator_eigenvalues)
 
         # Set aux_operators and go again
