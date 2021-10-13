@@ -21,7 +21,7 @@ from ..algorithm_result import AlgorithmResult
 
 # Introduced new type to maintain readability.
 _T = TypeVar("_T")  # Pylint does not allow single character class names.
-ListOrDict = Union[List[Optional[_T]], Dict[Any, _T]]
+ListOrDict = Union[List[Optional[_T]], Dict[str, _T]]
 
 
 class MinimumEigensolver(ABC):
