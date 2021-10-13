@@ -48,11 +48,11 @@ class VariationalPrinciple(ABC):
         self._operator = self._operator / self._operator.coeff  # Remove the time from the operator
         raw_metric_tensor = self._get_raw_metric_tensor(ansatz, param_dict)
         print("Raw metric tensor")
-        print(raw_metric_tensor.assign_parameters(param_dict).to_matrix())
+        print(raw_metric_tensor.assign_parameters(param_dict).eval())
 
         raw_evolution_grad = self._get_raw_evolution_grad(hamiltonian, ansatz, param_dict)
         print("Raw evolution grad")
-        print(raw_evolution_grad.assign_parameters(param_dict).to_matrix())
+        print(raw_evolution_grad.assign_parameters(param_dict).eval())
 
         self._metric_tensor = self._calc_metric_tensor(raw_metric_tensor, param_dict)
         self._evolution_grad = self._calc_evolution_grad(raw_evolution_grad, param_dict)

@@ -13,11 +13,7 @@
 import unittest
 
 import numpy as np
-from scipy.linalg import expm
 
-from qiskit.algorithms.quantum_time_evolution.variational.calculators.distance_energy_calculator import (
-    _inner_prod,
-)
 from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.imaginary_error_calculator import (
     ImaginaryErrorCalculator,
 )
@@ -67,10 +63,6 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         param_dict = {param: np.pi / 4 for param in parameters}
         backend = Aer.get_backend("qasm_simulator")
         state = operator[-1]
-        if backend is not None:
-            init_state = CircuitSampler(backend).convert(state, params=param_dict)
-        else:
-            init_state = state.assign_parameters(param_dict)
 
         h = operator.oplist[0].primitive * operator.oplist[0].coeff
         h_squared = h ** 2
@@ -91,14 +83,12 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
             error_calculator,
             param_dict,
             var_principle,
-            state,  # TODO or init_state?
-            h,
             CircuitSampler(backend),
             CircuitSampler(backend),
             CircuitSampler(backend),
         )
 
-        qte_ode_function = ode_function_generator.var_qte_ode_function(time, np.array([0, 0, 0]))
+        qte_ode_function = ode_function_generator.var_qte_ode_function(time)
         expected_qte_ode_function = [
             -0.8842908,
             0.0441611,
@@ -140,11 +130,6 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         param_dict = {param: np.pi / 4 for param in parameters}
         backend = Aer.get_backend("qasm_simulator")
         state = operator[-1]
-        if backend is not None:
-            init_state = CircuitSampler(backend).convert(state, params=param_dict)
-        else:
-            init_state = state.assign_parameters(param_dict)
-        init_state = init_state.eval().primitive.data
 
         h = operator.oplist[0].primitive * operator.oplist[0].coeff
         h_squared = h ** 2
@@ -165,15 +150,13 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
             error_calculator,
             param_dict,
             var_principle,
-            state,  # TODO or init_state?
-            h,
             CircuitSampler(backend),
             CircuitSampler(backend),
             CircuitSampler(backend),
             t_param=t,
         )
 
-        qte_ode_function = ode_function_generator.var_qte_ode_function(time, np.array([0, 0, 0]))
+        qte_ode_function = ode_function_generator.var_qte_ode_function(time)
         expected_qte_ode_function = [
             -0.8842908,
             0.0441611,

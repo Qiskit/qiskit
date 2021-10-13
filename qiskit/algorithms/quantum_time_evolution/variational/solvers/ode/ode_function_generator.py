@@ -40,13 +40,10 @@ class OdeFunctionGenerator:
         error_calculator: ErrorCalculator,
         param_dict: Dict[Parameter, Union[float, complex]],
         variational_principle: VariationalPrinciple,
-        state,
-        h,
         grad_circ_sampler: CircuitSampler,
         metric_circ_sampler: CircuitSampler,
         nat_grad_circ_sampler: CircuitSampler,
         regularization: Optional[str] = None,
-        state_circ_sampler: Optional[CircuitSampler] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
         error_based_ode: Optional[bool] = False,
         t_param: Parameter = None,
@@ -54,9 +51,6 @@ class OdeFunctionGenerator:
         self._error_calculator = error_calculator
         self._param_dict = param_dict
         self._variational_principle = variational_principle
-        self._state_circ_sampler = state_circ_sampler
-        self._state = state
-        self._h = h
         self._grad_circ_sampler = grad_circ_sampler
         self._metric_circ_sampler = metric_circ_sampler
         self._nat_grad_circ_sampler = nat_grad_circ_sampler
@@ -72,10 +66,7 @@ class OdeFunctionGenerator:
         )
         self._t_param = t_param
 
-    def var_qte_ode_function(self, t: float, x: Iterable) -> Iterable:
-        error = max(x[-1], 0)
-        error = min(error, np.sqrt(2))
-        print("previous error", error)
+    def var_qte_ode_function(self, t: float) -> Iterable:
         if self._error_based_ode:
             error_based_ode_fun_gen = ErrorBaseOdeFunctionGenerator(
                 self._error_calculator,
@@ -97,47 +88,4 @@ class OdeFunctionGenerator:
         print("Gradient ", grad_res)
         print("Gradient norm", np.linalg.norm(grad_res))
 
-        # Get the residual for McLachlan's Variational Principle
-        # self._storage_params_tbd = (t, params, et, resid, f, true_error, true_energy,
-        #                             trained_energy, h_squared, dtdt_state, reimgrad)
-
-        (
-            et,
-            dtdt_state,
-            reimgrad,
-        ) = self._error_calculator._calc_single_step_error(nat_grad_res, grad_res, metric_res)
-
-        if self._t_param:
-            self._h = self._h.bind({self._t_param: t})
-        self._h_matrix = self._h.to_matrix(massive=True)
-        self._h_norm = np.linalg.norm(self._h_matrix, np.infty)
-
-        et = self._inspect_fix_et_negative_part(et)
-        trained_energy = _calculate_distance_energy(
-            self._state,
-            self._h_matrix,
-            self._param_dict,
-            self._state_circ_sampler,
-        )
-        h_squared = self._error_calculator._h_squared
-
-        error_bound_grad = self._variational_principle._calc_error_bound(
-            error, et, h_squared, self._h_norm, trained_energy
-        )
-
-        return np.append(nat_grad_res, error_bound_grad)
-
-    def _inspect_fix_et_negative_part(self, et: float) -> float:
-        print("returned et", et)
-        try:
-            if et < 0:
-                if np.abs(et) > 1e-4:
-                    raise Warning("Non-neglectible negative et observed")
-                else:
-                    et = 0
-            else:
-                et = np.sqrt(np.real(et))
-        except Exception:
-            et = 1000
-        print("after try except", et)
-        return et
+        return nat_grad_res

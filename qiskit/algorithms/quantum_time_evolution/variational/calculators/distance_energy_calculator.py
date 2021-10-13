@@ -16,6 +16,7 @@ from qiskit.circuit import Parameter
 from qiskit.opflow import CircuitSampler
 
 
+# TODO change name, refactor expected val calculation, will be used for error bounds
 def _calculate_distance_energy(
     state,
     h_matrix,

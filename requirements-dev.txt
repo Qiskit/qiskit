@@ -1,4 +1,4 @@
-coverage>=4.4.0
+pip coverage>=4.4.0
 hypothesis>=4.24.3
 ipython<7.22.0
 ipykernel<5.5.2

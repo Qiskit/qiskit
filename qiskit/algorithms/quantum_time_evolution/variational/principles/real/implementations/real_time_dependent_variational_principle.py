@@ -18,9 +18,6 @@ from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
 from qiskit.algorithms.quantum_time_evolution.variational.principles.real.real_variational_principle import (
     RealVariationalPrinciple,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
-    VariationalPrinciple,
-)
 from qiskit.circuit import Parameter
 from qiskit.opflow import CircuitQFI, OperatorBase
 

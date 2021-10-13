@@ -9,10 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from typing import Optional, Union, List, Iterable
-
-import numpy as np
-from scipy.linalg import expm
+from typing import Optional, Union
 
 from qiskit.algorithms.quantum_time_evolution.evolution_base import EvolutionBase
 from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import (
@@ -121,14 +118,12 @@ class VarQrte(VarQte, EvolutionBase):
             error_calculator,
             init_state_param_dict,
             self._variational_principle,
-            self._initial_state,
-            self._h,
             self._grad_circ_sampler,
             self._metric_circ_sampler,
             self._nat_grad_circ_sampler,
             self._regularization,
-            self._state_circ_sampler,
             self._backend,
+            self._error_based_ode,
             t_param,
         )
 
@@ -153,26 +148,3 @@ class VarQrte(VarQte, EvolutionBase):
         gradient_params=None,
     ) -> EvolutionGradientResult:
         raise NotImplementedError()
-
-    def _exact_state(self, time: Union[float, complex]) -> Iterable:
-        """
-        Args:
-            time: current time
-        Returns:
-            Exactly evolved state for the respective time
-        """
-
-        # Evolve with exponential operator
-        target_state = np.dot(expm(-1j * self._h_matrix * time), self._initial_state)
-        return target_state
-
-    def _exact_grad_state(self, state: Iterable) -> Iterable:
-        """
-        Return the gradient of the given state
-        -i H |state>
-        Args:
-            state: State for which the exact gradient shall be evaluated
-        Returns:
-            Exact gradient of the given state
-        """
-        return np.matmul(-1j * self._h_matrix, state)

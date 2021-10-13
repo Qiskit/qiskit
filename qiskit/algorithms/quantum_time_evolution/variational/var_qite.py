@@ -10,19 +10,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 from abc import abstractmethod
-from typing import Optional, Union, List, Iterable
-
-import numpy as np
-from scipy.integrate import ode, OdeSolver
-from scipy.linalg import expm
+from typing import Optional, Union
 
 from qiskit.algorithms.quantum_time_evolution.evolution_base import EvolutionBase
 from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import (
     EvolutionGradientResult,
-)
-from qiskit.algorithms.quantum_time_evolution.results.evolution_result import EvolutionResult
-from qiskit.algorithms.quantum_time_evolution.variational.calculators.distance_energy_calculator import (
-    _inner_prod,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.imaginary_error_calculator import (
     ImaginaryErrorCalculator,
@@ -140,13 +132,10 @@ class VarQite(VarQte, EvolutionBase):
             error_calculator,
             init_state_param_dict,
             self._variational_principle,
-            self._initial_state,
-            self._h,
             self._grad_circ_sampler,
             self._metric_circ_sampler,
             self._nat_grad_circ_sampler,
             self._regularization,
-            self._state_circ_sampler,
             self._backend,
             self._error_based_ode,
             t_param,

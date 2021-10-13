@@ -55,7 +55,7 @@ class TestImaginaryMcLachlanVariationalPrinciple(QiskitAlgorithmsTestCase):
         metric_tensor = var_principle.metric_tensor
 
         bound_raw_metric_tensor = raw_metric_tensor.bind_parameters(param_dict)
-        expected_metric_tensor = bound_raw_metric_tensor.to_matrix(True)
+        expected_metric_tensor = bound_raw_metric_tensor.eval()
 
         np.testing.assert_almost_equal(metric_tensor.to_matrix(True), expected_metric_tensor)
 
@@ -88,7 +88,7 @@ class TestImaginaryMcLachlanVariationalPrinciple(QiskitAlgorithmsTestCase):
         evolution_grad = var_principle.evolution_grad
 
         bound_raw_evolution_grad = raw_evolution_grad.bind_parameters(param_dict)
-        expected_evolution_grad = -bound_raw_evolution_grad.to_matrix(True)
+        expected_evolution_grad = -bound_raw_evolution_grad.eval()
 
         np.testing.assert_almost_equal(evolution_grad.to_matrix(True), expected_evolution_grad)
 

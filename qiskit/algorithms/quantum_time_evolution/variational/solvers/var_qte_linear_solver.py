@@ -27,12 +27,12 @@ from qiskit.utils import QuantumInstance
 
 class VarQteLinearSolver:
     def __init__(
-            self,
-            grad_circ_sampler: CircuitSampler,
-            metric_circ_sampler: CircuitSampler,
-            nat_grad_circ_sampler: CircuitSampler,
-            regularization: Optional[str] = None,
-            backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
+        self,
+        grad_circ_sampler: CircuitSampler,
+        metric_circ_sampler: CircuitSampler,
+        nat_grad_circ_sampler: CircuitSampler,
+        regularization: Optional[str] = None,
+        backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
     ):
 
         self._backend = backend
@@ -43,11 +43,11 @@ class VarQteLinearSolver:
             self._nat_grad_circ_sampler = nat_grad_circ_sampler
 
     def _solve_sle(
-            self,
-            var_principle: VariationalPrinciple,
-            param_dict: Dict[Parameter, Union[float, complex]],
-            t_param: Parameter = None,
-            t: float = None
+        self,
+        var_principle: VariationalPrinciple,
+        param_dict: Dict[Parameter, Union[float, complex]],
+        t_param: Parameter = None,
+        t: float = None,
     ) -> (Union[List, np.ndarray], Union[List, np.ndarray], np.ndarray):
         """
         Solve the system of linear equations underlying McLachlan's variational principle
@@ -63,9 +63,9 @@ class VarQteLinearSolver:
         print(evolution_grad.assign_parameters(param_dict).to_matrix())
         #
         # print("Metrix tensor")
-        # print(metric_tensor.assign_parameters(param_dict).to_matrix(True))
+        # print(metric_tensor.assign_parameters(param_dict).eval())
         # print("Evol grad")
-        # print(evolution_grad.assign_parameters(param_dict).to_matrix(True))
+        # print(evolution_grad.assign_parameters(param_dict).eval())
 
         # bind time parameter for the current value of time from the ODE solver
 
@@ -85,14 +85,12 @@ class VarQteLinearSolver:
         # Check if numerical instabilities lead to a metric which is not positive semidefinite
         metric_res = self._check_and_fix_metric_psd(metric_res)
 
-
-
         return np.real(nat_grad_result), grad_res, metric_res
 
     def _calc_nat_grad_result(
-            self,
-            param_dict: Dict[Parameter, Union[float, complex]],
-            var_principle: VariationalPrinciple,
+        self,
+        param_dict: Dict[Parameter, Union[float, complex]],
+        var_principle: VariationalPrinciple,
     ):
 
         nat_grad = var_principle._nat_grad
@@ -116,10 +114,10 @@ class VarQteLinearSolver:
         if any(np.abs(np.imag(grad_res_item)) > 1e-3 for grad_res_item in grad_res):
             raise Warning("The imaginary part of the gradient are non-negligible.")
         if np.any(
-                [
-                    [np.abs(np.imag(metric_res_item)) > 1e-3 for metric_res_item in metric_res_row]
-                    for metric_res_row in metric_res
-                ]
+            [
+                [np.abs(np.imag(metric_res_item)) > 1e-3 for metric_res_item in metric_res_row]
+                for metric_res_row in metric_res
+            ]
         ):
             raise Warning("The imaginary part of the metric are non-negligible.")
 
@@ -145,14 +143,13 @@ class VarQteLinearSolver:
         return metric_res
 
     def _eval_metric_tensor(
-            self, metric_tensor, param_dict: Dict[Parameter, Union[float, complex]]
+        self, metric_tensor, param_dict: Dict[Parameter, Union[float, complex]]
     ):
         if self._backend is not None:
             # Get the QFI/4
             metric_res = (
-                    np.array(
-                        self._metric_circ_sampler.convert(metric_tensor, params=param_dict).eval())
-                    * 0.25
+                np.array(self._metric_circ_sampler.convert(metric_tensor, params=param_dict).eval())
+                * 0.25
             )
         else:
             # Get the QFI/4
@@ -160,7 +157,7 @@ class VarQteLinearSolver:
         return metric_res
 
     def _eval_evolution_grad(
-            self, evolution_grad, param_dict: Dict[Parameter, Union[float, complex]]
+        self, evolution_grad, param_dict: Dict[Parameter, Union[float, complex]]
     ):
         if self._backend is not None:
             grad_res = np.array(

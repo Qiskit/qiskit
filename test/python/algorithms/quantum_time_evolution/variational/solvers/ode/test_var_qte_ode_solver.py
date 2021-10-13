@@ -101,13 +101,10 @@ class TestVarQteOdeSolver(QiskitAlgorithmsTestCase):
             error_calculator,
             param_dict,
             var_principle,
-            state,  # TODO or init_state? from other tests
-            h,
             CircuitSampler(backend),
             CircuitSampler(backend),
             CircuitSampler(backend),
             reg,
-            CircuitSampler(backend),
             None,
             error_based_ode,
         )

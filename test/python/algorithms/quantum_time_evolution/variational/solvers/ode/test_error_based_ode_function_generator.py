@@ -94,7 +94,7 @@ class TestErrorBasedOdeFunctionGenerator(QiskitAlgorithmsTestCase):
             CircuitSampler(backend),
         )
 
-        qte_ode_function = ode_function_generator.error_based_ode_fun()
+        qte_ode_function = ode_function_generator.error_based_ode_fun(t=1)
         # TODO extract
         expected_qte_ode_function = (
             array(
