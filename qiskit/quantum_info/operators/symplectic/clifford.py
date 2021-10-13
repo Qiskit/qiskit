@@ -525,7 +525,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
 
         return padded
 
-    # These implement the required methods of the CircuitElement mixin
+    # These implement the required methods of the Operation mixin
 
     @property
     def name(self):

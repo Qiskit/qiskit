@@ -45,5 +45,5 @@ class Operation(ABC):
     @property
     @abstractmethod
     def params(self):
-        """List of parameters to specialize a specific CircuitElement instance."""
+        """List of parameters to specialize a specific Operation instance."""
         raise NotImplementedError
