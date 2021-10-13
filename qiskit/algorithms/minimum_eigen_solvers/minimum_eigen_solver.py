@@ -13,7 +13,7 @@
 """The Minimum Eigensolver interface"""
 
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, Any, List, Union, TypeVar
+from typing import Dict, Optional, List, Union, TypeVar
 
 import numpy as np
 from qiskit.opflow import OperatorBase
