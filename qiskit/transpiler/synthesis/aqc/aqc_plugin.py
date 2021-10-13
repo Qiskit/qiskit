@@ -12,82 +12,66 @@
 """
 An AQC synthesis plugin to Qiskit's transpiler.
 """
-import abc
-
 import numpy as np
 
 from qiskit.algorithms.optimizers import L_BFGS_B
 from qiskit.converters import circuit_to_dag
+from qiskit.transpiler.passes.synthesis.plugin import UnitarySynthesisPlugin
 from qiskit.transpiler.synthesis.aqc.aqc import AQC
 from qiskit.transpiler.synthesis.aqc.cnot_structures import make_cnot_network
-
-# todo: this is a copy from the PR: https://github.com/Qiskit/qiskit-terra/pull/6124
 from qiskit.transpiler.synthesis.aqc.cnot_unit_circuit import CNOTUnitCircuit
 from qiskit.transpiler.synthesis.aqc.cnot_unit_objective import DefaultCNOTUnitObjective
-
-
-class UnitarySynthesisPlugin(abc.ABC):
-    """
-    Abstract plugin Synthesis plugin class.
-    This abstract class defines the interface for unitary synthesis plugins.
-    """
-
-    @property
-    @abc.abstractmethod
-    def supports_basis_gates(self):
-        """Return whether the plugin supports taking basis_gates"""
-        pass
-
-    @property
-    @abc.abstractmethod
-    def supports_coupling_map(self):
-        """Return whether the plugin supports taking coupling_map"""
-        pass
-
-    @property
-    @abc.abstractmethod
-    def supports_approximation_degree(self):
-        """Return whether the plugin supports taking approximation_degree"""
-        pass
-
-    @abc.abstractmethod
-    def run(self, unitary, **options):
-        """Run synthesis for the given unitary matrix
-        Args:
-            unitary (numpy.ndarray): The unitary matrix to synthesize to a
-                :class:`~qiskit.dagcircuit.DAGCircuit` object
-            options: The optional kwargs that are passed based on the output
-                of :meth:`supports_basis_gates`, :meth:`supports_coupling_map`,
-                and :meth:`supports_approximation_degree`. If
-                :meth:`supports_coupling_map` returns ``True`` a kwarg
-                ``coupling_map`` will be passed either containing ``None`` (if
-                there is no coupling map) or a
-                :class:`~qiskit.transpiler.CouplingMap` object. If
-                :meth:`supports_basis_gates` returns ``True`` then a kwarg
-                ``basis_gates`` will the list of basis gate names will be
-                passed. Finally if :meth:`supports_approximation_degree`
-                returns ``True`` a kwarg ``approximation_degree`` containing
-                a float for the approximation value will be passed.
-        Returns:
-            DAGCircuit: The dag circuit representation of the unitary
-        """
-        pass
 
 
 class AQCSynthesisPlugin(UnitarySynthesisPlugin):
     """An AQC-based Qiskit unitary synthesis plugin."""
 
     @property
+    def max_qubits(self):
+        """Maximum number of supported qubits is ``10``."""
+        return 10
+
+    @property
+    def min_qubits(self):
+        """Minimum number of supported qubits is ``3``."""
+        return 3
+
+    @property
+    def supports_natural_direction(self):
+        """The plugin does not support natural direction,
+        it assumes bidirectional two qubit gates."""
+        return False
+
+    @property
+    def supports_pulse_optimize(self):
+        """The plugin does not support optimization of pulses."""
+        return False
+
+    @property
+    def supports_gate_lengths(self):
+        """The plugin does not support gate lengths."""
+        return False
+
+    @property
+    def supports_gate_errors(self):
+        """The plugin does not support gate errors."""
+        return False
+
+    @property
+    def supported_bases(self):
+        """The plugin does not support bases for synthesis."""
+        return None
+
+    @property
     def supports_basis_gates(self):
+        """The plugin does not support basis gates and by default it synthesizes a circuit using
+        ``["rx", "ry", "rz", "cx"]`` gate basis."""
         return False
 
     @property
     def supports_coupling_map(self):
+        """The plugin does not support coupling maps."""
         return False
-
-    @property
-    def supports_approximation_degree(self):
-        return True
 
     def run(self, unitary, **options):
         num_qubits = int(round(np.log2(unitary.shape[0])))
@@ -107,10 +91,9 @@ class AQCSynthesisPlugin(UnitarySynthesisPlugin):
         optimizer = L_BFGS_B(maxiter=max_iter)
         aqc = AQC(optimizer, seed)
 
-        tol = options.get("approximation_degree") or 0.01
         name = options.get("approx_name") or "aqc"
-        approximate_circuit = CNOTUnitCircuit(num_qubits, cnots, tol, name)
-        approximating_objective = DefaultCNOTUnitObjective(num_qubits, cnots)
+        approximate_circuit = CNOTUnitCircuit(num_qubits=num_qubits, cnots=cnots, name=name)
+        approximating_objective = DefaultCNOTUnitObjective(num_qubits=num_qubits, cnots=cnots)
 
         aqc.compile_unitary(
             target_matrix=unitary,
