@@ -345,8 +345,7 @@ class SparsePauliOp(LinearOp):
         array = np.packbits(self.paulis.x, axis=1) * 256 + np.packbits(self.paulis.z, axis=1)
         _, indexes, inverses = np.unique(array, return_index=True, return_inverse=True, axis=0)
         coeffs = np.zeros(indexes.shape[0], dtype=complex)
-        for i, val in zip(inverses, self.coeffs):
-            coeffs[i] += val
+        np.add.at(coeffs, inverses, self.coeffs)
         # Delete zero coefficient rows
         # TODO: Add atol/rtol for zero comparison
         is_zero = np.isclose(coeffs, 0, atol=atol, rtol=rtol)
