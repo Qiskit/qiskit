@@ -174,6 +174,7 @@ from .basis import BasisTranslator
 from .optimization import Optimize1qGates
 from .optimization import Optimize1qGatesDecomposition
 from .optimization import Collect2qBlocks
+from .optimization import CollectMultiQBlocks
 from .optimization import ConsolidateBlocks
 from .optimization import CommutationAnalysis
 from .optimization import CommutativeCancellation
