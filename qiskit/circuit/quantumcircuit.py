@@ -1123,7 +1123,7 @@ class QuantumCircuit(Operation):
 
     def append(
         self,
-        instruction: Operation,
+        instruction: Instruction,
         qargs: Optional[Sequence[QubitSpecifier]] = None,
         cargs: Optional[Sequence[ClbitSpecifier]] = None,
     ) -> InstructionSet:
@@ -1143,7 +1143,7 @@ class QuantumCircuit(Operation):
             CircuitError: if object passed is neither subclass nor an instance of Instruction
         """
         # Convert input to instruction
-        if not isinstance(instruction, Operation) and not hasattr(instruction, "to_instruction"):
+        if not isinstance(instruction, Instruction) and not hasattr(instruction, "to_instruction"):
             if issubclass(instruction, Instruction):
                 raise CircuitError(
                     "Object is a subclass of Instruction, please add () to "
@@ -1172,7 +1172,7 @@ class QuantumCircuit(Operation):
         return instructions
 
     def _append(
-        self, instruction: Operation, qargs: Sequence[Qubit], cargs: Sequence[Clbit]
+        self, instruction: Instruction, qargs: Sequence[Qubit], cargs: Sequence[Clbit]
     ) -> Instruction:
         """Append an instruction to the end of the circuit, modifying
         the circuit in place.
@@ -1189,8 +1189,8 @@ class QuantumCircuit(Operation):
             CircuitError: if the gate is of a different shape than the wires
                 it is being attached to.
         """
-        if not isinstance(instruction, Operation):
-            raise CircuitError("object is not a Operation.")
+        if not isinstance(instruction, Instruction):
+            raise CircuitError("object is not a Instruction.")
 
         # do some compatibility checks
         self._check_dups(qargs)
