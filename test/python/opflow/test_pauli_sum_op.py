@@ -306,6 +306,32 @@ class TestPauliSumOp(QiskitOpflowTestCase):
                 np.array_equal(i.toarray(), coeff * coeffs[idx] * Pauli(labels[idx]).to_matrix())
             )
 
+    def test_is_hermitian(self):
+        """Test is_hermitian method"""
+        with self.subTest("True test"):
+            target = PauliSumOp.from_list(
+                [
+                    ("II", -1.052373245772859),
+                    ("IZ", 0.39793742484318045),
+                    ("ZI", -0.39793742484318045),
+                    ("ZZ", -0.01128010425623538),
+                    ("XX", 0.18093119978423156),
+                ]
+            )
+            self.assertTrue(target.is_hermitian())
+
+        with self.subTest("False test"):
+            target = PauliSumOp.from_list(
+                [
+                    ("II", -1.052373245772859),
+                    ("IZ", 0.39793742484318045j),
+                    ("ZI", -0.39793742484318045),
+                    ("ZZ", -0.01128010425623538),
+                    ("XX", 0.18093119978423156),
+                ]
+            )
+            self.assertFalse(target.is_hermitian())
+
 
 if __name__ == "__main__":
     unittest.main()

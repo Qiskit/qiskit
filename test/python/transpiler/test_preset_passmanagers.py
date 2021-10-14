@@ -11,6 +11,9 @@
 # that they have been altered from the originals.
 
 """Tests preset pass manager API"""
+
+import unittest
+
 from test import combine
 from ddt import ddt, data
 
@@ -50,6 +53,21 @@ def circuit_2532():
 @ddt
 class TestPresetPassManager(QiskitTestCase):
     """Test preset passmanagers work as expected."""
+
+    @combine(level=[0, 1, 2, 3], name="level{level}")
+    def test_no_coupling_map_with_sabre(self, level):
+        """Test that coupling_map can be None with Sabre (level={level})"""
+        q = QuantumRegister(2, name="q")
+        circuit = QuantumCircuit(q)
+        circuit.cz(q[0], q[1])
+        result = transpile(
+            circuit,
+            coupling_map=None,
+            layout_method="sabre",
+            routing_method="sabre",
+            optimization_level=level,
+        )
+        self.assertEqual(result, circuit)
 
     @combine(level=[0, 1, 2, 3], name="level{level}")
     def test_no_coupling_map(self, level):
@@ -158,6 +176,31 @@ class TestPresetPassManager(QiskitTestCase):
         dag = circuit_to_dag(result)
         circuit_ops = {node.name for node in dag.topological_op_nodes()}
         self.assertEqual(circuit_ops.union(set(basis_gates)), set(basis_gates))
+
+    @combine(level=[0, 1, 2, 3], name="level{level}")
+    def test_alignment_constraints_called_with_by_default(self, level):
+        """Test that TimeUnitConversion is not called if there is no delay in the circuit."""
+        q = QuantumRegister(2, name="q")
+        circuit = QuantumCircuit(q)
+        circuit.h(q[0])
+        circuit.cz(q[0], q[1])
+        with unittest.mock.patch("qiskit.transpiler.passes.TimeUnitConversion.run") as mock:
+            transpile(circuit, backend=FakeJohannesburg(), optimization_level=level)
+        mock.assert_not_called()
+
+    @combine(level=[0, 1, 2, 3], name="level{level}")
+    def test_alignment_constraints_called_with_delay_in_circuit(self, level):
+        """Test that TimeUnitConversion is called if there is a delay in the circuit."""
+        q = QuantumRegister(2, name="q")
+        circuit = QuantumCircuit(q)
+        circuit.h(q[0])
+        circuit.cz(q[0], q[1])
+        circuit.delay(9.5, unit="ns")
+        with unittest.mock.patch(
+            "qiskit.transpiler.passes.TimeUnitConversion.run", return_value=circuit_to_dag(circuit)
+        ) as mock:
+            transpile(circuit, backend=FakeJohannesburg(), optimization_level=level)
+        mock.assert_called_once()
 
 
 @ddt
