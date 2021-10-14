@@ -48,8 +48,8 @@ class AdaptQAOA(QAOA):
         initial_state: Optional[QuantumCircuit] = None,
         gamma_init: Optional[float] = 0.01,
         beta_init: Optional[float] = np.pi / 4,
-        mixer_pool: Optional[List] = None, # todo: make this list either Operator or QuantumCircuit
-        mixer_pool_type: Optional[str] = 'multi',
+        mixer_pool: Optional[Union[OperatorBase, QuantumCircuit]] = None,
+        mixer_pool_type: Optional[str] = "multi",
         threshold: Optional[
             Callable[[int, float], None]
         ] = None,  # todo: add default value for threshold
@@ -69,8 +69,8 @@ class AdaptQAOA(QAOA):
             beta_init: An optional initial value for the parameter beta to use as a starting value for the optimizer.
             mixer_pool: An optional custom list of Operators or QuantumCircuits that make up a pool from which mixers are chosen from.
                 Cannot be used in conjunction with `mixer_pool_type`.
-            mixer_pool_type: An optional string representing different mixer pool types `single` creates the same mixer pool as the 
-                standard QAOA. `singular` creates a mixer pool including mixers in `single` as well as additional single qubit 
+            mixer_pool_type: An optional string representing different mixer pool types `single` creates the same mixer pool as the
+                standard QAOA. `singular` creates a mixer pool including mixers in `single` as well as additional single qubit
                 mixers. `multi` creates a mixer pool including mixers from `single`, `singular` as well as multi-qubit entangling mixers.
                 Cannot be used in conjuction with `mixer_pool`.
             threshold: A value in which the algorithm stops once the norm of the gradient is below this threshold.
@@ -123,20 +123,27 @@ class AdaptQAOA(QAOA):
         self.max_reps = max_reps
         self.best_gamma = []
         self.best_beta = []
-        self.num_qubits = 5 #TODO: change this to num qubits, should read directly from cost operator
+        self.num_qubits = 5  # TODO: change this to num qubits, should read directly from cost operator
 
         if self.mixer_pool is not None and self.mixer_pool_type is not None:
-            raise AttributeError("A custom mixer can be passed in or a mixer pool type can be passed in but not both")
+            raise AttributeError(
+                "A custom mixer can be passed in or a mixer pool type can be passed in but not both"
+            )
         if self.mixer_pool_type == "multi":
-            self.mixer_pool = adapt_mixer_pool(num_qubits=self.num_qubits, add_single=True, add_multi=True)
+            self.mixer_pool = adapt_mixer_pool(
+                num_qubits=self.num_qubits, add_single=True, add_multi=True
+            )
         elif self.mixer_pool_type == "singular":
-            self.mixer_pool = adapt_mixer_pool(num_qubits=self.num_qubits, add_single=True, add_multi=False)
+            self.mixer_pool = adapt_mixer_pool(
+                num_qubits=self.num_qubits, add_single=True, add_multi=False
+            )
         elif self.mixer_pool_type == "single":
-            self.mixer_pool = adapt_mixer_pool(num_qubits=self.num_qubits, add_single=False, add_multi=False)
+            self.mixer_pool = adapt_mixer_pool(
+                num_qubits=self.num_qubits, add_single=False, add_multi=False
+            )
         elif self.mixer_pool_type is None:
-            self.mixer_pool = mixer_pool #todo: check if this list of operators/circuits needs more preprocessing before use
+            self.mixer_pool = mixer_pool  # todo: check if this list of operators/circuits needs more preprocessing before use
 
-        
     def _check_operator_ansatz(self, operator: OperatorBase, mixer_list=None) -> OperatorBase:
         # Recreates a circuit based on operator parameter.
         if mixer_list is None:
@@ -145,7 +152,7 @@ class AdaptQAOA(QAOA):
         self.ansatz = QAOAAnsatz(
             operator, self._reps, initial_state=self._initial_state, mixer_operator=mixer_list
         )
-        
+
         self._ansatz_params = sorted(self.ansatz.parameters, key=lambda p: p.name)
 
         return self.ansatz
@@ -177,7 +184,7 @@ class AdaptQAOA(QAOA):
         exp_hc, exp_hc_ad = [_.to_matrix() for _ in [exp_hc, exp_hc.adjoint()]]
         energy_grad_op = exp_hc_ad @ (commutator(1j * cost_operator, mixer).to_matrix()) @ exp_hc
         energy_grad_op = PrimitiveOp(energy_grad_op)
-        
+
         expectation = ExpectationFactory.build(
             operator=energy_grad_op,
             backend=self.quantum_instance,
@@ -203,7 +210,6 @@ class AdaptQAOA(QAOA):
             meas = np.abs(np.real(sampled_expect_op.eval()))
             energy_gradients.append(meas)
         return self.mixer_pool[np.argmax(energy_gradients)], np.max(energy_gradients)
-
 
     def constuct_adapt_ansatz(self, operator: OperatorBase) -> OperatorBase:
         energy_norm, p = 0, 0
@@ -320,7 +326,8 @@ def adapt_mixer_pool(num_qubits: int, add_single: bool = True, add_multi: bool =
             iden_str[item[0][1]] = item[1][1]
             mixer_pool.append("".join(iden_str))
 
-    op_dict = {"I": I, "X": X, "Y": Y, "Z": Z} 
+    op_dict = {"I": I, "X": X, "Y": Y, "Z": Z}
+
     def is_all_same(items):
         return all(x == items[0] for x in items)
 
@@ -329,8 +336,14 @@ def adapt_mixer_pool(num_qubits: int, add_single: bool = True, add_multi: bool =
             # case where its all X's or Y's
             gate = qstring[0]
             list_string = [
-                i * "I" + gate + (len(qstring) - i - 1) * "I" for i in range(len(qstring))]
-            return sum([reduce(lambda a, b: a ^ b, [op_dict[char.upper()] for char in x]) for x in list_string])
+                i * "I" + gate + (len(qstring) - i - 1) * "I" for i in range(len(qstring))
+            ]
+            return sum(
+                [
+                    reduce(lambda a, b: a ^ b, [op_dict[char.upper()] for char in x])
+                    for x in list_string
+                ]
+            )
 
         return reduce(lambda a, b: a ^ b, [op_dict[char.upper()] for char in qstring])
 
@@ -363,4 +376,3 @@ def adapt_mixer_pool(num_qubits: int, add_single: bool = True, add_multi: bool =
 #             initial_point=init_guess)
 # # print(adqaoa.compute_minimum_eigenvalue(Hc))
 # print(adqaoa.construct_circuit(init_guess,Hc))
-
