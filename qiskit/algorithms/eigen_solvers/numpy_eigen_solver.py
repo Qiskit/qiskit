@@ -20,9 +20,8 @@ from scipy import sparse as scisparse
 
 from qiskit.opflow import I, ListOp, OperatorBase, StateFn
 from qiskit.utils.validation import validate_min
-
 from ..exceptions import AlgorithmError
-from .eigen_solver import Eigensolver, EigensolverResult
+from .eigen_solver import Eigensolver, EigensolverResult, ListOrDict
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +46,7 @@ class NumPyEigensolver(Eigensolver):
         self,
         k: int = 1,
         filter_criterion: Callable[
-            [Union[List, np.ndarray], float, Optional[List[float]]], bool
+            [Union[List, np.ndarray], float, Optional[ListOrDict[float]]], bool
         ] = None,
     ) -> None:
         """
@@ -85,7 +84,7 @@ class NumPyEigensolver(Eigensolver):
     @property
     def filter_criterion(
         self,
-    ) -> Optional[Callable[[Union[List, np.ndarray], float, Optional[List[float]]], bool]]:
+    ) -> Optional[Callable[[Union[List, np.ndarray], float, Optional[ListOrDict[float]]], bool]]:
         """returns the filter criterion if set"""
         return self._filter_criterion
 
@@ -93,7 +92,7 @@ class NumPyEigensolver(Eigensolver):
     def filter_criterion(
         self,
         filter_criterion: Optional[
-            Callable[[Union[List, np.ndarray], float, Optional[List[float]]], bool]
+            Callable[[Union[List, np.ndarray], float, Optional[ListOrDict[float]]], bool]
         ],
     ) -> None:
         """set the filter criterion"""
@@ -150,7 +149,7 @@ class NumPyEigensolver(Eigensolver):
             self._solve(operator)
 
     def _get_energies(
-        self, operator: OperatorBase, aux_operators: Optional[List[OperatorBase]]
+        self, operator: OperatorBase, aux_operators: Optional[ListOrDict[OperatorBase]]
     ) -> None:
         if self._ret.eigenvalues is None or self._ret.eigenstates is None:
             self._solve(operator)
@@ -165,12 +164,19 @@ class NumPyEigensolver(Eigensolver):
 
     @staticmethod
     def _eval_aux_operators(
-        aux_operators: List[OperatorBase], wavefn, threshold: float = 1e-12
-    ) -> np.ndarray:
-        values = []  # type: List[Tuple[float, int]]
-        for operator in aux_operators:
+        aux_operators: ListOrDict[OperatorBase], wavefn, threshold: float = 1e-12
+    ) -> ListOrDict[Tuple[float, int]]:
+
+        # As a list, aux_operators can contain None operators for which None values are returned.
+        # As a dict, the None operators in aux_operators have been dropped in compute_eigenvalues.
+        if isinstance(aux_operators, list):
+            values = [None] * len(aux_operators)  # type: ListOrDict[Tuple[float, int]]
+            key_op_iterator = enumerate(aux_operators)
+        else:
+            values = {}
+            key_op_iterator = aux_operators.items()
+        for key, operator in key_op_iterator:
             if operator is None:
-                values.append(None)
                 continue
             value = 0.0
             if operator.coeff != 0:
@@ -183,11 +189,11 @@ class NumPyEigensolver(Eigensolver):
                 else:
                     value = StateFn(operator, is_measurement=True).eval(wavefn)
                 value = value.real if abs(value.real) > threshold else 0.0
-            values.append((value, 0))
-        return np.array(values, dtype=object)
+            values[key] = (value, 0)
+        return values
 
     def compute_eigenvalues(
-        self, operator: OperatorBase, aux_operators: Optional[List[Optional[OperatorBase]]] = None
+        self, operator: OperatorBase, aux_operators: Optional[ListOrDict[OperatorBase]] = None
     ) -> EigensolverResult:
         super().compute_eigenvalues(operator, aux_operators)
 
@@ -195,10 +201,16 @@ class NumPyEigensolver(Eigensolver):
             raise AlgorithmError("Operator was never provided")
 
         self._check_set_k(operator)
-        if aux_operators:
-            zero_op = I.tensorpower(operator.num_qubits) * 0.0
+        zero_op = I.tensorpower(operator.num_qubits) * 0.0
+        if isinstance(aux_operators, list) and len(aux_operators) > 0:
             # For some reason Chemistry passes aux_ops with 0 qubits and paulis sometimes.
             aux_operators = [zero_op if op == 0 else op for op in aux_operators]
+        elif isinstance(aux_operators, dict) and len(aux_operators) > 0:
+            aux_operators = {
+                key: zero_op if op == 0 else op  # Convert zero values to zero operators
+                for key, op in aux_operators.items()
+                if op is not None  # Discard None values
+            }
         else:
             aux_operators = None
 
