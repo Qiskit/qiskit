@@ -47,6 +47,7 @@ def pi_check(inpt, eps=1e-6, output="text", ndigits=5):
     if isinstance(inpt, ParameterExpression):
         param_str = str(inpt)
         from sympy import sympify
+
         expr = sympify(inpt._symbol_expr)
         syms = expr.atoms()
         for sym in syms:
