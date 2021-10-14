@@ -26,10 +26,21 @@ from qiskit.transpiler.synthesis.aqc.cnot_unit_objective import DefaultCNOTUnitO
 class AQCSynthesisPlugin(UnitarySynthesisPlugin):
     """An AQC-based Qiskit unitary synthesis plugin."""
 
+    def __init__(self) -> None:
+        super().__init__()
+
+        # define defaults
+        self._layout = "spin"
+        self._layout = "spin"
+        self._connectivity = "full"
+        self._depth = 0
+        self._seed = 12345
+        self._maxiter = 1000
+
     @property
     def max_qubits(self):
-        """Maximum number of supported qubits is ``10``."""
-        return 10
+        """Maximum number of supported qubits is ``14``."""
+        return 14
 
     @property
     def min_qubits(self):
@@ -76,23 +87,17 @@ class AQCSynthesisPlugin(UnitarySynthesisPlugin):
     def run(self, unitary, **options):
         num_qubits = int(round(np.log2(unitary.shape[0])))
 
-        layout = options.get("layout") or "spin"
-        connectivity = options.get("connectivity") or "full"
-        depth = int(options.get("depth") or 0)
         cnots = make_cnot_network(
             num_qubits=num_qubits,
-            network_layout=layout,
-            connectivity_type=connectivity,
-            depth=depth,
+            network_layout=self._layout,
+            connectivity_type=self._connectivity,
+            depth=self._depth,
         )
 
-        seed = options.get("seed")
-        max_iter = options.get("max_iter") or 1000
-        optimizer = L_BFGS_B(maxiter=max_iter)
-        aqc = AQC(optimizer, seed)
+        optimizer = L_BFGS_B(maxiter=self._maxiter)
+        aqc = AQC(optimizer, self._seed)
 
-        name = options.get("approx_name") or "aqc"
-        approximate_circuit = CNOTUnitCircuit(num_qubits=num_qubits, cnots=cnots, name=name)
+        approximate_circuit = CNOTUnitCircuit(num_qubits=num_qubits, cnots=cnots)
         approximating_objective = DefaultCNOTUnitObjective(num_qubits=num_qubits, cnots=cnots)
 
         aqc.compile_unitary(
