@@ -676,10 +676,55 @@ steps for each element.
 Set up the Virtual Development Environment
 ==========================================
 
-.. code-block:: sh
+Virtual environments are used for Qiskit development to isolate the development environment
+from system-wide packages. This way, we avoid inadvertently becoming dependent on a
+particular system configuration. For developers, this also makes it easy to maintain multiple
+environments (e.g. one per supported Python version, for older versions of Qiskit, etc.).
 
-   conda create -y -n QiskitDevenv python=3
-   conda activate QiskitDevenv
+.. note::
+
+   **M1 Mac users:** Some Qiskit dependencies may not yet be available in PyPI. Until they are,
+   Conda is recommended.
+
+
+.. tabbed:: Python venv
+
+   All Python versions supported by Qiskit include built-in virtual environment module
+   `venv <https://docs.python.org/3/tutorial/venv.html>`__.
+
+   Start by creating a new virtual environment with ``venv``. The resulting
+   environment will use the same version of Python that created it and will not inherit installed
+   system-wide packages by default. The specified folder will be created and is used to hold the environment's
+   installation. It can be placed anywhere. For more detail, see the official Python documentation,
+   `Creation of virtual environments <https://docs.python.org/3/library/venv.html>`__.
+
+   .. code-block:: sh
+
+      python3 -m venv ~/.venvs/qiskit-dev
+
+   Activate the environment by invoking the appropriate activation script for your system, which can
+   be found within the environment folder. For example, for bash/zsh:
+
+   .. code-block:: sh
+
+      source ~/.venvs/qiskit-dev/bin/activate
+
+   Upgrade pip within the environment to ensure Qiskit dependencies installed in the subsequent sections
+   can be located for your system.
+
+   .. code-block:: sh
+
+      pip install -U pip
+
+.. tabbed:: Conda
+
+   For Conda users, a new environment can be created as follows.
+
+   .. code-block:: sh
+
+      conda create -y -n QiskitDevenv python=3
+      conda activate QiskitDevenv
+
 
 .. _install-qiskit-terra:
 
@@ -841,6 +886,11 @@ universally depending on operating system.
 
 
 .. tabbed:: macOS
+
+   .. note::
+      **Mac M1 Users:** There are ongoing issues with building Aer for AArch64 macOS.
+      See `#1286 <https://github.com/Qiskit/qiskit-aer/issues/1286>`__ for discussion and
+      workarounds before continuing.
 
    3. Install dependencies.
 
