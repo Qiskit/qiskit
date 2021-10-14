@@ -287,7 +287,7 @@ class TestAlignMeasures(QiskitTestCase):
         c: 1/══════════════════════════════════════╩════╡ c_0 = T ╞═════╩═
                                                    0    └─────────┘     0
 
-        Looking at te q_0, the total schedule length T becomes
+        Looking at the q_0, the total schedule length T becomes
         160 (x) + 112 (aligned delay) + 1600 (measure) + 160 (delay) = 2032.
         The last delay comes from ALAP scheduling called before the AlignMeasure pass,
         which aligns stop times as late as possible, so the start time of x(1).c_if(0)
