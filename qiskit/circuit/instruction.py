@@ -42,12 +42,11 @@ from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.circuit.parameter import ParameterExpression
 from .tools import pi_check
-from .operation import Operation
 
 _CUTOFF_PRECISION = 1e-10
 
 
-class Instruction(Operation):
+class Instruction:
     """Generic quantum instruction."""
 
     # Class attribute to treat like barrier for transpiler, unroller, drawer
@@ -76,9 +75,9 @@ class Instruction(Operation):
             raise CircuitError(
                 "bad instruction dimensions: %d qubits, %d clbits." % num_qubits, num_clbits
             )
-        self._name = name
-        self._num_qubits = num_qubits
-        self._num_clbits = num_clbits
+        self.name = name
+        self.num_qubits = num_qubits
+        self.num_clbits = num_clbits
 
         self._params = []  # a list of gate params stored
         # Custom instruction label
@@ -431,7 +430,7 @@ class Instruction(Operation):
         cpy = self.__deepcopy__()
 
         if name:
-            cpy._name = name
+            cpy.name = name
         return cpy
 
     def __deepcopy__(self, _memo=None):
@@ -529,28 +528,3 @@ class Instruction(Operation):
             qc.data = [(self, qargs[:], cargs[:])] * n
         instruction.definition = qc
         return instruction
-
-    @property
-    def name(self):
-        """Unique string identifier for operation type."""
-        return self._name
-
-    @name.setter
-    def name(self, name):
-        """Set the name."""
-        self._name = name
-
-    @property
-    def num_qubits(self):
-        """Number of qubits."""
-        return self._num_qubits
-
-    @property
-    def num_clbits(self):
-        """Number of classical bits."""
-        return self._num_clbits
-
-    @property
-    def num_params(self):
-        """Number of parameters."""
-        return self.num_params
