@@ -310,7 +310,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     pm2.append(_reset)
     pm2.append(_depth_check + _opt + _unroll, do_while=_opt_control)
     if inst_map and inst_map.has_custom_gate():
-        pm2.append(LabelIdentifier())
+        pm2.append(LabelIdentifier(inst_map=inst_map))
         pm2.append(PulseGates(inst_map=inst_map))
     pm2.append(_scheduling)
     pm2.append(_alignments)

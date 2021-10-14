@@ -13,6 +13,7 @@
 """Instruction replacement for labeled gate."""
 
 from qiskit.dagcircuit import DAGCircuit
+from qiskit.pulse import InstructionScheduleMap
 from qiskit.transpiler.basepasses import TransformationPass
 
 
@@ -24,6 +25,18 @@ class LabelIdentifier(TransformationPass):
         circuit equivalence library. Thus further optimization on the
         instruction will be just ignored.
     """
+
+    def __init__(
+        self,
+        inst_map: InstructionScheduleMap,
+    ):
+        """Create new pass.
+
+        Args:
+            inst_map: Instruction schedule map that user may override.
+        """
+        super().__init__()
+        self.inst_map = inst_map
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run label identifier pass on dag.
@@ -37,6 +50,8 @@ class LabelIdentifier(TransformationPass):
         for node in dag.topological_op_nodes():
             label = getattr(node.op, "label", None)
             if label:
-                node.name = f"{node.name}_{label}"
+                qubits = list(dag.qubits.index(q) for q in node.qargs)
+                if self.inst_map.has(instruction=node.op, qubits=qubits):
+                    node.name = f"{node.name}_{label}"
 
         return dag
