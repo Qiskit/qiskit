@@ -1,0 +1,29 @@
+---
+features:
+  - |
+    Added two new classes, :class:`~qiskit.utils.mitigation.CompleteMeasFitter`
+    and :class:`~qiskit.utils.mitigation.TensoredMeasFitter` to the
+    :mod:`qiskit.utils.mitigation` module. These classes are for use only as
+    values for the ``measurement_error_mitigation_cls`` kwarg of the
+    :class:`~qiskit.utils.QuantumInstance` class. The instantiation and usage
+    of these classes (or anything else in :mod:`qiskit.utils.mitigation`)
+    outside of the ``measurement_error_mitigation_cls`` kwarg should be treated as an
+    internal private API and not relied upon.
+deprecations:
+  - |
+    The use of the measurement mitigation classes
+    :class:`qiskit.ignis.mitigation.CompleteMeasFitter` and
+    :class:`qiskit.ignis.mitigation.TensoredMeasFitter` from ``qiskit-ignis``
+    as values for the ``measurement_error_mitigation_cls`` kwarg of the
+    constructor for the :class:`~qiskit.utils.QuantumInstance` class is
+    deprecated and will be removed in a future release. Instead the equivalent
+    classes from :mod:`qiskit.utils.mitigation`,
+    :class:`~qiskit.utils.mitigation.CompleteMeasFitter` and
+    :class:`~qiskit.utils.mitigation.TensoredMeasFitter` should be used. This
+    was necessary as the ``qiskit-ignis`` project is now deprecated and will
+    no longer be supported in the near future.
+    It's worth noting that unlike the equivalent classes from ``qiskit-ignis``
+    the versions from :mod:`qiskit.utils.mitigation` are supported only in
+    their use with :class:`~qiskit.utils.QuantumInstance` (ie as a class not
+    an instance with the ``measurement_error_mitigation_cls`` kwarg) and not
+    intended for standalone use.
