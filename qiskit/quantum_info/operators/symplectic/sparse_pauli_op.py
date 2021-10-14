@@ -57,12 +57,16 @@ class SparsePauliOp(LinearOp):
             QiskitError: If the input data or coeffs are invalid.
         """
         if isinstance(data, SparsePauliOp):
-            pauli_list = data._pauli_list
-            coeffs = data._coeffs
-        else:
-            pauli_list = PauliList(data)
-            if coeffs is None:
-                coeffs = np.ones(pauli_list.size, dtype=complex)
+            # if data is SparsePauliOp, phase of pauli_list should be zero.
+            self._pauli_list = data._pauli_list
+            self._coeffs = data._coeffs
+            super().__init__(num_qubits=self._pauli_list.num_qubits)
+            return
+
+        pauli_list = PauliList(data)
+        if coeffs is None:
+            coeffs = np.ones(pauli_list.size, dtype=complex)
+
         # Initialize PauliList
         self._pauli_list = PauliList.from_symplectic(pauli_list.z, pauli_list.x)
 
@@ -271,10 +275,12 @@ class SparsePauliOp(LinearOp):
 
         self._op_shape._validate_add(other._op_shape, qargs)
 
-        paulis = self.paulis._add(other.paulis, qargs=qargs)
-        coeffs = np.hstack((self.coeffs, other.coeffs))
-        ret = SparsePauliOp(paulis, coeffs)
-        return ret
+        # We wrap the result of add (pauli_list and coeffs) with `SparsePauliOp` to bypass the phase
+        # tracking in the constructor `SparsePauliOp(ret)`, which is called to adjust the shape.
+        ret = SparsePauliOp(["I" * self.num_qubits])
+        ret._pauli_list = self.paulis._add(other.paulis, qargs=qargs)
+        ret._coeffs = np.hstack((self.coeffs, other.coeffs))
+        return SparsePauliOp(ret)
 
     def _multiply(self, other):
         if not isinstance(other, Number):
