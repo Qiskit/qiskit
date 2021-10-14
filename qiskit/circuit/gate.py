@@ -20,9 +20,10 @@ from scipy.linalg import schur
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
 from .instruction import Instruction
+from .operation import Operation
 
 
-class Gate(Instruction):
+class Gate(Instruction, Operation):
     """Unitary gate."""
 
     def __init__(
@@ -37,6 +38,9 @@ class Gate(Instruction):
             label: An optional label for the gate.
         """
         self.definition = None
+        self._name = name
+        self._num_qubits = num_qubits
+        self._params = params
         super().__init__(name, num_qubits, 0, params, label=label)
 
     # Set higher priority than Numpy array and matrix classes
@@ -239,3 +243,48 @@ class Gate(Instruction):
             return parameter
         else:
             raise CircuitError(f"Invalid param type {type(parameter)} for gate {self.name}.")
+
+    @property
+    def name(self):
+        """Return the name."""
+        return self._name
+
+    @name.setter
+    def name(self, name):
+        """Set the name."""
+        self._name = name
+
+    @property
+    def num_qubits(self):
+        """Return the number of qubits."""
+        return self._num_qubits
+
+    @num_qubits.setter
+    def num_qubits(self, num_qubits):
+        """Set num_qubits."""
+        self._num_qubits = num_qubits
+
+    @property
+    def num_clbits(self):
+        """Return the number of clbits."""
+        return 0
+
+    @num_clbits.setter
+    def num_clbits(self, num_clbits):
+        """Set num_clbits."""
+        self._num_clbits = num_clbits
+
+    @property
+    def params(self):
+        """Return params."""
+        return self._params
+
+    @params.setter
+    def params(self, params):
+        """Set the name."""
+        self._params = params
+
+    @property
+    def num_params(self):
+        """Return num_params."""
+        return self.num_params
