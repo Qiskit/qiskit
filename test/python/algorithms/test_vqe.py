@@ -473,6 +473,35 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
         self.assertEqual(callcount["count"], expected)
 
+    def test_aux_operators_dict(self):
+        """Test dictionary compatibility of aux_operators"""
+        wavefunction = self.ry_wavefunction
+        vqe = VQE(ansatz=wavefunction, quantum_instance=self.statevector_simulator)
+
+        # Start with an empty dictionary
+        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators={})
+        self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
+        self.assertIsNone(result.aux_operator_eigenvalues)
+
+        # Go again with two auxiliary operators
+        aux_op1 = PauliSumOp.from_list([("II", 2.0)])
+        aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
+        aux_ops = {"aux_op1": aux_op1, "aux_op2": aux_op2}
+        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
+        self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
+        self.assertEqual(len(result.aux_operator_eigenvalues), 2)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op1"], 2, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op2"], 0, places=6)
+
+        # Go again with additional None and zero operators
+        extra_ops = {**aux_ops, "None_operator": None, "zero_operator": 0}
+        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=extra_ops)
+        self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
+        self.assertEqual(len(result.aux_operator_eigenvalues), 3)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op1"], 2, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op2"], 0, places=6)
+        self.assertEqual(result.aux_operator_eigenvalues["zero_operator"], 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()
