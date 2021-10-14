@@ -1,7 +1,7 @@
 ---
 fixes:
   - |
-    Sympy 1.9 is deprecating the use of `expr_free_symbols`. The circuit drawers made
+    Sympy 1.9 is deprecating the use of ``expr_free_symbols``. The circuit drawers made
     use of this method when finding instances of constants, via
-    :func:~`qiskit.circuit.tools.pi_check`. The deprecated call was rewritten and the
+    ``pi_check() ``. The deprecated call was rewritten and the
     logic around it was simplified.
