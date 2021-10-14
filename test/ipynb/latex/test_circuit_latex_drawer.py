@@ -489,6 +489,50 @@ class TestLatexDrawer(QiskitTestCase):
         circuit.append(inst, [qr[1], qr[2]], [cr[2], cr[1]])
         self.circuit_drawer(circuit, filename="test_inst_with_cbits.png")
 
+    def test_cif_single_bit(self):
+        """Tests conditioning gates on single classical bit"""
+
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(2, "cr")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr[0]).c_if(cr[1], 0)
+        circuit.x(qr[1]).c_if(cr[0], 1)
+        self.circuit_drawer(circuit, cregbundle=False, filename="test_cif_single_bit.png")
+
+    def test_cif_single_bit_cregbundle(self):
+        """Tests conditioning gates on single classical bit with cregbundle"""
+
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(2, "cr")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr[0]).c_if(cr[1], 0)
+        circuit.x(qr[1]).c_if(cr[0], 1)
+        self.circuit_drawer(circuit, cregbundle=True, filename="test_cif_single_bit_bundle.png")
+
+    def test_registerless_one_bit(self):
+        """Text circuit with one-bit registers and registerless bits."""
+        from qiskit.circuit import Qubit, Clbit
+
+        qrx = QuantumRegister(2, "qrx")
+        qry = QuantumRegister(1, "qry")
+        crx = ClassicalRegister(2, "crx")
+        circuit = QuantumCircuit(qrx, [Qubit(), Qubit()], qry, [Clbit(), Clbit()], crx)
+        self.circuit_drawer(circuit, filename="test_registerless_one_bit.png")
+
+    def test_measures_with_conditions(self):
+        """Test that a measure containing a condition displays"""
+        qr = QuantumRegister(2, "qr")
+        cr1 = ClassicalRegister(2, "cr1")
+        cr2 = ClassicalRegister(2, "cr2")
+        circuit = QuantumCircuit(qr, cr1, cr2)
+        circuit.h(0)
+        circuit.h(1)
+        circuit.measure(0, cr1[1])
+        circuit.measure(1, cr2[0]).c_if(cr1, 1)
+        circuit.h(0).c_if(cr2, 3)
+        self.circuit_drawer(circuit, cregbundle=False, filename="test_meas_cond_false.png")
+        self.circuit_drawer(circuit, cregbundle=True, filename="test_meas_cond_true.png")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)

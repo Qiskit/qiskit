@@ -31,7 +31,7 @@ class Measure(Node):
         """Return the corresponding OPENQASM string."""
         if prec is not None:
             warnings.warn(
-                "Parameter 'Measure.qasm(..., prec)' is no longer used and is being " "deprecated.",
+                "Parameter 'Measure.qasm(..., prec)' is no longer used and is being deprecated.",
                 DeprecationWarning,
                 2,
             )

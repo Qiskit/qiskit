@@ -15,6 +15,7 @@
 import unittest
 from test import combine
 
+import itertools
 import numpy as np
 from ddt import ddt
 from scipy.sparse import csr_matrix
@@ -36,6 +37,7 @@ from qiskit.circuit.library import (
 from qiskit.quantum_info.operators import (
     Clifford,
     Operator,
+    Pauli,
     PauliList,
     PauliTable,
     StabilizerTable,
@@ -68,7 +70,7 @@ def pauli_mat(label):
         elif i == "Z":
             mat = np.kron(mat, np.array([[1, 0], [0, -1]], dtype=complex))
         else:
-            raise QiskitError("Invalid Pauli string {}".format(i))
+            raise QiskitError(f"Invalid Pauli string {i}")
     return mat
 
 
@@ -226,6 +228,12 @@ class TestPauliListInit(QiskitTestCase):
             value = PauliList(target)
             value[0] = "II"
             self.assertEqual(value, target)
+
+    def test_init_from_settings(self):
+        """Test initializing from the settings dictionary."""
+        pauli_list = PauliList(["IX", "-iYZ", "YY"])
+        from_settings = PauliList(**pauli_list.settings)
+        self.assertEqual(pauli_list, from_settings)
 
 
 @ddt
@@ -1501,13 +1509,13 @@ class TestPauliListMethods(QiskitTestCase):
             target0 = PauliList([j * "I", j * "X"])
             target1 = PauliList([j * "X", j * "I"])
 
-            with self.subTest(msg="single row from str ({})".format(j)):
+            with self.subTest(msg=f"single row from str ({j})"):
                 value0 = pauli.insert(0, j * "I")
                 self.assertEqual(value0, target0)
                 value1 = pauli.insert(1, j * "I")
                 self.assertEqual(value1, target1)
 
-            with self.subTest(msg="single row from PauliList ({})".format(j)):
+            with self.subTest(msg=f"single row from PauliList ({j})"):
                 value0 = pauli.insert(0, PauliList(j * "I"))
                 self.assertEqual(value0, target0)
                 value1 = pauli.insert(1, PauliList(j * "I"))
@@ -1516,13 +1524,13 @@ class TestPauliListMethods(QiskitTestCase):
             target0 = PauliList(["i" + j * "I", j * "X"])
             target1 = PauliList([j * "X", "i" + j * "I"])
 
-            with self.subTest(msg="single row with phase from str ({})".format(j)):
+            with self.subTest(msg=f"single row with phase from str ({j})"):
                 value0 = pauli.insert(0, "i" + j * "I")
                 self.assertEqual(value0, target0)
                 value1 = pauli.insert(1, "i" + j * "I")
                 self.assertEqual(value1, target1)
 
-            with self.subTest(msg="single row with phase from PauliList ({})".format(j)):
+            with self.subTest(msg=f"single row with phase from PauliList ({j})"):
                 value0 = pauli.insert(0, PauliList("i" + j * "I"))
                 self.assertEqual(value0, target0)
                 value1 = pauli.insert(1, PauliList("i" + j * "I"))
@@ -1535,7 +1543,7 @@ class TestPauliListMethods(QiskitTestCase):
             target0 = insert + pauli
             target1 = pauli + insert
 
-            with self.subTest(msg="multiple-rows from PauliList ({})".format(j)):
+            with self.subTest(msg=f"multiple-rows from PauliList ({j})"):
                 value0 = pauli.insert(0, insert)
                 self.assertEqual(value0, target0)
                 value1 = pauli.insert(1, insert)
@@ -1998,6 +2006,35 @@ class TestPauliListMethods(QiskitTestCase):
             for pauli in pauli_list
         ]
         self.assertListEqual(value, target)
+
+    def test_group_qubit_wise_commuting(self):
+        """Test grouping qubit-wise commuting operators"""
+
+        def qubitwise_commutes(left: Pauli, right: Pauli) -> bool:
+            return len(left) == len(right) and all(a.commutes(b) for a, b in zip(left, right))
+
+        input_labels = ["IY", "ZX", "XZ", "YI", "YX", "YY", "YZ", "ZI", "ZX", "ZY", "iZZ", "II"]
+        np.random.shuffle(input_labels)
+        pauli_list = PauliList(input_labels)
+        groups = pauli_list.group_qubit_wise_commuting()
+
+        # checking that every input Pauli in pauli_list is in a group in the ouput
+        output_labels = [pauli.to_label() for group in groups for pauli in group]
+        assert sorted(output_labels) == sorted(input_labels)
+
+        # Within each group, every operator qubit-wise commutes with every other operator.
+        for group in groups:
+            assert all(
+                qubitwise_commutes(pauli1, pauli2)
+                for pauli1, pauli2 in itertools.combinations(group, 2)
+            )
+        # For every pair of groups, at least one element from one does not qubit-wise commute with
+        # at least one element of the other.
+        for group1, group2 in itertools.combinations(groups, 2):
+            assert not all(
+                qubitwise_commutes(group1_pauli, group2_pauli)
+                for group1_pauli, group2_pauli in itertools.product(group1, group2)
+            )
 
 
 if __name__ == "__main__":
