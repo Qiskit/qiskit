@@ -45,7 +45,7 @@ class VarQteOdeSolver:
             self._ode_function,
             t_bound=evolution_time,
             t0=0,
-            y0=np.append(self._init_params, 0),
+            y0=self._init_params,  # appending 0 was here in case of bounds, not yet supported.
             vectorized=False,
         )
         param_values = None

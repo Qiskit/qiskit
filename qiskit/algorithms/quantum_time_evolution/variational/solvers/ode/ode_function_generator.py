@@ -66,7 +66,7 @@ class OdeFunctionGenerator:
         )
         self._t_param = t_param
 
-    def var_qte_ode_function(self, t: float) -> Iterable:
+    def var_qte_ode_function(self, t: float, x: Iterable) -> Iterable:
         if self._error_based_ode:
             error_based_ode_fun_gen = ErrorBaseOdeFunctionGenerator(
                 self._error_calculator,
