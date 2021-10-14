@@ -23,6 +23,7 @@ from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 from qiskit.quantum_info.operators.linear_op import LinearOp
 from qiskit.quantum_info.operators.mixins import generate_apidocs
 from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators.symplectic.pauli import BasePauli
 from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 from qiskit.quantum_info.operators.symplectic.pauli_utils import pauli_basis
@@ -242,15 +243,13 @@ class SparsePauliOp(LinearOp):
         p3 = p + 2 * np.sum(q, axis=1)
 
         if qargs is None:
-            pauli_list = PauliList.from_symplectic(z3, x3)
-            pauli_list._phase = p3
+            pauli_list = PauliList(BasePauli(z3, x3, p3))
         else:
             x4 = np.repeat(self.paulis.x, other.size, axis=0)
             z4 = np.repeat(self.paulis.z, other.size, axis=0)
             x4[:, qargs] = x3
             z4[:, qargs] = z3
-            pauli_list = PauliList.from_symplectic(z4, x4)
-            pauli_list._phase = p3
+            pauli_list = PauliList(BasePauli(z4, x4, p3))
 
         coeffs = np.kron(self.coeffs, other.coeffs)
         return SparsePauliOp(pauli_list, coeffs)
