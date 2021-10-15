@@ -32,7 +32,9 @@ class EvolutionSynthesis(ABC):
 
         If a single operator, the summands are assumed not to commute.
         If a list, the list elements are *not* assumed to commute pairwisely, however summands in
-        a single operator are assumed to commute.
+        a single operator are assumed to commute. For example, if the operators are given
+        as `[A + B, C + D, E]` then `A` and `B` commute but the sum `A + B` does not commute
+        with either `C + D` or `E`.
 
         Args:
             operators: (List of) operator(s) to evolve.

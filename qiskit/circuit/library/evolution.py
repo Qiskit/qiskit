@@ -13,6 +13,7 @@
 """A gate to implement time-evolution of operators."""
 
 from typing import Union, Optional
+
 # import numpy as np
 
 from qiskit.circuit.gate import Gate

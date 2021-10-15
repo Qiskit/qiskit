@@ -22,7 +22,23 @@ from .product_formula import ProductFormula
 
 
 class SuzukiTrotter(ProductFormula):
-    """The (higher order) Suzuki-Trotter product formula.
+    r"""The (higher order) Suzuki-Trotter product formula.
+
+    The Suzuki-Trotter formulas are improves the error of the Lie-Trotter approximation.
+    For example, the second order decomposition is
+
+    .. math::
+
+        e^{A + B} \approx e^{B/2} e^{A} e^{B/2}.
+
+    Higher order decompositions are based on recursions, see Ref. [1] for more details.
+
+    In this implementation, the operators are provided as sum terms of a Pauli operator.
+    For example, in the second order Suzuki-Trotter decomposition we approximate
+
+    .. math::
+
+        e^{-it(XX + ZZ)} = e^{-it/2 ZZ}e^{-it XX}e^{-it/2 ZZ} + \mathcal{O}(t^2).
 
     References:
 
@@ -33,25 +49,14 @@ class SuzukiTrotter(ProductFormula):
 
     def __init__(
         self,
-        reps: int = 1,
         order: int = 2,
+        reps: int = 1,
         insert_barriers: bool = False,
         cx_structure: str = "chain",
         atomic_evolution: Optional[
             Callable[[Union[Pauli, SparsePauliOp], float], QuantumCircuit]
         ] = None,
     ) -> None:
-        """
-        Args:
-            reps: The number of time steps.
-            order: The order of the product formula.
-            insert_barriers: If True, insert barriers in between each evolved Pauli.
-            cx_structure: How to arrange the CX gates for the Pauli evolutions, can be
-                "chain", where next neighbor connections are used, or "fountain", where all
-                qubits are connected to one.
-            atomic_evolution: A function to construct the circuit for the evolution of single operators.
-                Per default, `PauliEvolutionGate` will be used.
-        """
         super().__init__(order, reps, insert_barriers, cx_structure, atomic_evolution)
 
     def synthesize(

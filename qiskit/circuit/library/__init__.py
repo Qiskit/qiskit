@@ -376,10 +376,7 @@ from .generalized_gates import (
     RVGate,
     PauliGate,
 )
-from .evolution import (
-    PauliEvolutionGate,
-    EvolutionGate,
-)
+from .evolution import EvolutionGate
 from .boolean_logic import (
     AND,
     OR,

@@ -94,8 +94,7 @@ class TestEvolutionGate(QiskitTestCase):
             expected.ry(2 * p_4 * time, 0)
             expected.rx(p_4 * time, 0)
 
-        decomposed = evo_gate.definition.decompose()
-        self.assertEqual(decomposed, expected)
+        self.assertEqual(evo_gate.definition.decompose(), expected)
 
     def test_passing_grouped_paulis(self):
         """Test passing a list of already grouped Paulis."""

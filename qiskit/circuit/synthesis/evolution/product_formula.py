@@ -13,11 +13,13 @@
 """A product formula base for decomposing non-commuting operator exponentials."""
 
 from typing import Callable, Optional, Union
+from functools import partial
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info import SparsePauliOp, Pauli
 
 from .evolution_synthesis import EvolutionSynthesis
+from .pauli_evolution import evolve_pauli
 
 
 class ProductFormula(EvolutionSynthesis):
@@ -44,8 +46,9 @@ class ProductFormula(EvolutionSynthesis):
             cx_structure: How to arrange the CX gates for the Pauli evolutions, can be
                 "chain", where next neighbor connections are used, or "fountain", where all
                 qubits are connected to one.
-            atomic_evolution: A function to construct the circuit for the evolution of single operators.
-                Per default, `PauliEvolutionGate` will be used.
+            atomic_evolution: A function to construct the circuit for the evolution of single
+                Pauli string. Per default, a single Pauli evolution is decomopsed in a CX chain
+                and a single qubit Z rotation.
         """
         super().__init__()
         self.order = order
@@ -53,22 +56,21 @@ class ProductFormula(EvolutionSynthesis):
         self.insert_barriers = insert_barriers
 
         if atomic_evolution is None:
-            from qiskit.circuit.library.evolution.pauli_evolution import PauliEvolutionGate
-
-            def atomic_evolution(operator, time):
-                evo = QuantumCircuit(operator.num_qubits)
-
-                if isinstance(operator, Pauli):
-                    # single Pauli operator: just exponentiate it
-                    evo.append(PauliEvolutionGate(operator, time, cx_structure), evo.qubits)
-                else:
-                    # sum of Pauli operators: exponentiate each term (this assumes they commute)
-                    pauli_list = [(Pauli(op), np.real(coeff)) for op, coeff in operator.to_list()]
-                    for pauli, coeff in pauli_list:
-                        evo.append(
-                            PauliEvolutionGate(pauli, coeff * time, cx_structure), evo.qubits
-                        )
-
-                return evo
+            atomic_evolution = partial(_default_atomic_evolution, cx_structure=cx_structure)
 
         self.atomic_evolution = atomic_evolution
+
+
+def _default_atomic_evolution(operator, time, cx_structure):
+    evo = QuantumCircuit(operator.num_qubits)
+
+    if isinstance(operator, Pauli):
+        # single Pauli operator: just exponentiate it
+        evo.compose(evolve_pauli(operator, time, cx_structure), wrap=True, inplace=True)
+    else:
+        # sum of Pauli operators: exponentiate each term (this assumes they commute)
+        pauli_list = [(Pauli(op), np.real(coeff)) for op, coeff in operator.to_list()]
+        for pauli, coeff in pauli_list:
+            evo.compose(evolve_pauli(pauli, coeff * time, cx_structure), wrap=True, inplace=True)
+
+    return evo
