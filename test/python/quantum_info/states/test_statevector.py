@@ -353,6 +353,12 @@ class TestStatevector(QiskitTestCase):
             result = vec0.inner(vec1)
             self.assertAlmostEqual(result, target)
 
+    def test_inner_except(self):
+        """Test inner method raises exceptions."""
+        vec0 = Statevector(self.rand_vec(4))
+        vec1 = Statevector(self.rand_vec(3))
+        self.assertRaises(QiskitError, vec0.inner, vec1)
+
     def test_add(self):
         """Test add method."""
         for _ in range(10):
