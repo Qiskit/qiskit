@@ -53,7 +53,7 @@ class ProductFormula(EvolutionSynthesis):
         self.insert_barriers = insert_barriers
 
         if atomic_evolution is None:
-            from .pauli_evolution import PauliEvolutionGate
+            from qiskit.circuit.library.evolution.pauli_evolution import PauliEvolutionGate
 
             def atomic_evolution(operator, time):
                 evo = QuantumCircuit(operator.num_qubits)

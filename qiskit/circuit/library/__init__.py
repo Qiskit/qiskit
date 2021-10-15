@@ -108,10 +108,6 @@ Evolution Gates
 
    EvolutionGate
    PauliEvolutionGate
-   EvolutionSynthesis
-   ProductFormula
-   LieTrotter
-   SuzukiTrotter
 
 Boolean Logic Circuits
 ======================
@@ -383,10 +379,6 @@ from .generalized_gates import (
 from .evolution import (
     PauliEvolutionGate,
     EvolutionGate,
-    EvolutionSynthesis,
-    ProductFormula,
-    LieTrotter,
-    SuzukiTrotter,
 )
 from .boolean_logic import (
     AND,

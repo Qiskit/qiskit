@@ -23,9 +23,10 @@ from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.library import XGate, QFT, QAOAAnsatz
+from qiskit.circuit.library import XGate, QFT, QAOAAnsatz, EvolutionGate
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.synthesis import LieTrotter
 from qiskit.extensions import UnitaryGate
 from qiskit.opflow import I, X, Y, Z
 from qiskit.test import QiskitTestCase
@@ -532,6 +533,21 @@ class TestLoadFromQPY(QiskitTestCase):
         new_circ = new_circ.decompose().decompose()
         self.assertEqual(qaoa, new_circ)
         self.assertEqual([x[0].label for x in qaoa.data], [x[0].label for x in new_circ.data])
+
+    def test_evolutiongate(self):
+        """Test loading a circuit with evolution gate works."""
+        synthesis = LieTrotter(reps=2)
+        evo = EvolutionGate((Z ^ I) + (I ^ Z), time=0.2, synthesis=synthesis)
+        qc = QuantumCircuit(2)
+        qc.append(evo, range(2))
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+
+        new_evo = new_circ.data[0][0]
+        self.assertIsInstance(new_evo, EvolutionGate)
+        self.assertIsInstance(new_evo.synthesis, LieTrotter)
 
     def test_parameter_expression_global_phase(self):
         """Test a circuit with a parameter expression global_phase."""

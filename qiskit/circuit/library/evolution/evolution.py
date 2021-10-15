@@ -13,6 +13,7 @@
 """A gate to implement time-evolution of operators."""
 
 from typing import Union, Optional
+# import numpy as np
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -20,11 +21,30 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 
 from qiskit.quantum_info import Operator, Pauli, SparsePauliOp
 
-from .evolution_synthesis import EvolutionSynthesis
+from qiskit.circuit.synthesis import EvolutionSynthesis
 
 
 class EvolutionGate(Gate):
-    """Time-evolution of an operator."""
+    r"""Time-evolution of an operator.
+
+    For an operator :math:`H` consisting of Pauli terms and (real) evolution time :math:`t`
+    this gate implements
+
+    .. math::
+
+        U(t) = e^{-itH}.
+
+    The evolution gates are related to the Pauli rotation gates by a factor of 2. For example
+    the time evolution of the Pauli :math:`X` operator is connected to the Pauli :math:`X` rotation
+    :math:`R_X` by
+
+    .. math
+
+        U(t) = e^{-itX} = R_X(2t).
+
+    This gate serves as definition of the evolution and can be synthesized into a circuit using
+    different algorithms.
+    """
 
     def __init__(
         self,
@@ -35,9 +55,10 @@ class EvolutionGate(Gate):
     ) -> None:
         """
         Args:
-            operator (Union[SparsePauliOp, PauliSumOp, List[SparsePauliOp], List[PauliSumOp]]):
-                The operator to evolve. Can be provided as list of non-commuting operators
-                where the elements are sums of commuting operators.
+            operator (Union[Pauli, PauliOp, SparsePauliOp, PauliSumOp, List[SparsePauliOp],
+                List[PauliSumOp]]): The operator to evolve. Can be provided as list of non-commuting
+                operators where the elements are sums of commuting operators.
+                For example: ``[XY + YX, ZZ + ZI + IZ, YY]``.
             time: The evolution time.
             label: A label for the gate to display in visualizations.
             synthesis: A synthesis strategy. If None, the default synthesis is exponentially
@@ -57,11 +78,15 @@ class EvolutionGate(Gate):
 
     def _define(self):
         """Unroll, where the default synthesis is matrix based."""
-        if isinstance(self.operator, Pauli):
-            from .pauli_evolution import PauliEvolutionGate
+        # if we have a single Pauli term, evolve it directly
+        # if len(self.operator) == 1:
+        #     from .pauli_evolution import PauliEvolutionGate
+        #     pauli = self.operator.paulis[0]
+        #     time = self.time * np.real(self.operator.coeffs[0])
 
-            self.definition = PauliEvolutionGate(self.operator, self.time).definition
-        elif self.synthesis is None:
+        #     self.definition = QuantumCircuit(pauli.num_qubits)
+        #     self.definition.append(PauliEvolutionGate(pauli, time), range(pauli.num_qubits))
+        if self.synthesis is None:
             self.definition = self._matrix_synthesis()
         else:
             self.definition = self.synthesis.synthesize(self.operator, self.time)
@@ -80,11 +105,7 @@ class EvolutionGate(Gate):
         return definition
 
     def inverse(self) -> "EvolutionGate":
-        return EvolutionGate(operator=self.operator, time=-self.time)
-
-
-def _pauliop_to_sparsepauli(operator):
-    return SparsePauliOp(operator.primitive, operator.coeff)
+        return EvolutionGate(operator=self.operator, time=-self.time, synthesis=self.synthesis)
 
 
 def _to_sparse_pauli_op(operator):
