@@ -13,11 +13,15 @@
 """The Minimum Eigensolver interface"""
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import Dict, Optional, List, Union, TypeVar
 
 import numpy as np
 from qiskit.opflow import OperatorBase
 from ..algorithm_result import AlgorithmResult
+
+# Introduced new type to maintain readability.
+_T = TypeVar("_T")  # Pylint does not allow single character class names.
+ListOrDict = Union[List[Optional[_T]], Dict[str, _T]]
 
 
 class MinimumEigensolver(ABC):
@@ -30,7 +34,7 @@ class MinimumEigensolver(ABC):
 
     @abstractmethod
     def compute_minimum_eigenvalue(
-        self, operator: OperatorBase, aux_operators: Optional[List[Optional[OperatorBase]]] = None
+        self, operator: OperatorBase, aux_operators: Optional[ListOrDict[OperatorBase]] = None
     ) -> "MinimumEigensolverResult":
         """
         Computes minimum eigenvalue. Operator and aux_operators can be supplied here and
@@ -94,11 +98,11 @@ class MinimumEigensolverResult(AlgorithmResult):
         self._eigenstate = value
 
     @property
-    def aux_operator_eigenvalues(self) -> Optional[np.ndarray]:
+    def aux_operator_eigenvalues(self) -> Optional[ListOrDict[complex]]:
         """return aux operator eigen values"""
         return self._aux_operator_eigenvalues
 
     @aux_operator_eigenvalues.setter
-    def aux_operator_eigenvalues(self, value: np.ndarray) -> None:
+    def aux_operator_eigenvalues(self, value: ListOrDict[complex]) -> None:
         """set aux operator eigen values"""
         self._aux_operator_eigenvalues = value
