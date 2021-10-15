@@ -217,6 +217,13 @@ class TestStatevector(QiskitTestCase):
                 self.assertEqual(state[i], vec[i])
                 self.assertEqual(state[format(i, "b")], vec[i])
 
+    def test_getitem_except(self):
+        """Test __getitem__ method raises exceptions."""
+        for i in range(1, 5):
+            state = Statevector(self.rand_vec(i))
+            self.assertRaises(QiskitError, state.__getitem__, i)
+            self.assertRaises(QiskitError, state.__getitem__, -1)
+
     def test_copy(self):
         """Test Statevector copy method"""
         for _ in range(5):
