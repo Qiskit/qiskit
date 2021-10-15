@@ -170,7 +170,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self._ret = None
 
     @property
-    def ansatz(self) -> Optional[QuantumCircuit]:
+    def ansatz(self) -> QuantumCircuit:
         """Returns the ansatz."""
         return self._ansatz
 
@@ -180,6 +180,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         Args:
             ansatz: The parameterized circuit used as an ansatz.
+            If None is passed, RealAmplitudes is used by default.
 
         """
         if ansatz is None:
@@ -205,13 +206,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
     @quantum_instance.setter
     def quantum_instance(
-        self, quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]]
+        self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]
     ) -> None:
         """Sets quantum_instance"""
-        if quantum_instance is None:
-            self._quantum_instance = None
-            return
-
         if not isinstance(quantum_instance, QuantumInstance):
             quantum_instance = QuantumInstance(quantum_instance)
 
@@ -292,8 +289,13 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         return self._optimizer
 
     @optimizer.setter
-    def optimizer(self, optimizer: Optimizer):
-        """Sets optimizer"""
+    def optimizer(self, optimizer: Optional[Optimizer]):
+        """Sets the optimizer attribute.
+
+        Args:
+            optimizer: The optimizer to be used. If None is passed, SLSQP is used by default.
+
+        """
         if optimizer is None:
             optimizer = SLSQP()
 
