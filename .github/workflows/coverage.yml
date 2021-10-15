@@ -1,0 +1,26 @@
+name: Coverage report
+on:
+  push:
+  pull_request:
+    branches: ['main']
+jobs:
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        name: Install Python
+        with:
+          python-version: '3.8'
+      - name: Install dependencies
+        run: pip install tox coveragepy-lcov
+      - name: Run coverage report
+        run: tox -ecoverage
+      - name: Convert to lcov
+        run: coveragepy-lcov --output_file_path coveralls.info
+      - name: Coveralls
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: coveralls.info

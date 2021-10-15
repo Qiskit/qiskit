@@ -45,7 +45,7 @@ class Statevector(QuantumState, TolerancesMixin):
             data (np.array or list or Statevector or Operator or QuantumCircuit or
                   qiskit.circuit.Instruction):
                 Data from which the statevector can be constructed. This can be either a complex
-                vector, another statevector, a ``Operator` with only one column or a
+                vector, another statevector, a ``Operator`` with only one column or a
                 ``QuantumCircuit`` or ``Instruction``.  If the data is a circuit or instruction,
                 the statevector is constructed by assuming that all qubits are initialized to the
                 zero state.
