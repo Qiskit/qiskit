@@ -202,8 +202,7 @@ class AdaptQAOA(QAOA):
             sampled_expect_op = self._circuit_sampler.convert(expect_op, params=param_dict)
             meas = np.abs(np.real(sampled_expect_op.eval()))
             energy_gradients.append(meas)
-        print(energy_gradients)
-        return self.mixer_pool[np.argmax(energy_gradients)]
+        return self.mixer_pool[np.argmax(energy_gradients)], np.max(energy_gradients)
 
 
     def constuct_adapt_ansatz(self, operator: OperatorBase) -> OperatorBase:
@@ -249,11 +248,15 @@ class AdaptQAOA(QAOA):
         # main loop
         self.num_qubits = operator.num_qubits
         layer_reps = 0
-        while layer_reps < self.max_reps:
-            best_mixer = self._test_mixer_pool(operator)
+        terminate = False
+        while layer_reps < self.max_reps and terminate == False:
+            best_mixer, energy = self._test_mixer_pool(operator)
+            if energy < self.threshold:
+                terminate = True
             self.optimal_mixer_list.append(best_mixer)
-
             # perform optimisation of circuit:
+            self.compute_minimum_eigenvalue(operator)
+            
 
     @property
     def initial_state(self) -> Optional[QuantumCircuit]:
