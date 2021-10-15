@@ -160,13 +160,12 @@ class TestVQE(QiskitAlgorithmsTestCase):
     @unpack
     def test_max_evals_grouped(self, optimizer, places, max_evals_grouped):
         """VQE Optimizers test"""
-        with self.assertWarns(DeprecationWarning):
-            vqe = VQE(
-                ansatz=self.ryrz_wavefunction,
-                optimizer=optimizer,
-                max_evals_grouped=max_evals_grouped,
-                quantum_instance=self.statevector_simulator,
-            )
+        vqe = VQE(
+            ansatz=self.ryrz_wavefunction,
+            optimizer=optimizer,
+            max_evals_grouped=max_evals_grouped,
+            quantum_instance=self.statevector_simulator,
+        )
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=places)
 
