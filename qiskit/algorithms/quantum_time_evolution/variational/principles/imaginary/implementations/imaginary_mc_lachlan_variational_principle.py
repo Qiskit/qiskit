@@ -60,7 +60,7 @@ class ImaginaryMcLachlanVariationalPrinciple(ImaginaryVariationalPrinciple):
     def _calc_metric_tensor(
         raw_metric_tensor: OperatorBase, param_dict: Dict[Parameter, Union[float, complex]]
     ) -> OperatorBase:
-        return raw_metric_tensor.bind_parameters(param_dict)
+        return raw_metric_tensor.bind_parameters(param_dict) / 4.0
 
     @staticmethod
     def _calc_evolution_grad(

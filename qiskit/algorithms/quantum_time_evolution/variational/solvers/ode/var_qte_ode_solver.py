@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-import numpy as np
 from scipy.integrate import RK45, OdeSolver
 
 from qiskit import QiskitError

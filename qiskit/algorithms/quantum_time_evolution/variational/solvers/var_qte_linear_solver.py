@@ -13,9 +13,6 @@ from typing import Union, List, Dict, Optional
 
 import numpy as np
 
-from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
-    natural_gradient_calculator,
-)
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
 )
@@ -58,9 +55,9 @@ class VarQteLinearSolver:
         """
         metric_tensor = var_principle.metric_tensor
         evolution_grad = var_principle.evolution_grad
-        print(param_dict)
-        print(metric_tensor.assign_parameters(param_dict).to_matrix())
-        print(evolution_grad.assign_parameters(param_dict).to_matrix())
+        # print(param_dict)
+        # print(metric_tensor.assign_parameters(param_dict).to_matrix())
+        # print(evolution_grad.assign_parameters(param_dict).to_matrix())
         #
         # print("Metrix tensor")
         # print(metric_tensor.assign_parameters(param_dict).eval())
@@ -105,9 +102,6 @@ class VarQteLinearSolver:
         if any(np.abs(np.imag(nat_grad_item)) > 1e-8 for nat_grad_item in nat_grad_result):
             raise Warning("The imaginary part of the gradient are non-negligible.")
 
-        # TODO log
-
-        ("nat grad result", nat_grad_result)
         return nat_grad_result
 
     def _inspect_imaginary_parts(self, grad_res, metric_res):
@@ -149,11 +143,11 @@ class VarQteLinearSolver:
             # Get the QFI/4
             metric_res = (
                 np.array(self._metric_circ_sampler.convert(metric_tensor, params=param_dict).eval())
-                * 0.25
+
             )
         else:
             # Get the QFI/4
-            metric_res = np.array(metric_tensor.assign_parameters(param_dict).eval()) * 0.25
+            metric_res = np.array(metric_tensor.assign_parameters(param_dict).eval())
         return metric_res
 
     def _eval_evolution_grad(

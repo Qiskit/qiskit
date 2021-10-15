@@ -59,7 +59,7 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
     def _calc_metric_tensor(
         raw_metric_tensor_real: OperatorBase, param_dict: Dict[Parameter, Union[float, complex]]
     ) -> OperatorBase:
-        return raw_metric_tensor_real.bind_parameters(param_dict)
+        return raw_metric_tensor_real.bind_parameters(param_dict) / 4.0
 
     @staticmethod
     def _calc_evolution_grad(
