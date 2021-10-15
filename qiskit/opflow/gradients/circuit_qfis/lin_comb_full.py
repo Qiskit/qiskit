@@ -18,6 +18,7 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ParameterVector, ParameterExpression
 from qiskit.utils.arithmetic import triu_to_dense
 
+from ...operator_base import OperatorBase
 from ...list_ops.list_op import ListOp
 from ...list_ops.summed_op import SummedOp
 from ...operator_globals import I, Z, Y
@@ -39,12 +40,20 @@ class LinCombFull(CircuitQFI):
         self,
         operator: CircuitStateFn,
         params: Union[ParameterExpression, ParameterVector, List[ParameterExpression]],
+        aux_meas_op: OperatorBase = Z,
+        phase_fix: bool = True
     ) -> ListOp:
         r"""
         Args:
             operator: The operator corresponding to the quantum state :math:`|\psi(\omega)\rangle`
                 for which we compute the QFI.
             params: The parameters :math:`\omega` with respect to which we are computing the QFI.
+            aux_meas_op: The operator that the auxiliary qubit is measured with respect to.
+                         for aux_meas_op = Z we compute Re[(dω⟨<ψ(ω)|)(dω|ψ(ω)〉)]
+                         for aux_meas_op = -iY we compute Im[(dω⟨<ψ(ω)|)(dω|ψ(ω)〉)]
+            phase_fix: Whether or not to compute the additional phase fix term
+                       Re[(dω⟨<ψ(ω)|)|ψ(ω)><ψ(ω)|(dω|ψ(ω))>]
+
 
         Returns:
             A ``ListOp[ListOp]`` where the operator at position ``[k][l]`` corresponds to the matrix
@@ -54,10 +63,11 @@ class LinCombFull(CircuitQFI):
             TypeError: If ``operator`` is an unsupported type.
         """
         # QFI & phase fix observable
-        qfi_observable = ~StateFn(4 * Z ^ (I ^ operator.num_qubits))
-        phase_fix_observable = StateFn(
-            (Z + 1j * Y) ^ (I ^ operator.num_qubits), is_measurement=True
-        )
+        qfi_observable = StateFn(4 * aux_meas_op ^ (I ^ operator.num_qubits),
+                                 is_measurement=True).reduce()
+        if phase_fix:
+            phase_fix_observable = SummedOp([Z ^ (I ^ operator.num_qubits),
+                                            -1j * Y ^ (I ^ operator.num_qubits)])
         # see https://arxiv.org/pdf/quant-ph/0108146.pdf
 
         # Check if the given operator corresponds to a quantum state given as a circuit.
@@ -73,20 +83,19 @@ class LinCombFull(CircuitQFI):
         elif isinstance(params, ParameterVector):
             params = params[:]  # unroll to list
 
-        # First, the operators are computed which can compensate for a potential phase-mismatch
-        # between target and trained state, i.e.〈ψ|∂lψ〉
-        gradient_states = LinComb()._gradient_states(
-            operator,
-            meas_op=phase_fix_observable,
-            target_params=params,
-            open_ctrl=False,
-            trim_after_grad_gate=True,
-        )
-        # if type(gradient_states) in [ListOp, SummedOp]:  # pylint: disable=unidiomatic-typecheck
-        if type(gradient_states) == ListOp:
-            phase_fix_states = gradient_states.oplist
-        else:
-            phase_fix_states = [gradient_states]
+        if phase_fix:
+            # First, the operators are computed which can compensate for a potential phase-mismatch
+            # between target and trained state, i.e.〈ψ|∂lψ〉
+            gradient_states = LinComb()._gradient_states(
+                operator, meas_op=phase_fix_observable, target_params=params, open_ctrl=True,
+                trim_after_grad_gate=True
+            )
+            # if type(gradient_states) in [ListOp, SummedOp]:  # pylint: disable=unidiomatic-typecheck
+
+            if type(gradient_states) == ListOp:
+                phase_fix_states = gradient_states.oplist
+            else:
+                phase_fix_states = [gradient_states]
 
         # Get  4 * Re[〈∂kψ|∂lψ]
         qfi_operators = []
@@ -96,7 +105,7 @@ class LinCombFull(CircuitQFI):
         state_qc.h(qr_work)
         # unroll separately from the H gate since we need the H gate to be the first
         # operation in the data attributes of the circuit
-        unrolled = LinComb._unroll_to_supported_operations(
+        unrolled = LinComb._transpile_to_supported_operations(
             operator.primitive, LinComb.SUPPORTED_GATES
         )
         state_qc.compose(unrolled, inplace=True)
@@ -179,14 +188,16 @@ class LinCombFull(CircuitQFI):
 
                 # Compute −4 * Re(〈∂kψ|ψ〉〈ψ|∂lψ〉)
                 def phase_fix_combo_fn(x):
-                    return 4 * (-0.5) * (x[0] * np.conjugate(x[1]) + x[1] * np.conjugate(x[0]))
-
-                phase_fix = ListOp(
-                    [phase_fix_states[i], phase_fix_states[j]], combo_fn=phase_fix_combo_fn
-                )
-                # Add the phase fix quantities to the entries of the QFI
-                # Get 4 * Re[〈∂kψ|∂lψ〉−〈∂kψ|ψ〉〈ψ|∂lψ〉]
-                qfi_ops += [SummedOp(qfi_op) + phase_fix]
+                    return -4 * np.real(x[0] * np.conjugate(x[1]))
+                if phase_fix:
+                    phase_fix_op = ListOp(
+                        [phase_fix_states[i], phase_fix_states[j]], combo_fn=phase_fix_combo_fn
+                        )
+                    # Add the phase fix quantities to the entries of the QFI
+                    # Get 4 * Re[〈∂kψ|∂lψ〉−〈∂kψ|ψ〉〈ψ|∂lψ〉]
+                    qfi_ops += [SummedOp(qfi_op) + phase_fix_op]
+                else:
+                    qfi_ops += [SummedOp(qfi_op)]
 
             qfi_operators.append(ListOp(qfi_ops))
         # Return the full QFI

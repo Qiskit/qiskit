@@ -19,7 +19,7 @@ from qiskit.algorithms.quantum_time_evolution.variational.principles.real.real_v
     RealVariationalPrinciple,
 )
 from qiskit.circuit import Parameter
-from qiskit.opflow import CircuitQFI, OperatorBase
+from qiskit.opflow import CircuitQFI, OperatorBase, Y
 
 
 class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
@@ -50,7 +50,7 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
     ):
 
         raw_evolution_grad_imag = evolution_grad_calculator.calculate(
-            -1j * hamiltonian, ansatz, list(param_dict.keys()), self._grad_method
+            hamiltonian, ansatz, list(param_dict.keys()), self._grad_method, basis=-1j*Y
         )
 
         return raw_evolution_grad_imag

@@ -12,7 +12,8 @@
 from typing import Union, Optional, List
 
 from qiskit.circuit import ParameterVector, ParameterExpression
-from qiskit.opflow import StateFn, Gradient, CircuitGradient, OperatorBase
+from qiskit.opflow import StateFn, Gradient, CircuitGradient, OperatorBase, Z
+from qiskit.opflow.gradients.circuit_gradients import LinComb
 
 
 def calculate(
@@ -20,6 +21,9 @@ def calculate(
     ansatz: OperatorBase,
     parameters: Optional[Union[ParameterVector, ParameterExpression, List[ParameterExpression]]],
     grad_method: Union[str, CircuitGradient],
+    basis: OperatorBase = Z,
 ):
     operator = ~StateFn(observable) @ StateFn(ansatz)
+    if grad_method == "lin_comb":
+        return LinComb().convert(operator, parameters, aux_meas_op=basis)
     return Gradient(grad_method).convert(operator, parameters)

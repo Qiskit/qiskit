@@ -19,7 +19,7 @@ from qiskit.algorithms.quantum_time_evolution.variational.principles.real.real_v
     RealVariationalPrinciple,
 )
 from qiskit.circuit import Parameter
-from qiskit.opflow import CircuitQFI, OperatorBase
+from qiskit.opflow import CircuitQFI, OperatorBase, Y
 
 
 class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):
@@ -38,7 +38,7 @@ class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):
     ):
         # TODO imag multiplication does not work, integrate streamlined gradients
         raw_metric_tensor_imag = metric_tensor_calculator.calculate(
-            -1j * ansatz, list(param_dict.keys()), self._qfi_method
+            ansatz, list(param_dict.keys()), self._qfi_method, basis=-1j*Y
         )
 
         return raw_metric_tensor_imag
