@@ -59,9 +59,10 @@ class ErrorBaseOdeFunctionGenerator:
         )
         self._t_param = t_param
 
-    def error_based_ode_fun(self, t: float, x: Iterable):
+    def error_based_ode_fun(self, t: float, parameters_values: Iterable):
+        current_param_dict = dict(zip(self._param_dict.keys(), parameters_values))
         nat_grad_res, grad_res, metric_res = self._linear_solver._solve_sle(
-            self._variational_principle, self._param_dict, self._t_param, t
+            self._variational_principle, current_param_dict, self._t_param, t
         )
 
         def argmin_fun(dt_param_values: Union[List, np.ndarray]) -> float:

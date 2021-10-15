@@ -88,7 +88,7 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
             CircuitSampler(backend),
         )
 
-        qte_ode_function = ode_function_generator.var_qte_ode_function(time)
+        qte_ode_function = ode_function_generator.var_qte_ode_function(time, param_dict.values())
         expected_qte_ode_function = [
             -0.8842908,
             0.0441611,
@@ -156,7 +156,7 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
             t_param=t,
         )
 
-        qte_ode_function = ode_function_generator.var_qte_ode_function(time)
+        qte_ode_function = ode_function_generator.var_qte_ode_function(time, param_dict.values())
         expected_qte_ode_function = [
             -0.8842908,
             0.0441611,

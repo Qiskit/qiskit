@@ -11,11 +11,6 @@
 # that they have been altered from the originals.
 from typing import Iterable, Union, Dict, Optional
 
-import numpy as np
-
-from qiskit.algorithms.quantum_time_evolution.variational.calculators.distance_energy_calculator import (
-    _calculate_distance_energy,
-)
 from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.error_calculator import (
     ErrorCalculator,
 )
@@ -66,7 +61,8 @@ class OdeFunctionGenerator:
         )
         self._t_param = t_param
 
-    def var_qte_ode_function(self, t: float, x: Iterable) -> Iterable:
+    def var_qte_ode_function(self, t: float, parameters_values: Iterable) -> Iterable:
+        current_param_dict = dict(zip(self._param_dict.keys(), parameters_values))
         if self._error_based_ode:
             error_based_ode_fun_gen = ErrorBaseOdeFunctionGenerator(
                 self._error_calculator,
@@ -79,13 +75,10 @@ class OdeFunctionGenerator:
                 self._backend,
                 self._t_param,
             )
-            nat_grad_res, grad_res, metric_res = error_based_ode_fun_gen.error_based_ode_fun(t)
+            nat_grad_res, _, _ = error_based_ode_fun_gen.error_based_ode_fun(t, parameters_values)
         else:
-            nat_grad_res, grad_res, metric_res = self._linear_solver._solve_sle(
-                self._variational_principle, self._param_dict, self._t_param, t
+            nat_grad_res, _, _ = self._linear_solver._solve_sle(
+                self._variational_principle, current_param_dict, self._t_param, t
             )
-        # TODO log
-        print("Gradient ", grad_res)
-        print("Gradient norm", np.linalg.norm(grad_res))
 
         return nat_grad_res
