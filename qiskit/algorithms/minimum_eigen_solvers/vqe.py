@@ -157,7 +157,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self._gradient = None
         self.gradient = gradient
         self._quantum_instance = None
-        self.quantum_instance = quantum_instance
+
+        if quantum_instance is not None:
+            self.quantum_instance = quantum_instance
 
         self._eval_time = None
         self._eval_count = 0
