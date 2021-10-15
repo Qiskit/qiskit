@@ -13,7 +13,7 @@
 """The Minimum Eigensolver interface"""
 
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, List, Union, TypeVar
+from typing import Dict, Optional, List, Union, Tuple, TypeVar
 
 import numpy as np
 from qiskit.opflow import OperatorBase
@@ -98,11 +98,15 @@ class MinimumEigensolverResult(AlgorithmResult):
         self._eigenstate = value
 
     @property
-    def aux_operator_eigenvalues(self) -> Optional[ListOrDict[complex]]:
-        """return aux operator eigen values"""
+    def aux_operator_eigenvalues(self) -> Optional[List[ListOrDict[Tuple[complex, complex]]]]:
+        """Return aux operator eigen values.
+
+        These eigenvalues are in fact tuples formatted as (mean, standard deviation).
+        However, the standard deviation may not be available in all contexts.
+        """
         return self._aux_operator_eigenvalues
 
     @aux_operator_eigenvalues.setter
-    def aux_operator_eigenvalues(self, value: ListOrDict[complex]) -> None:
+    def aux_operator_eigenvalues(self, value: List[ListOrDict[Tuple[complex, complex]]]) -> None:
         """set aux operator eigen values"""
         self._aux_operator_eigenvalues = value

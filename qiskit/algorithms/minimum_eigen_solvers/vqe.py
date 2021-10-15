@@ -414,7 +414,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         aux_operators: ListOrDict[OperatorBase],
         expectation: ExpectationBase,
         threshold: float = 1e-12,
-    ) -> ListOrDict[complex]:
+    ) -> ListOrDict[Tuple[complex, complex]]:
         # Create new CircuitSampler to avoid breaking existing one's caches.
         sampler = CircuitSampler(self.quantum_instance)
 
@@ -441,7 +441,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         for key, value in key_value_iterator:
             if aux_operators[key] is not None:
-                aux_operator_eigenvalues[key] = value
+                # The value get's wrapped into a tuple: (mean, standard deviation).
+                # However, support for the evaluation of the standard deviation is yet to come.
+                aux_operator_eigenvalues[key] = (value, 0)
 
         return aux_operator_eigenvalues
 
