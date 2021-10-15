@@ -14,3 +14,7 @@ features:
 fixes:
   - |
     Fixes the fact that setting the `ansatz` or `optimizer` attributes of a `VQE` instance to `None` resulted in a buggy behavior, as explained in `#7093 <https://github.com/Qiskit/qiskit-terra/issues/7093>`.
+
+upgrade:
+  - |
+    The `sort_parameters_by_name` of the :class:`~qiskit.circuit.algorithms.VQE` class has been removed, following its deprecation on July, 12th.
