@@ -67,11 +67,14 @@ class SparsePauliOp(LinearOp):
         if coeffs is None:
             coeffs = np.ones(pauli_list.size, dtype=complex)
 
-        # Initialize PauliList
-        self._pauli_list = PauliList.from_symplectic(pauli_list.z, pauli_list.x)
+        if np.all(pauli_list.phase == 0):
+            self._pauli_list = pauli_list
+            self._coeffs = np.asarray(coeffs, dtype=complex)
+        else:
+            # move the phase of `pauli_list` to `self._coeffs`
+            self._pauli_list = PauliList.from_symplectic(pauli_list.z, pauli_list.x)
+            self._coeffs = np.asarray((-1j) ** pauli_list.phase * coeffs, dtype=complex)
 
-        # Initialize Coeffs
-        self._coeffs = np.asarray((-1j) ** pauli_list.phase * coeffs, dtype=complex)
         if self._coeffs.shape != (self._pauli_list.size,):
             raise QiskitError(
                 "coeff vector is incorrect shape for number"
