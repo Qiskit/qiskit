@@ -150,22 +150,22 @@ def_r.append(U3Gate(theta, phi - pi / 2, -phi + pi / 2), [q[0]])
 _sel.add_equivalence(RGate(theta, phi), def_r)
 
 # IGate
-q = QuantumRegister(1, 'q')
+q = QuantumRegister(1, "q")
 def_id = QuantumCircuit(q)
 def_id.append(UGate(0, 0, 0), [q[0]])
 _sel.add_equivalence(IGate(), def_id)
 
-q = QuantumRegister(1, 'q')
+q = QuantumRegister(1, "q")
 def_id_rx = QuantumCircuit(q)
 def_id_rx.append(RXGate(0), [q[0]])
 _sel.add_equivalence(IGate(), def_id_rx)
 
-q = QuantumRegister(1, 'q')
+q = QuantumRegister(1, "q")
 def_id_ry = QuantumCircuit(q)
 def_id_ry.append(RYGate(0), [q[0]])
 _sel.add_equivalence(IGate(), def_id_ry)
 
-q = QuantumRegister(1, 'q')
+q = QuantumRegister(1, "q")
 def_id_rz = QuantumCircuit(q)
 def_id_rz.append(RZGate(0), [q[0]])
 _sel.add_equivalence(IGate(), def_id_rz)
