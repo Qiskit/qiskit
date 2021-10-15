@@ -94,7 +94,12 @@ class LinCombFull(CircuitQFI):
         qr_work = QuantumRegister(1, "work_qubit")
         state_qc = QuantumCircuit(*operator.primitive.qregs, qr_work)
         state_qc.h(qr_work)
-        state_qc.compose(operator.primitive, inplace=True)
+        # unroll separately from the H gate since we need the H gate to be the first
+        # operation in the data attributes of the circuit
+        unrolled = LinComb._transpile_to_supported_operations(
+            operator.primitive, LinComb.SUPPORTED_GATES
+        )
+        state_qc.compose(unrolled, inplace=True)
 
         # Get the circuits needed to compute〈∂iψ|∂jψ〉
         for i, param_i in enumerate(params):  # loop over parameters
