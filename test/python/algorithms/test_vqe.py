@@ -166,7 +166,6 @@ class TestVQE(QiskitAlgorithmsTestCase):
                 optimizer=optimizer,
                 max_evals_grouped=max_evals_grouped,
                 quantum_instance=self.statevector_simulator,
-                sort_parameters_by_name=True,
             )
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=places)
