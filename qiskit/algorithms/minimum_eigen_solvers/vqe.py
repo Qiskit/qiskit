@@ -97,7 +97,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         max_evals_grouped: int = 1,
         callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
         quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
-        sort_parameters_by_name: Optional[bool] = None,
     ) -> None:
         """
 
@@ -133,11 +132,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
                 These are: the evaluation count, the optimizer parameters for the
                 ansatz, the evaluated mean and the evaluated standard deviation.`
             quantum_instance: Quantum Instance or Backend
-            sort_parameters_by_name: Deprecated. If True, the initial point is bound to the ansatz
-                parameters strictly sorted by name instead of the default circuit order. That means
-                that the ansatz parameters are e.g. sorted as ``x[0] x[1] x[10] x[2] ...`` instead
-                of ``x[0] x[1] x[2] ... x[10]``. Set this to ``True`` to obtain the behavior prior
-                to Qiskit Terra 0.18.0.
+
         """
         validate_min("max_evals_grouped", max_evals_grouped, 1)
 
@@ -150,8 +145,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self._include_custom = include_custom
 
         # set ansatz -- still supporting pre 0.18.0 sorting
-        self._sort_parameters_by_name = None
-        self.sort_parameters_by_name = sort_parameters_by_name
         self._ansatz_params = None
         self._ansatz = None
         self.ansatz = ansatz
@@ -193,11 +186,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             ansatz = RealAmplitudes()
 
         self._ansatz = ansatz
-
-        if self.sort_parameters_by_name:
-            self._ansatz_params = sorted(ansatz.parameters, key=lambda p: p.name)
-        else:
-            self._ansatz_params = list(ansatz.parameters)
+        self._ansatz_params = list(ansatz.parameters)
 
     @property
     def gradient(self) -> Optional[Union[GradientBase, Callable]]:
@@ -271,25 +260,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     def callback(self, callback: Optional[Callable[[int, np.ndarray, float, float], None]]):
         """Sets callback"""
         self._callback = callback
-
-    @property
-    def sort_parameters_by_name(self) -> Optional[bool]:
-        """Returns sort_parameters_by_name"""
-        return self._sort_parameters_by_name
-
-    @sort_parameters_by_name.setter
-    def sort_parameters_by_name(self, sort_parameters_by_name: Optional[bool]):
-        """Sets sort_parameters_by_name"""
-        self._sort_parameters_by_name = sort_parameters_by_name
-
-        if sort_parameters_by_name is not None:
-            warnings.warn(
-                "The ``sort_parameters_by_name`` attribute is deprecated and will be "
-                "removed no sooner than 3 months after the release date of Qiskit Terra "
-                "0.18.0.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
 
     @property
     def expectation(self) -> Optional[ExpectationBase]:
