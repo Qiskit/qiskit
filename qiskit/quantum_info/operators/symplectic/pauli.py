@@ -605,16 +605,15 @@ class Pauli(BasePauli):
         base_z = np.zeros((1, num_qubits), dtype=bool)
         base_x = np.zeros((1, num_qubits), dtype=bool)
         base_phase = np.array([phase], dtype=int)
-        for i, char in enumerate(pauli):
+        for i, char in enumerate(pauli[::-1]):
             if char == "X":
-                base_x[0, num_qubits - 1 - i] = True
+                base_x[0, i] = True
             elif char == "Z":
-                base_z[0, num_qubits - 1 - i] = True
+                base_z[0, i] = True
             elif char == "Y":
-                base_x[0, num_qubits - 1 - i] = True
-                base_z[0, num_qubits - 1 - i] = True
-                base_phase += 1
-        return base_z, base_x, base_phase % 4
+                base_x[0, i] = True
+                base_z[0, i] = True
+        return base_z, base_x, (base_phase + pauli.count("Y")) % 4
 
     @classmethod
     def _from_scalar_op(cls, op):
