@@ -205,7 +205,7 @@ class Statevector(QuantumState, TolerancesMixin):
             try:
                 key = int(key, 2)
             except ValueError:
-                raise QiskitError(f"Key '{key}' contains invalid characters.") from None
+                raise QiskitError(f"Key '{key}' is not a valid binary string.") from None
         if isinstance(key, int):
             if key >= self.dim:
                 raise QiskitError(f"Key {key} is greater than Statevector dimension {self.dim}.")
