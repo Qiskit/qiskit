@@ -219,9 +219,9 @@ class TestStatevector(QiskitTestCase):
 
     def test_getitem_except(self):
         """Test __getitem__ method raises exceptions."""
-        for i in range(1, 5):
-            state = Statevector(self.rand_vec(i))
-            self.assertRaises(QiskitError, state.__getitem__, i)
+        for i in range(1, 4):
+            state = Statevector(self.rand_vec(2**i))
+            self.assertRaises(QiskitError, state.__getitem__, 2**i)
             self.assertRaises(QiskitError, state.__getitem__, -1)
 
     def test_copy(self):
