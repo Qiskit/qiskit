@@ -286,7 +286,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
                     ) from ex
 
     @property
-    def optimizer(self) -> Optional[Optimizer]:
+    def optimizer(self) -> Optimizer:
         """Returns optimizer"""
         return self._optimizer
 
