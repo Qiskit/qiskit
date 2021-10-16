@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fix a bug where the parameter bounds for the mixer parameters in the 
+    :class:`~qiskit.circuit.library.QAOAAnsatz` have not been set.
+other:
+  - |
+    Use the QAOA notation for the cost operator (`γ`) and mixer (`β`) operator parameters in
+    :class:`~qiskit.circuit.library.QAOAAnsatz`.
+
