@@ -103,6 +103,9 @@ ClbitSpecifier = Union[
 # which operate on either type of bit, but not both at the same time.
 BitType = TypeVar("BitType", Qubit, Clbit)
 
+# Regex pattern to match valid OpenQASM identifiers
+ValidQasmIdentifier = re.compile("[a-z][a-zA-Z_0-9]*")
+
 
 class QuantumCircuit:
     """Create a new circuit.
@@ -1596,8 +1599,6 @@ class QuantumCircuit:
                 {bit: f"{register_name}[{idx}]" for idx, bit in enumerate(regless_clbits)}
             )
 
-        qasm_pattern = re.compile("[a-z][a-zA-Z_0-9]*")
-
         for instruction, qargs, cargs in self._data:
             if instruction.name == "measure":
                 qubit = qargs[0]
@@ -1608,16 +1609,9 @@ class QuantumCircuit:
                     bit_labels[clbit],
                 )
             else:
-                # Check instructions names are valid
-                if not qasm_pattern.match(instruction.name):
-                    name = instruction.name
-                    # Replace all non-ASCII-word characters with the underscore.
-                    escaped_name = re.sub(r"\W", "_", name, flags=re.ASCII)
-                    if not escaped_name or escaped_name[0] not in string.ascii_lowercase:
-                        # Add an arbitrary, guaranteed-to-be-valid prefix.
-                        escaped_name = "gate_" + escaped_name
-
-                    instruction = instruction.copy(name=escaped_name)
+                # Check instructions names or label are valid
+                if not ValidQasmIdentifier.match(instruction.name):
+                    instruction = instruction.copy(name=_qasm_escape_gate_name(instruction.name))
 
                 # decompose gate using definitions if they are not defined in OpenQASM2
                 if (
@@ -4098,18 +4092,12 @@ def _add_sub_instruction_to_existing_composite_circuits(
     """Recursively add undefined sub-instructions in the definition of the given
     instruction to existing_composite_circuit list.
     """
-    qasm_pattern = re.compile("[a-z][a-zA-Z_0-9]*")
     for sub_instruction, _, _ in instruction.definition:
         # Check instructions names are valid
-        if not qasm_pattern.match(sub_instruction.name):
-            name = sub_instruction.name
-            # Replace all non-ASCII-word characters with the underscore.
-            escaped_name = re.sub(r"\W", "_", name, flags=re.ASCII)
-            if not escaped_name or escaped_name[0] not in string.ascii_lowercase:
-                # Add an arbitrary, guaranteed-to-be-valid prefix.
-                escaped_name = "gate_" + escaped_name
-
-            sub_instruction = sub_instruction.copy(name=escaped_name)
+        if not ValidQasmIdentifier.match(sub_instruction.name):
+            sub_instruction = sub_instruction.copy(
+                name=_qasm_escape_gate_name(sub_instruction.name)
+            )
         if (
             sub_instruction.name not in existing_gate_names
             and sub_instruction not in existing_composite_circuits
@@ -4118,6 +4106,17 @@ def _add_sub_instruction_to_existing_composite_circuits(
             _add_sub_instruction_to_existing_composite_circuits(
                 sub_instruction, existing_gate_names, existing_composite_circuits
             )
+
+
+def _qasm_escape_gate_name(name: str) -> str:
+    """Returns a valid OpenQASM gate identifier"""
+    # Replace all non-ASCII-word characters with the underscore.
+    escaped_name = re.sub(r"\W", "_", name, flags=re.ASCII)
+    if not escaped_name or escaped_name[0] not in string.ascii_lowercase:
+        # Add an arbitrary, guaranteed-to-be-valid prefix.
+        escaped_name = "gate_" + escaped_name
+
+    return escaped_name
 
 
 def _get_composite_circuit_qasm_from_instruction(instruction: Instruction) -> str:
@@ -4136,6 +4135,11 @@ def _get_composite_circuit_qasm_from_instruction(instruction: Instruction) -> st
         bit: idx for bits in (definition.qubits, definition.clbits) for idx, bit in enumerate(bits)
     }
     for sub_instruction, qargs, _ in definition:
+        if not ValidQasmIdentifier.match(sub_instruction.name):
+            sub_instruction = sub_instruction.copy(
+                name=_qasm_escape_gate_name(sub_instruction.name)
+            )
+
         gate_qargs = ",".join(
             ["q%i" % index for index in [definition_bit_labels[qubit] for qubit in qargs]]
         )
