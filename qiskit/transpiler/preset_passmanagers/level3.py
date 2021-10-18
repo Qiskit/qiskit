@@ -20,7 +20,7 @@ gate cancellation using commutativity rules and unitary synthesis.
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passmanager import PassManager
-from qiskit.transpiler.passmanager import FullPassManager
+from qiskit.transpiler.passmanager import StructuredPassManager
 
 from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.transpiler.passes import SetLayout
@@ -238,7 +238,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     sched = common.generate_scheduling_post_opt(
         instruction_durations, scheduling_method, timing_constraints, inst_map
     )
-    return FullPassManager(
+    return StructuredPassManager(
         init=init,
         layout=layout,
         routing=routing,

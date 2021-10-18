@@ -314,10 +314,10 @@ class PassManager:
         return ret
 
 
-class FullPassManager(PassManager):
+class StructuredPassManager(PassManager):
     """A full Pass manager pipeline for a backend
 
-    Instances of FullPassManager define a full compilation pipeline from a abstract virtual
+    Instances of StructuredPassManager define a full compilation pipeline from a abstract virtual
     circuit to one that is optimized and capable of running on the specified backend. It is
     built using predefined stages:
 
@@ -363,7 +363,7 @@ class FullPassManager(PassManager):
         post_optimization=None,
         scheduling=None,
     ):
-        """Initialize a new FullPassManager object
+        """Initialize a new StructuredPassManager object
 
         Args:
             init (PassManager): A passmanager to run for the initial stage of the
