@@ -79,6 +79,9 @@ class LieTrotter(ProductFormula):
         else:
             pauli_list = [(op, 1) for op in operators]
 
+        # if we only evolve a single Pauli we don't need to additionally wrap it
+        wrap = not (len(pauli_list) == 1 and self.reps == 1)
+
         for _ in range(self.reps):
             for op, coeff in pauli_list:
                 # add barriers
@@ -88,6 +91,6 @@ class LieTrotter(ProductFormula):
                 else:
                     first_barrier = True
 
-                evo.compose(self.atomic_evolution(op, coeff * time / self.reps), inplace=True)
+                evo.compose(self.atomic_evolution(op, coeff * time / self.reps), wrap=wrap, inplace=True)
 
         return evo

@@ -67,11 +67,13 @@ class EvolutionGate(Gate):
         """
         if isinstance(operator, list):
             operator = [_to_sparse_pauli_op(op) for op in operator]
+            name = f"exp(-it {[' + '.join(op.paulis.to_labels()) for op in operator]})"
         else:
             operator = _to_sparse_pauli_op(operator)
+            name = f"exp(-it {' + '.join(operator.paulis.to_labels())})"
 
         num_qubits = operator[0].num_qubits if isinstance(operator, list) else operator.num_qubits
-        super().__init__(name="EvolutionGate", num_qubits=num_qubits, params=[time], label=label)
+        super().__init__(name=name, num_qubits=num_qubits, params=[time], label=label)
 
         self.time = time
         self.operator = operator

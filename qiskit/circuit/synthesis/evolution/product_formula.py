@@ -62,15 +62,15 @@ class ProductFormula(EvolutionSynthesis):
 
 
 def _default_atomic_evolution(operator, time, cx_structure):
-    evo = QuantumCircuit(operator.num_qubits)
-
     if isinstance(operator, Pauli):
         # single Pauli operator: just exponentiate it
-        evo.compose(evolve_pauli(operator, time, cx_structure), wrap=True, inplace=True)
+        evo = evolve_pauli(operator, time, cx_structure)
     else:
         # sum of Pauli operators: exponentiate each term (this assumes they commute)
         pauli_list = [(Pauli(op), np.real(coeff)) for op, coeff in operator.to_list()]
+        name = f"exp(it {[pauli.to_label() for pauli, _ in pauli_list]})"
+        evo = QuantumCircuit(operator.num_qubits, name=name)
         for pauli, coeff in pauli_list:
-            evo.compose(evolve_pauli(pauli, coeff * time, cx_structure), wrap=True, inplace=True)
+            evo.compose(evolve_pauli(pauli, coeff * time, cx_structure), inplace=True)
 
     return evo

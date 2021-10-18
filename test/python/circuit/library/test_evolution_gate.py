@@ -127,7 +127,7 @@ class TestEvolutionGate(QiskitTestCase):
     def test_dag_conversion(self):
         """Test constructing a circuit with evolutions yields a DAG with evolution blocks."""
         time = Parameter("t")
-        evo = EvolutionGate(X ^ 2, time=time, synthesis=LieTrotter())
+        evo = EvolutionGate((Z ^ 2) + (X ^ 2), time=time, synthesis=LieTrotter())
 
         circuit = QuantumCircuit(2)
         circuit.h(circuit.qubits)
@@ -136,8 +136,8 @@ class TestEvolutionGate(QiskitTestCase):
 
         dag = circuit_to_dag(circuit)
 
-        expected_ops = {"h", "cx", "EvolutionGate"}
-        ops = set(node.op.name for node in dag.op_nodes())
+        expected_ops = {"HGate", "CXGate", "EvolutionGate"}
+        ops = set(node.op.__class__.__name__ for node in dag.op_nodes())
 
         self.assertEqual(ops, expected_ops)
 
@@ -166,7 +166,7 @@ class TestEvolutionGate(QiskitTestCase):
             expected.cx(2, 0)
             expected.cx(1, 0)
 
-        self.assertEqual(expected, evo.definition.decompose())
+        self.assertEqual(expected, evo.definition)
 
     @data(
         Pauli("XI"),
@@ -181,11 +181,11 @@ class TestEvolutionGate(QiskitTestCase):
 
         with self.subTest(msg="plain"):
             evo = EvolutionGate(op, time=2, synthesis=LieTrotter())
-            self.assertEqual(evo.definition.decompose(), expected)
+            self.assertEqual(evo.definition, expected)
 
         with self.subTest(msg="wrapped in list"):
             evo = EvolutionGate([op], time=2, synthesis=LieTrotter())
-            self.assertEqual(evo.definition.decompose(), expected)
+            self.assertEqual(evo.definition, expected)
 
     def test_pauliop_coefficients_respected(self):
         """Test that global ``PauliOp`` coefficients are being taken care of."""
