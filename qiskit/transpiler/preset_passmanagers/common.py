@@ -107,7 +107,7 @@ def generate_pre_op_passmanager(coupling_map=None, remove_reset_in_zero=False):
 
 
 def generate_translation_passmanager(
-    basis_gates, method="basis", approximation_degree=None, coupling_map=None, backend_props=None
+    basis_gates, method="basis_translator", approximation_degree=None, coupling_map=None, backend_props=None
 ):
     """Generate a basis translation :class:`~qiskit.transpiler.PassManager`
 
@@ -132,7 +132,7 @@ def generate_translation_passmanager(
     """
     if method == "unroller":
         unroll = [Unroller(basis_gates)]
-    elif method == "translator":
+    elif method == "basis_translator":
         unroll = [UnrollCustomDefinitions(sel, basis_gates), BasisTranslator(sel, basis_gates)]
     elif method == "synthesis":
         unroll = [
