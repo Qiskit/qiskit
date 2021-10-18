@@ -336,10 +336,10 @@ class QuantumBarrier(QuantumInstruction):
 
 
 class QuantumReset(QuantumInstruction):
-    """A built-in ``reset q0, q1, ...;`` statement."""
+    """A built-in ``reset q0;`` statement."""
 
-    def __init__(self, indexIdentifier: Identifier):
-        self.indexIdentifier = indexIdentifier
+    def __init__(self, identifier: Identifier):
+        self.identifier = identifier
 
 
 class ProgramBlock(ASTNode):

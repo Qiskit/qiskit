@@ -196,7 +196,7 @@ class BasicPrinter:
     def _visit_QuantumReset(self, node: QuantumReset) -> None:
         self._start_line()
         self.stream.write("reset ")
-        self.visit(node.indexIdentifier)
+        self.visit(node.identifier)
         self._end_statement()
 
     def _visit_Integer(self, node: Integer) -> None:
