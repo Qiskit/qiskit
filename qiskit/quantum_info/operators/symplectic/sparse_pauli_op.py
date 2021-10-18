@@ -341,13 +341,12 @@ class SparsePauliOp(LinearOp):
         if rtol is None:
             rtol = self.rtol
 
-        # pack bool vectors into np.int8 vectors by np.packbits
+        # Pack bool vectors into np.uint8 vectors by np.packbits
         array = np.packbits(self.paulis.x, axis=1) * 256 + np.packbits(self.paulis.z, axis=1)
         _, indexes, inverses = np.unique(array, return_index=True, return_inverse=True, axis=0)
         coeffs = np.zeros(indexes.shape[0], dtype=complex)
         np.add.at(coeffs, inverses, self.coeffs)
         # Delete zero coefficient rows
-        # TODO: Add atol/rtol for zero comparison
         is_zero = np.isclose(coeffs, 0, atol=atol, rtol=rtol)
         # Check edge case that we deleted all Paulis
         # In this case we return an identity Pauli with a zero coefficient
