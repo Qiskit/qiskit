@@ -16,6 +16,7 @@ from a backend
 """
 
 from collections.abc import Mapping
+from collections import defaultdict
 import io
 import logging
 from typing import Union, Dict, Any
@@ -175,7 +176,7 @@ class Target(Mapping):
         # A nested mapping of gate name -> qargs -> properties
         self._gate_map = {}
         # A mapping of qarg -> set(gate name)
-        self._qarg_gate_map = {}
+        self._qarg_gate_map = defaultdict(set)
         self.description = description
         self._coupling_graph = None
         self._instruction_durations = None
@@ -243,12 +244,7 @@ class Target(Mapping):
             if qarg is not None:
                 self.num_qubits = max(self.num_qubits, max(qarg) + 1)
             qargs_val[qarg] = properties[qarg]
-            if qarg in self._qarg_gate_map:
-                self._qarg_gate_map[qarg].add(instruction_name)
-            else:
-                self._qarg_gate_map[qarg] = {
-                    instruction_name,
-                }
+            self._qarg_gate_map[qarg].add(instruction_name)
         self._gate_map[instruction_name] = qargs_val
         self._coupling_graph = None
         self._instruction_durations = None
@@ -405,7 +401,12 @@ class Target(Mapping):
         Returns:
             list: The set of :class:`~qiskit.circuit.Instruction` instances
             that apply to the specified qarg.
+
+        Raises:
+            KeyError: If qarg is not in target
         """
+        if qarg not in self._qarg_gate_map:
+            raise KeyError(f"{qarg} not in target.")
         return [self._gate_name_map[x] for x in self._qarg_gate_map[qarg]]
 
     @property
