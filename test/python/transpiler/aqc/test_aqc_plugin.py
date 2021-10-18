@@ -16,31 +16,47 @@ Tests AQC plugin.
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.converters import dag_to_circuit
+from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.synthesis.aqc.aqc_plugin import AQCSynthesisPlugin
 
 
 class TestAQCSynthesisPlugin(QiskitTestCase):
     """Basic tests of the AQC synthesis plugin."""
 
-    def test_aqc_plugin(self):
-        """Basic test of the plugin."""
-        qc = QuantumCircuit(3)
-        qc.mcx(
+    def setUp(self):
+        super().setUp()
+        self._qc = QuantumCircuit(3)
+        self._qc.mcx(
             [
                 0,
                 1,
             ],
             2,
         )
-        target_unitary = Operator(qc).data
 
+        self._target_unitary = Operator(self._qc).data
+
+    def test_aqc_plugin(self):
+        """Basic test of the plugin."""
         plugin = AQCSynthesisPlugin()
-        dag = plugin.run(target_unitary)
+        dag = plugin.run(self._target_unitary)
 
         approx_circuit = dag_to_circuit(dag)
         approx_unitary = Operator(approx_circuit).data
 
-        np.testing.assert_array_almost_equal(target_unitary, approx_unitary, 3)
+        np.testing.assert_array_almost_equal(self._target_unitary, approx_unitary, 3)
+
+    def test_plugin_setup(self):
+        """Tests the plugin via unitary synthesis pass"""
+        transpiler_pass = UnitarySynthesis(basis_gates=["rx", "ry", "rz", "cx"], method="aqc")
+
+        dag = circuit_to_dag(self._qc)
+        dag = transpiler_pass.run(dag)
+
+        approx_circuit = dag_to_circuit(dag)
+        approx_unitary = Operator(approx_circuit).data
+
+        np.testing.assert_array_almost_equal(self._target_unitary, approx_unitary, 3)
