@@ -19,6 +19,7 @@ import itertools
 import functools
 import multiprocessing as mp
 import string
+import re
 from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
     Union,
@@ -1595,6 +1596,8 @@ class QuantumCircuit:
                 {bit: f"{register_name}[{idx}]" for idx, bit in enumerate(regless_clbits)}
             )
 
+        qasm_pattern = re.compile("[a-z][a-zA-Z_0-9]*")
+
         for instruction, qargs, cargs in self._data:
             if instruction.name == "measure":
                 qubit = qargs[0]
@@ -1605,6 +1608,17 @@ class QuantumCircuit:
                     bit_labels[clbit],
                 )
             else:
+                # Check instructions names are valid
+                if not qasm_pattern.match(instruction.name):
+                    name = instruction.name
+                    # Replace all non-ASCII-word characters with the underscore.
+                    escaped_name = re.sub(r"\W", "_", name, flags=re.ASCII)
+                    if not escaped_name or escaped_name[0] not in string.ascii_lowercase:
+                        # Add an arbitrary, guaranteed-to-be-valid prefix.
+                        escaped_name = "gate_" + escaped_name
+
+                    instruction = instruction.copy(name=escaped_name)
+
                 # decompose gate using definitions if they are not defined in OpenQASM2
                 if (
                     instruction.name not in existing_gate_names
@@ -4084,7 +4098,18 @@ def _add_sub_instruction_to_existing_composite_circuits(
     """Recursively add undefined sub-instructions in the definition of the given
     instruction to existing_composite_circuit list.
     """
+    qasm_pattern = re.compile("[a-z][a-zA-Z_0-9]*")
     for sub_instruction, _, _ in instruction.definition:
+        # Check instructions names are valid
+        if not qasm_pattern.match(sub_instruction.name):
+            name = sub_instruction.name
+            # Replace all non-ASCII-word characters with the underscore.
+            escaped_name = re.sub(r"\W", "_", name, flags=re.ASCII)
+            if not escaped_name or escaped_name[0] not in string.ascii_lowercase:
+                # Add an arbitrary, guaranteed-to-be-valid prefix.
+                escaped_name = "gate_" + escaped_name
+
+            sub_instruction = sub_instruction.copy(name=escaped_name)
         if (
             sub_instruction.name not in existing_gate_names
             and sub_instruction not in existing_composite_circuits
