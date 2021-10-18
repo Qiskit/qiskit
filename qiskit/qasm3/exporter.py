@@ -484,8 +484,8 @@ class Qasm3Builder:
                 indexIdentifierList = self.build_indexidentifier(instruction[2][0])
                 ret.append(QuantumMeasurementAssignment(indexIdentifierList, quantumMeasurement))
             elif isinstance(instruction[0], Reset):
-                qubits = self.build_indexIdentifierlist(instruction[1])
-                ret.append(QuantumReset(qubits))
+                for identifier in instruction[1]:
+                    ret.append(QuantumReset(self.build_indexidentifier(identifier)))
             else:
                 ret.append(self.build_subroutinecall(instruction))
         return ret
