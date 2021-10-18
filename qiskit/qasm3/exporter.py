@@ -81,15 +81,21 @@ from .ast import (
     Integer,
     ProgramBlock,
     ComparisonExpression,
-    BitDeclaration,
+    ClassicalDeclaration,
     EqualsOperator,
     QuantumArgument,
     Expression,
     CalibrationDefinition,
     IOModifier,
-    IO,
+    IODeclaration,
     PhysicalQubitIdentifier,
     AliasStatement,
+    BitRegisterType,
+    UintType,
+    IntType,
+    FloatType,
+    FloatWidth,
+    Cast,
 )
 from .printer import BasicPrinter
 
@@ -314,8 +320,8 @@ class Qasm3Builder:
             ;
         """
         definitions = self.build_definitions()
-        inputs = self.build_inputs()
-        bitdeclarations = self.build_bitdeclarations()
+        inputs = self.build_input_declarations()
+        creg_declarations = self.build_creg_declarations()
         quantumdeclarations = None
         if hasattr(self.circuit_ctx[-1], "_layout") and self.circuit_ctx[-1]._layout is not None:
             self._physical_qubit = True
@@ -329,8 +335,8 @@ class Qasm3Builder:
             ret += definitions
         if inputs:
             ret += inputs
-        if bitdeclarations:
-            ret += bitdeclarations
+        if creg_declarations:
+            ret += creg_declarations
         if quantumdeclarations:
             ret += quantumdeclarations
         if quantuminstructions:
@@ -408,19 +414,19 @@ class Qasm3Builder:
 
         return QuantumGateSignature(Identifier(name), qargList, params or None)
 
-    def build_inputs(self):
+    def build_input_declarations(self):
         """Builds a list of Inputs"""
-        ret = []
-        for param in self.circuit_ctx[-1].parameters:
-            ret.append(IO(IOModifier.input, Identifier("float[32]"), Identifier(param.name)))
-        return ret
+        return [
+            IODeclaration(IOModifier.input, FloatType(FloatWidth.DOUBLE), Identifier(param.name))
+            for param in self.circuit_ctx[-1].parameters
+        ]
 
-    def build_bitdeclarations(self):
-        """Builds a list of BitDeclarations"""
-        ret = []
-        for creg in self.circuit_ctx[-1].cregs:
-            ret.append(BitDeclaration(Identifier(creg.name), Designator(Integer(creg.size))))
-        return ret
+    def build_creg_declarations(self):
+        """Builds a list of declarations of the classical registers in the circuit."""
+        return [
+            ClassicalDeclaration(BitRegisterType(creg.size), Identifier(creg.name))
+            for creg in self.circuit_ctx[-1].cregs
+        ]
 
     @property
     def base_register_name(self):

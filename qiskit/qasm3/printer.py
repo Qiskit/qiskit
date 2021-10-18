@@ -18,22 +18,28 @@ from typing import Sequence
 from .ast import (
     ASTNode,
     AliasStatement,
-    BitDeclaration,
+    AngleType,
+    BitRegisterType,
+    BitType,
     BranchingStatement,
     CalibrationDefinition,
     CalibrationGrammarDeclaration,
+    Cast,
+    ClassicalDeclaration,
     ComparisonExpression,
     Constant,
     Designator,
     EqualsOperator,
     Expression,
+    FloatType,
     GtOperator,
     Header,
-    IO,
+    IODeclaration,
     IOModifier,
     Identifier,
     Include,
     IndexIdentifier2,
+    IntType,
     Integer,
     LtOperator,
     PhysicalQubitIdentifier,
@@ -53,6 +59,7 @@ from .ast import (
     ReturnStatement,
     SubroutineCall,
     SubroutineDefinition,
+    UintType,
     Version,
 )
 
@@ -163,12 +170,44 @@ class BasicPrinter:
     def _visit_CalibrationGrammarDeclaration(self, node: CalibrationGrammarDeclaration) -> None:
         self._write_statement(f'defcalgrammar "{node.name}"')
 
+    def _visit_IntType(self, node: IntType) -> None:
+        self.stream.write("int")
+        if node.width is not None:
+            self.stream.write(f"[{node.width}]")
+
+    def _visit_UintType(self, node: UintType) -> None:
+        self.stream.write("uint")
+        if node.width is not None:
+            self.stream.write(f"[{node.width}]")
+
+    def _visit_AngleType(self, node: AngleType) -> None:
+        self.stream.write("angle")
+        if node.width is not None:
+            self.stream.write(f"[{node.width}]")
+
+    def _visit_FloatType(self, node: FloatType) -> None:
+        self.stream.write("float")
+        if node.width is not None:
+            self.stream.write(f"[{node.width:d}]")
+
+    def _visit_BitType(self, _node: BitType) -> None:
+        self.stream.write("bit")
+
+    def _visit_BitRegisterType(self, node: BitRegisterType) -> None:
+        self.stream.write(f"bit[{node.size}]")
+
     def _visit_Identifier(self, node: Identifier) -> None:
         self.stream.write(node.string)
 
     def _visit_PhysicalQubitIdentifier(self, node: PhysicalQubitIdentifier) -> None:
         self.stream.write("$")
         self.visit(node.identifier)
+
+    def _visit_Cast(self, node: Cast) -> None:
+        self.visit(node.type)
+        self.stream.write("(")
+        self.visit(node.something)
+        self.stream.write(")")
 
     def _visit_Expression(self, node: Expression) -> None:
         self.stream.write(str(node.something))
@@ -200,10 +239,9 @@ class BasicPrinter:
         self.visit(node.expression)
         self.stream.write("]")
 
-    def _visit_BitDeclaration(self, node: BitDeclaration) -> None:
+    def _visit_ClassicalDeclaration(self, node: ClassicalDeclaration) -> None:
         self._start_line()
-        self.stream.write("bit")
-        self.visit(node.designator)
+        self.visit(node.type)
         self.stream.write(" ")
         self.visit(node.identifier)
         if node.equalsExpression:
@@ -350,7 +388,7 @@ class BasicPrinter:
             self.visit(node.programFalse)
         self._end_line()
 
-    def _visit_IO(self, node: IO) -> None:
+    def _visit_IODeclaration(self, node: IODeclaration) -> None:
         self._start_line()
         modifier = "input" if node.modifier == IOModifier.input else "output"
         self.stream.write(modifier + " ")

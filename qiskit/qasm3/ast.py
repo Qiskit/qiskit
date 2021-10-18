@@ -114,6 +114,59 @@ class QuantumInstruction(ASTNode):
         pass
 
 
+class ClassicalType(ASTNode):
+    """Information about a classical type.  This is just an abstract base for inheritance tests."""
+
+
+class IntType(ClassicalType):
+    """Type information for a classical signed integer."""
+
+    def __init__(self, width: Optional[int]):
+        self.width = width
+
+
+class UintType(ClassicalType):
+    """Type information for a classical unsigned integer."""
+
+    def __init__(self, width: Optional[int]):
+        self.width = width
+
+
+class FloatWidth(enum.IntEnum):
+    """Allowed values for the width of floating-point types."""
+
+    HALF = 16
+    SINGLE = 32
+    DOUBLE = 64
+    QUAD = 128
+    OCT = 256
+
+
+class FloatType(ClassicalType):
+    """Type information for a classical floating-point value."""
+
+    def __init__(self, width: Optional[FloatWidth]):
+        self.width = width
+
+
+class AngleType(ClassicalType):
+    """Type information for a classical fractional angle type."""
+
+    def __init__(self, width: Optional[int]):
+        self.width = width
+
+
+class BitType(ClassicalType):
+    """Type information for the singleton ``bit`` type."""
+
+
+class BitRegisterType(ClassicalType):
+    """Type information for a sized register of classical bits."""
+
+    def __init__(self, size: int):
+        self.size = size
+
+
 class Identifier(ASTNode):
     """
     Identifier : FirstIdCharacter GeneralIdCharacter* ;
@@ -226,6 +279,14 @@ class Integer(Expression):
     """Integer : Digit+ ;"""
 
 
+class Cast(Expression):
+    """An explicit cast from one classical type to another."""
+
+    def __init__(self, type_: ClassicalType, expression: Expression):
+        self.type = type_
+        self.something = expression
+
+
 class Designator(ASTNode):
     """
     designator
@@ -236,16 +297,12 @@ class Designator(ASTNode):
         self.expression = expression
 
 
-class BitDeclaration(ASTNode):
-    """
-    bitDeclaration
-        : ( 'creg' Identifier designator? |   # NOT SUPPORTED
-            'bit' designator? Identifier ) equalsExpression?
-    """
+class ClassicalDeclaration(Statement):
+    """Declaration of a classical type, optionally initialising it to a value."""
 
-    def __init__(self, identifier: Identifier, designator=None, equalsExpression=None):
+    def __init__(self, type_: ClassicalType, identifier: Identifier, equalsExpression=None):
+        self.type = type_
         self.identifier = identifier
-        self.designator = designator
         self.equalsExpression = equalsExpression
 
 
@@ -514,10 +571,10 @@ class IOModifier(enum.Enum):
     output = enum.auto()
 
 
-class IO(ASTNode):
-    """UNDEFINED in the grammar yet"""
+class IODeclaration(Statement):
+    """A declaration of an IO variable."""
 
-    def __init__(self, modifier: IOModifier, input_type, input_variable):
+    def __init__(self, modifier: IOModifier, input_type: ClassicalType, input_variable):
         self.modifier = modifier
         self.type = input_type
         self.variable = input_variable
