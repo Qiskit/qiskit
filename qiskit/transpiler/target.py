@@ -272,6 +272,64 @@ class Target(Mapping):
         self._instruction_durations = None
         self._instruction_schedule_map = None
 
+    def update_from_instruction_schedule_map(self, inst_map, inst_name_map=None, dt=None):
+        """Update the target from an instruction schedule map.
+
+        If the input instruction schedule map contains new instructions not in
+        the target they will be added. However if it contains additional qargs
+        for an existing instruction in the target it will error.
+
+        Args:
+            inst_map (InstructionScheduleMap): The instruction
+            inst_name_map (dict): An optional dictionary that maps any
+                instruction name in ``inst_map`` to an instruction object
+            dt (float): An optional value for the timestep in seconds. If
+                specified the
+                :attr:`~qiskit.transpiler.InstructionProperties.length`
+                attribute for
+                the new or changed
+                :class:`~qiskit.transpiler.InstructionProperties` objects will
+                be updated from the duration of the schedule.
+
+        Raises:
+            ValueError: If ``inst_map`` contains new instructions and
+                ``inst_name_map`` isn't specified
+            KeyError: If a ``inst_map`` contains a qarg for an instruction
+                that's not in the target
+        """
+        for inst in inst_map.instructions:
+            out_props = {}
+            for qarg in inst_map.qubits_with_instruction(inst):
+                sched = inst_map.get(inst, qarg)
+                val = InstructionProperties(schedule=sched)
+                if isinstance(qarg, int):
+                    if inst in self._gate_map:
+                        if dt is not None:
+                            val.length = sched.duration * dt
+                        else:
+                            val.length = getattr(self._gate_map[inst][(qarg,)], "length", None)
+                        val.error = getattr(self._gate_map[inst][(qarg,)], "error", None)
+                    out_props[(qarg,)] = val
+                else:
+                    if inst in self._gate_map:
+                        if dt is not None:
+                            val.length = sched.duration * dt
+                        else:
+                            val.length = getattr(self._gate_map[inst][qarg], "length", None)
+                        val.error = getattr(self._gate_map[inst][qarg], "error", None)
+                    out_props[qarg] = val
+            if inst not in self._gate_map:
+                if inst_name_map is not None:
+                    self.add_instruction(inst_name_map[inst], out_props, name=inst)
+                else:
+                    raise ValueError(
+                        "An inst_name_map kwarg must be specified to add new "
+                        "instructions from an InstructionScheduleMap"
+                    )
+            else:
+                for qarg, prop in out_props.items():
+                    self.update_instruction_properties(inst, qarg, prop)
+
     @property
     def qargs(self):
         """The set of qargs in the target."""

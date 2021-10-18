@@ -816,13 +816,13 @@ class TestPulseTarget(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.pulse_target = Target()
-        with pulse.build(name="sx_q0") as custom_sx_q0:
+        with pulse.build(name="sx_q0") as self.custom_sx_q0:
             pulse.play(pulse.Constant(100, 0.1), pulse.DriveChannel(0))
-        with pulse.build(name="sx_q1") as custom_sx_q1:
+        with pulse.build(name="sx_q1") as self.custom_sx_q1:
             pulse.play(pulse.Constant(100, 0.2), pulse.DriveChannel(1))
         sx_props = {
-            (0,): InstructionProperties(length=35.5e-9, error=0.000413, schedule=custom_sx_q0),
-            (1,): InstructionProperties(length=35.5e-9, error=0.000502, schedule=custom_sx_q1),
+            (0,): InstructionProperties(length=35.5e-9, error=0.000413, schedule=self.custom_sx_q0),
+            (1,): InstructionProperties(length=35.5e-9, error=0.000502, schedule=self.custom_sx_q1),
         }
         self.pulse_target.add_instruction(SXGate(), sx_props)
 
@@ -866,6 +866,51 @@ Instructions:
 			With pulse schedule
 """
         self.assertEqual(expected, str(self.pulse_target))
+
+    def test_update_from_instruction_schedule_map_add_instruction(self):
+        target = Target()
+        inst_map = InstructionScheduleMap()
+        inst_map.add("sx", 0, self.custom_sx_q0)
+        inst_map.add("sx", 1, self.custom_sx_q1)
+        target.update_from_instruction_schedule_map(inst_map, {"sx": SXGate()})
+        self.assertEqual(inst_map, target.instruction_schedule_map())
+
+    def test_update_from_instruction_schedule_map_update_schedule(self):
+        inst_map = InstructionScheduleMap()
+        with pulse.build(name="sx_q1") as custom_sx:
+            pulse.play(pulse.Constant(1000, 0.2), pulse.DriveChannel(1))
+
+        inst_map.add("sx", 0, self.custom_sx_q0)
+        inst_map.add("sx", 1, custom_sx)
+        self.pulse_target.update_from_instruction_schedule_map(inst_map, {"sx": SXGate()})
+        self.assertEqual(inst_map, self.pulse_target.instruction_schedule_map())
+
+    def test_update_from_instruction_schedule_map_new_instruction_no_name_map(self):
+        target = Target()
+        inst_map = InstructionScheduleMap()
+        inst_map.add("sx", 0, self.custom_sx_q0)
+        inst_map.add("sx", 1, self.custom_sx_q1)
+        with self.assertRaises(ValueError):
+            target.update_from_instruction_schedule_map(inst_map)
+
+    def test_update_from_instruction_schedule_map_new_qarg_raises(self):
+        inst_map = InstructionScheduleMap()
+        inst_map.add("sx", 0, self.custom_sx_q0)
+        inst_map.add("sx", 1, self.custom_sx_q1)
+        inst_map.add("sx", 2, self.custom_sx_q1)
+        with self.assertRaises(KeyError):
+            self.pulse_target.update_from_instruction_schedule_map(inst_map)
+
+    def test_update_from_instruction_schedule_map_with_dt_set(self):
+        inst_map = InstructionScheduleMap()
+        with pulse.build(name="sx_q1") as custom_sx:
+            pulse.play(pulse.Constant(1000, 0.2), pulse.DriveChannel(1))
+
+        inst_map.add("sx", 0, self.custom_sx_q0)
+        inst_map.add("sx", 1, custom_sx)
+        self.pulse_target.update_from_instruction_schedule_map(inst_map, {"sx": SXGate()}, dt=1.0)
+        self.assertEqual(inst_map, self.pulse_target.instruction_schedule_map())
+        self.assertEqual(self.pulse_target["sx"][(1,)].length, 1000.0)
 
 
 class TestInstructionProperties(QiskitTestCase):
