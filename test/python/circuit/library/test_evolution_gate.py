@@ -17,7 +17,7 @@ from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import EvolutionGate
-from qiskit.circuit.synthesis import LieTrotter, SuzukiTrotter
+from qiskit.circuit.synthesis import LieTrotter, SuzukiTrotter, MatrixExponential
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.opflow import I, X, Y, Z, PauliSumOp
@@ -28,7 +28,7 @@ from qiskit.quantum_info import Operator, SparsePauliOp, Pauli
 class TestEvolutionGate(QiskitTestCase):
     """Test the evolution gate."""
 
-    def test_default_decomposition(self):
+    def test_matrix_decomposition(self):
         """Test the default decomposition."""
         op = (X ^ 3) + (Y ^ 3) + (Z ^ 3)
         time = 0.123
@@ -36,7 +36,7 @@ class TestEvolutionGate(QiskitTestCase):
         matrix = op.to_matrix()
         evolved = scipy.linalg.expm(-1j * time * matrix)
 
-        evo_gate = EvolutionGate(op, time)
+        evo_gate = EvolutionGate(op, time, synthesis=MatrixExponential())
 
         self.assertTrue(Operator(evo_gate).equiv(evolved))
 
@@ -127,7 +127,7 @@ class TestEvolutionGate(QiskitTestCase):
     def test_dag_conversion(self):
         """Test constructing a circuit with evolutions yields a DAG with evolution blocks."""
         time = Parameter("t")
-        evo = EvolutionGate((Z ^ 2) + (X ^ 2), time=time, synthesis=LieTrotter())
+        evo = EvolutionGate((Z ^ 2) + (X ^ 2), time=time)
 
         circuit = QuantumCircuit(2)
         circuit.h(circuit.qubits)

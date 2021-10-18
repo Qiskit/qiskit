@@ -27,7 +27,14 @@ Evolution Synthesis
    ProductFormula
    LieTrotter
    SuzukiTrotter
+   MatrixExponential
 
 """
 
-from .evolution import EvolutionSynthesis, ProductFormula, LieTrotter, SuzukiTrotter
+from .evolution import (
+    EvolutionSynthesis,
+    ProductFormula,
+    LieTrotter,
+    SuzukiTrotter,
+    MatrixExponential,
+)

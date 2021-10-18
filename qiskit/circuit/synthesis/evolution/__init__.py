@@ -13,6 +13,7 @@
 """Synthesis for operator evolution gates."""
 
 from .evolution_synthesis import EvolutionSynthesis
+from .matrix_synthesis import MatrixExponential
 from .product_formula import ProductFormula
 from .lie_trotter import LieTrotter
 from .suzuki_trotter import SuzukiTrotter

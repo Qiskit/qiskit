@@ -14,15 +14,10 @@
 
 from typing import Union, Optional
 
-# import numpy as np
-
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.parameterexpression import ParameterExpression
-
-from qiskit.quantum_info import Operator, Pauli, SparsePauliOp
-
-from qiskit.circuit.synthesis import EvolutionSynthesis
+from qiskit.circuit.synthesis import EvolutionSynthesis, LieTrotter
+from qiskit.quantum_info import Pauli, SparsePauliOp
 
 
 class EvolutionGate(Gate):
@@ -62,8 +57,8 @@ class EvolutionGate(Gate):
                 For example: ``[XY + YX, ZZ + ZI + IZ, YY]``.
             time: The evolution time.
             label: A label for the gate to display in visualizations.
-            synthesis: A synthesis strategy. If None, the default synthesis is exponentially
-                expensive matrix calculation, exponentiation and synthesis.
+            synthesis: A synthesis strategy. If None, the default synthesis is the Lie-Trotter
+                product formula with a single repetition.
         """
         if isinstance(operator, list):
             operator = [_to_sparse_pauli_op(op) for op in operator]
@@ -71,6 +66,9 @@ class EvolutionGate(Gate):
         else:
             operator = _to_sparse_pauli_op(operator)
             name = f"exp(-it {' + '.join(operator.paulis.to_labels())})"
+
+        if synthesis is None:
+            synthesis = LieTrotter()
 
         num_qubits = operator[0].num_qubits if isinstance(operator, list) else operator.num_qubits
         super().__init__(name=name, num_qubits=num_qubits, params=[time], label=label)
@@ -81,31 +79,7 @@ class EvolutionGate(Gate):
 
     def _define(self):
         """Unroll, where the default synthesis is matrix based."""
-        # if we have a single Pauli term, evolve it directly
-        # if len(self.operator) == 1:
-        #     from .pauli_evolution import PauliEvolutionGate
-        #     pauli = self.operator.paulis[0]
-        #     time = self.time * np.real(self.operator.coeffs[0])
-
-        #     self.definition = QuantumCircuit(pauli.num_qubits)
-        #     self.definition.append(PauliEvolutionGate(pauli, time), range(pauli.num_qubits))
-        if self.synthesis is None:
-            self.definition = self._matrix_synthesis()
-        else:
-            self.definition = self.synthesis.synthesize(self.operator, self.time)
-
-    def _matrix_synthesis(self):
-        if isinstance(self.time, ParameterExpression):
-            raise ValueError("Cannot define evolution with unbound time parameter.")
-
-        if isinstance(self.operator, list):
-            operator = sum(self.operator)
-        else:
-            operator = self.operator
-
-        definition = QuantumCircuit(self.num_qubits)
-        definition.hamiltonian(Operator(operator).data, self.time, definition.qubits)
-        return definition
+        self.definition = self.synthesis.synthesize(self.operator, self.time)
 
     def inverse(self) -> "EvolutionGate":
         return EvolutionGate(operator=self.operator, time=-self.time, synthesis=self.synthesis)
