@@ -465,10 +465,10 @@ class Qasm3Builder:
             if isinstance(instruction[0], Gate):
                 if instruction[0].condition:
                     eqcondition = self.build_eqcondition(instruction[0].condition)
-                    instruciton_without_condition = instruction[0].copy()
-                    instruciton_without_condition.condition = None
+                    instruction_without_condition = instruction[0].copy()
+                    instruction_without_condition.condition = None
                     programTrue = self.build_programblock(
-                        [(instruciton_without_condition, instruction[1], instruction[2])]
+                        [(instruction_without_condition, instruction[1], instruction[2])]
                     )
                     ret.append(BranchingStatement(eqcondition, programTrue))
                 else:
