@@ -335,6 +335,13 @@ class QuantumBarrier(QuantumInstruction):
         self.indexIdentifierList = indexIdentifierList
 
 
+class QuantumReset(QuantumInstruction):
+    """A built-in ``reset q0, q1, ...;`` statement."""
+
+    def __init__(self, indexIdentifierList: List[Identifier]):
+        self.indexIdentifierList = indexIdentifierList
+
+
 class ProgramBlock(ASTNode):
     """
     programBlock
