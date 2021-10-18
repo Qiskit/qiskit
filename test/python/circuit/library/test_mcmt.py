@@ -30,8 +30,9 @@ class TestMCMT(QiskitTestCase):
 
     @data(MCMT, MCMTVChain)
     def test_mcmt_label(self, mtmc_class):
+        """Test MCMT label remains functional but is deprecated."""
         custom_label = "abc"
-        with self.subTest(msg="mcmt init with label and get"):
+        with self.subTest(msg="init with label and get"):
             with self.assertWarns(DeprecationWarning):
                 mcmt = mtmc_class(
                     XGate(), num_ctrl_qubits=1, num_target_qubits=1, label=custom_label
@@ -39,14 +40,14 @@ class TestMCMT(QiskitTestCase):
             with self.assertWarns(DeprecationWarning):
                 self.assertEqual(mcmt.label, custom_label)
 
-        with self.subTest(msg="mcmt label set and get"):
+        with self.subTest(msg="label set and get"):
             mcmt = mtmc_class(XGate(), num_ctrl_qubits=1, num_target_qubits=1)
             with self.assertWarns(DeprecationWarning):
                 mcmt.label = custom_label
             with self.assertWarns(DeprecationWarning):
                 self.assertEqual(mcmt.label, custom_label)
 
-        with self.subTest(msg="mcmt control label"):
+        with self.subTest(msg="control gate label"):
             mcmt = mtmc_class(XGate(), num_ctrl_qubits=1, num_target_qubits=1)
             c_mcmt = mcmt.control()
             with self.assertWarns(DeprecationWarning):

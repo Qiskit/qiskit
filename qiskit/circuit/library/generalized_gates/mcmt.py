@@ -112,6 +112,7 @@ class MCMT(QuantumCircuit):
 
     @property
     def label(self):
+        """Get label."""
         warnings.warn(
             "The MCMT 'label' property is deprecated as of 0.19.0 and "
             "will be removed no earlier than 3 months after the release date. "
@@ -123,6 +124,7 @@ class MCMT(QuantumCircuit):
 
     @label.setter
     def label(self, label):
+        """Set label."""
         warnings.warn(
             "The MCMT 'label' property is deprecated as of 0.19.0 and "
             "will be removed no earlier than 3 months after the release date. "
