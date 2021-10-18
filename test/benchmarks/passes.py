@@ -14,9 +14,10 @@
 
 # pylint: disable=no-member,invalid-name,missing-docstring,no-name-in-module
 # pylint: disable=attribute-defined-outside-init,unsubscriptable-object
-# pylint: disable=unused-wildcard-import,wildcard-import
+# pylint: disable=unused-wildcard-import,wildcard-import,undefined-variable
 
 
+from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as SEL
 from qiskit.transpiler.passes import *
 from qiskit.converters import circuit_to_dag
 
@@ -86,6 +87,31 @@ class UnrolledPassBenchmarks:
 
     def time_optimize_1q(self, _, __):
         Optimize1qGates().run(self.unrolled_dag)
+
+
+class MultipleBasisPassBenchmarks:
+    params = ([5, 14, 20],
+              [1024],
+              [['u', 'cx', 'id'], ['rx', 'ry', 'rz', 'r', 'rxx', 'id'],
+               ['rz', 'x', 'sx', 'cx', 'id']])
+
+    param_names = ['n_qubits', 'depth', 'basis_gates']
+    timeout = 300
+
+    def setup(self, n_qubits, depth, basis_gates):
+        seed = 42
+        self.circuit = random_circuit(n_qubits, depth, measure=True, seed=seed)
+        self.dag = circuit_to_dag(self.circuit)
+        self.basis_gates = basis_gates
+
+    def time_optimize_1q_decompose(self, _, __, ___):
+        Optimize1qGatesDecomposition(self.basis_gates).run(self.dag)
+
+    def time_optimize_1q_commutation(self, _, __, ___):
+        Optimize1qGatesSimpleCommutation(self.basis_gates).run(self.dag)
+
+    def time_basis_translator(self, _, __, ___):
+        BasisTranslator(SEL, self.basis_gates).run(self.dag)
 
 
 class PassBenchmarks:
@@ -161,3 +187,29 @@ class PassBenchmarks:
 
     def time_remove_final_measurements(self, _, __):
         RemoveFinalMeasurements().run(self.dag)
+
+    def time_contains_instruction(self, _, __):
+        ContainsInstruction('cx').run(self.dag)
+
+    def time_gates_in_basis(self, _, __):
+        GatesInBasis(self.basis_gates).run(self.dag)
+
+    def time_remove_barriers(self, _, __):
+        RemoveBarriers().run(self.dag)
+
+
+class MultiQBlockPassBenchmarks:
+    params = ([5, 14, 20],
+              [1024], [1, 2, 3, 4, 5])
+
+    param_names = ['n_qubits', 'depth', 'max_block_size']
+    timeout = 300
+
+    def setup(self, n_qubits, depth, _):
+        seed = 42
+        self.circuit = random_circuit(n_qubits, depth, measure=True,
+                                      conditional=True, reset=True, seed=seed)
+        self.dag = circuit_to_dag(self.circuit)
+
+    def time_collect_multiq_block(self, _, __, max_block_size):
+        CollectMultiQBlocks(max_block_size).run(self.dag)
