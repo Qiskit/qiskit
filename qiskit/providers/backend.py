@@ -490,17 +490,11 @@ class BackendV2(Backend, ABC):
         class can handle either situation.
 
         Args:
-            run_input (QuantumCircuit or Schedule or list): An individual or a
-                list of :class:`~qiskit.circuits.QuantumCircuit` or
+            run_input (QuantumCircuit or Schedule or ScheduleBlock or list): An
+                individual or a list of
+                :class:`~qiskit.circuits.QuantumCircuit,
+                :class:`~qiskit.pulse.ScheduleBlock`, or
                 :class:`~qiskit.pulse.Schedule` objects to run on the backend.
-                For legacy providers migrating to the new versioned providers,
-                provider interface a :class:`~qiskit.qobj.QasmQobj` or
-                :class:`~qiskit.qobj.PulseQobj` objects should probably be
-                supported too (but deprecated) for backwards compatibility. Be
-                sure to update the docstrings of subclasses implementing this
-                method to document that. New provider implementations should not
-                do this though as :mod:`qiskit.qobj` will be deprecated and
-                removed along with the legacy providers interface.
             options: Any kwarg options to pass to the backend for running the
                 config. If a key is also present in the options
                 attribute/object then the expectation is that the value
