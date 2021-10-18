@@ -10,6 +10,28 @@ https://qiskit.org/documentation/contributing_to_qiskit.html
 In addition to the general guidelines there are specific details for
 contributing to terra, these are documented below.
 
+### Contents
+* [Choose an issue to work on](#Choose-an-issue-to-work-on)
+* [Pull request checklist](#pull-request-checklist)
+* [Changelog generation](#changelog-generation)
+* [Release Notes](#release-notes)
+* [Installing Qiskit Terra from source](#installing-qiskit-terra-from-source)
+* [Test](#test)
+  * [Snapshot testing for visualizations](#snapshot-testing-for-visualizations)
+* [Style and Lint](#style-and-lint)
+* [Development Cycle](#development-cycle)
+  * [Branches](#branches)
+  * [Release Cycle](#release-cycle)
+* [Adding deprecation warnings](#adding-deprecation-warnings)
+* [Dealing with git blame ignore list](#dealing-with-the-git-blame-ignore-list)
+
+### Choose an issue to work on
+Qiskit terra uses the following labels to help non-maintainers find issues best suited to their interests and experience level:
+
+* [good first issue](https://github.com/Qiskit/qiskit-terra/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) - these issues are typically the simplest available to work on, perfect for newcomers
+* [good for community](https://github.com/Qiskit/qiskit-terra/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+for+community%22) - these issues are low priority work that core maintainers may not have capacity to work on. They are generally more complex than good first issues, a great option for experienced contributors looking for somehting a bit more challenging
+* [short project](https://github.com/Qiskit/qiskit-terra/issues?q=is%3Aopen+is%3Aissue+label%3A%22short+project%22+) - these issues are bigger pieces of work that require greater time commitment. Good options for hackathons, internship projects etc.
+
 ### Pull request checklist
 
 When submitting a pull request and you feel it is ready for review,
