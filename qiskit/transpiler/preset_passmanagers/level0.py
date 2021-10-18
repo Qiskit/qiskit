@@ -63,13 +63,14 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> FullPassMana
     initial_layout = pass_manager_config.initial_layout
     layout_method = pass_manager_config.layout_method or "trivial"
     routing_method = pass_manager_config.routing_method or "stochastic"
-    translation_method = pass_manager_config.translation_method or "translator"
+    translation_method = pass_manager_config.translation_method or "basis_translator"
     scheduling_method = pass_manager_config.scheduling_method
     instruction_durations = pass_manager_config.instruction_durations
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
     approximation_degree = pass_manager_config.approximation_degree
     timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
+    unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
 
     # Choose an initial layout if not set by user (default: trivial layout)
     _given_layout = SetLayout(initial_layout)
@@ -112,7 +113,14 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> FullPassMana
         layout.append(_given_layout)
         layout.append(_choose_layout, condition=_choose_layout_condition)
         layout += common.generate_embed_passmanager(coupling_map)
-        routing = common.generate_routing_passmanager(routing_pass, coupling_map)
+        routing = common.generate_routing_passmanager(
+            routing_pass,
+            coupling_map,
+            basis_gates,
+            approximation_degree,
+            backend_properties,
+            unitary_synthesis_method,
+        )
     else:
         layout = None
         routing = None

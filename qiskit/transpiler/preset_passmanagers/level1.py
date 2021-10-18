@@ -71,12 +71,13 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     initial_layout = pass_manager_config.initial_layout
     layout_method = pass_manager_config.layout_method or "dense"
     routing_method = pass_manager_config.routing_method or "stochastic"
-    translation_method = pass_manager_config.translation_method or "translator"
+    translation_method = pass_manager_config.translation_method or "basis_translator"
     scheduling_method = pass_manager_config.scheduling_method
     instruction_durations = pass_manager_config.instruction_durations
     seed_transpiler = pass_manager_config.seed_transpiler
     backend_properties = pass_manager_config.backend_properties
     approximation_degree = pass_manager_config.approximation_degree
+    unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
     timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
 
     # Use trivial layout if no layout given
@@ -141,7 +142,14 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         layout.append(_choose_layout_and_score, condition=_choose_layout_condition)
         layout.append(_improve_layout, condition=_not_perfect_yet)
         layout += common.generate_embed_passmanager(coupling_map)
-        routing = common.generate_routing_passmanager(routing_pass, coupling_map)
+        routing = common.generate_routing_passmanager(
+            routing_pass,
+            coupling_map,
+            basis_gates,
+            approximation_degree,
+            backend_properties,
+            unitary_synthesis_method,
+        )
     else:
         layout = None
         routing = None

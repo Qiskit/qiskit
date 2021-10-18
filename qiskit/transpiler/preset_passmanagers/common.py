@@ -38,6 +38,7 @@ from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import ValidatePulseGates
 from qiskit.transpiler.passes import AlignMeasures
 from qiskit.transpiler.passes import PulseGates
+from qiskit.transpiler.passes import ContainsInstruction
 from qiskit.transpiler.exceptions import TranspilerError
 
 
@@ -57,7 +58,14 @@ def generate_embed_passmanager(coupling_map):
     return PassManager([FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()])
 
 
-def generate_routing_passmanager(routing_pass, coupling_map):
+def generate_routing_passmanager(
+    routing_pass,
+    coupling_map,
+    basis_gates,
+    approximation_degree,
+    backend_properties,
+    unitary_synthesis_method="default",
+):
     """Generate a routing :class:`~qiskit.transpiler.PassManager`
 
     Args:
@@ -65,10 +73,28 @@ def generate_routing_passmanager(routing_pass, coupling_map):
             routing
         coupling_map (CouplingMap): The coupling map of the backend to route
             for
+        basis_gates (list): A list of str gate names that represent the basis
+            gates on the backend target
+        approximation_degree (float): The heuristic approximation degree to
+            use. Can be between 0 and 1.
+        backend_properties (BackendProperties): Properties of a backend to
+            synthesize for (e.g. gate fidelities).
+        unitary_synthesis_method (str): The unitary synthesis method to use
+
     Returns:
         PassManager: The routing pass manager
     """
     routing = PassManager()
+    routing.append(
+        UnitarySynthesis(
+            basis_gates,
+            approximation_degree=approximation_degree,
+            coupling_map=coupling_map,
+            backend_props=backend_properties,
+            method=unitary_synthesis_method,
+            min_qubits=3,
+        )
+    )
     routing.append(Unroll3qOrMore())
     routing.append(CheckMap(coupling_map))
 
@@ -107,12 +133,18 @@ def generate_pre_op_passmanager(coupling_map=None, remove_reset_in_zero=False):
 
 
 def generate_translation_passmanager(
-    basis_gates, method="basis_translator", approximation_degree=None, coupling_map=None, backend_props=None
+    basis_gates,
+    method="basis_translator",
+    approximation_degree=None,
+    coupling_map=None,
+    backend_props=None,
+    unitary_synthesis_method="default",
 ):
     """Generate a basis translation :class:`~qiskit.transpiler.PassManager`
 
     Args:
-        basis_gates (list): A list
+        basis_gates (list): A list of str gate names that represent the basis
+            gates on the backend target
         method (str): The basis translation method to use
         approximation_degree (float): The heuristic approximation degree to
             use. Can be between 0 and 1.
@@ -123,6 +155,7 @@ def generate_translation_passmanager(
             is True/None.
         backend_props (BackendProperties): Properties of a backend to
             synthesize for (e.g. gate fidelities).
+        unitary_synthesis_method (str): The unitary synthesis method to use
 
     Returns:
         PassManager: The basis translation pass manager
@@ -133,9 +166,31 @@ def generate_translation_passmanager(
     if method == "unroller":
         unroll = [Unroller(basis_gates)]
     elif method == "basis_translator":
-        unroll = [UnrollCustomDefinitions(sel, basis_gates), BasisTranslator(sel, basis_gates)]
+        unroll = [
+            # Use unitary synthesis for basis aware decomposition of
+            # UnitaryGates before custom unrolling
+            UnitarySynthesis(
+                basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                backend_props=backend_props,
+                method=unitary_synthesis_method,
+            ),
+            UnrollCustomDefinitions(sel, basis_gates),
+            BasisTranslator(sel, basis_gates),
+        ]
     elif method == "synthesis":
         unroll = [
+            # # Use unitary synthesis for basis aware decomposition of
+            # UnitaryGates > 2q before collection
+            UnitarySynthesis(
+                basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                backend_props=backend_props,
+                method=unitary_synthesis_method,
+                min_qubits=3,
+            ),
             Unroll3qOrMore(),
             Collect2qBlocks(),
             ConsolidateBlocks(basis_gates=basis_gates),
@@ -144,6 +199,7 @@ def generate_translation_passmanager(
                 approximation_degree=approximation_degree,
                 coupling_map=coupling_map,
                 backend_props=backend_props,
+                method=unitary_synthesis_method,
             ),
         ]
     else:
@@ -170,21 +226,42 @@ def generate_scheduling_post_opt(
     Raises:
         TranspilerError: If the ``scheduling_method`` kwarg is not a valid value
     """
+    _time_unit_setup = [ContainsInstruction("delay")]
+    _time_unit_conversion = [TimeUnitConversion(instruction_durations)]
+
+    def _contains_delay(property_set):
+        return property_set["contains_delay"]
+
     scheduling = PassManager()
+    _scheduling = []
     if inst_map and inst_map.has_custom_gate():
         scheduling.append(PulseGates(inst_map=inst_map))
-    scheduling.append(TimeUnitConversion(instruction_durations))
     if scheduling_method:
+        _scheduling += _time_unit_conversion
         if scheduling_method in {"alap", "as_late_as_possible"}:
-            scheduling.append(ALAPSchedule(instruction_durations))
+            _scheduling += [ALAPSchedule(instruction_durations)]
         elif scheduling_method in {"asap", "as_soon_as_possible"}:
-            scheduling.append(ASAPSchedule(instruction_durations))
+            _scheduling += [ASAPSchedule(instruction_durations)]
         else:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
-    scheduling.append(
-        ValidatePulseGates(
-            granularity=timing_constraints.granularity, min_length=timing_constraints.min_length
-        )
-    )
-    scheduling.append(AlignMeasures(alignment=timing_constraints.acquire_alignment))
+        scheduling.append(_scheduling)
+    if instruction_durations:
+        scheduling.append(_time_unit_setup)
+        scheduling.append(_time_unit_conversion, condition=_contains_delay)
+
+    # Call measure alignment. Should come after scheduling.
+    if (
+        timing_constraints.granularity != 1
+        or timing_constraints.min_length != 1
+        or timing_constraints.acquire_alignment != 1
+    ):
+        _alignments = [
+            ValidatePulseGates(
+                granularity=timing_constraints.granularity, min_length=timing_constraints.min_length
+            ),
+            AlignMeasures(alignment=timing_constraints.acquire_alignment),
+        ]
+    else:
+        _alignments = []
+    scheduling.append(_alignments)
     return scheduling
