@@ -10,19 +10,26 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Base class for readout error mitigation.
+Readout mitigator class based on the tensored A-matrix inversion method
 """
 
-from abc import ABC, abstractmethod
-from typing import Optional, List, Iterable, Tuple, Union, Callable
+import logging
+from typing import Optional, List, Tuple, Iterable, Callable, Union
 import numpy as np
-from qiskit.result import Counts, QuasiDistribution
 
+from qiskit.exceptions import QiskitError
+from qiskit.result import Counts, marginal_counts, QuasiDistribution
+from .base_readout_mitigator import BaseReadoutMitigator
 
-class BaseReadoutMitigator(ABC):
-    """Base readout error mitigator class."""
+logger = logging.getLogger(__name__)
 
-    @abstractmethod
+class TensoredReadoutMitigator(BaseReadoutMitigator):
+    """Tensored 1-qubit readout error mitigator.
+    Mitigates expectation_value and quasi_probabilities.
+    The mitigation_matrix should be calibrated using qiskit.experiments."""
+    def __init__(self):
+        pass
+
     def quasi_probabilities(
         self,
         data: Counts,
@@ -52,8 +59,8 @@ class BaseReadoutMitigator(ABC):
                 and "standard deviation" is the standard deviation of the non-zero
                 quasi-probability estimates.
         """
+        pass
 
-    @abstractmethod
     def expectation_value(
         self,
         data: Counts,
@@ -81,3 +88,5 @@ class BaseReadoutMitigator(ABC):
             The mean and standard deviation of operator expectation value
             calculated from the current counts.
         """
+        pass
+

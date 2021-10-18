@@ -12,3 +12,4 @@
 
 """Readout error mitigation."""
 from .complete_readout_mitigator import CompleteReadoutMitigator
+from .tensored_readout_mitigator import TensoredReadoutMitigator
