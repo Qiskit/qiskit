@@ -1367,8 +1367,8 @@ class TestStandardMethods(QiskitTestCase):
 
     def test_to_matrix(self):
         """test gates implementing to_matrix generate matrix which matches definition."""
+        from qiskit.circuit.library.evolution import EvolutionGate
         from qiskit.circuit.library.generalized_gates.pauli import PauliGate
-        from qiskit.circuit.library.evolution import EvolutionGate, PauliEvolutionGate
         from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
 
         params = [0.1 * (i + 1) for i in range(10)]
@@ -1386,7 +1386,7 @@ class TestStandardMethods(QiskitTestCase):
                     gate = gate_class("IXYZ")
                 elif gate_class == BooleanExpression:
                     gate = gate_class("x")
-                elif gate_class in [PauliEvolutionGate, EvolutionGate]:
+                elif gate_class == EvolutionGate:
                     gate = gate_class(Pauli("XYZ"))
                 else:
                     gate = gate_class(*params[0:free_params])
@@ -1416,7 +1416,7 @@ class TestStandardMethods(QiskitTestCase):
         from qiskit.quantum_info import Operator
         from qiskit.circuit.library.standard_gates.ms import MSGate
         from qiskit.circuit.library.generalized_gates.pauli import PauliGate
-        from qiskit.circuit.library.evolution import EvolutionGate, PauliEvolutionGate
+        from qiskit.circuit.library.evolution import EvolutionGate
         from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
 
         params = [0.1 * i for i in range(1, 11)]
@@ -1439,7 +1439,7 @@ class TestStandardMethods(QiskitTestCase):
                     gate = gate_class("IXYZ")
                 elif gate_class == BooleanExpression:
                     gate = gate_class("x")
-                elif gate_class in [PauliEvolutionGate, EvolutionGate]:
+                elif gate_class == EvolutionGate:
                     gate = gate_class(Pauli("XYZ"))
                 else:
                     gate = gate_class(*params[0:free_params])

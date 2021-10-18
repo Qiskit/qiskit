@@ -545,9 +545,18 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
 
-        new_evo = new_circ.data[0][0]
-        self.assertIsInstance(new_evo, EvolutionGate)
-        self.assertIsInstance(new_evo.synthesis, LieTrotter)
+        # remove wrapping of instructions
+        qc = qc.decompose().decompose()
+        new_circ = new_circ.decompose().decompose()
+
+        self.assertEqual(qc, new_circ)
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+
+        # enable these tests once we can can serialize all EvolutionGate parameters such as
+        # new_evo = new_circ.data[0][0]
+        # SparsePauliOp and EvolutionSynthesis
+        # self.assertIsInstance(new_evo, EvolutionGate)
+        # self.assertIsInstance(new_evo.synthesis, LieTrotter)
 
     def test_parameter_expression_global_phase(self):
         """Test a circuit with a parameter expression global_phase."""
