@@ -15,6 +15,7 @@
 """QASM3 Exporter"""
 
 import io
+import warnings
 from os.path import dirname, join, abspath, exists
 from typing import Sequence
 
@@ -97,7 +98,15 @@ from .ast import (
     FloatWidth,
     Cast,
 )
+from .exceptions import QASM3Warning
 from .printer import BasicPrinter
+
+
+class QASM3ExporterWarning(QASM3Warning):
+    """Warning raised when questionable behaviour is found during export of a :obj:`~QuantumCircuit`
+    into OpenQASM 3."""
+
+    pass
 
 
 class Exporter:
@@ -498,11 +507,33 @@ class Qasm3Builder:
 
     def build_eqcondition(self, condition):
         """Classical Conditional condition from a instruction.condition"""
+        right = int(condition[1])
         if isinstance(condition[0], Clbit):
-            condition_on = self.build_indexidentifier(condition[0])
+            left = self.build_indexidentifier(condition[0])
+            if right not in [0, 1]:
+                warnings.warn(
+                    f"Comparing an out-of-range value ({right}) to a single bit.",
+                    category=QASM3ExporterWarning,
+                )
+            return ComparisonExpression(left, EqualsOperator(), Integer(right))
+        # Build condition for full register comparison.
+        register = condition[0]
+        if right >= 0:
+            lower, upper = 0, (1 << register.size) - 1
+            cast_type = UintType(register.size)
         else:
-            condition_on = Identifier(condition[0].name)
-        return ComparisonExpression(condition_on, EqualsOperator(), Integer(int(condition[1])))
+            upper = (1 << register.size - 1) - 1
+            lower = -(upper + 1)
+            cast_type = IntType(register.size)
+        if not lower <= right <= upper:
+            warnings.warn(
+                f"Comparing an out-of-range value ({right}) to a register with only"
+                f" {register.size} bits, which can only represent the range [{lower}, {upper}].",
+                category=QASM3ExporterWarning,
+            )
+        return ComparisonExpression(
+            Cast(cast_type, Identifier(register.name)), EqualsOperator(), Integer(right)
+        )
 
     def build_quantumArgumentList(self, qregs: [QuantumRegister], circuit=None):
         """Builds a quantumArgumentList"""

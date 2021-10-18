@@ -25,7 +25,8 @@ Qasm (:mod:`qiskit.qasm3`)
     dump
 """
 
-from .exporter import Exporter
+from .exceptions import QASM3Warning
+from .exporter import Exporter, QASM3ExporterWarning
 
 
 def dumps(circuit, **kwargs) -> str:

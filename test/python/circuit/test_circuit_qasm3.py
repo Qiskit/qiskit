@@ -17,7 +17,7 @@ from io import StringIO
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
 from qiskit.circuit import Parameter
 from qiskit.test import QiskitTestCase
-from qiskit.qasm3 import Exporter, dumps, dump
+from qiskit.qasm3 import Exporter, dumps, dump, QASM3ExporterWarning
 from qiskit.qasm import pi
 
 
@@ -78,19 +78,31 @@ class TestCircuitQasm3(QiskitTestCase):
                 "cr[0] = measure qr1[0];",
                 "cr[1] = measure qr2[0];",
                 "cr[2] = measure qr2[1];",
-                "if (cr == 0) {",
+                "if (uint[3](cr) == 0) {",
                 "  x qr2[1];",
                 "}",
-                "if (cr == 1) {",
+                "if (uint[3](cr) == 1) {",
                 "  y qr1[0];",
                 "}",
-                "if (cr == 2) {",
+                "if (uint[3](cr) == 2) {",
                 "  z qr1[0];",
                 "}",
                 "",
             ]
         )
         self.assertEqual(Exporter().dumps(qc), expected_qasm)
+
+    def test_registers_with_out_of_bounds_conditions_warn(self):
+        """Test that comparing a register to a value it cannot possibly represent issues a
+        warning."""
+        qr = QuantumRegister(3, "qr1")
+        cr = ClassicalRegister(3, "cr1")
+        qc = QuantumCircuit(qr, cr)
+        qc.h(qr)
+        qc.measure(qr, cr)
+        qc.x(qr[0]).c_if(cr, 1 << cr.size)
+        with self.assertWarns(QASM3ExporterWarning, msg=r".* out-of-range .*"):
+            Exporter().dumps(qc)
 
     def test_composite_circuit(self):
         """Test with a composite circuit instruction and barriers"""
