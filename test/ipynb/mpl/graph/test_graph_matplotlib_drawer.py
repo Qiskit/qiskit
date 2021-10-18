@@ -187,7 +187,9 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         ]
 
         self.graph_count_drawer(
-            data=counts, color=["#204940", "#c26219"], filename="histogram_multiple_colors.png"
+            data=counts,
+            color=["#204940", "#c26219"],
+            filename="histogram_multiple_colors.png",
         )
 
     def test_plot_histogram_hamming(self):
