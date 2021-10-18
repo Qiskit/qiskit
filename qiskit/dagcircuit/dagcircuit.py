@@ -89,6 +89,8 @@ class DAGCircuit:
         self._global_phase = 0
         self._calibrations = defaultdict(dict)
 
+        self._op_names = {}
+
         self.duration = None
         self.unit = "dt"
 
@@ -374,6 +376,18 @@ class DAGCircuit:
         else:
             raise CircuitError("Condition must be used with ClassicalRegister or Clbit.")
 
+    def _increment_op(self, op):
+        if op.name in self._op_names:
+            self._op_names[op.name] += 1
+        else:
+            self._op_names[op.name] = 1
+
+    def _decrement_op(self, op):
+        if self._op_names[op.name] == 1:
+            del self._op_names[op.name]
+        else:
+            self._op_names[op.name] -= 1
+
     def _add_op_node(self, op, qargs, cargs):
         """Add a new operation node to the graph and assign properties.
 
@@ -388,6 +402,7 @@ class DAGCircuit:
         new_node = DAGOpNode(op=op, qargs=qargs, cargs=cargs)
         node_index = self._multi_graph.add_node(new_node)
         new_node._node_id = node_index
+        self._increment_op(op)
         return node_index
 
     def _copy_circuit_metadata(self):
@@ -923,9 +938,15 @@ class DAGCircuit:
 
         return rx.is_isomorphic_node_match(self._multi_graph, other._multi_graph, node_eq)
 
-    def topological_nodes(self):
+    def topological_nodes(self, key=None):
         """
         Yield nodes in topological order.
+
+        Args:
+            key (Callable): A callable which will take a DAGNode object and
+                return a string sort key. If not specified the
+                :attr:`~qiskit.dagcircuit.DAGNode.sort_key` attribute will be
+                used as the sort key for each node.
 
         Returns:
             generator(DAGOpNode, DAGInNode, or DAGOutNode): node in topological order
@@ -934,16 +955,27 @@ class DAGCircuit:
         def _key(x):
             return x.sort_key
 
-        return iter(rx.lexicographical_topological_sort(self._multi_graph, key=_key))
+        if key is None:
+            key = _key
 
-    def topological_op_nodes(self):
+        return iter(rx.lexicographical_topological_sort(self._multi_graph, key=key))
+
+    def topological_op_nodes(self, key=None):
         """
         Yield op nodes in topological order.
+
+        Allowed to pass in specific key to break ties in top order
+
+        Args:
+            key (Callable): A callable which will take a DAGNode object and
+                return a string sort key. If not specified the
+                :attr:`~qiskit.dagcircuit.DAGNode.sort_key` attribute will be
+                used as the sort key for each node.
 
         Returns:
             generator(DAGOpNode): op node in topological order
         """
-        return (nd for nd in self.topological_nodes() if isinstance(nd, DAGOpNode))
+        return (nd for nd in self.topological_nodes(key) if isinstance(nd, DAGOpNode))
 
     def substitute_node_with_dag(self, node, input_dag, wires=None):
         """Replace one node with dag.
@@ -1089,6 +1121,7 @@ class DAGCircuit:
         node_map = self._multi_graph.substitute_node_with_subgraph(
             node._node_id, in_dag._multi_graph, edge_map_fn, filter_fn, edge_weight_map
         )
+        self._decrement_op(node.op)
 
         # Iterate over nodes of input_circuit and update wires in node objects migrated
         # from in_dag
@@ -1102,6 +1135,7 @@ class DAGCircuit:
             new_node._node_id = new_node_index
             new_node.op.condition = condition
             self._multi_graph[new_node_index] = new_node
+            self._increment_op(new_node.op)
 
         return {k: self._multi_graph[v] for k, v in node_map.items()}
 
@@ -1139,6 +1173,9 @@ class DAGCircuit:
             )
 
         if inplace:
+            if op.name != node.op.name:
+                self._increment_op(op)
+                self._decrement_op(node.op)
             save_condition = node.op.condition
             node.op = op
             node.op.condition = save_condition
@@ -1149,6 +1186,9 @@ class DAGCircuit:
         new_node.op = op
         new_node.op.condition = save_condition
         self._multi_graph[node._node_id] = new_node
+        if op.name != node.op.name:
+            self._increment_op(op)
+            self._decrement_op(node.op)
         return new_node
 
     def node(self, node_id):
@@ -1346,6 +1386,7 @@ class DAGCircuit:
         self._multi_graph.remove_node_retain_edges(
             node._node_id, use_outgoing=False, condition=lambda edge1, edge2: edge1 == edge2
         )
+        self._decrement_op(node.op)
 
     def remove_ancestors_of(self, node):
         """Remove all of the ancestor operation nodes of node."""
@@ -1581,14 +1622,7 @@ class DAGCircuit:
 
         Returns a dictionary of counts keyed on the operation name.
         """
-        op_dict = {}
-        for node in self.topological_op_nodes():
-            name = node.op.name
-            if name not in op_dict:
-                op_dict[name] = 1
-            else:
-                op_dict[name] += 1
-        return op_dict
+        return self._op_names.copy()
 
     def count_ops_longest_path(self):
         """Count the occurrences of operation names on the longest path.

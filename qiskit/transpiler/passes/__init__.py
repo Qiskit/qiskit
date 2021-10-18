@@ -140,6 +140,8 @@ Additional Passes
    RemoveFinalMeasurements
    DAGFixedPoint
    FixedPoint
+   ContainsInstruction
+   GatesInBasis
 """
 
 # layout selection (placement)
@@ -174,6 +176,7 @@ from .basis import BasisTranslator
 from .optimization import Optimize1qGates
 from .optimization import Optimize1qGatesDecomposition
 from .optimization import Collect2qBlocks
+from .optimization import CollectMultiQBlocks
 from .optimization import ConsolidateBlocks
 from .optimization import CommutationAnalysis
 from .optimization import CommutativeCancellation
@@ -227,3 +230,5 @@ from .utils import DAGFixedPoint
 from .utils import FixedPoint
 from .utils import Error
 from .utils import RemoveBarriers
+from .utils import ContainsInstruction
+from .utils import GatesInBasis

@@ -12,6 +12,7 @@
 
 """Test for the DAGCircuit object"""
 
+from collections import Counter
 import unittest
 
 from ddt import ddt, data
@@ -104,8 +105,12 @@ def raise_if_dagcircuit_invalid(dag):
             cur_node_id = edges_to_follow[0][1]
 
     # Wires can only terminate at input/output nodes.
+    op_counts = Counter()
     for op_node in dag.op_nodes():
         assert multi_graph.in_degree(op_node._node_id) == multi_graph.out_degree(op_node._node_id)
+        op_counts[op_node.name] += 1
+    # The _op_names attribute should match the counted op names
+    assert op_counts == dag._op_names
 
     # Node input/output edges should match node qarg/carg/condition.
     for node in dag.op_nodes():
