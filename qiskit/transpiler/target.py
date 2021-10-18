@@ -51,7 +51,9 @@ class InstructionProperties:
                 set of qubits.
             schedule: The pulse representation of the instruction
             properties: A free form dictionary of additional properties the
-                backend has for a specified instruction (operation + arguments).
+                backend has for a specified instruction (the
+                :class:`~qiskit.circuit.Instruction` object and qarg pair).
+
         """
         self.length = length
         self.error = error
@@ -226,7 +228,11 @@ class Target(Mapping):
                 backend the value can be None. If there are no constraints on the
                 instruction (as in a noisless/ideal simulation) this can be set to
                 ``{None, None}`` which will indicate it runs on all qubits (or all
-                available permutations of qubits for multi-qubit gates).
+                available permutations of qubits for multi-qubit gates). The first
+                ``None`` indicates it applies to all qubits and the second ``None``
+                indicates there are no
+                :class:`~qiskit.transpiler.InstructionProperties` for the
+                instruction.
             name (str): An optional name to use for identifying the instruction. If not
                 specified the :attr:`~qiskit.circuit.Instruction.name` attribute
                 of ``gate`` will be used. All gates in the ``Target`` need unique
