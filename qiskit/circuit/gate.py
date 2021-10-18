@@ -275,16 +275,6 @@ class Gate(Instruction, Operation):
         self._num_clbits = num_clbits
 
     @property
-    def params(self):
-        """Return params."""
-        return self._params
-
-    @params.setter
-    def params(self, params):
-        """Set the name."""
-        self._params = params
-
-    @property
     def num_params(self):
         """Return num_params."""
         return self.num_params
