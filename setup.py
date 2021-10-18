@@ -143,7 +143,7 @@ setup(
     entry_points={
         "qiskit.unitary_synthesis": [
             "default = qiskit.transpiler.passes.synthesis.unitary_synthesis:DefaultUnitarySynthesis",
-            "aqc = qiskit.transpiler.aqc.acq_plugin:AQCSynthesisPlugin",
+            "aqc = qiskit.transpiler.synthesis.aqc.aqc_plugin:AQCSynthesisPlugin",
         ]
     },
 )
