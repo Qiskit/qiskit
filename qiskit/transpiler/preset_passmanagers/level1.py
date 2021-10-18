@@ -164,7 +164,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     unroll = [pass_ for x in translation.passes() for pass_ in x["passes"]]
     opt_loop = _depth_check + _opt + unroll
     optimization.append(opt_loop, do_while=_opt_control)
-    sched = common.generate_scheduling_post_opt(
+    sched = common.generate_scheduling(
         instruction_durations, scheduling_method, timing_constraints, inst_map
     )
 

@@ -132,7 +132,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StructuredPa
         pre_opt += translation
     else:
         pre_opt = None
-    sched = common.generate_scheduling_post_opt(
+    sched = common.generate_scheduling(
         instruction_durations, scheduling_method, timing_constraints, inst_map
     )
     return StructuredPassManager(
