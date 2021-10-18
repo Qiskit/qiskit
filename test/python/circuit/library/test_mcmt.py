@@ -33,7 +33,9 @@ class TestMCMT(QiskitTestCase):
         custom_label = "abc"
         with self.subTest(msg="mcmt init with label and get"):
             with self.assertWarns(DeprecationWarning):
-                mcmt = mtmc_class(XGate(), num_ctrl_qubits=1, num_target_qubits=1, label=custom_label)
+                mcmt = mtmc_class(
+                    XGate(), num_ctrl_qubits=1, num_target_qubits=1, label=custom_label
+                )
             with self.assertWarns(DeprecationWarning):
                 self.assertEqual(mcmt.label, custom_label)
 
