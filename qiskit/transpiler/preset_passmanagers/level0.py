@@ -92,27 +92,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
     unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
 
-    # 1. Choose an initial layout if not set by user (default: trivial layout)
-    _given_layout = SetLayout(initial_layout)
-
-    def _choose_layout_condition(property_set):
-        return not property_set["layout"]
-
-    if layout_method == "trivial":
-        _choose_layout = TrivialLayout(coupling_map)
-    elif layout_method == "dense":
-        _choose_layout = DenseLayout(coupling_map, backend_properties)
-    elif layout_method == "noise_adaptive":
-        _choose_layout = NoiseAdaptiveLayout(backend_properties)
-    elif layout_method == "sabre":
-        _choose_layout = SabreLayout(coupling_map, max_iterations=1, seed=seed_transpiler)
-    else:
-        raise TranspilerError("Invalid layout method %s." % layout_method)
-
-    # 2. Extend dag/layout with ancillas using the full coupling map
-    _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
-
-    # 3. Decompose so only 1-qubit and 2-qubit gates remain
+    # 1. Decompose so only 1-qubit and 2-qubit gates remain
     _unroll3q = [
         # Use unitary synthesis for basis aware decomposition of UnitaryGates
         UnitarySynthesis(
@@ -125,6 +105,26 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         ),
         Unroll3qOrMore(),
     ]
+
+    # 2. Choose an initial layout if not set by user (default: trivial layout)
+    _given_layout = SetLayout(initial_layout)
+
+    def _choose_layout_condition(property_set):
+        return not property_set["layout"]
+
+    if layout_method == "trivial":
+        _choose_layout = TrivialLayout(coupling_map)
+    elif layout_method == "dense":
+        _choose_layout = _unroll3q + [DenseLayout(coupling_map, backend_properties)]
+    elif layout_method == "noise_adaptive":
+        _choose_layout = _unroll3q + [NoiseAdaptiveLayout(backend_properties)]
+    elif layout_method == "sabre":
+        _choose_layout = _unroll3q + [SabreLayout(coupling_map, max_iterations=1, seed=seed_transpiler)]
+    else:
+        raise TranspilerError("Invalid layout method %s." % layout_method)
+
+    # 3. Extend dag/layout with ancillas using the full coupling map
+    _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
 
     # 4. Swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
@@ -240,7 +240,6 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm0.append(_given_layout)
         pm0.append(_choose_layout, condition=_choose_layout_condition)
         pm0.append(_embed)
-        pm0.append(_unroll3q)
         pm0.append(_swap_check)
         pm0.append(_swap, condition=_swap_condition)
     pm0.append(_unroll)
