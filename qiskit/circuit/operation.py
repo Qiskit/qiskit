@@ -14,6 +14,7 @@
 
 from abc import ABC, abstractmethod
 
+
 class Operation(ABC):
     """Quantum Operation Mixin Class."""
 
