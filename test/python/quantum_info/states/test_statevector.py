@@ -359,11 +359,19 @@ class TestStatevector(QiskitTestCase):
             target = np.vdot(vec0.data, vec1.data)
             result = vec0.inner(vec1)
             self.assertAlmostEqual(result, target)
+            vec0 = Statevector(self.rand_vec(6).data, dims=(2, 3))
+            vec1 = Statevector(self.rand_vec(6).data, dims=(2, 3))
+            target = np.vdot(vec0.data, vec1.data)
+            result = vec0.inner(vec1)
+            self.assertAlmostEqual(result, target)
 
     def test_inner_except(self):
         """Test inner method raises exceptions."""
         vec0 = Statevector(self.rand_vec(4))
         vec1 = Statevector(self.rand_vec(3))
+        self.assertRaises(QiskitError, vec0.inner, vec1)
+        vec0 = Statevector(self.rand_vec(6).data, dims=(2, 3))
+        vec1 = Statevector(self.rand_vec(6).data, dims=(3, 2))
         self.assertRaises(QiskitError, vec0.inner, vec1)
 
     def test_add(self):

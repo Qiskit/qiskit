@@ -196,7 +196,7 @@ class Statevector(QuantumState, TolerancesMixin):
             key (int or str): index or corresponding binary label, e.g. '01' = 1.
 
         Returns:
-            np.complex128: Statevector item.
+            numpy.complex128: Statevector item.
 
         Raises:
             QiskitError: if key is not valid.
@@ -284,9 +284,9 @@ class Statevector(QuantumState, TolerancesMixin):
         """
         if not isinstance(other, Statevector):
             other = Statevector(other)
-        if self.dim != other.dim:
-            raise QiskitError(f"Statevector dimensions do not match: {self.dim} and {other.dim}.")
-        inner = np.dot(self.conjugate().data, other.data)
+        if self.dims() != other.dims():
+            raise QiskitError(f"Statevector dimensions do not match: {self.dims()} and {other.dims()}.")
+        inner = np.vdot(self.data, other.data)
         return inner
 
     def expand(self, other):
