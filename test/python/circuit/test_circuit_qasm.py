@@ -368,3 +368,55 @@ custom_{id(gate2)} q[1],q[0];\n"""
         names = ["h", "x", "custom", "custom"]
         for idx, (instruction, _, _) in enumerate(qc._data):
             self.assertEqual(instruction.name, names[idx])
+
+    def test_circuit_qasm_with_invalid_identifiers(self):
+        """Test that qasm() detects and corrects invalid OpenQASM gate identifiers,
+        while not changing the instructions on the original circuit"""
+        qc = QuantumCircuit(2)
+
+        # Create some gate and give it an invalid name
+        custom = QuantumCircuit(1)
+        custom.x(0)
+        custom.u(0, 0, pi, 0)
+        gate = custom.to_gate()
+        gate.name = "A[$]"
+
+        # Another gate also with invalid name
+        custom2 = QuantumCircuit(2)
+        custom2.x(0)
+        custom2.append(gate, [1])
+        gate2 = custom2.to_gate()
+        gate2.name = "invalid[name]"
+
+        # Unitary gate, for which qasm string is produced by internal method
+        qc.unitary([[0, 1], [1, 0]], 0, label="[valid?]")
+
+        # Append gates
+        qc.append(gate, [0])
+        qc.append(gate2, [1, 0])
+
+        # Expected qasm with valid identifiers
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 2.0;",
+                'include "qelib1.inc";',
+                "gate gate__valid__ p0 {",
+                "	u3(pi,pi/2,-pi/2) p0;",
+                "}",
+                "gate gate_A___ q0 { x q0; u(0,0,pi) q0; }",
+                "gate invalid_name_ q0,q1 { x q0; gate_A___ q1; }",
+                "qreg q[2];",
+                "gate__valid__ q[0];",
+                "gate_A___ q[0];",
+                "invalid_name_ q[1],q[0];",
+                "",
+            ]
+        )
+
+        # Check qasm() produces the correct string
+        self.assertEqual(expected_qasm, qc.qasm())
+
+        # Check instruction names were not changed by qasm()
+        names = ["unitary", "A[$]", "invalid[name]"]
+        for idx, (instruction, _, _) in enumerate(qc._data):
+            self.assertEqual(instruction.name, names[idx])
