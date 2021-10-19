@@ -91,7 +91,7 @@ class PassManagerConfig:
         value (usually `None`) is used.
 
         Args:
-            backend: The backend that provides the configuration.
+            backend (BackendV1): The backend that provides the configuration.
             pass_manager_options: User-defined option-value pairs.
 
         Returns:
@@ -105,8 +105,8 @@ class PassManagerConfig:
         res = PassManagerConfig()
         try:
             backend_dict = backend.configuration().to_dict()
-        except:
-            raise QiskitError("Invalid backend type %s" % type(backend))
+        except Exception as error:
+            raise QiskitError("Invalid backend type %s" % type(backend)) from error
 
         def get_config(option, default=None):
             """Helper function that returns the value of a specified option."""
