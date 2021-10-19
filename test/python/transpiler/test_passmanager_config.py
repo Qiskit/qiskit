@@ -19,6 +19,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import Backend
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeMelbourne
+from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 
 
@@ -29,7 +30,9 @@ class TestPassManagerConfig(QiskitTestCase):
         """Test from_backend() with a valid backend."""
         config = PassManagerConfig.from_backend(FakeMelbourne())
         self.assertEqual(config.basis_gates, FakeMelbourne().configuration().basis_gates)
-        self.assertEqual(config.coupling_map, FakeMelbourne().configuration().coupling_map)
+        self.assertEqual(
+            str(config.coupling_map), str(CouplingMap(FakeMelbourne().configuration().coupling_map))
+        )
 
     def test_invalid_backend(self):
         """Test from_backend() with an invalid backend."""
@@ -44,7 +47,9 @@ class TestPassManagerConfig(QiskitTestCase):
         config = PassManagerConfig.from_backend(
             FakeMelbourne(), basis_gates=["user_gate"], initial_layout=initial_layout
         )
-        self.assertEqual(config.coupling_map, FakeMelbourne().configuration().coupling_map)
+        self.assertEqual(
+            str(config.coupling_map), str(CouplingMap(FakeMelbourne().configuration().coupling_map))
+        )
         self.assertEqual(config.basis_gates, ["user_gate"])
         self.assertNotEqual(config.basis_gates, FakeMelbourne().configuration().basis_gates)
         self.assertEqual(config.initial_layout, initial_layout)

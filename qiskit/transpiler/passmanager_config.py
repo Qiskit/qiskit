@@ -13,6 +13,7 @@
 """Pass Manager Configuration class."""
 
 from qiskit.exceptions import QiskitError
+from qiskit.transpiler.coupling import CouplingMap
 
 
 class PassManagerConfig:
@@ -116,7 +117,7 @@ class PassManagerConfig:
         res.initial_layout = get_config("initial_layout")
         res.basis_gates = get_config("basis_gates")
         res.inst_map = get_config("inst_map")
-        res.coupling_map = get_config("coupling_map")
+        res.coupling_map = CouplingMap(get_config("coupling_map"))
         res.layout_method = get_config("layout_method")
         res.routing_method = get_config("routing_method")
         res.translation_method = get_config("translation_method")
