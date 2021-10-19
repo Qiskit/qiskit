@@ -277,7 +277,7 @@ class Statevector(QuantumState, TolerancesMixin):
             other (Statevector): a quantum state object.
 
         Returns:
-            Statevector: the inner product of self and other, :math:`\langle self| other \rangle`.
+            np.complex128: the inner product of self and other, :math:`\langle self| other \rangle`.
 
         Raises:
             QiskitError: if other is not a quantum state or has different dimension.
