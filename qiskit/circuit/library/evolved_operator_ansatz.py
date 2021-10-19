@@ -12,10 +12,10 @@
 
 """The evolved operator ansatz."""
 
-from typing import Optional
-
+from typing import Optional, Union, List
 import numpy as np
 
+from qiskit.circuit.gate import Gate
 from qiskit.circuit import (
     Parameter,
     QuantumRegister,
@@ -23,13 +23,10 @@ from qiskit.circuit import (
     ParameterExpression,
     ParameterVector,
 )
-
-from qiskit.circuit.gate import Gate
-
-from .blueprintcircuit import BlueprintCircuit
+from .n_local.n_local import NLocal
 
 
-class EvolvedOperatorAnsatz(BlueprintCircuit):
+class EvolvedOperatorAnsatz(NLocal):
     """The evolved operator ansatz."""
 
     def __init__(
@@ -39,6 +36,7 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
         evolution=None,
         insert_barriers: bool = False,
         name: str = "EvolvedOps",
+        parameter_prefix: Union[str, List[str]] = "t",
         initial_state: Optional[QuantumCircuit] = None,
     ):
         """
@@ -52,6 +50,9 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
                 Defaults to Trotterization.
             insert_barriers: Whether to insert barriers in between each evolution.
             name: The name of the circuit.
+            parameter_prefix: Set the names of the circuit parameters. If a string, the same prefix
+                will be used for each parameters. Can also be a list to specify a prefix per
+                operator.
             initial_state: A `QuantumCircuit` object to prepend to the circuit.
         """
         # if evolution is None:
@@ -60,39 +61,42 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
         #
         #     evolution = PauliTrotterEvolution()
 
+        super().__init__(
+            initial_state=initial_state,
+            parameter_prefix=parameter_prefix,
+            reps=reps,
+            insert_barriers=insert_barriers,
+            name=name,
+        )
+        self._operators = None
         if operators is not None:
-            operators = _validate_operators(operators)
+            self.operators = operators
 
-        super().__init__(name=name)
-        self._operators = operators
         self._evolution = evolution
-        self._reps = reps
-        self._insert_barriers = insert_barriers
-        self._initial_state = initial_state
+
+        # a list of which operators are parameterized, used for internal settings
+        self._ops_are_parameterized = None
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        if not super()._check_configuration(raise_on_failure):
+            return False
+
         if self.operators is None:
             if raise_on_failure:
                 raise ValueError("The operators are not set.")
             return False
 
-        if self.reps < 1:
-            if raise_on_failure:
-                raise ValueError("The reps cannot be smaller than 1.")
-            return False
-
         return True
 
     @property
-    def reps(self) -> int:
-        """The number of times the evolved operators are repeated."""
-        return self._reps
+    def num_qubits(self) -> int:
+        if self.operators is None:
+            return 0
 
-    @reps.setter
-    def reps(self, r: int) -> None:
-        """Sets the number of times the evolved operators are repeated."""
-        self._invalidate()
-        self._reps = r
+        if isinstance(self.operators, list) and len(self.operators) > 0:
+            return self.operators[0].num_qubits
+
+        return self.operators.num_qubits
 
     @property
     def evolution(self):
@@ -112,17 +116,6 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
         """
         self._invalidate()
         self._evolution = evol
-
-    @property
-    def initial_state(self) -> QuantumCircuit:
-        """The initial state."""
-        return self._initial_state
-
-    @initial_state.setter
-    def initial_state(self, initial_state: QuantumCircuit) -> None:
-        """Sets the initial state."""
-        self._invalidate()
-        self._initial_state = initial_state
 
     @property
     def operators(self):
@@ -145,20 +138,7 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
         operators = _validate_operators(operators)
         self._invalidate()
         self._operators = operators
-
-    @property
-    def qregs(self):
-        """A list of the quantum registers associated with the circuit."""
-        if self._data is None:
-            self._build()
-        return self._qregs
-
-    @qregs.setter
-    def qregs(self, qregs):
-        """Set the quantum registers associated with the circuit."""
-        self._qregs = qregs
-        self._qubits = [qbit for qreg in qregs for qbit in qreg]
-        self._invalidate()
+        self.qregs = [QuantumRegister(self.num_qubits, name="q")]
 
     # TODO: the `preferred_init_points`-implementation can (and should!) be improved!
     @property
@@ -191,6 +171,7 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
         if self._data is not None:
             return
 
+        # need to check configuration here to ensure the operators are not None
         self._check_configuration()
         self._data = []
         num_qubits = self.num_qubits
@@ -206,18 +187,6 @@ class EvolvedOperatorAnsatz(BlueprintCircuit):
             qargs=self.qubits,
             cargs=[],
         )
-
-
-def _validate_operators(operators):
-    if not isinstance(operators, list):
-        operators = [operators]
-
-    if len(operators) > 1:
-        num_qubits = operators[0].num_qubits
-        if any(operators[i].num_qubits != num_qubits for i in range(1, len(operators))):
-            raise ValueError("All operators must act on the same number of qubits.")
-
-    return operators
 
 
 class EvolvedOperatorGate(Gate):
@@ -335,3 +304,51 @@ class EvolvedOperatorGate(Gate):
                 # expression contains free parameters
                 pass
         self.definition = evolution
+        coeff = Parameter("c")
+        circuits = []
+
+        for op in self.operators:
+            # if the operator is already the evolved circuit just append it
+            if isinstance(op, QuantumCircuit):
+                circuits.append(op)
+            else:
+                # check if the operator is just the identity, if yes, skip it
+                if _is_pauli_identity(op):
+                    continue
+
+                evolved_op = self.evolution.convert((coeff * op).exp_i()).reduce()
+                circuits.append(evolved_op.to_circuit())
+
+        # self.rotation_blocks = []
+        # self.entanglement_blocks = circuits
+
+        super()._define()
+
+
+def _validate_operators(operators):
+    if not isinstance(operators, list):
+        operators = [operators]
+
+    if len(operators) > 1:
+        num_qubits = operators[0].num_qubits
+        if any(operators[i].num_qubits != num_qubits for i in range(1, len(operators))):
+            raise ValueError("All operators must act on the same number of qubits.")
+
+    return operators
+
+
+def _validate_prefix(parameter_prefix, operators):
+    if isinstance(parameter_prefix, str):
+        return len(operators) * [parameter_prefix]
+    if len(parameter_prefix) != len(operators):
+        raise ValueError("The number of parameter prefixes must match the operators.")
+
+    return parameter_prefix
+
+
+def _is_pauli_identity(operator):
+    from qiskit.opflow import PauliOp
+
+    if isinstance(operator, PauliOp):
+        return not np.any(np.logical_or(operator.primitive.x, operator.primitive.z))
+    return False

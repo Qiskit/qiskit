@@ -70,9 +70,8 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
 
     def test_invalid_reps(self):
         """Test setting an invalid number of reps."""
-        evo = EvolvedOperatorAnsatz(X, reps=0)
         with self.assertRaises(ValueError):
-            _ = evo.count_ops()
+            _ = EvolvedOperatorAnsatz(X, reps=-1)
 
     def test_insert_barriers(self):
         """Test using insert_barriers."""
@@ -80,9 +79,7 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
         ref = QuantumCircuit(1)
         for parameter in evo.parameters:
             ref.rz(2.0 * parameter, 0)
-            # ref.rx(2.0 * parameter, 0)
-            if parameter != evo.parameters[-1]:
-                ref.barrier()
+            ref.barrier()
 
         self.assertEqual(evo.decompose(), ref)
 
@@ -106,13 +103,19 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
         with self.subTest(msg="test number of parameters"):
             self.assertEqual(len(parameters), 6)
 
-        circuit = transpile(evo, basis_gates=['u', 'cx'])
+        circuit = transpile(evo, basis_gates=["u", "cx"])
         with self.subTest(msg="test number of parameters of transpiled circuit"):
             self.assertEqual(circuit.num_parameters, 6)
 
         with self.subTest(msg="test binding parameters per instance"):
             bound = circuit.bind_parameters(dict(zip(parameters, list(range(6)))))
             self.assertEqual(bound.num_parameters, 0)
+
+    def test_empty_build_fails(self):
+        """Test setting no operators to evolve raises the appropriate error."""
+        evo = EvolvedOperatorAnsatz()
+        with self.assertRaises(ValueError):
+            _ = evo.draw()
 
 
 def evolve(pauli_string, time):
