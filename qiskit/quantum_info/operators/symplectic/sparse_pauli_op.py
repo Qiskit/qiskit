@@ -217,39 +217,33 @@ class SparsePauliOp(LinearOp):
         # Validate composition dimensions and qargs match
         self._op_shape.compose(other._op_shape, qargs, front)
 
-        # Validation
-        if qargs is None and other.num_qubits != self.num_qubits:
-            raise QiskitError(f"other {type(self).__name__} must be on the same number of qubits.")
-
-        if qargs and other.num_qubits != len(qargs):
-            raise QiskitError(
-                f"Number of qubits of the other {type(self).__name__} does not match qargs."
-            )
-
         if qargs is not None:
             x1, z1 = self.paulis.x[:, qargs], self.paulis.z[:, qargs]
         else:
             x1, z1 = self.paulis.x, self.paulis.z
         x2, z2 = other.paulis.x, other.paulis.z
-        size = x1.shape[-1]
-        x3 = np.logical_xor(x2, x1[:, None]).reshape((-1, size))
-        z3 = np.logical_xor(z2, z1[:, None]).reshape((-1, size))
-        p = (other.paulis._phase + self.paulis._phase[:, None]).reshape(-1)
 
+        # all-to-all operation of `BaseOperator.compose` with outer-like
+
+        size = x1.shape[-1]
+        phase = (self.paulis._phase[:, np.newaxis] + other.paulis._phase).reshape(-1)
         if front:
-            q = np.logical_and(z2, x1[:, None]).reshape((-1, size))
+            q = np.logical_and(x1[:, np.newaxis], z2).reshape((-1, size))
         else:
-            q = np.logical_and(x2, z1[:, None]).reshape((-1, size))
-        p3 = p + 2 * np.sum(q, axis=1)
+            q = np.logical_and(z1[:, np.newaxis], x2).reshape((-1, size))
+        phase += 2 * np.sum(q, axis=1)
+
+        x3 = np.logical_xor(x1[:, np.newaxis], x2).reshape((-1, size))
+        z3 = np.logical_xor(z1[:, np.newaxis], z2).reshape((-1, size))
 
         if qargs is None:
-            pauli_list = PauliList(BasePauli(z3, x3, p3))
+            pauli_list = PauliList(BasePauli(z3, x3, phase))
         else:
             x4 = np.repeat(self.paulis.x, other.size, axis=0)
             z4 = np.repeat(self.paulis.z, other.size, axis=0)
             x4[:, qargs] = x3
             z4[:, qargs] = z3
-            pauli_list = PauliList(BasePauli(z4, x4, p3))
+            pauli_list = PauliList(BasePauli(z4, x4, phase))
 
         coeffs = np.kron(self.coeffs, other.coeffs)
         return SparsePauliOp(pauli_list, coeffs)
