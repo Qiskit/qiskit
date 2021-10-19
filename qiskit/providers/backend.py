@@ -19,7 +19,7 @@ from abc import ABC
 from abc import abstractmethod
 import itertools
 import logging
-from typing import List, Union
+from typing import List, Union, Iterable
 
 import numpy as np
 
