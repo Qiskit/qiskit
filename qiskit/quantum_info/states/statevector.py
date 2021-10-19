@@ -285,7 +285,9 @@ class Statevector(QuantumState, TolerancesMixin):
         if not isinstance(other, Statevector):
             other = Statevector(other)
         if self.dims() != other.dims():
-            raise QiskitError(f"Statevector dimensions do not match: {self.dims()} and {other.dims()}.")
+            raise QiskitError(
+                f"Statevector dimensions do not match: {self.dims()} and {other.dims()}."
+            )
         inner = np.vdot(self.data, other.data)
         return inner
 
