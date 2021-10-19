@@ -13,6 +13,7 @@
 """Quantum Operation Mixin."""
 
 from abc import ABC, abstractmethod
+from qiskit.circuit.exceptions import CircuitError
 
 
 class Operation(ABC):
@@ -47,3 +48,7 @@ class Operation(ABC):
     def params(self):
         """List of parameters to specialize a specific Operation instance."""
         raise NotImplementedError
+
+    def to_instruction(self):
+        """Decomposition into Instructions if needed."""
+        raise CircuitError("This object should contain a to_instruction() method.")
