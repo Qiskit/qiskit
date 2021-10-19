@@ -50,6 +50,6 @@ class Operation(ABC):
         """List of parameters to specialize a specific Operation instance."""
         raise NotImplementedError
 
-    def to_instruction(self, **kwargs) -> Instruction:
+    def to_instruction(**kwargs) -> Instruction:
         """Decomposition into Instructions if needed."""
         raise CircuitError("This object should contain a to_instruction() method.")
