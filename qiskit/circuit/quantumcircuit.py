@@ -1924,12 +1924,12 @@ class QuantumCircuit(Operation):
     @property
     def num_params(self):
         """Return num_params."""
-        return 0
+        return self.num_parameters
 
     @property
     def params(self):
         """Return params."""
-        return ()
+        return self.parameters
 
     # The stringified return type is because OrderedDict can't be subscripted before Python 3.9, and
     # typing.OrderedDict wasn't added until 3.7.2.  It can be turned into a proper type once 3.6
