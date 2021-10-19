@@ -53,7 +53,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
                 circuit.
             name (str): A name of the circuit, default 'qaoa'
         """
-        super().__init__(name=name)
+        super().__init__(reps=reps, name=name)
 
         self._cost_operator = None
         self._reps = reps
@@ -61,7 +61,6 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         self._mixer = mixer_operator
 
         # set this circuit as a not-built circuit
-        self._num_parameters = 0
         self._bounds = None
 
         # store cost operator and set the registers if the operator is not None
@@ -70,25 +69,20 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
         valid = True
 
+        if not super()._check_configuration(raise_on_failure):
+            return False
+
         if self.cost_operator is None:
             valid = False
             if raise_on_failure:
-                raise AttributeError(
+                raise ValueError(
                     "The operator representing the cost of the optimization problem is not set"
-                )
-
-        if self.reps is None or self.reps < 0:
-            valid = False
-            if raise_on_failure:
-                raise AttributeError(
-                    "The integer parameter reps, which determines the depth "
-                    "of the circuit, needs to be >= 0 but has value {}".format(self._reps)
                 )
 
         if self.initial_state is not None and self.initial_state.num_qubits != self.num_qubits:
             valid = False
             if raise_on_failure:
-                raise AttributeError(
+                raise ValueError(
                     "The number of qubits of the initial state {} does not match "
                     "the number of qubits of the cost operator {}".format(
                         self.initial_state.num_qubits, self.num_qubits
@@ -98,7 +92,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         if self.mixer_operator is not None and self.mixer_operator.num_qubits != self.num_qubits:
             valid = False
             if raise_on_failure:
-                raise AttributeError(
+                raise ValueError(
                     "The number of qubits of the mixer {} does not match "
                     "the number of qubits of the cost operator {}".format(
                         self.mixer_operator.num_qubits, self.num_qubits
