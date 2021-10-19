@@ -14,6 +14,7 @@
 
 from abc import ABC, abstractmethod
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.instruction import Instruction
 
 
 class Operation(ABC):
@@ -49,6 +50,6 @@ class Operation(ABC):
         """List of parameters to specialize a specific Operation instance."""
         raise NotImplementedError
 
-    def to_instruction(self):
+    def to_instruction(self, **kwargs) -> Instruction:
         """Decomposition into Instructions if needed."""
         raise CircuitError("This object should contain a to_instruction() method.")
