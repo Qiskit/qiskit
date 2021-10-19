@@ -460,6 +460,73 @@ class BackendV2(Backend, ABC):
         instructions defined in this backend's target."""
         return self.target.instruction_schedule_map()
 
+    def drive_channel(self, qubit: int):
+        """Return the drive channel for the given qubit.
+
+        This is required to be implemented if the backend supports Pulse
+        scheduling.
+
+        Returns:
+            DriveChannel: The Qubit drive channel
+
+        Raises:
+            NotImplementedError: if the backend doesn't support querying the
+                measurement mapping
+        """
+        raise NotImplementedError
+
+    def measure_channel(self, qubit: int):
+        """Return the measure stimulus channel for the given qubit.
+
+        This is required to be implemented if the backend supports Pulse
+        scheduling.
+
+        Returns:
+            MeasureChannel: The Qubit measurement stimulus line
+
+        Raises:
+            NotImplementedError: if the backend doesn't support querying the
+                measurement mapping
+        """
+        raise NotImplementedError
+
+    def acquire_channel(self, qubit: int):
+        """Return the acquisition channel for the given qubit.
+
+        This is required to be implemented if the backend supports Pulse
+        scheduling.
+
+        Returns:
+            AcquireChannel: The Qubit measurement acquisition line.
+
+        Raises:
+            NotImplementedError: if the backend doesn't support querying the
+                measurement mapping
+        """
+        raise NotImplementedError
+
+    def control_channel(self, qubits: Iterable[int]):
+        """Return the secondary drive channel for the given qubit
+
+        This is typically utilized for controlling multiqubit interactions.
+        This channel is derived from other channels.
+
+        This is required to be implemented if the backend supports Pulse
+        scheduling.
+
+        Args:
+            qubits: Tuple or list of qubits of the form
+                ``(control_qubit, target_qubit)``.
+
+        Returns:
+            List[ControlChannel]: The Qubit measurement acquisition line.
+
+        Raises:
+            NotImplementedError: if the backend doesn't support querying the
+                measurement mapping
+        """
+        raise NotImplementedError
+
     def set_options(self, **fields):
         """Set the options fields for the backend
 
