@@ -92,7 +92,7 @@ class PassManagerConfig:
 
         Args:
             backend: The backend that provides the configuration.
-            pass_manager_options: User defined option-value pairs.
+            pass_manager_options: User-defined option-value pairs.
 
         Returns:
             PassManagerConfig: The configuration generated based on the arguments.

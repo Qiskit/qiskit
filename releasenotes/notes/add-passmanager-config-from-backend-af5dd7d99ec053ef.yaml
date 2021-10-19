@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    Add a new method ``from_backend(backend, **pass_manager_options)`` to
+    module ``qiskit.transpiler.PassManagerConfig``. It constructs a
+    ``PassManagerConfig`` object with user options and the configuration of a
+    backend. With this feature, a preset passmanager can be built easier, for
+    example::
+
+      from qiskit.transpiler.passmanager_config import PassManagerConfig
+      from qiskit.transpiler.preset_passmanagers import level_1_pass_manager
+      from qiskit.test.mock import FakeMelbourne
+
+      pass_manager = level_1_pass_manager(
+        PassManagerConfig.from_backend(FakeMelbourne(), seed_transpiler=42)
+      )
+
