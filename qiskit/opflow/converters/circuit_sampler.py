@@ -31,7 +31,7 @@ from qiskit.opflow.state_fns.dict_state_fn import DictStateFn
 from qiskit.opflow.state_fns.state_fn import StateFn
 from qiskit.providers import Backend, BaseBackend
 from qiskit.utils.backend_utils import is_aer_provider, is_statevector_backend
-from qiskit.utils.quantum_instance import QuantumInstance
+from qiskit.utils.quantum_instance import QuantumInstance, TranspileStage
 
 logger = logging.getLogger(__name__)
 
@@ -296,7 +296,9 @@ class CircuitSampler(ConverterBase):
                 circuits = [op_c.to_circuit(meas=True) for op_c in circuit_sfns]
 
             try:
-                self._transpiled_circ_cache = self.quantum_instance.transpile(circuits)
+                self._transpiled_circ_cache = self.quantum_instance.transpile(
+                    circuits, stage=TranspileStage().PARAMETERIZED
+                )
             except QiskitError:
                 logger.debug(
                     r"CircuitSampler failed to transpile circuits with unbound "
@@ -325,6 +327,12 @@ class CircuitSampler(ConverterBase):
                 logger.debug("Parameter binding %.5f (ms)", (end_time - start_time) * 1000)
         else:
             ready_circs = self._transpiled_circ_cache
+
+        # run transpiler passes on bound circuits
+        if self._transpile_before_bind:
+            ready_circs = self.quantum_instance.transpile(
+                ready_circs, stage=TranspileStage().BOUND
+            )
 
         results = self.quantum_instance.execute(
             ready_circs, had_transpiled=self._transpile_before_bind
