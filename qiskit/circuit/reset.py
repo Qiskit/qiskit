@@ -14,15 +14,55 @@
 Qubit reset to computational zero.
 """
 from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.operation import Operation
 
 
-class Reset(Instruction):
+class Reset(Instruction, Operation):
     """Qubit reset."""
 
     def __init__(self):
         """Create new reset instruction."""
-        super().__init__("reset", 1, 0, [])
+        self._name = "reset"
+        self._num_qubits = 1
+        self._num_clbits = 0
+        self._params = []
+        super().__init__(self._name, self._num_qubits, self._num_clbits, self._params)
 
     def broadcast_arguments(self, qargs, cargs):
         for qarg in qargs[0]:
             yield [qarg], []
+
+    @property
+    def name(self):
+        """Return the name."""
+        return self._name
+
+    @name.setter
+    def name(self, name):
+        """Set the name."""
+        pass
+
+    @property
+    def num_qubits(self):
+        """Number of qubits."""
+        return self._num_qubits
+
+    @num_qubits.setter
+    def num_qubits(self, num_qubits):
+        """Set num_qubits."""
+        pass
+
+    @property
+    def num_clbits(self):
+        """Number of classical bits."""
+        return self._num_clbits
+
+    @num_clbits.setter
+    def num_clbits(self, num_clbits):
+        """Set num_clbits."""
+        pass
+
+    @property
+    def num_params(self):
+        """Number of parameters."""
+        return len(self._params)

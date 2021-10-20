@@ -14,16 +14,21 @@
 
 from qiskit.exceptions import QiskitError
 from .instruction import Instruction
+from .operation import Operation
 
 
-class Barrier(Instruction):
+class Barrier(Instruction, Operation):
     """Barrier instruction."""
 
     _directive = True
 
     def __init__(self, num_qubits):
         """Create new barrier instruction."""
-        super().__init__("barrier", num_qubits, 0, [])
+        self._name = "barrier"
+        self._num_qubits = num_qubits
+        self._num_clbits = 0
+        self._params = []
+        super().__init__(self._name, self._num_qubits, self._num_clbits, self._params)
 
     def inverse(self):
         """Special case. Return self."""
@@ -34,3 +39,38 @@ class Barrier(Instruction):
 
     def c_if(self, classical, val):
         raise QiskitError("Barriers are compiler directives and cannot be conditional.")
+
+    @property
+    def name(self):
+        """Return the name."""
+        return self._name
+
+    @name.setter
+    def name(self, name):
+        """Set the name."""
+        pass
+
+    @property
+    def num_qubits(self):
+        """Number of qubits."""
+        return self._num_qubits
+
+    @num_qubits.setter
+    def num_qubits(self, num_qubits):
+        """Set num_qubits."""
+        pass
+
+    @property
+    def num_clbits(self):
+        """Number of classical bits."""
+        return self._num_clbits
+
+    @num_clbits.setter
+    def num_clbits(self, num_clbits):
+        """Set num_clbits."""
+        pass
+
+    @property
+    def num_params(self):
+        """Number of parameters."""
+        return len(self._params)
