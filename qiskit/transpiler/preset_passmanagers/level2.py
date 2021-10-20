@@ -139,7 +139,8 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     _choose_layout_1 = (
         []
         if pass_manager_config.layout_method
-        else _unroll3q+ [CSPLayout(coupling_map, call_limit=1000, time_limit=10, seed=seed_transpiler)]
+        else _unroll3q
+        + [CSPLayout(coupling_map, call_limit=1000, time_limit=10, seed=seed_transpiler)]
     )
 
     def _trivial_not_perfect(property_set):
