@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Align measurement instructions."""
-
+import itertools
 import warnings
 from collections import defaultdict
 from typing import List, Union
@@ -20,8 +20,8 @@ from qiskit.circuit.delay import Delay
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.pulse import Play
 from qiskit.dagcircuit import DAGCircuit
+from qiskit.pulse import Play
 from qiskit.transpiler.basepasses import TransformationPass, AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 
@@ -133,8 +133,10 @@ class AlignMeasures(TransformationPass):
         # * pad_with_delay is called only with non-delay node to avoid consecutive delay
         new_dag = dag._copy_circuit_metadata()
 
-        qubit_time_available = defaultdict(int)
-        qubit_stop_times = defaultdict(int)
+        qubit_time_available = defaultdict(int)  # to track op start time
+        qubit_stop_times = defaultdict(int)  # to track delay start time for padding
+        clbit_readable = defaultdict(int)
+        clbit_writeable = defaultdict(int)
 
         def pad_with_delays(qubits: List[int], until, unit) -> None:
             """Pad idle time-slots in ``qubits`` with delays in ``unit`` until ``until``."""
@@ -144,25 +146,37 @@ class AlignMeasures(TransformationPass):
                     new_dag.apply_operation_back(Delay(idle_duration, unit), [q])
 
         for node in dag.topological_op_nodes():
-            start_time = max(qubit_time_available[q] for q in node.qargs)
+            # choose appropriate clbit available time depending on op
+            clbit_time_available = (
+                clbit_writeable if isinstance(node.op, Measure) else clbit_readable
+            )
+            # correction to change clbit start time to qubit start time
+            delta = node.op.duration if isinstance(node.op, Measure) else 0
+            start_time = max(
+                itertools.chain(
+                    (qubit_time_available[q] for q in node.qargs),
+                    (clbit_time_available[c] - delta for c in node.cargs + node.op.condition_bits),
+                )
+            )
 
             if isinstance(node.op, Measure):
                 if start_time % self.alignment != 0:
                     start_time = ((start_time // self.alignment) + 1) * self.alignment
 
-            if not isinstance(node.op, Delay):
+            if not isinstance(node.op, Delay):  # exclude delays for combining consecutive delays
                 pad_with_delays(node.qargs, until=start_time, unit=time_unit)
                 new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
 
-                stop_time = start_time + node.op.duration
-                # update time table
-                for q in node.qargs:
-                    qubit_time_available[q] = stop_time
+            stop_time = start_time + node.op.duration
+            # update time table
+            for q in node.qargs:
+                qubit_time_available[q] = stop_time
+                if not isinstance(node.op, Delay):
                     qubit_stop_times[q] = stop_time
-            else:
-                stop_time = start_time + node.op.duration
-                for q in node.qargs:
-                    qubit_time_available[q] = stop_time
+            for c in node.cargs:  # measure
+                clbit_writeable[c] = clbit_readable[c] = stop_time
+            for c in node.op.condition_bits:  # conditional op
+                clbit_writeable[c] = max(start_time, clbit_writeable[c])
 
         working_qubits = qubit_time_available.keys()
         circuit_duration = max(qubit_time_available[q] for q in working_qubits)

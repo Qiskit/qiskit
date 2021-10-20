@@ -350,28 +350,24 @@ class SparsePauliOp(LinearOp):
         if rtol is None:
             rtol = self.rtol
 
-        array = np.column_stack((self.paulis.x, self.paulis.z))
-        flatten_paulis, indexes = np.unique(array, return_inverse=True, axis=0)
-        coeffs = np.zeros(self.size, dtype=complex)
-        for i, val in zip(indexes, self.coeffs):
-            coeffs[i] += val
+        # Pack bool vectors into np.uint8 vectors by np.packbits
+        array = np.packbits(self.paulis.x, axis=1) * 256 + np.packbits(self.paulis.z, axis=1)
+        _, indexes, inverses = np.unique(array, return_index=True, return_inverse=True, axis=0)
+        coeffs = np.zeros(indexes.shape[0], dtype=complex)
+        np.add.at(coeffs, inverses, self.coeffs)
         # Delete zero coefficient rows
-        # TODO: Add atol/rtol for zero comparison
-        non_zero = [
-            i for i in range(coeffs.size) if not np.isclose(coeffs[i], 0, atol=atol, rtol=rtol)
-        ]
+        is_zero = np.isclose(coeffs, 0, atol=atol, rtol=rtol)
         # Check edge case that we deleted all Paulis
         # In this case we return an identity Pauli with a zero coefficient
-        if len(non_zero) == 0:
+        if np.all(is_zero):
             x = np.zeros((1, self.num_qubits), dtype=bool)
             z = np.zeros((1, self.num_qubits), dtype=bool)
             coeffs = np.array([0j], dtype=complex)
         else:
-            x, z = (
-                flatten_paulis[non_zero]
-                .reshape((len(non_zero), 2, self.num_qubits))
-                .transpose(1, 0, 2)
-            )
+            non_zero = np.logical_not(is_zero)
+            non_zero_indexes = indexes[non_zero]
+            x = self.paulis.x[non_zero_indexes]
+            z = self.paulis.z[non_zero_indexes]
             coeffs = coeffs[non_zero]
         return SparsePauliOp(PauliList.from_symplectic(z, x), coeffs)
 
