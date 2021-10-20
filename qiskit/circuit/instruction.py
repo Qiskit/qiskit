@@ -33,6 +33,7 @@ The circuit itself keeps this context.
 import warnings
 import copy
 from itertools import zip_longest
+from typing import List
 
 import numpy
 
@@ -528,3 +529,13 @@ class Instruction:
             qc.data = [(self, qargs[:], cargs[:])] * n
         instruction.definition = qc
         return instruction
+
+    @property
+    def condition_bits(self) -> List[Clbit]:
+        """Get Clbits in condition."""
+        if self.condition is None:
+            return []
+        if isinstance(self.condition[0], Clbit):
+            return [self.condition[0]]
+        else:  # ClassicalRegister
+            return list(self.condition[0])
