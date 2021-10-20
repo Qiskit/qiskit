@@ -228,7 +228,7 @@ class SparsePauliOp(LinearOp):
         # `x1` and `z1` have shape `(self.size, num_qubits)`.
         # `x2` and `z2` have shape `(other.size, num_qubits)`.
         # `x1[:, no.newaxis]` results in shape `(self.size, 1, num_qubits)`.
-        # `ar = ufunc(x1[:, no.newaxis], x2)` will be in shape `(self.size, other.size, num_qubits)`.
+        # `ar = ufunc(x1[:, np.newaxis], x2)` will be in shape `(self.size, other.size, num_qubits)`.
         # So, `ar.reshape((-1, num_qubits))` will be in shape `(self.size * other.size, num_qubits)`.
         # Ref: https://numpy.org/doc/stable/user/theory.broadcasting.html
 
