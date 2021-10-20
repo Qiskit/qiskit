@@ -125,11 +125,12 @@ class HamiltonianPhaseEstimation:
         # It does not break any others that we tested.
         return unitary_circuit.decompose().decompose()
 
-    def _prepare_unitary(self,
-                         hamiltonian: OperatorBase,
-                         evolution: Optional[EvolutionBase] = None,
-                         bound: Optional[float] = None
-                         ):
+    def _prepare_unitary(
+        self,
+        hamiltonian: OperatorBase,
+        evolution: Optional[EvolutionBase] = None,
+        bound: Optional[float] = None,
+    ):
         if evolution is None:
             evolution = PauliTrotterEvolution()
         elif not isinstance(evolution, EvolutionBase):
