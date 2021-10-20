@@ -222,19 +222,25 @@ class SparsePauliOp(LinearOp):
         else:
             x1, z1 = self.paulis.x, self.paulis.z
         x2, z2 = other.paulis.x, other.paulis.z
+        num_qubits = other.num_qubits
 
-        # all-to-all operation of `BaseOperator.compose` with outer-like
+        # This method is the outer version of `BasePauli.compose`.
+        # `x1` and `z1` have shape `(self.size, num_qubits)`.
+        # `x2` and `z2` have shape `(other.size, num_qubits)`.
+        # `x1[:, no.newaxis]` results in shape `(self.size, 1, num_qubits)`.
+        # `ar = ufunc(x1[:, no.newaxis], x2)` will be in shape `(self.size, other.size, num_qubits)`.
+        # So, `ar.reshape((-1, num_qubits))` will be in shape `(self.size * other.size, num_qubits)`.
+        # Ref: https://numpy.org/doc/stable/user/theory.broadcasting.html
 
-        size = x1.shape[-1]
-        phase = (self.paulis._phase[:, np.newaxis] + other.paulis._phase).reshape(-1)
+        phase = np.add.outer(self.paulis._phase, other.paulis._phase).reshape(-1)
         if front:
-            q = np.logical_and(x1[:, np.newaxis], z2).reshape((-1, size))
+            q = np.logical_and(x1[:, np.newaxis], z2).reshape((-1, num_qubits))
         else:
-            q = np.logical_and(z1[:, np.newaxis], x2).reshape((-1, size))
-        phase += 2 * np.sum(q, axis=1)
+            q = np.logical_and(z1[:, np.newaxis], x2).reshape((-1, num_qubits))
+        phase = np.mod(phase + 2 * np.sum(q, axis=1), 4)
 
-        x3 = np.logical_xor(x1[:, np.newaxis], x2).reshape((-1, size))
-        z3 = np.logical_xor(z1[:, np.newaxis], z2).reshape((-1, size))
+        x3 = np.logical_xor(x1[:, np.newaxis], x2).reshape((-1, num_qubits))
+        z3 = np.logical_xor(z1[:, np.newaxis], z2).reshape((-1, num_qubits))
 
         if qargs is None:
             pauli_list = PauliList(BasePauli(z3, x3, phase))
