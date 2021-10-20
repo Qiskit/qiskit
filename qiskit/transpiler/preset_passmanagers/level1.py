@@ -111,28 +111,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _choose_layout_condition(property_set):
         return not property_set["layout"]
 
-    # 2. Use a better layout on densely connected qubits, if circuit needs swaps
-    if layout_method == "trivial":
-        _improve_layout = TrivialLayout(coupling_map)
-    elif layout_method == "dense":
-        _improve_layout = DenseLayout(coupling_map, backend_properties)
-    elif layout_method == "noise_adaptive":
-        _improve_layout = NoiseAdaptiveLayout(backend_properties)
-    elif layout_method == "sabre":
-        _improve_layout = SabreLayout(coupling_map, max_iterations=2, seed=seed_transpiler)
-    else:
-        raise TranspilerError("Invalid layout method %s." % layout_method)
-
-    def _not_perfect_yet(property_set):
-        return (
-            property_set["trivial_layout_score"] is not None
-            and property_set["trivial_layout_score"] != 0
-        )
-
-    # 3. Extend dag/layout with ancillas using the full coupling map
-    _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
-
-    # 4. Decompose so only 1-qubit and 2-qubit gates remain
+    # 2. Decompose so only 1-qubit and 2-qubit gates remain
     _unroll3q = [
         # Use unitary synthesis for basis aware decomposition of UnitaryGates
         UnitarySynthesis(
@@ -145,6 +124,27 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         ),
         Unroll3qOrMore(),
     ]
+
+    # 3. Use a better layout on densely connected qubits, if circuit needs swaps
+    if layout_method == "trivial":
+        _improve_layout = TrivialLayout(coupling_map)
+    elif layout_method == "dense":
+        _improve_layout = _unroll3q + [DenseLayout(coupling_map, backend_properties)]
+    elif layout_method == "noise_adaptive":
+        _improve_layout = _unroll3q + [NoiseAdaptiveLayout(backend_properties)]
+    elif layout_method == "sabre":
+        _improve_layout = _unroll3q + [SabreLayout(coupling_map, max_iterations=2, seed=seed_transpiler)]
+    else:
+        raise TranspilerError("Invalid layout method %s." % layout_method)
+
+    def _not_perfect_yet(property_set):
+        return (
+            property_set["trivial_layout_score"] is not None
+            and property_set["trivial_layout_score"] != 0
+        )
+
+    # 4. Extend dag/layout with ancillas using the full coupling map
+    _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
 
     # 5. Swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
@@ -276,7 +276,6 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm1.append(_choose_layout_and_score, condition=_choose_layout_condition)
         pm1.append(_improve_layout, condition=_not_perfect_yet)
         pm1.append(_embed)
-        pm1.append(_unroll3q)
         pm1.append(_swap_check)
         pm1.append(_swap, condition=_swap_condition)
     pm1.append(_unroll)
