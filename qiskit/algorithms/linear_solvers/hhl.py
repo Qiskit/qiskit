@@ -122,10 +122,8 @@ class HHL(LinearSolver):
 
         self._scaling = None  # scaling of the solution
 
-        if quantum_instance is not None:
-            self._sampler = CircuitSampler(quantum_instance)
-        else:
-            self._sampler = None
+        self._sampler = None
+        self.quantum_instance = quantum_instance
 
         self._expectation = expectation
 
@@ -141,7 +139,7 @@ class HHL(LinearSolver):
         Returns:
             The quantum instance used to run this algorithm.
         """
-        return self._sampler.quantum_instance
+        return None if self._sampler is None else self._sampler.quantum_instance
 
     @quantum_instance.setter
     def quantum_instance(
@@ -152,7 +150,10 @@ class HHL(LinearSolver):
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
         """
-        self._sampler.quantum_instance = quantum_instance
+        if quantum_instance is not None:
+            self._sampler = CircuitSampler(quantum_instance)
+        else:
+            self._sampler = None
 
     @property
     def scaling(self) -> float:
