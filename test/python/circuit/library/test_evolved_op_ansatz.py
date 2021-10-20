@@ -77,10 +77,17 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
         """Test using insert_barriers."""
         evo = EvolvedOperatorAnsatz(Z, reps=4, insert_barriers=True)
         ref = QuantumCircuit(1)
+        first = True
         for parameter in evo.parameters:
+            if first:  # skip the first barrier
+                first = False
+            else:
+                ref.barrier()
             ref.rz(2.0 * parameter, 0)
-            ref.barrier()
 
+        print(evo.draw())
+        print(evo.decompose().draw())
+        print(ref.draw())
         self.assertEqual(evo.decompose(), ref)
 
     def test_evolved_gate_inserted(self):

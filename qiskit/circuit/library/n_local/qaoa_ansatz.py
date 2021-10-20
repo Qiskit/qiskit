@@ -324,28 +324,23 @@ class QAOAGate(EvolvedOperatorGate):
     def _define(self):
         super()._define()
 
-        if self.definition._data is not None:
-            return
-
         # keep old parameter order: first cost operator, then mixer operators
-        num_cost = 0 if _is_pauli_identity(self.definition.cost_operator) else 1
-        if isinstance(self.definition.mixer_operator, QuantumCircuit):
-            num_mixer = self.definition.mixer_operator.num_parameters
+        num_cost = 0 if _is_pauli_identity(self.cost_operator) else 1
+        if isinstance(self.mixer_operator, QuantumCircuit):
+            num_mixer = self.mixer_operator.num_parameters
         else:
-            num_mixer = 0 if _is_pauli_identity(self.definition.mixer_operator) else 1
+            num_mixer = 0 if _is_pauli_identity(self.mixer_operator) else 1
 
-        betas = ParameterVector("β", self.definition.reps * num_mixer)
-        gammas = ParameterVector("γ", self.definition.reps * num_cost)
+        betas = ParameterVector("β", self.reps * num_mixer)
+        gammas = ParameterVector("γ", self.reps * num_cost)
 
         # Create a permutation to take us from (cost_1, mixer_1, cost_2, mixer_2, ...)
         # to (cost_1, cost_2, ..., mixer_1, mixer_2, ...), or if the mixer is a circuit
         # with more than 1 parameters, from (cost_1, mixer_1a, mixer_1b, cost_2, ...)
         # to (cost_1, cost_2, ..., mixer_1a, mixer_1b, mixer_2a, mixer_2b, ...)
         reordered = []
-        for rep in range(self.definition.reps):
+        for rep in range(self.reps):
             reordered.extend(gammas[rep * num_cost : (rep + 1) * num_cost])
             reordered.extend(betas[rep * num_mixer : (rep + 1) * num_mixer])
 
-        self.definition.assign_parameters(
-            dict(zip(self.definition.ordered_parameters, reordered)), inplace=True
-        )
+        self.definition.assign_parameters(reordered, inplace=True)

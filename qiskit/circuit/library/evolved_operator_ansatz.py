@@ -23,6 +23,7 @@ from qiskit.circuit import (
     ParameterExpression,
     ParameterVector,
 )
+from qiskit.circuit.parametertable import ParameterView
 from .n_local.n_local import NLocal
 
 
@@ -97,6 +98,19 @@ class EvolvedOperatorAnsatz(NLocal):
             return self.operators[0].num_qubits
 
         return self.operators.num_qubits
+
+    @property
+    def num_parameters(self) -> int:
+        if self._data is None:
+            self._build()
+        return super().decompose().num_parameters
+
+    @property
+    def parameters(self) -> ParameterView:
+        if self._data is None:
+            self._build()
+        print("called me")
+        return super().decompose().parameters
 
     @property
     def evolution(self):
@@ -273,56 +287,59 @@ class EvolvedOperatorGate(Gate):
                 bind_parameter.append(circuit.num_parameters > 0)
                 circuits.append(circuit)
 
-        evolution = QuantumCircuit(self.num_qubits, name=self.name)
+        self.definition = NLocal(circuits[0].num_qubits,
+                                 rotation_blocks=[],
+                                 entanglement_blocks=circuits,
+                                 reps=self.reps, initial_state=self.initial_state,
+                                 insert_barriers=self.insert_barriers).decompose()
 
-        param_it = iter(self._parameters)
-        first = True
-        for _ in range(self.reps):
-            for bind, circuit in zip(bind_parameter, circuits):
-                if first:
-                    first = False
-                elif self.insert_barriers:
-                    evolution.barrier()
+        # evolution = QuantumCircuit(self.num_qubits, name=self.name)
 
-                if bind:
-                    param = next(param_it)
-                    bound = circuit.assign_parameters({coeff: param})
-                else:
-                    bound = circuit
+        # param_it = iter(self._parameters)
+        # first = True
+        # for _ in range(self.reps):
+        #     for bind, circuit in zip(bind_parameter, circuits):
+        #         if first:
+        #             first = False
+        #         elif self.insert_barriers:
+        #             evolution.barrier()
 
-                evolution.compose(bound, inplace=True)
+        #         if bind:
+        #             param = next(param_it)
+        #             bound = circuit.assign_parameters({coeff: param})
+        #         else:
+        #             bound = circuit
 
-        if self.initial_state:
-            evolution.compose(self.initial_state, front=True, inplace=True)
+        #         evolution.compose(bound, inplace=True)
 
-        # cast global phase to float if it has no free parameters
-        if isinstance(evolution.global_phase, ParameterExpression):
-            try:
-                evolution.global_phase = float(evolution.global_phase._symbol_expr)
-            # RuntimeError is raised if symengine is used, for SymPy it is a TypeError
-            except (RuntimeError, TypeError):
-                # expression contains free parameters
-                pass
-        self.definition = evolution
-        coeff = Parameter("c")
-        circuits = []
+        # if self.initial_state:
+        #     evolution.compose(self.initial_state, front=True, inplace=True)
 
-        for op in self.operators:
-            # if the operator is already the evolved circuit just append it
-            if isinstance(op, QuantumCircuit):
-                circuits.append(op)
-            else:
-                # check if the operator is just the identity, if yes, skip it
-                if _is_pauli_identity(op):
-                    continue
+        # # cast global phase to float if it has no free parameters
+        # if isinstance(evolution.global_phase, ParameterExpression):
+        #     try:
+        #         evolution.global_phase = float(evolution.global_phase._symbol_expr)
+        #     # RuntimeError is raised if symengine is used, for SymPy it is a TypeError
+        #     except (RuntimeError, TypeError):
+        #         # expression contains free parameters
+        #         pass
+        # self.definition = evolution
+        # coeff = Parameter("c")
+        # circuits = []
 
-                evolved_op = self.evolution.convert((coeff * op).exp_i()).reduce()
-                circuits.append(evolved_op.to_circuit())
+        # for op in self.operators:
+        #     # if the operator is already the evolved circuit just append it
+        #     if isinstance(op, QuantumCircuit):
+        #         circuits.append(op)
+        #     else:
+        #         # check if the operator is just the identity, if yes, skip it
+        #         if _is_pauli_identity(op):
+        #             continue
 
-        # self.rotation_blocks = []
-        # self.entanglement_blocks = circuits
+        #         evolved_op = self.evolution.convert((coeff * op).exp_i()).reduce()
+        #         circuits.append(evolved_op.to_circuit())
 
-        super()._define()
+        # self.definition = NLocal()
 
 
 def _validate_operators(operators):

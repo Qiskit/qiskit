@@ -168,4 +168,8 @@ class TestQAOAAnsatz(QiskitTestCase):
 
         reps = 4
         circuit = QAOAAnsatz(cost_operator=Z ^ Z, mixer_operator=mixer, reps=reps)
+        print(circuit.draw())
+        print(circuit.decompose().draw())
+        print(circuit.num_parameters)
+        print(circuit.decompose().num_parameters)
         self.assertEqual(circuit.num_parameters, 3 * reps)
