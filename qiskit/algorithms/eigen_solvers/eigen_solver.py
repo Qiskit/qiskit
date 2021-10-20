@@ -95,10 +95,9 @@ class EigensolverResult(AlgorithmResult):
 
     @property
     def aux_operator_eigenvalues(self) -> Optional[List[ListOrDict[Tuple[complex, complex]]]]:
-        """Return aux operator eigen values.
+        """Return aux operator expectation values.
 
-        These eigenvalues are in fact tuples formatted as (mean, standard deviation).
-        However, the standard deviation may not be available in all contexts.
+        These values are in fact tuples formatted as (mean, standard deviation).
         """
         return self._aux_operator_eigenvalues
 
