@@ -432,7 +432,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         # compute standard deviations
         variances = np.real(expectation.compute_variance(aux_op_expect_sampled))
-        if variances == 0.0:
+        if not isinstance(variances, np.ndarray) and variances == 0.0:
             # when `variances` is a single value equal to 0., our expectation value is exact and we
             # manually ensure the variances to be a list of the correct length
             variances = np.zeros(len(aux_operators), dtype=float)
