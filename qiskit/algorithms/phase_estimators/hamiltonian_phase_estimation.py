@@ -150,24 +150,20 @@ class HamiltonianPhaseEstimation:
             # 3. Tighten the bound on the eigenvalues so that the spectrum is better resolved, i.e.
             #   occupies more of the range of values representable by the qubit register.
             # The coefficient of this term will be added to the eigenvalues.
-            id_coefficient, hamiltonian_no_id = _remove_identity(hamiltonian)
-
-            # get the rescaling object
-            pe_scale = self._get_scale(hamiltonian_no_id, bound)
-
-            # get the unitary
-            unitary = self._get_unitary(hamiltonian_no_id, pe_scale, evolution)
+            id_coefficient, hamiltonian = _remove_identity(hamiltonian)
 
         elif isinstance(hamiltonian, MatrixOp):
             if bound is None:
                 raise ValueError("bound must be specified if Hermitian operator is MatrixOp")
-
             # Do not subtract an identity term from the matrix, so do not compensate.
             id_coefficient = 0.0
-            pe_scale = self._get_scale(hamiltonian, bound)
-            unitary = self._get_unitary(hamiltonian, pe_scale, evolution)
+
         else:
             raise TypeError(f"Hermitian operator of type {type(hamiltonian)} not supported.")
+
+        # get the rescaling object
+        pe_scale = self._get_scale(hamiltonian, bound)
+        unitary = self._get_unitary(hamiltonian, pe_scale, evolution)
 
         return unitary, pe_scale, id_coefficient
 
