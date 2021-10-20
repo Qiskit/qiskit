@@ -121,7 +121,7 @@ class ParameterExpression:
         for parameter, value in parameter_values.items():
             param_expr = self._parameter_symbols[parameter]
             symbol_values[param_expr] = value
-        import pdb; pdb.set_trace()
+
         bound_symbol_expr = self._symbol_expr.subs(symbol_values)
 
         # Don't use sympy.free_symbols to count remaining parameters here.
