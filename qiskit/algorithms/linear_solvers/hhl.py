@@ -143,12 +143,13 @@ class HHL(LinearSolver):
 
     @quantum_instance.setter
     def quantum_instance(
-        self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]
+        self, quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]]
     ) -> None:
         """Set quantum instance.
 
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
+                If None, a Statevector calculation is done.
         """
         if quantum_instance is not None:
             self._sampler = CircuitSampler(quantum_instance)
