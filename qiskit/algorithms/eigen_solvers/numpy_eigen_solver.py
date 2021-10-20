@@ -190,7 +190,7 @@ class NumPyEigensolver(Eigensolver):
                     value = mat.dot(wavefn).dot(np.conj(wavefn))
                 else:
                     value = StateFn(operator, is_measurement=True).eval(wavefn)
-                value = value.real if abs(value.real) > threshold else 0.0
+                value = value if abs(value.real) > threshold else 0.0
             # The value get's wrapped into a tuple: (mean, standard deviation).
             # Since this is an exact computation, the standard deviation is known to be zero.
             values[key] = (value, 0)
