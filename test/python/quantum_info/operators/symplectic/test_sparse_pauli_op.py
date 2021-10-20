@@ -89,6 +89,30 @@ class TestSparsePauliOpInit(QiskitTestCase):
             paulis.phase = 0
             self.assertEqual(spp_op.paulis, paulis)
 
+    def test_sparse_pauli_op_init(self):
+        """Test SparsePauliOp initialization."""
+        labels = ["I", "X", "Y", "Z", "iZ", "-iX"]
+        paulis = PauliList(labels)
+        with self.subTest(msg="no coeffs"):
+            op = SparsePauliOp(paulis)
+            ref_op = op.copy()
+            spp_op = SparsePauliOp(op)
+            self.assertEqual(spp_op, ref_op)
+            # make sure the change of `op` does not propagate through to `spp_op`
+            op.coeffs *= 2
+            self.assertNotEqual(spp_op, op)
+            self.assertEqual(spp_op, ref_op)
+        with self.subTest(msg="with coeffs"):
+            coeffs = [1, 2, 3, 4, 5, 6]
+            op = SparsePauliOp(paulis)
+            ref_op = SparsePauliOp(paulis, coeffs)
+            spp_op = SparsePauliOp(op, coeffs)
+            self.assertEqual(spp_op, ref_op)
+            # make sure the change of `op` does not propagate through to `spp_op`
+            op.coeffs *= 2
+            self.assertNotEqual(spp_op, op)
+            self.assertEqual(spp_op, ref_op)
+
 
 class TestSparsePauliOpConversions(QiskitTestCase):
     """Tests SparsePauliOp representation conversions."""
