@@ -69,7 +69,7 @@ class MCMT(QuantumCircuit):
         """
         if label is not None:
             warnings.warn(
-                "The MCMT 'label' kwarg is deprecated as of 0.19.0 and "
+                "The MCMT 'label' kwarg is deprecated as of qiskit-terra 0.19.0 and "
                 "will be removed no earlier than 3 months after the release date. "
                 "For details, see https://github.com/Qiskit/qiskit-terra/issues/6934.",
                 DeprecationWarning,
@@ -114,7 +114,7 @@ class MCMT(QuantumCircuit):
     def label(self):
         """Get label."""
         warnings.warn(
-            "The MCMT 'label' property is deprecated as of 0.19.0 and "
+            "The MCMT 'label' property is deprecated as of qiskit-terra 0.19.0 and "
             "will be removed no earlier than 3 months after the release date. "
             "For details, see https://github.com/Qiskit/qiskit-terra/issues/6934.",
             DeprecationWarning,
@@ -126,7 +126,7 @@ class MCMT(QuantumCircuit):
     def label(self, label):
         """Set label."""
         warnings.warn(
-            "The MCMT 'label' property is deprecated as of 0.19.0 and "
+            "The MCMT 'label' property is deprecated as of qiskit-terra 0.19.0 and "
             "will be removed no earlier than 3 months after the release date. "
             "For details, see https://github.com/Qiskit/qiskit-terra/issues/6934.",
             DeprecationWarning,
@@ -182,7 +182,7 @@ class MCMT(QuantumCircuit):
         """Return the controlled version of the MCMT circuit."""
         if label is not None:
             warnings.warn(
-                "The MCMT.control 'label' kwarg is deprecated as of 0.19.0 and "
+                "The MCMT.control 'label' kwarg is deprecated as of qiskit-terra 0.19.0 and "
                 "will be removed no earlier than 3 months after the release date. "
                 "For details, see https://github.com/Qiskit/qiskit-terra/issues/6934.",
                 DeprecationWarning,
