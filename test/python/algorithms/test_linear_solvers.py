@@ -280,7 +280,7 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
         self.assertIsNone(hhl.quantum_instance)  # Defaults to None
 
         # First set a valid quantum instance and check via getter
-        qinst = QuantumInstance(backend=BasicAer.get_backend('qasm_simulator'))
+        qinst = QuantumInstance(backend=BasicAer.get_backend("qasm_simulator"))
         hhl.quantum_instance = qinst
         self.assertEqual(hhl.quantum_instance, qinst)
 
