@@ -124,11 +124,11 @@ class TensoredReadoutMitigator(BaseReadoutMitigator):
         return self._expval_with_stddev(coeffs, probs_vec, shots)
 
     def quasi_probabilities(
-            self,
-            data: Counts,
-            qubits: Optional[List[int]] = None,
-            clbits: Optional[List[int]] = None,
-            shots: Optional[bool] = False,
+        self,
+        data: Counts,
+        qubits: Optional[List[int]] = None,
+        clbits: Optional[List[int]] = None,
+        shots: Optional[bool] = False,
     ) -> (QuasiDistribution, QuasiDistribution):
         """Compute mitigated quasi probabilities value.
 
