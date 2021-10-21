@@ -98,7 +98,7 @@ class MinimumEigensolverResult(AlgorithmResult):
         self._eigenstate = value
 
     @property
-    def aux_operator_eigenvalues(self) -> Optional[List[ListOrDict[Tuple[complex, complex]]]]:
+    def aux_operator_eigenvalues(self) -> Optional[ListOrDict[Tuple[complex, complex]]]:
         """Return aux operator expectation values.
 
         These values are in fact tuples formatted as (mean, standard deviation).
@@ -106,6 +106,6 @@ class MinimumEigensolverResult(AlgorithmResult):
         return self._aux_operator_eigenvalues
 
     @aux_operator_eigenvalues.setter
-    def aux_operator_eigenvalues(self, value: List[ListOrDict[Tuple[complex, complex]]]) -> None:
+    def aux_operator_eigenvalues(self, value: ListOrDict[Tuple[complex, complex]]) -> None:
         """set aux operator eigen values"""
         self._aux_operator_eigenvalues = value
