@@ -190,6 +190,31 @@ class Statevector(QuantumState, TolerancesMixin):
 
             display(out)
 
+    def __getitem__(self, key):
+        """Return Statevector item either by index or binary label
+        Args:
+            key (int or str): index or corresponding binary label, e.g. '01' = 1.
+
+        Returns:
+            numpy.complex128: Statevector item.
+
+        Raises:
+            QiskitError: if key is not valid.
+        """
+        if isinstance(key, str):
+            try:
+                key = int(key, 2)
+            except ValueError:
+                raise QiskitError(f"Key '{key}' is not a valid binary string.") from None
+        if isinstance(key, int):
+            if key >= self.dim:
+                raise QiskitError(f"Key {key} is greater than Statevector dimension {self.dim}.")
+            if key < 0:
+                raise QiskitError(f"Key {key} is not a valid positive value.")
+            return self._data[key]
+        else:
+            raise QiskitError("Key must be int or a valid binary string.")
+
     @property
     def data(self):
         """Return data."""
@@ -243,6 +268,28 @@ class Statevector(QuantumState, TolerancesMixin):
         ret._op_shape = self._op_shape.tensor(other._op_shape)
         ret._data = np.kron(self._data, other._data)
         return ret
+
+    def inner(self, other):
+        r"""Return the inner product of self and other as
+        :math:`\langle self| other \rangle`.
+
+        Args:
+            other (Statevector): a quantum state object.
+
+        Returns:
+            np.complex128: the inner product of self and other, :math:`\langle self| other \rangle`.
+
+        Raises:
+            QiskitError: if other is not a quantum state or has different dimension.
+        """
+        if not isinstance(other, Statevector):
+            other = Statevector(other)
+        if self.dims() != other.dims():
+            raise QiskitError(
+                f"Statevector dimensions do not match: {self.dims()} and {other.dims()}."
+            )
+        inner = np.vdot(self.data, other.data)
+        return inner
 
     def expand(self, other):
         """Return the tensor product state other ⊗ self.
@@ -805,6 +852,7 @@ class Statevector(QuantumState, TolerancesMixin):
                     obj.name, type(obj.definition)
                 )
             )
+
         if obj.definition.global_phase:
             statevec._data *= np.exp(1j * float(obj.definition.global_phase))
         qubits = {qubit: i for i, qubit in enumerate(obj.definition.qubits)}

@@ -511,6 +511,8 @@ class QuantumInstance:
                 self.maybe_refresh_cals_matrix(timestamp) or meas_error_mitigation_fitter is None
             )
 
+            cal_circuits = None
+            prepended_calibration_circuits: int = 0
             if build_cals_matrix:
                 if circuit_job:
                     logger.info("Updating to also run measurement error mitigation.")
@@ -558,6 +560,7 @@ class QuantumInstance:
                         self._time_taken += result.time_taken
                     else:
                         circuits[0:0] = cal_circuits
+                        prepended_calibration_circuits = len(cal_circuits)
                         result = run_circuits(
                             circuits,
                             self._backend,
@@ -685,7 +688,8 @@ class QuantumInstance:
                     num_param_variations = len(self._run_config.parameterizations[0][0])
                     num_circuits = num_circuit_templates * num_param_variations
                 else:
-                    num_circuits = len(circuits)
+                    input_circuits = circuits[prepended_calibration_circuits:]
+                    num_circuits = len(input_circuits)
                 skip_num_circuits = len(result.results) - num_circuits
                 #  remove the calibration counts from result object to assure the length of
                 #  ExperimentalResult is equal length to input circuits
@@ -710,6 +714,12 @@ class QuantumInstance:
                         tmp_result, self._meas_error_mitigation_method
                     )
                     for i, n in enumerate(c_idx):
+                        # convert counts to integer and remove 0 values
+                        tmp_result.results[i].data.counts = {
+                            k: round(v)
+                            for k, v in tmp_result.results[i].data.counts.items()
+                            if round(v) != 0
+                        }
                         result.results[n] = tmp_result.results[i]
 
         else:
