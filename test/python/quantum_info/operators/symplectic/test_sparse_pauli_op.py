@@ -92,24 +92,25 @@ class TestSparsePauliOpInit(QiskitTestCase):
         """Test SparsePauliOp initialization."""
         labels = ["I", "X", "Y", "Z", "iZ", "-iX"]
         paulis = PauliList(labels)
-        with self.subTest(msg="no coeffs"):
+        with self.subTest(msg="make SprasePauliOp from SprasePauliOp"):
             op = SparsePauliOp(paulis)
             ref_op = op.copy()
             spp_op = SparsePauliOp(op)
             self.assertEqual(spp_op, ref_op)
             # make sure the change of `op` does not propagate through to `spp_op`
+            op.paulis.z[:] = False
             op.coeffs *= 2
             self.assertNotEqual(spp_op, op)
             self.assertEqual(spp_op, ref_op)
-        with self.subTest(msg="with coeffs"):
-            coeffs = [1, 2, 3, 4, 5, 6]
-            op = SparsePauliOp(paulis)
-            ref_op = SparsePauliOp(paulis, coeffs)
-            spp_op = SparsePauliOp(op, coeffs)
+        with self.subTest(msg="make SprasePauliOp from PauliList and ndarray"):
+            coeffs = np.array([1, 2, 3, 4, 5, 6])
+            paulis_copy = paulis.copy()
+            spp_op = SparsePauliOp(paulis_copy, coeffs)
+            ref_op = SparsePauliOp(paulis.copy(), coeffs.copy())
             self.assertEqual(spp_op, ref_op)
-            # make sure the change of `op` does not propagate through to `spp_op`
-            op.coeffs *= 2
-            self.assertNotEqual(spp_op, op)
+            # make sure the change of `paulis_copy` and `coeffs` does not propagate through to `spp_op`
+            paulis_copy.z[:] = False
+            coeffs[:] = 0
             self.assertEqual(spp_op, ref_op)
 
 

@@ -72,33 +72,34 @@ class SparsePauliOp(LinearOp):
                 self._coeffs = data._coeffs.copy() if copy else data._coeffs
             else:
                 self._coeffs = data._coeffs * coeffs
-            super().__init__(num_qubits=self._pauli_list.num_qubits)
-            return
 
-        if isinstance(data, PauliList) and ignore_pauli_phase:
+        elif isinstance(data, PauliList) and ignore_pauli_phase:
             # Fast path for the preferential. Avoid the phase conversion.
             # This path works only if the input data is compatible with the internal ZX-phase convention.
             self._pauli_list = data.copy() if copy else data
             if coeffs is None:
                 self._coeffs = np.ones(data.size, dtype=complex)
             else:
-                self._coeffs = coeffs.copy() if copy else coeffs
+                self._coeffs = np.asarray(coeffs.copy() if copy else coeffs, dtype=complex)
             super().__init__(num_qubits=self._pauli_list.num_qubits)
-            return
 
-        pauli_list = PauliList(data)
-        if coeffs is None:
-            coeffs = np.ones(pauli_list.size, dtype=complex)
         else:
-            coeffs = coeffs.copy() if copy else coeffs
+            if isinstance(data, BasePauli) and copy:
+                # if `data` is `BasePauli`, `PauliList(data)` does not copy `data`.
+                data = data.copy()
+            pauli_list = PauliList(data)
+            if coeffs is None:
+                coeffs = np.ones(pauli_list.size, dtype=complex)
+            else:
+                coeffs = np.asarray(coeffs.copy() if copy else coeffs, dtype=complex)
 
-        if np.all(pauli_list.phase == 0):
-            self._pauli_list = pauli_list
-            self._coeffs = np.asarray(coeffs, dtype=complex)
-        else:
-            # move the phase of `pauli_list` to `self._coeffs`
-            self._pauli_list = PauliList.from_symplectic(pauli_list.z, pauli_list.x)
-            self._coeffs = np.asarray((-1j) ** pauli_list.phase * coeffs, dtype=complex)
+            if np.all(pauli_list.phase == 0):
+                self._pauli_list = pauli_list
+                self._coeffs = coeffs
+            else:
+                # move the phase of `pauli_list` to `self._coeffs`
+                self._pauli_list = PauliList.from_symplectic(pauli_list.z, pauli_list.x)
+                self._coeffs = np.asarray((-1j) ** pauli_list.phase * coeffs, dtype=complex)
 
         if self._coeffs.shape != (self._pauli_list.size,):
             raise QiskitError(
