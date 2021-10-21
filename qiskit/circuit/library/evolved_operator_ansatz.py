@@ -150,7 +150,7 @@ class EvolvedOperatorAnsatz(NLocal):
             return np.zeros(self.reps * len(self.operators), dtype=float)
 
     def _build_gate(self):
-        """ """
+        """Return an EvolvedOperatorGate based on the current settings."""
         return EvolvedOperatorGate(
             operators=self.operators,
             reps=self.reps,
@@ -183,7 +183,7 @@ class EvolvedOperatorAnsatz(NLocal):
 
 
 class EvolvedOperatorGate(Gate):
-    """TODO"""
+    """A gate implementing the time evolution of operators, with the time as free parameters."""
 
     def __init__(
         self,
@@ -249,8 +249,7 @@ class EvolvedOperatorGate(Gate):
         )
 
     def _define(self):
-        """TODO"""
-        # print("calling define since def =", self._definition)
+        """Build the circuit by evolving the operators and using NLocal for the repetitions."""
         coeff = Parameter("c")
         circuits = []
         bind_parameter = []
@@ -279,55 +278,6 @@ class EvolvedOperatorGate(Gate):
             .decompose()
             .assign_parameters(self.params)
         )
-        # print("now def =", self._definition)
-
-        # evolution = QuantumCircuit(self.num_qubits, name=self.name)
-
-        # param_it = iter(self._parameters)
-        # first = True
-        # for _ in range(self.reps):
-        #     for bind, circuit in zip(bind_parameter, circuits):
-        #         if first:
-        #             first = False
-        #         elif self.insert_barriers:
-        #             evolution.barrier()
-
-        #         if bind:
-        #             param = next(param_it)
-        #             bound = circuit.assign_parameters({coeff: param})
-        #         else:
-        #             bound = circuit
-
-        #         evolution.compose(bound, inplace=True)
-
-        # if self.initial_state:
-        #     evolution.compose(self.initial_state, front=True, inplace=True)
-
-        # # cast global phase to float if it has no free parameters
-        # if isinstance(evolution.global_phase, ParameterExpression):
-        #     try:
-        #         evolution.global_phase = float(evolution.global_phase._symbol_expr)
-        #     # RuntimeError is raised if symengine is used, for SymPy it is a TypeError
-        #     except (RuntimeError, TypeError):
-        #         # expression contains free parameters
-        #         pass
-        # self.definition = evolution
-        # coeff = Parameter("c")
-        # circuits = []
-
-        # for op in self.operators:
-        #     # if the operator is already the evolved circuit just append it
-        #     if isinstance(op, QuantumCircuit):
-        #         circuits.append(op)
-        #     else:
-        #         # check if the operator is just the identity, if yes, skip it
-        #         if _is_pauli_identity(op):
-        #             continue
-
-        #         evolved_op = self.evolution.convert((coeff * op).exp_i()).reduce()
-        #         circuits.append(evolved_op.to_circuit())
-
-        # self.definition = NLocal()
 
 
 def _validate_operators(operators):

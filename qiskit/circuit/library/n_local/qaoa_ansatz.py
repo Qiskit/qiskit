@@ -248,7 +248,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         self._invalidate()
 
     def _build_gate(self):
-        """ """
+        """Return a QAOAGate based on the current settings."""
         return QAOAGate(
             cost_operator=self.cost_operator,
             reps=self.reps,
