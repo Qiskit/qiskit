@@ -283,7 +283,6 @@ class SparsePauliOp(LinearOp):
             pauli_list = PauliList(BasePauli(z4, x4, phase))
 
         coeffs = np.kron(self.coeffs, other.coeffs)
-
         return SparsePauliOp(pauli_list, coeffs, copy=False)
 
     def tensor(self, other):
