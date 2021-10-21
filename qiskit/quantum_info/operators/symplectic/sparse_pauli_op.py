@@ -74,12 +74,13 @@ class SparsePauliOp(LinearOp):
                 self._coeffs = data._coeffs * coeffs
             super().__init__(num_qubits=self._pauli_list.num_qubits)
             return
+
         if isinstance(data, PauliList) and ignore_pauli_phase:
             # Fast path for the preferential. Avoid the phase conversion.
             # This path works only if the input data is compatible with the internal ZX-phase convention.
             self._pauli_list = data.copy() if copy else data
             if coeffs is None:
-                self._coeffs = np.ones(data.size, dtype=np.complex128)
+                self._coeffs = np.ones(data.size, dtype=complex)
             else:
                 self._coeffs = coeffs.copy() if copy else coeffs
             super().__init__(num_qubits=self._pauli_list.num_qubits)
@@ -88,6 +89,8 @@ class SparsePauliOp(LinearOp):
         pauli_list = PauliList(data)
         if coeffs is None:
             coeffs = np.ones(pauli_list.size, dtype=complex)
+        else:
+            coeffs = coeffs.copy() if copy else coeffs
 
         if np.all(pauli_list.phase == 0):
             self._pauli_list = pauli_list
@@ -308,9 +311,9 @@ class SparsePauliOp(LinearOp):
 
         self._op_shape._validate_add(other._op_shape, qargs)
 
-        pauli_list = self.paulis._add(other.paulis, qargs=qargs)
+        paulis = self.paulis._add(other.paulis, qargs=qargs)
         coeffs = np.hstack((self.coeffs, other.coeffs))
-        return SparsePauliOp(pauli_list, coeffs, ignore_pauli_phase=True, copy=False)
+        return SparsePauliOp(paulis, coeffs, ignore_pauli_phase=True, copy=False)
 
     def _multiply(self, other):
         if not isinstance(other, Number):

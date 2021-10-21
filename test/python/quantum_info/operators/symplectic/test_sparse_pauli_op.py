@@ -26,7 +26,6 @@ from qiskit.quantum_info.operators import (
     PauliTable,
     SparsePauliOp,
 )
-from qiskit.quantum_info.random import random_unitary
 from qiskit.test import QiskitTestCase
 
 
@@ -242,24 +241,30 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         """Test conjugate method for {num_qubits}-qubits."""
         spp_op = self.random_spp_op(num_qubits, 2 ** num_qubits)
         target = Operator(spp_op).conjugate()
-        value = spp_op.conjugate().to_operator()
+        op = spp_op.conjugate()
+        value = op.to_operator()
         self.assertEqual(value, target)
+        self.assertTrue(np.all(op.paulis.phase == 0))
 
     @combine(num_qubits=[1, 2, 3, 4])
     def test_transpose(self, num_qubits):
         """Test transpose method for {num_qubits}-qubits."""
         spp_op = self.random_spp_op(num_qubits, 2 ** num_qubits)
         target = Operator(spp_op).transpose()
-        value = spp_op.transpose().to_operator()
+        op = spp_op.transpose()
+        value = op.to_operator()
         self.assertEqual(value, target)
+        self.assertTrue(np.all(op.paulis.phase == 0))
 
     @combine(num_qubits=[1, 2, 3, 4])
     def test_adjoint(self, num_qubits):
         """Test adjoint method for {num_qubits}-qubits."""
         spp_op = self.random_spp_op(num_qubits, 2 ** num_qubits)
         target = Operator(spp_op).adjoint()
-        value = spp_op.adjoint().to_operator()
+        op = spp_op.adjoint()
+        value = op.to_operator()
         self.assertEqual(value, target)
+        self.assertTrue(np.all(op.paulis.phase == 0))
 
     @combine(num_qubits=[1, 2, 3, 4])
     def test_compose(self, num_qubits):
@@ -268,11 +273,15 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         spp_op2 = self.random_spp_op(num_qubits, 2 ** num_qubits)
         target = Operator(spp_op1).compose(Operator(spp_op2))
 
-        value = spp_op1.compose(spp_op2).to_operator()
+        op = spp_op1.compose(spp_op2)
+        value = op.to_operator()
         self.assertEqual(value, target)
+        self.assertTrue(np.all(op.paulis.phase == 0))
 
-        value = (spp_op1 & spp_op2).to_operator()
+        op = spp_op1 & spp_op2
+        value = op.to_operator()
         self.assertEqual(value, target)
+        self.assertTrue(np.all(op.paulis.phase == 0))
 
     @combine(num_qubits=[1, 2, 3, 4])
     def test_dot(self, num_qubits):
@@ -281,11 +290,15 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         spp_op2 = self.random_spp_op(num_qubits, 2 ** num_qubits)
         target = Operator(spp_op1).dot(Operator(spp_op2))
 
-        value = spp_op1.dot(spp_op2).to_operator()
+        op = spp_op1.dot(spp_op2)
+        value = op.to_operator()
         self.assertEqual(value, target)
+        self.assertTrue(np.all(op.paulis.phase == 0))
 
-        value = (spp_op1 * spp_op2).to_operator()
+        op = spp_op1 * spp_op2
+        value = op.to_operator()
         self.assertEqual(value, target)
+        self.assertTrue(np.all(op.paulis.phase == 0))
 
     @combine(num_qubits=[1, 2, 3])
     def test_qargs_compose(self, num_qubits):
@@ -295,11 +308,15 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         qargs = self.RNG.choice(3, size=num_qubits, replace=False).tolist()
         target = Operator(spp_op1).compose(Operator(spp_op2), qargs=qargs)
 
-        value = spp_op1.compose(spp_op2, qargs=qargs).to_operator()
+        op = spp_op1.compose(spp_op2, qargs=qargs)
+        value = op.to_operator()
         self.assertEqual(value, target)
+        self.assertTrue(np.all(op.paulis.phase == 0))
 
-        value = (spp_op1 & spp_op2(qargs)).to_operator()
+        op = spp_op1 & spp_op2(qargs)
+        value = op.to_operator()
         self.assertEqual(value, target)
+        self.assertTrue(np.all(op.paulis.phase == 0))
 
     @combine(num_qubits=[1, 2, 3])
     def test_qargs_dot(self, num_qubits):
@@ -309,11 +326,15 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         qargs = self.RNG.choice(3, size=num_qubits, replace=False).tolist()
         target = Operator(spp_op1).dot(Operator(spp_op2), qargs=qargs)
 
-        value = spp_op1.dot(spp_op2, qargs=qargs).to_operator()
+        op = spp_op1.dot(spp_op2, qargs=qargs)
+        value = op.to_operator()
         self.assertEqual(value, target)
+        self.assertTrue(np.all(op.paulis.phase == 0))
 
-        value = (spp_op1 * spp_op2(qargs)).to_operator()
+        op = spp_op1 * spp_op2(qargs)
+        value = op.to_operator()
         self.assertEqual(value, target)
+        self.assertTrue(np.all(op.paulis.phase == 0))
 
     @combine(num_qubits1=[1, 2, 3], num_qubits2=[1, 2, 3])
     def test_tensor(self, num_qubits1, num_qubits2):
@@ -321,71 +342,87 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         spp_op1 = self.random_spp_op(num_qubits1, 2 ** num_qubits1)
         spp_op2 = self.random_spp_op(num_qubits2, 2 ** num_qubits2)
         target = Operator(spp_op1).tensor(Operator(spp_op2))
-        value = spp_op1.tensor(spp_op2).to_operator()
+        op = spp_op1.tensor(spp_op2)
+        value = op.to_operator()
         self.assertEqual(value, target)
+        self.assertTrue(np.all(op.paulis.phase == 0))
 
     @combine(num_qubits1=[1, 2, 3], num_qubits2=[1, 2, 3])
     def test_expand(self, num_qubits1, num_qubits2):
         """Test expand method for {num_qubits1} and {num_qubits2} qubits."""
-        spp_op1 = random_unitary(2 ** num_qubits1, seed=self.RNG)
-        spp_op2 = random_unitary(2 ** num_qubits2, seed=self.RNG)
+        spp_op1 = self.random_spp_op(num_qubits1, 2 ** num_qubits1)
+        spp_op2 = self.random_spp_op(num_qubits2, 2 ** num_qubits2)
         target = Operator(spp_op1).expand(Operator(spp_op2))
-        value = spp_op1.expand(spp_op2).to_operator()
+        op = spp_op1.expand(spp_op2)
+        value = op.to_operator()
         self.assertEqual(value, target)
+        self.assertTrue(np.all(op.paulis.phase == 0))
 
     @combine(num_qubits=[1, 2, 3, 4])
     def test_add(self, num_qubits):
         """Test + method for {num_qubits} qubits."""
-        spp_op1 = random_unitary(2 ** num_qubits, seed=self.RNG)
-        spp_op2 = random_unitary(2 ** num_qubits, seed=self.RNG)
+        spp_op1 = self.random_spp_op(num_qubits, 2 ** num_qubits)
+        spp_op2 = self.random_spp_op(num_qubits, 2 ** num_qubits)
         target = Operator(spp_op1) + Operator(spp_op2)
-        value = (spp_op1 + spp_op2).to_operator()
+        op = spp_op1 + spp_op2
+        value = op.to_operator()
         self.assertEqual(value, target)
+        self.assertTrue(np.all(op.paulis.phase == 0))
 
     @combine(num_qubits=[1, 2, 3, 4])
     def test_sub(self, num_qubits):
         """Test + method for {num_qubits} qubits."""
-        spp_op1 = random_unitary(2 ** num_qubits, seed=self.RNG)
-        spp_op2 = random_unitary(2 ** num_qubits, seed=self.RNG)
+        spp_op1 = self.random_spp_op(num_qubits, 2 ** num_qubits)
+        spp_op2 = self.random_spp_op(num_qubits, 2 ** num_qubits)
         target = Operator(spp_op1) - Operator(spp_op2)
-        value = (spp_op1 - spp_op2).to_operator()
+        op = spp_op1 - spp_op2
+        value = op.to_operator()
         self.assertEqual(value, target)
+        self.assertTrue(np.all(op.paulis.phase == 0))
 
     @combine(num_qubits=[1, 2, 3])
     def test_add_qargs(self, num_qubits):
         """Test + method for 3 qubits with {num_qubits} qubit qargs."""
-        spp_op1 = random_unitary(2 ** 3, seed=self.RNG)
-        spp_op2 = random_unitary(2 ** num_qubits, seed=self.RNG)
+        spp_op1 = self.random_spp_op(3, 2 ** 3)
+        spp_op2 = self.random_spp_op(num_qubits, 2 ** num_qubits)
         qargs = self.RNG.choice(3, size=num_qubits, replace=False).tolist()
         target = Operator(spp_op1) + Operator(spp_op2)(qargs)
-        value = (spp_op1 + spp_op2(qargs)).to_operator()
+        op = spp_op1 + spp_op2(qargs)
+        value = op.to_operator()
         self.assertEqual(value, target)
+        self.assertTrue(np.all(op.paulis.phase == 0))
 
     @combine(num_qubits=[1, 2, 3])
     def test_sub_qargs(self, num_qubits):
         """Test - method for 3 qubits with {num_qubits} qubit qargs."""
-        spp_op1 = random_unitary(2 ** 3, seed=self.RNG)
-        spp_op2 = random_unitary(2 ** num_qubits, seed=self.RNG)
+        spp_op1 = self.random_spp_op(3, 2 ** 3)
+        spp_op2 = self.random_spp_op(num_qubits, 2 ** num_qubits)
         qargs = self.RNG.choice(3, size=num_qubits, replace=False).tolist()
         target = Operator(spp_op1) - Operator(spp_op2)(qargs)
-        value = (spp_op1 - spp_op2(qargs)).to_operator()
+        op = spp_op1 - spp_op2(qargs)
+        value = op.to_operator()
         self.assertEqual(value, target)
+        self.assertTrue(np.all(op.paulis.phase == 0))
 
     @combine(num_qubits=[1, 2, 3], value=[0, 1, 1j, -3 + 4.4j, np.int64(2)])
     def test_mul(self, num_qubits, value):
         """Test * method for {num_qubits} qubits and value {value}."""
-        spp_op = random_unitary(2 ** num_qubits, seed=self.RNG)
+        spp_op = self.random_spp_op(num_qubits, 2 ** num_qubits)
         target = value * Operator(spp_op)
-        value = (value * spp_op).to_operator()
+        op = value * spp_op
+        value = op.to_operator()
         self.assertEqual(value, target)
+        self.assertTrue(np.all(op.paulis.phase == 0))
 
     @combine(num_qubits=[1, 2, 3], value=[1, 1j, -3 + 4.4j])
     def test_div(self, num_qubits, value):
         """Test / method for {num_qubits} qubits and value {value}."""
-        spp_op = random_unitary(2 ** num_qubits, seed=self.RNG)
+        spp_op = self.random_spp_op(num_qubits, 2 ** num_qubits)
         target = Operator(spp_op) / value
-        value = (spp_op / value).to_operator()
+        op = spp_op / value
+        value = op.to_operator()
         self.assertEqual(value, target)
+        self.assertTrue(np.all(op.paulis.phase == 0))
 
     def test_simplify(self):
         """Test simplify method"""
@@ -396,6 +433,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         target_labels = ["III", "XXX"]
         target = SparsePauliOp(PauliTable.from_labels(target_labels), target_coeffs)
         self.assertEqual(value, target)
+        self.assertTrue(np.all(value.paulis.phase == 0))
 
 
 if __name__ == "__main__":
