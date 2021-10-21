@@ -152,7 +152,28 @@ class TensoredReadoutMitigator(BaseReadoutMitigator):
         Raises:
             QiskitError: if qubit and clbit kwargs are not valid.
         """
-        pass
+        # Marginalize counts
+        if clbits is not None:
+            data = marginal_counts(data, clbits)
+
+        # Get total number of qubits and shots
+        num_qubits = data.size()
+        shots = data.shots()
+        # Get probability vector
+        probs_vec = self._to_probs_vec(data, num_qubits)
+
+        # Get qubit mitigation matrix and mitigate probs
+        if qubits is None:
+            qubits = range(num_qubits)
+        mit_mat = self.mitigation_matrix(qubits)
+
+        # Apply transpose of mitigation matrix
+        probs_vec = mit_mat.dot(probs_vec)
+        probs_dict = {}
+        for index, _ in enumerate(probs_vec):
+            probs_dict[index] = probs_vec[index]
+
+        return QuasiDistribution(probs_dict), QuasiDistribution(self._stddev(probs_dict, shots))
 
     def mitigation_matrix(self, qubits: List[int] = None) -> np.ndarray:
         r"""Return the measurement mitigation matrix for the specified qubits.
