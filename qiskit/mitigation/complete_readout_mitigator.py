@@ -17,7 +17,6 @@ import logging
 from typing import Optional, List, Tuple, Iterable, Callable, Union
 import numpy as np
 
-from qiskit.exceptions import QiskitError
 from qiskit.result import Counts, marginal_counts, QuasiDistribution
 from .base_readout_mitigator import BaseReadoutMitigator
 
@@ -41,7 +40,7 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
     def expectation_value(
         self,
         data: Counts,
-        diagonal: Union[Callable, dict, str, np.ndarray],
+        diagonal: Union[Callable, dict, str, np.ndarray] = None,
         qubits: Iterable[int] = None,
         clbits: Optional[List[int]] = None,
         shots: Optional[int] = None,
@@ -217,89 +216,6 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
         for i in sorted(qubits):
             indexes += [idx + (1 << i) for idx in indexes]
         return indexes
-
-    @staticmethod
-    def _z_diagonal(dim, dtype=float):
-        r"""Return the diagonal for the operator :math:`Z^\otimes n`"""
-        parity = np.zeros(dim, dtype=dtype)
-        for i in range(dim):
-            parity[i] = bin(i)[2:].count("1")
-        return (-1) ** np.mod(parity, 2)
-
-    @staticmethod
-    def _expval_with_stddev(
-        coeffs: np.ndarray, probs: np.ndarray, shots: int
-    ) -> Tuple[float, float]:
-        """Compute expectation value and standard deviation.
-        Args:
-            coeffs: array of diagonal operator coefficients.
-            probs: array of measurement probabilities.
-            shots: total number of shots to obtain probabilities.
-        Returns:
-            tuple: (expval, stddev) expectation value and standard deviation.
-        """
-        # Compute expval
-        expval = coeffs.dot(probs)
-
-        # Compute variance
-        sq_expval = (coeffs ** 2).dot(probs)
-        variance = (sq_expval - expval ** 2) / shots
-
-        # Compute standard deviation
-        if variance < 0 and not np.isclose(variance, 0):
-            logger.warning(
-                "Encountered a negative variance in expectation value calculation."
-                "(%f). Setting standard deviation of result to 0.",
-                variance,
-            )
-        stddev = np.sqrt(variance) if variance > 0 else 0.0
-        return [expval, stddev]
-
-    @staticmethod
-    def _stddev(probs, shots):
-        """Calculate stddev dict"""
-        ret = {}
-        for key, prob in probs.items():
-            std_err = np.sqrt(abs(prob) * (1 - abs(prob)) / shots)
-            ret[key] = std_err
-        return ret
-
-    @staticmethod
-    def _to_probs_vec(data, num_qubits):
-        """Convert counts to probabilities vector"""
-        vec = np.zeros(2 ** num_qubits, dtype=float)
-        shots = 0
-        for key, val in data.items():
-            shots += val
-            vec[int(key, 2)] = val
-        vec /= shots
-        return vec
-
-    @staticmethod
-    def _str2diag(string):
-        chars = {
-            "I": np.array([1, 1], dtype=float),
-            "Z": np.array([1, -1], dtype=float),
-            "0": np.array([1, 0], dtype=float),
-            "1": np.array([0, 1], dtype=float),
-        }
-        ret = np.array([1], dtype=float)
-        for i in string:
-            if i not in chars:
-                raise QiskitError(f"Invalid diagonal string character {i}")
-            ret = np.kron(chars[i], ret)
-        return ret
-
-    def _stddev_upper_bound(self, shots, qubits):
-        """Return an upper bound on standard deviation of expval estimator.
-        Args:
-            shots: Number of shots used for expectation value measurement.
-            qubits: qubits being measured for operator expval.
-        Returns:
-            float: the standard deviation upper bound.
-        """
-        gamma = self._compute_gamma(qubits=qubits)
-        return gamma / np.sqrt(shots)
 
     def _compute_gamma(self, qubits=None):
         """Compute gamma for N-qubit mitigation"""
