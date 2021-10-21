@@ -1,8 +1,0 @@
----
-fixes:
-  - |
-    Fixes a regression of the `aux_op_eigenvalues` API which caused a mismatch
-    of the return types between the `NumPyEigensolver` and the `VQE`. In general,
-    this part of the API was poorly documented which is also adressed.
-    It is now evident that each auxiliary operator will return a tuple with its
-    mean expected value and standard deviation.
