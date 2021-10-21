@@ -81,11 +81,10 @@ class SparsePauliOp(LinearOp):
                 self._coeffs = np.ones(data.size, dtype=complex)
             else:
                 self._coeffs = np.asarray(coeffs.copy() if copy else coeffs, dtype=complex)
-            super().__init__(num_qubits=self._pauli_list.num_qubits)
 
         else:
             if isinstance(data, BasePauli) and copy:
-                # if `data` is `BasePauli`, `PauliList(data)` does not copy `data`.
+                # if `data` is `BasePauli`, `PauliList(data)` does not copy `data` internally.
                 data = data.copy()
             pauli_list = PauliList(data)
             if coeffs is None:
@@ -328,7 +327,9 @@ class SparsePauliOp(LinearOp):
             coeffs = np.array([0j])
             return SparsePauliOp(paulis, coeffs, copy=False)
         # Otherwise we just update the phases
-        return SparsePauliOp(self.paulis.copy(), other * self.coeffs, copy=False)
+        return SparsePauliOp(
+            self.paulis.copy(), other * self.coeffs, ignore_pauli_phase=True, copy=False
+        )
 
     # ---------------------------------------------------------------------
     # Utility Methods
@@ -399,7 +400,9 @@ class SparsePauliOp(LinearOp):
             x = self.paulis.x[non_zero_indexes]
             z = self.paulis.z[non_zero_indexes]
             coeffs = coeffs[non_zero]
-        return SparsePauliOp(PauliList.from_symplectic(z, x), coeffs, copy=False)
+        return SparsePauliOp(
+            PauliList.from_symplectic(z, x), coeffs, ignore_pauli_phase=True, copy=False
+        )
 
     # ---------------------------------------------------------------------
     # Additional conversions
