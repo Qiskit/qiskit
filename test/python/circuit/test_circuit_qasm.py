@@ -20,6 +20,9 @@ from qiskit.test import QiskitTestCase
 from qiskit.circuit import Parameter, Qubit, Clbit
 from qiskit.qasm.exceptions import QasmError
 
+# Regex pattern to match valid OpenQASM identifiers
+VALID_QASM2_IDENTIFIER = re.compile("[a-z][a-zA-Z_0-9]*")
+
 
 class TestCircuitQasm(QiskitTestCase):
     """QuantumCircuit Qasm tests."""
@@ -419,4 +422,31 @@ custom_{id(gate2)} q[1],q[0];\n"""
         # Check instruction names were not changed by qasm()
         names = ["unitary", "A[$]", "invalid[name]"]
         for idx, (instruction, _, _) in enumerate(qc._data):
+            self.assertEqual(instruction.name, names[idx])
+
+    def test_circuit_qasm_with_duplicate_invalid_identifiers(self):
+        """Test that qasm() corrects invalid identifiers and the de-duplication
+        code runs correctly, without altering original instructions"""
+        base = QuantumCircuit(1)
+
+        # First gate with invalid name, escapes to "invalid__"
+        clash1 = QuantumCircuit(1, name="invalid??")
+        clash1.x(0)
+        base.append(clash1, [0])
+
+        # Second gate with invalid name that also escapes to "invalid__"
+        clash2 = QuantumCircuit(1, name="invalid[]")
+        clash2.z(0)
+        base.append(clash2, [0])
+
+        # Check qasm is correctly produced
+        names = set()
+        for match in re.findall(r"gate (\S+)", base.qasm()):
+            self.assertTrue(VALID_QASM2_IDENTIFIER.fullmatch(match))
+            names.add(match)
+        self.assertEqual(len(names), 2)
+
+        # Check instruction names were not changed by qasm()
+        names = ["invalid??", "invalid[]"]
+        for idx, (instruction, _, _) in enumerate(base._data):
             self.assertEqual(instruction.name, names[idx])
