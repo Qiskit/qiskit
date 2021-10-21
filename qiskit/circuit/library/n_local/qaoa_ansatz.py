@@ -257,6 +257,29 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
             label=self.name,
         )
 
+    def _build(self):
+        super()._build()
+
+        num_cost = 0 if _is_pauli_identity(self.cost_operator) else 1
+        if isinstance(self.mixer_operator, QuantumCircuit):
+            num_mixer = self.mixer_operator.num_parameters
+        else:
+            num_mixer = 0 if _is_pauli_identity(self.mixer_operator) else 1
+
+        betas = ParameterVector("β", self.reps * num_mixer)
+        gammas = ParameterVector("γ", self.reps * num_cost)
+
+        # Create a permutation to take us from (cost_1, mixer_1, cost_2, mixer_2, ...)
+        # to (cost_1, cost_2, ..., mixer_1, mixer_2, ...), or if the mixer is a circuit
+        # with more than 1 parameters, from (cost_1, mixer_1a, mixer_1b, cost_2, ...)
+        # to (cost_1, cost_2, ..., mixer_1a, mixer_1b, mixer_2a, mixer_2b, ...)
+        reordered = []
+        for rep in range(self.reps):
+            reordered.extend(gammas[rep * num_cost : (rep + 1) * num_cost])
+            reordered.extend(betas[rep * num_mixer : (rep + 1) * num_mixer])
+
+        self.assign_parameters(reordered, inplace=True)
+
 
 class QAOAGate(EvolvedOperatorGate):
     """A generalized QAOA gate with a support of custom initial states and mixers.
@@ -320,27 +343,3 @@ class QAOAGate(EvolvedOperatorGate):
             initial_state=initial_state,
             label=label,
         )
-
-    def _define(self):
-        super()._define()
-
-        # keep old parameter order: first cost operator, then mixer operators
-        num_cost = 0 if _is_pauli_identity(self.cost_operator) else 1
-        if isinstance(self.mixer_operator, QuantumCircuit):
-            num_mixer = self.mixer_operator.num_parameters
-        else:
-            num_mixer = 0 if _is_pauli_identity(self.mixer_operator) else 1
-
-        betas = ParameterVector("β", self.reps * num_mixer)
-        gammas = ParameterVector("γ", self.reps * num_cost)
-
-        # Create a permutation to take us from (cost_1, mixer_1, cost_2, mixer_2, ...)
-        # to (cost_1, cost_2, ..., mixer_1, mixer_2, ...), or if the mixer is a circuit
-        # with more than 1 parameters, from (cost_1, mixer_1a, mixer_1b, cost_2, ...)
-        # to (cost_1, cost_2, ..., mixer_1a, mixer_1b, mixer_2a, mixer_2b, ...)
-        reordered = []
-        for rep in range(self.reps):
-            reordered.extend(gammas[rep * num_cost : (rep + 1) * num_cost])
-            reordered.extend(betas[rep * num_mixer : (rep + 1) * num_mixer])
-
-        self.definition.assign_parameters(reordered, inplace=True)

@@ -99,18 +99,17 @@ class EvolvedOperatorAnsatz(NLocal):
 
         return self.operators.num_qubits
 
-    @property
-    def num_parameters(self) -> int:
-        if self._data is None:
-            self._build()
-        return super().decompose().num_parameters
+    # @property
+    # def num_parameters(self) -> int:
+    #     if self._data is None:
+    #         self._build()
+    #     return super().decompose().num_parameters
 
-    @property
-    def parameters(self) -> ParameterView:
-        if self._data is None:
-            self._build()
-        print("called me")
-        return super().decompose().parameters
+    # @property
+    # def parameters(self) -> ParameterView:
+    #     if self._data is None:
+    #         self._build()
+    #     return super().decompose().parameters
 
     @property
     def evolution(self):
@@ -251,7 +250,9 @@ class EvolvedOperatorGate(Gate):
         # determine how many parameters the circuit will contain
         num_parameters = 0
         for op in operators:
-            if not isinstance(op, QuantumCircuit):
+            if isinstance(op, QuantumCircuit):
+                num_parameters += op.num_parameters
+            else:
                 # check if the operator is just the identity, if yes, skip it
                 if isinstance(op, PauliOp):
                     sig_qubits = np.logical_or(op.primitive.x, op.primitive.z)
@@ -259,18 +260,16 @@ class EvolvedOperatorGate(Gate):
                         continue
                 num_parameters += 1
 
-        # keep a list of the parameters
-        self._parameters = ParameterVector("t", reps * num_parameters)
-
         super().__init__(
             "EvolvedOps",
             operators[0].num_qubits,
-            params=list(self._parameters),
+            params=list(ParameterVector("t", reps * num_parameters)),
             label=label,
         )
 
     def _define(self):
         """TODO"""
+        # print("calling define since def =", self._definition)
         coeff = Parameter("c")
         circuits = []
         bind_parameter = []
@@ -287,11 +286,19 @@ class EvolvedOperatorGate(Gate):
                 bind_parameter.append(circuit.num_parameters > 0)
                 circuits.append(circuit)
 
-        self.definition = NLocal(circuits[0].num_qubits,
-                                 rotation_blocks=[],
-                                 entanglement_blocks=circuits,
-                                 reps=self.reps, initial_state=self.initial_state,
-                                 insert_barriers=self.insert_barriers).decompose()
+        self.definition = (
+            NLocal(
+                circuits[0].num_qubits,
+                rotation_blocks=[],
+                entanglement_blocks=circuits,
+                reps=self.reps,
+                initial_state=self.initial_state,
+                insert_barriers=self.insert_barriers,
+            )
+            .decompose()
+            .assign_parameters(self.params)
+        )
+        # print("now def =", self._definition)
 
         # evolution = QuantumCircuit(self.num_qubits, name=self.name)
 

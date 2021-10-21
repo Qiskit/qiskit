@@ -156,7 +156,7 @@ class TestQAOAAnsatz(QiskitTestCase):
             self.assertEqual(circuit.num_parameters, 4)
 
         with self.subTest(msg="test binding parameters per instance"):
-            bound = circuit.bind_parameters(dict(zip(parameters, list(range(4)))))
+            bound = qaoa.bind_parameters(dict(zip(parameters, list(range(4)))))
             self.assertEqual(bound.num_parameters, 0)
 
     def test_circuit_mixer(self):
@@ -168,8 +168,4 @@ class TestQAOAAnsatz(QiskitTestCase):
 
         reps = 4
         circuit = QAOAAnsatz(cost_operator=Z ^ Z, mixer_operator=mixer, reps=reps)
-        print(circuit.draw())
-        print(circuit.decompose().draw())
-        print(circuit.num_parameters)
-        print(circuit.decompose().num_parameters)
         self.assertEqual(circuit.num_parameters, 3 * reps)
