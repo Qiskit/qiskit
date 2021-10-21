@@ -527,6 +527,9 @@ class TestLoadFromQPY(QiskitTestCase):
         dump(qaoa, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
+        # unroll one layer since QPY matches the definition, not the Gate object
+        new_circ = new_circ.decompose()
+        qaoa = qaoa.decompose()
         self.assertEqual(qaoa, new_circ)
         self.assertEqual([x[0].label for x in qaoa.data], [x[0].label for x in new_circ.data])
 

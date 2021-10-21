@@ -291,6 +291,8 @@ class TestGateEquivalenceEqual(QiskitTestCase):
                     params = ["IXYZ"]
                 if gate_class.__name__ in ["QAOAGate"]:
                     params = [I]
+                if gate_class.__name__ in ["EvolvedOperatorGate"]:
+                    params = [I]
                 if gate_class.__name__ in ["BooleanExpression"]:
                     params = ["x | y"]
                 gate = gate_class(*params)

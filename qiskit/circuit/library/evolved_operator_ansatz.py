@@ -20,10 +20,8 @@ from qiskit.circuit import (
     Parameter,
     QuantumRegister,
     QuantumCircuit,
-    ParameterExpression,
     ParameterVector,
 )
-from qiskit.circuit.parametertable import ParameterView
 from .n_local.n_local import NLocal
 
 
@@ -56,12 +54,6 @@ class EvolvedOperatorAnsatz(NLocal):
                 operator.
             initial_state: A `QuantumCircuit` object to prepend to the circuit.
         """
-        # if evolution is None:
-        #     # pylint: disable=cyclic-import
-        #     from qiskit.opflow import PauliTrotterEvolution
-        #
-        #     evolution = PauliTrotterEvolution()
-
         super().__init__(
             initial_state=initial_state,
             parameter_prefix=parameter_prefix,
@@ -98,18 +90,6 @@ class EvolvedOperatorAnsatz(NLocal):
             return self.operators[0].num_qubits
 
         return self.operators.num_qubits
-
-    # @property
-    # def num_parameters(self) -> int:
-    #     if self._data is None:
-    #         self._build()
-    #     return super().decompose().num_parameters
-
-    # @property
-    # def parameters(self) -> ParameterView:
-    #     if self._data is None:
-    #         self._build()
-    #     return super().decompose().parameters
 
     @property
     def evolution(self):
@@ -230,26 +210,27 @@ class EvolvedOperatorGate(Gate):
         Raises:
             AttributeError: if the operator list is empty
         """
+        from qiskit.opflow import PauliOp
+
         if evolution is None:
             # pylint: disable=cyclic-import
             from qiskit.opflow import PauliTrotterEvolution
 
             evolution = PauliTrotterEvolution()
 
-        self.operators = operators
+        self.operators = operators if isinstance(operators, list) else [operators]
         self._op = {}
         self.reps = reps
         self.evolution = evolution
         self.insert_barriers = insert_barriers
         self.initial_state = initial_state
 
-        if len(operators) == 0:
+        if len(self.operators) == 0:
             raise AttributeError("At least one operator is needed.")
-        from qiskit.opflow import PauliOp
 
         # determine how many parameters the circuit will contain
         num_parameters = 0
-        for op in operators:
+        for op in self.operators:
             if isinstance(op, QuantumCircuit):
                 num_parameters += op.num_parameters
             else:
@@ -262,7 +243,7 @@ class EvolvedOperatorGate(Gate):
 
         super().__init__(
             "EvolvedOps",
-            operators[0].num_qubits,
+            self.operators[0].num_qubits,
             params=list(ParameterVector("t", reps * num_parameters)),
             label=label,
         )

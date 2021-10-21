@@ -25,6 +25,7 @@ from qiskit.circuit import Gate, ControlledGate
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate
 from qiskit import BasicAer
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
+from qiskit.opflow import I, Z
 
 
 class TestStandard1Q(QiskitTestCase):
@@ -1368,6 +1369,8 @@ class TestStandardMethods(QiskitTestCase):
         """test gates implementing to_matrix generate matrix which matches definition."""
         from qiskit.circuit.library.generalized_gates.pauli import PauliGate
         from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
+        from qiskit.circuit.library.evolved_operator_ansatz import EvolvedOperatorGate
+        from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAGate
 
         params = [0.1 * (i + 1) for i in range(10)]
         gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
@@ -1384,6 +1387,10 @@ class TestStandardMethods(QiskitTestCase):
                     gate = gate_class("IXYZ")
                 elif gate_class == BooleanExpression:
                     gate = gate_class("x")
+                elif gate_class == EvolvedOperatorGate:
+                    gate = gate_class(Z ^ Z ^ Z)
+                elif gate_class == QAOAGate:
+                    gate = gate_class(I ^ Z ^ Z)
                 else:
                     gate = gate_class(*params[0:free_params])
             except (CircuitError, QiskitError, AttributeError):
@@ -1413,6 +1420,8 @@ class TestStandardMethods(QiskitTestCase):
         from qiskit.circuit.library.standard_gates.ms import MSGate
         from qiskit.circuit.library.generalized_gates.pauli import PauliGate
         from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
+        from qiskit.circuit.library.evolved_operator_ansatz import EvolvedOperatorGate
+        from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAGate
 
         params = [0.1 * i for i in range(1, 11)]
         gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
@@ -1434,6 +1443,10 @@ class TestStandardMethods(QiskitTestCase):
                     gate = gate_class("IXYZ")
                 elif gate_class == BooleanExpression:
                     gate = gate_class("x")
+                elif gate_class == EvolvedOperatorGate:
+                    gate = gate_class(Z ^ Z ^ Z)
+                elif gate_class == QAOAGate:
+                    gate = gate_class(I ^ Z ^ Z)
                 else:
                     gate = gate_class(*params[0:free_params])
             except (CircuitError, QiskitError, AttributeError):
