@@ -18,7 +18,6 @@ import logging
 from typing import Optional, List, Tuple, Iterable, Callable, Union
 import numpy as np
 
-from qiskit.exceptions import QiskitError
 from qiskit.result import Counts, marginal_counts, QuasiDistribution
 from .base_readout_mitigator import BaseReadoutMitigator
 
@@ -37,6 +36,8 @@ class TensoredReadoutMitigator(BaseReadoutMitigator):
             amats: Optional, list of single-qubit readout error assignment matrices.
             backend: Optional, backend name.
         """
+        if amats in None:
+            self._from_backend(backend)
         self._num_qubits = len(amats)
         self._assignment_mats = amats
         self._mitigation_mats = np.zeros([self._num_qubits, 2, 2], dtype=float)
@@ -121,6 +122,37 @@ class TensoredReadoutMitigator(BaseReadoutMitigator):
         coeffs = np.einsum(*einsum_args).ravel()
 
         return self._expval_with_stddev(coeffs, probs_vec, shots)
+
+    def quasi_probabilities(
+            self,
+            data: Counts,
+            qubits: Optional[List[int]] = None,
+            clbits: Optional[List[int]] = None,
+            shots: Optional[bool] = False,
+    ) -> (QuasiDistribution, QuasiDistribution):
+        """Compute mitigated quasi probabilities value.
+
+        Args:
+            data: counts object
+            qubits: qubits the count bitstrings correspond to.
+            clbits: Optional, marginalize counts to just these bits.
+            shots: the number of shots.
+
+        Returns:
+            QuasiDistibution: A dictionary containing pairs of [output, mean] where "output"
+                is the key in the dictionaries,
+                which is the length-N bitstring of a measured standard basis state,
+                and "mean" is the mean of non-zero quasi-probability estimates.
+            QuasiDistibution: A dictionary containing pairs of [output, standard deviation]
+                where "output" is the key in the dictionaries,
+                which is the length-N bitstring of a measured standard basis state,
+                and "standard deviation" is the standard deviation of the non-zero
+                quasi-probability estimates.
+
+        Raises:
+            QiskitError: if qubit and clbit kwargs are not valid.
+        """
+        pass
 
     def mitigation_matrix(self, qubits: List[int] = None) -> np.ndarray:
         r"""Return the measurement mitigation matrix for the specified qubits.
