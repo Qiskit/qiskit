@@ -19,7 +19,7 @@ from os.path import dirname, join, abspath, exists
 from typing import Sequence
 
 from qiskit.circuit.tools import pi_check
-from qiskit.circuit import Gate, Barrier, Measure, QuantumRegister, Instruction
+from qiskit.circuit import Gate, Barrier, Measure, QuantumRegister, Instruction, Reset
 from qiskit.circuit.library.standard_gates import (
     UGate,
     PhaseGate,
@@ -90,6 +90,7 @@ from .ast import (
     IO,
     PhysicalQubitIdentifier,
     AliasStatement,
+    QuantumReset,
 )
 from .printer import BasicPrinter
 
@@ -236,7 +237,7 @@ class GlobalNamespace:
 class Qasm3Builder:
     """QASM3 builder constructs an AST from a QuantumCircuit."""
 
-    builtins = (Barrier, Measure)
+    builtins = (Barrier, Measure, Reset)
 
     def __init__(self, quantumcircuit, includeslist, basis_gates, disable_constants):
         self.circuit_ctx = [quantumcircuit]
@@ -465,10 +466,10 @@ class Qasm3Builder:
             if isinstance(instruction[0], Gate):
                 if instruction[0].condition:
                     eqcondition = self.build_eqcondition(instruction[0].condition)
-                    instruciton_without_condition = instruction[0].copy()
-                    instruciton_without_condition.condition = None
+                    instruction_without_condition = instruction[0].copy()
+                    instruction_without_condition.condition = None
                     programTrue = self.build_programblock(
-                        [(instruciton_without_condition, instruction[1], instruction[2])]
+                        [(instruction_without_condition, instruction[1], instruction[2])]
                     )
                     ret.append(BranchingStatement(eqcondition, programTrue))
                 else:
@@ -482,6 +483,9 @@ class Qasm3Builder:
                 )
                 indexIdentifierList = self.build_indexidentifier(instruction[2][0])
                 ret.append(QuantumMeasurementAssignment(indexIdentifierList, quantumMeasurement))
+            elif isinstance(instruction[0], Reset):
+                for identifier in instruction[1]:
+                    ret.append(QuantumReset(self.build_indexidentifier(identifier)))
             else:
                 ret.append(self.build_subroutinecall(instruction))
         return ret

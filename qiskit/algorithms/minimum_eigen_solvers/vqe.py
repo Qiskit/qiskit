@@ -414,7 +414,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         aux_operators: ListOrDict[OperatorBase],
         expectation: ExpectationBase,
         threshold: float = 1e-12,
-    ) -> ListOrDict[complex]:
+    ) -> ListOrDict[Tuple[complex, complex]]:
         # Create new CircuitSampler to avoid breaking existing one's caches.
         sampler = CircuitSampler(self.quantum_instance)
 
@@ -425,10 +425,23 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         aux_op_meas = expectation.convert(StateFn(list_op, is_measurement=True))
         aux_op_expect = aux_op_meas.compose(CircuitStateFn(self.ansatz.bind_parameters(parameters)))
-        values = np.real(sampler.convert(aux_op_expect).eval())
+        aux_op_expect_sampled = sampler.convert(aux_op_expect)
+
+        # compute means
+        values = np.real(aux_op_expect_sampled.eval())
+
+        # compute standard deviations
+        variances = np.real(expectation.compute_variance(aux_op_expect_sampled))
+        if not isinstance(variances, np.ndarray) and variances == 0.0:
+            # when `variances` is a single value equal to 0., our expectation value is exact and we
+            # manually ensure the variances to be a list of the correct length
+            variances = np.zeros(len(aux_operators), dtype=float)
+        std_devs = np.sqrt(variances / self.quantum_instance.run_config.shots)
 
         # Discard values below threshold
-        aux_op_results = values * (np.abs(values) > threshold)
+        aux_op_means = values * (np.abs(values) > threshold)
+        # zip means and standard deviations into tuples
+        aux_op_results = zip(aux_op_means, std_devs)
 
         # Return None eigenvalues for None operators if aux_operators is a list.
         # None operators are already dropped in compute_minimum_eigenvalue if aux_operators is a dict.

@@ -182,13 +182,33 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
     def test_measurement_error_mitigation_qaoa(self):
         """measurement error mitigation test with QAOA"""
         algorithm_globals.random_seed = 167
+        backend = Aer.get_backend("aer_simulator")
+        w = rx.adjacency_matrix(
+            rx.undirected_gnp_random_graph(5, 0.5, seed=algorithm_globals.random_seed)
+        )
+        qubit_op, _ = self._get_operator(w)
+        initial_point = np.asarray([0.0, 0.0])
 
+        # Compute first without noise
+        quantum_instance = QuantumInstance(
+            backend=backend,
+            seed_simulator=algorithm_globals.random_seed,
+            seed_transpiler=algorithm_globals.random_seed,
+        )
+        qaoa = QAOA(
+            optimizer=COBYLA(maxiter=3),
+            quantum_instance=quantum_instance,
+            initial_point=initial_point,
+        )
+        result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+        ref_eigenvalue = result.eigenvalue.real
+
+        # compute with noise
         # build noise model
         noise_model = noise.NoiseModel()
         read_err = noise.errors.readout_error.ReadoutError([[0.9, 0.1], [0.25, 0.75]])
         noise_model.add_all_qubit_readout_error(read_err)
 
-        backend = Aer.get_backend("aer_simulator")
         quantum_instance = QuantumInstance(
             backend=backend,
             seed_simulator=algorithm_globals.random_seed,
@@ -196,17 +216,14 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
             noise_model=noise_model,
             measurement_error_mitigation_cls=CompleteMeasFitter,
         )
-        w = rx.adjacency_matrix(
-            rx.undirected_gnp_random_graph(5, 0.5, seed=algorithm_globals.random_seed)
-        )
-        qubit_op, _ = self._get_operator(w)
+
         qaoa = QAOA(
-            optimizer=COBYLA(maxiter=1),
+            optimizer=COBYLA(maxiter=3),
             quantum_instance=quantum_instance,
-            initial_point=np.asarray([0.0, 0.0]),
+            initial_point=initial_point,
         )
         result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
-        self.assertAlmostEqual(result.eigenvalue.real, 3.49, delta=0.05)
+        self.assertAlmostEqual(result.eigenvalue.real, ref_eigenvalue, delta=0.05)
 
     @unittest.skipUnless(HAS_AER, "qiskit-aer is required for this test")
     @unittest.skipUnless(HAS_IGNIS, "qiskit-ignis is required to run this test")
@@ -312,6 +329,43 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         self.assertGreater(quantum_instance.time_taken, 0.0)
         quantum_instance.reset_execution_results()
         self.assertAlmostEqual(result.eigenvalue.real, -1.86, delta=0.05)
+
+    @unittest.skipUnless(HAS_AER, "qiskit-aer is required for this test")
+    @unittest.skipUnless(HAS_IGNIS, "qiskit-ignis is required to run this test")
+    def test_callibration_results(self):
+        """check that results counts are the same with/without error mitigation"""
+        algorithm_globals.random_seed = 1679
+        np.random.seed(algorithm_globals.random_seed)
+        qc = QuantumCircuit(1)
+        qc.x(0)
+
+        qc_meas = qc.copy()
+        qc_meas.measure_all()
+        backend = Aer.get_backend("aer_simulator")
+
+        counts_array = [None, None]
+        for idx, is_use_mitigation in enumerate([True, False]):
+            if is_use_mitigation:
+                quantum_instance = QuantumInstance(
+                    backend,
+                    seed_simulator=algorithm_globals.random_seed,
+                    seed_transpiler=algorithm_globals.random_seed,
+                    shots=1024,
+                    measurement_error_mitigation_cls=CompleteMeasFitter_IG,
+                )
+                with self.assertWarnsRegex(DeprecationWarning, r".*ignis.*"):
+                    counts_array[idx] = quantum_instance.execute(qc_meas).get_counts()
+            else:
+                quantum_instance = QuantumInstance(
+                    backend,
+                    seed_simulator=algorithm_globals.random_seed,
+                    seed_transpiler=algorithm_globals.random_seed,
+                    shots=1024,
+                )
+                counts_array[idx] = quantum_instance.execute(qc_meas).get_counts()
+        self.assertEqual(
+            counts_array[0], counts_array[1], msg="Counts different with/without fitter."
+        )
 
 
 if __name__ == "__main__":
