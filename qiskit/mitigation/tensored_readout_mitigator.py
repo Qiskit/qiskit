@@ -37,7 +37,7 @@ class TensoredReadoutMitigator(BaseReadoutMitigator):
             backend: Optional, backend name.
         """
         if amats in None:
-            self._from_backend(backend)
+            amats = self._from_backend(backend)
         self._num_qubits = len(amats)
         self._assignment_mats = amats
         self._mitigation_mats = np.zeros([self._num_qubits, 2, 2], dtype=float)
@@ -222,4 +222,16 @@ class TensoredReadoutMitigator(BaseReadoutMitigator):
 
     def _from_backend(self, backend: str):
         """Calculates amats from backend properties readout_error"""
-        pass
+        num_qubits = len(backend.properties().qubits)
+        amats = np.zeros([num_qubits, 2, 2], dtype=float)
+
+        for qubit_idx, qubit_prop in enumerate(backend.properties().qubits):
+            for prop in qubit_prop:
+                if prop.name == "prob_meas0_prep1":
+                    (amats[qubit_idx])[0, 0] = 1 - prop.value
+                    (amats[qubit_idx])[0, 1] = prop.value
+                if prop.name == "prob_meas1_prep0":
+                    (amats[qubit_idx])[1, 0] = prop.value
+                    (amats[qubit_idx])[1, 1] = 1 - prop.value
+
+        return amats
