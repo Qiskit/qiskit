@@ -20,7 +20,7 @@ from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.opflow import I, X, Y, Z
 
 # CHANGEBACK TODO
-from ...circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
+from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
 
 
 class AdaptQAOA(QAOA):
