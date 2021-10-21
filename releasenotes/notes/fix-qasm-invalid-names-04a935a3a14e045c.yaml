@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fix bug where the :meth:`~qiskit.circuit.QuantumCircuit.qasm` method could
+    return OpenQASM 2 instructions with invalid identifiers. Same bug was fixed
+    for the :attr:`~qiskit.extensions.unitary.UnitaryGate._qasm_name` attribute 
+    of :obj:`~qiskit.extensions.unitary.UnitaryGate`.
