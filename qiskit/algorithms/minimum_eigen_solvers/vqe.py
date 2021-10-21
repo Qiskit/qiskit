@@ -572,11 +572,10 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             parameter_sets = np.reshape(parameters, (-1, num_parameters))
             # Create dict associating each parameter with the lists of parameterization values for it
             param_bindings = dict(zip(self._ansatz_params, parameter_sets.transpose().tolist()))
-
             start_time = time()
             sampled_expect_op = self._circuit_sampler.convert(expect_op, params=param_bindings)
             means = np.real(sampled_expect_op.eval())
-
+            
             if self._callback is not None:
                 variance = np.real(expectation.compute_variance(sampled_expect_op))
                 estimator_error = np.sqrt(variance / self.quantum_instance.run_config.shots)

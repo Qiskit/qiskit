@@ -4,7 +4,8 @@ from typing import Callable, Dict, Iterable, List, Optional, Union
 
 import numpy as np
 from qiskit import QuantumCircuit
-from qiskit.algorithms import QAOA
+#from qiskit.algorithms import QAOA
+from .qaoa import QAOA
 from qiskit.algorithms.optimizers import Optimizer
 from qiskit.opflow import ExpectationBase, OperatorBase
 from qiskit.opflow.expectations.expectation_factory import ExpectationFactory
