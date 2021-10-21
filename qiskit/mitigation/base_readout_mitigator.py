@@ -86,9 +86,6 @@ class BaseReadoutMitigator(ABC):
             calculated from the current counts.
         """
 
-    """Helper functions for complete and tensored mitigation.
-    Should be moved to utils file"""
-
     @staticmethod
     def _z_diagonal(dim, dtype=float):
         r"""Return the diagonal for the operator :math:`Z^\otimes n`"""
