@@ -104,7 +104,7 @@ ClbitSpecifier = Union[
 BitType = TypeVar("BitType", Qubit, Clbit)
 
 # Regex pattern to match valid OpenQASM identifiers
-ValidQasmIdentifier = re.compile("[a-z][a-zA-Z_0-9]*")
+VALID_QASM2_IDENTIFIER = re.compile("[a-z][a-zA-Z_0-9]*")
 
 
 class QuantumCircuit:
@@ -1610,7 +1610,7 @@ class QuantumCircuit:
                 )
             else:
                 # Check instructions names or label are valid
-                if not ValidQasmIdentifier.fullmatch(instruction.name):
+                if not VALID_QASM2_IDENTIFIER.fullmatch(instruction.name):
                     instruction = instruction.copy(name=_qasm_escape_gate_name(instruction.name))
 
                 # decompose gate using definitions if they are not defined in OpenQASM2
@@ -4094,7 +4094,7 @@ def _add_sub_instruction_to_existing_composite_circuits(
     """
     for sub_instruction, _, _ in instruction.definition:
         # Check instructions names are valid
-        if not ValidQasmIdentifier.fullmatch(sub_instruction.name):
+        if not VALID_QASM2_IDENTIFIER.fullmatch(sub_instruction.name):
             sub_instruction = sub_instruction.copy(
                 name=_qasm_escape_gate_name(sub_instruction.name)
             )
@@ -4135,7 +4135,7 @@ def _get_composite_circuit_qasm_from_instruction(instruction: Instruction) -> st
         bit: idx for bits in (definition.qubits, definition.clbits) for idx, bit in enumerate(bits)
     }
     for sub_instruction, qargs, _ in definition:
-        if not ValidQasmIdentifier.fullmatch(sub_instruction.name):
+        if not VALID_QASM2_IDENTIFIER.fullmatch(sub_instruction.name):
             sub_instruction = sub_instruction.copy(
                 name=_qasm_escape_gate_name(sub_instruction.name)
             )
