@@ -264,6 +264,7 @@ class AdaptQAOA(QAOA):
             # perform optimisation of circuit:
             self.compute_minimum_eigenvalue(operator)
             
+            
 
     @property
     def initial_state(self) -> Optional[QuantumCircuit]:
