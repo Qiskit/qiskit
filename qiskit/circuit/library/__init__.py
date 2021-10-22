@@ -100,15 +100,6 @@ Generalized Gates
    RVGate
    PauliGate
 
-Evolution Gates
-===============
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   EvolutionGate
-   PauliEvolutionGate
-
 Boolean Logic Circuits
 ======================
 
@@ -221,6 +212,8 @@ Particular Quantum Circuits
    GroverOperator
    PhaseOracle
    EvolvedOperatorAnsatz
+   EvolutionGate
+
 
 Probability distributions
 =========================
