@@ -62,7 +62,7 @@ class PauliExpectation(ExpectationBase):
             The converted operator.
         """
         if isinstance(operator, ListOp):
-            return operator.traverse(self.convert).reduce()
+            return operator.traverse(self.convert)  # .reduce()
 
         if isinstance(operator, OperatorStateFn) and operator.is_measurement:
             # Change to Pauli representation if necessary
