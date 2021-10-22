@@ -19,6 +19,7 @@ import itertools
 import functools
 import multiprocessing as mp
 import string
+import re
 from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
     Union,
@@ -101,6 +102,9 @@ ClbitSpecifier = Union[
 # Generic type which is either :obj:`~Qubit` or :obj:`~Clbit`, used to specify types of functions
 # which operate on either type of bit, but not both at the same time.
 BitType = TypeVar("BitType", Qubit, Clbit)
+
+# Regex pattern to match valid OpenQASM identifiers
+VALID_QASM2_IDENTIFIER = re.compile("[a-z][a-zA-Z_0-9]*")
 
 
 class QuantumCircuit:
@@ -826,8 +830,8 @@ class QuantumCircuit:
             qubit_map = identity_qubit_map
         elif len(qubits) != len(other.qubits):
             raise CircuitError(
-                "Number of items in qubits parameter does not"
-                " match number of qubits in the circuit."
+                f"Number of items in qubits parameter ({len(qubits)}) does not"
+                f" match number of qubits in the circuit ({len(other.qubits)})."
             )
         else:
             qubit_map = {
@@ -838,8 +842,8 @@ class QuantumCircuit:
             clbit_map = identity_clbit_map
         elif len(clbits) != len(other.clbits):
             raise CircuitError(
-                "Number of items in clbits parameter does not"
-                " match number of clbits in the circuit."
+                f"Number of items in clbits parameter ({len(clbits)}) does not"
+                f" match number of clbits in the circuit ({len(other.clbits)})."
             )
         else:
             clbit_map = {
@@ -1377,14 +1381,14 @@ class QuantumCircuit:
         """Raise exception if a qarg is not in this circuit or bad format."""
         if not all(isinstance(i, Qubit) for i in qargs):
             raise CircuitError("qarg is not a Qubit")
-        if not set(qargs).issubset(self._qubit_indices):
+        if not set(qargs) <= self._qubit_indices.keys():
             raise CircuitError("qargs not in this circuit")
 
     def _check_cargs(self, cargs: Sequence[Clbit]) -> None:
         """Raise exception if clbit is not in this circuit or bad format."""
         if not all(isinstance(i, Clbit) for i in cargs):
             raise CircuitError("carg is not a Clbit")
-        if not set(cargs).issubset(self._clbit_indices):
+        if not set(cargs) <= self._clbit_indices.keys():
             raise CircuitError("cargs not in this circuit")
 
     def to_instruction(
@@ -1605,6 +1609,10 @@ class QuantumCircuit:
                     bit_labels[clbit],
                 )
             else:
+                # Check instructions names or label are valid
+                if not VALID_QASM2_IDENTIFIER.fullmatch(instruction.name):
+                    instruction = instruction.copy(name=_qasm_escape_gate_name(instruction.name))
+
                 # decompose gate using definitions if they are not defined in OpenQASM2
                 if (
                     instruction.name not in existing_gate_names
@@ -1978,12 +1986,8 @@ class QuantumCircuit:
                 num_touched = 0
                 # Controls necessarily join all the cbits in the
                 # register that they use.
-                if instr.condition and not unitary_only:
-                    if isinstance(instr.condition[0], Clbit):
-                        condition_bits = [instr.condition[0]]
-                    else:
-                        condition_bits = instr.condition[0]
-                    for bit in condition_bits:
+                if not unitary_only:
+                    for bit in instr.condition_bits:
                         idx = bit_indices[bit]
                         for k in range(num_sub_graphs):
                             if idx in sub_graphs[k]:
@@ -2405,8 +2409,11 @@ class QuantumCircuit:
                     "Mismatching number of values and parameters. For partial binding "
                     "please pass a dictionary of {parameter: value} pairs."
                 )
+            # use a copy of the parameters, to ensure we don't change the contents of
+            # self.parameters while iterating over them
+            fixed_parameters_copy = self.parameters.copy()
             for i, value in enumerate(parameters):
-                bound_circuit._assign_parameter(self.parameters[i], value)
+                bound_circuit._assign_parameter(fixed_parameters_copy[i], value)
         return None if inplace else bound_circuit
 
     def bind_parameters(
@@ -4082,6 +4089,11 @@ def _add_sub_instruction_to_existing_composite_circuits(
     instruction to existing_composite_circuit list.
     """
     for sub_instruction, _, _ in instruction.definition:
+        # Check instructions names are valid
+        if not VALID_QASM2_IDENTIFIER.fullmatch(sub_instruction.name):
+            sub_instruction = sub_instruction.copy(
+                name=_qasm_escape_gate_name(sub_instruction.name)
+            )
         if (
             sub_instruction.name not in existing_gate_names
             and sub_instruction not in existing_composite_circuits
@@ -4090,6 +4102,17 @@ def _add_sub_instruction_to_existing_composite_circuits(
             _add_sub_instruction_to_existing_composite_circuits(
                 sub_instruction, existing_gate_names, existing_composite_circuits
             )
+
+
+def _qasm_escape_gate_name(name: str) -> str:
+    """Returns a valid OpenQASM gate identifier"""
+    # Replace all non-ASCII-word characters with the underscore.
+    escaped_name = re.sub(r"\W", "_", name, flags=re.ASCII)
+    if not escaped_name or escaped_name[0] not in string.ascii_lowercase:
+        # Add an arbitrary, guaranteed-to-be-valid prefix.
+        escaped_name = "gate_" + escaped_name
+
+    return escaped_name
 
 
 def _get_composite_circuit_qasm_from_instruction(instruction: Instruction) -> str:
@@ -4108,6 +4131,11 @@ def _get_composite_circuit_qasm_from_instruction(instruction: Instruction) -> st
         bit: idx for bits in (definition.qubits, definition.clbits) for idx, bit in enumerate(bits)
     }
     for sub_instruction, qargs, _ in definition:
+        if not VALID_QASM2_IDENTIFIER.fullmatch(sub_instruction.name):
+            sub_instruction = sub_instruction.copy(
+                name=_qasm_escape_gate_name(sub_instruction.name)
+            )
+
         gate_qargs = ",".join(
             ["q%i" % index for index in [definition_bit_labels[qubit] for qubit in qargs]]
         )

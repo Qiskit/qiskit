@@ -15,6 +15,7 @@
 from .optimize_1q_gates import Optimize1qGates
 from .optimize_1q_decomposition import Optimize1qGatesDecomposition
 from .collect_2q_blocks import Collect2qBlocks
+from .collect_multiqubit_blocks import CollectMultiQBlocks
 from .consolidate_blocks import ConsolidateBlocks
 from .commutation_analysis import CommutationAnalysis
 from .commutative_cancellation import CommutativeCancellation
