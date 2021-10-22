@@ -247,8 +247,12 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
     @include_custom.setter
     def include_custom(self, include_custom: bool):
-        """Sets include_custom"""
-        self._include_custom = include_custom
+        """Sets include_custom. If set to another value than the one that was previsously set,
+        the expectation attribute is reset to None.
+        """
+        if include_custom != self._include_custom:
+            self._include_custom = include_custom
+            self.expectation = None
 
     @property
     def callback(self) -> Optional[Callable[[int, np.ndarray, float, float], None]]:
