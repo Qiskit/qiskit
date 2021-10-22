@@ -635,3 +635,28 @@ class TestCircuitQasm3(QiskitTestCase):
             Exporter(includes=[], basis_gates=["cx", "z", "U"]).dumps(transpiled),
             expected_qasm,
         )
+
+    def test_reset_statement(self):
+        """Test that a reset statement gets output into valid QASM 3.  This includes tests of reset
+        operations on single qubits and in nested scopes."""
+        inner = QuantumCircuit(1, name="inner_gate")
+        inner.reset(0)
+        qreg = QuantumRegister(2, "qr")
+        qc = QuantumCircuit(qreg)
+        qc.reset(0)
+        qc.append(inner, [1], [])
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3;",
+                "def inner_gate(qubit q_0) {",
+                "  reset q_0;",
+                "}",
+                "qubit[2] _q;",
+                "let qr = _q[0] || _q[1];",
+                "reset qr[0];",
+                "inner_gate qr[1];",
+                "",
+            ]
+        )
+        self.assertEqual(Exporter(includes=[]).dumps(qc), expected_qasm)
