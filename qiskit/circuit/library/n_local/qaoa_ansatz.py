@@ -13,6 +13,19 @@
 """A generalized QAOA quantum circuit with a support of custom initial states and mixers."""
 
 # pylint: disable=cyclic-import
+
+import itertools
+from qiskit.circuit.parametervector import ParameterVector
+import numpy as np
+from typing import Optional, Set, List, Tuple
+from qiskit.opflow.primitive_ops.pauli_op import PauliOp
+from qiskit.circuit.library.evolved_operator_ansatz import EvolvedOperatorAnsatz
+from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit import QuantumRegister
+from qiskit.circuit.exceptions import CircuitError
+from qiskit.exceptions import QiskitError
+
 from typing import Optional, List, Tuple
 import numpy as np
 
@@ -20,6 +33,7 @@ from qiskit.circuit.library.evolved_operator_ansatz import EvolvedOperatorAnsatz
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
+
 
 
 class QAOAAnsatz(EvolvedOperatorAnsatz):
@@ -49,10 +63,10 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
             initial_state (QuantumCircuit, optional): An optional initial state to use.
                 If `None` is passed then a set of Hadamard gates is applied as an initial state
                 to all qubits.
-            mixer_operator (OperatorBase or QuantumCircuit, optional): An optional custom mixer
-                to use instead of the global X-rotations, denoted as :math:`U(B, \beta)`
-                in the original paper. Can be an operator or an optionally parameterized quantum
-                circuit.
+            mixer_operator (OperatorBase or QuantumCircuit, List[QuantumCircuit], optional): An optional
+                custom mixer or list of mixer to be used instead of the global X-rotations, denoted
+                as :math:`U(B, \beta)` in the original paper. Can be an operator or an optionally
+                parameterized quantum circuit.
             name (str): A name of the circuit, default 'qaoa'
         """
         super().__init__(reps=reps, name=name)
@@ -91,17 +105,111 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
                     )
                 )
 
-        if self.mixer_operator is not None and self.mixer_operator.num_qubits != self.num_qubits:
-            valid = False
-            if raise_on_failure:
-                raise ValueError(
-                    "The number of qubits of the mixer {} does not match "
-                    "the number of qubits of the cost operator {}".format(
-                        self.mixer_operator.num_qubits, self.num_qubits
-                    )
+
+        if self.mixer_operator is not None:
+            if isinstance(self.mixer_operator, list):
+                mixer_qubit_check = np.argwhere(
+                    [_.num_qubits != self.num_qubits for _ in self.mixer_operator] is True
+
                 )
+                if len(mixer_qubit_check) > 0:
+                    valid = False
+                    if raise_on_failure:
+                        raise AttributeError(
+                            "The number of qubits of the mixer operator(s) {} at "
+                            "argument(s) {} does not match the number of qubits of "
+                            "the cost operator {}".format(
+                                [_.num_qubits for _ in self.mixer_operator[mixer_qubit_check]],
+                                mixer_qubit_check[0],
+                                self.num_qubits,
+                            )
+                        )
+            else:
+                if self.mixer_operator.num_qubits != self.num_qubits:
+                    valid = False
+                    if raise_on_failure:
+                        raise AttributeError(
+                            "The number of qubits of the mixer {} does not match "
+                            "the number of qubits of the cost operator {}".format(
+                                self.mixer_operator.num_qubits, self.num_qubits
+                            )
+                        )
 
         return valid
+
+    def _build(self):
+        if self._data is not None:
+            return
+        self._check_configuration()
+        self._data = []
+
+        def build_ansatz_circuit(operators_):  # builds the ansatz from the list of mixer operators
+            circuits = []
+            is_evolved_operator = []
+            coeff = Parameter("c")
+            for op in operators_:
+                if isinstance(op, QuantumCircuit):
+                    circuits.append(op)
+                    is_evolved_operator.append(False)  # has no time coeff
+                else:
+                    # check if the operator is just the identity, if yes, skip it
+                    if isinstance(op, PauliOp):
+                        # possibly need a replacement for the numpy import here
+                        # TODO
+                        sig_qubits = np.logical_or(op.primitive.x, op.primitive.z)
+                        if sum(sig_qubits) == 0:
+                            continue
+                    evolved_op = self.evolution.convert(
+                        (coeff * op).exp_i()
+                    ).reduce()  # ------------ check this, might need negative?
+                    circuits.append(evolved_op.to_circuit())
+                    is_evolved_operator.append(True)  # has time coeff
+            if not circuits:
+                # ADD WARNING HERE TODO
+                print("At least one mixer needs to be defined")
+                return None
+            num_qubits = circuits[0].num_qubits
+            try:
+                qr = QuantumRegister(num_qubits, "q")
+                self.add_register(qr)
+            except CircuitError:
+                # the register already exists, probably because of a previous composition
+                pass
+            times = ParameterVector("t", sum(is_evolved_operator))
+            times_it = iter(times)
+
+            evolution_ = QuantumCircuit(
+                *self.qregs, name=self.name
+            )  # ------- need to figure out how initial_point is passed/ updated with reps
+            evolution_.compose(self.initial_state, inplace=True)
+            first = True
+            for is_evolved, circuit in zip(is_evolved_operator, circuits):
+                if first:
+                    first = False
+                else:
+                    if self._insert_barriers:
+                        evolution_.barrier()
+                if is_evolved:
+                    # not sure what this line does
+                    bound = circuit.assign_parameters({coeff: next(times_it)})
+                else:
+                    bound = circuit
+                evolution_.compose(bound, inplace=True)
+            # then append opt params to self.gamma_values and self.beta_values
+            return evolution_
+
+        varied_operators = list(
+            itertools.chain.from_iterable(
+                [[self.operators[0], mixer] for mixer in self.operators[-1]]
+            )
+        )
+        evolution = build_ansatz_circuit(varied_operators)
+        try:
+            instr = evolution.to_gate()
+        except QiskitError:
+            instr = evolution.to_instruction()
+
+        self.append(instr, self.qubits)
 
     @property
     def parameter_bounds(self) -> Optional[List[Tuple[Optional[float], Optional[float]]]]:
