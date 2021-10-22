@@ -558,7 +558,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
         vqe = VQE(
             ansatz=wavefunction,
             expectation=PauliExpectation(),
-            optimizer=SPSA(maxiter=300, last_avg=5),
+            optimizer=SPSA(maxiter=0),
             quantum_instance=self.qasm_simulator,
         )
 
@@ -567,28 +567,30 @@ class TestVQE(QiskitAlgorithmsTestCase):
         aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
         aux_ops = [aux_op1, aux_op2]
         result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
-        self.assertAlmostEqual(result.eigenvalue.real, -1.8691994, places=6)
         self.assertEqual(len(result.aux_operator_eigenvalues), 2)
         # expectation values
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2.0, places=6)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0.0, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0.5784419552370315, places=6)
         # standard deviations
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1], 0.0)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][1], 0.0, places=6)
+        self.assertAlmostEqual(
+            result.aux_operator_eigenvalues[1][1], 0.015183867579396111, places=6
+        )
 
         # Go again with additional None and zero operators
         aux_ops = [*aux_ops, None, 0]
         result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
-        self.assertAlmostEqual(result.eigenvalue.real, -1.8665154, places=6)
         self.assertEqual(len(result.aux_operator_eigenvalues), 4)
         # expectation values
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2.0, places=6)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0.0, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0.06330351891113034, places=6)
         self.assertEqual(result.aux_operator_eigenvalues[2][0], 0.0)
         self.assertEqual(result.aux_operator_eigenvalues[3][0], 0.0)
-        # standard deviations
+        # # standard deviations
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1], 0.0)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][1], 0.0, places=6)
+        self.assertAlmostEqual(
+            result.aux_operator_eigenvalues[1][1], 0.021878868850814984, places=6
+        )
         self.assertAlmostEqual(result.aux_operator_eigenvalues[2][1], 0.0)
         self.assertAlmostEqual(result.aux_operator_eigenvalues[3][1], 0.0)
 
@@ -599,7 +601,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
         vqe = VQE(
             ansatz=wavefunction,
             expectation=AerPauliExpectation(),
-            optimizer=SPSA(maxiter=300, last_avg=5),
+            optimizer=SPSA(maxiter=0),
             quantum_instance=QuantumInstance(
                 backend=Aer.get_backend("qasm_simulator"),
                 shots=1,
@@ -613,11 +615,10 @@ class TestVQE(QiskitAlgorithmsTestCase):
         aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
         aux_ops = [aux_op1, aux_op2]
         result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
-        self.assertAlmostEqual(result.eigenvalue.real, -1.8572735, places=6)
         self.assertEqual(len(result.aux_operator_eigenvalues), 2)
         # expectation values
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2.0, places=6)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 4e-06, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0.6698863565455391, places=6)
         # standard deviations
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1], 0.0)
         self.assertAlmostEqual(result.aux_operator_eigenvalues[1][1], 0.0, places=6)
@@ -625,11 +626,10 @@ class TestVQE(QiskitAlgorithmsTestCase):
         # Go again with additional None and zero operators
         aux_ops = [*aux_ops, None, 0]
         result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
-        self.assertAlmostEqual(result.eigenvalue.real, -1.8572607, places=6)
         self.assertEqual(len(result.aux_operator_eigenvalues), 4)
         # expectation values
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2.0, places=6)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 9.5e-06, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 1.0617151913779963, places=6)
         self.assertEqual(result.aux_operator_eigenvalues[2][0], 0.0)
         self.assertEqual(result.aux_operator_eigenvalues[3][0], 0.0)
         # standard deviations
