@@ -592,6 +592,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
         self.assertAlmostEqual(result.aux_operator_eigenvalues[2][1], 0.0)
         self.assertAlmostEqual(result.aux_operator_eigenvalues[3][1], 0.0)
 
+    @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
     def test_aux_operator_std_dev_aer_pauli(self):
         """Test non-zero standard deviations of aux operators with AerPauliExpectation."""
         wavefunction = self.ry_wavefunction
