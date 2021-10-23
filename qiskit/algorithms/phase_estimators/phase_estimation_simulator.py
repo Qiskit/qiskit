@@ -15,7 +15,9 @@ class PhaseEstimationSimulator:
     the readout register. The bitstrings are mapped to a discrete set of
     phases. In the ideal case, the output depends on the input via the spectrum
     of the unitary (the phases) and the moduli of the coefficients of the
-    expansion of the input vector in the corresponding eigenvectors.
+    expansion of the input vector in the corresponding eigenvectors. In
+    particular, phase information in the expansion coefficients does not enter
+    into the bitstring probabilities.
 
     `PhaseEstimationSimulator` takes as input a list of eigenphases and a
     corresponding list of expansion coefficients, which are stored as object
@@ -32,6 +34,7 @@ class PhaseEstimationSimulator:
     This simulator is faster than constructing and simulating a circuit. It is
     far simpler, as well, and is based only on well-tested components of numpy
     and scipy.
+
     """
 
     def __init__(self, phases=None, coeffs=None):
