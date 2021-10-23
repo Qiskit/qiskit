@@ -51,10 +51,10 @@ class PhaseEstimationSimulator:
         """
         vals, vecs = scipy.linalg.eig(unitary)
         vecs = vecs.transpose() # put eigenvecs in columns
-        # Convert eigenvalue of unitary to a phase.
         coeffs = [numpy.vdot(input_vector, vec) for vec in vecs]
         norm_fac = numpy.sqrt(sum(x * x.conjugate() for x in coeffs))
         coeffs = [x / norm_fac for x in coeffs]
+        # Convert eigenvalue of unitary to a phase.
         phases = (numpy.angle(vals.astype(complex)) / (2 * numpy.pi)).real
         self.phases = phases
         self.coeffs = coeffs
