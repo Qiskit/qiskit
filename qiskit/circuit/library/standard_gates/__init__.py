@@ -45,6 +45,7 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
    RC3XGate
    RXGate
    RXXGate
+   RXYGate
    RYGate
    RYYGate
    RZGate
@@ -76,6 +77,7 @@ from .ms import MSGate
 from .r import RGate
 from .rx import RXGate, CRXGate
 from .rxx import RXXGate
+from .rxy import RXYGate
 from .ry import RYGate, CRYGate
 from .ryy import RYYGate
 from .rz import RZGate, CRZGate
