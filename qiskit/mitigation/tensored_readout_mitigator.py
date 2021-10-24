@@ -36,7 +36,7 @@ class TensoredReadoutMitigator(BaseReadoutMitigator):
             amats: Optional, list of single-qubit readout error assignment matrices.
             backend: Optional, backend name.
         """
-        if amats in None:
+        if amats is None:
             amats = self._from_backend(backend)
         self._num_qubits = len(amats)
         self._assignment_mats = amats
