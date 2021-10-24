@@ -558,7 +558,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
         vqe = VQE(
             ansatz=wavefunction,
             expectation=PauliExpectation(),
-            optimizer=SPSA(maxiter=0),
+            optimizer=COBYLA(maxiter=0),
             quantum_instance=self.qasm_simulator,
         )
 
@@ -583,13 +583,13 @@ class TestVQE(QiskitAlgorithmsTestCase):
         self.assertEqual(len(result.aux_operator_eigenvalues), 4)
         # expectation values
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2.0, places=6)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0.06330351891113034, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0.56640625, places=6)
         self.assertEqual(result.aux_operator_eigenvalues[2][0], 0.0)
         self.assertEqual(result.aux_operator_eigenvalues[3][0], 0.0)
         # # standard deviations
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1], 0.0)
         self.assertAlmostEqual(
-            result.aux_operator_eigenvalues[1][1], 0.021878868850814984, places=6
+            result.aux_operator_eigenvalues[1][1], 0.01548658094658011, places=6
         )
         self.assertAlmostEqual(result.aux_operator_eigenvalues[2][1], 0.0)
         self.assertAlmostEqual(result.aux_operator_eigenvalues[3][1], 0.0)
@@ -601,7 +601,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
         vqe = VQE(
             ansatz=wavefunction,
             expectation=AerPauliExpectation(),
-            optimizer=SPSA(maxiter=0),
+            optimizer=COBYLA(maxiter=0),
             quantum_instance=QuantumInstance(
                 backend=Aer.get_backend("qasm_simulator"),
                 shots=1,
@@ -629,7 +629,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
         self.assertEqual(len(result.aux_operator_eigenvalues), 4)
         # expectation values
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2.0, places=6)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 1.0617151913779963, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0.6036400943063891, places=6)
         self.assertEqual(result.aux_operator_eigenvalues[2][0], 0.0)
         self.assertEqual(result.aux_operator_eigenvalues[3][0], 0.0)
         # standard deviations
