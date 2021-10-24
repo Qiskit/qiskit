@@ -1661,6 +1661,7 @@ class TestParameterExpressions(QiskitTestCase):
         circlib.RYGate,
         circlib.RZGate,
         circlib.RXXGate,
+        circlib.RXYGate,
         circlib.RYYGate,
         circlib.RZXGate,
         circlib.RZZGate,
