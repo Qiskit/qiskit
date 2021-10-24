@@ -93,6 +93,7 @@ class TestReadoutMitigation(NoisySimulationTest):
     """Testing standard readout mitigation"""
 
     def setUp(self):
+        super().setUp()
         qc = QuantumCircuit(self.num_qubits)
         qc.h(0)
         for i in range(1, self.num_qubits):
@@ -110,9 +111,8 @@ class TestReadoutMitigation(NoisySimulationTest):
         meas_calibs, state_labels = mit.complete_meas_cal(
             qubit_list=qubit_list, qr=qr, circlabel="mcal"
         )
-        cal_res = execute(
+        cal_res = self.sim.run(
             meas_calibs,
-            self.sim,
             shots=self.shots,
             seed_simulator=self.seed_simulator,
             basis_gates=self.noise_model.basis_gates,
