@@ -169,3 +169,13 @@ class TestQAOAAnsatz(QiskitTestCase):
         reps = 4
         circuit = QAOAAnsatz(cost_operator=Z ^ Z, mixer_operator=mixer, reps=reps)
         self.assertEqual(circuit.num_parameters, 3 * reps)
+
+    def test_qaoa_gate(self):
+        """Test creating a QAOA gate directly."""
+        op = (Z ^ Z ^ (I ^ 3)) + (I ^ Z ^ Z ^ I ^ I) + (I ^ I ^ Z ^ Z ^ I)
+        qaoa_gate = QAOAGate(op, reps=2)
+
+        ansatz = QuantumCircuit(5)
+        ansatz.append(qaoa_gate, [0, 1, 2, 3, 4])
+
+        self.assertEqual(ansatz.decompose().count_ops()['rz'], 2 * 3)

@@ -220,18 +220,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
 
         # if no mixer is passed and we know the number of qubits, then initialize it.
         if self.cost_operator is not None:
-            # local imports to avoid circular imports
-            from qiskit.opflow import I, X
-
-            num_qubits = self.cost_operator.num_qubits
-
-            # Mixer is just a sum of single qubit X's on each qubit. Evolving by this operator
-            # will simply produce rx's on each qubit.
-            mixer_terms = [
-                (I ^ left) ^ X ^ (I ^ (num_qubits - left - 1)) for left in range(num_qubits)
-            ]
-            mixer = sum(mixer_terms)
-            return mixer
+            return _get_default_mixer(self.cost_operator)
 
         # otherwise we cannot provide a default
         return None
@@ -292,7 +281,7 @@ class QAOAGate(EvolvedOperatorGate):
 
     def __init__(
         self,
-        cost_operator=None,
+        cost_operator,
         reps: int = 1,
         initial_state: Optional[QuantumCircuit] = None,
         mixer_operator=None,
@@ -319,23 +308,18 @@ class QAOAGate(EvolvedOperatorGate):
         self.cost_operator = cost_operator
         self.reps = reps
         self.initial_state = initial_state
+
+        if mixer_operator is None:
+            mixer_operator = _get_default_mixer(cost_operator)
+
         self.mixer_operator = mixer_operator
 
-        is_num_qubits = co_num_qubits = 0
-        if initial_state:
-            is_num_qubits = initial_state.num_qubits
-        if cost_operator:
-            co_num_qubits = cost_operator.num_qubits
-
-        if co_num_qubits and is_num_qubits and is_num_qubits != co_num_qubits:
-            raise AttributeError(
-                "initial_state and cost_operator has incompatible number of qubits"
-            )
-
-        num_qubits = is_num_qubits + co_num_qubits
-
-        if num_qubits == 0:
-            raise AttributeError("Either initial_state or cost_operator should be set")
+        num_qubits = cost_operator.num_qubits
+        if initial_state is not None:
+            if initial_state.num_qubits != num_qubits:
+                raise AttributeError(
+                    "initial_state and cost_operator has incompatible number of qubits"
+                )
 
         super().__init__(
             operators=[cost_operator, mixer_operator],
@@ -343,3 +327,17 @@ class QAOAGate(EvolvedOperatorGate):
             initial_state=initial_state,
             label=label,
         )
+
+
+def _get_default_mixer(cost_operator):
+    # local imports to avoid circular imports
+    from qiskit.opflow import I, X
+
+    num_qubits = cost_operator.num_qubits
+
+    # Mixer is just a sum of single qubit X's on each qubit. Evolving by this operator
+    # will simply produce rx's on each qubit.
+    mixer_terms = [
+        (I ^ left) ^ X ^ (I ^ (num_qubits - left - 1)) for left in range(num_qubits)
+    ]
+    return sum(mixer_terms)
