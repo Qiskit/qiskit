@@ -34,7 +34,7 @@ class EvolutionGate(Gate):
     the time evolution of the Pauli :math:`X` operator is connected to the Pauli :math:`X` rotation
     :math:`R_X` by
 
-    .. math
+    .. math::
 
         U(t) = e^{-itX} = R_X(2t).
 
