@@ -20,6 +20,7 @@ from typing import List, Optional, Tuple, Union
 
 import scipy
 import numpy as np
+
 from qiskit.circuit import Gate, Instruction
 from qiskit.circuit import (
     QuantumCircuit,
@@ -48,7 +49,6 @@ from qiskit.circuit.library.standard_gates import (
     ZGate,
 )
 from qiskit.quantum_info import partial_trace
-
 from ...operator_base import OperatorBase
 from ...list_ops.list_op import ListOp
 from ...list_ops.composed_op import ComposedOp
@@ -71,6 +71,31 @@ class LinComb(CircuitGradient):
     This method employs a linear combination of unitaries,
     see e.g. https://arxiv.org/pdf/1811.11184.pdf
     """
+
+    SUPPORTED_GATES = {
+        "rx",
+        "ry",
+        "rz",
+        "rzx",
+        "rzz",
+        "ryy",
+        "rxx",
+        "p",
+        "u",
+        "controlledgate",
+        "cx",
+        "cy",
+        "cz",
+        "ccx",
+        "swap",
+        "iswap",
+        "t",
+        "s",
+        "sdg",
+        "x",
+        "y",
+        "z",
+    }
 
     # pylint: disable=signature-differs
     def convert(
@@ -439,7 +464,6 @@ class LinComb(CircuitGradient):
                 c_g = (coeffs, gates)
                 coeffs_gates.append(c_g)
             return coeffs_gates
-
         raise TypeError(f"Unrecognized parameterized gate, {gate}")
 
     @staticmethod
@@ -599,7 +623,10 @@ class LinComb(CircuitGradient):
         qr_superpos = QuantumRegister(1)
         state_qc = QuantumCircuit(*state_op.primitive.qregs, qr_superpos)
         state_qc.h(qr_superpos)
-        state_qc.compose(state_op.primitive, inplace=True)
+        # unroll separately from the H gate since we need the H gate to be the first
+        # operation in the data attributes of the circuit
+        unrolled = self._transpile_to_supported_operations(state_op.primitive, self.SUPPORTED_GATES)
+        state_qc.compose(unrolled, inplace=True)
 
         # Define the working qubit to realize the linear combination of unitaries
         if not isinstance(target_params, (list, np.ndarray)):

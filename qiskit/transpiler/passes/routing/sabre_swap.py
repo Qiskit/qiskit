@@ -123,7 +123,7 @@ class SabreSwap(TransformationPass):
         super().__init__()
 
         # Assume bidirectional couplings, fixing gate direction is easy later.
-        if coupling_map.is_symmetric:
+        if coupling_map is None or coupling_map.is_symmetric:
             self.coupling_map = coupling_map
         else:
             self.coupling_map = deepcopy(coupling_map)

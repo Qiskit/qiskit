@@ -159,25 +159,20 @@ class WeightedAdder(BlueprintCircuit):
             self._reset_registers()
 
     def _reset_registers(self):
+        self.qregs = []
+
         if self.num_state_qubits:
             qr_state = QuantumRegister(self.num_state_qubits, name="state")
             qr_sum = QuantumRegister(self.num_sum_qubits, name="sum")
             self.qregs = [qr_state, qr_sum]
-            self._ancillas = []
 
             if self.num_carry_qubits > 0:
                 qr_carry = AncillaRegister(self.num_carry_qubits, name="carry")
-                self.qregs += [qr_carry]
-                self._ancillas += qr_carry[:]
+                self.add_register(qr_carry)
 
             if self.num_control_qubits > 0:
                 qr_control = AncillaRegister(self.num_control_qubits, name="control")
-                self.qregs += [qr_control]
-                self._ancillas += qr_control[:]
-
-        else:
-            self.qregs = []
-            self._ancillas = []
+                self.add_register(qr_control)
 
     @property
     def num_carry_qubits(self) -> int:
