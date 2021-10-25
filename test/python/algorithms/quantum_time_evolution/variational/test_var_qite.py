@@ -14,7 +14,6 @@ import unittest
 
 import numpy as np
 
-from qiskit import Aer
 from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
@@ -26,7 +25,6 @@ from qiskit.opflow import (
     Y,
     I,
     Z,
-    StateFn,
 )
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
@@ -47,7 +45,6 @@ class TestVarQite(QiskitAlgorithmsTestCase):
         d = 2
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
 
-        operator = ~StateFn(observable) @ StateFn(ansatz)
         parameters = ansatz.ordered_parameters
         init_param_values = np.zeros(len(ansatz.ordered_parameters))
         for i in range(len(ansatz.ordered_parameters)):
@@ -63,7 +60,6 @@ class TestVarQite(QiskitAlgorithmsTestCase):
         time = 1
 
         evolution_result = var_qite.evolve(
-            # TODO operator or observable?
             observable,
             time,
             # TODO design api assumes it is provided here, currently calculated within VarQte
