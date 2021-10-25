@@ -12,6 +12,8 @@
 
 """Remove final measurements and barriers at the end of a circuit."""
 
+from collections import defaultdict
+from qiskit.pulse.builder import barrier
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGOpNode
 
@@ -25,6 +27,39 @@ class RemoveFinalMeasurements(TransformationPass):
     followed by no other operations (aside from other measurements or barriers.)
     """
 
+    def __init__(self, recurse=True):
+        self._recurse = recurse
+
+    def _calc_final_ops(self, dag):
+        final_op_types = {"measure", "barrier"}
+        final_ops = []
+
+        final_qubit_inputs = (next(dag.predecessors(dag.output_map[qubit])) for qubit in dag.qubits)
+        to_visit = list(final_qubit_inputs)
+        barrier_encounters_remaining = dict()
+
+        while to_visit:
+            node = to_visit.pop()
+            if not isinstance(node, DAGOpNode):
+                continue
+            if node.op.name == "barrier":
+                # Barrier is final if all children are final, so we track
+                # how many times we still need to encounter each barrier
+                # via a child node.
+                if node not in barrier_encounters_remaining:
+                    barrier_encounters_remaining[node] = sum(1 for _ in dag.quantum_successors(node))
+                if barrier_encounters_remaining[node] - 1 > 0:
+                    # We've encountered the barrier, but not (yet) via all children.
+                    # Record the encounter, and bail!
+                    barrier_encounters_remaining[node] -= 1
+                    continue
+            if node.name in final_op_types:
+                # Current node is either a measure, or a barrier with all final op children.
+                final_ops.append(node)
+                to_visit.extend(dag.quantum_predecessors(node))
+
+        return final_ops
+
     def run(self, dag):
         """Run the RemoveFinalMeasurements pass on `dag`.
 
@@ -34,19 +69,13 @@ class RemoveFinalMeasurements(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
-        final_op_types = {"measure", "barrier"}
-        final_ops = []
+        final_ops = self._calc_final_ops(dag)
+        if not final_ops:
+            return dag
+
         cregs_to_remove = dict()
         clbits_with_final_measures = set()
         clbit_registers = {clbit: creg for creg in dag.cregs.values() for clbit in creg}
-
-        for qubit in dag.qubits:
-            op_node = next(dag.predecessors(dag.output_map[qubit]))
-            if isinstance(op_node, DAGOpNode) and op_node.op.name in final_op_types:
-                final_ops.append(op_node)
-
-        if not final_ops:
-            return dag
 
         for node in final_ops:
             for carg in node.cargs:
