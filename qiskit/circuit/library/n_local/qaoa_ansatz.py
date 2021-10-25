@@ -192,10 +192,8 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
             return self._initial_state
 
         # if no initial state is passed and we know the number of qubits, then initialize it.
-        if self.num_qubits > 0:
-            initial_state = QuantumCircuit(self.num_qubits)
-            initial_state.h(range(self.num_qubits))
-            return initial_state
+        if self.cost_operator is not None:
+            return _get_default_initial_state(self.cost_operator)
 
         # otherwise we cannot provide a default
         return None
@@ -307,19 +305,21 @@ class QAOAGate(EvolvedOperatorGate):
         """
         self.cost_operator = cost_operator
         self.reps = reps
+
+        if initial_state is None:
+            initial_state = _get_default_initial_state(cost_operator)
+        else:
+            if initial_state.num_qubits != cost_operator.num_qubits:
+                raise AttributeError(
+                    "initial_state and cost_operator has incompatible number of qubits"
+                )
+
         self.initial_state = initial_state
 
         if mixer_operator is None:
             mixer_operator = _get_default_mixer(cost_operator)
 
         self.mixer_operator = mixer_operator
-
-        num_qubits = cost_operator.num_qubits
-        if initial_state is not None:
-            if initial_state.num_qubits != num_qubits:
-                raise AttributeError(
-                    "initial_state and cost_operator has incompatible number of qubits"
-                )
 
         super().__init__(
             operators=[cost_operator, mixer_operator],
@@ -337,7 +337,46 @@ def _get_default_mixer(cost_operator):
 
     # Mixer is just a sum of single qubit X's on each qubit. Evolving by this operator
     # will simply produce rx's on each qubit.
-    mixer_terms = [
-        (I ^ left) ^ X ^ (I ^ (num_qubits - left - 1)) for left in range(num_qubits)
-    ]
+    active_indices = _active_qubits(cost_operator)
+
+    if len(active_indices) == 0:
+        return 0 * (I ^ num_qubits)
+
+    mixer_terms = [(I ^ left) ^ X ^ (I ^ (num_qubits - left - 1)) for left in active_indices]
     return sum(mixer_terms)
+
+
+def _get_default_initial_state(cost_operator):
+    initial_state = QuantumCircuit(cost_operator.num_qubits)
+    active_indices = _active_qubits(cost_operator)
+
+    if len(active_indices) > 0:
+        # Opflow indices are reversed with respect to circuit indices
+        active_indices = [cost_operator.num_qubits - 1 - index for index in active_indices]
+        initial_state.h(active_indices)
+
+    return initial_state
+
+
+def _active_qubits(operator):
+    from qiskit.opflow import PauliSumOp, PauliOp
+
+    # active qubit selection only supported for PauliSumOps
+    if isinstance(operator, PauliSumOp):
+        sparse_pauli = operator.primitive
+        paulis = sparse_pauli.paulis.to_labels()
+    elif isinstance(operator, PauliOp):
+        paulis = [operator.primitive.to_label()]
+    else:
+        return list(range(operator.num_qubits))
+
+    # for each Pauli string get a list which Pauli is the identity (i.e. not active)
+    is_identity = [list(map(lambda pauli: pauli == "I", pauli_string)) for pauli_string in paulis]
+
+    # use numpy act a logical and on each index across the Pauli strings
+    idle_qubits = np.all(np.array(is_identity), axis=0)
+
+    # return the indices of the qubits that are not idle
+    active_indices = [index for index, idle in enumerate(idle_qubits) if not idle]
+
+    return active_indices

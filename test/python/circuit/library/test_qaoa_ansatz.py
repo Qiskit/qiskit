@@ -26,26 +26,28 @@ class TestQAOAAnsatz(QiskitTestCase):
 
     def test_default_qaoa(self):
         """Test construction of the default circuit."""
-        circuit = QAOAAnsatz(I, 1)
+        circuit = QAOAAnsatz(Z, 1)
 
         parameters = circuit.parameters
 
         circuit = circuit.decompose()
-        self.assertEqual(1, len(parameters))
+        self.assertEqual(2, len(parameters))
         self.assertIsInstance(circuit.data[0][0], HGate)
-        self.assertIsInstance(circuit.data[1][0], RXGate)
+        self.assertIsInstance(circuit.data[1][0], RZGate)
+        self.assertIsInstance(circuit.data[2][0], RXGate)
 
     def test_custom_initial_state(self):
         """Test circuit with a custom initial state."""
         initial_state = QuantumCircuit(1)
         initial_state.y(0)
-        circuit = QAOAAnsatz(initial_state=initial_state, cost_operator=I, reps=1)
+        circuit = QAOAAnsatz(initial_state=initial_state, cost_operator=Z, reps=1)
 
         parameters = circuit.parameters
         circuit = circuit.decompose()
-        self.assertEqual(1, len(parameters))
+        self.assertEqual(2, len(parameters))
         self.assertIsInstance(circuit.data[0][0], YGate)
-        self.assertIsInstance(circuit.data[1][0], RXGate)
+        self.assertIsInstance(circuit.data[1][0], RZGate)
+        self.assertIsInstance(circuit.data[2][0], RXGate)
 
     def test_invalid_reps(self):
         """Test negative reps."""
@@ -54,7 +56,7 @@ class TestQAOAAnsatz(QiskitTestCase):
 
     def test_zero_reps(self):
         """Test zero reps."""
-        circuit = QAOAAnsatz(I ^ 4, reps=0)
+        circuit = QAOAAnsatz(Z ^ 4, reps=0)
         reference = QuantumCircuit(4)
         reference.h(range(4))
         self.assertEqual(circuit.decompose(), reference)
@@ -63,24 +65,26 @@ class TestQAOAAnsatz(QiskitTestCase):
         """Test circuit with a custom mixer as a circuit"""
         mixer = QuantumCircuit(1)
         mixer.ry(1, 0)
-        circuit = QAOAAnsatz(cost_operator=I, reps=1, mixer_operator=mixer)
-
-        parameters = circuit.parameters
-        circuit = circuit.decompose()
-        self.assertEqual(0, len(parameters))
-        self.assertIsInstance(circuit.data[0][0], HGate)
-        self.assertIsInstance(circuit.data[1][0], RYGate)
-
-    def test_custom_operator_mixer(self):
-        """Test circuit with a custom mixer as an operator."""
-        mixer = Y
-        circuit = QAOAAnsatz(cost_operator=I, reps=1, mixer_operator=mixer)
+        circuit = QAOAAnsatz(cost_operator=Z, reps=1, mixer_operator=mixer)
 
         parameters = circuit.parameters
         circuit = circuit.decompose()
         self.assertEqual(1, len(parameters))
         self.assertIsInstance(circuit.data[0][0], HGate)
-        self.assertIsInstance(circuit.data[1][0], RYGate)
+        self.assertIsInstance(circuit.data[1][0], RZGate)
+        self.assertIsInstance(circuit.data[2][0], RYGate)
+
+    def test_custom_operator_mixer(self):
+        """Test circuit with a custom mixer as an operator."""
+        mixer = Y
+        circuit = QAOAAnsatz(cost_operator=Z, reps=1, mixer_operator=mixer)
+
+        parameters = circuit.parameters
+        circuit = circuit.decompose()
+        self.assertEqual(2, len(parameters))
+        self.assertIsInstance(circuit.data[0][0], HGate)
+        self.assertIsInstance(circuit.data[1][0], RZGate)
+        self.assertIsInstance(circuit.data[2][0], RYGate)
 
     def test_parameter_bounds(self):
         """Test the parameter bounds."""
@@ -178,4 +182,14 @@ class TestQAOAAnsatz(QiskitTestCase):
         ansatz = QuantumCircuit(5)
         ansatz.append(qaoa_gate, [0, 1, 2, 3, 4])
 
-        self.assertEqual(ansatz.decompose().count_ops()['rz'], 2 * 3)
+        self.assertEqual(ansatz.decompose().count_ops()["rz"], 2 * 3)
+
+    def test_idle_qubits(self):
+        """Test idle qubits are not included in the default initial state and mixer."""
+        op = (Z ^ Z ^ (I ^ 3)) + (I ^ Z ^ Z ^ I ^ I)
+        qaoa_gate = QAOAGate(op)
+
+        circuit = qaoa_gate.definition
+
+        self.assertEqual(circuit.count_ops()["h"], 3)
+        self.assertEqual(circuit.count_ops()["rx"], 3)
