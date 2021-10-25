@@ -977,6 +977,56 @@ class DAGCircuit:
         """
         return (nd for nd in self.topological_nodes(key) if isinstance(nd, DAGOpNode))
 
+    def replace_block_with_op(self, node_block, op, wire_pos_map):
+        """Replace a block of nodes with a single.
+
+        This is used to consolidate a block of DAGOpNodes into a single
+        operation. A typical example is a block of gates being consolidated
+        into a single ``UnitaryGate`` representing the unitary matrix of the
+        block.
+
+        Args:
+            node_block (List[DAGNode]): A list of dag nodes that represents the
+                node block to be replaced
+            op (Instruction): The instruction to replace the block with
+            wire_pos_map (Dict[Qubit, int]: The dictionary mapping the qarg to
+                the position. This is necessary to reconstruct the qarg order
+                over multiple gates in the combined singe op node.
+        """
+        # TODO: Replace this with a function in retworkx to do this operation in
+        # the graph
+        block_preds = defaultdict(set)
+        block_succs = defaultdict(set)
+        block_qargs = set()
+        block_cargs = set()
+        block_ids = {x._node_id for x in node_block}
+
+        for nd in node_block:
+            for parent_id, _, edge in self._multi_graph.in_edges(nd._node_id):
+                if parent_id not in block_ids:
+                    block_preds[parent_id].add(edge)
+            for _, child_id, edge in self._multi_graph.out_edges(nd._node_id):
+                if child_id not in block_ids:
+                    block_succs[child_id].add(edge)
+            block_qargs |= set(nd.qargs)
+            if isinstance(nd, DAGOpNode) and nd.op.condition:
+                block_cargs |= set(nd.cargs)
+            # Add node and wire it into graph
+        new_index = self._add_op_node(
+            op,
+            sorted(block_qargs, key=lambda x: wire_pos_map[x]),
+            sorted(block_cargs, key=lambda x: wire_pos_map[x]),
+        )
+        for node_id, edges in block_preds.items():
+            for edge in edges:
+                self._multi_graph.add_edge(node_id, new_index, edge)
+        for node_id, edges in block_succs.items():
+            for edge in edges:
+                self._multi_graph.add_edge(new_index, node_id, edge)
+        for nd in node_block:
+            self._multi_graph.remove_node(nd._node_id)
+            self._decrement_op(nd.op)
+
     def substitute_node_with_dag(self, node, input_dag, wires=None):
         """Replace one node with dag.
 
