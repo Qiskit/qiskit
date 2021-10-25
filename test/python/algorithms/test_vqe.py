@@ -588,9 +588,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
         self.assertEqual(result.aux_operator_eigenvalues[3][0], 0.0)
         # # standard deviations
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1], 0.0)
-        self.assertAlmostEqual(
-            result.aux_operator_eigenvalues[1][1], 0.01548658094658011, places=6
-        )
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][1], 0.01548658094658011, places=6)
         self.assertAlmostEqual(result.aux_operator_eigenvalues[2][1], 0.0)
         self.assertAlmostEqual(result.aux_operator_eigenvalues[3][1], 0.0)
 
