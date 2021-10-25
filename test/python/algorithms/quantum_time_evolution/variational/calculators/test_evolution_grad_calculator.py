@@ -22,6 +22,7 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 
 
 class TestEvolutionGradCalculator(QiskitAlgorithmsTestCase):
+    # checked, correct
     def test_calculate(self):
         observable = SummedOp(
             [

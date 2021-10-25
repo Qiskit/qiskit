@@ -50,16 +50,14 @@ class TestRealTimeDependentVariationalPrinciple(QiskitAlgorithmsTestCase):
         var_principle._lazy_init(observable, ansatz, param_dict, regularization)
 
         raw_metric_tensor = metric_tensor_calculator.calculate(
-            ansatz, parameters, var_principle._qfi_method
+            ansatz, parameters, var_principle._qfi_method, basis=-1j*Y
         )
         metric_tensor = var_principle.metric_tensor
-
-        # print(metric_tensor)
 
         bound_raw_metric_tensor = raw_metric_tensor.bind_parameters(param_dict).eval()
         expected_metric_tensor = bound_raw_metric_tensor / 4.0
 
-        np.testing.assert_almost_equal(metric_tensor.to_matrix(), expected_metric_tensor)
+        np.testing.assert_almost_equal(metric_tensor.eval(), expected_metric_tensor)
 
     def test_calc_calc_evolution_grad(self):
         observable = SummedOp(
@@ -93,7 +91,7 @@ class TestRealTimeDependentVariationalPrinciple(QiskitAlgorithmsTestCase):
         expected_evolution_grad = -bound_raw_evolution_grad
 
         np.testing.assert_almost_equal(
-            evolution_grad.to_matrix(), expected_evolution_grad.to_matrix()
+            evolution_grad.eval(), expected_evolution_grad.eval()
         )
 
 

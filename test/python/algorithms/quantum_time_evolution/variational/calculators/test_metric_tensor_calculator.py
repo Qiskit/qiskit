@@ -23,6 +23,7 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 
 
 class TestMetricTensorCalculator(QiskitAlgorithmsTestCase):
+    # checked, correct
     def test_calculate_real(self):
 
         observable = SummedOp(

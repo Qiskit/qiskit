@@ -58,7 +58,7 @@ class TestRealMcLachlanVariationalPrinciple(QiskitAlgorithmsTestCase):
         expected_metric_tensor = bound_raw_metric_tensor / 4.0
 
         np.testing.assert_almost_equal(
-            metric_tensor.to_matrix(), expected_metric_tensor.to_matrix()
+            metric_tensor.eval(), expected_metric_tensor.eval()
         )
 
     def test_calc_calc_evolution_grad(self):
@@ -85,10 +85,11 @@ class TestRealMcLachlanVariationalPrinciple(QiskitAlgorithmsTestCase):
         var_principle._lazy_init(observable, ansatz, param_dict, regularization)
 
         raw_evolution_grad = evolution_grad_calculator.calculate(
-            -1j * observable,
+            observable,
             ansatz,
             parameters,
-            var_principle._grad_method,  # -1j because we need an imaginary gradient
+            var_principle._grad_method,
+            basis=-1j*Y
         )
         evolution_grad = var_principle.evolution_grad
 
@@ -96,7 +97,7 @@ class TestRealMcLachlanVariationalPrinciple(QiskitAlgorithmsTestCase):
         expected_evolution_grad = bound_raw_evolution_grad
 
         np.testing.assert_almost_equal(
-            evolution_grad.to_matrix(), expected_evolution_grad.to_matrix()
+            evolution_grad.eval(), expected_evolution_grad.eval()
         )
 
 

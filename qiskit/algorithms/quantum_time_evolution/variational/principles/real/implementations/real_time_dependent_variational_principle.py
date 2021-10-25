@@ -36,7 +36,6 @@ class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):
         ansatz,
         param_dict: Dict[Parameter, Union[float, complex]],
     ):
-        # TODO imag multiplication does not work, integrate streamlined gradients
         raw_metric_tensor_imag = metric_tensor_calculator.calculate(
             ansatz, list(param_dict.keys()), self._qfi_method, basis=-1j * Y
         )

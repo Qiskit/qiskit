@@ -41,6 +41,7 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 
 @ddt
 class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
+    # TODO test fail due to non-negligible imaginary parts, check real imag principles if they work.
     def test_calc_single_step_error(self):
         observable = SummedOp(
             [
