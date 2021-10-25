@@ -81,8 +81,8 @@ class PassManagerConfig:
         self.timing_constraints = timing_constraints
         self.unitary_synthesis_method = unitary_synthesis_method
 
-    @staticmethod
-    def from_backend(backend, **pass_manager_options):
+    @classmethod
+    def from_backend(cls, backend, **pass_manager_options):
         """Construct a configuration based on a backend and user input.
 
         This method automatically gererates a PassManagerConfig object based on the backend's
@@ -98,7 +98,7 @@ class PassManagerConfig:
         Raises:
             AttributeError: If the backend does not support a `configuration()` method.
         """
-        res = PassManagerConfig(**pass_manager_options)
+        res = cls(**pass_manager_options)
         config = backend.configuration()
 
         res.basis_gates = res.basis_gates or getattr(config, "basis_gates", None)
