@@ -12,8 +12,8 @@
 
 """Pass Manager Configuration class."""
 
-from qiskit.exceptions import QiskitError
 from qiskit.transpiler.coupling import CouplingMap
+from qiskit.transpiler.instruction_durations import InstructionDurations
 
 
 class PassManagerConfig:
@@ -85,10 +85,8 @@ class PassManagerConfig:
     def from_backend(backend, **pass_manager_options):
         """Construct a configuration based on a backend and user input.
 
-        This method returns a PassManagerConfig object with the option values set by
-        the user. For those options not specified in the arguments, the method looks
-        for them in the backend's configuration. If still not found, then a default
-        value (usually `None`) is used.
+        This method automatically gererates a PassManagerConfig object based on the backend's
+        features. User options can be used to overwrite the configuration.
 
         Args:
             backend (BackendV1): The backend that provides the configuration.
@@ -98,38 +96,18 @@ class PassManagerConfig:
             PassManagerConfig: The configuration generated based on the arguments.
 
         Raises:
-            QiskitError: If the backend does not support a `configuration()` method
-                or the configuration does not support a `to_dict()` method.
-            AttributeError: If the field passed in is not part of the options.
+            AttributeError: If the backend does not support a `configuration()` method.
         """
-        res = PassManagerConfig()
-        try:
-            backend_dict = backend.configuration().to_dict()
-        except Exception as error:
-            raise QiskitError("Invalid backend type %s" % type(backend)) from error
+        res = PassManagerConfig(**pass_manager_options)
+        config = backend.configuration()
 
-        def get_config(option, default=None):
-            """Helper function that returns the value of a specified option."""
-            if option in pass_manager_options:
-                return pass_manager_options.pop(option)
-            return backend_dict.get(option, default)
+        res.basis_gates = res.basis_gates or getattr(config, "basis_gates", None)
+        if not res.inst_map and hasattr(backend, "defaults"):
+            res.inst_map = backend.defaults().instruction_schedule_map
+        res.coupling_map = res.coupling_map or CouplingMap(getattr(config, "coupling_map", None))
+        res.instruction_durations = res.instruction_durations or InstructionDurations.from_backend(
+            backend
+        )
+        res.backend_properties = res.backend_properties or backend.properties()
 
-        res.initial_layout = get_config("initial_layout")
-        res.basis_gates = get_config("basis_gates")
-        res.inst_map = get_config("inst_map")
-        res.coupling_map = CouplingMap(get_config("coupling_map"))
-        res.layout_method = get_config("layout_method")
-        res.routing_method = get_config("routing_method")
-        res.translation_method = get_config("translation_method")
-        res.scheduling_method = get_config("scheduling_method")
-        res.instruction_durations = get_config("instruction_durations")
-        res.backend_properties = get_config("backend_properties")
-        res.approximation_degree = get_config("approximation_degree")
-        res.seed_transpiler = get_config("seed_transpiler")
-        res.timing_constraints = get_config("timing_constraints")
-        res.unitary_synthesis_method = get_config("unitary_synthesis_method", "default")
-
-        # Raise an error if the user specifies an option that is not a member of PassManagerConfig
-        if pass_manager_options:
-            raise AttributeError(f"Option {pass_manager_options.popitem()[0]} is not defined")
         return res

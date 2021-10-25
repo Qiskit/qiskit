@@ -15,10 +15,10 @@
 """Tests PassManagerConfig"""
 
 from qiskit import QuantumRegister
-from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import Backend
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeMelbourne
+from qiskit.test.mock.backends.almaden.fake_almaden import FakeAlmaden
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 
@@ -27,34 +27,46 @@ class TestPassManagerConfig(QiskitTestCase):
     """Test PassManagerConfig.from_backend()."""
 
     def test_config_from_backend(self):
-        """Test from_backend() with a valid backend."""
-        config = PassManagerConfig.from_backend(FakeMelbourne())
-        self.assertEqual(config.basis_gates, FakeMelbourne().configuration().basis_gates)
+        """Test from_backend() with a valid backend.
+
+        `FakeAlmaden` is used in this testcase. This backend has `defaults` attribute
+        that contains an instruction schedule map.
+        """
+        backend = FakeAlmaden()
+        config = PassManagerConfig.from_backend(backend)
+        self.assertEqual(config.basis_gates, backend.configuration().basis_gates)
+        self.assertEqual(config.inst_map, backend.defaults().instruction_schedule_map)
         self.assertEqual(
-            str(config.coupling_map), str(CouplingMap(FakeMelbourne().configuration().coupling_map))
+            str(config.coupling_map), str(CouplingMap(backend.configuration().coupling_map))
         )
 
     def test_invalid_backend(self):
         """Test from_backend() with an invalid backend."""
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(AttributeError):
             PassManagerConfig.from_backend(Backend())
 
     def test_from_backend_and_user(self):
-        """Test from_backend() with a backend and user options."""
+        """Test from_backend() with a backend and user options.
+
+        `FakeMelbourne` is used in this testcase. This backend does not have
+        `defaults` attribute and thus not provide an instruction schedule map.
+        """
         qr = QuantumRegister(4, "qr")
         initial_layout = [None, qr[0], qr[1], qr[2], None, qr[3]]
 
+        backend = FakeMelbourne()
         config = PassManagerConfig.from_backend(
-            FakeMelbourne(), basis_gates=["user_gate"], initial_layout=initial_layout
-        )
-        self.assertEqual(
-            str(config.coupling_map), str(CouplingMap(FakeMelbourne().configuration().coupling_map))
+            backend, basis_gates=["user_gate"], initial_layout=initial_layout
         )
         self.assertEqual(config.basis_gates, ["user_gate"])
-        self.assertNotEqual(config.basis_gates, FakeMelbourne().configuration().basis_gates)
+        self.assertNotEqual(config.basis_gates, backend.configuration().basis_gates)
+        self.assertIsNone(config.inst_map)
+        self.assertEqual(
+            str(config.coupling_map), str(CouplingMap(backend.configuration().coupling_map))
+        )
         self.assertEqual(config.initial_layout, initial_layout)
 
     def test_invalid_user_option(self):
         """Test from_backend() with an invalid user option."""
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(TypeError):
             PassManagerConfig.from_backend(FakeMelbourne(), invalid_option=None)
