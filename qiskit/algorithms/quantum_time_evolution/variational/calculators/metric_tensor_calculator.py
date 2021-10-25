@@ -15,8 +15,7 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.opflow import QFI, CircuitQFI, CircuitStateFn, OperatorBase, Z
 
-# TODO basis to be passed, real measure Z, imaginary -iY observable; requires lin comb gradient
-#  change?
+# TODO basis to be passed, real measure Z, imaginary -iY observable
 from qiskit.opflow.gradients.circuit_qfis import LinCombFull
 
 
