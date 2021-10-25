@@ -133,7 +133,7 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
         """
         # Marginalize counts
         if clbits is not None:
-            data = marginal_counts(data, clbits)
+            data = Counts(marginal_counts(data, clbits))
 
         # Get total number of qubits and shots
         num_qubits = data.size()

@@ -73,15 +73,15 @@ def generate_data(num_qubits, circuits, noise_model = None):
                                                           method='complete')
     results_noise = execute_circs(circuits, sim, noise_model)
     results_ideal = execute_circs(circuits, sim)
-    results_noise_dict = {result.header.metadata['name']: get_counts(result) for result in results_noise.results}
-    results_ideal_dict = {result.header.metadata['name']: get_counts(result) for result
+    results_noise_dict = {result.header.name: get_counts(result) for result in results_noise.results}
+    results_ideal_dict = {result.header.name: get_counts(result) for result
                           in results_ideal.results}
     result = {}
     result['tensor_method_matrices'] = tensor_method_matrices
     result['complete_method_matrix'] = complete_method_matrix
-    result['circuits'] = []
+    result['circuits'] = {}
     for name in results_noise_dict.keys():
-        result['circuits'].append({'name': name, 'counts_ideal': results_ideal_dict[name], 'counts_noise': results_noise_dict[name]})
+        result['circuits'][name] = {'counts_ideal': results_ideal_dict[name], 'counts_noise': results_noise_dict[name]}
     return result
 
 def readout_errors_1(num_qubits):
@@ -101,23 +101,36 @@ def readout_errors_1(num_qubits):
     return noise_model
 
 def ghz_circuit(num_qubits):
-    qc = QuantumCircuit(num_qubits)
+    qc = QuantumCircuit(num_qubits, name = "ghz_{}_qubits".format(num_qubits))
     qc.h(0)
     for i in range(1, num_qubits):
         qc.cx(i - 1, i)
     qc.measure_all()
-    qc.metadata = {'name': "ghz_{}_qubits".format(num_qubits)}
+    return qc
+
+def first_qubit_h(num_qubits):
+    qc = QuantumCircuit(num_qubits, name="first_qubit_h_{}_qubits".format(num_qubits))
+    qc.h(0)
+    qc.measure_all()
     return qc
 
 def test_1():
     num_qubits = 3
     noise_model = readout_errors_1(num_qubits)
-    circuits = [ghz_circuit(num_qubits)]
+    circuits = [ghz_circuit(num_qubits), first_qubit_h(num_qubits)]
     data = generate_data(num_qubits, circuits, noise_model = noise_model)
-    print(data)
+    return data
 
-test_data = {
-    'test_1': {'tensor_method_matrices': [array([[0.996525, 0.002   ],
+def generate_all_test_data():
+    test_data = {}
+    test_data['test_1'] = test_1()
+    print(test_data)
+
+
+if __name__ == "__main__":
+    generate_all_test_data()
+
+test_data = {'test_1': {'tensor_method_matrices': [array([[0.996525, 0.002   ],
        [0.003475, 0.998   ]]), array([[0.991175, 0.00415 ],
        [0.008825, 0.99585 ]]), array([[0.9886 , 0.00565],
        [0.0114 , 0.99435]])], 'complete_method_matrix': array([[9.771e-01, 1.800e-03, 4.600e-03, 0.000e+00, 5.600e-03, 0.000e+00,
@@ -135,11 +148,6 @@ test_data = {
        [0.000e+00, 0.000e+00, 1.310e-02, 0.000e+00, 9.400e-03, 1.000e-04,
         9.857e-01, 1.200e-03],
        [0.000e+00, 1.000e-04, 0.000e+00, 1.080e-02, 0.000e+00, 9.300e-03,
-        3.600e-03, 9.899e-01]]), 'circuits': [{'name': 'ghz_3_qubits', 'counts_ideal': {'111': 5015, '000': 4985}, 'counts_noise': {'111': 4955, '000': 4886, '001': 16, '100': 46, '010': 36, '101': 23, '011': 29, '110': 9}}]}
-}
-if __name__ == "__main__":
-    print("test_1")
-    test_1()
-
+        3.600e-03, 9.899e-01]]), 'circuits': {'ghz_3_qubits': {'counts_ideal': {'111': 5015, '000': 4985}, 'counts_noise': {'111': 4955, '000': 4886, '001': 16, '100': 46, '010': 36, '101': 23, '011': 29, '110': 9}}, 'first_qubit_h_3_qubits': {'counts_ideal': {'000': 4932, '001': 5068}, 'counts_noise': {'000': 4844, '001': 4962, '100': 56, '101': 65, '011': 37, '010': 35, '110': 1}}}}}
 
 
