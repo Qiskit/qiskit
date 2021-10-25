@@ -19,13 +19,92 @@ from qiskit.circuit.parameterexpression import ParameterValueType
 
 
 class RXYGate(Gate):
+    r"""A parametric 2-qubit :math:`X \otimes Y` interaction (rotation about XY).
+
+    **Circuit Symbol:**
+
+    .. parsed-literal::
+
+             ┌─────────┐
+        q_0: ┤0        ├
+             │  Rxy(θ) │
+        q_1: ┤1        ├
+             └─────────┘
+
+    **Matrix Representation:**
+
+    .. math::
+
+        \newcommand{\th}{\frac{\theta}{2}}
+
+        R_{XY}(\theta)\ q_0, q_1 = exp(-i \frac{\theta}{2} Y{\otimes}X) =
+            \begin{pmatrix}
+                \cos(\th) & 0         & 0          & -\sin(\th)  \\
+                0         & \cos(\th) & -\sin(\th) & 0           \\
+                0         & \sin(\th) & \cos(\th)  & 0           \\
+                \sin(\th) & 0         & 0          & \cos(\th)
+            \end{pmatrix}
+
+    .. note::
+
+        In Qiskit's convention, higher qubit indices are more significant
+        (little endian convention). In the above example we apply the gate
+        on (q_0, q_1) which results in the :math:`Y \otimes X` tensor order.
+        Instead, if we apply it on (q_1, q_0), the matrix will
+        be :math:`Y \otimes X`:
+
+        .. parsed-literal::
+
+                 ┌─────────┐
+            q_0: ┤1        ├
+                 │  Rxy(θ) │
+            q_1: ┤0        ├
+                 └─────────┘
+
+        .. math::
+
+            \newcommand{\th}{\frac{\theta}{2}}
+
+            R_{XY}(\theta)\ q_1, q_0 = exp(-i \frac{\theta}{2} X{\otimes}Y) =
+                \begin{pmatrix}
+                    \cos(\th) & 0          & 0         & -\sin(\th)  \\
+                    0         & \cos(\th)  & \sin(\th) & 0           \\
+                    0         & -\sin(\th) & \cos(\th) & 0           \\
+                    \sin(\th) & 0          & 0         & \cos(\th)
+                \end{pmatrix}
+
+    **Examples:**
+
+        .. math::
+
+            R_{XY}(\theta = 0) = I
+
+        .. math::
+
+            R_{XY}(\theta = 2\pi) = -I
+
+        .. math::
+
+            R_{XY}(\theta = \pi) = -i Y \otimes X
+
+        .. math::
+
+            R_{XY}(\theta = \frac{\pi}{2}) = \frac{1}{\sqrt{2}}
+                                    \begin{pmatrix}
+                                        1 & 0 & 0  & -1 \\
+                                        0 & 1 & -1 & 0  \\
+                                        0 & 1 & 1  & 0  \\
+                                        1 & 0 & 0  & 1
+                                    \end{pmatrix}
+    """
+
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new RXY gate."""
         super().__init__("rxy", 2, [theta], label=label)
 
     def _define(self):
         """
-        gate rxy(theta) a, b { h b; cx b, a; ry(theta) a; cx b, a; h b;}
+        gate rxy(theta) a, b { h a; cx a, b; ry(theta) b; cx a, b; h a;}
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -37,11 +116,11 @@ class RXYGate(Gate):
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
-            (HGate(), [q[1]], []),
-            (CXGate(), [q[1], q[0]], []),
-            (RYGate(theta), [q[0]], []),
-            (CXGate(), [q[1], q[0]], []),
-            (HGate(), [q[1]], []),
+            (HGate(), [q[0]], []),
+            (CXGate(), [q[0], q[1]], []),
+            (RYGate(theta), [q[1]], []),
+            (CXGate(), [q[0], q[1]], []),
+            (HGate(), [q[0]], []),
         ]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
@@ -60,6 +139,6 @@ class RXYGate(Gate):
         cos = numpy.cos(half_theta)
         sin = numpy.sin(half_theta)
         return numpy.array(
-            [[cos, 0, 0, -sin], [0, cos, sin, 0], [0, -sin, cos, 0], [sin, 0, 0, cos]],
+            [[cos, 0, 0, -sin], [0, cos, -sin, 0], [0, sin, cos, 0], [sin, 0, 0, cos]],
             dtype=dtype,
         )
