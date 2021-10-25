@@ -254,7 +254,7 @@ def visualize_transition(circuit, trace=False, saveas=None, fpg=100, spg=2):
     fig = plt.figure(figsize=(5, 5))
     if tuple(int(x) for x in matplotlib.__version__.split(".")) >= (3, 4, 0):
         _ax = Axes3D(fig, auto_add_to_figure=False)
-        fig.add_axes(ax)
+        fig.add_axes(_ax)
     else:
         _ax = Axes3D(fig)
 
