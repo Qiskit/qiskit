@@ -601,20 +601,12 @@ class Pauli(BasePauli):
         phase = 0 if not coeff else _phase_from_label(coeff)
 
         # Convert to Symplectic representation
-        num_qubits = len(pauli)
-        base_z = np.zeros((1, num_qubits), dtype=bool)
-        base_x = np.zeros((1, num_qubits), dtype=bool)
-        base_phase = np.array([phase], dtype=int)
-        for i, char in enumerate(pauli):
-            if char == "X":
-                base_x[0, num_qubits - 1 - i] = True
-            elif char == "Z":
-                base_z[0, num_qubits - 1 - i] = True
-            elif char == "Y":
-                base_x[0, num_qubits - 1 - i] = True
-                base_z[0, num_qubits - 1 - i] = True
-                base_phase += 1
-        return base_z, base_x, base_phase % 4
+        pauli_bytes = np.frombuffer(pauli.encode("ascii"), dtype=np.uint8)[::-1]
+        ys = pauli_bytes == ord("Y")
+        base_x = np.logical_or(pauli_bytes == ord("X"), ys).reshape(1, -1)
+        base_z = np.logical_or(pauli_bytes == ord("Z"), ys).reshape(1, -1)
+        base_phase = np.array([(phase + np.count_nonzero(ys)) % 4], dtype=int)
+        return base_z, base_x, base_phase
 
     @classmethod
     def _from_scalar_op(cls, op):
