@@ -394,8 +394,9 @@ class Bloch:
             self.fig = plt.figure(figsize=self.figsize)
 
         if not self._ext_axes:
-            self.axes = Axes3D(self.fig, azim=self.view[0], elev=self.view[1],
-                               auto_add_to_figure=False)
+            self.axes = Axes3D(
+                self.fig, azim=self.view[0], elev=self.view[1], auto_add_to_figure=False
+            )
             self.fig.add_axes(self.axes)
 
         if self.background:
