@@ -66,7 +66,7 @@ class Arrow3D(FancyArrowPatch):
 
     def draw(self, renderer):
         xs3d, ys3d, zs3d = self._verts3d
-        x_s, y_s, _ = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
+        x_s, y_s, _ = proj3d.proj_transform(xs3d, ys3d, zs3d, self.axes.M)
         self.set_positions((x_s[0], y_s[0]), (x_s[1], y_s[1]))
         FancyArrowPatch.draw(self, renderer)
 
@@ -394,7 +394,9 @@ class Bloch:
             self.fig = plt.figure(figsize=self.figsize)
 
         if not self._ext_axes:
-            self.axes = Axes3D(self.fig, azim=self.view[0], elev=self.view[1])
+            self.axes = Axes3D(self.fig, azim=self.view[0], elev=self.view[1],
+                               auto_add_to_figure=False)
+            self.fig.add_axes(self.axes)
 
         if self.background:
             self.axes.clear()
