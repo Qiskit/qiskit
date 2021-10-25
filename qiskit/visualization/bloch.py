@@ -50,6 +50,7 @@ __all__ = ["Bloch"]
 
 import os
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import Axes3D, proj3d
@@ -394,10 +395,17 @@ class Bloch:
             self.fig = plt.figure(figsize=self.figsize)
 
         if not self._ext_axes:
-            self.axes = Axes3D(
-                self.fig, azim=self.view[0], elev=self.view[1], auto_add_to_figure=False
-            )
-            self.fig.add_axes(self.axes)
+            if tuple(matplotlib.__version__.split(".")) >= (3, 4, 0):
+                self.axes = Axes3D(
+                    self.fig, azim=self.view[0], elev=self.view[1], auto_add_to_figure=False
+                )
+                self.fig.add_axes(self.axes)
+            else:
+                self.axes = Axes3D(
+                    self.fig,
+                    azim=self.view[0],
+                    elev=self.view[1],
+                )
 
         if self.background:
             self.axes.clear()

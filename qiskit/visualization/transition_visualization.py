@@ -252,8 +252,12 @@ def visualize_transition(circuit, trace=False, saveas=None, fpg=100, spg=2):
     starting_pos = _normalize(np.array([0, 0, 1]))
 
     fig = plt.figure(figsize=(5, 5))
-    _ax = Axes3D(fig, auto_add_to_figure=False)
-    fig.add_axes(_ax)
+    if tuple(matplotlib.__version__.split(".")) >= (3, 4, 0):
+        ax = Axes3D(fig, auto_add_to_figure=False)
+        fig.add_axes(ax)
+    else:
+        _ax = Axes3D(fig)
+
     _ax.set_xlim(-10, 10)
     _ax.set_ylim(-10, 10)
     sphere = Bloch(axes=_ax)
