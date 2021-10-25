@@ -141,9 +141,8 @@ class VarQteLinearSolver:
     ):
         if self._backend is not None:
             # Get the QFI/4
-            metric_res = (
-                np.array(self._metric_circ_sampler.convert(metric_tensor, params=param_dict).eval())
-
+            metric_res = np.array(
+                self._metric_circ_sampler.convert(metric_tensor, params=param_dict).eval()
             )
         else:
             # Get the QFI/4

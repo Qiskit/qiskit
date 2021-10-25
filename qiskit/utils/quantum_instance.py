@@ -962,4 +962,3 @@ class QuantumInstance:
                 k: (v.cal_matrix, t) for k, (v, t) in self._meas_error_mitigation_fitters.items()
             }
         return None
-

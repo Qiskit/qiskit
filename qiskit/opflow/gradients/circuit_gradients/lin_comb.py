@@ -107,9 +107,9 @@ class LinComb(CircuitGradient):
             ParameterVector,
             List[ParameterExpression],
             Tuple[ParameterExpression, ParameterExpression],
-            List[Tuple[ParameterExpression, ParameterExpression]]
+            List[Tuple[ParameterExpression, ParameterExpression]],
         ],
-        aux_meas_op: OperatorBase = Z
+        aux_meas_op: OperatorBase = Z,
     ) -> OperatorBase:
         """Convert ``operator`` into an operator that represents the gradient w.r.t. ``params``.
 
@@ -130,9 +130,11 @@ class LinComb(CircuitGradient):
             the order of the given parameters.
         """
         if aux_meas_op.num_qubits != 1:
-            raise Warning('The auxiliary measurement operator is only used to evaluate an '
-                          'expectation value on one auxiliary qubit. Please define it '
-                          'accordingly. ')
+            raise Warning(
+                "The auxiliary measurement operator is only used to evaluate an "
+                "expectation value on one auxiliary qubit. Please define it "
+                "accordingly. "
+            )
         return self._prepare_operator(operator, params, aux_meas_op)
 
     # pylint: disable=too-many-return-statements
@@ -146,7 +148,7 @@ class LinComb(CircuitGradient):
             Tuple[ParameterExpression, ParameterExpression],
             List[Tuple[ParameterExpression, ParameterExpression]],
         ],
-        aux_meas_op: OperatorBase = Z
+        aux_meas_op: OperatorBase = Z,
     ) -> OperatorBase:
         """Traverse ``operator`` to get back the adapted operator representing the gradient.
 
@@ -199,48 +201,66 @@ class LinComb(CircuitGradient):
                 if len(operator.oplist) == 2:
                     state_op = operator.oplist[1]
                     if not isinstance(state_op, StateFn):
-                        raise TypeError('The StateFn representing the quantum state could not be'
-                                        'extracted.')
-                    if isinstance(params, (ParameterExpression, ParameterVector)) or \
-                            (isinstance(params, list) and all(isinstance(param, ParameterExpression)
-                                                              for param in params)):
-                        return self._gradient_states(state_op, meas_op=(2 * aux_meas_op ^ meas),
-                                                        target_params=params)
-                    elif isinstance(params, tuple) or \
-                            (isinstance(params, list) and all(isinstance(param, tuple)
-                                                              for param in params)):
+                        raise TypeError(
+                            "The StateFn representing the quantum state could not be" "extracted."
+                        )
+                    if isinstance(params, (ParameterExpression, ParameterVector)) or (
+                        isinstance(params, list)
+                        and all(isinstance(param, ParameterExpression) for param in params)
+                    ):
+                        return self._gradient_states(
+                            state_op, meas_op=(2 * aux_meas_op ^ meas), target_params=params
+                        )
+                    elif isinstance(params, tuple) or (
+                        isinstance(params, list)
+                        and all(isinstance(param, tuple) for param in params)
+                    ):
 
-                        return self._hessian_states(state_op,
-                                                    meas_op=(4 * (aux_meas_op ^ I ^ meas)),
-                                                    target_params=params)  # type: ignore
+                        return self._hessian_states(
+                            state_op, meas_op=(4 * (aux_meas_op ^ I ^ meas)), target_params=params
+                        )  # type: ignore
                     else:
-                        raise OpflowError('The linear combination gradient does only support the '
-                                        'computation of 1st gradients and 2nd order gradients.')
+                        raise OpflowError(
+                            "The linear combination gradient does only support the "
+                            "computation of 1st gradients and 2nd order gradients."
+                        )
 
                 else:
                     state_op = deepcopy(operator)
                     state_op.oplist.pop(0)
                     if not isinstance(state_op, StateFn):
-                        raise TypeError('The StateFn representing the quantum state could not be'
-                                        'extracted.')
+                        raise TypeError(
+                            "The StateFn representing the quantum state could not be" "extracted."
+                        )
 
-                    if isinstance(params, (ParameterExpression, ParameterVector)) or \
-                            (isinstance(params, list) and all(isinstance(param, ParameterExpression)
-                                                              for param in params)):
+                    if isinstance(params, (ParameterExpression, ParameterVector)) or (
+                        isinstance(params, list)
+                        and all(isinstance(param, ParameterExpression) for param in params)
+                    ):
 
-                        return state_op.traverse(partial(self._gradient_states,
-                                                         meas_op=(2 * aux_meas_op ^ meas),
-                                                         target_params=params))
-                    elif isinstance(params, tuple) or \
-                        (isinstance(params, list) and all(isinstance(param, tuple)
-                                                          for param in params)):
                         return state_op.traverse(
-                                partial(self._hessian_states,
-                                        meas_op=(4 * aux_meas_op ^ I ^ meas),
-                                        target_params=params))
+                            partial(
+                                self._gradient_states,
+                                meas_op=(2 * aux_meas_op ^ meas),
+                                target_params=params,
+                            )
+                        )
+                    elif isinstance(params, tuple) or (
+                        isinstance(params, list)
+                        and all(isinstance(param, tuple) for param in params)
+                    ):
+                        return state_op.traverse(
+                            partial(
+                                self._hessian_states,
+                                meas_op=(4 * aux_meas_op ^ I ^ meas),
+                                target_params=params,
+                            )
+                        )
 
-                    raise OpflowError('The linear combination gradient does onYly support the '
-                                      'computation of 1st gradients and 2nd order gradients.')
+                    raise OpflowError(
+                        "The linear combination gradient does onYly support the "
+                        "computation of 1st gradients and 2nd order gradients."
+                    )
             else:
                 return operator.traverse(partial(self._prepare_operator, params=params))
         elif isinstance(operator, ListOp):
@@ -267,10 +287,8 @@ class LinComb(CircuitGradient):
             return operator
         return operator
 
-
     @staticmethod
     def _grad_combo_fn(x, state_op, aux_meas_op):
-
         def get_result(item):
             if isinstance(item, (DictStateFn, SparseVectorStateFn)):
                 item = item.primitive
@@ -640,7 +658,6 @@ class LinComb(CircuitGradient):
 
         state_qc.compose(unrolled, inplace=True)
 
-
         # Define the working qubit to realize the linear combination of unitaries
         if not isinstance(target_params, (list, np.ndarray)):
             target_params = [target_params]
@@ -683,8 +700,10 @@ class LinComb(CircuitGradient):
                             # state = PauliExpectation().convert(state).reduce()
                         elif meas_op is True:
                             state = ListOp(
-                                [state], combo_fn=partial(self._grad_combo_fn, state_op=state_op,
-                                                          aux_meas_op=aux_meas_op)
+                                [state],
+                                combo_fn=partial(
+                                    self._grad_combo_fn, state_op=state_op, aux_meas_op=aux_meas_op
+                                ),
                             )
 
                         if param_expression != param:  # parameter is not identity, apply chain rule
@@ -699,8 +718,8 @@ class LinComb(CircuitGradient):
         self,
         state_op: StateFn,
         meas_op: Optional[OperatorBase] = None,
-        target_params = None,
-        aux_meas_op: OperatorBase = Z
+        target_params=None,
+        aux_meas_op: OperatorBase = Z,
     ) -> OperatorBase:
         """Generate the operator states whose evaluation returns the Hessian (items).
 
@@ -787,8 +806,11 @@ class LinComb(CircuitGradient):
                                     # uses combo_fn on list op with a single operator
                                     state = ListOp(
                                         [state],
-                                        combo_fn=partial(self._hess_combo_fn, state_op=state_op,
-                                                         aux_meas_op=aux_meas_op),
+                                        combo_fn=partial(
+                                            self._hess_combo_fn,
+                                            state_op=state_op,
+                                            aux_meas_op=aux_meas_op,
+                                        ),
                                     )
 
                                 # Chain Rule Parameter Expression

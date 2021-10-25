@@ -432,7 +432,6 @@ class ListOp(OperatorBase):
 
         evals = [op.eval(front) for op in self.oplist]
 
-
         # Handle application of combo_fn for DictStateFn resp VectorStateFn operators
         if self._combo_fn is not None:  # If not using default.
             if (

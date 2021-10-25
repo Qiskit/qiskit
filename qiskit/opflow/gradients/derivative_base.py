@@ -108,7 +108,6 @@ class DerivativeBase(ConverterBase):
         if not grad_params:
             grad_params = bind_params
 
-
         grad = self.convert(operator, grad_params)
         if expectation is None:
             expectation = PauliExpectation()

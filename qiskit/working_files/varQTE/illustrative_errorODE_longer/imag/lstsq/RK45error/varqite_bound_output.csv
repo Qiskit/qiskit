@@ -1,3 +1,0 @@
-eps_t,dt,opt_factor,grad_factor,energy_factor,stddev,|norm(H)|
-0.0,0.0001,0.0,4.4e-07,0.0,3.31662479,5.0
-0.0,0.0001,0.0,5.2e-07,0.0,3.31662483,5.0

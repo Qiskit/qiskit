@@ -7,6 +7,7 @@ from sympy import Symbol, cos
 
 try:
     import jax.numpy as jnp
+
     _HAS_JAX = True
 except ImportError:
     _HAS_JAX = False
@@ -26,11 +27,11 @@ from qiskit.circuit import Parameter, ParameterExpression
 from qiskit.circuit import ParameterVector
 from qiskit.circuit.library import RealAmplitudes
 
-method = 'lin_comb'
-a = Parameter('a')
-b = Parameter('b')
+method = "lin_comb"
+a = Parameter("a")
+b = Parameter("b")
 params = [a, b]
-backends = ['statevector_simulator', 'qasm_simulator']
+backends = ["statevector_simulator", "qasm_simulator"]
 
 qc = QuantumCircuit(2)
 qc.h(1)
@@ -42,7 +43,7 @@ qc.rz(params[1], 0)
 qc.h(1)
 
 obs = (Z ^ X) - (Y ^ Y)
-op = ~StateFn(obs) @ CircuitStateFn(primitive=qc, coeff=1.)
+op = ~StateFn(obs) @ CircuitStateFn(primitive=qc, coeff=1.0)
 
 shots = 100000
 
@@ -54,14 +55,14 @@ for value in values:
 
         q_instance = QuantumInstance(backend=backend, shots=shots)
 
-        grad = NaturalGradient(grad_method=method).gradient_wrapper(operator=op,
-                                                                    bind_params=params,
-                                                                    backend=q_instance)
+        grad = NaturalGradient(grad_method=method).gradient_wrapper(
+            operator=op, bind_params=params, backend=q_instance
+        )
 
         result = grad(value)
         results.append(result)
     print(results)
-    grad_eval = NaturalGradient(grad_method=method).gradient_wrapper(operator=op,
-                                                                     bind_params=params,
-                                                                     backend=None)
-    print('eval grad', grad_eval(value))
+    grad_eval = NaturalGradient(grad_method=method).gradient_wrapper(
+        operator=op, bind_params=params, backend=None
+    )
+    print("eval grad", grad_eval(value))

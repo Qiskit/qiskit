@@ -148,6 +148,7 @@ class Gradient(GradientBase):
             op = operator / coeff
             if np.iscomplex(coeff):
                 from .circuit_gradients.lin_comb import LinComb
+
                 if isinstance(self.grad_method, LinComb):
                     op *= 1j
                     coeff /= 1j
@@ -175,8 +176,10 @@ class Gradient(GradientBase):
 
             # Gradient of an expectation value
             if not is_coeff_c_abs(operator._coeff, 1.0):
-                raise OpflowError('Operator pre-processing failed. Coefficients were not properly '
-                                  'collected inside the ComposedOp.')
+                raise OpflowError(
+                    "Operator pre-processing failed. Coefficients were not properly "
+                    "collected inside the ComposedOp."
+                )
 
             # Do some checks to make sure operator is sensible
             # TODO add compatibility with sum of circuit state fns
@@ -224,7 +227,7 @@ class Gradient(GradientBase):
                     )
 
             def chain_rule_combo_fn(x):
-                print('Warning chain rule combo fn adapted')
+                print("Warning chain rule combo fn adapted")
                 # try:
                 #     for j in range(len(x[1])):
                 #         x[1][j] = x[1][j].toarray()[0]

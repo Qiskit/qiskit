@@ -54,14 +54,12 @@ class TestRealTimeDependentVariationalPrinciple(QiskitAlgorithmsTestCase):
         )
         metric_tensor = var_principle.metric_tensor
 
-        #print(metric_tensor)
+        # print(metric_tensor)
 
         bound_raw_metric_tensor = raw_metric_tensor.bind_parameters(param_dict).eval()
         expected_metric_tensor = bound_raw_metric_tensor / 4.0
 
-        np.testing.assert_almost_equal(
-            metric_tensor.to_matrix(), expected_metric_tensor
-        )
+        np.testing.assert_almost_equal(metric_tensor.to_matrix(), expected_metric_tensor)
 
     def test_calc_calc_evolution_grad(self):
         observable = SummedOp(

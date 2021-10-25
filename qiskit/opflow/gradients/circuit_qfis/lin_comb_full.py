@@ -41,7 +41,7 @@ class LinCombFull(CircuitQFI):
         operator: CircuitStateFn,
         params: Union[ParameterExpression, ParameterVector, List[ParameterExpression]],
         aux_meas_op: OperatorBase = Z,
-        phase_fix: bool = True
+        phase_fix: bool = True,
     ) -> ListOp:
         r"""
         Args:
@@ -63,11 +63,13 @@ class LinCombFull(CircuitQFI):
             TypeError: If ``operator`` is an unsupported type.
         """
         # QFI & phase fix observable
-        qfi_observable = StateFn(4 * aux_meas_op ^ (I ^ operator.num_qubits),
-                                 is_measurement=True).reduce()
+        qfi_observable = StateFn(
+            4 * aux_meas_op ^ (I ^ operator.num_qubits), is_measurement=True
+        ).reduce()
         if phase_fix:
-            phase_fix_observable = SummedOp([Z ^ (I ^ operator.num_qubits),
-                                            -1j * Y ^ (I ^ operator.num_qubits)])
+            phase_fix_observable = SummedOp(
+                [Z ^ (I ^ operator.num_qubits), -1j * Y ^ (I ^ operator.num_qubits)]
+            )
         # see https://arxiv.org/pdf/quant-ph/0108146.pdf
 
         # Check if the given operator corresponds to a quantum state given as a circuit.
@@ -87,8 +89,11 @@ class LinCombFull(CircuitQFI):
             # First, the operators are computed which can compensate for a potential phase-mismatch
             # between target and trained state, i.e.〈ψ|∂lψ〉
             gradient_states = LinComb()._gradient_states(
-                operator, meas_op=phase_fix_observable, target_params=params, open_ctrl=True,
-                trim_after_grad_gate=True
+                operator,
+                meas_op=phase_fix_observable,
+                target_params=params,
+                open_ctrl=True,
+                trim_after_grad_gate=True,
             )
             # if type(gradient_states) in [ListOp, SummedOp]:  # pylint: disable=unidiomatic-typecheck
 
@@ -189,10 +194,11 @@ class LinCombFull(CircuitQFI):
                 # Compute −4 * Re(〈∂kψ|ψ〉〈ψ|∂lψ〉)
                 def phase_fix_combo_fn(x):
                     return -4 * np.real(x[0] * np.conjugate(x[1]))
+
                 if phase_fix:
                     phase_fix_op = ListOp(
                         [phase_fix_states[i], phase_fix_states[j]], combo_fn=phase_fix_combo_fn
-                        )
+                    )
                     # Add the phase fix quantities to the entries of the QFI
                     # Get 4 * Re[〈∂kψ|∂lψ〉−〈∂kψ|ψ〉〈ψ|∂lψ〉]
                     qfi_ops += [SummedOp(qfi_op) + phase_fix_op]

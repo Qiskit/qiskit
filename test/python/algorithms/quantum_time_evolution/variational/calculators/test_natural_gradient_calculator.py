@@ -25,6 +25,7 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 
 
 class TestNaturalGradientCalculator(QiskitAlgorithmsTestCase):
+    # checked, correct
     def test_calculate(self):
         observable = SummedOp(
             [
@@ -66,6 +67,7 @@ class TestNaturalGradientCalculator(QiskitAlgorithmsTestCase):
 
         np.testing.assert_array_almost_equal(natural_grad, correct_values)
 
+    # result slightly different than above, due to a regularization
     def test_calculate_regularized(self):
         observable = SummedOp(
             [

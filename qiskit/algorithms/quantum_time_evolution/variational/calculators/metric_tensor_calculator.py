@@ -24,7 +24,7 @@ def calculate(
     parameters: Optional[Union[ParameterVector, ParameterExpression, List[ParameterExpression]]],
     qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
     basis: OperatorBase = Z,
-    phase_fix: bool = True
+    phase_fix: bool = True,
 ):
     operator = CircuitStateFn(ansatz)
 

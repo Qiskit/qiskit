@@ -1,4 +1,3 @@
-
 import unittest
 from test.python.opflow import QiskitOpflowTestCase
 from itertools import product
@@ -67,8 +66,12 @@ op = obs.to_matrix_op().primitive.data
 # op = StateFn(obs, is_measurement=True) @ CircuitStateFn(primitive=qc)
 
 state = StateFn(qc).assign_parameters(dict(zip(params, [0, np.pi / 2]))).eval().primitive.data
-grad_a = StateFn(qc_grad_a).assign_parameters(dict(zip(params, [0, np.pi / 2]))).eval().primitive.data
-grad_b = StateFn(qc_grbd_b).assign_parameters(dict(zip(params, [0, np.pi / 2]))).eval().primitive.data
+grad_a = (
+    StateFn(qc_grad_a).assign_parameters(dict(zip(params, [0, np.pi / 2]))).eval().primitive.data
+)
+grad_b = (
+    StateFn(qc_grbd_b).assign_parameters(dict(zip(params, [0, np.pi / 2]))).eval().primitive.data
+)
 
 shots = 10000
 

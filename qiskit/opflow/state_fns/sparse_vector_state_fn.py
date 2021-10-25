@@ -116,7 +116,7 @@ class SparseVectorStateFn(StateFn):
 
         num_qubits = self.num_qubits
         dok = self.primitive.todok()
-        new_dict = {format(i[1], 'b').zfill(num_qubits): v for i, v in dok.items()}
+        new_dict = {format(i[1], "b").zfill(num_qubits): v for i, v in dok.items()}
         return DictStateFn(new_dict, coeff=self.coeff, is_measurement=self.is_measurement)
 
     def to_matrix(self, massive: bool = False) -> np.ndarray:

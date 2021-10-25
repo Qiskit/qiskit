@@ -50,7 +50,7 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
     ):
 
         raw_evolution_grad_imag = evolution_grad_calculator.calculate(
-            hamiltonian, ansatz, list(param_dict.keys()), self._grad_method, basis=-1j*Y
+            hamiltonian, ansatz, list(param_dict.keys()), self._grad_method, basis=-1j * Y
         )
 
         return raw_evolution_grad_imag
