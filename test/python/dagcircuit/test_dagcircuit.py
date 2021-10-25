@@ -12,6 +12,7 @@
 
 """Test for the DAGCircuit object"""
 
+from collections import Counter
 import unittest
 
 from ddt import ddt, data
@@ -104,8 +105,12 @@ def raise_if_dagcircuit_invalid(dag):
             cur_node_id = edges_to_follow[0][1]
 
     # Wires can only terminate at input/output nodes.
+    op_counts = Counter()
     for op_node in dag.op_nodes():
         assert multi_graph.in_degree(op_node._node_id) == multi_graph.out_degree(op_node._node_id)
+        op_counts[op_node.name] += 1
+    # The _op_names attribute should match the counted op names
+    assert op_counts == dag._op_names
 
     # Node input/output edges should match node qarg/carg/condition.
     for node in dag.op_nodes():
@@ -1186,14 +1191,60 @@ class TestDagSubstitute(QiskitTestCase):
         self.dag.substitute_node_with_dag(cx_node, flipped_cx_circuit, wires=[v[0], v[1]])
 
         self.assertEqual(self.dag.count_ops()["h"], 5)
+        expected = DAGCircuit()
+        qreg = QuantumRegister(3, "qr")
+        creg = ClassicalRegister(2, "cr")
+        expected.add_qreg(qreg)
+        expected.add_creg(creg)
+        expected.apply_operation_back(HGate(), [qreg[0]], [])
+        expected.apply_operation_back(HGate(), [qreg[0]], [])
+        expected.apply_operation_back(HGate(), [qreg[1]], [])
+        expected.apply_operation_back(CXGate(), [qreg[1], qreg[0]], [])
+        expected.apply_operation_back(HGate(), [qreg[0]], [])
+        expected.apply_operation_back(HGate(), [qreg[1]], [])
+        expected.apply_operation_back(XGate(), [qreg[1]], [])
+        self.assertEqual(self.dag, expected)
 
     def test_substitute_circuit_one_front(self):
         """The method substitute_node_with_dag() replaces a leaf-in-the-front node with a DAG."""
-        pass
+        circuit = DAGCircuit()
+        v = QuantumRegister(1, "v")
+        circuit.add_qreg(v)
+        circuit.apply_operation_back(HGate(), [v[0]], [])
+        circuit.apply_operation_back(XGate(), [v[0]], [])
+
+        self.dag.substitute_node_with_dag(next(self.dag.topological_op_nodes()), circuit)
+        expected = DAGCircuit()
+        qreg = QuantumRegister(3, "qr")
+        creg = ClassicalRegister(2, "cr")
+        expected.add_qreg(qreg)
+        expected.add_creg(creg)
+        expected.apply_operation_back(HGate(), [qreg[0]], [])
+        expected.apply_operation_back(XGate(), [qreg[0]], [])
+        expected.apply_operation_back(CXGate(), [qreg[0], qreg[1]], [])
+        expected.apply_operation_back(XGate(), [qreg[1]], [])
+        self.assertEqual(self.dag, expected)
 
     def test_substitute_circuit_one_back(self):
         """The method substitute_node_with_dag() replaces a leaf-in-the-back node with a DAG."""
-        pass
+        circuit = DAGCircuit()
+        v = QuantumRegister(1, "v")
+        circuit.add_qreg(v)
+        circuit.apply_operation_back(HGate(), [v[0]], [])
+        circuit.apply_operation_back(XGate(), [v[0]], [])
+
+        self.dag.substitute_node_with_dag(list(self.dag.topological_op_nodes())[2], circuit)
+        expected = DAGCircuit()
+        qreg = QuantumRegister(3, "qr")
+        creg = ClassicalRegister(2, "cr")
+        expected.add_qreg(qreg)
+        expected.add_creg(creg)
+        expected.apply_operation_back(HGate(), [qreg[0]], [])
+        expected.apply_operation_back(CXGate(), [qreg[0], qreg[1]], [])
+        expected.apply_operation_back(HGate(), [qreg[1]], [])
+        expected.apply_operation_back(XGate(), [qreg[1]], [])
+
+        self.assertEqual(self.dag, expected)
 
     def test_raise_if_substituting_dag_modifies_its_conditional(self):
         """Verify that we raise if the input dag modifies any of the bits in node.op.condition."""

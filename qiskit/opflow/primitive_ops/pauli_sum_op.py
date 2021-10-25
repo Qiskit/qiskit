@@ -201,14 +201,14 @@ class PauliSumOp(PrimitiveOp):
         """
         if len(permutation) != self.num_qubits:
             raise OpflowError(
-                "List of indices to permute must have the " "same size as Pauli Operator"
+                "List of indices to permute must have the same size as Pauli Operator"
             )
         length = max(permutation) + 1
         spop = self.primitive.tensor(SparsePauliOp(Pauli("I" * (length - self.num_qubits))))
         permutation = [i for i in range(length) if i not in permutation] + permutation
         permu_arr = np.arange(length)[np.argsort(permutation)]
-        permu_arr = np.hstack([permu_arr, permu_arr + length])
-        spop.table.array = spop.table.array[:, permu_arr]
+        spop.paulis.x = spop.paulis.x[:, permu_arr]
+        spop.paulis.z = spop.paulis.z[:, permu_arr]
         return PauliSumOp(spop, self.coeff)
 
     def compose(
@@ -446,3 +446,6 @@ class PauliSumOp(PrimitiveOp):
         op = self.reduce()
         primitive: SparsePauliOp = op.primitive
         return op.coeff == 1 and len(op) == 1 and primitive.coeffs[0] == 0
+
+    def is_hermitian(self):
+        return np.isreal(self.coeffs).all() and np.all(self.primitive.paulis.phase == 0)

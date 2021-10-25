@@ -58,9 +58,10 @@ class QFI(QFIBase):
         """
         if len(operator.parameters) == 0:
             raise ValueError("The operator we are taking the gradient of is not parameterized!")
-
-        expec_op = PauliExpectation(group_paulis=False).convert(operator).reduce()
-        cleaned_op = self._factor_coeffs_out_of_composed_op(expec_op)
+        # TODO uncomment
+        # expec_op = PauliExpectation(group_paulis=False).convert(operator).reduce()
+        # cleaned_op = self._factor_coeffs_out_of_composed_op(expec_op)
+        cleaned_op = self._factor_coeffs_out_of_composed_op(operator)
 
         if params is None:
             params = sorted(operator.parameters, key=functools.cmp_to_key(_compare_parameters))

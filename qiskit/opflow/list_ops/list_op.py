@@ -427,10 +427,11 @@ class ListOp(OperatorBase):
         # The below code only works for distributive ListOps, e.g. ListOp and SummedOp
         if not self.distributive:
             raise NotImplementedError(
-                "ListOp's eval function is only defined for distributive " "ListOps."
+                "ListOp's eval function is only defined for distributive ListOps."
             )
 
         evals = [op.eval(front) for op in self.oplist]
+
 
         # Handle application of combo_fn for DictStateFn resp VectorStateFn operators
         if self._combo_fn is not None:  # If not using default.
@@ -454,6 +455,7 @@ class ListOp(OperatorBase):
 
         if all(isinstance(op, OperatorBase) for op in evals):
             return self.__class__(evals)  # type: ignore
+
         elif any(isinstance(op, OperatorBase) for op in evals):
             raise TypeError("Cannot handle mixed scalar and Operator eval results.")
         else:

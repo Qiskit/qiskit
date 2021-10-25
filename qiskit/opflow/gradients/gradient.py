@@ -83,6 +83,7 @@ class Gradient(GradientBase):
         # Preprocessing
         expec_op = PauliExpectation(group_paulis=False).convert(operator).reduce()
         cleaned_op = self._factor_coeffs_out_of_composed_op(expec_op)
+        # cleaned_op = self._factor_coeffs_out_of_composed_op(operator)
         return self.get_gradient(cleaned_op, param)
 
     # pylint: disable=too-many-return-statements
@@ -116,6 +117,12 @@ class Gradient(GradientBase):
                 return expr == c
             return coeff == c
 
+        def is_coeff_c_abs(coeff, c):
+            if isinstance(coeff, ParameterExpression):
+                expr = coeff._symbol_expr
+                return False
+            return np.abs(coeff) == c
+
         if isinstance(params, (ParameterVector, list)):
             param_grads = [self.get_gradient(operator, param) for param in params]
             # If get_gradient returns None, then the corresponding parameter was probably not
@@ -134,10 +141,17 @@ class Gradient(GradientBase):
         # By now params is a single parameter
         param = params
         # Handle Product Rules
-        if not is_coeff_c(operator._coeff, 1.0):
+        # TODO adaption for VarQRTE
+        if not is_coeff_c(operator._coeff, 1.0) and not is_coeff_c(operator._coeff, 1.0j):
             # Separate the operator from the coefficient
             coeff = operator._coeff
             op = operator / coeff
+            if np.iscomplex(coeff):
+                from .circuit_gradients.lin_comb import LinComb
+                if isinstance(self.grad_method, LinComb):
+                    op *= 1j
+                    coeff /= 1j
+
             # Get derivative of the operator (recursively)
             d_op = self.get_gradient(op, param)
             # ..get derivative of the coeff
@@ -160,11 +174,9 @@ class Gradient(GradientBase):
         if isinstance(operator, ComposedOp):
 
             # Gradient of an expectation value
-            if not is_coeff_c(operator._coeff, 1.0):
-                raise OpflowError(
-                    "Operator pre-processing failed. Coefficients were not properly "
-                    "collected inside the ComposedOp."
-                )
+            if not is_coeff_c_abs(operator._coeff, 1.0):
+                raise OpflowError('Operator pre-processing failed. Coefficients were not properly '
+                                  'collected inside the ComposedOp.')
 
             # Do some checks to make sure operator is sensible
             # TODO add compatibility with sum of circuit state fns
@@ -212,7 +224,16 @@ class Gradient(GradientBase):
                     )
 
             def chain_rule_combo_fn(x):
-                result = np.dot(x[1], x[0])
+                print('Warning chain rule combo fn adapted')
+                # try:
+                #     for j in range(len(x[1])):
+                #         x[1][j] = x[1][j].toarray()[0]
+                # except Exception:
+                #     pass
+                try:
+                    result = np.dot(x[1], x[0])
+                except Exception:
+                    result = np.dot(x[1][0], np.transpose(x[0]))
                 if isinstance(result, np.ndarray):
                     result = list(result)
                 return result

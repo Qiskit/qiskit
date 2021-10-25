@@ -15,9 +15,8 @@
 from abc import abstractmethod
 from typing import List, Union, Optional, Tuple, Set
 
-from qiskit import QuantumCircuit, QiskitError
+from qiskit import QuantumCircuit, QiskitError, transpile
 from qiskit.circuit import ParameterExpression, ParameterVector
-from qiskit.transpiler.passes import Unroller
 from ...converters.converter_base import ConverterBase
 from ...operator_base import OperatorBase
 
@@ -70,29 +69,32 @@ class CircuitGradient(ConverterBase):
         raise NotImplementedError
 
     @staticmethod
-    def _unroll_to_supported_operations(
+    def _transpile_to_supported_operations(
         circuit: QuantumCircuit, supported_gates: Set[str]
     ) -> QuantumCircuit:
-        """Unroll the given circuit into a gate set for which the gradients may be computed.
+        """Transpile the given circuit into a gate set for which the gradients may be computed.
 
         Args:
-            circuit: Quantum circuit to be unrolled into supported operations.
+            circuit: Quantum circuit to be transpiled into supported operations.
+            supported_gates: Set of quantum operations supported by a gradient method intended to
+                            be used on the quantum circuit.
 
         Returns:
-            Quantum circuit which is unrolled into supported operations.
+            Quantum circuit which is transpiled into supported operations.
 
         Raises:
-            QiskitError: when circuit unrolling fails.
+            QiskitError: when circuit transpiling fails.
 
         """
-        unique_ops = set(circuit.count_ops().keys())
+        unique_ops = set(circuit.count_ops())
         if not unique_ops.issubset(supported_gates):
             try:
-                unroller = Unroller(list(supported_gates))
-                circuit = unroller(circuit)
+                circuit = transpile(
+                    circuit, basis_gates=list(supported_gates), optimization_level=0
+                )
             except Exception as exc:
                 raise QiskitError(
-                    f"Could not unroll the circuit provided {circuit} into supported gates "
+                    f"Could not transpile the circuit provided {circuit} into supported gates "
                     f"{supported_gates}."
                 ) from exc
         return circuit

@@ -14,6 +14,7 @@
 """ Test Quantum Gradient Framework """
 
 import unittest
+from collections import OrderedDict
 from test.python.opflow import QiskitOpflowTestCase
 from itertools import product
 import numpy as np
@@ -31,7 +32,7 @@ from qiskit.test import slow_test
 from qiskit.utils import QuantumInstance
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.utils import algorithm_globals
-from qiskit.algorithms import VQE
+from qiskit.algorithms import VQE, QAOA
 from qiskit.algorithms.optimizers import CG
 from qiskit.opflow import (
     I,
@@ -51,6 +52,32 @@ from qiskit.opflow.gradients.circuit_qfis import LinCombFull, OverlapBlockDiag, 
 from qiskit.circuit import Parameter
 from qiskit.circuit import ParameterVector
 from qiskit.circuit.library import RealAmplitudes, EfficientSU2
+
+
+def _sample_most_likely(state_vector):
+    """Compute the most likely binary string from a state vector.
+    Args:
+        state_vector (numpy.ndarray or dict): state vector or counts.
+    Returns:
+        numpy.ndarray: binary string as numpy.ndarray of ints.
+    """
+    if isinstance(state_vector, (OrderedDict, dict)):
+        # get the binary string with the largest count
+        binary_string = sorted(state_vector.items(), key=lambda kv: kv[1])[-1][0]
+        x = np.asarray([int(y) for y in reversed(list(binary_string))])
+        return x
+    elif isinstance(state_vector, StateFn):
+        binary_string = list(state_vector.sample().keys())[0]
+        x = np.asarray([int(y) for y in reversed(list(binary_string))])
+        return x
+    else:
+        n = int(np.log2(state_vector.shape[0]))
+        k = np.argmax(np.abs(state_vector))
+        x = np.zeros(n)
+        for i in range(n):
+            x[i] = k % 2
+            k >>= 1
+        return x
 
 
 @ddt
@@ -1070,8 +1097,8 @@ class TestGradients(QiskitOpflowTestCase):
             self.assertTrue(np.allclose(result, correct_values[i], atol=atol))
 
     @slow_test
-    def test_vqe(self):
-        """Test VQE with gradients"""
+    def test_vqe1(self):
+        """Test VQE with gradient"""
 
         method = "lin_comb"
         backend = "qasm_simulator"
@@ -1110,6 +1137,84 @@ class TestGradients(QiskitOpflowTestCase):
 
         result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
         np.testing.assert_almost_equal(result.optimal_value, h2_energy, decimal=0)
+
+    @slow_test
+    def test_vqe2(self):
+        """Test VQE with natural gradient"""
+
+        method = 'lin_comb'
+        backend = 'qasm_simulator'
+        q_instance = QuantumInstance(BasicAer.get_backend(backend), seed_simulator=79,
+                                     seed_transpiler=2)
+        # Define the Hamiltonian
+        h2_hamiltonian = -1.05 * (I ^ I) + 0.39 * (I ^ Z) - 0.39 * (Z ^ I) \
+                         - 0.01 * (Z ^ Z) + 0.18 * (X ^ X)
+        h2_energy = -1.85727503
+
+        # Define the Ansatz
+        wavefunction = QuantumCircuit(2)
+        params = ParameterVector('theta', length=8)
+        itr = iter(params)
+        wavefunction.ry(next(itr), 0)
+        wavefunction.ry(next(itr), 1)
+        wavefunction.rz(next(itr), 0)
+        wavefunction.rz(next(itr), 1)
+        wavefunction.cx(0, 1)
+        wavefunction.ry(next(itr), 0)
+        wavefunction.ry(next(itr), 1)
+        wavefunction.rz(next(itr), 0)
+        wavefunction.rz(next(itr), 1)
+
+        # Conjugate Gradient algorithm
+        optimizer = CG(maxiter=10)
+
+        grad = NaturalGradient(grad_method=method)
+
+        # Gradient callable
+        vqe = VQE(var_form=wavefunction,
+                  optimizer=optimizer,
+                  gradient=grad,
+                  quantum_instance=q_instance)
+
+        result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
+        np.testing.assert_almost_equal(result.optimal_value, h2_energy, decimal=0)
+
+    def test_qaoa(self):
+        """ QAOA test
+        qubit_op is computed using max_cut.get_operator(w)
+        for
+            w = np.array([
+            [0, 1, 0, 1],
+            [1, 0, 1, 0],
+            [0, 1, 0, 1],
+            [1, 0, 1, 0]
+            ])
+
+        """
+
+        seed = 2
+        np.random.seed(2)
+        p = 1
+        m = (I ^ I ^ I ^ X) + (I ^ I ^ X ^ I) + (I ^ X ^ I ^ I) + (X ^ I ^ I ^ I)
+        solution = {'0101', '1010'}
+
+        backend = BasicAer.get_backend('statevector_simulator')
+        optimizer = CG(maxiter=10)
+        qubit_op = PauliSumOp(SparsePauliOp
+                              ([[False, False, False, False, True, True, False, False],
+                                [False, False, False, False, False, True, True, False],
+                                [False, False, False, False, True, False, False, True],
+                                [False, False, False, False, False, False, True, True]],
+                               coeffs=[0.5+0.j, 0.5+0.j, 0.5+0.j, 0.5+0.j]), coeff=1.0)
+
+        quantum_instance = QuantumInstance(backend, seed_simulator=seed, seed_transpiler=seed)
+        qaoa = QAOA(optimizer, p, mixer=m, gradient=NaturalGradient(),
+                    quantum_instance=quantum_instance)
+
+        result = qaoa.compute_minimum_eigenvalue(qubit_op)
+        x = _sample_most_likely(result.eigenstate)
+        graph_solution = 1 - x
+        self.assertIn(''.join([str(int(i)) for i in graph_solution]), solution)
 
     def test_qfi_overlap_works_with_bound_parameters(self):
         """Test all QFI methods work if the circuit contains a gate with bound parameters."""

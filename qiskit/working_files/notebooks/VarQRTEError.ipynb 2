@@ -1,0 +1,457 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## VarQRTE Error"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 26,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from jax import grad, jit\n",
+    "import jax.numpy as jnp\n",
+    "\n",
+    "import os\n",
+    "\n",
+    "import numpy as np\n",
+    "import scipy as sp\n",
+    "from scipy.linalg import expm\n",
+    "\n",
+    "from qiskit.circuit.library import EfficientSU2, RealAmplitudes\n",
+    "from qiskit.aqua.operators import StateFn, MatrixOp, CircuitOp, X, I, PauliOp, Z, Y, SummedOp\n",
+    "from qiskit.aqua.operators.gradients import NaturalGradient\n",
+    "from qiskit.aqua.operators.evolutions.varqtes.varqrte import VarQRTE\n",
+    "\n",
+    "np.random.seed = 2"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 27,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Set Hamiltonian\n",
+    "Hamiltonian = SummedOp([(Z ^ X), 0.3 *(Y ^ Y), 1.2* (Y^I)])\n",
+    "# Set time and time_steps \n",
+    "time = 1\n",
+    "time_steps = 3"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 28,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Helper Function computing the inner product\n",
+    "def inner_prod(x, y):\n",
+    "    return np.matmul(np.conj(np.transpose(x)), y)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 29,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Set Ansatz and initial parameters\n",
+    "ansatz = EfficientSU2(2, reps=1, entanglement='linear')\n",
+    "parameters = ansatz.ordered_parameters\n",
+    "init_param_values = np.zeros(len(ansatz.ordered_parameters))\n",
+    "for i in range(ansatz.num_qubits):\n",
+    "    init_param_values[-(ansatz.num_qubits + i + 1)] = np.pi / 2"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Analytic Calculations"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 30,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def analytic_error(state, H, et_ket=None):\n",
+    "    if et_ket is None:\n",
+    "        et_ket = np.zeros(len(state))\n",
+    "        \n",
+    "    dt_state = -1j*(np.dot(H, state) + et_ket)\n",
+    "\n",
+    "    # <dt|dt>\n",
+    "    et = inner_prod(dt_state, dt_state) \n",
+    "    #<H^2>\n",
+    "    et += inner_prod(state, np.matmul(np.matmul(H, H), state))\n",
+    "    # 2Im<dt|H|state>\n",
+    "    et -= 2 * np.imag(inner_prod(dt_state, np.matmul(H, state)))\n",
+    "    \n",
+    "    print('Gradient error', np.round(np.sqrt(et), 5))\n",
+    "    return np.sqrt(et), dt_state"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 31,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Gradient error 0j\n",
+      "Gradient error (0.0001+0j)\n",
+      "Gradient error (0.0002+0j)\n",
+      "error bound for time 1.0 0.008\n",
+      "True error  0.7215178545724918\n"
+     ]
+    }
+   ],
+   "source": [
+    "num_qubits = Hamiltonian.num_qubits\n",
+    "H = Hamiltonian.to_matrix()\n",
+    "\n",
+    "# Propagation Unitary\n",
+    "evolution_op = lambda t: expm(-1 * H * t)\n",
+    "# Initial State\n",
+    "init_state = StateFn(ansatz).assign_parameters(dict(zip(parameters, init_param_values))).eval().primitive\n",
+    "\n",
+    "evolution_op = lambda t: expm(-1j * H * t)\n",
+    "target_state = lambda t: np.dot(evolution_op(t), init_state)\n",
+    "dt_target_state = lambda t: np.dot(-1j * H, target_state(t))\n",
+    "\n",
+    "\n",
+    "error = 0\n",
+    "prepared_state = target_state(0)\n",
+    "for j in range(0, time_steps):\n",
+    "    et_ket = np.ones(2 ** num_qubits) / np.sqrt(2 ** num_qubits) * j * 1e-4\n",
+    "\n",
+    "    et, dt_prepared_state = analytic_error(prepared_state, H, et_ket=et_ket)\n",
+    "    # Euler State propagation\n",
+    "    prepared_state += time/time_steps * dt_prepared_state\n",
+    "    # Compute Error\n",
+    "#     error += time/time_steps * et\n",
+    "    error += time/time_steps * np.sqrt(np.linalg.norm(et_ket))\n",
+    "\n",
+    "print('error bound for time', np.round(time/time_steps*(j+1), 3), np.round(error, 3))\n",
+    "\n",
+    "# sqrt of the l2-norm of the distance between the perturbed, prepared state and the exat, target state\n",
+    "print('True error ', np.sqrt(np.linalg.norm(prepared_state - target_state(time))))\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Numpy Calculations"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 32,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def dt_params(a, c, regularization=None):\n",
+    "    if regularization:\n",
+    "        # If a regularization method is chosen then use a regularized solver to\n",
+    "        # construct the natural gradient.\n",
+    "        nat_grad = NaturalGradient._regularized_sle_solver(\n",
+    "            a, c, regularization=regularization)\n",
+    "    else:\n",
+    "        try:\n",
+    "            # Try to solve the system of linear equations Ax = C.\n",
+    "            nat_grad = np.linalg.solve(a, c)\n",
+    "        except np.linalg.LinAlgError:  # singular matrix\n",
+    "            print('Singular matrix lstsq solver required')\n",
+    "            nat_grad, resids, _, _ = np.linalg.lstsq(a, c)\n",
+    "            print('Residuals', resids)\n",
+    "    return np.real(nat_grad)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 33,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def numpy_error(a, c, dt_weights, H, state):\n",
+    "\n",
+    "    dtdt = inner_prod(dt_weights, np.matmul(a, dt_weights))\n",
+    "    et = dtdt\n",
+    "    print('dtdt', dtdt)\n",
+    "    \n",
+    "    h_squared = inner_prod(state, np.matmul(np.matmul(H, H), state))\n",
+    "    \n",
+    "    if h_squared < dtdt:\n",
+    "        print('Eq. 8 violated')\n",
+    "    et = np.add(et, h_squared)\n",
+    "    \n",
+    "#     print('H^2', h_squared)\n",
+    "\n",
+    "    \n",
+    "    dt = 2*inner_prod(dt_weights, c)\n",
+    "    et -= dt\n",
+    "    print('2Im<dt|H|>', dt)\n",
+    "    \n",
+    "#     print('Grad error', np.round(np.sqrt(et), 3))\n",
+    "    return np.sqrt(et)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 34,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Warning: Numpy Calculations are only compatible with SU2 depth 1 - else hard-coded changes needed.\n"
+     ]
+    }
+   ],
+   "source": [
+    "print('Warning: Numpy Calculations are only compatible with SU2 depth 1 - else hard-coded changes needed.')\n",
+    "\n",
+    "def ry(theta):\n",
+    "    return jnp.array([[jnp.cos(theta/2.), -1*jnp.sin(theta/2)], [jnp.sin(theta/2),\n",
+    "                                                                 jnp.cos(theta/2)]])\n",
+    "\n",
+    "def rz(theta):\n",
+    "    return jnp.array([[jnp.exp(-1j * theta / 2.), 0], [0, jnp.exp(1j * theta / 2.)]])\n",
+    "\n",
+    "\n",
+    "def ryry(alpha, beta):\n",
+    "    return jnp.kron(ry(alpha), ry(beta))\n",
+    "\n",
+    "def rzrz(alpha, beta):\n",
+    "    return jnp.kron(rz(alpha), rz(beta))\n",
+    "\n",
+    "cx = jnp.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]])\n",
+    "i = jnp.eye(2)\n",
+    "y = jnp.array([[0, -1j], [1j, 0]])\n",
+    "z = jnp.array([[1, 0], [0, -1]])\n",
+    "iy = -0.5j * jnp.kron(i, y)\n",
+    "yi = -0.5j * jnp.kron(y, i)\n",
+    "iz = -0.5j * jnp.kron(i, z)\n",
+    "zi = -0.5j * jnp.kron(z, i)\n",
+    "\n",
+    "init = jnp.array([1, 0, 0, 0])\n",
+    "\n",
+    "def state_fn(params):\n",
+    "    vec = jnp.dot(jnp.dot(rzrz(params[7], params[6]), ryry(params[5], params[4])),\n",
+    "                  jnp.dot(cx, jnp.dot(rzrz(params[3],  params[2]), jnp.dot(ryry(params[1],\n",
+    "                                                                                params[0]),\n",
+    "                                                                           init))))\n",
+    "    return vec\n",
+    "\n",
+    "def state0(params):\n",
+    "    vec = jnp.dot(jnp.dot(rzrz(params[7], params[6]), ryry(params[5], params[4])),\n",
+    "                  jnp.dot(cx, jnp.dot(rzrz(params[3],  params[2]), jnp.dot(ryry(params[1],\n",
+    "                                                                                params[0]),\n",
+    "                                                                           init))))\n",
+    "    return vec[0]\n",
+    "\n",
+    "def state1(params):\n",
+    "    vec = jnp.dot(jnp.dot(rzrz(params[7], params[6]), ryry(params[5], params[4])),\n",
+    "                  jnp.dot(cx, jnp.dot(rzrz(params[3],  params[2]), jnp.dot(ryry(params[1],\n",
+    "                                                                                params[0]),\n",
+    "                                                                           init))))\n",
+    "    return vec[1]\n",
+    "\n",
+    "def state2(params):\n",
+    "    vec = jnp.dot(jnp.dot(rzrz(params[7], params[6]), ryry(params[5], params[4])),\n",
+    "                  jnp.dot(cx, jnp.dot(rzrz(params[3],  params[2]), jnp.dot(ryry(params[1],\n",
+    "                                                                                params[0]),\n",
+    "                                                                           init))))\n",
+    "    return vec[2]\n",
+    "\n",
+    "def state3(params):\n",
+    "    vec = jnp.dot(jnp.dot(rzrz(params[7], params[6]), ryry(params[5], params[4])),\n",
+    "                  jnp.dot(cx, jnp.dot(rzrz(params[3],  params[2]), jnp.dot(ryry(params[1],\n",
+    "                                                                                params[0]),\n",
+    "                                                                           init))))\n",
+    "    return vec[3]\n",
+    "\n",
+    "\n",
+    "def A(vec, gradient):\n",
+    "    vec = np.reshape(vec, (len(vec), 1))\n",
+    "    a = np.real(inner_prod(gradient, gradient))\n",
+    "    a = np.subtract(a, np.real(np.matmul(inner_prod(gradient, vec),\n",
+    "                    np.transpose(np.conj(inner_prod(gradient, vec))))))\n",
+    "    return a\n",
+    "\n",
+    "def C(vec, gradient, h):\n",
+    "    vec = np.reshape(vec, (len(vec), 1))\n",
+    "    c = np.imag(inner_prod(gradient, np.matmul(h, vec)))\n",
+    "    c = np.add(c, 1j * inner_prod(gradient, vec) * inner_prod(vec, np.matmul(h, vec)))\n",
+    "    return c\n",
+    "\n",
+    "def grad0(params):\n",
+    "    try:\n",
+    "        return grad(state0)(params)\n",
+    "    except Exception:\n",
+    "        return grad(state0, holomorphic=True)(jnp.complex64(params))\n",
+    "def grad1(params):\n",
+    "    try:\n",
+    "        return grad(state1)(params)\n",
+    "    except Exception:\n",
+    "        return grad(state1, holomorphic=True)(jnp.complex64(params))\n",
+    "def grad2(params):\n",
+    "    try:\n",
+    "        return grad(state2)(params)\n",
+    "    except Exception:\n",
+    "        return grad(state2, holomorphic=True)(jnp.complex64(params))\n",
+    "def grad3(params):\n",
+    "    try:\n",
+    "        return grad(state3)(params)\n",
+    "    except Exception:\n",
+    "        return grad(state3, holomorphic=True)(jnp.complex64(params))\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 35,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "dtdt [[2.43999971]]\n",
+      "2Im<dt|H|> [[4.87999942+0.j]]\n",
+      "dtdt [[2.43426638]]\n",
+      "2Im<dt|H|> [[4.86853276+1.5008874e-09j]]\n",
+      "dtdt [[2.07212861]]\n",
+      "2Im<dt|H|> [[4.15089138+3.16347142e-07j]]\n",
+      "error bound for time 1.0 [[0.44-0.j]]\n",
+      "True error  0.9910189\n",
+      "[-0.43769094+0.02093671j -0.47183177-0.19971228j  0.32523787-0.23575377j\n",
+      "  0.4387848 -0.43770584j]\n",
+      "[-0.45735315-0.1909836j  -0.26817296-0.42058453j  0.2765286 +0.41799982j\n",
+      "  0.46570879+0.1935683j ]\n"
+     ]
+    }
+   ],
+   "source": [
+    "init_param_values = np.zeros(len(ansatz.ordered_parameters))\n",
+    "for i in range(ansatz.num_qubits):\n",
+    "    init_param_values[-(ansatz.num_qubits + i + 1)] = np.pi / 2\n",
+    "params = init_param_values\n",
+    "\n",
+    "for j in range(time_steps):\n",
+    "\n",
+    "    # dim vec x num_params\n",
+    "    gradient = [grad0(params), grad1(params), grad2(params), grad3(params)]\n",
+    "    gradient = np.array([[complex(item) for item in g] for g in gradient]).astype(\n",
+    "        np.complex)\n",
+    "\n",
+    "    state = state_fn(params)\n",
+    "    state = np.array([complex(s) for s in state]).astype(np.complex)\n",
+    "\n",
+    "    metric = A(state, gradient)\n",
+    "    c_grad = C(state, gradient, H)\n",
+    "\n",
+    "    dt_weights = dt_params(metric, c_grad, 'none')\n",
+    "\n",
+    "    et = numpy_error(metric, c_grad, dt_weights, H, state)\n",
+    "\n",
+    "    error += time/time_steps * et\n",
+    "\n",
+    "    params += time/time_steps * np.reshape(dt_weights, np.shape(params))\n",
+    "print('error bound for time', np.round(time/time_steps*(j+1), 3), np.round(error, 3))\n",
+    "\n",
+    "# sqrt of the l2-norm of the distance between the perturbed, prepared state and the exat, target state\n",
+    "print('True error ', np.sqrt(np.linalg.norm(state_fn(params) - target_state(time))))\n",
+    "print(state_fn(params))\n",
+    "print(target_state(time))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Variational Calculations"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 36,
+   "metadata": {},
+   "outputs": [
+    {
+     "ename": "TypeError",
+     "evalue": "must be real number, not CircuitStateFn",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+      "\u001b[0;31mTypeError\u001b[0m                                 Traceback (most recent call last)",
+      "\u001b[0;32m<ipython-input-36-c0bd3b38dfad>\u001b[0m in \u001b[0;36m<module>\u001b[0;34m\u001b[0m\n\u001b[1;32m      8\u001b[0m                                     \u001b[0mfidelity_to_target\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0;32mTrue\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      9\u001b[0m                                     \u001b[0mregularization\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0;34m'none'\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m---> 10\u001b[0;31m                                     ).convert(op)\n\u001b[0m",
+      "\u001b[0;32m~/Documents/GitHub/qiskit-aqua/qiskit/aqua/operators/evolutions/varqtes/varqrte.py\u001b[0m in \u001b[0;36mconvert\u001b[0;34m(self, operator)\u001b[0m\n\u001b[1;32m     75\u001b[0m             \u001b[0;32mif\u001b[0m \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_get_error\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     76\u001b[0m                 \u001b[0;31m# Get the error for the current step\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m---> 77\u001b[0;31m                 \u001b[0me_t\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_error_t\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0moperator\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mnat_grad_result\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mgrad_res\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mmetric_res\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m     78\u001b[0m                 \u001b[0merror\u001b[0m \u001b[0;34m+=\u001b[0m \u001b[0mdt\u001b[0m \u001b[0;34m*\u001b[0m \u001b[0me_t\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     79\u001b[0m                 \u001b[0mprint\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m'Error'\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mnp\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mround\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0merror\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;36m3\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m,\u001b[0m  \u001b[0;34m'after'\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mj\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;34m' time steps.'\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m~/Documents/GitHub/qiskit-aqua/qiskit/aqua/operators/evolutions/varqtes/varqrte.py\u001b[0m in \u001b[0;36m_error_t\u001b[0;34m(self, operator, ng_res, grad_res, metric)\u001b[0m\n\u001b[1;32m    133\u001b[0m                                         operator.oplist[0].coeff ** 2), operator.oplist[-1]]\n\u001b[1;32m    134\u001b[0m                               ).assign_parameters(dict(zip(self._parameters,\n\u001b[0;32m--> 135\u001b[0;31m                                                            self._parameter_values))).eval()\n\u001b[0m\u001b[1;32m    136\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    137\u001b[0m         \u001b[0mprint\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m'Varqte H^2'\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mnp\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mround\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mhsquared\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;36m4\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m~/Documents/GitHub/qiskit-aqua/qiskit/aqua/operators/list_ops/composed_op.py\u001b[0m in \u001b[0;36meval\u001b[0;34m(self, front)\u001b[0m\n\u001b[1;32m    126\u001b[0m             \u001b[0meval_list\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0;34m[\u001b[0m\u001b[0mStateFn\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mfront\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mis_measurement\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0;32mTrue\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m]\u001b[0m \u001b[0;34m+\u001b[0m \u001b[0meval_list\u001b[0m  \u001b[0;31m# type: ignore\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    127\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 128\u001b[0;31m         \u001b[0;32mreturn\u001b[0m \u001b[0mreduce\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mtree_recursive_eval\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mreversed\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0meval_list\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    129\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    130\u001b[0m     \u001b[0;31m# Try collapsing list or trees of compositions into a single <Measurement | Op | State>.\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m~/Documents/GitHub/qiskit-aqua/qiskit/aqua/operators/list_ops/composed_op.py\u001b[0m in \u001b[0;36mtree_recursive_eval\u001b[0;34m(r, l)\u001b[0m\n\u001b[1;32m    116\u001b[0m                 \u001b[0;32mreturn\u001b[0m \u001b[0;34m[\u001b[0m\u001b[0mtree_recursive_eval\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mr_op\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0ml\u001b[0m\u001b[0;34m)\u001b[0m \u001b[0;32mfor\u001b[0m \u001b[0mr_op\u001b[0m \u001b[0;32min\u001b[0m \u001b[0mr\u001b[0m\u001b[0;34m]\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    117\u001b[0m             \u001b[0;32melse\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 118\u001b[0;31m                 \u001b[0;32mreturn\u001b[0m \u001b[0ml\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0meval\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mr\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    119\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    120\u001b[0m         \u001b[0meval_list\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0moplist\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mcopy\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m~/Documents/GitHub/qiskit-aqua/qiskit/aqua/operators/state_fns/operator_state_fn.py\u001b[0m in \u001b[0;36meval\u001b[0;34m(self, front)\u001b[0m\n\u001b[1;32m    206\u001b[0m                                    for front_elem in front.oplist])  # type: ignore\n\u001b[1;32m    207\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 208\u001b[0;31m         \u001b[0;32mreturn\u001b[0m \u001b[0mfront\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0madjoint\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0meval\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mprimitive\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0meval\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mfront\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m)\u001b[0m \u001b[0;34m*\u001b[0m \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mcoeff\u001b[0m  \u001b[0;31m# type: ignore\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    209\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    210\u001b[0m     def sample(self,\n",
+      "\u001b[0;32m~/Documents/GitHub/qiskit-aqua/qiskit/aqua/operators/state_fns/circuit_state_fn.py\u001b[0m in \u001b[0;36meval\u001b[0;34m(self, front)\u001b[0m\n\u001b[1;32m    284\u001b[0m         \u001b[0;32mif\u001b[0m \u001b[0misinstance\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mfront\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mListOp\u001b[0m\u001b[0;34m)\u001b[0m \u001b[0;32mand\u001b[0m \u001b[0mfront\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mdistributive\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    285\u001b[0m             return front.combo_fn([self.eval(front.coeff * front_elem)  # type: ignore\n\u001b[0;32m--> 286\u001b[0;31m                                    for front_elem in front.oplist])\n\u001b[0m\u001b[1;32m    287\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    288\u001b[0m         \u001b[0;31m# Composable with circuit\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m~/Documents/GitHub/qiskit-aqua/qiskit/aqua/operators/state_fns/circuit_state_fn.py\u001b[0m in \u001b[0;36m<listcomp>\u001b[0;34m(.0)\u001b[0m\n\u001b[1;32m    284\u001b[0m         \u001b[0;32mif\u001b[0m \u001b[0misinstance\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mfront\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mListOp\u001b[0m\u001b[0;34m)\u001b[0m \u001b[0;32mand\u001b[0m \u001b[0mfront\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mdistributive\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    285\u001b[0m             return front.combo_fn([self.eval(front.coeff * front_elem)  # type: ignore\n\u001b[0;32m--> 286\u001b[0;31m                                    for front_elem in front.oplist])\n\u001b[0m\u001b[1;32m    287\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    288\u001b[0m         \u001b[0;31m# Composable with circuit\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m~/Documents/GitHub/qiskit-aqua/qiskit/aqua/operators/state_fns/circuit_state_fn.py\u001b[0m in \u001b[0;36meval\u001b[0;34m(self, front)\u001b[0m\n\u001b[1;32m    291\u001b[0m             \u001b[0;32mreturn\u001b[0m \u001b[0mcast\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mUnion\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0mOperatorBase\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mfloat\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mcomplex\u001b[0m\u001b[0;34m]\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mnew_front\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0meval\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    292\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 293\u001b[0;31m         \u001b[0;32mreturn\u001b[0m \u001b[0mcast\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mUnion\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0mOperatorBase\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mfloat\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mcomplex\u001b[0m\u001b[0;34m]\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mto_matrix_op\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0meval\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mfront\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    294\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    295\u001b[0m     \u001b[0;32mdef\u001b[0m \u001b[0mto_circuit\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mmeas\u001b[0m\u001b[0;34m:\u001b[0m \u001b[0mbool\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0;32mFalse\u001b[0m\u001b[0;34m)\u001b[0m \u001b[0;34m->\u001b[0m \u001b[0mQuantumCircuit\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m~/Documents/GitHub/qiskit-aqua/qiskit/aqua/operators/state_fns/vector_state_fn.py\u001b[0m in \u001b[0;36meval\u001b[0;34m(self, front)\u001b[0m\n\u001b[1;32m    179\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    180\u001b[0m         \u001b[0;32mif\u001b[0m \u001b[0;32mnot\u001b[0m \u001b[0misinstance\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mfront\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mOperatorBase\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 181\u001b[0;31m             \u001b[0mfront\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mStateFn\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mfront\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    182\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    183\u001b[0m         \u001b[0;31m# pylint: disable=cyclic-import,import-outside-toplevel\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m~/Documents/GitHub/qiskit-aqua/qiskit/aqua/operators/state_fns/vector_state_fn.py\u001b[0m in \u001b[0;36m__init__\u001b[0;34m(self, primitive, coeff, is_measurement)\u001b[0m\n\u001b[1;32m     48\u001b[0m         \u001b[0;31m# in Statevector objects for easier handling.\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     49\u001b[0m         \u001b[0;32mif\u001b[0m \u001b[0misinstance\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mprimitive\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;34m(\u001b[0m\u001b[0mnp\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mndarray\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mlist\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m---> 50\u001b[0;31m             \u001b[0mprimitive\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mStatevector\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mprimitive\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m     51\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     52\u001b[0m         \u001b[0msuper\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m__init__\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mprimitive\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mcoeff\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mcoeff\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mis_measurement\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mis_measurement\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m~/Documents/GitHub/qiskit-terra/qiskit/quantum_info/states/statevector.py\u001b[0m in \u001b[0;36m__init__\u001b[0;34m(self, data, dims)\u001b[0m\n\u001b[1;32m     67\u001b[0m             \u001b[0;31m# Finally we check if the input is a raw vector in either a\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     68\u001b[0m             \u001b[0;31m# python list or numpy array format.\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m---> 69\u001b[0;31m             \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_data\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mnp\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0masarray\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mdata\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mdtype\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mcomplex\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m     70\u001b[0m         \u001b[0;32melif\u001b[0m \u001b[0misinstance\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mdata\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mStatevector\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     71\u001b[0m             \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_data\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mdata\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_data\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;32m~/anaconda3/envs/QiskitDevenv/lib/python3.7/site-packages/numpy/core/_asarray.py\u001b[0m in \u001b[0;36masarray\u001b[0;34m(a, dtype, order)\u001b[0m\n\u001b[1;32m     83\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     84\u001b[0m     \"\"\"\n\u001b[0;32m---> 85\u001b[0;31m     \u001b[0;32mreturn\u001b[0m \u001b[0marray\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0ma\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mdtype\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mcopy\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0;32mFalse\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0morder\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0morder\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m     86\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     87\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;31mTypeError\u001b[0m: must be real number, not CircuitStateFn"
+     ]
+    }
+   ],
+   "source": [
+    "init_param_values = np.zeros(len(ansatz.ordered_parameters))\n",
+    "for i in range(ansatz.num_qubits):\n",
+    "    init_param_values[-(ansatz.num_qubits + i + 1)] = np.pi / 2\n",
+    "op = time*~StateFn(Hamiltonian)@StateFn(ansatz)\n",
+    "approx_time_evolved_state = VarQRTE(parameters=parameters, get_error=True,\n",
+    "                                    grad_method='lin_comb',\n",
+    "                                    init_parameter_values=init_param_values, num_time_steps=time_steps,\n",
+    "                                    fidelity_to_target=True,\n",
+    "                                    regularization='none'\n",
+    "                                    ).convert(op)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "QiskitDevenv",
+   "language": "python",
+   "name": "qiskitdevenv"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.7.3"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
