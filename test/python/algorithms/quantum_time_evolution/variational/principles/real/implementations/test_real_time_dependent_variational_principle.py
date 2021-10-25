@@ -50,7 +50,7 @@ class TestRealTimeDependentVariationalPrinciple(QiskitAlgorithmsTestCase):
         var_principle._lazy_init(observable, ansatz, param_dict, regularization)
 
         raw_metric_tensor = metric_tensor_calculator.calculate(
-            ansatz, parameters, var_principle._qfi_method, basis=-1j*Y
+            ansatz, parameters, var_principle._qfi_method, basis=-1j * Y
         )
         metric_tensor = var_principle.metric_tensor
 
@@ -90,9 +90,7 @@ class TestRealTimeDependentVariationalPrinciple(QiskitAlgorithmsTestCase):
         bound_raw_evolution_grad = raw_evolution_grad.bind_parameters(param_dict)
         expected_evolution_grad = -bound_raw_evolution_grad
 
-        np.testing.assert_almost_equal(
-            evolution_grad.eval(), expected_evolution_grad.eval()
-        )
+        np.testing.assert_almost_equal(evolution_grad.eval(), expected_evolution_grad.eval())
 
 
 if __name__ == "__main__":

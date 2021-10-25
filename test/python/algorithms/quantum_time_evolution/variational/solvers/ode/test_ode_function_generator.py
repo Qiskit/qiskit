@@ -90,23 +90,24 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
 
         qte_ode_function = ode_function_generator.var_qte_ode_function(time, param_dict.values())
         expected_qte_ode_function = [
-            -0.8842908,
-            0.0441611,
-            -0.21244606,
-            0.2349356,
-            -0.50246622,
-            -0.6425113,
-            0.12545623,
-            0.07241851,
-            1.01843757,
-            0.3669189,
-            0.10147791,
-            0.18632604,
-            0.75854565,
+            0.442093,
+            -0.023687,
+            0.103311,
+            -0.115833,
+            0.243872,
+            0.316421,
+            -0.061792,
+            -0.040776,
+            -0.50459,
+            -0.178336,
+            -0.048126,
+            -0.091065,
         ]
 
         np.testing.assert_array_almost_equal(expected_qte_ode_function, qte_ode_function)
 
+    # TODO this test fails due to TypeError: ParameterExpression with unbound parameters ({
+    #  Parameter(t)}) cannot be cast to a complex.
     def test_var_qte_ode_function_time_param(self):
         t = Parameter("t")
         observable = SummedOp(

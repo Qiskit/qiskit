@@ -77,7 +77,7 @@ class TestVariationalPrinciple(QiskitAlgorithmsTestCase):
             ]
         )
 
-        np.testing.assert_equal(real_part.to_matrix(), expected_real_part.to_matrix())
+        np.testing.assert_equal(real_part.eval(), expected_real_part.eval())
 
     def test_op_imag_part(self):
         observable = SummedOp(
@@ -100,7 +100,7 @@ class TestVariationalPrinciple(QiskitAlgorithmsTestCase):
             ]
         )
 
-        np.testing.assert_equal(imag_part.to_matrix(), expected_imag_part.to_matrix())
+        np.testing.assert_equal(imag_part.eval(), expected_imag_part.eval())
 
 
 if __name__ == "__main__":

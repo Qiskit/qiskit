@@ -57,9 +57,7 @@ class TestRealMcLachlanVariationalPrinciple(QiskitAlgorithmsTestCase):
         bound_raw_metric_tensor = raw_metric_tensor.bind_parameters(param_dict)
         expected_metric_tensor = bound_raw_metric_tensor / 4.0
 
-        np.testing.assert_almost_equal(
-            metric_tensor.eval(), expected_metric_tensor.eval()
-        )
+        np.testing.assert_almost_equal(metric_tensor.eval(), expected_metric_tensor.eval())
 
     def test_calc_calc_evolution_grad(self):
         observable = SummedOp(
@@ -85,20 +83,14 @@ class TestRealMcLachlanVariationalPrinciple(QiskitAlgorithmsTestCase):
         var_principle._lazy_init(observable, ansatz, param_dict, regularization)
 
         raw_evolution_grad = evolution_grad_calculator.calculate(
-            observable,
-            ansatz,
-            parameters,
-            var_principle._grad_method,
-            basis=-1j*Y
+            observable, ansatz, parameters, var_principle._grad_method, basis=-1j * Y
         )
         evolution_grad = var_principle.evolution_grad
 
         bound_raw_evolution_grad = raw_evolution_grad.bind_parameters(param_dict)
         expected_evolution_grad = bound_raw_evolution_grad
 
-        np.testing.assert_almost_equal(
-            evolution_grad.eval(), expected_evolution_grad.eval()
-        )
+        np.testing.assert_almost_equal(evolution_grad.eval(), expected_evolution_grad.eval())
 
 
 if __name__ == "__main__":

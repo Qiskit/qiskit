@@ -14,19 +14,12 @@ import unittest
 
 import numpy as np
 from numpy import array
-from scipy.linalg import expm
 
-from qiskit.algorithms.quantum_time_evolution.variational.calculators.distance_energy_calculator import (
-    _inner_prod,
-)
 from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.imaginary_error_calculator import (
     ImaginaryErrorCalculator,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.error_based_ode_function_generator import (
     ErrorBaseOdeFunctionGenerator,
-)
-from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.ode_function_generator import (
-    OdeFunctionGenerator,
 )
 from qiskit import Aer
 from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
@@ -95,61 +88,63 @@ class TestErrorBasedOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         )
 
         qte_ode_function = ode_function_generator.error_based_ode_fun(1, param_dict.values())
+
         # TODO extract
+        # TODO verify values if correct
         expected_qte_ode_function = (
             array(
                 [
-                    0.07424185,
-                    -0.0911589,
-                    -0.2886398,
-                    0.55665402,
-                    0.04528084,
-                    0.45362375,
-                    0.00673571,
-                    0.19827336,
-                    0.98155722,
-                    0.11889629,
-                    0.08325738,
-                    -0.04440359,
+                    -0.20586541,
+                    0.71865927,
+                    0.1353771,
+                    0.99934292,
+                    -0.00631492,
+                    -0.07428645,
+                    -0.34469716,
+                    -0.3218795,
+                    0.81221089,
+                    0.65605788,
+                    -0.32451751,
+                    -0.24383516,
                 ]
             ),
             array(
                 [
-                    0.20538101,
-                    0.03102336,
-                    0.06979485,
-                    -0.2126282,
-                    0.05649051,
-                    0.25039627,
-                    -0.00781025,
-                    -0.18845438,
-                    -0.30767733,
-                    0.10230533,
-                    0.02497616,
-                    -0.02497616,
+                    0.38617868,
+                    0.01405535,
+                    0.06385049,
+                    -0.13620629,
+                    0.15180743,
+                    0.23783937,
+                    -0.00240605,
+                    -0.09977052,
+                    -0.40357722,
+                    -0.01045385,
+                    0.04578581,
+                    -0.04578581,
                 ]
             ),
             array(
                 [
                     [
                         2.50000000e-01,
-                        1.20731357e-11,
-                        9.23745663e-12,
-                        -1.41196564e-11,
+                        1.20731505e-11,
+                        9.23734973e-12,
+                        -1.41196120e-11,
                         8.83883476e-02,
-                        7.48155443e-12,
+                        7.48163411e-12,
                         6.25000000e-02,
-                        8.16531121e-12,
+                        8.16538615e-12,
                         -1.41735435e-01,
                         3.12500000e-02,
                         1.00222087e-01,
                         -3.12500000e-02,
                     ],
                     [
-                        1.20729722e-11,
+                        1.20731213e-11,
                         2.50000000e-01,
-                        7.08570126e-12,
-                        9.18924616e-12,
+                        7.08568147e-12,
+                        9.18928324e-12,
                         -8.83883477e-02,
                         1.25000000e-01,
                         6.25000000e-02,
@@ -160,10 +155,10 @@ class TestErrorBasedOdeFunctionGenerator(QiskitAlgorithmsTestCase):
                         2.00444174e-01,
                     ],
                     [
-                        9.23739313e-12,
-                        7.08575471e-12,
+                        9.23738336e-12,
+                        7.08569569e-12,
                         1.25000000e-01,
-                        1.13708529e-12,
+                        1.13699429e-12,
                         -4.41941738e-02,
                         6.25000000e-02,
                         1.19638348e-01,
@@ -174,9 +169,9 @@ class TestErrorBasedOdeFunctionGenerator(QiskitAlgorithmsTestCase):
                         -6.89720869e-02,
                     ],
                     [
-                        -1.41196723e-11,
-                        9.18913696e-12,
-                        1.13706284e-12,
+                        -1.41196209e-11,
+                        9.18928475e-12,
+                        1.13703340e-12,
                         1.25000000e-01,
                         -4.41941738e-02,
                         -6.25000000e-02,
@@ -202,14 +197,14 @@ class TestErrorBasedOdeFunctionGenerator(QiskitAlgorithmsTestCase):
                         -1.23822206e-01,
                     ],
                     [
-                        7.48152685e-12,
+                        7.48165147e-12,
                         1.25000000e-01,
                         6.25000000e-02,
                         -6.25000000e-02,
                         -1.10485435e-01,
                         2.18750000e-01,
                         -2.68082617e-03,
-                        -2.63224724e-13,
+                        -2.63374080e-13,
                         -1.57197815e-01,
                         2.53331304e-02,
                         9.82311964e-03,
@@ -230,16 +225,16 @@ class TestErrorBasedOdeFunctionGenerator(QiskitAlgorithmsTestCase):
                         -5.49651086e-02,
                     ],
                     [
-                        8.16530121e-12,
+                        8.16540703e-12,
                         1.25000000e-01,
                         6.25000000e-02,
                         1.25000000e-01,
                         -4.41941738e-02,
-                        -2.63299433e-13,
+                        -2.63360930e-13,
                         1.37944174e-01,
                         2.50000000e-01,
-                        -1.75169157e-12,
-                        1.95295909e-11,
+                        -1.75163714e-12,
+                        1.95295670e-11,
                         9.75412607e-02,
                         5.71383476e-02,
                     ],
@@ -251,7 +246,7 @@ class TestErrorBasedOdeFunctionGenerator(QiskitAlgorithmsTestCase):
                         1.49547935e-02,
                         -1.57197815e-01,
                         -3.78033966e-02,
-                        -1.75156576e-12,
+                        -1.75163755e-12,
                         1.95283753e-01,
                         -3.82941440e-02,
                         -6.11392595e-02,
@@ -265,7 +260,7 @@ class TestErrorBasedOdeFunctionGenerator(QiskitAlgorithmsTestCase):
                         -2.24896848e-02,
                         2.53331304e-02,
                         1.58423239e-01,
-                        1.95295216e-11,
+                        1.95295392e-11,
                         -3.82941440e-02,
                         2.17629701e-01,
                         1.32431810e-01,

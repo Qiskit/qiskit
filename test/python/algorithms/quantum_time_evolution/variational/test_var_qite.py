@@ -26,85 +26,88 @@ from qiskit.opflow import (
     Y,
     I,
     Z,
+    StateFn,
 )
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 
 class TestVarQite(QiskitAlgorithmsTestCase):
-    # def test_run(self):
-    #     observable = SummedOp(
-    #         [
-    #             0.2252 * (I ^ I),
-    #             0.5716 * (Z ^ Z),
-    #             0.3435 * (I ^ Z),
-    #             -0.4347 * (Z ^ I),
-    #             0.091 * (Y ^ Y),
-    #             0.091 * (X ^ X),
-    #         ]
-    #     ).reduce()
+    def test_run(self):
+        observable = SummedOp(
+            [
+                0.2252 * (I ^ I),
+                0.5716 * (Z ^ Z),
+                0.3435 * (I ^ Z),
+                -0.4347 * (Z ^ I),
+                0.091 * (Y ^ Y),
+                0.091 * (X ^ X),
+            ]
+        ).reduce()
+
+        d = 2
+        ansatz = EfficientSU2(observable.num_qubits, reps=d)
+
+        operator = ~StateFn(observable) @ StateFn(ansatz)
+        parameters = ansatz.ordered_parameters
+        init_param_values = np.zeros(len(ansatz.ordered_parameters))
+        for i in range(len(ansatz.ordered_parameters)):
+            init_param_values[i] = np.pi / 4
+
+        var_principle = ImaginaryMcLachlanVariationalPrinciple()
+
+        param_dict = dict(zip(parameters, init_param_values))
+
+        reg = "ridge"
+
+        var_qite = VarQite(var_principle, regularization=reg, backend=None, error_based_ode=False)
+        time = 1
+
+        evolution_result = var_qite.evolve(
+            # TODO operator or observable?
+            observable,
+            time,
+            # TODO design api assumes it is provided here, currently calculated within VarQte
+            ansatz,  # ansatz is a state in this case
+            hamiltonian_value_dict=param_dict,
+        )
+
+        print(evolution_result)
+
+    # def test_compare(self):
+    #     observable = SummedOp([(Z ^ X), 3.0 * (Y ^ Y), (Z ^ X), (I ^ Z), (Z ^ I)]).reduce()
     #
-    #     d = 2
+    #     d = 1
     #     ansatz = EfficientSU2(observable.num_qubits, reps=d)
     #
-    #     operator = ~StateFn(observable) @ StateFn(ansatz)
     #     parameters = ansatz.ordered_parameters
     #     init_param_values = np.zeros(len(ansatz.ordered_parameters))
     #     for i in range(ansatz.num_qubits):
     #         init_param_values[-(ansatz.num_qubits + i + 1)] = np.pi / 2
     #
-    #     var_principle = ImaginaryMcLachlanVariationalPrinciple()
+    #     param_dict = dict(zip(parameters, init_param_values))
     #
-    #     reg = "ridge"
+    #     var_principle = ImaginaryMcLachlanVariationalPrinciple(
+    #         grad_method="lin_comb", qfi_method="lin_comb_full"
+    #     )
     #
-    #     var_qite = VarQite(var_principle, regularization=reg, backend=None, error_based_ode=False)
-    #     time = 3
+    #     reg = None
+    #
+    #     var_qite = VarQite(
+    #         var_principle,
+    #         regularization=reg,
+    #         backend=Aer.get_backend("statevector_simulator"),
+    #         error_based_ode=False,
+    #     )
+    #     time = 1
     #
     #     evolution_result = var_qite.evolve(
-    #         # TODO operator or observable?
     #         observable,
     #         time,
-    #         # TODO design api assumes it is provided here, currently calculated within VarQte
-    #         ansatz,  # ansatz is a state in this case
+    #         initial_state=ansatz,  # ansatz is a state in this case
     #         hamiltonian_value_dict=param_dict,
     #     )
     #
     #     print(evolution_result)
-
-    def test_compare(self):
-        observable = SummedOp([(Z ^ X), 3.0 * (Y ^ Y), (Z ^ X), (I ^ Z), (Z ^ I)]).reduce()
-
-        d = 1
-        ansatz = EfficientSU2(observable.num_qubits, reps=d)
-
-        parameters = ansatz.ordered_parameters
-        init_param_values = np.zeros(len(ansatz.ordered_parameters))
-        for i in range(ansatz.num_qubits):
-            init_param_values[-(ansatz.num_qubits + i + 1)] = np.pi / 2
-
-        param_dict = dict(zip(parameters, init_param_values))
-
-        var_principle = ImaginaryMcLachlanVariationalPrinciple(
-            grad_method="lin_comb", qfi_method="lin_comb_full"
-        )
-
-        reg = None
-
-        var_qite = VarQite(
-            var_principle,
-            regularization=reg,
-            backend=Aer.get_backend("statevector_simulator"),
-            error_based_ode=False,
-        )
-        time = 1
-
-        evolution_result = var_qite.evolve(
-            observable,
-            time,
-            initial_state=ansatz,  # ansatz is a state in this case
-            hamiltonian_value_dict=param_dict,
-        )
-
-        print(evolution_result)
 
 
 if __name__ == "__main__":

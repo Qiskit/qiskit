@@ -15,12 +15,10 @@ import numpy as np
 from ddt import ddt
 
 from qiskit import Aer
-from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors\
-    .imaginary_error_calculator import (
+from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.imaginary_error_calculator import (
     ImaginaryErrorCalculator,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.implementations\
-    .imaginary_mc_lachlan_variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.solvers.var_qte_linear_solver import (
@@ -158,8 +156,20 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
             ng_res, grad_res, metric_res
         )
         # TODO verify if values correct
-        eps_squared_expected = [0.627225, 0.021158, 0.096593, -0.202396, 0.240526, 0.37758,
-                                -0.002541, -0.149731, -0.554199, -0.007761, 0.069505, -0.066318]
+        eps_squared_expected = [
+            0.627225,
+            0.021158,
+            0.096593,
+            -0.202396,
+            0.240526,
+            0.37758,
+            -0.002541,
+            -0.149731,
+            -0.554199,
+            -0.007761,
+            0.069505,
+            -0.066318,
+        ]
 
         np.testing.assert_array_almost_equal(eps_squared, eps_squared_expected)
 
