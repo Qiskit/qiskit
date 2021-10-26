@@ -135,7 +135,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
                 )
 
         # Initialize BaseOperator
-        Operation.__init__(self, "clifford", self._table.num_qubits, 0, [])
+        Operation.__init__(self, "Clifford", self._table.num_qubits, 0, [])
         super().__init__(num_qubits=self._table.num_qubits)
 
     def __repr__(self):
