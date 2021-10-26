@@ -60,7 +60,8 @@ class TestReadoutMitigation(QiskitTestCase):
     def test_clbits_parameter(self, data):
         """Test whether readout mitigation led to more accurate results"""
         counts_ideal = Counts({'000': 5000, '001': 5000})
-        counts_ideal_12 = Counts({'000': 10000})
+        counts_ideal_12 = Counts({'00': 10000})
+        counts_ideal_02 = Counts({'00': 5000, '01': 5000})
         counts_noise = Counts({'000': 4844, '001': 4962, '100': 56, '101': 65, '011': 37, '010': 35, '110': 1})
         CRM = CompleteReadoutMitigator(data['complete_method_matrix'])
         TRM = TensoredReadoutMitigator(data['tensor_method_matrices'])
@@ -72,7 +73,16 @@ class TestReadoutMitigation(QiskitTestCase):
                     .binary_probabilities()
             )
             mitigated_error = self.compare_results(counts_ideal_12, mitigated_probs_12)
-            self.assertTrue(mitigated_error < 0.0001, "Mitigator {} did not correctly marganalize for qubit 1,2".format(mitigator))
+            self.assertTrue(mitigated_error < 0.001, "Mitigator {} did not correctly marganalize for qubit 1,2".format(mitigator))
+
+            mitigated_probs_02 = (
+                mitigator.quasi_probabilities(counts_noise, clbits=[0, 2])[0]
+                    .nearest_probability_distribution()
+                    .binary_probabilities()
+            )
+            mitigated_error = self.compare_results(counts_ideal_02, mitigated_probs_02)
+            self.assertTrue(mitigated_error < 0.001,
+                            "Mitigator {} did not correctly marganalize for qubit 1,2".format(mitigator))
 
 if __name__ == "__main__":
     unittest.main()
