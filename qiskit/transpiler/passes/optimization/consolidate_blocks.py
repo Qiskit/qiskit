@@ -14,8 +14,6 @@
 
 """Replace each block of consecutive gates by a single Unitary node."""
 
-import numpy as np
-
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -79,8 +77,10 @@ class ConsolidateBlocks(TransformationPass):
         global_index_map = {wire: idx for idx, wire in enumerate(dag.qubits)}
         blocks = self.property_set["block_list"]
         basis_gate_name = self.decomposer.gate.name
+        all_block_gates = set()
         for block in blocks:
             if len(block) == 1 and (self.basis_gates and block[0].name not in self.basis_gates):
+                all_block_gates.add(block[0])
                 dag.substitute_node(block[0], UnitaryGate(block[0].op.to_matrix()))
             else:
                 basis_count = 0
@@ -91,6 +91,7 @@ class ConsolidateBlocks(TransformationPass):
                     block_qargs |= set(nd.qargs)
                     if isinstance(nd, DAGOpNode) and nd.op.condition:
                         block_cargs |= set(nd.op.condition[0])
+                    all_block_gates.add(nd)
                 q = QuantumRegister(len(block_qargs))
                 qc = QuantumCircuit(q)
                 if block_cargs:
@@ -114,7 +115,26 @@ class ConsolidateBlocks(TransformationPass):
                     or (self.basis_gates is not None and outside_basis)
                 ):
                     dag.replace_block_with_op(block, unitary, block_index_map)
-
+        # If 1q runs are collected before consolidate those too
+        runs = self.property_set["run_list"]
+        if runs:
+            for run in runs:
+                if run[0] in all_block_gates:
+                    continue
+                if len(run) == 1 and self.basis_gates and run[0].name not in self.basis_gates:
+                    dag.substitute_node(run[0], UnitaryGate(run[0].op.to_matrix()))
+                else:
+                    qubit = run[0].qargs[0]
+                    operator = run[0].op.to_matrix()
+                    already_in_block = False
+                    for gate in run[1:]:
+                        if gate in all_block_gates:
+                            already_in_block = True
+                        operator = gate.op.to_matrix().dot(operator)
+                    if already_in_block:
+                        continue
+                    unitary = UnitaryGate(operator)
+                    dag.replace_block_with_op(run, unitary, {qubit: 0})
         return dag
 
     def _block_qargs_to_indices(self, block_qargs, global_index_map):

@@ -989,7 +989,7 @@ class DAGCircuit:
             node_block (List[DAGNode]): A list of dag nodes that represents the
                 node block to be replaced
             op (Instruction): The instruction to replace the block with
-            wire_pos_map (Dict[Qubit, int]: The dictionary mapping the qarg to
+            wire_pos_map (Dict[Qubit, int]): The dictionary mapping the qarg to
                 the position. This is necessary to reconstruct the qarg order
                 over multiple gates in the combined singe op node.
         """
