@@ -429,12 +429,26 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         """Test simplify method"""
         coeffs = [3 + 1j, -3 - 1j, 0, 4, -5, 2.2, -1.1j]
         labels = ["IXI", "IXI", "ZZZ", "III", "III", "XXX", "XXX"]
-        value = SparsePauliOp(PauliTable.from_labels(labels), coeffs).simplify()
+        spp_op = SparsePauliOp.from_list(zip(labels, coeffs))
+        simplified_op = spp_op.simplify()
         target_coeffs = [-1, 2.2 - 1.1j]
         target_labels = ["III", "XXX"]
-        target = SparsePauliOp(PauliTable.from_labels(target_labels), target_coeffs)
+        target_op = SparsePauliOp.from_list(zip(target_labels, target_coeffs))
+        self.assertEqual(simplified_op, target_op)
+        np.testing.assert_array_equal(simplified_op.paulis.phase, [0] * simplified_op.size)
+
+    @combine(num_qubits=[1, 2, 3, 4], num_adds=[0, 1, 2, 3])
+    def test_simplify2(self, num_qubits, num_adds):
+        """Test simplify method for {num_qubits} qubits with {num_adds} `add` calls."""
+        spp_op = self.random_spp_op(num_qubits, 2 ** num_qubits)
+        for _ in range(num_adds):
+            spp_op += spp_op
+        simplified_op = spp_op.simplify()
+        value = Operator(simplified_op)
+        target = Operator(spp_op)
         self.assertEqual(value, target)
-        np.testing.assert_array_equal(value.paulis.phase, [0] * value.size)
+        np.testing.assert_array_equal(spp_op.paulis.phase, [0] * spp_op.size)
+        np.testing.assert_array_equal(simplified_op.paulis.phase, [0] * simplified_op.size)
 
 
 if __name__ == "__main__":
