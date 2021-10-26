@@ -23,6 +23,7 @@ from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 from qiskit.quantum_info.operators.linear_op import LinearOp
 from qiskit.quantum_info.operators.mixins import generate_apidocs
 from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators.symplectic.pauli import BasePauli
 from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 from qiskit.quantum_info.operators.symplectic.pauli_utils import pauli_basis
@@ -216,34 +217,41 @@ class SparsePauliOp(LinearOp):
         # Validate composition dimensions and qargs match
         self._op_shape.compose(other._op_shape, qargs, front)
 
-        x1 = np.reshape(
-            np.stack(other.size * [self.paulis.x], axis=1),
-            (self.size * other.size, self.num_qubits),
-        )
-        z1 = np.reshape(
-            np.stack(other.size * [self.paulis.z], axis=1),
-            (self.size * other.size, self.num_qubits),
-        )
-        p1 = np.reshape(
-            np.stack(other.size * [self.paulis.phase], axis=1),
-            self.size * other.size,
-        )
-        paulis1 = PauliList.from_symplectic(z1, x1, p1)
-        x2 = np.reshape(
-            np.stack(self.size * [other.paulis.x]), (self.size * other.size, other.num_qubits)
-        )
-        z2 = np.reshape(
-            np.stack(self.size * [other.paulis.z]), (self.size * other.size, other.num_qubits)
-        )
-        p2 = np.reshape(
-            np.stack(self.size * [other.paulis.phase]),
-            self.size * other.size,
-        )
-        paulis2 = PauliList.from_symplectic(z2, x2, p2)
+        if qargs is not None:
+            x1, z1 = self.paulis.x[:, qargs], self.paulis.z[:, qargs]
+        else:
+            x1, z1 = self.paulis.x, self.paulis.z
+        x2, z2 = other.paulis.x, other.paulis.z
+        num_qubits = other.num_qubits
 
-        pauli_list = paulis1.compose(paulis2, qargs, front)
+        # This method is the outer version of `BasePauli.compose`.
+        # `x1` and `z1` have shape `(self.size, num_qubits)`.
+        # `x2` and `z2` have shape `(other.size, num_qubits)`.
+        # `x1[:, no.newaxis]` results in shape `(self.size, 1, num_qubits)`.
+        # `ar = ufunc(x1[:, np.newaxis], x2)` will be in shape `(self.size, other.size, num_qubits)`.
+        # So, `ar.reshape((-1, num_qubits))` will be in shape `(self.size * other.size, num_qubits)`.
+        # Ref: https://numpy.org/doc/stable/user/theory.broadcasting.html
+
+        phase = np.add.outer(self.paulis._phase, other.paulis._phase).reshape(-1)
+        if front:
+            q = np.logical_and(x1[:, np.newaxis], z2).reshape((-1, num_qubits))
+        else:
+            q = np.logical_and(z1[:, np.newaxis], x2).reshape((-1, num_qubits))
+        phase = np.mod(phase + 2 * np.sum(q, axis=1), 4)
+
+        x3 = np.logical_xor(x1[:, np.newaxis], x2).reshape((-1, num_qubits))
+        z3 = np.logical_xor(z1[:, np.newaxis], z2).reshape((-1, num_qubits))
+
+        if qargs is None:
+            pauli_list = PauliList(BasePauli(z3, x3, phase))
+        else:
+            x4 = np.repeat(self.paulis.x, other.size, axis=0)
+            z4 = np.repeat(self.paulis.z, other.size, axis=0)
+            x4[:, qargs] = x3
+            z4[:, qargs] = z3
+            pauli_list = PauliList(BasePauli(z4, x4, phase))
+
         coeffs = np.kron(self.coeffs, other.coeffs)
-
         return SparsePauliOp(pauli_list, coeffs)
 
     def tensor(self, other):
@@ -341,28 +349,24 @@ class SparsePauliOp(LinearOp):
         if rtol is None:
             rtol = self.rtol
 
-        array = np.column_stack((self.paulis.x, self.paulis.z))
-        flatten_paulis, indexes = np.unique(array, return_inverse=True, axis=0)
-        coeffs = np.zeros(self.size, dtype=complex)
-        for i, val in zip(indexes, self.coeffs):
-            coeffs[i] += val
+        # Pack bool vectors into np.uint8 vectors by np.packbits
+        array = np.packbits(self.paulis.x, axis=1) * 256 + np.packbits(self.paulis.z, axis=1)
+        _, indexes, inverses = np.unique(array, return_index=True, return_inverse=True, axis=0)
+        coeffs = np.zeros(indexes.shape[0], dtype=complex)
+        np.add.at(coeffs, inverses, self.coeffs)
         # Delete zero coefficient rows
-        # TODO: Add atol/rtol for zero comparison
-        non_zero = [
-            i for i in range(coeffs.size) if not np.isclose(coeffs[i], 0, atol=atol, rtol=rtol)
-        ]
+        is_zero = np.isclose(coeffs, 0, atol=atol, rtol=rtol)
         # Check edge case that we deleted all Paulis
         # In this case we return an identity Pauli with a zero coefficient
-        if len(non_zero) == 0:
+        if np.all(is_zero):
             x = np.zeros((1, self.num_qubits), dtype=bool)
             z = np.zeros((1, self.num_qubits), dtype=bool)
             coeffs = np.array([0j], dtype=complex)
         else:
-            x, z = (
-                flatten_paulis[non_zero]
-                .reshape((len(non_zero), 2, self.num_qubits))
-                .transpose(1, 0, 2)
-            )
+            non_zero = np.logical_not(is_zero)
+            non_zero_indexes = indexes[non_zero]
+            x = self.paulis.x[non_zero_indexes]
+            z = self.paulis.z[non_zero_indexes]
             coeffs = coeffs[non_zero]
         return SparsePauliOp(PauliList.from_symplectic(z, x), coeffs)
 

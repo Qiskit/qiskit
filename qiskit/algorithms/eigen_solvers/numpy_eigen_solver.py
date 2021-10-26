@@ -165,12 +165,14 @@ class NumPyEigensolver(Eigensolver):
     @staticmethod
     def _eval_aux_operators(
         aux_operators: ListOrDict[OperatorBase], wavefn, threshold: float = 1e-12
-    ) -> ListOrDict[Tuple[float, int]]:
+    ) -> ListOrDict[Tuple[complex, complex]]:
+
+        values: ListOrDict[Tuple[complex, complex]]
 
         # As a list, aux_operators can contain None operators for which None values are returned.
         # As a dict, the None operators in aux_operators have been dropped in compute_eigenvalues.
         if isinstance(aux_operators, list):
-            values = [None] * len(aux_operators)  # type: ListOrDict[Tuple[float, int]]
+            values = [None] * len(aux_operators)
             key_op_iterator = enumerate(aux_operators)
         else:
             values = {}
@@ -188,8 +190,10 @@ class NumPyEigensolver(Eigensolver):
                     value = mat.dot(wavefn).dot(np.conj(wavefn))
                 else:
                     value = StateFn(operator, is_measurement=True).eval(wavefn)
-                value = value.real if abs(value.real) > threshold else 0.0
-            values[key] = (value, 0)
+                value = value if np.abs(value) > threshold else 0.0
+            # The value get's wrapped into a tuple: (mean, standard deviation).
+            # Since this is an exact computation, the standard deviation is known to be zero.
+            values[key] = (value, 0.0)
         return values
 
     def compute_eigenvalues(
