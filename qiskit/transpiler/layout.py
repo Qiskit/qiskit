@@ -26,14 +26,14 @@ from qiskit.converters import isinstanceint
 class Layout:
     """Two-ways dict to represent a Layout."""
 
-    __slots__ = ("regs", "p2v", "v2p")
+    __slots__ = ("_regs", "_p2v", "_v2p")
 
     def __init__(self, input_dict=None):
         """construct a Layout from a bijective dictionary, mapping
         virtual qubits to physical qubits"""
-        self.regs = []
-        self.p2v = {}
-        self.v2p = {}
+        self._regs = []
+        self._p2v = {}
+        self._v2p = {}
         if input_dict is not None:
             if not isinstance(input_dict, dict):
                 raise LayoutError("Layout constructor takes a dict")
@@ -42,7 +42,7 @@ class Layout:
     def __repr__(self):
         """Representation of a Layout"""
         str_list = []
-        for key, val in self.p2v.items():
+        for key, val in self._p2v.items():
             str_list.append(f"{key}: {val},")
         if str_list:
             str_list[-1] = str_list[-1][:-1]
@@ -78,10 +78,10 @@ class Layout:
         """
         for key, value in input_dict.items():
             virtual, physical = Layout.order_based_on_type(key, value)
-            self.p2v[physical] = virtual
+            self._p2v[physical] = virtual
             if virtual is None:
                 continue
-            self.v2p[virtual] = physical
+            self._v2p[virtual] = physical
 
     @staticmethod
     def order_based_on_type(value1, value2):
@@ -100,36 +100,36 @@ class Layout:
         return virtual, physical
 
     def __getitem__(self, item):
-        if item in self.p2v:
-            return self.p2v[item]
-        if item in self.v2p:
-            return self.v2p[item]
+        if item in self._p2v:
+            return self._p2v[item]
+        if item in self._v2p:
+            return self._v2p[item]
         raise KeyError(f"The item {item} does not exist in the Layout")
 
     def __contains__(self, item):
-        return item in self.p2v or item in self.v2p
+        return item in self._p2v or item in self._v2p
 
     def __setitem__(self, key, value):
         virtual, physical = Layout.order_based_on_type(key, value)
         self._set_type_checked_item(virtual, physical)
 
     def _set_type_checked_item(self, virtual, physical):
-        old = self.v2p.pop(virtual, None)
-        self.p2v.pop(old, None)
-        old = self.p2v.pop(physical, None)
-        self.v2p.pop(old, None)
+        old = self._v2p.pop(virtual, None)
+        self._p2v.pop(old, None)
+        old = self._p2v.pop(physical, None)
+        self._v2p.pop(old, None)
 
-        self.p2v[physical] = virtual
+        self._p2v[physical] = virtual
         if virtual is not None:
-            self.v2p[virtual] = physical
+            self._v2p[virtual] = physical
 
     def __delitem__(self, key):
         if isinstance(key, int):
-            del self.v2p[self.p2v[key]]
-            del self.p2v[key]
+            del self._v2p[self._p2v[key]]
+            del self._p2v[key]
         elif isinstance(key, Qubit):
-            del self.p2v[self.v2p[key]]
-            del self.v2p[key]
+            del self._p2v[self._v2p[key]]
+            del self._v2p[key]
         else:
             raise LayoutError(
                 "The key to remove should be of the form"
@@ -137,20 +137,20 @@ class Layout:
             )
 
     def __len__(self):
-        return len(self.p2v)
+        return len(self._p2v)
 
     def __eq__(self, other):
         if isinstance(other, Layout):
-            return self.p2v == other.p2v and self.v2p == other.v2p
+            return self._p2v == other._p2v and self._v2p == other._v2p
         return False
 
     def copy(self):
         """Returns a copy of a Layout instance."""
         layout_copy = type(self)()
 
-        layout_copy.regs = self.regs.copy()
-        layout_copy.p2v = self.p2v.copy()
-        layout_copy.v2p = self.v2p.copy()
+        layout_copy._regs = self._regs.copy()
+        layout_copy._p2v = self._p2v.copy()
+        layout_copy._v2p = self._v2p.copy()
 
         return layout_copy
 
@@ -166,7 +166,7 @@ class Layout:
         """
         if physical_bit is None:
             physical_candidate = len(self)
-            while physical_candidate in self.p2v:
+            while physical_candidate in self._p2v:
                 physical_candidate += 1
             physical_bit = physical_candidate
         self[virtual_bit] = physical_bit
@@ -177,7 +177,7 @@ class Layout:
         Args:
             reg (Register): A (qu)bit Register. For example, QuantumRegister(3, 'qr').
         """
-        self.regs.append(reg)
+        self._regs.append(reg)
         for bit in reg:
             if bit not in self:
                 self.add(bit)
@@ -188,21 +188,21 @@ class Layout:
         Returns:
             Set: A set of Registers in the layout
         """
-        return set(self.regs)
+        return set(self._regs)
 
     def get_virtual_bits(self):
         """
         Returns the dictionary where the keys are virtual (qu)bits and the
         values are physical (qu)bits.
         """
-        return self.v2p
+        return self._v2p
 
     def get_physical_bits(self):
         """
         Returns the dictionary where the keys are physical (qu)bits and the
         values are virtual (qu)bits.
         """
-        return self.p2v
+        return self._p2v
 
     def swap(self, left, right):
         """Swaps the map between left and right.
@@ -241,8 +241,8 @@ class Layout:
         """
         edge_map = dict()
 
-        for virtual, physical in self.v2p.items():
-            if physical not in another_layout.p2v:
+        for virtual, physical in self._v2p.items():
+            if physical not in another_layout._p2v:
                 raise LayoutError(
                     "The wire_map_from_layouts() method does not support when the"
                     " other layout (another_layout) is smaller."
@@ -344,7 +344,7 @@ class Layout:
             if virtual is None:
                 continue
             if isinstance(virtual, Qubit):
-                if virtual in out.v2p:
+                if virtual in out._v2p:
                     raise LayoutError("Duplicate values not permitted; Layout is bijective.")
                 out[virtual] = physical
             else:

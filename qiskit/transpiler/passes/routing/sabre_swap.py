@@ -186,7 +186,7 @@ class SabreSwap(TransformationPass):
                 if len(node.qargs) == 2:
                     v0, v1 = node.qargs
                     if self.coupling_map.graph.has_edge(
-                        current_layout.v2p[v0], current_layout.v2p[v1]
+                        current_layout._v2p[v0], current_layout._v2p[v1]
                     ):
                         execute_gate_list.append(node)
                 else:  # Single-qubit gates as well as barriers are free
@@ -333,8 +333,8 @@ class SabreSwap(TransformationPass):
     def _compute_cost(self, layer, layout):
         cost = 0
         for node in layer:
-            cost += self.coupling_map.dist_matrix[
-                layout.v2p[node.qargs[0]], layout.v2p[node.qargs[1]]
+            cost += self.coupling_map._dist_matrix[
+                layout._v2p[node.qargs[0]], layout._v2p[node.qargs[1]]
             ]
         return cost
 
@@ -371,7 +371,7 @@ def _transform_gate_for_layout(op_node, layout, device_qreg):
     mapped_op_node = copy(op_node)
 
     premap_qargs = op_node.qargs
-    mapped_qargs = map(lambda x: device_qreg[layout.v2p[x]], premap_qargs)
+    mapped_qargs = map(lambda x: device_qreg[layout._v2p[x]], premap_qargs)
     mapped_op_node.qargs = list(mapped_qargs)
 
     return mapped_op_node

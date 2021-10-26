@@ -39,7 +39,7 @@ class CouplingMap:
     to permitted CNOT gates
     """
 
-    __slots__ = ("description", "graph", "dist_matrix", "qubit_list", "_size", "_is_symmetric")
+    __slots__ = ("description", "graph", "_dist_matrix", "_qubit_list", "_size", "_is_symmetric")
 
     def __init__(self, couplinglist=None, description=None):
         """
@@ -56,9 +56,9 @@ class CouplingMap:
         # the coupling map graph
         self.graph = rx.PyDiGraph()
         # a dict of dicts from node pairs to distances
-        self.dist_matrix = None
+        self._dist_matrix = None
         # a sorted list of physical qubits (integers) in this coupling map
-        self.qubit_list = None
+        self._qubit_list = None
         # number of qubits in the graph
         self._size = None
         self._is_symmetric = None
@@ -96,8 +96,8 @@ class CouplingMap:
                 "The physical qubit %s is already in the coupling graph" % physical_qubit
             )
         self.graph.add_node(physical_qubit)
-        self.dist_matrix = None  # invalidate
-        self.qubit_list = None  # invalidate
+        self._dist_matrix = None  # invalidate
+        self._qubit_list = None  # invalidate
         self._size = None  # invalidate
 
     def add_edge(self, src, dst):
@@ -112,7 +112,7 @@ class CouplingMap:
         if dst not in self.physical_qubits:
             self.add_physical_qubit(dst)
         self.graph.add_edge(src, dst, None)
-        self.dist_matrix = None  # invalidate
+        self._dist_matrix = None  # invalidate
         self._is_symmetric = None  # invalidate
 
     def subgraph(self, nodelist):
@@ -134,9 +134,9 @@ class CouplingMap:
     @property
     def physical_qubits(self):
         """Returns a sorted list of physical_qubits"""
-        if self.qubit_list is None:
-            self.qubit_list = self.graph.node_indexes()
-        return self.qubit_list
+        if self._qubit_list is None:
+            self._qubit_list = self.graph.node_indexes()
+        return self._qubit_list
 
     def is_connected(self):
         """
@@ -161,18 +161,22 @@ class CouplingMap:
     def distance_matrix(self):
         """Return the distance matrix for the coupling map."""
         self.compute_distance_matrix()
-        return self.dist_matrix
+        return self._dist_matrix
 
     def compute_distance_matrix(self):
         """Compute the full distance matrix on pairs of nodes.
 
-        The distance map self.dist_matrix is computed from the graph using
-        all_pairs_shortest_path_length.
+        The distance map self._dist_matrix is computed from the graph using
+        all_pairs_shortest_path_length. This is normally handled internally
+        by the :attr:`~qiskit.transpiler.CouplingMap.distance_matrix`
+        attribute or the :meth:`~qiskit.transpiler.CouplingMap.distance` method
+        but can be called if you're accessing the distance matrix outside of
+        those or want to pre-generate it.
         """
-        if self.dist_matrix is None:
+        if self._dist_matrix is None:
             if not self.is_connected():
                 raise CouplingError("coupling graph not connected")
-            self.dist_matrix = rx.digraph_distance_matrix(self.graph, as_undirected=True)
+            self._dist_matrix = rx.digraph_distance_matrix(self.graph, as_undirected=True)
 
     def distance(self, physical_qubit1, physical_qubit2):
         """Returns the undirected distance between physical_qubit1 and physical_qubit2.
@@ -192,7 +196,7 @@ class CouplingMap:
         if physical_qubit2 >= self.size():
             raise CouplingError("%s not in coupling graph" % physical_qubit2)
         self.compute_distance_matrix()
-        return int(self.dist_matrix[physical_qubit1, physical_qubit2])
+        return int(self._dist_matrix[physical_qubit1, physical_qubit2])
 
     def shortest_undirected_path(self, physical_qubit1, physical_qubit2):
         """Returns the shortest undirected path between physical_qubit1 and physical_qubit2.
@@ -233,7 +237,7 @@ class CouplingMap:
         for src, dest in edges:
             if (dest, src) not in edges:
                 self.add_edge(dest, src)
-        self.dist_matrix = None  # invalidate
+        self._dist_matrix = None  # invalidate
         self._is_symmetric = None  # invalidate
 
     def _check_symmetry(self):

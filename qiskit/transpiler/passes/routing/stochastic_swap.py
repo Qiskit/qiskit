@@ -159,7 +159,7 @@ class StochasticSwap(TransformationPass):
         logger.debug("layer_permutation: gates = %s", gates)
 
         # Can we already apply the gates? If so, there is no work to do.
-        dist = sum(coupling.dist_matrix[layout.v2p[g[0]], layout.v2p[g[1]]] for g in gates)
+        dist = sum(coupling._dist_matrix[layout._v2p[g[0]], layout._v2p[g[1]]] for g in gates)
         logger.debug("layer_permutation: distance = %s", dist)
         if dist == len(gates):
             logger.debug("layer_permutation: nothing to do")
@@ -174,7 +174,7 @@ class StochasticSwap(TransformationPass):
         best_circuit = None  # initialize best swap circuit
         best_layout = None  # initialize best final layout
 
-        cdist2 = coupling.dist_matrix ** 2
+        cdist2 = coupling._dist_matrix ** 2
         # Scaling matrix
         scale = np.zeros((num_qubits, num_qubits))
 
@@ -196,7 +196,7 @@ class StochasticSwap(TransformationPass):
         trial_circuit.add_qubits(layout.get_virtual_bits())
 
         edges = np.asarray(coupling.get_edges(), dtype=np.int32).ravel()
-        cdist = coupling.dist_matrix
+        cdist = coupling._dist_matrix
         for trial in range(trials):
             logger.debug("layer_permutation: trial %s", trial)
             # This is one Trial --------------------------------------
@@ -232,8 +232,8 @@ class StochasticSwap(TransformationPass):
 
         edges = best_edges.edges()
         for idx in range(best_edges.size // 2):
-            swap_src = self.trivial_layout.p2v[edges[2 * idx]]
-            swap_tgt = self.trivial_layout.p2v[edges[2 * idx + 1]]
+            swap_src = self.trivial_layout._p2v[edges[2 * idx]]
+            swap_tgt = self.trivial_layout._p2v[edges[2 * idx + 1]]
             trial_circuit.apply_operation_back(SwapGate(), [swap_src, swap_tgt], [])
         best_circuit = trial_circuit
 
@@ -291,7 +291,7 @@ class StochasticSwap(TransformationPass):
         for i, v in enumerate(layerlist):
             logger.debug("    %d: %s", i, v["partition"])
 
-        qubit_subset = self.trivial_layout.v2p.keys()
+        qubit_subset = self.trivial_layout._v2p.keys()
 
         # Find swap circuit to precede each layer of input circuit
         layout = self.trivial_layout.copy()

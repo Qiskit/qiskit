@@ -41,7 +41,7 @@ class EnlargeWithAncilla(TransformationPass):
         if layout is None:
             raise TranspilerError('EnlargeWithAncilla requires property_set["layout"]')
 
-        new_qregs = {reg for reg in layout.regs if reg not in dag.qregs.values()}
+        new_qregs = {reg for reg in layout._regs if reg not in dag.qregs.values()}
 
         for qreg in new_qregs:
             dag.add_qreg(qreg)

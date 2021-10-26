@@ -103,10 +103,10 @@ class GateDirection(TransformationPass):
             control = node.qargs[0]
             target = node.qargs[1]
 
-            physical_q0 = trivial_layout.v2p[control]
-            physical_q1 = trivial_layout.v2p[target]
+            physical_q0 = trivial_layout._v2p[control]
+            physical_q1 = trivial_layout._v2p[target]
 
-            if self.coupling_map.dist_matrix[physical_q0, physical_q1] != 1:
+            if self.coupling_map._dist_matrix[physical_q0, physical_q1] != 1:
                 raise TranspilerError(
                     "The circuit requires a connection between physical "
                     "qubits %s and %s" % (physical_q0, physical_q1)
