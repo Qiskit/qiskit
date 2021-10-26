@@ -2,7 +2,7 @@
 features:
   - |
     Add a new constructor method :meth:`~qiskit.transpiler.PassManagerConfig.from_backend` to
-    module ``qiskit.transpiler.PassManagerConfig``. It constructs a
+    the :class:`qiskit.transpiler.PassManagerConfig` class. It constructs a
     ``PassManagerConfig`` object with user options and the configuration of a
     backend. With this feature, a preset passmanager can be built easier, for
     example::
