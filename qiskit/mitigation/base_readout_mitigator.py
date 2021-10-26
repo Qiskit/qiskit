@@ -128,7 +128,7 @@ class BaseReadoutMitigator(ABC):
         """Calculate stddev dict"""
         ret = {}
         for key, prob in probs.items():
-            std_err = np.sqrt(abs(prob) * (1 - abs(prob)) / shots)
+            std_err = np.sqrt(prob * (1 - prob) / shots)
             ret[key] = std_err
         return ret
 
