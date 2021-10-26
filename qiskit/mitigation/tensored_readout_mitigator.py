@@ -20,6 +20,7 @@ import numpy as np
 
 from qiskit.result import Counts, marginal_counts, QuasiDistribution
 from .base_readout_mitigator import BaseReadoutMitigator
+from .utils import counts_probability_vector
 
 logger = logging.getLogger(__name__)
 
@@ -93,14 +94,7 @@ class TensoredReadoutMitigator(BaseReadoutMitigator):
             which physical qubits these bit-values correspond to as
             ``circuit.measure(qubits, clbits)``.
         """
-        # Marginalize counts
-        if clbits is not None:
-            data = marginal_counts(data, clbits)
-
-        # Get probability vector
-        num_qubits = data.size()
-        probs_vec = self._to_probs_vec(data, num_qubits)
-        shots = data.shots()
+        probs_vec, shots = counts_probability_vector(data, clbits=clbits, qubits=qubits, return_shots=True)
 
         # Get qubit mitigation matrix and mitigate probs
         if qubits is None:
@@ -152,19 +146,11 @@ class TensoredReadoutMitigator(BaseReadoutMitigator):
         Raises:
             QiskitError: if qubit and clbit kwargs are not valid.
         """
-        # Marginalize counts
-        if clbits is not None:
-            data = Counts(marginal_counts(data, clbits))
-
-        # Get total number of qubits and shots
-        num_qubits = data.size()
-        shots = data.shots()
-        # Get probability vector
-        probs_vec = self._to_probs_vec(data, num_qubits)
+        probs_vec, shots = counts_probability_vector(data, clbits=clbits, qubits=qubits, return_shots=True)
 
         # Get qubit mitigation matrix and mitigate probs
         if qubits is None:
-            qubits = range(num_qubits)
+            qubits = range(self._num_qubits)
         mit_mat = self.mitigation_matrix(qubits)
 
         # Apply transpose of mitigation matrix
@@ -190,7 +176,7 @@ class TensoredReadoutMitigator(BaseReadoutMitigator):
             qubits = [qubits]
         mat = self._mitigation_mats[qubits[0]]
         for i in qubits[1:]:
-            mat = np.kron(self._mitigation_mats[qubits[i]], mat)
+            mat = np.kron(self._mitigation_mats[i], mat)
         return mat
 
     def assignment_matrix(self, qubits: List[int] = None) -> np.ndarray:

@@ -133,17 +133,6 @@ class BaseReadoutMitigator(ABC):
         return ret
 
     @staticmethod
-    def _to_probs_vec(data, num_qubits):
-        """Convert counts to probabilities vector"""
-        vec = np.zeros(2 ** num_qubits, dtype=float)
-        shots = 0
-        for key, val in data.items():
-            shots += val
-            vec[int(key, 2)] = val
-        vec /= shots
-        return vec
-
-    @staticmethod
     def _str2diag(string):
         chars = {
             "I": np.array([1, 1], dtype=float),

@@ -58,8 +58,8 @@ class TestReadoutMitigation(QiskitTestCase):
     @data([test_data['test_1']])
     @unpack
     def test_clbits_parameter(self, data):
-        """Test whether readout mitigation led to more accurate results"""
-        counts_ideal = Counts({'000': 5000, '001': 5000})
+        """Test whether the clbits parameter is handled correctly"""
+        # counts_ideal is {'000': 5000, '001': 5000}
         counts_ideal_12 = Counts({'00': 10000})
         counts_ideal_02 = Counts({'00': 5000, '01': 5000})
         counts_noise = Counts({'000': 4844, '001': 4962, '100': 56, '101': 65, '011': 37, '010': 35, '110': 1})
@@ -68,21 +68,60 @@ class TestReadoutMitigation(QiskitTestCase):
         mitigators = [CRM, TRM]
         for mitigator in mitigators:
             mitigated_probs_12 = (
-                mitigator.quasi_probabilities(counts_noise, clbits=[1,2])[0]
+                mitigator.quasi_probabilities(counts_noise, qubits = [1,2], clbits=[1,2])[0]
                     .nearest_probability_distribution()
                     .binary_probabilities()
             )
             mitigated_error = self.compare_results(counts_ideal_12, mitigated_probs_12)
-            self.assertTrue(mitigated_error < 0.001, "Mitigator {} did not correctly marganalize for qubit 1,2".format(mitigator))
+            self.assertTrue(mitigated_error < 0.001, "Mitigator {} did not correctly marganalize for qubits 1,2".format(mitigator))
 
             mitigated_probs_02 = (
-                mitigator.quasi_probabilities(counts_noise, clbits=[0, 2])[0]
+                mitigator.quasi_probabilities(counts_noise, qubits = [0,2], clbits=[0, 2])[0]
                     .nearest_probability_distribution()
                     .binary_probabilities()
             )
             mitigated_error = self.compare_results(counts_ideal_02, mitigated_probs_02)
             self.assertTrue(mitigated_error < 0.001,
-                            "Mitigator {} did not correctly marganalize for qubit 1,2".format(mitigator))
+                            "Mitigator {} did not correctly marganalize for qubits 0,2".format(mitigator))
 
+    @data([test_data['test_1']])
+    @unpack
+    def test_qubits_parameter(self, data):
+        """Test whether the qubits parameter is handled correctly"""
+        counts_ideal_012 = Counts({'000': 5000, '001': 5000})
+        counts_ideal_210 = Counts({'000': 5000, '100': 5000})
+        counts_ideal_102 = Counts({'000': 5000, '010': 5000})
+        counts_noise = Counts({'000': 4844, '001': 4962, '100': 56, '101': 65, '011': 37, '010': 35, '110': 1})
+        CRM = CompleteReadoutMitigator(data['complete_method_matrix'])
+        TRM = TensoredReadoutMitigator(data['tensor_method_matrices'])
+        mitigators = [CRM, TRM]
+        for mitigator in mitigators:
+            for mitigator in mitigators:
+                mitigated_probs_012 = (
+                    mitigator.quasi_probabilities(counts_noise, qubits=[0, 1, 2])[0]
+                        .nearest_probability_distribution()
+                        .binary_probabilities()
+                )
+                mitigated_error = self.compare_results(counts_ideal_012, mitigated_probs_012)
+                self.assertTrue(mitigated_error < 0.001,
+                                "Mitigator {} did not correctly handle qubit order 0, 1, 2".format(mitigator))
+
+                mitigated_probs_210 = (
+                    mitigator.quasi_probabilities(counts_noise, qubits=[2, 1, 0])[0]
+                        .nearest_probability_distribution()
+                        .binary_probabilities()
+                )
+                mitigated_error = self.compare_results(counts_ideal_210, mitigated_probs_210)
+                self.assertTrue(mitigated_error < 0.001,
+                                "Mitigator {} did not correctly handle qubit order 2, 1, 0".format(mitigator))
+
+                mitigated_probs_102 = (
+                    mitigator.quasi_probabilities(counts_noise, qubits=[1, 0, 2])[0]
+                        .nearest_probability_distribution()
+                        .binary_probabilities()
+                )
+                mitigated_error = self.compare_results(counts_ideal_102, mitigated_probs_102)
+                self.assertTrue(mitigated_error < 0.001,
+                                "Mitigator {} did not correctly handle qubit order 1, 0, 2".format(mitigator))
 if __name__ == "__main__":
     unittest.main()
