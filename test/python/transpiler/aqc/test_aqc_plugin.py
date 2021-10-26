@@ -19,6 +19,7 @@ from qiskit import QuantumCircuit
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.synthesis.aqc.aqc_plugin import AQCSynthesisPlugin
 
@@ -60,3 +61,18 @@ class TestAQCSynthesisPlugin(QiskitTestCase):
         approx_unitary = Operator(approx_circuit).data
 
         np.testing.assert_array_almost_equal(self._target_unitary, approx_unitary, 3)
+
+    def test_with_pass_manager(self):
+        """Tests the plugin via pass manager"""
+        qc = QuantumCircuit(3)
+        qc.unitary(np.eye(8), [0, 1, 2])
+        aqc = PassManager(
+            [
+                UnitarySynthesis(
+                    basis_gates=["u", "cx"],
+                    method="aqc",
+                )
+            ]
+        ).run(qc)
+        approx_unitary = Operator(aqc).data
+        np.testing.assert_array_almost_equal(np.eye(8), approx_unitary, 3)
