@@ -226,6 +226,7 @@ class QuantumCircuit(Operation):
                 )
 
             regs = tuple(int(reg) for reg in regs)  # cast to int
+
         self._base_name = None
         if name is None:
             self._base_name = self.cls_prefix()
@@ -275,7 +276,7 @@ class QuantumCircuit(Operation):
             raise TypeError("Only a dictionary or None is accepted for circuit metadata")
         self._metadata = metadata
 
-        super().__init__(name, len(self._qubits), len(self._clbits), self._parameters)
+        super().__init__(self.name, self.num_qubits, self.num_clbits, self.params)
 
     @property
     def data(self) -> QuantumCircuitData:
