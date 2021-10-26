@@ -552,7 +552,7 @@ class Instruction:
     @property
     def num_clbits(self):
         """Return the number of clbits."""
-        return 0
+        return self._num_clbits
 
     @num_clbits.setter
     def num_clbits(self, num_clbits):
