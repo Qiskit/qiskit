@@ -102,7 +102,7 @@ class PassManagerConfig:
         config = backend.configuration()
 
         res.basis_gates = res.basis_gates or getattr(config, "basis_gates", None)
-        if not res.inst_map and hasattr(backend, "defaults"):
+        if res.inst_map is not None and hasattr(backend, "defaults"):
             res.inst_map = backend.defaults().instruction_schedule_map
         res.coupling_map = res.coupling_map or CouplingMap(getattr(config, "coupling_map", None))
         res.instruction_durations = res.instruction_durations or InstructionDurations.from_backend(
