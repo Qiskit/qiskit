@@ -135,6 +135,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
                 )
 
         # Initialize BaseOperator
+        Operation.__init__(self, "clifford", self._table.num_qubits, 0, [])
         super().__init__(num_qubits=self._table.num_qubits)
 
     def __repr__(self):
@@ -524,24 +525,6 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         padded.table.phase[inds] = clifford.table.phase
 
         return padded
-
-    # These implement the required methods of the Operation mixin
-
-    @property
-    def name(self):
-        return "clifford"
-
-    @property
-    def num_params(self):
-        return 1
-
-    @property
-    def num_clbits(self):
-        return 0
-
-    @property
-    def params(self):
-        return (self._table,)
 
 
 # Update docstrings for API docs

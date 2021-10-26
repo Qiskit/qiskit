@@ -18,32 +18,33 @@ from abc import ABC, abstractmethod
 class Operation(ABC):
     """Quantum Operation Mixin Class."""
 
+    def __init__(self, name, num_qubits, num_clbits, params):
+        self._name = name
+        self._num_qubits = num_qubits
+        self._num_clbits = num_clbits
+        self._params = params
+
     @property
-    @abstractmethod
     def name(self):
         """Unique string identifier for operation type."""
-        raise NotImplementedError
+        return self._name
 
     @property
-    @abstractmethod
     def num_qubits(self):
         """Number of qubits."""
-        raise NotImplementedError
+        return self._num_qubits
 
     @property
-    @abstractmethod
     def num_clbits(self):
         """Number of classical bits."""
-        raise NotImplementedError
+        return self._num_clbits
 
     @property
-    @abstractmethod
     def num_params(self):
         """Number of parameters."""
-        raise NotImplementedError
+        return len(self._params)
 
     @property
-    @abstractmethod
     def params(self):
         """List of parameters to specialize a specific Operation instance."""
-        raise NotImplementedError
+        return self._params
