@@ -275,6 +275,8 @@ class QuantumCircuit(Operation):
             raise TypeError("Only a dictionary or None is accepted for circuit metadata")
         self._metadata = metadata
 
+        super().__init__(name, self.num_qubits, self.num_clbits, self.params)
+
     @property
     def data(self) -> QuantumCircuitData:
         """Return the circuit data (instructions and context).
