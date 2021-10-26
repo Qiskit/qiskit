@@ -54,7 +54,8 @@ class VarQteOdeSolver:
             ode_solver.step()
             if ode_solver.t <= evolution_time:
                 _ = ode_solver.fun(ode_solver.t, ode_solver.y)
-            param_values = ode_solver.y[:-1]
+            param_values = ode_solver.y  # was ode_solver.y[:-1] if last element error bound
+            # related, currently no error bound appended
             if ode_solver.status == "finished":
                 break
             elif ode_solver.status == "failed":

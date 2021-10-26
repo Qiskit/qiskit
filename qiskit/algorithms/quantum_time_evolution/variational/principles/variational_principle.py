@@ -47,15 +47,17 @@ class VariationalPrinciple(ABC):
         self._operator = ~StateFn(hamiltonian) @ StateFn(ansatz)
         self._operator = self._operator / self._operator.coeff  # Remove the time from the operator
         raw_metric_tensor = self._get_raw_metric_tensor(ansatz, param_dict)
-        print("Raw metric tensor")
-        print(raw_metric_tensor.assign_parameters(param_dict).eval())
+        # print("Raw metric tensor")
+        # print(raw_metric_tensor.assign_parameters(param_dict).eval())
 
         raw_evolution_grad = self._get_raw_evolution_grad(hamiltonian, ansatz, param_dict)
-        print("Raw evolution grad")
-        print(raw_evolution_grad.assign_parameters(param_dict).eval())
+        # print("Raw evolution grad")
+        # print(raw_evolution_grad.assign_parameters(param_dict).eval())
 
+        # TODO this should only be calculated if error bounds indicated
         self._metric_tensor = self._calc_metric_tensor(raw_metric_tensor, param_dict)
         self._evolution_grad = self._calc_evolution_grad(raw_evolution_grad, param_dict)
+        # TODO end
         self._nat_grad = self._calc_nat_grad(self._operator, param_dict, regularization)
 
     @abstractmethod
