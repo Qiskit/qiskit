@@ -1,0 +1,39 @@
+---
+features:
+  - |
+    Initial support for OpenQASM3 serializer. 
+
+    .. jupyter-execute::
+
+            from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
+            from qiskit import qasm3
+
+            qc = QuantumCircuit(2)
+            qc.h(0)
+            qc.cx(0, 1)
+
+            print(qasm3.dumps(qc))
+
+    This initial release has limited support for named registers, basic builtin instructions
+    (just as measure and barriers), user-defined gates, user-defined instructions (as
+    subroutines), and opaque gates/instructions as ``defcal``.
+
+    .. jupyter-execute::
+
+        composite_circ_qreg = QuantumRegister(2)
+        composite_circ = QuantumCircuit(composite_circ_qreg, name="composite_circ")
+        composite_circ.h(0)
+        composite_circ.x(1)
+        composite_circ.cx(0, 1)
+        composite_circ_instr = composite_circ.to_instruction()
+
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(2, "cr")
+        qc = QuantumCircuit(qr, cr)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.barrier()
+        qc.append(composite_circ_instr, [0, 1])
+        qc.measure([0, 1], [0, 1])
+
+        print(qasm3.dumps(qc))
