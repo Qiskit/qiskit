@@ -73,28 +73,39 @@ class RemoveFinalMeasurements(TransformationPass):
         if not final_ops:
             return dag
 
-        cregs_to_remove = dict()
         clbits_with_final_measures = set()
-        clbit_registers = {clbit: creg for creg in dag.cregs.values() for clbit in creg}
-
         for node in final_ops:
             for carg in node.cargs:
                 # Add the clbit that was attached to the measure we are removing
                 clbits_with_final_measures.add(carg)
             dag.remove_op_node(node)
 
-        # If the clbit is idle, add its register to list of registers we may remove
-        for clbit in clbits_with_final_measures:
-            if clbit in dag.idle_wires():
-                creg = clbit_registers[clbit]
-                if creg in cregs_to_remove:
-                    cregs_to_remove[creg] += 1
-                else:
-                    cregs_to_remove[creg] = 1
+        # A creg is removable if all:
+        #   - it contains a final measure bit
+        #   - all of its bits are idle, including the final measure bit
+        #
+        # A bit is removable if all:
+        #   - it appears in a creg that is removable
+        #   - it does not appear in a creg that is non-removable
+        idle_wires = set(dag.idle_wires())
+        cregs_to_remove = set()
+        clbits_to_remove = set()
+        clbits_to_keep = set()
+        for creg in dag.cregs.values():
+            clbits = set(creg)
+            if not clbits.isdisjoint(clbits_with_final_measures) and clbits.issubset(idle_wires):
+                cregs_to_remove.add(creg)
+                clbits_to_remove.update(clbits)
+            else:
+                clbits_to_keep.update(clbits)
 
-        # Remove creg if all of its clbits were added above
-        for key, val in zip(list(dag.cregs.keys()), list(dag.cregs.values())):
-            if val in cregs_to_remove and cregs_to_remove[val] == val.size:
-                del dag.cregs[key]
+        clbits_to_remove.difference_update(clbits_to_keep)
+
+        # Remove cregs from DAG
+        for creg in cregs_to_remove:
+            del dag.cregs[creg.name]
+
+        for clbit in clbits_to_remove:
+            dag.clbits.remove(clbit)
 
         return dag
