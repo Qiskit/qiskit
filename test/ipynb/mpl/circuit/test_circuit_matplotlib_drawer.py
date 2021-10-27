@@ -20,7 +20,6 @@ from contextlib import contextmanager
 import math
 import numpy as np
 from numpy import pi
-from ddt import ddt, data
 
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
@@ -54,7 +53,6 @@ def cwd(path):
         os.chdir(oldpwd)
 
 
-@ddt
 class TestMatplotlibDrawer(QiskitTestCase):
     """Circuit MPL visualization"""
 
@@ -527,36 +525,37 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename="global_phase.png")
 
-    @data("iqx", "iqx-dark")
-    def test_iqx_colors(self, style):
+    def test_iqx_colors(self):
         """Tests with iqx color scheme"""
-        circuit = QuantumCircuit(7)
-        circuit.h(0)
-        circuit.x(0)
-        circuit.cx(0, 1)
-        circuit.ccx(0, 1, 2)
-        circuit.swap(0, 1)
-        circuit.cswap(0, 1, 2)
-        circuit.append(SwapGate().control(2), [0, 1, 2, 3])
-        circuit.dcx(0, 1)
-        circuit.append(DCXGate().control(1), [0, 1, 2])
-        circuit.append(DCXGate().control(2), [0, 1, 2, 3])
-        circuit.z(4)
-        circuit.s(4)
-        circuit.sdg(4)
-        circuit.t(4)
-        circuit.tdg(4)
-        circuit.p(pi / 2, 4)
-        circuit.cz(5, 6)
-        circuit.cp(pi / 2, 5, 6)
-        circuit.y(5)
-        circuit.rx(pi / 3, 5)
-        circuit.rzx(pi / 2, 5, 6)
-        circuit.u(pi / 2, pi / 2, pi / 2, 5)
-        circuit.barrier(5, 6)
-        circuit.reset(5)
+        for style in ["iqx", "iqx-dark"]:
+            with self.subTest(style=style):
+                circuit = QuantumCircuit(7)
+                circuit.h(0)
+                circuit.x(0)
+                circuit.cx(0, 1)
+                circuit.ccx(0, 1, 2)
+                circuit.swap(0, 1)
+                circuit.cswap(0, 1, 2)
+                circuit.append(SwapGate().control(2), [0, 1, 2, 3])
+                circuit.dcx(0, 1)
+                circuit.append(DCXGate().control(1), [0, 1, 2])
+                circuit.append(DCXGate().control(2), [0, 1, 2, 3])
+                circuit.z(4)
+                circuit.s(4)
+                circuit.sdg(4)
+                circuit.t(4)
+                circuit.tdg(4)
+                circuit.p(pi / 2, 4)
+                circuit.cz(5, 6)
+                circuit.cp(pi / 2, 5, 6)
+                circuit.y(5)
+                circuit.rx(pi / 3, 5)
+                circuit.rzx(pi / 2, 5, 6)
+                circuit.u(pi / 2, pi / 2, pi / 2, 5)
+                circuit.barrier(5, 6)
+                circuit.reset(5)
 
-        self.circuit_drawer(circuit, style={"name": style}, filename=f"{style}_color.png")
+                self.circuit_drawer(circuit, style={"name": style}, filename=f"{style}_color.png")
 
     def test_reverse_bits(self):
         """Tests reverse_bits parameter"""
@@ -619,18 +618,20 @@ class TestMatplotlibDrawer(QiskitTestCase):
             filename="user_style.png",
         )
 
-    @data("iqx", "iqx-dark")
-    def test_subfont_change(self, name):
+    def test_subfont_change(self):
         """Tests changing the subfont size"""
-        circuit = QuantumCircuit(3)
-        circuit.h(0)
-        circuit.x(0)
-        circuit.u(pi / 2, pi / 2, pi / 2, 1)
-        circuit.p(pi / 2, 2)
-        style = {"name": name, "subfontsize": 11}
+        for name in ["iqx", "iqx-dark"]:
+            with self.subTest(name=name):
+                circuit = QuantumCircuit(3)
+                circuit.h(0)
+                circuit.x(0)
+                circuit.u(pi / 2, pi / 2, pi / 2, 1)
+                circuit.p(pi / 2, 2)
+                style = {"name": name, "subfontsize": 11}
 
-        self.circuit_drawer(circuit, style=style, filename="subfont.png")
-        self.assertEqual(style, {"name": name, "subfontsize": 11})  # check does not change style
+                self.circuit_drawer(circuit, style=style, filename="subfont.png")
+                # check does not change style
+                self.assertEqual(style, {"name": name, "subfontsize": 11})
 
     def test_meas_condition(self):
         """Tests measure with a condition"""
