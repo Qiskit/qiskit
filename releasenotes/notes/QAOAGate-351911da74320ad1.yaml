@@ -4,4 +4,17 @@ features:
     The evolved operator :class:`~qiskit.circuit.library.QAOAAnsatz` now produces a :class:`~qiskit.circuit.library.QAOAGate`
     instead of a custom gate. This allows to more abstract transpilation passes.
   - |
-    A new :class:`~qiskit.circuit.library.QAOAGate` 
+    A new :class:`~qiskit.circuit.library.QAOAGate` class allow to introduce instruction to represent QAOA
+
+    .. code-block::python
+
+        from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAGate
+        from qiskit import QuantumCircuit
+        from qiskit.opflow import Z, I
+         
+        op = (Z ^ Z ^ (I ^ 3)) + (I ^ Z ^ Z ^ I ^ I) + (I ^ I ^ Z ^ Z ^ I)
+        qaoa_gate = QAOAGate(op, reps=2)
+
+        ansatz = QuantumCircuit(5)
+        ansatz.append(qaoa_gate, [0, 1, 2, 3, 4])
+   
