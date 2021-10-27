@@ -95,5 +95,5 @@ class RemoveFinalMeasurements(TransformationPass):
                 cregs_to_remove.add(creg)
 
         # Remove cregs from DAG
-        dag.remove_idle_cregs(*cregs_to_remove)
+        dag.remove_cregs(*cregs_to_remove)
         return dag

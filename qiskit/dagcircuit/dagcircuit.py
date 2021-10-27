@@ -319,10 +319,10 @@ class DAGCircuit:
         else:
             raise DAGCircuitError(f"duplicate wire {wire}")
 
-    def remove_idle_cregs(self, *cregs):
+    def remove_cregs(self, *cregs):
         """
-        Remove a classical register with all idle bits from the circuit,
-        removing all bits that are no longer referenced by any register.
+        Remove a classical register from the circuit,
+        removing idle bits that are no longer referenced by any register.
 
         Raises:
             DAGCircuitError: a creg is not a ClassicalRegister, is not in
@@ -334,9 +334,6 @@ class DAGCircuit:
                 raise DAGCircuitError("not a ClassicalRegister instance.")
             if creg.name not in self.cregs:
                 raise DAGCircuitError("creg %s is not in circuit" % creg)
-            for clbit in creg:
-                if not self._is_wire_idle(clbit):
-                    raise DAGCircuitError("clbit %s in creg %s is not idle." % clbit % creg)
         
         clbits_to_remove = set()
         clbits_to_keep = set()
@@ -350,7 +347,10 @@ class DAGCircuit:
         clbits_to_remove.difference_update(clbits_to_keep)
 
         for clbit in clbits_to_remove:
-            self._remove_idle_wire(clbit)
+            if self._is_wire_idle(clbit):
+                self._remove_idle_wire(clbit)
+            else:
+                warnings.warn("clbit %s is not idle but is no longer referenced by a register")
         del self.cregs[creg.name]
 
     def _is_wire_idle(self, wire):
