@@ -79,7 +79,7 @@ class SparsePauliOp(LinearOp):
         else:
             coeffs = np.array(coeffs, copy=copy, dtype=complex)
 
-        if ignore_pauli_phase or np.count_nonzero(pauli_list.phase) == 0:
+        if ignore_pauli_phase:
             # Fast path for copy operations. Avoid the phase conversion.
             # This path works only if the input data is compatible with the internal ZX-phase convention.
             self._pauli_list = pauli_list
