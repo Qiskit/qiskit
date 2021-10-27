@@ -2,4 +2,4 @@
 features:
   - |
     The evolved operator :class:`~qiskit.circuit.library.QAOAAnsatz` now produces a :class:`~qiskit.circuit.library.QAOAGate`
-    instead of a decomposition. This allows to more abstract transpilation passes.
+    instead of a custom gate. This allows to more abstract transpilation passes.
