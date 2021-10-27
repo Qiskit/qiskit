@@ -96,6 +96,8 @@ class TestSparsePauliOpInit(QiskitTestCase):
             ref_op = op.copy()
             spp_op = SparsePauliOp(op)
             self.assertEqual(spp_op, ref_op)
+            np.testing.assert_array_equal(ref_op.paulis.phase, np.zeros(ref_op.size))
+            np.testing.assert_array_equal(spp_op.paulis.phase, np.zeros(spp_op.size))
             # make sure the change of `op` does not propagate through to `spp_op`
             op.paulis.z[:] = False
             op.coeffs *= 2
@@ -107,7 +109,9 @@ class TestSparsePauliOpInit(QiskitTestCase):
             spp_op = SparsePauliOp(paulis, coeffs)
             ref_op = SparsePauliOp(paulis.copy(), coeffs.copy())
             self.assertEqual(spp_op, ref_op)
-            # make sure the change of `paulis_copy` and `coeffs` does not propagate through to `spp_op`
+            np.testing.assert_array_equal(ref_op.paulis.phase, np.zeros(ref_op.size))
+            np.testing.assert_array_equal(spp_op.paulis.phase, np.zeros(spp_op.size))
+            # make sure the change of `paulis` and `coeffs` does not propagate through to `spp_op`
             paulis.z[:] = False
             coeffs[:] = 0
             self.assertEqual(spp_op, ref_op)
@@ -244,7 +248,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = spp_op.conjugate()
         value = op.to_operator()
         self.assertEqual(value, target)
-        np.testing.assert_array_equal(op.paulis.phase, [0] * op.size)
+        np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
     @combine(num_qubits=[1, 2, 3, 4])
     def test_transpose(self, num_qubits):
@@ -254,7 +258,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = spp_op.transpose()
         value = op.to_operator()
         self.assertEqual(value, target)
-        np.testing.assert_array_equal(op.paulis.phase, [0] * op.size)
+        np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
     @combine(num_qubits=[1, 2, 3, 4])
     def test_adjoint(self, num_qubits):
@@ -264,7 +268,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = spp_op.adjoint()
         value = op.to_operator()
         self.assertEqual(value, target)
-        np.testing.assert_array_equal(op.paulis.phase, [0] * op.size)
+        np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
     @combine(num_qubits=[1, 2, 3, 4])
     def test_compose(self, num_qubits):
@@ -276,12 +280,12 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = spp_op1.compose(spp_op2)
         value = op.to_operator()
         self.assertEqual(value, target)
-        np.testing.assert_array_equal(op.paulis.phase, [0] * op.size)
+        np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
         op = spp_op1 & spp_op2
         value = op.to_operator()
         self.assertEqual(value, target)
-        np.testing.assert_array_equal(op.paulis.phase, [0] * op.size)
+        np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
     @combine(num_qubits=[1, 2, 3, 4])
     def test_dot(self, num_qubits):
@@ -293,12 +297,12 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = spp_op1.dot(spp_op2)
         value = op.to_operator()
         self.assertEqual(value, target)
-        np.testing.assert_array_equal(op.paulis.phase, [0] * op.size)
+        np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
         op = spp_op1 * spp_op2
         value = op.to_operator()
         self.assertEqual(value, target)
-        np.testing.assert_array_equal(op.paulis.phase, [0] * op.size)
+        np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
     @combine(num_qubits=[1, 2, 3])
     def test_qargs_compose(self, num_qubits):
@@ -311,12 +315,12 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = spp_op1.compose(spp_op2, qargs=qargs)
         value = op.to_operator()
         self.assertEqual(value, target)
-        np.testing.assert_array_equal(op.paulis.phase, [0] * op.size)
+        np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
         op = spp_op1 & spp_op2(qargs)
         value = op.to_operator()
         self.assertEqual(value, target)
-        np.testing.assert_array_equal(op.paulis.phase, [0] * op.size)
+        np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
     @combine(num_qubits=[1, 2, 3])
     def test_qargs_dot(self, num_qubits):
@@ -329,12 +333,12 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = spp_op1.dot(spp_op2, qargs=qargs)
         value = op.to_operator()
         self.assertEqual(value, target)
-        np.testing.assert_array_equal(op.paulis.phase, [0] * op.size)
+        np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
         op = spp_op1 * spp_op2(qargs)
         value = op.to_operator()
         self.assertEqual(value, target)
-        np.testing.assert_array_equal(op.paulis.phase, [0] * op.size)
+        np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
     @combine(num_qubits1=[1, 2, 3], num_qubits2=[1, 2, 3])
     def test_tensor(self, num_qubits1, num_qubits2):
@@ -345,7 +349,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = spp_op1.tensor(spp_op2)
         value = op.to_operator()
         self.assertEqual(value, target)
-        np.testing.assert_array_equal(op.paulis.phase, [0] * op.size)
+        np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
     @combine(num_qubits1=[1, 2, 3], num_qubits2=[1, 2, 3])
     def test_expand(self, num_qubits1, num_qubits2):
@@ -356,7 +360,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = spp_op1.expand(spp_op2)
         value = op.to_operator()
         self.assertEqual(value, target)
-        np.testing.assert_array_equal(op.paulis.phase, [0] * op.size)
+        np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
     @combine(num_qubits=[1, 2, 3, 4])
     def test_add(self, num_qubits):
@@ -367,7 +371,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = spp_op1 + spp_op2
         value = op.to_operator()
         self.assertEqual(value, target)
-        np.testing.assert_array_equal(op.paulis.phase, [0] * op.size)
+        np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
     @combine(num_qubits=[1, 2, 3, 4])
     def test_sub(self, num_qubits):
@@ -378,7 +382,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = spp_op1 - spp_op2
         value = op.to_operator()
         self.assertEqual(value, target)
-        np.testing.assert_array_equal(op.paulis.phase, [0] * op.size)
+        np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
     @combine(num_qubits=[1, 2, 3])
     def test_add_qargs(self, num_qubits):
@@ -390,7 +394,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = spp_op1 + spp_op2(qargs)
         value = op.to_operator()
         self.assertEqual(value, target)
-        np.testing.assert_array_equal(op.paulis.phase, [0] * op.size)
+        np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
     @combine(num_qubits=[1, 2, 3])
     def test_sub_qargs(self, num_qubits):
@@ -402,7 +406,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = spp_op1 - spp_op2(qargs)
         value = op.to_operator()
         self.assertEqual(value, target)
-        np.testing.assert_array_equal(op.paulis.phase, [0] * op.size)
+        np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
     @combine(num_qubits=[1, 2, 3], value=[0, 1, 1j, -3 + 4.4j, np.int64(2)])
     def test_mul(self, num_qubits, value):
@@ -412,7 +416,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = value * spp_op
         value = op.to_operator()
         self.assertEqual(value, target)
-        np.testing.assert_array_equal(op.paulis.phase, [0] * op.size)
+        np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
     @combine(num_qubits=[1, 2, 3], value=[1, 1j, -3 + 4.4j])
     def test_div(self, num_qubits, value):
@@ -422,7 +426,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = spp_op / value
         value = op.to_operator()
         self.assertEqual(value, target)
-        np.testing.assert_array_equal(op.paulis.phase, [0] * op.size)
+        np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
 
     def test_simplify(self):
         """Test simplify method"""
@@ -434,7 +438,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         target_labels = ["III", "XXX"]
         target_op = SparsePauliOp.from_list(zip(target_labels, target_coeffs))
         self.assertEqual(simplified_op, target_op)
-        np.testing.assert_array_equal(simplified_op.paulis.phase, [0] * simplified_op.size)
+        np.testing.assert_array_equal(simplified_op.paulis.phase, np.zeros(simplified_op.size))
 
     @combine(num_qubits=[1, 2, 3, 4], num_adds=[0, 1, 2, 3])
     def test_simplify2(self, num_qubits, num_adds):
@@ -446,8 +450,8 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         value = Operator(simplified_op)
         target = Operator(spp_op)
         self.assertEqual(value, target)
-        np.testing.assert_array_equal(spp_op.paulis.phase, [0] * spp_op.size)
-        np.testing.assert_array_equal(simplified_op.paulis.phase, [0] * simplified_op.size)
+        np.testing.assert_array_equal(spp_op.paulis.phase, np.zeros(spp_op.size))
+        np.testing.assert_array_equal(simplified_op.paulis.phase, np.zeros(simplified_op.size))
 
 
 if __name__ == "__main__":
