@@ -20,6 +20,7 @@ from contextlib import contextmanager
 import math
 import numpy as np
 from numpy import pi
+from ddt import ddt, data
 
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
@@ -53,6 +54,7 @@ def cwd(path):
         os.chdir(oldpwd)
 
 
+@ddt
 class TestMatplotlibDrawer(QiskitTestCase):
     """Circuit MPL visualization"""
 
@@ -525,7 +527,8 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename="global_phase.png")
 
-    def test_iqx_colors(self):
+    @data("iqx", "iqx-dark")
+    def test_iqx_colors(self, style):
         """Tests with iqx color scheme"""
         circuit = QuantumCircuit(7)
         circuit.h(0)
@@ -553,7 +556,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.barrier(5, 6)
         circuit.reset(5)
 
-        self.circuit_drawer(circuit, style={"name": "iqx"}, filename="iqx_color.png")
+        self.circuit_drawer(circuit, style={"name": style}, filename=f"{style}_color.png")
 
     def test_reverse_bits(self):
         """Tests reverse_bits parameter"""
@@ -616,17 +619,18 @@ class TestMatplotlibDrawer(QiskitTestCase):
             filename="user_style.png",
         )
 
-    def test_subfont_change(self):
+    @data("iqx", "iqx-dark")
+    def test_subfont_change(self, name):
         """Tests changing the subfont size"""
         circuit = QuantumCircuit(3)
         circuit.h(0)
         circuit.x(0)
         circuit.u(pi / 2, pi / 2, pi / 2, 1)
         circuit.p(pi / 2, 2)
-        style = {"name": "iqx", "subfontsize": 11}
+        style = {"name": name, "subfontsize": 11}
 
         self.circuit_drawer(circuit, style=style, filename="subfont.png")
-        self.assertEqual(style, {"name": "iqx", "subfontsize": 11})  # check does not change style
+        self.assertEqual(style, {"name": name, "subfontsize": 11})  # check does not change style
 
     def test_meas_condition(self):
         """Tests measure with a condition"""
