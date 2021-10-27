@@ -51,7 +51,8 @@ class SparsePauliOp(LinearOp):
         """Initialize an operator object.
 
         Args:
-            data (PauliList or SparsePauliOp or PauliTable or Pauli or list): Pauli list of terms.
+            data (PauliList or SparsePauliOp or PauliTable or Pauli or list or str): Pauli list of terms.
+                A list of Pauli strings or a Pauli string is also allowed.
             coeffs (np.ndarray): complex coefficients for Pauli terms.
                 Note: if `data` is `SparsePauliOp`, `coeffs` is overwritten by `SparsePauliOp.coeffs`.
             ignore_pauli_phase (bool): avoid the phase conversion if True,
