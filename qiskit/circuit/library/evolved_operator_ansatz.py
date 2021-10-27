@@ -200,9 +200,4 @@ def _validate_prefix(parameter_prefix, operators):
     return parameter_prefix
 
 
-def _is_pauli_identity(operator):
-    from qiskit.opflow import PauliOp
 
-    if isinstance(operator, PauliOp):
-        return not np.any(np.logical_or(operator.primitive.x, operator.primitive.z))
-    return False

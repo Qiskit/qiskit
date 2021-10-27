@@ -15,6 +15,7 @@
 # pylint: disable=cyclic-import
 
 import itertools
+import operator
 from qiskit.circuit.parametervector import ParameterVector
 import numpy as np
 from typing import Optional, Set, List, Tuple
@@ -29,7 +30,7 @@ from qiskit.exceptions import QiskitError
 from typing import Optional, List, Tuple
 import numpy as np
 
-from qiskit.circuit.library.evolved_operator_ansatz import EvolvedOperatorAnsatz, _is_pauli_identity
+from qiskit.circuit.library.evolved_operator_ansatz import EvolvedOperatorAnsatz #,_is_pauli_identity
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -80,6 +81,9 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         self._bounds = None
 
         # store cost operator and set the registers if the operator is not None
+        
+        if cost_operator is not None:
+            self.num_qubits = cost_operator.num_qubits
         self.cost_operator = cost_operator
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
@@ -169,6 +173,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
                 print("At least one mixer needs to be defined")
                 return None
             num_qubits = circuits[0].num_qubits
+            self.num_qubits = num_qubits
             try:
                 qr = QuantumRegister(num_qubits, "q")
                 self.add_register(qr)
@@ -380,3 +385,10 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
             reordered.extend(betas[rep * num_mixer : (rep + 1) * num_mixer])
 
         self.assign_parameters(dict(zip(self.ordered_parameters, reordered)), inplace=True)
+
+def _is_pauli_identity(operator):
+    from qiskit.opflow import PauliOp
+
+    if isinstance(operator, PauliOp):
+        return not np.any(np.logical_or(operator.primitive.x, operator.primitive.z))
+    return False
