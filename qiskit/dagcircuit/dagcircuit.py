@@ -325,8 +325,8 @@ class DAGCircuit:
         removing idle bits that are no longer referenced by any register.
 
         Raises:
-            DAGCircuitError: a creg is not a ClassicalRegister, is not in
-                the circuit, or contains a bit that is not idle.
+            DAGCircuitError: a creg is not a ClassicalRegister or is not in
+                the circuit.
         """
         # Validate the removal will succeed.
         for creg in cregs:
@@ -349,6 +349,7 @@ class DAGCircuit:
         for clbit in clbits_to_remove:
             if self._is_wire_idle(clbit):
                 self._remove_idle_wire(clbit)
+                self.clbits.remove(clbit)
             else:
                 warnings.warn("clbit %s is not idle but is no longer referenced by a register")
         del self.cregs[creg.name]
