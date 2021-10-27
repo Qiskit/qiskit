@@ -65,17 +65,18 @@ class NumPyMatrix(LinearSystemMatrix):
         self._evolution_time = None  # makes sure the eigenvalues are contained in [0,1)
         self._matrix = None
 
-        # store parameters
-        self.num_state_qubits = int(np.log2(matrix.shape[0]))
-        self.tolerance = tolerance
-        self.evolution_time = evolution_time
-        self.matrix = matrix
         super().__init__(
             num_state_qubits=int(np.log2(matrix.shape[0])),
             tolerance=tolerance,
             evolution_time=evolution_time,
             name=name,
         )
+
+        # store parameters
+        self.num_state_qubits = int(np.log2(matrix.shape[0]))
+        self.tolerance = tolerance
+        self.evolution_time = evolution_time
+        self.matrix = matrix
 
     @property
     def num_state_qubits(self) -> int:
@@ -181,7 +182,6 @@ class NumPyMatrix(LinearSystemMatrix):
         """
         qr_state = QuantumRegister(num_state_qubits, "state")
         self.qregs = [qr_state]
-        self._qubits = qr_state[:]
 
     def _build(self) -> None:
         """Build the circuit"""

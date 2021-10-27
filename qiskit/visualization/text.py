@@ -24,7 +24,7 @@ from qiskit.circuit import Reset
 from qiskit.circuit import Measure
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
 from qiskit.circuit.tools.pi_check import pi_check
-from qiskit.visualization.utils import get_gate_ctrl_text, get_param_str
+from qiskit.visualization.utils import get_gate_ctrl_text, get_param_str, get_bit_label
 from .exceptions import VisualizationError
 
 
@@ -774,66 +774,32 @@ class TextDrawing:
             initial_qubit_value = ""
             initial_clbit_value = ""
 
+        # quantum register
         qubit_labels = []
-        if self.layout is None:
-            for bit in self.qubits:
-                label = "{name}_{index}: " + initial_qubit_value
-                if self.bit_locations[bit]["register"] is not None:
-                    qubit_labels.append(
-                        label.format(
-                            name=self.bit_locations[bit]["register"].name,
-                            index=self.bit_locations[bit]["index"],
-                        )
-                    )
-                else:
-                    qubit_labels.append(
-                        label.format(name="", index=self.bit_locations[bit]["index"], physical="")
-                    )
+        for reg in self.qubits:
+            register = self.bit_locations[reg]["register"]
+            index = self.bit_locations[reg]["index"]
+            qubit_label = get_bit_label("text", register, index, qubit=True, layout=self.layout)
+            qubit_label += ": " if self.layout is None else " "
+            qubit_labels.append(qubit_label + initial_qubit_value)
 
-        else:
-            for bit in self.qubits:
-                bit_index = self.bit_locations[bit]["index"]
-                if self.layout[bit_index]:
-                    try:
-                        layout_reg = next(
-                            reg
-                            for reg in self.layout.get_registers()
-                            if self.layout[bit_index] in reg
-                        )
-                        label = "{name}_{index} -> {physical} " + initial_qubit_value
-                        qubit_labels.append(
-                            label.format(
-                                name=layout_reg.name,
-                                index=layout_reg[:].index(self.layout[bit_index]),
-                                physical=bit_index,
-                            )
-                        )
-                    except StopIteration:
-                        label = "{name} -> {physical} " + initial_qubit_value
-                        qubit_labels.append(label.format(name="", physical=bit_index))
-                else:
-                    qubit_labels.append("%s " % bit_index + initial_qubit_value)
-
+        # classical register
         clbit_labels = []
-        previous_creg = None
-        for bit in self.clbits:
-            register = self.bit_locations[bit]["register"]
-            index = self.bit_locations[bit]["index"]
-            if self.cregbundle and register is not None:
-                if previous_creg and previous_creg == register:
-                    continue
-                previous_creg = register
-                label = "{name}: {initial_value}{size}/"
-                clbit_labels.append(
-                    label.format(
-                        name=register.name, initial_value=initial_clbit_value, size=register.size
+        if self.clbits:
+            prev_creg = None
+            for reg in self.clbits:
+                register = self.bit_locations[reg]["register"]
+                index = self.bit_locations[reg]["index"]
+                clbit_label = get_bit_label(
+                    "text", register, index, qubit=False, cregbundle=self.cregbundle
+                )
+                if register is None or not self.cregbundle or prev_creg != register:
+                    cregb_add = (
+                        str(register.size) + "/" if self.cregbundle and register is not None else ""
                     )
-                )
-            else:
-                label = "{name}_{index}: " + initial_clbit_value
-                clbit_labels.append(
-                    label.format(name=register.name if register is not None else "", index=index)
-                )
+                    clbit_labels.append(clbit_label + ": " + initial_clbit_value + cregb_add)
+                prev_creg = register
+
         return qubit_labels + clbit_labels
 
     def should_compress(self, top_line, bot_line):
