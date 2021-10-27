@@ -192,6 +192,24 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         self.assertEqual(counts_if_true, {"111": 100})
         self.assertEqual(counts_if_false, {"001": 100})
 
+    def test_bit_cif_crossaffect(self):
+        """Test if bits in a classical register other than
+        the single conditional bit affect the conditioned operation."""
+        shots = 100
+        qr = QuantumRegister(3)
+        cr = ClassicalRegister(3)
+        cr1 = ClassicalRegister(1)
+        circuit = QuantumCircuit(qr, cr, cr1)
+        circuit.x([qr[1], qr[2]])
+        circuit.measure(qr[1], cr[1])
+        circuit.measure(qr[2], cr[2])
+        circuit.h(qr[0]).c_if(cr[0], True)
+        circuit.measure(qr[0], cr1[0])
+        job = execute(circuit, backend=self.backend, shots=shots, seed_simulator=self.seed)
+        result = job.result().get_counts()
+        target = {"0 110": 100}
+        self.assertEqual(result, target)
+
     def test_teleport(self):
         """Test teleportation as in tutorials"""
         self.log.info("test_teleport")

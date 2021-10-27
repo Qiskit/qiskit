@@ -13,41 +13,12 @@
 """A module for visualizing device coupling maps"""
 
 import math
+from typing import List
 import numpy as np
-from qiskit.exceptions import QiskitError
+from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 from .matplotlib import HAS_MATPLOTLIB
 from .exceptions import VisualizationError
-
-
-class _GraphDist:
-    """Transform the circles properly for non-square axes."""
-
-    def __init__(self, size, ax, x=True):
-        self.size = size
-        self.ax = ax  # pylint: disable=invalid-name
-        self.x = x
-
-    @property
-    def dist_real(self):
-        """Compute distance."""
-        x0, y0 = self.ax.transAxes.transform((0, 0))
-        x1, y1 = self.ax.transAxes.transform((1, 1))
-        value = x1 - x0 if self.x else y1 - y0
-        return value
-
-    @property
-    def dist_abs(self):
-        """Distance abs"""
-        bounds = self.ax.get_xlim() if self.x else self.ax.get_ylim()
-        return bounds[0] - bounds[1]
-
-    @property
-    def value(self):
-        """Return value."""
-        return (self.size / self.dist_real) * self.dist_abs
-
-    def __mul__(self, obj):
-        return self.value * obj
+from .utils import matplotlib_close_if_inline
 
 
 def plot_gate_map(
@@ -55,19 +26,21 @@ def plot_gate_map(
     figsize=None,
     plot_directed=False,
     label_qubits=True,
-    qubit_size=24,
+    qubit_size=None,
     line_width=4,
-    font_size=12,
+    font_size=None,
     qubit_color=None,
     qubit_labels=None,
     line_color=None,
     font_color="w",
     ax=None,
+    filename=None,
 ):
     """Plots the gate map of a device.
 
     Args:
-        backend (BaseBackend): A backend instance,
+        backend (BaseBackend): The backend instance that will be used to plot the device
+            gate map.
         figsize (tuple): Output figure size (wxh) in inches.
         plot_directed (bool): Plot directed coupling map.
         label_qubits (bool): Label the qubits.
@@ -79,13 +52,15 @@ def plot_gate_map(
         line_color (list): A list of colors for each line from coupling_map.
         font_color (str): The font color for the qubit labels.
         ax (Axes): A Matplotlib axes instance.
+        filename (str): file path to save image to.
 
     Returns:
         Figure: A Matplotlib figure instance.
 
     Raises:
-        QiskitError: if tried to pass a simulator.
-        ImportError: if matplotlib not installed.
+        QiskitError: if tried to pass a simulator, or if the backend is None,
+            but one of num_qubits, mpl_data, or cmap is None.
+        MissingOptionalLibraryError: if matplotlib not installed.
 
     Example:
         .. jupyter-execute::
@@ -107,29 +82,24 @@ def plot_gate_map(
            plot_gate_map(backend)
     """
     if not HAS_MATPLOTLIB:
-        raise ImportError(
-            "Must have Matplotlib installed. To install, " 'run "pip install matplotlib".'
+        raise MissingOptionalLibraryError(
+            libname="Matplotlib",
+            name="plot_gate_map",
+            pip_install="pip install matplotlib",
         )
-    from matplotlib import get_backend
-    import matplotlib.pyplot as plt
-    import matplotlib.patches as mpatches
 
     if backend.configuration().simulator:
         raise QiskitError("Requires a device backend, not simulator.")
 
-    input_axes = False
-    if ax:
-        input_axes = True
+    qubit_coordinates_map = {}
 
-    mpl_data = {}
+    qubit_coordinates_map[1] = [[0, 0]]
 
-    mpl_data[1] = [[0, 0]]
+    qubit_coordinates_map[5] = [[1, 0], [0, 1], [1, 1], [1, 2], [2, 1]]
 
-    mpl_data[5] = [[1, 0], [0, 1], [1, 1], [1, 2], [2, 1]]
+    qubit_coordinates_map[7] = [[0, 0], [0, 1], [0, 2], [1, 1], [2, 0], [2, 1], [2, 2]]
 
-    mpl_data[7] = [[0, 0], [0, 1], [0, 2], [1, 1], [2, 0], [2, 1], [2, 2]]
-
-    mpl_data[20] = [
+    qubit_coordinates_map[20] = [
         [0, 0],
         [0, 1],
         [0, 2],
@@ -152,7 +122,7 @@ def plot_gate_map(
         [3, 4],
     ]
 
-    mpl_data[15] = [
+    qubit_coordinates_map[15] = [
         [0, 0],
         [0, 1],
         [0, 2],
@@ -170,7 +140,7 @@ def plot_gate_map(
         [1, 0],
     ]
 
-    mpl_data[16] = [
+    qubit_coordinates_map[16] = [
         [1, 0],
         [1, 1],
         [2, 1],
@@ -189,7 +159,7 @@ def plot_gate_map(
         [1, 6],
     ]
 
-    mpl_data[27] = [
+    qubit_coordinates_map[27] = [
         [1, 0],
         [1, 1],
         [2, 1],
@@ -219,7 +189,7 @@ def plot_gate_map(
         [3, 10],
     ]
 
-    mpl_data[28] = [
+    qubit_coordinates_map[28] = [
         [0, 2],
         [0, 3],
         [0, 4],
@@ -250,7 +220,7 @@ def plot_gate_map(
         [4, 8],
     ]
 
-    mpl_data[53] = [
+    qubit_coordinates_map[53] = [
         [0, 2],
         [0, 3],
         [0, 4],
@@ -306,7 +276,7 @@ def plot_gate_map(
         [9, 6],
     ]
 
-    mpl_data[65] = [
+    qubit_coordinates_map[65] = [
         [0, 0],
         [0, 1],
         [0, 2],
@@ -376,24 +346,135 @@ def plot_gate_map(
 
     config = backend.configuration()
     num_qubits = config.n_qubits
-    cmap = config.coupling_map
+    coupling_map = config.coupling_map
+    qubit_coordinates = None
+    if num_qubits in qubit_coordinates_map.keys():
+        qubit_coordinates = qubit_coordinates_map[num_qubits]
+    return plot_coupling_map(
+        num_qubits,
+        qubit_coordinates,
+        coupling_map,
+        figsize,
+        plot_directed,
+        label_qubits,
+        qubit_size,
+        line_width,
+        font_size,
+        qubit_color,
+        qubit_labels,
+        line_color,
+        font_color,
+        ax,
+        filename,
+    )
+
+
+def plot_coupling_map(
+    num_qubits: int,
+    qubit_coordinates: List[List[int]],
+    coupling_map: List[List[int]],
+    figsize=None,
+    plot_directed=False,
+    label_qubits=True,
+    qubit_size=None,
+    line_width=4,
+    font_size=None,
+    qubit_color=None,
+    qubit_labels=None,
+    line_color=None,
+    font_color="w",
+    ax=None,
+    filename=None,
+):
+    """Plots an arbitrary coupling map of qubits (embedded in a plane).
+
+    Args:
+        num_qubits (int): The number of qubits defined and plotted.
+        qubit_coordinates (List[List[int]]): A list of two-element lists, with entries of each nested
+            list being the planar coordinates in a 0-based square grid where each qubit is located.
+        coupling_map (List[List[int]]): A list of two-element lists, with entries of each nested
+            list being the qubit numbers of the bonds to be plotted.
+        figsize (tuple): Output figure size (wxh) in inches.
+        plot_directed (bool): Plot directed coupling map.
+        label_qubits (bool): Label the qubits.
+        qubit_size (float): Size of qubit marker.
+        line_width (float): Width of lines.
+        font_size (int): Font size of qubit labels.
+        qubit_color (list): A list of colors for the qubits
+        qubit_labels (list): A list of qubit labels
+        line_color (list): A list of colors for each line from coupling_map.
+        font_color (str): The font color for the qubit labels.
+        ax (Axes): A Matplotlib axes instance.
+        filename (str): file path to save image to.
+
+    Returns:
+        Figure: A Matplotlib figure instance.
+
+    Raises:
+        MissingOptionalLibraryError: if matplotlib not installed.
+        QiskitError: If length of qubit labels does not match number of qubits.
+
+    Example:
+        .. jupyter-execute::
+            :hide-code:
+            :hide-output:
+
+            from qiskit.test.ibmq_mock import mock_get_backend
+            mock_get_backend('FakeVigo')
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit, execute, IBMQ
+            from qiskit.visualization import plot_coupling_map
+            %matplotlib inline
+
+            num_qubits = 8
+            coupling_map = [[0, 1], [1, 2], [2, 3], [3, 5], [4, 5], [5, 6], [2, 4], [6, 7]]
+            qubit_coordinates = [[0, 1], [1, 1], [1, 0], [1, 2], [2, 0],
+                                 [2, 2], [2, 1], [3, 1]]
+            plot_gate_map(num_qubits, coupling_map, qubit_coordinates)
+    """
+
+    if not HAS_MATPLOTLIB:
+        raise MissingOptionalLibraryError(
+            libname="Matplotlib",
+            name="plot_coupling_map",
+            pip_install="pip install matplotlib",
+        )
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as mpatches
+
+    input_axes = False
+    if ax:
+        input_axes = True
+
+    if font_size is None:
+        font_size = 12
+
+    if qubit_size is None:
+        qubit_size = 24
+    if num_qubits > 20:
+        qubit_size = 28
+        font_size = 10
 
     if qubit_labels is None:
         qubit_labels = list(range(num_qubits))
     else:
         if len(qubit_labels) != num_qubits:
-            raise QiskitError("Length of qubit labels " "does not equal number " "of qubits.")
+            raise QiskitError("Length of qubit labels does not equal number of qubits.")
 
-    if num_qubits in mpl_data.keys():
-        grid_data = mpl_data[num_qubits]
+    if qubit_coordinates is not None:
+        grid_data = qubit_coordinates
     else:
         if not input_axes:
             fig, ax = plt.subplots(figsize=(5, 5))
             ax.axis("off")
+            if filename:
+                fig.savefig(filename)
             return fig
 
-    x_max = max([d[1] for d in grid_data])
-    y_max = max([d[0] for d in grid_data])
+    x_max = max(d[1] for d in grid_data)
+    y_max = max(d[0] for d in grid_data)
     max_dim = max(x_max, y_max)
 
     if figsize is None:
@@ -408,15 +489,15 @@ def plot_gate_map(
 
     # set coloring
     if qubit_color is None:
-        qubit_color = ["#648fff"] * config.n_qubits
+        qubit_color = ["#648fff"] * num_qubits
     if line_color is None:
-        line_color = ["#648fff"] * len(cmap) if cmap else []
+        line_color = ["#648fff"] * len(coupling_map) if coupling_map else []
 
     # Add lines for couplings
     if num_qubits != 1:
-        for ind, edge in enumerate(cmap):
+        for ind, edge in enumerate(coupling_map):
             is_symmetric = False
-            if edge[::-1] in cmap:
+            if edge[::-1] in coupling_map:
                 is_symmetric = True
             y_start = grid_data[edge[0]][0]
             x_start = grid_data[edge[0]][1]
@@ -475,10 +556,16 @@ def plot_gate_map(
     # Add circles for qubits
     for var, idx in enumerate(grid_data):
         _idx = [idx[1], -idx[0]]
-        width = _GraphDist(qubit_size, ax, True)
-        height = _GraphDist(qubit_size, ax, False)
-        ax.add_artist(mpatches.Ellipse(_idx, width, height, color=qubit_color[var], zorder=1))
-        if label_qubits:
+        ax.add_artist(
+            mpatches.Ellipse(
+                _idx,
+                qubit_size / 48,
+                qubit_size / 48,  # This is here so that the changes
+                color=qubit_color[var],
+                zorder=1,
+            )
+        )  # to how qubits are plotted does
+        if label_qubits:  # not affect qubit size kwarg.
             ax.text(
                 *_idx,
                 s=qubit_labels[var],
@@ -490,9 +577,12 @@ def plot_gate_map(
             )
     ax.set_xlim([-1, x_max + 1])
     ax.set_ylim([-(y_max + 1), 1])
+    ax.set_aspect("equal")
+
     if not input_axes:
-        if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
-            plt.close(fig)
+        matplotlib_close_if_inline(fig)
+        if filename:
+            fig.savefig(filename)
         return fig
     return None
 
@@ -544,7 +634,7 @@ def plot_circuit_layout(circuit, backend, view="virtual"):
             plot_circuit_layout(new_circ_lv3, backend)
     """
     if circuit._layout is None:
-        raise QiskitError("Circuit has no layout. " "Perhaps it has not been transpiled.")
+        raise QiskitError("Circuit has no layout. Perhaps it has not been transpiled.")
 
     num_qubits = backend.configuration().n_qubits
 
@@ -606,7 +696,8 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
 
     Raises:
         VisualizationError: Input is not IBMQ backend.
-        ImportError: If seaborn is not installed
+        VisualizationError: The backend does not provide gate errors for the 'sx' gate.
+        MissingOptionalLibraryError: If seaborn is not installed
 
     Example:
         .. jupyter-execute::
@@ -630,16 +721,18 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     try:
         import seaborn as sns
     except ImportError as ex:
-        raise ImportError(
-            "Must have seaborn installed to use plot_error_map. "
-            'To install, run "pip install seaborn".'
+        raise MissingOptionalLibraryError(
+            libname="seaborn",
+            name="plot_error_map",
+            pip_install="pip install seaborn",
         ) from ex
     if not HAS_MATPLOTLIB:
-        raise ImportError(
-            "Must have Matplotlib installed. To install, " 'run "pip install matplotlib".'
+        raise MissingOptionalLibraryError(
+            libname="Matplotlib",
+            name="plot_error_map",
+            pip_install="pip install matplotlib",
         )
     import matplotlib
-    from matplotlib import get_backend
     import matplotlib.pyplot as plt
     import matplotlib.gridspec as gridspec
     from matplotlib import ticker
@@ -651,12 +744,19 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
 
     num_qubits = config["n_qubits"]
 
-    # U2 error rates
+    # sx error rates
     single_gate_errors = [0] * num_qubits
     for gate in props["gates"]:
-        if gate["gate"] == "u2":
+        if gate["gate"] == "sx":
             _qubit = gate["qubits"][0]
-            single_gate_errors[_qubit] = gate["parameters"][0]["value"]
+            for param in gate["parameters"]:
+                if param["name"] == "gate_error":
+                    single_gate_errors[_qubit] = param["value"]
+                    break
+            else:
+                raise VisualizationError(
+                    f"Backend '{backend}' did not supply an error for the 'sx' gate."
+                )
 
     # Convert to percent
     single_gate_errors = 100 * np.asarray(single_gate_errors)
@@ -722,11 +822,14 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     if cmap:
         bright_ax = plt.subplot(grid_spec[-1, 7:])
 
+    qubit_size = 28
+    if num_qubits <= 5:
+        qubit_size = 20
     plot_gate_map(
         backend,
         qubit_color=q_colors,
         line_color=line_colors,
-        qubit_size=28,
+        qubit_size=qubit_size,
         line_width=5,
         plot_directed=directed,
         ax=main_ax,
@@ -741,11 +844,11 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
         single_cb.locator = tick_locator
         single_cb.update_ticks()
         single_cb.update_ticks()
-        bleft_ax.set_title("H error rate (%) [Avg. = {}]".format(round(avg_1q_err, 3)))
+        bleft_ax.set_title(f"H error rate (%) [Avg. = {round(avg_1q_err, 3)}]")
 
     if cmap is None:
         bleft_ax.axis("off")
-        bleft_ax.set_title("H error rate (%) = {}".format(round(avg_1q_err, 3)))
+        bleft_ax.set_title(f"H error rate (%) = {round(avg_1q_err, 3)}")
 
     if cmap:
         cx_cb = matplotlib.colorbar.ColorbarBase(
@@ -754,7 +857,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
         tick_locator = ticker.MaxNLocator(nbins=5)
         cx_cb.locator = tick_locator
         cx_cb.update_ticks()
-        bright_ax.set_title("CNOT error rate (%) [Avg. = {}]".format(round(avg_cx_err, 3)))
+        bright_ax.set_title(f"CNOT error rate (%) [Avg. = {round(avg_cx_err, 3)}]")
 
     if num_qubits < 10:
         num_left = num_qubits
@@ -794,7 +897,6 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
         spine.set_visible(False)
 
     if show_title:
-        fig.suptitle("{name} Error Map".format(name=backend.name()), fontsize=24, y=0.9)
-    if get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
-        plt.close(fig)
+        fig.suptitle(f"{backend.name()} Error Map", fontsize=24, y=0.9)
+    matplotlib_close_if_inline(fig)
     return fig

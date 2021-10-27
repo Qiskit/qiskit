@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Added the parameter,  `filename`, to :func:`~qiskit.visualization.gate_map.plot_gate_map` and :func:`~qiskit.visualization.gate_map.plot_coupling_name` which 
+    allows to save the gate_map and coupling_map as an image file.
+
+  - |
+    Added the snapshot testing feature for the functions plot_gate_map and plot_coupling_map 
+    for different use cases.

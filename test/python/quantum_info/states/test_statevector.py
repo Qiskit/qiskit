@@ -32,6 +32,7 @@ from qiskit.quantum_info.states import Statevector
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.visualization.state_visualization import numbers_to_latex_terms, state_to_latex
 
 logger = logging.getLogger(__name__)
 
@@ -207,6 +208,22 @@ class TestStatevector(QiskitTestCase):
             vec = self.rand_vec(4)
             self.assertEqual(Statevector(vec), Statevector(vec.tolist()))
 
+    def test_getitem(self):
+        """Test __getitem__ method"""
+        for _ in range(10):
+            vec = self.rand_vec(4)
+            state = Statevector(vec)
+            for i in range(4):
+                self.assertEqual(state[i], vec[i])
+                self.assertEqual(state[format(i, "b")], vec[i])
+
+    def test_getitem_except(self):
+        """Test __getitem__ method raises exceptions."""
+        for i in range(1, 4):
+            state = Statevector(self.rand_vec(2 ** i))
+            self.assertRaises(QiskitError, state.__getitem__, 2 ** i)
+            self.assertRaises(QiskitError, state.__getitem__, -1)
+
     def test_copy(self):
         """Test Statevector copy method"""
         for _ in range(5):
@@ -334,6 +351,29 @@ class TestStatevector(QiskitTestCase):
             self.assertEqual(state.dims(), (3, 2))
             assert_allclose(state.data, target)
 
+    def test_inner(self):
+        """Test inner method."""
+        for _ in range(10):
+            vec0 = Statevector(self.rand_vec(4))
+            vec1 = Statevector(self.rand_vec(4))
+            target = np.vdot(vec0.data, vec1.data)
+            result = vec0.inner(vec1)
+            self.assertAlmostEqual(result, target)
+            vec0 = Statevector(self.rand_vec(6), dims=(2, 3))
+            vec1 = Statevector(self.rand_vec(6), dims=(2, 3))
+            target = np.vdot(vec0.data, vec1.data)
+            result = vec0.inner(vec1)
+            self.assertAlmostEqual(result, target)
+
+    def test_inner_except(self):
+        """Test inner method raises exceptions."""
+        vec0 = Statevector(self.rand_vec(4))
+        vec1 = Statevector(self.rand_vec(3))
+        self.assertRaises(QiskitError, vec0.inner, vec1)
+        vec0 = Statevector(self.rand_vec(6), dims=(2, 3))
+        vec1 = Statevector(self.rand_vec(6), dims=(3, 2))
+        self.assertRaises(QiskitError, vec0.inner, vec1)
+
     def test_add(self):
         """Test add method."""
         for _ in range(10):
@@ -409,7 +449,7 @@ class TestStatevector(QiskitTestCase):
             target = {}
             for i in range(11):
                 for j in range(2):
-                    key = "{},{}".format(i, j)
+                    key = f"{i},{j}"
                     target[key] = 2 * i + j + 1
             self.assertDictAlmostEqual(target, vec.to_dict())
 
@@ -453,21 +493,21 @@ class TestStatevector(QiskitTestCase):
         # 3-qubit qargs
         target = np.array([0.5, 0, 0, 0, 0, 0, 0, 0.5])
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
-            with self.subTest(msg="P({})".format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 probs = state.probabilities(qargs)
                 self.assertTrue(np.allclose(probs, target))
 
         # 2-qubit qargs
         target = np.array([0.5, 0, 0, 0.5])
         for qargs in [[0, 1], [2, 1], [1, 2], [1, 2]]:
-            with self.subTest(msg="P({})".format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 probs = state.probabilities(qargs)
                 self.assertTrue(np.allclose(probs, target))
 
         # 1-qubit qargs
         target = np.array([0.5, 0.5])
         for qargs in [[0], [1], [2]]:
-            with self.subTest(msg="P({})".format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 probs = state.probabilities(qargs)
                 self.assertTrue(np.allclose(probs, target))
 
@@ -483,21 +523,21 @@ class TestStatevector(QiskitTestCase):
         # 3-qubit qargs
         target = np.array([0, 1 / 3, 1 / 3, 0, 1 / 3, 0, 0, 0])
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
-            with self.subTest(msg="P({})".format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 probs = state.probabilities(qargs)
                 self.assertTrue(np.allclose(probs, target))
 
         # 2-qubit qargs
         target = np.array([1 / 3, 1 / 3, 1 / 3, 0])
         for qargs in [[0, 1], [2, 1], [1, 2], [1, 2]]:
-            with self.subTest(msg="P({})".format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 probs = state.probabilities(qargs)
                 self.assertTrue(np.allclose(probs, target))
 
         # 1-qubit qargs
         target = np.array([2 / 3, 1 / 3])
         for qargs in [[0], [1], [2]]:
-            with self.subTest(msg="P({})".format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 probs = state.probabilities(qargs)
                 self.assertTrue(np.allclose(probs, target))
 
@@ -541,21 +581,21 @@ class TestStatevector(QiskitTestCase):
         # 3-qubit qargs
         target = {"000": 0.5, "111": 0.5}
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
-            with self.subTest(msg="P({})".format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 probs = state.probabilities_dict(qargs)
                 self.assertDictAlmostEqual(probs, target)
 
         # 2-qubit qargs
         target = {"00": 0.5, "11": 0.5}
         for qargs in [[0, 1], [2, 1], [1, 2], [1, 2]]:
-            with self.subTest(msg="P({})".format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 probs = state.probabilities_dict(qargs)
                 self.assertDictAlmostEqual(probs, target)
 
         # 1-qubit qargs
         target = {"0": 0.5, "1": 0.5}
         for qargs in [[0], [1], [2]]:
-            with self.subTest(msg="P({})".format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 probs = state.probabilities_dict(qargs)
                 self.assertDictAlmostEqual(probs, target)
 
@@ -572,21 +612,21 @@ class TestStatevector(QiskitTestCase):
         target = np.array([0, 1 / 3, 1 / 3, 0, 1 / 3, 0, 0, 0])
         target = {"001": 1 / 3, "010": 1 / 3, "100": 1 / 3}
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
-            with self.subTest(msg="P({})".format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 probs = state.probabilities_dict(qargs)
                 self.assertDictAlmostEqual(probs, target)
 
         # 2-qubit qargs
         target = {"00": 1 / 3, "01": 1 / 3, "10": 1 / 3}
         for qargs in [[0, 1], [2, 1], [1, 2], [1, 2]]:
-            with self.subTest(msg="P({})".format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 probs = state.probabilities_dict(qargs)
                 self.assertDictAlmostEqual(probs, target)
 
         # 1-qubit qargs
         target = {"0": 2 / 3, "1": 1 / 3}
         for qargs in [[0], [1], [2]]:
-            with self.subTest(msg="P({})".format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 probs = state.probabilities_dict(qargs)
                 self.assertDictAlmostEqual(probs, target)
 
@@ -602,7 +642,7 @@ class TestStatevector(QiskitTestCase):
         target = {"000": shots / 2, "111": shots / 2}
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
 
-            with self.subTest(msg="counts (qargs={})".format(qargs)):
+            with self.subTest(msg=f"counts (qargs={qargs})"):
                 counts = state.sample_counts(shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, threshold)
 
@@ -610,7 +650,7 @@ class TestStatevector(QiskitTestCase):
         target = {"00": shots / 2, "11": shots / 2}
         for qargs in [[0, 1], [2, 1], [1, 2], [1, 2]]:
 
-            with self.subTest(msg="counts (qargs={})".format(qargs)):
+            with self.subTest(msg=f"counts (qargs={qargs})"):
                 counts = state.sample_counts(shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, threshold)
 
@@ -618,7 +658,7 @@ class TestStatevector(QiskitTestCase):
         target = {"0": shots / 2, "1": shots / 2}
         for qargs in [[0], [1], [2]]:
 
-            with self.subTest(msg="counts (qargs={})".format(qargs)):
+            with self.subTest(msg=f"counts (qargs={qargs})"):
                 counts = state.sample_counts(shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, threshold)
 
@@ -636,7 +676,7 @@ class TestStatevector(QiskitTestCase):
         target = {"001": shots / 3, "010": shots / 3, "100": shots / 3}
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
 
-            with self.subTest(msg="P({})".format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 counts = state.sample_counts(shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, threshold)
 
@@ -644,7 +684,7 @@ class TestStatevector(QiskitTestCase):
         target = {"00": shots / 3, "01": shots / 3, "10": shots / 3}
         for qargs in [[0, 1], [2, 1], [1, 2], [1, 2]]:
 
-            with self.subTest(msg="P({})".format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 counts = state.sample_counts(shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, threshold)
 
@@ -652,7 +692,7 @@ class TestStatevector(QiskitTestCase):
         target = {"0": 2 * shots / 3, "1": shots / 3}
         for qargs in [[0], [1], [2]]:
 
-            with self.subTest(msg="P({})".format(qargs)):
+            with self.subTest(msg=f"P({qargs})"):
                 counts = state.sample_counts(shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, threshold)
 
@@ -680,7 +720,7 @@ class TestStatevector(QiskitTestCase):
         target = {"000": shots / 2, "111": shots / 2}
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
 
-            with self.subTest(msg="memory (qargs={})".format(qargs)):
+            with self.subTest(msg=f"memory (qargs={qargs})"):
                 memory = state.sample_memory(shots, qargs=qargs)
                 self.assertEqual(len(memory), shots)
                 self.assertEqual(set(memory), set(target))
@@ -689,7 +729,7 @@ class TestStatevector(QiskitTestCase):
         target = {"00": shots / 2, "11": shots / 2}
         for qargs in [[0, 1], [2, 1], [1, 2], [1, 2]]:
 
-            with self.subTest(msg="memory (qargs={})".format(qargs)):
+            with self.subTest(msg=f"memory (qargs={qargs})"):
                 memory = state.sample_memory(shots, qargs=qargs)
                 self.assertEqual(len(memory), shots)
                 self.assertEqual(set(memory), set(target))
@@ -698,7 +738,7 @@ class TestStatevector(QiskitTestCase):
         target = {"0": shots / 2, "1": shots / 2}
         for qargs in [[0], [1], [2]]:
 
-            with self.subTest(msg="memory (qargs={})".format(qargs)):
+            with self.subTest(msg=f"memory (qargs={qargs})"):
                 memory = state.sample_memory(shots, qargs=qargs)
                 self.assertEqual(len(memory), shots)
                 self.assertEqual(set(memory), set(target))
@@ -716,7 +756,7 @@ class TestStatevector(QiskitTestCase):
         target = {"001": shots / 3, "010": shots / 3, "100": shots / 3}
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
 
-            with self.subTest(msg="memory (qargs={})".format(qargs)):
+            with self.subTest(msg=f"memory (qargs={qargs})"):
                 memory = state.sample_memory(shots, qargs=qargs)
                 self.assertEqual(len(memory), shots)
                 self.assertEqual(set(memory), set(target))
@@ -725,7 +765,7 @@ class TestStatevector(QiskitTestCase):
         target = {"00": shots / 3, "01": shots / 3, "10": shots / 3}
         for qargs in [[0, 1], [2, 1], [1, 2], [1, 2]]:
 
-            with self.subTest(msg="memory (qargs={})".format(qargs)):
+            with self.subTest(msg=f"memory (qargs={qargs})"):
                 memory = state.sample_memory(shots, qargs=qargs)
                 self.assertEqual(len(memory), shots)
                 self.assertEqual(set(memory), set(target))
@@ -734,7 +774,7 @@ class TestStatevector(QiskitTestCase):
         target = {"0": 2 * shots / 3, "1": shots / 3}
         for qargs in [[0], [1], [2]]:
 
-            with self.subTest(msg="memory (qargs={})".format(qargs)):
+            with self.subTest(msg=f"memory (qargs={qargs})"):
                 memory = state.sample_memory(shots, qargs=qargs)
                 self.assertEqual(len(memory), shots)
                 self.assertEqual(set(memory), set(target))
@@ -908,7 +948,7 @@ class TestStatevector(QiskitTestCase):
             ("ZX", 0),
             ("YI", 0),
         ]:
-            with self.subTest(msg="<{}>".format(label)):
+            with self.subTest(msg=f"<{label}>"):
                 op = Pauli(label)
                 expval = psi.expectation_value(op)
                 self.assertAlmostEqual(expval, target)
@@ -921,7 +961,7 @@ class TestStatevector(QiskitTestCase):
             ("XYZ", 0),
             ("YIY", 0),
         ]:
-            with self.subTest(msg="<{}>".format(label)):
+            with self.subTest(msg=f"<{label}>"):
                 op = Pauli(label)
                 expval = psi.expectation_value(op)
                 self.assertAlmostEqual(expval, target)
@@ -1018,7 +1058,7 @@ class TestStatevector(QiskitTestCase):
         expval = state.expectation_value(op, qubits)
         self.assertAlmostEqual(expval, target)
 
-    @data(*[qargs for i in range(4) for qargs in permutations(range(4), r=i + 1)])
+    @data(*(qargs for i in range(4) for qargs in permutations(range(4), r=i + 1)))
     def test_probabilities_qargs(self, qargs):
         """Test probabilities method with qargs"""
         # Get initial state
@@ -1075,6 +1115,54 @@ class TestStatevector(QiskitTestCase):
         for drawtype in ["repr", "text", "latex", "latex_source", "qsphere", "hinton", "bloch"]:
             with self.subTest(msg=f"draw('{drawtype}')"):
                 sv.draw(drawtype)
+        with self.subTest(msg=" draw('latex', convention='vector')"):
+            sv.draw("latex", convention="vector")
+
+    def test_state_to_latex_for_large_statevector(self):
+        """Test conversion of large dense state vector"""
+        sv = Statevector(np.ones((2 ** 15, 1)))
+        latex_representation = state_to_latex(sv)
+        self.assertEqual(
+            latex_representation,
+            " |000000000000000\\rangle+ |000000000000001\\rangle+ |000000000000010\\rangle+"
+            " |000000000000011\\rangle+ |000000000000100\\rangle+ |000000000000101\\rangle +"
+            " \\ldots + |111111111111011\\rangle+ |111111111111100\\rangle+"
+            " |111111111111101\\rangle+ |111111111111110\\rangle+ |111111111111111\\rangle",
+        )
+
+    def test_state_to_latex_for_large_sparse_statevector(self):
+        """Test conversion of large sparse state vector"""
+        sv = Statevector(np.eye(2 ** 15, 1))
+        latex_representation = state_to_latex(sv)
+        self.assertEqual(latex_representation, " |000000000000000\\rangle")
+
+    def test_number_to_latex_terms(self):
+        """Test conversions of complex numbers to latex terms"""
+
+        cases = [
+            ([1 - 8e-17, 0], ["", None]),
+            ([0, -1], [None, "-"]),
+            ([0, 1], [None, ""]),
+            ([0, 1j], [None, "i"]),
+            ([-1, 1], ["-", "+"]),
+            ([0, 1j], [None, "i"]),
+            ([-1, 1j], ["-", "+i"]),
+            ([1e-16 + 1j], ["i"]),
+            ([-1 + 1e-16 * 1j], ["-"]),
+            ([-1, -1 - 1j], ["-", "+ (-1 - i)"]),
+            ([np.sqrt(2) / 2, np.sqrt(2) / 2], ["\\frac{\\sqrt{2}}{2}", "+\\frac{\\sqrt{2}}{2}"]),
+            ([1 + np.sqrt(2)], ["(1 + \\sqrt{2})"]),
+        ]
+        for numbers, latex_terms in cases:
+            terms = numbers_to_latex_terms(numbers)
+            self.assertListEqual(terms, latex_terms)
+
+    def test_statevector_draw_latex_regression(self):
+        """Test numerical rounding errors are not printed"""
+        sv = Statevector(np.array([1 - 8e-17, 8.32667268e-17j]))
+        latex_string = sv.draw(output="latex_source")
+        self.assertTrue(latex_string.startswith(" |0\\rangle"))
+        self.assertNotIn("|1\\rangle", latex_string)
 
 
 if __name__ == "__main__":

@@ -42,8 +42,8 @@ def format_meas_map(meas_map: List[List[int]]) -> Dict[int, List[int]]:
 
 @functools.lru_cache(maxsize=None)
 def format_parameter_value(
-    operand: Union[ParameterExpression],
-) -> Union[ParameterExpression, int, float, complex]:
+    operand: ParameterExpression,
+) -> Union[ParameterExpression, complex]:
     """Convert ParameterExpression into the most suitable data type.
 
     Args:
@@ -60,7 +60,7 @@ def format_parameter_value(
     # no DAC that recognizes the resolution of 1e-15 but they are AlmostEqual in tests.
     from sympy import srepr
 
-    math_expr = srepr(operand)
+    math_expr = srepr(operand).replace("*I", "j")
     try:
         # value is assigned
         evaluated = complex(math_expr)

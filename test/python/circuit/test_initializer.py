@@ -46,7 +46,7 @@ class TestInitialize(QiskitTestCase):
         self.assertGreater(
             fidelity,
             self._desired_fidelity,
-            "Initializer has low fidelity {:.2g}.".format(fidelity),
+            f"Initializer has low fidelity {fidelity:.2g}.",
         )
 
     def test_deterministic_state(self):
@@ -62,7 +62,7 @@ class TestInitialize(QiskitTestCase):
         self.assertGreater(
             fidelity,
             self._desired_fidelity,
-            "Initializer has low fidelity {:.2g}.".format(fidelity),
+            f"Initializer has low fidelity {fidelity:.2g}.",
         )
 
     def test_statevector(self):
@@ -87,7 +87,7 @@ class TestInitialize(QiskitTestCase):
         self.assertGreater(
             fidelity,
             self._desired_fidelity,
-            "Initializer has low fidelity {:.2g}.".format(fidelity),
+            f"Initializer has low fidelity {fidelity:.2g}.",
         )
 
     def test_ghz_state(self):
@@ -103,7 +103,7 @@ class TestInitialize(QiskitTestCase):
         self.assertGreater(
             fidelity,
             self._desired_fidelity,
-            "Initializer has low fidelity {:.2g}.".format(fidelity),
+            f"Initializer has low fidelity {fidelity:.2g}.",
         )
 
     def test_initialize_register(self):
@@ -120,7 +120,7 @@ class TestInitialize(QiskitTestCase):
         self.assertGreater(
             fidelity,
             self._desired_fidelity,
-            "Initializer has low fidelity {:.2g}.".format(fidelity),
+            f"Initializer has low fidelity {fidelity:.2g}.",
         )
 
     def test_initialize_one_by_one(self):
@@ -143,7 +143,7 @@ class TestInitialize(QiskitTestCase):
         self.assertGreater(
             fidelity,
             self._desired_fidelity,
-            "Initializer has low fidelity {:.2g}.".format(fidelity),
+            f"Initializer has low fidelity {fidelity:.2g}.",
         )
 
     def test_single_qubit(self):
@@ -159,7 +159,7 @@ class TestInitialize(QiskitTestCase):
         self.assertGreater(
             fidelity,
             self._desired_fidelity,
-            "Initializer has low fidelity {:.2g}.".format(fidelity),
+            f"Initializer has low fidelity {fidelity:.2g}.",
         )
 
     def test_random_3qubit(self):
@@ -184,7 +184,7 @@ class TestInitialize(QiskitTestCase):
         self.assertGreater(
             fidelity,
             self._desired_fidelity,
-            "Initializer has low fidelity {:.2g}.".format(fidelity),
+            f"Initializer has low fidelity {fidelity:.2g}.",
         )
 
     def test_random_4qubit(self):
@@ -217,7 +217,7 @@ class TestInitialize(QiskitTestCase):
         self.assertGreater(
             fidelity,
             self._desired_fidelity,
-            "Initializer has low fidelity {:.2g}.".format(fidelity),
+            f"Initializer has low fidelity {fidelity:.2g}.",
         )
 
     def test_malformed_amplitudes(self):
@@ -305,7 +305,7 @@ class TestInitialize(QiskitTestCase):
         self.assertGreater(
             fidelity,
             self._desired_fidelity,
-            "Initializer has low fidelity {:.2g}.".format(fidelity),
+            f"Initializer has low fidelity {fidelity:.2g}.",
         )
 
     def test_combiner(self):
@@ -327,7 +327,7 @@ class TestInitialize(QiskitTestCase):
         self.assertGreater(
             fidelity,
             self._desired_fidelity,
-            "Initializer has low fidelity {:.2g}.".format(fidelity),
+            f"Initializer has low fidelity {fidelity:.2g}.",
         )
 
     def test_equivalence(self):

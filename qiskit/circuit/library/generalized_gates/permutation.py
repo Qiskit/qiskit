@@ -62,7 +62,7 @@ class Permutation(QuantumCircuit):
         if pattern is not None:
             if sorted(pattern) != list(range(num_qubits)):
                 raise CircuitError(
-                    "Permutation pattern must be some " "ordering of 0..num_qubits-1 in a list."
+                    "Permutation pattern must be some ordering of 0..num_qubits-1 in a list."
                 )
             pattern = np.array(pattern)
         else:
@@ -72,14 +72,14 @@ class Permutation(QuantumCircuit):
 
         name = "permutation_" + np.array_str(pattern).replace(" ", ",")
 
-        inner = QuantumCircuit(num_qubits, name=name)
+        circuit = QuantumCircuit(num_qubits, name=name)
 
         super().__init__(num_qubits, name=name)
         for i, j in _get_ordered_swap(pattern):
-            inner.swap(i, j)
+            circuit.swap(i, j)
 
         all_qubits = self.qubits
-        self.append(inner, all_qubits)
+        self.append(circuit.to_gate(), all_qubits)
 
 
 def _get_ordered_swap(permutation_in):

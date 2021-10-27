@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Added a new transpiler pass, :class:`~qiskit.transpiler.passes.RemoveBarriers`,
+    to :mod:`qiskit.transpiler.passes`. This pass is used to remove all barriers in a
+    circuit.

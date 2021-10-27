@@ -12,6 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Utility script to update fake backends"""
 
 import argparse
 from datetime import datetime
@@ -48,7 +49,7 @@ DEFAULT_DIR = os.path.join(
 )
 
 
-def main():
+def _main():
     parser = argparse.ArgumentParser(description="Generate fake backend snapshots")
     parser.add_argument("--dir", "-d", type=str, default=DEFAULT_DIR)
     parser.add_argument("backends", type=str, nargs="*")
@@ -93,5 +94,5 @@ def main():
                     fd.write(json.dumps(defs.to_dict(), cls=BackendEncoder))
 
 
-if __name__ == main():
-    main()
+if __name__ == "__main__":
+    _main()

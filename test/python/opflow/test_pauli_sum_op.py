@@ -18,9 +18,10 @@ from test.python.opflow import QiskitOpflowTestCase
 
 import numpy as np
 from scipy.sparse import csr_matrix
+from sympy import Symbol
 
 from qiskit import QuantumCircuit, transpile
-from qiskit.circuit import Parameter, ParameterVector
+from qiskit.circuit import Parameter, ParameterExpression, ParameterVector
 from qiskit.opflow import (
     CX,
     CircuitStateFn,
@@ -52,6 +53,25 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         self.assertEqual(pauli_sum.coeff, coeff)
         self.assertEqual(pauli_sum.num_qubits, 4)
 
+    def test_coeffs(self):
+        """ListOp.coeffs test"""
+        sum1 = SummedOp(
+            [(0 + 1j) * X, (1 / np.sqrt(2) + 1j / np.sqrt(2)) * Z], 0.5
+        ).collapse_summands()
+        self.assertAlmostEqual(sum1.coeffs[0], 0.5j)
+        self.assertAlmostEqual(sum1.coeffs[1], (1 + 1j) / (2 * np.sqrt(2)))
+
+        a_param = Parameter("a")
+        b_param = Parameter("b")
+        param_exp = ParameterExpression({a_param: 1, b_param: 0}, Symbol("a") ** 2 + Symbol("b"))
+        sum2 = SummedOp([X, (1 / np.sqrt(2) - 1j / np.sqrt(2)) * Y], param_exp).collapse_summands()
+        self.assertIsInstance(sum2.coeffs[0], ParameterExpression)
+        self.assertIsInstance(sum2.coeffs[1], ParameterExpression)
+
+        # Nested ListOp
+        sum_nested = SummedOp([X, sum1])
+        self.assertRaises(TypeError, lambda: sum_nested.coeffs)
+
     def test_add(self):
         """add test"""
         pauli_sum = 3 * X + Y
@@ -62,6 +82,14 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         pauli_sum = X + Y
         summed_op = SummedOp([X, Y])
         self.assertEqual(pauli_sum, summed_op)
+
+        a = Parameter("a")
+        b = Parameter("b")
+        actual = a * PauliSumOp.from_list([("X", 2)]) + b * PauliSumOp.from_list([("Y", 1)])
+        expected = SummedOp(
+            [PauliSumOp.from_list([("X", 2)], a), PauliSumOp.from_list([("Y", 1)], b)]
+        )
+        self.assertEqual(actual, expected)
 
     def test_mul(self):
         """multiplication test"""
@@ -204,7 +232,8 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         target = ((X + Z) / np.sqrt(2)).to_instruction()
         qc = QuantumCircuit(1)
         qc.u(np.pi / 2, 0, np.pi, 0)
-        self.assertEqual(transpile(target.definition, basis_gates=["u"]), qc)
+        qc_out = transpile(target.definition, basis_gates=["u"])
+        self.assertEqual(qc_out, qc)
 
     def test_to_pauli_op(self):
         """test to_pauli_op method"""
@@ -276,6 +305,32 @@ class TestPauliSumOp(QiskitOpflowTestCase):
             self.assertTrue(
                 np.array_equal(i.toarray(), coeff * coeffs[idx] * Pauli(labels[idx]).to_matrix())
             )
+
+    def test_is_hermitian(self):
+        """Test is_hermitian method"""
+        with self.subTest("True test"):
+            target = PauliSumOp.from_list(
+                [
+                    ("II", -1.052373245772859),
+                    ("IZ", 0.39793742484318045),
+                    ("ZI", -0.39793742484318045),
+                    ("ZZ", -0.01128010425623538),
+                    ("XX", 0.18093119978423156),
+                ]
+            )
+            self.assertTrue(target.is_hermitian())
+
+        with self.subTest("False test"):
+            target = PauliSumOp.from_list(
+                [
+                    ("II", -1.052373245772859),
+                    ("IZ", 0.39793742484318045j),
+                    ("ZI", -0.39793742484318045),
+                    ("ZZ", -0.01128010425623538),
+                    ("XX", 0.18093119978423156),
+                ]
+            )
+            self.assertFalse(target.is_hermitian())
 
 
 if __name__ == "__main__":

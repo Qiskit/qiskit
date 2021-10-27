@@ -17,7 +17,7 @@ from typing import List, Optional
 import warnings
 import numpy as np
 
-from qiskit.circuit import QuantumRegister, AncillaRegister
+from qiskit.circuit import QuantumRegister, AncillaRegister, QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 
 from .functional_pauli_rotations import FunctionalPauliRotations
@@ -225,27 +225,27 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         return valid
 
     def _reset_registers(self, num_state_qubits: Optional[int]) -> None:
+        self.qregs = []
+
         if num_state_qubits is not None:
             qr_state = QuantumRegister(num_state_qubits)
             qr_target = QuantumRegister(1)
             self.qregs = [qr_state, qr_target]
-            self._ancillas = []
 
             # add ancillas if required
             if len(self.breakpoints) > 1:
                 num_ancillas = num_state_qubits
                 qr_ancilla = AncillaRegister(num_ancillas)
                 self.add_register(qr_ancilla)
-        else:
-            self.qregs = []
-            self._ancillas = []
 
     def _build(self):
         super()._build()
 
-        qr_state = self.qubits[: self.num_state_qubits]
-        qr_target = [self.qubits[self.num_state_qubits]]
-        qr_ancilla = self.ancillas
+        circuit = QuantumCircuit(*self.qregs, name=self.name)
+
+        qr_state = circuit.qubits[: self.num_state_qubits]
+        qr_target = [circuit.qubits[self.num_state_qubits]]
+        qr_ancilla = circuit.ancillas
 
         # apply comparators and controlled linear rotations
         for i, point in enumerate(self.breakpoints):
@@ -257,7 +257,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
                     offset=self.mapped_offsets[i],
                     basis=self.basis,
                 )
-                self.append(lin_r.to_gate(), qr_state[:] + qr_target)
+                circuit.append(lin_r.to_gate(), qr_state[:] + qr_target)
 
             else:
                 qr_compare = [qr_ancilla[0]]
@@ -267,7 +267,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
                 comp = IntegerComparator(num_state_qubits=self.num_state_qubits, value=point)
                 qr = qr_state[:] + qr_compare[:]  # add ancilla as compare qubit
 
-                self.append(comp.to_gate(), qr[:] + qr_helper[: comp.num_ancillas])
+                circuit.append(comp.to_gate(), qr[:] + qr_helper[: comp.num_ancillas])
 
                 # apply controlled rotation
                 lin_r = LinearPauliRotations(
@@ -276,7 +276,9 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
                     offset=self.mapped_offsets[i],
                     basis=self.basis,
                 )
-                self.append(lin_r.to_gate().control(), qr_compare[:] + qr_state[:] + qr_target)
+                circuit.append(lin_r.to_gate().control(), qr_compare[:] + qr_state[:] + qr_target)
 
                 # uncompute comparator
-                self.append(comp.to_gate().inverse(), qr[:] + qr_helper[: comp.num_ancillas])
+                circuit.append(comp.to_gate().inverse(), qr[:] + qr_helper[: comp.num_ancillas])
+
+        self.append(circuit.to_gate(), self.qubits)

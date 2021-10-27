@@ -29,13 +29,16 @@ except ImportError:
     HAS_SYMENGINE = False
 
 
-ParameterValueType = Union["ParameterExpression", float, int]
+# This type is redefined at the bottom to insert the full reference to "ParameterExpression", so it
+# can safely be used by runtime type-checkers like Sphinx.  Mypy does not need this because it
+# handles the references by static analysis.
+ParameterValueType = Union["ParameterExpression", float]
 
 
 class ParameterExpression:
     """ParameterExpression class to enable creating expressions of Parameters."""
 
-    __slots__ = ["_parameter_symbols", "_parameters", "_symbol_expr", "_names"]
+    __slots__ = ["_parameter_symbols", "_parameters", "_symbol_expr", "_name_map"]
 
     def __init__(self, symbol_map: Dict, expr):
         """Create a new :class:`ParameterExpression`.
@@ -52,12 +55,19 @@ class ParameterExpression:
         self._parameter_symbols = symbol_map
         self._parameters = set(self._parameter_symbols)
         self._symbol_expr = expr
-        self._names = None
+        self._name_map = None
 
     @property
     def parameters(self) -> Set:
         """Returns a set of the unbound Parameters in the expression."""
         return self._parameters
+
+    @property
+    def _names(self) -> Dict:
+        """Returns a mapping of parameter names to Parameters in the expression."""
+        if self._name_map is None:
+            self._name_map = {p.name: p for p in self._parameters}
+        return self._name_map
 
     def conjugate(self) -> "ParameterExpression":
         """Return the conjugate."""
@@ -110,12 +120,7 @@ class ParameterExpression:
         symbol_values = {}
         for parameter, value in parameter_values.items():
             param_expr = self._parameter_symbols[parameter]
-            # TODO: Remove after symengine supports single precision floats
-            # see symengine/symengine.py#351 for more details
-            if isinstance(value, numpy.floating):
-                symbol_values[param_expr] = float(value)
-            else:
-                symbol_values[param_expr] = value
+            symbol_values[param_expr] = value
 
         bound_symbol_expr = self._symbol_expr.subs(symbol_values)
 
@@ -156,13 +161,15 @@ class ParameterExpression:
         Returns:
             A new expression with the specified parameters replaced.
         """
-
-        inbound_parameters = {
-            p for replacement_expr in parameter_map.values() for p in replacement_expr.parameters
-        }
+        inbound_parameters = set()
+        inbound_names = {}
+        for replacement_expr in parameter_map.values():
+            for p in replacement_expr.parameters:
+                inbound_parameters.add(p)
+                inbound_names[p.name] = p
 
         self._raise_if_passed_unknown_parameters(parameter_map.keys())
-        self._raise_if_parameter_names_conflict(inbound_parameters, parameter_map.keys())
+        self._raise_if_parameter_names_conflict(inbound_names, parameter_map.keys())
         if HAS_SYMENGINE:
             new_parameter_symbols = {p: symengine.Symbol(p.name) for p in inbound_parameters}
         else:
@@ -201,26 +208,25 @@ class ParameterExpression:
         }
         if nan_parameter_values:
             raise CircuitError(
-                "Expression cannot bind non-numeric values ({})".format(nan_parameter_values)
+                f"Expression cannot bind non-numeric values ({nan_parameter_values})"
             )
 
     def _raise_if_parameter_names_conflict(self, inbound_parameters, outbound_parameters=None):
         if outbound_parameters is None:
             outbound_parameters = set()
+            outbound_names = {}
+        else:
+            outbound_names = {p.name: p for p in outbound_parameters}
 
-        if self._names is None:
-            self._names = {p.name: p for p in self._parameters}
-
-        inbound_names = {p.name: p for p in inbound_parameters}
-        outbound_names = {p.name: p for p in outbound_parameters}
-
-        shared_names = (self._names.keys() - outbound_names.keys()) & inbound_names.keys()
-        conflicting_names = {
-            name for name in shared_names if self._names[name] != inbound_names[name]
-        }
+        inbound_names = inbound_parameters
+        conflicting_names = []
+        for name, param in inbound_names.items():
+            if name in self._names and name not in outbound_names:
+                if param != self._names[name]:
+                    conflicting_names.append(name)
         if conflicting_names:
             raise CircuitError(
-                "Name conflict applying operation for parameters: " "{}".format(conflicting_names)
+                f"Name conflict applying operation for parameters: {conflicting_names}"
             )
 
     def _apply_operation(
@@ -248,8 +254,7 @@ class ParameterExpression:
         self_expr = self._symbol_expr
 
         if isinstance(other, ParameterExpression):
-            self._raise_if_parameter_names_conflict(other._parameter_symbols.keys())
-
+            self._raise_if_parameter_names_conflict(other._names)
             parameter_symbols = {**self._parameter_symbols, **other._parameter_symbols}
             other_expr = other._symbol_expr
         elif isinstance(other, numbers.Number) and numpy.isfinite(other):
@@ -263,9 +268,14 @@ class ParameterExpression:
         else:
             expr = operation(self_expr, other_expr)
 
-        return ParameterExpression(parameter_symbols, expr)
+        out_expr = ParameterExpression(parameter_symbols, expr)
+        out_expr._name_map = self._names.copy()
+        if isinstance(other, ParameterExpression):
+            out_expr._names.update(other._names.copy())
 
-    def gradient(self, param) -> Union["ParameterExpression", float]:
+        return out_expr
+
+    def gradient(self, param) -> Union["ParameterExpression", complex]:
         """Get the derivative of a parameter expression w.r.t. a specified parameter expression.
 
         Args:
@@ -273,6 +283,7 @@ class ParameterExpression:
 
         Returns:
             ParameterExpression representing the gradient of param_expr w.r.t. param
+            or complex or float number
         """
         # Check if the parameter is contained in the parameter expression
         if param not in self._parameter_symbols.keys():
@@ -299,8 +310,12 @@ class ParameterExpression:
         # If the gradient corresponds to a parameter expression then return the new expression.
         if len(parameter_symbols) > 0:
             return ParameterExpression(parameter_symbols, expr=expr_grad)
-        # If no free symbols left, return a float corresponding to the gradient.
-        return float(expr_grad)
+        # If no free symbols left, return a complex or float gradient
+        expr_grad_cplx = complex(expr_grad)
+        if expr_grad_cplx.imag != 0:
+            return expr_grad_cplx
+        else:
+            return float(expr_grad)
 
     def __add__(self, other):
         return self._apply_operation(operator.add, other)
@@ -407,12 +422,12 @@ class ParameterExpression:
             return self._call(_log)
 
     def __repr__(self):
-        return "{}({})".format(self.__class__.__name__, str(self))
+        return f"{self.__class__.__name__}({str(self)})"
 
     def __str__(self):
-        from sympy import sympify
+        from sympy import sympify, sstr
 
-        return str(sympify(self._symbol_expr))
+        return sstr(sympify(self._symbol_expr), full_prec=False)
 
     def __float__(self):
         if self.parameters:
@@ -493,7 +508,7 @@ class ParameterExpression:
             self._symbol_expr = state["expr"]
             self._parameter_symbols = state["symbols"]
             self._parameters = set(self._parameter_symbols)
-        self._names = state["names"]
+        self._name_map = state["names"]
 
     def is_real(self):
         """Return whether the expression is real"""
@@ -510,3 +525,8 @@ class ParameterExpression:
             else:
                 return False
         return True
+
+
+# Redefine the type so external imports get an evaluated reference; Sphinx needs this to understand
+# the type hints.
+ParameterValueType = Union[ParameterExpression, float]

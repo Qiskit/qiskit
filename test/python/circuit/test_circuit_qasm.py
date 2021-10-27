@@ -13,11 +13,15 @@
 """Test Qiskit's QuantumCircuit class."""
 
 from math import pi
+import re
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import Parameter
+from qiskit.circuit import Parameter, Qubit, Clbit
 from qiskit.qasm.exceptions import QasmError
+
+# Regex pattern to match valid OpenQASM identifiers
+VALID_QASM2_IDENTIFIER = re.compile("[a-z][a-zA-Z_0-9]*")
 
 
 class TestCircuitQasm(QiskitTestCase):
@@ -163,9 +167,9 @@ measure qr[1] -> cr[1];\n"""
 
         expected_qasm = """OPENQASM 2.0;
 include "qelib1.inc";
-gate my_gate_{0} q0 {{ x q0; }}
-gate my_gate_{1} q0 {{ x q0; }}
 gate my_gate q0 {{ h q0; }}
+gate my_gate_{1} q0 {{ x q0; }}
+gate my_gate_{0} q0 {{ x q0; }}
 qreg qr[1];
 my_gate qr[0];
 my_gate_{1} qr[0];
@@ -173,6 +177,35 @@ my_gate_{0} qr[0];\n""".format(
             my_gate_inst3_id, my_gate_inst2_id
         )
         self.assertEqual(circuit.qasm(), expected_qasm)
+
+    def test_circuit_qasm_with_composite_circuit_with_children_composite_circuit(self):
+        """Test circuit qasm() method when composite circuits with children
+        composite circuits in the definitions are added to the circuit"""
+
+        child_circ = QuantumCircuit(2, name="child_circ")
+        child_circ.h(0)
+        child_circ.cx(0, 1)
+
+        parent_circ = QuantumCircuit(3, name="parent_circ")
+        parent_circ.append(child_circ, range(2))
+        parent_circ.h(2)
+
+        grandparent_circ = QuantumCircuit(4, name="grandparent_circ")
+        grandparent_circ.append(parent_circ, range(3))
+        grandparent_circ.x(3)
+
+        qc = QuantumCircuit(4)
+        qc.append(grandparent_circ, range(4))
+
+        expected_qasm = """OPENQASM 2.0;
+include "qelib1.inc";
+gate child_circ q0,q1 { h q0; cx q0,q1; }
+gate parent_circ q0,q1,q2 { child_circ q0,q1; h q2; }
+gate grandparent_circ q0,q1,q2,q3 { parent_circ q0,q1,q2; x q3; }
+qreg q[4];
+grandparent_circ q[0],q[1],q[2],q[3];\n"""
+
+        self.assertEqual(qc.qasm(), expected_qasm)
 
     def test_circuit_qasm_pi(self):
         """Test circuit qasm() method with pi params."""
@@ -229,3 +262,191 @@ nG0(pi,pi/2) q[0],r[0];\n"""
         qc.ch(0, 1, ctrl_state=0)
         qasm_str = qc.qasm()
         self.assertEqual(Operator(qc), Operator(QuantumCircuit.from_qasm_str(qasm_str)))
+
+    def test_circuit_qasm_with_mcx_gate(self):
+        """Test circuit qasm() method with MCXGate
+        See https://github.com/Qiskit/qiskit-terra/issues/4943
+        """
+        qc = QuantumCircuit(4)
+        qc.mcx([0, 1, 2], 3)
+
+        # qasm output doesn't support parameterized gate yet.
+        # param0 for "gate mcuq(param0) is not used inside the definition
+        expected_qasm = """OPENQASM 2.0;
+include "qelib1.inc";
+gate mcx q0,q1,q2,q3 { h q3; p(pi/8) q0; p(pi/8) q1; p(pi/8) q2; p(pi/8) q3; cx q0,q1; p(-pi/8) q1; cx q0,q1; cx q1,q2; p(-pi/8) q2; cx q0,q2; p(pi/8) q2; cx q1,q2; p(-pi/8) q2; cx q0,q2; cx q2,q3; p(-pi/8) q3; cx q1,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q0,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q1,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q0,q3; h q3; }
+qreg q[4];
+mcx q[0],q[1],q[2],q[3];\n"""
+        self.assertEqual(qc.qasm(), expected_qasm)
+
+    def test_circuit_qasm_with_mcx_gate_variants(self):
+        """Test circuit qasm() method with MCXGrayCode, MCXRecursive, MCXVChain"""
+        import qiskit.circuit.library as cl
+
+        n = 5
+        qc = QuantumCircuit(2 * n - 1)
+        qc.append(cl.MCXGrayCode(n), range(n + 1))
+        qc.append(cl.MCXRecursive(n), range(n + 2))
+        qc.append(cl.MCXVChain(n), range(2 * n - 1))
+
+        # qasm output doesn't support parameterized gate yet.
+        # param0 for "gate mcuq(param0) is not used inside the definition
+        expected_qasm = """OPENQASM 2.0;
+include "qelib1.inc";
+gate mcx q0,q1,q2,q3 { h q3; p(pi/8) q0; p(pi/8) q1; p(pi/8) q2; p(pi/8) q3; cx q0,q1; p(-pi/8) q1; cx q0,q1; cx q1,q2; p(-pi/8) q2; cx q0,q2; p(pi/8) q2; cx q1,q2; p(-pi/8) q2; cx q0,q2; cx q2,q3; p(-pi/8) q3; cx q1,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q0,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q1,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q0,q3; h q3; }
+gate mcu1(param0) q0,q1,q2,q3,q4,q5 { cu1(pi/16) q4,q5; cx q4,q3; cu1(-pi/16) q3,q5; cx q4,q3; cu1(pi/16) q3,q5; cx q3,q2; cu1(-pi/16) q2,q5; cx q4,q2; cu1(pi/16) q2,q5; cx q3,q2; cu1(-pi/16) q2,q5; cx q4,q2; cu1(pi/16) q2,q5; cx q2,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q3,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q2,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q3,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q1,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q2,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q1,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q2,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; }
+gate mcx_gray q0,q1,q2,q3,q4,q5 { h q5; mcu1(pi) q0,q1,q2,q3,q4,q5; h q5; }
+gate mcx_recursive q0,q1,q2,q3,q4,q5,q6 { mcx q0,q1,q2,q6; mcx q3,q4,q6,q5; mcx q0,q1,q2,q6; mcx q3,q4,q6,q5; }
+gate mcx_vchain q0,q1,q2,q3,q4,q5,q6,q7,q8 { rccx q0,q1,q6; rccx q2,q6,q7; rccx q3,q7,q8; ccx q4,q8,q5; rccx q3,q7,q8; rccx q2,q6,q7; rccx q0,q1,q6; }
+qreg q[9];
+mcx_gray q[0],q[1],q[2],q[3],q[4],q[5];
+mcx_recursive q[0],q[1],q[2],q[3],q[4],q[5],q[6];
+mcx_vchain q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8];\n"""
+
+        self.assertEqual(qc.qasm(), expected_qasm)
+
+    def test_circuit_qasm_with_registerless_bits(self):
+        """Test that registerless bits do not have naming collisions in their registers."""
+        initial_registers = [QuantumRegister(2), ClassicalRegister(2)]
+        qc = QuantumCircuit(*initial_registers, [Qubit(), Clbit()])
+        # Match a 'qreg identifier[3];'-like QASM register declaration.
+        register_regex = re.compile(r"\s*[cq]reg\s+(\w+)\s*\[\d+\]\s*", re.M)
+        qasm_register_names = set()
+        for statement in qc.qasm().split(";"):
+            match = register_regex.match(statement)
+            if match:
+                qasm_register_names.add(match.group(1))
+        self.assertEqual(len(qasm_register_names), 4)
+
+        # Check that no additional registers were added to the circuit.
+        self.assertEqual(len(qc.qregs), 1)
+        self.assertEqual(len(qc.cregs), 1)
+
+        # Check that the registerless-register names are recalculated after adding more registers,
+        # to avoid naming clashes in this case.
+        generated_names = qasm_register_names - {register.name for register in initial_registers}
+        for generated_name in generated_names:
+            qc.add_register(QuantumRegister(1, name=generated_name))
+        qasm_register_names = set()
+        for statement in qc.qasm().split(";"):
+            match = register_regex.match(statement)
+            if match:
+                qasm_register_names.add(match.group(1))
+        self.assertEqual(len(qasm_register_names), 6)
+
+    def test_circuit_qasm_with_repeated_instruction_names(self):
+        """Test that qasm() doesn't change the name of the instructions that live in circuit.data,
+        but a copy of them when there are repeated names."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.x(1)
+        # Create some random custom gate and name it "custom"
+        custom = QuantumCircuit(1)
+        custom.h(0)
+        custom.y(0)
+        gate = custom.to_gate()
+        gate.name = "custom"
+        # Another random custom gate named "custom" as well
+        custom2 = QuantumCircuit(2)
+        custom2.x(0)
+        custom2.z(1)
+        gate2 = custom2.to_gate()
+        gate2.name = "custom"
+        # Append custom gates with same name to original circuit
+        qc.append(gate, [0])
+        qc.append(gate2, [1, 0])
+        # Expected qasm string will append the id to the second gate with repeated name
+        expected_qasm = f"""OPENQASM 2.0;
+include "qelib1.inc";
+gate custom q0 {{ h q0; y q0; }}
+gate custom_{id(gate2)} q0,q1 {{ x q0; z q1; }}
+qreg q[2];
+h q[0];
+x q[1];
+custom q[0];
+custom_{id(gate2)} q[1],q[0];\n"""
+        # Check qasm() produced the correct string
+        self.assertEqual(expected_qasm, qc.qasm())
+        # Check instruction names were not changed by qasm()
+        names = ["h", "x", "custom", "custom"]
+        for idx, (instruction, _, _) in enumerate(qc._data):
+            self.assertEqual(instruction.name, names[idx])
+
+    def test_circuit_qasm_with_invalid_identifiers(self):
+        """Test that qasm() detects and corrects invalid OpenQASM gate identifiers,
+        while not changing the instructions on the original circuit"""
+        qc = QuantumCircuit(2)
+
+        # Create some gate and give it an invalid name
+        custom = QuantumCircuit(1)
+        custom.x(0)
+        custom.u(0, 0, pi, 0)
+        gate = custom.to_gate()
+        gate.name = "A[$]"
+
+        # Another gate also with invalid name
+        custom2 = QuantumCircuit(2)
+        custom2.x(0)
+        custom2.append(gate, [1])
+        gate2 = custom2.to_gate()
+        gate2.name = "invalid[name]"
+
+        # Unitary gate, for which qasm string is produced by internal method
+        qc.unitary([[0, 1], [1, 0]], 0, label="[valid?]")
+
+        # Append gates
+        qc.append(gate, [0])
+        qc.append(gate2, [1, 0])
+
+        # Expected qasm with valid identifiers
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 2.0;",
+                'include "qelib1.inc";',
+                "gate gate__valid__ p0 {",
+                "	u3(pi,pi/2,-pi/2) p0;",
+                "}",
+                "gate gate_A___ q0 { x q0; u(0,0,pi) q0; }",
+                "gate invalid_name_ q0,q1 { x q0; gate_A___ q1; }",
+                "qreg q[2];",
+                "gate__valid__ q[0];",
+                "gate_A___ q[0];",
+                "invalid_name_ q[1],q[0];",
+                "",
+            ]
+        )
+
+        # Check qasm() produces the correct string
+        self.assertEqual(expected_qasm, qc.qasm())
+
+        # Check instruction names were not changed by qasm()
+        names = ["unitary", "A[$]", "invalid[name]"]
+        for idx, (instruction, _, _) in enumerate(qc._data):
+            self.assertEqual(instruction.name, names[idx])
+
+    def test_circuit_qasm_with_duplicate_invalid_identifiers(self):
+        """Test that qasm() corrects invalid identifiers and the de-duplication
+        code runs correctly, without altering original instructions"""
+        base = QuantumCircuit(1)
+
+        # First gate with invalid name, escapes to "invalid__"
+        clash1 = QuantumCircuit(1, name="invalid??")
+        clash1.x(0)
+        base.append(clash1, [0])
+
+        # Second gate with invalid name that also escapes to "invalid__"
+        clash2 = QuantumCircuit(1, name="invalid[]")
+        clash2.z(0)
+        base.append(clash2, [0])
+
+        # Check qasm is correctly produced
+        names = set()
+        for match in re.findall(r"gate (\S+)", base.qasm()):
+            self.assertTrue(VALID_QASM2_IDENTIFIER.fullmatch(match))
+            names.add(match)
+        self.assertEqual(len(names), 2)
+
+        # Check instruction names were not changed by qasm()
+        names = ["invalid??", "invalid[]"]
+        for idx, (instruction, _, _) in enumerate(base._data):
+            self.assertEqual(instruction.name, names[idx])

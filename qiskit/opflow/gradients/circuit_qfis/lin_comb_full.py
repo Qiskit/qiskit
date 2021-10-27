@@ -55,7 +55,9 @@ class LinCombFull(CircuitQFI):
         """
         # QFI & phase fix observable
         qfi_observable = ~StateFn(4 * Z ^ (I ^ operator.num_qubits))
-        phase_fix_observable = ~StateFn((Z - 1j * Y) ^ (I ^ operator.num_qubits))
+        phase_fix_observable = StateFn(
+            (Z + 1j * Y) ^ (I ^ operator.num_qubits), is_measurement=True
+        )
         # see https://arxiv.org/pdf/quant-ph/0108146.pdf
 
         # Check if the given operator corresponds to a quantum state given as a circuit.
@@ -92,7 +94,12 @@ class LinCombFull(CircuitQFI):
         qr_work = QuantumRegister(1, "work_qubit")
         state_qc = QuantumCircuit(*operator.primitive.qregs, qr_work)
         state_qc.h(qr_work)
-        state_qc.compose(operator.primitive, inplace=True)
+        # unroll separately from the H gate since we need the H gate to be the first
+        # operation in the data attributes of the circuit
+        unrolled = LinComb._transpile_to_supported_operations(
+            operator.primitive, LinComb.SUPPORTED_GATES
+        )
+        state_qc.compose(unrolled, inplace=True)
 
         # Get the circuits needed to compute〈∂iψ|∂jψ〉
         for i, param_i in enumerate(params):  # loop over parameters

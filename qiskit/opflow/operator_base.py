@@ -22,11 +22,12 @@ from scipy.sparse import csr_matrix, spmatrix
 
 from qiskit.circuit import ParameterExpression, ParameterVector
 from qiskit.opflow.exceptions import OpflowError
+from qiskit.opflow.mixins import StarAlgebraMixin, TensorMixin
 from qiskit.quantum_info import Statevector
 from qiskit.utils import algorithm_globals
 
 
-class OperatorBase(ABC):
+class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
     """A base class for all Operators: PrimitiveOps, StateFns, ListOps, etc. Operators are
     defined as functions which take one complex binary function to another. These complex binary
     functions are represented by StateFns, which are themselves a special class of Operators
@@ -45,6 +46,20 @@ class OperatorBase(ABC):
 
     def __init__(self) -> None:
         self._instance_id = next(self._count)
+
+    @property
+    @abstractmethod
+    def settings(self) -> Dict:
+        """Return settings of this object in a dictionary.
+
+        You can, for example, use this ``settings`` dictionary to serialize the
+        object in JSON format, if the JSON encoder you use supports all types in
+        the dictionary.
+
+        Returns:
+            Object settings in a dictionary.
+        """
+        raise NotImplementedError
 
     @property
     def instance_id(self) -> int:
@@ -155,51 +170,22 @@ class OperatorBase(ABC):
         """
         return csr_matrix(self.to_matrix())
 
+    def is_hermitian(self) -> bool:
+        """Return True if the operator is hermitian.
+
+        Returns: Boolean value
+        """
+        return (self.to_spmatrix() != self.to_spmatrix().getH()).nnz == 0
+
     @staticmethod
     def _indent(lines: str, indentation: str = INDENTATION) -> str:
         """Indented representation to allow pretty representation of nested operators."""
-        indented_str = indentation + lines.replace("\n", "\n{}".format(indentation))
-        if indented_str.endswith("\n{}".format(indentation)):
+        indented_str = indentation + lines.replace("\n", f"\n{indentation}")
+        if indented_str.endswith(f"\n{indentation}"):
             indented_str = indented_str[: -len(indentation)]
         return indented_str
 
     # Addition / Subtraction
-
-    def __add__(self, other: "OperatorBase") -> "OperatorBase":
-        r"""Overload ``+`` operation for Operator addition.
-
-        Args:
-            other: An ``OperatorBase`` with the same number of qubits as self, and in the same
-                'Operator', 'State function', or 'Measurement' category as self (i.e. the same type
-                of underlying function).
-
-        Returns:
-            An ``OperatorBase`` equivalent to the sum of self and other.
-        """
-        # Hack to be able to use sum(list_of_ops) nicely,
-        # because sum adds 0 to the first element of the list.
-        if other == 0:
-            return self
-
-        return self.add(other)
-
-    def __radd__(self, other: "OperatorBase") -> "OperatorBase":
-        r"""Overload right ``+`` operation for Operator addition.
-
-        Args:
-            other: An ``OperatorBase`` with the same number of qubits as self, and in the same
-                'Operator', 'State function', or 'Measurement' category as self (i.e. the same type
-                of underlying function).
-
-        Returns:
-            An ``OperatorBase`` equivalent to the sum of self and other.
-        """
-        # Hack to be able to use sum(list_of_ops) nicely because
-        # sum adds 0 to the first element of the list.
-        if other == 0:
-            return self
-
-        return self.add(other)
 
     @abstractmethod
     def add(self, other: "OperatorBase") -> "OperatorBase":
@@ -215,41 +201,7 @@ class OperatorBase(ABC):
         """
         raise NotImplementedError
 
-    def __sub__(self, other: "OperatorBase") -> "OperatorBase":
-        r"""Overload ``-`` operation for Operator subtraction.
-
-        Args:
-            other: An ``OperatorBase`` with the same number of qubits as self, and in the same
-                'Operator', 'State function', or 'Measurement' category as self (i.e. the same type
-                of underlying function).
-
-        Returns:
-            An ``OperatorBase`` equivalent to self - other.
-        """
-        return self.add(-other)
-
-    def __rsub__(self, other: "OperatorBase") -> "OperatorBase":
-        r"""Overload right ``-`` operation for Operator subtraction.
-
-        Args:
-            other: An ``OperatorBase`` with the same number of qubits as self, and in the same
-                'Operator', 'State function', or 'Measurement' category as self (i.e. the same type
-                of underlying function).
-
-        Returns:
-            An ``OperatorBase`` equivalent to self - other.
-        """
-        return self.neg().add(other)
-
     # Negation
-
-    def __neg__(self) -> "OperatorBase":
-        r"""Overload unary ``-`` to return Operator negation.
-
-        Returns:
-            An ``OperatorBase`` equivalent to the negation of self.
-        """
-        return self.neg()
 
     def neg(self) -> "OperatorBase":
         r"""Return the Operator's negation, effectively just multiplying by -1.0,
@@ -261,14 +213,6 @@ class OperatorBase(ABC):
         return self.mul(-1.0)
 
     # Adjoint
-
-    def __invert__(self) -> "OperatorBase":
-        r"""Overload unary ``~`` to return Operator adjoint.
-
-        Returns:
-            An ``OperatorBase`` equivalent to the adjoint of self.
-        """
-        return self.adjoint()
 
     @abstractmethod
     def adjoint(self) -> "OperatorBase":
@@ -315,6 +259,7 @@ class OperatorBase(ABC):
 
     # Scalar Multiplication
 
+    # pylint: disable=arguments-differ
     @abstractmethod
     def mul(self, scalar: Union[complex, ParameterExpression]) -> "OperatorBase":
         r"""
@@ -330,73 +275,6 @@ class OperatorBase(ABC):
             An ``OperatorBase`` equivalent to product of self and scalar.
         """
         raise NotImplementedError
-
-    def __mul__(self, other: complex) -> "OperatorBase":
-        r"""Overload ``*`` for Operator scalar multiplication.
-
-        Args:
-            other: The real or complex scalar by which to multiply the Operator,
-                or the ``ParameterExpression`` to serve as a placeholder for a scalar factor.
-
-        Returns:
-            An ``OperatorBase`` equivalent to product of self and scalar.
-        """
-        return self.mul(other)
-
-    def __rmul__(self, other: complex) -> "OperatorBase":
-        r"""Overload right ``*`` for Operator scalar multiplication.
-
-        Args:
-            other: The real or complex scalar by which to multiply the Operator,
-                or the ``ParameterExpression`` to serve as a placeholder for a scalar factor.
-
-        Returns:
-            An ``OperatorBase`` equivalent to product of self and scalar.
-        """
-        return self.mul(other)
-
-    def __truediv__(self, other: complex) -> "OperatorBase":
-        r"""Overload ``/`` for scalar Operator division.
-
-        Args:
-            other: The real or complex scalar by which to divide the Operator,
-                or the ``ParameterExpression`` to serve as a placeholder for a scalar divisor.
-
-        Returns:
-            An ``OperatorBase`` equivalent to self divided by scalar.
-        """
-        return self.mul(1 / other)
-
-    def __xor__(self, other: Union["OperatorBase", int]) -> "OperatorBase":
-        r"""Overload ``^`` for tensor product or tensorpower if other is an int.
-
-        Args:
-            other: The ``OperatorBase`` to tensor product with self, or the int number of times
-                to tensor self with itself via ``tensorpower``.
-
-        Returns:
-            An ``OperatorBase`` equivalent to tensor product of self and other,
-                or the tensorpower of self by other.
-        """
-        if isinstance(other, int):
-            return cast(OperatorBase, self.tensorpower(other))
-        else:
-            return self.tensor(other)
-
-    def __rxor__(self, other: Union["OperatorBase", int]) -> "OperatorBase":
-        r"""Overload right ``^`` for tensor product, a hack to make (I^0)^Z work as intended.
-
-        Args:
-            other: The ``OperatorBase`` for self to tensor product with, or 1, which indicates to
-                return self.
-
-        Returns:
-            An ``OperatorBase`` equivalent to the tensor product of other and self, or self.
-        """
-        if other == 1:
-            return self
-        else:
-            return cast(OperatorBase, other).tensor(self)
 
     @abstractmethod
     def tensor(self, other: "OperatorBase") -> "OperatorBase":
@@ -568,17 +446,7 @@ class OperatorBase(ABC):
 
     # Composition
 
-    def __matmul__(self, other: "OperatorBase") -> "OperatorBase":
-        r"""Overload ``@`` for Operator composition.
-
-        Args:
-            other: The ``OperatorBase`` with which to compose self.
-
-        Returns:
-            An ``OperatorBase`` equivalent to the function composition of self and other.
-        """
-        return self.compose(other)
-
+    # pylint: disable=arguments-differ
     @abstractmethod
     def compose(
         self, other: "OperatorBase", permutation: Optional[List[int]] = None, front: bool = False
@@ -603,29 +471,6 @@ class OperatorBase(ABC):
             An ``OperatorBase`` equivalent to the function composition of self and other.
         """
         raise NotImplementedError
-
-    @abstractmethod
-    def power(self, exponent: int) -> "OperatorBase":
-        r"""Return Operator composed with self multiple times, overloaded by ``**``.
-
-        Args:
-            exponent: The int number of times to compose self with itself.
-
-        Returns:
-            An ``OperatorBase`` equivalent to self composed with itself exponent times.
-        """
-        raise NotImplementedError
-
-    def __pow__(self, exponent: int) -> "OperatorBase":
-        r"""Overload ``**`` for composition power.
-
-        Args:
-            exponent: The int number of times to compose self with itself.
-
-        Returns:
-            An ``OperatorBase`` equivalent to self composed with itself exponent times.
-        """
-        return self.power(exponent)
 
     @staticmethod
     def _check_massive(method: str, matrix: bool, num_qubits: int, massive: bool) -> None:

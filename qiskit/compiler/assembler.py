@@ -29,7 +29,6 @@ from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.pulse.channels import PulseChannel
 from qiskit.qobj import QobjHeader, Qobj
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
-from qiskit.validation.jsonschema import SchemaValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +46,7 @@ def assemble(
         Schedule,
         List[Schedule],
         ScheduleBlock,
-        Union[ScheduleBlock],
+        List[ScheduleBlock],
     ],
     backend: Optional[Union[Backend, BaseBackend]] = None,
     qobj_id: Optional[str] = None,
@@ -56,10 +55,10 @@ def assemble(
     memory: Optional[bool] = False,
     max_credits: Optional[int] = None,
     seed_simulator: Optional[int] = None,
-    qubit_lo_freq: Optional[List[int]] = None,
-    meas_lo_freq: Optional[List[int]] = None,
-    qubit_lo_range: Optional[List[int]] = None,
-    meas_lo_range: Optional[List[int]] = None,
+    qubit_lo_freq: Optional[List[float]] = None,
+    meas_lo_freq: Optional[List[float]] = None,
+    qubit_lo_range: Optional[List[float]] = None,
+    meas_lo_range: Optional[List[float]] = None,
     schedule_los: Optional[
         Union[
             List[Union[Dict[PulseChannel, float], LoConfig]],
@@ -83,6 +82,10 @@ def assemble(
     to create ``Qobj`` "experiments". It further annotates the experiment payload with
     header and configurations.
 
+    NOTE: Backend.options is not used within assemble. The required values
+    (previously given by backend.set_options) should be manually extracted
+    from options and supplied directly when calling.
+
     Args:
         experiments: Circuit(s) or pulse schedule(s) to execute
         backend: If set, some runtime options are automatically grabbed from
@@ -101,15 +104,19 @@ def assemble(
             measurement level 2 supports this option.
         max_credits: Maximum credits to spend on job. Default: 10
         seed_simulator: Random seed to control sampling, for when backend is a simulator
-        qubit_lo_freq: List of default qubit LO frequencies in Hz. Will be overridden by
-            ``schedule_los`` if set.
-        meas_lo_freq: List of default measurement LO frequencies in Hz. Will be overridden
-            by ``schedule_los`` if set.
-        qubit_lo_range: List of drive LO ranges each of form ``[range_min, range_max]`` in Hz.
-            Used to validate the supplied qubit frequencies.
-        meas_lo_range: List of measurement LO ranges each of form ``[range_min, range_max]`` in Hz.
-            Used to validate the supplied qubit frequencies.
-        schedule_los: Experiment LO configurations, frequencies are given in Hz.
+        qubit_lo_freq: List of job level qubit drive LO frequencies in Hz. Overridden by
+            ``schedule_los`` if specified. Must have length ``n_qubits.``
+        meas_lo_freq: List of measurement LO frequencies in Hz. Overridden by ``schedule_los`` if
+            specified. Must have length ``n_qubits.``
+        qubit_lo_range: List of job level drive LO ranges each of form ``[range_min, range_max]``
+            in Hz. Used to validate ``qubit_lo_freq``. Must have length ``n_qubits.``
+        meas_lo_range: List of job level measurement LO ranges each of form
+            ``[range_min, range_max]`` in Hz. Used to validate ``meas_lo_freq``. Must have length
+            ``n_qubits.``
+        schedule_los: Experiment level (ie circuit or schedule) LO frequency configurations for
+            qubit drive and measurement channels. These values override the job level values from
+            ``default_qubit_los`` and ``default_meas_los``. Frequencies are in Hz. Settable for qasm
+            and pulse jobs.
         meas_level: Set the appropriate level of the measurement output for pulse experiments.
         meas_return: Level of measurement data for the backend to return.
 
@@ -150,6 +157,7 @@ def assemble(
     """
     start_time = time()
     experiments = experiments if isinstance(experiments, list) else [experiments]
+    pulse_qobj = any(isinstance(exp, (ScheduleBlock, Schedule, Instruction)) for exp in experiments)
     qobj_id, qobj_header, run_config_common_dict = _parse_common_args(
         backend,
         qobj_id,
@@ -160,6 +168,12 @@ def assemble(
         seed_simulator,
         init_qubits,
         rep_delay,
+        qubit_lo_freq,
+        meas_lo_freq,
+        qubit_lo_range,
+        meas_lo_range,
+        schedule_los,
+        pulse_qobj=pulse_qobj,
         **run_config,
     )
 
@@ -190,11 +204,6 @@ def assemble(
     elif all(isinstance(exp, (ScheduleBlock, Schedule, Instruction)) for exp in experiments):
         run_config = _parse_pulse_args(
             backend,
-            qubit_lo_freq,
-            meas_lo_freq,
-            qubit_lo_range,
-            meas_lo_range,
-            schedule_los,
             meas_level,
             meas_return,
             meas_map,
@@ -211,9 +220,7 @@ def assemble(
         )
 
     else:
-        raise QiskitError(
-            "bad input to assemble() function; " "must be either circuits or schedules"
-        )
+        raise QiskitError("bad input to assemble() function; must be either circuits or schedules")
 
 
 # TODO: rework to return a list of RunConfigs (one for each experiments), and a global one
@@ -227,6 +234,12 @@ def _parse_common_args(
     seed_simulator,
     init_qubits,
     rep_delay,
+    qubit_lo_freq,
+    meas_lo_freq,
+    qubit_lo_range,
+    meas_lo_range,
+    schedule_los,
+    pulse_qobj=False,
     **run_config,
 ):
     """Resolve the various types of args allowed to the assemble() function through
@@ -242,19 +255,38 @@ def _parse_common_args(
             and determines the runtime environment.
 
     Raises:
-        QiskitError: if the memory arg is True and the backend does not support
-            memory. Also if shots exceeds max_shots for the configured backend. Also if
-            the type of shots is not int.
+        QiskitError:
+            - If the memory arg is True and the backend does not support memory.
+            - If ``shots`` exceeds ``max_shots`` for the configured backend.
+            - If ``shots`` are not int type.
+            - If any of qubit or meas lo's, or associated ranges do not have length equal to
+            ``n_qubits``.
+            - If qubit or meas lo's do not fit into perscribed ranges.
     """
     # grab relevant info from backend if it exists
     backend_config = None
+    backend_defaults = None
+    n_qubits = None
     if backend:
         backend_config = backend.configuration()
+        n_qubits = backend_config.n_qubits
         # check for memory flag applied to backend that does not support memory
         if memory and not backend_config.memory:
-            raise QiskitError(
-                "memory not supported by backend {}".format(backend_config.backend_name)
-            )
+            raise QiskitError(f"memory not supported by backend {backend_config.backend_name}")
+
+        # try to set defaults for pulse, other leave as None
+        pulse_param_set = (
+            qubit_lo_freq is not None
+            or meas_lo_freq is not None
+            or qubit_lo_range is not None
+            or meas_lo_range is not None
+            or schedule_los is not None
+        )
+        if pulse_qobj or (backend_config.open_pulse and pulse_param_set):
+            try:
+                backend_defaults = backend.defaults()
+            except AttributeError:
+                pass
 
     # an identifier for the Qobj
     qobj_id = qobj_id or str(uuid.uuid4())
@@ -299,6 +331,27 @@ def _parse_common_args(
                 RuntimeWarning,
             )
 
+    qubit_lo_freq = qubit_lo_freq or getattr(backend_defaults, "qubit_freq_est", None)
+    meas_lo_freq = meas_lo_freq or getattr(backend_defaults, "meas_freq_est", None)
+
+    qubit_lo_range = qubit_lo_range or getattr(backend_config, "qubit_lo_range", None)
+    meas_lo_range = meas_lo_range or getattr(backend_config, "meas_lo_range", None)
+
+    # check that LO frequencies are in the perscribed range
+    _check_lo_freqs(qubit_lo_freq, qubit_lo_range, "qubit")
+    _check_lo_freqs(meas_lo_freq, meas_lo_range, "meas")
+
+    # configure experiment level LO frequencies
+    schedule_los = schedule_los or []
+    if isinstance(schedule_los, (LoConfig, dict)):
+        schedule_los = [schedule_los]
+
+    # Convert to LoConfig if LO configuration supplied as dictionary
+    schedule_los = [
+        lo_config if isinstance(lo_config, LoConfig) else LoConfig(lo_config)
+        for lo_config in schedule_los
+    ]
+
     # create run configuration and populate
     run_config_dict = dict(
         shots=shots,
@@ -307,19 +360,55 @@ def _parse_common_args(
         seed_simulator=seed_simulator,
         init_qubits=init_qubits,
         rep_delay=rep_delay,
+        qubit_lo_freq=qubit_lo_freq,
+        meas_lo_freq=meas_lo_freq,
+        qubit_lo_range=qubit_lo_range,
+        meas_lo_range=meas_lo_range,
+        schedule_los=schedule_los,
+        n_qubits=n_qubits,
         **run_config,
     )
 
     return qobj_id, qobj_header, run_config_dict
 
 
+def _check_lo_freqs(
+    lo_freq: Union[List[float], None],
+    lo_range: Union[List[float], None],
+    lo_type: str,
+):
+    """Check that LO frequencies are within the perscribed LO range.
+
+    NOTE: Only checks if frequency/range lists have equal length. And does not check that the lists
+    have length ``n_qubits``. This is because some backends, like simulator backends, do not
+    require these constraints. For real hardware, these parameters will be validated on the backend.
+
+    Args:
+        lo_freq: List of LO frequencies.
+        lo_range: Nested list of LO frequency ranges. Inner list is of the form
+            ``[lo_min, lo_max]``.
+        lo_type: The type of LO value--"qubit" or "meas".
+
+    Raises:
+        QiskitError:
+            - If each element of the LO range is not a 2d list.
+            - If the LO frequency is not in the LO range for a given qubit.
+    """
+    if lo_freq and lo_range and len(lo_freq) == len(lo_range):
+        for i, freq in enumerate(lo_freq):
+            freq_range = lo_range[i]
+            if not (isinstance(freq_range, list) and len(freq_range) == 2):
+                raise QiskitError(f"Each element of {lo_type} LO range must be a 2d list.")
+            if freq < freq_range[0] or freq > freq_range[1]:
+                raise QiskitError(
+                    "Qubit {} {} LO frequency is {}. The range is [{}, {}].".format(
+                        i, lo_type, freq, freq_range[0], freq_range[1]
+                    )
+                )
+
+
 def _parse_pulse_args(
     backend,
-    qubit_lo_freq,
-    meas_lo_freq,
-    qubit_lo_range,
-    meas_lo_range,
-    schedule_los,
     meas_level,
     meas_return,
     meas_map,
@@ -335,42 +424,21 @@ def _parse_pulse_args(
         RunConfig: a run config, which is a standardized object that configures the qobj
             and determines the runtime environment.
     Raises:
-        SchemaValidationError: If the given meas_level is not allowed for the given `backend`.
+        QiskitError: If the given meas_level is not allowed for the given `backend`.
     """
     # grab relevant info from backend if it exists
     backend_config = None
-    backend_default = None
     if backend:
-        backend_default = backend.defaults()
         backend_config = backend.configuration()
 
         if meas_level not in getattr(backend_config, "meas_levels", [MeasLevel.CLASSIFIED]):
-            raise SchemaValidationError(
+            raise QiskitError(
                 ("meas_level = {} not supported for backend {}, only {} is supported").format(
                     meas_level, backend_config.backend_name, backend_config.meas_levels
                 )
             )
 
     meas_map = meas_map or getattr(backend_config, "meas_map", None)
-
-    schedule_los = schedule_los or []
-    if isinstance(schedule_los, (LoConfig, dict)):
-        schedule_los = [schedule_los]
-
-    # Convert to LoConfig if LO configuration supplied as dictionary
-    schedule_los = [
-        lo_config if isinstance(lo_config, LoConfig) else LoConfig(lo_config)
-        for lo_config in schedule_los
-    ]
-
-    if not qubit_lo_freq and hasattr(backend_default, "qubit_freq_est"):
-        qubit_lo_freq = backend_default.qubit_freq_est
-    if not meas_lo_freq and hasattr(backend_default, "meas_freq_est"):
-        meas_lo_freq = backend_default.meas_freq_est
-
-    qubit_lo_range = qubit_lo_range or getattr(backend_config, "qubit_lo_range", None)
-    meas_lo_range = meas_lo_range or getattr(backend_config, "meas_lo_range", None)
-
     dynamic_reprate_enabled = getattr(backend_config, "dynamic_reprate_enabled", False)
 
     rep_time = rep_time or getattr(backend_config, "rep_times", None)
@@ -384,16 +452,11 @@ def _parse_pulse_args(
         if isinstance(rep_time, list):
             rep_time = rep_time[0]
         rep_time = int(rep_time * 1e6)  # convert sec to μs
-
-    parametric_pulses = parametric_pulses or getattr(backend_config, "parametric_pulses", [])
+    if parametric_pulses is None:
+        parametric_pulses = getattr(backend_config, "parametric_pulses", [])
 
     # create run configuration and populate
     run_config_dict = dict(
-        qubit_lo_freq=qubit_lo_freq,
-        meas_lo_freq=meas_lo_freq,
-        qubit_lo_range=qubit_lo_range,
-        meas_lo_range=meas_lo_range,
-        schedule_los=schedule_los,
         meas_level=meas_level,
         meas_return=meas_return,
         meas_map=meas_map,
@@ -449,7 +512,7 @@ def _parse_rep_delay(
         rep_delay_range: Backend list defining allowable range of rep delays.
 
     Raises:
-        SchemaValidationError: If rep_delay is not in the backend rep_delay_range.
+        QiskitError: If rep_delay is not in the backend rep_delay_range.
     Returns:
         float: Modified rep delay after parsing.
     """
@@ -460,13 +523,13 @@ def _parse_rep_delay(
         # check that rep_delay is in rep_delay_range
         if rep_delay_range is not None and isinstance(rep_delay_range, list):
             if len(rep_delay_range) != 2:
-                raise SchemaValidationError(
+                raise QiskitError(
                     "Backend rep_delay_range {} must be a list with two entries.".format(
                         rep_delay_range
                     )
                 )
             if not rep_delay_range[0] <= rep_delay <= rep_delay_range[1]:
-                raise SchemaValidationError(
+                raise QiskitError(
                     "Supplied rep delay {} not in the supported "
                     "backend range {}".format(rep_delay, rep_delay_range)
                 )

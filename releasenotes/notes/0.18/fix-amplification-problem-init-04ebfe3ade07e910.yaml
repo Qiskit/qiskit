@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixed an issue with the initialization of the
+    :class:`~qiskit.algorithms.AmplificationProblem` class. The
+    ``is_good_state`` kwarg was a required field but incorrectly being treated
+    as optional (and documented as such). This has been fixed and also
+    updated so unless the input ``oracle`` is a
+    :class:`~qiskit.circuit.library.PhaseOracle` object (which provides it's
+    on evaluation method) the field is required and will raise a ``TypeError``
+    when constructed without ``is_good_state``.

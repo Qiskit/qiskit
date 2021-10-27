@@ -47,7 +47,7 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
     from qiskit.circuit.quantumcircuit import QuantumCircuit
 
     if circuit.clbits:
-        raise QiskitError("Circuit with classical bits cannot be converted " "to gate.")
+        raise QiskitError("Circuit with classical bits cannot be converted to gate.")
 
     for inst, _, _ in circuit.data:
         if not isinstance(inst, Gate):
@@ -73,7 +73,7 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
 
     gate = Gate(
         name=circuit.name,
-        num_qubits=sum([qreg.size for qreg in circuit.qregs]),
+        num_qubits=sum(qreg.size for qreg in circuit.qregs),
         params=[*parameter_dict.values()],
         label=label,
     )
