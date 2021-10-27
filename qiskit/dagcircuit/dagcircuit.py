@@ -319,6 +319,68 @@ class DAGCircuit:
         else:
             raise DAGCircuitError(f"duplicate wire {wire}")
 
+    def remove_idle_cregs(self, *cregs):
+        """
+        Remove a classical register with all idle bits from the circuit,
+        removing all bits that are no longer referenced by any register.
+
+        Raises:
+            DAGCircuitError: a creg is not a ClassicalRegister, is not in
+                the circuit, or contains a bit that is not idle.
+        """
+        # Validate the removal will succeed.
+        for creg in cregs:
+            if not isinstance(creg, ClassicalRegister):
+                raise DAGCircuitError("not a ClassicalRegister instance.")
+            if creg.name not in self.cregs:
+                raise DAGCircuitError("creg %s is not in circuit" % creg)
+            for clbit in creg:
+                if not self._is_wire_idle(clbit):
+                    raise DAGCircuitError("clbit %s in creg %s is not idle." % clbit % creg)
+        
+        clbits_to_remove = set()
+        clbits_to_keep = set()
+        for creg in self.cregs.values():
+            clbits = set(creg)
+            if creg in cregs:
+                clbits_to_remove.update(clbits)
+            else:
+                clbits_to_keep.update(clbits)
+
+        clbits_to_remove.difference_update(clbits_to_keep)
+
+        for clbit in clbits_to_remove:
+            self._remove_idle_wire(clbit)
+        del self.cregs[creg.name]
+
+    def _is_wire_idle(self, wire):
+        """Check that a wire is idle."""
+        if wire not in self._wires:
+            raise DAGCircuitError("wire %s not in circuit" % wire)
+
+        try:
+            child = next(self.successors(self.input_map[wire]))
+        except StopIteration as e:
+            raise DAGCircuitError(
+                "Invalid dagcircuit input node %s has no output" % self.input_map[wire]
+            ) from e
+        return child is self.output_map[wire]
+
+    def _remove_idle_wire(self, wire):
+        """Remove an idle qubit or bit from the circuit.
+
+        Args:
+            wire (Bit): the wire to be removed, which MUST be idle.
+        """
+        if wire in self._wires:
+            inp_node = self.input_map[wire]
+            oup_node = self.output_map[wire]
+
+            self._multi_graph.remove_edge(inp_node._node_id, oup_node._node_id)
+            self._multi_graph.remove_node(inp_node._node_id)
+            self._multi_graph.remove_node(oup_node._node_id)
+            self._wires.remove(wire)
+
     def _check_condition(self, name, condition):
         """Verify that the condition is valid.
 
@@ -810,13 +872,7 @@ class DAGCircuit:
         ignore_set = set(ignore)
         for wire in self._wires:
             if not ignore:
-                try:
-                    child = next(self.successors(self.input_map[wire]))
-                except StopIteration as e:
-                    raise DAGCircuitError(
-                        "Invalid dagcircuit input node %s has no output" % self.input_map[wire]
-                    ) from e
-                if isinstance(child, DAGOutNode):
+                if self._is_wire_idle(wire):
                     yield wire
             else:
                 for node in self.nodes_on_wire(wire, only_ops=True):
