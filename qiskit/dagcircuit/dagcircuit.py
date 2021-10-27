@@ -380,6 +380,8 @@ class DAGCircuit:
             self._multi_graph.remove_node(inp_node._node_id)
             self._multi_graph.remove_node(oup_node._node_id)
             self._wires.remove(wire)
+            del self.input_map[wire]
+            del self.output_map[wire]
 
     def _check_condition(self, name, condition):
         """Verify that the condition is valid.
