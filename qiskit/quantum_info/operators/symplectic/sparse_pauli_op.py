@@ -51,8 +51,9 @@ class SparsePauliOp(LinearOp):
         """Initialize an operator object.
 
         Args:
-            data (Paulilist, SparsePauliOp, PauliTable): Pauli list of terms.
+            data (PauliList or SparsePauliOp or PauliTable or Pauli or list): Pauli list of terms.
             coeffs (np.ndarray): complex coefficients for Pauli terms.
+                Note: if `data` is `SparsePauliOp`, `coeffs` is overwritten by `SparsePauliOp.coeffs`.
             ignore_pauli_phase (bool): avoid the phase conversion if True,
                 otherwise, apply the phase conversion (Default: False)
             copy (bool): copy the input data if True, otherwise assign it directly (Default: True)
@@ -64,41 +65,28 @@ class SparsePauliOp(LinearOp):
             raise QiskitError("ignore_pauli_list=True is only valid with PauliList data")
 
         if isinstance(data, SparsePauliOp):
-            # Fast path for copy operations. Avoid the phase conversion.
-            # `SparsePauliOp._pauli_list` should be compatible with the internal ZX-phase convention.
+            coeffs = data.coeffs
+            data = data._pauli_list
+            # `SparsePauliOp._pauli_list` is already compatible with the internal ZX-phase convention.
             # See `BasePauli._from_array` for the internal ZX-phase convention.
-            self._pauli_list = data._pauli_list.copy() if copy else data._pauli_list
-            if coeffs is None:
-                self._coeffs = data._coeffs.copy() if copy else data._coeffs
-            else:
-                self._coeffs = data._coeffs * coeffs
+            ignore_pauli_phase = True
 
-        elif isinstance(data, PauliList) and ignore_pauli_phase:
-            # Fast path for the preferential. Avoid the phase conversion.
-            # This path works only if the input data is compatible with the internal ZX-phase convention.
-            self._pauli_list = data.copy() if copy else data
-            if coeffs is None:
-                self._coeffs = np.ones(data.size, dtype=complex)
-            else:
-                self._coeffs = np.asarray(coeffs.copy() if copy else coeffs, dtype=complex)
+        pauli_list = PauliList(data.copy() if copy and hasattr(data, "copy") else data)
 
+        if coeffs is None:
+            coeffs = np.ones(pauli_list.size, dtype=complex)
         else:
-            if isinstance(data, BasePauli) and copy:
-                # if `data` is `BasePauli`, `PauliList(data)` does not copy `data` internally.
-                data = data.copy()
-            pauli_list = PauliList(data)
-            if coeffs is None:
-                coeffs = np.ones(pauli_list.size, dtype=complex)
-            else:
-                coeffs = np.asarray(coeffs.copy() if copy else coeffs, dtype=complex)
+            coeffs = np.array(coeffs, copy=copy, dtype=complex)
 
-            if np.all(pauli_list.phase == 0):
-                self._pauli_list = pauli_list
-                self._coeffs = coeffs
-            else:
-                # move the phase of `pauli_list` to `self._coeffs`
-                self._pauli_list = PauliList.from_symplectic(pauli_list.z, pauli_list.x)
-                self._coeffs = np.asarray((-1j) ** pauli_list.phase * coeffs, dtype=complex)
+        if ignore_pauli_phase or np.count_nonzero(pauli_list.phase) == 0:
+            # Fast path for copy operations. Avoid the phase conversion.
+            # This path works only if the input data is compatible with the internal ZX-phase convention.
+            self._pauli_list = pauli_list
+            self._coeffs = coeffs
+        else:
+            # move the phase of `pauli_list` to `self._coeffs`
+            self._pauli_list = PauliList.from_symplectic(pauli_list.z, pauli_list.x)
+            self._coeffs = np.asarray((-1j) ** pauli_list.phase * coeffs, dtype=complex)
 
         if self._coeffs.shape != (self._pauli_list.size,):
             raise QiskitError(
@@ -325,7 +313,7 @@ class SparsePauliOp(LinearOp):
                 np.zeros((1, self.num_qubits), dtype=bool),
             )
             coeffs = np.array([0j])
-            return SparsePauliOp(paulis, coeffs, copy=False)
+            return SparsePauliOp(paulis, coeffs, ignore_pauli_phase=True, copy=False)
         # Otherwise we just update the phases
         return SparsePauliOp(
             self.paulis.copy(), other * self.coeffs, ignore_pauli_phase=True, copy=False

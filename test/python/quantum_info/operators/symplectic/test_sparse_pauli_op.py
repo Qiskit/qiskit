@@ -91,9 +91,8 @@ class TestSparsePauliOpInit(QiskitTestCase):
     def test_sparse_pauli_op_init(self):
         """Test SparsePauliOp initialization."""
         labels = ["I", "X", "Y", "Z", "iZ", "-iX"]
-        paulis = PauliList(labels)
-        with self.subTest(msg="make SprasePauliOp from SprasePauliOp"):
-            op = SparsePauliOp(paulis)
+        with self.subTest(msg="make SparsePauliOp from SparsePauliOp"):
+            op = SparsePauliOp(labels)
             ref_op = op.copy()
             spp_op = SparsePauliOp(op)
             self.assertEqual(spp_op, ref_op)
@@ -102,14 +101,14 @@ class TestSparsePauliOpInit(QiskitTestCase):
             op.coeffs *= 2
             self.assertNotEqual(spp_op, op)
             self.assertEqual(spp_op, ref_op)
-        with self.subTest(msg="make SprasePauliOp from PauliList and ndarray"):
+        with self.subTest(msg="make SparsePauliOp from PauliList and ndarray"):
+            paulis = PauliList(labels)
             coeffs = np.array([1, 2, 3, 4, 5, 6])
-            paulis_copy = paulis.copy()
-            spp_op = SparsePauliOp(paulis_copy, coeffs)
+            spp_op = SparsePauliOp(paulis, coeffs)
             ref_op = SparsePauliOp(paulis.copy(), coeffs.copy())
             self.assertEqual(spp_op, ref_op)
             # make sure the change of `paulis_copy` and `coeffs` does not propagate through to `spp_op`
-            paulis_copy.z[:] = False
+            paulis.z[:] = False
             coeffs[:] = 0
             self.assertEqual(spp_op, ref_op)
 
