@@ -16,7 +16,7 @@ import scipy
 from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, Parameter
-from qiskit.circuit.library import EvolutionGate
+from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit.synthesis import LieTrotter, SuzukiTrotter, MatrixExponential
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
@@ -36,7 +36,7 @@ class TestEvolutionGate(QiskitTestCase):
         matrix = op.to_matrix()
         evolved = scipy.linalg.expm(-1j * time * matrix)
 
-        evo_gate = EvolutionGate(op, time, synthesis=MatrixExponential())
+        evo_gate = PauliEvolutionGate(op, time, synthesis=MatrixExponential())
 
         self.assertTrue(Operator(evo_gate).equiv(evolved))
 
@@ -45,7 +45,7 @@ class TestEvolutionGate(QiskitTestCase):
         op = (X ^ 3) + (Y ^ 3) + (Z ^ 3)
         time = 0.123
         reps = 4
-        evo_gate = EvolutionGate(op, time, synthesis=LieTrotter(reps=reps))
+        evo_gate = PauliEvolutionGate(op, time, synthesis=LieTrotter(reps=reps))
         decomposed = evo_gate.definition.decompose()
         self.assertEqual(decomposed.count_ops()["cx"], reps * 3 * 4)
 
@@ -65,7 +65,9 @@ class TestEvolutionGate(QiskitTestCase):
                 expected_cx = reps * 5 ** ((order - 1) / 2) * 3 * 4
 
             with self.subTest(order=order):
-                evo_gate = EvolutionGate(op, time, synthesis=SuzukiTrotter(order=order, reps=reps))
+                evo_gate = PauliEvolutionGate(
+                    op, time, synthesis=SuzukiTrotter(order=order, reps=reps)
+                )
                 decomposed = evo_gate.definition.decompose()
                 self.assertEqual(decomposed.count_ops()["cx"], expected_cx)
 
@@ -74,7 +76,7 @@ class TestEvolutionGate(QiskitTestCase):
         op = X + Y
         time = 0.1
         reps = 1
-        evo_gate = EvolutionGate(op, time, synthesis=SuzukiTrotter(order=4, reps=reps))
+        evo_gate = PauliEvolutionGate(op, time, synthesis=SuzukiTrotter(order=4, reps=reps))
 
         # manually construct expected evolution
         expected = QuantumCircuit(1)
@@ -99,7 +101,7 @@ class TestEvolutionGate(QiskitTestCase):
     def test_passing_grouped_paulis(self):
         """Test passing a list of already grouped Paulis."""
         grouped_ops = [(X ^ Y) + (Y ^ X), (Z ^ I) + (Z ^ Z) + (I ^ Z), (X ^ X)]
-        evo_gate = EvolutionGate(grouped_ops, time=0.12, synthesis=LieTrotter())
+        evo_gate = PauliEvolutionGate(grouped_ops, time=0.12, synthesis=LieTrotter())
         decomposed = evo_gate.definition.decompose()
         self.assertEqual(decomposed.count_ops()["rz"], 4)
         self.assertEqual(decomposed.count_ops()["rzz"], 1)
@@ -108,7 +110,7 @@ class TestEvolutionGate(QiskitTestCase):
     def test_list_from_grouped_paulis(self):
         """Test getting a string representation from grouped Paulis."""
         grouped_ops = [(X ^ Y) + (Y ^ X), (Z ^ I) + (Z ^ Z) + (I ^ Z), (X ^ X)]
-        evo_gate = EvolutionGate(grouped_ops, time=0.12, synthesis=LieTrotter())
+        evo_gate = PauliEvolutionGate(grouped_ops, time=0.12, synthesis=LieTrotter())
 
         pauli_strings = []
         for op in evo_gate.operator:
@@ -127,7 +129,7 @@ class TestEvolutionGate(QiskitTestCase):
     def test_dag_conversion(self):
         """Test constructing a circuit with evolutions yields a DAG with evolution blocks."""
         time = Parameter("t")
-        evo = EvolutionGate((Z ^ 2) + (X ^ 2), time=time)
+        evo = PauliEvolutionGate((Z ^ 2) + (X ^ 2), time=time)
 
         circuit = QuantumCircuit(2)
         circuit.h(circuit.qubits)
@@ -136,7 +138,7 @@ class TestEvolutionGate(QiskitTestCase):
 
         dag = circuit_to_dag(circuit)
 
-        expected_ops = {"HGate", "CXGate", "EvolutionGate"}
+        expected_ops = {"HGate", "CXGate", "PauliEvolutionGate"}
         ops = set(node.op.__class__.__name__ for node in dag.op_nodes())
 
         self.assertEqual(ops, expected_ops)
@@ -147,7 +149,7 @@ class TestEvolutionGate(QiskitTestCase):
 
         op = Z ^ Z ^ Z
         synthesis = LieTrotter(reps=1, cx_structure=option)
-        evo = EvolutionGate(op, synthesis=synthesis)
+        evo = PauliEvolutionGate(op, synthesis=synthesis)
 
         expected = QuantumCircuit(3)
         if option == "chain":
@@ -180,23 +182,23 @@ class TestEvolutionGate(QiskitTestCase):
         expected.rx(4, 1)
 
         with self.subTest(msg="plain"):
-            evo = EvolutionGate(op, time=2, synthesis=LieTrotter())
+            evo = PauliEvolutionGate(op, time=2, synthesis=LieTrotter())
             self.assertEqual(evo.definition, expected)
 
         with self.subTest(msg="wrapped in list"):
-            evo = EvolutionGate([op], time=2, synthesis=LieTrotter())
+            evo = PauliEvolutionGate([op], time=2, synthesis=LieTrotter())
             self.assertEqual(evo.definition, expected)
 
     def test_pauliop_coefficients_respected(self):
         """Test that global ``PauliOp`` coefficients are being taken care of."""
-        evo = EvolutionGate(5 * (Z ^ I), time=1, synthesis=LieTrotter())
+        evo = PauliEvolutionGate(5 * (Z ^ I), time=1, synthesis=LieTrotter())
         circuit = evo.definition.decompose()
         rz_angle = circuit.data[0][0].params[0]
         self.assertEqual(rz_angle, 10)
 
     def test_paulisumop_coefficients_respected(self):
         """Test that global ``PauliSumOp`` coefficients are being taken care of."""
-        evo = EvolutionGate(5 * (2 * X + 3 * Y - Z), time=1, synthesis=LieTrotter())
+        evo = PauliEvolutionGate(5 * (2 * X + 3 * Y - Z), time=1, synthesis=LieTrotter())
         circuit = evo.definition.decompose()
         rz_angles = [
             circuit.data[0][0].params[0],  # X

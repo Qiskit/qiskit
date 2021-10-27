@@ -20,8 +20,8 @@ from qiskit.circuit.synthesis import EvolutionSynthesis, LieTrotter
 from qiskit.quantum_info import Pauli, SparsePauliOp
 
 
-class EvolutionGate(Gate):
-    r"""Time-evolution of an operator.
+class PauliEvolutionGate(Gate):
+    r"""Time-evolution of an operator consisting of Paulis.
 
     For an operator :math:`H` consisting of Pauli terms and (real) evolution time :math:`t`
     this gate implements
@@ -51,8 +51,8 @@ class EvolutionGate(Gate):
     ) -> None:
         """
         Args:
-            operator (Union[Pauli, PauliOp, SparsePauliOp, PauliSumOp, List[SparsePauliOp],
-                List[PauliSumOp]]): The operator to evolve. Can be provided as list of non-commuting
+            operator (Pauli | PauliOp | SparsePauliOp | PauliSumOp | list):
+                The operator to evolve. Can also be provided as list of non-commuting
                 operators where the elements are sums of commuting operators.
                 For example: ``[XY + YX, ZZ + ZI + IZ, YY]``.
             time: The evolution time.
@@ -81,8 +81,8 @@ class EvolutionGate(Gate):
         """Unroll, where the default synthesis is matrix based."""
         self.definition = self.synthesis.synthesize(self.operator, self.time)
 
-    def inverse(self) -> "EvolutionGate":
-        return EvolutionGate(operator=self.operator, time=-self.time, synthesis=self.synthesis)
+    def inverse(self) -> "PauliEvolutionGate":
+        return PauliEvolutionGate(operator=self.operator, time=-self.time, synthesis=self.synthesis)
 
 
 def _to_sparse_pauli_op(operator):

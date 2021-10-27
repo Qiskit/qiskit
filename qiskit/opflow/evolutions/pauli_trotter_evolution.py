@@ -17,7 +17,7 @@ from typing import Optional, Union, cast
 
 import numpy as np
 
-from qiskit.circuit.library import EvolutionGate
+from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit.synthesis import LieTrotter, SuzukiTrotter
 from qiskit.opflow.converters.pauli_basis_change import PauliBasisChange
 from qiskit.opflow.evolutions.evolution_base import EvolutionBase
@@ -116,7 +116,9 @@ class PauliTrotterEvolution(EvolutionBase):
             if isinstance(operator.primitive, (PauliOp, PauliSumOp)):
                 pauli = operator.primitive.primitive
                 time = operator.coeff * operator.primitive.coeff
-                evo = EvolutionGate(pauli, time=time, synthesis=self._get_evolution_synthesis())
+                evo = PauliEvolutionGate(
+                    pauli, time=time, synthesis=self._get_evolution_synthesis()
+                )
                 return CircuitOp(evo.definition)
                 # operator = EvolvedOp(operator.primitive.to_pauli_op(), coeff=operator.coeff)
             if not {"Pauli"} == operator.primitive_strings():

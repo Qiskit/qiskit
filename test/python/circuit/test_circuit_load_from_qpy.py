@@ -23,7 +23,7 @@ from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.library import XGate, QFT, QAOAAnsatz, EvolutionGate
+from qiskit.circuit.library import XGate, QFT, QAOAAnsatz, PauliEvolutionGate
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.synthesis import LieTrotter
@@ -537,7 +537,7 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_evolutiongate(self):
         """Test loading a circuit with evolution gate works."""
         synthesis = LieTrotter(reps=2)
-        evo = EvolutionGate((Z ^ I) + (I ^ Z), time=0.2, synthesis=synthesis)
+        evo = PauliEvolutionGate((Z ^ I) + (I ^ Z), time=0.2, synthesis=synthesis)
         qc = QuantumCircuit(2)
         qc.append(evo, range(2))
         qpy_file = io.BytesIO()
@@ -552,10 +552,10 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(qc, new_circ)
         self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
 
-        # enable these tests once we can can serialize all EvolutionGate parameters such as
+        # enable these tests once we can can serialize allPauliEvolutionGate parameters such as
         # new_evo = new_circ.data[0][0]
         # SparsePauliOp and EvolutionSynthesis
-        # self.assertIsInstance(new_evo, EvolutionGate)
+        # self.assertIsInstance(new_evo,PauliEvolutionGate)
         # self.assertIsInstance(new_evo.synthesis, LieTrotter)
 
     def test_parameter_expression_global_phase(self):

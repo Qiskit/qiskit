@@ -290,7 +290,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
                     params = ["IXYZ"]
                 if gate_class.__name__ in ["BooleanExpression"]:
                     params = ["x | y"]
-                if gate_class.__name__ in ["EvolutionGate", "PauliEvolutionGate"]:
+                if gate_class.__name__ in ["PauliEvolutionGate", "PauliEvolutionGate"]:
                     continue
 
                 gate = gate_class(*params)

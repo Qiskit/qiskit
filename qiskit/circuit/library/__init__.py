@@ -212,7 +212,7 @@ Particular Quantum Circuits
    GroverOperator
    PhaseOracle
    EvolvedOperatorAnsatz
-   EvolutionGate
+  PauliEvolutionGate
 
 
 Probability distributions
@@ -369,7 +369,7 @@ from .generalized_gates import (
     RVGate,
     PauliGate,
 )
-from .evolution import EvolutionGate
+from .evolution import PauliEvolutionGate
 from .boolean_logic import (
     AND,
     OR,
