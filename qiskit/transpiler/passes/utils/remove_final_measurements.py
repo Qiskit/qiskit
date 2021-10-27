@@ -89,23 +89,11 @@ class RemoveFinalMeasurements(TransformationPass):
         #   - it does not appear in a creg that is non-removable
         idle_wires = set(dag.idle_wires())
         cregs_to_remove = set()
-        clbits_to_remove = set()
-        clbits_to_keep = set()
         for creg in dag.cregs.values():
             clbits = set(creg)
             if not clbits.isdisjoint(clbits_with_final_measures) and clbits.issubset(idle_wires):
                 cregs_to_remove.add(creg)
-                clbits_to_remove.update(clbits)
-            else:
-                clbits_to_keep.update(clbits)
-
-        clbits_to_remove.difference_update(clbits_to_keep)
 
         # Remove cregs from DAG
-        for creg in cregs_to_remove:
-            del dag.cregs[creg.name]
-
-        for clbit in clbits_to_remove:
-            dag.clbits.remove(clbit)
-
+        dag.remove_idle_cregs(*cregs_to_remove)
         return dag
