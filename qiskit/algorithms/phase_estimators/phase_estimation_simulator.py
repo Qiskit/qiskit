@@ -1,8 +1,44 @@
+from typing import Optional, Union
 import numpy
 import scipy
+import qiskit
+from qiskit.circuit import QuantumCircuit
+from qiskit.utils import QuantumInstance
+from qiskit.providers import BaseBackend, Backend
+from .phase_estimator import PhaseEstimator
+from .phase_estimation_result import PhaseEstimationResult
 
 
-class PhaseEstimationSimulator:
+class PhaseEstimationSimulator(PhaseEstimator):
+    def __init__(
+        self,
+        num_evaluation_qubits: int,
+        quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
+    ) -> None:
+        if num_evaluation_qubits is not None:
+            self._num_evaluation_qubits = num_evaluation_qubits
+
+    def estimate(
+        self,
+        unitary: Optional[QuantumCircuit] = None,
+        state_preparation: Optional[QuantumCircuit] = None,
+        pe_circuit: Optional[QuantumCircuit] = None,
+        num_unitary_qubits: Optional[int] = None,
+    ) -> PhaseEstimationResult:
+        unitary_matrix = qiskit.quantum_info.Operator(unitary).data
+        state_preparation_vector = qiskit.quantum_info.Operator(state_preparation).data
+        state_preparation_vector = state_preparation_vector[:,0]
+
+        pe_simulator = PESimulator().from_eigenproblem(unitary_matrix, state_preparation_vector)
+        probs = _array_to_qiskit_endian(pe_simulator.estimate_phases(self._num_evaluation_qubits))
+        return PhaseEstimationResult(
+            self._num_evaluation_qubits,
+            circuit_result=None,
+            phases=probs
+        )
+
+
+class PESimulator:
     """Simulate quantum phase estimation given a list of eigenphases and
     a list of expansion coefficients.
 
@@ -19,7 +55,7 @@ class PhaseEstimationSimulator:
     particular, phase information in the expansion coefficients does not enter
     into the bitstring probabilities.
 
-    `PhaseEstimationSimulator` takes as input a list of eigenphases and a
+    `PESimulator` takes as input a list of eigenphases and a
     corresponding list of expansion coefficients, which are stored as object
     properties of the class. It is only required to supply nonzero expansion
     coefficients. The method `estimate_phases` takes as input the number of
@@ -49,6 +85,8 @@ class PhaseEstimationSimulator:
         unitary. This function computes and stores these phases from the input
         unitary and vector.
         """
+        # print("unitary\n", unitary)
+        # print("vector\n", input_vector)
         vals, vecs = scipy.linalg.eig(unitary)
         vecs = vecs.transpose() # put eigenvecs in columns
         coeffs = [numpy.vdot(input_vector, vec) for vec in vecs]
@@ -58,6 +96,8 @@ class PhaseEstimationSimulator:
         phases = (numpy.angle(vals.astype(complex)) / (2 * numpy.pi)).real
         self.phases = phases
         self.coeffs = coeffs
+
+        return self
 
     def estimate_phases(self, num_qubits):
         """Return an array of probabilities of measurement of each bitstring.

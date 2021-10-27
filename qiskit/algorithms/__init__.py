@@ -167,6 +167,7 @@ Algorithms that estimate the phases of eigenstates of a unitary.
    PhaseEstimation
    PhaseEstimationResult
    IterativePhaseEstimation
+   PhaseEstimationSimulator
 
 Exceptions
 ==========
@@ -211,6 +212,7 @@ from .phase_estimators import (
     PhaseEstimation,
     PhaseEstimationResult,
     IterativePhaseEstimation,
+    PhaseEstimationSimulator
 )
 from .exceptions import AlgorithmError
 
@@ -253,5 +255,6 @@ __all__ = [
     "PhaseEstimation",
     "PhaseEstimationResult",
     "IterativePhaseEstimation",
+    "PhaseEstimationSimulator",
     "AlgorithmError",
 ]

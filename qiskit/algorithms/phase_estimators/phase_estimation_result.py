@@ -12,7 +12,7 @@
 
 """Result of running PhaseEstimation"""
 
-from typing import Dict, Union
+from typing import Dict, Union, Optional
 import numpy
 
 from qiskit.utils.deprecation import deprecate_function
@@ -35,7 +35,7 @@ class PhaseEstimationResult(PhaseEstimatorResult):
     def __init__(
         self,
         num_evaluation_qubits: int,
-        circuit_result: Result,
+        circuit_result: Optional[Result],
         phases: Union[numpy.ndarray, Dict[str, float]],
     ) -> None:
         """
