@@ -9,24 +9,19 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from abc import abstractmethod
 from typing import Optional, Union
 
 from qiskit.algorithms.quantum_time_evolution.evolution_base import EvolutionBase
 from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import (
     EvolutionGradientResult,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.imaginary_error_calculator import (
+from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors \
+    .imaginary_error_calculator import (
     ImaginaryErrorCalculator,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.imaginary_variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary \
+    .imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
-)
-from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.error_based_ode_function_generator import (
-    ErrorBasedOdeFunctionGenerator,
-)
-from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.ode_function_generator import (
-    OdeFunctionGenerator,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.var_qte_ode_solver import (
     VarQteOdeSolver,
@@ -46,12 +41,13 @@ from qiskit.utils import QuantumInstance
 
 class VarQite(VarQte, EvolutionBase):
     def __init__(
-        self,
-        variational_principle: ImaginaryVariationalPrinciple,
-        regularization: Optional[str] = None,
-        backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
-        error_based_ode: Optional[bool] = False,
-        epsilon: Optional[float] = 10e-6,
+            self,
+            variational_principle: ImaginaryVariationalPrinciple,
+            regularization: Optional[str] = None,
+            backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
+            error_based_ode: Optional[bool] = False,
+            optimizer: str = "COBYLA",
+            epsilon: Optional[float] = 10e-6,
     ):
         r"""
         Args:
@@ -66,6 +62,7 @@ class VarQite(VarQte, EvolutionBase):
             error_based_ode: If False use the provided variational principle to get the parameter
                                 updates.
                              If True use the argument that minimizes the error error_bounds.
+            optimizer: Optimizer used in case error_based_ode is true.
             epsilon: # TODO, not sure where this will be used.
         """
         super().__init__(
@@ -73,17 +70,18 @@ class VarQite(VarQte, EvolutionBase):
             regularization,
             backend,
             error_based_ode,
+            optimizer,
             epsilon,
         )
 
     def evolve(
-        self,
-        hamiltonian: OperatorBase,
-        time: float,
-        initial_state: OperatorBase = None,
-        observable: OperatorBase = None,
-        t_param=None,
-        hamiltonian_value_dict=None,
+            self,
+            hamiltonian: OperatorBase,
+            time: float,
+            initial_state: OperatorBase = None,
+            observable: OperatorBase = None,
+            t_param=None,
+            hamiltonian_value_dict=None,
     ) -> StateFn:
         """
         Apply Variational Quantum Imaginary Time Evolution (VarQITE) w.r.t. the given
@@ -132,7 +130,7 @@ class VarQite(VarQte, EvolutionBase):
         if not isinstance(self._operator[-1], CircuitStateFn):
             raise TypeError("Please provide the respective Ansatz as a CircuitStateFn.")
         elif not isinstance(self._operator, ComposedOp) and not all(
-            isinstance(op, CircuitStateFn) for op in self._operator.oplist
+                isinstance(op, CircuitStateFn) for op in self._operator.oplist
         ):
             raise TypeError(
                 "Please provide the operator either as ComposedOp or as ListOp of a "
@@ -152,30 +150,8 @@ class VarQite(VarQte, EvolutionBase):
             self._backend,
         )
 
-        # TODO potentially introduce a factory
-        if self._error_based_ode:
-            ode_function_generator = ErrorBasedOdeFunctionGenerator(
-                error_calculator,
-                init_state_param_dict,
-                self._variational_principle,
-                self._grad_circ_sampler,
-                self._metric_circ_sampler,
-                self._nat_grad_circ_sampler,
-                self._regularization,
-                self._backend,
-                t_param,
-            )
-        else:
-            ode_function_generator = OdeFunctionGenerator(
-                init_state_param_dict,
-                self._variational_principle,
-                self._grad_circ_sampler,
-                self._metric_circ_sampler,
-                self._nat_grad_circ_sampler,
-                self._regularization,
-                self._backend,
-                t_param,
-            )
+        ode_function_generator = self._create_ode_function_generator(error_calculator,
+                                                                     init_state_param_dict, t_param)
 
         ode_solver = VarQteOdeSolver(init_state_parameter_values, ode_function_generator)
         # Run ODE Solver
@@ -187,14 +163,14 @@ class VarQite(VarQte, EvolutionBase):
         return initial_state.assign_parameters(param_dict_from_ode)
 
     def gradient(
-        self,
-        hamiltonian: OperatorBase,
-        time: float,
-        initial_state: StateFn,
-        gradient_object: Gradient,
-        observable: OperatorBase = None,
-        t_param=None,
-        hamiltonian_value_dict=None,
-        gradient_params=None,
+            self,
+            hamiltonian: OperatorBase,
+            time: float,
+            initial_state: StateFn,
+            gradient_object: Gradient,
+            observable: OperatorBase = None,
+            t_param=None,
+            hamiltonian_value_dict=None,
+            gradient_params=None,
     ) -> EvolutionGradientResult:
         raise NotImplementedError()

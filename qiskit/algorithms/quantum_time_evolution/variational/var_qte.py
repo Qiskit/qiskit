@@ -19,6 +19,12 @@ import numpy as np
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
 )
+from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode \
+    .error_based_ode_function_generator import \
+    ErrorBasedOdeFunctionGenerator
+from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.ode_function_generator \
+    import \
+    OdeFunctionGenerator
 from qiskit.circuit import Parameter
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
@@ -33,12 +39,13 @@ class VarQte(ABC):
     """
 
     def __init__(
-        self,
-        variational_principle: VariationalPrinciple,
-        regularization: Optional[str] = None,
-        backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
-        error_based_ode: Optional[bool] = False,
-        epsilon: Optional[float] = 10e-6,
+            self,
+            variational_principle: VariationalPrinciple,
+            regularization: Optional[str] = None,
+            backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
+            error_based_ode: Optional[bool] = False,
+            optimizer: str = "COBYLA",
+            epsilon: Optional[float] = 10e-6,
     ):
         r"""
         Args:
@@ -53,6 +60,7 @@ class VarQte(ABC):
             error_based_ode: If False use the provided variational principle to get the parameter
                                 updates.
                              If True use the argument that minimizes the error error_bounds.
+            optimizer: Optimizer used in case error_based_ode is true.
             epsilon: # TODO, not sure where this will be used.
         """
         super().__init__()
@@ -66,6 +74,7 @@ class VarQte(ABC):
         self._init_samplers()
 
         self._error_based_ode = error_based_ode
+        self._optimizer = optimizer
 
         self._operator = None
         self._initial_state = None
@@ -116,3 +125,32 @@ class VarQte(ABC):
                     init_state_parameter_values.append(hamiltonian_value_dict[param])
         init_state_param_dict = dict(zip(init_state_parameters, init_state_parameter_values))
         return init_state_param_dict, init_state_parameter_values
+
+    def _create_ode_function_generator(self, error_calculator, init_state_param_dict, t_param):
+        # TODO potentially introduce a factory
+        if self._error_based_ode:
+            ode_function_generator = ErrorBasedOdeFunctionGenerator(
+                error_calculator,
+                init_state_param_dict,
+                self._variational_principle,
+                self._grad_circ_sampler,
+                self._metric_circ_sampler,
+                self._nat_grad_circ_sampler,
+                self._regularization,
+                self._backend,
+                t_param,
+                self._optimizer,
+            )
+        else:
+            ode_function_generator = OdeFunctionGenerator(
+                init_state_param_dict,
+                self._variational_principle,
+                self._grad_circ_sampler,
+                self._metric_circ_sampler,
+                self._nat_grad_circ_sampler,
+                self._regularization,
+                self._backend,
+                t_param,
+            )
+
+        return ode_function_generator

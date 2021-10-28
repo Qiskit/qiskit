@@ -14,13 +14,15 @@ from typing import Union, List, Dict, Optional, Iterable
 import numpy as np
 from scipy.optimize import minimize
 
-from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.error_calculator import (
+from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors\
+    .error_calculator import (
     ErrorCalculator,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
+from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode\
+    .abstract_ode_function_generator import (
     AbstractOdeFunctionGenerator,
 )
 from qiskit.circuit import Parameter
@@ -41,6 +43,7 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
         regularization: Optional[str] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
         t_param: Parameter = None,
+        optimizer: str = "COBYLA"
     ):
         super().__init__(
             param_dict,
@@ -53,6 +56,7 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
             t_param,
         )
         self._error_calculator = error_calculator
+        self._optimizer = optimizer
 
     def var_qte_ode_function(self, t: float, parameters_values: Iterable):
         current_param_dict = dict(zip(self._param_dict.keys(), parameters_values))
@@ -74,12 +78,10 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
             )[0]
 
             return et_squared
-
-        # return nat_grad_result
         # Use the natural gradient result as initial point for least squares solver
         # print('initial natural gradient result', nat_grad_result)
-        # TODO extract optimizer as an argument
-        argmin = minimize(fun=argmin_fun, x0=nat_grad_res, method="COBYLA", tol=1e-6)
+
+        argmin = minimize(fun=argmin_fun, x0=nat_grad_res, method=self._optimizer, tol=1e-6)
         # argmin = sp.optimize.least_squares(fun=argmin_fun, x0=nat_grad_result, ftol=1e-6)
 
         print("final dt_omega", np.real(argmin.x))

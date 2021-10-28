@@ -15,14 +15,13 @@ from qiskit.algorithms.quantum_time_evolution.evolution_base import EvolutionBas
 from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import (
     EvolutionGradientResult,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.real_error_calculator import (
+from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors\
+    .real_error_calculator import (
     RealErrorCalculator,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.principles.real.real_variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.principles.real\
+    .real_variational_principle import (
     RealVariationalPrinciple,
-)
-from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.ode_function_generator import (
-    OdeFunctionGenerator,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.var_qte_ode_solver import (
     VarQteOdeSolver,
@@ -47,6 +46,7 @@ class VarQrte(VarQte, EvolutionBase):
         regularization: Optional[str] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
         error_based_ode: Optional[bool] = False,
+        optimizer: str = "COBYLA",
         epsilon: Optional[float] = 10e-6,
     ):
         r"""
@@ -62,6 +62,7 @@ class VarQrte(VarQte, EvolutionBase):
             error_based_ode: If False use the provided variational principle to get the parameter
                                 updates.
                              If True use the argument that minimizes the error error_bounds.
+            optimizer: Optimizer used in case error_based_ode is true.
             epsilon: # TODO, not sure where this will be used.
         """
         super().__init__(
@@ -69,6 +70,7 @@ class VarQrte(VarQte, EvolutionBase):
             regularization,
             backend,
             error_based_ode,
+            optimizer,
             epsilon,
         )
 
@@ -138,18 +140,8 @@ class VarQrte(VarQte, EvolutionBase):
             init_state_param_dict,
         )
 
-        ode_function_generator = OdeFunctionGenerator(
-            error_calculator,
-            init_state_param_dict,
-            self._variational_principle,
-            self._grad_circ_sampler,
-            self._metric_circ_sampler,
-            self._nat_grad_circ_sampler,
-            self._regularization,
-            self._backend,
-            self._error_based_ode,
-            t_param,
-        )
+        ode_function_generator = self._create_ode_function_generator(error_calculator,
+                                                                     init_state_param_dict, t_param)
 
         ode_solver = VarQteOdeSolver(init_state_parameter_values, ode_function_generator)
         # Run ODE Solver
