@@ -4,4 +4,4 @@ features:
     A new pass :class:`qiskit.transpiler.passes.layout.vf2_layout.VF2Layout` is
     introduced. This pass models the layout allocation problem as a subgraph
     isomorphism problem. For this, it uses VF2, a state of the art heuristic to find
-    subgraphs. The pass works very much like :class:`qiskit.transpiler.passes.layout.csp_layout.CSPLayout`. 
+    subgraphs. The pass works very much like :class:`qiskit.transpiler.passes.CSPLayout`. 
