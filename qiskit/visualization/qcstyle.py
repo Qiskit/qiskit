@@ -286,8 +286,7 @@ def load_style(style):
         style_name = style
     elif not isinstance(style, (str, dict)):
         warn(
-            f"style parameter '{style}' must be a str or a dictionary."
-            " Will use default style.",
+            f"style parameter '{style}' must be a str or a dictionary. Will use default style.",
             UserWarning,
             2,
         )
