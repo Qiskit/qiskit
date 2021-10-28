@@ -97,7 +97,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         max_evals_grouped: int = 1,
         callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
         quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
-        sort_parameters_by_name: Optional[bool] = None,
     ) -> None:
         """
 
@@ -133,49 +132,30 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
                 These are: the evaluation count, the optimizer parameters for the
                 ansatz, the evaluated mean and the evaluated standard deviation.`
             quantum_instance: Quantum Instance or Backend
-            sort_parameters_by_name: Deprecated. If True, the initial point is bound to the ansatz
-                parameters strictly sorted by name instead of the default circuit order. That means
-                that the ansatz parameters are e.g. sorted as ``x[0] x[1] x[10] x[2] ...`` instead
-                of ``x[0] x[1] x[2] ... x[10]``. Set this to ``True`` to obtain the behavior prior
-                to Qiskit Terra 0.18.0.
+
         """
         validate_min("max_evals_grouped", max_evals_grouped, 1)
-
-        if sort_parameters_by_name is not None:
-            warnings.warn(
-                "The ``sort_parameters_by_name`` attribute is deprecated and will be "
-                "removed no sooner than 3 months after the release date of Qiskit Terra "
-                "0.18.0.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-
-        if ansatz is None:
-            ansatz = RealAmplitudes()
-
-        if optimizer is None:
-            optimizer = SLSQP()
-
-        if quantum_instance is not None:
-            if not isinstance(quantum_instance, QuantumInstance):
-                quantum_instance = QuantumInstance(quantum_instance)
 
         super().__init__()
 
         self._max_evals_grouped = max_evals_grouped
         self._circuit_sampler = None  # type: Optional[CircuitSampler]
-        self._expectation = expectation
+        self._expectation = None
+        self.expectation = expectation
         self._include_custom = include_custom
 
         # set ansatz -- still supporting pre 0.18.0 sorting
-        self._sort_parameters_by_name = sort_parameters_by_name
         self._ansatz_params = None
         self._ansatz = None
         self.ansatz = ansatz
 
-        self._optimizer = optimizer
-        self._initial_point = initial_point
-        self._gradient = gradient
+        self._optimizer = None
+        self.optimizer = optimizer
+
+        self._initial_point = None
+        self.initial_point = initial_point
+        self._gradient = None
+        self.gradient = gradient
         self._quantum_instance = None
 
         if quantum_instance is not None:
@@ -183,8 +163,8 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         self._eval_time = None
         self._eval_count = 0
-        self._optimizer.set_max_evals_grouped(max_evals_grouped)
-        self._callback = callback
+        self._callback = None
+        self.callback = callback
 
         logger.info(self.print_settings())
 
@@ -192,7 +172,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self._ret = None
 
     @property
-    def ansatz(self) -> Optional[QuantumCircuit]:
+    def ansatz(self) -> QuantumCircuit:
         """Returns the ansatz."""
         return self._ansatz
 
@@ -202,14 +182,14 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         Args:
             ansatz: The parameterized circuit used as an ansatz.
+            If None is passed, RealAmplitudes is used by default.
 
         """
+        if ansatz is None:
+            ansatz = RealAmplitudes()
+
         self._ansatz = ansatz
-        if ansatz is not None:
-            if self._sort_parameters_by_name:
-                self._ansatz_params = sorted(ansatz.parameters, key=lambda p: p.name)
-            else:
-                self._ansatz_params = list(ansatz.parameters)
+        self._ansatz_params = list(ansatz.parameters)
 
     @property
     def gradient(self) -> Optional[Union[GradientBase, Callable]]:
@@ -230,9 +210,10 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     def quantum_instance(
         self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]
     ) -> None:
-        """set quantum_instance"""
+        """Sets quantum_instance"""
         if not isinstance(quantum_instance, QuantumInstance):
             quantum_instance = QuantumInstance(quantum_instance)
+
         self._quantum_instance = quantum_instance
         self._circuit_sampler = CircuitSampler(
             quantum_instance, param_qobj=is_aer_provider(quantum_instance.backend)
@@ -247,6 +228,41 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     def initial_point(self, initial_point: np.ndarray):
         """Sets initial point"""
         self._initial_point = initial_point
+
+    @property
+    def max_evals_grouped(self) -> int:
+        """Returns max_evals_grouped"""
+        return self._max_evals_grouped
+
+    @max_evals_grouped.setter
+    def max_evals_grouped(self, max_evals_grouped: int):
+        """Sets max_evals_grouped"""
+        self._max_evals_grouped = max_evals_grouped
+        self.optimizer.set_max_evals_grouped(max_evals_grouped)
+
+    @property
+    def include_custom(self) -> bool:
+        """Returns include_custom"""
+        return self._include_custom
+
+    @include_custom.setter
+    def include_custom(self, include_custom: bool):
+        """Sets include_custom. If set to another value than the one that was previsously set,
+        the expectation attribute is reset to None.
+        """
+        if include_custom != self._include_custom:
+            self._include_custom = include_custom
+            self.expectation = None
+
+    @property
+    def callback(self) -> Optional[Callable[[int, np.ndarray, float, float], None]]:
+        """Returns callback"""
+        return self._callback
+
+    @callback.setter
+    def callback(self, callback: Optional[Callable[[int, np.ndarray, float, float], None]]):
+        """Sets callback"""
+        self._callback = callback
 
     @property
     def expectation(self) -> Optional[ExpectationBase]:
@@ -274,16 +290,23 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
                     ) from ex
 
     @property
-    def optimizer(self) -> Optional[Optimizer]:
+    def optimizer(self) -> Optimizer:
         """Returns optimizer"""
         return self._optimizer
 
     @optimizer.setter
-    def optimizer(self, optimizer: Optimizer):
-        """Sets optimizer"""
+    def optimizer(self, optimizer: Optional[Optimizer]):
+        """Sets the optimizer attribute.
+
+        Args:
+            optimizer: The optimizer to be used. If None is passed, SLSQP is used by default.
+
+        """
+        if optimizer is None:
+            optimizer = SLSQP()
+
+        optimizer.set_max_evals_grouped(self.max_evals_grouped)
         self._optimizer = optimizer
-        if optimizer is not None:
-            optimizer.set_max_evals_grouped(self._max_evals_grouped)
 
     @property
     def setting(self):
@@ -414,7 +437,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         aux_operators: ListOrDict[OperatorBase],
         expectation: ExpectationBase,
         threshold: float = 1e-12,
-    ) -> ListOrDict[complex]:
+    ) -> ListOrDict[Tuple[complex, complex]]:
         # Create new CircuitSampler to avoid breaking existing one's caches.
         sampler = CircuitSampler(self.quantum_instance)
 
@@ -425,10 +448,23 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         aux_op_meas = expectation.convert(StateFn(list_op, is_measurement=True))
         aux_op_expect = aux_op_meas.compose(CircuitStateFn(self.ansatz.bind_parameters(parameters)))
-        values = np.real(sampler.convert(aux_op_expect).eval())
+        aux_op_expect_sampled = sampler.convert(aux_op_expect)
+
+        # compute means
+        values = np.real(aux_op_expect_sampled.eval())
+
+        # compute standard deviations
+        variances = np.real(expectation.compute_variance(aux_op_expect_sampled))
+        if not isinstance(variances, np.ndarray) and variances == 0.0:
+            # when `variances` is a single value equal to 0., our expectation value is exact and we
+            # manually ensure the variances to be a list of the correct length
+            variances = np.zeros(len(aux_operators), dtype=float)
+        std_devs = np.sqrt(variances / self.quantum_instance.run_config.shots)
 
         # Discard values below threshold
-        aux_op_results = values * (np.abs(values) > threshold)
+        aux_op_means = values * (np.abs(values) > threshold)
+        # zip means and standard deviations into tuples
+        aux_op_results = zip(aux_op_means, std_devs)
 
         # Return None eigenvalues for None operators if aux_operators is a list.
         # None operators are already dropped in compute_minimum_eigenvalue if aux_operators is a dict.

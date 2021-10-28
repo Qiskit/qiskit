@@ -33,7 +33,7 @@ from qiskit.algorithms.optimizers import (
     SPSA,
     TNC,
 )
-from qiskit.circuit.library import EfficientSU2, TwoLocal
+from qiskit.circuit.library import EfficientSU2, RealAmplitudes, TwoLocal
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.opflow import (
     AerPauliExpectation,
@@ -160,14 +160,12 @@ class TestVQE(QiskitAlgorithmsTestCase):
     @unpack
     def test_max_evals_grouped(self, optimizer, places, max_evals_grouped):
         """VQE Optimizers test"""
-        with self.assertWarns(DeprecationWarning):
-            vqe = VQE(
-                ansatz=self.ryrz_wavefunction,
-                optimizer=optimizer,
-                max_evals_grouped=max_evals_grouped,
-                quantum_instance=self.statevector_simulator,
-                sort_parameters_by_name=True,
-            )
+        vqe = VQE(
+            ansatz=self.ryrz_wavefunction,
+            optimizer=optimizer,
+            max_evals_grouped=max_evals_grouped,
+            quantum_instance=self.statevector_simulator,
+        )
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=places)
 
@@ -473,6 +471,66 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
         self.assertEqual(callcount["count"], expected)
 
+    def test_set_ansatz_to_none(self):
+        """Tests that setting the ansatz to None results in the default behavior"""
+        vqe = VQE(
+            ansatz=self.ryrz_wavefunction,
+            optimizer=L_BFGS_B(),
+            quantum_instance=self.statevector_simulator,
+        )
+        vqe.ansatz = None
+        self.assertIsInstance(vqe.ansatz, RealAmplitudes)
+
+    def test_set_optimizer_to_none(self):
+        """Tests that setting the optimizer to None results in the default behavior"""
+        vqe = VQE(
+            ansatz=self.ryrz_wavefunction,
+            optimizer=L_BFGS_B(),
+            quantum_instance=self.statevector_simulator,
+        )
+        vqe.optimizer = None
+        self.assertIsInstance(vqe.optimizer, SLSQP)
+
+    def test_aux_operators_list(self):
+        """Test list-based aux_operators."""
+        wavefunction = self.ry_wavefunction
+        vqe = VQE(ansatz=wavefunction, quantum_instance=self.statevector_simulator)
+
+        # Start with an empty list
+        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=[])
+        self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
+        self.assertIsNone(result.aux_operator_eigenvalues)
+
+        # Go again with two auxiliary operators
+        aux_op1 = PauliSumOp.from_list([("II", 2.0)])
+        aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
+        aux_ops = [aux_op1, aux_op2]
+        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
+        self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
+        self.assertEqual(len(result.aux_operator_eigenvalues), 2)
+        # expectation values
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0, places=6)
+        # standard deviations
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1], 0.0)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][1], 0.0)
+
+        # Go again with additional None and zero operators
+        extra_ops = [*aux_ops, None, 0]
+        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=extra_ops)
+        self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
+        self.assertEqual(len(result.aux_operator_eigenvalues), 4)
+        # expectation values
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0, places=6)
+        self.assertEqual(result.aux_operator_eigenvalues[2][0], 0.0)
+        self.assertEqual(result.aux_operator_eigenvalues[3][0], 0.0)
+        # standard deviations
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1], 0.0)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][1], 0.0)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[2][1], 0.0)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[3][1], 0.0)
+
     def test_aux_operators_dict(self):
         """Test dictionary compatibility of aux_operators"""
         wavefunction = self.ry_wavefunction
@@ -490,17 +548,54 @@ class TestVQE(QiskitAlgorithmsTestCase):
         result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
         self.assertEqual(len(result.aux_operator_eigenvalues), 2)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op1"], 2, places=6)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op2"], 0, places=6)
+        # expectation values
+        self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op1"][0], 2, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op2"][0], 0, places=6)
+        # standard deviations
+        self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op1"][1], 0.0)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op2"][1], 0.0)
 
         # Go again with additional None and zero operators
         extra_ops = {**aux_ops, "None_operator": None, "zero_operator": 0}
         result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=extra_ops)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
         self.assertEqual(len(result.aux_operator_eigenvalues), 3)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op1"], 2, places=6)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op2"], 0, places=6)
-        self.assertEqual(result.aux_operator_eigenvalues["zero_operator"], 0.0)
+        # expectation values
+        self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op1"][0], 2, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op2"][0], 0, places=6)
+        self.assertEqual(result.aux_operator_eigenvalues["zero_operator"][0], 0.0)
+        self.assertTrue("None_operator" not in result.aux_operator_eigenvalues.keys())
+        # standard deviations
+        self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op1"][1], 0.0)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op2"][1], 0.0)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues["zero_operator"][1], 0.0)
+
+    def test_aux_operator_std_dev(self):
+        """Test actuall standard deviation of aux operators in non-zero case."""
+        wavefunction = self.ry_wavefunction
+        vqe = VQE(
+            ansatz=wavefunction,
+            optimizer=SPSA(maxiter=300, last_avg=5),
+            quantum_instance=self.qasm_simulator,
+        )
+
+        # Go again with two auxiliary operators
+        aux_op1 = PauliSumOp.from_list([("II", 2.0)])
+        aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
+        aux_ops = [aux_op1, aux_op2, None, 0]
+        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
+        self.assertAlmostEqual(result.eigenvalue.real, -1.8691994, places=6)
+        self.assertEqual(len(result.aux_operator_eigenvalues), 4)
+        # expectation values
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0.0019531, places=6)
+        self.assertEqual(result.aux_operator_eigenvalues[2][0], 0.0)
+        self.assertEqual(result.aux_operator_eigenvalues[3][0], 0.0)
+        # standard deviations
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1], 0.0)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][1], 0.0214711)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[2][1], 0.0)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[3][1], 0.0)
 
 
 if __name__ == "__main__":
