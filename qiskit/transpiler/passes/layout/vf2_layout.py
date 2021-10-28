@@ -77,14 +77,14 @@ class VF2Layout(AnalysisPass):
         im_graph.add_edges_from_no_data(interactions)
 
         mappings = vf2_mapping(cm_graph, im_graph, subgraph=True, id_order=False, induced=False)
-        for mapping in mappings:
+        try:
+            mapping = next(mappings)
             stop_reason = "solution found"
             layout = Layout({qubits[im_i]: cm_nodes[cm_i] for cm_i, im_i in mapping.items()})
             self.property_set["layout"] = layout
             for reg in dag.qregs.values():
                 self.property_set["layout"].add_register(reg)
-            break
-        else:
+        except StopIteration:
             stop_reason = "nonexistent solution"
 
         self.property_set["VF2Layout_stop_reason"] = stop_reason
