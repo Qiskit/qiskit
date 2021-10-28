@@ -19,7 +19,7 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitWeylDecomp
 from qiskit.transpiler.passes.optimization import Optimize1qGatesDecomposition
 
 from .circuits import apply_reflection, apply_shift, canonical_xx_circuit
-from .utilities import epsilon
+from .utilities import EPSILON
 from .polytopes import XXPolytope
 
 
@@ -29,13 +29,17 @@ def average_infidelity(p, q):
     coordinates.
     """
 
-    a, b, c = p
-    d, e, f = q
+    a0, b0, c0 = p
+    a1, b1, c1 = q
 
-    return 1 - 1 / 20 * (4 + 16 * (
-        math.cos(a - d) ** 2 * math.cos(b - e) ** 2 * math.cos(c - f) ** 2 +
-        math.sin(a - d) ** 2 * math.sin(b - e) ** 2 * math.sin(c - f) ** 2
-    ))
+    return 1 - 1 / 20 * (
+        4
+        + 16
+        * (
+            math.cos(a0 - a1) ** 2 * math.cos(b0 - b1) ** 2 * math.cos(c0 - c1) ** 2
+            + math.sin(a0 - a1) ** 2 * math.sin(b0 - b1) ** 2 * math.sin(c0 - c1) ** 2
+        )
+    )
 
 
 class MonodromyZXDecomposer:
@@ -57,13 +61,13 @@ class MonodromyZXDecomposer:
     """
 
     def __init__(
-            self,
-            euler_basis: str = "U3",
-            embodiments: Optional[dict] = None,
-            backup_optimizer: Optional[Callable] = None,
+        self,
+        euler_basis: str = "U3",
+        embodiments: Optional[dict] = None,
+        backup_optimizer: Optional[Callable] = None,
     ):
         self._decomposer1q = Optimize1qGatesDecomposition(ONE_QUBIT_EULER_BASIS_GATES[euler_basis])
-        self.gate = RZXGate(np.pi/2)
+        self.gate = RZXGate(np.pi / 2)
         self.embodiments = embodiments if embodiments is not None else {}
         self.backup_optimizer = backup_optimizer
 
@@ -101,7 +105,7 @@ class MonodromyZXDecomposer:
               mapping the available strengths to their (infidelity) costs, with the strengths
               themselves normalized so that pi/2 represents CX = RZX(pi/2).
         """
-        best_point, best_cost, best_sequence = [0, 0, 0], 1., []
+        best_point, best_cost, best_sequence = [0, 0, 0], 1.0, []
         priority_queue = []
         heapq.heappush(priority_queue, (0, []))
         canonical_coordinate = np.array(canonical_coordinate)
@@ -124,15 +128,10 @@ class MonodromyZXDecomposer:
             for strength, extra_cost in available_strengths.items():
                 if len(sequence) == 0 or strength <= sequence[-1]:
                     heapq.heappush(
-                        priority_queue,
-                        (sequence_cost + extra_cost, sequence + [strength])
+                        priority_queue, (sequence_cost + extra_cost, sequence + [strength])
                     )
 
-        return {
-            "point": best_point,
-            "cost": best_cost,
-            "sequence": best_sequence
-        }
+        return {"point": best_point, "cost": best_cost, "sequence": best_sequence}
 
     def num_basis_gates(self, unitary):
         """
@@ -145,7 +144,7 @@ class MonodromyZXDecomposer:
         # get the associated _positive_ canonical coordinate
         weyl_decomposition = TwoQubitWeylDecomposition(unitary)
         target = [getattr(weyl_decomposition, x) for x in ("a", "b", "c")]
-        if target[-1] < -epsilon:
+        if target[-1] < -EPSILON:
             target = [np.pi / 2 - target[0], target[1], -target[2]]
 
         best_sequence = self._best_decomposition(target, strengths)["sequence"]
@@ -180,7 +179,7 @@ class MonodromyZXDecomposer:
 
         raise TypeError("Unknown basis_fidelity payload.")
 
-    def __call__(self, u, basis_fidelity=None, approximate=True, chatty=False):
+    def __call__(self, unitary, basis_fidelity=None, approximate=True, chatty=False):
         """
         Fashions a circuit which (perhaps `approximate`ly) models the special unitary operation `u`,
         using the circuit templates supplied at initialization.  The routine uses `basis_fidelity`
@@ -193,16 +192,15 @@ class MonodromyZXDecomposer:
         )
 
         # get the associated _positive_ canonical coordinate
-        weyl_decomposition = TwoQubitWeylDecomposition(u)
+        weyl_decomposition = TwoQubitWeylDecomposition(unitary)
         target = [getattr(weyl_decomposition, x) for x in ("a", "b", "c")]
-        if target[-1] < -epsilon:
+        if target[-1] < -EPSILON:
             target = [np.pi / 2 - target[0], target[1], -target[2]]
 
         # scan for the best point
-        best_point, best_sequence = \
-            itemgetter("point", "sequence")(self._best_decomposition(
-                target, strength_to_infidelity
-            ))
+        best_point, best_sequence = itemgetter("point", "sequence")(
+            self._best_decomposition(target, strength_to_infidelity)
+        )
         # build the circuit building this canonical gate
         embodiments = {
             k: self.embodiments.get(k, self._default_embodiment(k))
@@ -210,12 +208,11 @@ class MonodromyZXDecomposer:
         }
         circuit = canonical_xx_circuit(best_point, best_sequence, embodiments)
 
-        if (best_sequence == [np.pi / 2, np.pi / 2, np.pi / 2]
-                and self.backup_optimizer is not None):
-            return self.backup_optimizer(u, basis_fidelity=basis_fidelity)
+        if best_sequence == [np.pi / 2, np.pi / 2, np.pi / 2] and self.backup_optimizer is not None:
+            return self.backup_optimizer(unitary, basis_fidelity=basis_fidelity)
 
         # change to positive canonical coordinates
-        if weyl_decomposition.c >= -epsilon:
+        if weyl_decomposition.c >= -EPSILON:
             # if they're the same...
             corrected_circuit = QuantumCircuit(2)
             corrected_circuit.rz(np.pi, [0])
@@ -225,12 +222,8 @@ class MonodromyZXDecomposer:
         else:
             # else they're in the "positive" scissors part...
             corrected_circuit = QuantumCircuit(2)
-            _, source_reflection, reflection_phase_shift = apply_reflection(
-                "reflect XX, ZZ", [0, 0, 0]
-            )
-            _, source_shift, shift_phase_shift = apply_shift(
-                "X shift", [0, 0, 0]
-            )
+            _, source_reflection, _ = apply_reflection("reflect XX, ZZ", [0, 0, 0])
+            _, source_shift, _ = apply_shift("X shift", [0, 0, 0])
 
             corrected_circuit.compose(source_reflection.inverse(), inplace=True)
             corrected_circuit.rz(np.pi, [0])

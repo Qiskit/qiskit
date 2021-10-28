@@ -14,57 +14,97 @@ Output:
 
 from functools import reduce
 import math
-import numpy as np
 from operator import itemgetter
+
+import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RXXGate, RYYGate, RZGate
 from qiskit.exceptions import QiskitError
 
 from .paths import decomposition_hop
-from .utilities import epsilon, safe_arccos
-from .weyl import apply_reflection, apply_shift, canonical_rotation_circuit, \
-    reflection_options, shift_options
+from .utilities import EPSILON, safe_arccos
+from .weyl import (
+    apply_reflection,
+    apply_shift,
+    canonical_rotation_circuit,
+    reflection_options,
+    shift_options,
+)
 
 
-def decompose_xxyy_into_xxyy_xx(a_target, b_target, a1, b1, a2):
+# pylint:disable=invalid-name
+def decompose_xxyy_into_xxyy_xx(a_target, b_target, a_source, b_source, interaction):
     """
     Consumes a target canonical interaction CAN(a_target, b_target) and source interactions
     CAN(a1, b1), CAN(a2), then manufactures a circuit identity of the form
 
-    CAN(a_target, b_target) = (Zr, Zs) CAN(a1, b1) (Zu, Zv) CAN(a2) (Zx, Zy).
+    CAN(a_target, b_target) = (Zr, Zs) CAN(a_source, b_source) (Zu, Zv) CAN(interaction) (Zx, Zy).
 
     Returns the 6-tuple (r, s, u, v, x, y).
     """
 
-    cplus, cminus = np.cos(a1 + b1), np.cos(a1 - b1)
-    splus, sminus = np.sin(a1 + b1), np.sin(a1 - b1)
-    ca, sa = np.cos(a2), np.sin(a2)
+    cplus, cminus = np.cos(a_source + b_source), np.cos(a_source - b_source)
+    splus, sminus = np.sin(a_source + b_source), np.sin(a_source - b_source)
+    ca, sa = np.cos(interaction), np.sin(interaction)
 
-    uplusv = 1 / 2 * safe_arccos(
-        cminus ** 2 * ca ** 2 + sminus ** 2 * sa ** 2 - np.cos(a_target - b_target) ** 2,
-        2 * cminus * ca * sminus * sa
+    uplusv = (
+        1
+        / 2
+        * safe_arccos(
+            cminus ** 2 * ca ** 2 + sminus ** 2 * sa ** 2 - np.cos(a_target - b_target) ** 2,
+            2 * cminus * ca * sminus * sa,
+        )
     )
-    uminusv = 1 / 2 * safe_arccos(
-        cplus ** 2 * ca ** 2 + splus ** 2 * sa ** 2 - np.cos(a_target + b_target) ** 2,
-        2 * cplus * ca * splus * sa
+    uminusv = (
+        1
+        / 2
+        * safe_arccos(
+            cplus ** 2 * ca ** 2 + splus ** 2 * sa ** 2 - np.cos(a_target + b_target) ** 2,
+            2 * cplus * ca * splus * sa,
+        )
     )
 
     u, v = (uplusv + uminusv) / 2, (uplusv - uminusv) / 2
 
     # NOTE: the target matrix is phase-free
-    middle_matrix = reduce(np.dot, [
-        RXXGate(2 * a1).to_matrix() @ RYYGate(2 * b1).to_matrix(),
-        np.kron(RZGate(2 * u).to_matrix(), RZGate(2 * v).to_matrix()),
-        RXXGate(2 * a2).to_matrix(),
-    ])
+    middle_matrix = reduce(
+        np.dot,
+        [
+            RXXGate(2 * a_source).to_matrix() @ RYYGate(2 * b_source).to_matrix(),
+            np.kron(RZGate(2 * u).to_matrix(), RZGate(2 * v).to_matrix()),
+            RXXGate(2 * interaction).to_matrix(),
+        ],
+    )
 
-    phase_solver = np.array([
-        [1 / 4,  1 / 4,  1 / 4,  1 / 4, ],
-        [1 / 4, -1 / 4, -1 / 4,  1 / 4, ],
-        [1 / 4,  1 / 4, -1 / 4, -1 / 4, ],
-        [1 / 4, -1 / 4,  1 / 4, -1 / 4, ],
-    ])
+    phase_solver = np.array(
+        [
+            [
+                1 / 4,
+                1 / 4,
+                1 / 4,
+                1 / 4,
+            ],
+            [
+                1 / 4,
+                -1 / 4,
+                -1 / 4,
+                1 / 4,
+            ],
+            [
+                1 / 4,
+                1 / 4,
+                -1 / 4,
+                -1 / 4,
+            ],
+            [
+                1 / 4,
+                -1 / 4,
+                1 / 4,
+                -1 / 4,
+            ],
+        ]
+    )
     inner_phases = [
         np.angle(middle_matrix[0, 0]),
         np.angle(middle_matrix[1, 1]),
@@ -74,13 +114,17 @@ def decompose_xxyy_into_xxyy_xx(a_target, b_target, a1, b1, a2):
     r, s, x, y = np.dot(phase_solver, inner_phases)
 
     # If there's a phase discrepancy, need to conjugate by an extra Z/2 (x) Z/2.
-    generated_matrix = reduce(np.dot, [
-        np.kron(RZGate(2 * r).to_matrix(), RZGate(2 * s).to_matrix()),
-        middle_matrix,
-        np.kron(RZGate(2 * x).to_matrix(), RZGate(2 * y).to_matrix()),
-    ])
-    if ((abs(np.angle(generated_matrix[3, 0]) - np.pi / 2) < 0.01 and a_target > b_target) or
-            (abs(np.angle(generated_matrix[3, 0]) + np.pi / 2) < 0.01 and a_target < b_target)):
+    generated_matrix = reduce(
+        np.dot,
+        [
+            np.kron(RZGate(2 * r).to_matrix(), RZGate(2 * s).to_matrix()),
+            middle_matrix,
+            np.kron(RZGate(2 * x).to_matrix(), RZGate(2 * y).to_matrix()),
+        ],
+    )
+    if (abs(np.angle(generated_matrix[3, 0]) - np.pi / 2) < 0.01 and a_target > b_target) or (
+        abs(np.angle(generated_matrix[3, 0]) + np.pi / 2) < 0.01 and a_target < b_target
+    ):
         x += np.pi / 4
         y += np.pi / 4
         r -= np.pi / 4
@@ -89,9 +133,7 @@ def decompose_xxyy_into_xxyy_xx(a_target, b_target, a1, b1, a2):
     return r, s, u, v, x, y
 
 
-def xx_circuit_step(
-        source, strength, target, embodiment
-):
+def xx_circuit_step(source, strength, target, embodiment):
     """
     Builds a single step in an XX-based circuit.
 
@@ -104,22 +146,23 @@ def xx_circuit_step(
     permute_source_for_overlap, permute_target_for_overlap = None, None
 
     # apply all possible reflections, shifts to the source
-    for source_reflection_name in reflection_options.keys():
-        reflected_source_coord, source_reflection, reflection_phase_shift = \
-            apply_reflection(source_reflection_name, source)
-        for source_shift_name in shift_options.keys():
-            shifted_source_coord, source_shift, shift_phase_shift = \
-                apply_shift(source_shift_name, reflected_source_coord)
+    for source_reflection_name in reflection_options:
+        reflected_source_coord, source_reflection, reflection_phase_shift = apply_reflection(
+            source_reflection_name, source
+        )
+        for source_shift_name in shift_options:
+            shifted_source_coord, source_shift, shift_phase_shift = apply_shift(
+                source_shift_name, reflected_source_coord
+            )
 
             # check for overlap, back out permutation
             source_shared, target_shared = None, None
-            for i, j in [(0, 0), (0, 1), (0, 2),
-                         (1, 0), (1, 1), (1, 2),
-                         (2, 0), (2, 1), (2, 2)]:
+            for i, j in [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2), (2, 0), (2, 1), (2, 2)]:
 
                 if (
-                        abs(np.mod(abs(shifted_source_coord[i] - target[j]), np.pi)) < epsilon or
-                        abs(np.mod(abs(shifted_source_coord[i] - target[j]), np.pi) - np.pi) < epsilon
+                    abs(np.mod(abs(shifted_source_coord[i] - target[j]), np.pi)) < EPSILON
+                    or abs(np.mod(abs(shifted_source_coord[i] - target[j]), np.pi) - np.pi)
+                    < EPSILON
                 ):
                     source_shared, target_shared = i, j
                     break
@@ -138,7 +181,7 @@ def xx_circuit_step(
                 float(shifted_source_coord[source_second]),
                 float(strength),
             )
-            if any([math.isnan(val) for val in (r, s, u, v, x, y)]):
+            if any(math.isnan(val) for val in (r, s, u, v, x, y)):
                 continue
 
             # OK: this combination of things works.
@@ -151,8 +194,10 @@ def xx_circuit_step(
             break
 
     if permute_source_for_overlap is None:
-        raise QiskitError(f"Error during RZX decomposition: Could not find a suitable Weyl "
-                          f"reflection to match {source} to {target} along {strength}.")
+        raise QiskitError(
+            f"Error during RZX decomposition: Could not find a suitable Weyl "
+            f"reflection to match {source} to {target} along {strength}."
+        )
 
     prefix_circuit, affix_circuit = QuantumCircuit(2), QuantumCircuit(2)
 
@@ -189,10 +234,7 @@ def xx_circuit_step(
     # finally, the other half of the p_t_f_o conjugation.
     affix_circuit += permute_target_for_overlap
 
-    return {
-        "prefix_circuit": prefix_circuit,
-        "affix_circuit": affix_circuit
-    }
+    return {"prefix_circuit": prefix_circuit, "affix_circuit": affix_circuit}
 
 
 def canonical_xx_circuit(target, strength_sequence, basis_embodiments):
@@ -207,23 +249,21 @@ def canonical_xx_circuit(target, strength_sequence, basis_embodiments):
         these gates.
     """
     # empty decompositions are easy!
-    if 0 == len(strength_sequence):
+    if len(strength_sequence) == 0:
         return QuantumCircuit(2)
 
     # assemble the prefix / affix circuits
     prefix_circuit, affix_circuit = QuantumCircuit(2), QuantumCircuit(2)
-    while 1 < len(strength_sequence):
+    while len(strength_sequence) > 1:
         source = decomposition_hop(target, strength_sequence)
         strength = strength_sequence[-1]
 
-        preceding_prefix_circuit, preceding_affix_circuit = \
-            itemgetter("prefix_circuit", "affix_circuit")(xx_circuit_step(
-                source, strength / 2, target, basis_embodiments[strength]
-            ))
+        preceding_prefix_circuit, preceding_affix_circuit = itemgetter(
+            "prefix_circuit", "affix_circuit"
+        )(xx_circuit_step(source, strength / 2, target, basis_embodiments[strength]))
 
         prefix_circuit.compose(preceding_prefix_circuit, inplace=True)
-        affix_circuit.compose(preceding_affix_circuit, inplace=True,
-                              front=True)
+        affix_circuit.compose(preceding_affix_circuit, inplace=True, front=True)
 
         target, strength_sequence = source, strength_sequence[:-1]
 

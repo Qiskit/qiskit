@@ -9,7 +9,7 @@ import warnings
 import numpy as np
 
 
-epsilon = 1e-6  # Fraction(1, 1_000_000)
+EPSILON = 1e-6  # Fraction(1, 1_000_000)
 
 
 # TODO: THIS IS A STOPGAP!!!
@@ -19,11 +19,9 @@ def safe_arccos(numerator, denominator):
     """
     threshold = 0.005
 
-    if abs(numerator) > abs(denominator) and \
-            abs(numerator - denominator) < threshold:
+    if abs(numerator) > abs(denominator) and abs(numerator - denominator) < threshold:
         return 0.0
-    elif abs(numerator) > abs(denominator) and \
-            abs(numerator + denominator) < threshold:
+    elif abs(numerator) > abs(denominator) and abs(numerator + denominator) < threshold:
         return np.pi
     else:
         with warnings.catch_warnings():

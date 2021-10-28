@@ -14,7 +14,7 @@ import numpy as np
 
 from qiskit.exceptions import QiskitError
 
-from .utilities import epsilon
+from .utilities import EPSILON
 
 
 @dataclass
@@ -49,14 +49,13 @@ def polytope_has_element(polytope, point):
     """
     Tests whether `polytope` contains `point.
     """
-    return (all([-epsilon <= inequality[0] +
-                 sum(x * y for x, y in
-                     zip(point, inequality[1:]))
-                 for inequality in polytope.inequalities]) and
-            all([abs(equality[0] + sum(x * y for x, y in
-                                       zip(point, equality[1:])))
-                 <= epsilon
-                 for equality in polytope.equalities]))
+    return all(
+        -EPSILON <= inequality[0] + sum(x * y for x, y in zip(point, inequality[1:]))
+        for inequality in polytope.inequalities
+    ) and all(
+        abs(equality[0] + sum(x * y for x, y in zip(point, equality[1:]))) <= EPSILON
+        for equality in polytope.equalities
+    )
 
 
 def manual_get_vertex(polytope):
@@ -74,16 +73,15 @@ def manual_get_vertex(polytope):
         raise TypeError(f"{type(polytope)} is not polytope-like.")
 
     for convex_subpolytope in paragraphs:
-        sentences = convex_subpolytope.inequalities + \
-                    convex_subpolytope.equalities
+        sentences = convex_subpolytope.inequalities + convex_subpolytope.equalities
         if len(sentences) == 0:
             continue
         dimension = len(sentences[0]) - 1
         for inequalities in combinations(sentences, dimension):
-            A = np.array([x[1:] for x in inequalities])
+            matrix = np.array([x[1:] for x in inequalities])
             b = np.array([x[0] for x in inequalities])
             try:
-                vertex = np.linalg.inv(-A) @ b
+                vertex = np.linalg.inv(-matrix) @ b
                 if polytope_has_element(convex_subpolytope, vertex):
                     return vertex
             except np.linalg.LinAlgError:
@@ -99,6 +97,7 @@ class XXPolytope:
 
     Strengths are normalized so that CX corresponds to pi / 4.
     """
+
     # NOTE: This is _not_ a subclass of PolytopeData, because we're never going to call slow,
     #       generic PolytopeData functions on it.
 
@@ -120,9 +119,7 @@ class XXPolytope:
                 place_strength = strength
 
         return XXPolytope(
-            total_strength=total_strength,
-            max_strength=max_strength,
-            place_strength=place_strength
+            total_strength=total_strength, max_strength=max_strength, place_strength=place_strength
         )
 
     def add_strength(self, new_strength: float = 0.0):
@@ -133,10 +130,12 @@ class XXPolytope:
             total_strength=self.total_strength + new_strength,
             max_strength=max(self.max_strength, new_strength),
             place_strength=(
-                new_strength if new_strength > self.place_strength else
-                self.max_strength if new_strength > self.max_strength else
-                self.place_strength
-            )
+                new_strength
+                if new_strength > self.place_strength
+                else self.max_strength
+                if new_strength > self.max_strength
+                else self.place_strength
+            ),
         )
 
     @property
@@ -144,33 +143,38 @@ class XXPolytope:
         """
         Returns b with A*x + b ≥ 0 iff x belongs to the XXPolytope.
         """
-        return np.array([
-            0, 0, 0, np.pi / 2,
-            self.total_strength,
-            self.total_strength - 2 * self.max_strength,
-            self.total_strength - self.max_strength - self.place_strength
-        ])
+        return np.array(
+            [
+                0,
+                0,
+                0,
+                np.pi / 2,
+                self.total_strength,
+                self.total_strength - 2 * self.max_strength,
+                self.total_strength - self.max_strength - self.place_strength,
+            ]
+        )
 
     def member(self, point):
         """
         Returns True when `point` is a member of `self`.
         """
-        global A
+        global A  # pylint:disable=global-statement
 
         reflected_point = point.copy().reshape(-1, 3)
-        rows = reflected_point[:, 0] >= np.pi / 4 + epsilon
+        rows = reflected_point[:, 0] >= np.pi / 4 + EPSILON
         reflected_point[rows, 0] = np.pi / 2 - reflected_point[rows, 0]
         reflected_point = reflected_point.reshape(point.shape)
 
-        return np.all(self._offsets +
-                      np.einsum('ij,...j->...i', A, reflected_point)
-                      >= -epsilon,
-                      axis=-1)
+        return np.all(
+            self._offsets + np.einsum("ij,...j->...i", A, reflected_point) >= -EPSILON, axis=-1
+        )
 
     def nearest(self, point):
         """
         Finds the nearest point (in Euclidean or infidelity distance) to `self`.
         """
+        # pylint:disable=invalid-name
 
         # NOTE: A CAS says that there are no degenerate double intersections, and the only
         #       degenerate triple intersections are
@@ -179,7 +183,7 @@ class XXPolytope:
         #
         #       Skipping this pair won't save much work, so we don't bother.
 
-        global A1, A1inv, A2, A2inv, A3, A3inv
+        global A1, A1inv, A2, A2inv, A3, A3inv  # pylint:disable=global-statement
         # These global variables contain projection matrices, computed once-and-for-all, which
         # produce the Euclidean-nearest projection.
 
@@ -188,10 +192,9 @@ class XXPolytope:
         elif isinstance(point, list):
             y0 = np.array(point)
         else:
-            raise TypeError(
-                f"Can't handle type of point: {point} ({type(point)})")
+            raise TypeError(f"Can't handle type of point: {point} ({type(point)})")
 
-        reflected_p = y0[0] > np.pi / 4 + epsilon
+        reflected_p = y0[0] > np.pi / 4 + EPSILON
         if reflected_p:
             y0[0] = np.pi / 2 - y0[0]
 
@@ -203,17 +206,17 @@ class XXPolytope:
 
         # codimension 1
         b1 = self._offsets.reshape(7, 1)
-        A1y0 = np.einsum('ijk,k->ij', A1, y0)
-        nearest1 = np.einsum('ijk,ik->ij', A1inv, b1 + A1y0) - y0
+        A1y0 = np.einsum("ijk,k->ij", A1, y0)
+        nearest1 = np.einsum("ijk,ik->ij", A1inv, b1 + A1y0) - y0
 
         # codimension 2
         b2 = np.array([*combinations(self._offsets, 2)])
-        A2y0 = np.einsum('ijk,k->ij', A2, y0)
-        nearest2 = np.einsum('ijk,ik->ij', A2inv, b2 + A2y0) - y0
+        A2y0 = np.einsum("ijk,k->ij", A2, y0)
+        nearest2 = np.einsum("ijk,ik->ij", A2inv, b2 + A2y0) - y0
 
         # codimension 3
         b3 = np.array([*combinations(self._offsets, 3)])
-        nearest3 = np.einsum('ijk,ik->ij', A3inv, b3)
+        nearest3 = np.einsum("ijk,ik->ij", A3inv, b3)
 
         # pick the nearest
         nearest = -np.concatenate([nearest1, nearest2, nearest3])
@@ -225,22 +228,22 @@ class XXPolytope:
         return nearest[smallest_index]
 
 
-A = np.array([
-    [ 1, -1,  0],  # a ≥ b
-    [ 0,  1, -1],  # b ≥ c
-    [ 0,  0,  1],  # c ≥ 0
-    [-1, -1,  0],  # pi/2 ≥ a + b
-    [-1, -1, -1],  # strength
-    [ 1, -1, -1],  # slant
-    [ 0,  0, -1],  # frustrum
-])
-A1 = A.reshape(-1, 1, 3)
+A = np.array(
+    [
+        [1, -1, 0],  # a ≥ b
+        [0, 1, -1],  # b ≥ c
+        [0, 0, 1],  # c ≥ 0
+        [-1, -1, 0],  # pi/2 ≥ a + b
+        [-1, -1, -1],  # strength
+        [1, -1, -1],  # slant
+        [0, 0, -1],  # frustrum
+    ]
+)
+A1 = A.reshape(-1, 1, 3)  # pylint:disable=too-many-function-args
 A1inv = np.linalg.pinv(A1)
-A2 = np.array([np.array([x, y], dtype=float)
-               for (x, y) in combinations(A, 2)])
+A2 = np.array([np.array([x, y], dtype=float) for (x, y) in combinations(A, 2)])
 A2inv = np.linalg.pinv(A2)
-A3 = np.array([np.array([x, y, z], dtype=float)
-              for (x, y, z) in combinations(A, 3)])
+A3 = np.array([np.array([x, y, z], dtype=float) for (x, y, z) in combinations(A, 3)])
 A3inv = np.linalg.pinv(A3)
 """
 These globals house matrices, computed once-and-for-all, which project onto the Euclidean-nearest

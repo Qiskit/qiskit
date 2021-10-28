@@ -26,7 +26,12 @@ from qiskit.quantum_info.synthesis import one_qubit_decompose
 from qiskit.quantum_info.synthesis.rzx_decompose import MonodromyZXDecomposer
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitBasisDecomposer
 from qiskit.circuit.library.standard_gates import (
-    iSwapGate, CXGate, CZGate, RXXGate, RZXGate, ECRGate
+    iSwapGate,
+    CXGate,
+    CZGate,
+    RXXGate,
+    RZXGate,
+    ECRGate,
 )
 from qiskit.transpiler.passes.synthesis import plugin
 from qiskit.providers.models import BackendProperties
@@ -81,15 +86,20 @@ def _choose_bases(basis_gates, basis_dict=None):
 
     return out_basis
 
+
 def _basis_gates_to_decomposer_2q(basis_gates, approximation_degree=1.0, pulse_optimize=None):
     kak_gate = _choose_kak_gate(basis_gates)
     euler_basis = _choose_euler_basis(basis_gates)
 
     if isinstance(kak_gate, RZXGate):
-        backup_optimizer = TwoQubitBasisDecomposer(CXGate(), euler_basis=euler_basis, pulse_optimize=pulse_optimize)
+        backup_optimizer = TwoQubitBasisDecomposer(
+            CXGate(), euler_basis=euler_basis, pulse_optimize=pulse_optimize
+        )
         return MonodromyZXDecomposer(euler_basis=euler_basis, backup_optimizer=backup_optimizer)
     elif kak_gate is not None:
-        return TwoQubitBasisDecomposer(kak_gate, euler_basis=euler_basis, pulse_optimize=pulse_optimize)
+        return TwoQubitBasisDecomposer(
+            kak_gate, euler_basis=euler_basis, pulse_optimize=pulse_optimize
+        )
     else:
         return None
 
@@ -328,15 +338,13 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
 
         euler_basis = _choose_euler_basis(basis_gates)
         kak_gate = _choose_kak_gate(basis_gates)
-        
+
         if euler_basis is not None:
             decomposer1q = one_qubit_decompose.OneQubitEulerDecomposer(euler_basis)
         else:
             decomposer1q = None
 
-        decomposer2q = _basis_gates_to_decomposer_2q(
-            basis_gates, pulse_optimize=pulse_optimize
-        )
+        decomposer2q = _basis_gates_to_decomposer_2q(basis_gates, pulse_optimize=pulse_optimize)
 
         synth_dag = None
         wires = None

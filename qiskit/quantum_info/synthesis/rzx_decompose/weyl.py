@@ -24,7 +24,7 @@ Entries take the form
 
 where reflection scalars (a, b, c) model the map (x, y, z) |-> (ax, by, cz),
 global phase is a complex unit, and gate constructors are applied in sequence
-and by conjugation to the first qubit and are passed pi as a parameter. 
+and by conjugation to the first qubit and are passed pi as a parameter.
 """
 
 shift_options = {
@@ -57,8 +57,9 @@ def apply_reflection(reflection_name, coordinate):
     Given a reflection type and a canonical coordinate, applies the reflection
     and describes a circuit which enacts the reflection + a global phase shift.
     """
-    reflection_scalars, reflection_phase_shift, source_reflection_gates = \
-        reflection_options[reflection_name]
+    reflection_scalars, reflection_phase_shift, source_reflection_gates = reflection_options[
+        reflection_name
+    ]
     reflected_coord = [x * y for x, y in zip(reflection_scalars, coordinate)]
     source_reflection = QuantumCircuit(2)
     for gate in source_reflection_gates:
@@ -73,10 +74,8 @@ def apply_shift(shift_name, coordinate):
     Given a shift type and a canonical coordinate, applies the shift and
     describes a circuit which enacts the shift + a global phase shift.
     """
-    shift_scalars, shift_phase_shift, source_shift_gates = \
-        shift_options[shift_name]
-    shifted_coord = [np.pi / 2 * x + y for x, y in
-                     zip(shift_scalars, coordinate)]
+    shift_scalars, shift_phase_shift, source_shift_gates = shift_options[shift_name]
+    shifted_coord = [np.pi / 2 * x + y for x, y in zip(shift_scalars, coordinate)]
 
     source_shift = QuantumCircuit(2)
     for gate in source_shift_gates:
