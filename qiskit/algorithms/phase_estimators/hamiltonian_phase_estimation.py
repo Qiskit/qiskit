@@ -27,6 +27,7 @@ from qiskit.opflow import (
 )
 from qiskit.providers import BaseBackend
 from .phase_estimation import PhaseEstimation
+from .phase_estimation_simulator import PhaseEstimationSimulator
 from .hamiltonian_phase_estimation_result import HamiltonianPhaseEstimationResult
 from .phase_estimation_scale import PhaseEstimationScale
 
@@ -89,6 +90,7 @@ class HamiltonianPhaseEstimation:
         self,
         num_evaluation_qubits: int,
         quantum_instance: Optional[Union[QuantumInstance, BaseBackend]] = None,
+        phase_estimator = PhaseEstimation,
     ) -> None:
         """
         Args:
@@ -96,7 +98,7 @@ class HamiltonianPhaseEstimation:
                 be estimated as a binary string with this many bits.
             quantum_instance: The quantum instance on which the circuit will be run.
         """
-        self._phase_estimation = PhaseEstimation(
+        self._phase_estimation = phase_estimator(
             num_evaluation_qubits=num_evaluation_qubits, quantum_instance=quantum_instance
         )
 
