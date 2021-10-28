@@ -27,9 +27,6 @@ class RemoveFinalMeasurements(TransformationPass):
     followed by no other operations (aside from other measurements or barriers.)
     """
 
-    def __init__(self, recurse=True):
-        self._recurse = recurse
-
     def _calc_final_ops(self, dag):
         final_op_types = {"measure", "barrier"}
         final_ops = []
@@ -89,11 +86,16 @@ class RemoveFinalMeasurements(TransformationPass):
         #   - it does not appear in a creg that is non-removable
         idle_wires = set(dag.idle_wires())
         cregs_to_remove = set()
+        clbits_to_remove = set()
         for creg in dag.cregs.values():
             clbits = set(creg)
             if not clbits.isdisjoint(clbits_with_final_measures) and clbits.issubset(idle_wires):
                 cregs_to_remove.add(creg)
+                clbits_to_remove.update(clbits)
+
+        registerless_clbits_to_remove = clbits_with_final_measures.intersection(idle_wires) - clbits_to_remove
 
         # Remove cregs from DAG
         dag.remove_cregs(*cregs_to_remove)
+        dag.remove_idle_clbits(*registerless_clbits_to_remove)
         return dag
