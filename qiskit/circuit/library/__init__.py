@@ -212,7 +212,7 @@ Particular Quantum Circuits
    GroverOperator
    PhaseOracle
    EvolvedOperatorAnsatz
-  PauliEvolutionGate
+   PauliEvolutionGate
 
 
 Probability distributions
