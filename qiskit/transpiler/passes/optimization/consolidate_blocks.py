@@ -116,25 +116,24 @@ class ConsolidateBlocks(TransformationPass):
                 ):
                     dag.replace_block_with_op(block, unitary, block_index_map)
         # If 1q runs are collected before consolidate those too
-        runs = self.property_set["run_list"]
-        if runs:
-            for run in runs:
-                if run[0] in all_block_gates:
+        runs = self.property_set["run_list"] or []
+        for run in runs:
+            if run[0] in all_block_gates:
+                continue
+            if len(run) == 1 and self.basis_gates and run[0].name not in self.basis_gates:
+                dag.substitute_node(run[0], UnitaryGate(run[0].op.to_matrix()))
+            else:
+                qubit = run[0].qargs[0]
+                operator = run[0].op.to_matrix()
+                already_in_block = False
+                for gate in run[1:]:
+                    if gate in all_block_gates:
+                        already_in_block = True
+                    operator = gate.op.to_matrix().dot(operator)
+                if already_in_block:
                     continue
-                if len(run) == 1 and self.basis_gates and run[0].name not in self.basis_gates:
-                    dag.substitute_node(run[0], UnitaryGate(run[0].op.to_matrix()))
-                else:
-                    qubit = run[0].qargs[0]
-                    operator = run[0].op.to_matrix()
-                    already_in_block = False
-                    for gate in run[1:]:
-                        if gate in all_block_gates:
-                            already_in_block = True
-                        operator = gate.op.to_matrix().dot(operator)
-                    if already_in_block:
-                        continue
-                    unitary = UnitaryGate(operator)
-                    dag.replace_block_with_op(run, unitary, {qubit: 0})
+                unitary = UnitaryGate(operator)
+                dag.replace_block_with_op(run, unitary, {qubit: 0})
         return dag
 
     def _block_qargs_to_indices(self, block_qargs, global_index_map):
