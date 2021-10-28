@@ -214,10 +214,10 @@ class TensoredReadoutMitigator(BaseReadoutMitigator):
         for qubit_idx, qubit_prop in enumerate(backend.properties().qubits):
             for prop in qubit_prop:
                 if prop.name == "prob_meas0_prep1":
-                    (amats[qubit_idx])[0, 0] = 1 - prop.value
                     (amats[qubit_idx])[0, 1] = prop.value
+                    (amats[qubit_idx])[1, 1] = 1 - prop.value
                 if prop.name == "prob_meas1_prep0":
                     (amats[qubit_idx])[1, 0] = prop.value
-                    (amats[qubit_idx])[1, 1] = 1 - prop.value
+                    (amats[qubit_idx])[0, 0] = 1 - prop.value
 
         return amats
