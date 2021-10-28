@@ -2,4 +2,4 @@
 fixes:
   - |
     Fixed small bug where the circuit drawer would ignore the matplotlib style
-    specified in `settings.conf`.
+    specified in ``settings.conf``.
