@@ -13,8 +13,8 @@
 from scipy.integrate import RK45, OdeSolver
 
 from qiskit import QiskitError
-from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.ode_function_generator import (
-    OdeFunctionGenerator,
+from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
+    AbstractOdeFunctionGenerator,
 )
 
 
@@ -22,7 +22,7 @@ class VarQteOdeSolver:
     def __init__(
         self,
         init_params,
-        ode_function_generator: OdeFunctionGenerator,
+        ode_function_generator: AbstractOdeFunctionGenerator,
         ode_solver_callable: OdeSolver = RK45,
     ):
         """
@@ -33,7 +33,6 @@ class VarQteOdeSolver:
             ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
         """
         self._init_params = init_params
-        self._ode_function_generator = ode_function_generator
         self._ode_function = ode_function_generator.var_qte_ode_function
         self._ode_solver_callable = ode_solver_callable
 

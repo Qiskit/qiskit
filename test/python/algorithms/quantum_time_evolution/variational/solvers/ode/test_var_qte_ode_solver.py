@@ -65,7 +65,6 @@ class TestVarQteOdeSolver(QiskitAlgorithmsTestCase):
         # Define a set of initial parameters
         parameters = ansatz.ordered_parameters
 
-        operator = ~StateFn(observable) @ StateFn(ansatz)
         init_param_values = np.zeros(len(ansatz.ordered_parameters))
         for i in range(ansatz.num_qubits):
             init_param_values[-(ansatz.num_qubits + i + 1)] = np.pi / 2
@@ -73,20 +72,6 @@ class TestVarQteOdeSolver(QiskitAlgorithmsTestCase):
         param_dict = dict(zip(parameters, init_param_values))
 
         backend = Aer.get_backend("statevector_simulator")
-        state = operator[-1]
-
-        h = operator.oplist[0].primitive * operator.oplist[0].coeff
-        h_squared = h ** 2
-        h_squared = ComposedOp([~StateFn(h_squared.reduce()), state])
-        h_squared = PauliExpectation().convert(h_squared)
-
-        error_calculator = ImaginaryErrorCalculator(
-            h_squared,
-            operator,
-            CircuitSampler(backend),
-            CircuitSampler(backend),
-            param_dict,
-        )
 
         var_principle = ImaginaryMcLachlanVariationalPrinciple()
         regularization = "ridge"
@@ -95,10 +80,8 @@ class TestVarQteOdeSolver(QiskitAlgorithmsTestCase):
         time = 1
 
         reg = "ridge"
-        error_based_ode = True
 
         ode_function_generator = OdeFunctionGenerator(
-            error_calculator,
             param_dict,
             var_principle,
             CircuitSampler(backend),
@@ -106,7 +89,6 @@ class TestVarQteOdeSolver(QiskitAlgorithmsTestCase):
             CircuitSampler(backend),
             reg,
             None,
-            error_based_ode,
         )
 
         var_qte_ode_solver = VarQteOdeSolver(

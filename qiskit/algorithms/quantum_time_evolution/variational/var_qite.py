@@ -22,6 +22,9 @@ from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.grad
 from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
 )
+from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.error_based_ode_function_generator import (
+    ErrorBasedOdeFunctionGenerator,
+)
 from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.ode_function_generator import (
     OdeFunctionGenerator,
 )
@@ -149,18 +152,30 @@ class VarQite(VarQte, EvolutionBase):
             self._backend,
         )
 
-        ode_function_generator = OdeFunctionGenerator(
-            error_calculator,
-            init_state_param_dict,
-            self._variational_principle,
-            self._grad_circ_sampler,
-            self._metric_circ_sampler,
-            self._nat_grad_circ_sampler,
-            self._regularization,
-            self._backend,
-            self._error_based_ode,
-            t_param,
-        )
+        # TODO potentially introduce a factory
+        if self._error_based_ode:
+            ode_function_generator = ErrorBasedOdeFunctionGenerator(
+                error_calculator,
+                init_state_param_dict,
+                self._variational_principle,
+                self._grad_circ_sampler,
+                self._metric_circ_sampler,
+                self._nat_grad_circ_sampler,
+                self._regularization,
+                self._backend,
+                t_param,
+            )
+        else:
+            ode_function_generator = OdeFunctionGenerator(
+                init_state_param_dict,
+                self._variational_principle,
+                self._grad_circ_sampler,
+                self._metric_circ_sampler,
+                self._nat_grad_circ_sampler,
+                self._regularization,
+                self._backend,
+                t_param,
+            )
 
         ode_solver = VarQteOdeSolver(init_state_parameter_values, ode_function_generator)
         # Run ODE Solver

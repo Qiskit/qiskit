@@ -20,8 +20,8 @@ from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.grad
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.solvers.var_qte_linear_solver import (
-    VarQteLinearSolver,
+from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
+    AbstractOdeFunctionGenerator,
 )
 from qiskit.circuit import Parameter
 from qiskit.opflow import CircuitSampler
@@ -29,7 +29,7 @@ from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
 
 
-class ErrorBaseOdeFunctionGenerator:
+class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
     def __init__(
         self,
         error_calculator: ErrorCalculator,
@@ -42,28 +42,21 @@ class ErrorBaseOdeFunctionGenerator:
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
         t_param: Parameter = None,
     ):
+        super().__init__(
+            param_dict,
+            variational_principle,
+            grad_circ_sampler,
+            metric_circ_sampler,
+            nat_grad_circ_sampler,
+            regularization,
+            backend,
+            t_param,
+        )
         self._error_calculator = error_calculator
-        self._param_dict = param_dict
-        self._variational_principle = variational_principle
-        self._regularization = regularization
-        self._backend = backend
-        self._grad_circ_sampler = grad_circ_sampler
-        self._metric_circ_sampler = metric_circ_sampler
-        self._nat_grad_circ_sampler = nat_grad_circ_sampler
-        self._linear_solver = VarQteLinearSolver(
-            self._grad_circ_sampler,
-            self._metric_circ_sampler,
-            self._nat_grad_circ_sampler,
-            self._regularization,
-            self._backend,
-        )
-        self._t_param = t_param
 
-    def error_based_ode_fun(self, t: float, parameters_values: Iterable):
+    def var_qte_ode_function(self, t: float, parameters_values: Iterable):
         current_param_dict = dict(zip(self._param_dict.keys(), parameters_values))
-        nat_grad_res = self._linear_solver._solve_sle(
-            self._variational_principle, current_param_dict, self._t_param, t
-        )
+        nat_grad_res = super().var_qte_ode_function(t, parameters_values)
         grad_res, metric_res = self._linear_solver._solve_sle_for_error_bounds(
             self._variational_principle, current_param_dict, self._t_param, t
         )
@@ -91,4 +84,4 @@ class ErrorBaseOdeFunctionGenerator:
 
         print("final dt_omega", np.real(argmin.x))
         # self._et = argmin_fun(argmin.x)
-        return argmin.x, grad_res, metric_res
+        return argmin.x
