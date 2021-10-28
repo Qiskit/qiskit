@@ -68,13 +68,8 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
         # for the purpose of the test we invoke lazy_init
         var_principle._lazy_init(observable, ansatz, param_dict, regularization)
 
-        nat_grad_res, grad_res, metric_res = linear_solver._solve_sle(var_principle, param_dict)
-        # print(nat_grad_res)
-        # print("nat_grad_res")
-        # print(grad_res)
-        # print("grad_res")
-        # print(metric_res)
-        # print("metric_res")
+        nat_grad_res = linear_solver._solve_sle(var_principle, param_dict)
+        grad_res, metric_res = linear_solver._solve_sle_for_error_bounds(var_principle, param_dict)
 
         # TODO verify all values below if correct
         expected_nat_grad_res = [

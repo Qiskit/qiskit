@@ -43,34 +43,54 @@ class VarQteLinearSolver:
         self,
         var_principle: VariationalPrinciple,
         param_dict: Dict[Parameter, Union[float, complex]],
+        t_param: Optional[Parameter] = None,
+        t: Optional[float] = None,
+    ) -> (Union[List, np.ndarray], Union[List, np.ndarray], np.ndarray):
+        """
+        Solve the system of linear equations underlying McLachlan's variational principle for the
+        calculation without error bounds.
+        Args:
+            var_principle: Variational Principle to be used.
+            param_dict: Dictionary which relates parameter values to the parameters in the Ansatz.
+            t_param: Time parameter in case of a time-dependent Hamiltonian.
+            t: Time value that will be bound to t_param.
+        Returns: dω/dt, 2Re⟨dψ(ω)/dω|H|ψ(ω) for VarQITE/ 2Im⟨dψ(ω)/dω|H|ψ(ω) for VarQRTE,
+                Fubini-Study Metric.
+        """
+
+        nat_grad_result = self._calc_nat_grad_result(param_dict, var_principle)
+        if t_param is not None:
+            time_dict = {t_param: t}
+            nat_grad_result = nat_grad_result.bind_parameters(time_dict)
+
+        return np.real(nat_grad_result)
+
+    def _solve_sle_for_error_bounds(
+        self,
+        var_principle: VariationalPrinciple,
+        param_dict: Dict[Parameter, Union[float, complex]],
         t_param: Parameter = None,
         t: float = None,
     ) -> (Union[List, np.ndarray], Union[List, np.ndarray], np.ndarray):
         """
-        Solve the system of linear equations underlying McLachlan's variational principle
+        Solve the system of linear equations underlying McLachlan's variational principle for the
+        calculation with error bounds.
         Args:
-            param_dict: Dictionary which relates parameter values to the parameters in the Ansatz
+            var_principle: Variational Principle to be used.
+            param_dict: Dictionary which relates parameter values to the parameters in the Ansatz.
+            t_param: Time parameter in case of a time-dependent Hamiltonian.
+            t: Time value that will be bound to t_param.
         Returns: dω/dt, 2Re⟨dψ(ω)/dω|H|ψ(ω) for VarQITE/ 2Im⟨dψ(ω)/dω|H|ψ(ω) for VarQRTE,
         Fubini-Study Metric.
         """
         metric_tensor = var_principle.metric_tensor
         evolution_grad = var_principle.evolution_grad
-        # print(param_dict)
-        # print(metric_tensor.assign_parameters(param_dict).to_matrix())
-        # print(evolution_grad.assign_parameters(param_dict).to_matrix())
-        #
-        # print("Metrix tensor")
-        # print(metric_tensor.assign_parameters(param_dict).eval())
-        # print("Evol grad")
-        # print(evolution_grad.assign_parameters(param_dict).eval())
 
         # bind time parameter for the current value of time from the ODE solver
 
-        nat_grad_result = self._calc_nat_grad_result(param_dict, var_principle)
         if t_param is not None:
             time_dict = {t_param: t}
             evolution_grad = evolution_grad.bind_parameters(time_dict)
-            nat_grad_result = nat_grad_result.bind_parameters({t_param: t})
         grad_res = self._eval_evolution_grad(evolution_grad, param_dict)
         metric_res = self._eval_metric_tensor(metric_tensor, param_dict)
 
@@ -82,7 +102,7 @@ class VarQteLinearSolver:
         # Check if numerical instabilities lead to a metric which is not positive semidefinite
         metric_res = self._check_and_fix_metric_psd(metric_res)
 
-        return np.real(nat_grad_result), grad_res, metric_res
+        return grad_res, metric_res
 
     def _calc_nat_grad_result(
         self,

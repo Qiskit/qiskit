@@ -89,7 +89,8 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
         regularization = "ridge"
         # for the purpose of the test we invoke lazy_init
         var_principle._lazy_init(observable, ansatz, param_dict, regularization)
-        ng_res, grad_res, metric_res = linear_solver._solve_sle(var_principle, param_dict)
+        ng_res = linear_solver._solve_sle(var_principle, param_dict)
+        grad_res, metric_res = linear_solver._solve_sle_for_error_bounds(var_principle, param_dict)
 
         eps_squared, dtdt_state, regrad2 = imaginary_error_calculator._calc_single_step_error(
             ng_res, grad_res, metric_res
@@ -149,8 +150,8 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
         regularization = "ridge"
         # for the purpose of the test we invoke lazy_init
         var_principle._lazy_init(observable, ansatz, param_dict, regularization)
-        ng_res, grad_res, metric_res = linear_solver._solve_sle(var_principle, param_dict)
-
+        ng_res = linear_solver._solve_sle(var_principle, param_dict)
+        grad_res, metric_res = linear_solver._solve_sle_for_error_bounds(var_principle, param_dict)
         eps_squared = imaginary_error_calculator._calc_single_step_error_gradient(
             ng_res, grad_res, metric_res
         )

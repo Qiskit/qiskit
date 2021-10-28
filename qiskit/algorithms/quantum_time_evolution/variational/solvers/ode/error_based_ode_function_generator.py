@@ -61,7 +61,10 @@ class ErrorBaseOdeFunctionGenerator:
 
     def error_based_ode_fun(self, t: float, parameters_values: Iterable):
         current_param_dict = dict(zip(self._param_dict.keys(), parameters_values))
-        nat_grad_res, grad_res, metric_res = self._linear_solver._solve_sle(
+        nat_grad_res = self._linear_solver._solve_sle(
+            self._variational_principle, current_param_dict, self._t_param, t
+        )
+        grad_res, metric_res = self._linear_solver._solve_sle_for_error_bounds(
             self._variational_principle, current_param_dict, self._t_param, t
         )
 
@@ -82,6 +85,7 @@ class ErrorBaseOdeFunctionGenerator:
         # return nat_grad_result
         # Use the natural gradient result as initial point for least squares solver
         # print('initial natural gradient result', nat_grad_result)
+        # TODO extract optimizer as an argument
         argmin = minimize(fun=argmin_fun, x0=nat_grad_res, method="COBYLA", tol=1e-6)
         # argmin = sp.optimize.least_squares(fun=argmin_fun, x0=nat_grad_result, ftol=1e-6)
 

@@ -75,9 +75,9 @@ class OdeFunctionGenerator:
                 self._backend,
                 self._t_param,
             )
-            nat_grad_res, _, _ = error_based_ode_fun_gen.error_based_ode_fun(t, parameters_values)
+            nat_grad_res = error_based_ode_fun_gen.error_based_ode_fun(t, parameters_values)
         else:
-            nat_grad_res, _, _ = self._linear_solver._solve_sle(
+            nat_grad_res = self._linear_solver._solve_sle(
                 self._variational_principle, current_param_dict, self._t_param, t
             )
 
