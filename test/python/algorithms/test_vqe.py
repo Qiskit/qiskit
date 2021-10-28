@@ -33,7 +33,7 @@ from qiskit.algorithms.optimizers import (
     SPSA,
     TNC,
 )
-from qiskit.circuit.library import EfficientSU2, TwoLocal
+from qiskit.circuit.library import EfficientSU2, RealAmplitudes, TwoLocal
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.opflow import (
     AerPauliExpectation,
@@ -160,14 +160,12 @@ class TestVQE(QiskitAlgorithmsTestCase):
     @unpack
     def test_max_evals_grouped(self, optimizer, places, max_evals_grouped):
         """VQE Optimizers test"""
-        with self.assertWarns(DeprecationWarning):
-            vqe = VQE(
-                ansatz=self.ryrz_wavefunction,
-                optimizer=optimizer,
-                max_evals_grouped=max_evals_grouped,
-                quantum_instance=self.statevector_simulator,
-                sort_parameters_by_name=True,
-            )
+        vqe = VQE(
+            ansatz=self.ryrz_wavefunction,
+            optimizer=optimizer,
+            max_evals_grouped=max_evals_grouped,
+            quantum_instance=self.statevector_simulator,
+        )
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=places)
 
@@ -472,6 +470,26 @@ class TestVQE(QiskitAlgorithmsTestCase):
         expected = 1 + 1 + 1 + 5 * 3 + 1 + 1
 
         self.assertEqual(callcount["count"], expected)
+
+    def test_set_ansatz_to_none(self):
+        """Tests that setting the ansatz to None results in the default behavior"""
+        vqe = VQE(
+            ansatz=self.ryrz_wavefunction,
+            optimizer=L_BFGS_B(),
+            quantum_instance=self.statevector_simulator,
+        )
+        vqe.ansatz = None
+        self.assertIsInstance(vqe.ansatz, RealAmplitudes)
+
+    def test_set_optimizer_to_none(self):
+        """Tests that setting the optimizer to None results in the default behavior"""
+        vqe = VQE(
+            ansatz=self.ryrz_wavefunction,
+            optimizer=L_BFGS_B(),
+            quantum_instance=self.statevector_simulator,
+        )
+        vqe.optimizer = None
+        self.assertIsInstance(vqe.optimizer, SLSQP)
 
     def test_aux_operators_list(self):
         """Test list-based aux_operators."""
