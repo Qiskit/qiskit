@@ -61,7 +61,7 @@ class VF2Layout(AnalysisPass):
             vf2_mapping = digraph_vf2_mapping
         else:
             cm_graph = self.coupling_map.graph.to_undirected()
-            im_graph = PyGraph()
+            im_graph = PyGraph(multigraph=False)
             vf2_mapping = graph_vf2_mapping
 
         cm_nodes = list(cm_graph.node_indexes())
