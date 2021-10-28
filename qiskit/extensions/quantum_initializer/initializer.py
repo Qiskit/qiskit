@@ -89,11 +89,9 @@ class Initialize(Instruction):
             if num_qubits == 0 or not num_qubits.is_integer():
                 raise QiskitError("Desired statevector length not a positive power of 2.")
 
-            # Check if normalize=True and params is a list, then normalize
-            if normalize is True and isinstance(params, list):
+            # Check if normalize=True then normalize
+            if normalize is True:
                 params = self._normalize_real_list(params)
-            elif normalize is True and not isinstance(params, list):
-                raise QiskitError("Can only normalize a list with this function.")
 
             # Check if probabilities (amplitudes squared) sum to 1
             if not math.isclose(sum(np.absolute(params) ** 2), 1.0, abs_tol=_EPS):
