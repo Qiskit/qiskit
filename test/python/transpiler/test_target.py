@@ -884,6 +884,10 @@ Instructions:
         inst_map.add("sx", 1, custom_sx)
         self.pulse_target.update_from_instruction_schedule_map(inst_map, {"sx": SXGate()})
         self.assertEqual(inst_map, self.pulse_target.instruction_schedule_map())
+        self.assertIsNone(self.pulse_target["sx"][(0,)].length)
+        self.assertIsNone(self.pulse_target["sx"][(0,)].error)
+        self.assertIsNone(self.pulse_target["sx"][(1,)].length)
+        self.assertIsNone(self.pulse_target["sx"][(1,)].error)
 
     def test_update_from_instruction_schedule_map_new_instruction_no_name_map(self):
         target = Target()
@@ -908,9 +912,28 @@ Instructions:
 
         inst_map.add("sx", 0, self.custom_sx_q0)
         inst_map.add("sx", 1, custom_sx)
-        self.pulse_target.update_from_instruction_schedule_map(inst_map, {"sx": SXGate()}, dt=1.0)
+        self.pulse_target.dt = 1.0
+        self.pulse_target.update_from_instruction_schedule_map(inst_map, {"sx": SXGate()})
         self.assertEqual(inst_map, self.pulse_target.instruction_schedule_map())
         self.assertEqual(self.pulse_target["sx"][(1,)].length, 1000.0)
+        self.assertIsNone(self.pulse_target["sx"][(1,)].error)
+        self.assertIsNone(self.pulse_target["sx"][(0,)].error)
+
+    def test_update_from_instruction_schedule_map_with_error_dict(self):
+        inst_map = InstructionScheduleMap()
+        with pulse.build(name="sx_q1") as custom_sx:
+            pulse.play(pulse.Constant(1000, 0.2), pulse.DriveChannel(1))
+
+        inst_map.add("sx", 0, self.custom_sx_q0)
+        inst_map.add("sx", 1, custom_sx)
+        self.pulse_target.dt = 1.0
+        error_dict = {"sx": {(1,): 1.0}}
+
+        self.pulse_target.update_from_instruction_schedule_map(
+            inst_map, {"sx": SXGate()}, error_dict=error_dict
+        )
+        self.assertEqual(self.pulse_target["sx"][(1,)].error, 1.0)
+        self.assertIsNone(self.pulse_target["sx"][(0,)].error)
 
 
 class TestInstructionProperties(QiskitTestCase):

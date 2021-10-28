@@ -156,9 +156,10 @@ class Target(Mapping):
         "_coupling_graph",
         "_instruction_durations",
         "_instruction_schedule_map",
+        "dt",
     )
 
-    def __init__(self, description=None, num_qubits=0):
+    def __init__(self, description=None, num_qubits=0, dt=None):
         """
         Create a new Target object
 
@@ -171,6 +172,7 @@ class Target(Mapping):
                 noiseless simulator that doesn't have constraints on the
                 instructions so the transpiler knows how many qubits are
                 available.
+            dt (float): The system time resolution of input signals in seconds
         """
         self.num_qubits = num_qubits
         # A mapping of gate name -> gate instance
@@ -179,6 +181,7 @@ class Target(Mapping):
         self._gate_map = {}
         # A mapping of qarg -> set(gate name)
         self._qarg_gate_map = defaultdict(set)
+        self.dt = dt
         self.description = description
         self._coupling_graph = None
         self._instruction_durations = None
@@ -274,7 +277,7 @@ class Target(Mapping):
         self._instruction_durations = None
         self._instruction_schedule_map = None
 
-    def update_from_instruction_schedule_map(self, inst_map, inst_name_map=None, dt=None):
+    def update_from_instruction_schedule_map(self, inst_map, inst_name_map=None, error_dict=None):
         """Update the target from an instruction schedule map.
 
         If the input instruction schedule map contains new instructions not in
@@ -285,13 +288,18 @@ class Target(Mapping):
             inst_map (InstructionScheduleMap): The instruction
             inst_name_map (dict): An optional dictionary that maps any
                 instruction name in ``inst_map`` to an instruction object
-            dt (float): An optional value for the timestep in seconds. If
-                specified the
-                :attr:`~qiskit.transpiler.InstructionProperties.length`
-                attribute for
-                the new or changed
-                :class:`~qiskit.transpiler.InstructionProperties` objects will
-                be updated from the duration of the schedule.
+            error_dict (dict): A dictionary of errors of the form::
+
+                {gate_name: {qarg: error}}
+
+            for example::
+
+                {'rx': {(0, ): 1.4e-4, (1, ): 1.2e-4}}
+
+            For each entry in the ``inst_map`` if ``error_dict`` is defined
+            a when updating the ``Target`` the error value will be pulled from
+            this dictionary. If one is not found in ``error_dict`` then
+            ``None`` will be used.
 
         Raises:
             ValueError: If ``inst_map`` contains new instructions and
@@ -304,22 +312,25 @@ class Target(Mapping):
             for qarg in inst_map.qubits_with_instruction(inst):
                 sched = inst_map.get(inst, qarg)
                 val = InstructionProperties(schedule=sched)
-                if isinstance(qarg, int):
-                    if inst in self._gate_map:
-                        if dt is not None:
-                            val.length = sched.duration * dt
+                try:
+                    qarg = tuple(qarg)
+                except TypeError:
+                    qarg = (qarg,)
+                if inst in self._gate_map:
+                    if self.dt is not None:
+                        val.length = sched.duration * self.dt
+                    else:
+                        val.length = None
+                    if error_dict is not None:
+                        error_inst = error_dict.get(inst)
+                        if error_inst:
+                            error = error_inst.get(qarg)
+                            val.error = error
                         else:
-                            val.length = getattr(self._gate_map[inst][(qarg,)], "length", None)
-                        val.error = getattr(self._gate_map[inst][(qarg,)], "error", None)
-                    out_props[(qarg,)] = val
-                else:
-                    if inst in self._gate_map:
-                        if dt is not None:
-                            val.length = sched.duration * dt
-                        else:
-                            val.length = getattr(self._gate_map[inst][qarg], "length", None)
-                        val.error = getattr(self._gate_map[inst][qarg], "error", None)
-                    out_props[qarg] = val
+                            val.error = None
+                    else:
+                        val.error = None
+                out_props[qarg] = val
             if inst not in self._gate_map:
                 if inst_name_map is not None:
                     self.add_instruction(inst_name_map[inst], out_props, name=inst)

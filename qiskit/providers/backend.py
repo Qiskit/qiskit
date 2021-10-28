@@ -410,20 +410,17 @@ class BackendV2(Backend, ABC):
         raise NotImplementedError
 
     @property
-    def dt(self) -> float:
+    def dt(self) -> Union[float, None]:
         """Return the system time resolution of input signals
 
         This is required to be implemented if the backend supports Pulse
         scheduling.
 
         Returns:
-            dt: The input signal timestep in seconds.
-
-        Raises:
-            NotImplementedError: if the backend doesn't support querying the
-                input signal timestep
+            dt: The input signal timestep in seconds. If the backend doesn't
+            define ``dt`` ``None`` will be returned
         """
-        raise NotImplementedError
+        return self.target.dt
 
     @property
     def dtm(self) -> float:
