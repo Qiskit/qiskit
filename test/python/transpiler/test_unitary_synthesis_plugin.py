@@ -178,11 +178,24 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
             self.DEFAULT_PLUGIN.run.assert_not_called()  # pylint: disable=no-member
         self.MOCK_PLUGINS["_controllable"].run.assert_called()
 
-    def test_min_max_qubits_are_respected(self):
+    def test_max_qubits_are_respected(self):
         """Test that the default handler gets used if the chosen plugin can't cope with a given
         unitary."""
-        self.MOCK_PLUGINS["_controllable"].min_qubits = np.inf
+        self.MOCK_PLUGINS["_controllable"].min_qubits = None
         self.MOCK_PLUGINS["_controllable"].max_qubits = 0
+        qc = QuantumCircuit(2)
+        qc.unitary(np.eye(4, dtype=np.complex128), [0, 1])
+        pm = PassManager([UnitarySynthesis(basis_gates=["u", "cx"], method="_controllable")])
+        with self.mock_default_run_method():
+            pm.run(qc)
+            self.DEFAULT_PLUGIN.run.assert_called()  # pylint: disable=no-member
+        self.MOCK_PLUGINS["_controllable"].run.assert_not_called()
+
+    def test_min_qubits_are_respected(self):
+        """Test that the default handler gets used if the chosen plugin can't cope with a given
+        unitary."""
+        self.MOCK_PLUGINS["_controllable"].min_qubits = 3
+        self.MOCK_PLUGINS["_controllable"].max_qubits = None
         qc = QuantumCircuit(2)
         qc.unitary(np.eye(4, dtype=np.complex128), [0, 1])
         pm = PassManager([UnitarySynthesis(basis_gates=["u", "cx"], method="_controllable")])
