@@ -87,7 +87,7 @@ def _choose_bases(basis_gates, basis_dict=None):
     return out_basis
 
 
-def _basis_gates_to_decomposer_2q(basis_gates, approximation_degree=1.0, pulse_optimize=None):
+def _basis_gates_to_decomposer_2q(basis_gates, pulse_optimize=None):
     kak_gate = _choose_kak_gate(basis_gates)
     euler_basis = _choose_euler_basis(basis_gates)
 
@@ -337,8 +337,6 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         qubits = options["coupling_map"][1]
 
         euler_basis = _choose_euler_basis(basis_gates)
-        kak_gate = _choose_kak_gate(basis_gates)
-
         if euler_basis is not None:
             decomposer1q = one_qubit_decompose.OneQubitEulerDecomposer(euler_basis)
         else:

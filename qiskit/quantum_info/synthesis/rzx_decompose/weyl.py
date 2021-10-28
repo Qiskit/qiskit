@@ -6,8 +6,8 @@ Simple circuit constructors for Weyl reflections.
 
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import RXGate, RYGate, RZGate
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.library.standard_gates import RXGate, RYGate, RZGate
 
 
 reflection_options = {

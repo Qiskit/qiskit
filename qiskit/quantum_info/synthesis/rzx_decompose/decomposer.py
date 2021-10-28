@@ -11,12 +11,14 @@ from typing import Callable, Optional
 
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import RZXGate
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.library.standard_gates import RZXGate
 from qiskit.extensions import UnitaryGate
 from qiskit.quantum_info.synthesis.one_qubit_decompose import ONE_QUBIT_EULER_BASIS_GATES
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitWeylDecomposition
-from qiskit.transpiler.passes.optimization import Optimize1qGatesDecomposition
+from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
+    Optimize1qGatesDecomposition,
+)
 
 from .circuits import apply_reflection, apply_shift, canonical_xx_circuit
 from .utilities import EPSILON
