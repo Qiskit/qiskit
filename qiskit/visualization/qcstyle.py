@@ -276,7 +276,7 @@ def load_style(style):
         if config:
             style = config.get("circuit_mpl_style", "default")
         else:
-            style = 'default'
+            style = "default"
 
     if style is False:
         style_name = "bw"
