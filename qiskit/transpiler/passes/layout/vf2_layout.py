@@ -57,7 +57,7 @@ class VF2Layout(AnalysisPass):
 
         if self.strict_direction:
             cm_graph = self.coupling_map.graph
-            im_graph = PyDiGraph()
+            im_graph = PyDiGraph(multigraph=False)
             vf2_mapping = digraph_vf2_mapping
         else:
             cm_graph = self.coupling_map.graph.to_undirected()
