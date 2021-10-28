@@ -114,7 +114,7 @@ class ConsolidateBlocks(TransformationPass):
                     or len(block) > max_2q_depth
                     or (self.basis_gates is not None and outside_basis)
                 ):
-                    dag.replace_block_with_op(block, unitary, block_index_map)
+                    dag.replace_block_with_op(block, unitary, block_index_map, cycle_check=False)
         # If 1q runs are collected before consolidate those too
         runs = self.property_set["run_list"] or []
         for run in runs:
@@ -133,7 +133,7 @@ class ConsolidateBlocks(TransformationPass):
                 if already_in_block:
                     continue
                 unitary = UnitaryGate(operator)
-                dag.replace_block_with_op(run, unitary, {qubit: 0})
+                dag.replace_block_with_op(run, unitary, {qubit: 0}, cycle_check=False)
         return dag
 
     def _block_qargs_to_indices(self, block_qargs, global_index_map):
