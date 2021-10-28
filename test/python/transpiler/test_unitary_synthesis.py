@@ -11,10 +11,8 @@
 # that they have been altered from the originals.
 
 """
-Tests for the UnitarySynthesis transpiler pass.
+Tests for the default UnitarySynthesis transpiler pass.
 """
-
-import unittest
 
 from ddt import ddt, data
 
