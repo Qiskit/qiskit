@@ -178,14 +178,27 @@ class UnitarySynthesis(TransformationPass):
         if not self._synth_gates:
             return dag
 
-        default_method = self.plugins.ext_plugins["default"].obj
         plugin_method = self.plugins.ext_plugins[self.method].obj
-        default_kwargs = {}
         plugin_kwargs = {}
         _gate_lengths = _gate_errors = None
         dag_bit_indices = {}
 
-        for method, kwargs in [(plugin_method, plugin_kwargs), (default_method, default_kwargs)]:
+        if self.method == "default":
+            # If the method is the default, we only need to evaluate one set of keyword arguments.
+            # To simplify later logic, and avoid cases where static analysis might complain that we
+            # haven't initialised the "default" handler, we rebind the names so they point to the
+            # same object as the chosen method.
+            default_method = plugin_method
+            default_kwargs = plugin_kwargs
+            method_list = [(plugin_method, plugin_kwargs)]
+        else:
+            # If the method is not the default, we still need to initialise the default plugin's
+            # keyword arguments in case we have to fall back on it during the actual run.
+            default_method = self.plugins.ext_plugins["default"].obj
+            default_kwargs = {}
+            method_list = [(plugin_method, plugin_kwargs), (default_method, default_kwargs)]
+
+        for method, kwargs in method_list:
             if method.supports_basis_gates:
                 kwargs["basis_gates"] = self._basis_gates
             if method.supports_coupling_map:
