@@ -21,10 +21,17 @@ from qiskit.dagcircuit import DAGOpNode
 class RemoveFinalMeasurements(TransformationPass):
     """Remove final measurements and barriers at the end of a circuit.
 
-    This pass removes final barriers and final measurements, as well as the
-    ClassicalRegisters they are connected to if the ClassicalRegister
-    is unused. Measurements and barriers are considered final if they are
+    This pass removes final barriers and final measurements, as well all
+    unused classical registers and bits they are connected to.
+    Measurements and barriers are considered final if they are
     followed by no other operations (aside from other measurements or barriers.)
+
+    Classical registers are removed iff they reference at least one bit
+    that has become unused by the circuit as a result of the operation, and all
+    of their other bits are also unused. Seperately, classical bits are removed
+    iff they have become unused by the circuit as a result of the operation,
+    or they appear in a removed classical register, but do not appear
+    in a classical register that will remain.
     """
 
     def _calc_final_ops(self, dag):
@@ -70,32 +77,31 @@ class RemoveFinalMeasurements(TransformationPass):
         if not final_ops:
             return dag
 
+        # remove final measure and barrier operations from DAG, keeping track
+        # of their clbits
         clbits_with_final_measures = set()
         for node in final_ops:
             for carg in node.cargs:
-                # Add the clbit that was attached to the measure we are removing
                 clbits_with_final_measures.add(carg)
             dag.remove_op_node(node)
 
-        # A creg is removable if all:
-        #   - it contains a final measure bit
-        #   - all of its bits are idle, including the final measure bit
-        #
-        # A bit is removable if all:
-        #   - it appears in a creg that is removable
-        #   - it does not appear in a creg that is non-removable
+        # ignore any non-idle clbits now that all final op nodes are removed
         idle_wires = set(dag.idle_wires())
+        clbits_with_final_measures -= idle_wires
+
+        # determine unused cregs resulting from the removal
         cregs_to_remove = set()
-        clbits_to_remove = set()
         for creg in dag.cregs.values():
             clbits = set(creg)
             if not clbits.isdisjoint(clbits_with_final_measures) and clbits.issubset(idle_wires):
                 cregs_to_remove.add(creg)
-                clbits_to_remove.update(clbits)
 
-        registerless_clbits_to_remove = clbits_with_final_measures.intersection(idle_wires) - clbits_to_remove
+        # remove cregs from DAG
+        removed_clbits = dag.remove_cregs(*cregs_to_remove)
 
-        # Remove cregs from DAG
-        dag.remove_cregs(*cregs_to_remove)
-        dag.remove_idle_clbits(*registerless_clbits_to_remove)
+        # remove any unused individual clbits
+        registerless_clbits_to_remove = clbits_with_final_measures - removed_clbits
+        if registerless_clbits_to_remove:
+            dag.remove_idle_clbits(*registerless_clbits_to_remove)
+
         return dag
