@@ -14,12 +14,16 @@
 """Tests for error mitigation routines."""
 
 import unittest
+import numpy as np
 from ddt import ddt, data, unpack
 from qiskit.test import QiskitTestCase
 from qiskit.result import Counts
 from test.python.mitigation.generate_data import test_data
 from qiskit.mitigation import CompleteReadoutMitigator
 from qiskit.mitigation import TensoredReadoutMitigator
+from qiskit.test.mock import FakeYorktown
+from qiskit.quantum_info.operators.predicates import matrix_equal
+
 
 @ddt
 class TestReadoutMitigation(QiskitTestCase):
@@ -123,5 +127,28 @@ class TestReadoutMitigation(QiskitTestCase):
                 mitigated_error = self.compare_results(counts_ideal_102, mitigated_probs_102)
                 self.assertTrue(mitigated_error < 0.001,
                                 "Mitigator {} did not correctly handle qubit order 1, 0, 2".format(mitigator))
+    def test_from_backend(self):
+        backend = FakeYorktown()
+        num_qubits = len(backend.properties().qubits)
+        rng = np.random.default_rng(42)
+        probs = rng.random((num_qubits, 2))
+        for qubit_idx, qubit_prop in enumerate(backend.properties().qubits):
+            for prop in qubit_prop:
+                if prop.name == "prob_meas1_prep0":
+                    prop.value = probs[qubit_idx][0]
+                if prop.name == "prob_meas0_prep1":
+                    prop.value = probs[qubit_idx][1]
+        TRM_from_backend = TensoredReadoutMitigator(backend=backend)
+
+        mats = []
+        for qubit_idx in range(num_qubits):
+            mat = np.array([[1-probs[qubit_idx][0], probs[qubit_idx][1]],
+                            [probs[qubit_idx][0], 1-probs[qubit_idx][1]]])
+            mats.append(mat)
+        TRM_from_matrices = TensoredReadoutMitigator(amats=mats)
+        self.assertTrue(matrix_equal(TRM_from_backend.assignment_matrix(), TRM_from_matrices.assignment_matrix()))
+
 if __name__ == "__main__":
-    unittest.main()
+    #unittest.main()
+    t = TestReadoutMitigation()
+    t.test_from_backend()
