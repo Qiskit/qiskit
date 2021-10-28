@@ -29,6 +29,18 @@ class EvolutionBase(ABC):
         t_param=None,
         hamiltonian_value_dict=None,
     ) -> EvolutionResult:
+        """
+        Args:
+            hamiltonian:
+                ⟨ψ(ω)|H|ψ(ω)〉
+                Operator used vor time evolution.
+            time: Total time of evolution.
+            initial_state: Quantum state to be evolved.
+            observable: Observable to be evolved.
+            t_param: Time parameter in case of a time-dependent Hamiltonian.
+            hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to
+                                    certain values, including the t_param.
+        """
         raise NotImplementedError()
 
     @abstractmethod

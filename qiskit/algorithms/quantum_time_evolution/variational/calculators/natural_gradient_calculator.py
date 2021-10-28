@@ -47,7 +47,7 @@ def calculate(
     qfi_method = variational_principle._qfi_method
 
     # TODO aux_meas_op need to go here for imag and real
-
+    # TODO consider calculating nat_grad in var principle like metric and evolution_grad
     # VarQRTE
     if isinstance(variational_principle, RealVariationalPrinciple):
         nat_grad = _calc_op_natural_gradient(

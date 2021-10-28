@@ -28,8 +28,9 @@ class VarQteOdeSolver:
         """
         Initialize ODE Solver
         Args:
-            t: Evolution time.
             init_params: Set of initial parameters for time 0.
+            ode_function_generator: Generator for a function that ODE will use.
+            ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
         """
         self._init_params = init_params
         self._ode_function_generator = ode_function_generator
@@ -39,6 +40,8 @@ class VarQteOdeSolver:
     def _run(self, evolution_time: float):
         """
         Find numerical solution with ODE Solver.
+        Args:
+            evolution_time: Evolution time.
         """
         ode_solver = self._ode_solver_callable(
             self._ode_function,

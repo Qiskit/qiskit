@@ -9,22 +9,12 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from abc import abstractmethod, ABC
-from typing import List, Optional, Union, Dict, Iterable, Tuple
+from abc import abstractmethod
+from typing import List, Union, Tuple
 import os
 import csv
-from pathlib import Path
 
 import numpy as np
-from scipy.integrate import OdeSolver, ode
-from scipy.optimize import minimize
-
-from qiskit.providers import BaseBackend
-from qiskit.utils import QuantumInstance
-from qiskit.circuit import ParameterExpression, ParameterVector
-from qiskit.opflow import StateFn, ListOp, CircuitSampler, ComposedOp, PauliExpectation
-from qiskit.opflow.gradients import CircuitQFI, CircuitGradient, Gradient, QFI, NaturalGradient
-from qiskit.quantum_info import state_fidelity
 
 
 class VarQteErrorCalculator:
@@ -52,9 +42,6 @@ class VarQteErrorCalculator:
         Args:
             data_dir: Directory where the snapshots were stored
             imag_reverse_bound: Compute the additional reverse bound (ignored if notVarQITE)
-            trunc_bound: Compute truncated bound - Only useful for ground state evaluation
-                        (ignored if not VarQITE)
-            H: Hamiltonian used for the reverse bound (ignored if not VarQITE)
         Returns: Error bounds for all accessed time points in the evolution
         """
         # Read data

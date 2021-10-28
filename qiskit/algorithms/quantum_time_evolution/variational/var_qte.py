@@ -42,26 +42,18 @@ class VarQte(ABC):
     ):
         r"""
         Args:
-            grad_method: The method used to compute the state gradient. Can be either
-                ``'param_shift'`` or ``'lin_comb'`` or ``'fin_diff'``.
-            qfi_method: The method used to compute the QFI. Can be either
-                ``'lin_comb_full'`` or ``'overlap_block_diag'`` or ``'overlap_diag'``.
+            variational_principle: Variational Principle to be used.
             regularization: Use the following regularization with a least square method to solve the
                 underlying system of linear equations
                 Can be either None or ``'ridge'`` or ``'lasso'`` or ``'perturb_diag'``
                 ``'ridge'`` and ``'lasso'`` use an automatic optimal parameter search
                 If regularization is None but the metric is ill-conditioned or singular then
                 a least square solver is used without regularization
-            parameters: Parameter objects for the parameters to be used for the time propagation
-            init_parameter_values: Initial values for the parameters used for the time propagation
-            ode_solver: ODE Solver for y'=f(t,y) with parameters - f(callable), jac(callable): df/dy
-                        f to be given as dummy
             backend: Backend used to evaluate the quantum circuit outputs
-            snapshot_dir: Directory in to which to store cvs file with parameters,
-                if None (default) then no cvs file is created.
-            error_based_ode: If False use McLachlan to get the parameter updates
-                             If True use the argument that minimizes the error error_bounds
-            kwargs (dict): Optional parameters for a CircuitGradient
+            error_based_ode: If False use the provided variational principle to get the parameter
+                                updates.
+                             If True use the argument that minimizes the error error_bounds.
+            epsilon: # TODO, not sure where this will be used.
         """
         super().__init__()
         self._variational_principle = variational_principle
@@ -102,7 +94,7 @@ class VarQte(ABC):
 
     def _init_grad_objects(self) -> None:
         """
-        Initialize the gradient objects needed to perform VarQTE
+        Initialize the gradient objects needed to perform VarQTE.
         """
         self._h = self._operator.oplist[0].primitive * self._operator.oplist[0].coeff
         self._h_squared = self._h_pow(2)

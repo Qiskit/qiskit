@@ -30,6 +30,13 @@ class VariationalPrinciple(ABC):
         grad_method: Union[str, CircuitGradient] = "lin_comb",
         is_error_supported: Optional[bool] = False,
     ):
+        """
+        Args:
+            grad_method: The method used to compute the state gradient. Can be either
+                        ``'param_shift'`` or ``'lin_comb'`` or ``'fin_diff'``.
+            qfi_method: The method used to compute the QFI. Can be either
+                ``'lin_comb_full'`` or ``'overlap_block_diag'`` or ``'overlap_diag'``.
+        """
         self._qfi_method = qfi_method
         self._grad_method = grad_method
         self._is_error_supported = is_error_supported
@@ -47,17 +54,12 @@ class VariationalPrinciple(ABC):
         self._operator = ~StateFn(hamiltonian) @ StateFn(ansatz)
         self._operator = self._operator / self._operator.coeff  # Remove the time from the operator
         raw_metric_tensor = self._get_raw_metric_tensor(ansatz, param_dict)
-        # print("Raw metric tensor")
-        # print(raw_metric_tensor.assign_parameters(param_dict).eval())
 
         raw_evolution_grad = self._get_raw_evolution_grad(hamiltonian, ansatz, param_dict)
-        # print("Raw evolution grad")
-        # print(raw_evolution_grad.assign_parameters(param_dict).eval())
 
-        # TODO this should only be calculated if error bounds indicated
         self._metric_tensor = self._calc_metric_tensor(raw_metric_tensor, param_dict)
         self._evolution_grad = self._calc_evolution_grad(raw_evolution_grad, param_dict)
-        # TODO end
+
         self._nat_grad = self._calc_nat_grad(self._operator, param_dict, regularization)
 
     @abstractmethod

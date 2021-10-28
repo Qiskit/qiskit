@@ -50,6 +50,21 @@ class VarQite(VarQte, EvolutionBase):
         error_based_ode: Optional[bool] = False,
         epsilon: Optional[float] = 10e-6,
     ):
+        r"""
+        Args:
+            variational_principle: Variational Principle to be used.
+            regularization: Use the following regularization with a least square method to solve the
+                underlying system of linear equations
+                Can be either None or ``'ridge'`` or ``'lasso'`` or ``'perturb_diag'``
+                ``'ridge'`` and ``'lasso'`` use an automatic optimal parameter search
+                If regularization is None but the metric is ill-conditioned or singular then
+                a least square solver is used without regularization
+            backend: Backend used to evaluate the quantum circuit outputs
+            error_based_ode: If False use the provided variational principle to get the parameter
+                                updates.
+                             If True use the argument that minimizes the error error_bounds.
+            epsilon: # TODO, not sure where this will be used.
+        """
         super().__init__(
             variational_principle,
             regularization,
@@ -71,7 +86,7 @@ class VarQite(VarQte, EvolutionBase):
         Apply Variational Quantum Imaginary Time Evolution (VarQITE) w.r.t. the given
         operator
         Args:
-            operator:
+            hamiltonian:
                 ⟨ψ(ω)|H|ψ(ω)〉
                 Operator used vor Variational Quantum Imaginary Time Evolution (VarQITE)
                 The coefficient of the operator (operator.coeff) determines the evolution
@@ -80,6 +95,12 @@ class VarQite(VarQte, EvolutionBase):
                 observable and a CircuitStateFn or a ListOp of a CircuitStateFn with a
                 ComboFn.
                 The latter case enables the evaluation of a Quantum Natural Gradient.
+            time: Total time of evolution.
+            initial_state: Quantum state to be evolved.
+            observable: Observable to be evolved. Not supported by VarQite.
+            t_param: Time parameter in case of a time-dependent Hamiltonian.
+            hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to
+                                    certain values, including the t_param.
         Returns:
             StateFn (parameters are bound) which represents an approximation to the
             respective

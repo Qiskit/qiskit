@@ -24,8 +24,10 @@ def _calculate_bures_distance(
     """
     Find the Bures metric between two normalized pure states
     Args:
-        state1: Target state
-        state2: Trained state with potential phase mismatch
+        state1: Target state.
+        state2: Trained state with potential phase mismatch.
+        optimizer: Optimizer used fpr calculating Bures distance.
+        tolerance: Numerical tolerance for the optimizer.
     Returns:
         global phase agnostic l2 norm value
     """

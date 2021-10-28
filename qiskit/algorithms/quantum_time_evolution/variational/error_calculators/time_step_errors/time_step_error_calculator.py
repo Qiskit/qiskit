@@ -29,7 +29,6 @@ def _calculate_error_term(
     Compute the error term for a given time step and a point in the simulation time
     Args:
         d_t: time step
-        j: jth step in VarQITE
     Returns: eps_j(delta_t)
     """
     if eps_t < 0:

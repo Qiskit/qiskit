@@ -9,7 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from typing import Union, Dict, Iterable
+from typing import Union, Dict, Iterable, Optional
 
 import numpy as np
 from qiskit.circuit import Parameter
@@ -21,15 +21,17 @@ def _calculate_distance_energy(
     state,
     h_matrix,
     param_dict: Dict[Parameter, Union[float, complex]],
-    state_circ_sampler: CircuitSampler = None,
+    state_circ_sampler: Optional[CircuitSampler] = None,
 ) -> float:
     """
     Evaluate the fidelity to the target state, the energy w.r.t. the target state and
     the energy w.r.t. the trained state for a given time and the current parameter set
     Args:
-        time: current evolution time
-        param_dict: dictionary which matches the operator parameters to the current
-        values of parameters for the given time
+        state: Trained state.
+        h_matrix: Hamiltonian matrix.
+        param_dict: Dictionary which matches the operator parameters to the current
+        values of parameters for the given time.
+        state_circ_sampler: Optional sampler for the state.
     Returns: fidelity to the target state, the energy w.r.t. the target state and
     the energy w.r.t. the trained state
     """
