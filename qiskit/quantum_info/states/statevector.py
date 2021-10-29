@@ -488,7 +488,7 @@ class Statevector(QuantumState, TolerancesMixin):
         if isinstance(oper, SparsePauliOp):
             return sum(
                 coeff * self._expectation_value_pauli(Pauli((z, x)), qargs)
-                for z, x, coeff in zip(oper.table.Z, oper.table.X, oper.coeffs)
+                for z, x, coeff in zip(oper.paulis.z, oper.paulis.x, oper.coeffs)
             )
 
         val = self.evolve(oper, qargs=qargs)
