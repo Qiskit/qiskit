@@ -55,21 +55,21 @@ class TestSparsePauliOpInit(QiskitTestCase):
         table = PauliTable.from_labels(labels)
         with self.subTest(msg="no coeffs"):
             spp_op = SparsePauliOp(table)
-            self.assertTrue(np.array_equal(spp_op.coeffs, np.ones(len(labels))))
+            np.testing.assert_array_equal(spp_op.coeffs, np.ones(len(labels)))
             self.assertEqual(spp_op.table, table)
         with self.subTest(msg="no coeffs"):
             coeffs = [1, 2, 3, 4]
             spp_op = SparsePauliOp(table, coeffs)
-            self.assertTrue(np.array_equal(spp_op.coeffs, coeffs))
+            np.testing.assert_array_equal(spp_op.coeffs, coeffs)
             self.assertEqual(spp_op.table, table)
 
     def test_str_init(self):
-        """Test PauliTable initialization."""
+        """Test str initialization."""
         for label in ["IZ", "XI", "YX", "ZZ"]:
-            table = PauliTable(label)
+            pauli_list = PauliList(label)
             spp_op = SparsePauliOp(label)
-            self.assertEqual(spp_op.table, table)
-            self.assertTrue(np.array_equal(spp_op.coeffs, [1]))
+            self.assertEqual(spp_op.paulis, pauli_list)
+            np.testing.assert_array_equal(spp_op.coeffs, [1])
 
     def test_pauli_list_init(self):
         """Test PauliList initialization."""
@@ -149,40 +149,40 @@ class TestSparsePauliOpConversions(QiskitTestCase):
             label = "".join(tup)
             with self.subTest(msg=label):
                 spp_op = SparsePauliOp.from_operator(Operator(pauli_mat(label)))
-                self.assertTrue(np.array_equal(spp_op.coeffs, [1]))
-                self.assertEqual(spp_op.table, PauliTable(label))
+                np.testing.assert_array_equal(spp_op.coeffs, [1])
+                self.assertEqual(spp_op.paulis, PauliList(label))
 
     def test_from_list(self):
         """Test from_list method."""
         labels = ["XXZ", "IXI", "YZZ", "III"]
         coeffs = [3.0, 5.5, -1j, 23.3333]
         spp_op = SparsePauliOp.from_list(list(zip(labels, coeffs)))
-        self.assertTrue(np.array_equal(spp_op.coeffs, coeffs))
-        self.assertEqual(spp_op.table, PauliTable.from_labels(labels))
+        np.testing.assert_array_equal(spp_op.coeffs, coeffs)
+        self.assertEqual(spp_op.paulis, PauliList(labels))
 
     def test_from_zip(self):
         """Test from_list method for zipped input."""
         labels = ["XXZ", "IXI", "YZZ", "III"]
         coeffs = [3.0, 5.5, -1j, 23.3333]
         spp_op = SparsePauliOp.from_list(zip(labels, coeffs))
-        self.assertTrue(np.array_equal(spp_op.coeffs, coeffs))
-        self.assertEqual(spp_op.table, PauliTable.from_labels(labels))
+        np.testing.assert_array_equal(spp_op.coeffs, coeffs)
+        self.assertEqual(spp_op.paulis, PauliList(labels))
 
     def to_matrix(self):
         """Test to_matrix method."""
         labels = ["XI", "YZ", "YY", "ZZ"]
         coeffs = [-3, 4.4j, 0.2 - 0.1j, 66.12]
-        spp_op = SparsePauliOp(PauliTable.from_labels(labels), coeffs)
+        spp_op = SparsePauliOp(labels, coeffs)
         target = np.zeros((4, 4), dtype=complex)
         for coeff, label in zip(coeffs, labels):
             target += coeff * pauli_mat(label)
-        self.assertTrue(np.array_equal(spp_op.to_matrix(), target))
+        np.testing.assert_array_equal(spp_op.to_matrix(), target)
 
     def to_operator(self):
         """Test to_operator method."""
         labels = ["XI", "YZ", "YY", "ZZ"]
         coeffs = [-3, 4.4j, 0.2 - 0.1j, 66.12]
-        spp_op = SparsePauliOp(PauliTable.from_labels(labels), coeffs)
+        spp_op = SparsePauliOp(labels, coeffs)
         target = Operator(np.zeros((4, 4), dtype=complex))
         for coeff, label in zip(coeffs, labels):
             target = target + Operator(coeff * pauli_mat(label))
@@ -192,7 +192,7 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         """Test to_operator method."""
         labels = ["XI", "YZ", "YY", "ZZ"]
         coeffs = [-3, 4.4j, 0.2 - 0.1j, 66.12]
-        op = SparsePauliOp(PauliTable.from_labels(labels), coeffs)
+        op = SparsePauliOp(labels, coeffs)
         target = list(zip(labels, coeffs))
         self.assertEqual(op.to_list(), target)
 
@@ -204,46 +204,41 @@ class TestSparsePauliOpIteration(QiskitTestCase):
         """Test enumerate with SparsePauliOp."""
         labels = ["III", "IXI", "IYY", "YIZ", "XYZ", "III"]
         coeffs = np.array([1, 2, 3, 4, 5, 6])
-        table = PauliTable.from_labels(labels)
-        op = SparsePauliOp(table, coeffs)
+        op = SparsePauliOp(labels, coeffs)
         for idx, i in enumerate(op):
             self.assertEqual(i, SparsePauliOp(labels[idx], coeffs[[idx]]))
 
     def test_iter(self):
-        """Test iter with PauliTable."""
+        """Test iter with SparsePauliOp."""
         labels = ["III", "IXI", "IYY", "YIZ", "XYZ", "III"]
         coeffs = np.array([1, 2, 3, 4, 5, 6])
-        table = PauliTable.from_labels(labels)
-        op = SparsePauliOp(table, coeffs)
+        op = SparsePauliOp(labels, coeffs)
         for idx, i in enumerate(iter(op)):
             self.assertEqual(i, SparsePauliOp(labels[idx], coeffs[[idx]]))
 
     def test_label_iter(self):
-        """Test PauliTable label_iter method."""
+        """Test SparsePauliOp label_iter method."""
         labels = ["III", "IXI", "IYY", "YIZ", "XYZ", "III"]
         coeffs = np.array([1, 2, 3, 4, 5, 6])
-        table = PauliTable.from_labels(labels)
-        op = SparsePauliOp(table, coeffs)
+        op = SparsePauliOp(labels, coeffs)
         for idx, i in enumerate(op.label_iter()):
             self.assertEqual(i, (labels[idx], coeffs[idx]))
 
     def test_matrix_iter(self):
-        """Test PauliTable dense matrix_iter method."""
+        """Test SparsePauliOp dense matrix_iter method."""
         labels = ["III", "IXI", "IYY", "YIZ", "XYZ", "III"]
         coeffs = np.array([1, 2, 3, 4, 5, 6])
-        table = PauliTable.from_labels(labels)
-        op = SparsePauliOp(table, coeffs)
+        op = SparsePauliOp(labels, coeffs)
         for idx, i in enumerate(op.matrix_iter()):
-            self.assertTrue(np.array_equal(i, coeffs[idx] * pauli_mat(labels[idx])))
+            np.testing.assert_array_equal(i, coeffs[idx] * pauli_mat(labels[idx]))
 
     def test_matrix_iter_sparse(self):
-        """Test PauliTable sparse matrix_iter method."""
+        """Test SparsePauliOp sparse matrix_iter method."""
         labels = ["III", "IXI", "IYY", "YIZ", "XYZ", "III"]
         coeffs = np.array([1, 2, 3, 4, 5, 6])
-        table = PauliTable.from_labels(labels)
-        op = SparsePauliOp(table, coeffs)
+        op = SparsePauliOp(labels, coeffs)
         for idx, i in enumerate(op.matrix_iter(sparse=True)):
-            self.assertTrue(np.array_equal(i.toarray(), coeffs[idx] * pauli_mat(labels[idx])))
+            np.testing.assert_array_equal(i.toarray(), coeffs[idx] * pauli_mat(labels[idx]))
 
 
 @ddt
@@ -261,7 +256,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
             "".join(self.RNG.choice(["I", "X", "Y", "Z"], size=num_qubits))
             for _ in range(num_terms)
         ]
-        return SparsePauliOp(PauliTable.from_labels(labels), coeffs)
+        return SparsePauliOp(labels, coeffs)
 
     @combine(num_qubits=[1, 2, 3, 4])
     def test_conjugate(self, num_qubits):
