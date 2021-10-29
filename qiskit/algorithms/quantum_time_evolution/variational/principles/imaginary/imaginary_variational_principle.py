@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 from abc import abstractmethod
-from typing import Union, Dict
+from typing import Union, Dict, Optional
 import math
 
 import numpy as np
@@ -86,7 +86,7 @@ class ImaginaryVariationalPrinciple(VariationalPrinciple):
         self,
         raw_operator: OperatorBase,
         param_dict: Dict[Parameter, Union[float, complex]],
-        regularization: str,
+        regularization: Optional[str] = None,
     ) -> OperatorBase:
 
         nat_grad = natural_gradient_calculator.calculate(

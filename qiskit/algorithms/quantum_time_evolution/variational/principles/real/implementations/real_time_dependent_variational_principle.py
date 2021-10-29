@@ -9,7 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from typing import Union, Dict
+from typing import Union, Dict, Optional
 
 from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
     metric_tensor_calculator,
@@ -75,6 +75,6 @@ class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):
         self,
         raw_operator: OperatorBase,
         param_dict: Dict[Parameter, Union[float, complex]],
-        regularization: str,
+        regularization: Optional[str] = None,
     ) -> OperatorBase:
         return super()._calc_nat_grad(-raw_operator, param_dict, regularization)

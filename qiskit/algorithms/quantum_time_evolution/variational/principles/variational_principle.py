@@ -44,7 +44,7 @@ class VariationalPrinciple(ABC):
         hamiltonian,
         ansatz,
         param_dict: Dict[Parameter, Union[float, complex]],
-        regularization: str,
+        regularization: Optional[str] = None,
     ):
         self._hamiltonian = hamiltonian
         self._ansatz = ansatz
@@ -94,7 +94,7 @@ class VariationalPrinciple(ABC):
         self,
         raw_operator: OperatorBase,
         param_dict: Dict[Parameter, Union[float, complex]],
-        regularization: str,
+        regularization: Optional[str] = None,
     ) -> OperatorBase:
         raise NotImplementedError()
 
