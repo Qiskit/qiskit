@@ -12,8 +12,6 @@
 
 """Remove final measurements and barriers at the end of a circuit."""
 
-from collections import defaultdict
-from qiskit.pulse.builder import barrier
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGOpNode
 
