@@ -12,35 +12,20 @@
 
 """Evolution synthesis."""
 
-from typing import List, Union
 from abc import ABC, abstractmethod
-from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.quantum_info import SparsePauliOp
 
 
 class EvolutionSynthesis(ABC):
     """Interface for evolution synthesis algorithms."""
 
     @abstractmethod
-    def synthesize(
-        self,
-        operators: Union[SparsePauliOp, List[SparsePauliOp]],
-        time: Union[float, ParameterExpression],
-    ) -> QuantumCircuit:
-        """Synthesize the evolution of a (list of) operator(s) to a circuit.
-
-        If a single operator, the summands are assumed not to commute.
-        If a list, the list elements are *not* assumed to commute pairwisely, however summands in
-        a single operator are assumed to commute. For example, if the operators are given
-        as `[A + B, C + D, E]` then `A` and `B` commute but the sum `A + B` does not commute
-        with either `C + D` or `E`.
+    def synthesize(self, evolution):
+        """Synthesize an ``qiskit.circuit.library.PauliEvolutionGate``.
 
         Args:
-            operators: (List of) operator(s) to evolve.
-            time: Evolution time.
+            evolution (PauliEvolutionGate): The evolution gate to synthesize.
 
         Returns:
-            A circuit implementing the evolution.
+            QuantumCircuit: A circuit implementing the evolution.
         """
         raise NotImplementedError

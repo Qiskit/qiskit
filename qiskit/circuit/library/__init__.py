@@ -369,7 +369,7 @@ from .generalized_gates import (
     RVGate,
     PauliGate,
 )
-from .evolution import PauliEvolutionGate
+from .pauli_evolution import PauliEvolutionGate
 from .boolean_logic import (
     AND,
     OR,

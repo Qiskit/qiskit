@@ -30,11 +30,12 @@ class MatrixExponential(EvolutionSynthesis):
     for small systems.
     """
 
-    def synthesize(
-        self,
-        operators: Union[SparsePauliOp, List[SparsePauliOp]],
-        time: Union[float, ParameterExpression],
-    ) -> QuantumCircuit:
+    def synthesize(self, evolution):
+        # get operators and time to evolve
+        operators = evolution.operator
+        time = evolution.time
+
+        # construct the evolution circuit
         evo = QuantumCircuit(operators[0].num_qubits)
 
         if not isinstance(operators, list):

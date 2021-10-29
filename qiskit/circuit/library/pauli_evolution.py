@@ -62,10 +62,10 @@ class PauliEvolutionGate(Gate):
         """
         if isinstance(operator, list):
             operator = [_to_sparse_pauli_op(op) for op in operator]
-            name = f"exp(-it {[' + '.join(op.paulis.to_labels()) for op in operator]})"
+            name = f"exp(-i {[' + '.join(op.paulis.to_labels()) for op in operator]})"
         else:
             operator = _to_sparse_pauli_op(operator)
-            name = f"exp(-it {' + '.join(operator.paulis.to_labels())})"
+            name = f"exp(-i {' + '.join(operator.paulis.to_labels())})"
 
         if synthesis is None:
             synthesis = LieTrotter()
@@ -79,7 +79,7 @@ class PauliEvolutionGate(Gate):
 
     def _define(self):
         """Unroll, where the default synthesis is matrix based."""
-        self.definition = self.synthesis.synthesize(self.operator, self.time)
+        self.definition = self.synthesis.synthesize(self)
 
     def inverse(self) -> "PauliEvolutionGate":
         return PauliEvolutionGate(operator=self.operator, time=-self.time, synthesis=self.synthesis)

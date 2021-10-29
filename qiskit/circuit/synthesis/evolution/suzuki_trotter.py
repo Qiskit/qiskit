@@ -59,11 +59,11 @@ class SuzukiTrotter(ProductFormula):
     ) -> None:
         super().__init__(order, reps, insert_barriers, cx_structure, atomic_evolution)
 
-    def synthesize(
-        self,
-        operators: Union[SparsePauliOp, List[SparsePauliOp]],
-        time: Union[float, ParameterExpression],
-    ) -> QuantumCircuit:
+    def synthesize(self, evolution):
+        # get operators and time to evolve
+        operators = evolution.operator
+        time = evolution.time
+
         if not isinstance(operators, list):
             pauli_list = [(Pauli(op), np.real(coeff)) for op, coeff in operators.to_list()]
         else:
@@ -71,6 +71,7 @@ class SuzukiTrotter(ProductFormula):
 
         ops_to_evolve = self._recurse(self.order, time / self.reps, pauli_list)
 
+        # construct the evolution circuit
         single_rep = QuantumCircuit(operators[0].num_qubits)
         first_barrier = False
 
