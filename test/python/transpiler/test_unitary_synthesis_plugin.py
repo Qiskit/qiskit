@@ -219,7 +219,9 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
         with self.mock_default_run_method():
             pm.run(qc)
             self.DEFAULT_PLUGIN.run.assert_called()  # pylint: disable=no-member
-            call_kwargs = self.DEFAULT_PLUGIN.run.call_args.kwargs  # pylint: disable=no-member
+            # This access should be `run.call_args.kwargs`, but the namedtuple access wasn't added
+            # until Python 3.8.
+            call_kwargs = self.DEFAULT_PLUGIN.run.call_args[1]  # pylint: disable=no-member
         expected_kwargs = [
             "basis_gates",
             "coupling_map",
