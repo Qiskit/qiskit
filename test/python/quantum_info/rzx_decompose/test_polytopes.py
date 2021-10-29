@@ -56,7 +56,8 @@ class TestMonodromyXXPolytope(unittest.TestCase):
         Tests that adding new strengths to an existing XXPolytope is equivalent to forming the
         appropriate XXPolytope from scratch.
         """
-        strengths = [random.random() for _ in range(4)]
-        small_polytope = XXPolytope.from_strengths(*strengths[:-1])
-        large_polytope = XXPolytope.from_strengths(*strengths)
-        self.assertEqual(small_polytope.add_strength(strengths[-1]), large_polytope)
+        for _ in range(100):
+            strengths = [random.random() for _ in range(4)]
+            small_polytope = XXPolytope.from_strengths(*strengths[:-1])
+            large_polytope = XXPolytope.from_strengths(*strengths)
+            self.assertEqual(small_polytope.add_strength(strengths[-1]), large_polytope)
