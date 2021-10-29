@@ -364,6 +364,9 @@ class DAGCircuit:
 
         # Ignore any cregs not in circuit.
         cregs = set(cregs).intersection(self.cregs.values())
+
+        if not cregs:
+            return set()
         
         cregs_to_remove = set()
         clbits_to_remove = set()

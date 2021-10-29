@@ -89,6 +89,10 @@ class RemoveFinalMeasurements(TransformationPass):
         idle_wires = set(dag.idle_wires())
         clbits_with_final_measures.intersection_update(idle_wires)
 
+        if not clbits_with_final_measures:
+            # no idle wires to remove
+            return dag
+
         # determine unused cregs resulting from the removal
         cregs_to_remove = set()
         for creg in dag.cregs.values():
