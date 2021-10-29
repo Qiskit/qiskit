@@ -51,14 +51,23 @@ class SparsePauliOp(LinearOp):
         """Initialize an operator object.
 
         Args:
-            data (PauliList or SparsePauliOp or PauliTable or Pauli or list or str): Pauli list of terms.
-                A list of Pauli strings or a Pauli string is also allowed.
+            data (PauliList or SparsePauliOp or PauliTable or Pauli or list or str): Pauli list of
+                terms.  A list of Pauli strings or a Pauli string is also allowed.
             coeffs (np.ndarray): complex coefficients for Pauli terms.
-                Note: if `data` is `SparsePauliOp` and `coeffs` is not None, `SparsePauliOp.coeffs`
-                is overwritten by `coeffs`.
-            ignore_pauli_phase (bool): avoid the phase conversion if True,
-                otherwise, apply the phase conversion (Default: False)
-            copy (bool): copy the input data if True, otherwise assign it directly (Default: True)
+
+                .. note::
+
+                    If ``data`` is a :obj:`~SparsePauliOp` and ``coeffs`` is not ``None``, the value
+                    of the ``SparsePauliOp.coeffs`` will be ignored, and only the passed keyword
+                    argument ``coeffs`` will be used.
+
+            ignore_pauli_phase (bool): if true, any ``phase`` component of a given :obj:`~PauliList`
+                will be assumed to be zero.  This is more efficient in cases where a
+                :obj:`~PauliList` has been constructed purely for this object, and it is already
+                known that the phases are zero.  It only makes sense to pass this option when giving
+                :obj:`~PauliList` data.  (Default: False)
+            copy (bool): copy the input data if True, otherwise assign it directly, if possible.
+                (Default: True)
 
         Raises:
             QiskitError: If the input data or coeffs are invalid.
@@ -70,8 +79,8 @@ class SparsePauliOp(LinearOp):
             if coeffs is None:
                 coeffs = data.coeffs
             data = data._pauli_list
-            # `SparsePauliOp._pauli_list` is already compatible with the internal ZX-phase convention.
-            # See `BasePauli._from_array` for the internal ZX-phase convention.
+            # `SparsePauliOp._pauli_list` is already compatible with the internal ZX-phase
+            # convention.  See `BasePauli._from_array` for the internal ZX-phase convention.
             ignore_pauli_phase = True
 
         pauli_list = PauliList(data.copy() if copy and hasattr(data, "copy") else data)
@@ -82,8 +91,9 @@ class SparsePauliOp(LinearOp):
             coeffs = np.array(coeffs, copy=copy, dtype=complex)
 
         if ignore_pauli_phase:
-            # Fast path for copy operations. Avoid the phase conversion.
-            # This path works only if the input data is compatible with the internal ZX-phase convention.
+            # Fast path used in copy operations, where the phase of the PauliList is already known
+            # to be zero.  This path only works if the input data is compatible with the internal
+            # ZX-phase convention.
             self._pauli_list = pauli_list
             self._coeffs = coeffs
         else:
