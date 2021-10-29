@@ -136,12 +136,13 @@ class VarQte(ABC):
     def evolve_helper(
         self,
         operator_coefficient,
-        ode_function_generator,
+        ode_function_generator_callable,
         init_state_param_dict,
         hamiltonian: OperatorBase,
         time: float,
         initial_state: OperatorBase = None,
         observable: OperatorBase = None,
+        t_param=None,
     ) -> StateFn:
         """ """
         if observable is not None:
@@ -151,6 +152,7 @@ class VarQte(ABC):
         init_state_parameters = list(init_state_param_dict.keys())
         init_state_parameters_values = list(init_state_param_dict.values())
         # TODO bind Hamiltonian?
+
         self._variational_principle._lazy_init(
             hamiltonian, initial_state, init_state_param_dict, self._regularization
         )
@@ -160,8 +162,8 @@ class VarQte(ABC):
 
         # Convert the operator that holds the Hamiltonian and ansatz into a NaturalGradient operator
         self._operator = operator_coefficient * self._operator / self._operator.coeff
-
         self._init_grad_objects()
+        ode_function_generator = ode_function_generator_callable(init_state_param_dict, t_param)
 
         ode_solver = VarQteOdeSolver(init_state_parameters_values, ode_function_generator)
         parameter_values = ode_solver._run(time)
