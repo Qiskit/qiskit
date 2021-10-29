@@ -1,16 +1,17 @@
 ---
 features:
   - |
-    Add a :class:`~qiskit.circuit.library.PauliEvolutionGate` to the circuit library which
-    defines a gate performing time evolution of (sums of) Paulis. The synthesis of this gate
-    is performed by :class:`~qiskit.synthesis.EvolutionSynthesis` and is decoupled
-    from the gate itself. Currently available synthesis methods are:
+    Add a :class:`~qiskit.circuit.library.PauliEvolutionGate` to the circuit
+    library which defines a gate performing time evolution of
+    (sums of or sums-of-sums of) Paulis. The synthesis of this gate is performed by
+    :class:`~qiskit.synthesis.EvolutionSynthesis` and is decoupled from the gate itself.
+    Currently available synthesis methods are as follows.
 
     * :class:`~qiskit.synthesis.LieTrotter`: first order Trotterization
     * :class:`~qiskit.synthesis.SuzukiTrotter`: higher order Trotterization
     * :class:`~qiskit.synthesis.MatrixExponentiation`: exact, matrix-based evolution
 
-    For example:
+    For example::
 
     .. code-block::
 
