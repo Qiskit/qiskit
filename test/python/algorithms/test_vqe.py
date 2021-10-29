@@ -55,6 +55,7 @@ if has_aer():
     from qiskit import Aer
 
 
+# pylint: disable=invalid-name, unused-argument
 def _mock_optimizer(fun, x0, jac=None, bounds=None) -> OptimizerResult:
     """A mock of a callable that can be used as minimizer in the VQE."""
     result = OptimizerResult()
