@@ -14,7 +14,8 @@ import unittest
 
 import numpy as np
 
-from qiskit.algorithms.quantum_time_evolution.variational.principles.real.implementations.real_mc_lachlan_variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.principles.real.implementations\
+    .real_mc_lachlan_variational_principle import (
     RealMcLachlanVariationalPrinciple,
 )
 from qiskit import Aer
@@ -32,7 +33,7 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 
 class TestVarQrte(QiskitAlgorithmsTestCase):
     pass
-    # TODO incorrect results
+    # # TODO incorrect results
     # def test_run_d_1(self):
     #     observable = SummedOp(
     #         [
@@ -74,14 +75,8 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
     #
     #     # values from the prototype
     #     thetas_expected = [
-    #         -0.0241758134744999,
-    #         1.12012968799123,
-    #         1.51326917164323,
-    #         1.66610602025298,
-    #         1.6846037145842,
-    #         1.50506165579874,
-    #         2.28006157159028,
-    #         1.12362620649148,
+    #         0.372598111322136, 1.51900599789371, 2.80259002647779, 2.00206987650666,
+    #         1.55578693792189, 2.68064238326861, 2.32464633347459, 1.10390724525525
     #     ]
     #
     #     parameter_values = evolution_result.data[0][0].params
