@@ -334,7 +334,7 @@ class DAGCircuit:
         # ignore clbits not in circuit
         clbits = set(clbits).intersection(self.clbits)
 
-        register_clbits = set(bit for creg in self.cregs for bit in creg)
+        register_clbits = set(bit for creg in self.cregs.values() for bit in creg)
         non_removable_clbits = clbits.intersection(register_clbits)
 
         if non_removable_clbits:
