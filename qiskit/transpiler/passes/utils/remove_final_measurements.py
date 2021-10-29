@@ -19,7 +19,7 @@ from qiskit.dagcircuit import DAGOpNode
 class RemoveFinalMeasurements(TransformationPass):
     """Remove final measurements and barriers at the end of a circuit.
 
-    This pass removes final barriers and final measurements, as well all
+    This pass removes final barriers and final measurements, as well as all
     unused classical registers and bits they are connected to.
     Measurements and barriers are considered final if they are
     followed by no other operations (aside from other measurements or barriers.)
