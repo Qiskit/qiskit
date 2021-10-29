@@ -16,21 +16,21 @@ from typing import Optional, Union, Dict
 
 import numpy as np
 
-from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import \
-    EvolutionGradientResult
+from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import (
+    EvolutionGradientResult,
+)
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode\
-    .error_based_ode_function_generator import (
+from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.error_based_ode_function_generator import (
     ErrorBasedOdeFunctionGenerator,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.ode_function_generator \
-    import (
+from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.ode_function_generator import (
     OdeFunctionGenerator,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.var_qte_ode_solver import \
-    VarQteOdeSolver
+from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.var_qte_ode_solver import (
+    VarQteOdeSolver,
+)
 from qiskit.circuit import Parameter
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
@@ -40,7 +40,8 @@ from qiskit.opflow import (
     ComposedOp,
     PauliExpectation,
     OperatorBase,
-    CircuitStateFn, Gradient,
+    CircuitStateFn,
+    Gradient,
 )
 
 
@@ -52,13 +53,13 @@ class VarQte(ABC):
     """
 
     def __init__(
-            self,
-            variational_principle: VariationalPrinciple,
-            regularization: Optional[str] = None,
-            backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
-            error_based_ode: Optional[bool] = False,
-            optimizer: str = "COBYLA",
-            epsilon: Optional[float] = 10e-6,
+        self,
+        variational_principle: VariationalPrinciple,
+        regularization: Optional[str] = None,
+        backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
+        error_based_ode: Optional[bool] = False,
+        optimizer: str = "COBYLA",
+        epsilon: Optional[float] = 10e-6,
     ):
         r"""
         Args:
@@ -98,13 +99,13 @@ class VarQte(ABC):
 
     @abstractmethod
     def evolve(
-            self,
-            hamiltonian: OperatorBase,
-            time: float,
-            initial_state: OperatorBase = None,
-            observable: OperatorBase = None,
-            t_param=None,
-            hamiltonian_value_dict=None,
+        self,
+        hamiltonian: OperatorBase,
+        time: float,
+        initial_state: OperatorBase = None,
+        observable: OperatorBase = None,
+        t_param=None,
+        hamiltonian_value_dict=None,
     ) -> StateFn:
         """
         Apply Variational Quantum Imaginary Time Evolution (VarQITE) w.r.t. the given
@@ -142,8 +143,7 @@ class VarQte(ABC):
         initial_state: OperatorBase = None,
         observable: OperatorBase = None,
     ) -> StateFn:
-        """
-        """
+        """ """
         if observable is not None:
             raise TypeError(
                 "Observable argument provided. Observable evolution not supported by VarQte."
@@ -175,15 +175,15 @@ class VarQte(ABC):
 
     @abstractmethod
     def gradient(
-            self,
-            hamiltonian: OperatorBase,
-            time: float,
-            initial_state: StateFn,
-            gradient_object: Gradient,
-            observable: OperatorBase = None,
-            t_param=None,
-            hamiltonian_value_dict=None,
-            gradient_params=None,
+        self,
+        hamiltonian: OperatorBase,
+        time: float,
+        initial_state: StateFn,
+        gradient_object: Gradient,
+        observable: OperatorBase = None,
+        t_param=None,
+        hamiltonian_value_dict=None,
+        gradient_params=None,
     ) -> EvolutionGradientResult:
         raise NotImplementedError()
 
@@ -262,7 +262,7 @@ class VarQte(ABC):
         if not isinstance(operator[-1], CircuitStateFn):
             raise TypeError("Please provide the respective Ansatz as a CircuitStateFn.")
         elif not isinstance(operator, ComposedOp) and not all(
-                isinstance(op, CircuitStateFn) for op in operator.oplist
+            isinstance(op, CircuitStateFn) for op in operator.oplist
         ):
             raise TypeError(
                 "Please provide the operator either as ComposedOp or as ListOp of a "

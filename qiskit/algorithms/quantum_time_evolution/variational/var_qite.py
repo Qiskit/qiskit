@@ -15,12 +15,10 @@ from qiskit.algorithms.quantum_time_evolution.evolution_base import EvolutionBas
 from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import (
     EvolutionGradientResult,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors \
-    .imaginary_error_calculator import (
+from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.imaginary_error_calculator import (
     ImaginaryErrorCalculator,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary \
-    .imaginary_variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
 )
 from qiskit.opflow import (
@@ -35,13 +33,13 @@ from qiskit.utils import QuantumInstance
 
 class VarQite(VarQte, EvolutionBase):
     def __init__(
-            self,
-            variational_principle: ImaginaryVariationalPrinciple,
-            regularization: Optional[str] = None,
-            backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
-            error_based_ode: Optional[bool] = False,
-            optimizer: str = "COBYLA",
-            epsilon: Optional[float] = 10e-6,
+        self,
+        variational_principle: ImaginaryVariationalPrinciple,
+        regularization: Optional[str] = None,
+        backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
+        error_based_ode: Optional[bool] = False,
+        optimizer: str = "COBYLA",
+        epsilon: Optional[float] = 10e-6,
     ):
         r"""
         Args:
@@ -69,13 +67,13 @@ class VarQite(VarQte, EvolutionBase):
         )
 
     def evolve(
-            self,
-            hamiltonian: OperatorBase,
-            time: float,
-            initial_state: OperatorBase = None,
-            observable: OperatorBase = None,
-            t_param=None,
-            hamiltonian_value_dict=None,
+        self,
+        hamiltonian: OperatorBase,
+        time: float,
+        initial_state: OperatorBase = None,
+        observable: OperatorBase = None,
+        t_param=None,
+        hamiltonian_value_dict=None,
     ) -> StateFn:
         """
         Apply Variational Quantum Imaginary Time Evolution (VarQITE) w.r.t. the given
@@ -110,9 +108,15 @@ class VarQite(VarQte, EvolutionBase):
             init_state_param_dict, t_param
         )
         operator_coefficient = 1.0
-        return super().evolve_helper(operator_coefficient, ode_function_generator,
-                                     init_state_param_dict, hamiltonian,
-                                     time, initial_state, observable)
+        return super().evolve_helper(
+            operator_coefficient,
+            ode_function_generator,
+            init_state_param_dict,
+            hamiltonian,
+            time,
+            initial_state,
+            observable,
+        )
 
     def _create_imag_ode_function_generator(self, init_state_param_dict, t_param):
         if self._error_based_ode:
@@ -131,14 +135,14 @@ class VarQite(VarQte, EvolutionBase):
             return super()._create_ode_function_generator(None, init_state_param_dict, t_param)
 
     def gradient(
-            self,
-            hamiltonian: OperatorBase,
-            time: float,
-            initial_state: StateFn,
-            gradient_object: Gradient,
-            observable: OperatorBase = None,
-            t_param=None,
-            hamiltonian_value_dict=None,
-            gradient_params=None,
+        self,
+        hamiltonian: OperatorBase,
+        time: float,
+        initial_state: StateFn,
+        gradient_object: Gradient,
+        observable: OperatorBase = None,
+        t_param=None,
+        hamiltonian_value_dict=None,
+        gradient_params=None,
     ) -> EvolutionGradientResult:
         raise NotImplementedError()
