@@ -14,20 +14,20 @@ features:
 
     .. code-block::
 
-      from qiskit.circuit import QuantumCircuit
-      from qiskit.circuit.library import PauliEvolutionGate
-      from qiskit.synthesis import SuzukiTrotter
-      from qiskit.opflow import PauliSumOp
+    from qiskit.circuit import QuantumCircuit
+    from qiskit.circuit.library import PauliEvolutionGate
+    from qiskit.quantum_info import SparsePauliOp
+    from qiskit.synthesis import SuzukiTrotter
 
-      operator = PauliSumOp.from_list([
+    operator = SparsePauliOp.from_list([
         ("XIZ", 0.5), ("ZZX", 0.5), ("IYY", -1)
-      ])
-      time = 0.12  # evolution time
-      synth = SuzukiTrotter(order=4, reps=2)
+    ])
+    time = 0.12  # evolution time
+    synth = SuzukiTrotter(order=4, reps=2)
 
-      evo = PauliEvolutionGate(operator, time=time, synthesis=synth)
+    evo = PauliEvolutionGate(operator, time=time, synthesis=synth)
 
-      circuit = QuantumCircuit(3)
-      circuit.append(evo, range(3))
+    circuit = QuantumCircuit(3)
+    circuit.append(evo, range(3))
 
-      print(circuit.draw())
+    print(circuit.draw())
