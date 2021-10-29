@@ -365,11 +365,13 @@ class DAGCircuit:
         # Ignore any cregs not in circuit.
         cregs = set(cregs).intersection(self.cregs.values())
         
+        cregs_to_remove = set()
         clbits_to_remove = set()
         clbits_to_keep = set()
         for creg in self.cregs.values():
             clbits = set(creg)
             if creg in cregs:
+                cregs_to_remove.add(creg)
                 clbits_to_remove.update(clbits)
             else:
                 clbits_to_keep.update(clbits)
@@ -384,7 +386,9 @@ class DAGCircuit:
                 # TODO: this would probably be better as a debug log statement
                 warnings.warn("clbit %s is not idle but is no longer referenced by a register")
 
-        del self.cregs[creg.name]
+        for creg in cregs_to_remove:
+            del self.cregs[creg.name]
+
         return clbits_to_remove
 
     def _is_wire_idle(self, wire):
