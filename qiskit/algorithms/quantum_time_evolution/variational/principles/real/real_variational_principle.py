@@ -12,6 +12,9 @@
 from abc import abstractmethod
 from typing import Union, Dict
 
+from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
+    natural_gradient_calculator,
+)
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
 )
@@ -76,7 +79,16 @@ class RealVariationalPrinciple(VariationalPrinciple):
         param_dict: Dict[Parameter, Union[float, complex]],
         regularization: str,
     ) -> OperatorBase:
-        return super()._calc_nat_grad(raw_operator, param_dict, regularization)
+
+        nat_grad = natural_gradient_calculator.calculate(
+            raw_operator,
+            list(param_dict.keys()),
+            self._grad_method,
+            self._qfi_method,
+            regularization,
+        )
+
+        return nat_grad
 
     def _calc_error_bound(
         self,

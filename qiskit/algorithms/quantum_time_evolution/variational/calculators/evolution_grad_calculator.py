@@ -9,11 +9,15 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from typing import Union, Optional, List
+from typing import Union, Optional, List, Dict
 
-from qiskit.circuit import ParameterVector, ParameterExpression
-from qiskit.opflow import StateFn, Gradient, CircuitGradient, OperatorBase, Z
+import numpy as np
+
+from qiskit.circuit import ParameterVector, ParameterExpression, Parameter
+from qiskit.opflow import StateFn, Gradient, CircuitGradient, OperatorBase, Z, CircuitSampler
 from qiskit.opflow.gradients.circuit_gradients import LinComb
+from qiskit.providers import BaseBackend
+from qiskit.utils import QuantumInstance
 
 
 def calculate(
@@ -27,3 +31,16 @@ def calculate(
     if grad_method == "lin_comb":
         return LinComb().convert(operator, parameters, aux_meas_op=basis)
     return Gradient(grad_method).convert(operator, parameters)
+
+
+def eval_evolution_grad(
+    evolution_grad,
+    param_dict: Dict[Parameter, Union[float, complex]],
+    grad_circ_sampler: CircuitSampler,
+    backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
+):
+    if backend is not None:
+        grad_res = np.array(grad_circ_sampler.convert(evolution_grad, params=param_dict).eval())
+    else:
+        grad_res = np.array(evolution_grad.assign_parameters(param_dict).eval())
+    return grad_res

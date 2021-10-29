@@ -13,6 +13,15 @@ from typing import Union, List, Dict, Optional
 
 import numpy as np
 
+from qiskit.algorithms.quantum_time_evolution.variational.calculators.evolution_grad_calculator import (
+    eval_evolution_grad,
+)
+from qiskit.algorithms.quantum_time_evolution.variational.calculators.metric_tensor_calculator import (
+    eval_metric_tensor,
+)
+from qiskit.algorithms.quantum_time_evolution.variational.calculators.natural_gradient_calculator import (
+    eval_nat_grad_result,
+)
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
 )
@@ -58,7 +67,12 @@ class VarQteLinearSolver:
                 Fubini-Study Metric.
         """
 
-        nat_grad_result = self._calc_nat_grad_result(param_dict, var_principle)
+        nat_grad_result = eval_nat_grad_result(
+            var_principle._nat_grad,
+            param_dict,
+            self._nat_grad_circ_sampler,
+            self._backend,
+        )
         if t_param is not None:
             time_dict = {t_param: t}
             nat_grad_result = nat_grad_result.bind_parameters(time_dict)
@@ -91,8 +105,12 @@ class VarQteLinearSolver:
         if t_param is not None:
             time_dict = {t_param: t}
             evolution_grad = evolution_grad.bind_parameters(time_dict)
-        grad_res = self._eval_evolution_grad(evolution_grad, param_dict)
-        metric_res = self._eval_metric_tensor(metric_tensor, param_dict)
+        grad_res = eval_evolution_grad(
+            evolution_grad, param_dict, self._grad_circ_sampler, self._backend
+        )
+        metric_res = eval_metric_tensor(
+            metric_tensor, param_dict, self._metric_circ_sampler, self._backend
+        )
 
         self._inspect_imaginary_parts(grad_res, metric_res)
 
@@ -103,26 +121,6 @@ class VarQteLinearSolver:
         metric_res = self._check_and_fix_metric_psd(metric_res)
 
         return grad_res, metric_res
-
-    def _calc_nat_grad_result(
-        self,
-        param_dict: Dict[Parameter, Union[float, complex]],
-        var_principle: VariationalPrinciple,
-    ):
-
-        nat_grad = var_principle._nat_grad
-
-        if self._backend is not None:
-            nat_grad_result = self._nat_grad_circ_sampler.convert(
-                nat_grad, params=param_dict
-            ).eval()
-        else:
-            nat_grad_result = nat_grad.assign_parameters(param_dict).eval()
-
-        if any(np.abs(np.imag(nat_grad_item)) > 1e-8 for nat_grad_item in nat_grad_result):
-            raise Warning("The imaginary part of the gradient are non-negligible.")
-
-        return nat_grad_result
 
     def _inspect_imaginary_parts(self, grad_res, metric_res):
         if any(np.abs(np.imag(grad_res_item)) > 1e-3 for grad_res_item in grad_res):
@@ -155,27 +153,3 @@ class VarQteLinearSolver:
                 # If all eigenvalues are non-negative use the metric
                 break
         return metric_res
-
-    def _eval_metric_tensor(
-        self, metric_tensor, param_dict: Dict[Parameter, Union[float, complex]]
-    ):
-        if self._backend is not None:
-            # Get the QFI/4
-            metric_res = np.array(
-                self._metric_circ_sampler.convert(metric_tensor, params=param_dict).eval()
-            )
-        else:
-            # Get the QFI/4
-            metric_res = np.array(metric_tensor.assign_parameters(param_dict).eval())
-        return metric_res
-
-    def _eval_evolution_grad(
-        self, evolution_grad, param_dict: Dict[Parameter, Union[float, complex]]
-    ):
-        if self._backend is not None:
-            grad_res = np.array(
-                self._grad_circ_sampler.convert(evolution_grad, params=param_dict).eval()
-            )
-        else:
-            grad_res = np.array(evolution_grad.assign_parameters(param_dict).eval())
-        return grad_res

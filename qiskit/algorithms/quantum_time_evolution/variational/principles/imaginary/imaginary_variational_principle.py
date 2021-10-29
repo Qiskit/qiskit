@@ -15,6 +15,9 @@ import math
 
 import numpy as np
 
+from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
+    natural_gradient_calculator,
+)
 from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.time_step_errors.time_step_error_calculator import (
     _calculate_max_bures,
     _calculate_energy_factor,
@@ -85,7 +88,15 @@ class ImaginaryVariationalPrinciple(VariationalPrinciple):
         param_dict: Dict[Parameter, Union[float, complex]],
         regularization: str,
     ) -> OperatorBase:
-        return super()._calc_nat_grad(-raw_operator, param_dict, regularization)
+
+        nat_grad = natural_gradient_calculator.calculate(
+            -raw_operator,
+            list(param_dict.keys()),
+            self._grad_method,
+            self._qfi_method,
+            regularization,
+        )
+        return nat_grad
 
     def _calc_error_bound(
         self,

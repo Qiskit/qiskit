@@ -18,8 +18,6 @@ from qiskit.opflow import (
     CircuitGradient,
     OperatorBase,
     StateFn,
-    NaturalGradient,
-    PauliExpectation,
 )
 
 
@@ -98,16 +96,7 @@ class VariationalPrinciple(ABC):
         param_dict: Dict[Parameter, Union[float, complex]],
         regularization: str,
     ) -> OperatorBase:
-        nat_grad = NaturalGradient(
-            grad_method=self._grad_method,
-            qfi_method=self._qfi_method,
-            regularization=regularization,
-        ).convert(raw_operator * 0.5, list(param_dict.keys()))
-
-        # TODO should be bind here? also need to bind time as ODE progresses
-        # nat_grad = nat_grad.bind_parameters(param_dict)
-
-        return PauliExpectation().convert(nat_grad)
+        raise NotImplementedError()
 
     @abstractmethod
     def _calc_error_bound(
@@ -122,11 +111,3 @@ class VariationalPrinciple(ABC):
     @property
     def evolution_grad(self) -> OperatorBase:
         return self._evolution_grad
-
-    @staticmethod
-    def op_real_part(operator: OperatorBase) -> OperatorBase:
-        return (operator + operator.adjoint()) / 2.0
-
-    @staticmethod
-    def op_imag_part(operator: OperatorBase) -> OperatorBase:
-        return (operator - operator.adjoint()) / (2.0j)

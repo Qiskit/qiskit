@@ -83,8 +83,8 @@ class VarQte(ABC):
         self._epsilon = epsilon
 
         self._backend = backend
-        # we define separate instances of CircuitSamplers as it caches aggresively according
-        # to it documentation
+        # we define separate instances of CircuitSamplers as it caches aggressively according
+        # to its documentation
         self._init_samplers()
 
         self._error_based_ode = error_based_ode
@@ -160,12 +160,10 @@ class VarQte(ABC):
 
         # Convert the operator that holds the Hamiltonian and ansatz into a NaturalGradient operator
         self._operator = operator_coefficient * self._operator / self._operator.coeff
-        self._operator_eval = PauliExpectation().convert(self._operator)
 
         self._init_grad_objects()
 
         ode_solver = VarQteOdeSolver(init_state_parameters_values, ode_function_generator)
-        # Run ODE Solver
         parameter_values = ode_solver._run(time)
         # return evolved
         # initial state here is not with self because we need a parametrized state (input to this
