@@ -17,7 +17,7 @@ found, no ``property_set['layout']`` is set. The stopping reason is set in
 ``property_set['VF2Layout_stop_reason']``.
 """
 import random
-from retworkx import PyGraph, PyDiGraph, graph_vf2_mapping, digraph_vf2_mapping
+from retworkx import PyGraph, PyDiGraph, vf2_mapping
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 
@@ -58,11 +58,9 @@ class VF2Layout(AnalysisPass):
         if self.strict_direction:
             cm_graph = self.coupling_map.graph
             im_graph = PyDiGraph(multigraph=False)
-            vf2_mapping = digraph_vf2_mapping
         else:
             cm_graph = self.coupling_map.graph.to_undirected()
             im_graph = PyGraph(multigraph=False)
-            vf2_mapping = graph_vf2_mapping
 
         cm_nodes = list(cm_graph.node_indexes())
         if self.seed != -1:
