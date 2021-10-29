@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Added ``ignore_pauli_phase`` and ``copy`` arguments to :meth:`~qiskit.quantum_info.SparsePauliOp.__init__`.
+    Added ``ignore_pauli_phase`` and ``copy`` arguments to the constructor of :obj:`~qiskit.quantum_info.SparsePauliOp`.
     ``ignore_pauli_phase`` allows users to avoid the phase conversion of :class:`~qiskit.quantum_info.PauliList`
     to be compatible with the internal ZX-phase convention.
     ``copy`` allows users to avoid the copy of the input data when they explicitly set ``copy=False``.

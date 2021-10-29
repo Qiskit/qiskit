@@ -64,8 +64,8 @@ class SparsePauliOp(LinearOp):
             ignore_pauli_phase (bool): if true, any ``phase`` component of a given :obj:`~PauliList`
                 will be assumed to be zero.  This is more efficient in cases where a
                 :obj:`~PauliList` has been constructed purely for this object, and it is already
-                known that the phases are zero.  It only makes sense to pass this option when giving
-                :obj:`~PauliList` data.  (Default: False)
+                known that the phases in the ZX-convention are zero.  It only makes sense to pass
+                this option when giving :obj:`~PauliList` data.  (Default: False)
             copy (bool): copy the input data if True, otherwise assign it directly, if possible.
                 (Default: True)
 
