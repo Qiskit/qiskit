@@ -125,7 +125,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         from functools import partial
         from scipy.optimize import minimize
 
-        optimizer = partial(minimize, method="L-BFGS-B)
+        optimizer = partial(minimize, method="L-BFGS-B")
 
     """
 
