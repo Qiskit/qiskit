@@ -11,24 +11,37 @@
 # that they have been altered from the originals.
 
 """The Variational Quantum Time Evolution Interface"""
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Optional, Union, Dict
 
 import numpy as np
 
+from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import \
+    EvolutionGradientResult
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode \
-    .error_based_ode_function_generator import \
-    ErrorBasedOdeFunctionGenerator
+from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode\
+    .error_based_ode_function_generator import (
+    ErrorBasedOdeFunctionGenerator,
+)
 from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.ode_function_generator \
-    import \
-    OdeFunctionGenerator
+    import (
+    OdeFunctionGenerator,
+)
+from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.var_qte_ode_solver import \
+    VarQteOdeSolver
 from qiskit.circuit import Parameter
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
-from qiskit.opflow import StateFn, CircuitSampler, ComposedOp, PauliExpectation, OperatorBase
+from qiskit.opflow import (
+    StateFn,
+    CircuitSampler,
+    ComposedOp,
+    PauliExpectation,
+    OperatorBase,
+    CircuitStateFn, Gradient,
+)
 
 
 class VarQte(ABC):
@@ -83,6 +96,97 @@ class VarQte(ABC):
     def initial_state(self):
         return self._initial_state
 
+    @abstractmethod
+    def evolve(
+            self,
+            hamiltonian: OperatorBase,
+            time: float,
+            initial_state: OperatorBase = None,
+            observable: OperatorBase = None,
+            t_param=None,
+            hamiltonian_value_dict=None,
+    ) -> StateFn:
+        """
+        Apply Variational Quantum Imaginary Time Evolution (VarQITE) w.r.t. the given
+        operator
+        Args:
+            hamiltonian:
+                ⟨ψ(ω)|H|ψ(ω)〉
+                Operator used vor Variational Quantum Imaginary Time Evolution (VarQITE)
+                The coefficient of the operator (operator.coeff) determines the evolution
+                time.
+                The operator may be given either as a composed op consisting of a Hermitian
+                observable and a CircuitStateFn or a ListOp of a CircuitStateFn with a
+                ComboFn.
+                The latter case enables the evaluation of a Quantum Natural Gradient.
+            time: Total time of evolution.
+            initial_state: Quantum state to be evolved.
+            observable: Observable to be evolved. Not supported by VarQite.
+            t_param: Time parameter in case of a time-dependent Hamiltonian.
+            hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to
+                                    certain values, including the t_param.
+        Returns:
+            StateFn (parameters are bound) which represents an approximation to the
+            respective
+            time evolution.
+        """
+        raise NotImplementedError()
+
+    def evolve_helper(
+        self,
+        operator_coefficient,
+        ode_function_generator,
+        init_state_param_dict,
+        hamiltonian: OperatorBase,
+        time: float,
+        initial_state: OperatorBase = None,
+        observable: OperatorBase = None,
+    ) -> StateFn:
+        """
+        """
+        if observable is not None:
+            raise TypeError(
+                "Observable argument provided. Observable evolution not supported by VarQte."
+            )
+        init_state_parameters = list(init_state_param_dict.keys())
+        init_state_parameters_values = list(init_state_param_dict.values())
+        # TODO bind Hamiltonian?
+        self._variational_principle._lazy_init(
+            hamiltonian, initial_state, init_state_param_dict, self._regularization
+        )
+        self.bind_initial_state(StateFn(initial_state), init_state_param_dict)
+        self._operator = self._variational_principle._operator
+        self._validate_operator(self._operator)
+
+        # Convert the operator that holds the Hamiltonian and ansatz into a NaturalGradient operator
+        self._operator = operator_coefficient * self._operator / self._operator.coeff
+        self._operator_eval = PauliExpectation().convert(self._operator)
+
+        self._init_grad_objects()
+
+        ode_solver = VarQteOdeSolver(init_state_parameters_values, ode_function_generator)
+        # Run ODE Solver
+        parameter_values = ode_solver._run(time)
+        # return evolved
+        # initial state here is not with self because we need a parametrized state (input to this
+        # method)
+        param_dict_from_ode = dict(zip(init_state_parameters, parameter_values))
+        return initial_state.assign_parameters(param_dict_from_ode)
+
+    @abstractmethod
+    def gradient(
+            self,
+            hamiltonian: OperatorBase,
+            time: float,
+            initial_state: StateFn,
+            gradient_object: Gradient,
+            observable: OperatorBase = None,
+            t_param=None,
+            hamiltonian_value_dict=None,
+            gradient_params=None,
+    ) -> EvolutionGradientResult:
+        raise NotImplementedError()
+
     def bind_initial_state(self, state, param_dict: Dict[Parameter, Union[float, complex]]):
         if self._backend is not None:
             self._initial_state = self._state_circ_sampler.convert(state, params=param_dict)
@@ -107,7 +211,6 @@ class VarQte(ABC):
         """
         self._h = self._operator.oplist[0].primitive * self._operator.oplist[0].coeff
         self._h_squared = self._h_pow(2)
-        self._h_trip = self._h_pow(3)
 
     def _h_pow(self, power: int) -> OperatorBase:
         h_power = self._h ** power
@@ -124,7 +227,7 @@ class VarQte(ABC):
                 if param in hamiltonian_value_dict.keys():
                     init_state_parameter_values.append(hamiltonian_value_dict[param])
         init_state_param_dict = dict(zip(init_state_parameters, init_state_parameter_values))
-        return init_state_param_dict, init_state_parameter_values
+        return init_state_param_dict
 
     def _create_ode_function_generator(self, error_calculator, init_state_param_dict, t_param):
         # TODO potentially introduce a factory
@@ -154,3 +257,14 @@ class VarQte(ABC):
             )
 
         return ode_function_generator
+
+    def _validate_operator(self, operator):
+        if not isinstance(operator[-1], CircuitStateFn):
+            raise TypeError("Please provide the respective Ansatz as a CircuitStateFn.")
+        elif not isinstance(operator, ComposedOp) and not all(
+                isinstance(op, CircuitStateFn) for op in operator.oplist
+        ):
+            raise TypeError(
+                "Please provide the operator either as ComposedOp or as ListOp of a "
+                "CircuitStateFn potentially with a combo function."
+            )

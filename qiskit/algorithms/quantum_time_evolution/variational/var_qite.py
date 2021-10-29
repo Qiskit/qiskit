@@ -23,16 +23,10 @@ from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary \
     .imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.var_qte_ode_solver import (
-    VarQteOdeSolver,
-)
 from qiskit.opflow import (
     OperatorBase,
     Gradient,
     StateFn,
-    CircuitStateFn,
-    ComposedOp,
-    PauliExpectation,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.var_qte import VarQte
 from qiskit.providers import BaseBackend
@@ -101,66 +95,40 @@ class VarQite(VarQte, EvolutionBase):
             observable: Observable to be evolved. Not supported by VarQite.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
             hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to
-                                    certain values, including the t_param.
+                                    certain values, including the t_param. If no state parameters
+                                    are provided, they are generated randomly.
         Returns:
             StateFn (parameters are bound) which represents an approximation to the
             respective
             time evolution.
         """
-        if observable is not None:
-            raise TypeError(
-                "Observable argument provided. Observable evolution not supported by VarQite."
+        init_state_param_dict = self._create_init_state_param_dict(
+            hamiltonian_value_dict, list(initial_state.parameters)
+        )
+
+        ode_function_generator = self._create_imag_ode_function_generator(
+            init_state_param_dict, t_param
+        )
+        operator_coefficient = 1.0
+        return super().evolve_helper(operator_coefficient, ode_function_generator,
+                                     init_state_param_dict, hamiltonian,
+                                     time, initial_state, observable)
+
+    def _create_imag_ode_function_generator(self, init_state_param_dict, t_param):
+        if self._error_based_ode:
+            error_calculator = ImaginaryErrorCalculator(
+                self._h_squared,
+                self._operator,
+                self._h_squared_circ_sampler,
+                self._operator_circ_sampler,
+                init_state_param_dict,
+                self._backend,
             )
-
-        init_state_parameters = list(initial_state.parameters)
-        init_state_param_dict, init_state_parameter_values = self._create_init_state_param_dict(
-            hamiltonian_value_dict, init_state_parameters
-        )
-
-        # TODO bind Hamiltonian?
-
-        self._variational_principle._lazy_init(
-            hamiltonian, initial_state, init_state_param_dict, self._regularization
-        )
-        self.bind_initial_state(
-            StateFn(initial_state), init_state_param_dict
-        )  # in this case this is ansatz
-        self._operator = self._variational_principle._operator
-
-        if not isinstance(self._operator[-1], CircuitStateFn):
-            raise TypeError("Please provide the respective Ansatz as a CircuitStateFn.")
-        elif not isinstance(self._operator, ComposedOp) and not all(
-                isinstance(op, CircuitStateFn) for op in self._operator.oplist
-        ):
-            raise TypeError(
-                "Please provide the operator either as ComposedOp or as ListOp of a "
-                "CircuitStateFn potentially with a combo function."
+            return super()._create_ode_function_generator(
+                error_calculator, init_state_param_dict, t_param
             )
-
-        # Convert the operator that holds the Hamiltonian and ansatz into a NaturalGradient operator
-        self._operator_eval = PauliExpectation().convert(self._operator)
-
-        self._init_grad_objects()
-        error_calculator = ImaginaryErrorCalculator(
-            self._h_squared,
-            self._operator,
-            self._h_squared_circ_sampler,
-            self._operator_circ_sampler,
-            init_state_param_dict,
-            self._backend,
-        )
-
-        ode_function_generator = self._create_ode_function_generator(error_calculator,
-                                                                     init_state_param_dict, t_param)
-
-        ode_solver = VarQteOdeSolver(init_state_parameter_values, ode_function_generator)
-        # Run ODE Solver
-        parameter_values = ode_solver._run(time)
-        # return evolved
-        # initial state here is not with self because we need a parametrized state (input to this
-        # method)
-        param_dict_from_ode = dict(zip(init_state_parameters, parameter_values))
-        return initial_state.assign_parameters(param_dict_from_ode)
+        else:
+            return super()._create_ode_function_generator(None, init_state_param_dict, t_param)
 
     def gradient(
             self,

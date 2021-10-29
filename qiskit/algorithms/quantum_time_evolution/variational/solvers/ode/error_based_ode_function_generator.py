@@ -14,15 +14,13 @@ from typing import Union, List, Dict, Optional, Iterable
 import numpy as np
 from scipy.optimize import minimize
 
-from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors\
-    .error_calculator import (
+from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.error_calculator import (
     ErrorCalculator,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode\
-    .abstract_ode_function_generator import (
+from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
     AbstractOdeFunctionGenerator,
 )
 from qiskit.circuit import Parameter
@@ -43,7 +41,7 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
         regularization: Optional[str] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
         t_param: Parameter = None,
-        optimizer: str = "COBYLA"
+        optimizer: str = "COBYLA",
     ):
         super().__init__(
             param_dict,
@@ -78,6 +76,7 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
             )[0]
 
             return et_squared
+
         # Use the natural gradient result as initial point for least squares solver
         # print('initial natural gradient result', nat_grad_result)
 
