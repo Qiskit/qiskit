@@ -89,9 +89,9 @@ class Initialize(Instruction):
             if num_qubits == 0 or not num_qubits.is_integer():
                 raise QiskitError("Desired statevector length not a positive power of 2.")
 
-            # Check if normalize=True then normalize
+            # Check if normalize=True then normalizes input array
             if normalize is True:
-                params = self._normalize_real_list(params)
+                params = self._normalize(params)
 
             # Check if probabilities (amplitudes squared) sum to 1
             if not math.isclose(sum(np.absolute(params) ** 2), 1.0, abs_tol=_EPS):
@@ -179,15 +179,12 @@ class Initialize(Instruction):
 
         return initialize_circuit
 
-    def _normalize_real_list(self, state_list):
-        """Normalizes input list of real weights.
-        Returns list."""
-        if any((isinstance(x, complex) for x in state_list)):
-            raise QiskitError(
-                'This normalization function only takes real numbers.')
-        norm_factor = 1 / (math.sqrt(sum((x**2 for x in state_list))))
-        normalized_state_list = [norm_factor*x for x in state_list]
-        return normalized_state_list
+    def _normalize(self, state_array):
+        """Normalizes input list or ndarray of real or complex nums.
+        Returns ndarray."""
+        norm_factor = np.linalg.norm(state_array, 2) #l2 norm
+        normalized_state_array = np.array(state_array)/norm_factor
+        return normalized_state_array
 
     def gates_to_uncompute(self):
         """Call to create a circuit with gates that take the desired vector to zero.
