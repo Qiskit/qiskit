@@ -54,7 +54,8 @@ class SparsePauliOp(LinearOp):
             data (PauliList or SparsePauliOp or PauliTable or Pauli or list or str): Pauli list of terms.
                 A list of Pauli strings or a Pauli string is also allowed.
             coeffs (np.ndarray): complex coefficients for Pauli terms.
-                Note: if `data` is `SparsePauliOp`, `coeffs` is overwritten by `SparsePauliOp.coeffs`.
+                Note: if `data` is `SparsePauliOp` and `coeffs` is not None, `SparsePauliOp.coeffs`
+                is overwritten by `coeffs`.
             ignore_pauli_phase (bool): avoid the phase conversion if True,
                 otherwise, apply the phase conversion (Default: False)
             copy (bool): copy the input data if True, otherwise assign it directly (Default: True)
@@ -66,7 +67,8 @@ class SparsePauliOp(LinearOp):
             raise QiskitError("ignore_pauli_list=True is only valid with PauliList data")
 
         if isinstance(data, SparsePauliOp):
-            coeffs = data.coeffs
+            if coeffs is None:
+                coeffs = data.coeffs
             data = data._pauli_list
             # `SparsePauliOp._pauli_list` is already compatible with the internal ZX-phase convention.
             # See `BasePauli._from_array` for the internal ZX-phase convention.

@@ -73,24 +73,24 @@ class TestSparsePauliOpInit(QiskitTestCase):
 
     def test_pauli_list_init(self):
         """Test PauliList initialization."""
-        labels = ["I", "X", "Y", "Z", "iZ", "-iX"]
+        labels = ["I", "X", "Y", "-Z", "iZ", "-iX"]
         paulis = PauliList(labels)
         with self.subTest(msg="no coeffs"):
             spp_op = SparsePauliOp(paulis)
-            np.testing.assert_array_equal(spp_op.coeffs, [1, 1, 1, 1, 1j, -1j])
+            np.testing.assert_array_equal(spp_op.coeffs, [1, 1, 1, -1, 1j, -1j])
             paulis.phase = 0
             self.assertEqual(spp_op.paulis, paulis)
         paulis = PauliList(labels)
         with self.subTest(msg="with coeffs"):
             coeffs = [1, 2, 3, 4, 5, 6]
             spp_op = SparsePauliOp(paulis, coeffs)
-            np.testing.assert_array_equal(spp_op.coeffs, [1, 2, 3, 4, 5j, -6j])
+            np.testing.assert_array_equal(spp_op.coeffs, [1, 2, 3, -4, 5j, -6j])
             paulis.phase = 0
             self.assertEqual(spp_op.paulis, paulis)
 
     def test_sparse_pauli_op_init(self):
         """Test SparsePauliOp initialization."""
-        labels = ["I", "X", "Y", "Z", "iZ", "-iX"]
+        labels = ["I", "X", "Y", "-Z", "iZ", "-iX"]
         with self.subTest(msg="make SparsePauliOp from SparsePauliOp"):
             op = SparsePauliOp(labels)
             ref_op = op.copy()
@@ -98,20 +98,43 @@ class TestSparsePauliOpInit(QiskitTestCase):
             self.assertEqual(spp_op, ref_op)
             np.testing.assert_array_equal(ref_op.paulis.phase, np.zeros(ref_op.size))
             np.testing.assert_array_equal(spp_op.paulis.phase, np.zeros(spp_op.size))
-            # make sure the change of `op` does not propagate through to `spp_op`
+            # make sure the changes of `op` do not propagate through to `spp_op`
             op.paulis.z[:] = False
             op.coeffs *= 2
             self.assertNotEqual(spp_op, op)
+            self.assertEqual(spp_op, ref_op)
+        with self.subTest(msg="make SparsePauliOp from SparsePauliOp and ndarray"):
+            op = SparsePauliOp(labels)
+            coeffs = np.array([1, 2, 3, 4, 5, 6])
+            spp_op = SparsePauliOp(op, coeffs)
+            ref_op = SparsePauliOp(op.paulis.copy(), coeffs.copy())
+            self.assertEqual(spp_op, ref_op)
+            np.testing.assert_array_equal(ref_op.paulis.phase, np.zeros(ref_op.size))
+            np.testing.assert_array_equal(spp_op.paulis.phase, np.zeros(spp_op.size))
+            # make sure the changes of `op` and `coeffs` do not propagate through to `spp_op`
+            op.paulis.z[:] = False
+            coeffs *= 2
+            self.assertNotEqual(spp_op, op)
+            self.assertEqual(spp_op, ref_op)
+        with self.subTest(msg="make SparsePauliOp from PauliList"):
+            paulis = PauliList(labels)
+            spp_op = SparsePauliOp(paulis)
+            ref_op = SparsePauliOp(labels)
+            self.assertEqual(spp_op, ref_op)
+            np.testing.assert_array_equal(ref_op.paulis.phase, np.zeros(ref_op.size))
+            np.testing.assert_array_equal(spp_op.paulis.phase, np.zeros(spp_op.size))
+            # make sure the change of `paulis` does not propagate through to `spp_op`
+            paulis.z[:] = False
             self.assertEqual(spp_op, ref_op)
         with self.subTest(msg="make SparsePauliOp from PauliList and ndarray"):
             paulis = PauliList(labels)
             coeffs = np.array([1, 2, 3, 4, 5, 6])
             spp_op = SparsePauliOp(paulis, coeffs)
-            ref_op = SparsePauliOp(paulis.copy(), coeffs.copy())
+            ref_op = SparsePauliOp(labels, coeffs.copy())
             self.assertEqual(spp_op, ref_op)
             np.testing.assert_array_equal(ref_op.paulis.phase, np.zeros(ref_op.size))
             np.testing.assert_array_equal(spp_op.paulis.phase, np.zeros(spp_op.size))
-            # make sure the change of `paulis` and `coeffs` does not propagate through to `spp_op`
+            # make sure the changes of `paulis` and `coeffs` do not propagate through to `spp_op`
             paulis.z[:] = False
             coeffs[:] = 0
             self.assertEqual(spp_op, ref_op)
