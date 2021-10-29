@@ -24,7 +24,7 @@ from .product_formula import ProductFormula
 class SuzukiTrotter(ProductFormula):
     r"""The (higher order) Suzuki-Trotter product formula.
 
-    The Suzuki-Trotter formulas are improves the error of the Lie-Trotter approximation.
+    The Suzuki-Trotter formulas improve the error of the Lie-Trotter approximation.
     For example, the second order decomposition is
 
     .. math::
