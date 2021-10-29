@@ -88,8 +88,10 @@ class SparsePauliOp(LinearOp):
             self._coeffs = coeffs
         else:
             # move the phase of `pauli_list` to `self._coeffs`
-            self._pauli_list = PauliList.from_symplectic(pauli_list.z, pauli_list.x)
-            self._coeffs = np.asarray((-1j) ** pauli_list.phase * coeffs, dtype=complex)
+            phase = pauli_list.phase
+            self._coeffs = np.asarray((-1j) ** phase * coeffs, dtype=complex)
+            pauli_list._phase = np.mod(pauli_list._phase - phase, 4)
+            self._pauli_list = pauli_list
 
         if self._coeffs.shape != (self._pauli_list.size,):
             raise QiskitError(
@@ -259,7 +261,8 @@ class SparsePauliOp(LinearOp):
             q = np.logical_and(x1[:, np.newaxis], z2).reshape((-1, num_qubits))
         else:
             q = np.logical_and(z1[:, np.newaxis], x2).reshape((-1, num_qubits))
-        phase = np.mod(phase + 2 * np.sum(q, axis=1), 4)
+        # `np.mod` will be applied to `phase` in `SparsePauliOp.__init__`
+        phase = phase + 2 * np.sum(q, axis=1)
 
         x3 = np.logical_xor(x1[:, np.newaxis], x2).reshape((-1, num_qubits))
         z3 = np.logical_xor(z1[:, np.newaxis], z2).reshape((-1, num_qubits))
