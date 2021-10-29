@@ -54,7 +54,6 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
 
         # Define a set of initial parameters
         parameters = ansatz.ordered_parameters
-        param_dict = {}
         init_param_values = np.zeros(len(ansatz.ordered_parameters))
         for i in range(ansatz.num_qubits):
             init_param_values[-(ansatz.num_qubits + i + 1)] = np.pi / 2

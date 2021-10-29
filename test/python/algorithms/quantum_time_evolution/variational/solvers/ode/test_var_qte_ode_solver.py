@@ -17,10 +17,6 @@ import numpy as np
 from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.var_qte_ode_solver import (
     VarQteOdeSolver,
 )
-
-from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.imaginary_error_calculator import (
-    ImaginaryErrorCalculator,
-)
 from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.ode_function_generator import (
     OdeFunctionGenerator,
 )
@@ -35,17 +31,14 @@ from qiskit.opflow import (
     Y,
     I,
     Z,
-    StateFn,
     CircuitSampler,
-    ComposedOp,
-    PauliExpectation,
 )
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 
 class TestVarQteOdeSolver(QiskitAlgorithmsTestCase):
 
-    # TODO runs very slowly
+    # TODO runs slowly
     def test_run_no_backend(self):
 
         observable = SummedOp(
@@ -98,7 +91,19 @@ class TestVarQteOdeSolver(QiskitAlgorithmsTestCase):
 
         result = var_qte_ode_solver._run(time)
 
-        print(result)
+        expected_result = [
+            -0.33464405,
+            -0.79027874,
+            -0.02169548,
+            -0.00294898,
+            2.50380805,
+            1.14749586,
+            -0.00820108,
+            -0.00335803,
+        ]
+
+        # TODO check if values correct
+        np.testing.assert_array_almost_equal(result, expected_result)
 
 
 if __name__ == "__main__":

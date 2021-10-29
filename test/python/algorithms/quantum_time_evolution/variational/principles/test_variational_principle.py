@@ -53,55 +53,6 @@ class TestVariationalPrinciple(QiskitAlgorithmsTestCase):
         assert var_principle._metric_tensor is not None
         assert var_principle._evolution_grad is not None
 
-    def test_op_real_part(self):
-        observable = SummedOp(
-            [
-                0.2252j * (I ^ I),
-                0.5716 * (Z ^ Z),
-                0.3435 * (I ^ Z),
-                -0.4347 * (Z ^ I),
-                0.091 * (Y ^ Y),
-                0.091 * (X ^ X),
-            ]
-        )
-
-        real_part = ImaginaryMcLachlanVariationalPrinciple.op_real_part(observable).reduce()
-
-        expected_real_part = SummedOp(
-            [
-                0.5716 * (Z ^ Z),
-                0.3435 * (I ^ Z),
-                -0.4347 * (Z ^ I),
-                0.091 * (Y ^ Y),
-                0.091 * (X ^ X),
-            ]
-        )
-
-        np.testing.assert_equal(real_part.eval(), expected_real_part.eval())
-
-    def test_op_imag_part(self):
-        observable = SummedOp(
-            [
-                0.2252j * (I ^ I),
-                0.5716 * (Z ^ Z),
-                0.3435 * (I ^ Z),
-                -0.4347 * (Z ^ I),
-                0.091j * (Y ^ Y),
-                0.091 * (X ^ X),
-            ]
-        )
-
-        imag_part = ImaginaryMcLachlanVariationalPrinciple.op_imag_part(observable).reduce()
-
-        expected_imag_part = SummedOp(
-            [
-                0.2252 * (I ^ I),
-                0.091 * (Y ^ Y),
-            ]
-        )
-
-        np.testing.assert_equal(imag_part.eval(), expected_imag_part.eval())
-
 
 if __name__ == "__main__":
     unittest.main()

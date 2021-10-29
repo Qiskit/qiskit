@@ -106,7 +106,9 @@ class TestNaturalGradientCalculator(QiskitAlgorithmsTestCase):
             -0.04812563,
             -0.09106516,
         ]
-        natural_grad = calculate(-var_principle._operator, parameters, regularization=regularization)
+        natural_grad = calculate(
+            -var_principle._operator, parameters, regularization=regularization
+        )
         natural_grad_bound = natural_grad.assign_parameters(params_dict).eval()
 
         np.testing.assert_array_almost_equal(natural_grad_bound, correct_values)
