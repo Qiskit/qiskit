@@ -339,10 +339,10 @@ class DAGCircuit:
 
         if non_removable_clbits:
             raise DAGCircuitError("some clbits are currently in registers: %s" % non_removable_clbits)
-            
-        for clbit in clbits:
-            if not self._is_wire_idle(clbit):
-                raise DAGCircuitError("cannot remove in-use clbit %s" %clbit)
+        
+        busy_clbits = {bit for bit in clbits if not self._is_wire_idle(bit)}
+        if busy_clbits:
+            raise DAGCircuitError("cannot remove in-use clbits %s" %busy_clbits)
 
         for clbit in clbits:
             self._remove_idle_wire(clbit)
