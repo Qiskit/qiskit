@@ -26,7 +26,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.library import XGate, QFT, QAOAAnsatz, PauliEvolutionGate
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
-from qiskit.circuit.synthesis import LieTrotter
+from qiskit.synthesis import LieTrotter
 from qiskit.extensions import UnitaryGate
 from qiskit.opflow import I, X, Y, Z
 from qiskit.test import QiskitTestCase

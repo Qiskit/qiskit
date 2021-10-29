@@ -17,7 +17,7 @@ from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.circuit.synthesis import LieTrotter, SuzukiTrotter, MatrixExponential
+from qiskit.synthesis import LieTrotter, SuzukiTrotter, MatrixExponential
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.opflow import I, X, Y, Z, PauliSumOp

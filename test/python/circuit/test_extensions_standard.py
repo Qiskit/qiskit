@@ -1367,7 +1367,7 @@ class TestStandardMethods(QiskitTestCase):
 
     def test_to_matrix(self):
         """test gates implementing to_matrix generate matrix which matches definition."""
-        from qiskit.circuit.library.evolution import PauliEvolutionGate
+        from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
         from qiskit.circuit.library.generalized_gates.pauli import PauliGate
         from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
 
@@ -1416,7 +1416,7 @@ class TestStandardMethods(QiskitTestCase):
         from qiskit.quantum_info import Operator
         from qiskit.circuit.library.standard_gates.ms import MSGate
         from qiskit.circuit.library.generalized_gates.pauli import PauliGate
-        from qiskit.circuit.library.evolution import PauliEvolutionGate
+        from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
         from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
 
         params = [0.1 * i for i in range(1, 11)]

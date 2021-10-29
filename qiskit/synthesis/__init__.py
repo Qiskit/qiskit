@@ -12,10 +12,10 @@
 
 """
 ===================================================
-Circuit Synthesis (:mod:`qiskit.circuit.synthesis`)
+Circuit Synthesis (:mod:`qiskit.synthesis`)
 ===================================================
 
-.. currentmodule:: qiskit.circuit.synthesis
+.. currentmodule:: qiskit.synthesis
 
 Evolution Synthesis
 ===================

@@ -18,7 +18,7 @@ from typing import Optional, Union, cast
 import numpy as np
 
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.circuit.synthesis import LieTrotter, SuzukiTrotter
+from qiskit.synthesis import LieTrotter, SuzukiTrotter
 from qiskit.opflow.converters.pauli_basis_change import PauliBasisChange
 from qiskit.opflow.evolutions.evolution_base import EvolutionBase
 from qiskit.opflow.evolutions.evolved_op import EvolvedOp

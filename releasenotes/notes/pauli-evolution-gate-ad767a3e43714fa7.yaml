@@ -3,20 +3,20 @@ features:
   - |
     Add a :class:`~qiskit.circuit.library.PauliEvolutionGate` to the circuit library which
     defines a gate performing time evolution of (sums of) Paulis. The synthesis of this gate
-    is performed by :class:`~qiskit.circuit.synthesis.EvolutionSynthesis` and is decoupled
+    is performed by :class:`~qiskit.synthesis.EvolutionSynthesis` and is decoupled
     from the gate itself. Currently available synthesis methods are:
 
-    * :class:`~qiskit.circuit.synthesis.LieTrotter`: first order Trotterization
-    * :class:`~qiskit.circuit.synthesis.SuzukiTrotter`: higher order Trotterization
-    * :class:`~qiskit.circuit.synthesis.MatrixExponentiation`: exact, matrix-based evolution
+    * :class:`~qiskit.synthesis.LieTrotter`: first order Trotterization
+    * :class:`~qiskit.synthesis.SuzukiTrotter`: higher order Trotterization
+    * :class:`~qiskit.synthesis.MatrixExponentiation`: exact, matrix-based evolution
 
     For example:
 
     .. code-block::
 
       from qiskit.circuit import QuantumCircuit
-      from qiskit.circuit.library import EvolutionGate
-      from qiskit.circuit.synthesis import SuzukiTrotter
+      from qiskit.circuit.library import PauliEvolutionGate
+      from qiskit.synthesis import SuzukiTrotter
       from qiskit.opflow import PauliSumOp
 
       operator = PauliSumOp.from_list([
@@ -25,7 +25,7 @@ features:
       time = 0.12  # evolution time
       synth = SuzukiTrotter(order=4, reps=2)
 
-      evo = EvolutionGate(operator, time=time, synthesis=synth)
+      evo = PauliEvolutionGate(operator, time=time, synthesis=synth)
 
       circuit = QuantumCircuit(3)
       circuit.append(evo, range(3))

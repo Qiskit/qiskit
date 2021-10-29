@@ -16,7 +16,7 @@ from typing import Union, Optional
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.circuit.synthesis import EvolutionSynthesis, LieTrotter
+from qiskit.synthesis import EvolutionSynthesis, LieTrotter
 from qiskit.quantum_info import Pauli, SparsePauliOp
 
 
@@ -30,6 +30,9 @@ class PauliEvolutionGate(Gate):
 
         U(t) = e^{-itH}.
 
+    This gate serves as a high-level definition of the evolution and can be synthesized into
+    a circuit using different algorithms.
+
     The evolution gates are related to the Pauli rotation gates by a factor of 2. For example
     the time evolution of the Pauli :math:`X` operator is connected to the Pauli :math:`X` rotation
     :math:`R_X` by
@@ -38,8 +41,11 @@ class PauliEvolutionGate(Gate):
 
         U(t) = e^{-itX} = R_X(2t).
 
-    This gate serves as definition of the evolution and can be synthesized into a circuit using
-    different algorithms.
+    **References:**
+
+    [1] G. Li et al. Paulihedral: A Generalized Block-Wise Compiler Optimization
+    Framework For Quantum Simulation Kernels (2021).
+    [`arXiv:2109.03371 <https://arxiv.org/abs/2109.03371>`_]
     """
 
     def __init__(
