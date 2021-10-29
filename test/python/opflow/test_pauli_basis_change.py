@@ -121,8 +121,8 @@ class TestPauliCoB(QiskitOpflowTestCase):
         cob = converter.convert(grouped_pauli)
         np.testing.assert_array_almost_equal(pauli.to_matrix(), cob.to_matrix())
 
-        origin_x = reduce(np.logical_or, pauli.primitive.table.X)
-        origin_z = reduce(np.logical_or, pauli.primitive.table.Z)
+        origin_x = reduce(np.logical_or, pauli.primitive.paulis.x)
+        origin_z = reduce(np.logical_or, pauli.primitive.paulis.z)
         origin_pauli = Pauli((origin_z, origin_x))
         inst, dest = converter.get_cob_circuit(origin_pauli)
         self.assertEqual(str(dest), "ZZ")
