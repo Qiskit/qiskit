@@ -39,6 +39,10 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
         self.assertFalse(dag.clbits)
 
     def test_register_kept_if_measured_clbit_busy(self):
+        """
+        A register is kept if the measure destination bit is still
+        busy after measure removal.
+        """
         c0 = ClassicalRegister(1)
         qc = QuantumCircuit(QuantumRegister(1), c0)
 
@@ -55,6 +59,10 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
         self.assertSetEqual(set(dag.clbits), set(c0))
 
     def test_multi_bit_register_kept_if_not_measured_clbit_busy(self):
+        """
+        A multi-bit register is kept if it contains a busy bit even if
+        the measure destination bit itself is idle.
+        """
         c0 = ClassicalRegister(2)
         qc = QuantumCircuit(QuantumRegister(1), c0)
 
@@ -110,7 +118,6 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
 
     def test_final_measures_share_dest(self):
         """Multiple final measurements use the same clbit."""
-
         def expected_dag():
             qc = QuantumCircuit(QuantumRegister(2, "q0"))
             return circuit_to_dag(qc)
@@ -129,7 +136,6 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
 
     def test_remove_chained_final_measurements(self):
         """Remove successive final measurements."""
-
         def expected_dag():
             q0 = QuantumRegister(1, "q0")
             q1 = QuantumRegister(1, "q1")
@@ -183,7 +189,6 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
 
     def test_final_barriers_and_measures_complex(self):
         """Test complex final barrier and measure removal."""
-
         def expected_dag():
             q0 = QuantumRegister(5, "q0")
             c1 = ClassicalRegister(1, "c1")
