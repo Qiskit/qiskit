@@ -332,14 +332,14 @@ class DAGCircuit:
         """
         if any(not isinstance(clbit, Clbit) for clbit in clbits):
             raise DAGCircuitError("not a Clbit instance.")
-        
+
         # ignore clbits not in circuit
         clbits = set(clbits).intersection(self.clbits)
 
         # ignore clbits referenced by registers
         register_clbits = {bit for creg in self.cregs.values() for bit in creg}
         clbits -= register_clbits
-        
+
         # ignore clbits that are busy
         busy_clbits = {bit for bit in clbits if not self._is_wire_idle(bit)}
         clbits -= busy_clbits
@@ -369,7 +369,7 @@ class DAGCircuit:
 
         if not cregs:
             return set()
-        
+
         cregs_to_remove = set()
         clbits_to_remove = set()
         clbits_to_keep = set()

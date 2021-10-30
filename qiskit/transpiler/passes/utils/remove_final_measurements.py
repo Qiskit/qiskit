@@ -49,7 +49,9 @@ class RemoveFinalMeasurements(TransformationPass):
                 # how many times we still need to encounter each barrier
                 # via a child node.
                 if node not in barrier_encounters_remaining:
-                    barrier_encounters_remaining[node] = sum(1 for _ in dag.quantum_successors(node))
+                    barrier_encounters_remaining[node] = sum(
+                        1 for _ in dag.quantum_successors(node)
+                    )
                 if barrier_encounters_remaining[node] - 1 > 0:
                     # We've encountered the barrier, but not (yet) via all children.
                     # Record the encounter, and bail!

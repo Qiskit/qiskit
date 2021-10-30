@@ -51,7 +51,7 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
         dag = circuit_to_dag(qc)
         RemoveFinalMeasurements().run(dag)
 
-        self.assertSetEqual(set(dag.cregs.values()), { c0 })
+        self.assertSetEqual(set(dag.cregs.values()), {c0})
         self.assertSetEqual(set(dag.clbits), set(c0))
 
     def test_multi_bit_register_kept_if_not_measured_clbit_busy(self):
@@ -68,7 +68,7 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
         RemoveFinalMeasurements().run(dag)
 
         # c0 should not be removed because it has busy bit c0[0]
-        self.assertSetEqual(set(dag.cregs.values()), { c0 })
+        self.assertSetEqual(set(dag.cregs.values()), {c0})
 
         # note: c0[1] should not be removed even though it is now idle
         # because it is referenced by creg c0.
@@ -110,6 +110,7 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
 
     def test_final_measures_share_dest(self):
         """Multiple final measurements use the same clbit."""
+
         def expected_dag():
             qc = QuantumCircuit(QuantumRegister(2, "q0"))
             return circuit_to_dag(qc)
@@ -128,6 +129,7 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
 
     def test_remove_chained_final_measurements(self):
         """Remove successive final measurements."""
+
         def expected_dag():
             q0 = QuantumRegister(1, "q0")
             q1 = QuantumRegister(1, "q1")
@@ -181,13 +183,14 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
 
     def test_final_barriers_and_measures_complex(self):
         """Test complex final barrier and measure removal."""
+
         def expected_dag():
             q0 = QuantumRegister(5, "q0")
             c1 = ClassicalRegister(1, "c1")
             qc = QuantumCircuit(q0, c1)
             qc.h(q0[0])
             return circuit_to_dag(qc)
-        
+
         q0 = QuantumRegister(5, "q0")
         c0 = ClassicalRegister(1, "c0")
         c1 = ClassicalRegister(1, "c1")
@@ -201,10 +204,11 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
         qc.measure_all()
         qc.barrier(q0[4])
 
-        dag = circuit_to_dag(qc)        
+        dag = circuit_to_dag(qc)
         RemoveFinalMeasurements().run(dag)
 
         self.assertEqual(dag, expected_dag())
+
 
 if __name__ == "__main__":
     unittest.main()
