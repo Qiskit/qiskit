@@ -101,10 +101,7 @@ class RemoveFinalMeasurements(TransformationPass):
         # remove cregs from DAG
         dag.remove_cregs(*cregs_to_remove)
 
-        # remove any unused individual clbits
-        clbits_in_regs = {bit for creg in dag.cregs.values() for bit in creg}
-        clbits_to_remove = clbits_with_final_measures - clbits_in_regs
-        if clbits_to_remove:
-            dag.remove_idle_clbits(*clbits_to_remove)
+        # remove any remaining unused individual clbits
+        dag.remove_clbits(*clbits_with_final_measures)
 
         return dag

@@ -319,14 +319,16 @@ class DAGCircuit:
         else:
             raise DAGCircuitError(f"duplicate wire {wire}")
 
-    def remove_idle_clbits(self, *clbits):
+    def remove_clbits(self, *clbits):
         """
-        Remove idle classical bits. The bits must be idle and must not be referenced
-        by a classical register.
+        Remove classical bits from the circuit. Only the bits that are idle and not
+        referenced by any classical registers will be removed. Other bits are ignored.
 
         Raises:
-            DAGCircuitError: a clbit is not a Clbit, is currently referenced by
-            a register, or is not idle.
+            DAGCircuitError: a clbit is not a Clbit.
+
+        Returns:
+            set(Clbit): The set of Clbits that were removed.
         """
         if any(not isinstance(clbit, Clbit) for clbit in clbits):
             raise DAGCircuitError("not a Clbit instance.")
@@ -334,19 +336,19 @@ class DAGCircuit:
         # ignore clbits not in circuit
         clbits = set(clbits).intersection(self.clbits)
 
-        register_clbits = set(bit for creg in self.cregs.values() for bit in creg)
-        non_removable_clbits = clbits.intersection(register_clbits)
-
-        if non_removable_clbits:
-            raise DAGCircuitError("some clbits are currently in registers: %s" % non_removable_clbits)
+        # ignore clbits referenced by registers
+        register_clbits = {bit for creg in self.cregs.values() for bit in creg}
+        clbits -= register_clbits
         
+        # ignore clbits that are busy
         busy_clbits = {bit for bit in clbits if not self._is_wire_idle(bit)}
-        if busy_clbits:
-            raise DAGCircuitError("cannot remove in-use clbits %s" %busy_clbits)
+        clbits -= busy_clbits
 
         for clbit in clbits:
             self._remove_idle_wire(clbit)
             self.clbits.remove(clbit)
+
+        return clbits
 
     def remove_cregs(self, *cregs):
         """
