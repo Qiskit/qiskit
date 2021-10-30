@@ -118,6 +118,7 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
 
     def test_final_measures_share_dest(self):
         """Multiple final measurements use the same clbit."""
+
         def expected_dag():
             qc = QuantumCircuit(QuantumRegister(2, "q0"))
             return circuit_to_dag(qc)
@@ -136,6 +137,7 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
 
     def test_remove_chained_final_measurements(self):
         """Remove successive final measurements."""
+
         def expected_dag():
             q0 = QuantumRegister(1, "q0")
             q1 = QuantumRegister(1, "q1")
@@ -189,6 +191,7 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
 
     def test_final_barriers_and_measures_complex(self):
         """Test complex final barrier and measure removal."""
+
         def expected_dag():
             q0 = QuantumRegister(5, "q0")
             c1 = ClassicalRegister(1, "c1")
