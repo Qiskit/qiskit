@@ -2209,19 +2209,23 @@ class QuantumCircuit:
         remove_final_meas = RemoveFinalMeasurements()
         new_dag = remove_final_meas.run(dag)
 
-        # Filter only cregs still in new DAG, preserving original circuit order
-        new_cregs = [creg for creg in circ.cregs if creg in new_dag.cregs.values()]
+        # Filter only cregs/clbits still in new DAG, preserving original circuit order
+        circ.cregs = [creg for creg in circ.cregs if creg in new_dag.cregs.values()]
+        circ._clbits = [clbit for clbit in circ._clbits if clbit in new_dag.clbits]
 
-        # Clear everything that'll be replaced by data from DAG
+        creg_bits = {clbit for creg in circ.cregs for clbit in creg}
+
+        # Recalculate clbit indicies
+        circ._clbit_indices = {
+            clbit : BitLocations(
+                i, 
+                (reg for reg in circ._clbit_indices[clbit].registers if reg in circ.cregs)
+            ) for i, clbit in enumerate(circ.clbits) if clbit in creg_bits
+        }
+
+        # Clear instruction info
         circ.data.clear()
         circ._parameter_table.clear()
-        circ.cregs.clear()
-        circ._clbits.clear()
-        circ._clbit_indices.clear()
-
-        # Add filtered cregs and their clbits from DAG (handled by add_register)
-        for creg in new_cregs:
-            self.add_register(creg)
 
         # Set circ instructions to match the new DAG
         for node in new_dag.topological_op_nodes():
