@@ -88,7 +88,7 @@ class Gate(Instruction, Operation):
             decomposition_power.append(pow(element, exponent))
         # Then reconstruct the resulting gate.
         unitary_power = unitary @ np.diag(decomposition_power) @ unitary.conj().T
-        return UnitaryGate(unitary_power, label=f"{self._name}^{exponent}")
+        return UnitaryGate(unitary_power, label=f"{self.name}^{exponent}")
 
     def _return_repeat(self, exponent: float) -> "Gate":
         return Gate(
