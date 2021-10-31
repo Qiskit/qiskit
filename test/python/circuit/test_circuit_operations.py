@@ -564,7 +564,7 @@ class TestCircuitOperations(QiskitTestCase):
         circuit.measure(0, 0)
         circuit.measure(1, 1)
         circuit.remove_final_measurements(inplace=True)
-        
+
         self.assertEqual(circuit.cregs, [])
         self.assertEqual(circuit.clbits, [])
 
