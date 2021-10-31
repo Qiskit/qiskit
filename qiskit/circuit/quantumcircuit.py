@@ -2218,7 +2218,7 @@ class QuantumCircuit:
         # Recalculate clbit indicies
         circ._clbit_indices = {
             clbit: BitLocations(
-                i, (reg for reg in circ._clbit_indices[clbit].registers if reg in circ.cregs)
+                i, [reg for reg in circ._clbit_indices[clbit].registers if reg[0] in circ.cregs]
             )
             for i, clbit in enumerate(circ.clbits)
             if clbit in creg_bits
