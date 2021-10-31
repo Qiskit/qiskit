@@ -1,3 +1,17 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2021.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+# pylint: disable=invalid-name
+
+"""Data generator for readout mitigation tests"""
 from numpy import array
 from qiskit import QiskitError
 try:
@@ -28,6 +42,7 @@ def execute_circs(qc_list, sim, noise_model=None):
     ).result()
 
 def generate_mitigation_matrices(num_qubits, sim, noise_model, method='tensored'):
+    """Create the mitigation matrices via simulation running"""
     qr = QuantumRegister(num_qubits)
     qubit_list = range(num_qubits)
     meas_calibs, state_labels = mit.complete_meas_cal(
@@ -57,15 +72,18 @@ def generate_mitigation_matrices(num_qubits, sim, noise_model, method='tensored'
     return None
 
 def hex_to_bin(hex_s, length):
+    """Transforms a hexadecimal number to binary of specific length"""
     j = int(hex_s, 16)
     return bin(j)[2:].zfill(length)
 
 def get_counts(result):
+    """Retreive counts data from result in a binary key format"""
     num_qubits = result.header.n_qubits
     counts_dict = result.data.counts
     return {hex_to_bin(key, num_qubits): val for key, val in counts_dict.items()}
 
 def generate_data(num_qubits, circuits, noise_model = None):
+    """Generate data of a full experiment (matrices + circuit results for specific error model)"""
     sim = Aer.get_backend("aer_simulator")
     tensor_method_matrices = generate_mitigation_matrices(num_qubits, sim, noise_model, method='tensored')
     complete_method_matrix = generate_mitigation_matrices(num_qubits, sim,
@@ -101,6 +119,7 @@ def readout_errors_1(num_qubits):
     return noise_model
 
 def ghz_circuit(num_qubits):
+    """Create a standard ghz circuit"""
     qc = QuantumCircuit(num_qubits, name = "ghz_{}_qubits".format(num_qubits))
     qc.h(0)
     for i in range(1, num_qubits):
@@ -109,12 +128,14 @@ def ghz_circuit(num_qubits):
     return qc
 
 def first_qubit_h(num_qubits):
+    """Creates a circuit with one H gate for the first qubit"""
     qc = QuantumCircuit(num_qubits, name="first_qubit_h_{}_qubits".format(num_qubits))
     qc.h(0)
     qc.measure_all()
     return qc
 
 def test_1():
+    """3-qubit with standard readout error on ghz and one-H circuits"""
     num_qubits = 3
     noise_model = readout_errors_1(num_qubits)
     circuits = [ghz_circuit(num_qubits), first_qubit_h(num_qubits)]
@@ -122,6 +143,7 @@ def test_1():
     return data
 
 def generate_all_test_data():
+    """Generate the data for all the test cases"""
     test_data = {}
     test_data['test_1'] = test_1()
     print(test_data)

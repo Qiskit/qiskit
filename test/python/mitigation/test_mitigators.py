@@ -128,6 +128,7 @@ class TestReadoutMitigation(QiskitTestCase):
                 self.assertTrue(mitigated_error < 0.001,
                                 "Mitigator {} did not correctly handle qubit order 1, 0, 2".format(mitigator))
     def test_from_backend(self):
+        """Test whether a tensored mitigator can be created directly from backend properties"""
         backend = FakeYorktown()
         num_qubits = len(backend.properties().qubits)
         rng = np.random.default_rng(42)
