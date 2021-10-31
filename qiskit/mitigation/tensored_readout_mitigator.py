@@ -20,7 +20,7 @@ import numpy as np
 
 from qiskit.result import Counts, marginal_counts, QuasiDistribution
 from .base_readout_mitigator import BaseReadoutMitigator
-from .utils import counts_probability_vector
+from .utils import counts_probability_vector, stddev, expval_with_stddev, z_diagonal, str2diag
 
 logger = logging.getLogger(__name__)
 
@@ -103,9 +103,9 @@ class TensoredReadoutMitigator(BaseReadoutMitigator):
 
         # Get operator coeffs
         if diagonal is None:
-            diagonal = self._z_diagonal(2 ** num_qubits)
+            diagonal = z_diagonal(2 ** num_qubits)
         else:
-            diagonal = self._str2diag(diagonal)
+            diagonal = str2diag(diagonal)
 
         # Apply transpose of mitigation matrix
         coeffs = np.reshape(diagonal, num_qubits * [2])
@@ -115,7 +115,7 @@ class TensoredReadoutMitigator(BaseReadoutMitigator):
         einsum_args += [list(range(num_qubits, 2 * num_qubits))]
         coeffs = np.einsum(*einsum_args).ravel()
 
-        return self._expval_with_stddev(coeffs, probs_vec, shots)
+        return expval_with_stddev(coeffs, probs_vec, shots)
 
     def quasi_probabilities(
         self,
@@ -159,7 +159,7 @@ class TensoredReadoutMitigator(BaseReadoutMitigator):
         for index, _ in enumerate(probs_vec):
             probs_dict[index] = probs_vec[index]
 
-        return QuasiDistribution(probs_dict), self._stddev(QuasiDistribution(probs_dict).nearest_probability_distribution(), shots)
+        return QuasiDistribution(probs_dict), stddev(QuasiDistribution(probs_dict).nearest_probability_distribution(), shots)
 
     def mitigation_matrix(self, qubits: List[int] = None) -> np.ndarray:
         r"""Return the measurement mitigation matrix for the specified qubits.

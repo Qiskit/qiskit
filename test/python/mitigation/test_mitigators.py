@@ -149,6 +149,4 @@ class TestReadoutMitigation(QiskitTestCase):
         self.assertTrue(matrix_equal(TRM_from_backend.assignment_matrix(), TRM_from_matrices.assignment_matrix()))
 
 if __name__ == "__main__":
-    #unittest.main()
-    t = TestReadoutMitigation()
-    t.test_from_backend()
+    unittest.main()
