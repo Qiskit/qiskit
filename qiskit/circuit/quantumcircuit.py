@@ -2184,17 +2184,18 @@ class QuantumCircuit:
             return None
 
     def remove_final_measurements(self, inplace: bool = True) -> Optional["QuantumCircuit"]:
-        """Removes final measurement on all qubits if they are present.
-        Deletes the ClassicalRegister that was used to store the values from these measurements
-        if it is idle.
+        """Removes final measurements and barriers on all qubits if they are present.
+        Deletes the classical registers that were used to store the values from these measurements
+        they become idle as a result of this operation.
 
-        Returns a new circuit without measurements if `inplace=False`.
+        Measurements and barriers are considered final if they are
+        followed by no other operations (aside from other measurements or barriers.)
 
         Args:
             inplace (bool): All measurements removed inplace or return new circuit.
 
         Returns:
-            QuantumCircuit: Returns circuit with measurements removed when `inplace = False`.
+            QuantumCircuit: Returns the resulting circuit when `inplace = False`, else None.
         """
         # pylint: disable=cyclic-import
         from qiskit.transpiler.passes import RemoveFinalMeasurements

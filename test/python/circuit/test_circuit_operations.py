@@ -556,8 +556,7 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(circuit.clbits, [])
 
     def test_remove_final_measurements_7089(self):
-        """
-        Test remove_final_measurements removes resulting unused registers
+        """Test remove_final_measurements removes resulting unused registers
         even if not all bits were measured into.
         https://github.com/Qiskit/qiskit-terra/issues/7089.
         """
