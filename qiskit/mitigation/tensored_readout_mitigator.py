@@ -14,15 +14,12 @@ Readout mitigator class based on the 1-qubit tensored mitigation method
 """
 
 
-import logging
 from typing import Optional, List, Tuple, Iterable, Callable, Union
 import numpy as np
 
-from qiskit.result import Counts, marginal_counts, QuasiDistribution
+from qiskit.result import Counts, QuasiDistribution
 from .base_readout_mitigator import BaseReadoutMitigator
 from .utils import counts_probability_vector, stddev, expval_with_stddev, z_diagonal, str2diag
-
-logger = logging.getLogger(__name__)
 
 
 class TensoredReadoutMitigator(BaseReadoutMitigator):
@@ -100,21 +97,21 @@ class TensoredReadoutMitigator(BaseReadoutMitigator):
 
         # Get qubit mitigation matrix and mitigate probs
         if qubits is None:
-            qubits = range(num_qubits)
+            qubits = range(self._num_qubits)
         ainvs = self._mitigation_mats[list(qubits)]
 
         # Get operator coeffs
         if diagonal is None:
-            diagonal = z_diagonal(2 ** num_qubits)
+            diagonal = z_diagonal(2 ** self._num_qubits)
         else:
             diagonal = str2diag(diagonal)
 
         # Apply transpose of mitigation matrix
-        coeffs = np.reshape(diagonal, num_qubits * [2])
-        einsum_args = [coeffs, list(range(num_qubits))]
+        coeffs = np.reshape(diagonal, self._num_qubits * [2])
+        einsum_args = [coeffs, list(range(self._num_qubits))]
         for i, ainv in enumerate(reversed(ainvs)):
-            einsum_args += [ainv.T, [num_qubits + i, i]]
-        einsum_args += [list(range(num_qubits, 2 * num_qubits))]
+            einsum_args += [ainv.T, [self._num_qubits + i, i]]
+        einsum_args += [list(range(self._num_qubits, 2 * self._num_qubits))]
         coeffs = np.einsum(*einsum_args).ravel()
 
         return expval_with_stddev(coeffs, probs_vec, shots)

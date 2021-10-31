@@ -114,7 +114,7 @@ def generate_data(num_qubits, circuits, noise_model=None):
 
 
 def readout_errors_1(num_qubits):
-    # Create readout errors
+    """Create readout errors"""
     readout_errors = []
     for i in range(num_qubits):
         p_error1 = (i + 1) * 0.002
@@ -158,9 +158,9 @@ def test_1():
 
 def generate_all_test_data():
     """Generate the data for all the test cases"""
-    test_data = {}
-    test_data["test_1"] = test_1()
-    print(test_data)
+    test_data_gen = {}
+    test_data_gen["test_1"] = test_1()
+    print(test_data_gen)
 
 
 if __name__ == "__main__":

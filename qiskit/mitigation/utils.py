@@ -13,11 +13,14 @@
 Readout mitigation data handling utils
 """
 
+import logging
 from typing import Optional, List, Dict, Tuple
 import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.result import Counts, marginal_counts
+
+logger = logging.getLogger(__name__)
 
 
 def z_diagonal(dim, dtype=float):
@@ -51,8 +54,8 @@ def expval_with_stddev(coeffs: np.ndarray, probs: np.ndarray, shots: int) -> Tup
             "(%f). Setting standard deviation of result to 0.",
             variance,
         )
-    stddev = np.sqrt(variance) if variance > 0 else 0.0
-    return [expval, stddev]
+    calc_stddev = np.sqrt(variance) if variance > 0 else 0.0
+    return [expval, calc_stddev]
 
 
 def stddev(probs, shots):

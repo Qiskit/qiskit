@@ -13,15 +13,12 @@
 Readout mitigator class based on the A-matrix inversion method
 """
 
-import logging
 from typing import Optional, List, Tuple, Iterable, Callable, Union
 import numpy as np
 
-from qiskit.result import Counts, marginal_counts, QuasiDistribution
+from qiskit.result import Counts, QuasiDistribution
 from .base_readout_mitigator import BaseReadoutMitigator
 from .utils import counts_probability_vector, stddev, expval_with_stddev, z_diagonal, str2diag
-
-logger = logging.getLogger(__name__)
 
 
 class CompleteReadoutMitigator(BaseReadoutMitigator):
