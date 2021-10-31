@@ -18,15 +18,13 @@ from qiskit import QiskitError
 try:
     from qiskit import Aer
     from qiskit.providers.aer import noise
+    HAS_AER = True
 except ImportError:
-    raise QiskitError("Unable to generate mitigation data without Aer simulator")
+    HAS_AER = False
 
 # For simulation
 import qiskit.utils.mitigation as mit
 from qiskit import QuantumRegister, QuantumCircuit
-
-from qiskit.result import Result
-from qiskit.test import QiskitTestCase
 
 SEED = 100
 SHOTS = 10000
@@ -165,6 +163,8 @@ def generate_all_test_data():
 
 
 if __name__ == "__main__":
+    if not HAS_AER:
+        raise QiskitError("Unable to generate mitigation data without Aer simulator")
     generate_all_test_data()
 
 test_data = {
