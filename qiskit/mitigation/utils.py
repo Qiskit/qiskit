@@ -19,6 +19,7 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.result import Counts, marginal_counts
 
+
 def z_diagonal(dim, dtype=float):
     r"""Return the diagonal for the operator :math:`Z^\otimes n`"""
     parity = np.zeros(dim, dtype=dtype)
@@ -26,9 +27,8 @@ def z_diagonal(dim, dtype=float):
         parity[i] = bin(i)[2:].count("1")
     return (-1) ** np.mod(parity, 2)
 
-def expval_with_stddev(
-    coeffs: np.ndarray, probs: np.ndarray, shots: int
-) -> Tuple[float, float]:
+
+def expval_with_stddev(coeffs: np.ndarray, probs: np.ndarray, shots: int) -> Tuple[float, float]:
     """Compute expectation value and standard deviation.
     Args:
         coeffs: array of diagonal operator coefficients.
@@ -54,6 +54,7 @@ def expval_with_stddev(
     stddev = np.sqrt(variance) if variance > 0 else 0.0
     return [expval, stddev]
 
+
 def stddev(probs, shots):
     """Calculate stddev dict"""
     ret = {}
@@ -61,6 +62,7 @@ def stddev(probs, shots):
         std_err = np.sqrt(prob * (1 - prob) / shots)
         ret[key] = std_err
     return ret
+
 
 def str2diag(string):
     chars = {
@@ -76,12 +78,14 @@ def str2diag(string):
         ret = np.kron(chars[i], ret)
     return ret
 
+
 def counts_probability_vector(
-        counts: Counts,
-        qubits: Optional[List[int]] = None,
-        clbits: Optional[List[int]] = None,
-        num_qubits: Optional[int] = None,
-        return_shots: Optional[bool] = False) -> np.ndarray:
+    counts: Counts,
+    qubits: Optional[List[int]] = None,
+    clbits: Optional[List[int]] = None,
+    num_qubits: Optional[int] = None,
+    return_shots: Optional[bool] = False,
+) -> np.ndarray:
     """Compute mitigated expectation value.
 
     Args:
@@ -100,7 +104,9 @@ def counts_probability_vector(
     qubits_len = len(qubits) if not qubits is None else 0
     clbits_len = len(clbits) if not clbits is None else 0
     if clbits_len != 0 and qubits_len != clbits_len:
-        raise QiskitError("Num qubits ({}) does not match number of clbits ({}).".format(qubits_len, clbits_len))
+        raise QiskitError(
+            "Num qubits ({}) does not match number of clbits ({}).".format(qubits_len, clbits_len)
+        )
 
     # Marginalize counts
     if clbits is not None:
@@ -111,7 +117,7 @@ def counts_probability_vector(
         num_qubits = len(next(iter(counts)))
 
     # Get vector
-    vec = np.zeros(2**num_qubits, dtype=float)
+    vec = np.zeros(2 ** num_qubits, dtype=float)
     shots = 0
     for key, val in counts.items():
         shots += val
@@ -123,8 +129,7 @@ def counts_probability_vector(
         if len(qubits) != num_qubits:
             raise QiskitError("Num qubits does not match vector length.")
         axes = [num_qubits - 1 - i for i in reversed(np.argsort(qubits))]
-        vec = np.reshape(vec,
-                         num_qubits * [2]).transpose(axes).reshape(vec.shape)
+        vec = np.reshape(vec, num_qubits * [2]).transpose(axes).reshape(vec.shape)
     if return_shots:
         return vec, shots
     return vec

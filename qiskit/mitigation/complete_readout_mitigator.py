@@ -20,6 +20,7 @@ import numpy as np
 from qiskit.result import Counts, marginal_counts, QuasiDistribution
 from .base_readout_mitigator import BaseReadoutMitigator
 from .utils import counts_probability_vector, stddev, expval_with_stddev, z_diagonal, str2diag
+
 logger = logging.getLogger(__name__)
 
 
@@ -78,7 +79,9 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
             ``circuit.measure(qubits, clbits)``.
         """
 
-        probs_vec, shots = counts_probability_vector(data, clbits=clbits, qubits=qubits, return_shots=True)
+        probs_vec, shots = counts_probability_vector(
+            data, clbits=clbits, qubits=qubits, return_shots=True
+        )
 
         # Get qubit mitigation matrix and mitigate probs
         if qubits is None:
@@ -125,7 +128,9 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
         Raises:
             QiskitError: if qubit and clbit kwargs are not valid.
         """
-        probs_vec, shots = counts_probability_vector(data, clbits=clbits, qubits=qubits, return_shots=True)
+        probs_vec, shots = counts_probability_vector(
+            data, clbits=clbits, qubits=qubits, return_shots=True
+        )
 
         # Get qubit mitigation matrix and mitigate probs
         if qubits is None:
@@ -138,7 +143,9 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
         for index, _ in enumerate(probs_vec):
             probs_dict[index] = probs_vec[index]
 
-        return QuasiDistribution(probs_dict), stddev(QuasiDistribution(probs_dict).nearest_probability_distribution(), shots)
+        return QuasiDistribution(probs_dict), stddev(
+            QuasiDistribution(probs_dict).nearest_probability_distribution(), shots
+        )
 
     def mitigation_matrix(self, qubits: List[int] = None) -> np.ndarray:
         r"""Return the readout mitigation matrix for the specified qubits.

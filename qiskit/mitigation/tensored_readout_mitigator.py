@@ -94,7 +94,9 @@ class TensoredReadoutMitigator(BaseReadoutMitigator):
             which physical qubits these bit-values correspond to as
             ``circuit.measure(qubits, clbits)``.
         """
-        probs_vec, shots = counts_probability_vector(data, clbits=clbits, qubits=qubits, return_shots=True)
+        probs_vec, shots = counts_probability_vector(
+            data, clbits=clbits, qubits=qubits, return_shots=True
+        )
 
         # Get qubit mitigation matrix and mitigate probs
         if qubits is None:
@@ -146,7 +148,9 @@ class TensoredReadoutMitigator(BaseReadoutMitigator):
         Raises:
             QiskitError: if qubit and clbit kwargs are not valid.
         """
-        probs_vec, shots = counts_probability_vector(data, clbits=clbits, qubits=qubits, return_shots=True)
+        probs_vec, shots = counts_probability_vector(
+            data, clbits=clbits, qubits=qubits, return_shots=True
+        )
 
         # Get qubit mitigation matrix and mitigate probs
         if qubits is None:
@@ -159,7 +163,9 @@ class TensoredReadoutMitigator(BaseReadoutMitigator):
         for index, _ in enumerate(probs_vec):
             probs_dict[index] = probs_vec[index]
 
-        return QuasiDistribution(probs_dict), stddev(QuasiDistribution(probs_dict).nearest_probability_distribution(), shots)
+        return QuasiDistribution(probs_dict), stddev(
+            QuasiDistribution(probs_dict).nearest_probability_distribution(), shots
+        )
 
     def mitigation_matrix(self, qubits: List[int] = None) -> np.ndarray:
         r"""Return the measurement mitigation matrix for the specified qubits.

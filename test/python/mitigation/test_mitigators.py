@@ -39,16 +39,16 @@ class TestReadoutMitigation(QiskitTestCase):
             total += abs(val1 - val2) ** 2
         return total
 
-    @data([test_data['test_1']])
+    @data([test_data["test_1"]])
     @unpack
     def test_mitigation_improvement(self, data):
         """Test whether readout mitigation led to more accurate results"""
-        CRM = CompleteReadoutMitigator(data['complete_method_matrix'])
-        TRM = TensoredReadoutMitigator(data['tensor_method_matrices'])
+        CRM = CompleteReadoutMitigator(data["complete_method_matrix"])
+        TRM = TensoredReadoutMitigator(data["tensor_method_matrices"])
         mitigators = [CRM, TRM]
-        for circuit_name, circuit_data in data['circuits'].items():
-            counts_ideal = Counts(circuit_data['counts_ideal'])
-            counts_noise = Counts(circuit_data['counts_noise'])
+        for circuit_name, circuit_data in data["circuits"].items():
+            counts_ideal = Counts(circuit_data["counts_ideal"])
+            counts_noise = Counts(circuit_data["counts_noise"])
             unmitigated_error = self.compare_results(counts_ideal, counts_noise)
             for mitigator in mitigators:
                 mitigated_probs = (
@@ -57,76 +57,97 @@ class TestReadoutMitigation(QiskitTestCase):
                     .binary_probabilities()
                 )
                 mitigated_error = self.compare_results(counts_ideal, mitigated_probs)
-                self.assertTrue(mitigated_error < unmitigated_error * 0.1, "Mitigator {} did not improve circuit {} measurements".format(mitigator, circuit_name))
+                self.assertTrue(
+                    mitigated_error < unmitigated_error * 0.1,
+                    "Mitigator {} did not improve circuit {} measurements".format(
+                        mitigator, circuit_name
+                    ),
+                )
 
-    @data([test_data['test_1']])
+    @data([test_data["test_1"]])
     @unpack
     def test_clbits_parameter(self, data):
         """Test whether the clbits parameter is handled correctly"""
         # counts_ideal is {'000': 5000, '001': 5000}
-        counts_ideal_12 = Counts({'00': 10000})
-        counts_ideal_02 = Counts({'00': 5000, '01': 5000})
-        counts_noise = Counts({'000': 4844, '001': 4962, '100': 56, '101': 65, '011': 37, '010': 35, '110': 1})
-        CRM = CompleteReadoutMitigator(data['complete_method_matrix'])
-        TRM = TensoredReadoutMitigator(data['tensor_method_matrices'])
+        counts_ideal_12 = Counts({"00": 10000})
+        counts_ideal_02 = Counts({"00": 5000, "01": 5000})
+        counts_noise = Counts(
+            {"000": 4844, "001": 4962, "100": 56, "101": 65, "011": 37, "010": 35, "110": 1}
+        )
+        CRM = CompleteReadoutMitigator(data["complete_method_matrix"])
+        TRM = TensoredReadoutMitigator(data["tensor_method_matrices"])
         mitigators = [CRM, TRM]
         for mitigator in mitigators:
             mitigated_probs_12 = (
-                mitigator.quasi_probabilities(counts_noise, qubits = [1,2], clbits=[1,2])[0]
-                    .nearest_probability_distribution()
-                    .binary_probabilities()
+                mitigator.quasi_probabilities(counts_noise, qubits=[1, 2], clbits=[1, 2])[0]
+                .nearest_probability_distribution()
+                .binary_probabilities()
             )
             mitigated_error = self.compare_results(counts_ideal_12, mitigated_probs_12)
-            self.assertTrue(mitigated_error < 0.001, "Mitigator {} did not correctly marganalize for qubits 1,2".format(mitigator))
+            self.assertTrue(
+                mitigated_error < 0.001,
+                "Mitigator {} did not correctly marganalize for qubits 1,2".format(mitigator),
+            )
 
             mitigated_probs_02 = (
-                mitigator.quasi_probabilities(counts_noise, qubits = [0,2], clbits=[0, 2])[0]
-                    .nearest_probability_distribution()
-                    .binary_probabilities()
+                mitigator.quasi_probabilities(counts_noise, qubits=[0, 2], clbits=[0, 2])[0]
+                .nearest_probability_distribution()
+                .binary_probabilities()
             )
             mitigated_error = self.compare_results(counts_ideal_02, mitigated_probs_02)
-            self.assertTrue(mitigated_error < 0.001,
-                            "Mitigator {} did not correctly marganalize for qubits 0,2".format(mitigator))
+            self.assertTrue(
+                mitigated_error < 0.001,
+                "Mitigator {} did not correctly marganalize for qubits 0,2".format(mitigator),
+            )
 
-    @data([test_data['test_1']])
+    @data([test_data["test_1"]])
     @unpack
     def test_qubits_parameter(self, data):
         """Test whether the qubits parameter is handled correctly"""
-        counts_ideal_012 = Counts({'000': 5000, '001': 5000})
-        counts_ideal_210 = Counts({'000': 5000, '100': 5000})
-        counts_ideal_102 = Counts({'000': 5000, '010': 5000})
-        counts_noise = Counts({'000': 4844, '001': 4962, '100': 56, '101': 65, '011': 37, '010': 35, '110': 1})
-        CRM = CompleteReadoutMitigator(data['complete_method_matrix'])
-        TRM = TensoredReadoutMitigator(data['tensor_method_matrices'])
+        counts_ideal_012 = Counts({"000": 5000, "001": 5000})
+        counts_ideal_210 = Counts({"000": 5000, "100": 5000})
+        counts_ideal_102 = Counts({"000": 5000, "010": 5000})
+        counts_noise = Counts(
+            {"000": 4844, "001": 4962, "100": 56, "101": 65, "011": 37, "010": 35, "110": 1}
+        )
+        CRM = CompleteReadoutMitigator(data["complete_method_matrix"])
+        TRM = TensoredReadoutMitigator(data["tensor_method_matrices"])
         mitigators = [CRM, TRM]
         for mitigator in mitigators:
             for mitigator in mitigators:
                 mitigated_probs_012 = (
                     mitigator.quasi_probabilities(counts_noise, qubits=[0, 1, 2])[0]
-                        .nearest_probability_distribution()
-                        .binary_probabilities()
+                    .nearest_probability_distribution()
+                    .binary_probabilities()
                 )
                 mitigated_error = self.compare_results(counts_ideal_012, mitigated_probs_012)
-                self.assertTrue(mitigated_error < 0.001,
-                                "Mitigator {} did not correctly handle qubit order 0, 1, 2".format(mitigator))
+                self.assertTrue(
+                    mitigated_error < 0.001,
+                    "Mitigator {} did not correctly handle qubit order 0, 1, 2".format(mitigator),
+                )
 
                 mitigated_probs_210 = (
                     mitigator.quasi_probabilities(counts_noise, qubits=[2, 1, 0])[0]
-                        .nearest_probability_distribution()
-                        .binary_probabilities()
+                    .nearest_probability_distribution()
+                    .binary_probabilities()
                 )
                 mitigated_error = self.compare_results(counts_ideal_210, mitigated_probs_210)
-                self.assertTrue(mitigated_error < 0.001,
-                                "Mitigator {} did not correctly handle qubit order 2, 1, 0".format(mitigator))
+                self.assertTrue(
+                    mitigated_error < 0.001,
+                    "Mitigator {} did not correctly handle qubit order 2, 1, 0".format(mitigator),
+                )
 
                 mitigated_probs_102 = (
                     mitigator.quasi_probabilities(counts_noise, qubits=[1, 0, 2])[0]
-                        .nearest_probability_distribution()
-                        .binary_probabilities()
+                    .nearest_probability_distribution()
+                    .binary_probabilities()
                 )
                 mitigated_error = self.compare_results(counts_ideal_102, mitigated_probs_102)
-                self.assertTrue(mitigated_error < 0.001,
-                                "Mitigator {} did not correctly handle qubit order 1, 0, 2".format(mitigator))
+                self.assertTrue(
+                    mitigated_error < 0.001,
+                    "Mitigator {} did not correctly handle qubit order 1, 0, 2".format(mitigator),
+                )
+
     def test_from_backend(self):
         """Test whether a tensored mitigator can be created directly from backend properties"""
         backend = FakeYorktown()
@@ -143,11 +164,20 @@ class TestReadoutMitigation(QiskitTestCase):
 
         mats = []
         for qubit_idx in range(num_qubits):
-            mat = np.array([[1-probs[qubit_idx][0], probs[qubit_idx][1]],
-                            [probs[qubit_idx][0], 1-probs[qubit_idx][1]]])
+            mat = np.array(
+                [
+                    [1 - probs[qubit_idx][0], probs[qubit_idx][1]],
+                    [probs[qubit_idx][0], 1 - probs[qubit_idx][1]],
+                ]
+            )
             mats.append(mat)
         TRM_from_matrices = TensoredReadoutMitigator(amats=mats)
-        self.assertTrue(matrix_equal(TRM_from_backend.assignment_matrix(), TRM_from_matrices.assignment_matrix()))
+        self.assertTrue(
+            matrix_equal(
+                TRM_from_backend.assignment_matrix(), TRM_from_matrices.assignment_matrix()
+            )
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
