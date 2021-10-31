@@ -14,7 +14,7 @@ Readout mitigation data handling utils
 """
 
 import logging
-from typing import Optional, List, Dict, Tuple
+from typing import Optional, List, Tuple
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -68,6 +68,7 @@ def stddev(probs, shots):
 
 
 def str2diag(string):
+    """Transform diagonal from a string to a numpy array"""
     chars = {
         "I": np.array([1, 1], dtype=float),
         "Z": np.array([1, -1], dtype=float),
@@ -106,7 +107,7 @@ def counts_probability_vector(
     """
     qubits_len = len(qubits) if not qubits is None else 0
     clbits_len = len(clbits) if not clbits is None else 0
-    if clbits_len != 0 and qubits_len != clbits_len:
+    if clbits_len not in (0, qubits_len):
         raise QiskitError(
             "Num qubits ({}) does not match number of clbits ({}).".format(qubits_len, clbits_len)
         )

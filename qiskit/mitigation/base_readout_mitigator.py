@@ -14,13 +14,9 @@ Base class for readout error mitigation.
 """
 
 from abc import ABC, abstractmethod
-import logging
 from typing import Optional, List, Iterable, Tuple, Union, Callable
 import numpy as np
-from qiskit.exceptions import QiskitError
 from qiskit.result import Counts, QuasiDistribution
-
-logger = logging.getLogger(__name__)
 
 
 class BaseReadoutMitigator(ABC):
