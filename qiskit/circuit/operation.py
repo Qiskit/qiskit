@@ -16,7 +16,13 @@ from abc import ABC
 
 
 class Operation(ABC):
-    """Quantum Operation Mixin Class."""
+    """Quantum Operation Mixin Class.
+    For objects that can be added to a :class:`~qiskit.circuit.QuantumCircuit`.
+    These objects include other :class:`~qiskit.circuit.QuantumCircuit`,
+    :class:`~qiskit.circuit.Gate`, :class:`~qiskit.circuit.Reset`,
+    :class:`~qiskit.circuit.Barrier`, :class:`~qiskit.circuit.Measure`,
+    and operators such as :class:`~qiskit.quantum_info.Clifford`.
+    """
 
     def __init__(self, name, num_qubits, num_clbits, params):
         self._name = name
