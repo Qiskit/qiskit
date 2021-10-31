@@ -1,8 +1,0 @@
----
-fixes:
-  - |
-    Fix the global phase of the output of ``circuit.repeat``. If a circuit with global
-    phase is appended to another circuit, the global phase is currently not propagated.
-    The simulators rely on this, since the phase otherwise gets applied multiple times.
-    This sets the global phase of ``circuit.repeat`` to 0 instead of multiplying the existing
-    phase times the number of repetitions.

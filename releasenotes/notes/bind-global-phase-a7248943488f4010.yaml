@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    Fix a bug where a free parameters only occurring in ``QuantumCircuit.global_phase`` did not
-    show upon calling ``QuantumCircuit.parameters`` and could not be bound.

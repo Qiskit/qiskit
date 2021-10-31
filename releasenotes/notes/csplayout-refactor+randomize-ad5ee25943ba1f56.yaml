@@ -1,9 +1,0 @@
----
-fixes:
-  - |
-    In the transpiler pass :class:`qiskit.transpiler.passes.layout.csp_layout.CSPLayout` a bias towards
-    lower numbered qubits could be observed. This enhancement changes this 
-    behaviour by shuffling the candidates to randomize the results. 
-    Furthermore, the usage of the class in `preset_passmanagers` has been 
-    adjusted to use the new parameter `seed`. Refer to 
-    `#5990 <https://github.com/Qiskit/qiskit-terra/issues/5990>` for more details.

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,8 +11,9 @@
 # that they have been altered from the originals.
 
 """
+=====================================
 Algorithms (:mod:`qiskit.algorithms`)
-==========================================
+=====================================
 It contains a collection of quantum algorithms, for use with quantum computers, to
 carry out research and investigate how to solve problems in different domains on
 near-term quantum devices with short depth circuits.
@@ -37,8 +38,9 @@ Algorithms
 It contains a variety of quantum algorithms and these have been grouped by logical function such
 as minimum eigensolvers and amplitude amplifiers.
 
+
 Amplitude Amplifiers
-++++++++++++++++++++
+--------------------
 
 .. autosummary::
    :toctree: ../stubs/
@@ -48,8 +50,9 @@ Amplitude Amplifiers
    Grover
    GroverResult
 
+
 Amplitude Estimators
-++++++++++++++++++++
+--------------------
 
 .. autosummary::
    :toctree: ../stubs/
@@ -67,8 +70,10 @@ Amplitude Estimators
    MaximumLikelihoodAmplitudeEstimation
    MaximumLikelihoodAmplitudeEstimationResult
 
+
 Eigensolvers
-++++++++++++
+------------
+
 Algorithms to find eigenvalues of an operator. For chemistry these can be used to find excited
 states of a molecule and qiskit.chemistry has some algorithms that leverage chemistry specific
 knowledge to do this in that application domain.
@@ -86,8 +91,10 @@ knowledge to do this in that application domain.
 
    NumPyEigensolver
 
+
 Factorizers
-+++++++++++
+-----------
+
 Algorithms to find factors of a number.
 
 .. autosummary::
@@ -97,8 +104,25 @@ Algorithms to find factors of a number.
    Shor
    ShorResult
 
+
+Linear Solvers
+--------------
+
+Algorithms to solve linear systems of equations.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   HHL
+   NumPyLinearSolver
+   LinearSolver
+   LinearSolverResult
+
+
 Minimum Eigensolvers
-++++++++++++++++++++
+--------------------
+
 Algorithms that can find the minimum eigenvalue of an operator.
 
 .. autosummary::
@@ -116,8 +140,21 @@ Algorithms that can find the minimum eigenvalue of an operator.
    QAOA
    VQE
 
+
+Optimizers
+----------
+
+Classical optimizers for use by quantum variational algorithms.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   optimizers
+
+
 Phase Estimators
-++++++++++++++++
+----------------
+
 Algorithms that estimate the phases of eigenstates of a unitary.
 
 .. autosummary::
@@ -129,6 +166,7 @@ Algorithms that estimate the phases of eigenstates of a unitary.
    PhaseEstimationScale
    PhaseEstimation
    PhaseEstimationResult
+   IterativePhaseEstimation
 
 Exceptions
 ==========
@@ -143,55 +181,77 @@ from .algorithm_result import AlgorithmResult
 from .variational_algorithm import VariationalAlgorithm, VariationalResult
 from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem
 from .amplitude_estimators import (
-    AmplitudeEstimator, AmplitudeEstimatorResult,
-    AmplitudeEstimation, AmplitudeEstimationResult,
-    FasterAmplitudeEstimation, FasterAmplitudeEstimationResult,
-    IterativeAmplitudeEstimation, IterativeAmplitudeEstimationResult,
-    MaximumLikelihoodAmplitudeEstimation, MaximumLikelihoodAmplitudeEstimationResult,
-    EstimationProblem
+    AmplitudeEstimator,
+    AmplitudeEstimatorResult,
+    AmplitudeEstimation,
+    AmplitudeEstimationResult,
+    FasterAmplitudeEstimation,
+    FasterAmplitudeEstimationResult,
+    IterativeAmplitudeEstimation,
+    IterativeAmplitudeEstimationResult,
+    MaximumLikelihoodAmplitudeEstimation,
+    MaximumLikelihoodAmplitudeEstimationResult,
+    EstimationProblem,
 )
 from .eigen_solvers import NumPyEigensolver, Eigensolver, EigensolverResult
 from .factorizers import Shor, ShorResult
-from .minimum_eigen_solvers import (VQE, VQEResult, QAOA,
-                                    NumPyMinimumEigensolver,
-                                    MinimumEigensolver, MinimumEigensolverResult)
-from .phase_estimators import (HamiltonianPhaseEstimation, HamiltonianPhaseEstimationResult,
-                               PhaseEstimationScale, PhaseEstimation, PhaseEstimationResult)
+from .linear_solvers import HHL, LinearSolver, NumPyLinearSolver, LinearSolverResult
+from .minimum_eigen_solvers import (
+    VQE,
+    VQEResult,
+    QAOA,
+    NumPyMinimumEigensolver,
+    MinimumEigensolver,
+    MinimumEigensolverResult,
+)
+from .phase_estimators import (
+    HamiltonianPhaseEstimation,
+    HamiltonianPhaseEstimationResult,
+    PhaseEstimationScale,
+    PhaseEstimation,
+    PhaseEstimationResult,
+    IterativePhaseEstimation,
+)
 from .exceptions import AlgorithmError
 
 __all__ = [
-    'AlgorithmResult',
-    'VariationalAlgorithm',
-    'VariationalResult',
-    'AmplificationProblem',
-    'Grover',
-    'GroverResult',
-    'AmplitudeEstimator',
-    'AmplitudeEstimatorResult',
-    'AmplitudeEstimation',
-    'AmplitudeEstimationResult',
-    'FasterAmplitudeEstimation',
-    'FasterAmplitudeEstimationResult',
-    'IterativeAmplitudeEstimation',
-    'IterativeAmplitudeEstimationResult',
-    'MaximumLikelihoodAmplitudeEstimation',
-    'MaximumLikelihoodAmplitudeEstimationResult',
-    'EstimationProblem',
-    'NumPyEigensolver',
-    'Eigensolver',
-    'EigensolverResult',
-    'Shor',
-    'ShorResult',
-    'VQE',
-    'VQEResult',
-    'QAOA',
-    'NumPyMinimumEigensolver',
-    'MinimumEigensolver',
-    'MinimumEigensolverResult',
-    'HamiltonianPhaseEstimation',
-    'HamiltonianPhaseEstimationResult',
-    'PhaseEstimationScale',
-    'PhaseEstimation',
-    'PhaseEstimationResult',
-    'AlgorithmError',
+    "AlgorithmResult",
+    "VariationalAlgorithm",
+    "VariationalResult",
+    "AmplificationProblem",
+    "Grover",
+    "GroverResult",
+    "AmplitudeEstimator",
+    "AmplitudeEstimatorResult",
+    "AmplitudeEstimation",
+    "AmplitudeEstimationResult",
+    "FasterAmplitudeEstimation",
+    "FasterAmplitudeEstimationResult",
+    "IterativeAmplitudeEstimation",
+    "IterativeAmplitudeEstimationResult",
+    "MaximumLikelihoodAmplitudeEstimation",
+    "MaximumLikelihoodAmplitudeEstimationResult",
+    "EstimationProblem",
+    "NumPyEigensolver",
+    "LinearSolverResult",
+    "Eigensolver",
+    "EigensolverResult",
+    "Shor",
+    "ShorResult",
+    "VQE",
+    "VQEResult",
+    "QAOA",
+    "LinearSolver",
+    "HHL",
+    "NumPyLinearSolver",
+    "NumPyMinimumEigensolver",
+    "MinimumEigensolver",
+    "MinimumEigensolverResult",
+    "HamiltonianPhaseEstimation",
+    "HamiltonianPhaseEstimationResult",
+    "PhaseEstimationScale",
+    "PhaseEstimation",
+    "PhaseEstimationResult",
+    "IterativePhaseEstimation",
+    "AlgorithmError",
 ]

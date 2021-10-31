@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    The :class:`qiskit.quantum_info.Quaternion` class was moved from the
+    ``qiskit.quantum_info.operator`` submodule to the 
+    ``qiskit.quantum_info.synthesis`` submodule to better reflect it's purpose.
+    No change is required if you were importing it from the root
+    :mod:`qiskit.quantum_info` module, but if you were importing from
+    ``qiskit.quantum_info.operator`` you will need to update your import path.

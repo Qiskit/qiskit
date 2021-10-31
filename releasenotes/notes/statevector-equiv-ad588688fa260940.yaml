@@ -1,6 +1,0 @@
----
-features:
-  - |
-    Allow constructing :class:`~qiskit.quantum_info.Statevector` objects as well as
-    :class:`~qiskit.quantum_info.DensityMatrix` from circuits, assuming
-    that the qubits are initialized in :math:`|0\rangle`.

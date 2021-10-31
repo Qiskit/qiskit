@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :func:`qiskit.visualization.circuit_drawer` function
+    and :meth:`qiskit.circuit.QuantumCircuit.draw` method when visualizing a
+    :class:`~qiskit.circuit.QuantumCircuit` with a
+    :class:`~qiskit.circuit.Gate` that has a classical condition
+    after a :class:`~qiskit.circuit.Measure` that used the same
+    :class:`~qiskit.circuit.ClassicalRegister`, it was possible
+    for the conditional :class:`~qiskit.circuit.Gate` to be displayed to the
+    left of the :class:`~qiskit.circuit.Measure`.
+    Fixed `#5387 <https://github.com/Qiskit/qiskit-terra/issues/5387>`__

@@ -12,20 +12,7 @@
 # pylint: disable=invalid-name
 
 """Module providing definitions of common Qobj classes."""
-import json
-import os
 from types import SimpleNamespace
-
-import fastjsonschema
-
-
-path_part = 'schemas/qobj_schema.json'
-path = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    path_part)
-with open(path) as fd:
-    json_schema = json.loads(fd.read())
-validator = fastjsonschema.compile(json_schema)
 
 
 class QobjDictField(SimpleNamespace):
@@ -75,9 +62,11 @@ class QobjDictField(SimpleNamespace):
 
 class QobjHeader(QobjDictField):
     """A class used to represent a dictionary header in Qobj objects."""
+
     pass
 
 
 class QobjExperimentHeader(QobjHeader):
     """A class representing a header dictionary for a Qobj Experiment."""
+
     pass

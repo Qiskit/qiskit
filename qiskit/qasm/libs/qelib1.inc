@@ -97,17 +97,17 @@ gate crx(lambda) a,b
 // controlled ry rotation
 gate cry(lambda) a,b
 {
-  u3(lambda/2,0,0) b;
+  ry(lambda/2) b;
   cx a,b;
-  u3(-lambda/2,0,0) b;
+  ry(-lambda/2) b;
   cx a,b;
 }
 // controlled rz rotation
 gate crz(lambda) a,b
 {
-  u1(lambda/2) b;
+  rz(lambda/2) b;
   cx a,b;
-  u1(-lambda/2) b;
+  rz(-lambda/2) b;
   cx a,b;
 }
 // controlled phase rotation

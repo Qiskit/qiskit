@@ -31,24 +31,34 @@ class Int(Node):
 
     def to_string(self, indent):
         """Print with indent."""
-        ind = indent * ' '
-        print(ind, 'int', self.value)
+        ind = indent * " "
+        print(ind, "int", self.value)
 
     def qasm(self, prec=None):
         """Return the corresponding OPENQASM string."""
         if prec is not None:
-            warnings.warn('Parameter \'Int.qasm(..., prec)\' is no longer used and is being '
-                          'deprecated.', DeprecationWarning, 2)
+            warnings.warn(
+                "Parameter 'Int.qasm(..., prec)' is no longer used and is being deprecated.",
+                DeprecationWarning,
+                2,
+            )
         return "%d" % self.value
 
     def latex(self, prec=None, nested_scope=None):
         """Return the corresponding math mode latex string."""
         if prec is not None:
-            warnings.warn('Parameter \'Int.latex(..., prec)\' is no longer used and is being '
-                          'deprecated.', DeprecationWarning, 2)
+            warnings.warn(
+                "Parameter 'Int.latex(..., prec)' is no longer used and is being deprecated.",
+                DeprecationWarning,
+                2,
+            )
         if nested_scope is not None:
-            warnings.warn('Parameter \'Int.latex(..., nested_scope)\' is no longer used and is '
-                          'being deprecated.', DeprecationWarning, 2)
+            warnings.warn(
+                "Parameter 'Int.latex(..., nested_scope)' is no longer used and is "
+                "being deprecated.",
+                DeprecationWarning,
+                2,
+            )
         return "%d" % self.value
 
     def sym(self, nested_scope=None):

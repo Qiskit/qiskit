@@ -1,7 +1,0 @@
----
-upgrade:
-  - |
-    The previously deprecated module ``qiskit.visualization.interactive``, which was deprecated
-    in the 0.15.1 release, has been removed. This includes the following functions: 
-    `iplot_bloch_multivector`, `iplot_state_city`, `iplot_state_qsphere`, `iplot_state_hinton`,
-    `iplot_histogram`, and `iplot_state_paulivec`.

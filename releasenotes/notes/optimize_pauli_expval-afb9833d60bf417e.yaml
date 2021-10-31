@@ -1,7 +1,0 @@
----
-features:
-  - |
-    Computation of `expectation_value` for `Statevector` and `DensityMatrix`
-    in the case the operator is either `Pauli` or `SparsePauliOp` is now
-    optimized to use a single pass on the amplitudes (in cython) without
-    applying the operator first.

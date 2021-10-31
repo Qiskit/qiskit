@@ -22,5 +22,6 @@ from qiskit.pulse.transforms import (
 )
 
 
-warnings.warn("The reschedule module has been renamed to transforms. This import path "
-              "is deprecated.")
+warnings.warn(
+    "The reschedule module has been renamed to transforms. This import path is deprecated."
+)

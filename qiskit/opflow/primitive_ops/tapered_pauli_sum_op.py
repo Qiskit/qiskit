@@ -15,7 +15,7 @@
 import itertools
 import logging
 from copy import deepcopy
-from typing import List, Optional, Union, cast
+from typing import List, Optional, Union, cast, Dict
 
 import numpy as np
 
@@ -67,9 +67,22 @@ class TaperedPauliSumOp(PauliSumOp):
         """
         return self._z2_symmetries
 
+    @property
+    def settings(self) -> Dict:
+        """Return operator settings."""
+        return {
+            "primitive": self._primitive,
+            "z2_symmetries": self._z2_symmetries,
+            "coeff": self._coeff,
+        }
+
+    def assign_parameters(self, param_dict: dict) -> OperatorBase:
+        pauli_sum = PauliSumOp(self.primitive, self.coeff)  # pylint: disable=no-member
+        return pauli_sum.assign_parameters(param_dict)
+
 
 class Z2Symmetries:
-    """ Z2 Symmetries """
+    """Z2 Symmetries"""
 
     def __init__(
         self,
@@ -91,7 +104,7 @@ class Z2Symmetries:
         """
         if len(symmetries) != len(sq_paulis):
             raise OpflowError(
-                "Number of Z2 symmetries has to be the same as number " "of single-qubit pauli x."
+                "Number of Z2 symmetries has to be the same as number of single-qubit pauli x."
             )
 
         if len(sq_paulis) != len(sq_list):
@@ -114,12 +127,12 @@ class Z2Symmetries:
 
     @property
     def symmetries(self):
-        """ return symmetries """
+        """return symmetries"""
         return self._symmetries
 
     @property
     def sq_paulis(self):
-        """ returns sq paulis """
+        """returns sq paulis"""
         return self._sq_paulis
 
     @property
@@ -137,18 +150,28 @@ class Z2Symmetries:
 
     @property
     def sq_list(self):
-        """ returns sq list """
+        """returns sq list"""
         return self._sq_list
 
     @property
     def tapering_values(self):
-        """ returns tapering values """
+        """returns tapering values"""
         return self._tapering_values
 
     @tapering_values.setter
     def tapering_values(self, new_value):
-        """ set tapering values """
+        """set tapering values"""
         self._tapering_values = new_value
+
+    @property
+    def settings(self) -> Dict:
+        """Return operator settings."""
+        return {
+            "symmetries": self._symmetries,
+            "sq_paulis": self._sq_paulis,
+            "sq_list": self._sq_list,
+            "tapering_values": self._tapering_values,
+        }
 
     def __str__(self):
         ret = ["Z2 symmetries:"]
@@ -214,7 +237,7 @@ class Z2Symmetries:
         for pauli in operator:
             stacked_paulis.append(
                 np.concatenate(
-                    (pauli.primitive.table.X[0], pauli.primitive.table.Z[0]), axis=0
+                    (pauli.primitive.paulis.x[0], pauli.primitive.paulis.z[0]), axis=0
                 ).astype(int)
             )
 
@@ -234,7 +257,7 @@ class Z2Symmetries:
                 Pauli(
                     (
                         stacked_symmetries[row, : symm_shape[1] // 2],
-                        stacked_symmetries[row, symm_shape[1] // 2:],
+                        stacked_symmetries[row, symm_shape[1] // 2 :],
                     )
                 )
             )
@@ -336,7 +359,7 @@ class Z2Symmetries:
         """
         if not self._symmetries or not self._sq_paulis or not self._sq_list:
             raise OpflowError(
-                "Z2 symmetries, single qubit pauli and " "single qubit list cannot be empty."
+                "Z2 symmetries, single qubit pauli and single qubit list cannot be empty."
             )
 
         if operator.is_zero():
@@ -363,12 +386,12 @@ class Z2Symmetries:
             coeff_out = pauli_term.primitive.coeffs[0]
             for idx, qubit_idx in enumerate(self._sq_list):
                 if (
-                    pauli_term.primitive.table.Z[0][qubit_idx]
-                    or pauli_term.primitive.table.X[0][qubit_idx]
+                    pauli_term.primitive.paulis.z[0, qubit_idx]
+                    or pauli_term.primitive.paulis.x[0, qubit_idx]
                 ):
                     coeff_out = curr_tapering_values[idx] * coeff_out
-            z_temp = np.delete(pauli_term.primitive.table.Z[0].copy(), np.asarray(self._sq_list))
-            x_temp = np.delete(pauli_term.primitive.table.X[0].copy(), np.asarray(self._sq_list))
+            z_temp = np.delete(pauli_term.primitive.paulis.z[0].copy(), np.asarray(self._sq_list))
+            x_temp = np.delete(pauli_term.primitive.paulis.x[0].copy(), np.asarray(self._sq_list))
             pauli_list.append((Pauli((z_temp, x_temp)).to_label(), coeff_out))
         spo = SparsePauliOp.from_list(pauli_list).simplify(atol=0.0)
         z2_symmetries = self.copy()
@@ -394,7 +417,7 @@ class Z2Symmetries:
             commutator_op = cast(PauliSumOp, commutator(operator, PauliOp(symmetry)))
             if not commutator_op.is_zero():
                 raise OpflowError(
-                    "The given operator does not commute with " "the symmetry, can not taper it."
+                    "The given operator does not commute with the symmetry, can not taper it."
                 )
 
         return self.taper(operator)
@@ -435,9 +458,9 @@ def _kernel_F2(matrix_in) -> List[np.ndarray]:  # pylint: disable=invalid-name
 
     for col in range(size[1]):
         if np.array_equal(
-            matrix_in_id_ech[0: size[0], col], np.zeros(size[0])
-        ) and not np.array_equal(matrix_in_id_ech[size[0]:, col], np.zeros(size[1])):
-            kernel.append(matrix_in_id_ech[size[0]:, col])
+            matrix_in_id_ech[0 : size[0], col], np.zeros(size[0])
+        ) and not np.array_equal(matrix_in_id_ech[size[0] :, col], np.zeros(size[1])):
+            kernel.append(matrix_in_id_ech[size[0] :, col])
 
     return kernel
 
@@ -472,7 +495,7 @@ def _row_echelon_F2(matrix_in) -> np.ndarray:  # pylint: disable=invalid-name
     for row in np.sort(indices)[::-1]:
         matrix_out_temp = np.delete(matrix_out_temp, (row), axis=0)
 
-    matrix_out[0: size[0] - len(indices), :] = matrix_out_temp
+    matrix_out[0 : size[0] - len(indices), :] = matrix_out_temp
     matrix_out = matrix_out.astype(int)
 
     return matrix_out

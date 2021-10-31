@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Adds an argument ``limit_amplitude`` to the constructor of ParametricPulse
+    class, and derived classes Gaussian, GaussianSquare, Drag and Constant, to
+    enable or disable the amplitude limit of 1 on the pulse. Fixes #6544.  This
+    option gets propagated to the parent class Pulse. With this option enabled,
+    ParametricPulse class and its subclasses do not allow amplitudes larger
+    than 1. By default, the value of ``limit_amplitude`` is true, so that the
+    amplitude is constrained to be less than 1. 

@@ -12,11 +12,14 @@
 
 """IMplicit FILtering (IMFIL) optimizer."""
 
+from typing import Any, Dict, Callable, Optional, List, Tuple
+
 from qiskit.exceptions import MissingOptionalLibraryError
-from .optimizer import Optimizer, OptimizerSupportLevel
+from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
 try:
     import skquant.opt as skq
+
     _HAS_SKQUANT = True
 except ImportError:
     _HAS_SKQUANT = False
@@ -35,9 +38,10 @@ class IMFIL(Optimizer):
     https://github.com/scikit-quant/scikit-quant and https://qat4chem.lbl.gov/software.
     """
 
-    def __init__(self,
-                 maxiter: int = 1000,
-                 ) -> None:
+    def __init__(
+        self,
+        maxiter: int = 1000,
+    ) -> None:
         """
         Args:
             maxiter: Maximum number of function evaluations.
@@ -47,26 +51,59 @@ class IMFIL(Optimizer):
         """
         if not _HAS_SKQUANT:
             raise MissingOptionalLibraryError(
-                libname='scikit-quant',
-                name='IMFIL',
-                pip_install='pip install scikit-quant')
+                libname="scikit-quant", name="IMFIL", pip_install="pip install scikit-quant"
+            )
         super().__init__()
         self._maxiter = maxiter
 
     def get_support_level(self):
-        """ Returns support level dictionary. """
+        """Returns support level dictionary."""
         return {
-            'gradient': OptimizerSupportLevel.ignored,
-            'bounds': OptimizerSupportLevel.required,
-            'initial_point': OptimizerSupportLevel.required
+            "gradient": OptimizerSupportLevel.ignored,
+            "bounds": OptimizerSupportLevel.required,
+            "initial_point": OptimizerSupportLevel.required,
         }
 
-    def optimize(self, num_vars, objective_function, gradient_function=None, variable_bounds=None,
-                 initial_point=None):
-        """ Runs the optimization. """
-        super().optimize(num_vars, objective_function, gradient_function, variable_bounds,
-                         initial_point)
-        res, history = skq.minimize(func=objective_function, x0=initial_point,
-                                    bounds=variable_bounds, budget=self._maxiter,
-                                    method="imfil")
-        return res.optpar, res.optval, len(history)
+    @property
+    def settings(self) -> Dict[str, Any]:
+        return {
+            "maxiter": self._maxiter,
+        }
+
+    def minimize(
+        self,
+        fun: Callable[[POINT], float],
+        x0: POINT,
+        jac: Optional[Callable[[POINT], POINT]] = None,
+        bounds: Optional[List[Tuple[float, float]]] = None,
+    ) -> OptimizerResult:
+        res, history = skq.minimize(
+            func=fun,
+            x0=x0,
+            bounds=bounds,
+            budget=self._maxiter,
+            method="imfil",
+        )
+
+        optimizer_result = OptimizerResult()
+        optimizer_result.x = res.optpar
+        optimizer_result.fun = res.optval
+        optimizer_result.nfev = len(history)
+        return optimizer_result
+
+    def optimize(
+        self,
+        num_vars,
+        objective_function,
+        gradient_function=None,
+        variable_bounds=None,
+        initial_point=None,
+    ):
+        """Runs the optimization."""
+        super().optimize(
+            num_vars, objective_function, gradient_function, variable_bounds, initial_point
+        )
+        result = self.minimize(
+            objective_function, initial_point, gradient_function, variable_bounds
+        )
+        return result.x, result.fun, result.nfev

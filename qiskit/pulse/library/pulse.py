@@ -18,6 +18,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Optional, Any, Tuple, Union
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+from qiskit.pulse.utils import deprecated_functionality
 
 
 class Pulse(ABC):
@@ -25,12 +26,30 @@ class Pulse(ABC):
     modulation phase and frequency are specified separately from ``Pulse``s.
     """
 
+    limit_amplitude = True
+
     @abstractmethod
-    def __init__(self,
-                 duration: Union[int, ParameterExpression],
-                 name: Optional[str] = None):
+    def __init__(
+        self,
+        duration: Union[int, ParameterExpression],
+        name: Optional[str] = None,
+        limit_amplitude: Optional[bool] = None,
+    ):
+        """Abstract base class for pulses
+        Args:
+            duration: Duration of the pulse
+            name: Optional name for the pulse
+            limit_amplitude: If ``True``, then limit the amplitude of the waveform to 1.
+                             The default value of ``None`` causes the flag value to be
+                             derived from :py:attr:`~limit_amplitude` which is ``True``
+                             by default but may be set by the user to disable amplitude
+                             checks globally.
+        """
+
         self.duration = duration
         self.name = name
+        if limit_amplitude is not None:
+            self.limit_amplitude = limit_amplitude
 
     @property
     def id(self) -> int:  # pylint: disable=invalid-name
@@ -43,15 +62,15 @@ class Pulse(ABC):
         """Return a dictionary containing the pulse's parameters."""
         pass
 
-    @abstractmethod
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
         raise NotImplementedError
 
+    @deprecated_functionality
     @abstractmethod
-    def assign_parameters(self,
-                          value_dict: Dict[ParameterExpression, ParameterValueType]
-                          ) -> 'Pulse':
+    def assign_parameters(
+        self, value_dict: Dict[ParameterExpression, ParameterValueType]
+    ) -> "Pulse":
         """Return a new pulse with parameters assigned.
 
         Args:
@@ -63,27 +82,29 @@ class Pulse(ABC):
         """
         raise NotImplementedError
 
-    def draw(self,
-             dt: Any = None,  # deprecated
-             style: Optional[Dict[str, Any]] = None,
-             filename: Any = None,  # deprecated
-             interp_method: Any = None,  # deprecated
-             scale: Any = None,  # deprecated
-             interactive: Any = None,  # deprecated
-             draw_title: Any = None,  # deprecated
-             backend=None,  # importing backend causes cyclic import
-             time_range: Optional[Tuple[int, int]] = None,
-             time_unit: str = 'dt',
-             show_waveform_info: bool = True,
-             plotter: str = 'mpl2d',
-             axis: Optional[Any] = None):
+    def draw(
+        self,
+        dt: Any = None,  # deprecated
+        style: Optional[Dict[str, Any]] = None,
+        filename: Any = None,  # deprecated
+        interp_method: Any = None,  # deprecated
+        scale: Any = None,  # deprecated
+        interactive: Any = None,  # deprecated
+        draw_title: Any = None,  # deprecated
+        backend=None,  # importing backend causes cyclic import
+        time_range: Optional[Tuple[int, int]] = None,
+        time_unit: str = "dt",
+        show_waveform_info: bool = True,
+        plotter: str = "mpl2d",
+        axis: Optional[Any] = None,
+    ):
         """Plot the interpolated envelope of pulse.
 
         Args:
             style: Stylesheet options. This can be dictionary or preset stylesheet classes. See
-                :py:class:~`qiskit.visualization.pulse_v2.stylesheets.IQXStandard`,
-                :py:class:~`qiskit.visualization.pulse_v2.stylesheets.IQXSimple`, and
-                :py:class:~`qiskit.visualization.pulse_v2.stylesheets.IQXDebugging` for details of
+                :py:class:`~qiskit.visualization.pulse_v2.stylesheets.IQXStandard`,
+                :py:class:`~qiskit.visualization.pulse_v2.stylesheets.IQXSimple`, and
+                :py:class:`~qiskit.visualization.pulse_v2.stylesheets.IQXDebugging` for details of
                 preset stylesheets.
             backend (Optional[BaseBackend]): Backend object to play the input pulse program.
                 If provided, the plotter may use to make the visualization hardware aware.
@@ -121,12 +142,14 @@ class Pulse(ABC):
         # pylint: disable=cyclic-import, missing-return-type-doc
         from qiskit.visualization import pulse_drawer_v2, PulseStyle
 
-        legacy_args = {'dt': dt,
-                       'filename': filename,
-                       'interp_method': interp_method,
-                       'scale': scale,
-                       'interactive': interactive,
-                       'draw_title': draw_title}
+        legacy_args = {
+            "dt": dt,
+            "filename": filename,
+            "interp_method": interp_method,
+            "scale": scale,
+            "interactive": interactive,
+            "draw_title": draw_title,
+        }
 
         active_legacy_args = []
         for name, legacy_arg in legacy_args.items():
@@ -134,35 +157,43 @@ class Pulse(ABC):
                 active_legacy_args.append(name)
 
         if active_legacy_args:
-            warnings.warn('Legacy pulse drawer is deprecated. '
-                          'Specified arguments {dep_args} are deprecated. '
-                          'Please check the API document of new pulse drawer '
-                          '`qiskit.visualization.pulse_drawer_v2`.'
-                          ''.format(dep_args=', '.join(active_legacy_args)),
-                          DeprecationWarning)
+            warnings.warn(
+                "Legacy pulse drawer is deprecated. "
+                "Specified arguments {dep_args} are deprecated. "
+                "Please check the API document of new pulse drawer "
+                "`qiskit.visualization.pulse_drawer_v2`."
+                "".format(dep_args=", ".join(active_legacy_args)),
+                DeprecationWarning,
+            )
 
         if filename:
-            warnings.warn('File saving is delegated to the plotter software in new drawer. '
-                          'If you specify matplotlib plotter family to `plotter` argument, '
-                          'you can call `savefig` method with the returned Figure object.',
-                          DeprecationWarning)
+            warnings.warn(
+                "File saving is delegated to the plotter software in new drawer. "
+                "If you specify matplotlib plotter family to `plotter` argument, "
+                "you can call `savefig` method with the returned Figure object.",
+                DeprecationWarning,
+            )
 
         if isinstance(style, PulseStyle):
             style = None
-            warnings.warn('Legacy stylesheet is specified. This is ignored in the new drawer. '
-                          'Please check the API documentation for this method.')
+            warnings.warn(
+                "Legacy stylesheet is specified. This is ignored in the new drawer. "
+                "Please check the API documentation for this method."
+            )
 
-        return pulse_drawer_v2(program=self,
-                               style=style,
-                               backend=backend,
-                               time_range=time_range,
-                               time_unit=time_unit,
-                               show_waveform_info=show_waveform_info,
-                               plotter=plotter,
-                               axis=axis)
+        return pulse_drawer_v2(
+            program=self,
+            style=style,
+            backend=backend,
+            time_range=time_range,
+            time_unit=time_unit,
+            show_waveform_info=show_waveform_info,
+            plotter=plotter,
+            axis=axis,
+        )
 
     @abstractmethod
-    def __eq__(self, other: 'Pulse') -> bool:
+    def __eq__(self, other: "Pulse") -> bool:
         return isinstance(other, type(self))
 
     @abstractmethod

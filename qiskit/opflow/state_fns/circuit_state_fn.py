@@ -17,7 +17,7 @@ from typing import Dict, List, Optional, Set, Union, cast
 
 import numpy as np
 
-from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, execute
+from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, transpile
 from qiskit.circuit import Instruction, ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import IGate
@@ -44,16 +44,20 @@ class CircuitStateFn(StateFn):
     primitive: QuantumCircuit
 
     # TODO allow normalization somehow?
-    def __init__(self,
-                 primitive: Union[QuantumCircuit, Instruction] = None,
-                 coeff: Union[complex, ParameterExpression] = 1.0,
-                 is_measurement: bool = False) -> None:
+    def __init__(
+        self,
+        primitive: Union[QuantumCircuit, Instruction] = None,
+        coeff: Union[complex, ParameterExpression] = 1.0,
+        is_measurement: bool = False,
+        from_operator: bool = False,
+    ) -> None:
         """
         Args:
             primitive: The ``QuantumCircuit`` (or ``Instruction``, which will be converted) which
                 defines the behavior of the underlying function.
             coeff: A coefficient multiplying the state function.
             is_measurement: Whether the StateFn is a measurement operator.
+            from_operator: if True the StateFn is derived from OperatorStateFn. (Default: False)
 
         Raises:
             TypeError: Unsupported primitive, or primitive has ClassicalRegisters.
@@ -64,17 +68,21 @@ class CircuitStateFn(StateFn):
             primitive = qc
 
         if not isinstance(primitive, QuantumCircuit):
-            raise TypeError('CircuitStateFn can only be instantiated '
-                            'with QuantumCircuit, not {}'.format(type(primitive)))
+            raise TypeError(
+                "CircuitStateFn can only be instantiated "
+                "with QuantumCircuit, not {}".format(type(primitive))
+            )
 
         if len(primitive.clbits) != 0:
-            raise TypeError('CircuitOp does not support QuantumCircuits with ClassicalRegisters.')
+            raise TypeError("CircuitOp does not support QuantumCircuits with ClassicalRegisters.")
 
         super().__init__(primitive, coeff=coeff, is_measurement=is_measurement)
 
+        self.from_operator = from_operator
+
     @staticmethod
-    def from_dict(density_dict: dict) -> 'CircuitStateFn':
-        """ Construct the CircuitStateFn from a dict mapping strings to probability densities.
+    def from_dict(density_dict: dict) -> "CircuitStateFn":
+        """Construct the CircuitStateFn from a dict mapping strings to probability densities.
 
         Args:
             density_dict: The dict representing the desired state.
@@ -91,7 +99,7 @@ class CircuitStateFn(StateFn):
                 qc = QuantumCircuit(len(bstr))
                 # NOTE: Reversing endianness!!
                 for (index, bit) in enumerate(reversed(bstr)):
-                    if bit == '1':
+                    if bit == "1":
                         qc.x(index)
                 sf_circuit = CircuitStateFn(qc, coeff=prob)
                 statefn_circuits += [sf_circuit]
@@ -104,8 +112,8 @@ class CircuitStateFn(StateFn):
             return CircuitStateFn.from_vector(sf_dict.to_matrix())
 
     @staticmethod
-    def from_vector(statevector: np.ndarray) -> 'CircuitStateFn':
-        """ Construct the CircuitStateFn from a vector representing the statevector.
+    def from_vector(statevector: np.ndarray) -> "CircuitStateFn":
+        """Construct the CircuitStateFn from a vector representing the statevector.
 
         Args:
             statevector: The statevector representing the desired state.
@@ -118,7 +126,14 @@ class CircuitStateFn(StateFn):
         return CircuitStateFn(Initialize(normalized_sv), coeff=normalization_coeff)
 
     def primitive_strings(self) -> Set[str]:
-        return {'QuantumCircuit'}
+        return {"QuantumCircuit"}
+
+    @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        data = super().settings
+        data["from_operator"] = self.from_operator
+        return data
 
     @property
     def num_qubits(self) -> int:
@@ -126,9 +141,11 @@ class CircuitStateFn(StateFn):
 
     def add(self, other: OperatorBase) -> OperatorBase:
         if not self.num_qubits == other.num_qubits:
-            raise ValueError('Sum over operators with different numbers of qubits, '
-                             '{} and {}, is not well '
-                             'defined'.format(self.num_qubits, other.num_qubits))
+            raise ValueError(
+                "Sum over operators with different numbers of qubits, "
+                "{} and {}, is not well "
+                "defined".format(self.num_qubits, other.num_qubits)
+            )
 
         if isinstance(other, CircuitStateFn) and self.primitive == other.primitive:
             return CircuitStateFn(self.primitive, coeff=self.coeff + other.coeff)
@@ -140,20 +157,24 @@ class CircuitStateFn(StateFn):
         try:
             inverse = self.primitive.inverse()
         except CircuitError as missing_inverse:
-            raise OpflowError('Failed to take the inverse of the underlying circuit, the circuit '
-                              'is likely not unitary and can therefore not be inverted.') \
-                from missing_inverse
+            raise OpflowError(
+                "Failed to take the inverse of the underlying circuit, the circuit "
+                "is likely not unitary and can therefore not be inverted."
+            ) from missing_inverse
 
-        return CircuitStateFn(inverse,
-                              coeff=self.coeff.conjugate(),
-                              is_measurement=(not self.is_measurement))
+        return CircuitStateFn(
+            inverse, coeff=self.coeff.conjugate(), is_measurement=(not self.is_measurement)
+        )
 
-    def compose(self, other: OperatorBase,
-                permutation: Optional[List[int]] = None, front: bool = False) -> OperatorBase:
+    def compose(
+        self, other: OperatorBase, permutation: Optional[List[int]] = None, front: bool = False
+    ) -> OperatorBase:
         if not self.is_measurement and not front:
             raise ValueError(
-                'Composition with a Statefunctions in the first operand is not defined.')
+                "Composition with a Statefunctions in the first operand is not defined."
+            )
         new_self, other = self._expand_shorter_operator_and_permute(other, permutation)
+        new_self.from_operator = self.from_operator
 
         if front:
             return other.compose(new_self)
@@ -165,15 +186,20 @@ class CircuitStateFn(StateFn):
             composed_op_circs = cast(CircuitOp, op_circuit_self.compose(other.to_circuit_op()))
 
             # Returning CircuitStateFn
-            return CircuitStateFn(composed_op_circs.primitive,
-                                  is_measurement=self.is_measurement,
-                                  coeff=self.coeff * other.coeff)
+            return CircuitStateFn(
+                composed_op_circs.primitive,
+                is_measurement=self.is_measurement,
+                coeff=self.coeff * other.coeff,
+                from_operator=self.from_operator,
+            )
 
         if isinstance(other, CircuitStateFn) and self.is_measurement:
             # pylint: disable=cyclic-import
             from ..operator_globals import Zero
-            return self.compose(CircuitOp(other.primitive,
-                                          other.coeff)).compose(Zero ^ self.num_qubits)
+
+            return self.compose(CircuitOp(other.primitive)).compose(
+                (Zero ^ self.num_qubits) * other.coeff
+            )
 
         return ComposedOp([new_self, other])
 
@@ -202,9 +228,11 @@ class CircuitStateFn(StateFn):
             c_op_other = CircuitOp(other.primitive, other.coeff)
             c_op = c_op_self.tensor(c_op_other)
             if isinstance(c_op, CircuitOp):
-                return CircuitStateFn(primitive=c_op.primitive,  # pylint: disable=no-member
-                                      coeff=c_op.coeff,
-                                      is_measurement=self.is_measurement)
+                return CircuitStateFn(
+                    primitive=c_op.primitive,  # pylint: disable=no-member
+                    coeff=c_op.coeff,
+                    is_measurement=self.is_measurement,
+                )
         return TensoredOp([self, other])
 
     def to_density_matrix(self, massive: bool = False) -> np.ndarray:
@@ -217,35 +245,37 @@ class CircuitStateFn(StateFn):
         to classical tools is
         appropriate.
         """
-        OperatorBase._check_massive('to_density_matrix', True, self.num_qubits, massive)
+        OperatorBase._check_massive("to_density_matrix", True, self.num_qubits, massive)
         # Rely on VectorStateFn's logic here.
         return VectorStateFn(self.to_matrix(massive=massive) * self.coeff).to_density_matrix()
 
     def to_matrix(self, massive: bool = False) -> np.ndarray:
-        OperatorBase._check_massive('to_matrix', False, self.num_qubits, massive)
+        OperatorBase._check_massive("to_matrix", False, self.num_qubits, massive)
 
         # Need to adjoint to get forward statevector and then reverse
         if self.is_measurement:
             return np.conj(self.adjoint().to_matrix(massive=massive))
         qc = self.to_circuit(meas=False)
-        statevector_backend = BasicAer.get_backend('statevector_simulator')
-        statevector = execute(qc,
-                              statevector_backend,
-                              optimization_level=0).result().get_statevector()
+        statevector_backend = BasicAer.get_backend("statevector_simulator")
+        transpiled = transpile(qc, statevector_backend, optimization_level=0)
+        statevector = statevector_backend.run(transpiled).result().get_statevector()
         from ..operator_globals import EVAL_SIG_DIGITS
+
         return np.round(statevector * self.coeff, decimals=EVAL_SIG_DIGITS)
 
     def __str__(self) -> str:
         qc = cast(CircuitStateFn, self.reduce()).to_circuit()
-        prim_str = str(qc.draw(output='text'))
+        prim_str = str(qc.draw(output="text"))
         if self.coeff == 1.0:
-            return "{}(\n{}\n)".format('CircuitStateFn' if not self.is_measurement
-                                       else 'CircuitMeasurement', prim_str)
+            return "{}(\n{}\n)".format(
+                "CircuitStateFn" if not self.is_measurement else "CircuitMeasurement", prim_str
+            )
         else:
-            return "{}(\n{}\n) * {}".format('CircuitStateFn' if not self.is_measurement
-                                            else 'CircuitMeasurement',
-                                            prim_str,
-                                            self.coeff)
+            return "{}(\n{}\n) * {}".format(
+                "CircuitStateFn" if not self.is_measurement else "CircuitMeasurement",
+                prim_str,
+                self.coeff,
+            )
 
     def assign_parameters(self, param_dict: dict) -> Union["CircuitStateFn", ListOp]:
         param_value = self.coeff
@@ -254,8 +284,9 @@ class CircuitStateFn(StateFn):
             unrolled_dict = self._unroll_param_dict(param_dict)
             if isinstance(unrolled_dict, list):
                 return ListOp([self.assign_parameters(param_dict) for param_dict in unrolled_dict])
-            if isinstance(self.coeff, ParameterExpression) \
-                    and self.coeff.parameters <= set(unrolled_dict.keys()):
+            if isinstance(self.coeff, ParameterExpression) and self.coeff.parameters <= set(
+                unrolled_dict.keys()
+            ):
                 param_instersection = set(unrolled_dict.keys()) & self.coeff.parameters
                 binds = {param: unrolled_dict[param] for param in param_instersection}
                 param_value = float(self.coeff.bind(binds))
@@ -280,12 +311,14 @@ class CircuitStateFn(StateFn):
 
         if not self.is_measurement and isinstance(front, OperatorBase):
             raise ValueError(
-                'Cannot compute overlap with StateFn or Operator if not Measurement. Try taking '
-                'sf.adjoint() first to convert to measurement.')
+                "Cannot compute overlap with StateFn or Operator if not Measurement. Try taking "
+                "sf.adjoint() first to convert to measurement."
+            )
 
         if isinstance(front, ListOp) and front.distributive:
-            return front.combo_fn([self.eval(front.coeff * front_elem)
-                                   for front_elem in front.oplist])
+            return front.combo_fn(
+                [self.eval(front.coeff * front_elem) for front_elem in front.oplist]
+            )
 
         # Composable with circuit
         if isinstance(front, (PauliOp, CircuitOp, MatrixOp, CircuitStateFn)):
@@ -295,7 +328,7 @@ class CircuitStateFn(StateFn):
         return self.to_matrix_op().eval(front)
 
     def to_circuit(self, meas: bool = False) -> QuantumCircuit:
-        """ Return QuantumCircuit representing StateFn """
+        """Return QuantumCircuit representing StateFn"""
         if meas:
             meas_qc = self.primitive.copy()
             meas_qc.add_register(ClassicalRegister(self.num_qubits))
@@ -305,26 +338,26 @@ class CircuitStateFn(StateFn):
             return self.primitive
 
     def to_circuit_op(self) -> OperatorBase:
-        """ Return ``StateFnCircuit`` corresponding to this StateFn."""
+        """Return ``StateFnCircuit`` corresponding to this StateFn."""
         return self
 
     def to_instruction(self):
-        """ Return Instruction corresponding to primitive. """
+        """Return Instruction corresponding to primitive."""
         return self.primitive.to_instruction()
 
     # TODO specify backend?
-    def sample(self,
-               shots: int = 1024,
-               massive: bool = False,
-               reverse_endianness: bool = False) -> dict:
+    def sample(
+        self, shots: int = 1024, massive: bool = False, reverse_endianness: bool = False
+    ) -> dict:
         """
         Sample the state function as a normalized probability distribution. Returns dict of
         bitstrings in order of probability, with values being probability.
         """
-        OperatorBase._check_massive('sample', False, self.num_qubits, massive)
+        OperatorBase._check_massive("sample", False, self.num_qubits, massive)
         qc = self.to_circuit(meas=True)
-        qasm_backend = BasicAer.get_backend('qasm_simulator')
-        counts = execute(qc, qasm_backend, optimization_level=0, shots=shots).result().get_counts()
+        qasm_backend = BasicAer.get_backend("qasm_simulator")
+        transpiled = transpile(qc, qasm_backend, optimization_level=0)
+        counts = qasm_backend.run(transpiled, shots=shots).result().get_counts()
         if reverse_endianness:
             scaled_dict = {bstr[::-1]: (prob / shots) for (bstr, prob) in counts.items()}
         else:
@@ -340,17 +373,18 @@ class CircuitStateFn(StateFn):
                 # Check if Identity or empty instruction (need to check that type is exactly
                 # Instruction because some gates have lazy gate.definition population)
                 # pylint: disable=unidiomatic-typecheck
-                if isinstance(gate, IGate) or (type(gate) == Instruction and
-                                               gate.definition.data == []):
+                if isinstance(gate, IGate) or (
+                    type(gate) == Instruction and gate.definition.data == []
+                ):
                     del self.primitive.data[i]
         return self
 
-    def _expand_dim(self, num_qubits: int) -> 'CircuitStateFn':
+    def _expand_dim(self, num_qubits: int) -> "CircuitStateFn":
         # this is equivalent to self.tensor(identity_operator), but optimized for better performance
         # just like in tensor method, qiskit endianness is reversed here
         return self.permute(list(range(num_qubits, num_qubits + self.num_qubits)))
 
-    def permute(self, permutation: List[int]) -> 'CircuitStateFn':
+    def permute(self, permutation: List[int]) -> "CircuitStateFn":
         r"""
         Permute the qubits of the circuit.
 

@@ -93,8 +93,7 @@ class Stinespring(QuantumChannel):
                 if data[1] is None:
                     stine = (np.asarray(data[0], dtype=complex), None)
                 else:
-                    stine = (np.asarray(data[0], dtype=complex),
-                             np.asarray(data[1], dtype=complex))
+                    stine = (np.asarray(data[0], dtype=complex), np.asarray(data[1], dtype=complex))
 
             dim_left, dim_right = stine[0].shape
             # If two Stinespring matrices check they are same shape
@@ -108,8 +107,9 @@ class Stinespring(QuantumChannel):
                 output_dim = input_dim
             if dim_left % output_dim != 0:
                 raise QiskitError("Invalid output_dim")
-            op_shape = OpShape.auto(dims_l=output_dims, dims_r=input_dims,
-                                    shape=(output_dim, input_dim))
+            op_shape = OpShape.auto(
+                dims_l=output_dims, dims_r=input_dims, shape=(output_dim, input_dim)
+            )
         else:
             # Otherwise we initialize by conversion from another Qiskit
             # object into the QuantumChannel.
@@ -125,7 +125,7 @@ class Stinespring(QuantumChannel):
             output_dim, input_dim = op_shape.shape
             # Now that the input is an operator we convert it to a
             # Stinespring operator
-            rep = getattr(data, '_channel_rep', 'Operator')
+            rep = getattr(data, "_channel_rep", "Operator")
             stine = _to_stinespring(rep, data._data, input_dim, output_dim)
 
         # Initialize either single or general Stinespring
@@ -181,17 +181,16 @@ class Stinespring(QuantumChannel):
         for i, mat in enumerate(self._data):
             if mat is not None:
                 stine[i] = np.reshape(
-                    np.transpose(np.reshape(mat, (dout, dtr, din)), (2, 1, 0)),
-                    (din * dtr, dout))
+                    np.transpose(np.reshape(mat, (dout, dtr, din)), (2, 1, 0)), (din * dtr, dout)
+                )
         ret._data = (stine[0], stine[1])
         return ret
 
     def compose(self, other, qargs=None, front=False):
         if qargs is None:
-            qargs = getattr(other, 'qargs', None)
+            qargs = getattr(other, "qargs", None)
         if qargs is not None:
-            return Stinespring(
-                SuperOp(self).compose(other, qargs=qargs, front=front))
+            return Stinespring(SuperOp(self).compose(other, qargs=qargs, front=front))
         # Otherwise we convert via Kraus representation rather than
         # superoperator to avoid unnecessary representation conversions
         return Stinespring(Kraus(self).compose(other, front=front))
@@ -222,9 +221,7 @@ class Stinespring(QuantumChannel):
         shape_out = (dout_a * dtr_a * dout_b * dtr_b, din_a * din_b)
         sab_l = np.kron(sa_l, sb_l)
         # Reravel indices
-        sab_l = np.reshape(
-            np.transpose(np.reshape(sab_l, shape_in), (0, 2, 1, 3, 4)),
-            shape_out)
+        sab_l = np.reshape(np.transpose(np.reshape(sab_l, shape_in), (0, 2, 1, 3, 4)), shape_out)
 
         # Compute right Stinespring op
         if sa_r is None and sb_r is None:
@@ -237,21 +234,21 @@ class Stinespring(QuantumChannel):
             sab_r = np.kron(sa_r, sb_r)
             # Reravel indices
             sab_r = np.reshape(
-                np.transpose(np.reshape(sab_r, shape_in), (0, 2, 1, 3, 4)),
-                shape_out)
+                np.transpose(np.reshape(sab_r, shape_in), (0, 2, 1, 3, 4)), shape_out
+            )
         ret = copy.copy(a)
         ret._op_shape = a._op_shape.tensor(b._op_shape)
         ret._data = (sab_l, sab_r)
         return ret
 
     def __add__(self, other):
-        qargs = getattr(other, 'qargs', None)
+        qargs = getattr(other, "qargs", None)
         if not isinstance(other, QuantumChannel):
             other = Choi(other)
         return self._add(other, qargs=qargs)
 
     def __sub__(self, other):
-        qargs = getattr(other, 'qargs', None)
+        qargs = getattr(other, "qargs", None)
         if not isinstance(other, QuantumChannel):
             other = Choi(other)
         return self._add(-other, qargs=qargs)

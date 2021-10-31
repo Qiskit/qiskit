@@ -12,98 +12,129 @@
 """Pygments tools for Qasm.
 """
 
+from qiskit.exceptions import MissingOptionalLibraryError
+
 try:
     from pygments.lexer import RegexLexer
-    from pygments.token import (Comment, String, Keyword,
-                                Name, Number, Text)
+    from pygments.token import Comment, String, Keyword, Name, Number, Text
     from pygments.style import Style
 except ImportError as ex:
-    raise ImportError("To use 'qiskit.qasm.pygments' pygments>2.4 must be "
-                      'installed. To install run "pip install pygments".') from ex
+    raise MissingOptionalLibraryError(
+        "pygments>2.4", "qiskit.qasm.pygments", "pip install pygments"
+    ) from ex
 
 
 class QasmTerminalStyle(Style):
     """A style for OpenQasm in a Terminal env (e.g. Jupyter print)."""
+
     styles = {
-        String:              'ansibrightred',
-        Number:              'ansibrightcyan',
-        Keyword.Reserved:    'ansibrightgreen',
-        Keyword.Declaration: 'ansibrightgreen',
-        Keyword.Type:        'ansibrightmagenta',
-        Name.Builtin:        'ansibrightblue',
-        Name.Function:       'ansibrightyellow'}
+        String: "ansibrightred",
+        Number: "ansibrightcyan",
+        Keyword.Reserved: "ansibrightgreen",
+        Keyword.Declaration: "ansibrightgreen",
+        Keyword.Type: "ansibrightmagenta",
+        Name.Builtin: "ansibrightblue",
+        Name.Function: "ansibrightyellow",
+    }
 
 
 class QasmHTMLStyle(Style):
     """A style for OpenQasm in a HTML env (e.g. Jupyter widget)."""
+
     styles = {
-        String:              'ansired',
-        Number:              'ansicyan',
-        Keyword.Reserved:    'ansigreen',
-        Keyword.Declaration: 'ansigreen',
-        Keyword.Type:        'ansimagenta',
-        Name.Builtin:        'ansiblue',
-        Name.Function:       'ansiyellow'}
+        String: "ansired",
+        Number: "ansicyan",
+        Keyword.Reserved: "ansigreen",
+        Keyword.Declaration: "ansigreen",
+        Keyword.Type: "ansimagenta",
+        Name.Builtin: "ansiblue",
+        Name.Function: "ansiyellow",
+    }
 
 
 class OpenQASMLexer(RegexLexer):
     """A pygments lexer for OpenQasm."""
-    name = 'OpenQASM'
-    aliases = ['qasm']
-    filenames = ['*.qasm']
 
-    gates = ['id', 'cx', 'x', 'y', 'z', 's', 'sdg', 'h',
-             't', 'tdg', 'ccx', 'c3x', 'c4x', 'c3sqrtx',
-             'rx', 'ry', 'rz', 'cz', 'cy', 'ch', 'swap',
-             'cswap', 'crx', 'cry', 'crz', 'cu1', 'cu3',
-             'rxx', 'rzz', 'rccx', 'rc3x', 'u1', 'u2', 'u3']
+    name = "OpenQASM"
+    aliases = ["qasm"]
+    filenames = ["*.qasm"]
+
+    gates = [
+        "id",
+        "cx",
+        "x",
+        "y",
+        "z",
+        "s",
+        "sdg",
+        "h",
+        "t",
+        "tdg",
+        "ccx",
+        "c3x",
+        "c4x",
+        "c3sqrtx",
+        "rx",
+        "ry",
+        "rz",
+        "cz",
+        "cy",
+        "ch",
+        "swap",
+        "cswap",
+        "crx",
+        "cry",
+        "crz",
+        "cu1",
+        "cu3",
+        "rxx",
+        "rzz",
+        "rccx",
+        "rc3x",
+        "u1",
+        "u2",
+        "u3",
+    ]
 
     tokens = {
-        'root': [
-            (r'\n', Text),
-            (r'[^\S\n]+', Text),
-            (r'//\n', Comment),
-            (r'//.*?$', Comment.Single),
-
+        "root": [
+            (r"\n", Text),
+            (r"[^\S\n]+", Text),
+            (r"//\n", Comment),
+            (r"//.*?$", Comment.Single),
             # Keywords
-            (r'(OPENQASM|include)\b', Keyword.Reserved, 'keywords'),
-            (r'(qreg|creg)\b', Keyword.Declaration),
-
+            (r"(OPENQASM|include)\b", Keyword.Reserved, "keywords"),
+            (r"(qreg|creg)\b", Keyword.Declaration),
             # Treat 'if' special
-            (r'(if)\b', Keyword.Reserved, 'if_keywords'),
-
+            (r"(if)\b", Keyword.Reserved, "if_keywords"),
             # Constants
-            (r'(pi)\b', Name.Constant),
-
+            (r"(pi)\b", Name.Constant),
             # Special
-            (r'(barrier|measure|reset)\b', Name.Builtin, 'params'),
-
+            (r"(barrier|measure|reset)\b", Name.Builtin, "params"),
             # Gates (Types)
-            ('(' + '|'.join(gates) + r')\b', Keyword.Type, 'params'),
-            (r'[unitary\d+]', Keyword.Type),
-
+            ("(" + "|".join(gates) + r")\b", Keyword.Type, "params"),
+            (r"[unitary\d+]", Keyword.Type),
             # Functions
-            (r'(gate)\b', Name.Function, 'gate'),
-
+            (r"(gate)\b", Name.Function, "gate"),
             # Generic text
-            (r"[a-zA-Z_][a-zA-Z0-9_]*", Text, 'index')],
-
-        'keywords': [(r'\s*("([^"]|"")*")', String, '#push'),
-                     (r"\d+", Number, '#push'),
-                     (r'.*\(', Text, 'params')],
-
-        'if_keywords': [(r'[a-zA-Z0-9_]*', String, '#pop'),
-                        (r"\d+", Number, '#push'),
-                        (r'.*\(', Text, 'params')],
-
-        'params': [(r"[a-zA-Z_][a-zA-Z0-9_]*", Text, '#push'),
-                   (r'\d+', Number, '#push'),
-                   (r'(\d+\.\d*|\d*\.\d+)([eEf][+-]?[0-9]+)?',
-                    Number, '#push'),
-                   (r'\)', Text)],
-
-        'gate': [(r'[unitary\d+]', Keyword.Type, '#push'),
-                 (r'p\d+', Text, '#push')],
-
-        'index': [(r"\d+", Number, '#pop')]
+            (r"[a-zA-Z_][a-zA-Z0-9_]*", Text, "index"),
+        ],
+        "keywords": [
+            (r'\s*("([^"]|"")*")', String, "#push"),
+            (r"\d+", Number, "#push"),
+            (r".*\(", Text, "params"),
+        ],
+        "if_keywords": [
+            (r"[a-zA-Z0-9_]*", String, "#pop"),
+            (r"\d+", Number, "#push"),
+            (r".*\(", Text, "params"),
+        ],
+        "params": [
+            (r"[a-zA-Z_][a-zA-Z0-9_]*", Text, "#push"),
+            (r"\d+", Number, "#push"),
+            (r"(\d+\.\d*|\d*\.\d+)([eEf][+-]?[0-9]+)?", Number, "#push"),
+            (r"\)", Text),
+        ],
+        "gate": [(r"[unitary\d+]", Keyword.Type, "#push"), (r"p\d+", Text, "#push")],
+        "index": [(r"\d+", Number, "#pop")],
     }

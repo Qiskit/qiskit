@@ -13,17 +13,18 @@
 """
 Quantum bit and Classical bit objects.
 """
+import warnings
+
 from qiskit.circuit.exceptions import CircuitError
 
 
 class Bit:
     """Implement a generic bit."""
 
-    __slots__ = {'_register', '_index', '_hash', '_repr'}
+    __slots__ = {"_register", "_index", "_hash", "_repr"}
 
     def __init__(self, register=None, index=None):
-        """Create a new generic bit.
-        """
+        """Create a new generic bit."""
         if (register, index) == (None, None):
             self._register = None
             self._index = None
@@ -49,14 +50,21 @@ class Bit:
             self._register = register
             self._index = index
             self._hash = hash((self._register, self._index))
-            self._repr = "%s(%s, %s)" % (self.__class__.__name__,
-                                         self._register, self._index)
+            self._repr = f"{self.__class__.__name__}({self._register}, {self._index})"
 
     @property
     def register(self):
         """Get bit's register."""
         if (self._register, self._index) == (None, None):
-            raise CircuitError('Attmped to query register of a new-style Bit.')
+            raise CircuitError("Attempt to query register of a new-style Bit.")
+
+        warnings.warn(
+            "Back-references to from Bit instances to their containing "
+            "Registers have been deprecated. Instead, inspect Registers "
+            "to find their contained Bits.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
         return self._register
 
@@ -64,7 +72,15 @@ class Bit:
     def index(self):
         """Get bit's index."""
         if (self._register, self._index) == (None, None):
-            raise CircuitError('Attmped to query index of a new-style Bit.')
+            raise CircuitError("Attempt to query index of a new-style Bit.")
+
+        warnings.warn(
+            "Back-references to from Bit instances to their containing "
+            "Registers have been deprecated. Instead, inspect Registers "
+            "to find their contained Bits.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
         return self._index
 

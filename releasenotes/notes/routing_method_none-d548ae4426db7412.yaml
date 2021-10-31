@@ -1,8 +1,0 @@
----
-features:
-  - |
-    A new option `routing_method='none'` in 
-    the function :func:`~qiskit.compiler.transpile.transpile` was added to skip
-    any routing method. If the circuit does not fit coupling map, a
-    :class:`~qiskit.transpiler.exceptions.TranspilerError` exception will be
-    raised.

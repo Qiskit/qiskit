@@ -44,6 +44,7 @@ Routing
    LookaheadSwap
    StochasticSwap
    SabreSwap
+   BIPMapping
 
 Basis Change
 ============
@@ -70,10 +71,21 @@ Optimizations
    CXCancellation
    CommutationAnalysis
    CommutativeCancellation
+   Optimize1qGatesSimpleCommutation
    RemoveDiagonalGatesBeforeMeasure
    RemoveResetInZeroState
    CrosstalkAdaptiveSchedule
    TemplateOptimization
+
+Calibration
+=============
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   PulseGates
+   RZXCalibrationBuilder
+   RZXCalibrationBuilderNoEcho
 
 Scheduling
 =============
@@ -81,8 +93,12 @@ Scheduling
 .. autosummary::
    :toctree: ../stubs/
 
+   TimeUnitConversion
    ALAPSchedule
    ASAPSchedule
+   DynamicalDecoupling
+   AlignMeasures
+   ValidatePulseGates
 
 Circuit Analysis
 ================
@@ -114,12 +130,17 @@ Additional Passes
 
    CheckMap
    CheckCXDirection
+   CheckGateDirection
+   CXDirection
    GateDirection
    MergeAdjacentBarriers
+   RemoveBarriers
    BarrierBeforeFinalMeasurements
    RemoveFinalMeasurements
    DAGFixedPoint
    FixedPoint
+   ContainsInstruction
+   GatesInBasis
 """
 
 # layout selection (placement)
@@ -140,6 +161,7 @@ from .routing import LayoutTransformation
 from .routing import LookaheadSwap
 from .routing import StochasticSwap
 from .routing import SabreSwap
+from .routing import BIPMapping
 
 # basis change
 from .basis import Decompose
@@ -152,16 +174,19 @@ from .basis import BasisTranslator
 from .optimization import Optimize1qGates
 from .optimization import Optimize1qGatesDecomposition
 from .optimization import Collect2qBlocks
+from .optimization import CollectMultiQBlocks
 from .optimization import ConsolidateBlocks
 from .optimization import CommutationAnalysis
 from .optimization import CommutativeCancellation
 from .optimization import CXCancellation
+from .optimization import Optimize1qGatesSimpleCommutation
 from .optimization import OptimizeSwapBeforeMeasure
 from .optimization import RemoveResetInZeroState
 from .optimization import RemoveDiagonalGatesBeforeMeasure
 from .optimization import CrosstalkAdaptiveSchedule
 from .optimization import HoareOptimizer
 from .optimization import TemplateOptimization
+from .optimization import InverseCancellation
 
 # circuit analysis
 from .analysis import ResourceEstimation
@@ -175,11 +200,20 @@ from .analysis import DAGLongestPath
 
 # synthesis
 from .synthesis import UnitarySynthesis
+from .synthesis import unitary_synthesis_plugin_names
+
+# calibration
+from .calibration import PulseGates
+from .calibration import RZXCalibrationBuilder
+from .calibration import RZXCalibrationBuilderNoEcho
 
 # circuit scheduling
+from .scheduling import TimeUnitConversion
 from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
-from .scheduling import TimeUnitAnalysis
+from .scheduling import DynamicalDecoupling
+from .scheduling import AlignMeasures
+from .scheduling import ValidatePulseGates
 
 # additional utility passes
 from .utils import CheckMap
@@ -193,3 +227,6 @@ from .utils import MergeAdjacentBarriers
 from .utils import DAGFixedPoint
 from .utils import FixedPoint
 from .utils import Error
+from .utils import RemoveBarriers
+from .utils import ContainsInstruction
+from .utils import GatesInBasis

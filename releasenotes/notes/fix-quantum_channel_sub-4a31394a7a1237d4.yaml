@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    Fixes a bug in subtraction for quantum channels :math:`A - B` where :math:`B`
-    was an :class:`~qiskit.quantum_info.Operator` object. Negation was being
-    applied to the matrix in the Operator representation which is not equivalent
-    to negation in the quantum channel representation.

@@ -12,13 +12,12 @@
 
 """Multiple-Control, Multiple-Target Gate."""
 
+import warnings
 from typing import Union, Callable, List, Tuple, Optional
 
 from qiskit.circuit import ControlledGate, Gate, Instruction, Qubit, QuantumRegister, QuantumCircuit
 from qiskit.exceptions import QiskitError
-from ..standard_gates import (
-    XGate, YGate, ZGate, HGate, TGate, TdgGate, SGate, SdgGate
-)
+from ..standard_gates import XGate, YGate, ZGate, HGate, TGate, TdgGate, SGate, SdgGate
 
 
 class MCMT(QuantumCircuit):
@@ -46,10 +45,13 @@ class MCMT(QuantumCircuit):
     :class:`~qiskit.circuit.library.MCMTVChain`.
     """
 
-    def __init__(self, gate: Union[Gate, Callable[[QuantumCircuit, Qubit, Qubit], Instruction]],
-                 num_ctrl_qubits: int,
-                 num_target_qubits: int,
-                 label: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        gate: Union[Gate, Callable[[QuantumCircuit, Qubit, Qubit], Instruction]],
+        num_ctrl_qubits: int,
+        num_target_qubits: int,
+        label: Optional[str] = None,
+    ) -> None:
         """Create a new multi-control multi-target gate.
 
         Args:
@@ -65,8 +67,17 @@ class MCMT(QuantumCircuit):
             AttributeError: If the gate cannot be casted to a controlled gate.
             AttributeError: If the number of controls or targets is 0.
         """
+        if label is not None:
+            warnings.warn(
+                "The MCMT 'label' kwarg is deprecated as of qiskit-terra 0.19.0 and "
+                "will be removed no earlier than 3 months after the release date. "
+                "For details, see https://github.com/Qiskit/qiskit-terra/issues/6934.",
+                DeprecationWarning,
+                2,
+            )
+
         if num_ctrl_qubits == 0 or num_target_qubits == 0:
-            raise AttributeError('Need at least one control and one target qubit.')
+            raise AttributeError("Need at least one control and one target qubit.")
 
         # set the internal properties and determine the number of qubits
         self.gate = self._identify_gate(gate)
@@ -75,12 +86,12 @@ class MCMT(QuantumCircuit):
         num_qubits = num_ctrl_qubits + num_target_qubits + self.num_ancilla_qubits
 
         # initialize the circuit object
-        super().__init__(num_qubits, name='mcmt')
+        super().__init__(num_qubits, name="mcmt")
 
         if label is None:
-            self.label = '{}-{}'.format(num_target_qubits, self.gate.name.capitalize())
+            self._label = f"{num_target_qubits}-{self.gate.name.capitalize()}"
         else:
-            self.label = label
+            self._label = label
 
         # build the circuit
         self._build()
@@ -91,13 +102,37 @@ class MCMT(QuantumCircuit):
             # no broadcasting needed (makes for better circuit diagrams)
             broadcasted_gate = self.gate
         else:
-            broadcasted = QuantumCircuit(self.num_target_qubits, name=self.label)
+            broadcasted = QuantumCircuit(self.num_target_qubits, name=self._label)
             for target in list(range(self.num_target_qubits)):
                 broadcasted.append(self.gate, [target], [])
             broadcasted_gate = broadcasted.to_gate()
 
         mcmt_gate = broadcasted_gate.control(self.num_ctrl_qubits)
         self.append(mcmt_gate, self.qubits, [])
+
+    @property
+    def label(self):
+        """Get label."""
+        warnings.warn(
+            "The MCMT 'label' property is deprecated as of qiskit-terra 0.19.0 and "
+            "will be removed no earlier than 3 months after the release date. "
+            "For details, see https://github.com/Qiskit/qiskit-terra/issues/6934.",
+            DeprecationWarning,
+            2,
+        )
+        return self._label
+
+    @label.setter
+    def label(self, label):
+        """Set label."""
+        warnings.warn(
+            "The MCMT 'label' property is deprecated as of qiskit-terra 0.19.0 and "
+            "will be removed no earlier than 3 months after the release date. "
+            "For details, see https://github.com/Qiskit/qiskit-terra/issues/6934.",
+            DeprecationWarning,
+            2,
+        )
+        self._label = label
 
     @property
     def num_ancilla_qubits(self):
@@ -107,29 +142,30 @@ class MCMT(QuantumCircuit):
     def _identify_gate(self, gate):
         """Case the gate input to a gate."""
         valid_gates = {
-            'ch': HGate(),
-            'cx': XGate(),
-            'cy': YGate(),
-            'cz': ZGate(),
-            'h': HGate(),
-            's': SGate(),
-            'sdg': SdgGate(),
-            'x': XGate(),
-            'y': YGate(),
-            'z': ZGate(),
-            't': TGate(),
-            'tdg': TdgGate(),
+            "ch": HGate(),
+            "cx": XGate(),
+            "cy": YGate(),
+            "cz": ZGate(),
+            "h": HGate(),
+            "s": SGate(),
+            "sdg": SdgGate(),
+            "x": XGate(),
+            "y": YGate(),
+            "z": ZGate(),
+            "t": TGate(),
+            "tdg": TdgGate(),
         }
         if isinstance(gate, ControlledGate):
             base_gate = gate.base_gate
         elif isinstance(gate, Gate):
             if gate.num_qubits != 1:
-                raise AttributeError('Base gate must act on one qubit only.')
+                raise AttributeError("Base gate must act on one qubit only.")
             base_gate = gate
         elif isinstance(gate, QuantumCircuit):
             if gate.num_qubits != 1:
-                raise AttributeError('The circuit you specified as control gate can only have '
-                                     'one qubit!')
+                raise AttributeError(
+                    "The circuit you specified as control gate can only have one qubit!"
+                )
             base_gate = gate.to_gate()  # raises error if circuit contains non-unitary instructions
         else:
             if callable(gate):  # identify via name of the passed function
@@ -137,18 +173,26 @@ class MCMT(QuantumCircuit):
             elif isinstance(gate, str):
                 name = gate
             else:
-                raise AttributeError('Invalid gate specified: {}'.format(gate))
+                raise AttributeError(f"Invalid gate specified: {gate}")
             base_gate = valid_gates[name]
 
         return base_gate
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return the controlled version of the MCMT circuit."""
+        if label is not None:
+            warnings.warn(
+                "The MCMT.control 'label' kwarg is deprecated as of qiskit-terra 0.19.0 and "
+                "will be removed no earlier than 3 months after the release date. "
+                "For details, see https://github.com/Qiskit/qiskit-terra/issues/6934.",
+                DeprecationWarning,
+                2,
+            )
+
         if ctrl_state is None:  # TODO add ctrl state implementation by adding X gates
-            return MCMT(self.gate,
-                        self.num_ctrl_qubits + num_ctrl_qubits,
-                        self.num_target_qubits,
-                        label)
+            return MCMT(
+                self.gate, self.num_ctrl_qubits + num_ctrl_qubits, self.num_target_qubits, label
+            )
         return super().control(num_ctrl_qubits, label, ctrl_state)
 
     def inverse(self):
@@ -195,10 +239,11 @@ class MCMTVChain(MCMT):
 
     def _build(self):
         """Define the MCMT gate."""
-        control_qubits = self.qubits[:self.num_ctrl_qubits]
-        target_qubits = self.qubits[self.num_ctrl_qubits:
-                                    self.num_ctrl_qubits + self.num_target_qubits]
-        ancilla_qubits = self.qubits[self.num_ctrl_qubits + self.num_target_qubits:]
+        control_qubits = self.qubits[: self.num_ctrl_qubits]
+        target_qubits = self.qubits[
+            self.num_ctrl_qubits : self.num_ctrl_qubits + self.num_target_qubits
+        ]
+        ancilla_qubits = self.qubits[self.num_ctrl_qubits + self.num_target_qubits :]
 
         if len(ancilla_qubits) > 0:
             master_control = ancilla_qubits[-1]
@@ -215,9 +260,12 @@ class MCMTVChain(MCMT):
         """Return the number of ancilla qubits required."""
         return max(0, self.num_ctrl_qubits - 1)
 
-    def _ccx_v_chain_rule(self, control_qubits: Union[QuantumRegister, List[Qubit]],
-                          ancilla_qubits: Union[QuantumRegister, List[Qubit]],
-                          reverse: bool = False) -> List[Tuple[Gate, List[Qubit], List]]:
+    def _ccx_v_chain_rule(
+        self,
+        control_qubits: Union[QuantumRegister, List[Qubit]],
+        ancilla_qubits: Union[QuantumRegister, List[Qubit]],
+        reverse: bool = False,
+    ) -> List[Tuple[Gate, List[Qubit], List]]:
         """Get the rule for the CCX V-chain.
 
         The CCX V-chain progressively computes the CCX of the control qubits and puts the final
@@ -238,7 +286,7 @@ class MCMTVChain(MCMT):
             return
 
         if len(ancilla_qubits) < len(control_qubits) - 1:
-            raise QiskitError('Insufficient number of ancilla qubits.')
+            raise QiskitError("Insufficient number of ancilla qubits.")
 
         iterations = list(enumerate(range(2, len(control_qubits))))
         if not reverse:

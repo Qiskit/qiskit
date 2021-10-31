@@ -40,9 +40,7 @@ def dagdependency_to_dag(dagdependency):
     for node in dagdependency.get_nodes():
         # Get arguments for classical control (if any)
         inst = node.op.copy()
-        inst.condition = node.condition
-
-        dagcircuit.apply_operation_back(inst, node.qargs, node.cargs, inst.condition)
+        dagcircuit.apply_operation_back(inst, node.qargs, node.cargs)
 
     # copy metadata
     dagcircuit.global_phase = dagdependency.global_phase

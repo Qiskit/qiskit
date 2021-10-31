@@ -43,12 +43,13 @@ class TestAlignMeasures(QiskitTestCase):
         self.backend = FakeOpenPulse2Q()
         self.config = self.backend.configuration()
         self.inst_map = self.backend.defaults().instruction_schedule_map
-        self.short_pulse = pulse.Waveform(samples=np.array([0.02739068], dtype=np.complex128),
-                                          name='p0')
+        self.short_pulse = pulse.Waveform(
+            samples=np.array([0.02739068], dtype=np.complex128), name="p0"
+        )
 
     def test_align_measures(self):
         """Test that one acquire is delayed to match the time of the later acquire."""
-        sched = pulse.Schedule(name='fake_experiment')
+        sched = pulse.Schedule(name="fake_experiment")
         sched.insert(0, Play(self.short_pulse, self.config.drive(0)), inplace=True)
         sched.insert(1, Acquire(5, self.config.acquire(0), MemorySlot(0)), inplace=True)
         sched.insert(10, Acquire(5, self.config.acquire(1), MemorySlot(1)), inplace=True)
@@ -56,9 +57,9 @@ class TestAlignMeasures(QiskitTestCase):
         sched.insert(11, Play(self.short_pulse, self.config.measure(0)), inplace=True)
         sched.insert(10, Play(self.short_pulse, self.config.measure(1)), inplace=True)
         aligned = transforms.align_measures([sched])[0]
-        self.assertEqual(aligned.name, 'fake_experiment')
+        self.assertEqual(aligned.name, "fake_experiment")
 
-        ref = pulse.Schedule(name='fake_experiment')
+        ref = pulse.Schedule(name="fake_experiment")
         ref.insert(0, Play(self.short_pulse, self.config.drive(0)), inplace=True)
         ref.insert(10, Acquire(5, self.config.acquire(0), MemorySlot(0)), inplace=True)
         ref.insert(10, Acquire(5, self.config.acquire(1), MemorySlot(1)), inplace=True)
@@ -68,10 +69,9 @@ class TestAlignMeasures(QiskitTestCase):
 
         self.assertEqual(aligned, ref)
 
-        aligned = transforms.align_measures(
-            [sched], self.inst_map, align_time=20)[0]
+        aligned = transforms.align_measures([sched], self.inst_map, align_time=20)[0]
 
-        ref = pulse.Schedule(name='fake_experiment')
+        ref = pulse.Schedule(name="fake_experiment")
         ref.insert(10, Play(self.short_pulse, self.config.drive(0)), inplace=True)
         ref.insert(20, Acquire(5, self.config.acquire(0), MemorySlot(0)), inplace=True)
         ref.insert(20, Acquire(5, self.config.acquire(1), MemorySlot(1)), inplace=True)
@@ -81,17 +81,15 @@ class TestAlignMeasures(QiskitTestCase):
         self.assertEqual(aligned, ref)
 
     def test_align_post_u3(self):
-        """Test that acquires are scheduled no sooner than the duration of the longest X gate.
-        """
-        sched = pulse.Schedule(name='fake_experiment')
+        """Test that acquires are scheduled no sooner than the duration of the longest X gate."""
+        sched = pulse.Schedule(name="fake_experiment")
         sched = sched.insert(0, Play(self.short_pulse, self.config.drive(0)))
         sched = sched.insert(1, Acquire(5, self.config.acquire(0), MemorySlot(0)))
         sched = transforms.align_measures([sched], self.inst_map)[0]
         for time, inst in sched.instructions:
             if isinstance(inst, Acquire):
                 self.assertEqual(time, 4)
-        sched = transforms.align_measures(
-            [sched], self.inst_map, max_calibration_duration=10)[0]
+        sched = transforms.align_measures([sched], self.inst_map, max_calibration_duration=10)[0]
         for time, inst in sched.instructions:
             if isinstance(inst, Acquire):
                 self.assertEqual(time, 10)
@@ -115,7 +113,7 @@ class TestAlignMeasures(QiskitTestCase):
 
     def test_multiple_acquires(self):
         """Test that multiple acquires are also aligned."""
-        sched = pulse.Schedule(name='fake_experiment')
+        sched = pulse.Schedule(name="fake_experiment")
         sched.insert(0, Acquire(5, self.config.acquire(0), MemorySlot(0)), inplace=True)
         sched.insert(5, Acquire(5, self.config.acquire(0), MemorySlot(0)), inplace=True)
         sched.insert(10, Acquire(5, self.config.acquire(1), MemorySlot(1)), inplace=True)
@@ -131,10 +129,10 @@ class TestAlignMeasures(QiskitTestCase):
 
     def test_align_across_schedules(self):
         """Test that acquires are aligned together across multiple schedules."""
-        sched1 = pulse.Schedule(name='fake_experiment')
+        sched1 = pulse.Schedule(name="fake_experiment")
         sched1 = sched1.insert(0, Play(self.short_pulse, self.config.drive(0)))
         sched1 = sched1.insert(10, Acquire(5, self.config.acquire(0), MemorySlot(0)))
-        sched2 = pulse.Schedule(name='fake_experiment')
+        sched2 = pulse.Schedule(name="fake_experiment")
         sched2 = sched2.insert(3, Play(self.short_pulse, self.config.drive(0)))
         sched2 = sched2.insert(25, Acquire(5, self.config.acquire(0), MemorySlot(0)))
         schedules = transforms.align_measures([sched1, sched2], self.inst_map)
@@ -178,10 +176,10 @@ class TestAlignMeasures(QiskitTestCase):
 
     def test_measurement_at_zero(self):
         """Test that acquire at t=0 works."""
-        sched1 = pulse.Schedule(name='fake_experiment')
+        sched1 = pulse.Schedule(name="fake_experiment")
         sched1 = sched1.insert(0, Play(self.short_pulse, self.config.drive(0)))
         sched1 = sched1.insert(0, Acquire(5, self.config.acquire(0), MemorySlot(0)))
-        sched2 = pulse.Schedule(name='fake_experiment')
+        sched2 = pulse.Schedule(name="fake_experiment")
         sched2 = sched2.insert(0, Play(self.short_pulse, self.config.drive(0)))
         sched2 = sched2.insert(0, Acquire(5, self.config.acquire(0), MemorySlot(0)))
         schedules = transforms.align_measures([sched1, sched2], max_calibration_duration=0)
@@ -200,9 +198,10 @@ class TestAddImplicitAcquires(QiskitTestCase):
         super().setUp()
         self.backend = FakeOpenPulse2Q()
         self.config = self.backend.configuration()
-        self.short_pulse = pulse.Waveform(samples=np.array([0.02739068], dtype=np.complex128),
-                                          name='p0')
-        sched = pulse.Schedule(name='fake_experiment')
+        self.short_pulse = pulse.Waveform(
+            samples=np.array([0.02739068], dtype=np.complex128), name="p0"
+        )
+        sched = pulse.Schedule(name="fake_experiment")
         sched = sched.insert(0, Play(self.short_pulse, self.config.drive(0)))
         sched = sched.insert(5, Acquire(5, self.config.acquire(0), MemorySlot(0)))
         sched = sched.insert(5, Acquire(5, self.config.acquire(1), MemorySlot(1)))
@@ -228,8 +227,7 @@ class TestAddImplicitAcquires(QiskitTestCase):
 
     def test_dont_add_all(self):
         """Test that acquires aren't added if no qubits in the sublist aren't being acquired."""
-        sched = transforms.add_implicit_acquires(
-            self.sched, [[4, 5], [0, 2], [1, 3]])
+        sched = transforms.add_implicit_acquires(self.sched, [[4, 5], [0, 2], [1, 3]])
         acquired_qubits = set()
         for _, inst in sched.instructions:
             if isinstance(inst, Acquire):
@@ -256,15 +254,19 @@ class TestPad(QiskitTestCase):
     def test_padding_schedule(self):
         """Test padding schedule."""
         delay = 10
-        sched = (Delay(delay, DriveChannel(0)).shift(10) +
-                 Delay(delay, DriveChannel(0)).shift(10) +
-                 Delay(delay, DriveChannel(1)).shift(10))
+        sched = (
+            Delay(delay, DriveChannel(0)).shift(10)
+            + Delay(delay, DriveChannel(0)).shift(10)
+            + Delay(delay, DriveChannel(1)).shift(10)
+        )
 
-        ref_sched = (sched |
-                     Delay(delay, DriveChannel(0)) |
-                     Delay(delay, DriveChannel(0)).shift(20) |
-                     Delay(delay, DriveChannel(1)) |
-                     Delay(2 * delay, DriveChannel(1)).shift(20))
+        ref_sched = (
+            sched
+            | Delay(delay, DriveChannel(0))
+            | Delay(delay, DriveChannel(0)).shift(20)
+            | Delay(delay, DriveChannel(1))
+            | Delay(2 * delay, DriveChannel(1)).shift(20)
+        )
 
         self.assertEqual(transforms.pad(sched), ref_sched)
 
@@ -275,15 +277,19 @@ class TestPad(QiskitTestCase):
         in which commands were added to the schedule to be padded has been reversed.
         """
         delay = 10
-        sched = (Delay(delay, DriveChannel(1)).shift(10) +
-                 Delay(delay, DriveChannel(0)).shift(10) +
-                 Delay(delay, DriveChannel(0)).shift(10))
+        sched = (
+            Delay(delay, DriveChannel(1)).shift(10)
+            + Delay(delay, DriveChannel(0)).shift(10)
+            + Delay(delay, DriveChannel(0)).shift(10)
+        )
 
-        ref_sched = (sched |
-                     Delay(delay, DriveChannel(0)) |
-                     Delay(delay, DriveChannel(0)).shift(20) |
-                     Delay(delay, DriveChannel(1)) |
-                     Delay(2 * delay, DriveChannel(1)).shift(20))
+        ref_sched = (
+            sched
+            | Delay(delay, DriveChannel(0))
+            | Delay(delay, DriveChannel(0)).shift(20)
+            | Delay(delay, DriveChannel(1))
+            | Delay(2 * delay, DriveChannel(1)).shift(20)
+        )
 
         self.assertEqual(transforms.pad(sched), ref_sched)
 
@@ -291,12 +297,9 @@ class TestPad(QiskitTestCase):
         """Test padding until time that is less than schedule duration."""
         delay = 10
 
-        sched = (Delay(delay, DriveChannel(0)).shift(10) +
-                 Delay(delay, DriveChannel(1)))
+        sched = Delay(delay, DriveChannel(0)).shift(10) + Delay(delay, DriveChannel(1))
 
-        ref_sched = (sched |
-                     Delay(delay, DriveChannel(0)) |
-                     Delay(5, DriveChannel(1)).shift(10))
+        ref_sched = sched | Delay(delay, DriveChannel(0)) | Delay(5, DriveChannel(1)).shift(10)
 
         self.assertEqual(transforms.pad(sched, until=15), ref_sched)
 
@@ -304,25 +307,23 @@ class TestPad(QiskitTestCase):
         """Test padding until time that is greater than schedule duration."""
         delay = 10
 
-        sched = (Delay(delay, DriveChannel(0)).shift(10) +
-                 Delay(delay, DriveChannel(1)))
+        sched = Delay(delay, DriveChannel(0)).shift(10) + Delay(delay, DriveChannel(1))
 
-        ref_sched = (sched |
-                     Delay(delay, DriveChannel(0)) |
-                     Delay(30, DriveChannel(0)).shift(20) |
-                     Delay(40, DriveChannel(1)).shift(10))
+        ref_sched = (
+            sched
+            | Delay(delay, DriveChannel(0))
+            | Delay(30, DriveChannel(0)).shift(20)
+            | Delay(40, DriveChannel(1)).shift(10)
+        )
 
         self.assertEqual(transforms.pad(sched, until=50), ref_sched)
 
     def test_padding_supplied_channels(self):
         """Test padding of only specified channels."""
         delay = 10
-        sched = (Delay(delay, DriveChannel(0)).shift(10) +
-                 Delay(delay, DriveChannel(1)))
+        sched = Delay(delay, DriveChannel(0)).shift(10) + Delay(delay, DriveChannel(1))
 
-        ref_sched = (sched |
-                     Delay(delay, DriveChannel(0)) |
-                     Delay(2 * delay, DriveChannel(2)))
+        ref_sched = sched | Delay(delay, DriveChannel(0)) | Delay(2 * delay, DriveChannel(2))
 
         channels = [DriveChannel(0), DriveChannel(2)]
 
@@ -331,20 +332,20 @@ class TestPad(QiskitTestCase):
     def test_padding_less_than_sched_duration(self):
         """Test that the until arg is respected even for less than the input schedule duration."""
         delay = 10
-        sched = (Delay(delay, DriveChannel(0)) +
-                 Delay(delay, DriveChannel(0)).shift(20))
-        ref_sched = (sched | pulse.Delay(5, DriveChannel(0)).shift(10))
+        sched = Delay(delay, DriveChannel(0)) + Delay(delay, DriveChannel(0)).shift(20)
+        ref_sched = sched | pulse.Delay(5, DriveChannel(0)).shift(10)
         self.assertEqual(transforms.pad(sched, until=15), ref_sched)
 
     def test_padding_prepended_delay(self):
         """Test that there is delay before the first instruction."""
         delay = 10
-        sched = (Delay(delay, DriveChannel(0)).shift(10) +
-                 Delay(delay, DriveChannel(0)))
+        sched = Delay(delay, DriveChannel(0)).shift(10) + Delay(delay, DriveChannel(0))
 
-        ref_sched = (Delay(delay, DriveChannel(0)) +
-                     Delay(delay, DriveChannel(0)) +
-                     Delay(delay, DriveChannel(0)))
+        ref_sched = (
+            Delay(delay, DriveChannel(0))
+            + Delay(delay, DriveChannel(0))
+            + Delay(delay, DriveChannel(0))
+        )
 
         self.assertEqual(transforms.pad(sched, until=30, inplace=True), ref_sched)
 
@@ -411,10 +412,8 @@ class TestCompressTransform(QiskitTestCase):
         drive_channel = DriveChannel(0)
         schedule += Play(Gaussian(duration=25, sigma=4, amp=0.5j), drive_channel)
         schedule += Play(Gaussian(duration=25, sigma=4, amp=0.5j), drive_channel)
-        schedule += Play(GaussianSquare(duration=150, amp=0.2,
-                                        sigma=8, width=140), drive_channel)
-        schedule += Play(GaussianSquare(duration=150, amp=0.2,
-                                        sigma=8, width=140), drive_channel)
+        schedule += Play(GaussianSquare(duration=150, amp=0.2, sigma=8, width=140), drive_channel)
+        schedule += Play(GaussianSquare(duration=150, amp=0.2, sigma=8, width=140), drive_channel)
         schedule += Play(Constant(duration=150, amp=0.1 + 0.4j), drive_channel)
         schedule += Play(Constant(duration=150, amp=0.1 + 0.4j), drive_channel)
         schedule += Play(Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4), drive_channel)
@@ -432,10 +431,8 @@ class TestCompressTransform(QiskitTestCase):
         drive_channel = DriveChannel(0)
         schedule += Play(Gaussian(duration=25, sigma=4, amp=0.5j), drive_channel)
         schedule += Play(Gaussian(duration=25, sigma=4, amp=0.49j), drive_channel)
-        schedule += Play(GaussianSquare(duration=150, amp=0.2,
-                                        sigma=8, width=140), drive_channel)
-        schedule += Play(GaussianSquare(duration=150, amp=0.19,
-                                        sigma=8, width=140), drive_channel)
+        schedule += Play(GaussianSquare(duration=150, amp=0.2, sigma=8, width=140), drive_channel)
+        schedule += Play(GaussianSquare(duration=150, amp=0.19, sigma=8, width=140), drive_channel)
         schedule += Play(Constant(duration=150, amp=0.1 + 0.4j), drive_channel)
         schedule += Play(Constant(duration=150, amp=0.1 + 0.41j), drive_channel)
         schedule += Play(Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4), drive_channel)
@@ -579,8 +576,7 @@ class TestAlignLeft(QiskitTestCase):
         sched_grouped += instructions.Delay(5, d1)
         sched_grouped += instructions.Delay(7, d0)
         schedule.append(sched_grouped, inplace=True)
-        schedule = transforms.remove_directives(
-            transforms.align_left(schedule))
+        schedule = transforms.remove_directives(transforms.align_left(schedule))
 
         reference = pulse.Schedule()
         # d0
@@ -686,9 +682,7 @@ class TestAlignEquispaced(QiskitTestCase):
 
         reference = pulse.Schedule()
         reference.insert(0, Delay(10, d0), inplace=True)
-        reference.insert(10, Delay(10, d0), inplace=True)
         reference.insert(20, Delay(10, d0), inplace=True)
-        reference.insert(30, Delay(10, d0), inplace=True)
         reference.insert(40, Delay(10, d0), inplace=True)
 
         self.assertEqual(sched, reference)
@@ -725,8 +719,6 @@ class TestAlignEquispaced(QiskitTestCase):
 
         reference = pulse.Schedule()
         reference.insert(0, Delay(10, d0), inplace=True)
-        reference.insert(10, Delay(20, d0), inplace=True)
-        reference.insert(0, Delay(10, d1), inplace=True)
         reference.insert(10, Delay(20, d1), inplace=True)
 
         self.assertEqual(sched, reference)
@@ -768,13 +760,9 @@ class TestAlignFunc(QiskitTestCase):
         sched = transforms.align_func(sched, duration=80, func=self._position)
 
         reference = pulse.Schedule()
-        reference.insert(0, Delay(15, d0), inplace=True)
         reference.insert(15, Delay(10, d0), inplace=True)
-        reference.insert(25, Delay(10, d0), inplace=True)
         reference.insert(35, Delay(10, d0), inplace=True)
-        reference.insert(45, Delay(10, d0), inplace=True)
         reference.insert(55, Delay(10, d0), inplace=True)
-        reference.insert(65, Delay(15, d0), inplace=True)
 
         self.assertEqual(sched, reference)
 
@@ -819,7 +807,11 @@ class _TestDirective(directives.Directive):
 
     def __init__(self, *channels):
         """Test directive"""
-        super().__init__(tuple(channels), 0, tuple(channels))
+        super().__init__(operands=tuple(channels))
+
+    @property
+    def channels(self):
+        return self.operands
 
 
 class TestRemoveDirectives(QiskitTestCase):
@@ -850,13 +842,11 @@ class TestRemoveTrivialBarriers(QiskitTestCase):
         schedule = pulse.Schedule()
         schedule += directives.RelativeBarrier()
         schedule += directives.RelativeBarrier(pulse.DriveChannel(0))
-        schedule += directives.RelativeBarrier(pulse.DriveChannel(0),
-                                               pulse.DriveChannel(1))
+        schedule += directives.RelativeBarrier(pulse.DriveChannel(0), pulse.DriveChannel(1))
         schedule = transforms.remove_trivial_barriers(schedule)
 
         reference = pulse.Schedule()
-        reference += directives.RelativeBarrier(pulse.DriveChannel(0),
-                                                pulse.DriveChannel(1))
+        reference += directives.RelativeBarrier(pulse.DriveChannel(0), pulse.DriveChannel(1))
         self.assertEqual(schedule, reference)
 
 
@@ -889,6 +879,54 @@ class TestRemoveSubroutines(QiskitTestCase):
 
         self.assertEqual(target, reference)
 
+    def test_call_in_nested_schedule(self):
+        """Test that subroutines in nested schedule."""
+        d0 = pulse.DriveChannel(0)
 
-if __name__ == '__main__':
+        subroutine = pulse.Schedule()
+        subroutine.insert(10, pulse.Delay(10, d0), inplace=True)
+
+        nested_sched = pulse.Schedule()
+        nested_sched.insert(0, pulse.instructions.Call(subroutine), inplace=True)
+
+        main_sched = pulse.Schedule()
+        main_sched.insert(0, nested_sched, inplace=True)
+
+        target = transforms.inline_subroutines(main_sched)
+
+        # no call instruction
+        reference_nested = pulse.Schedule()
+        reference_nested.insert(0, subroutine, inplace=True)
+
+        reference = pulse.Schedule()
+        reference.insert(0, reference_nested, inplace=True)
+
+        self.assertEqual(target, reference)
+
+    def test_call_in_nested_block(self):
+        """Test that subroutines in nested schedule."""
+        d0 = pulse.DriveChannel(0)
+
+        subroutine = pulse.ScheduleBlock()
+        subroutine.append(pulse.Delay(10, d0), inplace=True)
+
+        nested_block = pulse.ScheduleBlock()
+        nested_block.append(pulse.instructions.Call(subroutine), inplace=True)
+
+        main_block = pulse.ScheduleBlock()
+        main_block.append(nested_block, inplace=True)
+
+        target = transforms.inline_subroutines(main_block)
+
+        # no call instruction
+        reference_nested = pulse.ScheduleBlock()
+        reference_nested.append(subroutine, inplace=True)
+
+        reference = pulse.ScheduleBlock()
+        reference.append(reference_nested, inplace=True)
+
+        self.assertEqual(target, reference)
+
+
+if __name__ == "__main__":
     unittest.main()

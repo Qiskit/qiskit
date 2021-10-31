@@ -1,5 +1,0 @@
----
-features:
-  - |
-    The gradient of a ``ParameterExpression`` can now be evaluated using a ``.gradient()`` method.
-    The implementation employs the ``sympy.Derivative()`` method.

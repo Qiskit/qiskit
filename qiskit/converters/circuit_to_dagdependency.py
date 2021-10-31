@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-'''Helper function for converting a circuit to a dag dependency'''
+"""Helper function for converting a circuit to a dag dependency"""
 
 from qiskit.dagcircuit.dagdependency import DAGDependency
 

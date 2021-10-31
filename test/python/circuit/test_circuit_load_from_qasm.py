@@ -13,10 +13,12 @@
 
 """Test cases for the circuit qasm_file and qasm_string method."""
 
+import os
+
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit import Gate, Parameter
 from qiskit.exceptions import QiskitError
-from qiskit.test import QiskitTestCase, Path
+from qiskit.test import QiskitTestCase
 from qiskit.transpiler.passes import Unroller
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 
@@ -26,8 +28,11 @@ class LoadFromQasmTest(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.qasm_file_name = 'entangled_registers.qasm'
-        self.qasm_file_path = self._get_resource_path('qasm/' + self.qasm_file_name, Path.EXAMPLES)
+        self.qasm_file_name = "entangled_registers.qasm"
+        self.qasm_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "qasm"
+        )
+        self.qasm_file_path = os.path.join(self.qasm_dir, self.qasm_file_name)
 
     def test_qasm_file(self):
         """
@@ -36,10 +41,10 @@ class LoadFromQasmTest(QiskitTestCase):
         If all is correct we should get the qasm file loaded in _qasm_file_path
         """
         q_circuit = QuantumCircuit.from_qasm_file(self.qasm_file_path)
-        qr_a = QuantumRegister(4, 'a')
-        qr_b = QuantumRegister(4, 'b')
-        cr_c = ClassicalRegister(4, 'c')
-        cr_d = ClassicalRegister(4, 'd')
+        qr_a = QuantumRegister(4, "a")
+        qr_b = QuantumRegister(4, "b")
+        cr_c = ClassicalRegister(4, "c")
+        cr_d = ClassicalRegister(4, "d")
         q_circuit_2 = QuantumCircuit(qr_a, qr_b, cr_c, cr_d)
         q_circuit_2.h(qr_a)
         q_circuit_2.cx(qr_a, qr_b)
@@ -52,7 +57,8 @@ class LoadFromQasmTest(QiskitTestCase):
     def test_loading_all_qelib1_gates(self):
         """Test setting up a circuit with all gates defined in qiskit/qasm/libs/qelib1.inc."""
         from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate, UGate
-        all_gates_qasm = self._get_resource_path('all_gates.qasm', Path.QASMS)
+
+        all_gates_qasm = os.path.join(self.qasm_dir, "all_gates.qasm")
         qasm_circuit = QuantumCircuit.from_qasm_file(all_gates_qasm)
 
         ref_circuit = QuantumCircuit(3, 3)
@@ -112,8 +118,7 @@ class LoadFromQasmTest(QiskitTestCase):
 
         If all is correct we should get a QiskitError
         """
-        self.assertRaises(QiskitError,
-                          QuantumCircuit.from_qasm_file, "")
+        self.assertRaises(QiskitError, QuantumCircuit.from_qasm_file, "")
 
     def test_fail_qasm_string(self):
         """
@@ -121,8 +126,7 @@ class LoadFromQasmTest(QiskitTestCase):
 
         If all is correct we should get a QiskitError
         """
-        self.assertRaises(QiskitError,
-                          QuantumCircuit.from_qasm_str, "")
+        self.assertRaises(QiskitError, QuantumCircuit.from_qasm_str, "")
 
     def test_qasm_text(self):
         """
@@ -131,7 +135,7 @@ class LoadFromQasmTest(QiskitTestCase):
         If all is correct we should get the qasm file loaded from the string
         """
         qasm_string = "// A simple 8 qubit example\nOPENQASM 2.0;\n"
-        qasm_string += "include \"qelib1.inc\";\nqreg a[4];\n"
+        qasm_string += 'include "qelib1.inc";\nqreg a[4];\n'
         qasm_string += "qreg b[4];\ncreg c[4];\ncreg d[4];\nh a;\ncx a, b;\n"
         qasm_string += "barrier a;\nbarrier b;\nmeasure a[0]->c[0];\n"
         qasm_string += "measure a[1]->c[1];\nmeasure a[2]->c[2];\n"
@@ -140,10 +144,10 @@ class LoadFromQasmTest(QiskitTestCase):
         qasm_string += "measure b[3]->d[3];"
         q_circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
-        qr_a = QuantumRegister(4, 'a')
-        qr_b = QuantumRegister(4, 'b')
-        cr_c = ClassicalRegister(4, 'c')
-        cr_d = ClassicalRegister(4, 'd')
+        qr_a = QuantumRegister(4, "a")
+        qr_b = QuantumRegister(4, "b")
+        cr_c = ClassicalRegister(4, "c")
+        cr_d = ClassicalRegister(4, "d")
         ref = QuantumCircuit(qr_a, qr_b, cr_c, cr_d)
         ref.h(qr_a[3])
         ref.cx(qr_a[3], qr_b[3])
@@ -166,18 +170,25 @@ class LoadFromQasmTest(QiskitTestCase):
         """
         Test qasm_text and get_circuit when conditionals are present.
         """
-        qasm_string = '\n'.join(["OPENQASM 2.0;",
-                                 "include \"qelib1.inc\";",
-                                 "qreg q[1];",
-                                 "creg c0[4];",
-                                 "creg c1[4];",
-                                 "x q[0];",
-                                 "if(c1==4) x q[0];"]) + '\n'
+        qasm_string = (
+            "\n".join(
+                [
+                    "OPENQASM 2.0;",
+                    'include "qelib1.inc";',
+                    "qreg q[1];",
+                    "creg c0[4];",
+                    "creg c1[4];",
+                    "x q[0];",
+                    "if(c1==4) x q[0];",
+                ]
+            )
+            + "\n"
+        )
         q_circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
-        qr = QuantumRegister(1, 'q')
-        cr0 = ClassicalRegister(4, 'c0')
-        cr1 = ClassicalRegister(4, 'c1')
+        qr = QuantumRegister(1, "q")
+        cr0 = ClassicalRegister(4, "c0")
+        cr1 = ClassicalRegister(4, "c1")
         ref = QuantumCircuit(qr, cr0, cr1)
         ref.x(qr[0])
         ref.x(qr[0]).c_if(cr1, 4)
@@ -193,42 +204,55 @@ class LoadFromQasmTest(QiskitTestCase):
         See https://github.com/Qiskit/qiskit-terra/issues/1566.
         """
 
-        qasm_string = '\n'.join(["OPENQASM 2.0;",
-                                 "include \"qelib1.inc\";",
-                                 "opaque my_gate(theta,phi,lambda) a,b;",
-                                 "qreg q[3];",
-                                 "my_gate(1,2,3) q[1],q[2];"]) + '\n'
+        qasm_string = (
+            "\n".join(
+                [
+                    "OPENQASM 2.0;",
+                    'include "qelib1.inc";',
+                    "opaque my_gate(theta,phi,lambda) a,b;",
+                    "qreg q[3];",
+                    "my_gate(1,2,3) q[1],q[2];",
+                ]
+            )
+            + "\n"
+        )
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
-        qr = QuantumRegister(3, 'q')
+        qr = QuantumRegister(3, "q")
         expected = QuantumCircuit(qr)
-        expected.append(Gate(name='my_gate', num_qubits=2,
-                             params=[1, 2, 3]), [qr[1], qr[2]])
+        expected.append(Gate(name="my_gate", num_qubits=2, params=[1, 2, 3]), [qr[1], qr[2]])
 
         self.assertEqual(circuit, expected)
 
     def test_qasm_example_file(self):
         """Loads qasm/example.qasm."""
-        qasm_filename = self._get_resource_path('example.qasm', Path.QASMS)
-        expected_circuit = QuantumCircuit.from_qasm_str('\n'.join(["OPENQASM 2.0;",
-                                                                   "include \"qelib1.inc\";",
-                                                                   "qreg q[3];",
-                                                                   "qreg r[3];",
-                                                                   "creg c[3];",
-                                                                   "creg d[3];",
-                                                                   "h q[2];",
-                                                                   "cx q[2],r[2];",
-                                                                   "measure r[2] -> d[2];",
-                                                                   "h q[1];",
-                                                                   "cx q[1],r[1];",
-                                                                   "measure r[1] -> d[1];",
-                                                                   "h q[0];",
-                                                                   "cx q[0],r[0];",
-                                                                   "measure r[0] -> d[0];",
-                                                                   "barrier q[0],q[1],q[2];",
-                                                                   "measure q[2] -> c[2];",
-                                                                   "measure q[1] -> c[1];",
-                                                                   "measure q[0] -> c[0];"]) + '\n')
+        qasm_filename = os.path.join(self.qasm_dir, "example.qasm")
+        expected_circuit = QuantumCircuit.from_qasm_str(
+            "\n".join(
+                [
+                    "OPENQASM 2.0;",
+                    'include "qelib1.inc";',
+                    "qreg q[3];",
+                    "qreg r[3];",
+                    "creg c[3];",
+                    "creg d[3];",
+                    "h q[2];",
+                    "cx q[2],r[2];",
+                    "measure r[2] -> d[2];",
+                    "h q[1];",
+                    "cx q[1],r[1];",
+                    "measure r[1] -> d[1];",
+                    "h q[0];",
+                    "cx q[0],r[0];",
+                    "measure r[0] -> d[0];",
+                    "barrier q[0],q[1],q[2];",
+                    "measure q[2] -> c[2];",
+                    "measure q[1] -> c[1];",
+                    "measure q[0] -> c[0];",
+                ]
+            )
+            + "\n"
+        )
 
         q_circuit = QuantumCircuit.from_qasm_file(qasm_filename)
 
@@ -238,12 +262,19 @@ class LoadFromQasmTest(QiskitTestCase):
 
     def test_qasm_qas_string_order(self):
         """Test that gates are returned in qasm in ascending order."""
-        expected_qasm = '\n'.join(["OPENQASM 2.0;",
-                                   "include \"qelib1.inc\";",
-                                   "qreg q[3];",
-                                   "h q[0];",
-                                   "h q[1];",
-                                   "h q[2];"]) + '\n'
+        expected_qasm = (
+            "\n".join(
+                [
+                    "OPENQASM 2.0;",
+                    'include "qelib1.inc";',
+                    "qreg q[3];",
+                    "h q[0];",
+                    "h q[1];",
+                    "h q[2];",
+                ]
+            )
+            + "\n"
+        )
         qasm_string = """OPENQASM 2.0;
         include "qelib1.inc";
         qreg q[3];
@@ -253,7 +284,7 @@ class LoadFromQasmTest(QiskitTestCase):
         self.assertEqual(q_circuit.qasm(), expected_qasm)
 
     def test_from_qasm_str_custom_gate1(self):
-        """ Test load custom gates (simple case)"""
+        """Test load custom gates (simple case)"""
         qasm_string = """OPENQASM 2.0;
                         include "qelib1.inc";
                         gate rinv q {sdg q; h q; sdg q; h q; }
@@ -261,21 +292,21 @@ class LoadFromQasmTest(QiskitTestCase):
                         rinv qr[0];"""
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
-        rinv_q = QuantumRegister(1, name='q')
-        rinv_gate = QuantumCircuit(rinv_q, name='rinv')
+        rinv_q = QuantumRegister(1, name="q")
+        rinv_gate = QuantumCircuit(rinv_q, name="rinv")
         rinv_gate.sdg(rinv_q)
         rinv_gate.h(rinv_q)
         rinv_gate.sdg(rinv_q)
         rinv_gate.h(rinv_q)
         rinv = rinv_gate.to_instruction()
-        qr = QuantumRegister(1, name='qr')
-        expected = QuantumCircuit(qr, name='circuit')
+        qr = QuantumRegister(1, name="qr")
+        expected = QuantumCircuit(qr, name="circuit")
         expected.append(rinv, [qr[0]])
 
-        self.assertEqualUnroll(['sdg', 'h'], circuit, expected)
+        self.assertEqualUnroll(["sdg", "h"], circuit, expected)
 
     def test_from_qasm_str_custom_gate2(self):
-        """ Test load custom gates (no so simple case, different bit order)
+        """Test load custom gates (no so simple case, different bit order)
         See: https://github.com/Qiskit/qiskit-terra/pull/3393#issuecomment-551307250
         """
         qasm_string = """OPENQASM 2.0;
@@ -290,22 +321,22 @@ class LoadFromQasmTest(QiskitTestCase):
                          swap2 qr[1], qr[2];"""
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
-        ab_args = QuantumRegister(2, name='ab')
-        swap_gate = QuantumCircuit(ab_args, name='swap2')
+        ab_args = QuantumRegister(2, name="ab")
+        swap_gate = QuantumCircuit(ab_args, name="swap2")
         swap_gate.cx(ab_args[0], ab_args[1])
         swap_gate.cx(ab_args[1], ab_args[0])
         swap_gate.cx(ab_args[0], ab_args[1])
         swap = swap_gate.to_instruction()
 
-        qr = QuantumRegister(3, name='qr')
-        expected = QuantumCircuit(qr, name='circuit')
+        qr = QuantumRegister(3, name="qr")
+        expected = QuantumCircuit(qr, name="circuit")
         expected.append(swap, [qr[0], qr[1]])
         expected.append(swap, [qr[1], qr[2]])
 
-        self.assertEqualUnroll(['cx'], expected, circuit)
+        self.assertEqualUnroll(["cx"], expected, circuit)
 
     def test_from_qasm_str_custom_gate3(self):
-        """ Test load custom gates (no so simple case, different bit count)
+        """Test load custom gates (no so simple case, different bit count)
         See: https://github.com/Qiskit/qiskit-terra/pull/3393#issuecomment-551307250
         """
         qasm_string = """OPENQASM 2.0;
@@ -320,21 +351,21 @@ class LoadFromQasmTest(QiskitTestCase):
                          cswap2 qr[1], qr[0], qr[2];"""
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
-        abc_args = QuantumRegister(3, name='abc')
-        cswap_gate = QuantumCircuit(abc_args, name='cswap2')
+        abc_args = QuantumRegister(3, name="abc")
+        cswap_gate = QuantumCircuit(abc_args, name="cswap2")
         cswap_gate.cx(abc_args[2], abc_args[1])
         cswap_gate.ccx(abc_args[0], abc_args[1], abc_args[2])
         cswap_gate.cx(abc_args[2], abc_args[1])
         cswap = cswap_gate.to_instruction()
 
-        qr = QuantumRegister(3, name='qr')
-        expected = QuantumCircuit(qr, name='circuit')
+        qr = QuantumRegister(3, name="qr")
+        expected = QuantumCircuit(qr, name="circuit")
         expected.append(cswap, [qr[1], qr[0], qr[2]])
 
-        self.assertEqualUnroll(['cx', 'h', 'tdg', 't'], circuit, expected)
+        self.assertEqualUnroll(["cx", "h", "tdg", "t"], circuit, expected)
 
     def test_from_qasm_str_custom_gate4(self):
-        """ Test load custom gates (parameterized)
+        """Test load custom gates (parameterized)
         See: https://github.com/Qiskit/qiskit-terra/pull/3393#issuecomment-551307250
         """
         qasm_string = """OPENQASM 2.0;
@@ -344,21 +375,21 @@ class LoadFromQasmTest(QiskitTestCase):
                          my_gate(pi, pi) qr[0];"""
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
-        my_gate_circuit = QuantumCircuit(1, name='my_gate')
-        phi = Parameter('phi')
-        lam = Parameter('lambda')
+        my_gate_circuit = QuantumCircuit(1, name="my_gate")
+        phi = Parameter("phi")
+        lam = Parameter("lambda")
         my_gate_circuit.u(1.5707963267948966, phi, lam, 0)
         my_gate = my_gate_circuit.to_gate()
 
-        qr = QuantumRegister(1, name='qr')
-        expected = QuantumCircuit(qr, name='circuit')
+        qr = QuantumRegister(1, name="qr")
+        expected = QuantumCircuit(qr, name="circuit")
         expected.append(my_gate, [qr[0]])
         expected = expected.bind_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
 
-        self.assertEqualUnroll('u', circuit, expected)
+        self.assertEqualUnroll("u", circuit, expected)
 
     def test_from_qasm_str_custom_gate5(self):
-        """ Test load custom gates (parameterized, with biop and constant)
+        """Test load custom gates (parameterized, with biop and constant)
         See: https://github.com/Qiskit/qiskit-terra/pull/3393#issuecomment-551307250
         """
         qasm_string = """OPENQASM 2.0;
@@ -368,21 +399,21 @@ class LoadFromQasmTest(QiskitTestCase):
                          my_gate(pi, pi) qr[0];"""
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
-        my_gate_circuit = QuantumCircuit(1, name='my_gate')
-        phi = Parameter('phi')
-        lam = Parameter('lambda')
+        my_gate_circuit = QuantumCircuit(1, name="my_gate")
+        phi = Parameter("phi")
+        lam = Parameter("lambda")
         my_gate_circuit.u(1.5707963267948966, phi, lam, 0)
         my_gate = my_gate_circuit.to_gate()
 
-        qr = QuantumRegister(1, name='qr')
-        expected = QuantumCircuit(qr, name='circuit')
+        qr = QuantumRegister(1, name="qr")
+        expected = QuantumCircuit(qr, name="circuit")
         expected.append(my_gate, [qr[0]])
         expected = expected.bind_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
 
-        self.assertEqualUnroll('u', circuit, expected)
+        self.assertEqualUnroll("u", circuit, expected)
 
     def test_from_qasm_str_custom_gate6(self):
-        """ Test load custom gates (parameters used in expressions)
+        """Test load custom gates (parameters used in expressions)
         See: https://github.com/Qiskit/qiskit-terra/pull/3393#issuecomment-591668924
         """
         qasm_string = """OPENQASM 2.0;
@@ -393,22 +424,22 @@ class LoadFromQasmTest(QiskitTestCase):
                          my_gate(pi, pi) qr[0];"""
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
-        my_gate_circuit = QuantumCircuit(1, name='my_gate')
-        phi = Parameter('phi')
-        lam = Parameter('lambda')
+        my_gate_circuit = QuantumCircuit(1, name="my_gate")
+        phi = Parameter("phi")
+        lam = Parameter("lambda")
         my_gate_circuit.rx(phi + 3.141592653589793, 0)
         my_gate_circuit.ry(lam / 2, 0)
         my_gate = my_gate_circuit.to_gate()
 
-        qr = QuantumRegister(1, name='qr')
-        expected = QuantumCircuit(qr, name='circuit')
+        qr = QuantumRegister(1, name="qr")
+        expected = QuantumCircuit(qr, name="circuit")
         expected.append(my_gate, [qr[0]])
         expected = expected.bind_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
 
-        self.assertEqualUnroll(['rx', 'ry'], circuit, expected)
+        self.assertEqualUnroll(["rx", "ry"], circuit, expected)
 
     def test_from_qasm_str_custom_gate7(self):
-        """ Test load custom gates (build in functions)
+        """Test load custom gates (build in functions)
         See: https://github.com/Qiskit/qiskit-terra/pull/3393#issuecomment-592208951
         """
         qasm_string = """OPENQASM 2.0;
@@ -419,13 +450,13 @@ class LoadFromQasmTest(QiskitTestCase):
                          my_gate(pi, pi) qr[0];"""
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
-        qr = QuantumRegister(1, name='qr')
-        expected = QuantumCircuit(qr, name='circuit')
+        qr = QuantumRegister(1, name="qr")
+        expected = QuantumCircuit(qr, name="circuit")
         expected.u(-0.5235987755982988, 6.283185307179586, 1.5707963267948966, qr[0])
-        self.assertEqualUnroll('u', circuit, expected)
+        self.assertEqualUnroll("u", circuit, expected)
 
     def test_from_qasm_str_nested_custom_gate(self):
-        """ Test chain of custom gates
+        """Test chain of custom gates
         See: https://github.com/Qiskit/qiskit-terra/pull/3393#issuecomment-592261942
         """
         qasm_string = """OPENQASM 2.0;
@@ -438,13 +469,31 @@ class LoadFromQasmTest(QiskitTestCase):
                          my_gate(pi) qr[0];"""
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
-        qr = QuantumRegister(1, name='qr')
-        expected = QuantumCircuit(qr, name='circuit')
+        qr = QuantumRegister(1, name="qr")
+        expected = QuantumCircuit(qr, name="circuit")
         expected.u(-0.5235987755982988, 6.283185307179586, 3.141592653589793, qr[0])
-        self.assertEqualUnroll('u', circuit, expected)
+        self.assertEqualUnroll("u", circuit, expected)
+
+    def test_from_qasm_str_delay(self):
+        """Test delay instruction/opaque-gate
+        See: https://github.com/Qiskit/qiskit-terra/issues/6510
+        """
+        qasm_string = """OPENQASM 2.0;
+                         include "qelib1.inc";
+
+                         opaque delay(time) q;
+
+                         qreg q[1];
+                         delay(172) q[0];"""
+        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+
+        qr = QuantumRegister(1, name="q")
+        expected = QuantumCircuit(qr, name="circuit")
+        expected.delay(172, qr[0])
+        self.assertEqualUnroll("u", circuit, expected)
 
     def assertEqualUnroll(self, basis, circuit, expected):
-        """ Compares the dags after unrolling to basis """
+        """Compares the dags after unrolling to basis"""
         circuit_dag = circuit_to_dag(circuit)
         expected_dag = circuit_to_dag(expected)
 

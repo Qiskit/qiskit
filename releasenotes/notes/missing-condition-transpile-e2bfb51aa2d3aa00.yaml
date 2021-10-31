@@ -1,5 +1,0 @@
----
-upgrade:
-  - |
-    The previously deprecated ``condition`` kwarg for :class:`qiskit.dagcircuit.DAGNode` has been removed.
-    It was deprecated in the 0.15.0 release.

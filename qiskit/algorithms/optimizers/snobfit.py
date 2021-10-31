@@ -12,19 +12,23 @@
 
 """Stable Noisy Optimization by Branch and FIT algorithm (SNOBFIT) optimizer."""
 
+from typing import Any, Dict, Optional, Callable, Tuple, List
+
 import numpy as np
 from qiskit.exceptions import MissingOptionalLibraryError
-from .optimizer import Optimizer, OptimizerSupportLevel
+from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
 
 try:
     import skquant.opt as skq
+
     _HAS_SKQUANT = True
 except ImportError:
     _HAS_SKQUANT = False
 
 try:
     from SQSnobFit import optset
+
     _HAS_SKSNOBFIT = True
 except ImportError:
     _HAS_SKSNOBFIT = False
@@ -41,12 +45,13 @@ class SNOBFIT(Optimizer):
     https://github.com/scikit-quant/scikit-quant and https://qat4chem.lbl.gov/software.
     """
 
-    def __init__(self,
-                 maxiter: int = 1000,
-                 maxfail: int = 10,
-                 maxmp: int = None,
-                 verbose: bool = False,
-                 ) -> None:
+    def __init__(
+        self,
+        maxiter: int = 1000,
+        maxfail: int = 10,
+        maxmp: int = None,
+        verbose: bool = False,
+    ) -> None:
         """
         Args:
             maxiter: Maximum number of function evaluations.
@@ -61,14 +66,12 @@ class SNOBFIT(Optimizer):
         """
         if not _HAS_SKQUANT:
             raise MissingOptionalLibraryError(
-                libname='scikit-quant',
-                name='SNOBFIT',
-                pip_install='pip install scikit-quant')
+                libname="scikit-quant", name="SNOBFIT", pip_install="pip install scikit-quant"
+            )
         if not _HAS_SKSNOBFIT:
             raise MissingOptionalLibraryError(
-                libname='SQSnobFit',
-                name='SNOBFIT',
-                pip_install='pip install SQSnobFit')
+                libname="SQSnobFit", name="SNOBFIT", pip_install="pip install SQSnobFit"
+            )
         super().__init__()
         self._maxiter = maxiter
         self._maxfail = maxfail
@@ -76,31 +79,71 @@ class SNOBFIT(Optimizer):
         self._verbose = verbose
 
     def get_support_level(self):
-        """ Returns support level dictionary. """
+        """Returns support level dictionary."""
         return {
-            'gradient': OptimizerSupportLevel.ignored,
-            'bounds': OptimizerSupportLevel.required,
-            'initial_point': OptimizerSupportLevel.required
+            "gradient": OptimizerSupportLevel.ignored,
+            "bounds": OptimizerSupportLevel.required,
+            "initial_point": OptimizerSupportLevel.required,
         }
 
-    def optimize(self, num_vars, objective_function, gradient_function=None,
-                 variable_bounds=None, initial_point=None):
-        """ Runs the optimization. """
-        super().optimize(num_vars, objective_function, gradient_function,
-                         variable_bounds, initial_point)
+    @property
+    def settings(self) -> Dict[str, Any]:
+        return {
+            "maxiter": self._maxiter,
+            "maxfail": self._maxfail,
+            "maxmp": self._maxmp,
+            "verbose": self._verbose,
+        }
+
+    def minimize(
+        self,
+        fun: Callable[[POINT], float],
+        x0: POINT,
+        jac: Optional[Callable[[POINT], POINT]] = None,
+        bounds: Optional[List[Tuple[float, float]]] = None,
+    ) -> OptimizerResult:
         snobfit_settings = {
-            'maxmp': self._maxmp,
-            'maxfail': self._maxfail,
-            'verbose': self._verbose,
+            "maxmp": self._maxmp,
+            "maxfail": self._maxfail,
+            "verbose": self._verbose,
         }
         options = optset(optin=snobfit_settings)
         # counters the error when initial point is outside the acceptable bounds
-        for idx, theta in enumerate(initial_point):
-            if abs(theta) > variable_bounds[idx][0]:
-                initial_point[idx] = initial_point[idx] % variable_bounds[idx][0]
-            elif abs(theta) > variable_bounds[idx][1]:
-                initial_point[idx] = initial_point[idx] % variable_bounds[idx][1]
-        res, history = skq.minimize(objective_function, np.array(initial_point, dtype=float),
-                                    bounds=variable_bounds, budget=self._maxiter,
-                                    method="snobfit", options=options)
-        return res.optpar, res.optval, len(history)
+        x0 = np.asarray(x0)
+        for idx, theta in enumerate(x0):
+            if abs(theta) > bounds[idx][0]:
+                x0[idx] = x0[idx] % bounds[idx][0]
+            elif abs(theta) > bounds[idx][1]:
+                x0[idx] = x0[idx] % bounds[idx][1]
+
+        res, history = skq.minimize(
+            fun,
+            x0,
+            bounds=bounds,
+            budget=self._maxiter,
+            method="snobfit",
+            options=options,
+        )
+
+        optimizer_result = OptimizerResult()
+        optimizer_result.x = res.optpar
+        optimizer_result.fun = res.optval
+        optimizer_result.nfev = len(history)
+        return optimizer_result
+
+    def optimize(
+        self,
+        num_vars,
+        objective_function,
+        gradient_function=None,
+        variable_bounds=None,
+        initial_point=None,
+    ):
+        """Runs the optimization."""
+        super().optimize(
+            num_vars, objective_function, gradient_function, variable_bounds, initial_point
+        )
+        result = self.minimize(
+            objective_function, initial_point, gradient_function, variable_bounds
+        )
+        return result.x, result.fun, result.nfev

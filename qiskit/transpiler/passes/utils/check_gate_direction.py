@@ -12,6 +12,7 @@
 
 """Check if the gates follow the right direction with respect to the coupling map."""
 
+from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
@@ -38,13 +39,15 @@ class CheckGateDirection(AnalysisPass):
         Args:
             dag (DAGCircuit): DAG to check.
         """
-        self.property_set['is_direction_mapped'] = True
+        self.property_set["is_direction_mapped"] = True
         edges = self.coupling_map.get_edges()
 
+        trivial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
+
         for gate in dag.two_qubit_ops():
-            physical_q0 = gate.qargs[0].index
-            physical_q1 = gate.qargs[1].index
+            physical_q0 = trivial_layout[gate.qargs[0]]
+            physical_q1 = trivial_layout[gate.qargs[1]]
 
             if (physical_q0, physical_q1) not in edges:
-                self.property_set['is_direction_mapped'] = False
+                self.property_set["is_direction_mapped"] = False
                 return

@@ -23,19 +23,19 @@ from qiskit.test import QiskitTestCase
 
 
 class TestGateDirection(QiskitTestCase):
-    """ Tests the GateDirection pass."""
+    """Tests the GateDirection pass."""
 
     def test_no_cnots(self):
-        """ Trivial map in a circuit without entanglement
-         qr0:---[H]---
+        """Trivial map in a circuit without entanglement
+        qr0:---[H]---
 
-         qr1:---[H]---
+        qr1:---[H]---
 
-         qr2:---[H]---
+        qr2:---[H]---
 
-         CouplingMap map: None
+        CouplingMap map: None
         """
-        qr = QuantumRegister(3, 'qr')
+        qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr)
         circuit.h(qr)
         coupling = CouplingMap()
@@ -47,16 +47,16 @@ class TestGateDirection(QiskitTestCase):
         self.assertEqual(dag, after)
 
     def test_direction_error(self):
-        """ The mapping cannot be fixed by direction mapper
-         qr0:---------
+        """The mapping cannot be fixed by direction mapper
+        qr0:---------
 
-         qr1:---(+)---
-                 |
-         qr2:----.----
+        qr1:---(+)---
+                |
+        qr2:----.----
 
-         CouplingMap map: [2] <- [0] -> [1]
+        CouplingMap map: [2] <- [0] -> [1]
         """
-        qr = QuantumRegister(3, 'qr')
+        qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[1], qr[2])
         coupling = CouplingMap([[0, 1], [0, 2]])
@@ -68,14 +68,14 @@ class TestGateDirection(QiskitTestCase):
             pass_.run(dag)
 
     def test_direction_correct(self):
-        """ The CX is in the right direction
-         qr0:---(+)---
-                 |
-         qr1:----.----
+        """The CX is in the right direction
+        qr0:---(+)---
+                |
+        qr1:----.----
 
-         CouplingMap map: [0] -> [1]
+        CouplingMap map: [0] -> [1]
         """
-        qr = QuantumRegister(2, 'qr')
+        qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         coupling = CouplingMap([[0, 1]])
@@ -87,18 +87,18 @@ class TestGateDirection(QiskitTestCase):
         self.assertEqual(dag, after)
 
     def test_direction_flip(self):
-        """ Flip a CX
-         qr0:----.----
-                 |
-         qr1:---(+)---
+        """Flip a CX
+        qr0:----.----
+                |
+        qr1:---(+)---
 
-         CouplingMap map: [0] -> [1]
+        CouplingMap map: [0] -> [1]
 
-         qr0:-[H]-(+)-[H]--
-                   |
-         qr1:-[H]--.--[H]--
+        qr0:-[H]-(+)-[H]--
+                  |
+        qr1:-[H]--.--[H]--
         """
-        qr = QuantumRegister(2, 'qr')
+        qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[1], qr[0])
         coupling = CouplingMap([[0, 1]])
@@ -117,24 +117,24 @@ class TestGateDirection(QiskitTestCase):
         self.assertEqual(circuit_to_dag(expected), after)
 
     def test_ecr_flip(self):
-        """ Flip a ECR gate.
-                 ┌──────┐
-            q_0: ┤1     ├
-                 │  ECR │
-            q_1: ┤0     ├
-                 └──────┘
+        """Flip a ECR gate.
+                ┌──────┐
+           q_0: ┤1     ├
+                │  ECR │
+           q_1: ┤0     ├
+                └──────┘
 
-         CouplingMap map: [0, 1]
+        CouplingMap map: [0, 1]
         """
-        qr = QuantumRegister(2, 'qr')
+        qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
         circuit.ecr(qr[1], qr[0])
         coupling = CouplingMap([[0, 1]])
         dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr)
-        expected.ry(pi/2, qr[0])
-        expected.ry(-pi/2, qr[1])
+        expected.ry(pi / 2, qr[0])
+        expected.ry(-pi / 2, qr[1])
         expected.ecr(qr[0], qr[1])
         expected.h(qr[0])
         expected.h(qr[1])
@@ -146,22 +146,22 @@ class TestGateDirection(QiskitTestCase):
 
     def test_flip_with_measure(self):
         """
-         qr0: -(+)-[m]-
-                |   |
-         qr1: --.---|--
-                    |
-         cr0: ------.--
+        qr0: -(+)-[m]-
+               |   |
+        qr1: --.---|--
+                   |
+        cr0: ------.--
 
-         CouplingMap map: [0] -> [1]
+        CouplingMap map: [0] -> [1]
 
-         qr0: -[H]--.--[H]-[m]-
-                    |       |
-         qr1: -[H]-(+)-[H]--|--
-                            |
-         cr0: --------------.--
+        qr0: -[H]--.--[H]-[m]-
+                   |       |
+        qr1: -[H]-(+)-[H]--|--
+                           |
+        cr0: --------------.--
         """
-        qr = QuantumRegister(2, 'qr')
-        cr = ClassicalRegister(1, 'cr')
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(1, "cr")
 
         circuit = QuantumCircuit(qr, cr)
         circuit.cx(qr[1], qr[0])
@@ -195,8 +195,8 @@ class TestGateDirection(QiskitTestCase):
                 └─────┘└─────┘
         """
 
-        qr = QuantumRegister(2, 'q')
-        cr = ClassicalRegister(1, 'c')
+        qr = QuantumRegister(2, "q")
+        cr = ClassicalRegister(1, "c")
 
         circuit = QuantumCircuit(qr, cr)
         circuit.cx(qr[0], qr[1]).c_if(cr, 0)
@@ -233,5 +233,5 @@ class TestGateDirection(QiskitTestCase):
         self.assertEqual(circuit_to_dag(expected), after)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

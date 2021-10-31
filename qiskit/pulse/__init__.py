@@ -102,6 +102,7 @@ Schedules are Pulse programs. They describe instruction sequences for the contro
    :toctree: ../stubs/
 
    Schedule
+   ScheduleBlock
    Instruction
 
 
@@ -114,10 +115,10 @@ Configuration
    InstructionScheduleMap
 
 
-Schedule Transforms
-===================
+Schedule Transforms (:mod:`qiskit.pulse.transforms`)
+====================================================
 
-These functions take :class:`Schedule` s as input and return modified
+Schedule transforms take :class:`Schedule` s as input and return modified
 :class:`Schedule` s.
 
 .. autosummary::
@@ -126,7 +127,6 @@ These functions take :class:`Schedule` s as input and return modified
    transforms.align_measures
    transforms.add_implicit_acquires
    transforms.pad
-
 
 Exceptions
 ==========
@@ -358,7 +358,7 @@ how the program is built.
     backend = FakeArmonk()
 
     with pulse.build(backend) as u3_sched:
-        print('Number of qubit in backend: '.format(pulse.num_qubits()))
+        print('Number of qubits in backend: {}'.format(pulse.num_qubits()))
 
         samples = 160
         print('There are {} samples in {} seconds'.format(
@@ -469,4 +469,4 @@ from qiskit.pulse.library import (
     Waveform,
 )
 from qiskit.pulse.library.samplers.decorators import functional_pulse
-from qiskit.pulse.schedule import Schedule
+from qiskit.pulse.schedule import Schedule, ScheduleBlock

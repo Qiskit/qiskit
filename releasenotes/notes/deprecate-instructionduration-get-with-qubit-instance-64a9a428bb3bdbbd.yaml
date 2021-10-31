@@ -1,7 +1,0 @@
----
-deprecations:
-  - |
-    Passing :class:`~qiskit.circuit.Qubit` instances to the `qubits` kwarg of
-    :meth:`qiskit.transpiler.InstructionDuration.get` has been deprecated and
-    will be removed in a future release. Instead, call `get` with the integer
-    indices of the desired qubits.

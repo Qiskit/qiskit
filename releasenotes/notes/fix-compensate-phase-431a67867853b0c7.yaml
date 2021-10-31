@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    A bug in :func:`qiskit.pulse.builder.frequency_offset` where when ``compensate_phase`` was set a factor of :math:`2\pi`
-    was missing from the appended phase.

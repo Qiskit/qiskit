@@ -15,7 +15,7 @@
 
 from qiskit.circuit.barrier import Barrier
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from .merge_adjacent_barriers import MergeAdjacentBarriers
 
 
@@ -30,15 +30,17 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
     def run(self, dag):
         """Run the BarrierBeforeFinalMeasurements pass on `dag`."""
         # Collect DAG nodes which are followed only by barriers or other measures.
-        final_op_types = ['measure', 'barrier']
+        final_op_types = ["measure", "barrier"]
         final_ops = []
         for candidate_node in dag.named_nodes(*final_op_types):
             is_final_op = True
 
             for _, child_successors in dag.bfs_successors(candidate_node):
 
-                if any(suc.type == 'op' and suc.name not in final_op_types
-                       for suc in child_successors):
+                if any(
+                    isinstance(suc, DAGOpNode) and suc.name not in final_op_types
+                    for suc in child_successors
+                ):
                     is_final_op = False
                     break
 
@@ -59,18 +61,16 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         # from an unmeasured qubit after a measure.
         final_qubits = dag.qubits
 
-        barrier_layer.apply_operation_back(
-            Barrier(len(final_qubits)), list(final_qubits), [])
+        barrier_layer.apply_operation_back(Barrier(len(final_qubits)), list(final_qubits), [])
 
         # Preserve order of final ops collected earlier from the original DAG.
-        ordered_final_nodes = [node for node in dag.topological_op_nodes()
-                               if node in set(final_ops)]
+        ordered_final_nodes = [
+            node for node in dag.topological_op_nodes() if node in set(final_ops)
+        ]
 
         # Move final ops to the new layer and append the new layer to the DAG.
         for final_node in ordered_final_nodes:
-            barrier_layer.apply_operation_back(final_node.op,
-                                               final_node.qargs,
-                                               final_node.cargs)
+            barrier_layer.apply_operation_back(final_node.op, final_node.qargs, final_node.cargs)
 
         for final_op in final_ops:
             dag.remove_op_node(final_op)

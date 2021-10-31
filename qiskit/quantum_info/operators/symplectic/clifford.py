@@ -100,6 +100,7 @@ class Clifford(BaseOperator, AdjointMixin):
            Phys. Rev. A 70, 052328 (2004).
            `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
     """
+
     def __array__(self, dtype=None):
         if dtype:
             return np.asarray(self.to_matrix(), dtype=dtype)
@@ -116,9 +117,8 @@ class Clifford(BaseOperator, AdjointMixin):
         # Initialize from ScalarOp as N-qubit identity discarding any global phase
         elif isinstance(data, ScalarOp):
             if not data.num_qubits or not data.is_unitary():
-                raise QiskitError("Can only initalize from N-qubit identity ScalarOp.")
-            self._table = StabilizerTable(
-                np.eye(2 * data.num_qubits, dtype=bool))
+                raise QiskitError("Can only initialize from N-qubit identity ScalarOp.")
+            self._table = StabilizerTable(np.eye(2 * data.num_qubits, dtype=bool))
 
         # Initialize from a QuantumCircuit or Instruction object
         elif isinstance(data, (QuantumCircuit, Instruction)):
@@ -131,19 +131,19 @@ class Clifford(BaseOperator, AdjointMixin):
             # Validate table is a symplectic matrix
             if validate and not Clifford._is_symplectic(self._table.array):
                 raise QiskitError(
-                    'Invalid Clifford. Input StabilizerTable is not a valid'
-                    ' symplectic matrix.')
+                    "Invalid Clifford. Input StabilizerTable is not a valid symplectic matrix."
+                )
 
         # Initialize BaseOperator
         super().__init__(num_qubits=self._table.num_qubits)
 
     def __repr__(self):
-        return 'Clifford({})'.format(repr(self.table))
+        return f"Clifford({repr(self.table)})"
 
     def __str__(self):
-        return 'Clifford: Stabilizer = {}, Destabilizer = {}'.format(
-            str(self.stabilizer.to_labels()),
-            str(self.destabilizer.to_labels()))
+        return "Clifford: Stabilizer = {}, Destabilizer = {}".format(
+            str(self.stabilizer.to_labels()), str(self.destabilizer.to_labels())
+        )
 
     def __eq__(self, other):
         """Check if two Clifford tables are equal"""
@@ -179,18 +179,18 @@ class Clifford(BaseOperator, AdjointMixin):
     @property
     def stabilizer(self):
         """Return the stabilizer block of the StabilizerTable."""
-        return StabilizerTable(self._table[self.num_qubits:2*self.num_qubits])
+        return StabilizerTable(self._table[self.num_qubits : 2 * self.num_qubits])
 
     @stabilizer.setter
     def stabilizer(self, value):
         """Set the value of stabilizer block of the StabilizerTable"""
-        inds = slice(self.num_qubits, 2*self.num_qubits)
+        inds = slice(self.num_qubits, 2 * self.num_qubits)
         self._table.__setitem__(inds, value)
 
     @property
     def destabilizer(self):
         """Return the destabilizer block of the StabilizerTable."""
-        return StabilizerTable(self._table[0:self.num_qubits])
+        return StabilizerTable(self._table[0 : self.num_qubits])
 
     @destabilizer.setter
     def destabilizer(self, value):
@@ -214,13 +214,13 @@ class Clifford(BaseOperator, AdjointMixin):
     # ---------------------------------------------------------------------
 
     def conjugate(self):
-        return Clifford._conjugate_transpose(self, 'C')
+        return Clifford._conjugate_transpose(self, "C")
 
     def adjoint(self):
-        return Clifford._conjugate_transpose(self, 'A')
+        return Clifford._conjugate_transpose(self, "A")
 
     def transpose(self):
-        return Clifford._conjugate_transpose(self, 'T')
+        return Clifford._conjugate_transpose(self, "T")
 
     def tensor(self, other):
         if not isinstance(other, Clifford):
@@ -235,17 +235,17 @@ class Clifford(BaseOperator, AdjointMixin):
     @classmethod
     def _tensor(cls, a, b):
         # Pad stabilizers and destabilizers
-        destab = (b.destabilizer.expand(a.num_qubits * 'I') +
-                  a.destabilizer.tensor(b.num_qubits * 'I'))
-        stab = (b.stabilizer.expand(a.num_qubits * 'I') +
-                a.stabilizer.tensor(b.num_qubits * 'I'))
+        destab = b.destabilizer.expand(a.num_qubits * "I") + a.destabilizer.tensor(
+            b.num_qubits * "I"
+        )
+        stab = b.stabilizer.expand(a.num_qubits * "I") + a.stabilizer.tensor(b.num_qubits * "I")
 
         # Add the padded table
         return Clifford(destab + stab, validate=False)
 
     def compose(self, other, qargs=None, front=False):
         if qargs is None:
-            qargs = getattr(other, 'qargs', None)
+            qargs = getattr(other, "qargs", None)
         # If other is a QuantumCircuit we can more efficiently compose
         # using the _append_circuit method to update each gate recursively
         # to the current Clifford, rather than converting to a Clifford first
@@ -331,14 +331,14 @@ class Clifford(BaseOperator, AdjointMixin):
         """Return dictionary representation of Clifford object."""
         return {
             "stabilizer": self.stabilizer.to_labels(),
-            "destabilizer": self.destabilizer.to_labels()
+            "destabilizer": self.destabilizer.to_labels(),
         }
 
     @staticmethod
     def from_dict(obj):
         """Load a Clifford from a dictionary"""
-        destabilizer = StabilizerTable.from_labels(obj.get('destabilizer'))
-        stabilizer = StabilizerTable.from_labels(obj.get('stabilizer'))
+        destabilizer = StabilizerTable.from_labels(obj.get("destabilizer"))
+        stabilizer = StabilizerTable.from_labels(obj.get("stabilizer"))
         return Clifford(destabilizer + stabilizer)
 
     def to_matrix(self):
@@ -441,11 +441,15 @@ class Clifford(BaseOperator, AdjointMixin):
         """
         # Check label is valid
         label_gates = {
-            'I': IGate(), 'X': XGate(), 'Y': YGate(),
-            'Z': ZGate(), 'H': HGate(), 'S': SGate()
+            "I": IGate(),
+            "X": XGate(),
+            "Y": YGate(),
+            "Z": ZGate(),
+            "H": HGate(),
+            "S": SGate(),
         }
-        if re.match(r'^[IXYZHS\-+]+$', label) is None:
-            raise QiskitError('Label contains invalid characters.')
+        if re.match(r"^[IXYZHS\-+]+$", label) is None:
+            raise QiskitError("Label contains invalid characters.")
         # Initialize an identity matrix and apply each gate
         num_qubits = len(label)
         op = Clifford(np.eye(2 * num_qubits, dtype=bool))
@@ -486,7 +490,7 @@ class Clifford(BaseOperator, AdjointMixin):
             Clifford: the modified clifford.
         """
         ret = clifford.copy()
-        if method in ['A', 'T']:
+        if method in ["A", "T"]:
             # Apply inverse
             # Update table
             tmp = ret.destabilizer.X.copy()
@@ -496,10 +500,9 @@ class Clifford(BaseOperator, AdjointMixin):
             ret.stabilizer.Z = tmp.T
             # Update phase
             ret.table.phase ^= clifford.dot(ret).table.phase
-        if method in ['C', 'T']:
+        if method in ["C", "T"]:
             # Apply conjugate
-            ret.table.phase ^= np.mod(np.sum(
-                ret.table.X & ret.table.Z, axis=1), 2).astype(bool)
+            ret.table.phase ^= np.mod(np.sum(ret.table.X & ret.table.Z, axis=1), 2).astype(bool)
         return ret
 
     def _pad_with_identity(self, clifford, qargs):
@@ -507,8 +510,7 @@ class Clifford(BaseOperator, AdjointMixin):
         if qargs is None:
             return clifford
 
-        padded = Clifford(StabilizerTable(
-            np.eye(2 * self.num_qubits, dtype=bool)), validate=False)
+        padded = Clifford(StabilizerTable(np.eye(2 * self.num_qubits, dtype=bool)), validate=False)
 
         inds = list(qargs) + [self.num_qubits + i for i in qargs]
 

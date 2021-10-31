@@ -1,8 +1,0 @@
----
-fixes:
-  - |
-    Fix the ``'circular'`` entanglement in the :class:`qiskit.circuit.library.n_local.n_local.NLocal` circuit class for the edge
-    case where the circuit has the same size as the entanglement block (e.g. a two-qubit
-    circuit and CZ entanglement gates). In this case there should only be one entanglement
-    gate, but there was accidentially added a second one in the inverse direction as the 
-    first.

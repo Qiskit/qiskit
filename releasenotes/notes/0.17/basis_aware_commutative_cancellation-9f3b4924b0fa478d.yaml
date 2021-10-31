@@ -1,0 +1,24 @@
+---
+features:
+  - |
+    The :class:`~qiskit.transpiler.passes.CommutativeCancellation` transpiler
+    pass has a new optional kwarg on the constructor ``basis_gates``, which
+    takes the a list of the names of basis gates for the target backend.
+    When specified the pass will only use gates in the ``basis_gates`` kwarg.
+    Previously, the pass would automatically replace consecutive gates which
+    commute with :class:`~qiskit.circuit.library.ZGate` with the
+    :class:`~qiskit.circuit.library.U1Gate` unconditionally. The ``basis_gates``
+    kwarg enables you to specify which z-rotation gates are present in
+    the target basis to avoid this.
+upgrade:
+  - |
+    The :class:`~qiskit.transpiler.passes.CommutativeCancellation` transpiler
+    pass is now aware of the target basis gates, which means it will only
+    use gates in the specified basis. Previously, the pass would unconditionally
+    replace consecutive gates which commute with
+    :class:`~qiskit.circuit.library.ZGate` with the
+    :class:`~qiskit.circuit.library.U1Gate`. However, now that the pass is
+    basis aware and has a kwarg, ``basis_gates``, for specifying the target
+    basis there is a potential change in behavior if the kwarg is not set.
+    When the ``basis_gates`` kwarg is not used and there are no variable
+    z-rotation gates in the circuit then no commutative cancellation will occur.

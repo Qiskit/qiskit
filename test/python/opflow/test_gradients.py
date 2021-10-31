@@ -18,10 +18,10 @@ from test.python.opflow import QiskitOpflowTestCase
 from itertools import product
 import numpy as np
 from ddt import ddt, data, idata, unpack
-from sympy import Symbol, cos
 
 try:
     import jax.numpy as jnp
+
     _HAS_JAX = True
 except ImportError:
     _HAS_JAX = False
@@ -33,24 +33,35 @@ from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.utils import algorithm_globals
 from qiskit.algorithms import VQE
 from qiskit.algorithms.optimizers import CG
-from qiskit.opflow import I, X, Y, Z, StateFn, CircuitStateFn, ListOp, CircuitSampler
+from qiskit.opflow import (
+    I,
+    X,
+    Y,
+    Z,
+    StateFn,
+    CircuitStateFn,
+    ListOp,
+    CircuitSampler,
+    TensoredOp,
+    SummedOp,
+)
 from qiskit.opflow.gradients import Gradient, NaturalGradient, Hessian
 from qiskit.opflow.gradients.qfi import QFI
 from qiskit.opflow.gradients.circuit_qfis import LinCombFull, OverlapBlockDiag, OverlapDiag
-from qiskit.circuit import Parameter, ParameterExpression
+from qiskit.circuit import Parameter
 from qiskit.circuit import ParameterVector
-from qiskit.circuit.library import RealAmplitudes
+from qiskit.circuit.library import RealAmplitudes, EfficientSU2
 
 
 @ddt
 class TestGradients(QiskitOpflowTestCase):
-    """ Test Qiskit Gradient Framework """
+    """Test Qiskit Gradient Framework"""
 
     def setUp(self):
         super().setUp()
         algorithm_globals.random_seed = 50
 
-    @data('lin_comb', 'param_shift', 'fin_diff')
+    @data("lin_comb", "param_shift", "fin_diff")
     def test_gradient_p(self, method):
         """Test the state gradient for p
         |psi> = 1/sqrt(2)[[1, exp(ia)]]
@@ -59,24 +70,24 @@ class TestGradients(QiskitOpflowTestCase):
         d<H>/da = - 0.5 sin(a)
         """
         ham = 0.5 * X - 1 * Z
-        a = Parameter('a')
+        a = Parameter("a")
         params = a
-
         q = QuantumRegister(1)
         qc = QuantumCircuit(q)
         qc.h(q)
         qc.p(a, q[0])
-        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
 
         state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
         values_dict = [{a: np.pi / 4}, {a: 0}, {a: np.pi / 2}]
         correct_values = [-0.5 / np.sqrt(2), 0, -0.5]
 
         for i, value_dict in enumerate(values_dict):
-            np.testing.assert_array_almost_equal(state_grad.assign_parameters(value_dict).eval(),
-                                                 correct_values[i], decimal=1)
+            np.testing.assert_array_almost_equal(
+                state_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
+            )
 
-    @data('lin_comb', 'param_shift', 'fin_diff')
+    @data("lin_comb", "param_shift", "fin_diff")
     def test_gradient_u(self, method):
         """Test the state gradient for U
         Tr(|psi><psi|Z) = - 0.5 sin(a)cos(c)
@@ -84,24 +95,24 @@ class TestGradients(QiskitOpflowTestCase):
         """
 
         ham = 0.5 * X - 1 * Z
-        a = Parameter('a')
-        b = Parameter('b')
-        c = Parameter('c')
+        a = Parameter("a")
+        b = Parameter("b")
+        c = Parameter("c")
 
         q = QuantumRegister(1)
         qc = QuantumCircuit(q)
         qc.h(q)
         qc.u(a, b, c, q[0])
 
-        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
         params = [a, b, c]
         state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
         values_dict = [{a: np.pi / 4, b: 0, c: 0}, {a: np.pi / 4, b: np.pi / 4, c: np.pi / 4}]
         correct_values = [[0.3536, 0, 0], [0.3232, -0.42678, -0.92678]]
         for i, value_dict in enumerate(values_dict):
-            np.testing.assert_array_almost_equal(state_grad.assign_parameters(value_dict).eval(),
-                                                 correct_values[i],
-                                                 decimal=1)
+            np.testing.assert_array_almost_equal(
+                state_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
+            )
 
         # Tr(|psi><psi|Z) = - 0.5 sin(a)cos(c)
         # Tr(|psi><psi|X) = cos^2(a/2) cos(b+c) - sin^2(a/2) cos(b-c)
@@ -112,99 +123,164 @@ class TestGradients(QiskitOpflowTestCase):
         qc.h(q)
         qc.u(a, a, a, q[0])
 
-        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
         params = [a]
         state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
         values_dict = [{a: np.pi / 4}, {a: np.pi / 2}]
         correct_values = [[-1.03033], [-1]]
         for i, value_dict in enumerate(values_dict):
-            np.testing.assert_array_almost_equal(state_grad.assign_parameters(value_dict).eval(),
-                                                 correct_values[i],
-                                                 decimal=1)
+            np.testing.assert_array_almost_equal(
+                state_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
+            )
 
-    @data('lin_comb', 'param_shift', 'fin_diff')
+    @data("lin_comb", "param_shift")
+    def test_gradient_efficient_su2(self, method):
+        """Test the state gradient for EfficientSU2"""
+        observable = SummedOp(
+            [
+                0.2252 * (I ^ I),
+                0.5716 * (Z ^ Z),
+                0.3435 * (I ^ Z),
+                -0.4347 * (Z ^ I),
+                0.091 * (Y ^ Y),
+                0.091 * (X ^ X),
+            ]
+        ).reduce()
+
+        d = 2
+        ansatz = EfficientSU2(observable.num_qubits, reps=d)
+
+        # Define a set of initial parameters
+        parameters = ansatz.ordered_parameters
+
+        operator = ~StateFn(observable) @ StateFn(ansatz)
+
+        values_dict = [
+            {param: np.pi / 4 for param in parameters},
+            {param: np.pi / 2 for param in parameters},
+        ]
+        correct_values = [
+            [
+                -0.38617868191914206 + 0j,
+                -0.014055349300198364 + 0j,
+                -0.06385049040183734 + 0j,
+                0.13620629212619334 + 0j,
+                -0.15180743339043595 + 0j,
+                -0.2378393653877069 + 0j,
+                0.0024060546876464237 + 0j,
+                0.09977051760912459 + 0j,
+                0.40357721595080603 + 0j,
+                0.010453846462186653 + 0j,
+                -0.04578581127401049 + 0j,
+                0.04578581127401063 + 0j,
+            ],
+            [
+                0.4346999999999997 + 0j,
+                0.0,
+                0.0,
+                0.6625999999999991 + 0j,
+                0.0,
+                0.0,
+                -0.34349999999999986 + 0j,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ],
+        ]
+
+        state_grad = Gradient(method).convert(operator, parameters)
+        for i, value_dict in enumerate(values_dict):
+            np.testing.assert_array_almost_equal(
+                state_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
+            )
+
+    @data("lin_comb", "param_shift", "fin_diff")
     def test_gradient_rxx(self, method):
-        """Test the state gradient for XX rotation
-        """
-        ham = Z ^ X
-        a = Parameter('a')
+        """Test the state gradient for XX rotation"""
+        ham = TensoredOp([Z, X])
+        a = Parameter("a")
 
         q = QuantumRegister(2)
         qc = QuantumCircuit(q)
         qc.h(q[0])
         qc.rxx(a, q[0], q[1])
 
-        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
         params = [a]
         state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
         values_dict = [{a: np.pi / 4}, {a: np.pi / 2}]
-        correct_values = [[-0.707], [-1.]]
+        correct_values = [[-0.707], [-1.0]]
         for i, value_dict in enumerate(values_dict):
-            np.testing.assert_array_almost_equal(state_grad.assign_parameters(value_dict).eval(),
-                                                 correct_values[i], decimal=1)
+            np.testing.assert_array_almost_equal(
+                state_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
+            )
 
-    @data('lin_comb', 'param_shift', 'fin_diff')
+    @data("lin_comb", "param_shift", "fin_diff")
     def test_gradient_ryy(self, method):
-        """Test the state gradient for YY rotation
-        """
-        ham = Y ^ Y
-        a = Parameter('a')
+        """Test the state gradient for YY rotation"""
+        alpha = Parameter("alpha")
+        ham = TensoredOp([Y, alpha * Y])
+        a = Parameter("a")
 
         q = QuantumRegister(2)
         qc = QuantumCircuit(q)
         qc.ryy(a, q[0], q[1])
 
-        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
         state_grad = Gradient(grad_method=method).convert(operator=op, params=a)
         values_dict = [{a: np.pi / 8}, {a: np.pi}]
         correct_values = [[0], [0]]
         for i, value_dict in enumerate(values_dict):
-            np.testing.assert_array_almost_equal(state_grad.assign_parameters(value_dict).eval(),
-                                                 correct_values[i], decimal=1)
+            value_dict[alpha] = 1.0
+            np.testing.assert_array_almost_equal(
+                state_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
+            )
 
-    @data('lin_comb', 'param_shift', 'fin_diff')
+    @data("lin_comb", "param_shift", "fin_diff")
     def test_gradient_rzz(self, method):
-        """Test the state gradient for ZZ rotation
-        """
+        """Test the state gradient for ZZ rotation"""
         ham = Z ^ X
-        a = Parameter('a')
+        a = Parameter("a")
 
         q = QuantumRegister(2)
         qc = QuantumCircuit(q)
         qc.h(q[0])
         qc.rzz(a, q[0], q[1])
 
-        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
         params = [a]
         state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
         values_dict = [{a: np.pi / 4}, {a: np.pi / 2}]
-        correct_values = [[-0.707], [-1.]]
+        correct_values = [[-0.707], [-1.0]]
         for i, value_dict in enumerate(values_dict):
-            np.testing.assert_array_almost_equal(state_grad.assign_parameters(value_dict).eval(),
-                                                 correct_values[i], decimal=1)
+            np.testing.assert_array_almost_equal(
+                state_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
+            )
 
-    @data('lin_comb', 'param_shift', 'fin_diff')
+    @data("lin_comb", "param_shift", "fin_diff")
     def test_gradient_rzx(self, method):
-        """Test the state gradient for ZX rotation
-        """
+        """Test the state gradient for ZX rotation"""
         ham = Z ^ Z
-        a = Parameter('a')
+        a = Parameter("a")
 
         q = QuantumRegister(2)
         qc = QuantumCircuit(q)
         qc.h(q)
         qc.rzx(a, q[0], q[1])
 
-        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
         params = [a]
         state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
         values_dict = [{a: np.pi / 8}, {a: np.pi / 2}]
-        correct_values = [[0.], [0.]]
+        correct_values = [[0.0], [0.0]]
         for i, value_dict in enumerate(values_dict):
-            np.testing.assert_array_almost_equal(state_grad.assign_parameters(value_dict).eval(),
-                                                 correct_values[i], decimal=1)
+            np.testing.assert_array_almost_equal(
+                state_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
+            )
 
-    @data('lin_comb', 'param_shift', 'fin_diff')
+    @data("lin_comb", "param_shift", "fin_diff")
     def test_state_gradient1(self, method):
         """Test the state gradient
 
@@ -215,8 +291,8 @@ class TestGradients(QiskitOpflowTestCase):
         """
 
         ham = 0.5 * X - 1 * Z
-        a = Parameter('a')
-        b = Parameter('b')
+        a = Parameter("a")
+        b = Parameter("b")
         params = [a, b]
 
         q = QuantumRegister(1)
@@ -224,19 +300,26 @@ class TestGradients(QiskitOpflowTestCase):
         qc.h(q)
         qc.rz(params[0], q[0])
         qc.rx(params[1], q[0])
-        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
 
         state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
-        values_dict = [{a: np.pi / 4, b: np.pi}, {params[0]: np.pi / 4, params[1]: np.pi / 4},
-                       {params[0]: np.pi / 2, params[1]: np.pi / 4}]
-        correct_values = [[-0.5 / np.sqrt(2), 1 / np.sqrt(2)], [-0.5 / np.sqrt(2) - 0.5, -1 / 2.],
-                          [-0.5, -1 / np.sqrt(2)]]
+        values_dict = [
+            {a: np.pi / 4, b: np.pi},
+            {params[0]: np.pi / 4, params[1]: np.pi / 4},
+            {params[0]: np.pi / 2, params[1]: np.pi / 4},
+        ]
+        correct_values = [
+            [-0.5 / np.sqrt(2), 1 / np.sqrt(2)],
+            [-0.5 / np.sqrt(2) - 0.5, -1 / 2.0],
+            [-0.5, -1 / np.sqrt(2)],
+        ]
 
         for i, value_dict in enumerate(values_dict):
-            np.testing.assert_array_almost_equal(state_grad.assign_parameters(value_dict).eval(),
-                                                 correct_values[i], decimal=1)
+            np.testing.assert_array_almost_equal(
+                state_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
+            )
 
-    @data('lin_comb', 'param_shift', 'fin_diff')
+    @data("lin_comb", "param_shift", "fin_diff")
     def test_state_gradient2(self, method):
         """Test the state gradient 2
 
@@ -245,7 +328,7 @@ class TestGradients(QiskitOpflowTestCase):
         d<H>/da = - 0.5 sin(a) - 2 cos(a)sin(a)
         """
         ham = 0.5 * X - 1 * Z
-        a = Parameter('a')
+        a = Parameter("a")
         # b = Parameter('b')
         params = [a]
 
@@ -254,19 +337,18 @@ class TestGradients(QiskitOpflowTestCase):
         qc.h(q)
         qc.rz(a, q[0])
         qc.rx(a, q[0])
-        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
 
         state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
-        values_dict = [{a: np.pi / 4}, {a: 0},
-                       {a: np.pi / 2}]
+        values_dict = [{a: np.pi / 4}, {a: 0}, {a: np.pi / 2}]
         correct_values = [-1.353553, -0, -0.5]
 
         for i, value_dict in enumerate(values_dict):
-            np.testing.assert_array_almost_equal(state_grad.assign_parameters(value_dict).eval(),
-                                                 correct_values[i],
-                                                 decimal=1)
+            np.testing.assert_array_almost_equal(
+                state_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
+            )
 
-    @data('lin_comb', 'param_shift', 'fin_diff')
+    @data("lin_comb", "param_shift", "fin_diff")
     def test_state_gradient3(self, method):
         """Test the state gradient 3
 
@@ -275,37 +357,34 @@ class TestGradients(QiskitOpflowTestCase):
         d<H>/da = - 0.5 sin(a) - 1 cos(a)sin(cos(a)+1) + 1 sin^2(a)cos(cos(a)+1)
         """
         ham = 0.5 * X - 1 * Z
-        a = Parameter('a')
+        a = Parameter("a")
         # b = Parameter('b')
         params = a
-        x = Symbol('x')
-        expr = cos(x) + 1
-        c = ParameterExpression({a: x}, expr)
-
+        c = np.cos(a) + 1
         q = QuantumRegister(1)
         qc = QuantumCircuit(q)
         qc.h(q)
         qc.rz(a, q[0])
         qc.rx(c, q[0])
-        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
 
         state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
         values_dict = [{a: np.pi / 4}, {a: 0}, {a: np.pi / 2}]
         correct_values = [-1.1220, -0.9093, 0.0403]
         for i, value_dict in enumerate(values_dict):
-            np.testing.assert_array_almost_equal(state_grad.assign_parameters(value_dict).eval(),
-                                                 correct_values[i],
-                                                 decimal=1)
+            np.testing.assert_array_almost_equal(
+                state_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
+            )
 
-    @data('lin_comb', 'param_shift', 'fin_diff')
+    @data("lin_comb", "param_shift", "fin_diff")
     def test_state_gradient4(self, method):
         """Test the state gradient 4
-         Tr(|psi><psi|ZX) = -cos(a)
-         daTr(|psi><psi|ZX) = sin(a)
+        Tr(|psi><psi|ZX) = -cos(a)
+        daTr(|psi><psi|ZX) = sin(a)
         """
 
         ham = X ^ Z
-        a = Parameter('a')
+        a = Parameter("a")
         params = a
 
         q = QuantumRegister(2)
@@ -313,19 +392,18 @@ class TestGradients(QiskitOpflowTestCase):
         qc.x(q[0])
         qc.h(q[1])
         qc.crz(a, q[0], q[1])
-        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
 
         state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
-        values_dict = [{a: np.pi / 4}, {a: 0},
-                       {a: np.pi / 2}]
+        values_dict = [{a: np.pi / 4}, {a: 0}, {a: np.pi / 2}]
         correct_values = [1 / np.sqrt(2), 0, 1]
 
         for i, value_dict in enumerate(values_dict):
-            np.testing.assert_array_almost_equal(state_grad.assign_parameters(value_dict).eval(),
-                                                 correct_values[i],
-                                                 decimal=1)
+            np.testing.assert_array_almost_equal(
+                state_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
+            )
 
-    @data('lin_comb', 'param_shift', 'fin_diff')
+    @data("lin_comb", "param_shift", "fin_diff")
     def test_state_gradient5(self, method):
         """Test the state gradient
 
@@ -336,7 +414,7 @@ class TestGradients(QiskitOpflowTestCase):
         """
 
         ham = 0.5 * X - 1 * Z
-        a = ParameterVector('a', 2)
+        a = ParameterVector("a", 2)
         params = a
 
         q = QuantumRegister(1)
@@ -344,19 +422,26 @@ class TestGradients(QiskitOpflowTestCase):
         qc.h(q)
         qc.rz(params[0], q[0])
         qc.rx(params[1], q[0])
-        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
 
         state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
-        values_dict = [{a: [np.pi / 4, np.pi]}, {a: [np.pi / 4, np.pi / 4]},
-                       {a: [np.pi / 2, np.pi / 4]}]
-        correct_values = [[-0.5 / np.sqrt(2), 1 / np.sqrt(2)], [-0.5 / np.sqrt(2) - 0.5, -1 / 2.],
-                          [-0.5, -1 / np.sqrt(2)]]
+        values_dict = [
+            {a: [np.pi / 4, np.pi]},
+            {a: [np.pi / 4, np.pi / 4]},
+            {a: [np.pi / 2, np.pi / 4]},
+        ]
+        correct_values = [
+            [-0.5 / np.sqrt(2), 1 / np.sqrt(2)],
+            [-0.5 / np.sqrt(2) - 0.5, -1 / 2.0],
+            [-0.5, -1 / np.sqrt(2)],
+        ]
 
         for i, value_dict in enumerate(values_dict):
-            np.testing.assert_array_almost_equal(state_grad.assign_parameters(value_dict).eval(),
-                                                 correct_values[i], decimal=1)
+            np.testing.assert_array_almost_equal(
+                state_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
+            )
 
-    @data('lin_comb', 'param_shift', 'fin_diff')
+    @data("lin_comb", "param_shift", "fin_diff")
     def test_state_hessian(self, method):
         """Test the state Hessian
 
@@ -369,7 +454,7 @@ class TestGradients(QiskitOpflowTestCase):
         """
 
         ham = 0.5 * X - 1 * Z
-        params = ParameterVector('a', 2)
+        params = ParameterVector("a", 2)
 
         q = QuantumRegister(1)
         qc = QuantumCircuit(q)
@@ -377,20 +462,25 @@ class TestGradients(QiskitOpflowTestCase):
         qc.rz(params[0], q[0])
         qc.rx(params[1], q[0])
 
-        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
         state_hess = Hessian(hess_method=method).convert(operator=op)
 
-        values_dict = [{params[0]: np.pi / 4, params[1]: np.pi},
-                       {params[0]: np.pi / 4, params[1]: np.pi / 4}]
-        correct_values = [[[-0.5 / np.sqrt(2), 1 / np.sqrt(2)], [1 / np.sqrt(2), 0]],
-                          [[-0.5 / np.sqrt(2) + 0.5, -1 / 2.], [-1 / 2., 0.5]]]
+        values_dict = [
+            {params[0]: np.pi / 4, params[1]: np.pi},
+            {params[0]: np.pi / 4, params[1]: np.pi / 4},
+        ]
+        correct_values = [
+            [[-0.5 / np.sqrt(2), 1 / np.sqrt(2)], [1 / np.sqrt(2), 0]],
+            [[-0.5 / np.sqrt(2) + 0.5, -1 / 2.0], [-1 / 2.0, 0.5]],
+        ]
 
         for i, value_dict in enumerate(values_dict):
-            np.testing.assert_array_almost_equal(state_hess.assign_parameters(value_dict).eval(),
-                                                 correct_values[i], decimal=1)
+            np.testing.assert_array_almost_equal(
+                state_hess.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
+            )
 
-    @unittest.skipIf(not _HAS_JAX, 'Skipping test due to missing jax module.')
-    @data('lin_comb', 'param_shift', 'fin_diff')
+    @unittest.skipIf(not _HAS_JAX, "Skipping test due to missing jax module.")
+    @data("lin_comb", "param_shift", "fin_diff")
     def test_state_hessian_custom_combo_fn(self, method):
         """Test the state Hessian with on an operator which includes
             a user-defined combo_fn.
@@ -404,8 +494,8 @@ class TestGradients(QiskitOpflowTestCase):
         """
 
         ham = 0.5 * X - 1 * Z
-        a = Parameter('a')
-        b = Parameter('b')
+        a = Parameter("a")
+        b = Parameter("b")
         params = [(a, a), (a, b), (b, b)]
 
         q = QuantumRegister(1)
@@ -414,23 +504,30 @@ class TestGradients(QiskitOpflowTestCase):
         qc.rz(a, q[0])
         qc.rx(b, q[0])
 
-        op = ListOp([~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)],
-                    combo_fn=lambda x: x[0] ** 3 + 4 * x[0])
+        op = ListOp(
+            [~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)],
+            combo_fn=lambda x: x[0] ** 3 + 4 * x[0],
+        )
         state_hess = Hessian(hess_method=method).convert(operator=op, params=params)
 
-        values_dict = [{a: np.pi / 4, b: np.pi},
-                       {a: np.pi / 4, b: np.pi / 4},
-                       {a: np.pi / 2, b: np.pi / 4}]
+        values_dict = [
+            {a: np.pi / 4, b: np.pi},
+            {a: np.pi / 4, b: np.pi / 4},
+            {a: np.pi / 2, b: np.pi / 4},
+        ]
 
-        correct_values = [[-1.28163104, 2.56326208, 1.06066017],
-                          [-0.04495626, -2.40716991, 1.8125],
-                          [2.82842712, -1.5, 1.76776695]]
+        correct_values = [
+            [-1.28163104, 2.56326208, 1.06066017],
+            [-0.04495626, -2.40716991, 1.8125],
+            [2.82842712, -1.5, 1.76776695],
+        ]
 
         for i, value_dict in enumerate(values_dict):
-            np.testing.assert_array_almost_equal(state_hess.assign_parameters(value_dict).eval(),
-                                                 correct_values[i], decimal=1)
+            np.testing.assert_array_almost_equal(
+                state_hess.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
+            )
 
-    @data('lin_comb', 'param_shift', 'fin_diff')
+    @data("lin_comb", "param_shift", "fin_diff")
     def test_prob_grad(self, method):
         """Test the probability gradient
 
@@ -440,8 +537,8 @@ class TestGradients(QiskitOpflowTestCase):
         dp1/db = - sin(a)cos(b) / 2
         """
 
-        a = Parameter('a')
-        b = Parameter('b')
+        a = Parameter("a")
+        b = Parameter("b")
         params = [a, b]
 
         q = QuantumRegister(1)
@@ -450,20 +547,26 @@ class TestGradients(QiskitOpflowTestCase):
         qc.rz(params[0], q[0])
         qc.rx(params[1], q[0])
 
-        op = CircuitStateFn(primitive=qc, coeff=1.)
+        op = CircuitStateFn(primitive=qc, coeff=1.0)
 
         prob_grad = Gradient(grad_method=method).convert(operator=op, params=params)
-        values_dict = [{a: np.pi / 4, b: 0}, {params[0]: np.pi / 4, params[1]: np.pi / 4},
-                       {params[0]: np.pi / 2, params[1]: np.pi}]
-        correct_values = [[[0, 0], [1 / (2 * np.sqrt(2)), - 1 / (2 * np.sqrt(2))]],
-                          [[1 / 4, - 1 / 4], [1 / 4, - 1 / 4]],
-                          [[0, 0], [- 1 / 2, 1 / 2]]]
+        values_dict = [
+            {a: np.pi / 4, b: 0},
+            {params[0]: np.pi / 4, params[1]: np.pi / 4},
+            {params[0]: np.pi / 2, params[1]: np.pi},
+        ]
+        correct_values = [
+            [[0, 0], [1 / (2 * np.sqrt(2)), -1 / (2 * np.sqrt(2))]],
+            [[1 / 4, -1 / 4], [1 / 4, -1 / 4]],
+            [[0, 0], [-1 / 2, 1 / 2]],
+        ]
         for i, value_dict in enumerate(values_dict):
             for j, prob_grad_result in enumerate(prob_grad.assign_parameters(value_dict).eval()):
-                np.testing.assert_array_almost_equal(prob_grad_result,
-                                                     correct_values[i][j], decimal=1)
+                np.testing.assert_array_almost_equal(
+                    prob_grad_result, correct_values[i][j], decimal=1
+                )
 
-    @data('lin_comb', 'param_shift', 'fin_diff')
+    @data("lin_comb", "param_shift", "fin_diff")
     def test_prob_hess(self, method):
         """Test the probability Hessian using linear combination of unitaries method
 
@@ -473,8 +576,8 @@ class TestGradients(QiskitOpflowTestCase):
         d^2p1/dadb = - cos(a)cos(b) / 2
         """
 
-        a = Parameter('a')
-        b = Parameter('b')
+        a = Parameter("a")
+        b = Parameter("b")
         params = [(a, a), (a, b)]
 
         q = QuantumRegister(1)
@@ -483,27 +586,32 @@ class TestGradients(QiskitOpflowTestCase):
         qc.rz(a, q[0])
         qc.rx(b, q[0])
 
-        op = CircuitStateFn(primitive=qc, coeff=1.)
+        op = CircuitStateFn(primitive=qc, coeff=1.0)
 
         prob_hess = Hessian(hess_method=method).convert(operator=op, params=params)
-        values_dict = [{a: np.pi / 4, b: 0}, {a: np.pi / 4, b: np.pi / 4},
-                       {a: np.pi / 2, b: np.pi}]
-        correct_values = [[[0, 0], [1 / (2 * np.sqrt(2)), - 1 / (2 * np.sqrt(2))]],
-                          [[- 1 / 4, 1 / 4], [1 / 4, - 1 / 4]],
-                          [[0, 0], [0, 0]]]
+        values_dict = [{a: np.pi / 4, b: 0}, {a: np.pi / 4, b: np.pi / 4}, {a: np.pi / 2, b: np.pi}]
+        correct_values = [
+            [[0, 0], [1 / (2 * np.sqrt(2)), -1 / (2 * np.sqrt(2))]],
+            [[-1 / 4, 1 / 4], [1 / 4, -1 / 4]],
+            [[0, 0], [0, 0]],
+        ]
         for i, value_dict in enumerate(values_dict):
             for j, prob_hess_result in enumerate(prob_hess.assign_parameters(value_dict).eval()):
-                np.testing.assert_array_almost_equal(prob_hess_result,
-                                                     correct_values[i][j], decimal=1)
+                np.testing.assert_array_almost_equal(
+                    prob_hess_result, correct_values[i][j], decimal=1
+                )
 
-    @idata(product(['lin_comb', 'param_shift', 'fin_diff'],
-                   [None, 'lasso', 'ridge', 'perturb_diag', 'perturb_diag_elements']))
+    @idata(
+        product(
+            ["lin_comb", "param_shift", "fin_diff"],
+            [None, "lasso", "ridge", "perturb_diag", "perturb_diag_elements"],
+        )
+    )
     @unpack
     def test_natural_gradient(self, method, regularization):
         """Test the natural gradient"""
         try:
-            for params in (ParameterVector('a', 2),
-                           [Parameter('a'), Parameter('b')]):
+            for params in (ParameterVector("a", 2), [Parameter("a"), Parameter("b")]):
                 ham = 0.5 * X - 1 * Z
 
                 q = QuantumRegister(1)
@@ -512,17 +620,19 @@ class TestGradients(QiskitOpflowTestCase):
                 qc.rz(params[0], q[0])
                 qc.rx(params[1], q[0])
 
-                op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
-                nat_grad = NaturalGradient(grad_method=method, regularization=regularization)\
-                    .convert(operator=op)
+                op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
+                nat_grad = NaturalGradient(
+                    grad_method=method, regularization=regularization
+                ).convert(operator=op)
                 values_dict = [{params[0]: np.pi / 4, params[1]: np.pi / 2}]
-                correct_values = [[-2.36003979, 2.06503481]] \
-                    if regularization == 'ridge' else [[-4.2, 0]]
+
+                # reference values obtained by classically computing the natural gradients
+                correct_values = [[-3.26, 1.63]] if regularization == "ridge" else [[-4.24, 0]]
+
                 for i, value_dict in enumerate(values_dict):
                     np.testing.assert_array_almost_equal(
-                        nat_grad.assign_parameters(value_dict).eval(),
-                        correct_values[i],
-                        decimal=0)
+                        nat_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
+                    )
         except MissingOptionalLibraryError as ex:
             self.skipTest(str(ex))
 
@@ -531,17 +641,25 @@ class TestGradients(QiskitOpflowTestCase):
         with self.assertRaises(TypeError):
             _ = NaturalGradient().convert(None, None)
 
-    @idata(zip(['lin_comb_full', 'overlap_block_diag', 'overlap_diag'],
-               [LinCombFull, OverlapBlockDiag, OverlapDiag]))
+    @idata(
+        zip(
+            ["lin_comb_full", "overlap_block_diag", "overlap_diag"],
+            [LinCombFull, OverlapBlockDiag, OverlapDiag],
+        )
+    )
     @unpack
     def test_natural_gradient3(self, qfi_method, circuit_qfi):
         """Test the natural gradient 3"""
         nat_grad = NaturalGradient(qfi_method=qfi_method)
         self.assertIsInstance(nat_grad.qfi_method, circuit_qfi)
 
-    @idata(product(['lin_comb', 'param_shift', 'fin_diff'],
-                   ['lin_comb_full', 'overlap_block_diag', 'overlap_diag'],
-                   [None, 'ridge', 'perturb_diag', 'perturb_diag_elements']))
+    @idata(
+        product(
+            ["lin_comb", "param_shift", "fin_diff"],
+            ["lin_comb_full", "overlap_block_diag", "overlap_diag"],
+            [None, "ridge", "perturb_diag", "perturb_diag_elements"],
+        )
+    )
     @unpack
     def test_natural_gradient4(self, grad_method, qfi_method, regularization):
         """Test the natural gradient 4"""
@@ -549,7 +667,7 @@ class TestGradients(QiskitOpflowTestCase):
         # Avoid regularization = lasso intentionally because it does not converge
         try:
             ham = 0.5 * X - 1 * Z
-            a = Parameter('a')
+            a = Parameter("a")
             params = a
 
             q = QuantumRegister(1)
@@ -557,22 +675,21 @@ class TestGradients(QiskitOpflowTestCase):
             qc.h(q)
             qc.rz(a, q[0])
 
-            op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
-            nat_grad = NaturalGradient(grad_method=grad_method,
-                                       qfi_method=qfi_method,
-                                       regularization=regularization).convert(operator=op,
-                                                                              params=params)
+            op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
+            nat_grad = NaturalGradient(
+                grad_method=grad_method, qfi_method=qfi_method, regularization=regularization
+            ).convert(operator=op, params=params)
             values_dict = [{a: np.pi / 4}]
-            correct_values = [[0.]] if regularization == 'ridge' else [[-1.41421342]]
+            correct_values = [[0.0]] if regularization == "ridge" else [[-1.41421342]]
             for i, value_dict in enumerate(values_dict):
-                np.testing.assert_array_almost_equal(nat_grad.assign_parameters(value_dict).eval(),
-                                                     correct_values[i],
-                                                     decimal=0)
+                np.testing.assert_array_almost_equal(
+                    nat_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=3
+                )
         except MissingOptionalLibraryError as ex:
             self.skipTest(str(ex))
 
-    @unittest.skipIf(not _HAS_JAX, 'Skipping test due to missing jax module.')
-    @idata(product(['lin_comb', 'param_shift', 'fin_diff'], [True, False]))
+    @unittest.skipIf(not _HAS_JAX, "Skipping test due to missing jax module.")
+    @idata(product(["lin_comb", "param_shift", "fin_diff"], [True, False]))
     @unpack
     def test_jax_chain_rule(self, method: str, autograd: bool):
         """Test the chain rule functionality using Jax
@@ -586,8 +703,8 @@ class TestGradients(QiskitOpflowTestCase):
         d<H>/db = d<H>/d<X> d<X>/db + d<H>/d<Z> d<Z>/db = - sin(sin(a)sin(b)) * sin(a)cos(b)
         """
 
-        a = Parameter('a')
-        b = Parameter('b')
+        a = Parameter("a")
+        b = Parameter("b")
         params = [a, b]
 
         q = QuantumRegister(1)
@@ -602,20 +719,28 @@ class TestGradients(QiskitOpflowTestCase):
         def grad_combo_fn(x):
             return np.array([2 * x[0], -np.sin(x[1])])
 
-        op = ListOp([~StateFn(X) @ CircuitStateFn(primitive=qc, coeff=1.),
-                     ~StateFn(Z) @ CircuitStateFn(primitive=qc, coeff=1.)], combo_fn=combo_fn,
-                    grad_combo_fn=None if autograd else grad_combo_fn)
+        op = ListOp(
+            [
+                ~StateFn(X) @ CircuitStateFn(primitive=qc, coeff=1.0),
+                ~StateFn(Z) @ CircuitStateFn(primitive=qc, coeff=1.0),
+            ],
+            combo_fn=combo_fn,
+            grad_combo_fn=None if autograd else grad_combo_fn,
+        )
 
         state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
-        values_dict = [{a: np.pi / 4, b: np.pi}, {params[0]: np.pi / 4, params[1]: np.pi / 4},
-                       {params[0]: np.pi / 2, params[1]: np.pi / 4}]
-        correct_values = [[-1., 0.], [-1.2397, -0.2397], [0, -0.45936]]
+        values_dict = [
+            {a: np.pi / 4, b: np.pi},
+            {params[0]: np.pi / 4, params[1]: np.pi / 4},
+            {params[0]: np.pi / 2, params[1]: np.pi / 4},
+        ]
+        correct_values = [[-1.0, 0.0], [-1.2397, -0.2397], [0, -0.45936]]
         for i, value_dict in enumerate(values_dict):
-            np.testing.assert_array_almost_equal(state_grad.assign_parameters(value_dict).eval(),
-                                                 correct_values[i],
-                                                 decimal=1)
+            np.testing.assert_array_almost_equal(
+                state_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
+            )
 
-    @data('lin_comb', 'param_shift', 'fin_diff')
+    @data("lin_comb", "param_shift", "fin_diff")
     def test_grad_combo_fn_chain_rule(self, method):
         """Test the chain rule for a custom gradient combo function."""
         np.random.seed(2)
@@ -634,13 +759,18 @@ class TestGradients(QiskitOpflowTestCase):
             return grad
 
         qc = RealAmplitudes(2, reps=1)
-        grad_op = ListOp([StateFn(qc)], combo_fn=combo_fn, grad_combo_fn=grad_combo_fn)
-        grad = Gradient(grad_method=method).convert(grad_op, qc.ordered_parameters)
+        grad_op = ListOp([StateFn(qc.decompose())], combo_fn=combo_fn, grad_combo_fn=grad_combo_fn)
+        grad = Gradient(grad_method=method).convert(grad_op)
         value_dict = dict(zip(qc.ordered_parameters, np.random.rand(len(qc.ordered_parameters))))
-        correct_values = [[(-0.16666259133549044+0j)], [(-7.244949702732864+0j)],
-                          [(-2.979791752749964+0j)], [(-5.310186078432614+0j)]]
-        np.testing.assert_array_almost_equal(grad.assign_parameters(value_dict).eval(),
-                                             correct_values)
+        correct_values = [
+            [(-0.16666259133549044 + 0j)],
+            [(-7.244949702732864 + 0j)],
+            [(-2.979791752749964 + 0j)],
+            [(-5.310186078432614 + 0j)],
+        ]
+        np.testing.assert_array_almost_equal(
+            grad.assign_parameters(value_dict).eval(), correct_values
+        )
 
     def test_grad_combo_fn_chain_rule_nat_grad(self):
         """Test the chain rule for a custom gradient combo function."""
@@ -661,47 +791,54 @@ class TestGradients(QiskitOpflowTestCase):
 
         try:
             qc = RealAmplitudes(2, reps=1)
-            grad_op = ListOp([StateFn(qc)], combo_fn=combo_fn, grad_combo_fn=grad_combo_fn)
-            grad = NaturalGradient(grad_method='lin_comb', regularization='ridge'
-                                   ).convert(grad_op, qc.ordered_parameters)
+            grad_op = ListOp(
+                [StateFn(qc.decompose())], combo_fn=combo_fn, grad_combo_fn=grad_combo_fn
+            )
+            grad = NaturalGradient(grad_method="lin_comb", regularization="ridge").convert(
+                grad_op, qc.ordered_parameters
+            )
             value_dict = dict(
-                zip(qc.ordered_parameters, np.random.rand(len(qc.ordered_parameters))))
+                zip(qc.ordered_parameters, np.random.rand(len(qc.ordered_parameters)))
+            )
             correct_values = [[0.20777236], [-18.92560338], [-15.89005475], [-10.44002031]]
-            np.testing.assert_array_almost_equal(grad.assign_parameters(value_dict).eval(),
-                                                 correct_values, decimal=3)
+            np.testing.assert_array_almost_equal(
+                grad.assign_parameters(value_dict).eval(), correct_values, decimal=3
+            )
         except MissingOptionalLibraryError as ex:
             self.skipTest(str(ex))
 
-    @data('lin_comb', 'param_shift', 'fin_diff')
+    @data("lin_comb", "param_shift", "fin_diff")
     def test_operator_coefficient_gradient(self, method):
         """Test the operator coefficient gradient
 
         Tr( | psi > < psi | Z) = sin(a)sin(b)
         Tr( | psi > < psi | X) = cos(a)
         """
-        a = Parameter('a')
-        b = Parameter('b')
+        a = Parameter("a")
+        b = Parameter("b")
         q = QuantumRegister(1)
         qc = QuantumCircuit(q)
         qc.h(q)
         qc.rz(a, q[0])
         qc.rx(b, q[0])
 
-        coeff_0 = Parameter('c_0')
-        coeff_1 = Parameter('c_1')
+        coeff_0 = Parameter("c_0")
+        coeff_1 = Parameter("c_1")
         ham = coeff_0 * X + coeff_1 * Z
-        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
+        op = StateFn(ham, is_measurement=True) @ CircuitStateFn(primitive=qc, coeff=1.0)
         gradient_coeffs = [coeff_0, coeff_1]
         coeff_grad = Gradient(grad_method=method).convert(op, gradient_coeffs)
-        values_dict = [{coeff_0: 0.5, coeff_1: -1, a: np.pi / 4, b: np.pi},
-                       {coeff_0: 0.5, coeff_1: -1, a: np.pi / 4, b: np.pi / 4}]
+        values_dict = [
+            {coeff_0: 0.5, coeff_1: -1, a: np.pi / 4, b: np.pi},
+            {coeff_0: 0.5, coeff_1: -1, a: np.pi / 4, b: np.pi / 4},
+        ]
         correct_values = [[1 / np.sqrt(2), 0], [1 / np.sqrt(2), 1 / 2]]
         for i, value_dict in enumerate(values_dict):
-            np.testing.assert_array_almost_equal(coeff_grad.assign_parameters(value_dict).eval(),
-                                                 correct_values[i],
-                                                 decimal=1)
+            np.testing.assert_array_almost_equal(
+                coeff_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
+            )
 
-    @data('lin_comb', 'param_shift', 'fin_diff')
+    @data("lin_comb", "param_shift", "fin_diff")
     def test_operator_coefficient_hessian(self, method):
         """Test the operator coefficient hessian
 
@@ -714,31 +851,33 @@ class TestGradients(QiskitOpflowTestCase):
         d^2<H>/dc_1dc_0 = <Z>
         d^2<H>/dc_1^2 = 0
         """
-        a = Parameter('a')
-        b = Parameter('b')
+        a = Parameter("a")
+        b = Parameter("b")
         q = QuantumRegister(1)
         qc = QuantumCircuit(q)
         qc.h(q)
         qc.rz(a, q[0])
         qc.rx(b, q[0])
 
-        coeff_0 = Parameter('c_0')
-        coeff_1 = Parameter('c_1')
+        coeff_0 = Parameter("c_0")
+        coeff_1 = Parameter("c_1")
         ham = coeff_0 * coeff_0 * X + coeff_1 * coeff_0 * Z
-        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
+        op = StateFn(ham, is_measurement=True) @ CircuitStateFn(primitive=qc, coeff=1.0)
         gradient_coeffs = [(coeff_0, coeff_0), (coeff_0, coeff_1), (coeff_1, coeff_1)]
         coeff_grad = Hessian(hess_method=method).convert(op, gradient_coeffs)
-        values_dict = [{coeff_0: 0.5, coeff_1: -1, a: np.pi / 4, b: np.pi},
-                       {coeff_0: 0.5, coeff_1: -1, a: np.pi / 4, b: np.pi / 4}]
+        values_dict = [
+            {coeff_0: 0.5, coeff_1: -1, a: np.pi / 4, b: np.pi},
+            {coeff_0: 0.5, coeff_1: -1, a: np.pi / 4, b: np.pi / 4},
+        ]
 
         correct_values = [[2 / np.sqrt(2), 0, 0], [2 / np.sqrt(2), 1 / 2, 0]]
 
         for i, value_dict in enumerate(values_dict):
-            np.testing.assert_array_almost_equal(coeff_grad.assign_parameters(value_dict).eval(),
-                                                 correct_values[i],
-                                                 decimal=1)
+            np.testing.assert_array_almost_equal(
+                coeff_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
+            )
 
-    @data('lin_comb', 'param_shift', 'fin_diff')
+    @data("lin_comb", "param_shift", "fin_diff")
     def test_circuit_sampler(self, method):
         """Test the gradient with circuit sampler
 
@@ -749,8 +888,8 @@ class TestGradients(QiskitOpflowTestCase):
         """
 
         ham = 0.5 * X - 1 * Z
-        a = Parameter('a')
-        b = Parameter('b')
+        a = Parameter("a")
+        b = Parameter("b")
         params = [a, b]
 
         q = QuantumRegister(1)
@@ -758,30 +897,37 @@ class TestGradients(QiskitOpflowTestCase):
         qc.h(q)
         qc.rz(params[0], q[0])
         qc.rx(params[1], q[0])
-        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.)
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
 
         shots = 8000
-        if method == 'fin_diff':
+        if method == "fin_diff":
             np.random.seed(8)
-            state_grad = Gradient(grad_method=method, epsilon=shots ** (-1 / 6.))\
-                .convert(operator=op)
+            state_grad = Gradient(grad_method=method, epsilon=shots ** (-1 / 6.0)).convert(
+                operator=op
+            )
         else:
             state_grad = Gradient(grad_method=method).convert(operator=op)
-        values_dict = [{a: np.pi / 4, b: np.pi}, {params[0]: np.pi / 4, params[1]: np.pi / 4},
-                       {params[0]: np.pi / 2, params[1]: np.pi / 4}]
-        correct_values = [[-0.5 / np.sqrt(2), 1 / np.sqrt(2)], [-0.5 / np.sqrt(2) - 0.5, -1 / 2.],
-                          [-0.5, -1 / np.sqrt(2)]]
+        values_dict = [
+            {a: np.pi / 4, b: np.pi},
+            {params[0]: np.pi / 4, params[1]: np.pi / 4},
+            {params[0]: np.pi / 2, params[1]: np.pi / 4},
+        ]
+        correct_values = [
+            [-0.5 / np.sqrt(2), 1 / np.sqrt(2)],
+            [-0.5 / np.sqrt(2) - 0.5, -1 / 2.0],
+            [-0.5, -1 / np.sqrt(2)],
+        ]
 
-        backend = BasicAer.get_backend('qasm_simulator')
+        backend = BasicAer.get_backend("qasm_simulator")
         q_instance = QuantumInstance(backend=backend, shots=shots)
 
         for i, value_dict in enumerate(values_dict):
-            sampler = CircuitSampler(backend=q_instance).convert(state_grad,
-                                                                 params={k: [v] for k, v in
-                                                                         value_dict.items()})
+            sampler = CircuitSampler(backend=q_instance).convert(
+                state_grad, params={k: [v] for k, v in value_dict.items()}
+            )
             np.testing.assert_array_almost_equal(sampler.eval()[0], correct_values[i], decimal=1)
 
-    @data('lin_comb', 'param_shift', 'fin_diff')
+    @data("lin_comb", "param_shift", "fin_diff")
     def test_circuit_sampler2(self, method):
         """Test the probability gradient with the circuit sampler
 
@@ -791,8 +937,8 @@ class TestGradients(QiskitOpflowTestCase):
         dp1/db = - sin(a)cos(b) / 2
         """
 
-        a = Parameter('a')
-        b = Parameter('b')
+        a = Parameter("a")
+        b = Parameter("b")
         params = [a, b]
 
         q = QuantumRegister(1)
@@ -801,36 +947,37 @@ class TestGradients(QiskitOpflowTestCase):
         qc.rz(params[0], q[0])
         qc.rx(params[1], q[0])
 
-        op = CircuitStateFn(primitive=qc, coeff=1.)
+        op = CircuitStateFn(primitive=qc, coeff=1.0)
 
         shots = 8000
-        if method == 'fin_diff':
+        if method == "fin_diff":
             np.random.seed(8)
-            prob_grad = Gradient(grad_method=method, epsilon=shots ** (-1 / 6.)).convert(
-                operator=op,
-                params=params)
+            prob_grad = Gradient(grad_method=method, epsilon=shots ** (-1 / 6.0)).convert(
+                operator=op, params=params
+            )
         else:
             prob_grad = Gradient(grad_method=method).convert(operator=op, params=params)
-        values_dict = [{a: [np.pi / 4], b: [0]},
-                       {params[0]: [np.pi / 4], params[1]: [np.pi / 4]},
-                       {params[0]: [np.pi / 2], params[1]: [np.pi]}]
+        values_dict = [
+            {a: [np.pi / 4], b: [0]},
+            {params[0]: [np.pi / 4], params[1]: [np.pi / 4]},
+            {params[0]: [np.pi / 2], params[1]: [np.pi]},
+        ]
         correct_values = [
-            [[0, 0], [1 / (2 * np.sqrt(2)), - 1 / (2 * np.sqrt(2))]],
-            [[1 / 4, -1 / 4], [1 / 4, - 1 / 4]],
-            [[0, 0], [-1 / 2, 1 / 2]]
+            [[0, 0], [1 / (2 * np.sqrt(2)), -1 / (2 * np.sqrt(2))]],
+            [[1 / 4, -1 / 4], [1 / 4, -1 / 4]],
+            [[0, 0], [-1 / 2, 1 / 2]],
         ]
 
-        backend = BasicAer.get_backend('qasm_simulator')
+        backend = BasicAer.get_backend("qasm_simulator")
         q_instance = QuantumInstance(backend=backend, shots=shots)
 
         for i, value_dict in enumerate(values_dict):
-            sampler = CircuitSampler(backend=q_instance).convert(prob_grad,
-                                                                 params=value_dict)
+            sampler = CircuitSampler(backend=q_instance).convert(prob_grad, params=value_dict)
             result = sampler.eval()[0]
             self.assertTrue(np.allclose(result[0].toarray(), correct_values[i][0], atol=0.1))
             self.assertTrue(np.allclose(result[1].toarray(), correct_values[i][1], atol=0.1))
 
-    @idata(['statevector_simulator', 'qasm_simulator'])
+    @idata(["statevector_simulator", "qasm_simulator"])
     def test_gradient_wrapper(self, backend_type):
         """Test the gradient wrapper for probability gradients
         dp0/da = cos(a)sin(b) / 2
@@ -838,9 +985,9 @@ class TestGradients(QiskitOpflowTestCase):
         dp0/db = sin(a)cos(b) / 2
         dp1/db = - sin(a)cos(b) / 2
         """
-        method = 'param_shift'
-        a = Parameter('a')
-        b = Parameter('b')
+        method = "param_shift"
+        a = Parameter("a")
+        b = Parameter("b")
         params = [a, b]
 
         q = QuantumRegister(1)
@@ -849,47 +996,97 @@ class TestGradients(QiskitOpflowTestCase):
         qc.rz(params[0], q[0])
         qc.rx(params[1], q[0])
 
-        op = CircuitStateFn(primitive=qc, coeff=1.)
+        op = CircuitStateFn(primitive=qc, coeff=1.0)
 
         shots = 8000
         backend = BasicAer.get_backend(backend_type)
-        q_instance = QuantumInstance(backend=backend, shots=shots)
-        if method == 'fin_diff':
+        q_instance = QuantumInstance(
+            backend=backend, shots=shots, seed_simulator=2, seed_transpiler=2
+        )
+        if method == "fin_diff":
             np.random.seed(8)
-            prob_grad = Gradient(grad_method=method, epsilon=shots ** (-1 / 6.)).gradient_wrapper(
-                operator=op, bind_params=params, backend=q_instance)
+            prob_grad = Gradient(grad_method=method, epsilon=shots ** (-1 / 6.0)).gradient_wrapper(
+                operator=op, bind_params=params, backend=q_instance
+            )
         else:
-            prob_grad = Gradient(grad_method=method).gradient_wrapper(operator=op,
-                                                                      bind_params=params,
-                                                                      backend=q_instance)
+            prob_grad = Gradient(grad_method=method).gradient_wrapper(
+                operator=op, bind_params=params, backend=q_instance
+            )
         values = [[np.pi / 4, 0], [np.pi / 4, np.pi / 4], [np.pi / 2, np.pi]]
-        correct_values = [[[0, 0], [1 / (2 * np.sqrt(2)), - 1 / (2 * np.sqrt(2))]],
-                          [[1 / 4, -1 / 4], [1 / 4, - 1 / 4]],
-                          [[0, 0], [- 1 / 2, 1 / 2]]]
+        correct_values = [
+            [[0, 0], [1 / (2 * np.sqrt(2)), -1 / (2 * np.sqrt(2))]],
+            [[1 / 4, -1 / 4], [1 / 4, -1 / 4]],
+            [[0, 0], [-1 / 2, 1 / 2]],
+        ]
         for i, value in enumerate(values):
             result = prob_grad(value)
-            if backend_type == 'qasm_simulator':  # sparse result
+            if backend_type == "qasm_simulator":  # sparse result
                 result = [result[0].toarray(), result[1].toarray()]
 
             self.assertTrue(np.allclose(result[0], correct_values[i][0], atol=0.1))
             self.assertTrue(np.allclose(result[1], correct_values[i][1], atol=0.1))
 
+    @data(("statevector_simulator", 1e-7), ("qasm_simulator", 2e-1))
+    @unpack
+    def test_gradient_wrapper2(self, backend_type, atol):
+        """Test the gradient wrapper for gradients checking that statevector and qasm gives the
+           same results
+
+        dp0/da = cos(a)sin(b) / 2
+        dp1/da = - cos(a)sin(b) / 2
+        dp0/db = sin(a)cos(b) / 2
+        dp1/db = - sin(a)cos(b) / 2
+        """
+        method = "lin_comb"
+        a = Parameter("a")
+        b = Parameter("b")
+        params = [a, b]
+
+        qc = QuantumCircuit(2)
+        qc.h(1)
+        qc.h(0)
+        qc.sdg(1)
+        qc.cz(0, 1)
+        qc.ry(params[0], 0)
+        qc.rz(params[1], 0)
+        qc.h(1)
+
+        obs = (Z ^ X) - (Y ^ Y)
+        op = StateFn(obs, is_measurement=True) @ CircuitStateFn(primitive=qc)
+
+        shots = 8192 if backend_type == "qasm_simulator" else 1
+
+        values = [[0, np.pi / 2], [np.pi / 4, np.pi / 4], [np.pi / 3, np.pi / 9]]
+        correct_values = [[-4.0, 0], [-2.0, -4.82842712], [-0.68404029, -7.01396121]]
+        for i, value in enumerate(values):
+            backend = BasicAer.get_backend(backend_type)
+            q_instance = QuantumInstance(
+                backend=backend, shots=shots, seed_simulator=2, seed_transpiler=2
+            )
+            grad = NaturalGradient(grad_method=method).gradient_wrapper(
+                operator=op, bind_params=params, backend=q_instance
+            )
+            result = grad(value)
+            self.assertTrue(np.allclose(result, correct_values[i], atol=atol))
+
     @slow_test
     def test_vqe(self):
         """Test VQE with gradients"""
 
-        method = 'lin_comb'
-        backend = 'qasm_simulator'
-        q_instance = QuantumInstance(BasicAer.get_backend(backend), seed_simulator=79,
-                                     seed_transpiler=2)
+        method = "lin_comb"
+        backend = "qasm_simulator"
+        q_instance = QuantumInstance(
+            BasicAer.get_backend(backend), seed_simulator=79, seed_transpiler=2
+        )
         # Define the Hamiltonian
-        h2_hamiltonian = -1.05 * (I ^ I) + 0.39 * (I ^ Z) - 0.39 * (Z ^ I) \
-                         - 0.01 * (Z ^ Z) + 0.18 * (X ^ X)
+        h2_hamiltonian = (
+            -1.05 * (I ^ I) + 0.39 * (I ^ Z) - 0.39 * (Z ^ I) - 0.01 * (Z ^ Z) + 0.18 * (X ^ X)
+        )
         h2_energy = -1.85727503
 
         # Define the Ansatz
         wavefunction = QuantumCircuit(2)
-        params = ParameterVector('theta', length=8)
+        params = ParameterVector("theta", length=8)
         itr = iter(params)
         wavefunction.ry(next(itr), 0)
         wavefunction.ry(next(itr), 1)
@@ -907,10 +1104,9 @@ class TestGradients(QiskitOpflowTestCase):
         grad = Gradient(grad_method=method)
 
         # Gradient callable
-        vqe = VQE(var_form=wavefunction,
-                  optimizer=optimizer,
-                  gradient=grad,
-                  quantum_instance=q_instance)
+        vqe = VQE(
+            ansatz=wavefunction, optimizer=optimizer, gradient=grad, quantum_instance=q_instance
+        )
 
         result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
         np.testing.assert_almost_equal(result.optimal_value, h2_energy, decimal=0)
@@ -918,13 +1114,13 @@ class TestGradients(QiskitOpflowTestCase):
     def test_qfi_overlap_works_with_bound_parameters(self):
         """Test all QFI methods work if the circuit contains a gate with bound parameters."""
 
-        x = Parameter('x')
+        x = Parameter("x")
         circuit = QuantumCircuit(1)
         circuit.ry(np.pi / 4, 0)
         circuit.rx(x, 0)
         state = StateFn(circuit)
 
-        methods = ['lin_comb_full', 'overlap_diag', 'overlap_block_diag']
+        methods = ["lin_comb_full", "overlap_diag", "overlap_block_diag"]
         reference = 0.5
 
         for method in methods:
@@ -940,45 +1136,53 @@ class TestParameterGradients(QiskitOpflowTestCase):
 
     def test_grad(self):
         """Test taking the gradient of parameter expressions."""
-        x, y = Parameter('x'), Parameter('y')
-        with self.subTest('linear'):
+        x, y = Parameter("x"), Parameter("y")
+        with self.subTest("linear"):
             expr = 2 * x + y
 
-            grad = Gradient.parameter_expression_grad(expr, x)
+            grad = expr.gradient(x)
             self.assertEqual(grad, 2)
 
-            grad = Gradient.parameter_expression_grad(expr, y)
+            grad = expr.gradient(y)
             self.assertEqual(grad, 1)
 
-        with self.subTest('polynomial'):
+        with self.subTest("polynomial"):
             expr = x * x * x - x * y + y * y
 
-            grad = Gradient.parameter_expression_grad(expr, x)
+            grad = expr.gradient(x)
             self.assertEqual(grad, 3 * x * x - y)
 
-            grad = Gradient.parameter_expression_grad(expr, y)
+            grad = expr.gradient(y)
             self.assertEqual(grad, -1 * x + 2 * y)
 
     def test_converted_to_float_if_bound(self):
         """Test the gradient is a float when no free symbols are left."""
-        x = Parameter('x')
+        x = Parameter("x")
         expr = 2 * x + 1
-        grad = Gradient.parameter_expression_grad(expr, x)
+        grad = expr.gradient(x)
         self.assertIsInstance(grad, float)
+
+    def test_converted_to_complex_if_bound(self):
+        """Test the gradient is a complex when no free symbols are left."""
+        x = Parameter("x")
+        x2 = 1j * x
+        expr = 2 * x2 + 1
+        grad = expr.gradient(x)
+        self.assertIsInstance(grad, complex)
 
 
 @ddt
 class TestQFI(QiskitOpflowTestCase):
     """Tests for the quantum Fisher information."""
 
-    @data('lin_comb_full', 'overlap_block_diag', 'overlap_diag')
+    @data("lin_comb_full", "overlap_block_diag", "overlap_diag")
     def test_qfi_simple(self, method):
         """Test if the quantum fisher information calculation is correct for a simple test case.
 
         QFI = [[1, 0], [0, 1]] - [[0, 0], [0, cos^2(a)]]
         """
         # create the circuit
-        a, b = Parameter('a'), Parameter('b')
+        a, b = Parameter("a"), Parameter("b")
         qc = QuantumCircuit(1)
         qc.h(0)
         qc.rz(a, 0)
@@ -989,12 +1193,8 @@ class TestQFI(QiskitOpflowTestCase):
         qfi = QFI(qfi_method=method).convert(operator=op)
 
         # test for different values
-        values_dict = [{a: np.pi / 4, b: 0.1},
-                       {a: np.pi, b: 0.1},
-                       {a: np.pi / 2, b: 0.1}]
-        correct_values = [[[1, 0], [0, 0.5]],
-                          [[1, 0], [0, 0]],
-                          [[1, 0], [0, 1]]]
+        values_dict = [{a: np.pi / 4, b: 0.1}, {a: np.pi, b: 0.1}, {a: np.pi / 2, b: 0.1}]
+        correct_values = [[[1, 0], [0, 0.5]], [[1, 0], [0, 0]], [[1, 0], [0, 1]]]
 
         for i, value_dict in enumerate(values_dict):
             actual = qfi.assign_parameters(value_dict).eval()
@@ -1008,7 +1208,7 @@ class TestQFI(QiskitOpflowTestCase):
         # create maxcut circuit for the hamiltonian
         # H = (I ^ I ^ Z ^ Z) + (I ^ Z ^ I ^ Z) + (Z ^ I ^ I ^ Z) + (I ^ Z ^ Z ^ I)
 
-        x = ParameterVector('x', 2)
+        x = ParameterVector("x", 2)
         ansatz = QuantumCircuit(4)
 
         # initial hadamard layer
@@ -1042,7 +1242,7 @@ class TestQFI(QiskitOpflowTestCase):
     def test_qfi_circuit_shared_params(self):
         """Test the QFI circuits for parameters shared across some gates."""
         # create the test circuit
-        x = Parameter('x')
+        x = Parameter("x")
         circuit = QuantumCircuit(1)
         circuit.rx(x, 0)
         circuit.rx(x, 0)
@@ -1108,51 +1308,57 @@ class TestQFI(QiskitOpflowTestCase):
         # compare
         qfi = QFI().convert(StateFn(circuit), params=[x])
 
-        circuit_sets = ([circuit1, circuit2, circuit3, circuit4],
-                        [circuit5, circuit6], [circuit5, circuit6])
-        list_ops = (qfi.oplist[0].oplist[0].oplist[:-1],
-                    qfi.oplist[0].oplist[0].oplist[-1].oplist[0].oplist,
-                    qfi.oplist[0].oplist[0].oplist[-1].oplist[1].oplist)
+        circuit_sets = (
+            [circuit1, circuit2, circuit3, circuit4],
+            [circuit5, circuit6],
+            [circuit5, circuit6],
+        )
+        list_ops = (
+            qfi.oplist[0].oplist[0].oplist[:-1],
+            qfi.oplist[0].oplist[0].oplist[-1].oplist[0].oplist,
+            qfi.oplist[0].oplist[0].oplist[-1].oplist[1].oplist,
+        )
 
         # compose both on the same circuit such that the comparison works
         base = QuantumCircuit(2)
 
         for i, (circuit_set, list_op) in enumerate(zip(circuit_sets, list_ops)):
             for j, (reference, composed_op) in enumerate(zip(circuit_set, list_op)):
-                with self.subTest(f'set {i} circuit {j}'):
-                    self.assertEqual(base.compose(composed_op[1].primitive),
-                                     base.compose(reference))
+                with self.subTest(f"set {i} circuit {j}"):
+                    self.assertEqual(
+                        base.compose(composed_op[1].primitive), base.compose(reference)
+                    )
 
     def test_overlap_qfi_bound_parameters(self):
         """Test the overlap QFI works on a circuit with multi-parameter bound gates."""
-        x = Parameter('x')
+        x = Parameter("x")
         circuit = QuantumCircuit(1)
         circuit.u(1, 2, 3, 0)
         circuit.rx(x, 0)
 
-        qfi = QFI('overlap_diag').convert(StateFn(circuit), [x])
+        qfi = QFI("overlap_diag").convert(StateFn(circuit), [x])
         value = qfi.bind_parameters({x: 1}).eval()[0][0]
         ref = 0.87737713
         self.assertAlmostEqual(value, ref)
 
     def test_overlap_qfi_raises_on_multiparam(self):
         """Test the overlap QFI raises an appropriate error on multi-param unbound gates."""
-        x = ParameterVector('x', 2)
+        x = ParameterVector("x", 2)
         circuit = QuantumCircuit(1)
         circuit.u(x[0], x[1], 2, 0)
 
         with self.assertRaises(NotImplementedError):
-            _ = QFI('overlap_diag').convert(StateFn(circuit), [x])
+            _ = QFI("overlap_diag").convert(StateFn(circuit), [x])
 
     def test_overlap_qfi_raises_on_unsupported_gate(self):
         """Test the overlap QFI raises an appropriate error on multi-param unbound gates."""
-        x = Parameter('x')
+        x = Parameter("x")
         circuit = QuantumCircuit(1)
         circuit.p(x, 0)
 
         with self.assertRaises(NotImplementedError):
-            _ = QFI('overlap_diag').convert(StateFn(circuit), [x])
+            _ = QFI("overlap_diag").convert(StateFn(circuit), [x])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

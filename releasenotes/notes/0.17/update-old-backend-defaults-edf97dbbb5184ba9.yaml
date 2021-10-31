@@ -1,0 +1,22 @@
+---
+features:
+  - |
+    New fake backend classes are available under ``qiskit.test.mock`. These
+    included mocked versions of ``ibmq_casablanca``, ``ibmq_sydney``,
+    ``ibmq_mumbai``, ``ibmq_lima``, ``ibmq_belem``, ``ibmq_quito``. As
+    with the other fake backends, these include snapshots of calibration data
+    (i.e. ``backend.defaults()``) and error data (i.e. ``backend.properties()``)
+    taken from the real system, and can be used for local testing, compilation
+    and simulation.
+other:
+  - |
+    The snapshots of all the fake/mock backends in ``qiskit.test.mock`` have
+    been updated to reflect recent device changes. This includes a change in
+    the :attr:`qiskit.providers.models.QasmBackendConfiguration.basis_gates`
+    attribute for the the :class:`~qiskit.providers.models.BackendConfiguration`
+    to ``['cx', 'rz', 'sx', 'x', 'id']``, the addition of a ``readout_length``
+    property to the qubit properties in the
+    :class:`~qiskit.providers.models.BackendProperties`, and updating the
+    :class:`~qiskit.providers.models.PulseDefaults` so that all the mock
+    backends support parametric pulse based
+    :class:`~qiskit.pulse.InstructionScheduleMap` instances.

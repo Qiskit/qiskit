@@ -21,7 +21,9 @@ from qiskit.test.base import QiskitTestCase
 from qiskit import BasicAer, execute
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import (
-    LinearPauliRotations, PolynomialPauliRotations, PiecewiseLinearPauliRotations
+    LinearPauliRotations,
+    PolynomialPauliRotations,
+    PiecewiseLinearPauliRotations,
 )
 
 
@@ -37,7 +39,7 @@ class TestFunctionalPauliRotations(QiskitTestCase):
         circuit.h(list(range(num_state_qubits)))
         circuit.append(function_circuit.to_instruction(), list(range(circuit.num_qubits)))
 
-        backend = BasicAer.get_backend('statevector_simulator')
+        backend = BasicAer.get_backend("statevector_simulator")
         statevector = execute(circuit, backend).result().get_statevector()
 
         probabilities = defaultdict(float)
@@ -49,7 +51,7 @@ class TestFunctionalPauliRotations(QiskitTestCase):
         unrolled_expectations = []
         for i, probability in probabilities.items():
             x, last_qubit = int(i[1:], 2), i[0]
-            if last_qubit == '0':
+            if last_qubit == "0":
                 expected_amplitude = np.cos(reference(x)) / np.sqrt(2 ** num_state_qubits)
             else:
                 expected_amplitude = np.sin(reference(x)) / np.sqrt(2 ** num_state_qubits)
@@ -59,10 +61,11 @@ class TestFunctionalPauliRotations(QiskitTestCase):
 
         np.testing.assert_almost_equal(unrolled_probabilities, unrolled_expectations)
 
-    @data(([1, 0.1], 3),
-          ([0, 0.4, 2], 2),
-          ([1, 0.5, 0.2, -0.2, 0.4, 2.5], 5),
-          )
+    @data(
+        ([1, 0.1], 3),
+        ([0, 0.4, 2], 2),
+        ([1, 0.5, 0.2, -0.2, 0.4, 2.5], 5),
+    )
     @unpack
     def test_polynomial_function(self, coeffs, num_state_qubits):
         """Test the polynomial rotation."""
@@ -79,27 +82,28 @@ class TestFunctionalPauliRotations(QiskitTestCase):
 
         polynomial_rotations = PolynomialPauliRotations()
 
-        with self.subTest(msg='missing number of state qubits'):
+        with self.subTest(msg="missing number of state qubits"):
             with self.assertRaises(AttributeError):  # no state qubits set
                 print(polynomial_rotations.draw())
 
-        with self.subTest(msg='default setup, just setting number of state qubits'):
+        with self.subTest(msg="default setup, just setting number of state qubits"):
             polynomial_rotations.num_state_qubits = 2
             self.assertFunctionIsCorrect(polynomial_rotations, lambda x: x / 2)
 
-        with self.subTest(msg='setting non-default values'):
+        with self.subTest(msg="setting non-default values"):
             polynomial_rotations.coeffs = [0, 1.2 * 2, 0.4 * 2]
             self.assertFunctionIsCorrect(polynomial_rotations, lambda x: 1.2 * x + 0.4 * x ** 2)
 
-        with self.subTest(msg='changing of all values'):
+        with self.subTest(msg="changing of all values"):
             polynomial_rotations.num_state_qubits = 4
             polynomial_rotations.coeffs = [1 * 2, 0, 0, -0.5 * 2]
             self.assertFunctionIsCorrect(polynomial_rotations, lambda x: 1 - 0.5 * x ** 3)
 
-    @data((2, 0.1, 0),
-          (4, -2, 2),
-          (1, 0, 0),
-          )
+    @data(
+        (2, 0.1, 0),
+        (4, -2, 2),
+        (1, 0, 0),
+    )
     @unpack
     def test_linear_function(self, num_state_qubits, slope, offset):
         """Test the linear rotation arithmetic circuit."""
@@ -115,31 +119,32 @@ class TestFunctionalPauliRotations(QiskitTestCase):
 
         linear_rotation = LinearPauliRotations()
 
-        with self.subTest(msg='missing number of state qubits'):
+        with self.subTest(msg="missing number of state qubits"):
             with self.assertRaises(AttributeError):  # no state qubits set
                 print(linear_rotation.draw())
 
-        with self.subTest(msg='default setup, just setting number of state qubits'):
+        with self.subTest(msg="default setup, just setting number of state qubits"):
             linear_rotation.num_state_qubits = 2
             self.assertFunctionIsCorrect(linear_rotation, lambda x: x / 2)
 
-        with self.subTest(msg='setting non-default values'):
+        with self.subTest(msg="setting non-default values"):
             linear_rotation.slope = -2.3 * 2
             linear_rotation.offset = 1 * 2
             self.assertFunctionIsCorrect(linear_rotation, lambda x: 1 - 2.3 * x)
 
-        with self.subTest(msg='changing all values'):
+        with self.subTest(msg="changing all values"):
             linear_rotation.num_state_qubits = 4
             linear_rotation.slope = 0.2 * 2
             linear_rotation.offset = 0.1 * 2
             self.assertFunctionIsCorrect(linear_rotation, lambda x: 0.1 + 0.2 * x)
 
-    @data((1, [0], [1], [0]),
-          (2, [0, 2], [-0.5, 1], [2, 1]),
-          (3, [0, 2, 5], [1, 0, -1], [0, 2, 2]),
-          (2, [1, 2], [1, -1], [2, 1]),
-          (3, [0, 1], [1, 0], [0, 1]),
-          )
+    @data(
+        (1, [0], [1], [0]),
+        (2, [0, 2], [-0.5, 1], [2, 1]),
+        (3, [0, 2, 5], [1, 0, -1], [0, 2, 2]),
+        (2, [1, 2], [1, -1], [2, 1]),
+        (3, [0, 1], [1, 0], [0, 1]),
+    )
     @unpack
     def test_piecewise_linear_function(self, num_state_qubits, breakpoints, slopes, offsets):
         """Test the piecewise linear rotations."""
@@ -150,9 +155,12 @@ class TestFunctionalPauliRotations(QiskitTestCase):
                     return offsets[-(i + 1)] + slopes[-(i + 1)] * (x - point)
             return 0
 
-        pw_linear_rotations = PiecewiseLinearPauliRotations(num_state_qubits, breakpoints,
-                                                            [2 * slope for slope in slopes],
-                                                            [2 * offset for offset in offsets])
+        pw_linear_rotations = PiecewiseLinearPauliRotations(
+            num_state_qubits,
+            breakpoints,
+            [2 * slope for slope in slopes],
+            [2 * offset for offset in offsets],
+        )
 
         self.assertFunctionIsCorrect(pw_linear_rotations, pw_linear)
 
@@ -161,22 +169,23 @@ class TestFunctionalPauliRotations(QiskitTestCase):
 
         pw_linear_rotations = PiecewiseLinearPauliRotations()
 
-        with self.subTest(msg='missing number of state qubits'):
+        with self.subTest(msg="missing number of state qubits"):
             with self.assertRaises(AttributeError):  # no state qubits set
                 print(pw_linear_rotations.draw())
 
-        with self.subTest(msg='default setup, just setting number of state qubits'):
+        with self.subTest(msg="default setup, just setting number of state qubits"):
             pw_linear_rotations.num_state_qubits = 2
             self.assertFunctionIsCorrect(pw_linear_rotations, lambda x: x / 2)
 
-        with self.subTest(msg='setting non-default values'):
+        with self.subTest(msg="setting non-default values"):
             pw_linear_rotations.breakpoints = [0, 2]
             pw_linear_rotations.slopes = [-1 * 2, 1 * 2]
             pw_linear_rotations.offsets = [0, -1.2 * 2]
-            self.assertFunctionIsCorrect(pw_linear_rotations,
-                                         lambda x: -1.2 + (x - 2) if x >= 2 else -x)
+            self.assertFunctionIsCorrect(
+                pw_linear_rotations, lambda x: -1.2 + (x - 2) if x >= 2 else -x
+            )
 
-        with self.subTest(msg='changing all values'):
+        with self.subTest(msg="changing all values"):
             pw_linear_rotations.num_state_qubits = 4
             pw_linear_rotations.breakpoints = [1, 3, 6]
             pw_linear_rotations.slopes = [-1 * 2, 1 * 2, -0.2 * 2]
@@ -194,5 +203,5 @@ class TestFunctionalPauliRotations(QiskitTestCase):
             self.assertFunctionIsCorrect(pw_linear_rotations, pw_linear)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
