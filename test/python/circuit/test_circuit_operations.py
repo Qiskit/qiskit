@@ -555,6 +555,20 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(circuit.cregs, [])
         self.assertEqual(circuit.clbits, [])
 
+    def test_remove_final_measurements_7089(self):
+        """
+        Test remove_final_measurements removes resulting unused registers
+        even if not all bits were measured into.
+        https://github.com/Qiskit/qiskit-terra/issues/7089.
+        """
+        circuit = QuantumCircuit(2, 5)
+        circuit.measure(0, 0)
+        circuit.measure(1, 1)
+        circuit.remove_final_measurements(inplace=True)
+        
+        self.assertEqual(circuit.cregs, [])
+        self.assertEqual(circuit.clbits, [])
+
     def test_reverse(self):
         """Test reverse method reverses but does not invert."""
         qc = QuantumCircuit(2, 2)
