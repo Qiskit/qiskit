@@ -174,8 +174,7 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
         qc = QuantumCircuit(1)
 
         # Add clbit without adding register
-        c0 = ClassicalRegister(1)
-        clbit = Clbit(c0, 0)
+        clbit = Clbit(ClassicalRegister(1), 0)
         qc.add_bits([clbit])
 
         self.assertFalse(qc.cregs)
