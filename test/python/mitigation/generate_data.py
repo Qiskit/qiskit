@@ -94,7 +94,7 @@ def generate_data(num_qubits, circuits, noise_model=None):
         num_qubits, sim, noise_model, method="complete"
     )
     results_noise = execute_circs(circuits, sim, noise_model)
-    results_ideal = execute_circs(circuits, sim)
+    results_ideal = execute_circs(circuits, sim) # TODO: should return exact results
     results_noise_dict = {
         result.header.name: get_counts(result) for result in results_noise.results
     }
@@ -263,7 +263,7 @@ test_data = {
         "num_qubits": 3,
         "circuits": {
             "ghz_3_qubits": {
-                "counts_ideal": {"111": 5015, "000": 4985},
+                "counts_ideal": {"111": 5000, "000": 5000},
                 "counts_noise": {
                     "111": 4955,
                     "000": 4886,
@@ -275,17 +275,7 @@ test_data = {
                     "110": 9,
                 },
             },
-            "first_qubit_h_3_qubits": {
-                "counts_ideal": {"000": 4932, "001": 5068},
-                "counts_noise": {
-                    "000": 4844,
-                    "001": 4962,
-                    "100": 56,
-                    "101": 65,
-                    "011": 37,
-                    "010": 35,
-                    "110": 1,
-                },
+            "first_qubit_h_3_qubits": {'counts_ideal': {'000': 5000, '001': 5000}, 'counts_noise': {'000': 4844, '001': 4962, '100': 56, '101': 65, '011': 37, '010': 35, '110': 1}
             },
         },
     }

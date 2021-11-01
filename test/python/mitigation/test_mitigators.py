@@ -61,7 +61,7 @@ class TestReadoutMitigation(QiskitTestCase):
                 )
                 mitigated_error = self.compare_results(counts_ideal, mitigated_probs)
                 self.assertTrue(
-                    mitigated_error < unmitigated_error * 0.1,
+                    mitigated_error < unmitigated_error * 0.8,
                     "Mitigator {} did not improve circuit {} measurements".format(
                         mitigator, circuit_name
                     ),
@@ -88,11 +88,7 @@ class TestReadoutMitigation(QiskitTestCase):
                 unmitigated_error = np.abs(ideal_expectation - unmitigated_expectation)
                 for mitigator in mitigators:
                     mitigated_expectation = mitigator.expectation_value(counts_noise, diagonal)[0]
-                    print("ideal expectation", ideal_expectation)
                     mitigated_error = np.abs(ideal_expectation - mitigated_expectation)
-                    print("mitigated error = ", mitigated_error)
-                    print("unmitigated error = ", unmitigated_error)
-                    print()
                     self.assertTrue(
                         mitigated_error < unmitigated_error,
                         "Mitigator {} did not improve circuit {} measurements".format(
