@@ -178,24 +178,44 @@ class UnitarySynthesis(TransformationPass):
         if not self._synth_gates:
             return dag
 
-        default_method = self.plugins.ext_plugins["default"].obj
         plugin_method = self.plugins.ext_plugins[self.method].obj
-        if plugin_method.supports_coupling_map:
-            dag_bit_indices = {bit: idx for idx, bit in enumerate(dag.qubits)}
-        kwargs = {}
-        if plugin_method.supports_basis_gates:
-            kwargs["basis_gates"] = self._basis_gates
-        if plugin_method.supports_natural_direction:
-            kwargs["natural_direction"] = self._natural_direction
-        if plugin_method.supports_pulse_optimize:
-            kwargs["pulse_optimize"] = self._pulse_optimize
-        if plugin_method.supports_gate_lengths:
-            kwargs["gate_lengths"] = _build_gate_lengths(self._backend_props)
-        if plugin_method.supports_gate_errors:
-            kwargs["gate_errors"] = _build_gate_errors(self._backend_props)
-        supported_bases = plugin_method.supported_bases
-        if supported_bases is not None:
-            kwargs["matched_basis"] = _choose_bases(self._basis_gates, supported_bases)
+        plugin_kwargs = {}
+        _gate_lengths = _gate_errors = None
+        dag_bit_indices = {}
+
+        if self.method == "default":
+            # If the method is the default, we only need to evaluate one set of keyword arguments.
+            # To simplify later logic, and avoid cases where static analysis might complain that we
+            # haven't initialised the "default" handler, we rebind the names so they point to the
+            # same object as the chosen method.
+            default_method = plugin_method
+            default_kwargs = plugin_kwargs
+            method_list = [(plugin_method, plugin_kwargs)]
+        else:
+            # If the method is not the default, we still need to initialise the default plugin's
+            # keyword arguments in case we have to fall back on it during the actual run.
+            default_method = self.plugins.ext_plugins["default"].obj
+            default_kwargs = {}
+            method_list = [(plugin_method, plugin_kwargs), (default_method, default_kwargs)]
+
+        for method, kwargs in method_list:
+            if method.supports_basis_gates:
+                kwargs["basis_gates"] = self._basis_gates
+            if method.supports_coupling_map:
+                dag_bit_indices = dag_bit_indices or {bit: i for i, bit in enumerate(dag.qubits)}
+            if method.supports_natural_direction:
+                kwargs["natural_direction"] = self._natural_direction
+            if method.supports_pulse_optimize:
+                kwargs["pulse_optimize"] = self._pulse_optimize
+            if method.supports_gate_lengths:
+                _gate_lengths = _gate_lengths or _build_gate_lengths(self._backend_props)
+                kwargs["gate_lengths"] = _gate_lengths
+            if method.supports_gate_errors:
+                _gate_errors = _gate_errors or _build_gate_errors(self._backend_props)
+                kwargs["gate_errors"] = _gate_errors
+            supported_bases = method.supported_bases
+            if supported_bases is not None:
+                kwargs["matched_basis"] = _choose_bases(self._basis_gates, supported_bases)
 
         # Handle approximation degree as a special case for backwards compatibility, it's
         # not part of the plugin interface and only something needed for the default
@@ -207,20 +227,21 @@ class UnitarySynthesis(TransformationPass):
         for node in dag.named_nodes(*self._synth_gates):
             if self._min_qubits is not None and len(node.qargs) < self._min_qubits:
                 continue
-            if plugin_method.supports_coupling_map:
-                kwargs["coupling_map"] = (
-                    self._coupling_map,
-                    [dag_bit_indices[x] for x in node.qargs],
-                )
             synth_dag = None
             unitary = node.op.to_matrix()
             n_qubits = len(node.qargs)
             if (plugin_method.max_qubits is not None and n_qubits > plugin_method.max_qubits) or (
                 plugin_method.min_qubits is not None and n_qubits < plugin_method.min_qubits
             ):
-                synth_dag = default_method.run(unitary, **kwargs)
+                method, kwargs = default_method, default_kwargs
             else:
-                synth_dag = plugin_method.run(unitary, **kwargs)
+                method, kwargs = plugin_method, plugin_kwargs
+            if method.supports_coupling_map:
+                kwargs["coupling_map"] = (
+                    self._coupling_map,
+                    [dag_bit_indices[x] for x in node.qargs],
+                )
+            synth_dag = method.run(unitary, **kwargs)
             if synth_dag is not None:
                 if isinstance(synth_dag, tuple):
                     dag.substitute_node_with_dag(node, synth_dag[0], wires=synth_dag[1])

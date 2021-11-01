@@ -24,6 +24,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.circuit import Gate, ControlledGate
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate
 from qiskit import BasicAer
+from qiskit.quantum_info import Pauli
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 
 
@@ -1366,6 +1367,7 @@ class TestStandardMethods(QiskitTestCase):
 
     def test_to_matrix(self):
         """test gates implementing to_matrix generate matrix which matches definition."""
+        from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
         from qiskit.circuit.library.generalized_gates.pauli import PauliGate
         from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
 
@@ -1384,6 +1386,8 @@ class TestStandardMethods(QiskitTestCase):
                     gate = gate_class("IXYZ")
                 elif gate_class == BooleanExpression:
                     gate = gate_class("x")
+                elif gate_class == PauliEvolutionGate:
+                    gate = gate_class(Pauli("XYZ"))
                 else:
                     gate = gate_class(*params[0:free_params])
             except (CircuitError, QiskitError, AttributeError):
@@ -1412,6 +1416,7 @@ class TestStandardMethods(QiskitTestCase):
         from qiskit.quantum_info import Operator
         from qiskit.circuit.library.standard_gates.ms import MSGate
         from qiskit.circuit.library.generalized_gates.pauli import PauliGate
+        from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
         from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
 
         params = [0.1 * i for i in range(1, 11)]
@@ -1434,6 +1439,8 @@ class TestStandardMethods(QiskitTestCase):
                     gate = gate_class("IXYZ")
                 elif gate_class == BooleanExpression:
                     gate = gate_class("x")
+                elif gate_class == PauliEvolutionGate:
+                    gate = gate_class(Pauli("XYZ"))
                 else:
                     gate = gate_class(*params[0:free_params])
             except (CircuitError, QiskitError, AttributeError):
