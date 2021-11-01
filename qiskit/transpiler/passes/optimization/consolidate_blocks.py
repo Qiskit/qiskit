@@ -14,15 +14,15 @@
 
 """Replace each block of consecutive gates by a single Unitary node."""
 
-
-from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Gate
-from qiskit.dagcircuit import DAGOpNode
-from qiskit.quantum_info.operators import Operator
+from qiskit.circuit.classicalregister import ClassicalRegister
+from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.dagcircuit.dagnode import DAGOpNode
+from qiskit.quantum_info import Operator
 from qiskit.quantum_info.synthesis import TwoQubitBasisDecomposer
 from qiskit.extensions import UnitaryGate
 from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.synthesis import unitary_synthesis
 
 
@@ -48,7 +48,9 @@ class ConsolidateBlocks(TransformationPass):
             basis_gates (List(str)): Basis gates from which to choose a KAK gate.
         """
         super().__init__()
-        self.basis_gates = basis_gates
+        self.basis_gates = None
+        if basis_gates is not None:
+            self.basis_gates = set(basis_gates)
         self.force_consolidate = force_consolidate
 
         if kak_basis_gate is not None:
@@ -68,122 +70,82 @@ class ConsolidateBlocks(TransformationPass):
         Iterate over each block and replace it with an equivalent Unitary
         on the same wires.
         """
-
         if self.decomposer is None:
             return dag
 
-        new_dag = dag._copy_circuit_metadata()
-
         # compute ordered indices for the global circuit wires
         global_index_map = {wire: idx for idx, wire in enumerate(dag.qubits)}
-
         blocks = self.property_set["block_list"]
-        # just to make checking if a node is in any block easier
-        all_block_nodes = {nd for bl in blocks for nd in bl}
-
-        for node in dag.topological_op_nodes():
-            if node not in all_block_nodes:
-                # need to add this node to find out where in the list it goes
-                preds = [nd for nd in dag.predecessors(node) if isinstance(nd, DAGOpNode)]
-
-                block_count = 0
-                while preds:
-                    if block_count < len(blocks):
-                        block = blocks[block_count]
-
-                        # if any of the predecessors are in the block, remove them
-                        preds = [p for p in preds if p not in block]
-                    else:
-                        # should never occur as this would mean not all
-                        # nodes before this one topologically had been added
-                        # so not all predecessors were removed
-                        raise TranspilerError(
-                            "Not all predecessors removed due to error in topological order"
-                        )
-
-                    block_count += 1
-
-                # we have now seen all predecessors
-                # so update the blocks list to include this block
-                blocks = blocks[:block_count] + [[node]] + blocks[block_count:]
-
-        # create the dag from the updated list of blocks
         basis_gate_name = self.decomposer.gate.name
+        all_block_gates = set()
         for block in blocks:
-            if len(block) == 1 and block[0].name != basis_gate_name:
-                # pylint: disable=too-many-boolean-expressions
-                if (
-                    isinstance(block[0], DAGOpNode)
-                    and self.basis_gates
-                    and block[0].name not in self.basis_gates
-                    and len(block[0].cargs) == 0
-                    and block[0].op.condition is None
-                    and isinstance(block[0].op, Gate)
-                    and hasattr(block[0].op, "__array__")
-                    and not block[0].op.is_parameterized()
-                ):
-                    new_dag.apply_operation_back(
-                        UnitaryGate(block[0].op.to_matrix()), block[0].qargs, block[0].cargs
-                    )
-                else:
-                    # an intermediate node that was added into the overall list
-                    new_dag.apply_operation_back(block[0].op, block[0].qargs, block[0].cargs)
+            if len(block) == 1 and (self.basis_gates and block[0].name not in self.basis_gates):
+                all_block_gates.add(block[0])
+                dag.substitute_node(block[0], UnitaryGate(block[0].op.to_matrix()))
             else:
-                # find the qubits involved in this block
+                basis_count = 0
+                outside_basis = False
                 block_qargs = set()
                 block_cargs = set()
                 for nd in block:
                     block_qargs |= set(nd.qargs)
                     if isinstance(nd, DAGOpNode) and nd.op.condition:
                         block_cargs |= set(nd.op.condition[0])
-                # convert block to a sub-circuit, then simulate unitary and add
+                    all_block_gates.add(nd)
                 q = QuantumRegister(len(block_qargs))
-                # if condition in node, add clbits to circuit
-                if len(block_cargs) > 0:
+                qc = QuantumCircuit(q)
+                if block_cargs:
                     c = ClassicalRegister(len(block_cargs))
-                    subcirc = QuantumCircuit(q, c)
-                else:
-                    subcirc = QuantumCircuit(q)
+                    qc.add_register(c)
                 block_index_map = self._block_qargs_to_indices(block_qargs, global_index_map)
-                basis_count = 0
                 for nd in block:
                     if nd.op.name == basis_gate_name:
                         basis_count += 1
-                    subcirc.append(nd.op, [q[block_index_map[i]] for i in nd.qargs])
-                unitary = UnitaryGate(Operator(subcirc))  # simulates the circuit
+                    if self.basis_gates and nd.op.name not in self.basis_gates:
+                        outside_basis = True
+                    qc.append(nd.op, [q[block_index_map[i]] for i in nd.qargs])
+                unitary = UnitaryGate(Operator(qc))
 
                 max_2q_depth = 20  # If depth > 20, there will be 1q gates to consolidate.
                 if (  # pylint: disable=too-many-boolean-expressions
                     self.force_consolidate
                     or unitary.num_qubits > 2
                     or self.decomposer.num_basis_gates(unitary) < basis_count
-                    or len(subcirc) > max_2q_depth
-                    or (
-                        self.basis_gates is not None
-                        and not set(subcirc.count_ops()).issubset(self.basis_gates)
-                    )
+                    or len(block) > max_2q_depth
+                    or (self.basis_gates is not None and outside_basis)
                 ):
-                    new_dag.apply_operation_back(
-                        unitary, sorted(block_qargs, key=lambda x: block_index_map[x])
-                    )
-                else:
-                    for nd in block:
-                        new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
-
-        return new_dag
+                    dag.replace_block_with_op(block, unitary, block_index_map, cycle_check=False)
+        # If 1q runs are collected before consolidate those too
+        runs = self.property_set["run_list"] or []
+        for run in runs:
+            if run[0] in all_block_gates:
+                continue
+            if len(run) == 1 and self.basis_gates and run[0].name not in self.basis_gates:
+                dag.substitute_node(run[0], UnitaryGate(run[0].op.to_matrix()))
+            else:
+                qubit = run[0].qargs[0]
+                operator = run[0].op.to_matrix()
+                already_in_block = False
+                for gate in run[1:]:
+                    if gate in all_block_gates:
+                        already_in_block = True
+                    operator = gate.op.to_matrix().dot(operator)
+                if already_in_block:
+                    continue
+                unitary = UnitaryGate(operator)
+                dag.replace_block_with_op(run, unitary, {qubit: 0}, cycle_check=False)
+        return dag
 
     def _block_qargs_to_indices(self, block_qargs, global_index_map):
         """Map each qubit in block_qargs to its wire position among the block's wires.
-
         Args:
             block_qargs (list): list of qubits that a block acts on
             global_index_map (dict): mapping from each qubit in the
                 circuit to its wire position within that circuit
-
         Returns:
             dict: mapping from qarg to position in block
         """
         block_indices = [global_index_map[q] for q in block_qargs]
-        ordered_block_indices = sorted(block_indices)
-        block_positions = {q: ordered_block_indices.index(global_index_map[q]) for q in block_qargs}
+        ordered_block_indices = {bit: index for index, bit in enumerate(sorted(block_indices))}
+        block_positions = {q: ordered_block_indices[global_index_map[q]] for q in block_qargs}
         return block_positions
