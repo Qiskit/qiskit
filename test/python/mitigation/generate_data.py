@@ -104,6 +104,7 @@ def generate_data(num_qubits, circuits, noise_model=None):
     result = {}
     result["tensor_method_matrices"] = tensor_method_matrices
     result["complete_method_matrix"] = complete_method_matrix
+    result["num_qubits"] = num_qubits
     result["circuits"] = {}
     for name in results_noise_dict.keys():
         result["circuits"][name] = {
@@ -259,6 +260,7 @@ test_data = {
                 ],
             ]
         ),
+        "num_qubits": 3,
         "circuits": {
             "ghz_3_qubits": {
                 "counts_ideal": {"111": 5015, "000": 4985},

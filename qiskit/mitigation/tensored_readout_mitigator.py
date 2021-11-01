@@ -103,7 +103,7 @@ class TensoredReadoutMitigator(BaseReadoutMitigator):
         # Get operator coeffs
         if diagonal is None:
             diagonal = z_diagonal(2 ** self._num_qubits)
-        else:
+        elif isinstance(diagonal, str):
             diagonal = str2diag(diagonal)
 
         # Apply transpose of mitigation matrix
