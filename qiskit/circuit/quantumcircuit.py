@@ -2214,15 +2214,13 @@ class QuantumCircuit:
         circ.cregs = [creg for creg in circ.cregs if creg in new_dag.cregs.values()]
         circ._clbits = [clbit for clbit in circ._clbits if clbit in new_dag.clbits]
 
-        creg_bits = {clbit for creg in circ.cregs for clbit in creg}
-
         # Recalculate clbit indicies
+        cregs = set(circ.cregs)
         circ._clbit_indices = {
             clbit: BitLocations(
-                i, [reg for reg in circ._clbit_indices[clbit].registers if reg[0] in circ.cregs]
+                i, [reg for reg in circ._clbit_indices[clbit].registers if reg[0] in cregs]
             )
             for i, clbit in enumerate(circ.clbits)
-            if clbit in creg_bits
         }
 
         # Clear instruction info
