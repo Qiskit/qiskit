@@ -53,15 +53,16 @@ class TestSparsePauliOpInit(QiskitTestCase):
         """Test PauliTable initialization."""
         labels = ["I", "X", "Y", "Z"]
         table = PauliTable.from_labels(labels)
+        paulis = PauliList(labels)
         with self.subTest(msg="no coeffs"):
             spp_op = SparsePauliOp(table)
             np.testing.assert_array_equal(spp_op.coeffs, np.ones(len(labels)))
-            self.assertEqual(spp_op.table, table)
+            self.assertEqual(spp_op.paulis, paulis)
         with self.subTest(msg="no coeffs"):
             coeffs = [1, 2, 3, 4]
             spp_op = SparsePauliOp(table, coeffs)
             np.testing.assert_array_equal(spp_op.coeffs, coeffs)
-            self.assertEqual(spp_op.table, table)
+            self.assertEqual(spp_op.paulis, paulis)
 
     def test_str_init(self):
         """Test str initialization."""
