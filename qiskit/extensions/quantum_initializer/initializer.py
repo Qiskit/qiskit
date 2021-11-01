@@ -60,8 +60,8 @@ class Initialize(Instruction):
             number of qubits in the `initialize` call. Example: `initialize` covers 5 qubits
             and params is 3. This allows qubits 0 and 1 to be initialized to `|1>` and the
             remaining 3 qubits to be initialized to `|0>`.
-        normalize (Bool): Function to normalize a params list of real weights,
-            not complex weights. Example list of real weights: [1,2,3,4].
+        normalize (Bool): Function to normalize a params array of real or complex weights.
+            Example list: [1,2,3,4]. Example ndarray: np.array([1+4.j, 3-0.j]).
         """
         if isinstance(params, Statevector):
             params = params.data
