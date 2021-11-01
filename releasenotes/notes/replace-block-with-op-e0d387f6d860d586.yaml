@@ -1,0 +1,18 @@
+---
+features:
+  - |
+    Added a new method,
+    :meth:`~qiskit.dagcircuit.DAGCircuit.replace_block_with_op`, to the
+    :class:`~qiskit.dagcircuit.DAGCircuit` class. This method is used to replace
+    a block of nodes in the DAG with a single operation. The cannonical example
+    is for the :class:`~qiskit.transpiler.passes.ConsolidateBlocks` pass which
+    replaces blocks of nodes with equivalent
+    :class:`~qiskit.extensions.UnitaryGate` nodes.
+  - |
+    Added a new analysis transpiler pass,
+    :class:`~qiskit.transpiler.passes.Collect1qRuns`, to the
+    :mod:`qiskit.transpiler.passes` module. This pass is used to find sequences
+    of uninterrupted gates acting on a single qubit. It's similar to the
+    :class:`~qiskit.transpiler.passes.Collect2qBlocks` and
+    :class:`~qiskit.transpiler.passes.CollectMultiQBlocks` but optimized for
+    single qubit runs instead of multiple qubit blocks.
