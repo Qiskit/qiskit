@@ -32,8 +32,8 @@ from qiskit.opflow import (
     StateFn,
     CircuitStateFn,
     ListOp,
-    I,
     CircuitSampler,
+    PauliSumOp,
 )
 from qiskit.opflow.gradients import GradientBase
 from qiskit.utils.validation import validate_min
@@ -446,8 +446,11 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         else:
             list_op = ListOp(aux_operators)
 
-        aux_op_meas = expectation.convert(StateFn(list_op, is_measurement=True))
-        aux_op_expect = aux_op_meas.compose(CircuitStateFn(self.ansatz.bind_parameters(parameters)))
+        aux_op_expect = expectation.convert(
+            StateFn(list_op, is_measurement=True).compose(
+                CircuitStateFn(self.ansatz.bind_parameters(parameters))
+            )
+        )
         aux_op_expect_sampled = sampler.convert(aux_op_expect)
 
         # compute means
@@ -502,7 +505,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         bounds = _validate_bounds(self.ansatz)
         # We need to handle the array entries being zero or Optional i.e. having value None
         if aux_operators:
-            zero_op = I.tensorpower(operator.num_qubits) * 0.0
+            zero_op = PauliSumOp.from_list([("I" * self.ansatz.num_qubits, 0)])
 
             # Convert the None and zero values when aux_operators is a list.
             # Drop None and convert zero values when aux_operators is a dict.
