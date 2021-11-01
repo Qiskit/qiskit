@@ -2209,16 +2209,17 @@ class QuantumCircuit:
         dag = circuit_to_dag(circ)
         remove_final_meas = RemoveFinalMeasurements()
         new_dag = remove_final_meas.run(dag)
+        kept_cregs = set(new_dag.cregs.values())
+        kept_clbits = set(new_dag.clbits)
 
         # Filter only cregs/clbits still in new DAG, preserving original circuit order
-        circ.cregs = [creg for creg in circ.cregs if creg in new_dag.cregs.values()]
-        circ._clbits = [clbit for clbit in circ._clbits if clbit in new_dag.clbits]
+        circ.cregs = [creg for creg in circ.cregs if creg in kept_cregs]
+        circ._clbits = [clbit for clbit in circ._clbits if clbit in kept_clbits]
 
         # Recalculate clbit indicies
-        cregs = set(circ.cregs)
         circ._clbit_indices = {
             clbit: BitLocations(
-                i, [reg for reg in circ._clbit_indices[clbit].registers if reg[0] in cregs]
+                i, [reg for reg in circ._clbit_indices[clbit].registers if reg[0] in kept_cregs]
             )
             for i, clbit in enumerate(circ.clbits)
         }
