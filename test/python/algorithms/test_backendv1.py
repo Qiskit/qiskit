@@ -21,6 +21,7 @@ from qiskit.algorithms import Shor, VQE, Grover, AmplificationProblem
 from qiskit.opflow import X, Z, I
 from qiskit.algorithms.optimizers import SPSA
 from qiskit.circuit.library import TwoLocal, EfficientSU2
+from qiskit.utils.mitigation import CompleteMeasFitter
 
 
 class TestBackendV1(QiskitAlgorithmsTestCase):
@@ -97,7 +98,6 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
     def test_measurement_error_mitigation_with_vqe(self):
         """measurement error mitigation test with vqe"""
         try:
-            from qiskit.ignis.mitigation.measurement import CompleteMeasFitter
             from qiskit.providers.aer import noise
         except ImportError as ex:
             self.skipTest(f"Package doesn't appear to be installed. Error: '{str(ex)}'")

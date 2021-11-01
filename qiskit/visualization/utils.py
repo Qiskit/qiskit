@@ -26,6 +26,7 @@ from qiskit.circuit import (
     Instruction,
     Measure,
 )
+from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit.tools import pi_check
 from qiskit.converters import circuit_to_dag
 from qiskit.exceptions import MissingOptionalLibraryError
@@ -48,7 +49,7 @@ except ImportError:
     HAS_PYLATEX = False
 
 
-def get_gate_ctrl_text(op, drawer, style=None):
+def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
     """Load the gate_text and ctrl_text strings based on names and labels"""
     op_label = getattr(op, "label", None)
     op_type = type(op)
@@ -93,9 +94,10 @@ def get_gate_ctrl_text(op, drawer, style=None):
             gate_text = gate_text.replace("~", "$\\neg$").replace("&", "\\&")
             gate_text = f"$\\texttt{{{gate_text}}}$"
         # Capitalize if not a user-created gate or instruction
-        elif (gate_text == op.name and op_type not in (Gate, Instruction)) or (
-            gate_text == base_name and base_type not in (Gate, Instruction)
-        ):
+        elif (
+            (gate_text == op.name and op_type not in (Gate, Instruction))
+            or (gate_text == base_name and base_type not in (Gate, Instruction))
+        ) and (op_type is not PauliEvolutionGate):
             gate_text = f"$\\mathrm{{{gate_text.capitalize()}}}$"
         else:
             gate_text = f"$\\mathrm{{{gate_text}}}$"
@@ -106,10 +108,18 @@ def get_gate_ctrl_text(op, drawer, style=None):
         ctrl_text = f"$\\mathrm{{{ctrl_text}}}$"
 
     # Only captitalize internally-created gate or instruction names
-    elif (gate_text == op.name and op_type not in (Gate, Instruction)) or (
-        gate_text == base_name and base_type not in (Gate, Instruction)
-    ):
+    elif (
+        (gate_text == op.name and op_type not in (Gate, Instruction))
+        or (gate_text == base_name and base_type not in (Gate, Instruction))
+    ) and (op_type is not PauliEvolutionGate):
         gate_text = gate_text.capitalize()
+
+    if drawer == "mpl" and op.name in calibrations:
+        if isinstance(op, ControlledGate):
+            ctrl_text = "" if ctrl_text is None else ctrl_text
+            ctrl_text = "(cal)\n" + ctrl_text
+        else:
+            gate_text = gate_text + "\n(cal)"
 
     return gate_text, ctrl_text, raw_gate_text
 
@@ -144,6 +154,71 @@ def get_param_str(op, drawer, ndigits=3):
             param_str = f"({','.join(param_list)})"
 
     return param_str
+
+
+def get_bit_label(drawer, register, index, qubit=True, layout=None, cregbundle=True):
+    """Get the bit labels to display to the left of the wires.
+
+    Args:
+        drawer (str): which drawer is calling ("text", "mpl", or "latex")
+        register (QuantumRegister or ClassicalRegister): get bit_label for this register
+        index (int): index of bit in register
+        qubit (bool): Optional. if set True, a Qubit or QuantumRegister. Default: ``True``
+        layout (Layout): Optional. mapping of virtual to physical bits
+        cregbundle (bool): Optional. if set True bundle classical registers.
+            Default: ``True``.
+
+    Returns:
+        str: label to display for the register/index
+
+    """
+    index_str = f"{index}" if drawer == "text" else f"{{{index}}}"
+    if register is None:
+        bit_label = index_str
+        return bit_label
+
+    if drawer == "text":
+        reg_name = f"{register.name}"
+        reg_name_index = f"{register.name}_{index}"
+    else:
+        reg_name = f"{{{register.name}}}"
+        reg_name_index = f"{{{register.name}}}_{{{index}}}"
+
+    # Clbits
+    if not qubit:
+        if cregbundle:
+            bit_label = f"{register.name}"
+        elif register.size == 1:
+            bit_label = reg_name
+        else:
+            bit_label = reg_name_index
+        return bit_label
+
+    # Qubits
+    if register.size == 1:
+        bit_label = reg_name
+    elif layout is None:
+        bit_label = reg_name_index
+    elif layout[index]:
+        virt_bit = layout[index]
+        try:
+            virt_reg = next(reg for reg in layout.get_registers() if virt_bit in reg)
+            if drawer == "text":
+                bit_label = f"{virt_reg.name}_{virt_reg[:].index(virt_bit)} -> {index}"
+            else:
+                bit_label = (
+                    f"{{{virt_reg.name}}}_{{{virt_reg[:].index(virt_bit)}}}"
+                    f" \\mapsto {{{index}}}"
+                )
+        except StopIteration:
+            if drawer == "text":
+                bit_label = f"{virt_bit} -> {index}"
+            else:
+                bit_label = f"{{{virt_bit}}} \\mapsto {{{index}}}"
+    else:
+        bit_label = index_str
+
+    return bit_label
 
 
 def generate_latex_label(label):

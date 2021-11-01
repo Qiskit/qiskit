@@ -19,7 +19,8 @@ import itertools
 import functools
 import multiprocessing as mp
 import string
-from collections import OrderedDict, defaultdict
+import re
+from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
     Union,
     Optional,
@@ -67,6 +68,8 @@ try:
 except Exception:  # pylint: disable=broad-except
     HAS_PYGMENTS = False
 
+BitLocations = namedtuple("BitLocations", ("index", "registers"))
+
 
 # The following types are not marked private to avoid leaking this "private/public" abstraction out
 # into the documentation.  They are not imported by circuit.__init__, nor are they meant to be.
@@ -99,6 +102,9 @@ ClbitSpecifier = Union[
 # Generic type which is either :obj:`~Qubit` or :obj:`~Clbit`, used to specify types of functions
 # which operate on either type of bit, but not both at the same time.
 BitType = TypeVar("BitType", Qubit, Clbit)
+
+# Regex pattern to match valid OpenQASM identifiers
+VALID_QASM2_IDENTIFIER = re.compile("[a-z][a-zA-Z_0-9]*")
 
 
 class QuantumCircuit:
@@ -236,13 +242,17 @@ class QuantumCircuit:
         # in the order they were applied.
         self._data = []
 
-        # This is a map of registers bound to this circuit, by name.
         self.qregs = []
         self.cregs = []
         self._qubits = []
-        self._qubit_set = set()
         self._clbits = []
-        self._clbit_set = set()
+
+        # Dict mapping Qubt or Clbit instances to tuple comprised of 0) the
+        # corresponding index in circuit.{qubits,clbits} and 1) a list of
+        # Register-int pairs for each Register containing the Bit and its index
+        # within that register.
+        self._qubit_indices = dict()
+        self._clbit_indices = dict()
 
         self._ancillas = []
         self._calibrations = defaultdict(dict)
@@ -703,14 +713,11 @@ class QuantumCircuit:
         # Add new registers
         for element in rhs.qregs:
             if element not in self.qregs:
-                self.qregs.append(element)
-                self._qubits += element[:]
-                self._qubit_set.update(element[:])
+                self.add_register(element)
+
         for element in rhs.cregs:
             if element not in self.cregs:
-                self.cregs.append(element)
-                self._clbits += element[:]
-                self._clbit_set.update(element[:])
+                self.add_register(element)
 
         # Copy the circuit data if rhs and self are the same, otherwise the data of rhs is
         # appended to both self and rhs resulting in an infinite loop
@@ -823,8 +830,8 @@ class QuantumCircuit:
             qubit_map = identity_qubit_map
         elif len(qubits) != len(other.qubits):
             raise CircuitError(
-                "Number of items in qubits parameter does not"
-                " match number of qubits in the circuit."
+                f"Number of items in qubits parameter ({len(qubits)}) does not"
+                f" match number of qubits in the circuit ({len(other.qubits)})."
             )
         else:
             qubit_map = {
@@ -835,8 +842,8 @@ class QuantumCircuit:
             clbit_map = identity_clbit_map
         elif len(clbits) != len(other.clbits):
             raise CircuitError(
-                "Number of items in clbits parameter does not"
-                " match number of clbits in the circuit."
+                f"Number of items in clbits parameter ({len(clbits)}) does not"
+                f" match number of clbits in the circuit ({len(other.clbits)})."
             )
         else:
             clbit_map = {
@@ -860,16 +867,14 @@ class QuantumCircuit:
             mapped_instrs.append((n_instr, n_qargs, n_cargs))
 
         if front:
+            # adjust new instrs before original ones and update all parameters
             dest._data = mapped_instrs + dest._data
-        else:
-            dest._data += mapped_instrs
-
-        if front:
             dest._parameter_table.clear()
             for instr, _, _ in dest._data:
                 dest._update_parameter_table(instr)
         else:
-            # just append new parameters
+            # just append new instrs and parameters
+            dest._data += mapped_instrs
             for instr, _, _ in mapped_instrs:
                 dest._update_parameter_table(instr)
 
@@ -1163,7 +1168,7 @@ class QuantumCircuit:
         expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
         expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
 
-        instructions = InstructionSet()
+        instructions = InstructionSet(self.cregs)
         for (qarg, carg) in instruction.broadcast_arguments(expanded_qargs, expanded_cargs):
             instructions.add(self._append(instruction, qarg, carg), qarg, carg)
         return instructions
@@ -1283,14 +1288,28 @@ class QuantumCircuit:
 
             if isinstance(register, QuantumRegister):
                 self.qregs.append(register)
-                new_bits = [bit for bit in register if bit not in self._qubit_set]
-                self._qubits.extend(new_bits)
-                self._qubit_set.update(new_bits)
+
+                for idx, bit in enumerate(register):
+                    if bit in self._qubit_indices:
+                        self._qubit_indices[bit].registers.append((register, idx))
+                    else:
+                        self._qubits.append(bit)
+                        self._qubit_indices[bit] = BitLocations(
+                            len(self._qubits) - 1, [(register, idx)]
+                        )
+
             elif isinstance(register, ClassicalRegister):
                 self.cregs.append(register)
-                new_bits = [bit for bit in register if bit not in self._clbit_set]
-                self._clbits.extend(new_bits)
-                self._clbit_set.update(new_bits)
+
+                for idx, bit in enumerate(register):
+                    if bit in self._clbit_indices:
+                        self._clbit_indices[bit].registers.append((register, idx))
+                    else:
+                        self._clbits.append(bit)
+                        self._clbit_indices[bit] = BitLocations(
+                            len(self._clbits) - 1, [(register, idx)]
+                        )
+
             elif isinstance(register, list):
                 self.add_bits(register)
             else:
@@ -1298,25 +1317,59 @@ class QuantumCircuit:
 
     def add_bits(self, bits: Sequence[Bit]) -> None:
         """Add Bits to the circuit."""
-        duplicate_bits = set(self.qubits + self.clbits).intersection(bits)
+        duplicate_bits = set(self._qubit_indices).union(self._clbit_indices).intersection(bits)
         if duplicate_bits:
             raise CircuitError(f"Attempted to add bits found already in circuit: {duplicate_bits}")
 
         for bit in bits:
             if isinstance(bit, AncillaQubit):
                 self._ancillas.append(bit)
-
             if isinstance(bit, Qubit):
                 self._qubits.append(bit)
-                self._qubit_set.add(bit)
+                self._qubit_indices[bit] = BitLocations(len(self._qubits) - 1, [])
             elif isinstance(bit, Clbit):
                 self._clbits.append(bit)
-                self._clbit_set.add(bit)
+                self._clbit_indices[bit] = BitLocations(len(self._clbits) - 1, [])
             else:
                 raise CircuitError(
                     "Expected an instance of Qubit, Clbit, or "
                     "AncillaQubit, but was passed {}".format(bit)
                 )
+
+    def find_bit(self, bit: Bit) -> BitLocations:
+        """Find locations in the circuit which can be used to reference a given :obj:`~Bit`.
+
+        Args:
+            bit (Bit): The bit to locate.
+
+        Returns:
+            namedtuple(int, List[Tuple(Register, int)]): A 2-tuple. The first element (``index``)
+                contains the index at which the ``Bit`` can be found (in either
+                :obj:`~QuantumCircuit.qubits`, :obj:`~QuantumCircuit.clbits`, depending on its
+                type). The second element (``registers``) is a list of ``(register, index)``
+                pairs with an entry for each :obj:`~Register` in the circuit which contains the
+                :obj:`~Bit` (and the index in the :obj:`~Register` at which it can be found).
+
+        Notes:
+            The circuit index of an :obj:`~AncillaQubit` will be its index in
+            :obj:`~QuantumCircuit.qubits`, not :obj:`~QuantumCircuit.ancillas`.
+
+        Raises:
+            CircuitError: If the supplied :obj:`~Bit` was of an unknown type.
+            CircuitError: If the supplied :obj:`~Bit` could not be found on the circuit.
+        """
+
+        try:
+            if isinstance(bit, Qubit):
+                return self._qubit_indices[bit]
+            elif isinstance(bit, Clbit):
+                return self._clbit_indices[bit]
+            else:
+                raise CircuitError(f"Could not locate bit of unknown type: {type(bit)}")
+        except KeyError as err:
+            raise CircuitError(
+                f"Could not locate provided bit: {bit}. Has it been added to the QuantumCircuit?"
+            ) from err
 
     def _check_dups(self, qubits: Sequence[Qubit]) -> None:
         """Raise exception if list of qubits contains duplicates."""
@@ -1328,14 +1381,14 @@ class QuantumCircuit:
         """Raise exception if a qarg is not in this circuit or bad format."""
         if not all(isinstance(i, Qubit) for i in qargs):
             raise CircuitError("qarg is not a Qubit")
-        if not set(qargs).issubset(self._qubit_set):
+        if not set(qargs) <= self._qubit_indices.keys():
             raise CircuitError("qargs not in this circuit")
 
     def _check_cargs(self, cargs: Sequence[Clbit]) -> None:
         """Raise exception if clbit is not in this circuit or bad format."""
         if not all(isinstance(i, Clbit) for i in cargs):
             raise CircuitError("carg is not a Clbit")
-        if not set(cargs).issubset(self._clbit_set):
+        if not set(cargs) <= self._clbit_indices.keys():
             raise CircuitError("cargs not in this circuit")
 
     def to_instruction(
@@ -1556,6 +1609,10 @@ class QuantumCircuit:
                     bit_labels[clbit],
                 )
             else:
+                # Check instructions names or label are valid
+                if not VALID_QASM2_IDENTIFIER.fullmatch(instruction.name):
+                    instruction = instruction.copy(name=_qasm_escape_gate_name(instruction.name))
+
                 # decompose gate using definitions if they are not defined in OpenQASM2
                 if (
                     instruction.name not in existing_gate_names
@@ -1756,22 +1813,26 @@ class QuantumCircuit:
             cregbundle=cregbundle,
         )
 
-    def size(self) -> int:
-        """Returns total number of gate operations in circuit.
+    def size(self, filter_function: Optional[callable] = lambda x: not x[0]._directive) -> int:
+        """Returns total number of instructions in circuit.
+
+        Args:
+            filter_function (callable): a function to filter out some instructions.
+                Should take as input a tuple of (Instruction, list(Qubit), list(Clbit)).
+                By default filters out "directives", such as barrier or snapshot.
 
         Returns:
             int: Total number of gate operations.
         """
-        gate_ops = 0
-        for instr, _, _ in self._data:
-            if not instr._directive:
-                gate_ops += 1
-        return gate_ops
+        return sum(map(filter_function, self._data))
 
-    def depth(self) -> int:
+    def depth(self, filter_function: Optional[callable] = lambda x: not x[0]._directive) -> int:
         """Return circuit depth (i.e., length of critical path).
-        This does not include compiler or simulator directives
-        such as 'barrier' or 'snapshot'.
+
+        Args:
+            filter_function (callable): a function to filter out some instructions.
+                Should take as input a tuple of (Instruction, list(Qubit), list(Clbit)).
+                By default filters out "directives", such as barrier or snapshot.
 
         Returns:
             int: Depth of circuit.
@@ -1799,8 +1860,6 @@ class QuantumCircuit:
         # line so that they all stacked at the same depth.
         # Conditional gates act on all cbits in the register
         # they are conditioned on.
-        # We treat barriers or snapshots different as
-        # They are transpiler and simulator directives.
         # The max stack height is the circuit depth.
         for instr, qargs, cargs in self._data:
             levels = []
@@ -1809,10 +1868,10 @@ class QuantumCircuit:
                 # Add to the stacks of the qubits and
                 # cbits used in the gate.
                 reg_ints.append(bit_indices[reg])
-                if instr._directive:
-                    levels.append(op_stack[reg_ints[ind]])
-                else:
+                if filter_function((instr, qargs, cargs)):
                     levels.append(op_stack[reg_ints[ind]] + 1)
+                else:
+                    levels.append(op_stack[reg_ints[ind]])
             # Assuming here that there is no conditional
             # snapshots or barriers ever.
             if instr.condition:
@@ -1927,12 +1986,8 @@ class QuantumCircuit:
                 num_touched = 0
                 # Controls necessarily join all the cbits in the
                 # register that they use.
-                if instr.condition and not unitary_only:
-                    if isinstance(instr.condition[0], Clbit):
-                        condition_bits = [instr.condition[0]]
-                    else:
-                        condition_bits = instr.condition[0]
-                    for bit in condition_bits:
+                if not unitary_only:
+                    for bit in instr.condition_bits:
                         idx = bit_indices[bit]
                         for k in range(num_sub_graphs):
                             if idx in sub_graphs[k]:
@@ -2000,9 +2055,10 @@ class QuantumCircuit:
         cpy.qregs = self.qregs.copy()
         cpy.cregs = self.cregs.copy()
         cpy._qubits = self._qubits.copy()
+        cpy._ancillas = self._ancillas.copy()
         cpy._clbits = self._clbits.copy()
-        cpy._qubit_set = self._qubit_set.copy()
-        cpy._clbit_set = self._clbit_set.copy()
+        cpy._qubit_indices = self._qubit_indices.copy()
+        cpy._clbit_indices = self._clbit_indices.copy()
 
         instr_instances = {id(instr): instr for instr, _, __ in self._data}
 
@@ -2353,8 +2409,11 @@ class QuantumCircuit:
                     "Mismatching number of values and parameters. For partial binding "
                     "please pass a dictionary of {parameter: value} pairs."
                 )
+            # use a copy of the parameters, to ensure we don't change the contents of
+            # self.parameters while iterating over them
+            fixed_parameters_copy = self.parameters.copy()
             for i, value in enumerate(parameters):
-                bound_circuit._assign_parameter(self.parameters[i], value)
+                bound_circuit._assign_parameter(fixed_parameters_copy[i], value)
         return None if inplace else bound_circuit
 
     def bind_parameters(
@@ -4030,6 +4089,11 @@ def _add_sub_instruction_to_existing_composite_circuits(
     instruction to existing_composite_circuit list.
     """
     for sub_instruction, _, _ in instruction.definition:
+        # Check instructions names are valid
+        if not VALID_QASM2_IDENTIFIER.fullmatch(sub_instruction.name):
+            sub_instruction = sub_instruction.copy(
+                name=_qasm_escape_gate_name(sub_instruction.name)
+            )
         if (
             sub_instruction.name not in existing_gate_names
             and sub_instruction not in existing_composite_circuits
@@ -4038,6 +4102,17 @@ def _add_sub_instruction_to_existing_composite_circuits(
             _add_sub_instruction_to_existing_composite_circuits(
                 sub_instruction, existing_gate_names, existing_composite_circuits
             )
+
+
+def _qasm_escape_gate_name(name: str) -> str:
+    """Returns a valid OpenQASM gate identifier"""
+    # Replace all non-ASCII-word characters with the underscore.
+    escaped_name = re.sub(r"\W", "_", name, flags=re.ASCII)
+    if not escaped_name or escaped_name[0] not in string.ascii_lowercase:
+        # Add an arbitrary, guaranteed-to-be-valid prefix.
+        escaped_name = "gate_" + escaped_name
+
+    return escaped_name
 
 
 def _get_composite_circuit_qasm_from_instruction(instruction: Instruction) -> str:
@@ -4056,6 +4131,11 @@ def _get_composite_circuit_qasm_from_instruction(instruction: Instruction) -> st
         bit: idx for bits in (definition.qubits, definition.clbits) for idx, bit in enumerate(bits)
     }
     for sub_instruction, qargs, _ in definition:
+        if not VALID_QASM2_IDENTIFIER.fullmatch(sub_instruction.name):
+            sub_instruction = sub_instruction.copy(
+                name=_qasm_escape_gate_name(sub_instruction.name)
+            )
+
         gate_qargs = ",".join(
             ["q%i" % index for index in [definition_bit_labels[qubit] for qubit in qargs]]
         )

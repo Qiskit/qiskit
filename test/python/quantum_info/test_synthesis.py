@@ -37,7 +37,13 @@ from qiskit.circuit.library import (
     CXGate,
     CZGate,
     iSwapGate,
+    SwapGate,
     RXXGate,
+    RYYGate,
+    RZZGate,
+    RZXGate,
+    CPhaseGate,
+    CRZGate,
     RXGate,
     RYGate,
     RZGate,
@@ -60,6 +66,7 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import (
     TwoQubitWeylGeneral,
     two_qubit_cnot_decompose,
     TwoQubitBasisDecomposer,
+    TwoQubitControlledUDecomposer,
     Ud,
     decompose_two_qubit_product_gate,
 )
@@ -1300,6 +1307,29 @@ class TestTwoQubitDecomposeApprox(CheckDecompositions):
             np.exp(1j * tgt_phase) * tgt_k1 @ Ud(tgt_a + d1, tgt_b + d2, tgt_c + d3) @ tgt_k2
         )
         self.check_approx_decomposition(tgt_unitary, decomposer, num_basis_uses=3)
+
+
+@ddt
+class TestTwoQubitControlledUDecompose(CheckDecompositions):
+    """Test TwoQubitControlledUDecomposer() for exact decompositions and raised exceptions"""
+
+    @combine(seed=range(10), name="seed_{seed}")
+    def test_correct_unitary(self, seed):
+        """Verify unitary for different gates in the decomposition"""
+        unitary = random_unitary(4, seed=seed)
+        for gate in [RXXGate, RYYGate, RZZGate, RZXGate, CPhaseGate, CRZGate]:
+            decomposer = TwoQubitControlledUDecomposer(gate)
+            circ = decomposer(unitary)
+            self.assertEqual(Operator(unitary), Operator(circ))
+
+    def test_not_rxx_equivalent(self):
+        """Test that an exception is raised if the gate is not equivalent to an RXXGate"""
+        gate = SwapGate
+        with self.assertRaises(QiskitError) as exc:
+            TwoQubitControlledUDecomposer(gate)
+        self.assertIn(
+            "Equivalent gate needs to take exactly 1 angle parameter.", exc.exception.message
+        )
 
 
 class TestDecomposeProductRaises(QiskitTestCase):

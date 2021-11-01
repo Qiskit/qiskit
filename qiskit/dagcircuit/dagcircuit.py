@@ -89,6 +89,8 @@ class DAGCircuit:
         self._global_phase = 0
         self._calibrations = defaultdict(dict)
 
+        self._op_names = {}
+
         self.duration = None
         self.unit = "dt"
 
@@ -374,6 +376,18 @@ class DAGCircuit:
         else:
             raise CircuitError("Condition must be used with ClassicalRegister or Clbit.")
 
+    def _increment_op(self, op):
+        if op.name in self._op_names:
+            self._op_names[op.name] += 1
+        else:
+            self._op_names[op.name] = 1
+
+    def _decrement_op(self, op):
+        if self._op_names[op.name] == 1:
+            del self._op_names[op.name]
+        else:
+            self._op_names[op.name] -= 1
+
     def _add_op_node(self, op, qargs, cargs):
         """Add a new operation node to the graph and assign properties.
 
@@ -388,6 +402,7 @@ class DAGCircuit:
         new_node = DAGOpNode(op=op, qargs=qargs, cargs=cargs)
         node_index = self._multi_graph.add_node(new_node)
         new_node._node_id = node_index
+        self._increment_op(op)
         return node_index
 
     def _copy_circuit_metadata(self):
@@ -786,17 +801,30 @@ class DAGCircuit:
 
         Yields:
             Bit: Bit in idle wire.
+
+        Raises:
+            DAGCircuitError: If the DAG is invalid
         """
         if ignore is None:
-            ignore = []
+            ignore = set()
+        ignore_set = set(ignore)
         for wire in self._wires:
-            nodes = [
-                node
-                for node in self.nodes_on_wire(wire, only_ops=True)
-                if node.op.name not in ignore
-            ]
-            if len(nodes) == 0:
-                yield wire
+            if not ignore:
+                try:
+                    child = next(self.successors(self.input_map[wire]))
+                except StopIteration as e:
+                    raise DAGCircuitError(
+                        "Invalid dagcircuit input node %s has no output" % self.input_map[wire]
+                    ) from e
+                if isinstance(child, DAGOutNode):
+                    yield wire
+            else:
+                for node in self.nodes_on_wire(wire, only_ops=True):
+                    if node.op.name not in ignore_set:
+                        # If we found an op node outside of ignore we can stop iterating over the wire
+                        break
+                else:
+                    yield wire
 
     def size(self):
         """Return the number of operations."""
@@ -866,60 +894,6 @@ class DAGCircuit:
         if len(wires) != wire_tot:
             raise DAGCircuitError("expected %d wires, got %d" % (wire_tot, len(wires)))
 
-    def _make_pred_succ_maps(self, node):
-        """Return predecessor and successor dictionaries.
-
-        Args:
-            node (DAGOpNode): reference to multi_graph node
-
-        Returns:
-            tuple(dict): tuple(predecessor_map, successor_map)
-                These map from wire (Register, int) to the node ids for the
-                predecessor (successor) nodes of the input node.
-        """
-
-        pred_map = {e[2]: e[0] for e in self._multi_graph.in_edges(node._node_id)}
-        succ_map = {e[2]: e[1] for e in self._multi_graph.out_edges(node._node_id)}
-        return pred_map, succ_map
-
-    def _full_pred_succ_maps(self, pred_map, succ_map, input_circuit, wire_map):
-        """Map all wires of the input circuit.
-
-        Map all wires of the input circuit to predecessor and
-        successor nodes in self, keyed on wires in self.
-
-        Args:
-            pred_map (dict): comes from _make_pred_succ_maps
-            succ_map (dict): comes from _make_pred_succ_maps
-            input_circuit (DAGCircuit): the input circuit
-            wire_map (dict): the map from wires of input_circuit to wires of self
-
-        Returns:
-            tuple: full_pred_map, full_succ_map (dict, dict)
-
-        Raises:
-            DAGCircuitError: if more than one predecessor for output nodes
-        """
-        full_pred_map = {}
-        full_succ_map = {}
-        for w in input_circuit.input_map:
-            # If w is wire mapped, find the corresponding predecessor
-            # of the node
-            if w in wire_map:
-                full_pred_map[wire_map[w]] = pred_map[wire_map[w]]
-                full_succ_map[wire_map[w]] = succ_map[wire_map[w]]
-            else:
-                # Otherwise, use the corresponding output nodes of self
-                # and compute the predecessor.
-                full_succ_map[w] = self.output_map[w]
-                full_pred_map[w] = self._multi_graph.predecessors(self.output_map[w])[0]
-                if len(self._multi_graph.predecessors(self.output_map[w])) != 1:
-                    raise DAGCircuitError(
-                        "too many predecessors for %s[%d] output node" % (w.register, w.index)
-                    )
-
-        return full_pred_map, full_succ_map
-
     def __eq__(self, other):
         # Try to convert to float, but in case of unbound ParameterExpressions
         # a TypeError will be raise, fallback to normal equality in those
@@ -964,9 +938,15 @@ class DAGCircuit:
 
         return rx.is_isomorphic_node_match(self._multi_graph, other._multi_graph, node_eq)
 
-    def topological_nodes(self):
+    def topological_nodes(self, key=None):
         """
         Yield nodes in topological order.
+
+        Args:
+            key (Callable): A callable which will take a DAGNode object and
+                return a string sort key. If not specified the
+                :attr:`~qiskit.dagcircuit.DAGNode.sort_key` attribute will be
+                used as the sort key for each node.
 
         Returns:
             generator(DAGOpNode, DAGInNode, or DAGOutNode): node in topological order
@@ -975,16 +955,27 @@ class DAGCircuit:
         def _key(x):
             return x.sort_key
 
-        return iter(rx.lexicographical_topological_sort(self._multi_graph, key=_key))
+        if key is None:
+            key = _key
 
-    def topological_op_nodes(self):
+        return iter(rx.lexicographical_topological_sort(self._multi_graph, key=key))
+
+    def topological_op_nodes(self, key=None):
         """
         Yield op nodes in topological order.
+
+        Allowed to pass in specific key to break ties in top order
+
+        Args:
+            key (Callable): A callable which will take a DAGNode object and
+                return a string sort key. If not specified the
+                :attr:`~qiskit.dagcircuit.DAGNode.sort_key` attribute will be
+                used as the sort key for each node.
 
         Returns:
             generator(DAGOpNode): op node in topological order
         """
-        return (nd for nd in self.topological_nodes() if isinstance(nd, DAGOpNode))
+        return (nd for nd in self.topological_nodes(key) if isinstance(nd, DAGOpNode))
 
     def substitute_node_with_dag(self, node, input_dag, wires=None):
         """Replace one node with dag.
@@ -995,6 +986,9 @@ class DAGCircuit:
             wires (list[Bit]): gives an order for (qu)bits
                 in the input circuit. This order gets matched to the node wires
                 by qargs first, then cargs, then conditions.
+
+        Returns:
+            dict: maps node IDs from `input_dag` to their new node incarnations in `self`.
 
         Raises:
             DAGCircuitError: if met with unexpected predecessor/successors
@@ -1022,7 +1016,7 @@ class DAGCircuit:
 
         if wires is None:
             wires = in_dag.wires
-
+        wire_set = set(wires)
         self._check_wires_list(wires, node)
 
         # Create a proxy wire_map to identify fragments and duplicates
@@ -1044,12 +1038,14 @@ class DAGCircuit:
 
         condition_bit_list = self._bits_in_condition(node.op.condition)
 
-        wire_map = dict(zip(wires, list(node.qargs) + list(node.cargs) + list(condition_bit_list)))
+        new_wires = list(node.qargs) + list(node.cargs) + list(condition_bit_list)
+
+        wire_map = {}
+        reverse_wire_map = {}
+        for wire, new_wire in zip(wires, new_wires):
+            wire_map[wire] = new_wire
+            reverse_wire_map[new_wire] = wire
         self._check_wiremap_validity(wire_map, wires, self.input_map)
-        pred_map, succ_map = self._make_pred_succ_maps(node)
-        full_pred_map, full_succ_map = self._full_pred_succ_maps(
-            pred_map, succ_map, in_dag, wire_map
-        )
 
         if condition_bit_list:
             # If we are replacing a conditional node, map input dag through
@@ -1065,40 +1061,83 @@ class DAGCircuit:
                         "Mapped DAG would alter clbits on which it would be conditioned."
                     )
 
-        # Now that we know the connections, delete node
-        self._multi_graph.remove_node(node._node_id)
+        # Add wire from pred to succ if no ops on mapped wire on ``in_dag``
+        # retworkx's substitute_node_with_subgraph lacks the DAGCircuit
+        # context to know what to do in this case (the method won't even see
+        # these nodes because they're filtered) so we manually retain the
+        # edges prior to calling substitute_node_with_subgraph and set the
+        # edge_map_fn callback kwarg to skip these edges when they're
+        # encountered.
+        for wire in wires:
+            input_node = in_dag.input_map[wire]
+            output_node = in_dag.output_map[wire]
+            if in_dag._multi_graph.has_edge(input_node._node_id, output_node._node_id):
+                self_wire = wire_map[wire]
+                pred = self._multi_graph.find_predecessors_by_edge(
+                    node._node_id, lambda edge, wire=self_wire: edge == wire
+                )[0]
+                succ = self._multi_graph.find_successors_by_edge(
+                    node._node_id, lambda edge, wire=self_wire: edge == wire
+                )[0]
+                self._multi_graph.add_edge(pred._node_id, succ._node_id, self_wire)
 
-        # Iterate over nodes of input_circuit
-        for sorted_node in in_dag.topological_op_nodes():
-            # Insert a new node
-            condition = self._map_condition(wire_map, sorted_node.op.condition, self.cregs.values())
-            m_qargs = list(map(lambda x: wire_map.get(x, x), sorted_node.qargs))
-            m_cargs = list(map(lambda x: wire_map.get(x, x), sorted_node.cargs))
-            node_index = self._add_op_node(sorted_node.op, m_qargs, m_cargs)
+        # Exlude any nodes from in_dag that are not a DAGOpNode or are on
+        # bits outside the set specified by the wires kwarg
+        def filter_fn(node):
+            if not isinstance(node, DAGOpNode):
+                return False
+            for qarg in node.qargs:
+                if qarg not in wire_set:
+                    return False
+            return True
 
-            # Add edges from predecessor nodes to new node
-            # and update predecessor nodes that change
-            all_cbits = self._bits_in_condition(condition)
-            all_cbits.extend(m_cargs)
-            al = [m_qargs, all_cbits]
-            for q in itertools.chain(*al):
-                self._multi_graph.add_edge(full_pred_map[q], node_index, q)
-                full_pred_map[q] = node_index
+        # Map edges into and out of node to the appropriate node from in_dag
+        def edge_map_fn(source, _target, self_wire):
+            wire = reverse_wire_map[self_wire]
+            # successor edge
+            if source == node._node_id:
+                wire_output_id = in_dag.output_map[wire]._node_id
+                out_index = in_dag._multi_graph.predecessor_indices(wire_output_id)[0]
+                # Edge directly from from input nodes to output nodes in in_dag are
+                # already handled prior to calling retworkx. Don't map these edges
+                # in retworkx.
+                if not isinstance(in_dag._multi_graph[out_index], DAGOpNode):
+                    return None
+            # predecessor edge
+            else:
+                wire_input_id = in_dag.input_map[wire]._node_id
+                out_index = in_dag._multi_graph.successor_indices(wire_input_id)[0]
+                # Edge directly from from input nodes to output nodes in in_dag are
+                # already handled prior to calling retworkx. Don't map these edges
+                # in retworkx.
+                if not isinstance(in_dag._multi_graph[out_index], DAGOpNode):
+                    return None
+            return out_index
 
-        # Connect all predecessors and successors, and remove
-        # residual edges between input and output nodes
-        for w in full_pred_map:
-            self._multi_graph.add_edge(full_pred_map[w], full_succ_map[w], w)
-            o_pred = self._multi_graph.predecessors(self.output_map[w]._node_id)
-            if len(o_pred) > 1:
-                if len(o_pred) != 2:
-                    raise DAGCircuitError("expected 2 predecessors here")
+        # Adjust edge weights from in_dag
+        def edge_weight_map(wire):
+            return wire_map[wire]
 
-                p = [x for x in o_pred if x != full_pred_map[w]]
-                if len(p) != 1:
-                    raise DAGCircuitError("expected 1 predecessor to pass filter")
+        node_map = self._multi_graph.substitute_node_with_subgraph(
+            node._node_id, in_dag._multi_graph, edge_map_fn, filter_fn, edge_weight_map
+        )
+        self._decrement_op(node.op)
 
-                self._multi_graph.remove_edge(p[0], self.output_map[w])
+        # Iterate over nodes of input_circuit and update wires in node objects migrated
+        # from in_dag
+        for old_node_index, new_node_index in node_map.items():
+            # update node attributes
+            old_node = in_dag._multi_graph[old_node_index]
+            condition = self._map_condition(wire_map, old_node.op.condition, self.cregs.values())
+            m_qargs = [wire_map.get(x, x) for x in old_node.qargs]
+            m_cargs = [wire_map.get(x, x) for x in old_node.cargs]
+            new_node = DAGOpNode(old_node.op, qargs=m_qargs, cargs=m_cargs)
+            new_node._node_id = new_node_index
+            new_node.op.condition = condition
+            self._multi_graph[new_node_index] = new_node
+            self._increment_op(new_node.op)
+
+        return {k: self._multi_graph[v] for k, v in node_map.items()}
 
     def substitute_node(self, node, op, inplace=False):
         """Replace an DAGOpNode with a single instruction. qargs, cargs and
@@ -1134,6 +1173,9 @@ class DAGCircuit:
             )
 
         if inplace:
+            if op.name != node.op.name:
+                self._increment_op(op)
+                self._decrement_op(node.op)
             save_condition = node.op.condition
             node.op = op
             node.op.condition = save_condition
@@ -1144,6 +1186,9 @@ class DAGCircuit:
         new_node.op = op
         new_node.op.condition = save_condition
         self._multi_graph[node._node_id] = new_node
+        if op.name != node.op.name:
+            self._increment_op(op)
+            self._decrement_op(node.op)
         return new_node
 
     def node(self, node_id):
@@ -1341,6 +1386,7 @@ class DAGCircuit:
         self._multi_graph.remove_node_retain_edges(
             node._node_id, use_outgoing=False, condition=lambda edge1, edge2: edge1 == edge2
         )
+        self._decrement_op(node.op)
 
     def remove_ancestors_of(self, node):
         """Remove all of the ancestor operation nodes of node."""
@@ -1576,14 +1622,7 @@ class DAGCircuit:
 
         Returns a dictionary of counts keyed on the operation name.
         """
-        op_dict = {}
-        for node in self.topological_op_nodes():
-            name = node.op.name
-            if name not in op_dict:
-                op_dict[name] = 1
-            else:
-                op_dict[name] += 1
-        return op_dict
+        return self._op_names.copy()
 
     def count_ops_longest_path(self):
         """Count the occurrences of operation names on the longest path.

@@ -246,6 +246,8 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
         return valid
 
     def _reset_registers(self, num_state_qubits: Optional[int]) -> None:
+        self.qregs = []
+
         if num_state_qubits:
             qr_state = QuantumRegister(num_state_qubits)
             qr_target = QuantumRegister(1)
@@ -258,17 +260,6 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
             if num_ancillas > 0:
                 qr_ancilla = AncillaRegister(num_ancillas)
                 self.add_register(qr_ancilla)
-            else:
-                qr_ancilla = []
-
-            self._qubits = qr_state[:] + qr_target[:] + qr_ancilla[:]
-            self._qubit_set = set(self._qubits)
-            self._ancillas = qr_ancilla[:]
-        else:
-            self.qregs = []
-            self._qubits = []
-            self._qubit_set = set()
-            self._ancillas = []
 
     def _build(self):
         # do not build the circuit if _data is already populated

@@ -4,7 +4,7 @@ ipython<7.22.0
 ipykernel<5.5.2
 ipywidgets>=7.3.0
 jupyter
-matplotlib>=2.1,<3.4
+matplotlib>=3.3
 pillow>=4.2.1
 black==21.4b2
 pydot
@@ -15,7 +15,7 @@ PyGithub
 wheel
 cython>=0.27.1
 pylatexenc>=1.4
-ddt>=1.2.0,!=1.4.0
+ddt>=1.2.0,!=1.4.0,!=1.4.3
 seaborn>=0.9.0
 reno>=3.4.0
 Sphinx>=3.0.0

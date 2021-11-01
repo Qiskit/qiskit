@@ -33,6 +33,7 @@ The circuit itself keeps this context.
 import warnings
 import copy
 from itertools import zip_longest
+from typing import List
 
 import numpy
 
@@ -143,6 +144,16 @@ class Instruction:
             return False
 
         return True
+
+    def __repr__(self) -> str:
+        """Generates a representation of the Intruction object instance
+        Returns:
+            str: A representation of the Instruction instance with the name,
+                 number of qubits, classical bits and params( if any )
+        """
+        return "Instruction(name='{}', num_qubits={}, num_clbits={}, params={})".format(
+            self.name, self.num_qubits, self.num_clbits, self.params
+        )
 
     def soft_compare(self, other: "Instruction") -> bool:
         """
@@ -518,3 +529,13 @@ class Instruction:
             qc.data = [(self, qargs[:], cargs[:])] * n
         instruction.definition = qc
         return instruction
+
+    @property
+    def condition_bits(self) -> List[Clbit]:
+        """Get Clbits in condition."""
+        if self.condition is None:
+            return []
+        if isinstance(self.condition[0], Clbit):
+            return [self.condition[0]]
+        else:  # ClassicalRegister
+            return list(self.condition[0])
