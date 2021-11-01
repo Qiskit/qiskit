@@ -246,6 +246,10 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         self._mixer = mixer_operator
         self._invalidate()
 
+    @property
+    def num_qubits(self) -> int:
+        return self._cost_operator.num_qubits
+
     def _build(self):
         if self._data is not None:
             return
