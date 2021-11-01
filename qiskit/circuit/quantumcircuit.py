@@ -2186,7 +2186,7 @@ class QuantumCircuit:
     def remove_final_measurements(self, inplace: bool = True) -> Optional["QuantumCircuit"]:
         """Removes final measurements and barriers on all qubits if they are present.
         Deletes the classical registers that were used to store the values from these measurements
-        they become idle as a result of this operation.
+        that become idle as a result of this operation.
 
         Measurements and barriers are considered final if they are
         followed by no other operations (aside from other measurements or barriers.)
