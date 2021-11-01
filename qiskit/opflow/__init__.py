@@ -69,7 +69,7 @@ For example, a Pauli Z Measurement can be defined by f(Zero) = 0 and f(One) = 1.
     `Python operator precedence rules
     <https://docs.python.org/3/reference/expressions.html#operator-precedence>`__.  For example,
     ``I^X + X^I`` will actually be interpreted as ``I ^ (X+X) ^ I == 2 * I^X^I``.  In these cases,
-    you should use extra parentheses, or use the relevant method calls.
+    you should use extra parentheses, like ``(I ^ X) + (X ^ I)``, or use the relevant method calls.
 
 Below, you'll find a base class for all Operators, some convenience immutable global variables
 which simplify Operator construction, and two groups of submodules: Operators and Converters.
