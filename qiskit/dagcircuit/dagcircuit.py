@@ -1056,6 +1056,7 @@ class DAGCircuit:
                 # If a cycle was encountered restore the graph to the
                 # original valid state
                 self._multi_graph = backup_graph
+                self._decrement_op(op)
                 raise DAGCircuitError("Replacing the specified node block would introduce a cycle")
         for nd in node_block:
             self._decrement_op(nd.op)
