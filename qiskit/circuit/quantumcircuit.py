@@ -2195,7 +2195,7 @@ class QuantumCircuit:
             inplace (bool): All measurements removed inplace or return new circuit.
 
         Returns:
-            QuantumCircuit: Returns the resulting circuit when `inplace = False`, else None.
+            QuantumCircuit: Returns the resulting circuit when ``inplace=False``, else None.
         """
         # pylint: disable=cyclic-import
         from qiskit.transpiler.passes import RemoveFinalMeasurements
