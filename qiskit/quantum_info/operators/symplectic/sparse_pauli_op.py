@@ -408,6 +408,38 @@ class SparsePauliOp(LinearOp):
             PauliList.from_symplectic(z, x), coeffs, ignore_pauli_phase=True, copy=False
         )
 
+    @staticmethod
+    def sum(ops):
+        """Sum of SparsePauliOps.
+
+        This is a specialized version of the builtin ``sum`` function for SparsePauliOp
+        with smaller overhead.
+
+        Args:
+            ops (list[SparsePauliOp]): a list of SparsePauliOps.
+
+        Returns:
+            SparsePauliOp: the SparsePauliOp representing the sum of the input list.
+
+        Raises:
+            QiskitError: if the input list is empty.
+            QiskitError: if the input list includes an object that is not SparsePauliOp.
+            QiskitError: if the numbers of qubits of the objects in the input list do not match.
+        """
+        if len(ops) == 0:
+            raise QiskitError("Input list is empty")
+        if not all(isinstance(op, SparsePauliOp) for op in ops):
+            raise QiskitError("Input list includes an object that is not SparsePauliOp")
+        for other in ops[1:]:
+            ops[0]._op_shape._validate_add(other._op_shape)
+
+        z = np.vstack([op.paulis.z for op in ops])
+        x = np.vstack([op.paulis.x for op in ops])
+        phase = np.hstack([op.paulis._phase for op in ops])
+        pauli_list = PauliList(BasePauli(z, x, phase))
+        coeffs = np.hstack([op.coeffs for op in ops])
+        return SparsePauliOp(pauli_list, coeffs, ignore_pauli_phase=True, copy=False)
+
     # ---------------------------------------------------------------------
     # Additional conversions
     # ---------------------------------------------------------------------
