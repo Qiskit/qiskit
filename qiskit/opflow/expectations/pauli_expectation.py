@@ -96,9 +96,9 @@ class PauliExpectation(ExpectationBase):
             if isinstance(operator, ComposedOp):
                 sfdict = operator.oplist[1]
                 measurement = operator.oplist[0]
-                average = measurement.eval(sfdict)
+                average = np.asarray(measurement.eval(sfdict))
                 variance = sum(
-                    (v * (measurement.eval(b) - average)) ** 2
+                    (v * (np.asarray(measurement.eval(b)) - average)) ** 2
                     for (b, v) in sfdict.primitive.items()
                 )
                 return operator.coeff * variance

@@ -722,7 +722,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
                                   (Default: None)
 
         Returns:
-            PauliList: the concatinated list self + other.
+            PauliList: the concatenated list self + other.
         """
         if qargs is None:
             qargs = getattr(other, "qargs", None)
@@ -740,9 +740,9 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         else:
             # Pad other with identity and then add
             padded = BasePauli(
-                np.zeros((self.size, self.num_qubits), dtype=bool),
-                np.zeros((self.size, self.num_qubits), dtype=bool),
-                np.zeros(self.size, dtype=int),
+                np.zeros((other.size, self.num_qubits), dtype=bool),
+                np.zeros((other.size, self.num_qubits), dtype=bool),
+                np.zeros(other.size, dtype=int),
             )
             padded = padded.compose(other, qargs=qargs, inplace=True)
             base_z = np.vstack([self._z, padded._z])

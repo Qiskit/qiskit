@@ -242,7 +242,6 @@ class QiskitTestCase(BaseQiskitTestCase):
             r"The QuantumCircuit.u. method.*",
             r"The QuantumCircuit.cu.",
             r"The CXDirection pass has been deprecated",
-            r".*SparsePauliOp.table.*",
             r"The pauli_basis function with PauliTable.*",
         ]
         for msg in allow_DeprecationWarning_message:
