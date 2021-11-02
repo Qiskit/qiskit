@@ -26,6 +26,7 @@ from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import GateDirection
 from qiskit.transpiler.passes import SetLayout
+from qiskit.transpiler.passes import VF2Layout
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
@@ -98,6 +99,24 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     def _choose_layout_condition(property_set):
         return not property_set["layout"]
+
+    def _vf2_match_not_found(property_set):
+        # If a layout hasn't been set by the time we run vf2 layout we need to
+        # run layout
+        if property_set["layout"] is None:
+            return True
+        # if VF2 layout stopped for any reason other than solution found we need
+        # to run layout since VF2 didn't converge.
+        if (
+            property_set["VF2Layout_stop_reason"] is not None
+            and property_set["VF2Layout_stop_reason"] != "solution found"
+        ):
+            return True
+        return False
+
+    _choose_layout_0 = (
+        [] if pass_manager_config.layout_method else VF2Layout(coupling_map, seed=seed_transpiler)
+    )
 
     if layout_method == "trivial":
         _choose_layout = TrivialLayout(coupling_map)
@@ -239,10 +258,11 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     # Build pass manager
     pm0 = PassManager()
     if coupling_map or initial_layout:
-        pm0.append(_given_layout)
-        pm0.append(_choose_layout, condition=_choose_layout_condition)
-        pm0.append(_embed)
         pm0.append(_unroll3q)
+        pm0.append(_given_layout)
+        pm0.append(_choose_layout_0, condition=_choose_layout_condition)
+        pm0.append(_choose_layout, condition=_vf2_match_not_found)
+        pm0.append(_embed)
         pm0.append(_swap_check)
         pm0.append(_swap, condition=_swap_condition)
     pm0.append(_unroll)

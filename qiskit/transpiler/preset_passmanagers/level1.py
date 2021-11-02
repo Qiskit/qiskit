@@ -27,6 +27,7 @@ from qiskit.transpiler.passes import CXCancellation
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import GateDirection
 from qiskit.transpiler.passes import SetLayout
+from qiskit.transpiler.passes import VF2Layout
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
@@ -44,7 +45,6 @@ from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckGateDirection
-from qiskit.transpiler.passes import Layout2qDistance
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
@@ -103,13 +103,26 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     # 1. Use trivial layout if no layout given
     _given_layout = SetLayout(initial_layout)
 
-    _choose_layout_and_score = [
-        TrivialLayout(coupling_map),
-        Layout2qDistance(coupling_map, property_name="trivial_layout_score"),
-    ]
-
     def _choose_layout_condition(property_set):
         return not property_set["layout"]
+
+    def _vf2_match_not_found(property_set):
+        # If a layout hasn't been set by the time we run vf2 layout we need to
+        # run layout
+        if property_set["layout"] is None:
+            return True
+        # if VF2 layout stopped for any reason other than solution found we need
+        # to run layout since VF2 didn't converge.
+        if (
+            property_set["VF2Layout_stop_reason"] is not None
+            and property_set["VF2Layout_stop_reason"] != "solution found"
+        ):
+            return True
+        return False
+
+    _choose_layout_0 = (
+        [] if pass_manager_config.layout_method else VF2Layout(coupling_map, seed=seed_transpiler)
+    )
 
     # 2. Use a better layout on densely connected qubits, if circuit needs swaps
     if layout_method == "trivial":
@@ -122,12 +135,6 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         _improve_layout = SabreLayout(coupling_map, max_iterations=2, seed=seed_transpiler)
     else:
         raise TranspilerError("Invalid layout method %s." % layout_method)
-
-    def _not_perfect_yet(property_set):
-        return (
-            property_set["trivial_layout_score"] is not None
-            and property_set["trivial_layout_score"] != 0
-        )
 
     # 3. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
@@ -272,11 +279,11 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     # Build pass manager
     pm1 = PassManager()
     if coupling_map or initial_layout:
-        pm1.append(_given_layout)
-        pm1.append(_choose_layout_and_score, condition=_choose_layout_condition)
-        pm1.append(_improve_layout, condition=_not_perfect_yet)
-        pm1.append(_embed)
         pm1.append(_unroll3q)
+        pm1.append(_given_layout)
+        pm1.append(_choose_layout_0, condition=_choose_layout_condition)
+        pm1.append(_improve_layout, condition=_vf2_match_not_found)
+        pm1.append(_embed)
         pm1.append(_swap_check)
         pm1.append(_swap, condition=_swap_condition)
     pm1.append(_unroll)
