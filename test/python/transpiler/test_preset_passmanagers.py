@@ -728,7 +728,7 @@ class TestFinalLayouts(QiskitTestCase):
             18: Qubit(QuantumRegister(20, "q"), 18),
             19: Qubit(QuantumRegister(20, "q"), 19),
         }
-        trans_qc = transpile(qc, backend, optimization_level=level)
+        trans_qc = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
         self.assertEqual(trans_qc._layout._p2v, expected)
 
     @data(0, 1)
