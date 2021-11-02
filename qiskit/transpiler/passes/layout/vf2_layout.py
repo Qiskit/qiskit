@@ -10,12 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""A pass for choosing a Layout of a circuit onto a Coupling graph, as a
-a subgraph isomorphism problem, solved by VF2++. If a solution is found
-that means no further swap is needed. If no solution is
-found, no ``property_set['layout']`` is set. The stopping reason is set in
-``property_set['VF2Layout_stop_reason']``.
-"""
+"""VF2Layout pass to find a layout using subgraph isomorphism"""
 import random
 from retworkx import PyGraph, PyDiGraph, vf2_mapping
 from qiskit.transpiler.layout import Layout
@@ -24,17 +19,23 @@ from qiskit.transpiler.exceptions import TranspilerError
 
 
 class VF2Layout(AnalysisPass):
-    """If possible, chooses a Layout as a Subgraph Isomorphism Problem, using VF2."""
+    """A pass for choosing a Layout of a circuit onto a Coupling graph, as a
+    a subgraph isomorphism problem, solved by VF2++.
+        
+    If a solution is found that means there is a "perfect layout" and that no
+    further swap mapping or routing is needed. If a solution is found the layout
+    will be set in the property set as ``property_set['layout']``. However, if no
+    solution is found, no ``property_set['layout']`` is set. The stopping reason is
+    set in ``property_set['VF2Layout_stop_reason']`` in all the cases and will be
+    one of the following values:
+
+        * ``"solution found"``: If a perfect layout was found.
+        * ``"nonexistent solution"``: If no perfect layout was found.
+
+    """
 
     def __init__(self, coupling_map, strict_direction=False, seed=None):
-        """If possible, chooses a Layout as a Subgraph Isomorphism Probrem, using VF2.
-
-        If not possible, does not set the layout property. In all the cases,
-        the property `VF2Layout_stop_reason` will be added with one of the
-        following values:
-
-        * solution found: If a perfect layout was found.
-        * nonexistent solution: If no perfect layout was found.
+        """Initialize a ``VF2Layout`` pass instance
 
         Args:
             coupling_map (CouplingMap): Directed graph representing a coupling map.
