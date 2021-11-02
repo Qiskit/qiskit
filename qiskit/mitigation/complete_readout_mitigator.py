@@ -140,8 +140,8 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
         for index, _ in enumerate(probs_vec):
             probs_dict[index] = probs_vec[index]
 
-        return QuasiDistribution(probs_dict), QuasiDistribution(stddev(
-            QuasiDistribution(probs_dict).nearest_probability_distribution(), shots)
+        return QuasiDistribution(probs_dict), QuasiDistribution(
+            stddev(QuasiDistribution(probs_dict).nearest_probability_distribution(), shots)
         )
 
     def mitigation_matrix(self, qubits: List[int] = None) -> np.ndarray:
