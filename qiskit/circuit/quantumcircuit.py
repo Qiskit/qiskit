@@ -2213,16 +2213,20 @@ class QuantumCircuit:
         kept_clbits = set(new_dag.clbits)
 
         # Filter only cregs/clbits still in new DAG, preserving original circuit order
-        circ.cregs = [creg for creg in circ.cregs if creg in kept_cregs]
-        circ._clbits = [clbit for clbit in circ._clbits if clbit in kept_clbits]
+        cregs_to_add = [creg for creg in circ.cregs if creg in kept_cregs]
+        clbits_to_add = [clbit for clbit in circ._clbits if clbit in kept_clbits]
 
-        # Recalculate clbit indicies
-        circ._clbit_indices = {
-            clbit: BitLocations(
-                i, [reg for reg in circ._clbit_indices[clbit].registers if reg[0] in kept_cregs]
-            )
-            for i, clbit in enumerate(circ.clbits)
-        }
+        # Clear cregs and clbits
+        circ.cregs.clear()
+        circ._clbits.clear()
+        circ._clbit_indices.clear()
+
+        # We must add the clbits first to preserve the original circuit
+        # order. This way, add_register never adds clbits and just
+        # creates registers that point to them.
+        circ.add_bits(clbits_to_add)
+        for creg in cregs_to_add:
+            circ.add_register(creg)
 
         # Clear instruction info
         circ.data.clear()
