@@ -22,8 +22,10 @@ from typing import Callable, Optional
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.library.standard_gates import RZXGate
+from qiskit.circuit.library.standard_gates import RXXGate, RZXGate
+from qiskit.exceptions import QiskitError
 from qiskit.extensions import UnitaryGate
+from qiskit.quantum_info.operators import Operator, average_gate_fidelity
 from qiskit.quantum_info.synthesis.one_qubit_decompose import ONE_QUBIT_EULER_BASIS_GATES
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitWeylDecomposition
 from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
@@ -35,7 +37,7 @@ from .utilities import EPSILON
 from .polytopes import XXPolytope
 
 
-def average_infidelity(p, q):
+def _average_infidelity(p, q):
     """
     Computes the infidelity distance between two points p, q expressed in positive canonical
     coordinates.
@@ -63,8 +65,8 @@ class XXDecomposer:
         euler_basis: Basis string provided to OneQubitEulerDecomposer for 1Q synthesis.
             Defaults to "U".
         embodiments: A dictionary mapping interaction strengths alpha to native circuits which
-            embody the gate CAN(alpha, 0, 0). Strengths are taken to be normalized, so that 1/2
-            represents the class of a full CX.
+            embody the gate CAN(alpha, 0, 0). Strengths are taken so that pi/2 represents the class
+            of a full CX.
         backup_optimizer: If supplied, defers synthesis to this callable when XXDecomposer
             has no efficient decomposition of its own. Useful for special cases involving 2 or 3
             applications of XX(pi/2), in which case standard synthesis methods provide lower
@@ -85,6 +87,8 @@ class XXDecomposer:
         self.embodiments = embodiments if embodiments is not None else {}
         self.backup_optimizer = backup_optimizer
 
+        self._check_embodiments()
+
     @staticmethod
     def _default_embodiment(strength):
         """
@@ -100,6 +104,20 @@ class XXDecomposer:
         xx_circuit.h(0)
 
         return xx_circuit
+
+    def _check_embodiments(self):
+        """
+        Checks that `self.embodiments` is populated with legal circuit embodiments: the key-value
+        pair (angle, circuit) satisfies Operator(circuit) approx RXX(angle).to_matrix().
+        """
+
+        for angle, embodiment in self.embodiments:
+            actual = Operator(RXXGate(angle))
+            purported = Operator(embodiment)
+            if average_gate_fidelity(actual, purported) < 1 - EPSILON:
+                raise QiskitError(
+                    f"RXX embodiment provided for angle {angle} disagrees with RXXGate({angle})"
+                )
 
     @staticmethod
     def _best_decomposition(canonical_coordinate, available_strengths):
@@ -121,7 +139,7 @@ class XXDecomposer:
 
             strength_polytope = XXPolytope.from_strengths(*[x / 2 for x in sequence])
             candidate_point = strength_polytope.nearest(canonical_coordinate)
-            candidate_cost = sequence_cost + average_infidelity(
+            candidate_cost = sequence_cost + _average_infidelity(
                 canonical_coordinate, candidate_point
             )
 
@@ -160,12 +178,9 @@ class XXDecomposer:
     def _strength_to_infidelity(basis_fidelity, approximate=False):
         """
         Converts a dictionary mapping ZX strengths to fidelities to a dictionary mapping ZX
-        strengths to infidelities. Also one of the other formats Qiskit uses: extends a single float
-        infidelity over CX, CX/2, and CX/3 if only a single float is supplied.
+        strengths to infidelities. Also supports one of the other formats Qiskit uses: if only a
+        lone float is supplied, it extends it from CX over CX/2 and CX/3 by linear decay.
         """
-
-        if basis_fidelity is None:
-            basis_fidelity = 1.0
 
         if isinstance(basis_fidelity, float):
             if not approximate:
@@ -184,13 +199,23 @@ class XXDecomposer:
 
         raise TypeError("Unknown basis_fidelity payload.")
 
-    def __call__(self, unitary, basis_fidelity=1.0, approximate=True, chatty=False):
+    def __call__(self, unitary, basis_fidelity=1.0, approximate=True):
         """
-        Fashions a circuit which (perhaps `approximate`ly) models the special unitary operation `unitary`,
-        using the circuit templates supplied at initialization.  The routine uses `basis_fidelity`
-        to select the optimal circuit template, including when performing exact synthesis; the
-        contents of `basis_fidelity` is a dictionary mapping interaction strengths (scaled so that
-        CX = RZX(pi/2) corresponds to pi/2) to circuit fidelities.
+        Fashions a circuit which (perhaps `approximate`ly) models the special unitary operation
+        `unitary`, using the circuit templates supplied at initialization as `embodiments`.  The
+        routine uses `basis_fidelity` to select the optimal circuit template, including when
+        performing exact synthesis; the contents of `basis_fidelity` is a dictionary mapping
+        interaction strengths (scaled so that CX = RZX(pi/2) corresponds to pi/2) to circuit
+        fidelities.
+
+        Args:
+            unitary (Operator or ndarray): 4x4 unitary to synthesize.
+            basis_fidelity (dict or float): Fidelity of basis gates. Can be either (1) a dictionary
+                mapping XX angle values to fidelity at that angle; or (2) a single float f,
+                interpreted as {pi: f, pi/2: f/2, pi/3: f/3} .
+            approximate (bool): Approximates if basis fidelities are less than 1.0 .
+        Returns:
+            QuantumCircuit: Synthesized circuit.
         """
         strength_to_infidelity = self._strength_to_infidelity(
             basis_fidelity, approximate=approximate

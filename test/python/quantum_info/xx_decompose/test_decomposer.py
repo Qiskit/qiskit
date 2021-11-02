@@ -80,8 +80,8 @@ class TestMonodromyQISKit(unittest.TestCase):
         slope, offset = (64 * 90) / 1000000, 909 / 1000000 + 1 / 1000
         strength_table = self.decomposer._strength_to_infidelity(
             basis_fidelity={
-               strength: 1 - (slope * strength / (np.pi / 2) + offset)
-               for strength in [np.pi / 2, np.pi / 4, np.pi / 6]
+                strength: 1 - (slope * strength / (np.pi / 2) + offset)
+                for strength in [np.pi / 2, np.pi / 4, np.pi / 6]
             },
             approximate=True,
         )

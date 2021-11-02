@@ -78,7 +78,6 @@ def apply_reflection(reflection_name, coordinate):
     return reflected_coord, source_reflection, reflection_phase_shift
 
 
-# TODO: I wonder if the global phase shift can be attached to the circuit...
 def apply_shift(shift_name, coordinate):
     """
     Given a shift type and a canonical coordinate, applies the shift and
