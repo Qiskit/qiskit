@@ -111,13 +111,7 @@ class TestVF2LayoutLattice(LayoutTestCase):
 
     def graph_state_from_pygraph(self, graph):
         """Creates a GraphState circuit from a PyGraph"""
-        rows = [x[0] for x in graph.edge_list()]
-        cols = [x[1] for x in graph.edge_list()]
-
-        size = max(len(rows), len(cols))
-        adjacency_matrix = numpy.zeros((size, size))
-        adjacency_matrix[rows, cols] = 1
-        adjacency_matrix[cols, rows] = 1
+        adjacency_matrix = retworkx.adjacency_matrix(graph)
         return GraphState(adjacency_matrix)
 
     def test_hexagonal_lattice_graph_20_in_25(self):
