@@ -219,7 +219,7 @@ def xx_circuit_step(source, strength, target, embodiment):
     # and computing just the prefix / affix circuits.
 
     # the outermost prefix layer comes from the (inverse) target permutation.
-    prefix_circuit += permute_target_for_overlap.inverse()
+    prefix_circuit.compose(permute_target_for_overlap.inverse(), inplace=True)
     # the middle prefix layer comes from the local Z rolls.
     prefix_circuit.rz(2 * x, [0])
     prefix_circuit.rz(2 * y, [1])
@@ -228,21 +228,21 @@ def xx_circuit_step(source, strength, target, embodiment):
     prefix_circuit.rz(2 * v, [1])
     # the innermost prefix layer is source_reflection, shifted by source_shift,
     # finally conjugated by p_s_f_o.
-    prefix_circuit += permute_source_for_overlap
-    prefix_circuit += source_reflection
+    prefix_circuit.compose(permute_source_for_overlap, inplace=True)
+    prefix_circuit.compose(source_reflection, inplace=True)
     prefix_circuit.global_phase += -np.log(reflection_phase_shift).imag
     prefix_circuit.global_phase += -np.log(shift_phase_shift).imag
 
     # the affix circuit is constructed in reverse.
     # first (i.e., innermost), we install the other half of the source transformations and p_s_f_o.
-    affix_circuit += source_reflection.inverse()
-    affix_circuit += source_shift
-    affix_circuit += permute_source_for_overlap.inverse()
+    affix_circuit.compose(source_reflection.inverse(), inplace=True)
+    affix_circuit.compose(source_shift, inplace=True)
+    affix_circuit.compose(permute_source_for_overlap.inverse(), inplace=True)
     # then, the other local rolls in the middle.
     affix_circuit.rz(2 * r, [0])
     affix_circuit.rz(2 * s, [1])
     # finally, the other half of the p_t_f_o conjugation.
-    affix_circuit += permute_target_for_overlap
+    affix_circuit.compose(permute_target_for_overlap, inplace=True)
 
     return {"prefix_circuit": prefix_circuit, "affix_circuit": affix_circuit}
 
@@ -286,10 +286,10 @@ def canonical_xx_circuit(target, strength_sequence, basis_embodiments):
         _, source_reflection, reflection_phase_shift = apply_reflection("reflect XX, YY", [0, 0, 0])
         _, source_shift, shift_phase_shift = apply_shift("X shift", [0, 0, 0])
 
-        circuit += source_reflection
+        circuit.compose(source_reflection, inplace=True)
         circuit.compose(basis_embodiments[strength_sequence[0]], inplace=True)
-        circuit += source_reflection.inverse()
-        circuit += source_shift
+        circuit.compose(source_reflection.inverse(), inplace=True)
+        circuit.compose(source_shift, inplace=True)
         circuit.global_phase += -np.log(shift_phase_shift).imag
         circuit.global_phase += -np.log(reflection_phase_shift).imag
 
