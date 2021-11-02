@@ -166,19 +166,18 @@ class MonodromyZXDecomposer:
     def _strength_to_infidelity(basis_fidelity, approximate=False):
         """
         Converts a dictionary mapping ZX strengths to fidelities to a dictionary mapping ZX
-        strengths to infidelities. Also supports some of the other formats QISKit uses: injects a
-        default set of infidelities for CX, CX/2, and CX/3 if None is supplied, or extends a single
-        float infidelity over CX, CX/2, and CX/3 if only a single float is supplied.
+        strengths to infidelities. Also one of the other formats QISKit uses: extends a single float
+        infidelity over CX, CX/2, and CX/3 if only a single float is supplied.
         """
 
-        if basis_fidelity is None or isinstance(basis_fidelity, float):
+        if basis_fidelity is None:
+            basis_fidelity = 1.0
+
+        if isinstance(basis_fidelity, float):
             if not approximate:
                 slope, offset = 1e-10, 1e-12
-            elif isinstance(basis_fidelity, float):
-                slope, offset = (1 - basis_fidelity) / 2, (1 - basis_fidelity) / 2
             else:
-                # some reasonable default values
-                slope, offset = (64 * 90) / 1000000, 909 / 1000000 + 1 / 1000
+                slope, offset = (1 - basis_fidelity) / 2, (1 - basis_fidelity) / 2
             return {
                 strength: slope * strength / (np.pi / 2) + offset
                 for strength in [np.pi / 2, np.pi / 4, np.pi / 6]
@@ -191,7 +190,7 @@ class MonodromyZXDecomposer:
 
         raise TypeError("Unknown basis_fidelity payload.")
 
-    def __call__(self, unitary, basis_fidelity=None, approximate=True, chatty=False):
+    def __call__(self, unitary, basis_fidelity=1.0, approximate=True, chatty=False):
         """
         Fashions a circuit which (perhaps `approximate`ly) models the special unitary operation `u`,
         using the circuit templates supplied at initialization.  The routine uses `basis_fidelity`
