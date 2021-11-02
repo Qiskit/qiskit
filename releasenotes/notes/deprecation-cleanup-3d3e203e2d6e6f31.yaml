@@ -1,9 +1,6 @@
 ---
 upgrade:
   - |
-    The ``qiskit.util`` module has been removed. It was originally deprecated
-    in the 0.17 release
-  - |
     The ``DAGCircuit.extend_back()`` method has been removed. It was originally
     deprecated in the 0.13.0 release. Instead you can use the
     :meth:`~qiskit.dagcircuit.DAGCircuit.compose` method which is more general
