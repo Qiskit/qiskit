@@ -17,7 +17,7 @@ import numpy
 import retworkx
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.transpiler import CouplingMap
+from qiskit.transpiler import CouplingMap, TranspilerError
 from qiskit.transpiler.passes import VF2Layout
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
@@ -112,7 +112,7 @@ class TestVF2LayoutLattice(LayoutTestCase):
     def graph_state_from_pygraph(self, graph):
         """Creates a GraphState circuit from a PyGraph"""
         adjacency_matrix = retworkx.adjacency_matrix(graph)
-        return GraphState(adjacency_matrix)
+        return GraphState(adjacency_matrix).decompose()
 
     def test_hexagonal_lattice_graph_20_in_25(self):
         """A 20x20 interaction map in 25x25 coupling map"""
@@ -282,7 +282,7 @@ class TestVF2LayoutBackend(LayoutTestCase):
         adj_matrix = numpy.zeros((65, 65))
         adj_matrix[rows, cols] = 1
 
-        circuit = GraphState(adj_matrix)
+        circuit = GraphState(adj_matrix).decompose()
         circuit.measure_all()
 
         dag = circuit_to_dag(circuit)
@@ -319,6 +319,21 @@ class TestVF2LayoutOther(LayoutTestCase):
         self.assertEqual(pass_2.property_set["VF2Layout_stop_reason"], "solution found")
 
         self.assertNotEqual(layout_1, layout_2)
+
+    def test_3_q_gate(self):
+        """The pass does not handle gates with more than 2 qubits"""
+        seed_1 = 42
+
+        cmap5 = FakeTenerife().configuration().coupling_map
+
+        qr = QuantumRegister(3, "qr")
+        circuit = QuantumCircuit(qr)
+        circuit.ccx(qr[1], qr[0], qr[2])
+        dag = circuit_to_dag(circuit)
+
+        pass_1 = VF2Layout(CouplingMap(cmap5), seed=seed_1)
+        with self.assertRaises(TranspilerError):
+            pass_1.run(dag)
 
 
 if __name__ == "__main__":

@@ -20,6 +20,7 @@ import random
 from retworkx import PyGraph, PyDiGraph, vf2_mapping
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
+from qiskit.transpiler.exceptions import TranspilerError
 
 
 class VF2Layout(AnalysisPass):
@@ -50,10 +51,15 @@ class VF2Layout(AnalysisPass):
         """run the layout method"""
         qubits = dag.qubits
         qubit_indices = {qubit: index for index, qubit in enumerate(qubits)}
-        interactions = [
-            (qubit_indices[gate.qargs[0]], qubit_indices[gate.qargs[1]])
-            for gate in dag.two_qubit_ops()
-        ]
+
+        interactions = []
+        for node in dag.op_nodes(include_directives=False):
+            len_args = len(node.qargs)
+            if len_args == 2:
+                interactions.append((qubit_indices[node.qargs[0]], qubit_indices[node.qargs[1]]))
+            if len_args >= 3:
+                raise TranspilerError("VF2Layout only can handle 2-qubit gates or less. Node "
+                                      f"{node.name} ({node}) is {len_args}-qubit")
 
         if self.strict_direction:
             cm_graph = self.coupling_map.graph
