@@ -107,7 +107,7 @@ class TestVF2LayoutSimple(LayoutTestCase):
 class TestVF2LayoutLattice(LayoutTestCase):
     """Fit in 25x25 hexagonal lattice coupling map"""
 
-    cmap25 = CouplingMap.from_hexagonal_lattice_graph(25, 25, bidirectional=False)
+    cmap25 = CouplingMap.from_hexagonal_lattice(25, 25, bidirectional=False)
 
     def graph_state_from_pygraph(self, graph):
         """Creates a GraphState circuit from a PyGraph"""
