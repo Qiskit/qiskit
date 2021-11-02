@@ -2225,9 +2225,9 @@ class QuantumCircuit:
         clbits_to_add = [clbit for clbit in circ._clbits if clbit in kept_clbits]
 
         # Clear cregs and clbits
-        circ.cregs.clear()
-        circ._clbits.clear()
-        circ._clbit_indices.clear()
+        circ.cregs = []
+        circ._clbits = []
+        circ._clbit_indices = {}
 
         # We must add the clbits first to preserve the original circuit
         # order. This way, add_register never adds clbits and just
