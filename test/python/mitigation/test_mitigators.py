@@ -21,7 +21,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.result import Counts
 from qiskit.mitigation import CompleteReadoutMitigator
 from qiskit.mitigation import TensoredReadoutMitigator
-from qiskit.mitigation.utils import z_diagonal, counts_probability_vector
+from qiskit.mitigation.utils import z_diagonal, counts_probability_vector, str2diag
 from qiskit.test.mock import FakeYorktown
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
@@ -75,7 +75,11 @@ class TestReadoutMitigation(QiskitTestCase):
         TRM = TensoredReadoutMitigator(circuits_data["tensor_method_matrices"])
         num_qubits = circuits_data["num_qubits"]
         diagonals = []
-        diagonals.append(z_diagonal(2**num_qubits))
+        diagonals.append(z_diagonal(2 ** num_qubits))
+        diagonals.append("IZ0")
+        diagonals.append("ZZZ")
+        diagonals.append("101")
+        diagonals.append("IZI")
         mitigators = [CRM, TRM]
         for circuit_name, circuit_data in circuits_data["circuits"].items():
             counts_ideal = Counts(circuit_data["counts_ideal"])
@@ -83,6 +87,8 @@ class TestReadoutMitigation(QiskitTestCase):
             probs_ideal = counts_probability_vector(counts_ideal)
             probs_noise = counts_probability_vector(counts_noise)
             for diagonal in diagonals:
+                if isinstance(diagonal, str):
+                    diagonal = str2diag(diagonal)
                 unmitigated_expectation = np.dot(probs_noise, diagonal)
                 ideal_expectation = np.dot(probs_ideal, diagonal)
                 unmitigated_error = np.abs(ideal_expectation - unmitigated_expectation)
