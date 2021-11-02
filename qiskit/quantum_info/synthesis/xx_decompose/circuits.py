@@ -249,7 +249,7 @@ def xx_circuit_step(source, strength, target, embodiment):
 
 def canonical_xx_circuit(target, strength_sequence, basis_embodiments):
     """
-    Assembles a QISKit circuit from a specified `strength_sequence` of XX-type interactions which
+    Assembles a Qiskit circuit from a specified `strength_sequence` of XX-type interactions which
     emulates the canonical gate at canonical coordinate `target`.  The circuits supplied by
     `basis_embodiments` are used to instantiate the individual XX actions.
 

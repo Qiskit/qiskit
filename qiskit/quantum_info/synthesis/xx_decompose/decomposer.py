@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Driver for a synthesis routine which emits optimal ZX-based circuits.
+Driver for a synthesis routine which emits optimal XX-based circuits.
 """
 
 import heapq
@@ -61,12 +61,14 @@ class XXDecomposer:
 
     Args:
         euler_basis: Basis string provided to OneQubitEulerDecomposer for 1Q synthesis.
-            Defaults to "U3".
-        embodiments: An dictionary mapping interaction strengths alpha to native circuits which
+            Defaults to "U".
+        embodiments: A dictionary mapping interaction strengths alpha to native circuits which
             embody the gate CAN(alpha, 0, 0). Strengths are taken to be normalized, so that 1/2
             represents the class of a full CX.
         backup_optimizer: If supplied, defers synthesis to this callable when XXDecomposer
-            has no efficient decomposition of its own.
+            has no efficient decomposition of its own. Useful for special cases involving 2 or 3
+            applications of XX(pi/2), in which case standard synthesis methods provide lower
+            1Q gate count.
 
     NOTE: If embodiments is not passed, or if an entry is missing, it will be populated as needed
         using the method _default_embodiment.
@@ -74,7 +76,7 @@ class XXDecomposer:
 
     def __init__(
         self,
-        euler_basis: str = "U3",
+        euler_basis: str = "U",
         embodiments: Optional[dict] = None,
         backup_optimizer: Optional[Callable] = None,
     ):
@@ -87,7 +89,7 @@ class XXDecomposer:
     def _default_embodiment(strength):
         """
         If the user does not provide a custom implementation of XX(strength), then this routine
-        defines a default implementation using RZX or CX.
+        defines a default implementation using RZX.
         """
         xx_circuit = QuantumCircuit(2)
 
@@ -158,7 +160,7 @@ class XXDecomposer:
     def _strength_to_infidelity(basis_fidelity, approximate=False):
         """
         Converts a dictionary mapping ZX strengths to fidelities to a dictionary mapping ZX
-        strengths to infidelities. Also one of the other formats QISKit uses: extends a single float
+        strengths to infidelities. Also one of the other formats Qiskit uses: extends a single float
         infidelity over CX, CX/2, and CX/3 if only a single float is supplied.
         """
 
@@ -184,7 +186,7 @@ class XXDecomposer:
 
     def __call__(self, unitary, basis_fidelity=1.0, approximate=True, chatty=False):
         """
-        Fashions a circuit which (perhaps `approximate`ly) models the special unitary operation `u`,
+        Fashions a circuit which (perhaps `approximate`ly) models the special unitary operation `unitary`,
         using the circuit templates supplied at initialization.  The routine uses `basis_fidelity`
         to select the optimal circuit template, including when performing exact synthesis; the
         contents of `basis_fidelity` is a dictionary mapping interaction strengths (scaled so that
