@@ -1,0 +1,14 @@
+---
+upgrade:
+  - |
+    The minimum supported version of matplotlib has been raised from 2.1.0 to
+    3.3.0. You will now need to have matplotlib 3.3.0 installed if you're using
+    matplotlib based visualization functions such as the ``'mpl'`` backend for
+    the :func:`~qiskit.visualization.circuit_drawer` function or the
+    :func:`~qiskit.visualization.plot_bloch_vector` function. This was done for
+    two reasons, the first is because recent versions of matplotlib have
+    deprecated the use of APIs around 3D visualizations that were compatible
+    with older releases and second installing older versions of matplotlib
+    was becoming increasingly difficult as matplotlib's upstream dependencies
+    have caused incompatiblities that made testing moving forward more
+    difficult.

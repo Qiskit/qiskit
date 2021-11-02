@@ -50,6 +50,7 @@ __all__ = ["Bloch"]
 
 import os
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import Axes3D, proj3d
@@ -66,7 +67,7 @@ class Arrow3D(FancyArrowPatch):
 
     def draw(self, renderer):
         xs3d, ys3d, zs3d = self._verts3d
-        x_s, y_s, _ = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
+        x_s, y_s, _ = proj3d.proj_transform(xs3d, ys3d, zs3d, self.axes.M)
         self.set_positions((x_s[0], y_s[0]), (x_s[1], y_s[1]))
         FancyArrowPatch.draw(self, renderer)
 
@@ -394,7 +395,17 @@ class Bloch:
             self.fig = plt.figure(figsize=self.figsize)
 
         if not self._ext_axes:
-            self.axes = Axes3D(self.fig, azim=self.view[0], elev=self.view[1])
+            if tuple(int(x) for x in matplotlib.__version__.split(".")) >= (3, 4, 0):
+                self.axes = Axes3D(
+                    self.fig, azim=self.view[0], elev=self.view[1], auto_add_to_figure=False
+                )
+                self.fig.add_axes(self.axes)
+            else:
+                self.axes = Axes3D(
+                    self.fig,
+                    azim=self.view[0],
+                    elev=self.view[1],
+                )
 
         if self.background:
             self.axes.clear()
@@ -542,11 +553,11 @@ class Bloch:
         self.axes.text(0, 0, self.zlpos[0], self.zlabel[0], **opts)
         self.axes.text(0, 0, self.zlpos[1], self.zlabel[1], **opts)
 
-        for item in self.axes.w_xaxis.get_ticklines() + self.axes.w_xaxis.get_ticklabels():
+        for item in self.axes.xaxis.get_ticklines() + self.axes.xaxis.get_ticklabels():
             item.set_visible(False)
-        for item in self.axes.w_yaxis.get_ticklines() + self.axes.w_yaxis.get_ticklabels():
+        for item in self.axes.yaxis.get_ticklines() + self.axes.yaxis.get_ticklabels():
             item.set_visible(False)
-        for item in self.axes.w_zaxis.get_ticklines() + self.axes.w_zaxis.get_ticklabels():
+        for item in self.axes.zaxis.get_ticklines() + self.axes.zaxis.get_ticklabels():
             item.set_visible(False)
 
     def plot_vectors(self):
