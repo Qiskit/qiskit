@@ -2,7 +2,7 @@
 upgrade:
   - |
     The preset passmanagers in :mod:`qiskit.transpiler.preset_passmanagers`
-    for all optimization levels have been changed to run the
+    for all optimization levels above 0 have been changed to run the
     :class:`~qiskit.transpiler.passes.VF2Layout` by default prior to the layout
     pass. The :class:`~qiskit.transpiler.passes.VF2Layout` pass will quickly
     check if a perfect layout can be found and superscedes what was previously
