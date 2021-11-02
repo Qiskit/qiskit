@@ -119,7 +119,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         # to run layout since VF2 didn't converge.
         if (
             property_set["VF2Layout_stop_reason"] is not None
-            and property_set["VF2Layout_stop_reason"] != "solution found"
+            and property_set["VF2Layout_stop_reason"].value != "solution found"
         ):
             return True
         return False

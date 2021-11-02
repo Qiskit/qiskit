@@ -11,10 +11,21 @@
 # that they have been altered from the originals.
 
 """VF2Layout pass to find a layout using subgraph isomorphism"""
+from enum import Enum
 import random
+
 from retworkx import PyGraph, PyDiGraph, vf2_mapping
+
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
+
+
+class VF2LayoutStopReason(Enum):
+    """Stop reasons for VF2Layout pass."""
+
+    SOLUTION_FOUND = "solution found"
+    NO_SOLUTION_FOUND = "nonexistent solution"
+    MORE_THAN_2Q = ">2q gates in basis"
 
 
 class VF2Layout(AnalysisPass):
@@ -26,7 +37,8 @@ class VF2Layout(AnalysisPass):
     will be set in the property set as ``property_set['layout']``. However, if no
     solution is found, no ``property_set['layout']`` is set. The stopping reason is
     set in ``property_set['VF2Layout_stop_reason']`` in all the cases and will be
-    one of the following values:
+    one of the values enumerated in ``VF2LayoutStopReason`` which has the
+    following values:
 
         * ``"solution found"``: If a perfect layout was found.
         * ``"nonexistent solution"``: If no perfect layout was found.
@@ -59,7 +71,7 @@ class VF2Layout(AnalysisPass):
             if len_args == 2:
                 interactions.append((qubit_indices[node.qargs[0]], qubit_indices[node.qargs[1]]))
             if len_args >= 3:
-                self.property_set["VF2Layout_stop_reason"] = ">2q gates in basis"
+                self.property_set["VF2Layout_stop_reason"] = VF2LayoutStopReason.MORE_THAN_2Q
                 return
 
         if self.strict_direction:
@@ -84,12 +96,12 @@ class VF2Layout(AnalysisPass):
         mappings = vf2_mapping(cm_graph, im_graph, subgraph=True, id_order=False, induced=False)
         try:
             mapping = next(mappings)
-            stop_reason = "solution found"
+            stop_reason = VF2LayoutStopReason.SOLUTION_FOUND
             layout = Layout({qubits[im_i]: cm_nodes[cm_i] for cm_i, im_i in mapping.items()})
             self.property_set["layout"] = layout
             for reg in dag.qregs.values():
                 self.property_set["layout"].add_register(reg)
         except StopIteration:
-            stop_reason = "nonexistent solution"
+            stop_reason = VF2LayoutStopReason.NO_SOLUTION_FOUND
 
         self.property_set["VF2Layout_stop_reason"] = stop_reason

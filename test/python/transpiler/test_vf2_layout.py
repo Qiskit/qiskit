@@ -18,7 +18,7 @@ import retworkx
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import CouplingMap
-from qiskit.transpiler.passes import VF2Layout
+from qiskit.transpiler.passes.layout.vf2_layout import VF2Layout, VF2LayoutStopReason
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeTenerife, FakeRueschlikon, FakeManhattan
@@ -33,7 +33,7 @@ class LayoutTestCase(QiskitTestCase):
     def assertLayout(self, dag, coupling_map, property_set, strict_direction=False):
         """Checks if the circuit in dag was a perfect layout in property_set for the given
         coupling_map"""
-        self.assertEqual(property_set["VF2Layout_stop_reason"], "solution found")
+        self.assertEqual(property_set["VF2Layout_stop_reason"], VF2LayoutStopReason.SOLUTION_FOUND)
 
         layout = property_set["layout"]
         edges = coupling_map.graph.edge_list()
@@ -158,7 +158,9 @@ class TestVF2LayoutBackend(LayoutTestCase):
         pass_.run(dag)
         layout = pass_.property_set["layout"]
         self.assertIsNone(layout)
-        self.assertEqual(pass_.property_set["VF2Layout_stop_reason"], "nonexistent solution")
+        self.assertEqual(
+            pass_.property_set["VF2Layout_stop_reason"], VF2LayoutStopReason.NO_SOLUTION_FOUND
+        )
 
     def test_9q_circuit_Rueschlikon_sd(self):
         """9 qubits in Rueschlikon, considering the direction
@@ -311,12 +313,16 @@ class TestVF2LayoutOther(LayoutTestCase):
         pass_1 = VF2Layout(CouplingMap(cmap5), seed=seed_1)
         pass_1.run(dag)
         layout_1 = pass_1.property_set["layout"]
-        self.assertEqual(pass_1.property_set["VF2Layout_stop_reason"], "solution found")
+        self.assertEqual(
+            pass_1.property_set["VF2Layout_stop_reason"], VF2LayoutStopReason.SOLUTION_FOUND
+        )
 
         pass_2 = VF2Layout(CouplingMap(cmap5), seed=seed_2)
         pass_2.run(dag)
         layout_2 = pass_2.property_set["layout"]
-        self.assertEqual(pass_2.property_set["VF2Layout_stop_reason"], "solution found")
+        self.assertEqual(
+            pass_2.property_set["VF2Layout_stop_reason"], VF2LayoutStopReason.SOLUTION_FOUND
+        )
 
         self.assertNotEqual(layout_1, layout_2)
 
@@ -333,7 +339,9 @@ class TestVF2LayoutOther(LayoutTestCase):
 
         pass_1 = VF2Layout(CouplingMap(cmap5), seed=seed_1)
         pass_1.run(dag)
-        self.assertEqual(pass_1.property_set["VF2Layout_stop_reason"], ">2q gates in basis")
+        self.assertEqual(
+            pass_1.property_set["VF2Layout_stop_reason"], VF2LayoutStopReason.MORE_THAN_2Q
+        )
 
 
 if __name__ == "__main__":
