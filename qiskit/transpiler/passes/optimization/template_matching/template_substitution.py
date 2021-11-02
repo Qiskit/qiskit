@@ -499,10 +499,10 @@ class TemplateSubstitution:
         for t_idx, template_params in enumerate(template_params):
             if isinstance(template_params, ParameterExpression):
                 if isinstance(circuit_params[t_idx], ParameterExpression):
-                    circ_param_sym = circuit_params[t_idx].get_expr()
+                    circ_param_sym = circuit_params[t_idx].get_sympy_expr()
                 else:
                     circ_param_sym = parse_expr(str(circuit_params[t_idx]))
-                equations.append(sym.Eq(template_params.get_expr(), circ_param_sym))
+                equations.append(sym.Eq(template_params.get_sympy_expr(), circ_param_sym))
 
                 for param in template_params.parameters:
                     temp_symbols[param] = sym.Symbol(str(param))

@@ -526,7 +526,7 @@ class ParameterExpression:
                 return False
         return True
 
-    def get_expr(self):
+    def get_sympy_expr(self):
         """Return symbolic expression from sympy"""
         from sympy import sympify
 
