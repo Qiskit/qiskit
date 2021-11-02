@@ -102,7 +102,7 @@ class QFT(BlueprintCircuit):
         self._do_swaps = do_swaps
         self._insert_barriers = insert_barriers
         self._inverse = inverse
-        self._data = None
+        #self._data = None
         self.num_qubits = num_qubits
 
     @property
@@ -208,9 +208,9 @@ class QFT(BlueprintCircuit):
         """
         return self._inverse
 
-    def _invalidate(self) -> None:
-        """Invalidate the current build of the circuit."""
-        self._data = None
+    #def _invalidate(self) -> None:
+    #    """Invalidate the current build of the circuit."""
+    #    self._data = None
 
     def inverse(self) -> "QFT":
         """Invert this circuit.
@@ -248,6 +248,9 @@ class QFT(BlueprintCircuit):
 
     def _build(self) -> None:
         """Construct the circuit representing the desired state vector."""
+        if self._valid:
+            return
+
         super()._build()
 
         num_qubits = self.num_qubits

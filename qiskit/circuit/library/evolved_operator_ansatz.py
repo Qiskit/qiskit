@@ -50,6 +50,7 @@ class EvolvedOperatorAnsatz(NLocal):
                 operator.
             initial_state: A `QuantumCircuit` object to prepend to the circuit.
         """
+        print('\nevolve oper', operators)
         if evolution is None:
             # pylint: disable=cyclic-import
             from qiskit.opflow import PauliTrotterEvolution
@@ -152,11 +153,14 @@ class EvolvedOperatorAnsatz(NLocal):
             return np.zeros(self.reps * len(self.operators), dtype=float)
 
     def _build(self):
-        if self._data is not None:
+        if self._valid:
             return
 
-        # need to check configuration here to ensure the operators are not None
+        """# need to check configuration here to ensure the operators are not None
         self._check_configuration()
+        self._data = []
+        self._valid = True"""
+        #super()._build()
 
         coeff = Parameter("c")
         circuits = []

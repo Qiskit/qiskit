@@ -328,13 +328,14 @@ class PiecewiseChebyshev(BlueprintCircuit):
         """Build the circuit. The operation is considered successful when q_objective is
         :math:`|1>`"""
         # do not build the circuit if _data is already populated
-        if self._data is not None:
+        if self._valid:#data is not None:
             return
 
+        """self._check_configuration()
         self._data = []
-
-        # check whether the configuration is valid
-        self._check_configuration()
+        self._valid = True
+        # check whether the configuration is valid"""
+        super()._build()
 
         poly_r = PiecewisePolynomialPauliRotations(
             self.num_state_qubits, self.breakpoints, self.polynomials, name=self.name

@@ -143,6 +143,7 @@ class PauliFeatureMap(NLocal):
             skip_final_rotation_layer=True,
             name=name,
         )
+        print('\ninit pfm\n', self._valid, self._data)
 
         self._data_map_func = data_map_func or self_product
         self._paulis = paulis or ["Z", "ZZ"]
@@ -176,6 +177,7 @@ class PauliFeatureMap(NLocal):
         Args:
             paulis: The new pauli strings.
         """
+        print('\nin Pauli inval\n', self._valid, self._data)
         self._invalidate()
         self._paulis = paulis
 
@@ -195,6 +197,7 @@ class PauliFeatureMap(NLocal):
         Args:
             alpha: Pauli rotation factor
         """
+        print('\nin Pauli inval\n', self._valid, self._data)
         self._invalidate()
         self._alpha = alpha
 
@@ -270,6 +273,7 @@ class PauliFeatureMap(NLocal):
         evo.p(self.alpha * time, indices[-1])
         cx_chain(evo, inverse=True)
         basis_change(evo, inverse=True)
+        print('\n Pauli evo\n', self._valid, self._data)
         return evo
 
 

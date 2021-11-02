@@ -226,6 +226,9 @@ class WeightedAdder(BlueprintCircuit):
         return valid
 
     def _build(self):
+        if self._valid:
+            return
+
         super()._build()
 
         num_result_qubits = self.num_state_qubits + self.num_sum_qubits

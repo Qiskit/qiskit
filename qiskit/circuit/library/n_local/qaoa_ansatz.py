@@ -247,9 +247,15 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         self._invalidate()
 
     def _build(self):
-        if self._data is not None:
+        if self._valid:#data is not None:
             return
 
+        print('\nin qaoa top', self._valid, self._data)
+
+        """self._check_configuration()
+
+        #self._data = []
+        self._valid = True"""
         super()._build()
 
         # keep old parameter order: first cost operator, then mixer operators
@@ -270,5 +276,11 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         for rep in range(self.reps):
             reordered.extend(gammas[rep * num_cost : (rep + 1) * num_cost])
             reordered.extend(betas[rep * num_mixer : (rep + 1) * num_mixer])
+        print('\nend of qaoa', self._valid, self._data, reordered)
 
+        print('\nnum params, parameters', self.num_parameters, self.parameters)
+        print('\nparams', self._parameter_table)
         self.assign_parameters(dict(zip(self.ordered_parameters, reordered)), inplace=True)
+        print('\nordered', self._ordered_parameters)
+        print('\nparams2', self._parameter_table)
+

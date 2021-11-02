@@ -212,6 +212,7 @@ class TwoLocal(NLocal):
             parameter_prefix=parameter_prefix,
             name=name,
         )
+        print('\nin tl init\n', self._valid, self._data)
 
     def _convert_to_block(self, layer: Union[str, type, Gate, QuantumCircuit]) -> QuantumCircuit:
         """For a layer provided as str (e.g. 'ry') or type (e.g. RYGate) this function returns the
