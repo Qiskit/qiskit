@@ -21,7 +21,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 class VF2Layout(AnalysisPass):
     """A pass for choosing a Layout of a circuit onto a Coupling graph, as a
     a subgraph isomorphism problem, solved by VF2++.
-        
+
     If a solution is found that means there is a "perfect layout" and that no
     further swap mapping or routing is needed. If a solution is found the layout
     will be set in the property set as ``property_set['layout']``. However, if no
