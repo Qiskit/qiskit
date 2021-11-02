@@ -27,6 +27,7 @@ from qiskit.opflow import (
 )
 from qiskit.providers import BaseBackend
 from .phase_estimation import PhaseEstimation
+from .phase_estimator import PhaseEstimator
 from .phase_estimation_simulator import PhaseEstimationSimulator
 from .hamiltonian_phase_estimation_result import HamiltonianPhaseEstimationResult
 from .phase_estimation_scale import PhaseEstimationScale
@@ -90,14 +91,18 @@ class HamiltonianPhaseEstimation:
         self,
         num_evaluation_qubits: int,
         quantum_instance: Optional[Union[QuantumInstance, BaseBackend]] = None,
-        phase_estimator = PhaseEstimation,
+        phase_estimator: Optional[PhaseEstimator] = None,
     ) -> None:
         """
         Args:
             num_evaluation_qubits: The number of qubits used in estimating the phase. The phase will
                 be estimated as a binary string with this many bits.
             quantum_instance: The quantum instance on which the circuit will be run.
+            phase_estimator: The subclass of PhaseEstimator to be used for the phase estimation.
+                The default is PhaseEstimation.
         """
+        if phase_estimator is None:
+            phase_estimator = PhaseEstimation
         self._phase_estimation = phase_estimator(
             num_evaluation_qubits=num_evaluation_qubits, quantum_instance=quantum_instance
         )
@@ -134,6 +139,7 @@ class HamiltonianPhaseEstimation:
         state_preparation: Optional[StateFn] = None,
         evolution: Optional[EvolutionBase] = None,
         bound: Optional[float] = None,
+        subtract_identity: Optional[bool] = None,
     ) -> HamiltonianPhaseEstimationResult:
         """Run the Hamiltonian phase estimation algorithm.
 
@@ -149,6 +155,11 @@ class HamiltonianPhaseEstimation:
                 ``PauliOp``, in which case a bound will be computed. If ``hamiltonian``
                 is a ``MatrixOp``, then ``bound`` may not be ``None``. The tighter the bound,
                 the higher the resolution of computed phases.
+            subtract_identity: If ``True``, subtract terms proportional to the identity from the Hamiltonian before
+                running the phase estimation algorithm. The coefficient is stored, and the eigenvalues are
+                corrected upon retrieval from the result object. This subtraction is only supported for
+                Hamiltonians expressed in a Pauli basis. If subtract_identity is ``None``, the default,
+                then the choice depends on the other inputs and is made automatically.
 
         Returns:
             HamiltonianPhaseEstimationResult instance containing the result of the estimation
@@ -168,35 +179,38 @@ class HamiltonianPhaseEstimation:
             hamiltonian = hamiltonian.to_pauli_op()
         elif isinstance(hamiltonian, PauliOp):
             hamiltonian = SummedOp([hamiltonian])
-
-        if isinstance(hamiltonian, SummedOp):
-            # remove identitiy terms
-            # The term propto the identity is removed from hamiltonian.
-            # This is done for three reasons:
-            # 1. Work around an unknown bug that otherwise causes the energies to be wrong in some
-            #    cases.
-            # 2. Allow working with a simpler Hamiltonian, one with fewer terms.
-            # 3. Tighten the bound on the eigenvalues so that the spectrum is better resolved, i.e.
-            #   occupies more of the range of values representable by the qubit register.
-            # The coefficient of this term will be added to the eigenvalues.
-            id_coefficient, hamiltonian_no_id = _remove_identity(hamiltonian)
-
-            # get the rescaling object
-            pe_scale = self._get_scale(hamiltonian_no_id, bound)
-
-            # get the unitary
-            unitary = self._get_unitary(hamiltonian_no_id, pe_scale, evolution)
-
         elif isinstance(hamiltonian, MatrixOp):
             if bound is None:
                 raise ValueError("bound must be specified if Hermitian operator is MatrixOp")
-
-            # Do not subtract an identity term from the matrix, so do not compensate.
-            id_coefficient = 0.0
-            pe_scale = self._get_scale(hamiltonian, bound)
-            unitary = self._get_unitary(hamiltonian, pe_scale, evolution)
         else:
             raise TypeError(f"Hermitian operator of type {type(hamiltonian)} not supported.")
+
+        # possibly remove identitiy terms
+        # The term propto the identity is removed from hamiltonian.
+        # This is done for three reasons:
+        # 1. Work around an unknown bug that otherwise causes the energies to be wrong in some
+        #    cases.
+        # 2. Allow working with a simpler Hamiltonian, one with fewer terms.
+        # 3. Tighten the bound on the eigenvalues so that the spectrum is better resolved, i.e.
+        #   occupies more of the range of values representable by the qubit register.
+        # The coefficient of this term will be added to the eigenvalues.
+        # The simulator does not need to remove the identity terms.
+        if subtract_identity is None:
+            if isinstance(hamiltonian, SummedOp) and not isinstance(self._phase_estimation, PhaseEstimationSimulator):
+                subtract_identity = True
+            else:
+                subtract_identity = False
+
+        if subtract_identity:
+            id_coefficient, new_hamiltonian = _remove_identity(hamiltonian)
+        else:
+            id_coefficient = 0.0
+            new_hamiltonian = hamiltonian
+
+        # get the rescaling object
+        pe_scale = self._get_scale(new_hamiltonian, bound)
+        # get the unitary
+        unitary = self._get_unitary(new_hamiltonian, pe_scale, evolution)
 
         if state_preparation is not None:
             state_preparation = state_preparation.to_circuit_op().to_circuit()

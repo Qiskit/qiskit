@@ -40,19 +40,25 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
         backend=None,
         evolution=None,
         bound=None,
+        phase_estimator=None,
+        subtract_identity=None,
     ):
         """Run HamiltonianPhaseEstimation and return result with all  phases."""
         if backend is None:
             backend = qiskit.BasicAer.get_backend("statevector_simulator")
         quantum_instance = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
+        if phase_estimator is None:
+            phase_estimator = PhaseEstimation
         phase_est = HamiltonianPhaseEstimation(
-            num_evaluation_qubits=num_evaluation_qubits, quantum_instance=quantum_instance
+            num_evaluation_qubits=num_evaluation_qubits, quantum_instance=quantum_instance,
+            phase_estimator = phase_estimator,
         )
         result = phase_est.estimate(
             hamiltonian=hamiltonian,
             state_preparation=state_preparation,
             evolution=evolution,
             bound=bound,
+            subtract_identity = subtract_identity,
         )
         return result
 
@@ -69,6 +75,13 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
 
         self.assertAlmostEqual(phases[0], -1.125, delta=0.001)
         self.assertAlmostEqual(phases[1], 1.125, delta=0.001)
+
+        with self.subTest("Compare to simulator"):
+            result_sim = self.hamiltonian_pe(hamiltonian, state_preparation, evolution=evolution, phase_estimator=PhaseEstimationSimulator)
+            phase_dict = result.filter_phases()
+            phase_dict_sim = result_sim.filter_phases()
+            np.testing.assert_allclose(list(phase_dict_sim.values()),
+                                       list(phase_dict.values()))
 
     @data(MatrixEvolution(), PauliTrotterEvolution("suzuki", 3))
     def test_pauli_sum_2(self, evolution):
@@ -123,6 +136,13 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
             self.assertAlmostEqual(phases[0], -0.8979, delta=0.001)
             self.assertAlmostEqual(phases[1], -1.8551, delta=0.001)
             self.assertAlmostEqual(phases[2], -1.2376, delta=0.001)
+        with self.subTest("Compare to simulator"):
+            result_sim = self.hamiltonian_pe(hamiltonian, state_preparation, evolution=evo, phase_estimator=PhaseEstimationSimulator,
+                                             subtract_identity=True)
+            phase_dict = result.filter_phases()
+            phase_dict_sim = result_sim.filter_phases()
+            np.testing.assert_allclose(list(phase_dict_sim.values()),
+                                       list(phase_dict.values()))
 
     def test_matrix_evolution(self):
         """1Q Hamiltonian with MatrixEvolution"""
