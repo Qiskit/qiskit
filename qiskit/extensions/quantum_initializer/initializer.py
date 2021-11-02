@@ -93,7 +93,6 @@ class Initialize(Instruction, Operation):
 
             num_qubits = int(num_qubits)
 
-        Operation.__init__(self, "initialize", num_qubits, 0, params)
         super().__init__("initialize", num_qubits, 0, params)
 
     def _define(self):

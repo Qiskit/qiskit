@@ -24,8 +24,7 @@ class Barrier(Instruction, Operation):
 
     def __init__(self, num_qubits):
         """Create new barrier instruction."""
-        Operation.__init__(self, "barrier", num_qubits, 0, [])
-        Instruction.__init__(self, "barrier", num_qubits, 0, [])
+        super().__init__("barrier", num_qubits, 0, [])
 
     def inverse(self):
         """Special case. Return self."""

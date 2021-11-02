@@ -101,7 +101,6 @@ class Isometry(Instruction, Operation):
 
         num_qubits = int(n) + num_ancillas_zero + num_ancillas_dirty
 
-        Operation.__init__(self, "isometry", num_qubits, 0, [isometry])
         super().__init__("isometry", num_qubits, 0, [isometry])
 
     def _define(self):

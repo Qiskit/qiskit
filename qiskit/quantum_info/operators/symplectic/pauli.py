@@ -202,7 +202,12 @@ class Pauli(BasePauli, Operation):
         if base_z.shape[0] != 1:
             raise QiskitError("Input is not a single Pauli")
         super().__init__(base_z, base_x, base_phase)
-        Operation.__init__(self, "Pauli", self.num_qubits, 0, [])
+
+        # Initialize Operation
+        self._name = "Pauli"
+        self._num_qubits = self.num_qubits
+        self._num_clbits = 0
+        self._params = []
 
     def __repr__(self):
         """Display representation."""

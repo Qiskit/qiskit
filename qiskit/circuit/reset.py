@@ -22,8 +22,7 @@ class Reset(Instruction, Operation):
 
     def __init__(self):
         """Create new reset instruction."""
-        Operation.__init__(self, "reset", 1, 0, [])
-        Instruction.__init__(self, "reset", 1, 0, [])
+        super().__init__("reset", 1, 0, [])
 
     def broadcast_arguments(self, qargs, cargs):
         for qarg in qargs[0]:
