@@ -12,18 +12,13 @@
 
 """Common utilities for Qiskit."""
 
-# Deprecated: for backwards compatibility to be removed in a future release
-from qiskit.utils.deprecation import deprecate_arguments
-from qiskit.utils.deprecation import deprecate_function
-from qiskit.utils.multiprocessing import is_main_process
-from qiskit.utils.multiprocessing import local_hardware_info
-from qiskit.utils.units import apply_prefix
+import warnings
+from qiskit.utils import __all__
+from qiskit.utils import *  # pylint: disable=wildcard-import,unused-wildcard-import
 
 
-__all__ = [
-    "deprecate_arguments",
-    "deprecate_function",
-    "is_main_process",
-    "local_hardware_info",
-    "apply_prefix",
-]
+warnings.warn(
+    "The 'qiskit.util' namespace is deprecated since qiskit-terra 0.17 and will be removed in 0.20."
+    " It has been renamed to 'qiskit.utils'.",
+    category=DeprecationWarning,
+)
