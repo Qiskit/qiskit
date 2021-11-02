@@ -28,6 +28,7 @@ from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 from qiskit.quantum_info.operators.symplectic.pauli_utils import pauli_basis
 from qiskit.utils.deprecation import deprecate_function
+from qiskit.circuit import Parameter, ParameterExpression
 
 
 class SparsePauliOp(LinearOp):
@@ -85,10 +86,14 @@ class SparsePauliOp(LinearOp):
 
         pauli_list = PauliList(data.copy() if copy and hasattr(data, "copy") else data)
 
+        #import pdb; pdb.set_trace()
         if coeffs is None:
             coeffs = np.ones(pauli_list.size, dtype=complex)
         else:
-            coeffs = np.array(coeffs, copy=copy, dtype=complex)
+            try:
+                coeffs = np.array(coeffs, copy=copy, dtype=complex)
+            except:
+                coeffs = np.array(coeffs, copy=copy, dtype=object)
 
         if ignore_pauli_phase:
             # Fast path used in copy operations, where the phase of the PauliList is already known
@@ -99,7 +104,10 @@ class SparsePauliOp(LinearOp):
         else:
             # move the phase of `pauli_list` to `self._coeffs`
             phase = pauli_list.phase
-            self._coeffs = np.asarray((-1j) ** phase * coeffs, dtype=complex)
+            try:
+                self._coeffs = np.asarray((-1j) ** phase * coeffs, dtype=complex)
+            except:
+                self._coeffs = np.asarray((-1j) ** phase * coeffs, dtype=object)
             pauli_list._phase = np.mod(pauli_list._phase - phase, 4)
             self._pauli_list = pauli_list
 
@@ -388,10 +396,15 @@ class SparsePauliOp(LinearOp):
         # Pack bool vectors into np.uint8 vectors by np.packbits
         array = np.packbits(self.paulis.x, axis=1) * 256 + np.packbits(self.paulis.z, axis=1)
         _, indexes, inverses = np.unique(array, return_index=True, return_inverse=True, axis=0)
-        coeffs = np.zeros(indexes.shape[0], dtype=complex)
+        coeffs = np.zeros(indexes.shape[0], dtype=object)
         np.add.at(coeffs, inverses, self.coeffs)
-        # Delete zero coefficient rows
-        is_zero = np.isclose(coeffs, 0, atol=atol, rtol=rtol)
+        # Delete zero coefficient rows (Ignore if dealing with Parameters)
+        is_zero = []
+        for coeff in coeffs:
+            if isinstance(coeff, (Parameter, ParameterExpression)):
+                is_zero.append(False)
+            else:
+                is_zero.append(np.isclose(coeff, 0, atol=atol, rtol=rtol))
         # Check edge case that we deleted all Paulis
         # In this case we return an identity Pauli with a zero coefficient
         if np.all(is_zero):
