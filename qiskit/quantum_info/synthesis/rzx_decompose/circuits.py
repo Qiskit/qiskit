@@ -11,8 +11,6 @@
 # that they have been altered from the originals.
 
 """
-qiskit/quantum_info/synthesis/rzx_decompose/circuits.py
-
 Tools for building optimal circuits out of XX interactions.
 
 Inputs:

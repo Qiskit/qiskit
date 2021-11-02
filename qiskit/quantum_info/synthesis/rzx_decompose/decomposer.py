@@ -11,8 +11,6 @@
 # that they have been altered from the originals.
 
 """
-qiskit/quantum_info/synthesis/rzx_decompose/decomposer.py
-
 Driver for a synthesis routine which emits optimal ZX-based circuits.
 """
 

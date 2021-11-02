@@ -11,8 +11,6 @@
 # that they have been altered from the originals.
 
 """
-qiskit/quantum_info/synthesis/rzx_decompose/utilities.py
-
 Depository for generic utility snippets.
 """
 

@@ -11,8 +11,6 @@
 # that they have been altered from the originals.
 
 """
-qiskit/quantum_info/synthesis/rzx_decompose/__init__.py
-
 Submodule symbol exports for RZX decomposition.
 """
 

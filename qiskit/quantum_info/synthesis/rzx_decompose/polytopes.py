@@ -11,8 +11,6 @@
 # that they have been altered from the originals.
 
 """
-qiskit/quantum_info/synthesis/rzx_decompose/polytopes.py
-
 Defines bare dataclasses which house polytope information, as well as a specialized data structure
 which describes those two-qubit programs accessible to a given sequence of XX-type interactions.
 """

@@ -11,8 +11,6 @@
 # that they have been altered from the originals.
 
 """
-qiskit/quantum_info/synthesis/rzx_decompose/paths.py
-
 Routines for producing right-angled paths through the Weyl alcove.  Consider a set of native
 interactions with an associated minimal covering set of minimum-cost circuit polytopes, as well as a
 target coordinate.  The coverage set associates to the target coordinate a circuit type

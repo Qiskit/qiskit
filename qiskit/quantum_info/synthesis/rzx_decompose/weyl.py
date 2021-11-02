@@ -11,8 +11,6 @@
 # that they have been altered from the originals.
 
 """
-qiskit/quantum_info/synthesis/rzx_decompose/weyl.py
-
 Simple circuit constructors for Weyl reflections.
 """
 

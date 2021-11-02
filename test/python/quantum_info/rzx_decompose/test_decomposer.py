@@ -11,8 +11,6 @@
 # that they have been altered from the originals.
 
 """
-test/python/quantum_info/rzx_decompose/test_decomposer.py
-
 Tests for qiskit-terra/qiskit/quantum_info/synthesis/rzx_decompose/qiskit.py .
 """
 
