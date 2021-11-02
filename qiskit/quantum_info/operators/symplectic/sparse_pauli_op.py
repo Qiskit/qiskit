@@ -86,7 +86,6 @@ class SparsePauliOp(LinearOp):
 
         pauli_list = PauliList(data.copy() if copy and hasattr(data, "copy") else data)
 
-        #import pdb; pdb.set_trace()
         if coeffs is None:
             coeffs = np.ones(pauli_list.size, dtype=complex)
         else:
