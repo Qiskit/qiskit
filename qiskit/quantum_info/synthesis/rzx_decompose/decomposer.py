@@ -91,19 +91,11 @@ class MonodromyZXDecomposer:
         """
         xx_circuit = QuantumCircuit(2)
 
-        if strength == np.pi / 2:
-            xx_circuit.h(0)
-            xx_circuit.cx(0, 1)
-            xx_circuit.h(1)
-            xx_circuit.rz(np.pi / 2, 0)
-            xx_circuit.rz(np.pi / 2, 1)
-            xx_circuit.h(1)
-            xx_circuit.h(0)
-            xx_circuit.global_phase += np.pi / 4
-        else:
-            xx_circuit.h(0)
-            xx_circuit.rzx(strength, 0, 1)
-            xx_circuit.h(0)
+        # NOTE: One could branch here on `strength == np.pi / 2` and decide to use a CX-based
+        #       circuit in this one case where it's available.
+        xx_circuit.h(0)
+        xx_circuit.rzx(strength, 0, 1)
+        xx_circuit.h(0)
 
         return xx_circuit
 
