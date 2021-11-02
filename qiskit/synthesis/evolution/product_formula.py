@@ -138,9 +138,9 @@ def _two_qubit_evolution(pauli, time, cx_structure):
     elif all(labels == "Z"):  # RZZ
         definition.rzz(2 * time, qubits[0], qubits[1])
     elif labels[0] == "Z" and labels[1] == "X":  # RZX
-        definition.rzx(2 * time, qubits[0], qubits[1])
-    elif labels[0] == "X" and labels[1] == "Z":  # RXZ
         definition.rzx(2 * time, qubits[1], qubits[0])
+    elif labels[0] == "X" and labels[1] == "Z":  # RXZ
+        definition.rzx(2 * time, qubits[0], qubits[1])
     else:  # all the others are not native in Qiskit, so use default the decomposition
         definition = _multi_qubit_evolution(pauli, time, cx_structure)
 
