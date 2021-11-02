@@ -67,6 +67,7 @@ Optimizations
 
    Optimize1qGates
    Optimize1qGatesDecomposition
+   Collect1qRuns
    Collect2qBlocks
    ConsolidateBlocks
    CXCancellation
@@ -176,6 +177,7 @@ from .basis import BasisTranslator
 from .optimization import Optimize1qGates
 from .optimization import Optimize1qGatesDecomposition
 from .optimization import Collect2qBlocks
+from .optimization import Collect1qRuns
 from .optimization import CollectMultiQBlocks
 from .optimization import ConsolidateBlocks
 from .optimization import CommutationAnalysis
