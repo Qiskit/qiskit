@@ -23,6 +23,7 @@ from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 from qiskit.quantum_info.operators.linear_op import LinearOp
 from qiskit.quantum_info.operators.mixins import generate_apidocs
 from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators.symplectic.pauli import BasePauli
 from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 from qiskit.quantum_info.operators.symplectic.pauli_utils import pauli_basis
@@ -46,28 +47,62 @@ class SparsePauliOp(LinearOp):
     the :attr:`~SparsePauliOp.coeffs` attribute.
     """
 
-    def __init__(self, data, coeffs=None):
+    def __init__(self, data, coeffs=None, *, ignore_pauli_phase=False, copy=True):
         """Initialize an operator object.
 
         Args:
-            data (Paulilist, SparsePauliOp, PauliTable): Pauli list of terms.
+            data (PauliList or SparsePauliOp or PauliTable or Pauli or list or str): Pauli list of
+                terms.  A list of Pauli strings or a Pauli string is also allowed.
             coeffs (np.ndarray): complex coefficients for Pauli terms.
+
+                .. note::
+
+                    If ``data`` is a :obj:`~SparsePauliOp` and ``coeffs`` is not ``None``, the value
+                    of the ``SparsePauliOp.coeffs`` will be ignored, and only the passed keyword
+                    argument ``coeffs`` will be used.
+
+            ignore_pauli_phase (bool): if true, any ``phase`` component of a given :obj:`~PauliList`
+                will be assumed to be zero.  This is more efficient in cases where a
+                :obj:`~PauliList` has been constructed purely for this object, and it is already
+                known that the phases in the ZX-convention are zero.  It only makes sense to pass
+                this option when giving :obj:`~PauliList` data.  (Default: False)
+            copy (bool): copy the input data if True, otherwise assign it directly, if possible.
+                (Default: True)
 
         Raises:
             QiskitError: If the input data or coeffs are invalid.
         """
-        if isinstance(data, SparsePauliOp):
-            pauli_list = data._pauli_list
-            coeffs = data._coeffs
-        else:
-            pauli_list = PauliList(data)
-            if coeffs is None:
-                coeffs = np.ones(pauli_list.size, dtype=complex)
-        # Initialize PauliList
-        self._pauli_list = PauliList.from_symplectic(pauli_list.z, pauli_list.x)
+        if ignore_pauli_phase and not isinstance(data, PauliList):
+            raise QiskitError("ignore_pauli_list=True is only valid with PauliList data")
 
-        # Initialize Coeffs
-        self._coeffs = np.asarray((-1j) ** pauli_list.phase * coeffs, dtype=complex)
+        if isinstance(data, SparsePauliOp):
+            if coeffs is None:
+                coeffs = data.coeffs
+            data = data._pauli_list
+            # `SparsePauliOp._pauli_list` is already compatible with the internal ZX-phase
+            # convention.  See `BasePauli._from_array` for the internal ZX-phase convention.
+            ignore_pauli_phase = True
+
+        pauli_list = PauliList(data.copy() if copy and hasattr(data, "copy") else data)
+
+        if coeffs is None:
+            coeffs = np.ones(pauli_list.size, dtype=complex)
+        else:
+            coeffs = np.array(coeffs, copy=copy, dtype=complex)
+
+        if ignore_pauli_phase:
+            # Fast path used in copy operations, where the phase of the PauliList is already known
+            # to be zero.  This path only works if the input data is compatible with the internal
+            # ZX-phase convention.
+            self._pauli_list = pauli_list
+            self._coeffs = coeffs
+        else:
+            # move the phase of `pauli_list` to `self._coeffs`
+            phase = pauli_list.phase
+            self._coeffs = np.asarray((-1j) ** phase * coeffs, dtype=complex)
+            pauli_list._phase = np.mod(pauli_list._phase - phase, 4)
+            self._pauli_list = pauli_list
+
         if self._coeffs.shape != (self._pauli_list.size,):
             raise QiskitError(
                 "coeff vector is incorrect shape for number"
@@ -216,35 +251,43 @@ class SparsePauliOp(LinearOp):
         # Validate composition dimensions and qargs match
         self._op_shape.compose(other._op_shape, qargs, front)
 
-        x1 = np.reshape(
-            np.stack(other.size * [self.paulis.x], axis=1),
-            (self.size * other.size, self.num_qubits),
-        )
-        z1 = np.reshape(
-            np.stack(other.size * [self.paulis.z], axis=1),
-            (self.size * other.size, self.num_qubits),
-        )
-        p1 = np.reshape(
-            np.stack(other.size * [self.paulis.phase], axis=1),
-            self.size * other.size,
-        )
-        paulis1 = PauliList.from_symplectic(z1, x1, p1)
-        x2 = np.reshape(
-            np.stack(self.size * [other.paulis.x]), (self.size * other.size, other.num_qubits)
-        )
-        z2 = np.reshape(
-            np.stack(self.size * [other.paulis.z]), (self.size * other.size, other.num_qubits)
-        )
-        p2 = np.reshape(
-            np.stack(self.size * [other.paulis.phase]),
-            self.size * other.size,
-        )
-        paulis2 = PauliList.from_symplectic(z2, x2, p2)
+        if qargs is not None:
+            x1, z1 = self.paulis.x[:, qargs], self.paulis.z[:, qargs]
+        else:
+            x1, z1 = self.paulis.x, self.paulis.z
+        x2, z2 = other.paulis.x, other.paulis.z
+        num_qubits = other.num_qubits
 
-        pauli_list = paulis1.compose(paulis2, qargs, front)
+        # This method is the outer version of `BasePauli.compose`.
+        # `x1` and `z1` have shape `(self.size, num_qubits)`.
+        # `x2` and `z2` have shape `(other.size, num_qubits)`.
+        # `x1[:, no.newaxis]` results in shape `(self.size, 1, num_qubits)`.
+        # `ar = ufunc(x1[:, np.newaxis], x2)` will be in shape `(self.size, other.size, num_qubits)`.
+        # So, `ar.reshape((-1, num_qubits))` will be in shape `(self.size * other.size, num_qubits)`.
+        # Ref: https://numpy.org/doc/stable/user/theory.broadcasting.html
+
+        phase = np.add.outer(self.paulis._phase, other.paulis._phase).reshape(-1)
+        if front:
+            q = np.logical_and(x1[:, np.newaxis], z2).reshape((-1, num_qubits))
+        else:
+            q = np.logical_and(z1[:, np.newaxis], x2).reshape((-1, num_qubits))
+        # `np.mod` will be applied to `phase` in `SparsePauliOp.__init__`
+        phase = phase + 2 * np.sum(q, axis=1)
+
+        x3 = np.logical_xor(x1[:, np.newaxis], x2).reshape((-1, num_qubits))
+        z3 = np.logical_xor(z1[:, np.newaxis], z2).reshape((-1, num_qubits))
+
+        if qargs is None:
+            pauli_list = PauliList(BasePauli(z3, x3, phase))
+        else:
+            x4 = np.repeat(self.paulis.x, other.size, axis=0)
+            z4 = np.repeat(self.paulis.z, other.size, axis=0)
+            x4[:, qargs] = x3
+            z4[:, qargs] = z3
+            pauli_list = PauliList(BasePauli(z4, x4, phase))
+
         coeffs = np.kron(self.coeffs, other.coeffs)
-
-        return SparsePauliOp(pauli_list, coeffs)
+        return SparsePauliOp(pauli_list, coeffs, copy=False)
 
     def tensor(self, other):
         if not isinstance(other, SparsePauliOp):
@@ -260,7 +303,7 @@ class SparsePauliOp(LinearOp):
     def _tensor(cls, a, b):
         paulis = a.paulis.tensor(b.paulis)
         coeffs = np.kron(a.coeffs, b.coeffs)
-        return SparsePauliOp(paulis, coeffs)
+        return SparsePauliOp(paulis, coeffs, copy=False)
 
     def _add(self, other, qargs=None):
         if qargs is None:
@@ -273,8 +316,7 @@ class SparsePauliOp(LinearOp):
 
         paulis = self.paulis._add(other.paulis, qargs=qargs)
         coeffs = np.hstack((self.coeffs, other.coeffs))
-        ret = SparsePauliOp(paulis, coeffs)
-        return ret
+        return SparsePauliOp(paulis, coeffs, ignore_pauli_phase=True, copy=False)
 
     def _multiply(self, other):
         if not isinstance(other, Number):
@@ -287,9 +329,11 @@ class SparsePauliOp(LinearOp):
                 np.zeros((1, self.num_qubits), dtype=bool),
             )
             coeffs = np.array([0j])
-            return SparsePauliOp(paulis, coeffs)
+            return SparsePauliOp(paulis, coeffs, ignore_pauli_phase=True, copy=False)
         # Otherwise we just update the phases
-        return SparsePauliOp(self.paulis, other * self.coeffs)
+        return SparsePauliOp(
+            self.paulis.copy(), other * self.coeffs, ignore_pauli_phase=True, copy=False
+        )
 
     # ---------------------------------------------------------------------
     # Utility Methods
@@ -341,30 +385,28 @@ class SparsePauliOp(LinearOp):
         if rtol is None:
             rtol = self.rtol
 
-        array = np.column_stack((self.paulis.x, self.paulis.z))
-        flatten_paulis, indexes = np.unique(array, return_inverse=True, axis=0)
-        coeffs = np.zeros(self.size, dtype=complex)
-        for i, val in zip(indexes, self.coeffs):
-            coeffs[i] += val
+        # Pack bool vectors into np.uint8 vectors by np.packbits
+        array = np.packbits(self.paulis.x, axis=1) * 256 + np.packbits(self.paulis.z, axis=1)
+        _, indexes, inverses = np.unique(array, return_index=True, return_inverse=True, axis=0)
+        coeffs = np.zeros(indexes.shape[0], dtype=complex)
+        np.add.at(coeffs, inverses, self.coeffs)
         # Delete zero coefficient rows
-        # TODO: Add atol/rtol for zero comparison
-        non_zero = [
-            i for i in range(coeffs.size) if not np.isclose(coeffs[i], 0, atol=atol, rtol=rtol)
-        ]
+        is_zero = np.isclose(coeffs, 0, atol=atol, rtol=rtol)
         # Check edge case that we deleted all Paulis
         # In this case we return an identity Pauli with a zero coefficient
-        if len(non_zero) == 0:
+        if np.all(is_zero):
             x = np.zeros((1, self.num_qubits), dtype=bool)
             z = np.zeros((1, self.num_qubits), dtype=bool)
             coeffs = np.array([0j], dtype=complex)
         else:
-            x, z = (
-                flatten_paulis[non_zero]
-                .reshape((len(non_zero), 2, self.num_qubits))
-                .transpose(1, 0, 2)
-            )
+            non_zero = np.logical_not(is_zero)
+            non_zero_indexes = indexes[non_zero]
+            x = self.paulis.x[non_zero_indexes]
+            z = self.paulis.z[non_zero_indexes]
             coeffs = coeffs[non_zero]
-        return SparsePauliOp(PauliList.from_symplectic(z, x), coeffs)
+        return SparsePauliOp(
+            PauliList.from_symplectic(z, x), coeffs, ignore_pauli_phase=True, copy=False
+        )
 
     # ---------------------------------------------------------------------
     # Additional conversions
@@ -420,7 +462,7 @@ class SparsePauliOp(LinearOp):
                 coeffs.append(coeff)
         # Get Non-zero coeff PauliList terms
         paulis = basis[inds]
-        return SparsePauliOp(paulis, coeffs)
+        return SparsePauliOp(paulis, coeffs, copy=False)
 
     @staticmethod
     def from_list(obj):
@@ -434,7 +476,7 @@ class SparsePauliOp(LinearOp):
             labels[i] = item[0]
             coeffs[i] = item[1]
         paulis = PauliList(labels)
-        return SparsePauliOp(paulis, coeffs)
+        return SparsePauliOp(paulis, coeffs, copy=False)
 
     def to_list(self, array=False):
         """Convert to a list Pauli string labels and coefficients.
