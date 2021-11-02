@@ -40,6 +40,7 @@ from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import CheckGateDirection
 from qiskit.transpiler.passes import Collect2qBlocks
+from qiskit.transpiler.passes import Collect1qRuns
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes import TimeUnitConversion
@@ -181,6 +182,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             ),
             Unroll3qOrMore(),
             Collect2qBlocks(),
+            Collect1qRuns(),
             ConsolidateBlocks(basis_gates=basis_gates),
             UnitarySynthesis(
                 basis_gates,
