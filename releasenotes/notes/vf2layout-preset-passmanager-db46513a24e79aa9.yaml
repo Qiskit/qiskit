@@ -10,12 +10,12 @@ upgrade:
     :class:`~qiskit.transpiler.passes.TrivialLayout` and
     :class:`~qiskit.transpiler.passes.CSPLayout` to try and find a perfect
     layout. However, because :class:`~qiskit.transpiler.passes.VF2Layout` is
-    fast even in the failure mode it has been added to level level 1 as
+    fast even in the failure mode it has been added to level 1 as
     well to improve the quality of the results. This will result in potentially
     different behavior when :func:`~qiskit.compiler.transpile` is called by
     default as it removes a default path for all optimization levels >=1
-    of using a trivial layout (where circuit.qubits[0] is mapped to physical
-    qubit 0, circuit.qubits[1] is mapped to physical qubit 1, etc) assuming
+    of using a trivial layout (where ``circuit.qubits[0]`` is mapped to physical
+    qubit 0, ``circuit.qubits[1]`` is mapped to physical qubit 1, etc) assuming
     the trivial layout is perfect. If your use case was dependent on the
     trivial layout you can explictly request it when transpiling by specifying
     ``layout_method="trivial"`` when calling :func:`~qiskit.compiler.transpile`.
