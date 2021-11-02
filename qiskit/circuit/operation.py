@@ -15,6 +15,7 @@
 from abc import ABC
 from qiskit.circuit.exceptions import CircuitError
 
+
 class Operation(ABC):
     """Quantum Operation Mixin Class.
     For objects that can be added to a :class:`~qiskit.circuit.QuantumCircuit`.
@@ -26,9 +27,7 @@ class Operation(ABC):
 
     def __new__(cls, *args, **kwargs):
         if cls is Operation:
-            raise CircuitError(
-                "An Operation Mixing should not be instantiated directly."
-            )
+            raise CircuitError("An Operation Mixing should not be instantiated directly.")
         return super().__new__(cls)
 
     def __init__(self, name, num_qubits, num_clbits, params):
