@@ -38,8 +38,7 @@ class Gate(Instruction, Operation):
             label: An optional label for the gate.
         """
         self.definition = None
-        Operation.__init__(self, name, num_qubits, 0, params)
-        Instruction.__init__(self, name, num_qubits, 0, params, label=label)
+        super().__init__(name, num_qubits, 0, params, label=label)
 
     # Set higher priority than Numpy array and matrix classes
     __array_priority__ = 20

@@ -154,8 +154,12 @@ class CNOTDihedral(BaseOperator, AdjointMixin, Operation):
             raise QiskitError("Invalid input type for CNOTDihedral class.")
 
         # Initialize BaseOperator
-        Operation.__init__(self, "CNOTDihedral", self._num_qubits, 0, [])
         super().__init__(num_qubits=self._num_qubits)
+
+        # Initialize Operation
+        self._name = "CNOTDihedral"
+        self._num_clbits = 0
+        self._params = []
 
         # Validate the CNOTDihedral element
         if validate and not self._is_valid():

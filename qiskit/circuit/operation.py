@@ -13,6 +13,7 @@
 """Quantum Operation Mixin."""
 
 from abc import ABC
+from qiskit.circuit.exceptions import CircuitError
 
 
 class Operation(ABC):
@@ -23,6 +24,11 @@ class Operation(ABC):
     :class:`~qiskit.circuit.Barrier`, :class:`~qiskit.circuit.Measure`,
     and operators such as :class:`~qiskit.quantum_info.Clifford`.
     """
+
+    def __new__(cls, *args, **kwargs):
+        if cls is Operation:
+            raise CircuitError("An Operation Mixing should not be instantiated directly.")
+        return super().__new__(cls)
 
     def __init__(self, name, num_qubits, num_clbits, params):
         self._name = name
