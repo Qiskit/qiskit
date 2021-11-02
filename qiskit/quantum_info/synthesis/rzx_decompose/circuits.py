@@ -15,7 +15,7 @@ Tools for building optimal circuits out of XX interactions.
 
 Inputs:
  + A set of native XX operations, described as strengths.
- + A right-angled path, computed using the methods in `xx_decompose/paths.py`.
+ + A right-angled path, computed using the methods in `paths.py`.
 
 Output:
  + A circuit which implements the target operation (expressed exactly as the exponential of
