@@ -387,9 +387,6 @@ class DAGCircuit:
             if self._is_wire_idle(clbit):
                 self._remove_idle_wire(clbit)
                 self.clbits.remove(clbit)
-            else:
-                # TODO: this would probably be better as a debug log statement
-                warnings.warn("clbit %s is not idle but is no longer referenced by a register")
 
         for creg in cregs_to_remove:
             del self.cregs[creg.name]
