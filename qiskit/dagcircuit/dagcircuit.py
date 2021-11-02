@@ -419,7 +419,6 @@ class DAGCircuit:
             inp_node = self.input_map[wire]
             oup_node = self.output_map[wire]
 
-            self._multi_graph.remove_edge(inp_node._node_id, oup_node._node_id)
             self._multi_graph.remove_node(inp_node._node_id)
             self._multi_graph.remove_node(oup_node._node_id)
             self._wires.remove(wire)
