@@ -54,7 +54,7 @@ def average_infidelity(p, q):
     )
 
 
-class MonodromyZXDecomposer:
+class XXDecomposer:
     """
     A class for optimal decomposition of 2-qubit unitaries into 2-qubit basis gates of XX type
     (i.e., each locally equivalent to CAN(alpha, 0, 0) for a possibly varying alpha).
@@ -65,7 +65,7 @@ class MonodromyZXDecomposer:
         embodiments: An dictionary mapping interaction strengths alpha to native circuits which
             embody the gate CAN(alpha, 0, 0). Strengths are taken to be normalized, so that 1/2
             represents the class of a full CX.
-        backup_optimizer: If supplied, defers synthesis to this callable when MonodromyZXDecomposer
+        backup_optimizer: If supplied, defers synthesis to this callable when XXDecomposer
             has no efficient decomposition of its own.
 
     NOTE: If embodiments is not passed, or if an entry is missing, it will be populated as needed

@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Tests for qiskit-terra/qiskit/quantum_info/synthesis/rzx_decompose/qiskit.py .
+Tests for qiskit-terra/qiskit/quantum_info/synthesis/xx_decompose/qiskit.py .
 """
 
 import random
@@ -23,8 +23,8 @@ import numpy as np
 from scipy.stats import unitary_group
 
 from qiskit.quantum_info.operators import Operator
-from qiskit.quantum_info.synthesis.rzx_decompose.decomposer import (
-    MonodromyZXDecomposer,
+from qiskit.quantum_info.synthesis.xx_decompose.decomposer import (
+    XXDecomposer,
     TwoQubitWeylDecomposition,
 )
 
@@ -37,7 +37,7 @@ EPSILON = 0.001
 class TestMonodromyQISKit(unittest.TestCase):
     """Check QISKit routines."""
 
-    decomposer = MonodromyZXDecomposer(euler_basis="PSX")
+    decomposer = XXDecomposer(euler_basis="PSX")
 
     def __init__(self, *args, seed=42, **kwargs):
         super().__init__(*args, **kwargs)
@@ -77,8 +77,12 @@ class TestMonodromyQISKit(unittest.TestCase):
 
     def test_compilation_improvement(self):
         """Test that compilation to CX, CX/2, CX/3 improves over CX alone."""
+        slope, offset = (64 * 90) / 1000000, 909 / 1000000 + 1 / 1000
         strength_table = self.decomposer._strength_to_infidelity(
-            basis_fidelity=None,
+            basis_fidelity={
+               strength: 1 - (slope * strength / (np.pi / 2) + offset)
+               for strength in [np.pi / 2, np.pi / 4, np.pi / 6]
+            },
             approximate=True,
         )
         limited_strength_table = {np.pi / 2: strength_table[np.pi / 2]}

@@ -23,7 +23,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.extensions.quantum_initializer import isometry
 from qiskit.quantum_info.synthesis import one_qubit_decompose
-from qiskit.quantum_info.synthesis.rzx_decompose import MonodromyZXDecomposer
+from qiskit.quantum_info.synthesis.xx_decompose import XXDecomposer
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitBasisDecomposer
 from qiskit.circuit.library.standard_gates import (
     iSwapGate,
@@ -95,7 +95,7 @@ def _basis_gates_to_decomposer_2q(basis_gates, pulse_optimize=None):
         backup_optimizer = TwoQubitBasisDecomposer(
             CXGate(), euler_basis=euler_basis, pulse_optimize=pulse_optimize
         )
-        return MonodromyZXDecomposer(euler_basis=euler_basis, backup_optimizer=backup_optimizer)
+        return XXDecomposer(euler_basis=euler_basis, backup_optimizer=backup_optimizer)
     elif kak_gate is not None:
         return TwoQubitBasisDecomposer(
             kak_gate, euler_basis=euler_basis, pulse_optimize=pulse_optimize

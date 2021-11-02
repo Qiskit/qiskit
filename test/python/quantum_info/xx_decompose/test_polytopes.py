@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Tests for qiskit-terra/qiskit/quantum_info/synthesis/rzx_decompose/xx_polytope.py .
+Tests for qiskit-terra/qiskit/quantum_info/synthesis/xx_decompose/xx_polytope.py .
 """
 
 import random
@@ -21,7 +21,7 @@ import ddt
 import numpy as np
 from numpy import pi
 
-from qiskit.quantum_info.synthesis.rzx_decompose.polytopes import XXPolytope
+from qiskit.quantum_info.synthesis.xx_decompose.polytopes import XXPolytope
 
 EPSILON = 0.001
 

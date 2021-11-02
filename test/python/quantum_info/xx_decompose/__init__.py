@@ -10,8 +10,4 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Submodule symbol exports for RZX decomposition.
-"""
-
-from .decomposer import MonodromyZXDecomposer
+"""Qiskit integration tests for XX-based synthesis."""
