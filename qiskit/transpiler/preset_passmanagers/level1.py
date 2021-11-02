@@ -120,8 +120,12 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             return True
         return False
 
+    vf2_seed = seed_transpiler
+    if vf2_seed is None:
+        vf2_seed = -1
+
     _choose_layout_0 = (
-        [] if pass_manager_config.layout_method else VF2Layout(coupling_map, seed=seed_transpiler)
+        [] if pass_manager_config.layout_method else VF2Layout(coupling_map, seed=vf2_seed)
     )
 
     # 2. Use a better layout on densely connected qubits, if circuit needs swaps

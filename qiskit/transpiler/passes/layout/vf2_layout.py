@@ -15,7 +15,6 @@ import random
 from retworkx import PyGraph, PyDiGraph, vf2_mapping
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
-from qiskit.transpiler.exceptions import TranspilerError
 
 
 class VF2Layout(AnalysisPass):
@@ -31,6 +30,7 @@ class VF2Layout(AnalysisPass):
 
         * ``"solution found"``: If a perfect layout was found.
         * ``"nonexistent solution"``: If no perfect layout was found.
+        * ``">2q gates in basis"``: If VF2Layout can't work with basis
 
     """
 
@@ -59,10 +59,8 @@ class VF2Layout(AnalysisPass):
             if len_args == 2:
                 interactions.append((qubit_indices[node.qargs[0]], qubit_indices[node.qargs[1]]))
             if len_args >= 3:
-                raise TranspilerError(
-                    "VF2Layout only can handle 2-qubit gates or less. Node "
-                    f"{node.name} ({node}) is {len_args}-qubit"
-                )
+                self.property_set["VF2Layout_stop_reason"] = ">2q gates in basis"
+                return
 
         if self.strict_direction:
             cm_graph = self.coupling_map.graph

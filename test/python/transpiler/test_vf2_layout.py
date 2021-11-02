@@ -17,7 +17,7 @@ import numpy
 import retworkx
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.transpiler import CouplingMap, TranspilerError
+from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import VF2Layout
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
@@ -332,8 +332,8 @@ class TestVF2LayoutOther(LayoutTestCase):
         dag = circuit_to_dag(circuit)
 
         pass_1 = VF2Layout(CouplingMap(cmap5), seed=seed_1)
-        with self.assertRaises(TranspilerError):
-            pass_1.run(dag)
+        pass_1.run(dag)
+        self.assertEqual(pass_1.property_set["VF2Layout_stop_reason"], ">2q gates in basis")
 
 
 if __name__ == "__main__":
