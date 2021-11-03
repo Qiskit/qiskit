@@ -234,7 +234,7 @@ class TestDagRegisters(QiskitTestCase):
         with self.assertRaisesRegex(DAGCircuitError, "duplicate clbits "):
             dag.add_clbits(cr[:])
 
-    def test_addding_individual_bit(self):
+    def test_adding_individual_bit(self):
         """Verify we can add a individual bits to a DAG."""
         qr = QuantumRegister(3, "qr")
         dag = DAGCircuit()
@@ -246,6 +246,84 @@ class TestDagRegisters(QiskitTestCase):
 
         self.assertEqual(dag.qubits, list(qr) + [new_bit])
         self.assertEqual(list(dag.qregs.values()), [qr])
+
+
+class TestDagWireRemoval(QiskitTestCase):
+    """Test removal of registers and idle wires."""
+
+    def setUp(self):
+        super().setUp()
+        self.dag = DAGCircuit()
+        qreg = QuantumRegister(3, "qr")
+        creg = ClassicalRegister(2, "cr")
+        clbit = Clbit()
+        self.dag.add_qreg(qreg)
+        self.dag.add_creg(creg)
+        self.dag.add_clbits([clbit])
+
+        self.qreg = qreg
+        self.creg = creg
+        self.qubit0 = qreg[0]
+        self.qubit1 = qreg[1]
+        self.qubit2 = qreg[2]
+        self.clbit0 = creg[0]
+        self.clbit1 = creg[1]
+        self.individual_clbit = clbit
+
+        self.original_cregs = [creg]
+        self.original_clbits = [self.clbit0, self.clbit1, self.individual_clbit]
+
+    def assert_cregs(self, cregs):
+        self.assertDictEqual(self.dag.cregs, {creg.name: creg for creg in cregs})
+
+    def assert_clbits(self, clbits, excludes={}):
+        self.assertListEqual(self.dag.clbits, list(b for b in clbits if b not in excludes))
+
+    def test_remove_idle_creg(self):
+        """Removing an idle classical register removes undelying bits."""
+        self.dag.remove_cregs(self.creg)
+
+        self.assert_cregs([])
+        self.assert_clbits([self.individual_clbit])
+
+    def test_remove_busy_creg(self):
+        """Removing a classical register composed of both busy and idle
+        underlying bits removes the register and only the idle bits."""
+        self.dag.apply_operation_back(Measure(), [self.qubit0, self.clbit0], [])
+        self.dag.remove_cregs(self.creg)
+
+        # creg removal always succeeds
+        self.assert_cregs([])
+
+        # clbit1 is idle and should be cleaned up
+        self.assert_clbits(self.original_clbits, excludes={self.clbit1})
+
+    def test_remove_idle_clbit(self):
+        """Idle unreference by register classical bits can be removed."""
+        self.dag.remove_clbits(self.individual_clbit)
+
+        self.assert_cregs(self.original_cregs)
+        self.assert_clbits(self.original_clbits, excludes={self.individual_clbit})
+
+    def test_remove_busy_clbit(self):
+        """Classical bit removal ignores busy classical bits."""
+        self.dag.apply_operation_back(Measure(), [self.qubit0, self.individual_clbit], [])
+
+        res = self.dag.remove_clbits(self.individual_clbit)
+        self.assertFalse(res)
+
+        # no removals should occur
+        self.assert_cregs(self.original_cregs)
+        self.assert_clbits(self.original_clbits)
+
+    def test_remove_referenced_clbit(self):
+        """Classical bit removal ignores classical bits referenced by a register."""
+        res = self.dag.remove_clbits(self.clbit0, self.clbit1)
+        self.assertFalse(res)
+
+        # no removals should occur
+        self.assert_cregs(self.original_cregs)
+        self.assert_clbits(self.original_clbits)
 
 
 class TestDagApplyOperation(QiskitTestCase):
