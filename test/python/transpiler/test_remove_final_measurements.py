@@ -82,6 +82,37 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
         # because it is referenced by creg c0.
         self.assertSetEqual(set(dag.clbits), set(c0))
 
+    def test_overlapping_register_removal(self):
+        """Only registers that become idle directly as a result of
+        final op removal are removed. In this test, a 5-bit creg
+        is implicitly created with its own bits, along with cregs
+        ``foo`` and ``bar`` which reuse those underlying bits.
+        ``foo`` and ``bar`` reference only 1 bit in common.
+        A final measure is performed into a bit that only exists
+        in ``foo`` (as well as the 5-bit register), and subsequently
+        is removed. Consequently, both ``foo`` and the 5-bit register
+        are removed, because they have become unused as a result of
+        the final measure removal. ``bar`` remains, because it was
+        idle beforehand, not as a result of the measure removal,
+        along with all of its bits, including the bit shared with
+        ``foo``."""
+        qc = QuantumCircuit(3, 5)
+
+        cr1 = ClassicalRegister(name="foo", bits=qc.clbits[:3])
+        cr2 = ClassicalRegister(name="bar", bits=qc.clbits[2:])
+        # Only qc.clbits[2] is shared between the two.
+
+        qc.add_register(cr1)
+        qc.add_register(cr2)
+
+        qc.measure(0, cr1[0])
+
+        dag = circuit_to_dag(qc)
+        RemoveFinalMeasurements().run(dag)
+
+        self.assertListEqual(list(dag.cregs.values()), [cr2])
+        self.assertListEqual(dag.clbits, list(cr2))
+
     def test_multi_bit_register_removed_if_all_bits_idle(self):
         """A multibit register is removed when all bits are idle."""
         qc = QuantumCircuit(1, 2)
