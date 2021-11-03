@@ -60,9 +60,10 @@ class Layout2qDistance(AnalysisPass):
 
         sum_distance = 0
 
+        virtual_physical_map = layout.get_virtual_bits()
         for gate in dag.two_qubit_ops():
-            physical_q0 = layout._v2p[gate.qargs[0]]
-            physical_q1 = layout._v2p[gate.qargs[1]]
+            physical_q0 = virtual_physical_map[gate.qargs[0]]
+            physical_q1 = virtual_physical_map[gate.qargs[1]]
 
             sum_distance += self.coupling_map._dist_matrix[physical_q0, physical_q1] - 1
 
