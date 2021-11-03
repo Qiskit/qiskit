@@ -21,6 +21,7 @@ import ddt
 import numpy as np
 from scipy.stats import unitary_group
 
+import qiskit
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.synthesis.xx_decompose.decomposer import (
     XXDecomposer,
@@ -72,6 +73,32 @@ class TestMonodromyQISKit(unittest.TestCase):
         embodiment = self.decomposer._default_embodiment(angle)
         embodiment_matrix = Operator(embodiment).data
         self.assertTrue(np.all(canonical_matrix(angle, 0, 0) - embodiment_matrix < EPSILON))
+
+    def test_check_embodiment(self):
+        """Test that XXDecomposer._check_embodiments correctly diagnoses il/legal embodiments."""
+
+        # build the member of the XX family corresponding to a single CX
+        good_angle = np.pi / 2
+        good_embodiment = qiskit.QuantumCircuit(2)
+        good_embodiment.h(0)
+        good_embodiment.cx(0, 1)
+        good_embodiment.h(1)
+        good_embodiment.rz(np.pi / 2, 0)
+        good_embodiment.rz(np.pi / 2, 1)
+        good_embodiment.h(1)
+        good_embodiment.h(0)
+        good_embodiment.global_phase += np.pi / 4
+
+        # mismatch two members of the XX family
+        bad_angle = np.pi / 10
+        bad_embodiment = qiskit.QuantumCircuit(2)
+
+        # "self.assertDoesNotRaise"
+        XXDecomposer(embodiments={good_angle: good_embodiment})
+
+        self.assertRaises(
+            qiskit.exceptions.QiskitError, XXDecomposer, embodiments={bad_angle: bad_embodiment}
+        )
 
     def test_compilation_improvement(self):
         """Test that compilation to CX, CX/2, CX/3 improves over CX alone."""

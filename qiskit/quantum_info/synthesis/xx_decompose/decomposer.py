@@ -111,7 +111,7 @@ class XXDecomposer:
         pair (angle, circuit) satisfies Operator(circuit) approx RXX(angle).to_matrix().
         """
 
-        for angle, embodiment in self.embodiments:
+        for angle, embodiment in self.embodiments.items():
             actual = Operator(RXXGate(angle))
             purported = Operator(embodiment)
             if average_gate_fidelity(actual, purported) < 1 - EPSILON:
