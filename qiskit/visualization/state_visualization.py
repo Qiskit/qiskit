@@ -474,13 +474,11 @@ def plot_state_city(
             else:
                 ax1.axes.set_zlim3d(auto=True)
         ax1.get_autoscalez_on()
-        ax1.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45, ha="right", va="top")
-        ax1.w_yaxis.set_ticklabels(
-            column_names, fontsize=14, rotation=-22.5, ha="left", va="center"
-        )
+        ax1.xaxis.set_ticklabels(row_names, fontsize=14, rotation=45, ha="right", va="top")
+        ax1.yaxis.set_ticklabels(column_names, fontsize=14, rotation=-22.5, ha="left", va="center")
         ax1.set_zlabel("Re[$\\rho$]", fontsize=14)
         for tick in ax1.zaxis.get_major_ticks():
-            tick.label.set_fontsize(14)
+            tick.label1.set_fontsize(14)
 
     if ax2 is not None:
         fc2 = generate_facecolors(xpos, ypos, zpos, dx, dy, dzi, color[1])
@@ -524,13 +522,11 @@ def plot_state_city(
             else:
                 ax2.axes.set_zlim3d(auto=True)
 
-        ax2.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45, ha="right", va="top")
-        ax2.w_yaxis.set_ticklabels(
-            column_names, fontsize=14, rotation=-22.5, ha="left", va="center"
-        )
+        ax2.xaxis.set_ticklabels(row_names, fontsize=14, rotation=45, ha="right", va="top")
+        ax2.yaxis.set_ticklabels(column_names, fontsize=14, rotation=-22.5, ha="left", va="center")
         ax2.set_zlabel("Im[$\\rho$]", fontsize=14)
         for tick in ax2.zaxis.get_major_ticks():
-            tick.label.set_fontsize(14)
+            tick.label1.set_fontsize(14)
         ax2.get_autoscalez_on()
 
     fig.suptitle(title, fontsize=16)
@@ -621,7 +617,7 @@ def plot_state_paulivec(
     ax.set_ylim([-1, 1])
     ax.set_facecolor("#eeeeee")
     for tick in ax.xaxis.get_major_ticks() + ax.yaxis.get_major_ticks():
-        tick.label.set_fontsize(14)
+        tick.label1.set_fontsize(14)
     ax.set_title(title, fontsize=16)
     if return_fig:
         matplotlib_close_if_inline(fig)
@@ -806,14 +802,14 @@ def plot_state_qsphere(
     )
 
     # Get rid of the panes
-    ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-    ax.w_yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-    ax.w_zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    ax.xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    ax.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    ax.zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
 
     # Get rid of the spines
-    ax.w_xaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
-    ax.w_yaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
-    ax.w_zaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+    ax.xaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+    ax.yaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+    ax.zaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
 
     # Get rid of the ticks
     ax.set_xticks([])

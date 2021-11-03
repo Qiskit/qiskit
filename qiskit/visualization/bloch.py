@@ -553,11 +553,11 @@ class Bloch:
         self.axes.text(0, 0, self.zlpos[0], self.zlabel[0], **opts)
         self.axes.text(0, 0, self.zlpos[1], self.zlabel[1], **opts)
 
-        for item in self.axes.w_xaxis.get_ticklines() + self.axes.w_xaxis.get_ticklabels():
+        for item in self.axes.xaxis.get_ticklines() + self.axes.xaxis.get_ticklabels():
             item.set_visible(False)
-        for item in self.axes.w_yaxis.get_ticklines() + self.axes.w_yaxis.get_ticklabels():
+        for item in self.axes.yaxis.get_ticklines() + self.axes.yaxis.get_ticklabels():
             item.set_visible(False)
-        for item in self.axes.w_zaxis.get_ticklines() + self.axes.w_zaxis.get_ticklabels():
+        for item in self.axes.zaxis.get_ticklines() + self.axes.zaxis.get_ticklabels():
             item.set_visible(False)
 
     def plot_vectors(self):
