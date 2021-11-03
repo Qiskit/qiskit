@@ -47,10 +47,24 @@ from qiskit.opflow import (
     X,
     Z,
 )
+from qiskit.transpiler import TransformationPass, PassManager, PassManagerConfig
+from qiskit.transpiler.preset_passmanagers import level_1_pass_manager
 from qiskit.utils import QuantumInstance, algorithm_globals, has_aer
 
 if has_aer():
     from qiskit import Aer
+
+
+class _Counter(TransformationPass):
+    """A pass to add to a pass manager, to check how often it has been run."""
+
+    def __init__(self):
+        super().__init__()
+        self.counter = 0
+
+    def run(self, dag):
+        self.counter += 1
+        return dag
 
 
 @ddt
@@ -653,6 +667,32 @@ class TestVQE(QiskitAlgorithmsTestCase):
         self.assertAlmostEqual(result.aux_operator_eigenvalues[1][1], 0.0, places=6)
         self.assertAlmostEqual(result.aux_operator_eigenvalues[2][1], 0.0)
         self.assertAlmostEqual(result.aux_operator_eigenvalues[3][1], 0.0)
+
+    def test_2step_transpile(self):
+        """Test the two-step transpiler pass."""
+        # count how often the pass for parameterized circuits is called
+        pre_counter = _Counter()
+        pre_pass = PassManager(pre_counter)
+        config = PassManagerConfig(basis_gates=["u3", "cx"])
+        pre_pass += level_1_pass_manager(config)
+
+        # ... and the pass for bound circuits
+        bound_counter = _Counter()
+        bound_pass = PassManager(bound_counter)
+
+        quantum_instance = QuantumInstance(
+            backend=BasicAer.get_backend("statevector_simulator"),
+            pass_manager=pre_pass,
+            bound_pass_manager=bound_pass
+        )
+
+        optimizer = SPSA(maxiter=5, learning_rate=0.01, perturbation=0.01)
+
+        vqe = VQE(optimizer=optimizer, quantum_instance=quantum_instance)
+        _ = vqe.compute_minimum_eigenvalue(Z)
+
+        self.assertEqual(pre_counter.counter, 2)
+        self.assertEqual(bound_counter.counter, 12)
 
 
 if __name__ == "__main__":
