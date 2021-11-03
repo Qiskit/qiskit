@@ -11,6 +11,8 @@
 # that they have been altered from the originals.
 from typing import Optional, Union
 
+from scipy.integrate import RK45, OdeSolver
+
 from qiskit.algorithms.quantum_time_evolution.evolution_base import EvolutionBase
 from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import (
     EvolutionGradientResult,
@@ -38,6 +40,7 @@ class VarQite(VarQte, EvolutionBase):
         regularization: Optional[str] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
         error_based_ode: Optional[bool] = False,
+        ode_solver_callable: OdeSolver = RK45,
         optimizer: str = "COBYLA",
         epsilon: Optional[float] = 10e-6,
     ):
@@ -54,6 +57,7 @@ class VarQite(VarQte, EvolutionBase):
             error_based_ode: If False use the provided variational principle to get the parameter
                                 updates.
                              If True use the argument that minimizes the error error_bounds.
+            ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
             optimizer: Optimizer used in case error_based_ode is true.
             epsilon: # TODO, not sure where this will be used.
         """
@@ -62,6 +66,7 @@ class VarQite(VarQte, EvolutionBase):
             regularization,
             backend,
             error_based_ode,
+            ode_solver_callable,
             optimizer,
             epsilon,
         )
