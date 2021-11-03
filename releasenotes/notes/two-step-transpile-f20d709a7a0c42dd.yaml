@@ -1,0 +1,58 @@
+---
+features:
+  - |
+    Allow two transpiler stages in the :class:`~qiskit.utils.QuantumInstance`, one for
+    parameterized circuits and a second one for bound circuits only. This enables variational
+    algorithms like the :class:`~qiskit.algorithms.VQE` to run a pass manager for parameterized
+    circuits once and, additionally, another transpiler pass on the bound circuits in each
+    iteration. This is an important feature since not all passes support parameterized circuits.
+
+    For example, this feature allows using the pulse-efficient CX decomposition in the VQE, as
+
+    .. code-block::python
+
+        from qiskit.algorithms import VQE
+        from qiskit.opflow import Z
+        from qiskit.circuit.library.standard_gates.equivalence_library import StandardEquivalenceLibrary as std_eqlib
+        from qiskit.transpiler import PassManager, PassManagerConfig, CouplingMap
+        from qiskit.transpiler.preset_passmanagers import level_1_pass_manager
+        from qiskit.transpiler.passes import (
+            Collect2qBlocks, ConsolidateBlocks, Optimize1qGatesDecomposition,
+            RZXCalibrationBuilderNoEcho, UnrollCustomDefinitions, BasisTranslator
+        )
+        from qiskit.transpiler.passes.optimization.echo_rzx_weyl_decomposition import EchoRZXWeylDecomposition
+        from qiskit.test.mock import FakeBelem
+        from qiskit.utils import QuantumInstance
+
+        # Replace by a real backend!
+        backend = FakeBelem()
+
+        # Build the pass manager for the parameterized circuit
+        rzx_basis = ['rzx', 'rz', 'x', 'sx']
+        coupling_map = CouplingMap(backend.configuration().coupling_map)
+        config = PassManagerConfig(basis_gates=rzx_basis, coupling_map=coupling_map)
+        pre = level_1_pass_manager(config)
+
+        # Build a pass manager for the CX decomposition (works only on bound circuits)
+        post = PassManager([
+            # Consolidate consecutive two-qubit operations.
+            Collect2qBlocks(),
+            ConsolidateBlocks(basis_gates=['rz', 'sx', 'x', 'rxx']),
+
+            # Rewrite circuit in terms of Weyl-decomposed echoed RZX gates.
+            EchoRZXWeylDecomposition(backend),
+
+            # Attach scaled CR pulse schedules to the RZX gates.
+            RZXCalibrationBuilderNoEcho(backend),
+
+            # Simplify single-qubit gates.
+            UnrollCustomDefinitions(std_eqlib, rzx_basis),
+            BasisTranslator(std_eqlib, rzx_basis),
+            Optimize1qGatesDecomposition(rzx_basis),
+        ])
+
+        quantum_instance = QuantumInstance(backend, pass_manager=pre, bound_pass_manager=post)
+
+        vqe = VQE(quantum_instance=quantum_instance)
+        result = vqe.compute_minimum_eigenvalue(Z ^ Z)
+
