@@ -60,8 +60,8 @@ class TestFakeBackends(QiskitTestCase):
             self.circuit,
             backend,
             optimization_level=optimization_level,
-            seed_simulator=42,
-            seed_transpiler=42,
+            seed_simulator=4042,
+            seed_transpiler=4042,
         )
         result = job.result()
         counts = result.get_counts()
@@ -83,8 +83,8 @@ class TestFakeBackends(QiskitTestCase):
                 self.circuit,
                 backend,
                 optimization_level=optimization_level,
-                seed_simulator=42,
-                seed_transpiler=42,
+                seed_simulator=4042,
+                seed_transpiler=4042,
             )
             result = job.result()
         counts = result.get_counts()
