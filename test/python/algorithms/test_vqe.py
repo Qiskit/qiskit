@@ -570,30 +570,87 @@ class TestVQE(QiskitAlgorithmsTestCase):
         self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op2"][1], 0.0)
         self.assertAlmostEqual(result.aux_operator_eigenvalues["zero_operator"][1], 0.0)
 
-    def test_aux_operator_std_dev(self):
-        """Test actuall standard deviation of aux operators in non-zero case."""
+    def test_aux_operator_std_dev_pauli(self):
+        """Test non-zero standard deviations of aux operators with PauliExpectation."""
         wavefunction = self.ry_wavefunction
         vqe = VQE(
             ansatz=wavefunction,
-            optimizer=SPSA(maxiter=300, last_avg=5),
+            expectation=PauliExpectation(),
+            optimizer=COBYLA(maxiter=0),
             quantum_instance=self.qasm_simulator,
         )
 
         # Go again with two auxiliary operators
         aux_op1 = PauliSumOp.from_list([("II", 2.0)])
         aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
-        aux_ops = [aux_op1, aux_op2, None, 0]
+        aux_ops = [aux_op1, aux_op2]
         result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
-        self.assertAlmostEqual(result.eigenvalue.real, -1.8691994, places=6)
+        self.assertEqual(len(result.aux_operator_eigenvalues), 2)
+        # expectation values
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2.0, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0.5784419552370315, places=6)
+        # standard deviations
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1], 0.0)
+        self.assertAlmostEqual(
+            result.aux_operator_eigenvalues[1][1], 0.015183867579396111, places=6
+        )
+
+        # Go again with additional None and zero operators
+        aux_ops = [*aux_ops, None, 0]
+        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
         self.assertEqual(len(result.aux_operator_eigenvalues), 4)
         # expectation values
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2, places=6)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0.0019531, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2.0, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0.56640625, places=6)
+        self.assertEqual(result.aux_operator_eigenvalues[2][0], 0.0)
+        self.assertEqual(result.aux_operator_eigenvalues[3][0], 0.0)
+        # # standard deviations
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1], 0.0)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][1], 0.01548658094658011, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[2][1], 0.0)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[3][1], 0.0)
+
+    @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
+    def test_aux_operator_std_dev_aer_pauli(self):
+        """Test non-zero standard deviations of aux operators with AerPauliExpectation."""
+        wavefunction = self.ry_wavefunction
+        vqe = VQE(
+            ansatz=wavefunction,
+            expectation=AerPauliExpectation(),
+            optimizer=COBYLA(maxiter=0),
+            quantum_instance=QuantumInstance(
+                backend=Aer.get_backend("qasm_simulator"),
+                shots=1,
+                seed_simulator=algorithm_globals.random_seed,
+                seed_transpiler=algorithm_globals.random_seed,
+            ),
+        )
+
+        # Go again with two auxiliary operators
+        aux_op1 = PauliSumOp.from_list([("II", 2.0)])
+        aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
+        aux_ops = [aux_op1, aux_op2]
+        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
+        self.assertEqual(len(result.aux_operator_eigenvalues), 2)
+        # expectation values
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2.0, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0.6698863565455391, places=6)
+        # standard deviations
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1], 0.0)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][1], 0.0, places=6)
+
+        # Go again with additional None and zero operators
+        aux_ops = [*aux_ops, None, 0]
+        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
+        self.assertEqual(len(result.aux_operator_eigenvalues), 4)
+        # expectation values
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2.0, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0.6036400943063891, places=6)
         self.assertEqual(result.aux_operator_eigenvalues[2][0], 0.0)
         self.assertEqual(result.aux_operator_eigenvalues[3][0], 0.0)
         # standard deviations
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1], 0.0)
-        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][1], 0.0214711)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][1], 0.0, places=6)
         self.assertAlmostEqual(result.aux_operator_eigenvalues[2][1], 0.0)
         self.assertAlmostEqual(result.aux_operator_eigenvalues[3][1], 0.0)
 
