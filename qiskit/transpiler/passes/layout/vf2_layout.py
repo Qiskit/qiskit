@@ -30,7 +30,7 @@ class VF2LayoutStopReason(Enum):
 
 class VF2Layout(AnalysisPass):
     """A pass for choosing a Layout of a circuit onto a Coupling graph, as a
-    a subgraph isomorphism problem, solved by VF2++.
+    a subgraph isomorphism problem, solved by VF2.
 
     If a solution is found that means there is a "perfect layout" and that no
     further swap mapping or routing is needed. If a solution is found the layout
@@ -93,7 +93,12 @@ class VF2Layout(AnalysisPass):
         im_graph.add_nodes_from(range(len(qubits)))
         im_graph.add_edges_from_no_data(interactions)
 
-        mappings = vf2_mapping(cm_graph, im_graph, subgraph=True, id_order=False, induced=False)
+        # id_order=True is set here to not use the VF2++ heuristic. VF2++
+        # searches over node in order of degree and thus has a bias towards
+        # picking nodes with more connectivity which typically have higher
+        # noise which means with id_order=False we would have a bias towards
+        # picking qubits with typically higher noise.
+        mappings = vf2_mapping(cm_graph, im_graph, subgraph=True, id_order=True, induced=False)
         try:
             mapping = next(mappings)
             stop_reason = VF2LayoutStopReason.SOLUTION_FOUND
