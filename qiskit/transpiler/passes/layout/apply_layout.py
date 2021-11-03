@@ -44,7 +44,7 @@ class ApplyLayout(TransformationPass):
             raise TranspilerError(
                 "No 'layout' is found in property_set. Please run a Layout pass in advance."
             )
-        if len(layout) != (1 + max(layout._p2v)):
+        if len(layout) != (1 + max(layout.get_physical_bits())):
             raise TranspilerError("The 'layout' must be full (with ancilla).")
 
         for qreg in dag.qregs.values():
