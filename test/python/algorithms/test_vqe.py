@@ -34,6 +34,7 @@ from qiskit.algorithms.optimizers import (
     TNC,
 )
 from qiskit.circuit.library import EfficientSU2, RealAmplitudes, TwoLocal
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.opflow import (
     AerPauliExpectation,
@@ -58,11 +59,11 @@ if has_aer():
 class _Counter(TransformationPass):
     """A pass to add to a pass manager, to check how often it has been run."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.counter = 0
 
-    def run(self, dag):
+    def run(self, dag: DAGCircuit) -> DAGCircuit:
         self.counter += 1
         return dag
 
@@ -683,7 +684,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
         quantum_instance = QuantumInstance(
             backend=BasicAer.get_backend("statevector_simulator"),
             pass_manager=pre_pass,
-            bound_pass_manager=bound_pass
+            bound_pass_manager=bound_pass,
         )
 
         optimizer = SPSA(maxiter=5, learning_rate=0.01, perturbation=0.01)
