@@ -24,10 +24,10 @@ class Operation(ABC):
     and operators such as :class:`~qiskit.quantum_info.Clifford`.
     """
 
-    # def __new__(cls, *args, **kwargs):
-    #   if cls is Operation:
-    #        raise CircuitError("An Operation Mixing should not be instantiated directly.")
-    #    return super().__new__(cls)
+    def __new__(cls, *args, **kwargs):
+        if cls is Operation:
+            raise CircuitError("An Operation mixin should not be instantiated directly.")
+        return super().__new__(cls)
 
     def __init__(self, name, num_qubits, num_clbits, params):
         self._name = name
