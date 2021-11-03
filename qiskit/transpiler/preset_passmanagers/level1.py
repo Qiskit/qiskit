@@ -15,6 +15,8 @@
 Level 1 pass manager: light optimization by simple adjacent gate collapsing.
 """
 
+import warnings
+
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passmanager import PassManager
@@ -33,6 +35,7 @@ from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
 from qiskit.transpiler.passes import SabreLayout
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
+from qiskit.transpiler.passes import Layout2qDistance
 from qiskit.transpiler.passes import BasicSwap
 from qiskit.transpiler.passes import LookaheadSwap
 from qiskit.transpiler.passes import StochasticSwap
@@ -106,6 +109,24 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _choose_layout_condition(property_set):
         return not property_set["layout"]
 
+    def _trivial_not_perfect(property_set):
+        # Verify that a trivial layout is perfect. If trivial_layout_score > 0
+        # the layout is not perfect. The layout is unconditionally set by trivial
+        # layout so we need to clear it before contuing.
+        if property_set["trivial_layout_score"] is not None:
+            if property_set["trivial_layout_score"] != 0:
+                property_set["layout"]._wrapped = None
+                return True
+        warnings.warn(
+            "The current implicit default of using a trivial layout if it's a "
+            "perfect layout will change in a future release, if you're "
+            "depending on this behavior it is better to explicit set "
+            "layout_method='trivial' when calling transpile()",
+            FutureWarning,
+            stacklevel=4,  # stack_level=4 to target caller of transpile()
+        )
+        return False
+
     def _vf2_match_not_found(property_set):
         # If a layout hasn't been set by the time we run vf2 layout we need to
         # run layout
@@ -125,6 +146,15 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         vf2_seed = -1
 
     _choose_layout_0 = (
+        []
+        if pass_manager_config.layout_method
+        else [
+            TrivialLayout(coupling_map),
+            Layout2qDistance(coupling_map, property_name="trivial_layout_score"),
+        ]
+    )
+
+    _choose_layout_1 = (
         [] if pass_manager_config.layout_method else VF2Layout(coupling_map, seed=vf2_seed)
     )
 
@@ -286,6 +316,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         pm1.append(_unroll3q)
         pm1.append(_given_layout)
         pm1.append(_choose_layout_0, condition=_choose_layout_condition)
+        pm1.append(_choose_layout_1, condition=_trivial_not_perfect)
         pm1.append(_improve_layout, condition=_vf2_match_not_found)
         pm1.append(_embed)
         pm1.append(_swap_check)
