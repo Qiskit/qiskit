@@ -311,7 +311,7 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
 
     def _build(self):
         # do not build the circuit if _data is already populated
-        if self._valid:  # data is not None:
+        if self._valid:
             return
 
         super()._build()

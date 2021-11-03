@@ -175,7 +175,6 @@ class PauliFeatureMap(NLocal):
         Args:
             paulis: The new pauli strings.
         """
-        print("\nin Pauli inval\n", self._valid, self._data)
         self._invalidate()
         self._paulis = paulis
 

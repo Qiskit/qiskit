@@ -761,7 +761,7 @@ class NLocal(BlueprintCircuit):
                 self.num_qubits = num_qubits
 
         # modify the circuit accordingly
-        if front is False and self._valid:  # self._data is not None and front is False:
+        if front is False and self._valid:
             if self._insert_barriers and len(self._data) > 0:
                 self.barrier()
 
