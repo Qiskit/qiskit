@@ -15,7 +15,6 @@ Tests for qiskit-terra/qiskit/quantum_info/synthesis/xx_decompose/circuits.py .
 """
 
 from operator import itemgetter
-import random
 import unittest
 
 import ddt
@@ -41,8 +40,7 @@ class TestMonodromyCircuits(unittest.TestCase):
 
     def __init__(self, *args, seed=42, **kwargs):
         super().__init__(*args, **kwargs)
-        random.seed(seed)
-        np.random.seed(seed)
+        self.rng = np.random.default_rng(seed)
 
     def _generate_xxyy_test_case(self):
         """
@@ -56,14 +54,14 @@ class TestMonodromyCircuits(unittest.TestCase):
 
         Returns (source_coordinate, interaction, target_coordinate).
         """
-        source_coordinate = [random.random(), random.random(), 0.0]
+        source_coordinate = [self.rng.random(), self.rng.random(), 0.0]
         source_coordinate = [
             source_coordinate[0] * np.pi / 8,
             source_coordinate[1] * source_coordinate[0] * np.pi / 8,
             0.0,
         ]
-        interaction = [random.random() * np.pi / 8]
-        z_angles = [random.random() * np.pi / 8, random.random() * np.pi / 8]
+        interaction = [self.rng.random() * np.pi / 8]
+        z_angles = [self.rng.random() * np.pi / 8, self.rng.random() * np.pi / 8]
         prod = (
             canonical_matrix(*source_coordinate)
             @ np.kron(RZGate(2 * z_angles[0]).to_matrix(), RZGate(2 * z_angles[1]).to_matrix())

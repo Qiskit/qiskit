@@ -14,7 +14,6 @@
 Tests for qiskit-terra/qiskit/quantum_info/synthesis/xx_decompose/qiskit.py .
 """
 
-import random
 from statistics import mean
 import unittest
 
@@ -30,7 +29,7 @@ from qiskit.quantum_info.synthesis.xx_decompose.decomposer import (
 
 from .utilities import canonical_matrix
 
-EPSILON = 0.001
+EPSILON = 1e-8
 
 
 @ddt.ddt
@@ -41,13 +40,12 @@ class TestMonodromyQISKit(unittest.TestCase):
 
     def __init__(self, *args, seed=42, **kwargs):
         super().__init__(*args, **kwargs)
-        random.seed(seed)
-        np.random.seed(seed)
+        self._random_state = np.random.Generator(np.random.PCG64(seed))
 
     def test_random_compilation(self):
         """Test that compilation gives correct results."""
         for _ in range(100):
-            unitary = unitary_group.rvs(4)
+            unitary = unitary_group.rvs(4, random_state=self._random_state)
             unitary /= np.linalg.det(unitary) ** (1 / 4)
 
             # decompose into CX, CX/2, and CX/3
@@ -59,7 +57,7 @@ class TestMonodromyQISKit(unittest.TestCase):
     def test_compilation_determinism(self):
         """Test that compilation is stable under multiple calls."""
         for _ in range(10):
-            unitary = unitary_group.rvs(4)
+            unitary = unitary_group.rvs(4, random_state=self._random_state)
             unitary /= np.linalg.det(unitary) ** (1 / 4)
 
             # decompose into CX, CX/2, and CX/3
@@ -90,7 +88,7 @@ class TestMonodromyQISKit(unittest.TestCase):
         clever_costs = []
         naive_costs = []
         for _ in range(200):
-            unitary = unitary_group.rvs(4)
+            unitary = unitary_group.rvs(4, random_state=self._random_state)
             unitary /= np.linalg.det(unitary) ** (1 / 4)
 
             weyl_decomposition = TwoQubitWeylDecomposition(unitary)

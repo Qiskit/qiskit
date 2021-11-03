@@ -15,7 +15,6 @@ Tests for qiskit-terra/qiskit/quantum_info/synthesis/xx_decompose/weyl.py .
 """
 
 from itertools import permutations
-import random
 import unittest
 
 import ddt
@@ -41,13 +40,12 @@ class TestMonodromyWeyl(unittest.TestCase):
 
     def __init__(self, *args, seed=42, **kwargs):
         super().__init__(*args, **kwargs)
-        random.seed(seed)
-        np.random.seed(seed)
+        self.rng = np.random.default_rng(seed)
 
     def test_reflections(self):
         """Check that reflection circuits behave as expected."""
         for name in reflection_options:
-            coordinate = [random.random() for _ in range(3)]
+            coordinate = [self.rng.random() for _ in range(3)]
             reflected_coordinate, reflection_circuit, reflection_phase = apply_reflection(
                 name, coordinate
             )
@@ -73,7 +71,7 @@ class TestMonodromyWeyl(unittest.TestCase):
     def test_shifts(self):
         """Check that shift circuits behave as expected."""
         for name in shift_options:
-            coordinate = [random.random() for _ in range(3)]
+            coordinate = [self.rng.random() for _ in range(3)]
             shifted_coordinate, shift_circuit, shift_phase = apply_shift(name, coordinate)
             original_matrix = canonical_matrix(*coordinate)
             shifted_matrix = canonical_matrix(*shifted_coordinate)
@@ -91,7 +89,7 @@ class TestMonodromyWeyl(unittest.TestCase):
     def test_rotations(self):
         """Check that rotation circuits behave as expected."""
         for permutation in permutations([0, 1, 2]):
-            coordinate = [random.random() for _ in range(3)]
+            coordinate = [self.rng.random() for _ in range(3)]
             rotation_circuit = canonical_rotation_circuit(permutation[0], permutation[1])
             original_matrix = canonical_matrix(*coordinate)
             rotation_matrix = Operator(rotation_circuit).data
