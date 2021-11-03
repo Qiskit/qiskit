@@ -95,4 +95,3 @@ class ZZFeatureMap(PauliFeatureMap):
             insert_barriers=insert_barriers,
             name=name,
         )
-        print('\ninit zzf\n', self._valid, self._data)

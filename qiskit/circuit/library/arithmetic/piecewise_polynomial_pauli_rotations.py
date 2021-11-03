@@ -263,12 +263,9 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
 
     def _build(self):
         # do not build the circuit if _data is already populated
-        if self._valid:#data is not None:
+        if self._valid:  # data is not None:
             return
 
-        """self._check_configuration()
-        self._data = []
-        self._valid = True"""
         super()._build()
 
         circuit = QuantumCircuit(*self.qregs, name=self.name)

@@ -60,11 +60,8 @@ class BlueprintCircuit(QuantumCircuit, ABC):
     def _build(self) -> None:
         """Build the circuit."""
         # do not build the circuit if _data is already populated
-        print('\nIn bp build\n', self._valid, self._data)
-        if self._valid:#self._data is not None:
+        if self._valid:
             return
-
-        #self._data = []
 
         # check whether the configuration is valid
         self._check_configuration()
@@ -72,7 +69,6 @@ class BlueprintCircuit(QuantumCircuit, ABC):
 
     def _invalidate(self) -> None:
         """Invalidate the current circuit build."""
-        print('\nIn bp inval\n', self._valid, self._data)
         self._data = []
         self._parameter_table = ParameterTable()
         self.global_phase = 0
@@ -93,16 +89,9 @@ class BlueprintCircuit(QuantumCircuit, ABC):
 
         self.add_register(*qregs)
 
-        print('\nin bp qregs\n')
-        #self._invalidate()
-        #self._data = []
-        #self._parameter_table = ParameterTable()
-        #self.global_phase = 0
-        #self._valid = False
-
     @property
     def data(self):
-        if not self._valid:#self._data is None:
+        if not self._valid:
             self._build()
         return super().data
 
@@ -126,7 +115,6 @@ class BlueprintCircuit(QuantumCircuit, ABC):
     def parameters(self) -> ParameterView:
         if not self._valid:
             self._build()
-        print('\nCALLED paramaters')
         return super().parameters
 
     def qasm(self, formatted=False, filename=None, encoding=None):
@@ -166,7 +154,6 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         return super().to_instruction(parameter_map, label=label)
 
     def to_gate(self, parameter_map=None, label=None):
-        #print('\nin bp to_gate', self._valid, self._data)
         if not self._valid:
             self._build()
         return super().to_gate(parameter_map, label=label)

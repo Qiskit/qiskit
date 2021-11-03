@@ -246,13 +246,10 @@ class TridiagonalToeplitz(LinearSystemMatrix):
     def _build(self) -> None:
         """Build the circuit"""
         # do not build the circuit if _data is already populated
-        if self._data is not None:
+        if self._valid:
             return
 
-        self._data = []
-
-        # check whether the configuration is valid
-        self._check_configuration()
+        super()._build()
 
         self.compose(self.power(1), inplace=True)
 
