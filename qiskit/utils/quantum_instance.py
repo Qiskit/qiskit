@@ -41,11 +41,12 @@ from qiskit.utils.mitigation import (
 logger = logging.getLogger(__name__)
 
 
-class TranspileStage:
+class TranspileStage(Enum):
     """Transpiler stage."""
 
     PARAMETERIZED = 0  # circuits contain free parameters
     BOUND = 1  # all parameters have been bound
+    ALL = 2  # run both transpiler passes
 
 
 class _MeasFitterType(Enum):
@@ -162,6 +163,7 @@ class QuantumInstance:
         # transpile
         initial_layout=None,
         pass_manager=None,
+        bound_pass_manager=None,
         seed_transpiler: Optional[int] = None,
         optimization_level: Optional[int] = None,
         # simulation
@@ -196,8 +198,9 @@ class QuantumInstance:
                         Coupling map (perhaps custom) to target in mapping
             initial_layout (Optional[Union['Layout', Dict, List]]):
                         Initial layout of qubits in mapping
-            pass_manager (Optional['PassManager', Dict['TranspilerStage', 'PassManager']]):
-                        Pass manager to handle how to compile the circuits
+            pass_manager (Optional['PassManager']): Pass manager to handle how to compile the circuits
+            bound_pass_manager (Optional['PassManager']): Pass manager to apply on bound circuits
+                only.
             seed_transpiler: The random seed for circuit mapper
             optimization_level: How much optimization to perform on the circuits.
                 Higher levels generate more optimized circuits, at the expense of longer
@@ -237,6 +240,7 @@ class QuantumInstance:
         """
         self._backend = backend
         self._pass_manager = pass_manager
+        self._bound_pass_manager = bound_pass_manager
 
         # if the shots are none, try to get them from the backend
         if shots is None:
@@ -374,13 +378,13 @@ class QuantumInstance:
 
         return info
 
-    def transpile(self, circuits, stage=None):
+    def transpile(self, circuits, stage=TranspileStage.ALL):
         """
         A wrapper to transpile circuits to allow algorithm access the transpiled circuits.
         Args:
             circuits (Union['QuantumCircuit', List['QuantumCircuit']]): circuits to transpile
-            stage (Optional[TranspilerStage]): If the pass manager has been provided as dictionary,
-                set which stage of the pass to run.
+            stage (int): If pass managers have been provided, selects which pass manager to run.
+
         Returns:
             List['QuantumCircuit']: The transpiled circuits, it is always a list even though
                                     the length is one.
@@ -389,24 +393,29 @@ class QuantumInstance:
         from qiskit import compiler
         from qiskit.transpiler import PassManager
 
-        if self._pass_manager is not None:
-            if stage is None:
-                # run only parameterized stage per default
-                stage = TranspileStage().PARAMETERIZED
-
-            if isinstance(self._pass_manager, dict):
-                pass_manager = self._pass_manager[stage]
-            else:  # only run if the parameterized stage is set, not the bound stage
-                if stage == TranspileStage().PARAMETERIZED:
-                    pass_manager = self._pass_manager
-                else:
-                    pass_manager = PassManager()
-
-            transpiled_circuits = pass_manager.run(circuits)
-        else:
+        # if no passes are set call the default transpiler
+        if self._pass_manager is None and self._bound_pass_manager is None:
             transpiled_circuits = compiler.transpile(
                 circuits, self._backend, **self._backend_config, **self._compile_config
             )
+        else:
+            pass_manager = PassManager()
+
+            # add pass manager for parameterized circuits
+            if self._pass_manager is not None and stage in [
+                TranspileStage.ALL,
+                TranspileStage.PARAMETERIZED,
+            ]:
+                pass_manager += self._pass_manager
+
+            if self._bound_pass_manager is not None and stage in [
+                TranspileStage.ALL,
+                TranspileStage.BOUND,
+            ]:
+                pass_manager += self._bound_pass_manager
+
+            transpiled_circuits = pass_manager.run(circuits)
+
         if not isinstance(transpiled_circuits, list):
             transpiled_circuits = [transpiled_circuits]
 
