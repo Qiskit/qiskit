@@ -76,6 +76,7 @@ class VarQteLinearSolver:
             time_dict = {t_param: t}
             nat_grad_result = nat_grad_result.bind_parameters(time_dict)
 
+        print('Natural Gradient Result ', nat_grad_result)
         return np.real(nat_grad_result)
 
     def _solve_sle_for_error_bounds(

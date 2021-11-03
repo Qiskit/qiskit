@@ -30,6 +30,10 @@ from qiskit.opflow import (
 )
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
+np.random.seed = 11
+from qiskit.utils import algorithm_globals
+algorithm_globals.random_seed = 11
+
 
 class TestVarQrte(QiskitAlgorithmsTestCase):
     # pass
@@ -58,7 +62,7 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
 
         param_dict = dict(zip(parameters, init_param_values))
 
-        reg = None
+        reg = 'ridge'
         backend = Aer.get_backend("statevector_simulator")
 
         var_qrte = VarQrte(
