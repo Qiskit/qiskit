@@ -451,7 +451,7 @@ class Qasm3Builder:
         for qreg in self.circuit_ctx[-1].qregs:
             elements = []
             # Greedily consolidate runs of qubits into ranges.  We don't bother trying to handle
-            # steps; there's no need in generated code.  Even single qubits are referenced as a
+            # steps; there's no need in generated code.  Even single qubits are referenced as ranges
             # because the concatenation in an alias statement can only concatenate arraylike values.
             start_index, prev_index = None, None
             for qubit in qreg:
