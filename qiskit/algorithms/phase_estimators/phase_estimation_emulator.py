@@ -9,7 +9,7 @@ from .phase_estimator import PhaseEstimator
 from .phase_estimation_result import PhaseEstimationResult
 
 
-class PhaseEstimationSimulator(PhaseEstimator):
+class PhaseEstimationEmulator(PhaseEstimator):
     def __init__(
         self,
         num_evaluation_qubits: int,
@@ -29,8 +29,8 @@ class PhaseEstimationSimulator(PhaseEstimator):
         state_preparation_vector = qiskit.quantum_info.Operator(state_preparation).data
         state_preparation_vector = state_preparation_vector[:,0]
 
-        pe_simulator = PESimulator().from_eigenproblem(unitary_matrix, state_preparation_vector)
-        probs = _array_to_qiskit_endian(pe_simulator.estimate_phases(self._num_evaluation_qubits))
+        pe_emulator = PEEmulator().from_eigenproblem(unitary_matrix, state_preparation_vector)
+        probs = _array_to_qiskit_endian(pe_emulator.estimate_phases(self._num_evaluation_qubits))
         return PhaseEstimationResult(
             self._num_evaluation_qubits,
             circuit_result=None,
@@ -38,11 +38,11 @@ class PhaseEstimationSimulator(PhaseEstimator):
         )
 
 
-class PESimulator:
-    """Simulate quantum phase estimation given a list of eigenphases and
+class PEEmulator:
+    """Emulate quantum phase estimation given a list of eigenphases and
     a list of expansion coefficients.
 
-    This class simulates the parallel QPE algorithm using a classical discrete
+    This class emulates the parallel QPE algorithm using a classical discrete
     Fourier transform, but no quantum circuits.
 
     The (parallel) QPE algorithm takes as input a unitary, a vector that it
@@ -55,7 +55,7 @@ class PESimulator:
     particular, phase information in the expansion coefficients does not enter
     into the bitstring probabilities.
 
-    `PESimulator` takes as input a list of eigenphases and a
+    `PEEmulator` takes as input a list of eigenphases and a
     corresponding list of expansion coefficients, which are stored as object
     properties of the class. It is only required to supply nonzero expansion
     coefficients. The method `estimate_phases` takes as input the number of
@@ -67,7 +67,7 @@ class PESimulator:
     output probabilties to the order of amplitudes returned by the qiskit
     statevector simulator.
 
-    This simulator is faster than constructing and simulating a circuit. It is
+    This emulator is faster than constructing and simulating a circuit. It is
     far simpler, as well, and is based only on well-tested components of numpy
     and scipy.
 
@@ -136,7 +136,7 @@ def _array_to_qiskit_endian(a):
     to bit-wise reversal of their binary representation.
 
     For example, assume `a` is an array of bitstring probabilties computed by
-    QPE simulation, with bitstrings in the order "0...0", "0...1", etc.
+    QPE emulation, with bitstrings in the order "0...0", "0...1", etc.
     Then the output array corresponds to the probabilities output by a QPE
     algorithm run on the statevector simulator.
     """

@@ -28,7 +28,7 @@ from qiskit.opflow import (
 from qiskit.providers import BaseBackend
 from .phase_estimation import PhaseEstimation
 from .phase_estimator import PhaseEstimator
-from .phase_estimation_simulator import PhaseEstimationSimulator
+from .phase_estimation_emulator import PhaseEstimationEmulator
 from .hamiltonian_phase_estimation_result import HamiltonianPhaseEstimationResult
 from .phase_estimation_scale import PhaseEstimationScale
 
@@ -194,9 +194,9 @@ class HamiltonianPhaseEstimation:
         # 3. Tighten the bound on the eigenvalues so that the spectrum is better resolved, i.e.
         #   occupies more of the range of values representable by the qubit register.
         # The coefficient of this term will be added to the eigenvalues.
-        # The simulator does not need to remove the identity terms.
+        # The emulator does not need to remove the identity terms.
         if subtract_identity is None:
-            if isinstance(hamiltonian, SummedOp) and not isinstance(self._phase_estimation, PhaseEstimationSimulator):
+            if isinstance(hamiltonian, SummedOp) and not isinstance(self._phase_estimation, PhaseEstimationEmulator):
                 subtract_identity = True
             else:
                 subtract_identity = False
