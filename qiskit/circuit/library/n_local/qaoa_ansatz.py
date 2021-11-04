@@ -30,7 +30,8 @@ from qiskit.exceptions import QiskitError
 from typing import Optional, List, Tuple
 import numpy as np
 
-from qiskit.circuit.library.evolved_operator_ansatz import EvolvedOperatorAnsatz #,_is_pauli_identity
+#from qiskit.circuit.library.evolved_operator_ansatz import EvolvedOperatorAnsatz #,_is_pauli_identity
+from ..evolved_operator_ansatz import EvolvedOperatorAnsatz
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -75,15 +76,14 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         self._cost_operator = None
         self._reps = reps
         self._initial_state = initial_state
-        self._mixer = mixer_operator
+        self._mixer = mixer_operator 
 
         # set this circuit as a not-built circuit
         self._bounds = None
 
         # store cost operator and set the registers if the operator is not None
         
-        if cost_operator is not None:
-            self.num_qubits = cost_operator.num_qubits
+    
         self.cost_operator = cost_operator
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
@@ -173,7 +173,6 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
                 print("At least one mixer needs to be defined")
                 return None
             num_qubits = circuits[0].num_qubits
-            self.num_qubits = num_qubits
             try:
                 qr = QuantumRegister(num_qubits, "q")
                 self.add_register(qr)
@@ -283,7 +282,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
             cost_operator (OperatorBase, optional): cost operator to set.
         """
         self._cost_operator = cost_operator
-        self.qregs = [QuantumRegister(self.num_qubits, name="q")]
+        self.qregs = [QuantumRegister(self.cost_operator.num_qubits, name="q")]
         self._invalidate()
 
     @property
@@ -359,32 +358,32 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         self._mixer = mixer_operator
         self._invalidate()
 
-    def _build(self):
-        if self._data is not None:
-            return
+    # def _build(self):
+    #     if self._data is not None:
+    #         return
 
-        super()._build()
+    #     super()._build()
 
-        # keep old parameter order: first cost operator, then mixer operators
-        num_cost = 0 if _is_pauli_identity(self.cost_operator) else 1
-        if isinstance(self.mixer_operator, QuantumCircuit):
-            num_mixer = self.mixer_operator.num_parameters
-        else:
-            num_mixer = 0 if _is_pauli_identity(self.mixer_operator) else 1
+    #     # keep old parameter order: first cost operator, then mixer operators
+    #     num_cost = 0 if _is_pauli_identity(self.cost_operator) else 1
+    #     if isinstance(self.mixer_operator, QuantumCircuit):
+    #         num_mixer = self.mixer_operator.num_parameters
+    #     else:
+    #         num_mixer = 0 if _is_pauli_identity(self.mixer_operator) else 1
 
-        betas = ParameterVector("β", self.reps * num_mixer)
-        gammas = ParameterVector("γ", self.reps * num_cost)
+    #     betas = ParameterVector("β", self.reps * num_mixer)
+    #     gammas = ParameterVector("γ", self.reps * num_cost)
 
-        # Create a permutation to take us from (cost_1, mixer_1, cost_2, mixer_2, ...)
-        # to (cost_1, cost_2, ..., mixer_1, mixer_2, ...), or if the mixer is a circuit
-        # with more than 1 parameters, from (cost_1, mixer_1a, mixer_1b, cost_2, ...)
-        # to (cost_1, cost_2, ..., mixer_1a, mixer_1b, mixer_2a, mixer_2b, ...)
-        reordered = []
-        for rep in range(self.reps):
-            reordered.extend(gammas[rep * num_cost : (rep + 1) * num_cost])
-            reordered.extend(betas[rep * num_mixer : (rep + 1) * num_mixer])
+    #     # Create a permutation to take us from (cost_1, mixer_1, cost_2, mixer_2, ...)
+    #     # to (cost_1, cost_2, ..., mixer_1, mixer_2, ...), or if the mixer is a circuit
+    #     # with more than 1 parameters, from (cost_1, mixer_1a, mixer_1b, cost_2, ...)
+    #     # to (cost_1, cost_2, ..., mixer_1a, mixer_1b, mixer_2a, mixer_2b, ...)
+    #     reordered = []
+    #     for rep in range(self.reps):
+    #         reordered.extend(gammas[rep * num_cost : (rep + 1) * num_cost])
+    #         reordered.extend(betas[rep * num_mixer : (rep + 1) * num_mixer])
 
-        self.assign_parameters(dict(zip(self.ordered_parameters, reordered)), inplace=True)
+    #     self.assign_parameters(dict(zip(self.ordered_parameters, reordered)), inplace=True)
 
 def _is_pauli_identity(operator):
     from qiskit.opflow import PauliOp
