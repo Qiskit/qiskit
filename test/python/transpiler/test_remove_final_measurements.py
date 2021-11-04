@@ -73,8 +73,8 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
         dag = circuit_to_dag(qc)
         dag = RemoveFinalMeasurements().run(dag)
 
-        self.assertSetEqual(set(dag.cregs.values()), {c0})
-        self.assertSetEqual(set(dag.clbits), set(c0))
+        self.assertListEqual(list(dag.cregs.values()), [c0])
+        self.assertListEqual(dag.clbits, list(c0))
         self.assertEqual(dag, expected_dag())
 
     def test_multi_bit_register_kept_if_not_measured_clbit_busy(self):
@@ -104,11 +104,11 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
         dag = RemoveFinalMeasurements().run(dag)
 
         # c0 should not be removed because it has busy bit c0[0]
-        self.assertSetEqual(set(dag.cregs.values()), {c0})
+        self.assertListEqual(list(dag.cregs.values()), [c0])
 
         # note: c0[1] should not be removed even though it is now idle
         # because it is referenced by creg c0.
-        self.assertSetEqual(set(dag.clbits), set(c0))
+        self.assertListEqual(dag.clbits, list(c0))
         self.assertEqual(dag, expected_dag())
 
     def test_overlapping_register_removal(self):
