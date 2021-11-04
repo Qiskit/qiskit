@@ -280,7 +280,7 @@ class TestDagWireRemoval(QiskitTestCase):
         self.assertListEqual(self.dag.clbits, list(b for b in clbits if b not in excludes))
 
     def test_remove_idle_creg(self):
-        """Removing an idle classical register removes undelying bits."""
+        """Removing an idle classical register removes underlying bits."""
         self.dag.remove_cregs(self.creg)
 
         self.assert_cregs([])
