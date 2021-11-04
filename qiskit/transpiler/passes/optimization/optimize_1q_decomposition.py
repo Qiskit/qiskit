@@ -123,26 +123,30 @@ class Optimize1qGatesDecomposition(TransformationPass):
         fidelities = self._generate_fidelities_dict(qubit)
 
         def implementation_infidelity(circuit):
-            op_cost = sum(1 - fidelities[x[0].name] for x in circuit)
             circuit_operator = np.eye(2, dtype=complex)
             for gate, _, _ in circuit:
                 circuit_operator = gate.to_matrix().dot(circuit_operator)
 
             approx_cost = (4 - np.abs(np.trace(circuit_operator @ operatorH)) ** 2) / 6
+            op_cost = sum(1 - fidelities[x[0].name] for x in circuit)
             return op_cost + approx_cost
 
-        new_circs = {
+        candidate_circs = {
             k: v._decompose(operator, fidelity_mapping=fidelities)
             for k, v in self._decomposers.items()
         }
 
-        new_basis, new_circ, new_infidelity = None, None, 1.
-        for this_basis, this_circ in new_circs.items():
-            this_infidelity = implementation_infidelity(this_circ)
-            if this_infidelity < new_infidelity - atol:
-                new_basis, new_circ, new_infidelity = this_basis, this_circ, this_infidelity
+        chosen_basis, chosen_circ, chosen_infidelity = None, None, 1.0
+        for candidate_basis, candidate_circ in candidate_circs.items():
+            candidate_infidelity = implementation_infidelity(candidate_circ)
+            if candidate_infidelity < chosen_infidelity - atol:
+                chosen_basis, chosen_circ, chosen_infidelity = (
+                    candidate_basis,
+                    candidate_circ,
+                    candidate_infidelity,
+                )
 
-        return new_basis, new_circ
+        return chosen_basis, chosen_circ
 
     def _substitution_checks(self, dag, old_run, new_circ, new_basis, atol=DEFAULT_ATOL):
         """
