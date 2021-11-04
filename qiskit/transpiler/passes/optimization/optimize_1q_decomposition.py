@@ -15,6 +15,7 @@
 from collections import defaultdict
 import copy
 import logging
+import warnings
 
 import numpy as np
 
@@ -22,7 +23,6 @@ from qiskit.circuit.library.standard_gates import U3Gate
 from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.providers.models import BackendProperties
-from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info.synthesis import one_qubit_decompose
 
