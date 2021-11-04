@@ -33,13 +33,24 @@ from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.utils import algorithm_globals
 from qiskit.algorithms import VQE
 from qiskit.algorithms.optimizers import CG
-from qiskit.opflow import I, X, Y, Z, StateFn, CircuitStateFn, ListOp, CircuitSampler, TensoredOp
+from qiskit.opflow import (
+    I,
+    X,
+    Y,
+    Z,
+    StateFn,
+    CircuitStateFn,
+    ListOp,
+    CircuitSampler,
+    TensoredOp,
+    SummedOp,
+)
 from qiskit.opflow.gradients import Gradient, NaturalGradient, Hessian
 from qiskit.opflow.gradients.qfi import QFI
 from qiskit.opflow.gradients.circuit_qfis import LinCombFull, OverlapBlockDiag, OverlapDiag
 from qiskit.circuit import Parameter
 from qiskit.circuit import ParameterVector
-from qiskit.circuit.library import RealAmplitudes
+from qiskit.circuit.library import RealAmplitudes, EfficientSU2
 
 
 @ddt
@@ -61,7 +72,6 @@ class TestGradients(QiskitOpflowTestCase):
         ham = 0.5 * X - 1 * Z
         a = Parameter("a")
         params = a
-
         q = QuantumRegister(1)
         qc = QuantumCircuit(q)
         qc.h(q)
@@ -118,6 +128,69 @@ class TestGradients(QiskitOpflowTestCase):
         state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
         values_dict = [{a: np.pi / 4}, {a: np.pi / 2}]
         correct_values = [[-1.03033], [-1]]
+        for i, value_dict in enumerate(values_dict):
+            np.testing.assert_array_almost_equal(
+                state_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
+            )
+
+    @data("lin_comb", "param_shift")
+    def test_gradient_efficient_su2(self, method):
+        """Test the state gradient for EfficientSU2"""
+        observable = SummedOp(
+            [
+                0.2252 * (I ^ I),
+                0.5716 * (Z ^ Z),
+                0.3435 * (I ^ Z),
+                -0.4347 * (Z ^ I),
+                0.091 * (Y ^ Y),
+                0.091 * (X ^ X),
+            ]
+        ).reduce()
+
+        d = 2
+        ansatz = EfficientSU2(observable.num_qubits, reps=d)
+
+        # Define a set of initial parameters
+        parameters = ansatz.ordered_parameters
+
+        operator = ~StateFn(observable) @ StateFn(ansatz)
+
+        values_dict = [
+            {param: np.pi / 4 for param in parameters},
+            {param: np.pi / 2 for param in parameters},
+        ]
+        correct_values = [
+            [
+                -0.38617868191914206 + 0j,
+                -0.014055349300198364 + 0j,
+                -0.06385049040183734 + 0j,
+                0.13620629212619334 + 0j,
+                -0.15180743339043595 + 0j,
+                -0.2378393653877069 + 0j,
+                0.0024060546876464237 + 0j,
+                0.09977051760912459 + 0j,
+                0.40357721595080603 + 0j,
+                0.010453846462186653 + 0j,
+                -0.04578581127401049 + 0j,
+                0.04578581127401063 + 0j,
+            ],
+            [
+                0.4346999999999997 + 0j,
+                0.0,
+                0.0,
+                0.6625999999999991 + 0j,
+                0.0,
+                0.0,
+                -0.34349999999999986 + 0j,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ],
+        ]
+
+        state_grad = Gradient(method).convert(operator, parameters)
         for i, value_dict in enumerate(values_dict):
             np.testing.assert_array_almost_equal(
                 state_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
