@@ -156,17 +156,17 @@ class Optimize1qGatesDecomposition(TransformationPass):
             return False
 
         # do we even have calibrations?
-        has_cals_p = dag.calibrations is not None and len(dag.calibrations) > 0
+        has_cals = dag.calibrations is not None and len(dag.calibrations) > 0
         # is this run in the target set of this particular decomposer and also uncalibrated?
-        rewriteable_and_in_basis_p = all(
-            g.name in new_basis and (not has_cals_p or not dag.has_calibration_for(g))
+        rewriteable_and_in_basis = all(
+            g.name in new_basis and (not has_cals or not dag.has_calibration_for(g))
             for g in old_run
         )
         # does this run have uncalibrated gates?
-        uncalibrated_p = not has_cals_p or any(not dag.has_calibration_for(g) for g in old_run)
+        uncalibrated = not has_cals or any(not dag.has_calibration_for(g) for g in old_run)
         # does this run have gates not in the image of ._decomposers _and_ uncalibrated?
-        uncalibrated_and_not_basis_p = any(
-            g.name not in self._target_basis and (not has_cals_p or not dag.has_calibration_for(g))
+        uncalibrated_and_not_basis = any(
+            g.name not in self._target_basis and (not has_cals or not dag.has_calibration_for(g))
             for g in old_run
         )
 
@@ -201,9 +201,15 @@ class Optimize1qGatesDecomposition(TransformationPass):
         trace_pairing = np.trace(decomp_unitary @ np.conj(operator.data).transpose(1, 0))
         new_infidelity += (4 - abs(trace_pairing) ** 2) / 6
 
-        if rewriteable_and_in_basis_p and (
-            (old_infidelity + atol < new_infidelity)
-            or (abs(old_infidelity - new_infidelity) < atol and len(old_run) < len(new_circ))
+        new_infidelity_is_worse = old_infidelity + atol < new_infidelity
+        old_infidelity_is_worse = new_infidelity + atol < old_infidelity
+        infidelities_are_equal = abs(new_infidelity - old_infidelity) < atol
+
+        new_length_is_worse = len(old_run) < len(new_circ)
+        old_length_is_worse = len(new_circ) < len(old_run)
+
+        if rewriteable_and_in_basis and (
+            new_infidelity_is_worse or (infidelities_are_equal and new_length_is_worse)
         ):
             # NOTE: This is short-circuited on calibrated gates, which we're timid about reducing.
             warnings.warn(
@@ -221,15 +227,10 @@ class Optimize1qGatesDecomposition(TransformationPass):
         # if we're outside of the set of gates for which we have physical definitions, then we _try_
         #    to decompose, using the results if we see improvement.
         return (
-            uncalibrated_and_not_basis_p
+            uncalibrated_and_not_basis
             or (
-                uncalibrated_p
-                and (
-                    (new_infidelity < old_infidelity - atol)
-                    or (
-                        abs(new_infidelity - old_infidelity) < atol and len(new_circ) < len(old_run)
-                    )
-                )
+                uncalibrated
+                and (old_infidelity_is_worse or (infidelities_are_equal and old_length_is_worse))
             )
             or isinstance(old_run[0].op, U3Gate)
         )
