@@ -761,7 +761,7 @@ class NLocal(BlueprintCircuit):
 
         # modify the circuit accordingly
         if front is False and self._valid:
-            if self._insert_barriers and len(self._data) > 0:
+            if self._insert_barriers and len(self.data) > 0:
                 self.barrier()
 
             if isinstance(entanglement, str):
@@ -894,7 +894,7 @@ class NLocal(BlueprintCircuit):
             circuit.compose(layer, inplace=True)
 
     def _build(self) -> None:
-        """Build the circuit."""
+        """If not already built, build the circuit."""
         if self._valid:
             return
 

@@ -69,6 +69,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         self.cost_operator = cost_operator
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        """If not already built, build the circuit."""
         valid = True
 
         if not super()._check_configuration(raise_on_failure):
@@ -253,6 +254,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         return self._cost_operator.num_qubits
 
     def _build(self):
+        """If not already built, build the circuit."""
         if self._valid:
             return
 

@@ -87,6 +87,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
         self.num_state_qubits = num_state_qubits
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        """Check if the current configuration is valid."""
         valid = True
 
         if self._f_x is None:
@@ -312,6 +313,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
             self._reset_registers(num_state_qubits)
 
     def _reset_registers(self, num_state_qubits: Optional[int]) -> None:
+        """Reset the registers."""
         self.qregs = []
 
         if num_state_qubits is not None:
@@ -325,9 +327,8 @@ class PiecewiseChebyshev(BlueprintCircuit):
                 self.add_register(qr_ancilla)
 
     def _build(self):
-        """Build the circuit. The operation is considered successful when q_objective is
-        :math:`|1>`"""
-        # do not build the circuit if _data is already populated
+        """Build the circuit if not already build. The operation is considered successful
+        when q_objective is :math:`|1>`"""
         if self._valid:
             return
 

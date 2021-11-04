@@ -218,6 +218,7 @@ class TridiagonalToeplitz(LinearSystemMatrix):
         return kappa, kappa
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        """Check if the current configuration is valid."""
         valid = True
 
         if self.trotter_steps < 1:
@@ -244,8 +245,7 @@ class TridiagonalToeplitz(LinearSystemMatrix):
             self.add_register(qr_ancilla)
 
     def _build(self) -> None:
-        """Build the circuit"""
-        # do not build the circuit if _data is already populated
+        """If not already built, build the circuit."""
         if self._valid:
             return
 

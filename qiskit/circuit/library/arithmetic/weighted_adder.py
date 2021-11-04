@@ -159,6 +159,7 @@ class WeightedAdder(BlueprintCircuit):
             self._reset_registers()
 
     def _reset_registers(self):
+        """Reset the registers."""
         self.qregs = []
 
         if self.num_state_qubits:
@@ -212,6 +213,7 @@ class WeightedAdder(BlueprintCircuit):
         # return self.num_ancillas
 
     def _check_configuration(self, raise_on_failure=True):
+        """Check if the current configuration is valid."""
         valid = True
         if self._num_state_qubits is None:
             valid = False
@@ -226,6 +228,7 @@ class WeightedAdder(BlueprintCircuit):
         return valid
 
     def _build(self):
+        """If not already built, build the circuit."""
         if self._valid:
             return
 

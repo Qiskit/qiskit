@@ -222,7 +222,7 @@ class QFT(BlueprintCircuit):
         inverted = self.copy(name=name)
 
         # data consists of the QFT gate only
-        iqft = self._data[0][0].inverse()
+        iqft = self.data[0][0].inverse()
         iqft.name = name
 
         inverted._data = []
@@ -232,6 +232,7 @@ class QFT(BlueprintCircuit):
         return inverted
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        """Check if the current configuration is valid."""
         valid = True
         if self.num_qubits is None:
             valid = False
@@ -241,7 +242,7 @@ class QFT(BlueprintCircuit):
         return valid
 
     def _build(self) -> None:
-        """Construct the circuit representing the desired state vector."""
+        """If not already built, build the circuit."""
         if self._valid:
             return
 

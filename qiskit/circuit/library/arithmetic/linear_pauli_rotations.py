@@ -140,6 +140,7 @@ class LinearPauliRotations(FunctionalPauliRotations):
             self.qregs = [qr_state, qr_target]
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        """Check if the current configuration is valid."""
         valid = True
 
         if self.num_state_qubits is None:
@@ -158,7 +159,7 @@ class LinearPauliRotations(FunctionalPauliRotations):
         return valid
 
     def _build(self):
-        # check if we have to rebuild and if the configuration is valid
+        """If not already built, build the circuit."""
         if self._valid:
             return
 

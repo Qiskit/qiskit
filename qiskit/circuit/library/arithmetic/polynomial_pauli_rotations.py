@@ -246,6 +246,7 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         return self.num_ancillas
 
     def _reset_registers(self, num_state_qubits):
+        """Reset the registers."""
         if num_state_qubits is not None:
             # set new register of appropriate size
             qr_state = QuantumRegister(num_state_qubits, name="state")
@@ -256,6 +257,7 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
             self.qregs = []
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        """Check if the current configuration is valid."""
         valid = True
 
         if self.num_state_qubits is None:
@@ -310,7 +312,7 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         return rotation_coeffs
 
     def _build(self):
-        # do not build the circuit if _data is already populated
+        """If not already built, build the circuit."""
         if self._valid:
             return
 

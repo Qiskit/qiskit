@@ -157,6 +157,7 @@ class NumPyMatrix(LinearSystemMatrix):
         return kappa, kappa
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        """Check if the current configuration is valid."""
         valid = True
 
         if self.matrix.shape[0] != self.matrix.shape[1]:
@@ -184,8 +185,7 @@ class NumPyMatrix(LinearSystemMatrix):
         self.qregs = [qr_state]
 
     def _build(self) -> None:
-        """Build the circuit"""
-        # do not build the circuit if _data is already populated
+        """If not already built, build the circuit."""
         if self._valid:
             return
 
