@@ -115,44 +115,43 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
         """Only registers that become idle directly as a result of
         final op removal are removed. In this test, a 5-bit creg
         is implicitly created with its own bits, along with cregs
-        ``foo`` and ``bar`` which reuse those underlying bits.
-        ``foo`` and ``bar`` reference only 1 bit in common.
-        A final measure is performed into a bit that only exists
-        in ``foo`` (as well as the 5-bit register), and subsequently
-        is removed. Consequently, both ``foo`` and the 5-bit register
-        are removed, because they have become unused as a result of
-        the final measure removal. ``bar`` remains, because it was
-        idle beforehand, not as a result of the measure removal,
-        along with all of its bits, including the bit shared with
-        ``foo``."""
+        ``c0_upper_3`` and ``c0_lower_3`` which reuse those underlying bits.
+        ``c0_upper_3`` and ``c0_lower_3`` reference only 1 bit in common.
+        A final measure is performed into a bit that exists in ``c0_upper_3``
+        but not in ``c0_lower_3``, and subsequently is removed. Consequently,
+        both ``c0_upper_3`` and the 5-bit register are removed, because they
+        have become unused as a result of the final measure removal.
+        ``c0_lower_3`` remains, because it was idle beforehand, not as a
+        result of the measure removal, along with all of its bits,
+        including the bit shared with ``c0_upper_3``."""
 
         def expected_dag():
             q0 = QuantumRegister(3, "q0")
             c0 = ClassicalRegister(5, "c0")
-            bar = ClassicalRegister(name="bar", bits=c0[2:])
+            c0_lower_3 = ClassicalRegister(name="c0_lower_3", bits=c0[2:])
 
             # note c0 is *not* added to circuit!
-            qc = QuantumCircuit(q0, bar)
+            qc = QuantumCircuit(q0, c0_lower_3)
             return circuit_to_dag(qc)
 
         q0 = QuantumRegister(3, "q0")
         c0 = ClassicalRegister(5, "c0")
         qc = QuantumCircuit(q0, c0)
 
-        foo = ClassicalRegister(name="foo", bits=c0[:3])
-        bar = ClassicalRegister(name="bar", bits=c0[2:])
+        c0_upper_3 = ClassicalRegister(name="c0_upper_3", bits=c0[:3])
+        c0_lower_3 = ClassicalRegister(name="c0_lower_3", bits=c0[2:])
         # Only qc.clbits[2] is shared between the two.
 
-        qc.add_register(foo)
-        qc.add_register(bar)
+        qc.add_register(c0_upper_3)
+        qc.add_register(c0_lower_3)
 
-        qc.measure(0, foo[0])
+        qc.measure(0, c0_upper_3[0])
 
         dag = circuit_to_dag(qc)
         dag = RemoveFinalMeasurements().run(dag)
 
-        self.assertListEqual(list(dag.cregs.values()), [bar])
-        self.assertListEqual(dag.clbits, list(bar))
+        self.assertListEqual(list(dag.cregs.values()), [c0_lower_3])
+        self.assertListEqual(dag.clbits, list(c0_lower_3))
         self.assertEqual(dag, expected_dag())
 
     def test_multi_bit_register_removed_if_all_bits_idle(self):

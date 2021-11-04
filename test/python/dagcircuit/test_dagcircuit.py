@@ -283,7 +283,7 @@ class TestDagWireRemoval(QiskitTestCase):
 
         Args:
             cregs (Iterable(ClassicalRegister)): the classical registers to expect
-            excluding: Set(ClassicalRegister): classical registers to remove from
+            excluding Set(ClassicalRegister): classical registers to remove from
             ``cregs`` before the comparison."""
         if excluding is None:
             excluding = {}
@@ -296,7 +296,7 @@ class TestDagWireRemoval(QiskitTestCase):
 
         Args:
             clbits (Iterable(Clbit)): the classical bits to expect
-            excluding: Set(ClassicalRegister): classical bits to remove from
+            excluding Set(ClassicalRegister): classical bits to remove from
             ``clbits`` before the comparison."""
         if excluding is None:
             excluding = {}
