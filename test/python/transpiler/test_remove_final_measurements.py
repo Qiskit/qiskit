@@ -26,54 +26,82 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
 
     def test_multi_bit_register_removed_with_clbits(self):
         """Remove register when all clbits removed."""
-        qc = QuantumCircuit(2, 2)
+
+        def expected_dag():
+            q0 = QuantumRegister(2, "q0")
+            qc = QuantumCircuit(q0)
+            return circuit_to_dag(qc)
+
+        q0 = QuantumRegister(2, "q0")
+        c0 = ClassicalRegister(2, "c0")
+        qc = QuantumCircuit(q0, c0)
 
         # measure into all clbits of c0
         qc.measure(0, 0)
         qc.measure(1, 1)
 
         dag = circuit_to_dag(qc)
-        RemoveFinalMeasurements().run(dag)
+        dag = RemoveFinalMeasurements().run(dag)
 
         self.assertFalse(dag.cregs)
         self.assertFalse(dag.clbits)
+        self.assertEqual(dag, expected_dag())
 
     def test_register_kept_if_measured_clbit_busy(self):
         """
         A register is kept if the measure destination bit is still
         busy after measure removal.
         """
-        c0 = ClassicalRegister(1)
-        qc = QuantumCircuit(QuantumRegister(1), c0)
+
+        def expected_dag():
+            q0 = QuantumRegister(1, "q0")
+            c0 = ClassicalRegister(1, "c0")
+            qc = QuantumCircuit(q0, c0)
+            qc.x(0).c_if(c0[0], 0)
+            return circuit_to_dag(qc)
+
+        q0 = QuantumRegister(1, "q0")
+        c0 = ClassicalRegister(1, "c0")
+        qc = QuantumCircuit(q0, c0)
 
         # make c0 busy
-        qc.x(0).c_if(c0, 0)
+        qc.x(0).c_if(c0[0], 0)
 
         # measure into c0
-        qc.measure(0, c0)
+        qc.measure(0, c0[0])
 
         dag = circuit_to_dag(qc)
-        RemoveFinalMeasurements().run(dag)
+        dag = RemoveFinalMeasurements().run(dag)
 
         self.assertSetEqual(set(dag.cregs.values()), {c0})
         self.assertSetEqual(set(dag.clbits), set(c0))
+        self.assertEqual(dag, expected_dag())
 
     def test_multi_bit_register_kept_if_not_measured_clbit_busy(self):
         """
         A multi-bit register is kept if it contains a busy bit even if
         the measure destination bit itself is idle.
         """
-        c0 = ClassicalRegister(2)
-        qc = QuantumCircuit(QuantumRegister(1), c0)
+
+        def expected_dag():
+            q0 = QuantumRegister(1, "q0")
+            c0 = ClassicalRegister(2, "c0")
+            qc = QuantumCircuit(q0, c0)
+            qc.x(q0[0]).c_if(c0[0], 0)
+            return circuit_to_dag(qc)
+
+        q0 = QuantumRegister(1, "q0")
+        c0 = ClassicalRegister(2, "c0")
+        qc = QuantumCircuit(q0, c0)
 
         # make c0[0] busy
-        qc.x(0).c_if(c0[0], 0)
+        qc.x(q0[0]).c_if(c0[0], 0)
 
         # measure into not busy c0[1]
         qc.measure(0, c0[1])
 
         dag = circuit_to_dag(qc)
-        RemoveFinalMeasurements().run(dag)
+        dag = RemoveFinalMeasurements().run(dag)
 
         # c0 should not be removed because it has busy bit c0[0]
         self.assertSetEqual(set(dag.cregs.values()), {c0})
@@ -81,6 +109,7 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
         # note: c0[1] should not be removed even though it is now idle
         # because it is referenced by creg c0.
         self.assertSetEqual(set(dag.clbits), set(c0))
+        self.assertEqual(dag, expected_dag())
 
     def test_overlapping_register_removal(self):
         """Only registers that become idle directly as a result of
@@ -96,44 +125,72 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
         idle beforehand, not as a result of the measure removal,
         along with all of its bits, including the bit shared with
         ``foo``."""
-        qc = QuantumCircuit(3, 5)
 
-        cr1 = ClassicalRegister(name="foo", bits=qc.clbits[:3])
-        cr2 = ClassicalRegister(name="bar", bits=qc.clbits[2:])
+        def expected_dag():
+            q0 = QuantumRegister(3, "q0")
+            c0 = ClassicalRegister(5, "c0")
+            bar = ClassicalRegister(name="bar", bits=c0[2:])
+
+            # note c0 is *not* added to circuit!
+            qc = QuantumCircuit(q0, bar)
+            return circuit_to_dag(qc)
+
+        q0 = QuantumRegister(3, "q0")
+        c0 = ClassicalRegister(5, "c0")
+        qc = QuantumCircuit(q0, c0)
+
+        foo = ClassicalRegister(name="foo", bits=c0[:3])
+        bar = ClassicalRegister(name="bar", bits=c0[2:])
         # Only qc.clbits[2] is shared between the two.
 
-        qc.add_register(cr1)
-        qc.add_register(cr2)
+        qc.add_register(foo)
+        qc.add_register(bar)
 
-        qc.measure(0, cr1[0])
+        qc.measure(0, foo[0])
 
         dag = circuit_to_dag(qc)
-        RemoveFinalMeasurements().run(dag)
+        dag = RemoveFinalMeasurements().run(dag)
 
-        self.assertListEqual(list(dag.cregs.values()), [cr2])
-        self.assertListEqual(dag.clbits, list(cr2))
+        self.assertListEqual(list(dag.cregs.values()), [bar])
+        self.assertListEqual(dag.clbits, list(bar))
+        self.assertEqual(dag, expected_dag())
 
     def test_multi_bit_register_removed_if_all_bits_idle(self):
         """A multibit register is removed when all bits are idle."""
-        qc = QuantumCircuit(1, 2)
+
+        def expected_dag():
+            q0 = QuantumRegister(1, "q0")
+            qc = QuantumCircuit(q0)
+            return circuit_to_dag(qc)
+
+        q0 = QuantumRegister(1, "q0")
+        c0 = ClassicalRegister(2, "c0")
+        qc = QuantumCircuit(q0, c0)
 
         # measure into single bit c0[0] of c0
         qc.measure(0, 0)
 
         dag = circuit_to_dag(qc)
-        RemoveFinalMeasurements().run(dag)
+        dag = RemoveFinalMeasurements().run(dag)
 
         self.assertFalse(dag.cregs)
         self.assertFalse(dag.clbits)
+        self.assertEqual(dag, expected_dag())
 
     def test_multi_reg_shared_bits_removed(self):
         """All registers sharing removed bits should be removed."""
-        q0 = QuantumRegister(2)
-        c0 = ClassicalRegister(2)
+
+        def expected_dag():
+            q0 = QuantumRegister(2, "q0")
+            qc = QuantumCircuit(q0)
+            return circuit_to_dag(qc)
+
+        q0 = QuantumRegister(2, "q0")
+        c0 = ClassicalRegister(2, "c0")
         qc = QuantumCircuit(q0, c0)
 
         # Create reg with shared bits (same as c0)
-        c1 = ClassicalRegister(bits=qc.clbits)
+        c1 = ClassicalRegister(name="c1", bits=qc.clbits)
         qc.add_register(c1)
 
         # measure into all clbits of c0
@@ -141,11 +198,11 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
         qc.measure(1, c0[1])
 
         dag = circuit_to_dag(qc)
-        remove_final_meas = RemoveFinalMeasurements()
-        remove_final_meas.run(dag)
+        dag = RemoveFinalMeasurements().run(dag)
 
         self.assertFalse(dag.cregs)
         self.assertFalse(dag.clbits)
+        self.assertEqual(dag, expected_dag())
 
     def test_final_measures_share_dest(self):
         """Multiple final measurements use the same clbit."""
@@ -162,7 +219,7 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
         qc.measure(1, 0)
 
         dag = circuit_to_dag(qc)
-        RemoveFinalMeasurements().run(dag)
+        dag = RemoveFinalMeasurements().run(dag)
 
         self.assertEqual(dag, expected_dag())
 
@@ -196,13 +253,20 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
         qc.measure(q0, c1)
 
         dag = circuit_to_dag(qc)
-        RemoveFinalMeasurements().run(dag)
+        dag = RemoveFinalMeasurements().run(dag)
 
         self.assertEqual(dag, expected_dag())
 
     def test_remove_clbits_without_register(self):
         """clbits of final measurements not in a register are removed."""
-        qc = QuantumCircuit(1)
+
+        def expected_dag():
+            q0 = QuantumRegister(1, "q0")
+            qc = QuantumCircuit(q0)
+            return circuit_to_dag(qc)
+
+        q0 = QuantumRegister(1, "q0")
+        qc = QuantumCircuit(q0)
 
         # Add clbit without adding register
         clbit = Clbit(ClassicalRegister(1), 0)
@@ -214,10 +278,11 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
         qc.measure(0, 0)
 
         dag = circuit_to_dag(qc)
-        RemoveFinalMeasurements().run(dag)
+        dag = RemoveFinalMeasurements().run(dag)
 
         self.assertFalse(dag.cregs)
         self.assertFalse(dag.clbits)
+        self.assertEqual(dag, expected_dag())
 
     def test_final_barriers_and_measures_complex(self):
         """Test complex final barrier and measure removal."""
@@ -243,7 +308,7 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
         qc.barrier(q0[4])
 
         dag = circuit_to_dag(qc)
-        RemoveFinalMeasurements().run(dag)
+        dag = RemoveFinalMeasurements().run(dag)
 
         self.assertEqual(dag, expected_dag())
 
