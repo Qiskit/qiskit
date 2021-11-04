@@ -25,6 +25,7 @@ from qiskit.dagcircuit import DAGOpNode
 from qiskit.providers.models import BackendProperties
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.quantum_info.operators import Operator, average_gate_fidelity
 from qiskit.quantum_info.synthesis import one_qubit_decompose
 
 logger = logging.getLogger(__name__)
@@ -53,6 +54,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         self._target_basis = basis
         self._decomposers = None
         self._backend_properties = backend_properties
+        self._memoized_fidelities_dicts = {}
 
         if basis:
             self._decomposers = {}
@@ -80,11 +82,16 @@ class Optimize1qGatesDecomposition(TransformationPass):
         Produces a dictionary mapping gate names to reported fidelities for the indicated `qubit`.
         Reports `default` when the gate name has no measurement present.
         """
+
+        memoized_value = self._memoized_fidelities_dicts.get(qubit)
+        if memoized_value is not None:
+            return memoized_value
+
         # invert the key order in _backend_properties's fidelities dictionary
         if self._backend_properties is None:
-            return defaultdict(lambda: default)
+            memoized_value = defaultdict(lambda: default)
         else:
-            return defaultdict(
+            memoized_value = defaultdict(
                 lambda: default,
                 **{
                     x["gate"]: (
@@ -95,7 +102,10 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 },
             )
 
-    def _resynthesize_run(self, dag, run):
+        self._memoized_fidelities_dicts[qubit] = memoized_value
+        return memoized_value
+
+    def _resynthesize_run(self, dag, run, atol=DEFAULT_ATOL):
         """
         Resynthesizes one `run`, typically extracted via `dag.collect_1q_runs`.
 
@@ -112,14 +122,21 @@ class Optimize1qGatesDecomposition(TransformationPass):
         )
         fidelities = self._generate_fidelities_dict(qubit)
 
+        def implementation_infidelity(circuit):
+            op_cost = sum(1 - fidelities[x[0].name] for x in circuit)
+            approx_cost = 1 - average_gate_fidelity(Operator(operator), Operator(circuit))
+            return op_cost + approx_cost
+
         new_circs = {
             k: v._decompose(operator, fidelity_mapping=fidelities)
             for k, v in self._decomposers.items()
         }
 
-        new_basis, new_circ = None, None
-        if len(new_circs) > 0:
-            new_basis, new_circ = min(new_circs.items(), key=lambda x: len(x[1]))
+        new_basis, new_circ, new_infidelity = None, None, 1.
+        for this_basis, this_circ in new_circs.items():
+            this_infidelity = implementation_infidelity(this_circ)
+            if this_infidelity < new_infidelity - atol:
+                new_basis, new_circ, new_infidelity = this_basis, this_circ, this_infidelity
 
         return new_basis, new_circ
 
@@ -191,10 +208,9 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 + "\n\nand got\n\n"
                 + "\n".join([str(node[0]) for node in new_circ])
                 + f"\n\nbut the original was native (for {self._target_basis}) and the new value "
-                f"is longer.  This indicates an efficiency bug in synthesis.  Please report it by "
-                f"opening an issue here: "
+                f"has worse estimated infidelity (old {old_infidelity} vs new {new_infidelity}).  "
+                f"This indicates an efficiency bug in synthesis.  Please report it by opening an issue here: "
                 f"https://github.com/Qiskit/qiskit-terra/issues/new/choose",
-                stacklevel=2,
             )
 
         # if we're outside of the basis set, we're obligated to logically decompose.
@@ -223,6 +239,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
+
         if self._decomposers is None:
             logger.info("Skipping pass because no basis is set")
             return dag
