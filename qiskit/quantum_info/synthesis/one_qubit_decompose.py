@@ -555,7 +555,6 @@ class OneQubitEulerDecomposer:
 
         # generate a circuit based on the best infidelity estimate
         if circuit_type == "empty":
-            # print(lam, phi, lam + phi)
             pfun(circuit, qr, lam + phi)
 
         elif circuit_type == "one sx":
