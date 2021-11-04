@@ -13,6 +13,7 @@
 """Quantum Operation Mixin."""
 
 from abc import ABC
+from qiskit.circuit.exceptions import CircuitError
 
 
 class Operation(ABC):
