@@ -575,13 +575,16 @@ class TestCircuitOperations(QiskitTestCase):
         and preserves order of remaining cregs and clbits.
         """
         c0 = ClassicalRegister(1)
-        c1_0 = Clbit(ClassicalRegister(1), 0)
+        c1_0 = Clbit()
         c2 = ClassicalRegister(1)
         c3 = ClassicalRegister(1)
         circuit = QuantumCircuit(QuantumRegister(1))
 
         circuit.add_register(c0)
+
+        # add an individual bit that's not in any register of this circuit
         circuit.add_bits([c1_0])
+
         circuit.add_register(c2)
         circuit.add_register(c3)
 
