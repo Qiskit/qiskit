@@ -20,7 +20,12 @@ import numpy as np
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.measure import Measure
-from qiskit.circuit.library.standard_gates import CXGate, UGate, ECRGate, RXGate
+from qiskit.circuit.library.standard_gates import (
+    CXGate,
+    UGate,
+    ECRGate,
+    RXGate,
+)
 from qiskit.providers.backend import BackendV2, QubitProperties
 from qiskit.providers.options import Options
 from qiskit.transpiler import Target, InstructionProperties
@@ -58,7 +63,6 @@ class FakeBackendV2(BackendV2):
         self._target.add_instruction(UGate(self._theta, self._phi, self._lam), u_props)
         cx_props = {
             (0, 1): InstructionProperties(duration=5.23e-7, error=0.00098115),
-            (1, 0): InstructionProperties(duration=4.52e-7, error=0.00132115),
         }
         self._target.add_instruction(CXGate(), cx_props)
         measure_props = {

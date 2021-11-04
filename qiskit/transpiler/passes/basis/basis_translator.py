@@ -50,7 +50,7 @@ class BasisTranslator(TransformationPass):
 
     """
 
-    def __init__(self, equivalence_library, target_basis):
+    def __init__(self, equivalence_library, target_basis, target=None):
         """Initialize a BasisTranslator instance.
 
         Args:
@@ -58,12 +58,16 @@ class BasisTranslator(TransformationPass):
                 which will be used by the BasisTranslator pass. (Instructions in
                 this library will not be unrolled by this pass.)
             target_basis (list[str]): Target basis names to unroll to, e.g. `['u3', 'cx']`.
+            target (Target): The backend compilation target
         """
 
         super().__init__()
-
         self._equiv_lib = equivalence_library
         self._target_basis = target_basis
+        self._target = target
+        self._incomplete_basis = None
+        if target is not None:
+            self._incomplete_basis = _compute_incomplete_basis(target)
 
     def run(self, dag):
         """Translate an input DAGCircuit to the target basis.
@@ -77,19 +81,37 @@ class BasisTranslator(TransformationPass):
         Returns:
             DAGCircuit: translated circuit.
         """
-
-        if self._target_basis is None:
+        if self._target_basis is None and self._target is None:
             return dag
 
+        qarg_indices = {qubit: index for index, qubit in enumerate(dag.qubits)}
         # Names of instructions assumed to supported by any backend.
-        basic_instrs = ["measure", "reset", "barrier", "snapshot", "delay"]
+        if self._target is None:
+            basic_instrs = ["measure", "reset", "barrier", "snapshot", "delay"]
+            target_basis = set(self._target_basis)
+            source_basis = set()
+            for node in dag.op_nodes():
+                if not dag.has_calibration_for(node):
+                    source_basis.add((node.name, node.op.num_qubits))
+            qarg_with_incomplete = {}
+            incomplete_source_basis = {}
+        else:
+            basic_instrs = ["barrier", "snapshot"]
+            source_basis = set()
+            target_basis = self._target.keys() - set(self._incomplete_basis)
+            qarg_with_incomplete = defaultdict(set)
+            for gate in self._incomplete_basis:
+                for qarg in self._target[gate]:
+                    qarg_with_incomplete[qarg].add(gate)
+            incomplete_source_basis = defaultdict(set)
+            for node in dag.op_nodes():
+                qargs = tuple(qarg_indices[bit] for bit in node.qargs)
+                if qargs in qarg_with_incomplete:
+                    incomplete_source_basis[qargs].add((node.name, node.op.num_qubits))
+                else:
+                    source_basis.add((node.name, node.op.num_qubits))
 
-        target_basis = set(self._target_basis).union(basic_instrs)
-
-        source_basis = set()
-        for node in dag.op_nodes():
-            if not dag.has_calibration_for(node):
-                source_basis.add((node.name, node.op.num_qubits))
+        target_basis = set(target_basis).union(basic_instrs)
 
         logger.info(
             "Begin BasisTranslator from source basis %s to target basis %s.",
@@ -98,11 +120,26 @@ class BasisTranslator(TransformationPass):
         )
 
         # Search for a path from source to target basis.
-
         search_start_time = time.time()
         basis_transforms = _basis_search(
             self._equiv_lib, source_basis, target_basis, _basis_heuristic
         )
+
+        extra_basis_transforms = {}
+        for qarg, extra_source_basis in incomplete_source_basis.items():
+            expanded_target = target_basis | qarg_with_incomplete[qarg]
+
+            logger.info(
+                "Performing BasisTranslator search from source basis %s to target "
+                "basis %s on qarg %s.",
+                extra_source_basis,
+                expanded_target,
+                qarg,
+            )
+            extra_basis_transforms[qarg] = _basis_search(
+                self._equiv_lib, extra_source_basis, expanded_target, _basis_heuristic
+            )
+
         search_end_time = time.time()
         logger.info(
             "Basis translation path search completed in %.3fs.", search_end_time - search_start_time
@@ -118,6 +155,10 @@ class BasisTranslator(TransformationPass):
 
         compose_start_time = time.time()
         instr_map = _compose_transforms(basis_transforms, source_basis, dag)
+        extra_instr_map = {
+            qarg: _compose_transforms(transforms, incomplete_source_basis[qarg], dag)
+            for qarg, transforms in extra_basis_transforms.items()
+        }
 
         compose_end_time = time.time()
         logger.info(
@@ -128,15 +169,18 @@ class BasisTranslator(TransformationPass):
 
         replace_start_time = time.time()
         for node in dag.op_nodes():
+            node_qargs = tuple(qarg_indices[bit] for bit in node.qargs)
+
             if node.name in target_basis:
+                continue
+            if node_qargs in qarg_with_incomplete and node.name in qarg_with_incomplete[node_qargs]:
                 continue
 
             if dag.has_calibration_for(node):
                 continue
 
-            if (node.op.name, node.op.num_qubits) in instr_map:
+            def replace_node(node, instr_map):
                 target_params, target_dag = instr_map[node.op.name, node.op.num_qubits]
-
                 if len(node.op.params) != len(target_params):
                     raise TranspilerError(
                         "Translation num_params not equal to op num_params."
@@ -174,6 +218,11 @@ class BasisTranslator(TransformationPass):
                         dag.global_phase += bound_target_dag.global_phase
                 else:
                     dag.substitute_node_with_dag(node, bound_target_dag)
+
+            if node_qargs in extra_instr_map:
+                replace_node(node, extra_instr_map[node_qargs])
+            elif (node.op.name, node.op.num_qubits) in instr_map:
+                replace_node(node, instr_map)
             else:
                 raise TranspilerError(f"BasisTranslator did not map {node.name}.")
 
@@ -391,3 +440,20 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
                 )
 
     return mapped_instrs
+
+
+def _compute_incomplete_basis(target):
+    incomplete_basis_gates = []
+    size_dict = defaultdict(int)
+    size_dict[1] = target.num_qubits
+    for qarg in target.qargs:
+        if len(qarg) == 1:
+            continue
+        size_dict[len(qarg)] += 1
+    for inst, qargs in target.items():
+        qarg_sample = next(iter(qargs))
+        if qarg_sample is None:
+            continue
+        if len(qargs) != size_dict[len(qarg_sample)]:
+            incomplete_basis_gates.append(inst)
+    return incomplete_basis_gates

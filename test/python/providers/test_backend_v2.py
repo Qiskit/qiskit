@@ -15,10 +15,11 @@
 
 import math
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.compiler import transpile
 from qiskit.test.base import QiskitTestCase
 from qiskit.test.mock.fake_backend_v2 import FakeBackendV2
+from qiskit.test.mock.fake_mumbai_v2 import FakeMumbaiV2
 
 
 class TestBackendV2(QiskitTestCase):
@@ -54,15 +55,49 @@ class TestBackendV2(QiskitTestCase):
             log.output,
             [
                 "WARNING:qiskit.providers.backend:This backend's operations: "
-                "ecr only apply to a subset of qubits. Using this property to "
+                "cx,ecr only apply to a subset of qubits. Using this property to "
                 "get 'basis_gates' for the transpiler may potentially create "
                 "invalid output"
             ],
         )
-        expected = QuantumCircuit(2)
-        expected.u(math.pi / 2, 0, -math.pi, 0)
-        expected.u(math.pi / 2, 0, -math.pi, 1)
-        expected.cx(1, 0)
+        expected = QuantumCircuit(2, global_phase=math.pi / 4)
+        expected.u(math.pi / 2, 0, -math.pi / 2, 0)
+        expected.u(math.pi / 2, -math.pi / 2, 0, 1)
+        expected.ecr(1, 0)
         expected.u(math.pi / 2, 0, -math.pi, 0)
         expected.measure_all()
         self.assertEqual(tqc, expected)
+
+    def test_transpile_respects_arg_constraints(self):
+        """Test that transpile() respects a heterogenous basis."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(1, 0)
+        qc.measure_all()
+        tqc = transpile(qc, self.backend)
+        expected = QuantumCircuit(2, global_phase=7 * math.pi / 4)
+        expected.u(math.pi / 2, 0, -math.pi / 2, 0)
+        expected.u(math.pi, 0, -math.pi / 2, 1)
+        expected.ecr(1, 0)
+        expected.measure_all()
+        self.assertEqual(tqc, expected)
+
+    def test_transpile_mumbai_target(self):
+        """Test that transpile respects a more involved target for a fake mumbai."""
+        backend = FakeMumbaiV2()
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(1, 0)
+        qc.measure_all()
+        tqc = transpile(qc, backend)
+        qr = QuantumRegister(27, "q")
+        cr = ClassicalRegister(2, "meas")
+        expected = QuantumCircuit(qr, cr, global_phase=math.pi / 4)
+        expected.rz(math.pi / 2, 0)
+        expected.sx(0)
+        expected.rz(math.pi / 2, 0)
+        expected.cx(1, 0)
+        expected.barrier(qr[0:2])
+        expected.measure(qr[0], cr[0])
+        expected.measure(qr[1], cr[1])
+        self.assertEqual(expected, tqc)

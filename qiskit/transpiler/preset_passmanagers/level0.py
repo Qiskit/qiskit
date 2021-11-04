@@ -93,6 +93,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
     unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
     unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
+    target = pass_manager_config.target
 
     # 1. Decompose so only 1-qubit and 2-qubit gates remain
     _unroll3q = [
@@ -171,7 +172,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 plugin_config=unitary_synthesis_plugin_config,
             ),
             UnrollCustomDefinitions(sel, basis_gates),
-            BasisTranslator(sel, basis_gates),
+            BasisTranslator(sel, basis_gates, target),
         ]
     elif translation_method == "synthesis":
         _unroll = [

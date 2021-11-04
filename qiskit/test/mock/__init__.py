@@ -24,6 +24,7 @@ from .fake_provider import FakeProvider, FakeLegacyProvider
 from .fake_provider import FakeProviderFactory
 from .fake_backend import FakeBackend, FakeLegacyBackend
 from .fake_backend_v2 import FakeBackendV2
+from .fake_mumbai_v2 import FakeMumbaiV2
 from .fake_job import FakeJob, FakeLegacyJob
 from .fake_qobj import FakeQobj
 

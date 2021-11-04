@@ -40,6 +40,7 @@ from qiskit.transpiler.preset_passmanagers import (
     level_3_pass_manager,
 )
 from qiskit.transpiler.timing_constraints import TimingConstraints
+from qiskit.transpiler.target import Target
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +68,7 @@ def transpile(
     output_name: Optional[Union[str, List[str]]] = None,
     unitary_synthesis_method: str = "default",
     unitary_synthesis_plugin_config: dict = None,
+    target: Target = None,
 ) -> Union[QuantumCircuit, List[QuantumCircuit]]:
     """Transpile one or more circuits, according to some desired transpilation targets.
 
@@ -229,7 +231,10 @@ def transpile(
             the ``unitary_synthesis`` argument. As this is custom for each
             unitary synthesis plugin refer to the plugin documentation for how
             to use this option.
-
+        target: A backend transpiler target. Normally this is specified as part of
+            the ``backend`` argument, but if you have manually constructed a
+            :class:`~qiskit.transpiler.Target` object you can specify it manually here.
+            This will override the target from ``backend``.
     Returns:
         The transpiled circuit(s).
 
@@ -268,6 +273,7 @@ def transpile(
             approximation_degree=approximation_degree,
             unitary_synthesis_method=unitary_synthesis_method,
             backend=backend,
+            target=target,
         )
 
         warnings.warn(
@@ -314,6 +320,7 @@ def transpile(
         timing_constraints,
         unitary_synthesis_method,
         unitary_synthesis_plugin_config,
+        target,
     )
 
     _check_circuits_coupling_map(circuits, transpile_args, backend)
@@ -505,6 +512,7 @@ def _parse_transpile_args(
     timing_constraints,
     unitary_synthesis_method,
     unitary_synthesis_plugin_config,
+    target,
 ) -> List[Dict]:
     """Resolve the various types of args allowed to the transpile() function through
     duck typing, overriding args, etc. Refer to the transpile() docstring for details on
@@ -550,6 +558,7 @@ def _parse_transpile_args(
     durations = _parse_instruction_durations(backend, instruction_durations, dt, circuits)
     scheduling_method = _parse_scheduling_method(scheduling_method, num_circuits)
     timing_constraints = _parse_timing_constraints(backend, timing_constraints, num_circuits)
+    target = _parse_target(backend, target, num_circuits)
     if scheduling_method and any(d is None for d in durations):
         raise TranspilerError(
             "Transpiling a circuit with a scheduling method"
@@ -579,6 +588,7 @@ def _parse_transpile_args(
             "faulty_qubits_map": faulty_qubits_map,
             "unitary_synthesis_method": unitary_synthesis_method,
             "unitary_synthesis_plugin_config": unitary_synthesis_plugin_config,
+            "target": target,
         }
     ):
         transpile_args = {
@@ -598,6 +608,7 @@ def _parse_transpile_args(
                 seed_transpiler=kwargs["seed_transpiler"],
                 unitary_synthesis_method=kwargs["unitary_synthesis_method"],
                 unitary_synthesis_plugin_config=kwargs["unitary_synthesis_plugin_config"],
+                target=kwargs["target"],
             ),
             "optimization_level": kwargs["optimization_level"],
             "output_name": kwargs["output_name"],
@@ -896,6 +907,15 @@ def _parse_unitary_plugin_config(unitary_synthesis_plugin_config, num_circuits):
     if not isinstance(unitary_synthesis_plugin_config, list):
         unitary_synthesis_plugin_config = [unitary_synthesis_plugin_config] * num_circuits
     return unitary_synthesis_plugin_config
+
+
+def _parse_target(backend, target, num_circuits):
+    backend_target = getattr(backend, "target", None)
+    if target is None:
+        target = backend_target
+    if not isinstance(target, list):
+        target = [target] * num_circuits
+    return target
 
 
 def _parse_seed_transpiler(seed_transpiler, num_circuits):
