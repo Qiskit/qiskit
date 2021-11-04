@@ -255,75 +255,114 @@ class TestDagWireRemoval(QiskitTestCase):
         super().setUp()
         self.dag = DAGCircuit()
         qreg = QuantumRegister(3, "qr")
-        creg = ClassicalRegister(2, "cr")
+        creg0 = ClassicalRegister(2, "c0")
+        creg1 = ClassicalRegister(2, "c1")
+        creg2 = ClassicalRegister(name="c2", bits=list(creg1))
         clbit = Clbit()
         self.dag.add_qreg(qreg)
-        self.dag.add_creg(creg)
+        self.dag.add_creg(creg0)
+        self.dag.add_creg(creg1)
+        self.dag.add_creg(creg2)
         self.dag.add_clbits([clbit])
 
         self.qreg = qreg
-        self.creg = creg
-        self.qubit0 = qreg[0]
-        self.qubit1 = qreg[1]
-        self.qubit2 = qreg[2]
-        self.clbit0 = creg[0]
-        self.clbit1 = creg[1]
+        self.creg0 = creg0
+        self.creg1 = creg1
+        self.creg1_alias = creg2
         self.individual_clbit = clbit
 
-        self.original_cregs = [creg]
-        self.original_clbits = [self.clbit0, self.clbit1, self.individual_clbit]
+        self.original_cregs = [self.creg0, self.creg1, self.creg1_alias]
 
-    def assert_cregs(self, cregs):
-        self.assertDictEqual(self.dag.cregs, {creg.name: creg for creg in cregs})
+        # skip adding bits of creg2 since it's just an alias for creg1
+        self.original_clbits = [
+            b for reg in self.original_cregs if reg != self.creg1_alias for b in reg
+        ] + [self.individual_clbit]
 
-    def assert_clbits(self, clbits, excludes={}):
-        self.assertListEqual(self.dag.clbits, list(b for b in clbits if b not in excludes))
+    def assert_cregs_is(self, cregs, excluding={}):
+        self.assertDictEqual(
+            self.dag.cregs, {creg.name: creg for creg in cregs if creg not in excluding}
+        )
+
+    def assert_clbits_is(self, clbits, excluding={}):
+        self.assertListEqual(self.dag.clbits, list(b for b in clbits if b not in excluding))
 
     def test_remove_idle_creg(self):
-        """Removing an idle classical register removes underlying bits."""
-        self.dag.remove_cregs(self.creg)
+        """Removing an idle classical register removes just the register."""
+        self.dag.remove_cregs(self.creg0)
 
-        self.assert_cregs([])
-        self.assert_clbits([self.individual_clbit])
+        self.assert_cregs_is(self.original_cregs, excluding={self.creg0})
+        self.assert_clbits_is(self.original_clbits)
 
     def test_remove_busy_creg(self):
-        """Removing a classical register composed of both busy and idle
-        underlying bits removes the register and only the idle bits."""
-        self.dag.apply_operation_back(Measure(), [self.qubit0], [self.clbit0])
-        self.dag.remove_cregs(self.creg)
+        """Classical registers with both busy and idle underlying bits
+        can be removed, keeping underlying bits."""
+        self.dag.apply_operation_back(Measure(), [self.qreg[0]], [self.creg0[0]])
+        self.dag.remove_cregs(self.creg0)
 
         # creg removal always succeeds
-        self.assert_cregs([])
+        self.assert_cregs_is(self.original_cregs, excluding={self.creg0})
 
-        # clbit1 is idle and should be cleaned up
-        self.assert_clbits(self.original_clbits, excludes={self.clbit1})
+        # creg0 is gone, leaving both creg0[0] and creg0[1] unreferenced.
+        # however, only creg0[1] is idle, and thus removed.
+        self.assert_clbits_is(self.original_clbits)
+
+    def test_remove_cregs_shared_bits(self):
+        """Removing a classical register does not remove other classical
+        registers that are simply aliases of it."""
+        self.dag.remove_cregs(self.creg1)
+
+        # Only creg1 should be deleted, not its alias
+        self.assert_cregs_is(self.original_cregs, excluding={self.creg1})
+        self.assert_clbits_is(self.original_clbits)
+
+    def test_remove_unknown_creg(self):
+        unknown_creg = ClassicalRegister(1)
+        with self.assertRaises(DAGCircuitError):
+            self.dag.remove_cregs(unknown_creg)
+
+        self.assert_cregs_is(self.original_cregs)
+        self.assert_clbits_is(self.original_clbits)
 
     def test_remove_idle_clbit(self):
-        """Idle unreference by register classical bits can be removed."""
+        """Idle classical bits not referenced by any register can be removed."""
         self.dag.remove_clbits(self.individual_clbit)
 
-        self.assert_cregs(self.original_cregs)
-        self.assert_clbits(self.original_clbits, excludes={self.individual_clbit})
+        self.assert_cregs_is(self.original_cregs)
+        self.assert_clbits_is(self.original_clbits, excluding={self.individual_clbit})
 
     def test_remove_busy_clbit(self):
-        """Classical bit removal ignores busy classical bits."""
-        self.dag.apply_operation_back(Measure(), [self.qubit0], [self.individual_clbit])
+        """Classical bit removal of busy classical bits raises."""
+        self.dag.apply_operation_back(Measure(), [self.qreg[0]], [self.individual_clbit])
 
-        res = self.dag.remove_clbits(self.individual_clbit)
-        self.assertFalse(res)
+        with self.assertRaises(DAGCircuitError):
+            self.dag.remove_clbits(self.individual_clbit)
 
-        # no removals should occur
-        self.assert_cregs(self.original_cregs)
-        self.assert_clbits(self.original_clbits)
+        self.assert_cregs_is(self.original_cregs)
+        self.assert_clbits_is(self.original_clbits)
 
     def test_remove_referenced_clbit(self):
-        """Classical bit removal ignores classical bits referenced by a register."""
-        res = self.dag.remove_clbits(self.clbit0, self.clbit1)
-        self.assertFalse(res)
+        """Classical bit removal removes registers that reference a removed bit,
+        even if they have other bits that aren't removed."""
+        self.dag.remove_clbits(self.creg0[0])
 
-        # no removals should occur
-        self.assert_cregs(self.original_cregs)
-        self.assert_clbits(self.original_clbits)
+        self.assert_cregs_is(self.original_cregs, excluding={self.creg0})
+        self.assert_clbits_is(self.original_clbits, excluding={self.creg0[0]})
+
+    def test_remove_multi_reg_referenced_clbit(self):
+        """Classical bit removal removes all registers that reference a removed bit."""
+        self.dag.remove_clbits(*self.creg1)
+
+        self.assert_cregs_is(self.original_cregs, excluding={self.creg1, self.creg1_alias})
+        self.assert_clbits_is(self.original_clbits, excluding=set(self.creg1))
+
+    def test_remove_unknown_clbit(self):
+        """Classical bit removal of unknown bits raises."""
+        unknown_clbit = Clbit()
+        with self.assertRaises(DAGCircuitError):
+            self.dag.remove_clbits(unknown_clbit)
+
+        self.assert_cregs_is(self.original_cregs)
+        self.assert_clbits_is(self.original_clbits)
 
 
 class TestDagApplyOperation(QiskitTestCase):

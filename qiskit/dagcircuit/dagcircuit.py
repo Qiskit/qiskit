@@ -321,11 +321,13 @@ class DAGCircuit:
 
     def remove_clbits(self, *clbits):
         """
-        Remove classical bits from the circuit. Only the bits that are idle and not
-        referenced by any classical registers will be removed. Other bits are ignored.
+        Remove classical bits from the circuit. All bits MUST be idle.
+        Any registers with references to at least one of the specified bits will
+        also be removed.
 
         Raises:
-            DAGCircuitError: a clbit is not a Clbit.
+            DAGCircuitError: a clbit is not a Clbit, is not in the circuit,
+            or is not idle.
 
         Returns:
             set(Clbit): The set of Clbits that were removed.
@@ -333,68 +335,50 @@ class DAGCircuit:
         if any(not isinstance(clbit, Clbit) for clbit in clbits):
             raise DAGCircuitError("not a Clbit instance.")
 
-        # ignore clbits not in circuit
-        clbits = set(clbits).intersection(self.clbits)
+        clbits = set(clbits)
+        unknown_clbits = clbits.difference(self.clbits)
+        if unknown_clbits:
+            raise DAGCircuitError("clbits not in circuit: %s" % unknown_clbits)
 
-        # ignore clbits referenced by registers
-        register_clbits = {bit for creg in self.cregs.values() for bit in creg}
-        clbits -= register_clbits
-
-        # ignore clbits that are busy
         busy_clbits = {bit for bit in clbits if not self._is_wire_idle(bit)}
-        clbits -= busy_clbits
+        if busy_clbits:
+            raise DAGCircuitError("clbits not idle: %s" % busy_clbits)
+
+        # remove any references to bits
+        cregs_to_remove = {creg for creg in self.cregs.values() if not clbits.isdisjoint(creg)}
+        self.remove_cregs(*cregs_to_remove)
 
         for clbit in clbits:
             self._remove_idle_wire(clbit)
             self.clbits.remove(clbit)
 
-        return clbits
-
     def remove_cregs(self, *cregs):
         """
-        Remove classical registers from the circuit,
-        removing idle bits that are no longer referenced by any register
-        as a result of this operation.
+        Remove classical registers from the circuit, leaving underlying bits
+        in place.
 
         Raises:
-            DAGCircuitError: a creg is not a ClassicalRegister.
-        Returns:
-            set(Clbit): the bits removed from the circuit as a result of this operation.
+            DAGCircuitError: a creg is not a ClassicalRegister, or is not in
+            the circuit.
         """
         if any(not isinstance(creg, ClassicalRegister) for creg in cregs):
             raise DAGCircuitError("not a ClassicalRegister instance.")
 
-        # Ignore any cregs not in circuit.
-        cregs = set(cregs).intersection(self.cregs.values())
+        unknown_cregs = set(cregs).difference(self.cregs.values())
+        if unknown_cregs:
+            raise DAGCircuitError("cregs not in circuit: %s" % unknown_cregs)
 
-        if not cregs:
-            return set()
-
-        cregs_to_remove = set()
-        clbits_to_remove = set()
-        clbits_to_keep = set()
-        for creg in self.cregs.values():
-            clbits = set(creg)
-            if creg in cregs:
-                cregs_to_remove.add(creg)
-                clbits_to_remove.update(clbits)
-            else:
-                clbits_to_keep.update(clbits)
-
-        clbits_to_remove.difference_update(clbits_to_keep)
-
-        for clbit in clbits_to_remove:
-            if self._is_wire_idle(clbit):
-                self._remove_idle_wire(clbit)
-                self.clbits.remove(clbit)
-
-        for creg in cregs_to_remove:
+        for creg in cregs:
             del self.cregs[creg.name]
 
-        return clbits_to_remove
-
     def _is_wire_idle(self, wire):
-        """Check that a wire is idle."""
+        """Check if a wire is idle.
+
+        Args:
+            wire (Bit): a wire in the circuit.
+
+        Raises:
+            DAGCircuitError: the wire is not in the circuit."""
         if wire not in self._wires:
             raise DAGCircuitError("wire %s not in circuit" % wire)
 
