@@ -81,7 +81,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         Reports `default` when the gate name has no measurement present.
         """
 
-        memoized_value = self._memoized_fidelities_dicts.get(qubit)
+        memoized_value = self._memoized_fidelities_dicts.get((qubit, default))
         if memoized_value is not None:
             return memoized_value
 
@@ -100,7 +100,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 },
             )
 
-        self._memoized_fidelities_dicts[qubit] = memoized_value
+        self._memoized_fidelities_dicts[(qubit, default)] = memoized_value
         return memoized_value
 
     def _resynthesize_run(self, dag, run, atol=DEFAULT_ATOL):
@@ -180,19 +180,16 @@ class Optimize1qGatesDecomposition(TransformationPass):
         )
 
         if self._backend_properties is not None:
-            try:
-                for op in old_run:
-                    if not isinstance(op, DAGOpNode):
-                        continue
-                    old_infidelity += self._backend_properties.gate_error(op.op.name, [qubit])
-            except BackendPropertyError:
-                old_infidelity += float("inf")
+            pessimistic_fidelities = self._generate_fidelities_dict(qubit, default=-float("inf"))
+            optimistic_fidelities = self._generate_fidelities_dict(qubit)
+
+            for op in old_run:
+                if not isinstance(op, DAGOpNode):
+                    continue
+                old_infidelity += 1.0 - pessimistic_fidelities[op.op.name]
 
             for instr, _, _ in new_circ.data:
-                try:
-                    new_infidelity += self._backend_properties.gate_error(instr.name, [qubit])
-                except BackendPropertyError:
-                    pass
+                new_infidelity += 1.0 - optimistic_fidelities[instr.name]
 
         # incorporate a possible trace distance from approximate synthesis
         operator = old_run[0].op.to_matrix()
