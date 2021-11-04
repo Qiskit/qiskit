@@ -25,7 +25,6 @@ from qiskit.dagcircuit import DAGOpNode
 from qiskit.providers.models import BackendProperties
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.quantum_info.operators import Operator, average_gate_fidelity
 from qiskit.quantum_info.synthesis import one_qubit_decompose
 
 logger = logging.getLogger(__name__)
@@ -116,6 +115,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         operator = run[0].op.to_matrix()
         for gate in run[1:]:
             operator = gate.op.to_matrix().dot(operator)
+        operatorH = operator.transpose(1, 0).conjugate()
 
         qubit = next(
             (index for (index, qubit) in enumerate(dag.qubits) if qubit == run[0].qargs[0]), None
@@ -124,7 +124,11 @@ class Optimize1qGatesDecomposition(TransformationPass):
 
         def implementation_infidelity(circuit):
             op_cost = sum(1 - fidelities[x[0].name] for x in circuit)
-            approx_cost = 1 - average_gate_fidelity(Operator(operator), Operator(circuit))
+            circuit_operator = np.eye(2, dtype=complex)
+            for gate, _, _ in circuit:
+                circuit_operator = gate.to_matrix().dot(circuit_operator)
+
+            approx_cost = (4 - np.abs(np.trace(circuit_operator @ operatorH)) ** 2) / 6
             return op_cost + approx_cost
 
         new_circs = {
