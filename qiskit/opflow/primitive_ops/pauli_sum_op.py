@@ -27,7 +27,6 @@ from qiskit.opflow.primitive_ops.pauli_op import PauliOp
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 from qiskit.quantum_info import Pauli, SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
-from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 
 
 class PauliSumOp(PrimitiveOp):
@@ -97,7 +96,7 @@ class PauliSumOp(PrimitiveOp):
                            (Default: False)
 
         Returns:
-            MatrixIterator: matrix iterator object for the PauliTable.
+            MatrixIterator: matrix iterator object for the PauliSumOp.
         """
 
         class MatrixIterator(CustomIterator):
@@ -108,8 +107,7 @@ class PauliSumOp(PrimitiveOp):
 
             def __getitem__(self, key):
                 sumopcoeff = self.obj.coeff * self.obj.primitive.coeffs[key]
-                mat = PauliTable._to_matrix(self.obj.primitive.table.array[key], sparse=sparse)
-                return sumopcoeff * mat
+                return sumopcoeff * self.obj.primitive.paulis[key].to_matrix(sparse=sparse)
 
         return MatrixIterator(self)
 
@@ -224,7 +222,7 @@ class PauliSumOp(PrimitiveOp):
         if front:
             return other.compose(new_self)
         # If self is identity, just return other.
-        if not np.any(new_self.primitive.table.array):
+        if not np.any(np.logical_or(new_self.primitive.paulis.x, new_self.primitive.paulis.z)):
             return other * new_self.coeff * sum(new_self.primitive.coeffs)
 
         # Both PauliSumOps
@@ -313,8 +311,8 @@ class PauliSumOp(PrimitiveOp):
 
             if isinstance(front, DictStateFn):
                 new_dict: Dict[str, int] = defaultdict(int)
-                corrected_x_bits = self.primitive.table.X[::, ::-1]
-                corrected_z_bits = self.primitive.table.Z[::, ::-1]
+                corrected_x_bits = self.primitive.paulis.x[:, ::-1]
+                corrected_z_bits = self.primitive.paulis.z[:, ::-1]
                 coeffs = self.primitive.coeffs
                 for bstr, v in front.primitive.items():
                     bitstr = np.fromiter(bstr, dtype=int).astype(bool)
@@ -356,18 +354,14 @@ class PauliSumOp(PrimitiveOp):
 
         if len(self.primitive) == 1:
             return PauliOp(
-                Pauli((self.primitive.table.Z[0], self.primitive.table.X[0])),
+                Pauli((self.primitive.paulis.z[0], self.primitive.paulis.x[0])),
                 to_native(np.real_if_close(self.primitive.coeffs[0])) * self.coeff,
             )
-        tables = self.primitive.table
         coeffs = np.real_if_close(self.primitive.coeffs)
         return SummedOp(
             [
-                PauliOp(
-                    Pauli((t.Z[0], t.X[0])),
-                    to_native(c),
-                )
-                for t, c in zip(tables, coeffs)
+                PauliOp(pauli, to_native(coeff))
+                for pauli, coeff in zip(self.primitive.paulis, coeffs)
             ],
             coeff=self.coeff,
         )
