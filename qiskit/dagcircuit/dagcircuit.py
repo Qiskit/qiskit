@@ -377,8 +377,12 @@ class DAGCircuit:
         Args:
             wire (Bit): a wire in the circuit.
 
+        Returns:
+            bool: true if the wire is idle, false otherwise.
+
         Raises:
-            DAGCircuitError: the wire is not in the circuit."""
+            DAGCircuitError: the wire is not in the circuit.
+        """
         if wire not in self._wires:
             raise DAGCircuitError("wire %s not in circuit" % wire)
 

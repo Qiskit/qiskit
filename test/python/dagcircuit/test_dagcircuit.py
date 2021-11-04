@@ -278,12 +278,28 @@ class TestDagWireRemoval(QiskitTestCase):
             b for reg in self.original_cregs if reg != self.creg1_alias for b in reg
         ] + [self.individual_clbit]
 
-    def assert_cregs_is(self, cregs, excluding={}):
+    def assert_cregs_is(self, cregs, excluding=None):
+        """Assert test DAG cregs match the expected values.
+
+        Args:
+            cregs (Iterable(ClassicalRegister)): the classical registers to expect
+            excluding: Set(ClassicalRegister): classical registers to remove from
+            ``cregs`` before the comparison."""
+        if excluding is None:
+            excluding = {}
         self.assertDictEqual(
             self.dag.cregs, {creg.name: creg for creg in cregs if creg not in excluding}
         )
 
-    def assert_clbits_is(self, clbits, excluding={}):
+    def assert_clbits_is(self, clbits, excluding=None):
+        """Assert test DAG clbits match the expected values.
+
+        Args:
+            clbits (Iterable(Clbit)): the classical bits to expect
+            excluding: Set(ClassicalRegister): classical bits to remove from
+            ``clbits`` before the comparison."""
+        if excluding is None:
+            excluding = {}
         self.assertListEqual(self.dag.clbits, list(b for b in clbits if b not in excluding))
 
     def test_remove_idle_creg(self):
@@ -316,6 +332,7 @@ class TestDagWireRemoval(QiskitTestCase):
         self.assert_clbits_is(self.original_clbits)
 
     def test_remove_unknown_creg(self):
+        """Classical register removal of unknown registers raises."""
         unknown_creg = ClassicalRegister(1)
         with self.assertRaises(DAGCircuitError):
             self.dag.remove_cregs(unknown_creg)
