@@ -289,7 +289,7 @@ class TestDagWireRemoval(QiskitTestCase):
     def test_remove_busy_creg(self):
         """Removing a classical register composed of both busy and idle
         underlying bits removes the register and only the idle bits."""
-        self.dag.apply_operation_back(Measure(), [self.qubit0, self.clbit0], [])
+        self.dag.apply_operation_back(Measure(), [self.qubit0], [self.clbit0])
         self.dag.remove_cregs(self.creg)
 
         # creg removal always succeeds
@@ -307,7 +307,7 @@ class TestDagWireRemoval(QiskitTestCase):
 
     def test_remove_busy_clbit(self):
         """Classical bit removal ignores busy classical bits."""
-        self.dag.apply_operation_back(Measure(), [self.qubit0, self.individual_clbit], [])
+        self.dag.apply_operation_back(Measure(), [self.qubit0], [self.individual_clbit])
 
         res = self.dag.remove_clbits(self.individual_clbit)
         self.assertFalse(res)
