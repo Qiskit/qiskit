@@ -26,6 +26,7 @@ import retworkx as rx
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.instruction_durations import InstructionDurations
+from qiskit.transpiler.timing_constraints import TimingConstraints
 
 logger = logging.getLogger(__name__)
 
@@ -157,9 +158,22 @@ class Target(Mapping):
         "_instruction_durations",
         "_instruction_schedule_map",
         "dt",
+        "granularity",
+        "min_length",
+        "pulse_alignment",
+        "aquire_alignment",
     )
 
-    def __init__(self, description=None, num_qubits=0, dt=None):
+    def __init__(
+        self,
+        description=None,
+        num_qubits=0,
+        dt=None,
+        granularity=1,
+        min_length=1,
+        pulse_alignment=1,
+        aquire_alignment=1,
+    ):
         """
         Create a new Target object
 
@@ -173,6 +187,20 @@ class Target(Mapping):
                 instructions so the transpiler knows how many qubits are
                 available.
             dt (float): The system time resolution of input signals in seconds
+            granularity (int): An integer value representing minimum pulse gate
+                resolution in units of ``dt``. A user-defined pulse gate should
+                have duration of a multiple of this granularity value.
+            min_length (int): An integer value representing minimum pulse gate
+                length in units of ``dt``. A user-defined pulse gate should be
+                longer than this length.
+            pulse_alignment (int): An integer value representing a time
+                resolution of gate instruction starting time. Gate instruction
+                should start at time which is a multiple of the alignment
+                value.
+            acquire_alignment (int): An integer value representing a time
+                resolution of measure instruction starting time. Measure
+                instruction should start at time which is a multiple of the
+                alignment value.
         """
         self.num_qubits = num_qubits
         # A mapping of gate name -> gate instance
@@ -186,6 +214,10 @@ class Target(Mapping):
         self._coupling_graph = None
         self._instruction_durations = None
         self._instruction_schedule_map = None
+        self.granularity = granularity
+        self.min_length = min_length
+        self.pulse_alignment = pulse_alignment
+        self.aquire_alignment = aquire_alignment
 
     def add_instruction(self, instruction, properties, name=None):
         """Add a new instruction to the :class:`~qiskit.transpiler.Target`
@@ -378,6 +410,16 @@ class Target(Mapping):
                     out_durations.append((instruction, list(qarg), properties.length, "s"))
         self._instruction_durations = InstructionDurations(out_durations)
         return self._instruction_durations
+
+    def timing_constraints(self):
+        """Get an :class:`~qiskit.transpiler.TimingConstraints` object from the target
+
+        Returns:
+            TimingConstraints: The timing constraints represented in the Target
+        """
+        return TimingConstraints(
+            self.granularity, self.min_length, self.pulse_alignment, self.aquire_alignment
+        )
 
     def instruction_schedule_map(self):
         """Return an :class:`~qiskit.pulse.InstructionScheduleMap` for the

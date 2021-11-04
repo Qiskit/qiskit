@@ -957,9 +957,8 @@ def _parse_timing_constraints(backend, timing_constraints, num_circuits):
                 # get constraints from backend
                 timing_constraints = getattr(backend.configuration(), "timing_constraints", {})
             timing_constraints = TimingConstraints(**timing_constraints)
-        # TODO: Update when BackendV2 has representation of TimingConstraints
         else:
-            timing_constraints = TimingConstraints()
+            timing_constraints = backend.target.timing_constraints()
     return [timing_constraints] * num_circuits
 
 

@@ -34,6 +34,7 @@ from qiskit import pulse
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.instruction_durations import InstructionDurations
+from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler import Target
 from qiskit.transpiler import InstructionProperties
 from qiskit.test import QiskitTestCase
@@ -811,11 +812,24 @@ Instructions:
 """
         self.assertEqual(expected, str(target))
 
+    def test_timing_constraints(self):
+        generated_constraints = self.aqt_target.timing_constraints()
+        expected_constraints = TimingConstraints()
+        for i in ["granularity", "min_length", "pulse_alignment", "acquire_alignment"]:
+            self.assertEqual(
+                getattr(generated_constraints, i),
+                getattr(expected_constraints, i),
+                f"Generated constraints differs from expected for attribute {i}"
+                f"{getattr(generated_constraints, i)}!={getattr(expected_constraints, i)}",
+            )
+
 
 class TestPulseTarget(QiskitTestCase):
     def setUp(self):
         super().setUp()
-        self.pulse_target = Target()
+        self.pulse_target = Target(
+            dt=3e-7, granularity=2, min_length=4, pulse_alignment=8, aquire_alignment=8
+        )
         with pulse.build(name="sx_q0") as self.custom_sx_q0:
             pulse.play(pulse.Constant(100, 0.1), pulse.DriveChannel(0))
         with pulse.build(name="sx_q1") as self.custom_sx_q1:
@@ -876,6 +890,7 @@ Instructions:
         self.assertEqual(inst_map, target.instruction_schedule_map())
 
     def test_update_from_instruction_schedule_map_update_schedule(self):
+        self.pulse_target.dt = None
         inst_map = InstructionScheduleMap()
         with pulse.build(name="sx_q1") as custom_sx:
             pulse.play(pulse.Constant(1000, 0.2), pulse.DriveChannel(1))
@@ -934,6 +949,17 @@ Instructions:
         )
         self.assertEqual(self.pulse_target["sx"][(1,)].error, 1.0)
         self.assertIsNone(self.pulse_target["sx"][(0,)].error)
+
+    def test_timing_constraints(self):
+        generated_constraints = self.pulse_target.timing_constraints()
+        expected_constraints = TimingConstraints(2, 4, 8, 8)
+        for i in ["granularity", "min_length", "pulse_alignment", "acquire_alignment"]:
+            self.assertEqual(
+                getattr(generated_constraints, i),
+                getattr(expected_constraints, i),
+                f"Generated constraints differs from expected for attribute {i}"
+                f"{getattr(generated_constraints, i)}!={getattr(expected_constraints, i)}",
+            )
 
 
 class TestInstructionProperties(QiskitTestCase):
