@@ -60,7 +60,7 @@ class Grover(AmplitudeAmplifier):
 
     This class supports oracles in form of a :class:`~qiskit.QuantumCircuit`.
 
-    With the oracle at hand, Grover's Search constructs the Grover operator to amplify the
+    With the given oracle, Grover's Search constructs the Grover operator to amplify the
     amplitudes of the good states:
 
     .. math::
