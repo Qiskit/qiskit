@@ -29,7 +29,7 @@ from .amplitude_amplifier import AmplitudeAmplifier, AmplitudeAmplifierResult
 class Grover(AmplitudeAmplifier):
     r"""Grover's Search algorithm.
 
-    Grover's Search [1, 2] is a well known quantum algorithm for that can be used for
+    Grover's Search [1, 2] is a well known quantum algorithm that can be used for
     searching through unstructured collections of records for particular targets
     with quadratic speedup compared to classical algorithms.
 
