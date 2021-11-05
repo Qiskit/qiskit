@@ -12,6 +12,7 @@
 
 """Test Qiskit's QuantumCircuit class."""
 
+import warnings
 import numpy as np
 
 from qiskit.circuit import (
@@ -346,11 +347,11 @@ class TestCircuitRegisters(QiskitTestCase):
         self.assertRaises(CircuitError, qc.ccx, qr[2:0], qr[4:2], qr[7:5])
 
     def test_apply_cx_to_non_register(self):
-        """test applying ccx to non-register raises"""
+        """test applying cx to non-register raises"""
         qr = QuantumRegister(10)
         cr = ClassicalRegister(10)
         qc = QuantumCircuit(qr, cr)
-        self.assertRaises(CircuitError, qc.cx, qc[0:2], qc[2:4])
+        self.assertRaises(CircuitError, qc.cx, qr[2:1], qr[3:2])
 
     def test_apply_ch_to_slice(self):
         """test applying ch to slice"""
@@ -360,7 +361,13 @@ class TestCircuitRegisters(QiskitTestCase):
         qc = QuantumCircuit(qr, cr)
         ctl_slice = slice(0, 2)
         tgt_slice = slice(2, 4)
-        qc.ch(qr[ctl_slice], qr[tgt_slice])
+
+        # single controlled gates on slices is deprecated
+        # TODO remove once support is dropped
+        with warnings.catch_warnings():
+            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+            qc.ch(qr[ctl_slice], qr[tgt_slice])
+
         for (gate, qargs, _), ictrl, itgt in zip(qc.data, range(0, 2), range(2, 4)):
             self.assertEqual(gate.name, "ch")
             self.assertEqual(len(qargs), 2)
@@ -452,7 +459,13 @@ class TestCircuitRegisters(QiskitTestCase):
             self.assertEqual(qargs[0], qr[index])
         qc = QuantumCircuit(qr, cr)
         ind = [0, 1, 8, 9]
-        qc.cx(qr[ind], qr[2:6])
+
+        # single controlled gates on slices is deprecated
+        # TODO remove once support is dropped
+        with warnings.catch_warnings():
+            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+            qc.cx(qr[ind], qr[2:6])
+
         for (gate, qargs, _), ind1, ind2 in zip(qc.data, ind, range(2, 6)):
             self.assertEqual(gate.name, "cx")
             self.assertEqual(len(qargs), 2)

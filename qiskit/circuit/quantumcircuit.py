@@ -20,6 +20,7 @@ import functools
 import multiprocessing as mp
 import string
 import re
+import warnings
 from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
     Union,
@@ -1164,6 +1165,20 @@ class QuantumCircuit:
             is_parameter = any(isinstance(param, Parameter) for param in instruction.params)
             if is_parameter:
                 instruction = copy.deepcopy(instruction)
+
+        # Deprecate the passing multiple qargs for contolled gates
+        if len(qargs) == 2:  # check if singly-controlled gate
+            # check for multiple qubits
+            if any(isinstance(qarg, list) and len(qarg) > 1 for qarg in qargs):
+                warnings.warn(
+                    "Creating multiple single-controlled gates with a single call, "
+                    "such as QuantumCircuit.cx([0, 1], 2) is deprecated as of Qiskit "
+                    "Terra 0.19.0 and will be removed no sooner than 3 months after it's "
+                    "release date. To construct multiple gates, call the according "
+                    "method multiple times with a single control and target.",
+                    DeprecationWarning,
+                    stacklevel=3,
+                )  # stacklevel 3 to show the correct method call
 
         expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
         expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
