@@ -237,5 +237,11 @@ class Gate(Instruction):
                 3,
             )
             return parameter
+        elif isinstance(parameter, (complex, np.complex)):
+            if np.isclose(np.imag(parameter), 0):
+                return np.real(parameter)
+            else:
+                msg = f"Bound parameter is complex in gate {self.name}"
+                raise CircuitError(msg)
         else:
             raise CircuitError(f"Invalid param type {type(parameter)} for gate {self.name}.")
