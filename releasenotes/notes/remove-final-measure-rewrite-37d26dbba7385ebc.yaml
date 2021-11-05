@@ -13,26 +13,26 @@ features:
 fixes:
   - |
     Fixes determination of final operations (barriers and measures) in pass
-    :class:`~qiskit.transpiler.passes.RemoveFinalMeasurements` and in
+    :class:`~qiskit.transpiler.passes.RemoveFinalMeasurements` and in method
     :meth:`~qiskit.circuit.QuantumCircuit.remove_final_measurements`
     of class :class:`~qiskit.circuit.QuantumCircuit` which previously considered
     only nodes immediately preceding an output node.
   - |
     Fixes determination of final operations in pass
-    :class:`~qiskit.transpiler.passes.RemoveFinalMeasurements` and in
+    :class:`~qiskit.transpiler.passes.RemoveFinalMeasurements` and in method
     :meth:`~qiskit.circuit.QuantumCircuit.remove_final_measurements` of class
     :class:`~qiskit.circuit.QuantumCircuit` which could wrongly consider a barrier
     to be final, even if other circuit operations followed it.
   - |
     Fixes multi-bit classical register removal in pass
-    :class:`~qiskit.transpiler.passes.RemoveFinalMeasurements` and in
+    :class:`~qiskit.transpiler.passes.RemoveFinalMeasurements` and in method
     :meth:`~qiskit.circuit.QuantumCircuit.remove_final_measurements` of class
     :class:`~qiskit.circuit.QuantumCircuit` where classical
     registers were not removed even if other bits were idle, unless a final measure
     was done into each and every bit. Now, classical registers that become idle as a
     result of removing final measurements and barriers are always removed. Classical
     bits are removed if they are referenced only by removed registers or are not
-    referenced at all and became idle due to the removal. This fix also add proper
+    referenced at all and became idle due to the removal. This fix also adds proper
     handling of registers with shared underlying bits.
   - |
     Fixes an issue with :class:`~qiskit.transpiler.passes.RemoveFinalMeasurements`
@@ -41,7 +41,7 @@ fixes:
     ``DAGCircuit.{clbits, _wires, input_map, output_map, _multi_graph}``, which
     resulted in an invalid DAG.
   - |
-    Fixes an issue with :meth:`~qiskit.circuit.QuantumCircuit.remove_final_measurements`
+    Fixes an issue with method :meth:`~qiskit.circuit.QuantumCircuit.remove_final_measurements`
     of class :class:`~qiskit.circuit.QuantumCircuit` that caused ``QuantumCircuit.clbits``
     to be incorrect after invocation. Refer to
     `#7089 <https://github.com/Qiskit/qiskit-terra/issues/7089>`_ for details.
