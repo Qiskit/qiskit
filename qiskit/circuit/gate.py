@@ -237,7 +237,7 @@ class Gate(Instruction):
                 3,
             )
             return parameter
-        elif isinstance(parameter, (complex, np.complex)):
+        elif isinstance(parameter, complex):
             if np.isclose(np.imag(parameter), 0):
                 return np.real(parameter)
             else:

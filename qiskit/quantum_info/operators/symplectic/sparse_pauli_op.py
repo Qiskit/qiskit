@@ -137,15 +137,15 @@ class SparsePauliOp(LinearOp):
 
     def __eq__(self, other):
         """Check if two SparsePauliOp operators are equal"""
-        closeCoeffs = []
+        close_coeffs = []
         for i in range(self.coeffs.shape[0]):
             # Check for Parameters separately
             if isinstance(self.coeffs[i], ParameterExpression):
-                closeCoeffs.append(self._coeffs[i] == other._coeffs[i])
+                close_coeffs.append(self._coeffs[i] == other._coeffs[i])
             else:
-                closeCoeffs.append(np.isclose(self.coeffs[i], other.coeffs[i]))
+                close_coeffs.append(np.isclose(self.coeffs[i], other.coeffs[i]))
 
-        return super().__eq__(other) and np.all(closeCoeffs) and self.paulis == other.paulis
+        return super().__eq__(other) and np.all(close_coeffs) and self.paulis == other.paulis
 
     @property
     def settings(self) -> Dict:
