@@ -3108,7 +3108,8 @@ class QuantumCircuit:
         Args:
             theta: The rotation angle of the gate.
             beta: The phase angle of the gate.
-            qubit1, qubit2: The qubits to apply the gate to.
+            qubit1: The qubit(s) to apply the gate to.
+            qubit2: The qubit(s) to apply the gate to.
 
         Returns:
             A handle to the instructions created.

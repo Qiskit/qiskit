@@ -20,7 +20,7 @@ from qiskit.circuit.parameterexpression import ParameterValueType
 
 class XYGate(Gate):
     r"""XY gate.
-    
+
     A 2-qubit parameterized XX+YY interaction. Its action is to induce
     a coherent rotation by some angle between :math:`|01\rangle` and :math:`|10\rangle`.
 
@@ -75,6 +75,7 @@ class XYGate(Gate):
             rz(-beta) b;
         }
         """
+        # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate
         from .s import SGate, SdgGate
@@ -96,7 +97,7 @@ class XYGate(Gate):
             (RYGate(theta), [q[0]], []),
             (RYGate(theta), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
-            (SdgGate(), [q[1]]),
+            (SdgGate(), [q[1]], []),
             (RZGate(-pi / 2), [q[0]], []),
             (SXdgGate(), [q[0]], []),
             (RZGate(pi / 2), [q[0]], []),
