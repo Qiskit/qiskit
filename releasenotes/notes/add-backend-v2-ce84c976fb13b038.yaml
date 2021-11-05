@@ -5,7 +5,7 @@ features:
     :class:`~qiskit.providers.BackendV2`. This new version is a large change
     from the previous version, :class:`~qiskit.providers.BackendV1` and
     changes both the user access pattern for properties of the backend (like
-    number of qubits, etc) and how the backend represents it's constraints
+    number of qubits, etc) and how the backend represents its constraints
     to the transpiler. The execution of circuits (via the
     :meth:`~qiskit.providers.BackendV2.run` method) remains unchanged. With
     a :class:`~qiskit.providers.BackendV2` backend instead of having a separate
@@ -16,7 +16,7 @@ features:
     :class:`~qiskit.providers.models.BackendProperties`, and
     :class:`~qiskit.providers.models.PulseDefaults` objects respectively,
     like in the :class:`~qiskit.providers.BackendV1` interface, the attributes
-    contained in those output objects are access directly as attributes off
+    contained in those output objects are accessible directly as attributes of
     the :class:`~qiskit.providers.BackendV2` object. For example, to get the
     number of qubits for a backend with :class:`~qiskit.providers.BackendV1`
     you would do::
