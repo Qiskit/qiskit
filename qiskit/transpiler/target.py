@@ -219,7 +219,7 @@ class Target(Mapping):
         self.pulse_alignment = pulse_alignment
         self.aquire_alignment = aquire_alignment
 
-    def add_instruction(self, instruction, properties, name=None):
+    def add_instruction(self, instruction, properties=None, name=None):
         """Add a new instruction to the :class:`~qiskit.transpiler.Target`
 
         As ``Target`` objects are strictly additive this is the primary method
@@ -267,7 +267,8 @@ class Target(Mapping):
                 ``None`` indicates it applies to all qubits and the second ``None``
                 indicates there are no
                 :class:`~qiskit.transpiler.InstructionProperties` for the
-                instruction.
+                instruction. By default, if properties is not set it is equivalent to
+                passing ``{None: None}``.
             name (str): An optional name to use for identifying the instruction. If not
                 specified the :attr:`~qiskit.circuit.Instruction.name` attribute
                 of ``gate`` will be used. All gates in the ``Target`` need unique
@@ -276,6 +277,8 @@ class Target(Mapping):
         Raises:
             AttributeError: If gate is already in map
         """
+        if properties is None:
+            properties = {None: None}
         instruction_name = name or instruction.name
         if instruction_name in self._gate_map:
             raise AttributeError("Instruction %s is already in the target" % instruction_name)
