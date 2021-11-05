@@ -3097,9 +3097,9 @@ class QuantumCircuit:
     def xy(
         self,
         theta: ParameterValueType,
-        beta: ParameterValueType,
         qubit1: QubitSpecifier,
         qubit2: QubitSpecifier,
+        beta: Optional[ParameterValueType] = 0,
     ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.XYGate`.
 

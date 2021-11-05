@@ -58,7 +58,8 @@ class XYGate(Gate):
 
     def _define(self):
         """
-        gate xy(theta) a, b {
+        gate xy(theta, beta) a, b {
+            rz(beta) b;
             rz(-pi/2) a;
             sx a;
             rz(pi/2) a;
@@ -71,6 +72,7 @@ class XYGate(Gate):
             rz(-pi/2) a;
             sxdg a;
             rz(pi/2) a;
+            rz(-beta) b;
         }
         """
         from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -85,17 +87,20 @@ class XYGate(Gate):
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
+            (RZGate(beta), [q[1]], []),
             (RZGate(-pi / 2), [q[0]], []),
             (SXGate(), [q[0]], []),
             (RZGate(pi / 2), [q[0]], []),
             (SGate(), [q[1]], []),
-            (CXGate(), [q[0], q[1]], [])(RYGate(theta), [q[0]], []),
+            (CXGate(), [q[0], q[1]], []),
+            (RYGate(theta), [q[0]], []),
             (RYGate(theta), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
             (SdgGate(), [q[1]]),
             (RZGate(-pi / 2), [q[0]], []),
             (SXdgGate(), [q[0]], []),
             (RZGate(pi / 2), [q[0]], []),
+            (RZGate(-beta), [q[1]], []),
         ]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
@@ -103,17 +108,23 @@ class XYGate(Gate):
         self.definition = qc
 
     def inverse(self):
-        """Return inverse XY gate (i.e. with the negative rotation and phase angles)."""
-        return XYGate(-self.params[0], -self.params[1])
+        """Return inverse XY gate (i.e. with the negative rotation angle and same phase angle)."""
+        return XYGate(-self.params[0], self.params[1])
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the XY gate."""
         import numpy
 
         half_theta = float(self.params[0]) / 2
+        beta = float(self.params[1])
         cos = numpy.cos(half_theta)
         sin = numpy.sin(half_theta)
         return numpy.array(
-            [[1, 0, 0, 0], [0, cos, 1j * sin, 0], [0, 1j * sin, cos, 0], [0, 0, 0, 1]],
+            [
+                [1, 0, 0, 0],
+                [0, cos, 1j * sin * numpy.exp(1j * beta), 0],
+                [0, 1j * sin * numpy.exp(-1j * beta), cos, 0],
+                [0, 0, 0, 1],
+            ],
             dtype=dtype,
         )
