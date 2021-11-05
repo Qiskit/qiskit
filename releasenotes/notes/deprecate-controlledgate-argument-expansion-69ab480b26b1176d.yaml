@@ -1,0 +1,24 @@
+---
+deprecations:
+  - |
+    Deprecate the argument expansion on single controlled qubit gates, such as for example 
+
+    .. code-block::python
+
+        from qiskit.circuit import QuantumCircuit
+
+        circuit = QuantumCircuit(4)
+        circuit.cx([0, 1], [2, 3])
+
+    which would previously create two CX gates, one controlled on qubit 0 and acting on qubit 2
+    and a second one contolled on qubit 1 and acting on qubit 3. Instead, the circuit methods 
+    must now be called once for each gate as 
+
+    .. code-block::python
+
+        from qiskit.circuit import QuantumCircuit
+
+        circuit = QuantumCircuit(4)
+        circuit.cx(0, 2)
+        circuit.cx(1, 3)
+    
