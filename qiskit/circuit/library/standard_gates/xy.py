@@ -17,6 +17,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
 
+
 class XYGate(Gate):
     r"""XY gate.
     
@@ -49,25 +50,27 @@ class XYGate(Gate):
 
     """
 
-    def __init__(self, theta: ParameterValueType, beta: ParameterValueType = 0, label: Optional[str] = None):
+    def __init__(
+        self, theta: ParameterValueType, beta: ParameterValueType = 0, label: Optional[str] = None
+    ):
         """Create new XY gate."""
         super().__init__("xy", 2, [theta, beta], label=label)
 
     def _define(self):
         """
-        gate xy(theta) a, b { 
-            rz(-pi/2) a; 
-            sx a; 
-            rz(pi/2) a; 
-            s b; 
-            cx a, b; 
-            ry(theta) a; 
-            ry(theta) b; 
-            cx a, b; 
-            sdg b; 
-            rz(-pi/2) a; 
-            sxdg a; 
-            rz(pi/2) a; 
+        gate xy(theta) a, b {
+            rz(-pi/2) a;
+            sx a;
+            rz(pi/2) a;
+            s b;
+            cx a, b;
+            ry(theta) a;
+            ry(theta) b;
+            cx a, b;
+            sdg b;
+            rz(-pi/2) a;
+            sxdg a;
+            rz(pi/2) a;
         }
         """
         from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -86,8 +89,7 @@ class XYGate(Gate):
             (SXGate(), [q[0]], []),
             (RZGate(pi / 2), [q[0]], []),
             (SGate(), [q[1]], []),
-            (CXGate(), [q[0], q[1]], [])
-            (RYGate(theta), [q[0]], []),
+            (CXGate(), [q[0], q[1]], [])(RYGate(theta), [q[0]], []),
             (RYGate(theta), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
             (SdgGate(), [q[1]]),
