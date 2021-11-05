@@ -58,9 +58,11 @@ class BlueprintCircuit(QuantumCircuit, ABC):
     @abstractmethod
     def _build(self) -> None:
         """Build the circuit."""
+        print('\n build\n', self._valid, self._data)
         if self._valid:
             return
 
+        self._data = []
         # check whether the configuration is valid
         self._check_configuration()
         self._valid = True
@@ -86,6 +88,8 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         self._qubit_indices = {}
 
         self.add_register(*qregs)
+        print('\n qregs\n', self._data)
+        self._valid = False
 
     @property
     def data(self):
