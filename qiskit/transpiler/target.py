@@ -125,7 +125,7 @@ class Target(Mapping):
         }
         target.add_instruction(RXGate(theta), rx_props)
         rx_30_props = {
-            (0,): InstructionProperties(length=5.23e-6, error=1.2e-5
+            (0,): InstructionProperties(length=1.74e-6, error=.00012)
         }
         target.add_instruction(RXGate(math.pi / 6), rx_30_props, name='rx_30')
 
