@@ -315,7 +315,10 @@ class BackendV2(Backend, ABC):
     @property
     @abstractmethod
     def target(self):
-        """A :class:`qiskit.transpiler.Target` object for the backend."""
+        """A :class:`qiskit.transpiler.Target` object for the backend.
+
+        :rtype: Target
+        """
         pass
 
     @property
