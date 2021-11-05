@@ -705,8 +705,9 @@ class NLocal(BlueprintCircuit):
             parameter in the corresponding direction. If None is returned, problem is fully
             unbounded.
         """
-        if not self._valid:
-            self._build()
+        #if not self._valid:
+        print('\nin param bounds\n', self._valid, id(self._data), self._data)
+        self._build()
         return self._bounds
 
     @parameter_bounds.setter
@@ -801,10 +802,20 @@ class NLocal(BlueprintCircuit):
             AttributeError: If the parameters are given as list and do not match the number
                 of parameters.
         """
-        if not self._valid:
+        print('\nin assign\n', self._valid, id(self._data), self._data)
+        if not self._valid:# and len(self._data) == 0:
             self._build()
+        print('\n *********************',parameters)
+        x = super().assign_parameters(parameters, inplace=inplace)
+        print('\n++++++++++++++++++++++++++', id(self._data), self._data)
+        if x is not None:
+            print('\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX', id(x._data), x._data)
+            #if not self._valid:
+            #    self._build()
+            x._valid = True
+        self._valid = True
 
-        return super().assign_parameters(parameters, inplace=inplace)
+        return x
 
     def _parameterize_block(
         self, block, param_iter=None, rep_num=None, block_num=None, indices=None, params=None
@@ -893,8 +904,17 @@ class NLocal(BlueprintCircuit):
 
             circuit.compose(layer, inplace=True)
 
+    def _invalidate(self):
+        """Invalidate the current circuit build."""
+        print('\n in nlocal inval', id(self._data), self._data)
+        self._data = []
+        self._valid = False
+        #self._parameter_table = ParameterTable()
+        print('\n end nlocal inval', id(self._data), self._data)
+
     def _build(self) -> None:
         """If not already built, build the circuit."""
+        print('\nnlocal build\n', id(self._data), self._data)
         if self._valid:
             return
 
@@ -958,6 +978,7 @@ class NLocal(BlueprintCircuit):
             block = circuit.to_instruction()
 
         self.append(block, self.qubits)
+        print('\nend nlocal build\n', id(self._data), self._data)
 
     # pylint: disable=unused-argument
     def _parameter_generator(self, rep: int, block: int, indices: List[int]) -> Optional[Parameter]:
