@@ -92,8 +92,8 @@ class SparsePauliOp(LinearOp):
             try:
                 coeffs = np.array(coeffs, copy=copy, dtype=complex)
             except TypeError:
-                #Initialize as array of objects if there are parameters.
-                #This is generally avoided since it makes numpy slower.
+                # Initialize as array of objects if there are parameters.
+                # This is generally avoided since it makes numpy slower.
                 coeffs = np.array(coeffs, copy=copy, dtype=object)
 
         if ignore_pauli_phase:
@@ -107,7 +107,7 @@ class SparsePauliOp(LinearOp):
             phase = pauli_list.phase
             try:
                 self._coeffs = np.asarray((-1j) ** phase * coeffs, dtype=complex)
-            except TypeError:    
+            except TypeError:
                 self._coeffs = np.asarray((-1j) ** phase * coeffs, dtype=object)
             pauli_list._phase = np.mod(pauli_list._phase - phase, 4)
             self._pauli_list = pauli_list
@@ -139,17 +139,13 @@ class SparsePauliOp(LinearOp):
         """Check if two SparsePauliOp operators are equal"""
         closeCoeffs = []
         for i in range(self.coeffs.shape[0]):
-            #Check for Parameters separately
+            # Check for Parameters separately
             if isinstance(self.coeffs[i], ParameterExpression):
                 closeCoeffs.append(self._coeffs[i] == other._coeffs[i])
             else:
                 closeCoeffs.append(np.isclose(self.coeffs[i], other.coeffs[i]))
 
-        return (
-            super().__eq__(other)
-            and np.all(closeCoeffs)
-            and self.paulis == other.paulis
-        )
+        return super().__eq__(other) and np.all(closeCoeffs) and self.paulis == other.paulis
 
     @property
     def settings(self) -> Dict:
