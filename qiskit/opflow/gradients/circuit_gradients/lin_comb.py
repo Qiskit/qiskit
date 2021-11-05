@@ -258,7 +258,7 @@ class LinComb(CircuitGradient):
                         )
 
                     raise OpflowError(
-                        "The linear combination gradient does onYly support the "
+                        "The linear combination gradient does only support the "
                         "computation of 1st gradients and 2nd order gradients."
                     )
             else:
@@ -306,6 +306,10 @@ class LinComb(CircuitGradient):
                     prob_dict[key] *= 2
                 return prob_dict
             elif isinstance(item, scipy.sparse.spmatrix):
+                #TODO Generalize
+                if aux_meas_op != Z:
+                    raise Warning('Currently only Z measurements are supported for the chosen '
+                                  'backend.')
                 # Generate the operator which computes the linear combination
                 trace = _z_exp(item)
                 return trace
@@ -648,6 +652,7 @@ class LinComb(CircuitGradient):
         state_qc = QuantumCircuit(*state_op.primitive.qregs, qr_superpos)
         state_qc.h(qr_superpos)
 
+        # TODO Check here
         if not isinstance(meas_op, bool):
             if meas_op is not None:
                 meas_op = meas_op.reduce()
@@ -709,8 +714,10 @@ class LinComb(CircuitGradient):
                         if param_expression != param:  # parameter is not identity, apply chain rule
                             param_grad = param_expression.gradient(param)
                             state *= param_grad
+
                         sub_oplist += [state]
-                    oplist.extend(sub_oplist)
+
+                oplist += [SummedOp(sub_oplist) if len(sub_oplist) > 1 else sub_oplist[0]]
 
         return ListOp(oplist) if len(oplist) > 1 else oplist[0]
 
