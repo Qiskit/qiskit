@@ -37,6 +37,7 @@ def calculate(
         qfi_method=qfi_method,
         regularization=regularization,
     ).convert(operator * 0.5, parameters)
+    #TODO we should include the Circuit Sampler here not below to allow for hashing
 
     return nat_grad
 
@@ -56,3 +57,35 @@ def eval_nat_grad_result(
         raise Warning("The imaginary part of the gradient are non-negligible.")
 
     return nat_grad_result
+
+def eval_grad_result(
+    grad,
+    param_dict: Dict[Parameter, Union[float, complex]],
+    grad_circ_sampler: CircuitSampler,
+    backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
+    ):
+
+    print('param_dict ', param_dict)
+    print(grad)
+    if backend is not None:
+        grad_result = grad_circ_sampler.convert(grad).assign_parameters(param_dict).eval()
+    else:
+        grad_result = grad.assign_parameters(param_dict).eval()
+    # grad_result = grad.assign_parameters(param_dict).eval()
+    if any(np.abs(np.imag(grad_item)) > 1e-8 for grad_item in grad_result):
+        raise Warning("The imaginary part of the gradient are non-negligible.")
+
+    return grad_result
+
+def eval_metric_result(
+    metric,
+    param_dict: Dict[Parameter, Union[float, complex]],
+    metric_circ_sampler: CircuitSampler,
+    backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
+    ):
+    if backend is not None:
+        metric_result = metric_circ_sampler.convert(metric, params=param_dict).eval()
+    else:
+        metric_result = metric.assign_parameters(param_dict).eval()
+
+    return metric_result

@@ -135,7 +135,7 @@ class VarQte(ABC):
 
     def evolve_helper(
         self,
-        operator_coefficient,
+        # operator_coefficient,
         ode_function_generator_callable,
         init_state_param_dict,
         hamiltonian: OperatorBase,
@@ -154,15 +154,17 @@ class VarQte(ABC):
         # TODO bind Hamiltonian?
 
         self._variational_principle._lazy_init(
-            hamiltonian, initial_state, init_state_param_dict, self._regularization
+            hamiltonian, initial_state, init_state_parameters,
+            # self._regularization
         )
         self.bind_initial_state(StateFn(initial_state), init_state_param_dict)
         self._operator = self._variational_principle._operator
         self._validate_operator(self._operator)
 
         # Convert the operator that holds the Hamiltonian and ansatz into a NaturalGradient operator
-        self._operator = operator_coefficient * self._operator / self._operator.coeff
-        self._init_grad_objects()
+
+        self._init_ham_objects()
+
         ode_function_generator = ode_function_generator_callable(init_state_param_dict, t_param)
 
         ode_solver = VarQteOdeSolver(init_state_parameters_values, ode_function_generator)
@@ -189,7 +191,7 @@ class VarQte(ABC):
 
     def bind_initial_state(self, state, param_dict: Dict[Parameter, Union[float, complex]]):
         if self._backend is not None:
-            self._initial_state = self._state_circ_sampler.convert(state, params=param_dict)
+            self._initial_state = self._state_circ_sampler.convert(state, param_dict)
         else:
             self._initial_state = state.assign_parameters(param_dict)
         self._initial_state = self._initial_state.eval().primitive.data
@@ -205,7 +207,7 @@ class VarQte(ABC):
             CircuitSampler(self._backend, caching="all") if self._backend else None
         )
 
-    def _init_grad_objects(self) -> None:
+    def _init_ham_objects(self) -> None:
         """
         Initialize the gradient objects needed to perform VarQTE.
         """
@@ -216,6 +218,7 @@ class VarQte(ABC):
         h_power = self._h ** power
         h_power = ComposedOp([~StateFn(h_power.reduce()), StateFn(self._initial_state)])
         h_power = PauliExpectation().convert(h_power)
+        # TODO Include Sampler here if backend is given
         return h_power
 
     def _create_init_state_param_dict(self, hamiltonian_value_dict, init_state_parameters):

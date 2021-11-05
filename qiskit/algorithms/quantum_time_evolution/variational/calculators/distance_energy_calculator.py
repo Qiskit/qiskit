@@ -12,8 +12,10 @@
 from typing import Union, Dict, Iterable, Optional
 
 import numpy as np
-from qiskit.circuit import Parameter
-from qiskit.opflow import CircuitSampler
+from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.opflow import CircuitSampler, StateFn, OperatorBase
+from qiskit.utils import QuantumInstance
+from qiskit.providers import BaseBackend
 
 
 # TODO change name, refactor expected val calculation, will be used for error bounds
@@ -59,3 +61,27 @@ def _inner_prod(x: Iterable, y: Iterable) -> Union[np.ndarray, np.complex, np.fl
     Returns: Inner product of x,y
     """
     return np.matmul(np.conj(np.transpose(x)), y)
+
+
+def energy(hamiltonian: OperatorBase,
+           ansatz: QuantumCircuit,
+           param_dict: Dict,
+           backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
+          ) -> float:
+    """
+    Compute energy for a given Hamiltonian, Ansatz and parameter dictionary
+    Args:
+        hamiltonian: System Hamiltonian
+        ansatz: parameterized Ansatz
+        param_dict: parameter dictionary
+        backend: Backend used for energy calculation
+
+    Returns: Energy
+
+    """
+    energy = ~StateFn(hamiltonian) @ StateFn(ansatz)
+    if backend is not None:
+        energy = CircuitSampler(backend).convert(energy)
+    energy_val = energy.assign_parameters(param_dict).eval()
+    return energy_val
+

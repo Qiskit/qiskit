@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 from abc import ABC, abstractmethod
-from typing import Union, Dict, Optional
+from typing import Union, Dict, Optional, List
 
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
@@ -43,28 +43,30 @@ class VariationalPrinciple(ABC):
         self,
         hamiltonian,
         ansatz,
-        param_dict: Dict[Parameter, Union[float, complex]],
-        regularization: Optional[str] = None,
+        parameters: List[Parameter],
+        # regularization: Optional[str] = None,
     ):
+
         self._hamiltonian = hamiltonian
         self._ansatz = ansatz
-        self._param_dict = param_dict
         self._operator = ~StateFn(hamiltonian) @ StateFn(ansatz)
-        self._operator = self._operator / self._operator.coeff  # Remove the time from the operator
-        raw_metric_tensor = self._get_raw_metric_tensor(ansatz, param_dict)
+        self._operator = self._operator / self._operator.coeff
+        self._params = parameters
 
-        raw_evolution_grad = self._get_raw_evolution_grad(hamiltonian, ansatz, param_dict)
+        self._raw_metric_tensor = self._get_raw_metric_tensor(ansatz, parameters)
 
-        self._metric_tensor = self._calc_metric_tensor(raw_metric_tensor, param_dict)
-        self._evolution_grad = self._calc_evolution_grad(raw_evolution_grad, param_dict)
+        self._raw_evolution_grad = self._get_raw_evolution_grad(hamiltonian, ansatz, parameters)
 
-        self._nat_grad = self._calc_nat_grad(self._operator, param_dict, regularization)
+        # self._metric_tensor = self._calc_metric_tensor(raw_metric_tensor, param_dict)
+        # self._evolution_grad = self._calc_evolution_grad(raw_evolution_grad, param_dict)
+
+        # self._nat_grad = self._calc_nat_grad(self._operator, param_dict, regularization)
 
     @abstractmethod
     def _get_raw_metric_tensor(
         self,
         ansatz,
-        param_dict: Dict[Parameter, Union[float, complex]],
+        parameters: List[Parameter],
     ):
         pass
 
@@ -73,7 +75,7 @@ class VariationalPrinciple(ABC):
         self,
         hamiltonian,
         ansatz,
-        param_dict: Dict[Parameter, Union[float, complex]],
+        parameters: List[Parameter],
     ):
         pass
 
@@ -100,7 +102,11 @@ class VariationalPrinciple(ABC):
 
     @abstractmethod
     def _calc_error_bound(
-        self, error: float, et: float, h_squared_expectation, h_trip: float, trained_energy: float
+        self, error: float,
+            et: float,
+            h_squared_expectation: float,
+            h_trip: float,
+            trained_energy: float
     ) -> float:
         pass
 

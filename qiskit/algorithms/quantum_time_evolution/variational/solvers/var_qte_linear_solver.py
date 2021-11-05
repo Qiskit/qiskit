@@ -20,11 +20,12 @@ from qiskit.algorithms.quantum_time_evolution.variational.calculators.metric_ten
     eval_metric_tensor,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.calculators.natural_gradient_calculator import (
-    eval_nat_grad_result,
+    eval_nat_grad_result, eval_grad_result, eval_metric_result
 )
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
 )
+from qiskit.opflow.gradients.natural_gradient import NaturalGradient
 from qiskit.circuit import Parameter
 from qiskit.opflow import CircuitSampler
 from qiskit.providers import BaseBackend
@@ -53,6 +54,7 @@ class VarQteLinearSolver:
         param_dict: Dict[Parameter, Union[float, complex]],
         t_param: Optional[Parameter] = None,
         t: Optional[float] = None,
+        regularization: Optional[str] = None,
     ) -> (Union[List, np.ndarray], Union[List, np.ndarray], np.ndarray):
         """
         Solve the system of linear equations underlying McLachlan's variational principle for the
@@ -62,19 +64,61 @@ class VarQteLinearSolver:
             param_dict: Dictionary which relates parameter values to the parameters in the Ansatz.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
             t: Time value that will be bound to t_param.
+            regularization: Use the following regularization with a least square method to solve the
+                underlying system of linear equations
+                Can be either None or ``'ridge'`` or ``'lasso'`` or ``'perturb_diag'``
+                ``'ridge'`` and ``'lasso'`` use an automatic optimal parameter search,
+                or a penalty term given as Callable
+                If regularization is None but the metric is ill-conditioned or singular then
+                a least square solver is used without regularization
         Returns: dω/dt, 2Re⟨dψ(ω)/dω|H|ψ(ω) for VarQITE/ 2Im⟨dψ(ω)/dω|H|ψ(ω) for VarQRTE,
                 Fubini-Study Metric.
         """
 
-        nat_grad_result = eval_nat_grad_result(
-            var_principle._nat_grad,
+        """
+        Get left side, get right side & solve SLE here
+        """
+
+        # nat_grad_result = eval_nat_grad_result(
+        #     var_principle._nat_grad,
+        #     param_dict,
+        #     self._nat_grad_circ_sampler,
+        #     self._backend,
+        # )
+
+        metric_result = eval_metric_result(
+            var_principle._raw_metric_tensor,
             param_dict,
-            self._nat_grad_circ_sampler,
+            self._metric_circ_sampler,
             self._backend,
         )
+        print('Metric result ', metric_result)
+
         if t_param is not None:
             time_dict = {t_param: t}
-            nat_grad_result = nat_grad_result.bind_parameters(time_dict)
+            # TODO
+            # Use var_principle to understand type and get gradient
+            # bind parameters to H(t)
+            # grad
+            # natural gradient with nat_grad_combo_fn(x, regularization=None)
+            grad = var_principle._raw_evolution_grad.bind_parameters(time_dict)
+        else:
+            grad = var_principle._raw_evolution_grad
+            
+
+        # TODO If I can't fix the maximum recursion, add here call to a gradient factory with param_dict
+
+        grad_result = eval_grad_result(
+            grad,
+            param_dict,
+            self._grad_circ_sampler,
+            self._backend,
+        )
+
+        print('Grad result ', grad_result)
+
+        nat_grad_result = NaturalGradient().nat_grad_combo_fn([grad_result, metric_result],
+                                                              regularization=regularization)
 
         print('Natural Gradient Result ', nat_grad_result)
         return np.real(nat_grad_result)
@@ -103,6 +147,7 @@ class VarQteLinearSolver:
         # bind time parameter for the current value of time from the ODE solver
 
         if t_param is not None:
+            # TODO bind here
             time_dict = {t_param: t}
             evolution_grad = evolution_grad.bind_parameters(time_dict)
         grad_res = eval_evolution_grad(

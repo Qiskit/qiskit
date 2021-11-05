@@ -73,7 +73,7 @@ class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):
 
     def _calc_nat_grad(
         self,
-        raw_operator: OperatorBase,
+        raw_operator: OperatorBase, # <ansatz|H|ansatz>
         param_dict: Dict[Parameter, Union[float, complex]],
         regularization: Optional[str] = None,
     ) -> OperatorBase:

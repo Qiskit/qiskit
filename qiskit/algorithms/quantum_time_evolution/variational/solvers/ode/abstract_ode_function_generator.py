@@ -56,7 +56,7 @@ class AbstractOdeFunctionGenerator(ABC):
     def var_qte_ode_function(self, t: float, parameters_values: Iterable) -> Iterable:
         current_param_dict = dict(zip(self._param_dict.keys(), parameters_values))
         nat_grad_res = self._linear_solver._solve_sle(
-            self._variational_principle, current_param_dict, self._t_param, t
+            self._variational_principle, current_param_dict, self._t_param, t, self._regularization
         )
 
         return nat_grad_res

@@ -9,7 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from typing import Union, Dict, Optional
+from typing import Union, Dict, Optional, List
 
 from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
     evolution_grad_calculator,
@@ -19,7 +19,7 @@ from qiskit.algorithms.quantum_time_evolution.variational.principles.real.real_v
     RealVariationalPrinciple,
 )
 from qiskit.circuit import Parameter
-from qiskit.opflow import CircuitQFI, OperatorBase, Y
+from qiskit.opflow import CircuitQFI, OperatorBase, StateFn, SummedOp, ListOp, Y, I
 
 
 class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
@@ -39,10 +39,11 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
     def _get_raw_metric_tensor(
         self,
         ansatz,
-        param_dict: Dict[Parameter, Union[float, complex]],
+        parameters: List[Parameter],
+        # param_dict: Dict[Parameter, Union[float, complex]],
     ):
         raw_metric_tensor_real = metric_tensor_calculator.calculate(
-            ansatz, list(param_dict.keys()), self._qfi_method
+            ansatz, parameters, self._qfi_method
         )
 
         return raw_metric_tensor_real
@@ -51,11 +52,14 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
         self,
         hamiltonian,
         ansatz,
-        param_dict: Dict[Parameter, Union[float, complex]],
+        parameters: List[Parameter],
+        # param_dict: Dict[Parameter, Union[float, complex]],
     ):
+        hamiltonian_ = SummedOp([hamiltonian, ListOp([I ^ hamiltonian.num_qubits, ~StateFn(
+            hamiltonian) @ StateFn(ansatz)], combo_fn=lambda x: x[0]*x[1])])
 
         raw_evolution_grad_imag = evolution_grad_calculator.calculate(
-            hamiltonian, ansatz, list(param_dict.keys()), self._grad_method, basis=-1j * Y
+            hamiltonian_, ansatz, parameters, self._grad_method, basis=-1j * Y
         )
 
         return raw_evolution_grad_imag
