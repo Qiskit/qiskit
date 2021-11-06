@@ -26,6 +26,7 @@ from qiskit.circuit import (
     Instruction,
     Measure,
 )
+from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit.tools import pi_check
 from qiskit.converters import circuit_to_dag
 from qiskit.exceptions import MissingOptionalLibraryError
@@ -48,7 +49,7 @@ except ImportError:
     HAS_PYLATEX = False
 
 
-def get_gate_ctrl_text(op, drawer, style=None):
+def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
     """Load the gate_text and ctrl_text strings based on names and labels"""
     op_label = getattr(op, "label", None)
     op_type = type(op)
@@ -93,9 +94,10 @@ def get_gate_ctrl_text(op, drawer, style=None):
             gate_text = gate_text.replace("~", "$\\neg$").replace("&", "\\&")
             gate_text = f"$\\texttt{{{gate_text}}}$"
         # Capitalize if not a user-created gate or instruction
-        elif (gate_text == op.name and op_type not in (Gate, Instruction)) or (
-            gate_text == base_name and base_type not in (Gate, Instruction)
-        ):
+        elif (
+            (gate_text == op.name and op_type not in (Gate, Instruction))
+            or (gate_text == base_name and base_type not in (Gate, Instruction))
+        ) and (op_type is not PauliEvolutionGate):
             gate_text = f"$\\mathrm{{{gate_text.capitalize()}}}$"
         else:
             gate_text = f"$\\mathrm{{{gate_text}}}$"
@@ -106,10 +108,18 @@ def get_gate_ctrl_text(op, drawer, style=None):
         ctrl_text = f"$\\mathrm{{{ctrl_text}}}$"
 
     # Only captitalize internally-created gate or instruction names
-    elif (gate_text == op.name and op_type not in (Gate, Instruction)) or (
-        gate_text == base_name and base_type not in (Gate, Instruction)
-    ):
+    elif (
+        (gate_text == op.name and op_type not in (Gate, Instruction))
+        or (gate_text == base_name and base_type not in (Gate, Instruction))
+    ) and (op_type is not PauliEvolutionGate):
         gate_text = gate_text.capitalize()
+
+    if drawer == "mpl" and op.name in calibrations:
+        if isinstance(op, ControlledGate):
+            ctrl_text = "" if ctrl_text is None else ctrl_text
+            ctrl_text = "(cal)\n" + ctrl_text
+        else:
+            gate_text = gate_text + "\n(cal)"
 
     return gate_text, ctrl_text, raw_gate_text
 

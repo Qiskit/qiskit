@@ -189,6 +189,31 @@ class CXGate(ControlledGate):
             "cx", 2, [], num_ctrl_qubits=1, label=label, ctrl_state=ctrl_state, base_gate=XGate()
         )
 
+    def _define_qasm3(self):
+        from qiskit.qasm3.ast import (
+            Constant,
+            Identifier,
+            Integer,
+            QuantumBlock,
+            QuantumGateModifier,
+            QuantumGateModifierName,
+            QuantumGateSignature,
+            QuantumGateDefinition,
+            QuantumGateCall,
+        )
+
+        control, target = Identifier("c"), Identifier("t")
+        call = QuantumGateCall(
+            Identifier("U"),
+            [control, target],
+            parameters=[Constant.pi, Integer(0), Constant.pi],
+            modifiers=[QuantumGateModifier(QuantumGateModifierName.ctrl)],
+        )
+        return QuantumGateDefinition(
+            QuantumGateSignature(Identifier("cx"), [control, target]),
+            QuantumBlock([call]),
+        )
+
     def control(
         self,
         num_ctrl_qubits: int = 1,

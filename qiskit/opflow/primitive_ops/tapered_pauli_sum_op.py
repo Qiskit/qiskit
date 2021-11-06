@@ -237,7 +237,7 @@ class Z2Symmetries:
         for pauli in operator:
             stacked_paulis.append(
                 np.concatenate(
-                    (pauli.primitive.table.X[0], pauli.primitive.table.Z[0]), axis=0
+                    (pauli.primitive.paulis.x[0], pauli.primitive.paulis.z[0]), axis=0
                 ).astype(int)
             )
 
@@ -386,12 +386,12 @@ class Z2Symmetries:
             coeff_out = pauli_term.primitive.coeffs[0]
             for idx, qubit_idx in enumerate(self._sq_list):
                 if (
-                    pauli_term.primitive.table.Z[0][qubit_idx]
-                    or pauli_term.primitive.table.X[0][qubit_idx]
+                    pauli_term.primitive.paulis.z[0, qubit_idx]
+                    or pauli_term.primitive.paulis.x[0, qubit_idx]
                 ):
                     coeff_out = curr_tapering_values[idx] * coeff_out
-            z_temp = np.delete(pauli_term.primitive.table.Z[0].copy(), np.asarray(self._sq_list))
-            x_temp = np.delete(pauli_term.primitive.table.X[0].copy(), np.asarray(self._sq_list))
+            z_temp = np.delete(pauli_term.primitive.paulis.z[0].copy(), np.asarray(self._sq_list))
+            x_temp = np.delete(pauli_term.primitive.paulis.x[0].copy(), np.asarray(self._sq_list))
             pauli_list.append((Pauli((z_temp, x_temp)).to_label(), coeff_out))
         spo = SparsePauliOp.from_list(pauli_list).simplify(atol=0.0)
         z2_symmetries = self.copy()
