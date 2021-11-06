@@ -56,11 +56,7 @@ class ConsolidateBlocks(TransformationPass):
         if kak_basis_gate is not None:
             self.decomposer = TwoQubitBasisDecomposer(kak_basis_gate)
         elif basis_gates is not None:
-            kak_basis_gate = unitary_synthesis._choose_kak_gate(basis_gates)
-            if kak_basis_gate is not None:
-                self.decomposer = TwoQubitBasisDecomposer(kak_basis_gate)
-            else:
-                self.decomposer = None
+            self.decomposer = unitary_synthesis._basis_gates_to_decomposer_2q(basis_gates)
         else:
             self.decomposer = TwoQubitBasisDecomposer(CXGate())
 
