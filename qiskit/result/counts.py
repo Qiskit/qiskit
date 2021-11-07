@@ -184,10 +184,6 @@ class Counts(dict):
         """Removes all spaces and underscores from bitstring"""
         return int(bitstring.replace(" ", "").replace("_", ""), 2)
 
-    def size(self):
-        """Return the number of clbits"""
-        return len(next(iter(self)))
-
     def shots(self):
         """Return the number of shots"""
-        return np.array(list(self.values())).sum()
+        return sum(self.values())
