@@ -19,7 +19,7 @@ import numpy as np
 from ddt import ddt, data, unpack
 from qiskit.test import QiskitTestCase
 from qiskit.result import Counts
-from qiskit.mitigation import CompleteReadoutMitigator
+from qiskit.mitigation import CorrelatedReadoutMitigator
 from qiskit.mitigation import TensoredReadoutMitigator
 from qiskit.mitigation.utils import z_diagonal, counts_probability_vector, str2diag
 from qiskit.test.mock import FakeYorktown
@@ -28,7 +28,7 @@ from qiskit.quantum_info.operators.predicates import matrix_equal
 
 @ddt
 class TestReadoutMitigation(QiskitTestCase):
-    """Tests for complete and tensored readout mitigation."""
+    """Tests for correlated and tensored readout mitigation."""
 
     def compare_results(self, res1, res2):
         """Compare the results between two runs"""
@@ -46,7 +46,7 @@ class TestReadoutMitigation(QiskitTestCase):
     @unpack
     def test_mitigation_improvement(self, circuits_data):
         """Test whether readout mitigation led to more accurate results"""
-        CRM = CompleteReadoutMitigator(circuits_data["complete_method_matrix"])
+        CRM = CorrelatedReadoutMitigator(circuits_data["correlated_method_matrix"])
         TRM = TensoredReadoutMitigator(circuits_data["tensor_method_matrices"])
         mitigators = [CRM, TRM]
         for circuit_name, circuit_data in circuits_data["circuits"].items():
@@ -71,7 +71,7 @@ class TestReadoutMitigation(QiskitTestCase):
     @unpack
     def test_expectation_improvement(self, circuits_data):
         """Test whether readout mitigation led to more accurate results"""
-        CRM = CompleteReadoutMitigator(circuits_data["complete_method_matrix"])
+        CRM = CorrelatedReadoutMitigator(circuits_data["correlated_method_matrix"])
         TRM = TensoredReadoutMitigator(circuits_data["tensor_method_matrices"])
         num_qubits = circuits_data["num_qubits"]
         diagonals = []
@@ -112,7 +112,7 @@ class TestReadoutMitigation(QiskitTestCase):
         counts_noise = Counts(
             {"000": 4844, "001": 4962, "100": 56, "101": 65, "011": 37, "010": 35, "110": 1}
         )
-        CRM = CompleteReadoutMitigator(circuits_data["complete_method_matrix"])
+        CRM = CorrelatedReadoutMitigator(circuits_data["correlated_method_matrix"])
         TRM = TensoredReadoutMitigator(circuits_data["tensor_method_matrices"])
         mitigators = [CRM, TRM]
         for mitigator in mitigators:
@@ -148,7 +148,7 @@ class TestReadoutMitigation(QiskitTestCase):
         counts_noise = Counts(
             {"000": 4844, "001": 4962, "100": 56, "101": 65, "011": 37, "010": 35, "110": 1}
         )
-        CRM = CompleteReadoutMitigator(circuits_data["complete_method_matrix"])
+        CRM = CorrelatedReadoutMitigator(circuits_data["correlated_method_matrix"])
         TRM = TensoredReadoutMitigator(circuits_data["tensor_method_matrices"])
         mitigators = [CRM, TRM]
         for mitigator in mitigators:

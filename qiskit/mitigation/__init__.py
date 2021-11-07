@@ -11,5 +11,5 @@
 # that they have been altered from the originals.
 
 """Readout error mitigation."""
-from .complete_readout_mitigator import CompleteReadoutMitigator
+from .correlated_readout_mitigator import CorrelatedReadoutMitigator
 from .tensored_readout_mitigator import TensoredReadoutMitigator

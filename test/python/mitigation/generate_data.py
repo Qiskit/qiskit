@@ -57,7 +57,7 @@ def generate_mitigation_matrices(num_qubits, sim, noise_model, method="tensored"
         noise_model=noise_model,
     ).result()
 
-    if method == "complete":
+    if method == "correlated":
         meas_fitter = mit.CompleteMeasFitter(
             cal_res, state_labels, qubit_list=qubit_list, circlabel="mcal"
         )
@@ -90,8 +90,8 @@ def generate_data(num_qubits, circuits, noise_model=None):
     tensor_method_matrices = generate_mitigation_matrices(
         num_qubits, sim, noise_model, method="tensored"
     )
-    complete_method_matrix = generate_mitigation_matrices(
-        num_qubits, sim, noise_model, method="complete"
+    correlated_method_matrix = generate_mitigation_matrices(
+        num_qubits, sim, noise_model, method="correlated"
     )
     results_noise = execute_circs(circuits, sim, noise_model)
     results_ideal = execute_circs(circuits, sim)  # TODO: should return exact results
@@ -103,7 +103,7 @@ def generate_data(num_qubits, circuits, noise_model=None):
     }
     result = {}
     result["tensor_method_matrices"] = tensor_method_matrices
-    result["complete_method_matrix"] = complete_method_matrix
+    result["correlated_method_matrix"] = correlated_method_matrix
     result["num_qubits"] = num_qubits
     result["circuits"] = {}
     for name in results_noise_dict.keys():
@@ -176,7 +176,7 @@ test_data = {
             array([[0.991175, 0.00415], [0.008825, 0.99585]]),
             array([[0.9886, 0.00565], [0.0114, 0.99435]]),
         ],
-        "complete_method_matrix": array(
+        "correlated_method_matrix": array(
             [
                 [
                     9.771e-01,

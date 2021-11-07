@@ -21,13 +21,13 @@ from .base_readout_mitigator import BaseReadoutMitigator
 from .utils import counts_probability_vector, stddev, expval_with_stddev, z_diagonal, str2diag
 
 
-class CompleteReadoutMitigator(BaseReadoutMitigator):
+class CorrelatedReadoutMitigator(BaseReadoutMitigator):
     """N-qubit readout error mitigator.
     Mitigates expectation_value and quasi_probabilities.
     The mitigation_matrix should be calibrated using qiskit.experiments."""
 
     def __init__(self, amat: np.ndarray):
-        """Initialize a CompleteReadoutMitigator
+        """Initialize a CorrelatedReadoutMitigator
         Args:
             amat (np.array): readout error assignment matrix.
         """
@@ -222,4 +222,3 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
         """
         gamma = self._compute_gamma(qubits=qubits)
         return gamma / np.sqrt(shots)
-

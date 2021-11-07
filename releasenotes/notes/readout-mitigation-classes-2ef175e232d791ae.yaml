@@ -2,7 +2,7 @@
 features:
   - |
     New readout mitigation classes:
-    :class:`~qiskit.mitigation.CompleteReadoutMitigator`,
+    :class:`~qiskit.mitigation.CorrelatedReadoutMitigator`,
     which is based on the A-matrix inversion method, and
     :class:`~qiskit.mitigation.TensoredReadoutMitigator`,
     which is based on the 1-qubit tensored mitigation method.
