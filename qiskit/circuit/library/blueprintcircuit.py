@@ -182,5 +182,5 @@ class BlueprintCircuit(QuantumCircuit, ABC):
             self._build()
         circuit_copy = super().copy(name=name)
         if circuit_copy is not None:
-            circuit_copy._valid = self._valid#True if len(circuit_copy._data) > 0 else False
+            circuit_copy._valid = self._valid
         return circuit_copy
