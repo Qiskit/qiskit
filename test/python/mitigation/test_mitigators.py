@@ -20,7 +20,7 @@ from ddt import ddt, data, unpack
 from qiskit.test import QiskitTestCase
 from qiskit.result import Counts
 from qiskit.mitigation import CorrelatedReadoutMitigator
-from qiskit.mitigation import TensoredReadoutMitigator
+from qiskit.mitigation import LocalReadoutMitigator
 from qiskit.mitigation.utils import z_diagonal, counts_probability_vector, str2diag
 from qiskit.test.mock import FakeYorktown
 from qiskit.quantum_info.operators.predicates import matrix_equal
@@ -28,7 +28,7 @@ from qiskit.quantum_info.operators.predicates import matrix_equal
 
 @ddt
 class TestReadoutMitigation(QiskitTestCase):
-    """Tests for correlated and tensored readout mitigation."""
+    """Tests for correlated and local readout mitigation."""
 
     def compare_results(self, res1, res2):
         """Compare the results between two runs"""
@@ -47,8 +47,8 @@ class TestReadoutMitigation(QiskitTestCase):
     def test_mitigation_improvement(self, circuits_data):
         """Test whether readout mitigation led to more accurate results"""
         CRM = CorrelatedReadoutMitigator(circuits_data["correlated_method_matrix"])
-        TRM = TensoredReadoutMitigator(circuits_data["tensor_method_matrices"])
-        mitigators = [CRM, TRM]
+        LRM = LocalReadoutMitigator(circuits_data["local_method_matrices"])
+        mitigators = [CRM, LRM]
         for circuit_name, circuit_data in circuits_data["circuits"].items():
             counts_ideal = Counts(circuit_data["counts_ideal"])
             counts_noise = Counts(circuit_data["counts_noise"])
@@ -72,7 +72,7 @@ class TestReadoutMitigation(QiskitTestCase):
     def test_expectation_improvement(self, circuits_data):
         """Test whether readout mitigation led to more accurate results"""
         CRM = CorrelatedReadoutMitigator(circuits_data["correlated_method_matrix"])
-        TRM = TensoredReadoutMitigator(circuits_data["tensor_method_matrices"])
+        LRM = LocalReadoutMitigator(circuits_data["local_method_matrices"])
         num_qubits = circuits_data["num_qubits"]
         diagonals = []
         diagonals.append(z_diagonal(2 ** num_qubits))
@@ -80,7 +80,7 @@ class TestReadoutMitigation(QiskitTestCase):
         diagonals.append("ZZZ")
         diagonals.append("101")
         diagonals.append("IZI")
-        mitigators = [CRM, TRM]
+        mitigators = [CRM, LRM]
         for circuit_name, circuit_data in circuits_data["circuits"].items():
             counts_ideal = Counts(circuit_data["counts_ideal"])
             counts_noise = Counts(circuit_data["counts_noise"])
@@ -113,8 +113,8 @@ class TestReadoutMitigation(QiskitTestCase):
             {"000": 4844, "001": 4962, "100": 56, "101": 65, "011": 37, "010": 35, "110": 1}
         )
         CRM = CorrelatedReadoutMitigator(circuits_data["correlated_method_matrix"])
-        TRM = TensoredReadoutMitigator(circuits_data["tensor_method_matrices"])
-        mitigators = [CRM, TRM]
+        LRM = LocalReadoutMitigator(circuits_data["local_method_matrices"])
+        mitigators = [CRM, LRM]
         for mitigator in mitigators:
             mitigated_probs_12 = (
                 mitigator.quasi_probabilities(counts_noise, qubits=[1, 2], clbits=[1, 2])[0]
@@ -149,8 +149,8 @@ class TestReadoutMitigation(QiskitTestCase):
             {"000": 4844, "001": 4962, "100": 56, "101": 65, "011": 37, "010": 35, "110": 1}
         )
         CRM = CorrelatedReadoutMitigator(circuits_data["correlated_method_matrix"])
-        TRM = TensoredReadoutMitigator(circuits_data["tensor_method_matrices"])
-        mitigators = [CRM, TRM]
+        LRM = LocalReadoutMitigator(circuits_data["local_method_matrices"])
+        mitigators = [CRM, LRM]
         for mitigator in mitigators:
             mitigated_probs_012 = (
                 mitigator.quasi_probabilities(counts_noise, qubits=[0, 1, 2])[0]
@@ -186,7 +186,7 @@ class TestReadoutMitigation(QiskitTestCase):
             )
 
     def test_from_backend(self):
-        """Test whether a tensored mitigator can be created directly from backend properties"""
+        """Test whether a local mitigator can be created directly from backend properties"""
         backend = FakeYorktown()
         num_qubits = len(backend.properties().qubits)
         rng = np.random.default_rng(42)
@@ -197,7 +197,7 @@ class TestReadoutMitigation(QiskitTestCase):
                     prop.value = probs[qubit_idx][0]
                 if prop.name == "prob_meas0_prep1":
                     prop.value = probs[qubit_idx][1]
-        TRM_from_backend = TensoredReadoutMitigator(backend=backend)
+        LRM_from_backend = LocalReadoutMitigator(backend=backend)
 
         mats = []
         for qubit_idx in range(num_qubits):
@@ -208,10 +208,10 @@ class TestReadoutMitigation(QiskitTestCase):
                 ]
             )
             mats.append(mat)
-        TRM_from_matrices = TensoredReadoutMitigator(amats=mats)
+        LRM_from_matrices = LocalReadoutMitigator(amats=mats)
         self.assertTrue(
             matrix_equal(
-                TRM_from_backend.assignment_matrix(), TRM_from_matrices.assignment_matrix()
+                LRM_from_backend.assignment_matrix(), LRM_from_matrices.assignment_matrix()
             )
         )
 

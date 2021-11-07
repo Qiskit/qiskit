@@ -12,4 +12,4 @@
 
 """Readout error mitigation."""
 from .correlated_readout_mitigator import CorrelatedReadoutMitigator
-from .tensored_readout_mitigator import TensoredReadoutMitigator
+from .local_readout_mitigator import LocalReadoutMitigator

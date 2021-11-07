@@ -42,7 +42,7 @@ def execute_circs(qc_list, sim, noise_model=None):
     ).result()
 
 
-def generate_mitigation_matrices(num_qubits, sim, noise_model, method="tensored"):
+def generate_mitigation_matrices(num_qubits, sim, noise_model, method="local"):
     """Create the mitigation matrices via simulation running"""
     qr = QuantumRegister(num_qubits)
     qubit_list = range(num_qubits)
@@ -63,7 +63,7 @@ def generate_mitigation_matrices(num_qubits, sim, noise_model, method="tensored"
         )
         return meas_fitter.cal_matrix
 
-    elif method == "tensored":
+    elif method == "local":
         mit_pattern = [[qubit] for qubit in qubit_list]
         meas_fitter = mit.TensoredMeasFitter(cal_res, mit_pattern=mit_pattern, circlabel="mcal")
         return meas_fitter.cal_matrices
@@ -87,8 +87,8 @@ def get_counts(result):
 def generate_data(num_qubits, circuits, noise_model=None):
     """Generate data of a full experiment (matrices + circuit results for specific error model)"""
     sim = Aer.get_backend("aer_simulator")
-    tensor_method_matrices = generate_mitigation_matrices(
-        num_qubits, sim, noise_model, method="tensored"
+    local_method_matrices = generate_mitigation_matrices(
+        num_qubits, sim, noise_model, method="local"
     )
     correlated_method_matrix = generate_mitigation_matrices(
         num_qubits, sim, noise_model, method="correlated"
@@ -102,7 +102,7 @@ def generate_data(num_qubits, circuits, noise_model=None):
         result.header.name: get_counts(result) for result in results_ideal.results
     }
     result = {}
-    result["tensor_method_matrices"] = tensor_method_matrices
+    result["local_method_matrices"] = local_method_matrices
     result["correlated_method_matrix"] = correlated_method_matrix
     result["num_qubits"] = num_qubits
     result["circuits"] = {}
@@ -171,7 +171,7 @@ if __name__ == "__main__":
 
 test_data = {
     "test_1": {
-        "tensor_method_matrices": [
+        "local_method_matrices": [
             array([[0.996525, 0.002], [0.003475, 0.998]]),
             array([[0.991175, 0.00415], [0.008825, 0.99585]]),
             array([[0.9886, 0.00565], [0.0114, 0.99435]]),

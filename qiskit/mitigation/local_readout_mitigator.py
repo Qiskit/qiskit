@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Readout mitigator class based on the 1-qubit tensored mitigation method
+Readout mitigator class based on the 1-qubit local tensored mitigation method
 """
 
 
@@ -22,14 +22,14 @@ from .base_readout_mitigator import BaseReadoutMitigator
 from .utils import counts_probability_vector, stddev, expval_with_stddev, z_diagonal, str2diag
 
 
-class TensoredReadoutMitigator(BaseReadoutMitigator):
+class LocalReadoutMitigator(BaseReadoutMitigator):
     """1-qubit tensor product readout error mitigator.
     Mitigates expectation_value and quasi_probabilities.
     The mitigator should either be calibrated using qiskit.experiments,
     or calculated directly from the backend properties."""
 
     def __init__(self, amats: List[np.ndarray] = None, backend: str = None):
-        """Initialize a TensoredReadoutMitigator
+        """Initialize a LocalReadoutMitigator
         Args:
             amats: Optional, list of single-qubit readout error assignment matrices.
             backend: Optional, backend name.
