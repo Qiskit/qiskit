@@ -73,6 +73,7 @@ class EvolvedOperatorAnsatz(NLocal):
         self._ops_are_parameterized = None
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        """Check if the current configuration is valid."""
         if not super()._check_configuration(raise_on_failure):
             return False
 
