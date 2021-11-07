@@ -17,9 +17,12 @@ Readout mitigator class based on the 1-qubit local tensored mitigation method
 from typing import Optional, List, Tuple, Iterable, Callable, Union
 import numpy as np
 
+from qiskit.providers import Backend
+from qiskit.providers.models import BackendProperties
 from qiskit.result import Counts, QuasiDistribution
 from .base_readout_mitigator import BaseReadoutMitigator
 from .utils import counts_probability_vector, stddev, expval_with_stddev, z_diagonal, str2diag
+from qiskit.exceptions import QiskitError
 
 
 class LocalReadoutMitigator(BaseReadoutMitigator):
@@ -28,14 +31,20 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
     The mitigator should either be calibrated using qiskit.experiments,
     or calculated directly from the backend properties."""
 
-    def __init__(self, amats: List[np.ndarray] = None, backend: str = None):
+    def __init__(
+        self,
+        amats: Optional[List[np.ndarray]] = None,
+        backend: Optional[Union[Backend, BackendProperties]] = None,
+        qubits: Optional[Iterable[int]] = None,
+    ):
         """Initialize a LocalReadoutMitigator
         Args:
             amats: Optional, list of single-qubit readout error assignment matrices.
             backend: Optional, backend name.
         """
+        self._qubits = qubits
         if amats is None:
-            amats = self._from_backend(backend)
+            amats = self._from_backend(backend, qubits)
         self._num_qubits = len(amats)
         self._assignment_mats = amats
         self._mitigation_mats = np.zeros([self._num_qubits, 2, 2], dtype=float)
@@ -220,12 +229,19 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         gamma = self._compute_gamma(qubits=qubits)
         return gamma / np.sqrt(shots)
 
-    def _from_backend(self, backend: str):
+    def _from_backend(self, backend, qubits):
         """Calculates amats from backend properties readout_error"""
-        num_qubits = len(backend.properties().qubits)
+        backend_qubits = backend.properties().qubits
+        if qubits is not None:
+            if any(qubit >= len(backend_qubits) for qubit in qubits):
+                raise QiskitError("The chosen backend does not contain the specified qubits.")
+            reduced_backend_qubits = [backend_qubits[i] for i in qubits]
+            backend_qubits = reduced_backend_qubits
+        num_qubits = len(backend_qubits)
+
         amats = np.zeros([num_qubits, 2, 2], dtype=float)
 
-        for qubit_idx, qubit_prop in enumerate(backend.properties().qubits):
+        for qubit_idx, qubit_prop in enumerate(backend_qubits):
             for prop in qubit_prop:
                 if prop.name == "prob_meas0_prep1":
                     (amats[qubit_idx])[0, 1] = prop.value
@@ -235,3 +251,8 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
                     (amats[qubit_idx])[0, 0] = 1 - prop.value
 
         return amats
+
+    @property
+    def qubits(self) -> Tuple[int]:
+        """The device qubits for this mitigator"""
+        return self._qubits
