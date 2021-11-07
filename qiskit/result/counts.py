@@ -13,7 +13,6 @@
 """A container class for counts from a circuit execution."""
 
 import re
-import numpy as np
 
 from qiskit import exceptions
 from qiskit.result import postprocess
