@@ -20,9 +20,9 @@ import numpy as np
 from qiskit.providers import Backend
 from qiskit.providers.models import BackendProperties
 from qiskit.result import Counts, QuasiDistribution
+from qiskit.exceptions import QiskitError
 from .base_readout_mitigator import BaseReadoutMitigator
 from .utils import counts_probability_vector, stddev, expval_with_stddev, z_diagonal, str2diag
-from qiskit.exceptions import QiskitError
 
 
 class LocalReadoutMitigator(BaseReadoutMitigator):
@@ -45,7 +45,10 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         self._qubits = qubits
         if amats is None:
             amats = self._from_backend(backend, qubits)
-        self._num_qubits = len(amats)
+        if qubits is None:
+            self._num_qubits = len(amats)
+        else:
+            self._num_qubits = len(qubits)
         self._assignment_mats = amats
         self._mitigation_mats = np.zeros([self._num_qubits, 2, 2], dtype=float)
         self._gammas = np.zeros(self._num_qubits, dtype=float)
@@ -161,10 +164,18 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         # Get qubit mitigation matrix and mitigate probs
         if qubits is None:
             qubits = range(self._num_qubits)
-        mit_mat = self.mitigation_matrix(qubits)
+        else:
+            self._num_qubits = len(qubits)
+        ainvs = self._mitigation_mats[list(qubits)]
 
         # Apply transpose of mitigation matrix
-        probs_vec = mit_mat.dot(probs_vec)
+        prob_tens = np.reshape(probs_vec, self._num_qubits * [2])
+        einsum_args = [prob_tens, list(range(self._num_qubits))]
+        for i, ainv in enumerate(reversed(ainvs)):
+            einsum_args += [ainv, [self._num_qubits + i, i]]
+        einsum_args += [list(range(self._num_qubits, 2 * self._num_qubits))]
+        probs_vec = np.einsum(*einsum_args).ravel()
+
         probs_dict = {}
         for index, _ in enumerate(probs_vec):
             probs_dict[index] = probs_vec[index]
