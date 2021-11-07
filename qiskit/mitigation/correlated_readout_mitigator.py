@@ -26,12 +26,17 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
     Mitigates expectation_value and quasi_probabilities.
     The mitigation_matrix should be calibrated using qiskit.experiments."""
 
-    def __init__(self, amat: np.ndarray):
+    def __init__(self, amat: np.ndarray, qubits: Optional[Iterable[int]] = None):
         """Initialize a CorrelatedReadoutMitigator
         Args:
-            amat (np.array): readout error assignment matrix.
+            amat: readout error assignment matrix.
+            qubits: Optional, the measured physical qubits for mitigation.
         """
-        self._num_qubits = int(np.log2(amat.shape[0]))
+        self._qubits = qubits
+        if qubits is None:
+            self._num_qubits = int(np.log2(amat.shape[0]))
+        else:
+            self._num_qubits = len(qubits)
         self._assignment_mat = amat
         self._mitigation_mats = {}
 
@@ -222,3 +227,8 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         """
         gamma = self._compute_gamma(qubits=qubits)
         return gamma / np.sqrt(shots)
+
+    @property
+    def qubits(self) -> Tuple[int]:
+        """The device qubits for this mitigator"""
+        return self._qubits

@@ -100,7 +100,7 @@ def counts_probability_vector(
         return_shots: return the number of shots.
 
     Raises:
-        QiskitError: if qubit and clbit kwargs are not valid.
+        QiskitError: if qubits and clbits kwargs are not valid.
 
     Returns:
         np.ndarray: a probability vector for all count outcomes.
