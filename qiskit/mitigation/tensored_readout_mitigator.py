@@ -209,6 +209,17 @@ class TensoredReadoutMitigator(BaseReadoutMitigator):
             gammas = self._gammas[list(qubits)]
         return np.product(gammas)
 
+    def _stddev_upper_bound(self, shots, qubits):
+        """Return an upper bound on standard deviation of expval estimator.
+        Args:
+            shots: Number of shots used for expectation value measurement.
+            qubits: qubits being measured for operator expval.
+        Returns:
+            float: the standard deviation upper bound.
+        """
+        gamma = self._compute_gamma(qubits=qubits)
+        return gamma / np.sqrt(shots)
+
     def _from_backend(self, backend: str):
         """Calculates amats from backend properties readout_error"""
         num_qubits = len(backend.properties().qubits)

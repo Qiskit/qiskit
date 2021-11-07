@@ -90,7 +90,7 @@ def counts_probability_vector(
     num_qubits: Optional[int] = None,
     return_shots: Optional[bool] = False,
 ) -> np.ndarray:
-    """Compute mitigated expectation value.
+    """Compute a probability vector for all count outcomes.
 
     Args:
         counts: counts object

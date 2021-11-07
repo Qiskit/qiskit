@@ -211,3 +211,15 @@ class CompleteReadoutMitigator(BaseReadoutMitigator):
         """Compute gamma for N-qubit mitigation"""
         mitmat = self.mitigation_matrix(qubits=qubits)
         return np.max(np.sum(np.abs(mitmat), axis=0))
+
+    def _stddev_upper_bound(self, shots, qubits):
+        """Return an upper bound on standard deviation of expval estimator.
+        Args:
+            shots: Number of shots used for expectation value measurement.
+            qubits: qubits being measured for operator expval.
+        Returns:
+            float: the standard deviation upper bound.
+        """
+        gamma = self._compute_gamma(qubits=qubits)
+        return gamma / np.sqrt(shots)
+
