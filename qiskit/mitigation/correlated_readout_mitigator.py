@@ -37,7 +37,7 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
             self._num_qubits = int(np.log2(amat.shape[0]))
             self._qubits = range(self._num_qubits)
         else:
-            self._num_qubits = len(qubits)
+            self._num_qubits = len(self._qubits)
         self._assignment_mat = amat
         self._mitigation_mats = {}
 

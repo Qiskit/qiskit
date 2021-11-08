@@ -44,11 +44,12 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         """
         self._qubits = qubits
         if amats is None:
-            amats = self._from_backend(backend, qubits)
+            amats = self._from_backend(backend, self._qubits)
         if qubits is None:
             self._num_qubits = len(amats)
+            self._qubits = range(self._num_qubits)
         else:
-            self._num_qubits = len(qubits)
+            self._num_qubits = len(self._qubits)
         self._assignment_mats = amats
         self._mitigation_mats = np.zeros([self._num_qubits, 2, 2], dtype=float)
         self._gammas = np.zeros(self._num_qubits, dtype=float)
@@ -103,14 +104,14 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
             which physical qubits these bit-values correspond to as
             ``circuit.measure(qubits, clbits)``.
         """
+        if qubits is not None:
+            self._qubits = qubits
         probs_vec, shots = counts_probability_vector(
-            data, clbits=clbits, qubits=qubits, return_shots=True
+            data, clbits=clbits, qubits=self._qubits, return_shots=True
         )
 
         # Get qubit mitigation matrix and mitigate probs
-        if qubits is None:
-            qubits = range(self._num_qubits)
-        ainvs = self._mitigation_mats[list(qubits)]
+        ainvs = self._mitigation_mats[list(self._qubits)]
 
         # Get operator coeffs
         if diagonal is None:
@@ -157,16 +158,15 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         Raises:
             QiskitError: if qubit and clbit kwargs are not valid.
         """
+        if qubits is not None:
+            self._qubits = qubits
+            self._num_qubits = len(self._qubits)
         probs_vec, shots = counts_probability_vector(
-            data, clbits=clbits, qubits=qubits, return_shots=True
+            data, clbits=clbits, qubits=self._qubits, return_shots=True
         )
 
         # Get qubit mitigation matrix and mitigate probs
-        if qubits is None:
-            qubits = range(self._num_qubits)
-        else:
-            self._num_qubits = len(qubits)
-        ainvs = self._mitigation_mats[list(qubits)]
+        ainvs = self._mitigation_mats[list(self._qubits)]
 
         # Apply transpose of mitigation matrix
         prob_tens = np.reshape(probs_vec, self._num_qubits * [2])
@@ -193,12 +193,12 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         Returns:
             np.ndarray: the measurement error mitigation matrix :math:`A^{-1}`.
         """
-        if qubits is None:
-            qubits = list(range(self._num_qubits))
-        if isinstance(qubits, int):
-            qubits = [qubits]
-        mat = self._mitigation_mats[qubits[0]]
-        for i in qubits[1:]:
+        if qubits is not None:
+            self._qubits = qubits
+        if isinstance(self._qubits, int):
+            self._qubits = [self._qubits]
+        mat = self._mitigation_mats[self._qubits[0]]
+        for i in self._qubits[1:]:
             mat = np.kron(self._mitigation_mats[i], mat)
         return mat
 
@@ -212,13 +212,13 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         Returns:
             np.ndarray: the assignment matrix A.
         """
-        if qubits is None:
-            qubits = list(range(self._num_qubits))
-        if isinstance(qubits, int):
-            qubits = [qubits]
-        mat = self._assignment_mats[qubits[0]]
-        for i in qubits[1:]:
-            mat = np.kron(self._assignment_mats[qubits[i]], mat)
+        if qubits is not None:
+            self._qubits = qubits
+        if isinstance(self._qubits, int):
+            self._qubits = [self._qubits]
+        mat = self._assignment_mats[self._qubits[0]]
+        for i in self._qubits[1:]:
+            mat = np.kron(self._assignment_mats[self._qubits[i]], mat)
         return mat
 
     def _compute_gamma(self, qubits=None):
