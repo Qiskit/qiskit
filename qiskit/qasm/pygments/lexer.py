@@ -73,7 +73,7 @@ class OpenQASMLexer(RegexLexer):
         "ccx",
         "c3x",
         "c4x",
-        "c3sqrtx",
+        "c3sx",
         "rx",
         "ry",
         "rz",

@@ -239,7 +239,7 @@ gate c3x a,b,c,d
     h d;
 }
 // 3-controlled sqrt(X) gate, this equals the C3X gate where the CU1 rotations are -pi/8 not -pi/4
-gate c3sqrtx a,b,c,d
+gate c3sx a,b,c,d
 {
     h d; cu1(pi/8) a,d; h d;
     cx a,b;
@@ -260,7 +260,5 @@ gate c4x a,b,c,d,e
 {
     h e; cu1(pi/2) d,e; h e;
     c3x a,b,c,d;
-    h e; cu1(-pi/2) d,e; h e;
-    c3x a,b,c,d;
-    c3sqrtx a,b,c,e;
+    c3sx a,b,c,e;
 }

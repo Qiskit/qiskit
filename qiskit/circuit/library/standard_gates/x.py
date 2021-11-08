@@ -509,7 +509,7 @@ class C3SXGate(ControlledGate):
 
     def _define(self):
         """
-        gate c3sqrtx a,b,c,d
+        gate c3sx a,b,c,d
         {
             h d; cu1(pi/8) a,d; h d;
             cx a,b;
@@ -832,7 +832,7 @@ class C4XGate(ControlledGate):
     # seems like open controls not hapening?
     def _define(self):
         """
-        gate c3sqrtx a,b,c,d
+        gate c3sx a,b,c,d
         {
             h d; cu1(pi/8) a,d; h d;
             cx a,b;
@@ -854,7 +854,7 @@ class C4XGate(ControlledGate):
             rc3x a,b,c,d;
             h e; cu1(-pi/2) d,e; h e;
             rc3x a,b,c,d;
-            c3sqrtx a,b,c,e;
+            c3sx a,b,c,e;
         }
         """
         # pylint: disable=cyclic-import
