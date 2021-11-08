@@ -78,6 +78,7 @@ Optimizations
    RemoveResetInZeroState
    CrosstalkAdaptiveSchedule
    TemplateOptimization
+   SwapCXSwapToBridge
 
 Calibration
 =============
@@ -191,6 +192,7 @@ from .optimization import CrosstalkAdaptiveSchedule
 from .optimization import HoareOptimizer
 from .optimization import TemplateOptimization
 from .optimization import InverseCancellation
+from .optimization import SwapCXSwapToBridge
 
 # circuit analysis
 from .analysis import ResourceEstimation
