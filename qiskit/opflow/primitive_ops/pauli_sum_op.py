@@ -16,6 +16,7 @@ from collections import defaultdict
 from typing import Dict, List, Optional, Set, Tuple, Union, cast
 
 import numpy as np
+from qiskit.circuit.parameter import Parameter
 from scipy.sparse import spmatrix
 
 from qiskit.circuit import Instruction, ParameterExpression
@@ -357,7 +358,16 @@ class PauliSumOp(PrimitiveOp):
                 Pauli((self.primitive.paulis.z[0], self.primitive.paulis.x[0])),
                 to_native(np.real_if_close(self.primitive.coeffs[0])) * self.coeff,
             )
-        coeffs = np.real_if_close(self.primitive.coeffs)
+        if not self.primitive.coeffs.dtype==object:
+            coeffs = np.real_if_close(self.primitive.coeffs)
+        else:
+            coeffs = []
+            for coeff in self.primitive.coeffs:
+                if not isinstance(coeff, (Parameter, ParameterExpression)):
+                    coeffs.append(np.real_if_close(coeff))
+                else:
+                    coeffs.append(coeff)
+
         return SummedOp(
             [
                 PauliOp(pauli, to_native(coeff))

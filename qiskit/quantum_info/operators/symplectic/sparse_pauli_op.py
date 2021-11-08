@@ -105,10 +105,7 @@ class SparsePauliOp(LinearOp):
         else:
             # move the phase of `pauli_list` to `self._coeffs`
             phase = pauli_list.phase
-            try:
-                self._coeffs = np.asarray((-1j) ** phase * coeffs, dtype=complex)
-            except TypeError:
-                self._coeffs = np.asarray((-1j) ** phase * coeffs, dtype=object)
+            self._coeffs = np.asarray((-1j) ** phase * coeffs, dtype=coeffs.dtype)
             pauli_list._phase = np.mod(pauli_list._phase - phase, 4)
             self._pauli_list = pauli_list
 

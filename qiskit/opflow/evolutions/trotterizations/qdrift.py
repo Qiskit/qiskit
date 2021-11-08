@@ -73,7 +73,7 @@ class QDrift(TrotterizationBase):
         # and multiplication by a constant factor.
         scaled_ops = [(op * (factor / op.coeff)).exp_i() for op in operator_iter]
         sampled_ops = algorithm_globals.random.choice(
-            scaled_ops, size=(int(N * self.reps),), p=weights / lambd
+            scaled_ops, size=(int(N * self.reps),), p=np.array(weights / lambd, dtype=float)
         )
 
         return ComposedOp(sampled_ops).reduce()
