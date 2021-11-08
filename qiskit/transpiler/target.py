@@ -34,13 +34,13 @@ logger = logging.getLogger(__name__)
 class InstructionProperties:
     """A representation of the properties of a gate implementation."""
 
-    __slots__ = ("length", "error", "schedule", "properties")
+    __slots__ = ("length", "error", "calibration", "properties")
 
     def __init__(
         self,
         length: float = None,
         error: float = None,
-        schedule: Union["Schedule", "ScheduleBlock"] = None,
+        calibration: Union["Schedule", "ScheduleBlock"] = None,
         properties: Dict[str, Any] = None,
     ):
         """Create a new ``InstructionProperties`` object
@@ -50,7 +50,7 @@ class InstructionProperties:
                 specified set of qubits
             error: The average error rate for the instruction on the specified
                 set of qubits.
-            schedule: The pulse representation of the instruction
+            calibration: The pulse representation of the instruction
             properties: A free form dictionary of additional properties the
                 backend has for a specified instruction (the
                 :class:`~qiskit.circuit.Instruction` object and qarg pair).
@@ -58,13 +58,13 @@ class InstructionProperties:
         """
         self.length = length
         self.error = error
-        self.schedule = schedule
+        self.calibration = calibration
         self.properties = properties
 
     def __repr__(self):
         return (
             f"InstructionProperties(length={self.length}, error={self.error}"
-            f", schedule={self.schedule}, properties={self.properties})"
+            f", calibration={self.calibration}, properties={self.properties})"
         )
 
 
@@ -346,7 +346,7 @@ class Target(Mapping):
             out_props = {}
             for qarg in inst_map.qubits_with_instruction(inst):
                 sched = inst_map.get(inst, qarg)
-                val = InstructionProperties(schedule=sched)
+                val = InstructionProperties(calibration=sched)
                 try:
                     qarg = tuple(qarg)
                 except TypeError:
@@ -437,8 +437,8 @@ class Target(Mapping):
         out_inst_schedule_map = InstructionScheduleMap()
         for instruction, qargs in self._gate_map.items():
             for qarg, properties in qargs.items():
-                if properties is not None and properties.schedule is not None:
-                    out_inst_schedule_map.add(instruction, qarg, properties.schedule)
+                if properties is not None and properties.calibration is not None:
+                    out_inst_schedule_map.add(instruction, qarg, properties.calibration)
         self._instruction_schedule_map = out_inst_schedule_map
         return out_inst_schedule_map
 
@@ -597,9 +597,9 @@ class Target(Mapping):
                 error = getattr(props, "error", None)
                 if error is not None:
                     prop_str_pieces.append(f"\t\t\tError Rate: {error}\n")
-                schedule = getattr(props, "schedule", None)
+                schedule = getattr(props, "calibration", None)
                 if schedule is not None:
-                    prop_str_pieces.append("\t\t\tWith pulse schedule\n")
+                    prop_str_pieces.append("\t\t\tWith pulse schedule calibration\n")
                 extra_props = getattr(props, "properties", None)
                 if extra_props is not None:
                     extra_props_pieces = [
