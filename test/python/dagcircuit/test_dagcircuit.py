@@ -273,7 +273,7 @@ class TestDagWireRemoval(QiskitTestCase):
 
         self.original_cregs = [self.creg0, self.creg1, self.creg1_alias]
 
-        # skip adding bits of creg2 since it's just an alias for creg1
+        # skip adding bits of creg1_alias since it's just an alias for creg1
         self.original_clbits = [
             b for reg in self.original_cregs if reg != self.creg1_alias for b in reg
         ] + [self.individual_clbit]
