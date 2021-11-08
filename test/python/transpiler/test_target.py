@@ -265,11 +265,11 @@ class TestTarget(QiskitTestCase):
             {"u", "rz", "ry", "rx", "cx", "ecr", "ccx", "measure"},
         )
 
-    def test_instructions(self):
-        self.assertEqual(self.empty_target.instructions, [])
+    def test_operations(self):
+        self.assertEqual(self.empty_target.operations, [])
         ibm_expected = [RZGate(self.theta), IGate(), SXGate(), XGate(), CXGate(), Measure()]
         for gate in ibm_expected:
-            self.assertIn(gate, self.ibm_target.instructions)
+            self.assertIn(gate, self.ibm_target.operations)
         aqt_expected = [
             RZGate(self.theta),
             RXGate(self.theta),
@@ -278,7 +278,7 @@ class TestTarget(QiskitTestCase):
             RXXGate(self.theta),
         ]
         for gate in aqt_expected:
-            self.assertIn(gate, self.aqt_target.instructions)
+            self.assertIn(gate, self.aqt_target.operations)
         fake_expected = [
             UGate(self.fake_backend._theta, self.fake_backend._phi, self.fake_backend._lam),
             CXGate(),
@@ -288,7 +288,7 @@ class TestTarget(QiskitTestCase):
             RXGate(self.fake_backend._theta),
         ]
         for gate in fake_expected:
-            self.assertIn(gate, self.fake_backend_target.instructions)
+            self.assertIn(gate, self.fake_backend_target.operations)
         ideal_sim_expected = [
             UGate(self.theta, self.phi, self.lam),
             RXGate(self.theta),
@@ -300,7 +300,57 @@ class TestTarget(QiskitTestCase):
             Measure(),
         ]
         for gate in ideal_sim_expected:
-            self.assertIn(gate, self.ideal_sim_target.instructions)
+            self.assertIn(gate, self.ideal_sim_target.operations)
+
+    def test_instructions(self):
+        self.assertEqual(self.empty_target.instructions, [])
+        ibm_expected = [
+            (IGate(), (0,)),
+            (IGate(), (1,)),
+            (IGate(), (2,)),
+            (IGate(), (3,)),
+            (IGate(), (4,)),
+            (RZGate(self.theta), (0,)),
+            (RZGate(self.theta), (1,)),
+            (RZGate(self.theta), (2,)),
+            (RZGate(self.theta), (3,)),
+            (RZGate(self.theta), (4,)),
+            (SXGate(), (0,)),
+            (SXGate(), (1,)),
+            (SXGate(), (2,)),
+            (SXGate(), (3,)),
+            (SXGate(), (4,)),
+            (XGate(), (0,)),
+            (XGate(), (1,)),
+            (XGate(), (2,)),
+            (XGate(), (3,)),
+            (XGate(), (4,)),
+            (CXGate(), (3, 4)),
+            (CXGate(), (4, 3)),
+            (CXGate(), (3, 1)),
+            (CXGate(), (1, 3)),
+            (CXGate(), (1, 2)),
+            (CXGate(), (2, 1)),
+            (CXGate(), (0, 1)),
+            (CXGate(), (1, 0)),
+            (Measure(), (0,)),
+            (Measure(), (1,)),
+            (Measure(), (2,)),
+            (Measure(), (3,)),
+            (Measure(), (4,)),
+        ]
+        self.assertEqual(ibm_expected, self.ibm_target.instructions)
+        ideal_sim_expected = [
+            (UGate(self.theta, self.phi, self.lam), None),
+            (RXGate(self.theta), None),
+            (RYGate(self.theta), None),
+            (RZGate(self.theta), None),
+            (CXGate(), None),
+            (ECRGate(), None),
+            (CCXGate(), None),
+            (Measure(), None),
+        ]
+        self.assertEqual(ideal_sim_expected, self.ideal_sim_target.instructions)
 
     def test_get_instruction_from_name(self):
         with self.assertRaises(KeyError):

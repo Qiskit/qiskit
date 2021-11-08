@@ -477,9 +477,17 @@ class Target(Mapping):
         return set(self._gate_map)
 
     @property
-    def instructions(self):
+    def operations(self):
         """Get the :class:`~qiskit.circuit.Instruction` objects in the target."""
         return list(self._gate_name_map.values())
+
+    @property
+    def instructions(self):
+        """Get the list of tuples ``(:class:`~qiskit.circuit.Instruction`, (qargs))``
+        for the target"""
+        return [
+            (self._gate_name_map[op], qarg) for op in self._gate_map for qarg in self._gate_map[op]
+        ]
 
     def _build_coupling_graph(self):
         self._coupling_graph = rx.PyDiGraph(multigraph=False)
