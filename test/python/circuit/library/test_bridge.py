@@ -26,6 +26,7 @@ class TestBridgeGate(QiskitTestCase):
     """Test of Bridge gate."""
 
     def test_threeq_decomposition(self):
+        """Test decomposition of 3-qubit Bridge gate."""
         bridge = BridgeGate(3)
         circuit = bridge.definition
 

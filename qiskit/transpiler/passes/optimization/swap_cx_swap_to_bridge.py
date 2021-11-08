@@ -27,15 +27,15 @@ class SwapCXSwapToBridge(TransformationPass):
     any sequence of such SWAP pairs, not just one pair. For example, the
     following subcircuit will be collected:
 
-                                                           ┌─────────┐
-        q_0: ─X─────────────X─                        q_0: ┤0        ├
-              │             │                              │         │
-        q_1: ─X──X───────X──X─                        q_1: ┤1        ├
-                 │       │             =>                  │  Bridge │
-        q_2: ────X───■───X────                        q_2: ┤2        ├
-                   ┌─┴─┐                                   │         │
-        q_3: ──────┤ X ├──────                        q_3: ┤3        ├
-                   └───┘                                   └─────────┘
+                                                 ┌─────────┐
+    q_0: ─X─────────────X─                  q_0: ┤0        ├
+          │             │                        │         │
+    q_1: ─X──X───────X──X─                  q_1: ┤1        ├
+             │       │            =>             │  Bridge │
+    q_2: ────X───■───X────                  q_2: ┤2        ├
+               ┌─┴─┐                             │         │
+    q_3: ──────┤ X ├──────                  q_3: ┤3        ├
+               └───┘                             └─────────┘
 
     This transpiler pass is particularly useful since routing passes may
     insert such subcircuits and hence it should be run after routing.
@@ -77,11 +77,11 @@ class SwapCXSwapToBridge(TransformationPass):
             if not isinstance(node.op, CXGate):
                 continue
 
-            def follow_qubit_through_swap_pairs(qubit):
+            def follow_qubit_through_swap_pairs(starting_node, qubit):
                 block_nd = []
                 wires = [qubit]
 
-                pred, succ = node, node
+                pred, succ = starting_node, starting_node
                 while True:
                     try:
                         pred, _, _ = next(
@@ -113,12 +113,12 @@ class SwapCXSwapToBridge(TransformationPass):
 
             # follow control qubit
             c_qubit = node.qargs[0]
-            c_block, c_wires = follow_qubit_through_swap_pairs(c_qubit)
+            c_block, c_wires = follow_qubit_through_swap_pairs(node, c_qubit)
             marked.update(c_block)
 
             # follow target qubit
             t_qubit = node.qargs[1]
-            t_block, t_wires = follow_qubit_through_swap_pairs(t_qubit)
+            t_block, t_wires = follow_qubit_through_swap_pairs(node, t_qubit)
             marked.update(t_block)
 
             if not (c_block or t_block):
