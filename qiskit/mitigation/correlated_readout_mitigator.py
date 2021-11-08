@@ -223,11 +223,10 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         """Return an upper bound on standard deviation of expval estimator.
         Args:
             shots: Number of shots used for expectation value measurement.
-            qubits: qubits being measured for operator expval.
         Returns:
             float: the standard deviation upper bound.
         """
-        gamma = self._compute_gamma(qubits=self._qubits)
+        gamma = self._compute_gamma()
         return gamma / np.sqrt(shots)
 
     @property
