@@ -19,7 +19,10 @@ from qiskit.algorithms.quantum_time_evolution.variational.principles.real.real_v
     RealVariationalPrinciple,
 )
 from qiskit.circuit import Parameter
-from qiskit.opflow import CircuitQFI, OperatorBase, StateFn, SummedOp, ListOp, Y, I
+from qiskit.providers import BaseBackend
+from qiskit.utils import QuantumInstance
+from qiskit.opflow import CircuitQFI, OperatorBase, StateFn, SummedOp, Y, I, \
+    PauliExpectation, CircuitSampler
 
 
 class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
@@ -53,14 +56,22 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
         hamiltonian,
         ansatz,
         parameters: List[Parameter],
-        # param_dict: Dict[Parameter, Union[float, complex]],
     ):
-        hamiltonian_ = SummedOp([hamiltonian, ListOp([I ^ hamiltonian.num_qubits, ~StateFn(
-            hamiltonian) @ StateFn(ansatz)], combo_fn=lambda x: x[0]*x[1])])
 
-        raw_evolution_grad_imag = evolution_grad_calculator.calculate(
-            hamiltonian_, ansatz, parameters, self._grad_method, basis=-1j * Y
-        )
+        def raw_evolution_grad_imag(param_dict: Dict,
+                                    backend: Optional[Union[BaseBackend, QuantumInstance]] = None):
+            energy = ~StateFn(hamiltonian) @ StateFn(ansatz)
+            energy = PauliExpectation().convert(energy)
+            #TODO rewrite to be more efficient
+            if backend is not None:
+                energy = CircuitSampler(backend).convert(energy, param_dict).eval()
+            else:
+                energy = energy.assign_parameters(param_dict).eval()
+
+            hamiltonian_ = SummedOp([hamiltonian, -(1) * energy * I ^ hamiltonian.num_qubits])
+
+            return evolution_grad_calculator.calculate(hamiltonian_, ansatz, parameters,
+                                                       self._grad_method, basis=-1j * Y)
 
         return raw_evolution_grad_imag
 

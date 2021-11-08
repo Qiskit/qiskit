@@ -59,19 +59,22 @@ def eval_nat_grad_result(
     return nat_grad_result
 
 def eval_grad_result(
-    grad,
+    grad: Union[OperatorBase, callable],
     param_dict: Dict[Parameter, Union[float, complex]],
     grad_circ_sampler: CircuitSampler,
     backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
     ):
 
-    print('param_dict ', param_dict)
-    print(grad)
-    if backend is not None:
-        grad_result = grad_circ_sampler.convert(grad).assign_parameters(param_dict).eval()
+    if isinstance(grad, OperatorBase):
+        grad_result = grad
     else:
-        grad_result = grad.assign_parameters(param_dict).eval()
-    # grad_result = grad.assign_parameters(param_dict).eval()
+        grad_result = grad(param_dict, backend)
+
+    if backend is not None:
+        grad_result = grad_circ_sampler.convert(grad_result, param_dict)
+    else:
+        grad_result = grad_result.assign_parameters(param_dict)
+    grad_result = grad_result.eval()
     if any(np.abs(np.imag(grad_item)) > 1e-8 for grad_item in grad_result):
         raise Warning("The imaginary part of the gradient are non-negligible.")
 

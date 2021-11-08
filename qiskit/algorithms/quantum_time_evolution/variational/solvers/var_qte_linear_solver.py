@@ -104,9 +104,6 @@ class VarQteLinearSolver:
             grad = var_principle._raw_evolution_grad.bind_parameters(time_dict)
         else:
             grad = var_principle._raw_evolution_grad
-            
-
-        # TODO If I can't fix the maximum recursion, add here call to a gradient factory with param_dict
 
         grad_result = eval_grad_result(
             grad,
