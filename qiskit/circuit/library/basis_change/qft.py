@@ -225,7 +225,7 @@ class QFT(BlueprintCircuit):
         iqft = self.data[0][0].inverse()
         iqft.name = name
 
-        inverted._data = []
+        inverted.data.clear()
         inverted._append(iqft, inverted.qubits, [])
 
         inverted._inverse = not self._inverse
@@ -269,7 +269,7 @@ class QFT(BlueprintCircuit):
                 circuit.swap(i, num_qubits - i - 1)
 
         if self._inverse:
-            circuit._data = circuit.inverse()
+            circuit = circuit.inverse()
 
         wrapped = circuit.to_instruction() if self.insert_barriers else circuit.to_gate()
         self.compose(wrapped, qubits=self.qubits, inplace=True)
