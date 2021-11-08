@@ -35,6 +35,7 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         self._qubits = qubits
         if qubits is None:
             self._num_qubits = int(np.log2(amat.shape[0]))
+            self._qubits = range(self._num_qubits)
         else:
             self._num_qubits = len(qubits)
         self._assignment_mat = amat
@@ -81,14 +82,14 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
             ``circuit.measure(qubits, clbits)``.
         """
 
+        if qubits is not None:
+            self._qubits = qubits
         probs_vec, shots = counts_probability_vector(
-            data, clbits=clbits, qubits=qubits, return_shots=True
+            data, clbits=clbits, qubits=self._qubits, return_shots=True
         )
 
         # Get qubit mitigation matrix and mitigate probs
-        if qubits is None:
-            qubits = range(self._num_qubits)
-        mit_mat = self.mitigation_matrix(qubits)
+        mit_mat = self.mitigation_matrix(self._qubits)
 
         # Get operator coeffs
         if diagonal is None:
@@ -130,14 +131,14 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         Raises:
             QiskitError: if qubit and clbit kwargs are not valid.
         """
+        if qubits is not None:
+            self._qubits = qubits
         probs_vec, shots = counts_probability_vector(
-            data, clbits=clbits, qubits=qubits, return_shots=True
+            data, clbits=clbits, qubits=self._qubits, return_shots=True
         )
 
         # Get qubit mitigation matrix and mitigate probs
-        if qubits is None:
-            qubits = range(self._num_qubits)
-        mit_mat = self.mitigation_matrix(qubits)
+        mit_mat = self.mitigation_matrix(self._qubits)
 
         # Apply transpose of mitigation matrix
         probs_vec = mit_mat.dot(probs_vec)
@@ -158,23 +159,22 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         Returns:
             np.ndarray: the measurement error mitigation matrix :math:`A^{-1}`.
         """
-        if qubits is None:
-            qubits = tuple(range(self._num_qubits))
-        else:
-            qubits = tuple(sorted(qubits))
+        if qubits is not None:
+            self._qubits = qubits
+        self._qubits = tuple(sorted(self._qubits))
 
         # Check for cached mitigation matrix
         # if not present compute
-        if qubits not in self._mitigation_mats:
-            marginal_matrix = self.assignment_matrix(qubits)
+        if self._qubits not in self._mitigation_mats:
+            marginal_matrix = self.assignment_matrix(self._qubits)
             try:
                 mit_mat = np.linalg.inv(marginal_matrix)
             except np.linalg.LinAlgError:
                 # Use pseudo-inverse if matrix is singular
                 mit_mat = np.linalg.pinv(marginal_matrix)
-            self._mitigation_mats[qubits] = mit_mat
+            self._mitigation_mats[self._qubits] = mit_mat
 
-        return self._mitigation_mats[qubits]
+        return self._mitigation_mats[self._qubits]
 
     def assignment_matrix(self, qubits: List[int] = None) -> np.ndarray:
         r"""Return the readout assignment matrix for specified qubits.
@@ -186,19 +186,21 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         Returns:
             np.ndarray: the assignment matrix A.
         """
-        if qubits is None:
+        if qubits is not None:
+            self._qubits = qubits
+        if self._qubits is None:
             return self._assignment_mat
 
-        if isinstance(qubits, int):
-            qubits = [qubits]
+        if isinstance(self._qubits, int):
+            self._qubits = [self._qubits]
 
         # Compute marginal matrix
         axis = tuple(
-            self._num_qubits - 1 - i for i in set(range(self._num_qubits)).difference(qubits)
+            self._num_qubits - 1 - i for i in set(range(self._num_qubits)).difference(self._qubits)
         )
-        num_qubits = len(qubits)
+        num_qubits = len(self._qubits)
         new_amat = np.zeros(2 * [2 ** num_qubits], dtype=float)
-        for i, col in enumerate(self._assignment_mat.T[self._keep_indexes(qubits)]):
+        for i, col in enumerate(self._assignment_mat.T[self._keep_indexes(self._qubits)]):
             new_amat[i] = (
                 np.reshape(col, self._num_qubits * [2]).sum(axis=axis).reshape([2 ** num_qubits])
             )
@@ -212,12 +214,12 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
             indexes += [idx + (1 << i) for idx in indexes]
         return indexes
 
-    def _compute_gamma(self, qubits=None):
+    def _compute_gamma(self):
         """Compute gamma for N-qubit mitigation"""
-        mitmat = self.mitigation_matrix(qubits=qubits)
+        mitmat = self.mitigation_matrix(qubits=self._qubits)
         return np.max(np.sum(np.abs(mitmat), axis=0))
 
-    def _stddev_upper_bound(self, shots, qubits):
+    def _stddev_upper_bound(self, shots):
         """Return an upper bound on standard deviation of expval estimator.
         Args:
             shots: Number of shots used for expectation value measurement.
@@ -225,7 +227,7 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         Returns:
             float: the standard deviation upper bound.
         """
-        gamma = self._compute_gamma(qubits=qubits)
+        gamma = self._compute_gamma(qubits=self._qubits)
         return gamma / np.sqrt(shots)
 
     @property
