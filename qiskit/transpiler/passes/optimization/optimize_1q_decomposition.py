@@ -14,7 +14,6 @@
 
 import copy
 import logging
-import warnings
 
 import numpy as np
 
@@ -110,7 +109,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         if rewriteable_and_in_basis_p and len(old_run) < len(new_circ):
             # NOTE: This is short-circuited on calibrated gates, which we're timid about
             #       reducing.
-            warnings.warn(
+            logger.debug(
                 "Resynthesized \n\n"
                 + "\n".join([str(node.op) for node in old_run])
                 + "\n\nand got\n\n"

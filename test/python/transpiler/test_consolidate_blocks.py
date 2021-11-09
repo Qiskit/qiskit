@@ -26,6 +26,7 @@ from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.measures import process_fidelity
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
+from qiskit.transpiler.passes import Collect1qRuns
 from qiskit.transpiler.passes import Collect2qBlocks
 
 
@@ -280,6 +281,30 @@ class TestConsolidateBlocks(QiskitTestCase):
         qc1 = pass_manager.run(qc)
 
         self.assertEqual(qc, qc1)
+
+    def test_overlapping_block_and_run(self):
+        """Test that an overlapping block and run only consolidate once"""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.t(0)
+        qc.sdg(0)
+        qc.cx(0, 1)
+        qc.t(1)
+        qc.sdg(1)
+        qc.z(1)
+        qc.i(1)
+
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(Collect1qRuns())
+        pass_manager.append(ConsolidateBlocks(force_consolidate=True))
+        result = pass_manager.run(qc)
+        expected = Operator(qc)
+        # Assert output circuit is a single unitary gate equivalent to
+        # unitary of original circuit
+        self.assertEqual(len(result), 1)
+        self.assertIsInstance(result.data[0][0], UnitaryGate)
+        self.assertTrue(np.allclose(result.data[0][0].to_matrix(), expected))
 
     def test_classical_conditions_maintained(self):
         """Test that consolidate blocks doesn't drop the classical conditions

@@ -60,6 +60,7 @@ from qiskit.transpiler.passes import AlignMeasures
 from qiskit.transpiler.passes import ValidatePulseGates
 from qiskit.transpiler.passes import PulseGates
 from qiskit.transpiler.passes import Error
+from qiskit.transpiler.passes import ContainsInstruction
 
 from qiskit.transpiler import TranspilerError
 
@@ -284,8 +285,15 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     # 9. Unify all durations (either SI, or convert to dt if known)
     # Schedule the circuit only when scheduling_method is supplied
-    _scheduling = [TimeUnitConversion(instruction_durations)]
+    _time_unit_setup = [ContainsInstruction("delay")]
+    _time_unit_conversion = [TimeUnitConversion(instruction_durations)]
+
+    def _contains_delay(property_set):
+        return property_set["contains_delay"]
+
+    _scheduling = []
     if scheduling_method:
+        _scheduling += _time_unit_conversion
         if scheduling_method in {"alap", "as_late_as_possible"}:
             _scheduling += [ALAPSchedule(instruction_durations)]
         elif scheduling_method in {"asap", "as_soon_as_possible"}:
@@ -294,12 +302,19 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method)
 
     # 10. Call measure alignment. Should come after scheduling.
-    _alignments = [
-        ValidatePulseGates(
-            granularity=timing_constraints.granularity, min_length=timing_constraints.min_length
-        ),
-        AlignMeasures(alignment=timing_constraints.acquire_alignment),
-    ]
+    if (
+        timing_constraints.granularity != 1
+        or timing_constraints.min_length != 1
+        or timing_constraints.acquire_alignment != 1
+    ):
+        _alignments = [
+            ValidatePulseGates(
+                granularity=timing_constraints.granularity, min_length=timing_constraints.min_length
+            ),
+            AlignMeasures(alignment=timing_constraints.acquire_alignment),
+        ]
+    else:
+        _alignments = []
 
     # Build pass manager
     pm3 = PassManager()
@@ -321,7 +336,11 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     pm3.append(_depth_check + _opt + _unroll, do_while=_opt_control)
     if inst_map and inst_map.has_custom_gate():
         pm3.append(PulseGates(inst_map=inst_map))
-    pm3.append(_scheduling)
+    if scheduling_method:
+        pm3.append(_scheduling)
+    elif instruction_durations:
+        pm3.append(_time_unit_setup)
+        pm3.append(_time_unit_conversion, condition=_contains_delay)
     pm3.append(_alignments)
 
     return pm3
