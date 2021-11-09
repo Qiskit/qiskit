@@ -76,9 +76,10 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
             print('Energy ', energy)
             print("Hamiltonian ", hamiltonian)
             print('Hamiltonian_ ', hamiltonian_)
-
+            basis_operator = Y
+            basis_operator *= -1j
             return evolution_grad_calculator.calculate(hamiltonian_, ansatz, parameters,
-                                                       self._grad_method, basis=-1j * Y)
+                                                       self._grad_method, basis=basis_operator)
 
         return raw_evolution_grad_imag
 
@@ -92,7 +93,7 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
     def _calc_evolution_grad(
         raw_evolution_grad_imag: OperatorBase, param_dict: Dict[Parameter, Union[float, complex]]
     ) -> OperatorBase:
-        return raw_evolution_grad_imag.bind_parameters(param_dict)
+        return raw_evolution_grad_imag.bind_parameters(param_dict) / 2.0
 
     def _calc_nat_grad(
         self,
