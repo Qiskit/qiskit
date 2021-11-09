@@ -68,7 +68,14 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
             else:
                 energy = energy.assign_parameters(param_dict).eval()
 
-            hamiltonian_ = SummedOp([hamiltonian, -(1) * energy * I ^ hamiltonian.num_qubits])
+            energy_term = I ^ hamiltonian.num_qubits
+            energy_term *= -1
+            energy_term *= energy
+            hamiltonian_ = SummedOp([hamiltonian, energy_term])
+            print(' Energy term ', energy_term)
+            print('Energy ', energy)
+            print("Hamiltonian ", hamiltonian)
+            print('Hamiltonian_ ', hamiltonian_)
 
             return evolution_grad_calculator.calculate(hamiltonian_, ansatz, parameters,
                                                        self._grad_method, basis=-1j * Y)

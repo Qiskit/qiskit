@@ -92,7 +92,6 @@ class VarQteLinearSolver:
             self._metric_circ_sampler,
             self._backend,
         )
-        print('Metric result ', metric_result)
 
         if t_param is not None:
             time_dict = {t_param: t}
