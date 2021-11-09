@@ -15,6 +15,7 @@
 
 from pathlib import Path
 
+import qiskit.qasm
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit import Gate, Parameter
 from qiskit.exceptions import QiskitError
@@ -52,8 +53,18 @@ class LoadFromQasmTest(QiskitTestCase):
         q_circuit_2.measure(qr_b, cr_d)
         self.assertEqual(q_circuit, q_circuit_2)
 
+    def get_qelib1_gates(self):
+        qelib1_path = (Path(qiskit.qasm.__file__).parent / "libs/qelib1.inc").absolute()
+        self.assertTrue(qelib1_path.exists())
+        parsed_qasm = qiskit.qasm.Qasm(qelib1_path).parse()
+        gates = set(node.name for node in parsed_qasm.children)
+        self.assertTrue(gates)
+        return gates
+
     def test_loading_all_qelib1_gates(self):
-        """Test setting up a circuit with all gates defined in qiskit/qasm/libs/qelib1.inc."""
+        """
+        Test setting up a circuit with all gates defined in qiskit/qasm/libs/qelib1.inc
+        """
         from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate, UGate
 
         all_gates_qasm = self.qasm_dir / "all_gates.qasm"
@@ -109,6 +120,10 @@ class LoadFromQasmTest(QiskitTestCase):
         ref_circuit.measure([0, 1, 2], [0, 1, 2])
 
         self.assertEqual(qasm_circuit, ref_circuit)
+
+        # check that all qelib1.inc gates are in the circuit
+        qelib1_gates = self.get_qelib1_gates()
+        self.assertTrue(qelib1_gates <= ref_circuit.count_ops().keys())
 
     def test_fail_qasm_file(self):
         """
