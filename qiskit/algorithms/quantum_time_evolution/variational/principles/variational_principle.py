@@ -50,7 +50,7 @@ class VariationalPrinciple(ABC):
         self._hamiltonian = hamiltonian
         self._ansatz = ansatz
         self._operator = ~StateFn(hamiltonian) @ StateFn(ansatz)
-        self._operator = self._operator / self._operator.coeff
+        # self._operator = self._operator / self._operator.coeff
         self._params = parameters
 
         self._raw_metric_tensor = self._get_raw_metric_tensor(ansatz, parameters)

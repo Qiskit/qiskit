@@ -49,7 +49,7 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
             ansatz, parameters, self._qfi_method
         )
 
-        return raw_metric_tensor_real
+        return raw_metric_tensor_real * 0.25
 
     def _get_raw_evolution_grad(
         self,
@@ -72,15 +72,10 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
             energy_term *= -1
             energy_term *= energy
             hamiltonian_ = SummedOp([hamiltonian, energy_term])
-            print(' Energy term ', energy_term)
-            print('Energy ', energy)
-            print("Hamiltonian ", hamiltonian)
-            print('Hamiltonian_ ', hamiltonian_)
             basis_operator = Y
             basis_operator *= -1j
             return evolution_grad_calculator.calculate(hamiltonian_, ansatz, parameters,
                                                        self._grad_method, basis=basis_operator)
-
         return raw_evolution_grad_imag
 
     @staticmethod
