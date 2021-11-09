@@ -1,7 +1,7 @@
 OPENQASM 2.0;
 include "qelib1.inc";
-qreg q[3];
-creg c[3];
+qreg q[5];
+creg c[5];
 
 // note that the order and where the gates are applied to is important!
 
@@ -59,8 +59,11 @@ crz(0.6) q[0], q[1];
 rxx(0.2) q[0], q[1];
 rzz(0.2) q[0], q[1];
 
+rccx q[0], q[1], q[2];
+rc3x q[0], q[1], q[2], q[3];
+c3x q[0], q[1], q[2], q[3];
+c3sx q[0], q[1], q[2], q[3];
+c4x q[0], q[1], q[2], q[3], q[4];
+
 // measure
 measure q->c;
-
-
-
