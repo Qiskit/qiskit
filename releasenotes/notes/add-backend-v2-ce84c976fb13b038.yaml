@@ -66,3 +66,22 @@ features:
     multi-qubit gate connectivity, and tuned variants of the same gates.
     Currently the transpiler doesn't factor in all these constraints, but
     over time it will grow to leverage the extra functionality.
+  - |
+    The :class:`~qiskit.providers.Options` class now has optional support for
+    specifying validators. This enables :class:`~qiskit.providers.Backend`
+    authors to optionally specify basic validation on the user supplied values
+    for fields in the :class:`~qiskit.providers.Options` object. For example,
+    if you had an :class:`~qiskit.providers.Options` object defined with::
+
+      from qiskit.providers.Options
+
+      options = Options(shots=1024)
+
+    you can set a validator on shots for it to be between 1 and 4096 with::
+
+      options.set_validator('shots', (1, 4096))
+
+    With the validator set any call to the
+    :meth:`~qiskit.providers.Options.update_options` method will check that
+    if ``shots`` is being updated the proposed new value is within the valid
+    range.
