@@ -293,7 +293,9 @@ class AmplitudeEstimation(AmplitudeEstimator):
             )
 
         if estimation_problem.objective_qubits is None:
-            raise ValueError("The objective_qubits property of the estimation problem must be set.")
+            raise ValueError(
+                "The objective_qubits property of the estimation problem must be set."
+            )
 
         result = AmplitudeEstimationResult()
         result.num_evaluation_qubits = self._m

@@ -113,7 +113,9 @@ class Register:
         if bits is not None:
             # pylint: disable=isinstance-second-argument-not-valid-type
             if any(not isinstance(bit, self.bit_type) for bit in bits):
-                raise CircuitError("Provided bits did not all match register type. bits=%s" % bits)
+                raise CircuitError(
+                    f"Provided bits did not all match register type. bits={bits}"
+                )
             self._bits = list(bits)
             self._bit_indices = {bit: idx for idx, bit in enumerate(self._bits)}
         else:
