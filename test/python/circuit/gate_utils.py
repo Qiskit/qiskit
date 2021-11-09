@@ -33,7 +33,7 @@ def _get_free_params(fun, ignore=None):
         if (
             param.default == Parameter.empty
             and param.kind != Parameter.VAR_POSITIONAL
-            and name is not "self"
+            and name != "self"
         ):
             if name not in ignore:
                 free_params.append(name)
