@@ -66,7 +66,15 @@ class LoadFromQasmTest(QiskitTestCase):
         Test setting up a circuit with all gates defined in qiskit/qasm/libs/qelib1.inc
         """
         from qiskit.circuit.library import (
-            U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate, UGate, C3XGate, C4XGate, C3SXGate,
+            U1Gate,
+            U2Gate,
+            U3Gate,
+            CU1Gate,
+            CU3Gate,
+            UGate,
+            C3XGate,
+            C4XGate,
+            C3SXGate,
         )
 
         all_gates_qasm = self.qasm_dir / "all_gates.qasm"
@@ -135,10 +143,10 @@ class LoadFromQasmTest(QiskitTestCase):
 
         # check that all qelib1.inc gates are in ref_circuit
         qelib1_gates = self.get_qelib1_gates()
-        qelib1_gates -= {"u0"}    # u0 is not supported outside of qelib1
+        qelib1_gates -= {"u0"}  # u0 is not supported outside of qelib1
         qelib1_gates -= {"rc3x"}  # rc3x is defined as rcccx in RC3XGate class
-        qelib1_gates -= {"c3x"}   # c3x is defined as mcx in C3XGate class
-        qelib1_gates -= {"c4x"}   # c4x is defined as mcx in C4XGate class
+        qelib1_gates -= {"c3x"}  # c3x is defined as mcx in C3XGate class
+        qelib1_gates -= {"c4x"}  # c4x is defined as mcx in C4XGate class
 
         self.assertTrue(qelib1_gates <= ref_ops, msg=qelib1_gates - ref_ops)
 
