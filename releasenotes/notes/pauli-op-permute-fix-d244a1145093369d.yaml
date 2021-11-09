@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    This change fixes a bug in PauliSumOp where permute would raise the error
+    QiskitError: 'Pauli string label "" is not valid.' if the permutation had
+    the same number of pauli terms. Calling permute([2, 1, 0]) on X ^ Y ^ Z
+    no longer raises an error with this fix and now returns Z ^ Y ^ X.
