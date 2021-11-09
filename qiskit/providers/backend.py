@@ -17,6 +17,7 @@
 
 from abc import ABC
 from abc import abstractmethod
+import datetime
 import itertools
 import logging
 from typing import List, Union, Iterable
@@ -267,7 +268,36 @@ class BackendV2(Backend, ABC):
 
     version = 2
 
-    def __init__(self, provider, **fields):
+    def __init__(
+        self,
+        provider,
+        name: str = None,
+        description: str = None,
+        online_date: datetime.datetime = None,
+        backend_version: str = None,
+        **fields,
+    ):
+        """Initialize a BackendV2 based backend
+
+        Args:
+            provider (Provider): A backwards reference to the
+                :class:`~qiskit.transpiler.Provider` object that the backend
+                is from
+            name: An optional name for the backend
+            description: An optional description of the backend
+            online_date: An optional datetime the backend was brought online
+            backend_version: An optional backend version string. This differs
+                from the :attr:`~qiskit.providers.BackendV2.version` attribute
+                as :attr:`~qiskit.providers.BackendV2.version` is for the
+                abstract :attr:`~qiskit.providers.Backend` abstract interface
+                version of the object while ``backend_version`` is for
+                versioning the backend itself.
+
+        Raises:
+            AttributeError: If a field is specified that's outside the backend's
+                options
+        """
+
         self._options = self._default_options()
         self._provider = provider
         self._coupling_map = None
@@ -277,6 +307,10 @@ class BackendV2(Backend, ABC):
                     raise AttributeError("Options field %s is not valid for this backend" % field)
             self._options.update_config(**fields)
         self._basis_gates_all = None
+        self.name = name
+        self.description = description
+        self.online_date = online_date
+        self.backend_version = backend_version
 
     @property
     def instructions(self) -> List[Gate]:
