@@ -197,6 +197,10 @@ class PauliSumOp(PrimitiveOp):
         Raises:
             OpflowError: if indices do not define a new index for each qubit.
         """
+        set_perm = set(permutation)
+        if len(set_perm) != len(permutation) or any(index < 0 for index in set_perm):
+            raise OpflowError(f"List {permutation} is not a permutation.")
+
         if len(permutation) != self.num_qubits:
             raise OpflowError(
                 "List of indices to permute must have the same size as Pauli Operator"
