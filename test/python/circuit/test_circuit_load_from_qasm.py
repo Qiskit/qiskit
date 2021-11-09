@@ -39,7 +39,7 @@ class LoadFromQasmTest(QiskitTestCase):
 
         If all is correct we should get the qasm file loaded in _qasm_file_path
         """
-        q_circuit = QuantumCircuit.from_qasm_file(self.qasm_file_path)
+        q_circuit = QuantumCircuit.from_qasm_file(str(self.qasm_file_path))
         qr_a = QuantumRegister(4, "a")
         qr_b = QuantumRegister(4, "b")
         cr_c = ClassicalRegister(4, "c")
@@ -65,12 +65,14 @@ class LoadFromQasmTest(QiskitTestCase):
         """
         Test setting up a circuit with all gates defined in qiskit/qasm/libs/qelib1.inc
         """
-        from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate, UGate
+        from qiskit.circuit.library import (
+            U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate, UGate, C3XGate, C4XGate, C3SXGate,
+        )
 
         all_gates_qasm = self.qasm_dir / "all_gates.qasm"
-        qasm_circuit = QuantumCircuit.from_qasm_file(all_gates_qasm)
+        qasm_circuit = QuantumCircuit.from_qasm_file(str(all_gates_qasm))
 
-        ref_circuit = QuantumCircuit(3, 3)
+        ref_circuit = QuantumCircuit(5)
 
         # abstract gates (legacy)
         ref_circuit.append(UGate(0.2, 0.1, 0.6), [0])
@@ -117,13 +119,28 @@ class LoadFromQasmTest(QiskitTestCase):
         ref_circuit.crz(0.6, 0, 1)
         ref_circuit.rxx(0.2, 0, 1)
         ref_circuit.rzz(0.2, 0, 1)
-        ref_circuit.measure([0, 1, 2], [0, 1, 2])
 
-        self.assertEqual(qasm_circuit, ref_circuit)
+        ref_circuit.rccx(0, 1, 2)
+        ref_circuit.rcccx(0, 1, 2, 3)
+        ref_circuit.append(C3XGate(), [0, 1, 2, 3])
+        ref_circuit.append(C3SXGate(), [0, 1, 2, 3])
+        ref_circuit.append(C4XGate(), [0, 1, 2, 3, 4])
 
-        # check that all qelib1.inc gates are in the circuit
+        ref_circuit.measure_all()
+
+        # check that ref_circuit contains all the operations from qasm_circuit
+        ref_ops = ref_circuit.count_ops().keys()
+        qasm_ops = qasm_circuit.count_ops().keys()
+        self.assertTrue(qasm_ops <= ref_ops, msg=qasm_ops - ref_ops)
+
+        # check that all qelib1.inc gates are in ref_circuit
         qelib1_gates = self.get_qelib1_gates()
-        self.assertTrue(qelib1_gates <= ref_circuit.count_ops().keys())
+        qelib1_gates -= {"u0"}    # u0 is not supported outside of qelib1
+        qelib1_gates -= {"rc3x"}  # rc3x is defined as rcccx in RC3XGate class
+        qelib1_gates -= {"c3x"}   # c3x is defined as mcx in C3XGate class
+        qelib1_gates -= {"c4x"}   # c4x is defined as mcx in C4XGate class
+
+        self.assertTrue(qelib1_gates <= ref_ops, msg=qelib1_gates - ref_ops)
 
     def test_fail_qasm_file(self):
         """
@@ -267,7 +284,7 @@ class LoadFromQasmTest(QiskitTestCase):
             + "\n"
         )
 
-        q_circuit = QuantumCircuit.from_qasm_file(qasm_filename)
+        q_circuit = QuantumCircuit.from_qasm_file(str(qasm_filename))
 
         self.assertEqual(q_circuit, expected_circuit)
         self.assertEqual(len(q_circuit.cregs), 2)
