@@ -197,12 +197,21 @@ class PauliSumOp(PrimitiveOp):
         Raises:
             OpflowError: if indices do not define a new index for each qubit.
         """
+        set_perm = set(permutation)
+        if len(set_perm) != len(permutation) or any(index < 0 for index in set_perm):
+            raise OpflowError(f"List {permutation} is not a permutation.")
+
         if len(permutation) != self.num_qubits:
             raise OpflowError(
                 "List of indices to permute must have the same size as Pauli Operator"
             )
         length = max(permutation) + 1
-        spop = self.primitive.tensor(SparsePauliOp(Pauli("I" * (length - self.num_qubits))))
+
+        if length > self.num_qubits:
+            spop = self.primitive.tensor(SparsePauliOp(Pauli("I" * (length - self.num_qubits))))
+        else:
+            spop = self.primitive
+
         permutation = [i for i in range(length) if i not in permutation] + permutation
         permu_arr = np.arange(length)[np.argsort(permutation)]
         spop.paulis.x = spop.paulis.x[:, permu_arr]
