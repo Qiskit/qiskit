@@ -169,6 +169,10 @@ class TestPauliSumOp(QiskitOpflowTestCase):
 
         self.assertEqual(pauli_sum.permute([1, 2, 4]), expected)
 
+        pauli_sum = PauliSumOp(SparsePauliOp((X ^ Y ^ Z).primitive))
+        expected = PauliSumOp(SparsePauliOp((Z ^ Y ^ X).primitive))
+        self.assertEqual(pauli_sum.permute([2, 1, 0]), expected)
+
     def test_compose(self):
         """compose test"""
         target = (X + Z) @ (Y + Z)

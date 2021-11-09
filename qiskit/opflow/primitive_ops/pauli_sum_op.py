@@ -202,7 +202,12 @@ class PauliSumOp(PrimitiveOp):
                 "List of indices to permute must have the same size as Pauli Operator"
             )
         length = max(permutation) + 1
-        spop = self.primitive.tensor(SparsePauliOp(Pauli("I" * (length - self.num_qubits))))
+
+        if length > self.num_qubits:
+            spop = self.primitive.tensor(SparsePauliOp(Pauli("I" * (length - self.num_qubits))))
+        else:
+            spop = self.primitive
+
         permutation = [i for i in range(length) if i not in permutation] + permutation
         permu_arr = np.arange(length)[np.argsort(permutation)]
         spop.paulis.x = spop.paulis.x[:, permu_arr]
