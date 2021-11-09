@@ -54,6 +54,9 @@ class LoadFromQasmTest(QiskitTestCase):
         self.assertEqual(q_circuit, q_circuit_2)
 
     def get_qelib1_gates(self):
+        """
+        Get all the gates from qelib1.inc library as a set of strings
+        """
         qelib1_path = (Path(qiskit.qasm.__file__).parent / "libs/qelib1.inc").absolute()
         self.assertTrue(qelib1_path.exists())
         parsed_qasm = qiskit.qasm.Qasm(qelib1_path).parse()
