@@ -657,9 +657,9 @@ class LinComb(CircuitGradient):
             if meas_op is not None:
                 meas_op = meas_op.reduce()
 
-            # if np.iscomplex(meas_op._coeff):
-            #     state_qc.s(qr_superpos)
-            #     meas_op._coeff /= 1j
+                # if np.iscomplex(meas_op._coeff):
+                #     state_qc.s(qr_superpos)
+                #     meas_op._coeff /= 1j
 
         state_qc.compose(unrolled, inplace=True)
 

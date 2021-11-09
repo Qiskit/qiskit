@@ -73,7 +73,8 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
             energy_term *= energy
             hamiltonian_ = SummedOp([hamiltonian, energy_term])
             basis_operator = Y
-            basis_operator *= -1j
+            # TODO Something here is weird. The -1j are not added properly
+            # basis_operator *= -1j
             return evolution_grad_calculator.calculate(hamiltonian_, ansatz, parameters,
                                                        self._grad_method, basis=basis_operator)
         return raw_evolution_grad_imag
