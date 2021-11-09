@@ -69,14 +69,6 @@ class FakeBackendV2(BackendV2):
         return self._target
 
     @property
-    def conditional(self):
-        return False
-
-    @property
-    def max_shots(self):
-        return None
-
-    @property
     def max_circuits(self):
         return None
 

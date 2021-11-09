@@ -377,22 +377,6 @@ class BackendV2(Backend, ABC):
 
     @property
     @abstractmethod
-    def conditional(self) -> bool:
-        """Return bool whether the target can execute gates with classical
-        conditions."""
-        pass
-
-    @property
-    @abstractmethod
-    def max_shots(self) -> int:
-        """Return the maximum number of shots supported by the backend.
-
-        If there is no limit this will return None
-        """
-        pass
-
-    @property
-    @abstractmethod
     def max_circuits(self):
         """The maximum number of circuits (or Pulse schedules) that can be
         run in a single job.
