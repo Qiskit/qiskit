@@ -472,8 +472,8 @@ class Target(Mapping):
         return [self._gate_name_map[x] for x in self._qarg_gate_map[qarg]]
 
     @property
-    def instruction_names(self):
-        """Get the instruction names in the target."""
+    def operation_names(self):
+        """Get the operation names in the target."""
         return set(self._gate_map)
 
     @property

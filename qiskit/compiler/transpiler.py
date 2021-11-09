@@ -639,7 +639,7 @@ def _parse_basis_gates(basis_gates, backend, circuits):
             if getattr(backend, "configuration", None):
                 basis_gates = getattr(backend.configuration(), "basis_gates", None)
         else:
-            basis_gates = backend.instruction_names
+            basis_gates = backend.operation_names
     # basis_gates could be None, or a list of basis, e.g. ['u3', 'cx']
     if basis_gates is None or (
         isinstance(basis_gates, list) and all(isinstance(i, str) for i in basis_gates)

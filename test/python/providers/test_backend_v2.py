@@ -38,7 +38,7 @@ class TestBackendV2(QiskitTestCase):
         self.assertEqual(
             log.output,
             [
-                "WARNING:qiskit.providers.backend:This backend's instructions: "
+                "WARNING:qiskit.providers.backend:This backend's operations: "
                 "ecr only apply to a subset of qubits. Using this property to "
                 "get 'basis_gates' for the transpiler may potentially create "
                 "invalid output"

@@ -250,18 +250,14 @@ class TestTarget(QiskitTestCase):
         self.assertEqual(self.ideal_sim_target.get_qargs("cx"), {None})
 
     def test_instruction_names(self):
-        self.assertEqual(self.empty_target.instruction_names, set())
+        self.assertEqual(self.empty_target.operation_names, set())
+        self.assertEqual(self.ibm_target.operation_names, {"rz", "id", "sx", "x", "cx", "measure"})
+        self.assertEqual(self.aqt_target.operation_names, {"rz", "ry", "rx", "rxx", "r", "measure"})
         self.assertEqual(
-            self.ibm_target.instruction_names, {"rz", "id", "sx", "x", "cx", "measure"}
+            self.fake_backend_target.operation_names, {"u", "cx", "measure", "ecr", "rx_30", "rx"}
         )
         self.assertEqual(
-            self.aqt_target.instruction_names, {"rz", "ry", "rx", "rxx", "r", "measure"}
-        )
-        self.assertEqual(
-            self.fake_backend_target.instruction_names, {"u", "cx", "measure", "ecr", "rx_30", "rx"}
-        )
-        self.assertEqual(
-            self.ideal_sim_target.instruction_names,
+            self.ideal_sim_target.operation_names,
             {"u", "rz", "ry", "rx", "cx", "ecr", "ccx", "measure"},
         )
 

@@ -20,12 +20,12 @@ from abc import abstractmethod
 import datetime
 import itertools
 import logging
-from typing import List, Union, Iterable
+from typing import List, Union, Iterable, Tuple
 
 import numpy as np
 
 from qiskit.providers.models.backendstatus import BackendStatus
-from qiskit.circuit.gate import Gate
+from qiskit.circuit.gate import Instruction
 
 logger = logging.getLogger(__name__)
 
@@ -313,9 +313,14 @@ class BackendV2(Backend, ABC):
         self.backend_version = backend_version
 
     @property
-    def instructions(self) -> List[Gate]:
+    def instructions(self) -> List[Tuple[Instruction, Tuple[int]]]:
+        """A list of Instruction tuples on the backend of the form ``(instruction, (qubits)``"""
+        return self.target.instructions
+
+    @property
+    def operations(self) -> List[Instruction]:
         """A list of :class:`~qiskit.circuit.Instruction` instances that the backend supports."""
-        return list(self.target.instructions)
+        return list(self.target.operations)
 
     def _compute_incomplete_basis(self):
         incomplete_basis_gates = []
@@ -332,19 +337,19 @@ class BackendV2(Backend, ABC):
         self._basis_gates_all = incomplete_basis_gates
 
     @property
-    def instruction_names(self) -> List[str]:
+    def operation_names(self) -> List[str]:
         """A list of instruction names that the backend supports."""
         if self._basis_gates_all is None:
             self._compute_incomplete_basis()
         if self._basis_gates_all:
             invalid_str = ",".join(self._basis_gates_all)
             msg = (
-                f"This backend's instructions: {invalid_str} only apply to a subset of "
+                f"This backend's operations: {invalid_str} only apply to a subset of "
                 "qubits. Using this property to get 'basis_gates' for the "
                 "transpiler may potentially create invalid output"
             )
             logger.warning(msg)
-        return list(self.target.instruction_names)
+        return list(self.target.operation_names)
 
     @property
     @abstractmethod
