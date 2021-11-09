@@ -25,6 +25,7 @@ class Operation(ABC):
     and operators such as :class:`~qiskit.quantum_info.Clifford`.
     """
 
+    # pylint: disable=unused-argument
     def __new__(cls, *args, **kwargs):
         if cls is Operation:
             raise CircuitError("An Operation mixin should not be instantiated directly.")

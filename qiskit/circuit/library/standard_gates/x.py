@@ -584,6 +584,7 @@ class C3XGate(ControlledGate):
     This implementation uses :math:`\sqrt{T}` and 14 CNOT gates.
     """
 
+    # pylint: disable=arguments-differ
     def __new__(
         cls,
         angle: Optional[ParameterValueType] = None,
@@ -594,6 +595,7 @@ class C3XGate(ControlledGate):
             return C3SXGate(label, ctrl_state, angle=angle)
 
         instance = super().__new__(cls)
+        # pylint: disable=no-value-for-parameter
         instance.__init__(None, label, ctrl_state)
         return instance
 
@@ -919,6 +921,7 @@ class C4XGate(ControlledGate):
 class MCXGate(ControlledGate):
     """The general, multi-controlled X gate."""
 
+    # pylint: disable=arguments-differ
     def __new__(
         cls,
         num_ctrl_qubits: Optional[int] = None,
