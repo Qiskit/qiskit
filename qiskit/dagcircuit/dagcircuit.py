@@ -1259,7 +1259,7 @@ class DAGCircuit:
         no nodes are specified all edges from the graph are returned.
 
         Args:
-            nodes (DAGOpNode, DAGInNode, or DAGOutNode|list(DAGOpNode, DAGInNode, or DAGOutNode):
+            nodes (DAGOpNode, DAGInNode, or DAGOutNode|list(DAGOpNode, DAGInNode, or DAGOutNode)):
                 Either a list of nodes or a single input node. If none is specified,
                 all edges are returned from the graph.
             incoming (bool): Optional, default False. If True, the output edges will be

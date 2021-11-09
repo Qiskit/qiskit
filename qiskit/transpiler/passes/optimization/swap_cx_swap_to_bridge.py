@@ -21,21 +21,23 @@ from qiskit.transpiler.basepasses import TransformationPass
 class SwapCXSwapToBridge(TransformationPass):
     """Replace each SWAP-CX-SWAP sequence by a single Bridge gate.
 
-    This pass finds CX gates surrounded by SWAP compute/uncompute pairs
-    that act on either the control or target qubit of CX and replaces them
-    by a Bridge Gate which has fewer CNOTs. Note that it's able to handle
-    any sequence of such SWAP pairs, not just one pair. For example, the
-    following subcircuit will be collected:
+    This pass starts from CX gates and looks the adjacent gates in the control (or target)
+    qubit. If it's surrounded by a SWAP compute/uncompute pair, we have a Bridge gate. We
+    continue next from these SWAP gates with a similar logic and collect nodes as far as
+    we have a path (and the reversed path) of SWAPs. For example, the following subcircuit
+    will be collected and replaced by a Bridge gate.
 
-                                                 ┌─────────┐
-    q_0: ─X─────────────X─                  q_0: ┤0        ├
-          │             │                        │         │
-    q_1: ─X──X───────X──X─                  q_1: ┤1        ├
-             │       │            =>             │  Bridge │
-    q_2: ────X───■───X────                  q_2: ┤2        ├
-               ┌─┴─┐                             │         │
-    q_3: ──────┤ X ├──────                  q_3: ┤3        ├
-               └───┘                             └─────────┘
+    .. parsed-literal::
+
+                                                     ┌─────────┐
+        q_0: ─X─────────────X─                  q_0: ┤0        ├
+              │             │                        │         │
+        q_1: ─X──X───────X──X─                  q_1: ┤1        ├
+                 │       │            =>             │  Bridge │
+        q_2: ────X───■───X────                  q_2: ┤2        ├
+                   ┌─┴─┐                             │         │
+        q_3: ──────┤ X ├──────                  q_3: ┤3        ├
+                   └───┘                             └─────────┘
 
     This transpiler pass is particularly useful since routing passes may
     insert such subcircuits and hence it should be run after routing.
