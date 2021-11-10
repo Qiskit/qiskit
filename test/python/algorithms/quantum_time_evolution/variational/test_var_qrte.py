@@ -133,10 +133,8 @@ evolution_result = var_qrte.evolve(
 )
 
 # values from the prototype
-thetas_expected = [
-    0.372598111322136, 1.51900599789371, 2.80259002647779, 2.00206987650666,
-    1.55578693792189, 2.68064238326861, 2.32464633347459, 1.10390724525525
-]
+thetas_expected = [-0.02417581,  1.12012969,  1.51326909,  1.66610599,  1.68460371,  1.50506159,
+                    2.28006157,  1.1236262]
 
 parameter_values = evolution_result.data[0][0].params
 print('Expected ', thetas_expected)
