@@ -78,7 +78,7 @@ class VarQteLinearSolver:
         """
         Get left side, get right side & solve SLE here
         """
-
+        print('param_dict ', param_dict)
         # nat_grad_result = eval_nat_grad_result(
         #     var_principle._nat_grad,
         #     param_dict,
@@ -146,6 +146,7 @@ class VarQteLinearSolver:
             # TODO bind here
             time_dict = {t_param: t}
             evolution_grad = evolution_grad.bind_parameters(time_dict)
+        print('param_dict ', param_dict)
         grad_res = eval_evolution_grad(
             evolution_grad, param_dict, self._grad_circ_sampler, self._backend
         )
@@ -157,6 +158,7 @@ class VarQteLinearSolver:
 
         metric_res = np.real(metric_res)
         grad_res = np.real(grad_res)
+        print('grad_res ', grad_res)
 
         # Check if numerical instabilities lead to a metric which is not positive semidefinite
         metric_res = self._check_and_fix_metric_psd(metric_res)
