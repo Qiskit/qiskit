@@ -12,7 +12,6 @@
 
 """Test Qiskit's QuantumCircuit class."""
 
-import warnings
 import numpy as np
 
 from qiskit.circuit import (
@@ -364,8 +363,7 @@ class TestCircuitRegisters(QiskitTestCase):
 
         # single controlled gates on slices is deprecated
         # TODO remove once support is dropped
-        with warnings.catch_warnings():
-            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+        with self.assertWarns(FutureWarning):
             qc.ch(qr[ctl_slice], qr[tgt_slice])
 
         for (gate, qargs, _), ictrl, itgt in zip(qc.data, range(0, 2), range(2, 4)):
@@ -462,8 +460,7 @@ class TestCircuitRegisters(QiskitTestCase):
 
         # single controlled gates on slices is deprecated
         # TODO remove once support is dropped
-        with warnings.catch_warnings():
-            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+        with self.assertWarns(FutureWarning):
             qc.cx(qr[ind], qr[2:6])
 
         for (gate, qargs, _), ind1, ind2 in zip(qc.data, ind, range(2, 6)):

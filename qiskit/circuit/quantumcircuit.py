@@ -1166,20 +1166,6 @@ class QuantumCircuit:
             if is_parameter:
                 instruction = copy.deepcopy(instruction)
 
-        # Deprecate the passing multiple qargs for contolled gates
-        if len(qargs) == 2:  # check if singly-controlled gate
-            # check for multiple qubits
-            if any(isinstance(qarg, list) and len(qarg) > 1 for qarg in qargs):
-                warnings.warn(
-                    "Creating multiple single-controlled gates with a single call, "
-                    "such as QuantumCircuit.cx([0, 1], 2) is deprecated as of Qiskit "
-                    "Terra 0.19.0 and will be removed no sooner than 3 months after it's "
-                    "release date. To construct multiple gates, call the according "
-                    "method multiple times with a single control and target.",
-                    DeprecationWarning,
-                    stacklevel=3,
-                )  # stacklevel 3 to show the correct method call
-
         expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
         expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
 
@@ -2672,6 +2658,8 @@ class QuantumCircuit:
         """
         from .library.standard_gates.h import CHGate
 
+        _warn_on_broadcasting_controlled_gate([control_qubit, target_qubit], "ch")
+
         return self.append(
             CHGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
@@ -2765,6 +2753,8 @@ class QuantumCircuit:
             A handle to the instructions created.
         """
         from .library.standard_gates.p import CPhaseGate
+
+        _warn_on_broadcasting_controlled_gate([control_qubit, target_qubit], "cp")
 
         return self.append(
             CPhaseGate(theta, label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
@@ -2934,6 +2924,8 @@ class QuantumCircuit:
         """
         from .library.standard_gates.rx import CRXGate
 
+        _warn_on_broadcasting_controlled_gate([control_qubit, target_qubit], "crx")
+
         return self.append(
             CRXGate(theta, label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
@@ -3002,6 +2994,8 @@ class QuantumCircuit:
         """
         from .library.standard_gates.ry import CRYGate
 
+        _warn_on_broadcasting_controlled_gate([control_qubit, target_qubit], "cry")
+
         return self.append(
             CRYGate(theta, label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
@@ -3066,6 +3060,8 @@ class QuantumCircuit:
             A handle to the instructions created.
         """
         from .library.standard_gates.rz import CRZGate
+
+        _warn_on_broadcasting_controlled_gate([control_qubit, target_qubit], "crz")
 
         return self.append(
             CRZGate(theta, label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
@@ -3210,6 +3206,10 @@ class QuantumCircuit:
         """
         from .library.standard_gates.swap import CSwapGate
 
+        _warn_on_broadcasting_controlled_gate(
+            [control_qubit, target_qubit1, target_qubit2], "cswap"
+        )
+
         return self.append(
             CSwapGate(label=label, ctrl_state=ctrl_state),
             [control_qubit, target_qubit1, target_qubit2],
@@ -3237,6 +3237,9 @@ class QuantumCircuit:
         See Also:
             QuantumCircuit.cswap: the same function with a different name.
         """
+        _warn_on_broadcasting_controlled_gate(
+            [control_qubit, target_qubit1, target_qubit2], "fredkin"
+        )
         return self.cswap(control_qubit, target_qubit1, target_qubit2)
 
     def sx(self, qubit: QubitSpecifier) -> InstructionSet:
@@ -3292,6 +3295,8 @@ class QuantumCircuit:
             A handle to the instructions created.
         """
         from .library.standard_gates.sx import CSXGate
+
+        _warn_on_broadcasting_controlled_gate([control_qubit, target_qubit], "csx")
 
         return self.append(
             CSXGate(label=label, ctrl_state=ctrl_state),
@@ -3384,6 +3389,8 @@ class QuantumCircuit:
             A handle to the instructions created.
         """
         from .library.standard_gates.u import CUGate
+
+        _warn_on_broadcasting_controlled_gate([control_qubit, target_qubit], "cu")
 
         return self.append(
             CUGate(theta, phi, lam, gamma, label=label, ctrl_state=ctrl_state),
@@ -3620,8 +3627,9 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-
         from .library.standard_gates.x import CXGate
+
+        _warn_on_broadcasting_controlled_gate([control_qubit, target_qubit], "cx")
 
         return self.append(
             CXGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
@@ -3652,6 +3660,7 @@ class QuantumCircuit:
         See Also:
             QuantumCircuit.cx: the same function with a different name.
         """
+        _warn_on_broadcasting_controlled_gate([control_qubit, target_qubit], "cnot")
         return self.cx(control_qubit, target_qubit, label, ctrl_state)
 
     def dcx(self, qubit1: QubitSpecifier, qubit2: QubitSpecifier) -> InstructionSet:
@@ -3694,6 +3703,8 @@ class QuantumCircuit:
         """
         from .library.standard_gates.x import CCXGate
 
+        _warn_on_broadcasting_controlled_gate([control_qubit1, control_qubit2, target_qubit], "ccx")
+
         return self.append(
             CCXGate(ctrl_state=ctrl_state),
             [control_qubit1, control_qubit2, target_qubit],
@@ -3721,6 +3732,9 @@ class QuantumCircuit:
         See Also:
             QuantumCircuit.ccx: the same gate with a different name.
         """
+        _warn_on_broadcasting_controlled_gate(
+            [control_qubit1, control_qubit2, target_qubit], "toffoli"
+        )
         return self.ccx(control_qubit1, control_qubit2, target_qubit)
 
     def mcx(
@@ -3877,6 +3891,8 @@ class QuantumCircuit:
         """
         from .library.standard_gates.y import CYGate
 
+        _warn_on_broadcasting_controlled_gate([control_qubit, target_qubit], "cy")
+
         return self.append(
             CYGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
@@ -3919,6 +3935,8 @@ class QuantumCircuit:
             A handle to the instructions created.
         """
         from .library.standard_gates.z import CZGate
+
+        _warn_on_broadcasting_controlled_gate([control_qubit, target_qubit], "cz")
 
         return self.append(
             CZGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
@@ -4193,3 +4211,19 @@ def _insert_composite_gate_definition_qasm(
 
     string_temp = string_temp.replace(extension_lib, f"{extension_lib}{gate_definition_string}")
     return string_temp
+
+
+def _warn_on_broadcasting_controlled_gate(qargs, name):
+    # check for multiple qubits
+    if any(isinstance(qarg, (tuple, list, np.ndarray)) and len(qarg) > 1 for qarg in qargs):
+        warnings.warn(
+            "Creating multiple single-controlled gates with a single call, "
+            "as QuantumCircuit.cx([0, 1], 2) is deprecated as of Qiskit "
+            "Terra 0.19.0 and will be unsupported no sooner than 3 months after its "
+            "release date. In future, this will construct a multi-controlled gate, where the "
+            "first argument determines the control qubits and the second the target qubit(s). "
+            f"To construct multiple gates, you can call the {name} method multiple times with a "
+            "single control and target.",
+            FutureWarning,
+            stacklevel=2,
+        )
