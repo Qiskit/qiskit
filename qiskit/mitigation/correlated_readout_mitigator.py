@@ -66,7 +66,7 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
             shots: the number of shots.
 
         Returns:
-            (float, float): the expectation value and standard deviation.
+            (float, float): the expectation value and an upper bound of the standard deviation.
 
         Raises:
             QiskitError: if input arguments are invalid.
@@ -110,7 +110,7 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         qubits: Optional[List[int]] = None,
         clbits: Optional[List[int]] = None,
         shots: Optional[bool] = False,
-    ) -> (QuasiDistribution, QuasiDistribution):
+    ) -> QuasiDistribution:
         """Compute mitigated quasi probabilities value.
 
         Args:
@@ -124,11 +124,6 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
                 is the key in the dictionaries,
                 which is the length-N bitstring of a measured standard basis state,
                 and "mean" is the mean of non-zero quasi-probability estimates.
-            QuasiDistibution: A dictionary containing pairs of [output, standard deviation]
-                where "output" is the key in the dictionaries,
-                which is the length-N bitstring of a measured standard basis state,
-                and "standard deviation" is the standard deviation of the non-zero
-                quasi-probability estimates.
 
         Raises:
             QiskitError: if qubit and clbit kwargs are not valid.
@@ -224,8 +219,10 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
 
     def stddev_upper_bound(self, shots):
         """Return an upper bound on standard deviation of expval estimator.
+
         Args:
             shots: Number of shots used for expectation value measurement.
+
         Returns:
             float: the standard deviation upper bound.
         """

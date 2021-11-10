@@ -29,7 +29,7 @@ class BaseReadoutMitigator(ABC):
         qubits: Iterable[int] = None,
         clbits: Optional[List[int]] = None,
         shots: Optional[int] = None,
-    ) -> (QuasiDistribution, QuasiDistribution):
+    ) -> QuasiDistribution:
         """Convert counts to a dictionary of quasi-probabilities
 
         Args:
@@ -46,11 +46,6 @@ class BaseReadoutMitigator(ABC):
                 is the key in the dictionaries,
                 which is the length-N bitstring of a measured standard basis state,
                 and "mean" is the mean of non-zero quasi-probability estimates.
-            QuasiDistibution: A dictionary containing pairs of [output, standard deviation]
-                where "output" is the key in the dictionaries,
-                which is the length-N bitstring of a measured standard basis state,
-                and "standard deviation" is the standard deviation of the non-zero
-                quasi-probability estimates.
         """
 
     @abstractmethod
@@ -78,6 +73,6 @@ class BaseReadoutMitigator(ABC):
                 be calculated as the sum of all counts.
 
         Returns:
-            The mean and standard deviation of operator expectation value
-            calculated from the current counts.
+            The mean and an upper bound of the standard deviation of operator
+            expectation value calculated from the current counts.
         """

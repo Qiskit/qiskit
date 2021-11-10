@@ -92,7 +92,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
             shots: the number of shots.
 
         Returns:
-            (float, float): the expectation value and standard deviation.
+            (float, float): the expectation value and an upper bound of the standard deviation.
 
         Additional Information:
             The diagonal observable :math:`O` is input using the ``diagonal`` kwarg as
@@ -138,7 +138,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         qubits: Optional[List[int]] = None,
         clbits: Optional[List[int]] = None,
         shots: Optional[bool] = False,
-    ) -> (QuasiDistribution, QuasiDistribution):
+    ) -> QuasiDistribution:
         """Compute mitigated quasi probabilities value.
 
         Args:
@@ -152,11 +152,6 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
                 is the key in the dictionaries,
                 which is the length-N bitstring of a measured standard basis state,
                 and "mean" is the mean of non-zero quasi-probability estimates.
-            QuasiDistibution: A dictionary containing pairs of [output, standard deviation]
-                where "output" is the key in the dictionaries,
-                which is the length-N bitstring of a measured standard basis state,
-                and "standard deviation" is the standard deviation of the non-zero
-                quasi-probability estimates.
 
         Raises:
             QiskitError: if qubit and clbit kwargs are not valid.
@@ -235,9 +230,11 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
 
     def stddev_upper_bound(self, shots, qubits):
         """Return an upper bound on standard deviation of expval estimator.
+
         Args:
             shots: Number of shots used for expectation value measurement.
             qubits: qubits being measured for operator expval.
+
         Returns:
             float: the standard deviation upper bound.
         """
