@@ -21,7 +21,13 @@ from qiskit.test import QiskitTestCase
 from qiskit.result import Counts
 from qiskit.mitigation import CorrelatedReadoutMitigator
 from qiskit.mitigation import LocalReadoutMitigator
-from qiskit.mitigation.utils import z_diagonal, counts_probability_vector, str2diag, stddev, expval_with_stddev
+from qiskit.mitigation.utils import (
+    z_diagonal,
+    counts_probability_vector,
+    str2diag,
+    stddev,
+    expval_with_stddev,
+)
 from qiskit.test.mock import FakeYorktown
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
@@ -57,9 +63,7 @@ class TestReadoutMitigation(QiskitTestCase):
             for mitigator in mitigators:
                 mitigated_quasi_probs = mitigator.quasi_probabilities(counts_noise)
                 mitigated_probs = (
-                    mitigated_quasi_probs
-                    .nearest_probability_distribution()
-                    .binary_probabilities()
+                    mitigated_quasi_probs.nearest_probability_distribution().binary_probabilities()
                 )
                 mitigated_error = self.compare_results(counts_ideal, mitigated_probs)
                 self.assertTrue(
@@ -93,11 +97,14 @@ class TestReadoutMitigation(QiskitTestCase):
                 if isinstance(diagonal, str):
                     diagonal = str2diag(diagonal)
                 unmitigated_expectation, unmitigated_stddev = expval_with_stddev(
-                    diagonal, probs_noise, shots=counts_noise.shots()) #np.dot(probs_noise, diagonal)
+                    diagonal, probs_noise, shots=counts_noise.shots()
+                )  # np.dot(probs_noise, diagonal)
                 ideal_expectation = np.dot(probs_ideal, diagonal)
                 unmitigated_error = np.abs(ideal_expectation - unmitigated_expectation)
                 for mitigator in mitigators:
-                    mitigated_expectation, mitigated_stddev = mitigator.expectation_value(counts_noise, diagonal)
+                    mitigated_expectation, mitigated_stddev = mitigator.expectation_value(
+                        counts_noise, diagonal
+                    )
                     mitigated_error = np.abs(ideal_expectation - mitigated_expectation)
                     self.assertTrue(
                         mitigated_error < unmitigated_error,
@@ -111,7 +118,6 @@ class TestReadoutMitigation(QiskitTestCase):
                             mitigator, circuit_name
                         ),
                     )
-
 
     @data([test_data["test_1"]])
     @unpack
