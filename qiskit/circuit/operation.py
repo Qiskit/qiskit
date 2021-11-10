@@ -19,8 +19,7 @@ from qiskit.circuit.exceptions import CircuitError
 class Operation(ABC):
     """Quantum Operation Mixin Class.
     For objects that can be added to a :class:`~qiskit.circuit.QuantumCircuit`.
-    These objects include other :class:`~qiskit.circuit.QuantumCircuit`,
-    :class:`~qiskit.circuit.Gate`, :class:`~qiskit.circuit.Reset`,
+    These objects include :class:`~qiskit.circuit.Gate`, :class:`~qiskit.circuit.Reset`,
     :class:`~qiskit.circuit.Barrier`, :class:`~qiskit.circuit.Measure`,
     and operators such as :class:`~qiskit.quantum_info.Clifford`.
     """
