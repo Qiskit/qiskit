@@ -13,14 +13,17 @@
 """Test QAOA ansatz from the library."""
 
 import numpy as np
+from ddt import ddt, data
 from qiskit import transpile
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz, QAOAGate
 from qiskit.circuit.library import HGate, RXGate, YGate, RYGate, RZGate
-from qiskit.opflow import I, Y, Z
+from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
+from qiskit.opflow import I, Y, Z, PauliSumOp
 from qiskit.test import QiskitTestCase
 
 
+@ddt
 class TestQAOAAnsatz(QiskitTestCase):
     """Test QAOAAnsatz."""
 
@@ -193,3 +196,30 @@ class TestQAOAAnsatz(QiskitTestCase):
 
         self.assertEqual(circuit.count_ops()["h"], 3)
         self.assertEqual(circuit.count_ops()["rx"], 3)
+
+    def test_empty_op(self):
+        """Test construction without cost operator"""
+        circuit = QAOAAnsatz(reps=1)
+        self.assertEqual(circuit.num_qubits, 0)
+        with self.assertRaises(ValueError):
+            circuit.decompose()
+
+    @data(1, 2, 3, 4)
+    def test_num_qubits(self, num_qubits):
+        """Test num_qubits with {num_qubits} qubits"""
+
+        circuit = QAOAAnsatz(cost_operator=I ^ num_qubits, reps=5)
+        self.assertEqual(circuit.num_qubits, num_qubits)
+
+    def test_identity(self):
+        """Test construction with identity"""
+        reps = 4
+        num_qubits = 3
+        pauli_sum_op = PauliSumOp.from_list([("I" * num_qubits, 1)])
+        pauli_op = I ^ num_qubits
+        for cost in [pauli_op, pauli_sum_op]:
+            for mixer in [None, pauli_op, pauli_sum_op]:
+                with self.subTest(f"cost: {type(cost)}, mixer:{type(mixer)}"):
+                    circuit = QAOAAnsatz(cost_operator=cost, mixer_operator=mixer, reps=reps)
+                    target = reps if mixer is None else 0
+                    self.assertEqual(circuit.num_parameters, target)

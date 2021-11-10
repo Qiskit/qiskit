@@ -244,6 +244,12 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
             label=self.name,
         )
 
+    @property
+    def num_qubits(self) -> int:
+        if self._cost_operator is None:
+            return 0
+        return self._cost_operator.num_qubits
+
     def _build(self):
         super()._build()
 

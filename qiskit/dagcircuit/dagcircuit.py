@@ -23,7 +23,6 @@ directly from the graph.
 from collections import OrderedDict, defaultdict
 import copy
 import itertools
-import warnings
 import math
 
 import numpy as np
@@ -628,36 +627,7 @@ class DAGCircuit:
             new_condition = (new_creg, new_cond_val)
         return new_condition
 
-    def extend_back(self, dag, edge_map=None):
-        """DEPRECATED: Add `dag` at the end of `self`, using `edge_map`."""
-        warnings.warn(
-            "dag.extend_back is deprecated, please use dag.compose.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        edge_map = edge_map or {}
-        for qreg in dag.qregs.values():
-            if qreg.name not in self.qregs:
-                self.add_qreg(QuantumRegister(qreg.size, qreg.name))
-            edge_map.update([(qbit, qbit) for qbit in qreg if qbit not in edge_map])
-
-        for creg in dag.cregs.values():
-            if creg.name not in self.cregs:
-                self.add_creg(ClassicalRegister(creg.size, creg.name))
-            edge_map.update([(cbit, cbit) for cbit in creg if cbit not in edge_map])
-
-        self.compose_back(dag, edge_map)
-
-    def compose_back(self, input_circuit, edge_map=None):
-        """DEPRECATED: use DAGCircuit.compose() instead."""
-        warnings.warn(
-            "dag.compose_back is deprecated, please use dag.compose.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self.compose(input_circuit, edge_map)
-
-    def compose(self, other, edge_map=None, qubits=None, clbits=None, front=False, inplace=True):
+    def compose(self, other, qubits=None, clbits=None, front=False, inplace=True):
         """Compose the ``other`` circuit onto the output of this circuit.
 
         A subset of input wires of ``other`` are mapped
@@ -667,9 +637,6 @@ class DAGCircuit:
 
         Args:
             other (DAGCircuit): circuit to compose with self
-            edge_map (dict): DEPRECATED - a {Bit: Bit} map from input wires of other
-                to output wires of self (i.e. rhs->lhs).
-                The key, value pairs can be either Qubit or Clbit mappings.
             qubits (list[Qubit|int]): qubits of self to compose onto.
             clbits (list[Clbit|int]): clbits of self to compose onto.
             front (bool): If True, front composition will be performed (not implemented yet)
@@ -687,15 +654,6 @@ class DAGCircuit:
         if len(other.qubits) > len(self.qubits) or len(other.clbits) > len(self.clbits):
             raise DAGCircuitError(
                 "Trying to compose with another DAGCircuit which has more 'in' edges."
-            )
-
-        if edge_map is not None:
-            warnings.warn(
-                "edge_map arg as a dictionary is deprecated. "
-                "Use qubits and clbits args to specify a list of "
-                "self edges to compose onto.",
-                DeprecationWarning,
-                stacklevel=2,
             )
 
         # number of qubits and clbits must match number in circuit or None
@@ -725,7 +683,7 @@ class DAGCircuit:
                 other.clbits[i]: (self.clbits[c] if isinstance(c, int) else c)
                 for i, c in enumerate(clbits)
             }
-        edge_map = edge_map or {**qubit_map, **clbit_map} or None
+        edge_map = {**qubit_map, **clbit_map} or None
 
         # if no edge_map, try to do a 1-1 mapping in order
         if edge_map is None:
@@ -976,6 +934,90 @@ class DAGCircuit:
             generator(DAGOpNode): op node in topological order
         """
         return (nd for nd in self.topological_nodes(key) if isinstance(nd, DAGOpNode))
+
+    def replace_block_with_op(self, node_block, op, wire_pos_map, cycle_check=True):
+        """Replace a block of nodes with a single.
+
+        This is used to consolidate a block of DAGOpNodes into a single
+        operation. A typical example is a block of gates being consolidated
+        into a single ``UnitaryGate`` representing the unitary matrix of the
+        block.
+
+        Args:
+            node_block (List[DAGNode]): A list of dag nodes that represents the
+                node block to be replaced
+            op (qiskit.circuit.Instruction): The instruction to replace the
+                block with
+            wire_pos_map (Dict[Qubit, int]): The dictionary mapping the qarg to
+                the position. This is necessary to reconstruct the qarg order
+                over multiple gates in the combined singe op node.
+            cycle_check (bool): When set to True this method will check that
+                replacing the provided ``node_block`` with a single node
+                would introduce a a cycle (which would invalidate the
+                ``DAGCircuit``) and will raise a ``DAGCircuitError`` if a cycle
+                would be introduced. This checking comes with a run time
+                penalty, if you can guarantee that your input ``node_block`` is
+                a contiguous block and won't introduce a cycle when it's
+                contracted to a single node, this can be set to ``False`` to
+                improve the runtime performance of this method.
+
+        Raises:
+            DAGCircuitError: if ``cycle_check`` is set to ``True`` and replacing
+                the specified block introduces a cycle or if ``node_block`` is
+                empty.
+        """
+        # TODO: Replace this with a function in retworkx to do this operation in
+        # the graph
+        block_preds = defaultdict(set)
+        block_succs = defaultdict(set)
+        block_qargs = set()
+        block_cargs = set()
+        block_ids = {x._node_id for x in node_block}
+
+        # If node block is empty return early
+        if not node_block:
+            raise DAGCircuitError("Can't replace an empty node_block")
+
+        for nd in node_block:
+            for parent_id, _, edge in self._multi_graph.in_edges(nd._node_id):
+                if parent_id not in block_ids:
+                    block_preds[parent_id].add(edge)
+            for _, child_id, edge in self._multi_graph.out_edges(nd._node_id):
+                if child_id not in block_ids:
+                    block_succs[child_id].add(edge)
+            block_qargs |= set(nd.qargs)
+            if isinstance(nd, DAGOpNode) and nd.op.condition:
+                block_cargs |= set(nd.cargs)
+        if cycle_check:
+            # If we're cycle checking copy the graph to ensure we don't create
+            # invalid DAG when we encounter a cycle
+            backup_graph = self._multi_graph.copy()
+        # Add node and wire it into graph
+        new_index = self._add_op_node(
+            op,
+            sorted(block_qargs, key=lambda x: wire_pos_map[x]),
+            sorted(block_cargs, key=lambda x: wire_pos_map[x]),
+        )
+        for node_id, edges in block_preds.items():
+            for edge in edges:
+                self._multi_graph.add_edge(node_id, new_index, edge)
+        for node_id, edges in block_succs.items():
+            for edge in edges:
+                self._multi_graph.add_edge(new_index, node_id, edge)
+        for nd in node_block:
+            self._multi_graph.remove_node(nd._node_id)
+        # If enabled ensure block won't introduce a cycle when node_block is
+        # contracted
+        if cycle_check:
+            # If a cycle was introduced remove new op node and raise error
+            if not rx.is_directed_acyclic_graph(self._multi_graph):
+                # If a cycle was encountered restore the graph to the
+                # original valid state
+                self._multi_graph = backup_graph
+                self._decrement_op(op)
+                raise DAGCircuitError("Replacing the specified node block would introduce a cycle")
+        for nd in node_block:
+            self._decrement_op(nd.op)
 
     def substitute_node_with_dag(self, node, input_dag, wires=None):
         """Replace one node with dag.
@@ -1274,34 +1316,6 @@ class DAGCircuit:
             if isinstance(node, DAGOpNode) and node.op.name in names:
                 named_nodes.append(node)
         return named_nodes
-
-    def twoQ_gates(self):
-        """Get list of 2-qubit gates. Ignore snapshot, barriers, and the like."""
-        warnings.warn(
-            "deprecated function, use dag.two_qubit_ops(). "
-            "filter output by isinstance(op, Gate) to only get unitary Gates.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        two_q_gates = []
-        for node in self.gate_nodes():
-            if len(node.qargs) == 2:
-                two_q_gates.append(node)
-        return two_q_gates
-
-    def threeQ_or_more_gates(self):
-        """Get list of 3-or-more-qubit gates: (id, data)."""
-        warnings.warn(
-            "deprecated function, use dag.multi_qubit_ops(). "
-            "filter output by isinstance(op, Gate) to only get unitary Gates.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        three_q_gates = []
-        for node in self.gate_nodes():
-            if len(node.qargs) >= 3:
-                three_q_gates.append(node)
-        return three_q_gates
 
     def two_qubit_ops(self):
         """Get list of 2 qubit operations. Ignore directives like snapshot and barrier."""

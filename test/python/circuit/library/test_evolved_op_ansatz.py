@@ -131,7 +131,7 @@ def evolve(pauli_string, time):
             forward.h(i)
 
     for i in range(1, num_qubits):
-        forward.cx(i, 0)
+        forward.cx(num_qubits - i, num_qubits - i - 1)
 
     circuit = QuantumCircuit(num_qubits)
     circuit.compose(forward, inplace=True)
