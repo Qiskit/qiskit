@@ -23,7 +23,7 @@ from ddt import ddt, idata, unpack
 from qiskit.algorithms import QAOA
 from qiskit.algorithms.optimizers import COBYLA, NELDER_MEAD
 
-from qiskit.opflow import I, X, PauliSumOp
+from qiskit.opflow import I, X, Z, PauliSumOp
 
 from qiskit import BasicAer, QuantumCircuit, QuantumRegister
 
@@ -298,6 +298,17 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
 
         self.assertLess(result.eigenvalue, -0.97)
+
+    def test_qaoa_construct_circuit_update(self):
+        """Test updating operators with QAOA construct_circuit"""
+        qaoa = QAOA()
+        ref = qaoa.construct_circuit([0, 0], I ^ Z)[0]
+        circ2 = qaoa.construct_circuit([0, 0], I ^ Z)[0]
+        self.assertEqual(circ2, ref)
+        circ3 = qaoa.construct_circuit([0, 0], Z ^ I)[0]
+        self.assertNotEqual(circ3, ref)
+        circ4 = qaoa.construct_circuit([0, 0], I ^ Z)[0]
+        self.assertEqual(circ4, ref)
 
     def _get_operator(self, weight_matrix):
         """Generate Hamiltonian for the max-cut problem of a graph.
