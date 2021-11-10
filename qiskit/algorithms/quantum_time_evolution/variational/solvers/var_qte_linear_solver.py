@@ -78,13 +78,6 @@ class VarQteLinearSolver:
         """
         Get left side, get right side & solve SLE here
         """
-        print('param_dict ', param_dict)
-        # nat_grad_result = eval_nat_grad_result(
-        #     var_principle._nat_grad,
-        #     param_dict,
-        #     self._nat_grad_circ_sampler,
-        #     self._backend,
-        # )
 
         metric_result = eval_metric_result(
             var_principle._raw_metric_tensor,
@@ -111,12 +104,8 @@ class VarQteLinearSolver:
             self._backend,
         )
 
-        print('Grad result ', grad_result)
-
         nat_grad_result = NaturalGradient().nat_grad_combo_fn([grad_result, metric_result],
                                                               regularization=regularization)
-
-        print('Natural Gradient Result ', nat_grad_result)
         return np.real(nat_grad_result)
 
     def _solve_sle_for_error_bounds(
@@ -146,7 +135,6 @@ class VarQteLinearSolver:
             # TODO bind here
             time_dict = {t_param: t}
             evolution_grad = evolution_grad.bind_parameters(time_dict)
-        print('param_dict ', param_dict)
         grad_res = eval_evolution_grad(
             evolution_grad, param_dict, self._grad_circ_sampler, self._backend
         )
@@ -158,7 +146,6 @@ class VarQteLinearSolver:
 
         metric_res = np.real(metric_res)
         grad_res = np.real(grad_res)
-        print('grad_res ', grad_res)
 
         # Check if numerical instabilities lead to a metric which is not positive semidefinite
         metric_res = self._check_and_fix_metric_psd(metric_res)
