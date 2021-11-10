@@ -198,9 +198,14 @@ class QuantumInstance:
                         Coupling map (perhaps custom) to target in mapping
             initial_layout (Optional[Union['Layout', Dict, List]]):
                         Initial layout of qubits in mapping
-            pass_manager (Optional['PassManager']): Pass manager to handle how to compile the circuits
-            bound_pass_manager (Optional['PassManager']): Pass manager to apply on bound circuits
-                only.
+            pass_manager (Optional['PassManager']): Pass manager to handle how to compile the circuits.
+                To run only this pass manager and not the ``bound_pass_manager``, call the
+                ``transpile`` method with the argument ``state=TranspilerStage.PARAMETERIZED``.
+            bound_pass_manager (Optional['PassManager']): A second pass manager to apply on bound
+                circuits only, that is, circuits without any free parameters. This pass can be
+                invoked by calling the ``transpile`` method with the argument
+                ``stage=TranspilerStage.BOUND``, or ``TranspilerStage.ALL`` if the first pass
+                manager should also be run.
             seed_transpiler: The random seed for circuit mapper
             optimization_level: How much optimization to perform on the circuits.
                 Higher levels generate more optimized circuits, at the expense of longer
@@ -217,7 +222,6 @@ class QuantumInstance:
                 or :class:`~qiskit.utils.mitigation.TensoredMeasFitter` from the
                 :mod:`qiskit.utils.mitigation` module can be used here as exact values, not
                 instances. ``TensoredMeasFitter`` doesn't support the ``subset_fitter`` method.
-
             cals_matrix_refresh_period: How often to refresh the calibration
                 matrix in measurement mitigation. in minutes
             measurement_error_mitigation_shots: The number of shots number for
@@ -383,7 +387,10 @@ class QuantumInstance:
         A wrapper to transpile circuits to allow algorithm access the transpiled circuits.
         Args:
             circuits (Union['QuantumCircuit', List['QuantumCircuit']]): circuits to transpile
-            stage (int): If pass managers have been provided, selects which pass manager to run.
+            stage (int): If pass managers have been provided, select which of them to run:
+                * ``TranspilerStage.PARAMETERIZED``: run only ``pass_manager``
+                * ``TranspilerStage.BOUND``: run only ``bound_pass_manager``
+                * ``TranspilerStage.ALL``: run first ``pass_manager``, then ``bound_pass_manager``
 
         Returns:
             List['QuantumCircuit']: The transpiled circuits, it is always a list even though
