@@ -74,7 +74,7 @@ Style Guide
 ===========
 
 To enforce a consistent code style in the project, we use `Pylint
-<https://www.pylint.org>`__ and `pycodesytle
+<https://www.pylint.org>`__ and `pycodestyle
 <https://pycodestyle.readthedocs.io/en/latest/>`__ to verify that code
 contributions conform to and respect the project's style guide. To verify that
 your changes conform to the style guide, run: ``tox -elint``
@@ -164,7 +164,7 @@ Do not assume the reviewer understands what the original problem was.
    When reading an issue, after a number of back & forth comments, it is often
    clear what the root cause problem is. The commit message should have a clear
    statement as to what the original problem is. The bug is merely interesting
-   historical background on *how* the problem was identified. It should be
+   for historical background on *how* the problem was identified. It should be
    possible to review a proposed patch for correctness from the commit message,
    without needing to read the bug ticket.
 
@@ -324,6 +324,7 @@ raised by a private method that only has one caller, ``stack_level=3`` might be
 appropriate.
 
 
+.. _stable_branch_policy:
 
 Stable Branch Policy
 ====================
@@ -519,7 +520,7 @@ documentation from Terra's 0.10.0 release. When the meta-package's requirements
 are bumped, then it will start pulling documentation from the new version. This
 means that fixes for incorrect API documentation will need to be
 included in a new release. Documentation fixes are valid backports for a stable
-patch release per the stable branch policy (see that section below).
+patch release per the stable branch policy (see :ref:`stable_branch_policy`).
 
 During the build process, the contents of each element's ``docs/apidocs/``
 are recursively copied into a shared copy of ``doc/apidocs/`` in the meta-package
