@@ -212,6 +212,7 @@ from .phase_estimators import (
     PhaseEstimationResult,
     IterativePhaseEstimation,
 )
+from .pvqd import PVQD
 from .exceptions import AlgorithmError
 
 __all__ = [
@@ -252,6 +253,7 @@ __all__ = [
     "PhaseEstimationScale",
     "PhaseEstimation",
     "PhaseEstimationResult",
+    "PVQD",
     "IterativePhaseEstimation",
     "AlgorithmError",
 ]
