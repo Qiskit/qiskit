@@ -22,6 +22,108 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.32.0
+*************
+
+Terra 0.18.3
+============
+
+No change
+
+Aer 0.9.1
+=========
+
+No change
+
+Ignis 0.6.0
+===========
+
+No change
+
+Aqua 0.9.5
+==========
+
+No change
+
+.. _Release Notes_0.18.0_IBMQ:
+
+IBM Q Provider 0.18.0
+=====================
+
+.. _Release Notes_0.18.0_IBMQ_New Features:
+
+New Features
+------------
+
+- You can now pass ``program_id`` parameter to
+  :meth:`qiskit.providers.ibmq.runtime.IBMRuntimeService.jobs`
+  method to filter jobs by Program ID.
+
+- You can view the last updated date of a runtime program using
+  :attr:`~qiskit.providers.ibmq.runtime.RuntimeProgram.update_date` property.
+
+- If you are the author of a runtime program,
+  you can now use :attr:`qiskit.providers.ibmq.runtime.RuntimeProgram.data`
+  property to retrieve the program data as a string.
+
+- You can now use the :meth:`qiskit.providers.ibmq.runtime.IBMRuntimeService.update_program`
+  method to update the metadata for a Qiskit Runtime program.
+  Program metadata can be specified using the ``metadata`` parameter or
+  individual parameters, such as ``name`` and ``description``. If the
+  same metadata field is specified in both places, the individual parameter
+  takes precedence.
+
+- You can now use the :meth:`qiskit.providers.ibmq.runtime.IBMRuntimeService.update_program`
+  method to update the data of an existing runtime program.
+
+
+.. _Release Notes_0.18.0_IBMQ_Upgrade Notes:
+
+Upgrade Notes
+-------------
+
+- Runtime programs will no longer have a ``version`` field.
+
+- By default, :meth:`qiskit.providers.ibmq.runtime.IBMRuntimeService.pprint_programs()`
+  now only prints the summary of each runtime program instead of all of the details.
+  There is a new parameter ``detailed`` that can be set to ``True`` to print all details.
+
+- ``limit`` and ``skip`` parameters have been added to
+  :meth:`qiskit.providers.ibmq.runtime.IBMRuntimeService.programs` and
+  :meth:`qiskit.providers.ibmq.runtime.IBMRuntimeService.pprint_programs`.
+  ``limit`` can be used to set the number of runtime programs returned
+  and ``skip`` is the number of programs to skip when retrieving
+  programs.
+
+- The `data` parameter to :meth:`qiskit.providers.ibmq.runtime.IBMRuntimeService.upload_program`
+  can now only be of type string. It can be either the program data,
+  or path to the file that contains program data.
+
+- :meth:`qiskit.providers.ibmq.runtime.IBMRuntimeService.upload_program` now takes only two
+  parameters, ``data``, which is the program passed as a string or the path to the program
+  file and the ``metadata``, which is passed as a dictionary or path to the metadata JSON file.
+  In ``metadata`` the ``backend_requirements``, ``parameters``, ``return_values`` and
+  ``interim_results`` are now grouped under a specifications ``spec`` section.
+  ``parameters``, ``return_values`` and ``interim_results`` should now be specified as
+  JSON Schema.
+
+- :meth:`qiskit.providers.ibmq.AccountProvider.run_circuits` method now takes a `backend_name`
+  parameter, which is a string, instead of `backend`, which is a ``Backend`` object.
+
+- The default number of ``shots`` (represents the number of repetitions of each circuit,
+  for sampling) in :meth:`qiskit.providers.ibmq.IBMQBackend.run`, has been increased from
+  1024 to 4000.
+
+
+.. _Release Notes_0.18.0_IBMQ_Bug Fixes:
+
+Bug Fixes
+---------
+
+- Fixes the issue wherein a runtime job result cannot be retrieved multiple
+  times if the result contains a numpy array.
+
+*************
 Qiskit 0.31.0
 *************
 
