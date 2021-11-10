@@ -15,7 +15,7 @@
 """QASM3 AST Nodes"""
 
 import enum
-from typing import Optional, List
+from typing import Optional, List, Union
 
 
 class ASTNode:
@@ -132,17 +132,6 @@ class PhysicalQubitIdentifier(Identifier):
         self.identifier = identifier
 
 
-class IndexIdentifier(Identifier):
-    """
-    indexIdentifier
-        : Identifier rangeDefinition
-        | Identifier ( LBRACKET expressionList RBRACKET )?
-        | indexIdentifier '||' indexIdentifier
-    """
-
-    pass
-
-
 class Expression(ASTNode):
     """
     expression
@@ -158,6 +147,34 @@ class Expression(ASTNode):
         self.something = something
 
 
+class Range(ASTNode):
+    """
+    A range expression::
+
+        <start>? (: <step>)? : <end>?
+    """
+
+    def __init__(
+        self,
+        start: Optional[Expression] = None,
+        end: Optional[Expression] = None,
+        step: Optional[Expression] = None,
+    ):
+        self.start = start
+        self.step = step
+        self.end = end
+
+
+class SubscriptedIdentifier(Identifier):
+    """
+    An identifier with subscripted access.
+    """
+
+    def __init__(self, identifier: Identifier, subscript: Union[Range, Expression]):
+        self.identifier = identifier
+        self.subscript = subscript
+
+
 class Constant(Expression, enum.Enum):
     """A constant value defined by the QASM 3 spec."""
 
@@ -166,27 +183,14 @@ class Constant(Expression, enum.Enum):
     tau = enum.auto()
 
 
-class IndexIdentifier2(IndexIdentifier):
-    """
-    indexIdentifier
-        : Identifier rangeDefinition
-        | Identifier ( LBRACKET expressionList RBRACKET )? <--
-        | indexIdentifier '||' indexIdentifier
-    """
-
-    def __init__(self, identifier: Identifier, expressionList: Optional[List[Expression]] = None):
-        self.identifier = identifier
-        self.expressionList = expressionList
-
-
 class QuantumMeasurement(ASTNode):
     """
     quantumMeasurement
         : 'measure' indexIdentifierList
     """
 
-    def __init__(self, indexIdentifierList: List[Identifier]):
-        self.indexIdentifierList = indexIdentifierList
+    def __init__(self, identifierList: List[Identifier]):
+        self.identifierList = identifierList
 
 
 class QuantumMeasurementAssignment(Statement):
@@ -196,8 +200,8 @@ class QuantumMeasurementAssignment(Statement):
         | indexIdentifier EQUALS quantumMeasurement  # eg: bits = measure qubits;
     """
 
-    def __init__(self, indexIdentifier: IndexIdentifier2, quantumMeasurement: QuantumMeasurement):
-        self.indexIdentifier = indexIdentifier
+    def __init__(self, identifier: Identifier, quantumMeasurement: QuantumMeasurement):
+        self.identifier = identifier
         self.quantumMeasurement = quantumMeasurement
 
 
@@ -267,9 +271,9 @@ class AliasStatement(ASTNode):
         : 'let' Identifier EQUALS indexIdentifier SEMICOLON
     """
 
-    def __init__(self, identifier: Identifier, qubits: List[IndexIdentifier2]):
+    def __init__(self, identifier: Identifier, concatenation: List[Identifier]):
         self.identifier = identifier
-        self.qubits = qubits
+        self.concatenation = concatenation
 
 
 class QuantumGateModifierName(enum.Enum):
