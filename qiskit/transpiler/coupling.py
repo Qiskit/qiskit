@@ -299,21 +299,21 @@ class CouplingMap:
 
     @classmethod
     def from_line(cls, num_qubits, bidirectional=True):
-        """Return a fully connected coupling map on n qubits."""
+        """Return a coupling map of qubits connected in a line on n qubits."""
         cmap = cls(description="line")
         cmap.graph = rx.generators.directed_path_graph(num_qubits, bidirectional=bidirectional)
         return cmap
 
     @classmethod
     def from_ring(cls, num_qubits, bidirectional=True):
-        """Return a fully connected coupling map on n qubits."""
+        """Return a coupling map of qubits connected to each of their neighbors in a ring on n qubits."""
         cmap = cls(description="ring")
         cmap.graph = rx.generators.directed_cycle_graph(num_qubits, bidirectional=bidirectional)
         return cmap
 
     @classmethod
     def from_grid(cls, num_rows, num_columns, bidirectional=True):
-        """Return qubits connected on a grid of num_rows x num_columns."""
+        """Return a coupling map of qubits connected on a grid of num_rows x num_columns."""
         cmap = cls(description="grid")
         cmap.graph = rx.generators.directed_grid_graph(
             num_rows, num_columns, bidirectional=bidirectional
@@ -322,7 +322,7 @@ class CouplingMap:
 
     @classmethod
     def from_heavy_hex(cls, distance, bidirectional=True):
-        """Return a heavy hexagon graph coupling map
+        """Return a heavy hexagon graph coupling map.
 
         A heavy hexagon graph is described in:
 
