@@ -27,7 +27,6 @@ def calculate(
     grad_method: Union[str, CircuitGradient],
     basis: OperatorBase = Z,
 ):
-    print('Observable ', observable)
     operator = ~StateFn(observable) @ StateFn(ansatz)
     if grad_method == "lin_comb":
         return LinComb().convert(operator, parameters, aux_meas_op=basis)
