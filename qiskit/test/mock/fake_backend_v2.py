@@ -14,13 +14,14 @@
 
 """Mock BackendV2 object without run implemented for testing backwards compat"""
 
+import datetime
 
 import numpy as np
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.library.standard_gates import CXGate, UGate, ECRGate, RXGate
-from qiskit.providers.backend import BackendV2
+from qiskit.providers.backend import BackendV2, QubitProperties
 from qiskit.providers.options import Options
 from qiskit.transpiler import Target, InstructionProperties
 
@@ -29,7 +30,13 @@ class FakeBackendV2(BackendV2):
     """A mock backend that doesn't implement run() to test compatibility with Terra internals."""
 
     def __init__(self):
-        super().__init__(None)
+        super().__init__(
+            None,
+            name="FakeV2",
+            description="A fake BackendV2 example",
+            online_date=datetime.datetime.utcnow(),
+            backend_version="0.0.1",
+        )
         self._target = Target()
         self._theta = Parameter("theta")
         self._phi = Parameter("phi")
@@ -63,6 +70,11 @@ class FakeBackendV2(BackendV2):
             (1, 0): InstructionProperties(length=4.52e-9, error=0.0000132115),
         }
         self._target.add_instruction(ECRGate(), ecr_props)
+        self.options.set_validator("shots", (1, 4096))
+        self.qubit_properties = {
+            0: QubitProperties(t1=63.48783e-6, t2=112.23246e-6, frequency=5.17538e9),
+            1: QubitProperties(t1=73.09352e-6, t2=126.83382e-6, frequency=5.26722e9),
+        }
 
     @property
     def target(self):
@@ -78,3 +90,8 @@ class FakeBackendV2(BackendV2):
 
     def run(self, run_input, **options):
         raise NotImplementedError
+
+    def qubits(self, qubits):
+        if isinstance(qubits, int):
+            return self.qubit_properties[qubits]
+        return [self.qubit_properties[i] for i in qubits]

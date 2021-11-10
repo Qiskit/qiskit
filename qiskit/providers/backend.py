@@ -242,6 +242,33 @@ class BackendV1(Backend, ABC):
         pass
 
 
+class QubitProperties:
+    """A representation of the properties of a qubit on a backend."""
+
+    __slots = ("t1", "t2", "frequency", "properties")
+
+    def __init__(self, t1=None, t2=None, frequency=None, properties=None):
+        """Create a new ``QubitProperties`` object
+
+        Args:
+            t1: The T1 time for a qubit in seconds
+            t2: The T2 time for a qubit in seconds
+            frequency: The frequency of a qubit in Hz
+            properties: A free form dictionary of additional properties the
+                backend has for a qubit.
+        """
+        self.t1 = t1
+        self.t2 = t2
+        self.frequency = frequency
+        self.properties = properties
+
+    def __repr__(self):
+        return (
+            f"QubitProperties(t1={self.t1}, t2={self.t2}, "
+            f"frequency={self.frequency}, properties={self.properties})"
+        )
+
+
 class BackendV2(Backend, ABC):
     """Abstract class for Backends
 
@@ -414,9 +441,20 @@ class BackendV2(Backend, ABC):
 
         Raises:
             NotImplementedError: if the backend doesn't support querying the
-                t1 time for a qubit
+                qubit properties for a qubit
+            ValueError: if T1 is not defined for the specified qubit
         """
-        raise NotImplementedError
+        props = self.qubits(qubits)
+        if isinstance(props, QubitProperties):
+            if props.t1 is None:
+                raise ValueError(f"T1 is not defined for qubit {qubits}")
+            return props.t1
+        out_list = []
+        for index, prop in enumerate(props):
+            if prop.t1 is None:
+                raise ValueError(f"T1 is not defined for qubit {qubits[index]}")
+            out_list.append(prop.t1)
+        return np.array(out_list)
 
     def t2(self, qubits: Union[int, List[int]]) -> Union[float, np.array]:
         """Return the T2 time of a given qubit
@@ -431,9 +469,20 @@ class BackendV2(Backend, ABC):
 
         Raises:
             NotImplementedError: if the backend doesn't support querying the
-                t2 time for a qubit
+                qubit properties for a qubit
+            ValueError: if T2 is not defined for the specified qubit
         """
-        raise NotImplementedError
+        props = self.qubits(qubits)
+        if isinstance(props, QubitProperties):
+            if props.t2 is None:
+                raise ValueError(f"T2 is not defined for qubit {qubits}")
+            return props.t1
+        out_list = []
+        for index, prop in enumerate(props):
+            if prop.t2 is None:
+                raise ValueError(f"T2 is not defined for qubit {qubits[index]}")
+            out_list.append(prop.t2)
+        return np.array(out_list)
 
     @property
     def dt(self) -> Union[float, None]:
@@ -482,6 +531,25 @@ class BackendV2(Backend, ABC):
         """Return the :class:`~qiskit.pulse.InstructionScheduleMap` for the
         instructions defined in this backend's target."""
         return self.target.instruction_schedule_map()
+
+    def qubits(self, qubit: Union[int, List[int]]) -> Union[QubitProperties, List[QubitProperties]]:
+        """Return QubitProperties for a given qubit.
+
+        If there are no defined or the backend doesn't support querying these
+        details this method does not need to be implemented.
+
+        Args:
+            qubit: The qubit to get the
+                :class:`~qiskit.provider.QubitProperties` object for. This can
+                be a single integer for 1 qubit or a list of qubits and a list
+                of :class:`~qiskit.provider.QubitProperties` objects will be
+                returned in the same order
+
+        raises:
+            NotImplementedError: if the backend doesn't support querying the
+                qubit properties
+        """
+        raise NotImplementedError
 
     def drive_channel(self, qubit: int):
         """Return the drive channel for the given qubit.
@@ -568,6 +636,16 @@ class BackendV2(Backend, ABC):
             if not hasattr(self._options, field):
                 raise AttributeError("Options field %s is not valid for this " "backend" % field)
         self._options.update_options(**fields)
+
+    @property
+    def options(self):
+        """Return the options for the backend
+
+        The options of a backend are the dynamic parameters defining
+        how the backend is used. These are used to control the :meth:`run`
+        method.
+        """
+        return self._options
 
     @abstractmethod
     def run(self, run_input, **options):

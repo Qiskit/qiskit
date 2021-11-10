@@ -94,7 +94,7 @@ class Options:
             if isinstance(field_validator, tuple):
                 if fields[field] > field_validator[1] or fields[field] < field_validator[0]:
                     raise ValueError(
-                        "Specified value for {field} is not a valid value, "
+                        f"Specified value for '{field}' is not a valid value, "
                         f"must be >={field_validator[0]} or <={field_validator[1]}"
                     )
             elif isinstance(field_validator, list):
