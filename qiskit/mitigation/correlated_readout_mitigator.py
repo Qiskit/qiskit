@@ -18,7 +18,7 @@ import numpy as np
 
 from qiskit.result import Counts, QuasiDistribution
 from .base_readout_mitigator import BaseReadoutMitigator
-from .utils import counts_probability_vector, stddev, expval_with_stddev, z_diagonal, str2diag
+from .utils import counts_probability_vector, z_diagonal, str2diag
 
 
 class CorrelatedReadoutMitigator(BaseReadoutMitigator):
@@ -99,8 +99,10 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
 
         # Apply transpose of mitigation matrix
         coeffs = mit_mat.T.dot(diagonal)
+        expval = coeffs.dot(probs_vec)
+        stddev_upper_bound = self.stddev_upper_bound(shots)
 
-        return expval_with_stddev(coeffs, probs_vec, shots)
+        return (expval, stddev_upper_bound)
 
     def quasi_probabilities(
         self,
@@ -146,9 +148,10 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         for index, _ in enumerate(probs_vec):
             probs_dict[index] = probs_vec[index]
 
-        return QuasiDistribution(probs_dict), QuasiDistribution(
-            stddev(QuasiDistribution(probs_dict).nearest_probability_distribution(), shots)
-        )
+        quasi_dist = QuasiDistribution(probs_dict)
+        quasi_dist._stddev_upper_bound = self.stddev_upper_bound(shots)
+
+        return QuasiDistribution(probs_dict)
 
     def mitigation_matrix(self, qubits: List[int] = None) -> np.ndarray:
         r"""Return the readout mitigation matrix for the specified qubits.
@@ -219,7 +222,7 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         mitmat = self.mitigation_matrix(qubits=self._qubits)
         return np.max(np.sum(np.abs(mitmat), axis=0))
 
-    def _stddev_upper_bound(self, shots):
+    def stddev_upper_bound(self, shots):
         """Return an upper bound on standard deviation of expval estimator.
         Args:
             shots: Number of shots used for expectation value measurement.

@@ -55,7 +55,7 @@ class TestReadoutMitigation(QiskitTestCase):
             unmitigated_error = self.compare_results(counts_ideal, counts_noise)
             for mitigator in mitigators:
                 mitigated_probs = (
-                    mitigator.quasi_probabilities(counts_noise)[0]
+                    mitigator.quasi_probabilities(counts_noise)
                     .nearest_probability_distribution()
                     .binary_probabilities()
                 )
@@ -117,7 +117,7 @@ class TestReadoutMitigation(QiskitTestCase):
         mitigators = [CRM, LRM]
         for mitigator in mitigators:
             mitigated_probs_12 = (
-                mitigator.quasi_probabilities(counts_noise, qubits=[1, 2], clbits=[1, 2])[0]
+                mitigator.quasi_probabilities(counts_noise, qubits=[1, 2], clbits=[1, 2])
                 .nearest_probability_distribution()
                 .binary_probabilities()
             )
@@ -128,7 +128,7 @@ class TestReadoutMitigation(QiskitTestCase):
             )
 
             mitigated_probs_02 = (
-                mitigator.quasi_probabilities(counts_noise, qubits=[0, 2], clbits=[0, 2])[0]
+                mitigator.quasi_probabilities(counts_noise, qubits=[0, 2], clbits=[0, 2])
                 .nearest_probability_distribution()
                 .binary_probabilities()
             )
@@ -153,7 +153,7 @@ class TestReadoutMitigation(QiskitTestCase):
         mitigators = [CRM, LRM]
         for mitigator in mitigators:
             mitigated_probs_012 = (
-                mitigator.quasi_probabilities(counts_noise, qubits=[0, 1, 2])[0]
+                mitigator.quasi_probabilities(counts_noise, qubits=[0, 1, 2])
                 .nearest_probability_distribution()
                 .binary_probabilities()
             )
@@ -164,7 +164,7 @@ class TestReadoutMitigation(QiskitTestCase):
             )
 
             mitigated_probs_210 = (
-                mitigator.quasi_probabilities(counts_noise, qubits=[2, 1, 0])[0]
+                mitigator.quasi_probabilities(counts_noise, qubits=[2, 1, 0])
                 .nearest_probability_distribution()
                 .binary_probabilities()
             )
@@ -175,7 +175,7 @@ class TestReadoutMitigation(QiskitTestCase):
             )
 
             mitigated_probs_102 = (
-                mitigator.quasi_probabilities(counts_noise, qubits=[1, 0, 2])[0]
+                mitigator.quasi_probabilities(counts_noise, qubits=[1, 0, 2])
                 .nearest_probability_distribution()
                 .binary_probabilities()
             )

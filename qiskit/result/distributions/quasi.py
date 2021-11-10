@@ -48,6 +48,7 @@ class QuasiDistribution(dict):
             ValueError: If the string format of the keys is incorrect
         """
         self.shots = shots
+        self._stddev_upper_bound = None
         if data:
             first_key = next(iter(data.keys()))
             if isinstance(first_key, int):
@@ -128,3 +129,8 @@ class QuasiDistribution(dict):
                 format ``"0x1a"``
         """
         return {hex(key): value for key, value in self.items()}
+
+    @property
+    def stddev_upper_bound(self):
+        """Return an upper bound on standard deviation of expval estimator."""
+        return self._stddev_upper_bound
