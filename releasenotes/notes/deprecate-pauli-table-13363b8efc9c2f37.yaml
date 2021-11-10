@@ -1,0 +1,8 @@
+---
+deprecations:
+  - |
+    The :class:`~qiskit.quantum_info.PauliTable` is deprecated and will be removed in a future
+    release. Instead, the :class:`~qiskit.quantum_info.PauliList` should be used.
+    With this change, :meth:`~qiskit.quantum_info.StabilizerTable.pauli` has been deprecated
+    so that you should operate directly from :meth:`~qiskit.quantum_info.StabilizerTable.array`
+    without it.
