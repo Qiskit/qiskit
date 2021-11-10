@@ -91,7 +91,7 @@ class FakeBackendV2(BackendV2):
     def run(self, run_input, **options):
         raise NotImplementedError
 
-    def qubits(self, qubits):
-        if isinstance(qubits, int):
-            return self.qubit_properties[qubits]
-        return [self.qubit_properties[i] for i in qubits]
+    def qubits(self, qubit):
+        if isinstance(qubit, int):
+            return self.qubit_properties[qubit]
+        return [self.qubit_properties[i] for i in qubit]
