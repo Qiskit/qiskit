@@ -205,7 +205,7 @@ def xx_circuit_step(source, strength, target, embodiment):
 
     if permute_source_for_overlap is None:
         raise QiskitError(
-            f"Error during RZX decomposition: Could not find a suitable Weyl "
+            "Error during RZX decomposition: Could not find a suitable Weyl "
             f"reflection to match {source} to {target} along {strength}."
         )
 
