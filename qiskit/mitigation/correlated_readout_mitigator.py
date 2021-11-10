@@ -217,7 +217,7 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         mitmat = self.mitigation_matrix(qubits=self._qubits)
         return np.max(np.sum(np.abs(mitmat), axis=0))
 
-    def stddev_upper_bound(self, shots):
+    def stddev_upper_bound(self, shots: int):
         """Return an upper bound on standard deviation of expval estimator.
 
         Args:

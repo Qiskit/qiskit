@@ -25,7 +25,6 @@ from qiskit.mitigation.utils import (
     z_diagonal,
     counts_probability_vector,
     str2diag,
-    stddev,
     expval_with_stddev,
 )
 from qiskit.test.mock import FakeYorktown
@@ -114,7 +113,7 @@ class TestReadoutMitigation(QiskitTestCase):
                     )
                     self.assertTrue(
                         mitigated_stddev >= unmitigated_stddev,
-                        "Mitigator {} did not increase circuit {} expectation value standard deviation".format(
+                        "Mitigator {} did not increase circuit {} the standard deviation".format(
                             mitigator, circuit_name
                         ),
                     )

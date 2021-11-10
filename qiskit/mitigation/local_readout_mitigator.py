@@ -228,7 +228,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
             gammas = self._gammas[list(qubits)]
         return np.product(gammas)
 
-    def stddev_upper_bound(self, shots, qubits):
+    def stddev_upper_bound(self, shots: int, qubits: List[int] = None):
         """Return an upper bound on standard deviation of expval estimator.
 
         Args:
