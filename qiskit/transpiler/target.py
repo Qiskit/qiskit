@@ -411,7 +411,7 @@ class Target(Mapping):
             for qarg, properties in props_map.items():
                 if properties is not None and properties.length is not None:
                     out_durations.append((instruction, list(qarg), properties.length, "s"))
-        self._instruction_durations = InstructionDurations(out_durations)
+        self._instruction_durations = InstructionDurations(out_durations, dt=self.dt)
         return self._instruction_durations
 
     def timing_constraints(self):
