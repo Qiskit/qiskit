@@ -11,6 +11,8 @@
 # that they have been altered from the originals.
 from typing import Optional, Union
 
+from scipy.integrate import OdeSolver, RK45
+
 from qiskit.algorithms.quantum_time_evolution.evolution_base import EvolutionBase
 from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import (
     EvolutionGradientResult,
@@ -40,6 +42,7 @@ class VarQrte(VarQte, EvolutionBase):
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
         # TODO: Boolean argument missing to decide whether or not to compute the error bounds
         error_based_ode: Optional[bool] = False,
+        ode_solver_callable: OdeSolver = RK45,
         optimizer: str = "COBYLA",
         epsilon: Optional[float] = 10e-6,
     ):
@@ -57,6 +60,7 @@ class VarQrte(VarQte, EvolutionBase):
                                 updates.
                              If True use the argument that minimizes the error error_bounds.
                              Deprecated if error is not being computed
+            ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
             optimizer: Optimizer used in case error_based_ode is true.
             epsilon: # TODO, not sure where this will be used.
             # TODO @DAL Where did you get this epsilon from? It's not in the original code.
@@ -66,6 +70,7 @@ class VarQrte(VarQte, EvolutionBase):
             regularization,
             backend,
             error_based_ode,
+            ode_solver_callable,
             optimizer,
             epsilon,
         )
