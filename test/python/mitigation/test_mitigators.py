@@ -21,7 +21,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.result import Counts
 from qiskit.mitigation import CorrelatedReadoutMitigator
 from qiskit.mitigation import LocalReadoutMitigator
-from qiskit.mitigation.utils import z_diagonal, counts_probability_vector, str2diag
+from qiskit.mitigation.utils import z_diagonal, counts_probability_vector, str2diag, stddev, expval_with_stddev
 from qiskit.test.mock import FakeYorktown
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
@@ -53,9 +53,11 @@ class TestReadoutMitigation(QiskitTestCase):
             counts_ideal = Counts(circuit_data["counts_ideal"])
             counts_noise = Counts(circuit_data["counts_noise"])
             unmitigated_error = self.compare_results(counts_ideal, counts_noise)
+            # unmitigated_stddev =
             for mitigator in mitigators:
+                mitigated_quasi_probs = mitigator.quasi_probabilities(counts_noise)
                 mitigated_probs = (
-                    mitigator.quasi_probabilities(counts_noise)
+                    mitigated_quasi_probs
                     .nearest_probability_distribution()
                     .binary_probabilities()
                 )
@@ -70,7 +72,8 @@ class TestReadoutMitigation(QiskitTestCase):
     @data([test_data["test_1"]])
     @unpack
     def test_expectation_improvement(self, circuits_data):
-        """Test whether readout mitigation led to more accurate results"""
+        """Test whether readout mitigation led to more accurate results
+        and that its standard deviation is increased"""
         CRM = CorrelatedReadoutMitigator(circuits_data["correlated_method_matrix"])
         LRM = LocalReadoutMitigator(circuits_data["local_method_matrices"])
         num_qubits = circuits_data["num_qubits"]
@@ -89,11 +92,12 @@ class TestReadoutMitigation(QiskitTestCase):
             for diagonal in diagonals:
                 if isinstance(diagonal, str):
                     diagonal = str2diag(diagonal)
-                unmitigated_expectation = np.dot(probs_noise, diagonal)
+                unmitigated_expectation, unmitigated_stddev = expval_with_stddev(
+                    diagonal, probs_noise, shots=counts_noise.shots()) #np.dot(probs_noise, diagonal)
                 ideal_expectation = np.dot(probs_ideal, diagonal)
                 unmitigated_error = np.abs(ideal_expectation - unmitigated_expectation)
                 for mitigator in mitigators:
-                    mitigated_expectation = mitigator.expectation_value(counts_noise, diagonal)[0]
+                    mitigated_expectation, mitigated_stddev = mitigator.expectation_value(counts_noise, diagonal)
                     mitigated_error = np.abs(ideal_expectation - mitigated_expectation)
                     self.assertTrue(
                         mitigated_error < unmitigated_error,
@@ -101,6 +105,13 @@ class TestReadoutMitigation(QiskitTestCase):
                             mitigator, circuit_name
                         ),
                     )
+                    self.assertTrue(
+                        mitigated_stddev >= unmitigated_stddev,
+                        "Mitigator {} did not increase circuit {} expectation value standard deviation".format(
+                            mitigator, circuit_name
+                        ),
+                    )
+
 
     @data([test_data["test_1"]])
     @unpack
