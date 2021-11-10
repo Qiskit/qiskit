@@ -272,22 +272,24 @@ def load_style(style):
     def_font_ratio = current_style["fs"] / current_style["sfs"]
 
     config = user_config.get_config()
-    if style is not None:
-        if style is False:
-            style_name = "bw"
-        elif isinstance(style, dict) and "name" in style:
-            style_name = style["name"]
-        elif isinstance(style, str):
-            style_name = style
-        elif config:
-            style_name = config.get("circuit_mpl_style", "default")
-        elif not isinstance(style, (str, dict)):
-            warn(
-                f"style parameter '{style}' must be a str or a dictionary."
-                " Will use default style.",
-                UserWarning,
-                2,
-            )
+    if style is None:
+        if config:
+            style = config.get("circuit_mpl_style", "default")
+        else:
+            style = "default"
+
+    if style is False:
+        style_name = "bw"
+    elif isinstance(style, dict) and "name" in style:
+        style_name = style["name"]
+    elif isinstance(style, str):
+        style_name = style
+    elif not isinstance(style, (str, dict)):
+        warn(
+            f"style parameter '{style}' must be a str or a dictionary. Will use default style.",
+            UserWarning,
+            2,
+        )
     if style_name.endswith(".json"):
         style_name = style_name[:-5]
 
