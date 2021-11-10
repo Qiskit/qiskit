@@ -19,7 +19,7 @@ from qiskit.circuit.library import CXGate
 from qiskit.transpiler.preset_passmanagers import level_1_pass_manager
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeMelbourne
-from qiskit.transpiler import Layout, CouplingMap
+from qiskit.transpiler import Layout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 
 
@@ -53,13 +53,11 @@ class TestPassManagerRun(QiskitTestCase):
         circuit.cx(qr[2], qr[3])
 
         coupling_map = FakeMelbourne().configuration().coupling_map
-        basis_gates = FakeMelbourne().configuration().basis_gates
         initial_layout = [None, qr[0], qr[1], qr[2], None, qr[3]]
 
         pass_manager = level_1_pass_manager(
-            PassManagerConfig(
-                basis_gates=basis_gates,
-                coupling_map=CouplingMap(coupling_map),
+            PassManagerConfig.from_backend(
+                FakeMelbourne(),
                 initial_layout=Layout.from_qubit_list(initial_layout),
                 seed_transpiler=42,
             )
@@ -104,13 +102,11 @@ class TestPassManagerRun(QiskitTestCase):
         circuit2.cx(qr[2], qr[3])
 
         coupling_map = FakeMelbourne().configuration().coupling_map
-        basis_gates = FakeMelbourne().configuration().basis_gates
         initial_layout = [None, qr[0], qr[1], qr[2], None, qr[3]]
 
         pass_manager = level_1_pass_manager(
-            PassManagerConfig(
-                basis_gates=basis_gates,
-                coupling_map=CouplingMap(coupling_map),
+            PassManagerConfig.from_backend(
+                FakeMelbourne(),
                 initial_layout=Layout.from_qubit_list(initial_layout),
                 seed_transpiler=42,
             )
