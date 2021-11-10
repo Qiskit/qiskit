@@ -57,7 +57,6 @@ from .quantumcircuitdata import QuantumCircuitData
 from .delay import Delay
 from .measure import Measure
 from .reset import Reset
-from .operation import Operation
 
 try:
     import pygments
@@ -108,7 +107,7 @@ BitType = TypeVar("BitType", Qubit, Clbit)
 VALID_QASM2_IDENTIFIER = re.compile("[a-z][a-zA-Z_0-9]*")
 
 
-class QuantumCircuit(Operation):
+class QuantumCircuit:
     """Create a new circuit.
 
     A circuit is a list of instructions bound to some registers.
@@ -226,7 +225,6 @@ class QuantumCircuit(Operation):
                 )
 
             regs = tuple(int(reg) for reg in regs)  # cast to int
-
         self._base_name = None
         if name is None:
             self._base_name = self.cls_prefix()
@@ -237,7 +235,7 @@ class QuantumCircuit(Operation):
             )
         else:
             self._base_name = name
-            self._name = name
+            self.name = name
         self._increment_instances()
 
         # Data contains a list of instructions and their contexts,
@@ -275,8 +273,6 @@ class QuantumCircuit(Operation):
         if not isinstance(metadata, dict) and metadata is not None:
             raise TypeError("Only a dictionary or None is accepted for circuit metadata")
         self._metadata = metadata
-
-        super().__init__(self._name, len(self._qubits), len(self._clbits), self._parameters)
 
     @property
     def data(self) -> QuantumCircuitData:
@@ -386,7 +382,7 @@ class QuantumCircuit(Operation):
         else:
             pid_name = ""
 
-        self._name = f"{self._base_name}-{self.cls_instances()}{pid_name}"
+        self.name = f"{self._base_name}-{self.cls_instances()}{pid_name}"
 
     def has_register(self, register: Register) -> bool:
         """
@@ -1160,7 +1156,6 @@ class QuantumCircuit(Operation):
             raise CircuitError(
                 "Object to append must be an Instruction or have a to_instruction() method."
             )
-        # We are not ready yet to skip calling to_instruction for Cliffords / QuantumCircuits, etc.
         if not isinstance(instruction, Instruction) and hasattr(instruction, "to_instruction"):
             instruction = instruction.to_instruction()
 
@@ -1197,7 +1192,7 @@ class QuantumCircuit(Operation):
                 it is being attached to.
         """
         if not isinstance(instruction, Instruction):
-            raise CircuitError("object is not a Instruction.")
+            raise CircuitError("object is not an Instruction.")
 
         # do some compatibility checks
         self._check_dups(qargs)
@@ -1921,26 +1916,6 @@ class QuantumCircuit(Operation):
     def num_clbits(self) -> int:
         """Return number of classical bits."""
         return len(self.clbits)
-
-    @property
-    def name(self):
-        """Return the name."""
-        return self._name
-
-    @name.setter
-    def name(self, name):
-        """Set the name."""
-        self._name = name
-
-    @property
-    def num_params(self):
-        """Return num_params."""
-        return self.num_parameters
-
-    @property
-    def params(self):
-        """Return params."""
-        return self.parameters
 
     # The stringified return type is because OrderedDict can't be subscripted before Python 3.9, and
     # typing.OrderedDict wasn't added until 3.7.2.  It can be turned into a proper type once 3.6
