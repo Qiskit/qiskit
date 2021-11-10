@@ -23,11 +23,7 @@ from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.transpiler import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes.routing.algorithms.bip_model import (
-    BIPMappingModel,
-    HAS_CPLEX,
-    HAS_DOCPLEX,
-)
+from qiskit.transpiler.passes.routing.algorithms.bip_model import BIPMappingModel
 
 logger = logging.getLogger(__name__)
 
@@ -115,13 +111,16 @@ class BIPMapping(TransformationPass):
             MissingOptionalLibraryError: if cplex or docplex are not installed.
             TranspilerError: if invalid options are specified.
         """
-        if not HAS_DOCPLEX or not HAS_CPLEX:
+        try:
+            import docplex  # pylint: disable=unused-import
+            import cplex  # pylint: disable=unused-import
+        except ImportError as error:
             raise MissingOptionalLibraryError(
                 libname="bip-mapper",
                 name="BIP-based mapping pass",
                 pip_install="pip install 'qiskit-terra[bip-mapper]'",
                 msg="This may not be possible for all Python versions and OSes",
-            )
+            ) from error
         super().__init__()
         self.coupling_map = coupling_map
         self.qubit_subset = qubit_subset
