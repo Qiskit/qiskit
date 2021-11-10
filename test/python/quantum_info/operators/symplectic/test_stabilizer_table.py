@@ -251,21 +251,24 @@ class TestStabilizerTableProperties(QiskitTestCase):
 
             self.assertRaises(ValueError, set_phase_raise)
 
-    def test_pauli_property(self):
-        """Test pauli property"""
+    def test_pauli_property_deprecated(self):
+        """DEPRECATED - Test pauli property"""
         with self.subTest(msg="pauli"):
             phase = np.array([False, True, True, False])
             array = np.eye(4, dtype=bool)
             stab = StabilizerTable(array, phase)
-            pauli = PauliTable(array)
-            self.assertEqual(stab.pauli, pauli)
+            with self.assertWarns(DeprecationWarning):
+                pauli = PauliTable(array)
+                value = stab.pauli
+            self.assertEqual(value, pauli)
 
         with self.subTest(msg="set pauli"):
             phase = np.array([False, True, True, False])
             array = np.zeros((4, 4), dtype=bool)
             stab = StabilizerTable(array, phase)
-            pauli = PauliTable(np.eye(4, dtype=bool))
-            stab.pauli = pauli
+            with self.assertWarns(DeprecationWarning):
+                pauli = PauliTable(np.eye(4, dtype=bool))
+                stab.pauli = pauli
             self.assertTrue(np.all(stab.array == pauli.array))
             self.assertTrue(np.all(stab.phase == phase))
 
@@ -273,11 +276,13 @@ class TestStabilizerTableProperties(QiskitTestCase):
             phase = np.array([False, True, True, False])
             array = np.zeros((4, 4), dtype=bool)
             stab = StabilizerTable(array, phase)
-            pauli = PauliTable(np.eye(4, dtype=bool)[1:])
+            with self.assertWarns(DeprecationWarning):
+                pauli = PauliTable(np.eye(4, dtype=bool)[1:])
 
             def set_pauli_raise():
                 """Raise exception"""
-                stab.pauli = pauli
+                with self.assertWarns(DeprecationWarning):
+                    stab.pauli = pauli
 
             self.assertRaises(ValueError, set_pauli_raise)
 

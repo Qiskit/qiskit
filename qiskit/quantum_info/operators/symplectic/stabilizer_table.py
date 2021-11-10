@@ -16,12 +16,16 @@ Symplectic Stabilizer Table Class
 import numpy as np
 
 from qiskit.exceptions import QiskitError
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
+from qiskit.quantum_info.operators.mixins import AdjointMixin, generate_apidocs
+from qiskit.quantum_info.operators.scalar_op import ScalarOp
+from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
-from qiskit.quantum_info.operators.mixins import generate_apidocs, AdjointMixin
+from qiskit.utils.deprecation import deprecate_function
 
 
-class StabilizerTable(PauliTable, AdjointMixin):
+class StabilizerTable(BaseOperator, AdjointMixin):
     r"""Symplectic representation of a list Stabilizer matrices.
 
     **Symplectic Representation**
@@ -84,8 +88,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
           - :math:`-Z`
 
     Internally this is stored as a length `N` boolean phase vector
-    :math:`[p_{N-1}, ..., p_{0}]` and a :class:`PauliTable`
-    :math:`M \times 2N` boolean matrix:
+    :math:`[p_{N-1}, ..., p_{0}]` and a size :math:`M \times 2N` boolean matrix:
 
     .. math::
 
@@ -127,11 +130,6 @@ class StabilizerTable(PauliTable, AdjointMixin):
     :code:`row.dot(col) = row.col`, while the :meth:`compose` will return
     :code:`row.compose(col) = col.row` from the above table.
 
-    Note that while this dot product is different to the matrix product
-    of the :class:`PauliTable`, it does not change the commutation structure
-    of elements. Hence :meth:`commutes:` will be the same for the same
-    labels.
-
     **Qubit Ordering**
 
     The qubits are ordered in the table such the least significant qubit
@@ -151,11 +149,6 @@ class StabilizerTable(PauliTable, AdjointMixin):
     `X` or `Z` blocks can be accessed using the :attr:`X` and :attr:`Z`
     properties respectively.
 
-    The Pauli part of the Stabilizer table can be viewed and accessed as a
-    :class:`PauliTable` object using the :attr:`pauli` property. Note that this
-    doesn't copy the underlying array so any changes made  to the Pauli table
-    will also change the stabilizer table.
-
     **Iteration**
 
     Rows in the Stabilizer table can be iterated over like a list. Iteration can
@@ -172,7 +165,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
         """Initialize the StabilizerTable.
 
         Args:
-            data (array or str or PauliTable): input PauliTable data.
+            data (array or str or PauliTable or StabilizerTable): input StabilizerTable data.
             phase (array or bool or None): optional phase vector for input data
                                            (Default: None).
 
@@ -192,7 +185,31 @@ class StabilizerTable(PauliTable, AdjointMixin):
         else:
             pauli = data
         # Initialize the Pauli table
-        super().__init__(pauli)
+        if isinstance(pauli, (np.ndarray, list)):
+            self._array = np.asarray(pauli, dtype=bool)
+        elif isinstance(pauli, PauliTable):
+            # Share underlying array
+            self._array = pauli._array
+        elif isinstance(pauli, Pauli):
+            self._array = np.hstack([pauli.x, pauli.z])
+        elif isinstance(pauli, ScalarOp):
+            # Initialize an N-qubit identity
+            if pauli.num_qubits is None:
+                raise QiskitError(f"{pauli} is not an N-qubit identity")
+            self._array = np.zeros((1, 2 * pauli.num_qubits), dtype=bool)
+        else:
+            raise QiskitError("Invalid input pauli for StabilizerTable.")
+
+        # Input must be a (K, 2*N) shape matrix for M N-qubit Paulis.
+        if self._array.ndim == 1:
+            self._array = np.reshape(self._array, (1, self._array.size))
+        if self._array.ndim != 2 or self._array.shape[1] % 2 != 0:
+            raise QiskitError("Invalid shape for StabilizerTable.")
+
+        # Set size properties
+        self._num_paulis = self._array.shape[0]
+        num_qubits = self._array.shape[1] // 2
+        super().__init__(num_qubits=num_qubits)
 
         # Initialize the phase vector
         if phase is None or phase is False:
@@ -214,7 +231,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
     def __eq__(self, other):
         """Test if two StabilizerTables are equal"""
         if isinstance(other, StabilizerTable):
-            return np.all(self._phase == other._phase) and self.pauli == other.pauli
+            return np.all(self._phase == other._phase) and np.all(self._array == other._array)
         return False
 
     def copy(self):
@@ -222,19 +239,59 @@ class StabilizerTable(PauliTable, AdjointMixin):
         return StabilizerTable(self._array.copy(), self._phase.copy())
 
     # ---------------------------------------------------------------------
-    # PauliTable and phase access
+    # Direct array access
     # ---------------------------------------------------------------------
 
     @property
+    @deprecate_function(
+        "The StabilizerTable.pauli method is deprecated as of Qiskit Terra 0.19.0 "
+        "and will be removed no sooner than 3 months after the releasedate. "
+        "Use StabilizerTable.array method instead.",
+    )  # pylint: disable=bad-docstring-quotes
     def pauli(self):
-        """Return PauliTable"""
+        """DEPRECATED - Return PauliTable"""
         return PauliTable(self._array)
 
     @pauli.setter
+    @deprecate_function(
+        "The StabilizerTable.pauli method is deprecated as of Qiskit Terra 0.19.0 "
+        "and will be removed no sooner than 3 months after the releasedate. "
+        "Use StabilizerTable.array method instead.",
+    )  # pylint: disable=bad-docstring-quotes
     def pauli(self, value):
         if not isinstance(value, PauliTable):
             value = PauliTable(value)
         self._array[:, :] = value._array
+
+    @property
+    def array(self):
+        """The underlying boolean array."""
+        return self._array
+
+    @array.setter
+    def array(self, value):
+        """Set the underlying boolean array."""
+        # We use [:, :] array view so that setting the array cannot
+        # change the arrays shape.
+        self._array[:, :] = value
+
+    @property
+    def X(self):  # pylint: disable=invalid-name
+        """The X block of the :attr:`array`."""
+        return self._array[:, 0 : self.num_qubits]
+
+    @X.setter
+    def X(self, val):  # pylint: disable=invalid-name
+        self._array[:, 0 : self.num_qubits] = val
+
+    @property
+    def Z(self):  # pylint: disable=invalid-name
+        """The Z block of the :attr:`array`."""
+        return self._array[:, self.num_qubits : 2 * self.num_qubits]
+
+    @Z.setter
+    def Z(self, val):  # pylint: disable=invalid-name
+        self._array[:, self.num_qubits : 2 * self.num_qubits] = val
 
     @property
     def phase(self):
@@ -244,6 +301,24 @@ class StabilizerTable(PauliTable, AdjointMixin):
     @phase.setter
     def phase(self, value):
         self._phase[:] = value
+
+    # ---------------------------------------------------------------------
+    # Size Properties
+    # ---------------------------------------------------------------------
+
+    @property
+    def shape(self):
+        """The full shape of the :meth:`array`"""
+        return self._array.shape
+
+    @property
+    def size(self):
+        """The number of Pauli rows in the table."""
+        return self._num_paulis
+
+    def __len__(self):
+        """Return the number of Pauli rows in the table."""
+        return self.size
 
     # ---------------------------------------------------------------------
     # Array methods
@@ -282,14 +357,20 @@ class StabilizerTable(PauliTable, AdjointMixin):
             QiskitError: if ind is out of bounds for the array size or
                          number of qubits.
         """
+        if isinstance(ind, (int, np.integer)):
+            ind = [ind]
+
         if qubit:
             # When deleting qubit columns we don't need to modify
             # the phase vector
-            table = super().delete(ind, True)
-            return StabilizerTable(table, self._phase)
+            if max(ind) >= self.num_qubits:
+                raise QiskitError(
+                    "Indices {} are not all less than the number of"
+                    " qubits in the StabilizerTable ({})".format(ind, self.num_qubits)
+                )
+            cols = ind + [self.num_qubits + i for i in ind]
+            return StabilizerTable(np.delete(self._array, cols, axis=1), self._phase)
 
-        if isinstance(ind, (int, np.integer)):
-            ind = [ind]
         if max(ind) >= self.size:
             raise QiskitError(
                 "Indices {} are not all less than the size"
@@ -324,18 +405,60 @@ class StabilizerTable(PauliTable, AdjointMixin):
         if not isinstance(value, StabilizerTable):
             value = StabilizerTable(value)
 
-        # Update PauliTable component
-        table = super().insert(ind, value, qubit=qubit)
+        # Update StabilizerTable component
+        # Row insertion
+        if not qubit:
+            if ind > self.size:
+                raise QiskitError(
+                    f"Index {ind} is larger than the number of rows in the "
+                    f"StabilizerTable ({self.num_qubits})."
+                )
+            return StabilizerTable(
+                np.insert(self.array, ind, value.array, axis=0),
+                np.insert(self.phase, ind, value.phase, axis=0),
+            )
+
+        # Column insertion
+        if ind > self.num_qubits:
+            raise QiskitError(
+                f"Index {ind} is greater than number of qubits "
+                f"in the StabilizerTable ({self.num_qubits})"
+            )
+        if value.size == 1:
+            # Pad blocks to correct size
+            value_x = np.vstack(self.size * [value.X])
+            value_z = np.vstack(self.size * [value.Z])
+        elif value.size == self.size:
+            #  Blocks are already correct size
+            value_x = value.X
+            value_z = value.Z
+        else:
+            # Blocks are incorrect size
+            raise QiskitError(
+                "Input StabilizerTable must have a single row, or "
+                f"the same number of rows as the Pauli Table ({self.size})."
+            )
+        # Build new array by blocks
+        array = np.hstack(
+            (
+                self.X[:, :ind],
+                value_x,
+                self.X[:, ind:],
+                self.Z[:, :ind],
+                value_z,
+                self.Z[:, ind:],
+            )
+        )
 
         # Update phase vector
         if not qubit:
             phase = np.insert(self._phase, ind, value._phase, axis=0)
         else:
             phase = np.logical_xor(self._phase, value._phase)
-        return StabilizerTable(table, phase)
+        return StabilizerTable(array, phase)
 
     def argsort(self, weight=False):
-        """Return indices for sorting the rows of the PauliTable.
+        """Return indices for sorting the rows of the StabilizerTable.
 
         The default sort method is lexicographic sorting of Paulis by
         qubit number. By using the `weight` kwarg the output can additionally
@@ -352,7 +475,32 @@ class StabilizerTable(PauliTable, AdjointMixin):
         Returns:
             array: the indices for sorting the table.
         """
-        return super().argsort(weight=weight)
+        # Get order of each Pauli using
+        # I => 0, X => 1, Y => 2, Z => 3
+        x = self.X
+        z = self.Z
+        order = 1 * (x & ~z) + 2 * (x & z) + 3 * (~x & z)
+        # Optionally get the weight of Pauli
+        # This is the number of non identity terms
+        if weight:
+            weights = np.sum(x | z, axis=1)
+
+        # Sort by order
+        # To preserve ordering between successive sorts we
+        # are use the 'stable' sort method
+        indices = np.arange(self.size)
+        for i in range(self.num_qubits):
+            sort_inds = order[:, i].argsort(kind="stable")
+            order = order[sort_inds]
+            indices = indices[sort_inds]
+            if weight:
+                weights = weights[sort_inds]
+
+        # If using weights we implement a final sort by total number
+        # of non-identity Paulis
+        if weight:
+            indices = indices[weights.argsort(kind="stable")]
+        return indices
 
     def sort(self, weight=False):
         """Sort the rows of the table.
@@ -399,7 +547,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
         Returns:
             StabilizerTable: a sorted copy of the original table.
         """
-        return super().sort(weight=weight)
+        return self[self.argsort(weight=weight)]
 
     def unique(self, return_index=False, return_counts=False):
         """Return unique stabilizers from the table.
@@ -452,6 +600,14 @@ class StabilizerTable(PauliTable, AdjointMixin):
         if len(ret) == 1:
             return ret[0]
         return ret
+
+    def conjugate(self):
+        """Not implemented."""
+        raise NotImplementedError(f"{type(self)} does not support conjugatge")
+
+    def transpose(self):
+        """Not implemented."""
+        raise NotImplementedError(f"{type(self)} does not support transpose")
 
     # ---------------------------------------------------------------------
     # Utility methods
@@ -648,10 +804,12 @@ class StabilizerTable(PauliTable, AdjointMixin):
 
     @classmethod
     def _tensor(cls, a, b):
-        pauli = super()._tensor(a, b)
+        x1, x2 = a._block_stack(a.X, b.X)
+        z1, z2 = a._block_stack(a.Z, b.Z)
+        array = np.hstack([x2, x1, z2, z1])
         phase1, phase2 = a._block_stack(a.phase, b.phase)
         phase = np.logical_xor(phase1, phase2)
-        return StabilizerTable(pauli, phase)
+        return StabilizerTable(array, phase)
 
     def _add(self, other, qargs=None):
         """Append with another StabilizerTable.
@@ -688,6 +846,10 @@ class StabilizerTable(PauliTable, AdjointMixin):
             np.vstack((self._array, padded._array)), np.hstack((self._phase, padded._phase))
         )
 
+    def __add__(self, other):
+        qargs = getattr(other, "qargs", None)
+        return self._add(other, qargs=qargs)
+
     def _multiply(self, other):
         """Multiply (XOR) phase vector of the StabilizerTable.
 
@@ -715,6 +877,25 @@ class StabilizerTable(PauliTable, AdjointMixin):
             ret._phase ^= True
             return ret
         return self
+
+    @staticmethod
+    def _block_stack(array1, array2):
+        """Stack two arrays along their first axis."""
+        sz1 = len(array1)
+        sz2 = len(array2)
+        out_shape1 = (sz1 * sz2,) + array1.shape[1:]
+        out_shape2 = (sz1 * sz2,) + array2.shape[1:]
+        if sz2 > 1:
+            # Stack blocks for output table
+            ret1 = np.reshape(np.stack(sz2 * [array1], axis=1), out_shape1)
+        else:
+            ret1 = array1
+        if sz1 > 1:
+            # Stack blocks for output table
+            ret2 = np.reshape(np.vstack(sz1 * [array2]), out_shape2)
+        else:
+            ret2 = array2
+        return ret1, ret2
 
     # ---------------------------------------------------------------------
     # Representation conversions
@@ -961,7 +1142,22 @@ class StabilizerTable(PauliTable, AdjointMixin):
         if label[0] in ["-", "+"]:
             phase = label[0] == "-"
             label = label[1:]
-        return PauliTable._from_label(label), phase
+
+        num_qubits = len(label)
+        symp = np.zeros(2 * num_qubits, dtype=bool)
+        xs = symp[0:num_qubits]
+        zs = symp[num_qubits : 2 * num_qubits]
+        for i, char in enumerate(label):
+            if char not in ["I", "X", "Y", "Z"]:
+                raise QiskitError(
+                    "Pauli string contains invalid character:"
+                    " {} not in ['I', 'X', 'Y', 'Z'].".format(char)
+                )
+            if char in ["X", "Y"]:
+                xs[num_qubits - 1 - i] = True
+            if char in ["Z", "Y"]:
+                zs[num_qubits - 1 - i] = True
+        return symp, phase
 
     @staticmethod
     def _to_label(pauli, phase):
@@ -970,7 +1166,22 @@ class StabilizerTable(PauliTable, AdjointMixin):
         # Cast in symplectic representation
         # This should avoid a copy if the pauli is already a row
         # in the symplectic table
-        label = PauliTable._to_label(pauli)
+        symp = np.asarray(pauli, dtype=bool)
+        num_qubits = symp.size // 2
+        x = symp[0:num_qubits]
+        z = symp[num_qubits : 2 * num_qubits]
+        paulis = np.zeros(num_qubits, dtype="<U1")
+        for i in range(num_qubits):
+            if not z[i]:
+                if not x[i]:
+                    paulis[num_qubits - 1 - i] = "I"
+                else:
+                    paulis[num_qubits - 1 - i] = "X"
+            elif not x[i]:
+                paulis[num_qubits - 1 - i] = "Z"
+            else:
+                paulis[num_qubits - 1 - i] = "Y"
+        label = "".join(paulis)
         if phase:
             return "-" + label
         return "+" + label
@@ -990,7 +1201,40 @@ class StabilizerTable(PauliTable, AdjointMixin):
             csr_matrix: if sparse=True.
         """
         # pylint: disable=arguments-differ
-        mat = PauliTable._to_matrix(pauli, sparse=sparse, real_valued=True)
+        def count1(i):
+            """Count number of set bits in int or array"""
+            i = i - ((i >> 1) & 0x55555555)
+            i = (i & 0x33333333) + ((i >> 2) & 0x33333333)
+            return (((i + (i >> 4) & 0xF0F0F0F) * 0x1010101) & 0xFFFFFFFF) >> 24
+
+        symp = np.asarray(pauli, dtype=bool)
+        num_qubits = symp.size // 2
+        x = symp[0:num_qubits]
+        z = symp[num_qubits : 2 * num_qubits]
+
+        dim = 2 ** num_qubits
+        twos_array = 1 << np.arange(num_qubits)
+        x_indices = np.array(x).dot(twos_array)
+        z_indices = np.array(z).dot(twos_array)
+
+        indptr = np.arange(dim + 1, dtype=np.uint)
+        indices = indptr ^ x_indices
+        data = (-1) ** np.mod(count1(z_indices & indptr), 2)
+
+        if sparse:
+            # Return sparse matrix
+            from scipy.sparse import csr_matrix
+
+            mat = csr_matrix((data, indices, indptr), shape=(dim, dim), dtype=float)
+            if phase:
+                mat *= -1
+            return mat
+
+        # Build dense matrix using csr format
+        mat = np.zeros((dim, dim), dtype=float)
+        for i in range(dim):
+            mat[i][indices[indptr[i] : indptr[i + 1]]] = data[indptr[i] : indptr[i + 1]]
+
         if phase:
             mat *= -1
         return mat

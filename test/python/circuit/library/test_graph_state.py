@@ -28,7 +28,7 @@ class TestGraphStateLibrary(QiskitTestCase):
         Based on https://arxiv.org/pdf/quant-ph/0307130.pdf, Eq. (6).
         """
 
-        stabilizers = Clifford(graph_state).stabilizer.pauli.to_labels()
+        stabilizers = [label[1:] for label in Clifford(graph_state).stabilizer.to_labels()]
 
         expected_stabilizers = []  # keep track of all expected stabilizers
         num_vertices = len(adjacency_matrix)

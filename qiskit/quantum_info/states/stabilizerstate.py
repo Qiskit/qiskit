@@ -511,10 +511,8 @@ class StabilizerState(QuantumState):
         row_phase = table.phase[row]
         accum_phase = table.phase[accum]
 
-        row_pauli = table.pauli[row]
-        accum_pauli = table.pauli[accum]
-        row_pauli = Pauli(row_pauli.to_labels()[0])
-        accum_pauli = Pauli(accum_pauli.to_labels()[0])
+        row_pauli = Pauli(table[row].to_labels()[0][1:])
+        accum_pauli = Pauli(table[accum].to_labels()[0][1:])
 
         accum_pauli, accum_phase = StabilizerState._rowsum(
             accum_pauli, accum_phase, row_pauli, row_phase
@@ -534,8 +532,7 @@ class StabilizerState(QuantumState):
         accum_phase = aux_pauli.phase
 
         accum_pauli = aux_pauli
-        row_pauli = table.pauli[row]
-        row_pauli = Pauli(row_pauli.to_labels()[0])
+        row_pauli = Pauli(table[row].to_labels()[0][1:])
 
         accum_pauli, accum_phase = StabilizerState._rowsum(
             accum_pauli, accum_phase, row_pauli, row_phase

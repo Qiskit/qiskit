@@ -14,20 +14,21 @@ Symplectic Pauli Table Class
 """
 # pylint: disable=invalid-name
 
+import warnings
 from typing import Dict
 
 import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.operators.custom_iterator import CustomIterator
+from qiskit.quantum_info.operators.mixins import AdjointMixin, generate_apidocs
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
-from qiskit.quantum_info.operators.custom_iterator import CustomIterator
-from qiskit.quantum_info.operators.mixins import generate_apidocs, AdjointMixin
 
 
 class PauliTable(BaseOperator, AdjointMixin):
-    r"""Symplectic representation of a list Pauli matrices.
+    r"""DEPRECATED: Symplectic representation of a list Pauli matrices.
 
     **Symplectic Representation**
 
@@ -139,6 +140,13 @@ class PauliTable(BaseOperator, AdjointMixin):
             The input array is not copied so multiple Pauli tables
             can share the same underlying array.
         """
+        warnings.warn(
+            "The PauliTable class is deprecated as of Qiskit Terra 0.19.0 "
+            "and will be removed no sooner than 3 months after the releasedate. "
+            "Use PauliList class instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if isinstance(data, (np.ndarray, list)):
             self._array = np.asarray(data, dtype=bool)
         elif isinstance(data, str):
