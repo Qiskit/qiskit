@@ -1,0 +1,15 @@
+---
+deprecations:
+  - |
+    Creating an instance of :obj:`.InstructionSet` with the ``circuit_cregs`` keyword argument is deprecated.
+    In general, these classes never need to be constructed by users (but are used internally), but should you need to, you should pass a callable as the ``resource_resolver`` keyword argument.
+fixes:
+  - |
+    Making an instruction conditional with the standard :meth:`.InstructionSet.c_if` method with integer indices is now consistent with the numbering scheme used by the :obj:`.QuantumCircuit` the instructions are part of.
+    Previously, if there were two :obj:`.ClassicalRegister`\ s with overlapping :obj:`.Clbit`\ s, the numbering would be incorrect.
+  - |
+    Making an instruction conditional with the standard :meth:`.InstructionSet.c_if` method will now succeed, even if there are no :obj:`.ClassicalRegister`\ s in the circuit.
+  - |
+    Making an instruction conditional with the standard :meth:`.InstructionSet.c_if` method when using a :obj:`.Clbit` that is contained in a :obj:`.ClassicalRegister` of size one will now correctly conditional be on the bit, not the register.
+  - |
+    Trying to make an instruction conditional with the standard :meth:`.InstructionSet.c_if` method will now correctly raise an error if the classical resource is not present in the circuit.

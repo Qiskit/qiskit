@@ -404,7 +404,13 @@ class Instruction:
         return inverse_gate
 
     def c_if(self, classical, val):
-        """Add classical condition on register or cbit classical and value val."""
+        """Set a classical equality condition on this instruction between the register or cbit
+        ``classical`` and value ``val``.
+
+        .. note::
+
+            This silently overrides any previously set condition; it does not stack.
+        """
         if not isinstance(classical, (ClassicalRegister, Clbit)):
             raise CircuitError("c_if must be used with a classical register or classical bit")
         if val < 0:
