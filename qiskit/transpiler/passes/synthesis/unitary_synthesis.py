@@ -212,7 +212,7 @@ class UnitarySynthesis(TransformationPass):
             return dag
 
         plugin_method = self.plugins.ext_plugins[self.method].obj
-        plugin_kwargs = {}
+        plugin_kwargs = {"config": self._plugin_config}
         _gate_lengths = _gate_errors = None
         dag_bit_indices = {}
 
@@ -274,7 +274,7 @@ class UnitarySynthesis(TransformationPass):
                     self._coupling_map,
                     [dag_bit_indices[x] for x in node.qargs],
                 )
-            synth_dag = method.run(unitary, config=self._plugin_config, **kwargs)
+            synth_dag = method.run(unitary, **kwargs)
             if synth_dag is not None:
                 if isinstance(synth_dag, tuple):
                     dag.substitute_node_with_dag(node, synth_dag[0], wires=synth_dag[1])
