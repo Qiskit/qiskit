@@ -48,17 +48,25 @@ class Options:
         Setting a validator enables
         If a validator is already present for the specified field it will
         be silently overriden. For example if you have a numeric field like
-        ``shots`` you can specify a
+        ``shots`` you can specify a bounds tuple that set an upper and lower
+        bound on the value such as::
+
+            options.set_validator("shots", (1, 4096))
+
+        In this case whenever the ``"shots"`` option is updated by the user
+        it will enforce that the value is >=1 and <=4096. A ``ValueError`` will
+        be raised if it's outside those bounds.
 
         Args:
             field (str): The field name to set the validator on
-            validator_value (list or tuple): The value to use for the validator
-                depending on the type indicates on how the value for a field
-                is enforced. If a tuple is passed in it must have a length of
-                two and will enforce the min and max value (inclusive) for an
-                integer or float value option. If it's a list it will list
-                the valid values for a field. If it's a ``type`` the validator
-                will just enforce the value is of a certain type.
+            validator_value (list or tuple or type): The value to use for the
+                validator depending on the type indicates on how the value for
+                a field is enforced. If a tuple is passed in it must have a
+                length of two and will enforce the min and max value
+                (inclusive) for an integer or float value option. If it's a
+                list it will list the valid values for a field. If it's a
+                ``type`` the validator will just enforce the value is of a
+                certain type.
         Raises:
             KeyError: If field is not present in the options object
             ValueError: If the ``validator_value`` has an invalid value for a
