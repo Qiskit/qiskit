@@ -207,7 +207,7 @@ class Pauli(BasePauli, Operation):
         self._name = "pauli"
         self._num_qubits = self.num_qubits
         self._num_clbits = 0
-        self._params = []
+        self._operands = []
 
     def __repr__(self):
         """Display representation."""

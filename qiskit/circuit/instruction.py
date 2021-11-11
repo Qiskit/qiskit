@@ -569,8 +569,3 @@ class Instruction:
     def num_clbits(self, num_clbits):
         """Set num_clbits."""
         self._num_clbits = num_clbits
-
-    @property
-    def num_params(self):
-        """Return num_params."""
-        return len(self._params)

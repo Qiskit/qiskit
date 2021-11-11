@@ -30,11 +30,11 @@ class Operation(ABC):
             raise CircuitError("An Operation mixin should not be instantiated directly.")
         return super().__new__(cls)
 
-    def __init__(self, name, num_qubits, num_clbits, params):
+    def __init__(self, name, num_qubits, num_clbits, operands):
         self._name = name
         self._num_qubits = num_qubits
         self._num_clbits = num_clbits
-        self._params = params
+        self._operands = operands
 
     @property
     def name(self):
@@ -52,11 +52,11 @@ class Operation(ABC):
         return self._num_clbits
 
     @property
-    def num_params(self):
-        """Number of parameters."""
-        return len(self._params)
+    def num_operands(self):
+        """Number of operands."""
+        return len(self._operands)
 
     @property
-    def params(self):
-        """List of parameters to specialize a specific Operation instance."""
-        return self._params
+    def operands(self):
+        """List of operands to specialize a specific Operation instance."""
+        return self._operands

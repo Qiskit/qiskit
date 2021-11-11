@@ -159,7 +159,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin, Operation):
         # Initialize Operation
         self._name = "cnotdihedral"
         self._num_clbits = 0
-        self._params = []
+        self._operands = []
 
         # Validate the CNOTDihedral element
         if validate and not self._is_valid():
