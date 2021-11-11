@@ -71,7 +71,7 @@ class FakeBackendV2(BackendV2):
         }
         self._target.add_instruction(ECRGate(), ecr_props)
         self.options.set_validator("shots", (1, 4096))
-        self.qubit_properties = {
+        self._qubit_properties = {
             0: QubitProperties(t1=63.48783e-6, t2=112.23246e-6, frequency=5.17538e9),
             1: QubitProperties(t1=73.09352e-6, t2=126.83382e-6, frequency=5.26722e9),
         }
@@ -91,7 +91,7 @@ class FakeBackendV2(BackendV2):
     def run(self, run_input, **options):
         raise NotImplementedError
 
-    def qubits(self, qubit):
+    def qubit_properties(self, qubit):
         if isinstance(qubit, int):
-            return self.qubit_properties[qubit]
-        return [self.qubit_properties[i] for i in qubit]
+            return self._qubit_properties[qubit]
+        return [self._qubit_properties[i] for i in qubit]

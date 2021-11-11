@@ -445,7 +445,7 @@ class BackendV2(Backend, ABC):
                 qubit properties for a qubit
             ValueError: if T1 is not defined for the specified qubit
         """
-        props = self.qubits(qubits)
+        props = self.qubit_properties(qubits)
         if isinstance(props, QubitProperties):
             if props.t1 is None:
                 raise ValueError(f"T1 is not defined for qubit {qubits}")
@@ -473,7 +473,7 @@ class BackendV2(Backend, ABC):
                 qubit properties for a qubit
             ValueError: if T2 is not defined for the specified qubit
         """
-        props = self.qubits(qubits)
+        props = self.qubit_properties(qubits)
         if isinstance(props, QubitProperties):
             if props.t2 is None:
                 raise ValueError(f"T2 is not defined for qubit {qubits}")
@@ -533,7 +533,9 @@ class BackendV2(Backend, ABC):
         instructions defined in this backend's target."""
         return self.target.instruction_schedule_map()
 
-    def qubits(self, qubit: Union[int, List[int]]) -> Union[QubitProperties, List[QubitProperties]]:
+    def qubit_properties(
+        self, qubit: Union[int, List[int]]
+    ) -> Union[QubitProperties, List[QubitProperties]]:
         """Return QubitProperties for a given qubit.
 
         If there are no defined or the backend doesn't support querying these

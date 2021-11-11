@@ -29,7 +29,7 @@ class TestBackendV2(QiskitTestCase):
 
     def test_qubit_properties(self):
         """Test that qubit properties are returned as expected."""
-        props = self.backend.qubits([1, 0])
+        props = self.backend.qubit_properties([1, 0])
         self.assertEqual([73.09352e-6, 63.48783e-6], [x.t1 for x in props])
         self.assertEqual([126.83382e-6, 112.23246e-6], [x.t2 for x in props])
         self.assertEqual([5.26722e9, 5.17538e9], [x.frequency for x in props])
@@ -42,14 +42,14 @@ class TestBackendV2(QiskitTestCase):
 
     def test_t1_single_not_defined(self):
         """Test that t1 correctly errors for a qubit doesn't have t1 defined."""
-        self.backend.qubit_properties[0].t1 = None
+        self.backend._qubit_properties[0].t1 = None
         with self.assertRaises(ValueError):
             self.backend.t1(0)
 
     def test_t1_list_not_definedinvalid_qubit(self):
         """Test that t1 correctly errors if an qubit which doesn't have t1
         defined is in the input list."""
-        self.backend.qubit_properties[1].t1 = None
+        self.backend._qubit_properties[1].t1 = None
         with self.assertRaises(ValueError):
             self.backend.t1([0, 1])
 
@@ -61,14 +61,14 @@ class TestBackendV2(QiskitTestCase):
 
     def test_t2_single_not_defined(self):
         """Test that t2 correctly errors for a qubit which doesn't have t2 defined."""
-        self.backend.qubit_properties[1].t2 = None
+        self.backend._qubit_properties[1].t2 = None
         with self.assertRaises(ValueError):
             self.backend.t2(1)
 
     def test_t2_list_invalid_qubit(self):
         """Test that t2 correctly errors if a qubit which doesn't have t2
         defined is in the input list."""
-        self.backend.qubit_properties[1].t2 = None
+        self.backend._qubit_properties[1].t2 = None
         with self.assertRaises(ValueError):
             self.backend.t2([0, 1])
 
