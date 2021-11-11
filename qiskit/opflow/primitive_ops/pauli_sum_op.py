@@ -359,7 +359,7 @@ class PauliSumOp(PrimitiveOp):
                 to_native(np.real_if_close(self.primitive.coeffs[0])) * self.coeff,
             )
         coeffs = np.real_if_close(self.primitive.coeffs)
-        if not self.primitive.coeffs.dtype==object:
+        if not self.primitive.coeffs.dtype == object:
             coeffs = np.real_if_close(self.primitive.coeffs)
         else:
             coeffs = []
