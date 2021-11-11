@@ -297,7 +297,7 @@ class CircuitSampler(ConverterBase):
 
             try:
                 self._transpiled_circ_cache = self.quantum_instance.transpile(
-                    circuits, stage=TranspileStage().PARAMETERIZED
+                    circuits, stage=TranspileStage.PARAMETERIZED
                 )
             except QiskitError:
                 logger.debug(
@@ -330,9 +330,7 @@ class CircuitSampler(ConverterBase):
 
         # run transpiler passes on bound circuits
         if self._transpile_before_bind:
-            ready_circs = self.quantum_instance.transpile(
-                ready_circs, stage=TranspileStage().BOUND
-            )
+            ready_circs = self.quantum_instance.transpile(ready_circs, stage=TranspileStage.BOUND)
 
         results = self.quantum_instance.execute(
             ready_circs, had_transpiled=self._transpile_before_bind
