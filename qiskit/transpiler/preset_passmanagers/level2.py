@@ -129,7 +129,15 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     if vf2_seed is None:
         vf2_seed = -1
     _choose_layout_0 = (
-        [] if pass_manager_config.layout_method else VF2Layout(coupling_map, seed=vf2_seed)
+        []
+        if pass_manager_config.layout_method
+        else VF2Layout(
+            coupling_map,
+            seed=vf2_seed,
+            call_limit=int(5e6),
+            time_limit=10.0,
+            properties=backend_properties,
+        )
     )
 
     # 1b. if VF2 layout doesn't converge on a solution use layout_method (dense) to get a layout

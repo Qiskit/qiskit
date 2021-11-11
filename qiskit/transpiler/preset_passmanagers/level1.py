@@ -155,7 +155,15 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     )
 
     _choose_layout_1 = (
-        [] if pass_manager_config.layout_method else VF2Layout(coupling_map, seed=vf2_seed)
+        []
+        if pass_manager_config.layout_method
+        else VF2Layout(
+            coupling_map,
+            seed=vf2_seed,
+            call_limit=int(5e5),
+            time_limit=1e-2,
+            properties=backend_properties,
+        )
     )
 
     # 2. Use a better layout on densely connected qubits, if circuit needs swaps

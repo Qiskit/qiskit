@@ -13,11 +13,13 @@
 """VF2Layout pass to find a layout using subgraph isomorphism"""
 from enum import Enum
 import random
+import time
 
 from retworkx import PyGraph, PyDiGraph, vf2_mapping
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
+from qiskit.providers.exceptions import BackendPropertyError
 
 
 class VF2LayoutStopReason(Enum):
@@ -46,7 +48,16 @@ class VF2Layout(AnalysisPass):
 
     """
 
-    def __init__(self, coupling_map, strict_direction=False, seed=None):
+    def __init__(
+        self,
+        coupling_map,
+        strict_direction=False,
+        seed=None,
+        call_limit=None,
+        time_limit=None,
+        properties=None,
+        max_trials=-1,
+    ):
         """Initialize a ``VF2Layout`` pass instance
 
         Args:
@@ -54,11 +65,21 @@ class VF2Layout(AnalysisPass):
             strict_direction (bool): If True, considers the direction of the coupling map.
                                      Default is False.
             seed (int): Sets the seed of the PRNG. -1 Means no node shuffling.
+            call_limit (int): The number of state visits to attempt in each execution of
+                vf2.
+            time_limit (float): The total time limit in seconds to run vf2layout
+            properties (BackendProperties): The backend properties for the backend
+            max_trials (int): The maximum number of trials to run vf2 to find
+                a layout.
         """
         super().__init__()
         self.coupling_map = coupling_map
         self.strict_direction = strict_direction
         self.seed = seed
+        self.call_limit = call_limit
+        self.time_limit = time_limit
+        self.properties = properties
+        self.max_trials = max_trials
 
     def run(self, dag):
         """run the layout method"""
@@ -93,15 +114,62 @@ class VF2Layout(AnalysisPass):
         im_graph.add_nodes_from(range(len(qubits)))
         im_graph.add_edges_from_no_data(interactions)
 
-        mappings = vf2_mapping(cm_graph, im_graph, subgraph=True, id_order=False, induced=False)
-        try:
-            mapping = next(mappings)
+        mappings = vf2_mapping(
+            cm_graph,
+            im_graph,
+            subgraph=True,
+            id_order=False,
+            induced=False,
+            call_limit=self.call_limit,
+        )
+        chosen_layout = None
+        chosen_layout_score = None
+        start_time = time.time()
+        trials = 0
+        for mapping in mappings:
+            trials += 1
             stop_reason = VF2LayoutStopReason.SOLUTION_FOUND
             layout = Layout({qubits[im_i]: cm_nodes[cm_i] for cm_i, im_i in mapping.items()})
-            self.property_set["layout"] = layout
+            layout_score = self._score_layout(layout)
+            if chosen_layout is None:
+                chosen_layout = layout
+                chosen_layout_score = layout_score
+            elif layout_score < chosen_layout_score:
+                chosen_layout = layout
+                chosen_layout_score = layout_score
+            if trials >= self.max_trials or (
+                self.time_limit and time.time() - start_time >= self.time_limit
+            ):
+                break
+        if chosen_layout is None:
+            stop_reason = VF2LayoutStopReason.NO_SOLUTION_FOUND
+        else:
+            self.property_set["layout"] = chosen_layout
             for reg in dag.qregs.values():
                 self.property_set["layout"].add_register(reg)
-        except StopIteration:
-            stop_reason = VF2LayoutStopReason.NO_SOLUTION_FOUND
 
         self.property_set["VF2Layout_stop_reason"] = stop_reason
+
+    def _score_layout(self, layout):
+        """Score heurstic to determine the quality of the layout by looking at the readout fidelity
+        on the chosen qubits. If BackendProperties are not available it uses the coupling map degree
+        to weight against higher connectivity qubits."""
+        bits = layout.get_physical_bits()
+        score = 0
+        if self.properties is None:
+            # Sum qubit degree for each qubit in chosen layout as really rough estimate of error
+            for bit in bits:
+                score += self.coupling_map.graph.out_degree(
+                    bit
+                ) + self.coupling_map.graph.in_degree(bit)
+            return score
+        for bit in bits:
+            try:
+                score += self.properties.readout_error(bit)
+            # If readout error can't be found in properties fallback to degree
+            # divided by number of qubits as a terrible approximation
+            except BackendPropertyError:
+                score += (
+                    self.coupling_map.graph.out_degree(bit) + self.coupling_map.graph.in_degree(bit)
+                ) / len(self.coupling_map.graph)
+        return score

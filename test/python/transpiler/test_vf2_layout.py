@@ -65,7 +65,7 @@ class TestVF2LayoutSimple(LayoutTestCase):
         circuit.cx(qr[1], qr[0])  # qr1 -> qr0
 
         dag = circuit_to_dag(circuit)
-        pass_ = VF2Layout(cmap, strict_direction=False, seed=self.seed)
+        pass_ = VF2Layout(cmap, strict_direction=False, seed=self.seed, max_trials=1)
         pass_.run(dag)
         self.assertLayout(dag, cmap, pass_.property_set)
 
@@ -81,7 +81,7 @@ class TestVF2LayoutSimple(LayoutTestCase):
         circuit.cx(qr[1], qr[0])  # qr1 -> qr0
 
         dag = circuit_to_dag(circuit)
-        pass_ = VF2Layout(cmap, strict_direction=True, seed=self.seed)
+        pass_ = VF2Layout(cmap, strict_direction=True, seed=self.seed, max_trials=1)
         pass_.run(dag)
         self.assertLayout(dag, cmap, pass_.property_set, strict_direction=True)
 
@@ -99,7 +99,7 @@ class TestVF2LayoutSimple(LayoutTestCase):
         circuit.cx(qr[1], qr[2])  # qr1-> qr2
 
         dag = circuit_to_dag(circuit)
-        pass_ = VF2Layout(cmap, seed=-1)
+        pass_ = VF2Layout(cmap, seed=-1, max_trials=1)
         pass_.run(dag)
         self.assertLayout(dag, cmap, pass_.property_set)
 
@@ -120,7 +120,7 @@ class TestVF2LayoutLattice(LayoutTestCase):
         circuit = self.graph_state_from_pygraph(graph_20_20)
 
         dag = circuit_to_dag(circuit)
-        pass_ = VF2Layout(self.cmap25, seed=self.seed)
+        pass_ = VF2Layout(self.cmap25, seed=self.seed, max_trials=1)
         pass_.run(dag)
         self.assertLayout(dag, self.cmap25, pass_.property_set)
 
@@ -130,7 +130,7 @@ class TestVF2LayoutLattice(LayoutTestCase):
         circuit = self.graph_state_from_pygraph(graph_9_9)
 
         dag = circuit_to_dag(circuit)
-        pass_ = VF2Layout(self.cmap25, seed=self.seed)
+        pass_ = VF2Layout(self.cmap25, seed=self.seed, max_trials=1)
         pass_.run(dag)
         self.assertLayout(dag, self.cmap25, pass_.property_set)
 
@@ -154,7 +154,7 @@ class TestVF2LayoutBackend(LayoutTestCase):
         circuit.cx(qr[0], qr[3])
         circuit.cx(qr[0], qr[4])
         dag = circuit_to_dag(circuit)
-        pass_ = VF2Layout(CouplingMap(cmap16), seed=self.seed)
+        pass_ = VF2Layout(CouplingMap(cmap16), seed=self.seed, max_trials=1)
         pass_.run(dag)
         layout = pass_.property_set["layout"]
         self.assertIsNone(layout)
@@ -179,7 +179,7 @@ class TestVF2LayoutBackend(LayoutTestCase):
         circuit.cx(qr1[4], qr0[2])  # q1[4] -> q0[2]
 
         dag = circuit_to_dag(circuit)
-        pass_ = VF2Layout(cmap16, strict_direction=True, seed=self.seed)
+        pass_ = VF2Layout(cmap16, strict_direction=True, seed=self.seed, max_trials=1)
         pass_.run(dag)
         self.assertLayout(dag, cmap16, pass_.property_set)
 
@@ -200,7 +200,7 @@ class TestVF2LayoutBackend(LayoutTestCase):
         circuit.cx(qr[0], qr[2])  # qr0 -> qr2
 
         dag = circuit_to_dag(circuit)
-        pass_ = VF2Layout(cmap5, seed=self.seed)
+        pass_ = VF2Layout(cmap5, seed=self.seed, max_trials=1)
         pass_.run(dag)
         self.assertLayout(dag, cmap5, pass_.property_set)
 
@@ -221,7 +221,7 @@ class TestVF2LayoutBackend(LayoutTestCase):
         circuit.cx(qr[1], qr[2])  # qr1 -> qr2
 
         dag = circuit_to_dag(circuit)
-        pass_ = VF2Layout(cmap5, strict_direction=True, seed=self.seed)
+        pass_ = VF2Layout(cmap5, strict_direction=True, seed=self.seed, max_trials=1)
         pass_.run(dag)
         self.assertLayout(dag, cmap5, pass_.property_set, strict_direction=True)
 
@@ -246,7 +246,7 @@ class TestVF2LayoutBackend(LayoutTestCase):
         circuit.cx(qr1[4], qr0[2])  # q1[4] -> q0[2]
 
         dag = circuit_to_dag(circuit)
-        pass_ = VF2Layout(cmap16, strict_direction=False, seed=self.seed)
+        pass_ = VF2Layout(cmap16, strict_direction=False, seed=self.seed, max_trials=1)
         pass_.run(dag)
         self.assertLayout(dag, cmap16, pass_.property_set)
 
@@ -268,7 +268,7 @@ class TestVF2LayoutBackend(LayoutTestCase):
         circuit.cx(qr[1], qr[2])  # qr1 -> qr2
 
         dag = circuit_to_dag(circuit)
-        pass_ = VF2Layout(cmap5, strict_direction=False, seed=self.seed)
+        pass_ = VF2Layout(cmap5, strict_direction=False, seed=self.seed, max_trials=1)
         pass_.run(dag)
         self.assertLayout(dag, cmap5, pass_.property_set)
 
@@ -288,7 +288,7 @@ class TestVF2LayoutBackend(LayoutTestCase):
         circuit.measure_all()
 
         dag = circuit_to_dag(circuit)
-        pass_ = VF2Layout(cmap65, seed=self.seed)
+        pass_ = VF2Layout(cmap65, seed=self.seed, max_trials=1)
         pass_.run(dag)
         self.assertLayout(dag, cmap65, pass_.property_set)
 
@@ -310,14 +310,14 @@ class TestVF2LayoutOther(LayoutTestCase):
         circuit.cx(qr[1], qr[2])  # qr1 -> qr2
         dag = circuit_to_dag(circuit)
 
-        pass_1 = VF2Layout(CouplingMap(cmap5), seed=seed_1)
+        pass_1 = VF2Layout(CouplingMap(cmap5), seed=seed_1, max_trials=1)
         pass_1.run(dag)
         layout_1 = pass_1.property_set["layout"]
         self.assertEqual(
             pass_1.property_set["VF2Layout_stop_reason"], VF2LayoutStopReason.SOLUTION_FOUND
         )
 
-        pass_2 = VF2Layout(CouplingMap(cmap5), seed=seed_2)
+        pass_2 = VF2Layout(CouplingMap(cmap5), seed=seed_2, max_trials=1)
         pass_2.run(dag)
         layout_2 = pass_2.property_set["layout"]
         self.assertEqual(
@@ -337,7 +337,7 @@ class TestVF2LayoutOther(LayoutTestCase):
         circuit.ccx(qr[1], qr[0], qr[2])
         dag = circuit_to_dag(circuit)
 
-        pass_1 = VF2Layout(CouplingMap(cmap5), seed=seed_1)
+        pass_1 = VF2Layout(CouplingMap(cmap5), seed=seed_1, max_trials=1)
         pass_1.run(dag)
         self.assertEqual(
             pass_1.property_set["VF2Layout_stop_reason"], VF2LayoutStopReason.MORE_THAN_2Q
