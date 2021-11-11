@@ -24,6 +24,7 @@ from typing import List, Union, Iterable, Tuple
 
 import numpy as np
 
+from qiskit.providers.provider import Provider
 from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.circuit.gate import Instruction
 
@@ -297,7 +298,7 @@ class BackendV2(Backend, ABC):
 
     def __init__(
         self,
-        provider,
+        provider: Provider = None,
         name: str = None,
         description: str = None,
         online_date: datetime.datetime = None,
@@ -307,8 +308,8 @@ class BackendV2(Backend, ABC):
         """Initialize a BackendV2 based backend
 
         Args:
-            provider (Provider): A backwards reference to the
-                :class:`~qiskit.transpiler.Provider` object that the backend
+            provider: An optional backwards reference to the
+                :class:`~qiskit.providers.Provider` object that the backend
                 is from
             name: An optional name for the backend
             description: An optional description of the backend
