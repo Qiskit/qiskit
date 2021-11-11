@@ -41,14 +41,6 @@ from qiskit.utils.mitigation import (
 logger = logging.getLogger(__name__)
 
 
-class TranspileStage(Enum):
-    """Transpiler stage."""
-
-    PARAMETERIZED = 0  # circuits contain free parameters
-    BOUND = 1  # all parameters have been bound
-    ALL = 2  # run both transpiler passes
-
-
 class _MeasFitterType(Enum):
     """Meas Fitter Type."""
 
@@ -200,11 +192,12 @@ class QuantumInstance:
                         Initial layout of qubits in mapping
             pass_manager (Optional['PassManager']): Pass manager to handle how to compile the circuits.
                 To run only this pass manager and not the ``bound_pass_manager``, call the
-                ``transpile`` method with the argument ``state=TranspilerStage.PARAMETERIZED``.
+                ``transpile`` method with the argument
+                ``pass_manager=quantum_instance.unbound_pass_manager``.
             bound_pass_manager (Optional['PassManager']): A second pass manager to apply on bound
-                circuits only, that is, circuits without any free parameters. This pass can be
-                invoked by calling the ``transpile`` method with the argument
-                ``stage=TranspilerStage.BOUND``, or ``TranspilerStage.ALL`` if the first pass
+                circuits only, that is, circuits without any free parameters. To only run this pass
+                manager and not ``pass_manager`` call the ``transpile`` method with the argument
+                ``pass_manager=quantum_instance.bound_pass_manager``.
                 manager should also be run.
             seed_transpiler: The random seed for circuit mapper
             optimization_level: How much optimization to perform on the circuits.
@@ -382,15 +375,33 @@ class QuantumInstance:
 
         return info
 
-    def transpile(self, circuits, stage=TranspileStage.ALL):
+    @property
+    def unbound_pass_manager(self):
+        """Return the pass manager for designated for unbound circuits.
+
+        Returns:
+            Optional['PassManager']: The pass manager for unbound circuits, if it has been set.
+        """
+        return self._pass_manager
+
+    @property
+    def bound_pass_manager(self):
+        """Return the pass manager for designated for bound circuits.
+
+        Returns:
+            Optional['PassManager']: The pass manager for bound circuits, if it has been set.
+        """
+        return self._bound_pass_manager
+
+    def transpile(self, circuits, pass_manager=None):
         """
         A wrapper to transpile circuits to allow algorithm access the transpiled circuits.
         Args:
             circuits (Union['QuantumCircuit', List['QuantumCircuit']]): circuits to transpile
-            stage (int): If pass managers have been provided, select which of them to run:
-                * ``TranspilerStage.PARAMETERIZED``: run only ``pass_manager``
-                * ``TranspilerStage.BOUND``: run only ``bound_pass_manager``
-                * ``TranspilerStage.ALL``: run first ``pass_manager``, then ``bound_pass_manager``
+            pass_manager (Optional['PassManager']): A pass manager to transpile the circuits. If
+                none is given, but either ``pass_manager`` or ``bound_pass_manager`` has been set
+                in the initializer, these are run. If none has been provided there either, the
+                backend and compile configs from the initializer are used.
 
         Returns:
             List['QuantumCircuit']: The transpiled circuits, it is always a list even though
@@ -400,27 +411,24 @@ class QuantumInstance:
         from qiskit import compiler
         from qiskit.transpiler import PassManager
 
-        # if no passes are set call the default transpiler
-        if self._pass_manager is None and self._bound_pass_manager is None:
-            transpiled_circuits = compiler.transpile(
-                circuits, self._backend, **self._backend_config, **self._compile_config
-            )
+        # if no pass manager here is given, check if they have been set in the init
+        if pass_manager is None:
+            # if they haven't been set in the init, use the transpile args from the init
+            if self._pass_manager is None and self._bound_pass_manager is None:
+                transpiled_circuits = compiler.transpile(
+                    circuits, self._backend, **self._backend_config, **self._compile_config
+                )
+            # it they have been set, run them
+            else:
+                pass_manager = PassManager()
+                if self._pass_manager is not None:
+                    pass_manager += self._pass_manager  # check if None
+                if self._bound_pass_manager is not None:
+                    pass_manager += self._bound_pass_manager
+
+                transpiled_circuits = pass_manager.run(circuits)
+        # custom pass manager set by user
         else:
-            pass_manager = PassManager()
-
-            # add pass manager for parameterized circuits
-            if self._pass_manager is not None and stage in [
-                TranspileStage.ALL,
-                TranspileStage.PARAMETERIZED,
-            ]:
-                pass_manager += self._pass_manager
-
-            if self._bound_pass_manager is not None and stage in [
-                TranspileStage.ALL,
-                TranspileStage.BOUND,
-            ]:
-                pass_manager += self._bound_pass_manager
-
             transpiled_circuits = pass_manager.run(circuits)
 
         if not isinstance(transpiled_circuits, list):
