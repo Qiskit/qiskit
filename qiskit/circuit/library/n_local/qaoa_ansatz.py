@@ -15,20 +15,17 @@
 # pylint: disable=cyclic-import
 
 import itertools
-import operator
-from typing import List, Optional, Set, Tuple
-
+from typing import List, Optional, Tuple
 import numpy as np
-from qiskit import QuantumRegister
-from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.library.evolved_operator_ansatz import (
-    EvolvedOperatorAnsatz, _is_pauli_identity)
-from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.library.evolved_operator_ansatz import EvolvedOperatorAnsatz, _is_pauli_identity
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.exceptions import QiskitError
-from qiskit.opflow.primitive_ops.pauli_op import PauliOp
+
+from ...exceptions import CircuitError
+from ...parameter import Parameter
+from ...exceptions import QiskitError
+from ....opflow.primitive_ops.pauli_op import PauliOp
 
 
 class QAOAAnsatz(EvolvedOperatorAnsatz):
