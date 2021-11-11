@@ -157,7 +157,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin, Operation):
         super().__init__(num_qubits=self._num_qubits)
 
         # Initialize Operation
-        self._name = "CNOTDihedral"
+        self._name = "cnotdihedral"
         self._num_clbits = 0
         self._params = []
 

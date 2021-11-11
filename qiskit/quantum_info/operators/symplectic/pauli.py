@@ -204,7 +204,7 @@ class Pauli(BasePauli, Operation):
         super().__init__(base_z, base_x, base_phase)
 
         # Initialize Operation
-        self._name = "Pauli"
+        self._name = "pauli"
         self._num_qubits = self.num_qubits
         self._num_clbits = 0
         self._params = []
