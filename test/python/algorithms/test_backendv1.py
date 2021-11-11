@@ -75,7 +75,7 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
         oracle.cz(0, 1)
         problem = AmplificationProblem(oracle, is_good_state=["11"])
         qi = QuantumInstance(
-            self._provider.get_backend("fake_yorktown"), seed_simulator=12, seed_transpiler=32
+            self._provider.get_backend("fake_vigo"), seed_simulator=12, seed_transpiler=32
         )
         grover = Grover(quantum_instance=qi)
         result = grover.amplify(problem)
@@ -86,11 +86,9 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
         oracle = QuantumCircuit(2)
         oracle.cz(0, 1)
         problem = AmplificationProblem(oracle, is_good_state=["11"])
-        backend = self._provider.get_backend("fake_yorktown")
+        backend = self._provider.get_backend("fake_vigo")
         backend._configuration.max_experiments = 1
-        qi = QuantumInstance(
-            self._provider.get_backend("fake_yorktown"), seed_simulator=12, seed_transpiler=32
-        )
+        qi = QuantumInstance(backend, seed_simulator=12, seed_transpiler=32)
         grover = Grover(quantum_instance=qi)
         result = grover.amplify(problem)
         self.assertIn(result.top_measurement, ["11"])
