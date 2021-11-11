@@ -14,6 +14,7 @@
 
 """ Test VQE """
 
+import logging
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
@@ -34,7 +35,6 @@ from qiskit.algorithms.optimizers import (
     TNC,
 )
 from qiskit.circuit.library import EfficientSU2, RealAmplitudes, TwoLocal
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.opflow import (
     AerPauliExpectation,
@@ -48,24 +48,26 @@ from qiskit.opflow import (
     X,
     Z,
 )
-from qiskit.transpiler import TransformationPass, PassManager, PassManagerConfig
+from qiskit.transpiler import PassManager, PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import level_1_pass_manager
 from qiskit.utils import QuantumInstance, algorithm_globals, has_aer
+from ..transpiler._dummy_passes import DummyAP
 
 if has_aer():
     from qiskit import Aer
 
+logger = "LocalLogger"
 
-class _Counter(TransformationPass):
-    """A pass to add to a pass manager, to check how often it has been run."""
 
-    def __init__(self) -> None:
+class LogPass(DummyAP):
+    """A dummy analysis pass that logs when executed"""
+
+    def __init__(self, message):
         super().__init__()
-        self.counter = 0
+        self.message = message
 
-    def run(self, dag: DAGCircuit) -> DAGCircuit:
-        self.counter += 1
-        return dag
+    def run(self, dag):
+        logging.getLogger(logger).info(self.message)
 
 
 @ddt
@@ -672,17 +674,18 @@ class TestVQE(QiskitAlgorithmsTestCase):
     def test_2step_transpile(self):
         """Test the two-step transpiler pass."""
         # count how often the pass for parameterized circuits is called
-        pre_counter = _Counter()
+        pre_counter = LogPass("pre_passmanager")
         pre_pass = PassManager(pre_counter)
         config = PassManagerConfig(basis_gates=["u3", "cx"])
         pre_pass += level_1_pass_manager(config)
 
         # ... and the pass for bound circuits
-        bound_counter = _Counter()
+        bound_counter = LogPass("bound_pass_manager")
         bound_pass = PassManager(bound_counter)
 
         quantum_instance = QuantumInstance(
             backend=BasicAer.get_backend("statevector_simulator"),
+            basis_gates=["u3", "cx"],
             pass_manager=pre_pass,
             bound_pass_manager=bound_pass,
         )
@@ -692,8 +695,26 @@ class TestVQE(QiskitAlgorithmsTestCase):
         vqe = VQE(optimizer=optimizer, quantum_instance=quantum_instance)
         _ = vqe.compute_minimum_eigenvalue(Z)
 
-        self.assertEqual(pre_counter.counter, 2)
-        self.assertEqual(bound_counter.counter, 12)
+        with self.assertLogs(logger, level="INFO") as cm:
+            _ = vqe.compute_minimum_eigenvalue(Z)
+
+        expected = [
+            "pre_passmanager",
+            "bound_pass_manager",
+            "bound_pass_manager",
+            "bound_pass_manager",
+            "bound_pass_manager",
+            "bound_pass_manager",
+            "bound_pass_manager",
+            "bound_pass_manager",
+            "bound_pass_manager",
+            "bound_pass_manager",
+            "bound_pass_manager",
+            "bound_pass_manager",
+            "pre_passmanager",
+            "bound_pass_manager",
+        ]
+        self.assertEqual([record.message for record in cm.records], expected)
 
 
 if __name__ == "__main__":
