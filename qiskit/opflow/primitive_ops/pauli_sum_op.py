@@ -358,16 +358,16 @@ class PauliSumOp(PrimitiveOp):
                 Pauli((self.primitive.paulis.z[0], self.primitive.paulis.x[0])),
                 to_native(np.real_if_close(self.primitive.coeffs[0])) * self.coeff,
             )
+        coeffs = np.real_if_close(self.primitive.coeffs)
         if not self.primitive.coeffs.dtype==object:
             coeffs = np.real_if_close(self.primitive.coeffs)
         else:
             coeffs = []
             for coeff in self.primitive.coeffs:
                 if not isinstance(coeff, (Parameter, ParameterExpression)):
-                    coeffs.append(np.real_if_close(coeff))
+                    coeffs.append(np.real_if_close(coeff).item())
                 else:
                     coeffs.append(coeff)
-
         return SummedOp(
             [
                 PauliOp(pauli, to_native(coeff))
@@ -452,4 +452,10 @@ class PauliSumOp(PrimitiveOp):
         return op.coeff == 1 and len(op) == 1 and primitive.coeffs[0] == 0
 
     def is_hermitian(self):
-        return np.isreal(self.coeffs).all() and np.all(self.primitive.paulis.phase == 0)
+        if not self.coeffs.dtype == object:
+            return np.isreal(self.coeffs).all() and np.all(self.primitive.paulis.phase == 0)
+        else:
+            is_real = []
+            for coeff in self.coeffs:
+                is_real.append(np.isreal(coeff))
+            return np.all(is_real) and np.all(self.primitive.paulis.phase == 0)
