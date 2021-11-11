@@ -199,7 +199,8 @@ Supplementary Information
 
       ghz = QuantumCircuit(3, 3)
       ghz.h(0)
-      ghz.cx(0,range(1,3))
+      ghz.cx(0, 1)
+      ghz.cx(0, 2)
       ghz.barrier()
       ghz.measure(range(3), range(3))
       ghz.draw(output='mpl')
@@ -275,7 +276,8 @@ Supplementary Information
 
       ghz = QuantumCircuit(5)
       ghz.h(0)
-      ghz.cx(0,range(1,5))
+      for i in range(1, 5):
+          ghz.cx(0, i)
       ghz.draw(output='mpl')
 
 
@@ -336,7 +338,8 @@ Supplementary Information
 
       ghz = QuantumCircuit(5)
       ghz.h(0)
-      ghz.cx(0,range(1,5))
+      for i in range(1, 5):
+          ghz.cx(0, i)
       ghz.draw(output='mpl')
 
 
