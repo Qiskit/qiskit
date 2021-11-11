@@ -16,10 +16,9 @@ from collections import defaultdict
 from typing import Dict, List, Optional, Set, Tuple, Union, cast
 
 import numpy as np
-from qiskit.circuit.parameter import Parameter
 from scipy.sparse import spmatrix
 
-from qiskit.circuit import Instruction, ParameterExpression
+from qiskit.circuit import Instruction, Parameter, ParameterExpression
 from qiskit.opflow.exceptions import OpflowError
 from qiskit.opflow.list_ops.summed_op import SummedOp
 from qiskit.opflow.list_ops.tensored_op import TensoredOp
