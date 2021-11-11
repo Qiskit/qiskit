@@ -103,6 +103,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     approximation_degree = pass_manager_config.approximation_degree
     unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
     timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
+    unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
 
     # 1. Search for a perfect layout, or choose a dense layout, if no layout given
     _given_layout = SetLayout(initial_layout)
@@ -176,6 +177,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             backend_props=backend_properties,
             method=unitary_synthesis_method,
             min_qubits=3,
+            plugin_config=unitary_synthesis_plugin_config,
         ),
         Unroll3qOrMore(),
     ]
@@ -221,6 +223,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 coupling_map=coupling_map,
                 backend_props=backend_properties,
                 method=unitary_synthesis_method,
+                plugin_config=unitary_synthesis_plugin_config,
             ),
             UnrollCustomDefinitions(sel, basis_gates),
             BasisTranslator(sel, basis_gates),
@@ -235,6 +238,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 coupling_map=coupling_map,
                 backend_props=backend_properties,
                 method=unitary_synthesis_method,
+                plugin_config=unitary_synthesis_plugin_config,
                 min_qubits=3,
             ),
             Unroll3qOrMore(),
@@ -246,6 +250,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 coupling_map=coupling_map,
                 backend_props=backend_properties,
                 method=unitary_synthesis_method,
+                plugin_config=unitary_synthesis_plugin_config,
             ),
         ]
     else:

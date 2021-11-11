@@ -66,6 +66,7 @@ def transpile(
     callback: Optional[Callable[[BasePass, DAGCircuit, float, PropertySet, int], Any]] = None,
     output_name: Optional[Union[str, List[str]]] = None,
     unitary_synthesis_method: str = "default",
+    unitary_synthesis_plugin_config: dict = None,
 ) -> Union[QuantumCircuit, List[QuantumCircuit]]:
     """Transpile one or more circuits, according to some desired transpilation targets.
 
@@ -220,6 +221,14 @@ def transpile(
             method to use. By default 'default' is used, which is the only
             method included with qiskit. If you have installed any unitary
             synthesis plugins you can use the name exported by the plugin.
+        unitary_synthesis_plugin_config: An optional configuration dictionary
+            that will be passed directly to the unitary synthesis plugin. By
+            default this setting will have no effect as the default unitary
+            synthesis method does not take custom configuration. This should
+            only be necessary when a unitary synthesis plugin is specified with
+            the ``unitary_synthesis`` argument. As this is custom for each
+            unitary synthesis plugin refer to the plugin documentation for how
+            to use this option.
 
     Returns:
         The transpiled circuit(s).
@@ -301,6 +310,7 @@ def transpile(
         output_name,
         timing_constraints,
         unitary_synthesis_method,
+        unitary_synthesis_plugin_config,
     )
 
     _check_circuits_coupling_map(circuits, transpile_args, backend)
@@ -491,6 +501,7 @@ def _parse_transpile_args(
     output_name,
     timing_constraints,
     unitary_synthesis_method,
+    unitary_synthesis_plugin_config,
 ) -> List[Dict]:
     """Resolve the various types of args allowed to the transpile() function through
     duck typing, overriding args, etc. Refer to the transpile() docstring for details on
@@ -525,6 +536,9 @@ def _parse_transpile_args(
     approximation_degree = _parse_approximation_degree(approximation_degree, num_circuits)
     unitary_synthesis_method = _parse_unitary_synthesis_method(
         unitary_synthesis_method, num_circuits
+    )
+    unitary_synthesis_plugin_config = _parse_unitary_plugin_config(
+        unitary_synthesis_plugin_config, num_circuits
     )
     seed_transpiler = _parse_seed_transpiler(seed_transpiler, num_circuits)
     optimization_level = _parse_optimization_level(optimization_level, num_circuits)
@@ -561,6 +575,7 @@ def _parse_transpile_args(
             "backend_num_qubits": backend_num_qubits,
             "faulty_qubits_map": faulty_qubits_map,
             "unitary_synthesis_method": unitary_synthesis_method,
+            "unitary_synthesis_plugin_config": unitary_synthesis_plugin_config,
         }
     ):
         transpile_args = {
@@ -579,6 +594,7 @@ def _parse_transpile_args(
                 timing_constraints=kwargs["timing_constraints"],
                 seed_transpiler=kwargs["seed_transpiler"],
                 unitary_synthesis_method=kwargs["unitary_synthesis_method"],
+                unitary_synthesis_plugin_config=kwargs["unitary_synthesis_plugin_config"],
             ),
             "optimization_level": kwargs["optimization_level"],
             "output_name": kwargs["output_name"],
@@ -871,6 +887,12 @@ def _parse_unitary_synthesis_method(unitary_synthesis_method, num_circuits):
     if not isinstance(unitary_synthesis_method, list):
         unitary_synthesis_method = [unitary_synthesis_method] * num_circuits
     return unitary_synthesis_method
+
+
+def _parse_unitary_plugin_config(unitary_synthesis_plugin_config, num_circuits):
+    if not isinstance(unitary_synthesis_plugin_config, list):
+        unitary_synthesis_plugin_config = [unitary_synthesis_plugin_config] * num_circuits
+    return unitary_synthesis_plugin_config
 
 
 def _parse_seed_transpiler(seed_transpiler, num_circuits):
