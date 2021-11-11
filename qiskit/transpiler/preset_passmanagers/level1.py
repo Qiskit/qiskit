@@ -129,13 +129,11 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     if layout_method == "trivial":
         _improve_layout = TrivialLayout(coupling_map)
     elif layout_method == "dense":
-        _improve_layout = _unroll3q + [DenseLayout(coupling_map, backend_properties)]
+        _improve_layout = [DenseLayout(coupling_map, backend_properties)]
     elif layout_method == "noise_adaptive":
-        _improve_layout = _unroll3q + [NoiseAdaptiveLayout(backend_properties)]
+        _improve_layout = [NoiseAdaptiveLayout(backend_properties)]
     elif layout_method == "sabre":
-        _improve_layout = _unroll3q + [
-            SabreLayout(coupling_map, max_iterations=2, seed=seed_transpiler)
-        ]
+        _improve_layout = [SabreLayout(coupling_map, max_iterations=2, seed=seed_transpiler)]
     else:
         raise TranspilerError("Invalid layout method %s." % layout_method)
 
@@ -275,6 +273,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     pm1 = PassManager()
     if coupling_map or initial_layout:
         pm1.append(_given_layout)
+        pm1.append(_unroll3q)
         pm1.append(_choose_layout_and_score, condition=_choose_layout_condition)
         pm1.append(_improve_layout, condition=_not_perfect_yet)
         pm1.append(_embed)
