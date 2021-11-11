@@ -33,7 +33,6 @@ from .ast import (
     IOModifier,
     Identifier,
     Include,
-    IndexIdentifier2,
     Integer,
     LtOperator,
     PhysicalQubitIdentifier,
@@ -50,9 +49,12 @@ from .ast import (
     QuantumGateSignature,
     QuantumMeasurement,
     QuantumMeasurementAssignment,
+    QuantumReset,
+    Range,
     ReturnStatement,
     SubroutineCall,
     SubroutineDefinition,
+    SubscriptedIdentifier,
     Version,
 )
 
@@ -176,20 +178,37 @@ class BasicPrinter:
     def _visit_Constant(self, node: Constant) -> None:
         self.stream.write(self._CONSTANT_LOOKUP[node])
 
-    def _visit_IndexIdentifier2(self, node: IndexIdentifier2) -> None:
+    def _visit_SubscriptedIdentifier(self, node: SubscriptedIdentifier) -> None:
         self.visit(node.identifier)
-        if node.expressionList:
-            self._visit_sequence(node.expressionList, start="[", end="]", separator=", ")
+        self.stream.write("[")
+        self.visit(node.subscript)
+        self.stream.write("]")
+
+    def _visit_Range(self, node: Range) -> None:
+        if node.start is not None:
+            self.visit(node.start)
+        self.stream.write(":")
+        if node.step is not None:
+            self.visit(node.step)
+            self.stream.write(":")
+        if node.end is not None:
+            self.visit(node.end)
 
     def _visit_QuantumMeasurement(self, node: QuantumMeasurement) -> None:
         self.stream.write("measure ")
-        self._visit_sequence(node.indexIdentifierList, separator=", ")
+        self._visit_sequence(node.identifierList, separator=", ")
 
     def _visit_QuantumMeasurementAssignment(self, node: QuantumMeasurementAssignment) -> None:
         self._start_line()
-        self.visit(node.indexIdentifier)
+        self.visit(node.identifier)
         self.stream.write(" = ")
         self.visit(node.quantumMeasurement)
+        self._end_statement()
+
+    def _visit_QuantumReset(self, node: QuantumReset) -> None:
+        self._start_line()
+        self.stream.write("reset ")
+        self.visit(node.identifier)
         self._end_statement()
 
     def _visit_Integer(self, node: Integer) -> None:
@@ -224,7 +243,7 @@ class BasicPrinter:
         self.stream.write("let ")
         self.visit(node.identifier)
         self.stream.write(" = ")
-        self._visit_sequence(node.qubits, separator=" || ")
+        self._visit_sequence(node.concatenation, separator=" || ")
         self._end_statement()
 
     def _visit_QuantumGateModifier(self, node: QuantumGateModifier) -> None:
