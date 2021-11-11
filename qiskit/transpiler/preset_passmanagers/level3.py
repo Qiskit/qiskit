@@ -203,7 +203,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             Error(
                 msg=(
                     "No routing method selected, but circuit is not routed to device. "
-                    "CheckMap Error: {check_map_msg}"
+                    f"CheckMap Error: {check_map_msg}"
                 ),
                 action="raise",
             )
