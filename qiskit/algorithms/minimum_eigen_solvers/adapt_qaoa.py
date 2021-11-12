@@ -4,9 +4,12 @@ from typing import Callable, Dict, Iterable, List, Optional, Union
 
 import numpy as np
 from qiskit import QuantumCircuit
-#from qiskit.algorithms import QAOA
-from .qaoa import QAOA
+from qiskit.algorithms import QAOA
 from qiskit.algorithms.optimizers import Optimizer
+from qiskit.providers import Backend, BaseBackend
+from qiskit.quantum_info import Operator
+from qiskit.utils.quantum_instance import QuantumInstance
+
 from qiskit.opflow import ExpectationBase, OperatorBase
 from qiskit.opflow.expectations.expectation_factory import ExpectationFactory
 from qiskit.opflow.gradients import GradientBase
@@ -14,15 +17,9 @@ from qiskit.opflow.primitive_ops import MatrixOp
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
 from qiskit.opflow.state_fns.state_fn import StateFn
-from qiskit.providers import Backend, BaseBackend
-from qiskit.quantum_info import Operator
-from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.opflow import I, X, Y, Z
 
-# CHANGEBACK TODO
-from ...circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
-#from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
-
+from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
 
 class AdaptQAOA(QAOA):
     """

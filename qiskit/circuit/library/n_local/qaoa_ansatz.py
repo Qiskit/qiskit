@@ -25,7 +25,6 @@ from qiskit.circuit.quantumregister import QuantumRegister
 from ...exceptions import CircuitError
 from ...parameter import Parameter
 from ...exceptions import QiskitError
-from ....opflow.primitive_ops.pauli_op import PauliOp
 
 
 class QAOAAnsatz(EvolvedOperatorAnsatz):
@@ -288,6 +287,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
                     is_evolved_operator.append(False)  # has no time coeff
                 else:
                     # check if the operator is just the identity, if yes, skip it
+                    from ....opflow.primitive_ops.pauli_op import PauliOp
                     if isinstance(op, PauliOp):
                         sig_qubits = 0 if _is_pauli_identity(op) else 1
                         if sum(sig_qubits) == 0:
