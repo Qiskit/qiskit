@@ -169,6 +169,45 @@ class TestControlledGate(QiskitTestCase):
         """Test creation of controlled swap gate"""
         self.assertEqual(SwapGate().control(), CSwapGate())
 
+    def test_special_cases_equivalent_to_controlled_base_gate(self):
+        """Test that ``ControlledGate`` subclasses for more efficient representations give
+        equivalent matrices and definitions to the naive ``base_gate.control(n)``."""
+        # Angles used here are not important, we just pick slightly strange values to ensure that
+        # there are no coincidental equivalences.
+        tests = [
+            (CXGate(), 1),
+            (CCXGate(), 2),
+            (C3XGate(), 3),
+            (C4XGate(), 4),
+            (MCXGate(5), 5),
+            (CYGate(), 1),
+            (CZGate(), 1),
+            (CPhaseGate(np.pi / 7), 1),
+            (MCPhaseGate(np.pi / 7, 2), 2),
+            (CSwapGate(), 1),
+            (CSXGate(), 1),
+            (C3SXGate(), 3),
+            (CHGate(), 1),
+            (CU1Gate(np.pi / 7), 1),
+            (MCU1Gate(np.pi / 7, 2), 2),
+            # `CUGate` takes an extra "global" phase parameter compared to `UGate`, and consequently
+            # is only equal to `base_gate.control()` when this extra phase is 0.
+            (CUGate(np.pi / 7, np.pi / 5, np.pi / 3, 0), 1),
+            (CU3Gate(np.pi / 7, np.pi / 5, np.pi / 3), 1),
+            (CRXGate(np.pi / 7), 1),
+            (CRYGate(np.pi / 7), 1),
+            (CRZGate(np.pi / 7), 1),
+        ]
+        for special_case_gate, n_controls in tests:
+            with self.subTest(gate=special_case_gate.name):
+                naive_operator = Operator(special_case_gate.base_gate.control(n_controls))
+                # Ensure that both the array form (if the gate overrides `__array__`) and the
+                # circuit-definition form are tested.
+                self.assertTrue(Operator(special_case_gate).equiv(naive_operator))
+                if not isinstance(special_case_gate, CXGate):
+                    # CX is treated like a primitive within Terra, and doesn't have a definition.
+                    self.assertTrue(Operator(special_case_gate.definition).equiv(naive_operator))
+
     def test_circuit_append(self):
         """Test appending a controlled gate to a quantum circuit."""
         circ = QuantumCircuit(5)
