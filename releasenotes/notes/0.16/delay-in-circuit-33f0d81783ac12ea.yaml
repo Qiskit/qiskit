@@ -35,7 +35,7 @@ features:
         qc.h(0)
         qc.cx(0, 1)
 
-        scheduled_circuit = transpile(qc, backend=FakeAthens(), scheduling_method="alap")
+        scheduled_circuit = transpile(qc, backend=FakeAthens(), scheduling_method="alap", layout_method="trivial")
         print("Duration in dt:", scheduled_circuit.duration)
         scheduled_circuit.draw(idle_wires=False)
 

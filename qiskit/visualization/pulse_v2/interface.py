@@ -314,7 +314,7 @@ def draw(
             qc.h(0)
             qc.cx(0, 1)
             qc.measure_all()
-            qc = transpile(qc, FakeAlmaden())
+            qc = transpile(qc, FakeAlmaden(), layout_method='trivial')
             sched = schedule(qc, FakeAlmaden())
 
             draw(sched, backend=FakeAlmaden())
@@ -331,7 +331,7 @@ def draw(
             qc.h(0)
             qc.cx(0, 1)
             qc.measure_all()
-            qc = transpile(qc, FakeAlmaden())
+            qc = transpile(qc, FakeAlmaden(), layout_method='trivial')
             sched = schedule(qc, FakeAlmaden())
 
             draw(sched, style=IQXSimple(), backend=FakeAlmaden())
@@ -348,7 +348,7 @@ def draw(
             qc.h(0)
             qc.cx(0, 1)
             qc.measure_all()
-            qc = transpile(qc, FakeAlmaden())
+            qc = transpile(qc, FakeAlmaden(), layout_method='trivial')
             sched = schedule(qc, FakeAlmaden())
 
             draw(sched, style=IQXDebugging(), backend=FakeAlmaden())

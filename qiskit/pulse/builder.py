@@ -1818,12 +1818,7 @@ def barrier(*channels_or_qubits: Union[chans.Channel, int], name: Optional[str] 
 
     This directive prevents the compiler from moving instructions across
     the barrier. Consider the case where we want to enforce that one pulse
-    happens after another on separate channels, this can be done with:
-
-    .. jupyter-kernel:: python3
-        :id: barrier
-
-    .. jupyter-execute::
+    happens after another on separate channels, this can be done with::
 
         from qiskit import pulse
         from qiskit.test.mock import FakeOpenPulse2Q
@@ -1838,9 +1833,7 @@ def barrier(*channels_or_qubits: Union[chans.Channel, int], name: Optional[str] 
             pulse.barrier(d0, d1)
             pulse.play(pulse.Constant(10, 1.0), d1)
 
-    Of course this could have been accomplished with:
-
-    .. jupyter-execute::
+    Of course this could have been accomplished with::
 
         from qiskit.pulse import transforms
 
@@ -1857,9 +1850,7 @@ def barrier(*channels_or_qubits: Union[chans.Channel, int], name: Optional[str] 
     The barrier allows the pulse compiler to take care of more advanced
     scheduling alignment operations across channels. For example
     in the case where we are calling an outside circuit or schedule and
-    want to align a pulse at the end of one call:
-
-    .. jupyter-execute::
+    want to align a pulse at the end of one call::
 
         import math
 
@@ -2173,9 +2164,7 @@ def cx(control: int, target: int):  # pylint: disable=invalid-name
         deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
-    Examples:
-
-    .. jupyter-execute::
+    Examples::
 
         from qiskit import pulse
         from qiskit.test.mock import FakeOpenPulse2Q
@@ -2198,9 +2187,7 @@ def u1(theta: float, qubit: int):  # pylint: disable=invalid-name
         deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
-    Examples:
-
-    .. jupyter-execute::
+    Examples::
 
         import math
 
@@ -2225,9 +2212,7 @@ def u2(phi: float, lam: float, qubit: int):  # pylint: disable=invalid-name
         deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
-    Examples:
-
-    .. jupyter-execute::
+    Examples::
 
         import math
 
@@ -2252,9 +2237,7 @@ def u3(theta: float, phi: float, lam: float, qubit: int):  # pylint: disable=inv
         deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
-    Examples:
-
-    .. jupyter-execute::
+    Examples::
 
         import math
 
@@ -2279,9 +2262,7 @@ def x(qubit: int):
         deprecated in the future in favor of tight integration with a circuit
         builder interface which is under development.
 
-    Examples:
-
-    .. jupyter-execute::
+    Examples::
 
         from qiskit import pulse
         from qiskit.test.mock import FakeOpenPulse2Q

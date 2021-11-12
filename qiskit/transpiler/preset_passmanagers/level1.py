@@ -118,14 +118,14 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             if property_set["trivial_layout_score"] != 0:
                 property_set["layout"]._wrapped = None
                 return True
-        warnings.warn(
-            "The current implicit default of using a trivial layout if it's a "
-            "perfect layout will change in a future release, if you're "
-            "depending on this behavior it is better to explicit set "
-            "layout_method='trivial' when calling transpile()",
-            FutureWarning,
-            stacklevel=5,  # stack_level=4 to target caller of transpile()
-        )
+            else:
+                warnings.warn(
+                    "The current implicit default of using a trivial layout if it's a "
+                    "perfect layout will change in a future release, if you're "
+                    "depending on this behavior it is better to explicit set "
+                    "layout_method='trivial' when calling transpile()",
+                    FutureWarning)
+                # stack_level is not set because targeting transpile() is difficult
         return False
 
     def _vf2_match_not_found(property_set):
