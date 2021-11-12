@@ -523,8 +523,7 @@ class TestTranspile(QiskitTestCase):
             transpile(qc, backend, initial_layout=bad_initial_layout)
 
         self.assertEqual(
-            "FullAncillaAllocation: The layout refers to a qubit that does "
-            "not exist in circuit.",
+            "FullAncillaAllocation: The layout refers to a qubit that does not exist in circuit.",
             cm.exception.message,
         )
 
