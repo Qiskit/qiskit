@@ -136,8 +136,7 @@ def _get_credentials():
             # Use the first available credentials.
             return list(discovered_credentials.values())[0]
     raise unittest.SkipTest(
-        "No IBMQ credentials found for running the test. This is required for "
-        "running online tests."
+        "No IBMQ credentials found for running the test. This is required for running online tests."
     )
 
 

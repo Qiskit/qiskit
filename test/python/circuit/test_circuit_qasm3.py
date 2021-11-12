@@ -15,7 +15,7 @@
 from io import StringIO
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
-from qiskit.circuit import Parameter
+from qiskit.circuit import Parameter, Qubit
 from qiskit.test import QiskitTestCase
 from qiskit.qasm3 import Exporter, dumps, dump
 from qiskit.qasm import pi
@@ -32,7 +32,7 @@ class TestQasm3Functions(QiskitTestCase):
                 "OPENQASM 3;",
                 'include "stdgates.inc";',
                 "qubit[2] _q;",
-                "let q = _q[0] || _q[1];",
+                "let q = _q[0:1];",
                 "U(2*pi, 3*pi, -5*pi) q[0];",
                 "",
             ]
@@ -73,8 +73,8 @@ class TestCircuitQasm3(QiskitTestCase):
                 'include "stdgates.inc";',
                 "bit[3] cr;",
                 "qubit[3] _q;",
-                "let qr1 = _q[0];",
-                "let qr2 = _q[1] || _q[2];",
+                "let qr1 = _q[0:0];",
+                "let qr2 = _q[1:2];",
                 "cr[0] = measure qr1[0];",
                 "cr[1] = measure qr2[0];",
                 "cr[2] = measure qr2[1];",
@@ -87,6 +87,29 @@ class TestCircuitQasm3(QiskitTestCase):
                 "if (cr == 2) {",
                 "  z qr1[0];",
                 "}",
+                "",
+            ]
+        )
+        self.assertEqual(Exporter().dumps(qc), expected_qasm)
+
+    def test_registers_as_aliases(self):
+        """Test that different types of alias creation and concatenation work."""
+        qubits = [Qubit() for _ in [None] * 10]
+        first_four = QuantumRegister(name="first_four", bits=qubits[:4])
+        last_five = QuantumRegister(name="last_five", bits=qubits[5:])
+        alternate = QuantumRegister(name="alternate", bits=qubits[::2])
+        sporadic = QuantumRegister(name="sporadic", bits=[qubits[4], qubits[2], qubits[9]])
+        qc = QuantumCircuit(qubits, first_four, last_five, alternate, sporadic)
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3;",
+                'include "stdgates.inc";',
+                "qubit[10] _q;",
+                "let first_four = _q[0:3];",
+                "let last_five = _q[5:9];",
+                # The exporter does not attempt to output steps.
+                "let alternate = _q[0:0] || _q[2:2] || _q[4:4] || _q[6:6] || _q[8:8];",
+                "let sporadic = _q[4:4] || _q[2:2] || _q[9:9];",
                 "",
             ]
         )
@@ -121,7 +144,7 @@ class TestCircuitQasm3(QiskitTestCase):
                 "}",
                 "bit[2] cr;",
                 "qubit[2] _q;",
-                "let qr = _q[0] || _q[1];",
+                "let qr = _q[0:1];",
                 "h qr[0];",
                 "cx qr[0], qr[1];",
                 "barrier qr[0], qr[1];",
@@ -162,7 +185,7 @@ class TestCircuitQasm3(QiskitTestCase):
                 "}",
                 "bit[2] cr;",
                 "qubit[2] _q;",
-                "let qr = _q[0] || _q[1];",
+                "let qr = _q[0:1];",
                 "h qr[0];",
                 "cx qr[0], qr[1];",
                 "barrier qr[0], qr[1];",
@@ -204,7 +227,7 @@ class TestCircuitQasm3(QiskitTestCase):
                 "}",
                 "bit[2] cr;",
                 "qubit[2] _q;",
-                "let qr = _q[0] || _q[1];",
+                "let qr = _q[0:1];",
                 "h qr[0];",
                 "cx qr[0], qr[1];",
                 "barrier qr[0], qr[1];",
@@ -252,7 +275,7 @@ class TestCircuitQasm3(QiskitTestCase):
                 "  x q_0;",
                 "}",
                 "qubit[1] _q;",
-                "let qr = _q[0];",
+                "let qr = _q[0:0];",
                 "my_gate qr[0];",
                 f"my_gate_{my_gate_inst2_id} qr[0];",
                 f"my_gate_{my_gate_inst3_id} qr[0];",
@@ -270,7 +293,7 @@ class TestCircuitQasm3(QiskitTestCase):
                 "OPENQASM 3;",
                 'include "stdgates.inc";',
                 "qubit[2] _q;",
-                "let q = _q[0] || _q[1];",
+                "let q = _q[0:1];",
                 "U(2*pi, 3*pi, -5*pi) q[0];",
                 "",
             ]
@@ -286,7 +309,7 @@ class TestCircuitQasm3(QiskitTestCase):
                 "OPENQASM 3;",
                 'include "stdgates.inc";',
                 "qubit[2] _q;",
-                "let q = _q[0] || _q[1];",
+                "let q = _q[0:1];",
                 "U(6.283185307179586, 9.42477796076938, -15.707963267948966) q[0];",
                 "",
             ]
@@ -311,7 +334,7 @@ class TestCircuitQasm3(QiskitTestCase):
                 "}",
                 "input float[32] a;",
                 "qubit[1] _q;",
-                "let q = _q[0];",
+                "let q = _q[0:0];",
                 "custom(a) q[0];",
                 "",
             ]
@@ -338,7 +361,7 @@ class TestCircuitQasm3(QiskitTestCase):
                 "  rx(0.5) q_0;",
                 "}",
                 "qubit[1] _q;",
-                "let q = _q[0];",
+                "let q = _q[0:0];",
                 "custom q[0];",
                 "",
             ]
@@ -371,8 +394,8 @@ class TestCircuitQasm3(QiskitTestCase):
                 f"  rz(pi/4) {qubit_name}_1;",
                 "}",
                 "qubit[6] _q;",
-                "let q = _q[0] || _q[1] || _q[2];",
-                "let r = _q[3] || _q[4] || _q[5];",
+                "let q = _q[0:2];",
+                "let r = _q[3:5];",
                 "custom(pi, pi/2) q[0], r[0];",
                 "",
             ]
@@ -404,7 +427,7 @@ class TestCircuitQasm3(QiskitTestCase):
                 "  rx(1) q_0;",
                 "}",
                 "qubit[1] _q;",
-                "let q = _q[0];",
+                "let q = _q[0:0];",
                 f"{circuit_name_0} q[0];",
                 f"{circuit_name_1} q[0];",
                 "",
@@ -423,7 +446,7 @@ class TestCircuitQasm3(QiskitTestCase):
                 'include "stdgates.inc";',
                 "input float[32] θ;",
                 "qubit[1] _q;",
-                "let q = _q[0];",
+                "let q = _q[0:0];",
                 "rz(θ) q[0];",
                 "",
             ]
@@ -445,7 +468,7 @@ class TestCircuitQasm3(QiskitTestCase):
                 "  x q_0;",
                 "}",
                 "qubit[2] _q;",
-                "let q = _q[0] || _q[1];",
+                "let q = _q[0:1];",
                 "ch_o0 q[0], q[1];",
                 "",
             ]
@@ -469,7 +492,7 @@ class TestCircuitQasm3(QiskitTestCase):
                 "  cx q_0, q_1;",
                 "}",
                 "qubit[2] _q;",
-                "let q = _q[0] || _q[1];",
+                "let q = _q[0:1];",
                 f"cx_{custom_gate_id} q[0], q[1];",
                 "",
             ]
@@ -513,7 +536,7 @@ class TestCircuitQasm3(QiskitTestCase):
                 "  sdg q_0;",
                 "}",
                 "qubit[2] _q;",
-                "let q = _q[0] || _q[1];",
+                "let q = _q[0:1];",
                 "rz(pi/2) q[0];",
                 "sx q[0];",
                 "cx q[0], q[1];",
@@ -653,7 +676,7 @@ class TestCircuitQasm3(QiskitTestCase):
                 "  reset q_0;",
                 "}",
                 "qubit[2] _q;",
-                "let qr = _q[0] || _q[1];",
+                "let qr = _q[0:1];",
                 "reset qr[0];",
                 "inner_gate qr[1];",
                 "",
