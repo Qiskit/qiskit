@@ -394,8 +394,8 @@ class QuantumInstance:
         return self._bound_pass_manager
 
     def transpile(self, circuits, pass_manager=None):
-        """
-        A wrapper to transpile circuits to allow algorithm access the transpiled circuits.
+        """A wrapper to transpile circuits to allow algorithm access the transpiled circuits.
+
         Args:
             circuits (Union['QuantumCircuit', List['QuantumCircuit']]): circuits to transpile
             pass_manager (Optional['PassManager']): A pass manager to transpile the circuits. If
@@ -405,7 +405,7 @@ class QuantumInstance:
 
         Returns:
             List['QuantumCircuit']: The transpiled circuits, it is always a list even though
-                                    the length is one.
+                the length is one.
         """
         # pylint: disable=cyclic-import
         from qiskit import compiler
