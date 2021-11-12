@@ -886,7 +886,7 @@ class MatplotlibDrawer:
         if cond_is_bit and self._cregbundle:
             cond_reg = self._bit_locations[node.op.condition[0]]["register"]
             ctrl_bit = self._bit_locations[node.op.condition[0]]["index"]
-            label = "%s_%s=%s" % (cond_reg.name, ctrl_bit, hex(val))
+            label = f"{cond_reg.name}_{ctrl_bit}={hex(val)}"
         else:
             label = hex(val)
         if isinstance(node.op, Measure):

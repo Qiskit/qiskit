@@ -681,8 +681,7 @@ queried as VQEResult.ansatz.bind_parameters(VQEResult.optimal_point)."""
         """Get the circuit with the optimal parameters."""
         if self._ret.optimal_point is None:
             raise AlgorithmError(
-                "Cannot find optimal circuit before running the "
-                "algorithm to find optimal params."
+                "Cannot find optimal circuit before running the algorithm to find optimal params."
             )
         return self.ansatz.assign_parameters(self._ret.optimal_parameters)
 
@@ -697,8 +696,7 @@ queried as VQEResult.eigenvector."""
         """Get the simulation outcome of the optimal circuit."""
         if self._ret.optimal_parameters is None:
             raise AlgorithmError(
-                "Cannot find optimal circuit before running the "
-                "algorithm to find optimal vector."
+                "Cannot find optimal circuit before running the algorithm to find optimal vector."
             )
         return self._get_eigenstate(self._ret.optimal_parameters)
 
