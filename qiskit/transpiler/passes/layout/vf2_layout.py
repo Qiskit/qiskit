@@ -153,8 +153,9 @@ class VF2Layout(AnalysisPass):
                 chosen_layout_score = layout_score
             if trials <= self.max_trials:
                 logger.debug("Trial %s is >= configured max trials %s", trials, self.max_trials)
+                break
             elapsed_time = time.time() - start_time
-            if self.time_limit and elapsed_time >= self.time_limit:
+            if self.time_limit is not None and elapsed_time >= self.time_limit:
                 logger.debug(
                     "VF2Layout has taken %s which exceeds configured max time: %s",
                     elapsed_time,
