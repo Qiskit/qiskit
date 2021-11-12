@@ -4,22 +4,21 @@ from typing import Callable, Dict, Iterable, List, Optional, Union
 
 import numpy as np
 from qiskit import QuantumCircuit
-from qiskit.algorithms import QAOA
 from qiskit.algorithms.optimizers import Optimizer
-from qiskit.providers import Backend, BaseBackend
-from qiskit.quantum_info import Operator
-from qiskit.utils.quantum_instance import QuantumInstance
-
-from qiskit.opflow import ExpectationBase, OperatorBase
+from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
+from qiskit.opflow import ExpectationBase, I, OperatorBase, X, Y, Z
 from qiskit.opflow.expectations.expectation_factory import ExpectationFactory
 from qiskit.opflow.gradients import GradientBase
 from qiskit.opflow.primitive_ops import MatrixOp
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
 from qiskit.opflow.state_fns.state_fn import StateFn
-from qiskit.opflow import I, X, Y, Z
+from qiskit.providers import Backend, BaseBackend
+from qiskit.quantum_info import Operator
+from qiskit.utils.quantum_instance import QuantumInstance
 
-from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
+from .qaoa import QAOA
+
 
 class AdaptQAOA(QAOA):
     """
@@ -122,7 +121,9 @@ class AdaptQAOA(QAOA):
         self.max_reps = max_reps
         self.best_gamma = []
         self.best_beta = []
-        self.num_qubits = 5  # TODO: change this to num qubits, should read directly from cost operator
+        self.num_qubits = (
+            5  # TODO: change this to num qubits, should read directly from cost operator
+        )
 
         if self.mixer_pool is not None and self.mixer_pool_type is not None:
             raise AttributeError(
@@ -261,8 +262,6 @@ class AdaptQAOA(QAOA):
             self.optimal_mixer_list.append(best_mixer)
             # perform optimisation of circuit:
             self.compute_minimum_eigenvalue(operator)
-            
-            
 
     @property
     def initial_state(self) -> Optional[QuantumCircuit]:
@@ -349,7 +348,6 @@ def adapt_mixer_pool(num_qubits: int, add_single: bool = True, add_multi: bool =
 
     mixer_pool = [string_to_op(mixer) for mixer in mixer_pool]
     return mixer_pool
-
 
 
 # num, reps = 6, 2

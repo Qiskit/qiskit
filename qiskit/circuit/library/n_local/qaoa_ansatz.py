@@ -96,12 +96,10 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
                     )
                 )
 
-
         if self.mixer_operator is not None:
             if isinstance(self.mixer_operator, list):
                 mixer_qubit_check = np.argwhere(
                     [_.num_qubits != self.num_qubits for _ in self.mixer_operator] is True
-
                 )
                 if len(mixer_qubit_check) > 0:
                     valid = False
@@ -277,56 +275,60 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
             return 0
         return self._cost_operator.num_qubits
 
-    def _build_ansatz_circuit(self, operators_):  # builds the ansatz from the list of mixer operators
-            circuits = []
-            is_evolved_operator = []
-            coeff = Parameter("c")
-            for op in operators_:
-                if isinstance(op, QuantumCircuit):
-                    circuits.append(op)
-                    is_evolved_operator.append(False)  # has no time coeff
-                else:
-                    # check if the operator is just the identity, if yes, skip it
-                    from ....opflow.primitive_ops.pauli_op import PauliOp
-                    if isinstance(op, PauliOp):
-                        sig_qubits = 0 if _is_pauli_identity(op) else 1
-                        if sum(sig_qubits) == 0:
-                            continue
+    def _build_ansatz_circuit(
+        self, operators_
+    ):  # builds the ansatz from the list of mixer operators
+        circuits = []
+        is_evolved_operator = []
+        coeff = Parameter("c")
+        for op in operators_:
+            if isinstance(op, QuantumCircuit):
+                circuits.append(op)
+                is_evolved_operator.append(False)  # has no time coeff
+            else:
+                # check if the operator is just the identity, if yes, skip it
+                from ....opflow.primitive_ops.pauli_op import PauliOp
 
-                    evolved_op = self.evolution.convert((coeff * op).exp_i()).reduce()  # TODO: check this, might need negative?
-                    circuits.append(evolved_op.to_circuit())
-                    is_evolved_operator.append(True)  # has time coeff
+                if isinstance(op, PauliOp):
+                    sig_qubits = 0 if _is_pauli_identity(op) else 1
+                    if sum(sig_qubits) == 0:
+                        continue
 
-            try:
-                qr = QuantumRegister(self.num_qubits, "q")
-                self.add_register(qr)
-            except CircuitError:
-                # the register already exists, probably because of a previous composition
-                pass
+                evolved_op = self.evolution.convert(
+                    (coeff * op).exp_i()
+                ).reduce()  # TODO: check this, might need negative?
+                circuits.append(evolved_op.to_circuit())
+                is_evolved_operator.append(True)  # has time coeff
 
-            times = ParameterVector("t", sum(is_evolved_operator))
-            times_it = iter(times)
+        try:
+            qr = QuantumRegister(self.num_qubits, "q")
+            self.add_register(qr)
+        except CircuitError:
+            # the register already exists, probably because of a previous composition
+            pass
 
-            evolution_ = QuantumCircuit(*self.qregs, name=self.name)  
-            # TODO: need to figure out how initial_point is passed/ updated with reps
-            evolution_.compose(self.initial_state, inplace=True)
+        times = ParameterVector("t", sum(is_evolved_operator))
+        times_it = iter(times)
 
-            first = True
-            for is_evolved, circuit in zip(is_evolved_operator, circuits):
-                if first:
-                    first = False
-                else:
-                    if self._insert_barriers:
-                        evolution_.barrier()
+        evolution_ = QuantumCircuit(*self.qregs, name=self.name)
+        # TODO: need to figure out how initial_point is passed/ updated with reps
+        evolution_.compose(self.initial_state, inplace=True)
 
-                if is_evolved:
-                    bound = circuit.assign_parameters({coeff: next(times_it)})
-                else:
-                    bound = circuit
-                evolution_.compose(bound, inplace=True)
-            # then append opt params to self.gamma_values and self.beta_values
-            return evolution_
+        first = True
+        for is_evolved, circuit in zip(is_evolved_operator, circuits):
+            if first:
+                first = False
+            else:
+                if self._insert_barriers:
+                    evolution_.barrier()
 
+            if is_evolved:
+                bound = circuit.assign_parameters({coeff: next(times_it)})
+            else:
+                bound = circuit
+            evolution_.compose(bound, inplace=True)
+        # then append opt params to self.gamma_values and self.beta_values
+        return evolution_
 
     def _build(self):
         if self._data is not None:

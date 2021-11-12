@@ -629,7 +629,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             start_time = time()
             sampled_expect_op = self._circuit_sampler.convert(expect_op, params=param_bindings)
             means = np.real(sampled_expect_op.eval())
-            
+
             if self._callback is not None:
                 variance = np.real(expectation.compute_variance(sampled_expect_op))
                 estimator_error = np.sqrt(variance / self.quantum_instance.run_config.shots)
