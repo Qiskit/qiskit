@@ -12,7 +12,7 @@
 
 """A gate to implement time-evolution of operators."""
 
-from typing import Union, Optional
+from typing import Union, Optional, List
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -51,33 +51,34 @@ class PauliEvolutionGate(Gate):
     def __init__(
         self,
         operator,
-        time: Union[float, ParameterExpression] = 1.0,
+        time: Union[float, ParameterExpression, List[Union[float, ParameterExpression]]] = 1.0,
         label: Optional[str] = None,
         synthesis: Optional[EvolutionSynthesis] = None,
     ) -> None:
         """
         Args:
             operator (Pauli | PauliOp | SparsePauliOp | PauliSumOp | list):
-                The operator to evolve. Can also be provided as list of non-commuting
-                operators where the elements are sums of commuting operators.
-                For example: ``[XY + YX, ZZ + ZI + IZ, YY]``.
-            time: The evolution time.
+                The operator to evolve. Can also be provided as list of operators, in which
+                case all of them will be evolved in a product.
+            time: The evolution time. Can also be a list if the operators are provided as list.
             label: A label for the gate to display in visualizations.
             synthesis: A synthesis strategy. If None, the default synthesis is the Lie-Trotter
                 product formula with a single repetition.
         """
-        if isinstance(operator, list):
-            operator = [_to_sparse_pauli_op(op) for op in operator]
-            name = f"exp(-i {[' + '.join(op.paulis.to_labels()) for op in operator]})"
-        else:
-            operator = _to_sparse_pauli_op(operator)
-            name = f"exp(-i {' + '.join(operator.paulis.to_labels())})"
-
         if synthesis is None:
             synthesis = LieTrotter()
 
-        num_qubits = operator[0].num_qubits if isinstance(operator, list) else operator.num_qubits
-        super().__init__(name=name, num_qubits=num_qubits, params=[time], label=label)
+        if not isinstance(operator, list):
+            operator = [operator]
+
+        if not isinstance(time, list):
+            time = [time] * len(operator)
+
+        operator = [_to_sparse_pauli_op(op) for op in operator]
+        name = f"exp(-i {[' + '.join(op.paulis.to_labels()) for op in operator]})"
+        num_qubits = operator[0].num_qubits
+
+        super().__init__(name=name, num_qubits=num_qubits, params=time, label=label)
 
         self.time = time
         self.operator = operator
@@ -88,7 +89,8 @@ class PauliEvolutionGate(Gate):
         self.definition = self.synthesis.synthesize(self)
 
     def inverse(self) -> "PauliEvolutionGate":
-        return PauliEvolutionGate(operator=self.operator, time=-self.time, synthesis=self.synthesis)
+        inv_time = [-time for time in self.time]
+        return PauliEvolutionGate(operator=self.operator, time=inv_time, synthesis=self.synthesis)
 
 
 def _to_sparse_pauli_op(operator):

@@ -12,9 +12,8 @@
 
 """The Lie-Trotter product formula."""
 
-from typing import List, Callable, Optional, Union
+from typing import Callable, Optional, Union
 import numpy as np
-from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
 
@@ -66,20 +65,12 @@ class LieTrotter(ProductFormula):
         """
         super().__init__(1, reps, insert_barriers, cx_structure, atomic_evolution)
 
-    def synthesize(self, evolution):
-        # get operators and time to evolve
-        operators = evolution.operator
-        time = evolution.time
-
+    def _evolve_operator(self, operator, time):
         # construct the evolution circuit
-        evo = QuantumCircuit(operators[0].num_qubits)
+        evo = QuantumCircuit(operator.num_qubits)
         first_barrier = False
 
-        if not isinstance(operators, list):
-            pauli_list = [(Pauli(op), np.real(coeff)) for op, coeff in operators.to_list()]
-        else:
-            pauli_list = [(op, 1) for op in operators]
-
+        pauli_list = [(Pauli(op), np.real(coeff)) for op, coeff in operator.to_list()]
         # if we only evolve a single Pauli we don't need to additionally wrap it
         wrap = not (len(pauli_list) == 1 and self.reps == 1)
 

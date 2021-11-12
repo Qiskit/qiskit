@@ -15,7 +15,7 @@
 import scipy
 from ddt import ddt, data
 
-from qiskit.circuit import QuantumCircuit, Parameter
+from qiskit.circuit import QuantumCircuit, Parameter, ParameterVector
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.synthesis import LieTrotter, SuzukiTrotter, MatrixExponential
 from qiskit.converters import circuit_to_dag
@@ -116,11 +116,29 @@ class TestEvolutionGate(QiskitTestCase):
     def test_passing_grouped_paulis(self):
         """Test passing a list of already grouped Paulis."""
         grouped_ops = [(X ^ Y) + (Y ^ X), (Z ^ I) + (Z ^ Z) + (I ^ Z), (X ^ X)]
-        evo_gate = PauliEvolutionGate(grouped_ops, time=0.12, synthesis=LieTrotter())
-        decomposed = evo_gate.definition.decompose()
-        self.assertEqual(decomposed.count_ops()["rz"], 4)
-        self.assertEqual(decomposed.count_ops()["rzz"], 1)
-        self.assertEqual(decomposed.count_ops()["rxx"], 1)
+        evo = PauliEvolutionGate(grouped_ops, time=0.12, synthesis=SuzukiTrotter()).definition
+        # first term
+        self.assertEqual(evo.count_ops()["exp(it XY)"], 2)
+        self.assertEqual(evo.count_ops()["exp(it YX)"], 1)
+        # second
+        self.assertEqual(evo.count_ops()["exp(it ZI)"], 2)
+        self.assertEqual(evo.count_ops()["exp(it ZZ)"], 2)
+        self.assertEqual(evo.count_ops()["exp(it IZ)"], 1)
+        # third, just a single Pauli not special decomposition
+        self.assertEqual(evo.count_ops()["exp(it XX)"], 1)
+
+    def test_multiple_parameters(self):
+        """Test passing multiple operators and parameters."""
+        times = ParameterVector("t", 4)
+        evo = PauliEvolutionGate([Z, X, Z, X], time=list(times))
+
+        expected = QuantumCircuit(1)
+        expected.rz(2 * times[0], 0)
+        expected.rx(2 * times[1], 0)
+        expected.rz(2 * times[2], 0)
+        expected.rx(2 * times[3], 0)
+
+        self.assertEqual(evo.definition, expected)
 
     def test_list_from_grouped_paulis(self):
         """Test getting a string representation from grouped Paulis."""

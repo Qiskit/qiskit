@@ -12,9 +12,8 @@
 
 """The Suzuki-Trotter product formula."""
 
-from typing import List, Callable, Optional, Union
+from typing import Callable, Optional, Union
 import numpy as np
-from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
 
@@ -59,20 +58,13 @@ class SuzukiTrotter(ProductFormula):
     ) -> None:
         super().__init__(order, reps, insert_barriers, cx_structure, atomic_evolution)
 
-    def synthesize(self, evolution):
+    def _evolve_operator(self, operator, time):
         # get operators and time to evolve
-        operators = evolution.operator
-        time = evolution.time
-
-        if not isinstance(operators, list):
-            pauli_list = [(Pauli(op), np.real(coeff)) for op, coeff in operators.to_list()]
-        else:
-            pauli_list = [(op, 1) for op in operators]
-
+        pauli_list = [(Pauli(op), np.real(coeff)) for op, coeff in operator.to_list()]
         ops_to_evolve = self._recurse(self.order, time / self.reps, pauli_list)
 
         # construct the evolution circuit
-        single_rep = QuantumCircuit(operators[0].num_qubits)
+        single_rep = QuantumCircuit(operator.num_qubits)
         first_barrier = False
 
         for op, coeff in ops_to_evolve:
@@ -85,7 +77,7 @@ class SuzukiTrotter(ProductFormula):
 
             single_rep.compose(self.atomic_evolution(op, coeff), wrap=True, inplace=True)
 
-        evo = QuantumCircuit(operators[0].num_qubits)
+        evo = QuantumCircuit(operator.num_qubits)
         first_barrier = False
 
         for _ in range(self.reps):

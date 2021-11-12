@@ -13,12 +13,14 @@
 """Evolution synthesis."""
 
 from abc import ABC, abstractmethod
+from typing import Union
+from qiskit.circuit import ParameterExpression, QuantumCircuit
+from qiskit.quantum_info import SparsePauliOp
 
 
 class EvolutionSynthesis(ABC):
     """Interface for evolution synthesis algorithms."""
 
-    @abstractmethod
     def synthesize(self, evolution):
         """Synthesize an ``qiskit.circuit.library.PauliEvolutionGate``.
 
@@ -28,4 +30,21 @@ class EvolutionSynthesis(ABC):
         Returns:
             QuantumCircuit: A circuit implementing the evolution.
         """
-        raise NotImplementedError
+        definition = QuantumCircuit(evolution.num_qubits)
+        for time, operator in zip(evolution.time, evolution.operator):
+            definition.compose(self._evolve_operator(operator, time), inplace=True)
+
+        return definition
+
+    @abstractmethod
+    def _evolve_operator(self, operator: SparsePauliOp, time: Union[float, ParameterExpression]):
+        """Evolve a single operator for a given time.
+
+        Args:
+            operator: The operator to evolve.
+            time: The time for which to evolve the operator.
+
+        Returns:
+            A circuit implementing `exp(-i time operator)`.
+        """
+        raise NotImplementedError()

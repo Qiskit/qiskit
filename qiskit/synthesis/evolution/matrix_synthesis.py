@@ -12,9 +12,7 @@
 
 """Exact synthesis of operator evolution via (exponentially expensive) matrix exponentiation."""
 
-from typing import List, Union
 from scipy.linalg import expm
-from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 from .evolution_synthesis import EvolutionSynthesis
@@ -29,18 +27,14 @@ class MatrixExponential(EvolutionSynthesis):
     for small systems.
     """
 
-    def synthesize(self, evolution):
-        # get operators and time to evolve
-        operators = evolution.operator
-        time = evolution.time
-
+    def _evolve_operator(self, operator, time):
         # construct the evolution circuit
-        evo = QuantumCircuit(operators[0].num_qubits)
+        evo = QuantumCircuit(operator.num_qubits)
 
-        if not isinstance(operators, list):
-            matrix = operators.to_matrix()
+        if not isinstance(operator, list):
+            matrix = operator.to_matrix()
         else:
-            matrix = sum(op.to_matrix() for op in operators)
+            matrix = sum(op.to_matrix() for op in operator)
 
         exp = expm(-1j * time * matrix)
 

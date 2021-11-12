@@ -60,6 +60,13 @@ class ProductFormula(EvolutionSynthesis):
 
         self.atomic_evolution = atomic_evolution
 
+    def synthesize(self, evolution):
+        definition = QuantumCircuit(evolution.num_qubits)
+        for time, operator in zip(evolution.time, evolution.operator):
+            definition.compose(self._evolve_operator(operator, time), inplace=True)
+
+        return definition
+
 
 def evolve_pauli(
     pauli: Pauli,
@@ -283,7 +290,8 @@ def cnot_fountain(pauli: Pauli) -> QuantumCircuit:
 def _default_atomic_evolution(operator, time, cx_structure):
     if isinstance(operator, Pauli):
         # single Pauli operator: just exponentiate it
-        evo = evolve_pauli(operator, time, cx_structure)
+        evo = QuantumCircuit(operator.num_qubits, name=f"exp(it {operator.to_label()})")
+        evo.compose(evolve_pauli(operator, time, cx_structure), inplace=True)
     else:
         # sum of Pauli operators: exponentiate each term (this assumes they commute)
         pauli_list = [(Pauli(op), np.real(coeff)) for op, coeff in operator.to_list()]
