@@ -22,6 +22,7 @@ import numpy as np
 import stevedore
 
 from qiskit.circuit import QuantumCircuit
+from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import UnitarySynthesis
@@ -233,6 +234,75 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
         for kwarg in expected_kwargs:
             self.assertIn(kwarg, call_kwargs)
         self.MOCK_PLUGINS["_controllable"].run.assert_not_called()
+
+    def test_config_passed_to_non_default(self):
+        """Test that a specified non-default plugin gets a config dict passed to it."""
+        self.MOCK_PLUGINS["_controllable"].min_qubits = 0
+        self.MOCK_PLUGINS["_controllable"].max_qubits = np.inf
+        self.MOCK_PLUGINS["_controllable"].support([])
+        qc = QuantumCircuit(2)
+        qc.unitary(np.eye(4, dtype=np.complex128), [0, 1])
+        return_dag = circuit_to_dag(qc)
+        plugin_config = {"option_a": 3.14, "option_b": False}
+        pm = PassManager(
+            [
+                UnitarySynthesis(
+                    basis_gates=["u", "cx"], method="_controllable", plugin_config=plugin_config
+                )
+            ]
+        )
+        with unittest.mock.patch.object(
+            ControllableSynthesis, "run", return_value=return_dag
+        ) as plugin_mock:
+            pm.run(qc)
+            plugin_mock.assert_called()  # pylint: disable=no-member
+            # This access should be `run.call_args.kwargs`, but the namedtuple access wasn't added
+            # until Python 3.8.
+            call_kwargs = plugin_mock.call_args[1]  # pylint: disable=no-member
+        expected_kwargs = [
+            "config",
+        ]
+        for kwarg in expected_kwargs:
+            self.assertIn(kwarg, call_kwargs)
+        self.assertEqual(call_kwargs["config"], plugin_config)
+
+    def test_config_not_passed_to_default_on_fallback(self):
+        """Test that all the keywords that the default synthesis plugin needs are passed to it,
+        and if if config is specified it is not passed to the default."""
+        # Set the mock plugin to reject all keyword arguments, but also be unable to handle
+        # operators of any numbers of qubits.  This will cause fallback to the default handler,
+        # which should receive a full set of keywords, still.
+        self.MOCK_PLUGINS["_controllable"].min_qubits = np.inf
+        self.MOCK_PLUGINS["_controllable"].max_qubits = 0
+        self.MOCK_PLUGINS["_controllable"].support([])
+        qc = QuantumCircuit(2)
+        qc.unitary(np.eye(4, dtype=np.complex128), [0, 1])
+        plugin_config = {"option_a": 3.14, "option_b": False}
+        pm = PassManager(
+            [
+                UnitarySynthesis(
+                    basis_gates=["u", "cx"], method="_controllable", plugin_config=plugin_config
+                )
+            ]
+        )
+        with self.mock_default_run_method():
+            pm.run(qc)
+            self.DEFAULT_PLUGIN.run.assert_called()  # pylint: disable=no-member
+            # This access should be `run.call_args.kwargs`, but the namedtuple access wasn't added
+            # until Python 3.8.
+            call_kwargs = self.DEFAULT_PLUGIN.run.call_args[1]  # pylint: disable=no-member
+        expected_kwargs = [
+            "basis_gates",
+            "coupling_map",
+            "gate_errors",
+            "gate_lengths",
+            "natural_direction",
+            "pulse_optimize",
+        ]
+        for kwarg in expected_kwargs:
+            self.assertIn(kwarg, call_kwargs)
+        self.MOCK_PLUGINS["_controllable"].run.assert_not_called()
+        self.assertNotIn("config", call_kwargs)
 
 
 if __name__ == "__main__":

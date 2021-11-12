@@ -199,7 +199,8 @@ def backend_widget(backend):
                         if param["value"] != 1.0:
                             sum_cx_err += param["value"]
                             num_cx += 1
-        avg_cx_err = round(sum_cx_err / (num_cx), 4)
+        if num_cx > 0:
+            avg_cx_err = round(sum_cx_err / num_cx, 4)
 
     cx_widget = widgets.HTML(value=f"<h5>{avg_cx_err}</h5>", layout=widgets.Layout())
 
