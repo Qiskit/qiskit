@@ -136,6 +136,12 @@ class VF2Layout(AnalysisPass):
             logger.debug("Running trial: %s", trials)
             stop_reason = VF2LayoutStopReason.SOLUTION_FOUND
             layout = Layout({qubits[im_i]: cm_nodes[cm_i] for cm_i, im_i in mapping.items()})
+            # If the graphs have the same number of nodes we don't need to score or do multiple
+            # trials as the score heuristic currently doesn't weigh nodes based on gates on a
+            # qubit so the scores will always all be the same
+            if len(cm_graph) == len(im_graph):
+                chosen_layout = layout
+                break
             layout_score = self._score_layout(layout)
             logger.debug("Trial %s has score %s", trials, layout_score)
             if chosen_layout is None:
