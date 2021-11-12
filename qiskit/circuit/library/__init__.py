@@ -212,7 +212,17 @@ Particular Quantum Circuits
    GroverOperator
    PhaseOracle
    EvolvedOperatorAnsatz
+
+
+Time evolution gates
+====================
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
    PauliEvolutionGate
+   MatrixEvolutionGate
 
 
 Probability distributions
@@ -369,7 +379,10 @@ from .generalized_gates import (
     RVGate,
     PauliGate,
 )
-from .pauli_evolution import PauliEvolutionGate
+from .evolution import (
+    PauliEvolutionGate,
+    MatrixEvolutionGate
+)
 from .boolean_logic import (
     AND,
     OR,

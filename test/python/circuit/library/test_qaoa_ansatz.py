@@ -15,6 +15,7 @@
 import numpy as np
 from ddt import ddt, data
 
+from qiskit.compiler import transpile
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import HGate, RXGate, YGate, RYGate, RZGate
 from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
@@ -28,20 +29,24 @@ class TestQAOAAnsatz(QiskitTestCase):
 
     def test_default_qaoa(self):
         """Test construction of the default circuit."""
-        circuit = QAOAAnsatz(I, 1)
+        circuit = QAOAAnsatz(Z, reps=2)
 
-        parameters = circuit.parameters
+        expected = QuantumCircuit(1)
+        expected.h(0)
+        expected.rz(2 * circuit.parameters[2], 0)
+        expected.rx(2 * circuit.parameters[0], 0)
+        expected.rz(2 * circuit.parameters[3], 0)
+        expected.rx(2 * circuit.parameters[1], 0)
 
-        circuit = circuit.decompose()
-        self.assertEqual(1, len(parameters))
-        self.assertIsInstance(circuit.data[0][0], HGate)
-        self.assertIsInstance(circuit.data[1][0], RXGate)
+        transpiled = transpile(circuit, basis_gates=["h", "rz", "rx"])
+        self.assertEqual(4, len(circuit.parameters))
+        self.assertEqual(transpiled, expected)
 
     def test_custom_initial_state(self):
         """Test circuit with a custom initial state."""
         initial_state = QuantumCircuit(1)
         initial_state.y(0)
-        circuit = QAOAAnsatz(initial_state=initial_state, cost_operator=I, reps=1)
+        circuit = QAOAAnsatz(initial_state=initial_state, cost_operator=Z, reps=1)
 
         parameters = circuit.parameters
         circuit = circuit.decompose()
@@ -52,11 +57,11 @@ class TestQAOAAnsatz(QiskitTestCase):
     def test_invalid_reps(self):
         """Test negative reps."""
         with self.assertRaises(ValueError):
-            _ = QAOAAnsatz(I, reps=-1)
+            _ = QAOAAnsatz(Z, reps=-1)
 
     def test_zero_reps(self):
         """Test zero reps."""
-        circuit = QAOAAnsatz(I ^ 4, reps=0)
+        circuit = QAOAAnsatz(Z ^ 4, reps=0)
         reference = QuantumCircuit(4)
         reference.h(range(4))
 
@@ -66,22 +71,22 @@ class TestQAOAAnsatz(QiskitTestCase):
         """Test circuit with a custom mixer as a circuit"""
         mixer = QuantumCircuit(1)
         mixer.ry(1, 0)
-        circuit = QAOAAnsatz(cost_operator=I, reps=1, mixer_operator=mixer)
+        circuit = QAOAAnsatz(cost_operator=Z, reps=1, mixer_operator=mixer)
 
         parameters = circuit.parameters
         circuit = circuit.decompose()
-        self.assertEqual(0, len(parameters))
+        self.assertEqual(1, len(parameters))
         self.assertIsInstance(circuit.data[0][0], HGate)
         self.assertIsInstance(circuit.data[1][0], RYGate)
 
     def test_custom_operator_mixer(self):
         """Test circuit with a custom mixer as an operator."""
         mixer = Y
-        circuit = QAOAAnsatz(cost_operator=I, reps=1, mixer_operator=mixer)
+        circuit = QAOAAnsatz(cost_operator=Z, reps=1, mixer_operator=mixer)
 
         parameters = circuit.parameters
         circuit = circuit.decompose()
-        self.assertEqual(1, len(parameters))
+        self.assertEqual(2, len(parameters))
         self.assertIsInstance(circuit.data[0][0], HGate)
         self.assertIsInstance(circuit.data[1][0], RYGate)
 
@@ -105,12 +110,12 @@ class TestQAOAAnsatz(QiskitTestCase):
         mixer = Z
 
         circuit = QAOAAnsatz(
-            cost_operator=I, reps=2, initial_state=initial_state, mixer_operator=mixer
+            cost_operator=Z, reps=2, initial_state=initial_state, mixer_operator=mixer
         )
 
         parameters = circuit.parameters
-        circuit = circuit.decompose()
-        self.assertEqual(2, len(parameters))
+        circuit = circuit.decompose().decompose()
+        self.assertEqual(4, len(parameters))
         self.assertIsInstance(circuit.data[0][0], YGate)
         self.assertIsInstance(circuit.data[1][0], RZGate)
         self.assertIsInstance(circuit.data[2][0], RZGate)

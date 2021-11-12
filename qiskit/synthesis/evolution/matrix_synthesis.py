@@ -12,8 +12,11 @@
 
 """Exact synthesis of operator evolution via (exponentially expensive) matrix exponentiation."""
 
+from typing import Union
+
 from scipy.linalg import expm
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.quantum_info import Operator, SparsePauliOp
 
 from .evolution_synthesis import EvolutionSynthesis
 
@@ -27,7 +30,7 @@ class MatrixExponential(EvolutionSynthesis):
     for small systems.
     """
 
-    def _evolve_operator(self, operator, time):
+    def _evolve_operator(self, operator: Union[Operator, SparsePauliOp], time: float) -> QuantumCircuit:
         # construct the evolution circuit
         evo = QuantumCircuit(operator.num_qubits)
 
