@@ -98,6 +98,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     backend_properties = pass_manager_config.backend_properties
     approximation_degree = pass_manager_config.approximation_degree
     unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
+    unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
     timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
 
     # 1. Use trivial layout if no layout given
@@ -142,6 +143,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             method=unitary_synthesis_method,
             backend_props=backend_properties,
             min_qubits=3,
+            plugin_config=unitary_synthesis_plugin_config,
         ),
         Unroll3qOrMore(),
     ]
@@ -189,6 +191,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 coupling_map=coupling_map,
                 method=unitary_synthesis_method,
                 backend_props=backend_properties,
+                plugin_config=unitary_synthesis_plugin_config,
             ),
             UnrollCustomDefinitions(sel, basis_gates),
             BasisTranslator(sel, basis_gates),
@@ -214,6 +217,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 coupling_map=coupling_map,
                 method=unitary_synthesis_method,
                 backend_props=backend_properties,
+                plugin_config=unitary_synthesis_plugin_config,
             ),
         ]
     else:
