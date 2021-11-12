@@ -22,9 +22,11 @@ from qiskit.opflow.gradients import GradientBase
 from qiskit.providers import Backend
 from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.utils.validation import validate_min
-from ...circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
-#from qiskit.algorithms.minimum_eigen_solvers.vqe import VQE
-from .vqe import VQE
+from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
+from qiskit.algorithms.minimum_eigen_solvers.vqe import VQE
+# from ...circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
+# #from qiskit.algorithms.minimum_eigen_solvers.vqe import VQE
+# from .vqe import VQE
 
 
 class QAOA(VQE):
