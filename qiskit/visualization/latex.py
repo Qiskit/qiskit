@@ -586,15 +586,21 @@ class QCircuitImage:
         #         or if cregbundle, wire number of the condition register itself
         # gap - the number of wires from cwire to the bottom gate qubit
 
-        creg_size = self.cregs[op.condition[0]]
-        if_value = format(op.condition[1], "b").zfill(creg_size)
-        if not self.reverse_bits:
-            if_value = if_value[::-1]
+        cond_is_bit = isinstance(op.condition[0], Clbit)
+        if cond_is_bit:
+            cond_reg = self.bit_locations[op.condition[0]]["register"]
+            if_value = op.condition[1]
+        else:
+            cond_reg = op.condition[0]
+            creg_size = self.cregs[cond_reg]
+            if_value = format(op.condition[1], "b").zfill(creg_size)
+            if not self.reverse_bits:
+                if_value = if_value[::-1]
 
         cwire = len(self.qubit_list)
         iter_cregs = iter(list(self.cregs)) if self.cregbundle else iter(self.cregs_bits)
         for creg in iter_cregs:
-            if creg == op.condition[0]:
+            if creg == cond_reg:
                 break
             cwire += 1
 
@@ -602,26 +608,50 @@ class QCircuitImage:
         meas_offset = -0.3 if isinstance(op, Measure) else 0.0
         if self.cregbundle:
             # Print the condition value at the bottom and put bullet on creg line
-            self._latex[cwire][col] = "\\control \\cw^(%s){^{\\mathtt{%s}}} \\cwx[-%s]" % (
-                meas_offset,
-                str(hex(op.condition[1])),
-                str(gap),
-            )
+            if cond_is_bit:
+                ctrl_bit = (
+                    str(cond_reg.name) + "_" + str(self.bit_locations[op.condition[0]]["index"])
+                )
+                label = "T" if if_value is True else "F"
+                self._latex[cwire][col] = "\\control \\cw^(%s){^{\\mathtt{%s=%s}}} \\cwx[-%s]" % (
+                    meas_offset,
+                    ctrl_bit,
+                    label,
+                    str(gap),
+                )
+            else:
+                self._latex[cwire][col] = "\\control \\cw^(%s){^{\\mathtt{%s}}} \\cwx[-%s]" % (
+                    meas_offset,
+                    str(hex(op.condition[1])),
+                    str(gap),
+                )
         else:
             # Add the open and closed buttons to indicate the condition value
-            for i in range(creg_size - 1):
-                control = "\\control" if if_value[i] == "1" else "\\controlo"
-                self._latex[cwire + i][col] = f"{control} \\cw \\cwx[-" + str(gap) + "]"
-                gap = 1
-            # Add (hex condition value) below the last cwire
-            control = "\\control" if if_value[creg_size - 1] == "1" else "\\controlo"
-            self._latex[creg_size + cwire - 1][col] = (
-                f"{control}" + " \\cw^(%s){^{\\mathtt{%s}}} \\cwx[-%s]"
-            ) % (
-                meas_offset,
-                str(hex(op.condition[1])),
-                str(gap),
-            )
+            if cond_is_bit:
+                extra_gap = list(cond_reg).index(op.condition[0])
+                gap += extra_gap
+                control = "\\control" if if_value is True else "\\controlo"
+                self._latex[cwire + extra_gap][col] = (
+                    f"{control}" + " \\cw^(%s){^{\\mathtt{%s}}} \\cwx[-%s]"
+                ) % (
+                    meas_offset,
+                    str(hex(op.condition[1])),
+                    str(gap),
+                )
+            else:
+                for i in range(creg_size - 1):
+                    control = "\\control" if if_value[i] == "1" else "\\controlo"
+                    self._latex[cwire + i][col] = f"{control} \\cw \\cwx[-" + str(gap) + "]"
+                    gap = 1
+                # Add (hex condition value) below the last cwire
+                control = "\\control" if if_value[creg_size - 1] == "1" else "\\controlo"
+                self._latex[creg_size + cwire - 1][col] = (
+                    f"{control}" + " \\cw^(%s){^{\\mathtt{%s}}} \\cwx[-%s]"
+                ) % (
+                    meas_offset,
+                    str(hex(op.condition[1])),
+                    str(gap),
+                )
 
     def _truncate_float(self, matchobj, ndigits=4):
         """Truncate long floats."""

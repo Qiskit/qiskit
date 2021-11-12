@@ -12,6 +12,7 @@
 
 """Test for the DAGCircuit object"""
 
+from collections import Counter
 import unittest
 
 from ddt import ddt, data
@@ -104,8 +105,12 @@ def raise_if_dagcircuit_invalid(dag):
             cur_node_id = edges_to_follow[0][1]
 
     # Wires can only terminate at input/output nodes.
+    op_counts = Counter()
     for op_node in dag.op_nodes():
         assert multi_graph.in_degree(op_node._node_id) == multi_graph.out_degree(op_node._node_id)
+        op_counts[op_node.name] += 1
+    # The _op_names attribute should match the counted op names
+    assert op_counts == dag._op_names
 
     # Node input/output edges should match node qarg/carg/condition.
     for node in dag.op_nodes():
@@ -1342,6 +1347,51 @@ class TestDagSubstituteNode(QiskitTestCase):
         self.assertEqual(dag.ancestors(replacement_node), ancestors)
         self.assertEqual(dag.descendants(replacement_node), descendants)
         self.assertEqual(replacement_node is node_to_be_replaced, inplace)
+
+
+class TestReplaceBlock(QiskitTestCase):
+    """Test replacing a block of nodes in a DAG."""
+
+    def setUp(self):
+        super().setUp()
+        self.qc = QuantumCircuit(2)
+        self.qc.cx(0, 1)
+        self.qc.h(1)
+        self.qc.cx(0, 1)
+        self.dag = circuit_to_dag(self.qc)
+
+    def test_cycle_check(self):
+        """Validate that by default introducing a cycle errors."""
+        nodes = list(self.dag.topological_op_nodes())
+        with self.assertRaises(DAGCircuitError):
+            self.dag.replace_block_with_op(
+                [nodes[0], nodes[-1]],
+                CZGate(),
+                {bit: idx for (idx, bit) in enumerate(self.dag.qubits)},
+            )
+
+    def test_empty(self):
+        """Test that an empty node block raises."""
+        with self.assertRaises(DAGCircuitError):
+            self.dag.replace_block_with_op(
+                [], CZGate(), {bit: idx for (idx, bit) in enumerate(self.dag.qubits)}
+            )
+
+    def test_single_node_block(self):
+        """Test that a single node as the block works."""
+        qr = QuantumRegister(2)
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+        node = dag.apply_operation_back(HGate(), [qr[0]])
+        dag.replace_block_with_op(
+            [node], XGate(), {bit: idx for (idx, bit) in enumerate(dag.qubits)}
+        )
+
+        expected_dag = DAGCircuit()
+        expected_dag.add_qreg(qr)
+        expected_dag.apply_operation_back(XGate(), [qr[0]])
+
+        self.assertEqual(expected_dag, dag)
 
 
 class TestDagProperties(QiskitTestCase):

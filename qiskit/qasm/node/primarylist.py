@@ -11,8 +11,6 @@
 # that they have been altered from the originals.
 
 """Node for an OPENQASM primarylist."""
-import warnings
-
 from .node import Node
 
 
@@ -30,13 +28,6 @@ class PrimaryList(Node):
         """Return the size of the list."""
         return len(self.children)
 
-    def qasm(self, prec=None):
+    def qasm(self):
         """Return the corresponding OPENQASM string."""
-        if prec is not None:
-            warnings.warn(
-                "Parameter 'PrimaryList.qasm(..., prec)' is no longer used and is "
-                "being deprecated.",
-                DeprecationWarning,
-                2,
-            )
         return ",".join([self.children[j].qasm() for j in range(self.size())])
