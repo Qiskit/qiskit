@@ -124,7 +124,8 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                     "perfect layout will change in a future release, if you're "
                     "depending on this behavior it is better to explicit set "
                     "layout_method='trivial' when calling transpile()",
-                    FutureWarning)
+                    FutureWarning,
+                )
                 # stack_level is not set because targeting transpile() is difficult
         return False
 

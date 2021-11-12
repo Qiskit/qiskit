@@ -12,6 +12,7 @@
 
 """VF2Layout pass to find a layout using subgraph isomorphism"""
 from enum import Enum
+import logging
 import random
 import time
 
@@ -20,6 +21,9 @@ from retworkx import PyGraph, PyDiGraph, vf2_mapping
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.providers.exceptions import BackendPropertyError
+
+
+logger = logging.getLogger(__name__)
 
 
 class VF2LayoutStopReason(Enum):
@@ -114,6 +118,7 @@ class VF2Layout(AnalysisPass):
         im_graph.add_nodes_from(range(len(qubits)))
         im_graph.add_edges_from_no_data(interactions)
 
+        logger.debug("Running VF2 to find mappings")
         mappings = vf2_mapping(
             cm_graph,
             im_graph,
@@ -128,18 +133,33 @@ class VF2Layout(AnalysisPass):
         trials = 0
         for mapping in mappings:
             trials += 1
+            logger.debug("Running trial: %s", trials)
             stop_reason = VF2LayoutStopReason.SOLUTION_FOUND
             layout = Layout({qubits[im_i]: cm_nodes[cm_i] for cm_i, im_i in mapping.items()})
             layout_score = self._score_layout(layout)
+            logger.debug("Trial %s has score %s", trials, layout_score)
             if chosen_layout is None:
                 chosen_layout = layout
                 chosen_layout_score = layout_score
             elif layout_score < chosen_layout_score:
+                logger.debug(
+                    "Found layout %s has a lower score (%s) than previous best %s (%s)",
+                    layout,
+                    layout_score,
+                    chosen_layout,
+                    chosen_layout_score,
+                )
                 chosen_layout = layout
                 chosen_layout_score = layout_score
-            if trials >= self.max_trials or (
-                self.time_limit and time.time() - start_time >= self.time_limit
-            ):
+            if trials <= self.max_trials:
+                logger.debug("Trial %s is >= configured max trials %s", trials, self.max_trials)
+            elapsed_time = time.time() - start_time
+            if self.time_limit and elapsed_time >= self.time_limit:
+                logger.debug(
+                    "VF2Layout has taken %s which exceeds configured max time: %s",
+                    elapsed_time,
+                    self.time_limit,
+                )
                 break
         if chosen_layout is None:
             stop_reason = VF2LayoutStopReason.NO_SOLUTION_FOUND
