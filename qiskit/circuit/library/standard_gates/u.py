@@ -34,7 +34,7 @@ class UGate(Gate):
 
     .. math::
         U(\theta, \phi, \lambda) =
-            RZ(\phi + \pi/2) RZ(\theta) RZ(\lambda - \pi/2)
+            RZ(\phi + \pi/2) RX(\theta) RZ(\lambda - \pi/2)
 
     **Circuit symbol:**
 
