@@ -182,7 +182,7 @@ def plot_state_hinton(
         return fig.savefig(filename)
 
 
-def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartesian"):
+def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartesian", font_size=None):
     """Plot the Bloch sphere.
 
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
@@ -223,7 +223,7 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
 
     if figsize is None:
         figsize = (5, 5)
-    B = Bloch(axes=ax)
+    B = Bloch(axes=ax, font_size=font_size)
     if coord_type == "spherical":
         r, theta, phi = bloch[0], bloch[1], bloch[2]
         bloch[0] = r * np.sin(theta) * np.cos(phi)
@@ -241,7 +241,8 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
 
 @deprecate_arguments({"rho": "state"})
 def plot_bloch_multivector(
-    state, title="", figsize=None, *, rho=None, reverse_bits=False, filename=None
+    state, title="", figsize=None, *, rho=None, reverse_bits=False, filename=None,
+    font_size=None, title_font_size=None, title_pad=1
 ):
     """Plot the Bloch sphere.
 
@@ -294,12 +295,14 @@ def plot_bloch_multivector(
         width *= num
     else:
         width, height = plt.figaspect(1 / num)
+    default_title_font_size = font_size if font_size is not None else 16
+    title_font_size = title_font_size if title_font_size is not None else default_title_font_size
     fig = plt.figure(figsize=(width, height))
     for i in range(num):
         pos = num - 1 - i if reverse_bits else i
         ax = fig.add_subplot(1, num, i + 1, projection="3d")
-        plot_bloch_vector(bloch_data[i], "qubit " + str(pos), ax=ax, figsize=figsize)
-    fig.suptitle(title, fontsize=16, y=1.01)
+        plot_bloch_vector(bloch_data[i], "qubit " + str(pos), ax=ax, figsize=figsize, font_size=font_size)
+    fig.suptitle(title, fontsize=title_font_size, y=1.0+title_pad/100)
     matplotlib_close_if_inline(fig)
     if filename is None:
         return fig
