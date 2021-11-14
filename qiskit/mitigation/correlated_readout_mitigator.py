@@ -32,11 +32,11 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
             amat: readout error assignment matrix.
             qubits: Optional, the measured physical qubits for mitigation.
         """
-        self._qubits = qubits
         if qubits is None:
             self._num_qubits = int(np.log2(amat.shape[0]))
             self._qubits = range(self._num_qubits)
         else:
+            self._qubits = qubits
             self._num_qubits = len(self._qubits)
         self._assignment_mat = amat
         self._mitigation_mats = {}
@@ -82,14 +82,14 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
             ``circuit.measure(qubits, clbits)``.
         """
 
-        if qubits is not None:
-            self._qubits = qubits
+        if qubits is None:
+            qubits = self._qubits
         probs_vec, shots = counts_probability_vector(
-            data, clbits=clbits, qubits=self._qubits, return_shots=True
+            data, clbits=clbits, qubits=qubits, return_shots=True
         )
 
         # Get qubit mitigation matrix and mitigate probs
-        mit_mat = self.mitigation_matrix(self._qubits)
+        mit_mat = self.mitigation_matrix(qubits)
 
         # Get operator coeffs
         if diagonal is None:
@@ -128,14 +128,14 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         Raises:
             QiskitError: if qubit and clbit kwargs are not valid.
         """
-        if qubits is not None:
-            self._qubits = qubits
+        if qubits is None:
+            qubits = self._qubits
         probs_vec, shots = counts_probability_vector(
-            data, clbits=clbits, qubits=self._qubits, return_shots=True
+            data, clbits=clbits, qubits=qubits, return_shots=True
         )
 
         # Get qubit mitigation matrix and mitigate probs
-        mit_mat = self.mitigation_matrix(self._qubits)
+        mit_mat = self.mitigation_matrix(qubits)
 
         # Apply transpose of mitigation matrix
         probs_vec = mit_mat.dot(probs_vec)
@@ -157,22 +157,22 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         Returns:
             np.ndarray: the measurement error mitigation matrix :math:`A^{-1}`.
         """
-        if qubits is not None:
-            self._qubits = qubits
-        self._qubits = tuple(sorted(self._qubits))
+        if qubits is None:
+            qubits = self._qubits
+        qubits = tuple(sorted(qubits))
 
         # Check for cached mitigation matrix
         # if not present compute
-        if self._qubits not in self._mitigation_mats:
-            marginal_matrix = self.assignment_matrix(self._qubits)
+        if qubits not in self._mitigation_mats:
+            marginal_matrix = self.assignment_matrix(qubits)
             try:
                 mit_mat = np.linalg.inv(marginal_matrix)
             except np.linalg.LinAlgError:
                 # Use pseudo-inverse if matrix is singular
                 mit_mat = np.linalg.pinv(marginal_matrix)
-            self._mitigation_mats[self._qubits] = mit_mat
+            self._mitigation_mats[qubits] = mit_mat
 
-        return self._mitigation_mats[self._qubits]
+        return self._mitigation_mats[qubits]
 
     def assignment_matrix(self, qubits: List[int] = None) -> np.ndarray:
         r"""Return the readout assignment matrix for specified qubits.
@@ -184,21 +184,21 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         Returns:
             np.ndarray: the assignment matrix A.
         """
-        if qubits is not None:
-            self._qubits = qubits
-        if self._qubits is None:
+        if qubits is None:
+            qubits = self._qubits
+        if qubits is None:
             return self._assignment_mat
 
-        if isinstance(self._qubits, int):
-            self._qubits = [self._qubits]
+        if isinstance(qubits, int):
+            qubits = [qubits]
 
         # Compute marginal matrix
         axis = tuple(
-            self._num_qubits - 1 - i for i in set(range(self._num_qubits)).difference(self._qubits)
+            self._num_qubits - 1 - i for i in set(range(self._num_qubits)).difference(qubits)
         )
-        num_qubits = len(self._qubits)
+        num_qubits = len(qubits)
         new_amat = np.zeros(2 * [2 ** num_qubits], dtype=float)
-        for i, col in enumerate(self._assignment_mat.T[self._keep_indexes(self._qubits)]):
+        for i, col in enumerate(self._assignment_mat.T[self._keep_indexes(qubits)]):
             new_amat[i] = (
                 np.reshape(col, self._num_qubits * [2]).sum(axis=axis).reshape([2 ** num_qubits])
             )
