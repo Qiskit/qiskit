@@ -58,6 +58,7 @@ class TestReadoutMitigation(QiskitTestCase):
             counts_ideal = Counts(circuit_data["counts_ideal"])
             counts_noise = Counts(circuit_data["counts_noise"])
             unmitigated_error = self.compare_results(counts_ideal, counts_noise)
+            # TODO: verify mitigated stddev is larger
             # unmitigated_stddev =
             for mitigator in mitigators:
                 mitigated_quasi_probs = mitigator.quasi_probabilities(counts_noise)
@@ -199,6 +200,41 @@ class TestReadoutMitigation(QiskitTestCase):
             self.assertTrue(
                 mitigated_error < 0.001,
                 "Mitigator {} did not correctly handle qubit order 1, 0, 2".format(mitigator),
+            )
+
+    @data([test_data["test_1"]])
+    @unpack
+    def test_repeated_qubits_parameter(self, circuits_data):
+        counts_ideal_012 = Counts({"000": 5000, "001": 5000})
+        counts_ideal_210 = Counts({"000": 5000, "100": 5000})
+        counts_noise = Counts(
+            {"000": 4844, "001": 4962, "100": 56, "101": 65, "011": 37, "010": 35, "110": 1}
+        )
+        CRM = CorrelatedReadoutMitigator(circuits_data["correlated_method_matrix"], qubits=[0, 1, 2])
+        LRM = LocalReadoutMitigator(circuits_data["local_method_matrices"], qubits=[0, 1, 2])
+        mitigators = [CRM, LRM]
+        for mitigator in mitigators:
+            mitigated_probs_210 = (
+                mitigator.quasi_probabilities(counts_noise, qubits=[2, 1, 0])
+                    .nearest_probability_distribution()
+                    .binary_probabilities()
+            )
+            mitigated_error = self.compare_results(counts_ideal_210, mitigated_probs_210)
+            self.assertTrue(
+                mitigated_error < 0.001,
+                "Mitigator {} did not correctly handle qubit order 2,1,0".format(mitigator),
+            )
+
+            # checking qubit order 2,1,0 should not "overwrite" the default 0,1,2
+            mitigated_probs_012 = (
+                mitigator.quasi_probabilities(counts_noise)
+                    .nearest_probability_distribution()
+                    .binary_probabilities()
+            )
+            mitigated_error = self.compare_results(counts_ideal_012, mitigated_probs_012)
+            self.assertTrue(
+                mitigated_error < 0.001,
+                "Mitigator {} did not correctly handle qubit order 0,1,2 (the expected default)".format(mitigator),
             )
 
     def test_from_backend(self):
