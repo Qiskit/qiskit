@@ -250,7 +250,7 @@ def plot_bloch_multivector(
     Args:
         state (Statevector or DensityMatrix or ndarray): an N-qubit quantum state.
         title (str): a string that represents the plot title
-        figsize (tuple): Has no effect, here for compatibility only.
+        figsize (tuple): size of each individual Bloch sphere figure, in inches.
         reverse_bits (bool): If True, plots qubits following Qiskit's convention [Default:False].
 
     Returns:
@@ -289,7 +289,11 @@ def plot_bloch_multivector(
         _bloch_multivector_data(state)[::-1] if reverse_bits else _bloch_multivector_data(state)
     )
     num = len(bloch_data)
-    width, height = plt.figaspect(1 / num)
+    if figsize is not None:
+        width, height = figsize
+        width *= num
+    else:
+        width, height = plt.figaspect(1 / num)
     fig = plt.figure(figsize=(width, height))
     for i in range(num):
         pos = num - 1 - i if reverse_bits else i
