@@ -146,7 +146,7 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         quasi_dist = QuasiDistribution(probs_dict)
         quasi_dist._stddev_upper_bound = self.stddev_upper_bound(shots)
 
-        return QuasiDistribution(probs_dict)
+        return quasi_dist
 
     def mitigation_matrix(self, qubits: List[int] = None) -> np.ndarray:
         r"""Return the readout mitigation matrix for the specified qubits.

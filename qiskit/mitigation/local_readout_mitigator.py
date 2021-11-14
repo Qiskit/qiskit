@@ -181,7 +181,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         quasi_dist = QuasiDistribution(probs_dict)
         quasi_dist._stddev_upper_bound = self.stddev_upper_bound(shots, self._qubits)
 
-        return QuasiDistribution(probs_dict)
+        return quasi_dist
 
     def mitigation_matrix(self, qubits: List[int] = None) -> np.ndarray:
         r"""Return the measurement mitigation matrix for the specified qubits.
