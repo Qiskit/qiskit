@@ -198,6 +198,7 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
         figsize (tuple): Figure size in inches. Has no effect is passing ``ax``.
         coord_type (str): a string that specifies coordinate type for bloch
             (Cartesian or spherical), default is Cartesian
+        font_size (double): Font size.
 
     Returns:
         Figure: A matplotlib figure instance if ``ax = None``.
@@ -253,6 +254,9 @@ def plot_bloch_multivector(
         title (str): a string that represents the plot title
         figsize (tuple): size of each individual Bloch sphere figure, in inches.
         reverse_bits (bool): If True, plots qubits following Qiskit's convention [Default:False].
+        font_size (double): Font size for the Bloch ball figures.
+        title_font_size (double): Font size for the title.
+        title_pad (double): Padding for the title (suptitle `y` position computed as `y=1+title_pad/100`).
 
     Returns:
         matplotlib.Figure:
