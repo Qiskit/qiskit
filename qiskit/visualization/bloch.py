@@ -130,7 +130,9 @@ class Bloch:
             Positions of +z and -z labels respectively.
     """
 
-    def __init__(self, fig=None, axes=None, view=None, figsize=None, background=False, font_size=None):
+    def __init__(
+        self, fig=None, axes=None, view=None, figsize=None, background=False, font_size=None
+    ):
 
         # Figure and axes
         self._ext_fig = False

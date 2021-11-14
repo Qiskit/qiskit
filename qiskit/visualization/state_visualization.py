@@ -182,7 +182,9 @@ def plot_state_hinton(
         return fig.savefig(filename)
 
 
-def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartesian", font_size=None):
+def plot_bloch_vector(
+    bloch, title="", ax=None, figsize=None, coord_type="cartesian", font_size=None
+):
     """Plot the Bloch sphere.
 
     Plot a sphere, axes, the Bloch vector, and its projections onto each axis.
@@ -242,8 +244,16 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
 
 @deprecate_arguments({"rho": "state"})
 def plot_bloch_multivector(
-    state, title="", figsize=None, *, rho=None, reverse_bits=False, filename=None,
-    font_size=None, title_font_size=None, title_pad=1
+    state,
+    title="",
+    figsize=None,
+    *,
+    rho=None,
+    reverse_bits=False,
+    filename=None,
+    font_size=None,
+    title_font_size=None,
+    title_pad=1,
 ):
     """Plot the Bloch sphere.
 
@@ -256,7 +266,7 @@ def plot_bloch_multivector(
         reverse_bits (bool): If True, plots qubits following Qiskit's convention [Default:False].
         font_size (double): Font size for the Bloch ball figures.
         title_font_size (double): Font size for the title.
-        title_pad (double): Padding for the title (suptitle `y` position computed as `y=1+title_pad/100`).
+        title_pad (double): Padding for the title (suptitle `y` position is `y=1+title_pad/100`).
 
     Returns:
         matplotlib.Figure:
@@ -305,8 +315,10 @@ def plot_bloch_multivector(
     for i in range(num):
         pos = num - 1 - i if reverse_bits else i
         ax = fig.add_subplot(1, num, i + 1, projection="3d")
-        plot_bloch_vector(bloch_data[i], "qubit " + str(pos), ax=ax, figsize=figsize, font_size=font_size)
-    fig.suptitle(title, fontsize=title_font_size, y=1.0+title_pad/100)
+        plot_bloch_vector(
+            bloch_data[i], "qubit " + str(pos), ax=ax, figsize=figsize, font_size=font_size
+        )
+    fig.suptitle(title, fontsize=title_font_size, y=1.0 + title_pad / 100)
     matplotlib_close_if_inline(fig)
     if filename is None:
         return fig
