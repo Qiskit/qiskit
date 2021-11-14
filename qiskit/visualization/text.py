@@ -1351,19 +1351,21 @@ class Layer:
             if isinstance(creg, Clbit):
                 clbit = [creg]
                 cond_bin = "1" if val is True else "0"
+                print("bin", cond_bin, clbit)
                 self.set_cond_bullets(cond_bin, clbit)
             else:
-                clbit = [
+                clbits = [
                     bit for bit in self.clbits if self._clbit_locations[bit]["register"] == creg
                 ]
-                cond_bin = bin(val)[2:].zfill(len(clbit))
-                self.set_cond_bullets(cond_bin, clbits=clbit)
+                cond_bin = bin(val)[2:].zfill(len(clbits))
+                print("bin2", cond_bin, clbits)
+                self.set_cond_bullets(cond_bin, clbits=clbits)
 
     def set_cond_bullets(self, val, clbits):
         """Sets bullets for classical conditioning when cregbundle=False.
 
         Args:
-            val (int): The condition value.
+            val (str): The condition value as a string
             clbits (list[Clbit]): The list of classical bits on
                 which the instruction is conditioned.
         """

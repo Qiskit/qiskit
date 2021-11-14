@@ -86,7 +86,7 @@ class QCircuitImage:
 
         # List of qubits and cbits in order of appearance in code and image
         # May also include ClassicalRegisters if cregbundle=True
-        self.ordered_bits = []
+        self._ordered_bits = []
 
         # Map from registers to the list they appear in the image
         self.img_regs = {}
@@ -121,9 +121,9 @@ class QCircuitImage:
         self.plot_barriers = plot_barriers
 
         #################################
-        self.qubit_list = qubits
-        self.clbit_list = clbits
-        self.ordered_bits = qubits + clbits
+        self._qubits = qubits
+        self._clbits = clbits
+        self._ordered_bits = qubits + clbits
         self.cregs = {reg: reg.size for reg in cregs}
 
         self.bit_locations = {
@@ -144,7 +144,7 @@ class QCircuitImage:
                     self.cregbundle = False
 
         self.cregs_bits = [self.bit_locations[bit]["register"] for bit in clbits]
-        self.img_regs = {bit: ind for ind, bit in enumerate(self.ordered_bits)}
+        self.img_regs = {bit: ind for ind, bit in enumerate(self._ordered_bits)}
 
         num_reg_bits = sum([reg.size for reg in self.cregs])
         if self.cregbundle:
@@ -210,7 +210,7 @@ class QCircuitImage:
             self.wire_separation = 1.0
         self._latex = [
             [
-                "\\cw" if isinstance(self.ordered_bits[j], Clbit) else "\\qw"
+                "\\cw" if isinstance(self._ordered_bits[j], Clbit) else "\\qw"
                 for _ in range(self.img_depth + 1)
             ]
             for j in range(self.img_width)
@@ -218,7 +218,7 @@ class QCircuitImage:
         self._latex.append([" "] * (self.img_depth + 1))
 
         # quantum register
-        for ii, reg in enumerate(self.qubit_list):
+        for ii, reg in enumerate(self._qubits):
             register = self.bit_locations[reg]["register"]
             index = self.bit_locations[reg]["index"]
             qubit_label = get_bit_label("latex", register, index, qubit=True, layout=self.layout)
@@ -230,10 +230,10 @@ class QCircuitImage:
 
         # classical register
         offset = 0
-        if self.clbit_list:
-            for ii in range(len(self.qubit_list), self.img_width):
-                register = self.bit_locations[self.ordered_bits[ii + offset]]["register"]
-                index = self.bit_locations[self.ordered_bits[ii + offset]]["index"]
+        if self._clbits:
+            for ii in range(len(self._qubits), self.img_width):
+                register = self.bit_locations[self._ordered_bits[ii + offset]]["register"]
+                index = self.bit_locations[self._ordered_bits[ii + offset]]["index"]
                 clbit_label = get_bit_label(
                     "latex", register, index, qubit=False, cregbundle=self.cregbundle
                 )
@@ -328,7 +328,7 @@ class QCircuitImage:
         sum_column_widths = sum(1 + v / 3 for v in max_column_widths)
 
         max_reg_name = 3
-        for reg in self.ordered_bits:
+        for reg in self._ordered_bits:
             if self.bit_locations[reg]["register"] is not None:
                 max_reg_name = max(max_reg_name, len(self.bit_locations[reg]["register"].name))
         sum_column_widths += 5 + max_reg_name / 3
@@ -420,7 +420,7 @@ class QCircuitImage:
 
     def _build_multi_gate(self, op, gate_text, wire_list, cwire_list, col):
         """Add a multiple wire gate to the _latex list"""
-        cwire_start = len(self.qubit_list)
+        cwire_start = len(self._qubits)
         num_cols_op = 1
         if isinstance(op, (SwapGate, RZZGate)):
             num_cols_op = self._build_symmetric_gate(op, gate_text, wire_list, col)
@@ -525,7 +525,7 @@ class QCircuitImage:
         wire1 = self.img_regs[node.qargs[0]]
         self._latex[wire1][col] = "\\meter"
         if self.cregbundle:
-            wire2 = len(self.qubit_list)
+            wire2 = len(self._qubits)
             cregindex = self.img_regs[node.cargs[0]] - wire2
             for creg_size in self.cregs.values():
                 if cregindex >= creg_size:
@@ -553,11 +553,11 @@ class QCircuitImage:
                 if index - 1 == last:
                     last = index
                 else:
-                    pos = self.img_regs[self.qubit_list[first]]
+                    pos = self.img_regs[self._qubits[first]]
                     self._latex[pos][col - 1] += " \\barrier[0em]{" + str(last - first) + "}"
                     self._latex[pos][col] = "\\qw"
                     first = last = index
-            pos = self.img_regs[self.qubit_list[first]]
+            pos = self.img_regs[self._qubits[first]]
             self._latex[pos][col - 1] += " \\barrier[0em]{" + str(last - first) + "}"
             self._latex[pos][col] = "\\qw"
 
@@ -589,6 +589,7 @@ class QCircuitImage:
         cond_is_bit = isinstance(op.condition[0], Clbit)
         if cond_is_bit:
             cond_reg = self.bit_locations[op.condition[0]]["register"]
+            cond_reg_name = cond_reg.name if cond_reg is not None else ""
             if_value = op.condition[1]
         else:
             cond_reg = op.condition[0]
@@ -597,7 +598,7 @@ class QCircuitImage:
             if not self.reverse_bits:
                 if_value = if_value[::-1]
 
-        cwire = len(self.qubit_list)
+        cwire = len(self._qubits)
         iter_cregs = iter(list(self.cregs)) if self.cregbundle else iter(self.cregs_bits)
         for creg in iter_cregs:
             if creg == cond_reg:
@@ -610,7 +611,7 @@ class QCircuitImage:
             # Print the condition value at the bottom and put bullet on creg line
             if cond_is_bit:
                 ctrl_bit = (
-                    str(cond_reg.name) + "_" + str(self.bit_locations[op.condition[0]]["index"])
+                    str(cond_reg_name) + "_" + str(self.bit_locations[op.condition[0]]["index"])
                 )
                 label = "T" if if_value is True else "F"
                 self._latex[cwire][col] = "\\control \\cw^(%s){^{\\mathtt{%s=%s}}} \\cwx[-%s]" % (
@@ -628,7 +629,7 @@ class QCircuitImage:
         else:
             # Add the open and closed buttons to indicate the condition value
             if cond_is_bit:
-                extra_gap = list(cond_reg).index(op.condition[0])
+                extra_gap = 0  # list(cond_reg).index(op.condition[0])
                 gap += extra_gap
                 control = "\\control" if if_value is True else "\\controlo"
                 self._latex[cwire + extra_gap][col] = (

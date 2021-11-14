@@ -221,6 +221,52 @@ def get_bit_label(drawer, register, index, qubit=True, layout=None, cregbundle=T
     return bit_label
 
 
+def get_condition_label(condition, clbits, bit_locations, cregbundle):
+    """Get the label to display as a condition
+
+    Args:
+        condition ((Union[Clbit, ClassicalRegister], int)): classical condition
+        bit_locations (dict): the bits in the circuit with register and index
+        cregbundle (bool): if set True bundle classical registers
+
+    Returns:
+        str: label to display for the condition
+        list(str): list of 1's and 0's with 1's indicating a bit that's part of the condition
+        list(str): list of 1's and 0's indicating values of condition at that position
+    """
+    cond_is_bit = bool(isinstance(condition[0], Clbit))
+    mask = 0
+    if cond_is_bit:
+        for index, cbit in enumerate(clbits):
+            if cbit == condition[0]:
+                mask = 1 << index
+                break
+    else:
+        for index, cbit in enumerate(clbits):
+            if bit_locations[cbit]["register"] == condition[0]:
+                mask |= 1 << index
+    val = condition[1]
+
+    # cbit list to consider
+    fmt_c = f"{{:0{len(clbits)}b}}"
+    cmask = list(fmt_c.format(mask))[::-1]
+
+    # value
+    fmt_v = f"{{:0{cmask.count('1')}b}}"
+    vlist = list(fmt_v.format(val))
+
+    label = ""
+    if cond_is_bit and cregbundle:
+        cond_reg = bit_locations[condition[0]]["register"]
+        ctrl_bit = bit_locations[condition[0]]["index"]
+        if cond_reg is not None:
+            label = f"{cond_reg.name}_{ctrl_bit}={val}"
+    elif not cond_is_bit:
+        label = hex(val)
+
+    return label, cmask, vlist
+
+
 def generate_latex_label(label):
     """Convert a label to a valid latex string."""
     if not HAS_PYLATEX:
