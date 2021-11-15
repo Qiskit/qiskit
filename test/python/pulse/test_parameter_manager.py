@@ -127,9 +127,7 @@ class TestParameterGetter(ParameterTestBase):
 
     def test_get_parameter_from_acquire(self):
         """Test get parameters from acquire instruction."""
-        test_obj = pulse.Acquire(
-            16000, pulse.AcquireChannel(self.ch1), pulse.MemorySlot(self.ch1)
-        )
+        test_obj = pulse.Acquire(16000, pulse.AcquireChannel(self.ch1), pulse.MemorySlot(self.ch1))
 
         visitor = ParameterGetter()
         visitor.visit(test_obj)
@@ -165,8 +163,10 @@ class TestParameterGetter(ParameterTestBase):
 
     def test_with_function(self):
         """Test ParameterExpressions formed trivially in a function."""
+
         def get_shift(variable):
             return variable - 1
+
         test_obj = pulse.ShiftPhase(get_shift(self.phi1), self.d1)
 
         visitor = ParameterGetter()
@@ -228,9 +228,7 @@ class TestParameterSetter(ParameterTestBase):
 
     def test_set_parameter_to_acquire(self):
         """Test set parameters to acquire instruction."""
-        test_obj = pulse.Acquire(
-            16000, pulse.AcquireChannel(self.ch1), pulse.MemorySlot(self.ch1)
-        )
+        test_obj = pulse.Acquire(16000, pulse.AcquireChannel(self.ch1), pulse.MemorySlot(self.ch1))
 
         value_dict = {self.ch1: 2}
 
@@ -457,8 +455,7 @@ class TestParameterSetter(ParameterTestBase):
 
 
 class TestAssignFromProgram(QiskitTestCase):
-    """Test managing parameters from programs. Parameter manager is implicitly called.
-    """
+    """Test managing parameters from programs. Parameter manager is implicitly called."""
 
     def test_attribute_parameters(self):
         """Test the ``parameter`` attributes."""
@@ -564,9 +561,7 @@ class TestScheduleTimeslots(QiskitTestCase):
         param_idx = Parameter("q")
 
         schedule = pulse.Schedule()
-        schedule |= pulse.Play(
-            pulse.Waveform([1, 1, 1, 1]), pulse.DriveChannel(param_idx)
-        )
+        schedule |= pulse.Play(pulse.Waveform([1, 1, 1, 1]), pulse.DriveChannel(param_idx))
         with self.assertRaises(PulseError):
             schedule |= pulse.Play(
                 pulse.Waveform([0.5, 0.5, 0.5, 0.5]), pulse.DriveChannel(param_idx)
@@ -587,12 +582,8 @@ class TestScheduleTimeslots(QiskitTestCase):
         param_idx = Parameter("q")
 
         schedule = pulse.Schedule()
-        schedule |= pulse.Play(
-            pulse.Waveform([1, 1, 1, 1]), pulse.DriveChannel(param_idx)
-        )
-        schedule |= pulse.Play(
-            pulse.Waveform([1, 1, 1, 1]), pulse.DriveChannel(2 * param_idx)
-        )
+        schedule |= pulse.Play(pulse.Waveform([1, 1, 1, 1]), pulse.DriveChannel(param_idx))
+        schedule |= pulse.Play(pulse.Waveform([1, 1, 1, 1]), pulse.DriveChannel(2 * param_idx))
         with self.assertRaises(PulseError):
             schedule.assign_parameters({param_idx: 0})
 
@@ -616,12 +607,8 @@ class TestScheduleTimeslots(QiskitTestCase):
         param_idx2 = Parameter("q2")
 
         schedule = pulse.Schedule()
-        schedule |= pulse.Play(
-            pulse.Waveform([1, 1, 1, 1]), pulse.DriveChannel(param_idx1)
-        )
-        schedule |= pulse.Play(
-            pulse.Waveform([1, 1, 1, 1]), pulse.DriveChannel(param_idx2)
-        )
+        schedule |= pulse.Play(pulse.Waveform([1, 1, 1, 1]), pulse.DriveChannel(param_idx1))
+        schedule |= pulse.Play(pulse.Waveform([1, 1, 1, 1]), pulse.DriveChannel(param_idx2))
         schedule.assign_parameters({param_idx1: 2})
 
         with self.assertRaises(PulseError):

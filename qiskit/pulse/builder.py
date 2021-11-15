@@ -196,7 +196,6 @@ import collections
 import contextvars
 import functools
 import itertools
-import warnings
 from contextlib import contextmanager
 from typing import (
     Any,
@@ -227,7 +226,6 @@ from qiskit.pulse import (
     macros,
     library,
     transforms,
-    utils,
 )
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule, ScheduleBlock

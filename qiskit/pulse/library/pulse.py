@@ -13,7 +13,6 @@
 """Pulses are descriptions of waveform envelopes. They can be transmitted by control electronics
 to the device.
 """
-import warnings
 from abc import ABC, abstractmethod
 from typing import Dict, Optional, Any, Tuple, Union
 
