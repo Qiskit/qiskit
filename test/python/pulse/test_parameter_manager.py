@@ -281,12 +281,12 @@ class TestParameterSetter(ParameterTestBase):
 
         test_obj = pulse.ShiftPhase(get_shift(self.phi1), self.d1)
 
-        value_dict = {self.phi1: 1.57, self.ch1: 2}
+        value_dict = {self.phi1: 2.0, self.ch1: 2}
 
         visitor = ParameterSetter(param_map=value_dict)
         assigned = visitor.visit(test_obj)
 
-        ref_obj = pulse.ShiftPhase(get_shift(1.57), pulse.DriveChannel(2))
+        ref_obj = pulse.ShiftPhase(1.0, pulse.DriveChannel(2))
 
         self.assertEqual(assigned, ref_obj)
 
@@ -457,6 +457,8 @@ class TestParameterSetter(ParameterTestBase):
 
 
 class TestAssignFromProgram(QiskitTestCase):
+    """Test managing parameters from programs. Parameter manager is implicitly called.
+    """
 
     def test_attribute_parameters(self):
         """Test the ``parameter`` attributes."""
@@ -467,7 +469,6 @@ class TestAssignFromProgram(QiskitTestCase):
 
         block = pulse.ScheduleBlock()
         block += pulse.Play(waveform, pulse.DriveChannel(10))
-        block.assign_parameters({amp: 0.2, sigma: 4}, inplace=True)
 
         ref_set = {amp, sigma}
 
@@ -493,11 +494,11 @@ class TestAssignFromProgram(QiskitTestCase):
         param1 = Parameter("amp")
         waveform = pulse.library.Constant(duration=100, amp=param1)
 
-        program_layer0 = pulse.ScheduleBlock()
+        program_layer0 = pulse.Schedule()
         program_layer0 += pulse.Play(waveform, pulse.DriveChannel(0))
 
         # from call instruction
-        program_layer1 = pulse.ScheduleBlock()
+        program_layer1 = pulse.Schedule()
         program_layer1 += pulse.instructions.Call(program_layer0)
         self.assertEqual(program_layer1.get_parameters("amp")[0], param1)
 
@@ -511,18 +512,18 @@ class TestAssignFromProgram(QiskitTestCase):
         param1 = Parameter("amp")
         waveform = pulse.library.Constant(duration=100, amp=param1)
 
-        program_layer0 = pulse.ScheduleBlock()
+        program_layer0 = pulse.Schedule()
         program_layer0 += pulse.Play(waveform, pulse.DriveChannel(0))
         reference = program_layer0.assign_parameters({param1: 0.1}, inplace=False)
 
         # to call instruction
-        program_layer1 = pulse.ScheduleBlock()
+        program_layer1 = pulse.Schedule()
         program_layer1 += pulse.instructions.Call(program_layer0)
         target = program_layer1.assign_parameters({param1: 0.1}, inplace=False)
         self.assertEqual(inline_subroutines(target), reference)
 
         # to nested call instruction
-        program_layer2 = pulse.ScheduleBlock()
+        program_layer2 = pulse.Schedule()
         program_layer2 += pulse.instructions.Call(program_layer1)
         target = program_layer2.assign_parameters({param1: 0.1}, inplace=False)
         self.assertEqual(inline_subroutines(target), reference)
@@ -624,7 +625,7 @@ class TestScheduleTimeslots(QiskitTestCase):
         schedule.assign_parameters({param_idx1: 2})
 
         with self.assertRaises(PulseError):
-            schedule.assign_parameters({param_idx1: 2})
+            schedule.assign_parameters({param_idx2: 2})
 
     def test_cannot_build_schedule_with_unassigned_duration(self):
         """Test we cannot build schedule with parameterized instructions"""
