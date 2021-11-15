@@ -65,7 +65,7 @@ class VarQteLinearSolver:
             t_param: Time parameter in case of a time-dependent Hamiltonian.
             t: Time value that will be bound to t_param.
             regularization: Use the following regularization with a least square method to solve the
-                underlying system of linear equations
+                underlying system of linear equations.
                 Can be either None or ``'ridge'`` or ``'lasso'`` or ``'perturb_diag'``
                 ``'ridge'`` and ``'lasso'`` use an automatic optimal parameter search,
                 or a penalty term given as Callable.

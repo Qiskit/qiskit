@@ -59,7 +59,7 @@ class VarQrte(VarQte, EvolutionBase):
             error_based_ode: If False use the provided variational principle to get the parameter
                                 updates.
                              If True use the argument that minimizes the error error_bounds.
-                             Deprecated if error is not being computed
+                             Deprecated if error is not being computed.
             ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
             optimizer: Optimizer used in case error_based_ode is true.
             epsilon: # TODO, not sure where this will be used.
