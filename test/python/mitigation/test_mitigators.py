@@ -80,7 +80,8 @@ class TestReadoutMitigation(QiskitTestCase):
                 max_unmitigated_stddev = max(unmitigated_stddev.values())
                 self.assertTrue(
                     mitigated_stddev_upper_bound >= max_unmitigated_stddev,
-                    "Mitigator {} on circuit {} gave stddev upper bound {} while unmitigated stddev maximum is {}".format(
+                    "Mitigator {} on circuit {} gave stddev upper bound {} "
+                    "while unmitigated stddev maximum is {}".format(
                         mitigator,
                         circuit_name,
                         mitigated_stddev_upper_bound,
@@ -220,6 +221,7 @@ class TestReadoutMitigation(QiskitTestCase):
     @data([test_data["test_1"]])
     @unpack
     def test_repeated_qubits_parameter(self, circuits_data):
+        """Tests the order of mitigated qubits."""
         counts_ideal_012 = Counts({"000": 5000, "001": 5000})
         counts_ideal_210 = Counts({"000": 5000, "100": 5000})
         counts_noise = Counts(

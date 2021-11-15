@@ -84,6 +84,7 @@ def str2diag(string):
 
 
 def counts_to_vector(counts: Counts, num_qubits: int) -> Tuple[np.ndarray, int]:
+    """Transforms Counts to a probability vector"""
     vec = np.zeros(2 ** num_qubits, dtype=float)
     shots = 0
     for key, val in counts.items():
@@ -96,6 +97,7 @@ def counts_to_vector(counts: Counts, num_qubits: int) -> Tuple[np.ndarray, int]:
 def remap_qubits(
     vec: np.ndarray, num_qubits: int, qubits: Optional[List[int]] = None
 ) -> np.ndarray:
+    """Remapping the qubits"""
     if qubits is not None:
         if len(qubits) != num_qubits:
             raise QiskitError("Num qubits does not match vector length.")
@@ -109,6 +111,7 @@ def marganalize_counts(
     qubits: Optional[List[int]] = None,
     clbits: Optional[List[int]] = None,
 ) -> np.ndarray:
+    """Marginalization of the Counts. Verify that number of clbits equals to the number of qubits."""
     if clbits is not None:
         qubits_len = len(qubits) if not qubits is None else 0
         clbits_len = len(clbits) if not clbits is None else 0
