@@ -83,13 +83,51 @@ def str2diag(string):
     return ret
 
 
+def counts_to_vector(counts: Counts, num_qubits: int) -> Tuple[np.ndarray, int]:
+    vec = np.zeros(2 ** num_qubits, dtype=float)
+    shots = 0
+    for key, val in counts.items():
+        shots += val
+        vec[int(key, 2)] = val
+    vec /= shots
+    return vec, shots
+
+
+def remap_qubits(
+    vec: np.ndarray, num_qubits: int, qubits: Optional[List[int]] = None
+) -> np.ndarray:
+    if qubits is not None:
+        if len(qubits) != num_qubits:
+            raise QiskitError("Num qubits does not match vector length.")
+        axes = [num_qubits - 1 - i for i in reversed(np.argsort(qubits))]
+        vec = np.reshape(vec, num_qubits * [2]).transpose(axes).reshape(vec.shape)
+    return vec
+
+
+def marganalize_counts(
+    counts: Counts,
+    qubits: Optional[List[int]] = None,
+    clbits: Optional[List[int]] = None,
+) -> np.ndarray:
+    if clbits is not None:
+        qubits_len = len(qubits) if not qubits is None else 0
+        clbits_len = len(clbits) if not clbits is None else 0
+        if clbits_len not in (0, qubits_len):
+            raise QiskitError(
+                "Num qubits ({}) does not match number of clbits ({}).".format(
+                    qubits_len, clbits_len
+                )
+            )
+        counts = marginal_counts(counts, clbits)
+    return counts
+
+
 def counts_probability_vector(
     counts: Counts,
     qubits: Optional[List[int]] = None,
     clbits: Optional[List[int]] = None,
     num_qubits: Optional[int] = None,
-    return_shots: Optional[bool] = False,
-) -> np.ndarray:
+) -> Tuple[np.ndarray, int]:
     """Compute a probability vector for all count outcomes.
 
     Args:
@@ -97,7 +135,6 @@ def counts_probability_vector(
         qubits: qubits the count bitstrings correspond to.
         clbits: Optional, marginalize counts to just these bits.
         num_qubits: the total number of qubits.
-        return_shots: return the number of shots.
 
     Raises:
         QiskitError: if qubits and clbits kwargs are not valid.
@@ -105,35 +142,9 @@ def counts_probability_vector(
     Returns:
         np.ndarray: a probability vector for all count outcomes.
     """
-    qubits_len = len(qubits) if not qubits is None else 0
-    clbits_len = len(clbits) if not clbits is None else 0
-    if clbits_len not in (0, qubits_len):
-        raise QiskitError(
-            "Num qubits ({}) does not match number of clbits ({}).".format(qubits_len, clbits_len)
-        )
-
-    # Marginalize counts
-    if clbits is not None:
-        counts = marginal_counts(counts, clbits)
-
-    # Get total number of qubits
+    counts = marganalize_counts(counts, qubits, clbits)
     if num_qubits is None:
         num_qubits = len(next(iter(counts)))
-
-    # Get vector
-    vec = np.zeros(2 ** num_qubits, dtype=float)
-    shots = 0
-    for key, val in counts.items():
-        shots += val
-        vec[int(key, 2)] = val
-    vec /= shots
-
-    # Remap qubits
-    if qubits is not None:
-        if len(qubits) != num_qubits:
-            raise QiskitError("Num qubits does not match vector length.")
-        axes = [num_qubits - 1 - i for i in reversed(np.argsort(qubits))]
-        vec = np.reshape(vec, num_qubits * [2]).transpose(axes).reshape(vec.shape)
-    if return_shots:
-        return vec, shots
-    return vec
+    vec, shots = counts_to_vector(counts, num_qubits)
+    vec = remap_qubits(vec, num_qubits, qubits)
+    return vec, shots

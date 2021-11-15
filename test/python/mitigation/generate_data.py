@@ -105,6 +105,7 @@ def generate_data(num_qubits, circuits, noise_model=None):
     result["local_method_matrices"] = local_method_matrices
     result["correlated_method_matrix"] = correlated_method_matrix
     result["num_qubits"] = num_qubits
+    result["shots"] = SHOTS
     result["circuits"] = {}
     for name in results_noise_dict.keys():
         result["circuits"][name] = {
@@ -261,6 +262,7 @@ test_data = {
             ]
         ),
         "num_qubits": 3,
+        "shots": 10000,
         "circuits": {
             "ghz_3_qubits": {
                 "counts_ideal": {"111": 5000, "000": 5000},
