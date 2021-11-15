@@ -343,8 +343,7 @@ def _cvxpy_check(name):
     # Check if CVXPY package is installed
     if not _HAS_CVX:
         raise QiskitError(
-            "CVXPY backage is requried for {}. Install"
-            " with `pip install cvxpy` to use.".format(name)
+            f"CVXPY backage is requried for {name}. Install with `pip install cvxpy` to use."
         )
     # Check CVXPY version
     version = cvxpy.__version__

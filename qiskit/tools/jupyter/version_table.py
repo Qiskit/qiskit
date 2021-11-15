@@ -17,7 +17,7 @@ import time
 from IPython.display import HTML, display
 from IPython.core.magic import line_magic, Magics, magics_class
 import qiskit
-from qiskit.util import local_hardware_info
+from qiskit.utils import local_hardware_info
 
 
 @magics_class
