@@ -251,8 +251,8 @@ class QuantumCircuit:
         # corresponding index in circuit.{qubits,clbits} and 1) a list of
         # Register-int pairs for each Register containing the Bit and its index
         # within that register.
-        self._qubit_indices = dict()
-        self._clbit_indices = dict()
+        self._qubit_indices = {}
+        self._clbit_indices = {}
 
         self._ancillas = []
         self._calibrations = defaultdict(dict)

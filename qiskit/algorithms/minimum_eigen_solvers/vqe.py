@@ -47,9 +47,6 @@ from ..exceptions import AlgorithmError
 
 logger = logging.getLogger(__name__)
 
-# disable check for ansatzes, optimizer setter because of pylint bug
-# pylint: disable=no-member
-
 
 class VQE(VariationalAlgorithm, MinimumEigensolver):
     r"""The Variational Quantum Eigensolver algorithm.

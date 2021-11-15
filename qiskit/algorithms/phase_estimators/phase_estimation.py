@@ -19,7 +19,7 @@ from typing import Optional, Union
 import numpy
 from qiskit.circuit import QuantumCircuit
 import qiskit
-import qiskit.circuit as circuit
+from qiskit import circuit
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.providers import BaseBackend, Backend
 from qiskit.utils import QuantumInstance
