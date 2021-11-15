@@ -69,7 +69,7 @@ def energy(hamiltonian: OperatorBase,
            backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
           ) -> float:
     """
-    Compute energy for a given Hamiltonian, Ansatz and parameter dictionary
+    Compute energy for a given Hamiltonian, Ansatz and parameter dictionary.
     Args:
         hamiltonian: System Hamiltonian
         ansatz: parameterized Ansatz
