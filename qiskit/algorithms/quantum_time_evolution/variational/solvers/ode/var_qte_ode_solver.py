@@ -48,6 +48,7 @@ class VarQteOdeSolver:
             t0=0,
             y0=self._init_params,  # appending 0 was here in case of bounds, not yet supported.
             vectorized=False,
+            atol=1e-6,
         )
         param_values = None
 
@@ -62,5 +63,8 @@ class VarQteOdeSolver:
                 break
             elif ode_solver.status == "failed":
                 raise QiskitError("ODESolver failed.")
+            #TODO It seems weird to me that the ODE time here is not yet the evolution time.
+            # Where does it change?
+            print('ODE time', ode_solver.t)
 
         return param_values

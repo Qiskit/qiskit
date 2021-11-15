@@ -9,7 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from typing import Union, Dict
+from typing import Union, Dict, List
 
 from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
     metric_tensor_calculator,
@@ -43,10 +43,11 @@ class ImaginaryMcLachlanVariationalPrinciple(ImaginaryVariationalPrinciple):
     def _get_raw_metric_tensor(
         self,
         ansatz,
-        param_dict: Dict[Parameter, Union[float, complex]],
+        params: List[Parameter],
+        # param_dict: Dict[Parameter, Union[float, complex]],
     ):
         raw_metric_tensor_real = metric_tensor_calculator.calculate(
-            ansatz, list(param_dict.keys()), self._qfi_method
+            ansatz, params, self._qfi_method
         )
 
         return raw_metric_tensor_real
@@ -55,13 +56,14 @@ class ImaginaryMcLachlanVariationalPrinciple(ImaginaryVariationalPrinciple):
         self,
         hamiltonian,
         ansatz,
-        param_dict: Dict[Parameter, Union[float, complex]],
+        params: List[Parameter],
+        # param_dict: Dict[Parameter, Union[float, complex]],
     ):
         raw_evolution_grad_real = evolution_grad_calculator.calculate(
-            hamiltonian, ansatz, list(param_dict.keys()), self._grad_method
+            hamiltonian, ansatz, params, self._grad_method
         )
 
-        return raw_evolution_grad_real
+        return (-1)*raw_evolution_grad_real
 
     @staticmethod
     def _calc_metric_tensor(
@@ -73,4 +75,4 @@ class ImaginaryMcLachlanVariationalPrinciple(ImaginaryVariationalPrinciple):
     def _calc_evolution_grad(
         raw_evolution_grad: OperatorBase, param_dict: Dict[Parameter, Union[float, complex]]
     ) -> OperatorBase:
-        return -raw_evolution_grad.bind_parameters(param_dict)
+        return raw_evolution_grad.bind_parameters(param_dict)

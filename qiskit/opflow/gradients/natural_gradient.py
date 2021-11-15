@@ -145,6 +145,8 @@ class NaturalGradient(GradientBase):
             raise Warning("The imaginary part of the gradient are non-negligible.")
         c = np.real(c)
         a = np.real(a)
+        print('A ', a)
+        print('c ', c)
 
         if regularization:
             # If a regularization method is chosen then use a regularized solver to
@@ -171,22 +173,7 @@ class NaturalGradient(GradientBase):
                 else:
                     # If all eigenvalues are non-negative use the metric
                     break
-            # try:
-            #     nat_grad = np.linalg.solve(a, c)
-            # except np.linalg.LinAlgError:
             nat_grad = np.linalg.lstsq(a, c, rcond=1e-2)[0]
-            # try:
-            #             # Try to solve the system of linear equations Ax = C.
-            #     nat_grad = np.linalg.solve(a, c)
-            #
-            #     if np.linalg.norm(nat_grad) > 1e2:
-            #         warnings.warn('Solution of the exact solver to big. Use Lstsq.')
-            #         nat_grad, resids, _, _ = np.linalg.lstsq(a, c, rcond=1e-2)
-            #
-            # except np.linalg.LinAlgError:  # singular matrix
-            #     warnings.warn('Singular matrix lstsq solver required')
-            #     nat_grad, resids, _, _ = np.linalg.lstsq(a, c, rcond=1e-2)
-
         return nat_grad
 
     @property

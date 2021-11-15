@@ -39,6 +39,8 @@ def eval_evolution_grad(
     grad_circ_sampler: CircuitSampler,
     backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
 ):
+    # TODO use hashing for more efficient execution
+    # TODO Where is the backend used? Something is wrong here
     if backend is not None:
         grad_res = np.array(grad_circ_sampler.convert(evolution_grad, params=param_dict).eval())
     else:

@@ -38,7 +38,9 @@ class VarQrte(VarQte, EvolutionBase):
         self,
         variational_principle: RealVariationalPrinciple,
         regularization: Optional[str] = None,
+            # TODO: Should we keep this more general? And pass here a natural gradient object?
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
+        # TODO: Boolean argument missing to decide whether or not to compute the error bounds
         error_based_ode: Optional[bool] = False,
         ode_solver_callable: OdeSolver = RK45,
         optimizer: str = "COBYLA",
@@ -56,6 +58,7 @@ class VarQrte(VarQte, EvolutionBase):
             error_based_ode: If False use the provided variational principle to get the parameter
                                 updates.
                              If True use the argument that minimizes the error error_bounds.
+                             Deprecated if error is not being computed.
             ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
             optimizer: Optimizer used in case error_based_ode is true.
         """
@@ -105,9 +108,7 @@ class VarQrte(VarQte, EvolutionBase):
             hamiltonian_value_dict, list(initial_state.parameters)
         )
 
-        operator_coefficient = 1.0j
         return super().evolve_helper(
-            operator_coefficient,
             self._create_real_ode_function_generator,
             init_state_param_dict,
             hamiltonian,
@@ -131,7 +132,7 @@ class VarQrte(VarQte, EvolutionBase):
         else:
             return super()._create_ode_function_generator(None, init_state_param_dict, t_param)
 
-    def gradient(
+    def gradient(  # TODO: What is this function?
         self,
         hamiltonian: OperatorBase,
         time: float,
