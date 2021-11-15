@@ -1200,13 +1200,6 @@ class StabilizerTable(BaseOperator, AdjointMixin):
             array: if sparse=False.
             csr_matrix: if sparse=True.
         """
-        # pylint: disable=arguments-differ
-        def count1(i):
-            """Count number of set bits in int or array"""
-            i = i - ((i >> 1) & 0x55555555)
-            i = (i & 0x33333333) + ((i >> 2) & 0x33333333)
-            return (((i + (i >> 4) & 0xF0F0F0F) * 0x1010101) & 0xFFFFFFFF) >> 24
-
         symp = np.asarray(pauli, dtype=bool)
         num_qubits = symp.size // 2
         x = symp[0:num_qubits]
@@ -1219,7 +1212,7 @@ class StabilizerTable(BaseOperator, AdjointMixin):
 
         indptr = np.arange(dim + 1, dtype=np.uint)
         indices = indptr ^ x_indices
-        data = (-1) ** np.mod(count1(z_indices & indptr), 2)
+        data = np.array([(-1) ** (bin(i).count("1") % 2) for i in z_indices & indptr])
 
         if sparse:
             # Return sparse matrix
