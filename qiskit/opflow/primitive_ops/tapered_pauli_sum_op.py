@@ -52,8 +52,7 @@ class TaperedPauliSumOp(PauliSumOp):
         super().__init__(primitive, coeff)
         if not isinstance(z2_symmetries, Z2Symmetries):
             raise TypeError(
-                "Argument parameter z2_symmetries must be Z2Symmetries, "
-                f"not {type(z2_symmetries)}"
+                f"Argument parameter z2_symmetries must be Z2Symmetries, not {type(z2_symmetries)}"
             )
         self._z2_symmetries = z2_symmetries
 
@@ -109,8 +108,7 @@ class Z2Symmetries:
 
         if len(sq_paulis) != len(sq_list):
             raise OpflowError(
-                "Number of single-qubit pauli x has to be the same "
-                "as length of single-qubit list."
+                "Number of single-qubit pauli x has to be the same as length of single-qubit list."
             )
 
         if tapering_values is not None:
