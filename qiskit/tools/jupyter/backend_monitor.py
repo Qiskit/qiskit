@@ -314,8 +314,7 @@ tr:nth-child(even) {background-color: #f6f6f6;}
 
         qubit_html += f"<tr><td><font style='font-weight:bold'>{name}</font></td>"
         qubit_html += (
-            f"<td>{cal_data['frequency']}</td>"
-            f"<td>{cal_data['T1']}</td><td>{cal_data['T2']}</td>"
+            f"<td>{cal_data['frequency']}</td><td>{cal_data['T1']}</td><td>{cal_data['T2']}</td>"
         )
         for gerror in gate_error:
             qubit_html += f"<td>{gerror}</td>"

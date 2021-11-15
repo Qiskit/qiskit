@@ -253,9 +253,11 @@ class Hessian(HessianBase):
                     raise MissingOptionalLibraryError(
                         libname="jax",
                         name="get_hessian",
-                        msg="This automatic differentiation function is based on JAX. Please "
-                        "install jax and use `import jax.numpy as jnp` instead of "
-                        "`import numpy as np` when defining a combo_fn.",
+                        msg=(
+                            "This automatic differentiation function is based on JAX. Please "
+                            "install jax and use `import jax.numpy as jnp` instead of "
+                            "`import numpy as np` when defining a combo_fn."
+                        ),
                     )
             else:
                 if _HAS_JAX:
@@ -267,9 +269,11 @@ class Hessian(HessianBase):
                     raise MissingOptionalLibraryError(
                         libname="jax",
                         name="get_hessian",
-                        msg="This automatic differentiation function is based on JAX. "
-                        "Please install jax and use `import jax.numpy as jnp` instead "
-                        "of `import numpy as np` when defining a combo_fn.",
+                        msg=(
+                            "This automatic differentiation function is based on JAX. "
+                            "Please install jax and use `import jax.numpy as jnp` instead "
+                            "of `import numpy as np` when defining a combo_fn."
+                        ),
                     )
 
             # For a general combo_fn F(g_0, g_1, ..., g_k)
