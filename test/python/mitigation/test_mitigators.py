@@ -26,6 +26,7 @@ from qiskit.mitigation.utils import (
     counts_probability_vector,
     str2diag,
     expval_with_stddev,
+    stddev,
 )
 from qiskit.test.mock import FakeYorktown
 from qiskit.quantum_info.operators.predicates import matrix_equal
@@ -57,9 +58,10 @@ class TestReadoutMitigation(QiskitTestCase):
         for circuit_name, circuit_data in circuits_data["circuits"].items():
             counts_ideal = Counts(circuit_data["counts_ideal"])
             counts_noise = Counts(circuit_data["counts_noise"])
+            probs_noise = {key: value / circuits_data['shots'] for key, value in counts_noise.items()}
             unmitigated_error = self.compare_results(counts_ideal, counts_noise)
             # TODO: verify mitigated stddev is larger
-            # unmitigated_stddev =
+            unmitigated_stddev = stddev(probs_noise, circuits_data['shots'])
             for mitigator in mitigators:
                 mitigated_quasi_probs = mitigator.quasi_probabilities(counts_noise)
                 mitigated_probs = (
@@ -70,6 +72,14 @@ class TestReadoutMitigation(QiskitTestCase):
                     mitigated_error < unmitigated_error * 0.8,
                     "Mitigator {} did not improve circuit {} measurements".format(
                         mitigator, circuit_name
+                    ),
+                )
+                mitigated_stddev_upper_bound = mitigated_quasi_probs._stddev_upper_bound
+                max_unmitigated_stddev = max(unmitigated_stddev.values())
+                self.assertTrue(
+                    mitigated_stddev_upper_bound >= max_unmitigated_stddev,
+                    "Mitigator {} on circuit {} gave stddev upper bound {} while unmitigated stddev maximum is {}".format(
+                        mitigator, circuit_name, mitigated_stddev_upper_bound, max_unmitigated_stddev
                     ),
                 )
 
