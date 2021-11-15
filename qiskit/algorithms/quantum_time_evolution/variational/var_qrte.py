@@ -44,7 +44,6 @@ class VarQrte(VarQte, EvolutionBase):
         error_based_ode: Optional[bool] = False,
         ode_solver_callable: OdeSolver = RK45,
         optimizer: str = "COBYLA",
-        epsilon: Optional[float] = 10e-6,
     ):
         r"""
         Args:
@@ -62,8 +61,6 @@ class VarQrte(VarQte, EvolutionBase):
                              Deprecated if error is not being computed.
             ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
             optimizer: Optimizer used in case error_based_ode is true.
-            epsilon: # TODO, not sure where this will be used.
-            # TODO @DAL Where did you get this epsilon from? It's not in the original code.
         """
         super().__init__(
             variational_principle,
@@ -72,7 +69,6 @@ class VarQrte(VarQte, EvolutionBase):
             error_based_ode,
             ode_solver_callable,
             optimizer,
-            epsilon,
         )
 
     def evolve(

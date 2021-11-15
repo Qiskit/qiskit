@@ -42,7 +42,6 @@ class VarQite(VarQte, EvolutionBase):
         error_based_ode: Optional[bool] = False,
         ode_solver_callable: OdeSolver = RK45,
         optimizer: str = "COBYLA",
-        epsilon: Optional[float] = 10e-6,
     ):
         r"""
         Args:
@@ -59,7 +58,6 @@ class VarQite(VarQte, EvolutionBase):
                              If True use the argument that minimizes the error error_bounds.
             ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
             optimizer: Optimizer used in case error_based_ode is true.
-            epsilon: # TODO, not sure where this will be used.
         """
         super().__init__(
             variational_principle,
@@ -68,7 +66,6 @@ class VarQite(VarQte, EvolutionBase):
             error_based_ode,
             ode_solver_callable,
             optimizer,
-            epsilon,
         )
 
     def evolve(
