@@ -24,7 +24,7 @@ from qiskit.circuit import Reset
 from qiskit.circuit import Measure
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
 from qiskit.circuit.tools.pi_check import pi_check
-from qiskit.visualization.utils import get_gate_ctrl_text, get_param_str, get_bit_label
+from qiskit.visualization.utils import get_gate_ctrl_text, get_param_str, get_bit_label, get_condition_label
 from .exceptions import VisualizationError
 
 
@@ -1001,8 +1001,7 @@ class TextDrawing:
 
         if op.condition is not None:
             # conditional
-            op_cond = op.condition
-            layer.set_cl_multibox(op_cond[0], op_cond[1], top_connect="╨")
+            layer.set_cl_multibox(op.condition, top_connect="╨")
             conditional = True
 
         # add in a gate that operates over multiple qubits
@@ -1147,6 +1146,7 @@ class Layer:
         cregs = [] if cregs is None else cregs
 
         self.qubits = qubits
+        self.clbits_raw = clbits  # list of clbits ignoring cregbundle
 
         self._clbit_locations = {
             bit: {"register": register, "index": index}
@@ -1329,39 +1329,35 @@ class Layer:
             )
         return bit_index
 
-    def set_cl_multibox(self, creg, val, top_connect="┴"):
+    def set_cl_multibox(self, condition, top_connect="┴"):
         """Sets the multi clbit box.
 
         Args:
-            creg (string): The affected classical register.
-            val (int): The value of the condition.
+            condition (list[Union(Clbit, ClassicalRegiter), int]): The condition
             top_connect (char): The char to connect the box on the top.
         """
-        if self.cregbundle:
-            if isinstance(creg, Clbit):
-                bit_reg = self._clbit_locations[creg]["register"]
-                bit_index = self._clbit_locations[creg]["index"]
-                label_bool = "= T" if val is True else "= F"
-                label = f"{bit_reg.name}_{bit_index} {label_bool}"
-                self.set_clbit(creg, BoxOnClWire(label=label, top_connect=top_connect))
-            else:
-                label = "%s" % str(hex(val))
-                self.set_clbit(creg[0], BoxOnClWire(label=label, top_connect=top_connect))
+        label, cmask, vlist = get_condition_label(
+            condition, self.clbits_raw, self._clbit_locations, self.cregbundle
+        )
+        vlist = vlist if not self.reverse_bits else vlist[::-1]
+        print("conditional", condition)
+        clbit = [condition[0]] if isinstance(condition[0], Clbit) else condition[0]
+        print("CLBIT", clbit)
+        print("loc", self._clbit_locations)
+        if isinstance(condition[0], Clbit):
+            #clbit = [condition[0]]
+            self.set_cond_bullets(label, vlist[0], clbit)
+        elif self.cregbundle:
+            #clbit = condition[0]
+            self.set_clbit(clbit[0], BoxOnClWire(label=label, top_connect=top_connect))
         else:
-            if isinstance(creg, Clbit):
-                clbit = [creg]
-                cond_bin = "1" if val is True else "0"
-                print("bin", cond_bin, clbit)
-                self.set_cond_bullets(cond_bin, clbit)
-            else:
-                clbits = [
-                    bit for bit in self.clbits if self._clbit_locations[bit]["register"] == creg
-                ]
-                cond_bin = bin(val)[2:].zfill(len(clbits))
-                print("bin2", cond_bin, clbits)
-                self.set_cond_bullets(cond_bin, clbits=clbits)
+            clbits = []
+            for i, val in enumerate(cmask):
+                if cmask[i] == "1":
+                    clbits.append(self.clbits_raw[i])
+            self.set_cond_bullets(label, vlist, clbits=clbits)
 
-    def set_cond_bullets(self, val, clbits):
+    def set_cond_bullets(self, label, vlist, clbits):
         """Sets bullets for classical conditioning when cregbundle=False.
 
         Args:
@@ -1369,11 +1365,10 @@ class Layer:
             clbits (list[Clbit]): The list of classical bits on
                 which the instruction is conditioned.
         """
-        vlist = list(val) if self.reverse_bits else list(val[::-1])
         for i, bit in enumerate(clbits):
             bot_connect = " "
             if bit == clbits[-1]:
-                bot_connect = "%s" % str(hex(int(val, 2)))
+                bot_connect = label
             if vlist[i] == "1":
                 self.set_clbit(bit, ClBullet(top_connect="║", bot_connect=bot_connect))
             elif vlist[i] == "0":
