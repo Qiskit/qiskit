@@ -101,8 +101,8 @@ class TestReadoutMitigation(QiskitTestCase):
         for circuit_name, circuit_data in circuits_data["circuits"].items():
             counts_ideal = Counts(circuit_data["counts_ideal"])
             counts_noise = Counts(circuit_data["counts_noise"])
-            probs_ideal = counts_probability_vector(counts_ideal)
-            probs_noise = counts_probability_vector(counts_noise)
+            probs_ideal, _ = counts_probability_vector(counts_ideal)
+            probs_noise, _ = counts_probability_vector(counts_noise)
             for diagonal in diagonals:
                 if isinstance(diagonal, str):
                     diagonal = str2diag(diagonal)
