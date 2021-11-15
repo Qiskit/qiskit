@@ -837,7 +837,6 @@ class MatplotlibDrawer:
 
     def _condition(self, node, cond_xy):
         """Add a conditional to a gate"""
-        print('CLBITS *****', self._clbits)
         label, cmask, vlist = get_condition_label(
             node.op.condition, self._clbits, self._bit_locations, self._cregbundle
         )
