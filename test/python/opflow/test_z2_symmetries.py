@@ -55,3 +55,16 @@ class TestZ2Symmetries(QiskitOpflowTestCase):
         )
         expected_op = TaperedPauliSumOp(primitive, z2_symmetries)
         self.assertEqual(tapered_op, expected_op)
+
+    def test_taper_empty_operator(self):
+        """Test tapering of empty operator"""
+        z2_symmetries = Z2Symmetries(
+            symmetries=[Pauli("IIZI"), Pauli("IZIZ"), Pauli("ZIII")],
+            sq_paulis=[Pauli("IIXI"), Pauli("IIIX"), Pauli("XIII")],
+            sq_list=[1, 0, 3],
+            tapering_values=[1, -1, -1],
+        )
+        empty_op = PauliSumOp.from_list([("IIII", 0.0)])
+        tapered_op = z2_symmetries.taper(empty_op)
+        expected_op = PauliSumOp.from_list([("I", 0.0)])
+        self.assertEqual(tapered_op, expected_op)
