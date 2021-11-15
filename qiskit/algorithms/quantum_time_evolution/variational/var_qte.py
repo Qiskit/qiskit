@@ -141,7 +141,6 @@ class VarQte(ABC):
 
     def evolve_helper(
         self,
-        # operator_coefficient,
         ode_function_generator_callable,
         init_state_param_dict,
         hamiltonian: OperatorBase,
@@ -160,9 +159,7 @@ class VarQte(ABC):
         # TODO bind Hamiltonian?
 
         self._variational_principle._lazy_init(
-            hamiltonian, initial_state, init_state_parameters,
-            # self._regularization
-        )
+            hamiltonian, initial_state, init_state_parameters)
         self.bind_initial_state(StateFn(initial_state), init_state_param_dict)
         self._operator = self._variational_principle._operator
         self._validate_operator(self._operator)

@@ -112,7 +112,6 @@ class VarQrte(VarQte, EvolutionBase):
             hamiltonian_value_dict, list(initial_state.parameters)
         )
 
-        # operator_coefficient = 1.0j # TODO Remove
         return super().evolve_helper(
             self._create_real_ode_function_generator,
             init_state_param_dict,

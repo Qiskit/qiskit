@@ -43,8 +43,7 @@ class VariationalPrinciple(ABC):
         self,
         hamiltonian,
         ansatz,
-        parameters: List[Parameter],
-        # regularization: Optional[str] = None,
+        parameters: List[Parameter]
     ):
 
         self._hamiltonian = hamiltonian

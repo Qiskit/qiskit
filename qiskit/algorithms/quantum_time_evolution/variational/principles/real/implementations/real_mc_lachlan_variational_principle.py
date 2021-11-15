@@ -49,7 +49,7 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
             ansatz, parameters, self._qfi_method
         )
 
-        return raw_metric_tensor_real * 0.25
+        return raw_metric_tensor_real * 0.25 # QFI/4
 
     def _get_raw_evolution_grad(
         self,

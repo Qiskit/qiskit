@@ -71,10 +71,10 @@ def energy(hamiltonian: OperatorBase,
     """
     Compute energy for a given Hamiltonian, Ansatz and parameter dictionary
     Args:
-        hamiltonian: System Hamiltonian
-        ansatz: parameterized Ansatz
-        param_dict: parameter dictionary
-        backend: Backend used for energy calculation
+        hamiltonian: System hamiltonian.
+        ansatz: Parameterized ansatz.
+        param_dict: Parameter dictionary.
+        backend: Backend used for energy calculation.
 
     Returns: Energy
 

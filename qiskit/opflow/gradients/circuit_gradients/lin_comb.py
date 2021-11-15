@@ -194,10 +194,6 @@ class LinComb(CircuitGradient):
             if operator.oplist[0].is_measurement:
                 meas = deepcopy(operator.oplist[0])
                 meas = meas.primitive * meas.coeff
-                # if operator.coeff == 1j:
-                #     meas *= 1j
-                #     operator.oplist[0]._coeff *= 1j
-                #     operator._coeff /= 1j
                 if len(operator.oplist) == 2:
                     state_op = operator.oplist[1]
                     if not isinstance(state_op, StateFn):
@@ -657,10 +653,6 @@ class LinComb(CircuitGradient):
             if meas_op is not None:
                 meas_op = meas_op.reduce()
 
-                # if np.iscomplex(meas_op._coeff):
-                #     state_qc.s(qr_superpos)
-                #     meas_op._coeff /= 1j
-
         state_qc.compose(unrolled, inplace=True)
 
         # Define the working qubit to realize the linear combination of unitaries
@@ -764,10 +756,6 @@ class LinComb(CircuitGradient):
         if not isinstance(meas_op, bool):
             if meas_op is not None:
                 meas_op = meas_op.reduce()
-
-            # if np.iscomplex(meas_op._coeff):
-            #     state_qc.s(qr_add0)
-            #     meas_op._coeff /= 1j
 
         # compose with the original circuit
         state_qc.compose(state_op.primitive, inplace=True)

@@ -68,9 +68,9 @@ class VarQteLinearSolver:
                 underlying system of linear equations
                 Can be either None or ``'ridge'`` or ``'lasso'`` or ``'perturb_diag'``
                 ``'ridge'`` and ``'lasso'`` use an automatic optimal parameter search,
-                or a penalty term given as Callable
+                or a penalty term given as Callable.
                 If regularization is None but the metric is ill-conditioned or singular then
-                a least square solver is used without regularization
+                a least square solver is used without regularization.
         Returns: dω/dt, 2Re⟨dψ(ω)/dω|H|ψ(ω) for VarQITE/ 2Im⟨dψ(ω)/dω|H|ψ(ω) for VarQRTE,
                 Fubini-Study Metric.
         """
