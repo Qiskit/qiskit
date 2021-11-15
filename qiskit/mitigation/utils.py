@@ -82,6 +82,7 @@ def str2diag(string):
         ret = np.kron(chars[i], ret)
     return ret
 
+
 def counts_to_vector(counts: Counts, num_qubits: int) -> Tuple[np.ndarray, int]:
     vec = np.zeros(2 ** num_qubits, dtype=float)
     shots = 0
@@ -91,13 +92,17 @@ def counts_to_vector(counts: Counts, num_qubits: int) -> Tuple[np.ndarray, int]:
     vec /= shots
     return vec, shots
 
-def remap_qubits(vec: np.ndarray, num_qubits: int, qubits: Optional[List[int]] = None) -> np.ndarray:
+
+def remap_qubits(
+    vec: np.ndarray, num_qubits: int, qubits: Optional[List[int]] = None
+) -> np.ndarray:
     if qubits is not None:
         if len(qubits) != num_qubits:
             raise QiskitError("Num qubits does not match vector length.")
         axes = [num_qubits - 1 - i for i in reversed(np.argsort(qubits))]
         vec = np.reshape(vec, num_qubits * [2]).transpose(axes).reshape(vec.shape)
     return vec
+
 
 def marganalize_counts(
     counts: Counts,
@@ -110,10 +115,12 @@ def marganalize_counts(
         if clbits_len not in (0, qubits_len):
             raise QiskitError(
                 "Num qubits ({}) does not match number of clbits ({}).".format(
-                    qubits_len, clbits_len)
+                    qubits_len, clbits_len
+                )
             )
         counts = marginal_counts(counts, clbits)
     return counts
+
 
 def counts_probability_vector(
     counts: Counts,
