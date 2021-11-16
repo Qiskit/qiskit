@@ -182,6 +182,12 @@ def format_statevector(vec, decimals=None):
     Returns:
         list[complex]: a list of python complex numbers.
     """
+    if type(vec).__name__ == "Statevector":
+        # Duck-type check since we can't import Statevector here
+        # without introducing cyclic dependencies.
+        if decimals:
+            return type(vec)(np.around(vec.data, decimals=decimals))
+        return vec
     if isinstance(vec, np.ndarray):
         if decimals:
             return np.around(vec, decimals=decimals)
@@ -210,6 +216,12 @@ def format_unitary(mat, decimals=None):
     Returns:
         list[list[complex]]: a matrix of complex numbers
     """
+    if type(mat).__name__ == "Operator":
+        # Duck-type check since we can't import Operator here
+        # without introducing cyclic dependencies.
+        if decimals:
+            return type(mat)(np.around(mat.data, decimals=decimals))
+        return mat
     if isinstance(mat, np.ndarray):
         if decimals:
             return np.around(mat, decimals=decimals)
