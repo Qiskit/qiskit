@@ -220,7 +220,7 @@ class Hessian(HessianBase):
             # An alternative is to check the byte code of the operator's combo_fn against the
             # default one.
             # This will work but look very ugly and may have other downsides I'm not aware of
-            if operator.combo_fn == ListOp([]).combo_fn:  # pylint: disable=comparison-with-callable
+            if operator.combo_fn == ListOp([]).combo_fn:
                 return ListOp(oplist=dd_ops)
             elif isinstance(operator, SummedOp):
                 return SummedOp(oplist=dd_ops)
