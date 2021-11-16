@@ -442,10 +442,10 @@ class TestAddingControlFlowOperations(QiskitTestCase):
 
         qc = QuantumCircuit(5, 2)
 
-        with self.assertRaisesRegex(CircuitError, r"not found on the enclosing circuit"):
+        with self.assertRaisesRegex(CircuitError, r".* is not present in this circuit\."):
             qc.if_test(condition, true_body, [1, 2, 3], [1])
 
-        with self.assertRaisesRegex(CircuitError, r"not found on the enclosing circuit"):
+        with self.assertRaisesRegex(CircuitError, r".* is not present in this circuit\."):
             qc.if_else(condition, true_body, false_body, [1, 2, 3], [1])
 
     def test_appending_continue_loop_op(self):
