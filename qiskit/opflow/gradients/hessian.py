@@ -45,7 +45,6 @@ except ImportError:
 class Hessian(HessianBase):
     """Compute the Hessian of an expected value."""
 
-    # pylint: disable=signature-differs
     def convert(
         self,
         operator: OperatorBase,
@@ -214,7 +213,7 @@ class Hessian(HessianBase):
             # and params = (θ0,θ1)
             dd_ops = [self.get_hessian(op, params) for op in operator.oplist]
 
-            # Note that this check to see if the ListOp has a default combo_fn
+            # TODO Note that this check to see if the ListOp has a default combo_fn
             # will fail if the user manually specifies the default combo_fn.
             # I.e operator = ListOp([...], combo_fn=lambda x:x) will not pass this check and
             # later on jax will try to differentiate it and fail.

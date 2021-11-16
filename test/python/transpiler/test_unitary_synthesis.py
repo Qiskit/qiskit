@@ -224,16 +224,10 @@ class TestUnitarySynthesis(QiskitTestCase):
         # the decomposer defaults to the [1, 0] direction but the coupling
         # map specifies a [0, 1] direction. Check that this is respected.
         self.assertTrue(
-            all(
-                # pylint: disable=no-member
-                ([qr[1], qr[0]] == qlist for _, qlist, _ in qc_out.get_instructions("cx"))
-            )
+            all(([qr[1], qr[0]] == qlist for _, qlist, _ in qc_out.get_instructions("cx")))
         )
         self.assertTrue(
-            all(
-                # pylint: disable=no-member
-                ([qr[0], qr[1]] == qlist for _, qlist, _ in qc_out_nat.get_instructions("cx"))
-            )
+            all(([qr[0], qr[1]] == qlist for _, qlist, _ in qc_out_nat.get_instructions("cx")))
         )
         self.assertEqual(Operator(qc), Operator(qc_out))
         self.assertEqual(Operator(qc), Operator(qc_out_nat))
@@ -273,16 +267,10 @@ class TestUnitarySynthesis(QiskitTestCase):
         # the decomposer defaults to the [1, 0] direction but the coupling
         # map specifies a [0, 1] direction. Check that this is respected.
         self.assertTrue(
-            all(
-                # pylint: disable=no-member
-                ([qr[1], qr[0]] == qlist for _, qlist, _ in qc_out.get_instructions("cx"))
-            )
+            all(([qr[1], qr[0]] == qlist for _, qlist, _ in qc_out.get_instructions("cx")))
         )
         self.assertTrue(
-            all(
-                # pylint: disable=no-member
-                ([qr[0], qr[1]] == qlist for _, qlist, _ in qc_out_nat.get_instructions("cx"))
-            )
+            all(([qr[0], qr[1]] == qlist for _, qlist, _ in qc_out_nat.get_instructions("cx")))
         )
         self.assertEqual(Operator(qc), Operator(qc_out))
         self.assertEqual(Operator(qc), Operator(qc_out_nat))
@@ -322,16 +310,10 @@ class TestUnitarySynthesis(QiskitTestCase):
         # the decomposer defaults to the [1, 0] direction but the coupling
         # map specifies a [0, 1] direction. Check that this is respected.
         self.assertTrue(
-            all(
-                # pylint: disable=no-member
-                ([qr[1], qr[0]] == qlist for _, qlist, _ in qc_out.get_instructions("cx"))
-            )
+            all(([qr[1], qr[0]] == qlist for _, qlist, _ in qc_out.get_instructions("cx")))
         )
         self.assertTrue(
-            all(
-                # pylint: disable=no-member
-                ([qr[1], qr[0]] == qlist for _, qlist, _ in qc_out_nat.get_instructions("cx"))
-            )
+            all(([qr[1], qr[0]] == qlist for _, qlist, _ in qc_out_nat.get_instructions("cx")))
         )
         self.assertEqual(Operator(qc), Operator(qc_out))
         self.assertEqual(Operator(qc), Operator(qc_out_nat))
@@ -355,7 +337,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         pm = PassManager([triv_layout_pass, unisynth_pass])
         qc_out = pm.run(qc)
         if isinstance(qc_out, QuantumCircuit):
-            num_ops = qc_out.count_ops()  # pylint: disable=no-member
+            num_ops = qc_out.count_ops()
         else:
             num_ops = qc_out[0].count_ops()
         self.assertIn("sx", num_ops)
@@ -404,10 +386,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         pm = PassManager([triv_layout_pass, unisynth_pass])
         qc_out = pm.run(qc)
         self.assertTrue(
-            all(
-                # pylint: disable=no-member
-                ([qr[0], qr[1]] == qlist for _, qlist, _ in qc_out.get_instructions("cx"))
-            )
+            all(([qr[0], qr[1]] == qlist for _, qlist, _ in qc_out.get_instructions("cx")))
         )
 
     def test_two_qubit_natural_direction_true_gate_length_raises(self):
@@ -453,7 +432,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         pm = PassManager([triv_layout_pass, unisynth_pass])
         qc_out = pm.run(qc)
         if isinstance(qc_out, QuantumCircuit):
-            num_ops = qc_out.count_ops()  # pylint: disable=no-member
+            num_ops = qc_out.count_ops()
         else:
             num_ops = qc_out[0].count_ops()
         self.assertIn("sx", num_ops)
@@ -484,7 +463,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         except QiskitError:
             self.fail("pulse_optimize=None raised exception unexpectedly")
         if isinstance(qc_out, QuantumCircuit):
-            num_ops = qc_out.count_ops()  # pylint: disable=no-member
+            num_ops = qc_out.count_ops()
         else:
             num_ops = qc_out[0].count_ops()
         self.assertIn("sx", num_ops)
@@ -553,18 +532,11 @@ class TestUnitarySynthesis(QiskitTestCase):
         edges = [list(edge) for edge in coupling_map.get_edges()]
         self.assertTrue(
             all(
-                # pylint: disable=no-member
                 [qv64_1.qubits.index(qubit) for qubit in qlist] in edges
-                # pylint: disable=no-member
                 for _, qlist, _ in qv64_1.get_instructions("cx")
             )
         )
         self.assertEqual(Operator(qv64_1), Operator(qv64_2))
-        # op1_cnt = qv64_1.count_ops()  # pylint: disable=no-member
-        # op2_cnt = qv64_2.count_ops()  # pylint: disable=no-member
-        # self.assertTrue(
-        #     all((op1_cnt[name] < op2_cnt[name] for name in op1_cnt.keys() if name != "cx"))
-        # )
 
     @data(1, 2, 3)
     def test_coupling_map_transpile(self, opt):
