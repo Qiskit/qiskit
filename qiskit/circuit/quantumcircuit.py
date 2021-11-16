@@ -252,8 +252,8 @@ class QuantumCircuit:
         # corresponding index in circuit.{qubits,clbits} and 1) a list of
         # Register-int pairs for each Register containing the Bit and its index
         # within that register.
-        self._qubit_indices = dict()
-        self._clbit_indices = dict()
+        self._qubit_indices = {}
+        self._clbit_indices = {}
 
         self._ancillas = []
         self._calibrations = defaultdict(dict)
@@ -1125,6 +1125,46 @@ class QuantumCircuit:
         """
         return QuantumCircuit._bit_argument_conversion(clbit_representation, self.clbits)
 
+    def _resolve_classical_resource(self, specifier):
+        """Resolve a single classical resource specifier into a concrete resource, raising an error
+        if the specifier is invalid.
+
+        This is slightly different to :meth:`.cbit_argument_conversion`, because it should not
+        unwrap :obj:`.ClassicalRegister` instances into lists, and in general it should not allow
+        iterables or broadcasting.  It is expected to be used as a callback for things like
+        :meth:`.InstructionSet.c_if` to check the validity of their arguments.
+
+        Args:
+            specifier (Union[Clbit, ClassicalRegister, int]): a specifier of a classical resource
+                present in this circuit.  An ``int`` will be resolved into a :obj:`.Clbit` using the
+                same conventions as measurement operations on this circuit use.
+
+        Returns:
+            Union[Clbit, ClassicalRegister]: the resolved resource.
+
+        Raises:
+            CircuitError: if the resource is not present in this circuit, or if the integer index
+                passed is out-of-bounds.
+        """
+        if isinstance(specifier, Clbit):
+            if specifier not in self._clbit_indices:
+                raise CircuitError(f"Clbit {specifier} is not present in this circuit.")
+            return specifier
+        if isinstance(specifier, ClassicalRegister):
+            # This is linear complexity for something that should be constant, but QuantumCircuit
+            # does not currently keep a hashmap of registers, and requires non-trivial changes to
+            # how it exposes its registers publically before such a map can be safely stored so it
+            # doesn't miss updates. (Jake, 2021-11-10).
+            if specifier not in self.cregs:
+                raise CircuitError(f"Register {specifier} is not present in this circuit.")
+            return specifier
+        if isinstance(specifier, int):
+            try:
+                return self._clbits[specifier]
+            except IndexError:
+                raise CircuitError(f"Classical bit index {specifier} is out-of-range.") from None
+        raise CircuitError(f"Unknown classical resource specifier: '{specifier}'.")
+
     def append(
         self,
         instruction: Instruction,
@@ -1169,7 +1209,7 @@ class QuantumCircuit:
         expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
         expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
 
-        instructions = InstructionSet(self.cregs)
+        instructions = InstructionSet(resource_requester=self._resolve_classical_resource)
         for (qarg, carg) in instruction.broadcast_arguments(expanded_qargs, expanded_cargs):
             instructions.add(self._append(instruction, qarg, carg), qarg, carg)
         return instructions
@@ -2612,7 +2652,7 @@ class QuantumCircuit:
             else:
                 qubits.append(qarg)
 
-        instructions = InstructionSet()
+        instructions = InstructionSet(resource_requester=self._resolve_classical_resource)
         for q in qubits:
             inst = (Delay(duration, unit), [q], [])
             self.append(*inst)
@@ -4025,21 +4065,7 @@ class QuantumCircuit:
         # pylint: disable=cyclic-import
         from qiskit.circuit.controlflow.if_else import IfElseOp
 
-        if isinstance(condition[0], ClassicalRegister):
-            if condition[0] not in self.cregs:
-                raise CircuitError(
-                    "The condition provided to QuantumCircuit.if_ was not "
-                    "found on the enclosing circuit. "
-                    f"condition: {condition}, QuantumCircuit.cregs: {self.cregs}."
-                )
-        elif isinstance(condition[0], Clbit):
-            if condition[0] not in self._clbit_indices:
-                raise CircuitError(
-                    "The condition provided to QuantumCircuit.if_ was not "
-                    "found on the enclosing circuit. "
-                    f"condition: {condition}, QuantumCircuit.clbits: {self.clbits}."
-                )
-
+        condition = (self._resolve_classical_resource(condition[0]), condition[1])
         return self.append(IfElseOp(condition, true_body, None, label), qubits, clbits)
 
     def if_else(
@@ -4079,21 +4105,7 @@ class QuantumCircuit:
         # pylint: disable=cyclic-import
         from qiskit.circuit.controlflow.if_else import IfElseOp
 
-        if isinstance(condition[0], ClassicalRegister):
-            if condition[0] not in self.cregs:
-                raise CircuitError(
-                    "The condition provided to QuantumCircuit.if_else was not "
-                    "found on the enclosing circuit. "
-                    f"condition: {condition}, QuantumCircuit.cregs: {self.cregs}."
-                )
-        elif isinstance(condition[0], Clbit):
-            if condition[0] not in self._clbit_indices:
-                raise CircuitError(
-                    "The condition provided to QuantumCircuit.if_else was not "
-                    "found on the enclosing circuit. "
-                    f"condition: {condition}, QuantumCircuit.clbits: {self.clbits}."
-                )
-
+        condition = (self._resolve_classical_resource(condition[0]), condition[1])
         return self.append(IfElseOp(condition, true_body, false_body, label), qubits, clbits)
 
     def break_loop(self) -> InstructionSet:
