@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=wrong-import-position
+# pylint: disable=wrong-import-position, no-name-in-module
 
 """Main Qiskit public functionality."""
 
@@ -127,3 +127,5 @@ class IBMQWrapper:
 
 Aer = AerWrapper()
 IBMQ = IBMQWrapper()
+
+del circuit  # pylint: disable=wrong-import-position, undefined-variable
