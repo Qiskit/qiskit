@@ -174,8 +174,7 @@ class TestFullAncillaAllocation(QiskitTestCase):
         with self.assertRaises(TranspilerError) as cm:
             pass_.run(dag)
         self.assertEqual(
-            "FullAncillaAllocation: The layout refers to a qubit that does "
-            "not exist in circuit.",
+            "FullAncillaAllocation: The layout refers to a qubit that does not exist in circuit.",
             cm.exception.message,
         )
 
