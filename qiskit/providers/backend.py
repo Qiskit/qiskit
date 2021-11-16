@@ -326,6 +326,8 @@ class BackendV2(Backend, ABC):
                 abstract :attr:`~qiskit.providers.Backend` abstract interface
                 version of the object while ``backend_version`` is for
                 versioning the backend itself.
+            fields: kwargs for the values to use to override the default
+                options.
 
         Raises:
             AttributeError: If a field is specified that's outside the backend's
