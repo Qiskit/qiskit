@@ -567,7 +567,7 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
 
         eval_time = time() - start_time
 
-        result = VQEResult()
+        result = kVQEResult()
         result.optimal_point = opt_result.x
         result.optimal_parameters = dict(zip(self._ansatz_params, opt_result.x))
         result.optimal_value = opt_result.fun
@@ -577,12 +577,12 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
         result.eigenstate = self._get_eigenstate(result.optimal_parameters)
 
         logger.info(
-            "Optimization complete in %s seconds.\nFound opt_params %s in %s evals",
+            " Ground state optimization complete in %s seconds.\nFound opt_params %s in %s evals",
             eval_time,
             result.optimal_point,
             self._eval_count,
         )
-
+    
         # TODO delete as soon as get_optimal_vector etc are removed
         self._ret = result
 
@@ -732,7 +732,7 @@ queried as VQEResult.optimal_point."""
         return self._ret.optimal_point
 
 
-class VQEResult(VariationalResult, EigensolverResult):
+class kVQEResult(VariationalResult, EigensolverResult):
     """VQE Result."""
 
     def __init__(self) -> None:
