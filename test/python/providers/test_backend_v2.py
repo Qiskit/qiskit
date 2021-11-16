@@ -34,44 +34,6 @@ class TestBackendV2(QiskitTestCase):
         self.assertEqual([126.83382e-6, 112.23246e-6], [x.t2 for x in props])
         self.assertEqual([5.26722e9, 5.17538e9], [x.frequency for x in props])
 
-    def test_t1(self):
-        """Test that the t1 helper method works as expected."""
-        t1 = self.backend.t1([0, 1])
-        expected_mean = statistics.mean([73.09352e-6, 63.48783e-6])
-        self.assertAlmostEqual(expected_mean, t1.mean())
-
-    def test_t1_single_not_defined(self):
-        """Test that t1 correctly errors for a qubit doesn't have t1 defined."""
-        self.backend._qubit_properties[0].t1 = None
-        with self.assertRaises(ValueError):
-            self.backend.t1(0)
-
-    def test_t1_list_not_definedinvalid_qubit(self):
-        """Test that t1 correctly errors if an qubit which doesn't have t1
-        defined is in the input list."""
-        self.backend._qubit_properties[1].t1 = None
-        with self.assertRaises(ValueError):
-            self.backend.t1([0, 1])
-
-    def test_t2(self):
-        """Test that the t2 helper method works as expected."""
-        t2 = self.backend.t2([0, 1])
-        expected_mean = statistics.mean([126.83382e-6, 112.23246e-6])
-        self.assertAlmostEqual(expected_mean, t2.mean())
-
-    def test_t2_single_not_defined(self):
-        """Test that t2 correctly errors for a qubit which doesn't have t2 defined."""
-        self.backend._qubit_properties[1].t2 = None
-        with self.assertRaises(ValueError):
-            self.backend.t2(1)
-
-    def test_t2_list_invalid_qubit(self):
-        """Test that t2 correctly errors if a qubit which doesn't have t2
-        defined is in the input list."""
-        self.backend._qubit_properties[1].t2 = None
-        with self.assertRaises(ValueError):
-            self.backend.t2([0, 1])
-
     def test_option_bounds(self):
         """Test that option bounds are enforced."""
         with self.assertRaises(ValueError) as cm:

@@ -437,62 +437,6 @@ class BackendV2(Backend, ABC):
         """
         pass
 
-    def t1(self, qubits: Union[int, List[int]]) -> Union[float, np.array]:
-        """Return the T1 time of a given qubit
-
-        Args:
-            qubits: The qubit index to get the T1 time for. If
-                a list is specified the output will be a list with the
-                T1 time for the specified qubits in the same order.
-
-        Returns:
-            t1: the T1 time for the specified qubit(s) in seconds.
-
-        Raises:
-            NotImplementedError: if the backend doesn't support querying the
-                qubit properties for a qubit
-            ValueError: if T1 is not defined for the specified qubit
-        """
-        props = self.qubit_properties(qubits)
-        if isinstance(props, QubitProperties):
-            if props.t1 is None:
-                raise ValueError(f"T1 is not defined for qubit {qubits}")
-            return props.t1
-        out_list = []
-        for index, prop in enumerate(props):
-            if prop.t1 is None:
-                raise ValueError(f"T1 is not defined for qubit {qubits[index]}")
-            out_list.append(prop.t1)
-        return np.array(out_list)
-
-    def t2(self, qubits: Union[int, List[int]]) -> Union[float, np.array]:
-        """Return the T2 time of a given qubit
-
-        Args:
-            qubits: The qubit index or indices to get the T2 time for. If
-                a list is specified the output will be a list with the
-                T2 time for the specified qubits in the same order.
-
-        Returns:
-            t2: the T2 time for the specified qubit(s) in seconds
-
-        Raises:
-            NotImplementedError: if the backend doesn't support querying the
-                qubit properties for a qubit
-            ValueError: if T2 is not defined for the specified qubit
-        """
-        props = self.qubit_properties(qubits)
-        if isinstance(props, QubitProperties):
-            if props.t2 is None:
-                raise ValueError(f"T2 is not defined for qubit {qubits}")
-            return props.t1
-        out_list = []
-        for index, prop in enumerate(props):
-            if prop.t2 is None:
-                raise ValueError(f"T2 is not defined for qubit {qubits[index]}")
-            out_list.append(prop.t2)
-        return np.array(out_list)
-
     @property
     def dt(self) -> Union[float, None]:
         """Return the system time resolution of input signals
