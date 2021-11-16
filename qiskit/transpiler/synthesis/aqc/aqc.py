@@ -53,7 +53,7 @@ class AQC:
         """
         super().__init__()
         self._optimizer = optimizer
-        self._seed = seed or 12345
+        self._seed = seed
 
     def compile_unitary(
         self,
