@@ -305,7 +305,7 @@ class TestControlledGate(QiskitTestCase):
 
     def test_multi_control_u3(self):
         """Test the matrix representation of the controlled and controlled-controlled U3 gate."""
-        import qiskit.circuit.library.standard_gates.u3 as u3
+        from qiskit.circuit.library.standard_gates import u3
 
         num_ctrl = 3
         # U3 gate params
@@ -365,7 +365,7 @@ class TestControlledGate(QiskitTestCase):
 
     def test_multi_control_u1(self):
         """Test the matrix representation of the controlled and controlled-controlled U1 gate."""
-        import qiskit.circuit.library.standard_gates.u1 as u1
+        from qiskit.circuit.library.standard_gates import u1
 
         num_ctrl = 3
         # U1 gate params
@@ -1247,10 +1247,7 @@ class TestOpenControlledToMatrix(QiskitTestCase):
 class TestSingleControlledRotationGates(QiskitTestCase):
     """Test the controlled rotation gates controlled on one qubit."""
 
-    import qiskit.circuit.library.standard_gates.u1 as u1
-    import qiskit.circuit.library.standard_gates.rx as rx
-    import qiskit.circuit.library.standard_gates.ry as ry
-    import qiskit.circuit.library.standard_gates.rz as rz
+    from qiskit.circuit.library.standard_gates import u1, rx, ry, rz
 
     num_ctrl = 2
     num_target = 1
@@ -1341,7 +1338,7 @@ class TestControlledStandardGates(QiskitTestCase):
             args = [5]
         gate = gate_class(*args)
 
-        for ctrl_state in {ctrl_state_ones, ctrl_state_zeros, ctrl_state_mixed}:
+        for ctrl_state in (ctrl_state_ones, ctrl_state_zeros, ctrl_state_mixed):
             with self.subTest(i=f"{gate_class.__name__}, ctrl_state={ctrl_state}"):
                 if hasattr(gate, "num_ancilla_qubits") and gate.num_ancilla_qubits > 0:
                     # skip matrices that include ancilla qubits

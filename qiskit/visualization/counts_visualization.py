@@ -123,7 +123,7 @@ def plot_histogram(
             "valid choice. Must be 'asc', "
             "'desc', 'hamming', 'value', 'value_desc'"
         )
-    if sort in DIST_MEAS.keys() and target_string is None:
+    if sort in DIST_MEAS and target_string is None:
         err_msg = "Must define target_string when using distance measure."
         raise VisualizationError(err_msg)
 
@@ -151,7 +151,7 @@ def plot_histogram(
     if number_to_keep is not None:
         labels.append("rest")
 
-    if sort in DIST_MEAS.keys():
+    if sort in DIST_MEAS:
         dist = []
         for item in labels:
             dist.append(DIST_MEAS[sort](item, target_string))
