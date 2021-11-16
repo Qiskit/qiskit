@@ -76,7 +76,7 @@ class TaperedPauliSumOp(PauliSumOp):
         }
 
     def assign_parameters(self, param_dict: dict) -> OperatorBase:
-        pauli_sum = PauliSumOp(self.primitive, self.coeff)  # pylint: disable=no-member
+        pauli_sum = PauliSumOp(self.primitive, self.coeff)
         return pauli_sum.assign_parameters(param_dict)
 
 

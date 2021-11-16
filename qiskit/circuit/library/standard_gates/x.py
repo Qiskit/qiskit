@@ -933,7 +933,7 @@ class MCXGate(ControlledGate):
         # The CXGate and CCXGate will be implemented for all modes of the MCX, and
         # the C3XGate and C4XGate will be implemented in the MCXGrayCode class.
         explicit = {1: CXGate, 2: CCXGate}
-        if num_ctrl_qubits in explicit.keys():
+        if num_ctrl_qubits in explicit:
             gate_class = explicit[num_ctrl_qubits]
             gate = gate_class.__new__(gate_class, label=label, ctrl_state=ctrl_state)
             # if __new__ does not return the same type as cls, init is not called
@@ -1036,7 +1036,7 @@ class MCXGrayCode(MCXGate):
         """Create a new MCXGrayCode instance"""
         # if 1 to 4 control qubits, create explicit gates
         explicit = {1: CXGate, 2: CCXGate, 3: C3XGate, 4: C4XGate}
-        if num_ctrl_qubits in explicit.keys():
+        if num_ctrl_qubits in explicit:
             gate_class = explicit[num_ctrl_qubits]
             gate = gate_class.__new__(gate_class, label=label, ctrl_state=ctrl_state)
             # if __new__ does not return the same type as cls, init is not called

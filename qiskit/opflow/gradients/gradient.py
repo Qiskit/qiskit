@@ -42,7 +42,6 @@ except ImportError:
 class Gradient(GradientBase):
     """Convert an operator expression to the first-order gradient."""
 
-    # pylint: disable=signature-differs
     def convert(
         self,
         operator: OperatorBase,
