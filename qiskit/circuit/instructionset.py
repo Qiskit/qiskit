@@ -27,19 +27,19 @@ from .classicalregister import Clbit, ClassicalRegister
 # its creation, so caching this allows us to only pay the register-unrolling penalty once.  The
 # cache does not need to be large, because in general only one circuit is constructed at once.
 @functools.lru_cache(4)
-def _resolver_from_cregs(cregs: Tuple[ClassicalRegister]) -> Callable:
-    """Get a classical resource resolver from an iterable of classical registers.
+def _requester_from_cregs(cregs: Tuple[ClassicalRegister]) -> Callable:
+    """Get a classical resource requester from an iterable of classical registers.
 
     This implements the deprecated functionality of constructing an :obj:`.InstructionSet` with a
     sequence of :obj:`.ClassicalRegister` instances.  This is the old method of resolving integer
-    indices to a :obj:`.Clbit`, which is now replaced by using a resolver from the
+    indices to a :obj:`.Clbit`, which is now replaced by using a requester from the
     :obj:`.QuantumCircuit` instance for consistency.
 
     .. note::
 
         This function has "incorrect" behaviour if any classical bit is in more than one register.
         This is to maintain compatibility with the legacy usage of :obj:`.InstructionSet`, and
-        should not be used for any internal Qiskit code.  Instead, use the proper resolver methods
+        should not be used for any internal Qiskit code.  Instead, use the proper requester methods
         within :obj:`.QuantumCircuit`.
 
     This function can be removed when the deprecation of the ``circuit_cregs`` argument in
@@ -47,10 +47,10 @@ def _resolver_from_cregs(cregs: Tuple[ClassicalRegister]) -> Callable:
 
     Args:
         cregs: A tuple (needs to be immutable for the caching) of the classical registers to produce
-            a resolver over.
+            a requester over.
 
     Returns:
-        A resolver function that checks that a passed condition variable is valid, resolves
+        A requester function that checks that a passed condition variable is valid, resolves
         integers into concrete :obj:`.Clbit` instances, and returns a valid :obj:`.Clbit` or
         :obj:`.ClassicalRegister` condition resource.
     """
@@ -59,7 +59,7 @@ def _resolver_from_cregs(cregs: Tuple[ClassicalRegister]) -> Callable:
     clbit_set = frozenset(clbit_flat)
     creg_set = frozenset(cregs)
 
-    def resolver(classical):
+    def requester(classical):
         if isinstance(classical, Clbit):
             if classical not in clbit_set:
                 raise CircuitError(
@@ -83,15 +83,15 @@ def _resolver_from_cregs(cregs: Tuple[ClassicalRegister]) -> Callable:
             f" '{classical}'."
         )
 
-    return resolver
+    return requester
 
 
 class InstructionSet:
     """Instruction collection, and their contexts."""
 
-    __slots__ = ("instructions", "qargs", "cargs", "_resolver")
+    __slots__ = ("instructions", "qargs", "cargs", "_requester")
 
-    def __init__(self, circuit_cregs=None, *, resource_resolver: Optional[Callable] = None):
+    def __init__(self, circuit_cregs=None, *, resource_requester: Optional[Callable] = None):
         """New collection of instructions.
 
         The context (qargs and cargs that each instruction is attached to) is also stored separately
@@ -105,9 +105,9 @@ class InstructionSet:
                     The classical registers are insufficient to access all classical resources in a
                     circuit, as there may be loose classical bits as well.  It can also cause
                     integer indices to be resolved incorrectly if any registers overlap.  Instead,
-                    pass a complete resolver to the ``resource_resolver`` argument.
+                    pass a complete requester to the ``resource_requester`` argument.
 
-            resource_resolver: A callable that takes in the classical resource used in the
+            resource_requester: A callable that takes in the classical resource used in the
                 condition, verifies that it is present in the attached circuit, resolves any indices
                 into concrete :obj:`.Clbit` instances, and returns the concrete resource.  If this
                 is not given, specifying a condition with an index is forbidden, and all concrete
@@ -115,30 +115,30 @@ class InstructionSet:
 
                 .. note::
 
-                    The callback ``resource_resolver`` is called once for each call to
-                    :meth:`.c_if`, and is allowed to assume that a call implies that the resource
-                    will now be used.  It may throw an error if the resource is not valid for usage.
+                    The callback ``resource_requester`` is called once for each call to
+                    :meth:`.c_if`, and assumes that a call implies that the resource will now be
+                    used.  It may throw an error if the resource is not valid for usage.
 
         Raises:
-            CircuitError: if both ``resource_resolver`` and ``circuit_cregs`` are passed.  Only one
-                of these may be passed, and it should be ``resource_resolver``.
+            CircuitError: if both ``resource_requester`` and ``circuit_cregs`` are passed.  Only one
+                of these may be passed, and it should be ``resource_requester``.
         """
         self.instructions = []
         self.qargs = []
         self.cargs = []
         if circuit_cregs is not None:
-            if resource_resolver is not None:
-                raise CircuitError("Cannot pass both 'circuit_cregs' and 'resource_resolver'.")
+            if resource_requester is not None:
+                raise CircuitError("Cannot pass both 'circuit_cregs' and 'resource_requester'.")
             warnings.warn(
                 "The 'circuit_cregs' argument to 'InstructionSet' is deprecated as of"
                 " qiskit-terra 0.19, and will be removed no sooner than 3 months after its release."
-                " Pass a complete resource resolver as the 'resource_resolver' instead.",
+                " Pass a complete resource requester as the 'resource_requester' instead.",
                 DeprecationWarning,
                 stacklevel=2,
             )
-            self._resolver: Optional[Callable] = _resolver_from_cregs(tuple(circuit_cregs))
+            self._requester: Optional[Callable] = _requester_from_cregs(tuple(circuit_cregs))
         else:
-            self._resolver = resource_resolver
+            self._requester = resource_requester
 
     def __len__(self):
         """Return number of instructions in set"""
@@ -186,13 +186,13 @@ class InstructionSet:
             CircuitError: if the passed classical resource is invalid, or otherwise not resolvable
                 to a concrete resource that these instructions are permitted to access.
         """
-        if self._resolver is None and not isinstance(classical, (Clbit, ClassicalRegister)):
+        if self._requester is None and not isinstance(classical, (Clbit, ClassicalRegister)):
             raise CircuitError(
-                "Cannot pass an index as a condition variable without specifying a resolver"
+                "Cannot pass an index as a condition variable without specifying a requester"
                 " when creating this InstructionSet."
             )
-        if self._resolver is not None:
-            classical = self._resolver(classical)
+        if self._requester is not None:
+            classical = self._requester(classical)
         for gate in self.instructions:
             gate.c_if(classical, val)
         return self

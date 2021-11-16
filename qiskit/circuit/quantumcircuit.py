@@ -1209,7 +1209,7 @@ class QuantumCircuit:
         expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
         expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
 
-        instructions = InstructionSet(resource_resolver=self._resolve_classical_resource)
+        instructions = InstructionSet(resource_requester=self._resolve_classical_resource)
         for (qarg, carg) in instruction.broadcast_arguments(expanded_qargs, expanded_cargs):
             instructions.add(self._append(instruction, qarg, carg), qarg, carg)
         return instructions
@@ -2652,7 +2652,7 @@ class QuantumCircuit:
             else:
                 qubits.append(qarg)
 
-        instructions = InstructionSet(resource_resolver=self._resolve_classical_resource)
+        instructions = InstructionSet(resource_requester=self._resolve_classical_resource)
         for q in qubits:
             inst = (Delay(duration, unit), [q], [])
             self.append(*inst)

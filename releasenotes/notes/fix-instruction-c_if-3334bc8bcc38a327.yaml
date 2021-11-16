@@ -2,18 +2,18 @@
 deprecations:
   - |
     Creating an instance of :obj:`.InstructionSet` with the ``circuit_cregs`` keyword argument is deprecated.
-    In general, these classes never need to be constructed by users (but are used internally), but should you need to, you should pass a callable as the ``resource_resolver`` keyword argument.
+    In general, these classes never need to be constructed by users (but are used internally), but should you need to, you should pass a callable as the ``resource_requester`` keyword argument.
     For example::
 
         from qiskit.circuit import Clbit, ClassicalRegister, InstructionSet
         from qiskit.circuit.exceptions import CircuitError
 
-        def my_resolver(bits, registers):
+        def my_requester(bits, registers):
             bits_set = set(bits)
             bits_flat = tuple(bits)
             registers_set = set(registers)
 
-            def resolver(specifier):
+            def requester(specifier):
                 if isinstance(specifer, Clbit) and specifier in bits_set:
                     return specifier
                 if isinstance(specifer, ClassicalRegster) and specifier in register_set:
@@ -22,12 +22,12 @@ deprecations:
                     return bits_flat[specifier]
                 raise CircuitError(f"Unknown resource: {specifier}")
 
-            return resolver
+            return requester
 
         my_bits = [Clbit() for _ in [None]*5]
         my_registers = [ClassicalRegister(n) for n in range(3)]
 
-        InstructionSet(resource_resolver=my_resolver(my_bits, my_registers))
+        InstructionSet(resource_requester=my_requester(my_bits, my_registers))
 
 
 fixes:

@@ -534,7 +534,7 @@ class TestInstructions(QiskitTestCase):
         with self.subTest("float"):
             case(1.0, r"Unknown classical resource specifier: .*")
 
-    def test_instructionset_c_if_with_no_resolver(self):
+    def test_instructionset_c_if_with_no_requester(self):
         """Test that using a raw :obj:`.InstructionSet` with no classical-resource resoluer accepts
         arbitrary :obj:`.Clbit` and `:obj:`.ClassicalRegister` instances, but rejects integers."""
 
@@ -570,15 +570,15 @@ class TestInstructions(QiskitTestCase):
 
         deprecated_regex = r"The 'circuit_cregs' argument to 'InstructionSet' is deprecated .*"
 
-        def dummy_resolver(specifier):
-            """A dummy resolver that technically fulfills the spec."""
+        def dummy_requester(specifier):
+            """A dummy requester that technically fulfills the spec."""
             raise CircuitError
 
-        with self.subTest("cannot pass both registers and resolver"):
+        with self.subTest("cannot pass both registers and requester"):
             with self.assertRaisesRegex(
-                CircuitError, r"Cannot pass both 'circuit_cregs' and 'resource_resolver'\."
+                CircuitError, r"Cannot pass both 'circuit_cregs' and 'resource_requester'\."
             ):
-                InstructionSet(registers, resource_resolver=dummy_resolver)
+                InstructionSet(registers, resource_requester=dummy_requester)
 
         with self.subTest("classical register"):
             instruction = HGate()
@@ -636,8 +636,8 @@ class TestInstructions(QiskitTestCase):
             with self.assertRaisesRegex(CircuitError, r"Invalid classical condition\. .*"):
                 instructions.c_if([0], 0)
 
-    def test_instructionset_c_if_calls_custom_resolver(self):
-        """Test that :meth:`.InstructionSet.c_if` calls a custom resolver, and uses its output."""
+    def test_instructionset_c_if_calls_custom_requester(self):
+        """Test that :meth:`.InstructionSet.c_if` calls a custom requester, and uses its output."""
         # This isn't expected to be useful to end users, it's more about the principle that you can
         # control the resolution paths, so future blocking constructs can forbid the method from
         # accessing certain resources.
@@ -645,50 +645,50 @@ class TestInstructions(QiskitTestCase):
         sentinel_bit = Clbit()
         sentinel_register = ClassicalRegister(2)
 
-        def dummy_resolver(specifier):
-            """A dummy resolver that returns sentinel values."""
+        def dummy_requester(specifier):
+            """A dummy requester that returns sentinel values."""
             if not isinstance(specifier, (int, Clbit, ClassicalRegister)):
                 raise CircuitError
             return sentinel_bit if isinstance(specifier, (int, Clbit)) else sentinel_register
 
-        dummy_resolver = unittest.mock.MagicMock(wraps=dummy_resolver)
+        dummy_requester = unittest.mock.MagicMock(wraps=dummy_requester)
 
-        with self.subTest("calls resolver with bit"):
-            dummy_resolver.reset_mock()
+        with self.subTest("calls requester with bit"):
+            dummy_requester.reset_mock()
             instruction = HGate()
-            instructions = InstructionSet(resource_resolver=dummy_resolver)
+            instructions = InstructionSet(resource_requester=dummy_requester)
             instructions.add(instruction, [Qubit()], [])
             bit = Clbit()
             instructions.c_if(bit, 0)
-            dummy_resolver.assert_called_once_with(bit)
+            dummy_requester.assert_called_once_with(bit)
             self.assertIs(instruction.condition[0], sentinel_bit)
-        with self.subTest("calls resolver with index"):
-            dummy_resolver.reset_mock()
+        with self.subTest("calls requester with index"):
+            dummy_requester.reset_mock()
             instruction = HGate()
-            instructions = InstructionSet(resource_resolver=dummy_resolver)
+            instructions = InstructionSet(resource_requester=dummy_requester)
             instructions.add(instruction, [Qubit()], [])
             index = 0
             instructions.c_if(index, 0)
-            dummy_resolver.assert_called_once_with(index)
+            dummy_requester.assert_called_once_with(index)
             self.assertIs(instruction.condition[0], sentinel_bit)
-        with self.subTest("calls resolver with register"):
-            dummy_resolver.reset_mock()
+        with self.subTest("calls requester with register"):
+            dummy_requester.reset_mock()
             instruction = HGate()
-            instructions = InstructionSet(resource_resolver=dummy_resolver)
+            instructions = InstructionSet(resource_requester=dummy_requester)
             instructions.add(instruction, [Qubit()], [])
             register = ClassicalRegister(2)
             instructions.c_if(register, 0)
-            dummy_resolver.assert_called_once_with(register)
+            dummy_requester.assert_called_once_with(register)
             self.assertIs(instruction.condition[0], sentinel_register)
-        with self.subTest("calls resolver only once when broadcast"):
-            dummy_resolver.reset_mock()
+        with self.subTest("calls requester only once when broadcast"):
+            dummy_requester.reset_mock()
             instruction_list = [HGate(), HGate(), HGate()]
-            instructions = InstructionSet(resource_resolver=dummy_resolver)
+            instructions = InstructionSet(resource_requester=dummy_requester)
             for instruction in instruction_list:
                 instructions.add(instruction, [Qubit()], [])
             register = ClassicalRegister(2)
             instructions.c_if(register, 0)
-            dummy_resolver.assert_called_once_with(register)
+            dummy_requester.assert_called_once_with(register)
             for instruction in instruction_list:
                 self.assertIs(instruction.condition[0], sentinel_register)
 
