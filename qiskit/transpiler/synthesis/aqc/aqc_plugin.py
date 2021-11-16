@@ -24,18 +24,29 @@ from qiskit.transpiler.synthesis.aqc.cnot_unit_objective import DefaultCNOTUnitO
 
 
 class AQCSynthesisPlugin(UnitarySynthesisPlugin):
-    """An AQC-based Qiskit unitary synthesis plugin."""
+    """
+    An AQC-based Qiskit unitary synthesis plugin.
 
-    def __init__(self) -> None:
-        super().__init__()
+    This plugin is invoked by transpiler when `unitary_synthesis_method` parameter is set
+    to `"aqc"`.
 
-        # define defaults
-        self._layout = "spin"
-        self._layout = "spin"
-        self._connectivity = "full"
-        self._depth = 0
-        self._seed = 12345
-        self._maxiter = 1000
+    This plugin supports customization and additional parameters can be passed to the plugin
+    by passing a dictionary as the `unitary_synthesis_plugin_config` parameter of
+    the :func:`~qiskit.compiler.transpile` function.
+
+    Supported parameters in the dictionary:
+        * network_layout (str): type of network geometry, one of ``{"sequ", "spin", "cart",
+            "cyclic_spin", "cyclic_line"}``. Default value is ``"spin"``.
+        * connectivity_type (str): type of inter-qubit connectivity, ``{"full", "line", "star"}``.
+            Default value is ``"full"``.
+        * depth (int): depth of the CNOT-network, i.e. the number of layers, where each layer
+            consists of a single CNOT-block.
+        * optimizer (:class:`~qiskit.algorithms.optimizers.Optimizer`): an instance of optimizer to
+            be used in the optimization process.
+        * seed (int): a random seed.
+        * initial_point (:class:`~numpy.ndarray`): initial values of angles/parameters to start
+            optimization process from.
+    """
 
     @property
     def max_qubits(self):
@@ -87,23 +98,32 @@ class AQCSynthesisPlugin(UnitarySynthesisPlugin):
     def run(self, unitary, **options):
         num_qubits = int(round(np.log2(unitary.shape[0])))
 
+        config = options.get("config") or {}
+
+        network_layout = config.get("network_layout", "spin")
+        connectivity_type = config.get("connectivity_type", "full")
+        depth = config.get("depth", 0)
+
         cnots = make_cnot_network(
             num_qubits=num_qubits,
-            network_layout=self._layout,
-            connectivity_type=self._connectivity,
-            depth=self._depth,
+            network_layout=network_layout,
+            connectivity_type=connectivity_type,
+            depth=depth,
         )
 
-        optimizer = L_BFGS_B(maxiter=self._maxiter)
-        aqc = AQC(optimizer, self._seed)
+        optimizer = config.get("optimizer", L_BFGS_B(maxiter=1000))
+        seed = config.get("seed")
+        aqc = AQC(optimizer, seed)
 
         approximate_circuit = CNOTUnitCircuit(num_qubits=num_qubits, cnots=cnots)
         approximating_objective = DefaultCNOTUnitObjective(num_qubits=num_qubits, cnots=cnots)
 
+        initial_point = config.get("initial_point")
         aqc.compile_unitary(
             target_matrix=unitary,
             approximate_circuit=approximate_circuit,
             approximating_objective=approximating_objective,
+            initial_point=initial_point,
         )
 
         dag_circuit = circuit_to_dag(approximate_circuit)
