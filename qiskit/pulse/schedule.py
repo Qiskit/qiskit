@@ -728,8 +728,7 @@ class Schedule:
                 return new_sched
             except PulseError as err:
                 raise PulseError(
-                    "Replacement of {old} with {new} results in "
-                    "overlapping instructions.".format(old=old, new=new)
+                    f"Replacement of {old} with {new} results in overlapping instructions."
                 ) from err
 
     def is_parameterized(self) -> bool:

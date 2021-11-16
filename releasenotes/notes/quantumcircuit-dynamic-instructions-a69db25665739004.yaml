@@ -1,0 +1,22 @@
+---
+features:
+  - |
+    Three new :class:`~qiskit.circuit.Instruction` subclasses have been added
+    to support control flow operations in dynamic circuits,
+    :class:`~qiskit.circuit.controlflow.WhileLoopOp`,
+    :class:`~qiskit.circuit.controlflow.ForLoopOp`,
+    and :class:`~qiskit.circuit.controlflow.IfElseOp`. Additionally, two
+    subclasses, :class:`~qiskit.circuit.controlflow.BreakLoopOp`,
+    and :class:`~qiskit.circuit.controlflow.ContinueLoopOp`, have been added to
+    support breaking from and continuing to the next iteration of a loop
+    context, respectively.
+
+    These can be created as stand alone :class:`~qiskit.circuit.Instruction` s,
+    or appended to an existing :class:`~qiskit.circuit.QuantumCircuit` instance
+    via their respective methods,
+    :meth:`~qiskit.circuit.QuantumCircuit.while_loop`,
+    :meth:`~qiskit.circuit.QuantumCircuit.for_loop`,
+    :meth:`~qiskit.circuit.QuantumCircuit.if_test`,
+    :meth:`~qiskit.circuit.QuantumCircuit.if_else`,
+    :meth:`~qiskit.circuit.QuantumCircuit.break_loop`,
+    and :meth:`~qiskit.circuit.QuantumCircuit.continue_loop`.

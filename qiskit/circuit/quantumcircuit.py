@@ -33,6 +33,7 @@ from typing import (
     Callable,
     Mapping,
     Set,
+    Iterable,
 )
 import typing
 import numpy as np
@@ -3926,6 +3927,198 @@ class QuantumCircuit:
         from qiskit.circuit.library.generalized_gates.pauli import PauliGate
 
         return self.append(PauliGate(pauli_string), qubits, [])
+
+    def while_loop(
+        self,
+        condition: Union[
+            Tuple[ClassicalRegister, int],
+            Tuple[Clbit, int],
+            Tuple[Clbit, bool],
+        ],
+        body: "QuantumCircuit",
+        qubits: Sequence[QubitSpecifier],
+        clbits: Sequence[ClbitSpecifier],
+        label: Optional[str] = None,
+    ) -> InstructionSet:
+        """Apply :class:`~qiskit.circuit.controlflow.WhileLoopOp`.
+
+        Args:
+            condition: A condition to be checked prior to executing ``body``. Can
+                be specified as either a tuple of a ``ClassicalRegister`` to be
+                tested for equality with a given ``int``, or as a tuple of a
+                ``Clbit`` to be compared to either a ``bool`` or an ``int``.
+            body: The loop body to be repeatedly executed.
+            qubits: The circuit qubits over which the loop body should be run.
+            clbits: The circuit clbits over which the loop body should be run.
+            label: The string label of the instruction in the circuit.
+
+        Returns:
+            A handle to the instruction created.
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.controlflow.while_loop import WhileLoopOp
+
+        return self.append(WhileLoopOp(condition, body, label), qubits, clbits)
+
+    def for_loop(
+        self,
+        loop_parameter: Union[Parameter, None],
+        indexset: Iterable[int],
+        body: "QuantumCircuit",
+        qubits: Sequence[QubitSpecifier],
+        clbits: Sequence[ClbitSpecifier],
+        label: Optional[str] = None,
+    ) -> InstructionSet:
+        """Apply :class:`~qiskit.circuit.controlflow.ForLoopOp`.
+
+        Args:
+            loop_parameter: The placeholder parameterizing ``body`` to which
+                the values from ``indexset`` will be assigned. If None is
+                provided, ``body`` will be repeated for each of the values
+                in ``indexset`` but the values will not be assigned to ``body``.
+            indexset: A collection of integers to loop over.
+            body: The loop body to be repeatedly executed.
+            qubits: The circuit qubits over which the loop body should be run.
+            clbits: The circuit clbits over which the loop body should be run.
+            label: The string label of the instruction in the circuit.
+
+        Returns:
+            A handle to the instruction created.
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.controlflow.for_loop import ForLoopOp
+
+        return self.append(ForLoopOp(loop_parameter, indexset, body, label), qubits, clbits)
+
+    def if_test(
+        self,
+        condition: Union[
+            Tuple[ClassicalRegister, int],
+            Tuple[Clbit, int],
+            Tuple[Clbit, bool],
+        ],
+        true_body: "QuantumCircuit",
+        qubits: Sequence[QubitSpecifier],
+        clbits: Sequence[ClbitSpecifier],
+        label: Optional[str] = None,
+    ) -> InstructionSet:
+        """Apply :class:`~qiskit.circuit.controlflow.IfElseOp` without a ``false_body``.
+
+        Args:
+            condition: A condition to be evaluated at circuit runtime which,
+                if true, will trigger the evaluation of ``true_body``. Can be
+                specified as either a tuple of a ``ClassicalRegister`` to be
+                tested for equality with a given ``int``, or as a tuple of a
+                ``Clbit`` to be compared to either a ``bool`` or an ``int``.
+            true_body: The circuit body to be run if ``condition`` is true.
+            qubits: The circuit qubits over which the if/else should be run.
+            clbits: The circuit clbits over which the if/else should be run.
+            label: The string label of the instruction in the circuit.
+
+        Raises:
+            CircuitError: If the provided condition references Clbits outside the
+                enclosing circuit.
+
+        Returns:
+            A handle to the instruction created.
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.controlflow.if_else import IfElseOp
+
+        if isinstance(condition[0], ClassicalRegister):
+            if condition[0] not in self.cregs:
+                raise CircuitError(
+                    "The condition provided to QuantumCircuit.if_ was not "
+                    "found on the enclosing circuit. "
+                    f"condition: {condition}, QuantumCircuit.cregs: {self.cregs}."
+                )
+        elif isinstance(condition[0], Clbit):
+            if condition[0] not in self._clbit_indices:
+                raise CircuitError(
+                    "The condition provided to QuantumCircuit.if_ was not "
+                    "found on the enclosing circuit. "
+                    f"condition: {condition}, QuantumCircuit.clbits: {self.clbits}."
+                )
+
+        return self.append(IfElseOp(condition, true_body, None, label), qubits, clbits)
+
+    def if_else(
+        self,
+        condition: Union[
+            Tuple[ClassicalRegister, int],
+            Tuple[Clbit, int],
+            Tuple[Clbit, bool],
+        ],
+        true_body: "QuantumCircuit",
+        false_body: "QuantumCircuit",
+        qubits: Sequence[QubitSpecifier],
+        clbits: Sequence[ClbitSpecifier],
+        label: Optional[str] = None,
+    ) -> InstructionSet:
+        """Apply :class:`~qiskit.circuit.controlflow.IfElseOp`.
+
+        Args:
+            condition: A condition to be evaluated at circuit runtime which,
+                if true, will trigger the evaluation of ``true_body``. Can be
+                specified as either a tuple of a ``ClassicalRegister`` to be
+                tested for equality with a given ``int``, or as a tuple of a
+                ``Clbit`` to be compared to either a ``bool`` or an ``int``.
+            true_body: The circuit body to be run if ``condition`` is true.
+            false_body: The circuit to be run if ``condition`` is false.
+            qubits: The circuit qubits over which the if/else should be run.
+            clbits: The circuit clbits over which the if/else should be run.
+            label: The string label of the instruction in the circuit.
+
+        Raises:
+            CircuitError: If the provided condition references Clbits outside the
+                enclosing circuit.
+
+        Returns:
+            A handle to the instruction created.
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.controlflow.if_else import IfElseOp
+
+        if isinstance(condition[0], ClassicalRegister):
+            if condition[0] not in self.cregs:
+                raise CircuitError(
+                    "The condition provided to QuantumCircuit.if_else was not "
+                    "found on the enclosing circuit. "
+                    f"condition: {condition}, QuantumCircuit.cregs: {self.cregs}."
+                )
+        elif isinstance(condition[0], Clbit):
+            if condition[0] not in self._clbit_indices:
+                raise CircuitError(
+                    "The condition provided to QuantumCircuit.if_else was not "
+                    "found on the enclosing circuit. "
+                    f"condition: {condition}, QuantumCircuit.clbits: {self.clbits}."
+                )
+
+        return self.append(IfElseOp(condition, true_body, false_body, label), qubits, clbits)
+
+    def break_loop(self) -> InstructionSet:
+        """Apply :class:`~qiskit.circuit.controlflow.BreakLoop`.
+
+        Returns:
+            A handle to the instruction created.
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.controlflow.break_loop import BreakLoopOp
+
+        return self.append(BreakLoopOp(self.num_qubits, self.num_clbits), self.qubits, self.clbits)
+
+    def continue_loop(self) -> InstructionSet:
+        """Apply :class:`~qiskit.circuit.controlflow.ContinueLoop`.
+
+        Returns:
+            A handle to the instruction created.
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.controlflow.continue_loop import ContinueLoopOp
+
+        return self.append(
+            ContinueLoopOp(self.num_qubits, self.num_clbits), self.qubits, self.clbits
+        )
 
     def add_calibration(
         self,

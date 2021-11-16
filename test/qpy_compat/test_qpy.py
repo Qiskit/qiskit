@@ -323,9 +323,11 @@ def _main():
     parser.add_argument(
         "--version",
         "-v",
-        help="Optionally specify the version being tested. "
-        "This will enable additional circuit features "
-        "to test generating and loading QPY.",
+        help=(
+            "Optionally specify the version being tested. "
+            "This will enable additional circuit features "
+            "to test generating and loading QPY."
+        ),
     )
     args = parser.parse_args()
     qpy_files = generate_circuits(args.version)

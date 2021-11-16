@@ -519,8 +519,7 @@ class HHL(LinearSolver):
         if observable is not None:
             if observable_circuit is not None or post_processing is not None:
                 raise ValueError(
-                    "If observable is passed, observable_circuit and post_processing "
-                    "cannot be set."
+                    "If observable is passed, observable_circuit and post_processing cannot be set."
                 )
 
         solution = LinearSolverResult()

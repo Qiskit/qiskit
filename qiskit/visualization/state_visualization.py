@@ -1416,8 +1416,10 @@ def state_drawer(state, output=None, **drawer_args):
             raise MissingOptionalLibraryError(
                 libname="IPython",
                 name="state_drawer",
-                pip_install="\"pip install ipython\", or set output='latex_source' "
-                "instead for an ASCII string.",
+                pip_install=(
+                    "\"pip install ipython\", or set output='latex_source' "
+                    "instead for an ASCII string."
+                ),
             ) from err
         else:
             draw_func = drawers["latex_source"]
