@@ -79,7 +79,7 @@ with open(README_PATH) as readme_file:
 
 
 visualization_extras = [
-    "matplotlib>=3.3",
+    "matplotlib>=3.3,<3.5",
     "ipywidgets>=7.3.0",
     "pydot",
     "pillow>=4.2.1",

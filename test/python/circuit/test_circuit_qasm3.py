@@ -108,8 +108,8 @@ class TestCircuitQasm3(QiskitTestCase):
                 "let first_four = _q[0:3];",
                 "let last_five = _q[5:9];",
                 # The exporter does not attempt to output steps.
-                "let alternate = _q[0:0] || _q[2:2] || _q[4:4] || _q[6:6] || _q[8:8];",
-                "let sporadic = _q[4:4] || _q[2:2] || _q[9:9];",
+                "let alternate = _q[0:0] ++ _q[2:2] ++ _q[4:4] ++ _q[6:6] ++ _q[8:8];",
+                "let sporadic = _q[4:4] ++ _q[2:2] ++ _q[9:9];",
                 "",
             ]
         )
