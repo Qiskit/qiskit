@@ -360,12 +360,12 @@ class Z2Symmetries:
                 "Z2 symmetries, single qubit pauli and single qubit list cannot be empty."
             )
 
-        if operator.is_zero():
-            logger.warning("The operator is empty, return the empty operator directly.")
-            return operator
-
-        for clifford in self.cliffords:
-            operator = cast(PauliSumOp, clifford @ operator @ clifford)
+        # If the operator is zero then we can skip the following. We still need to taper the
+        # operator to reduce its size i.e. the number of qubits so for example 0*"IIII" could
+        # taper to 0*"II" when symmetries remove two qubits.
+        if not operator.is_zero():
+            for clifford in self.cliffords:
+                operator = cast(PauliSumOp, clifford @ operator @ clifford)
 
         if self._tapering_values is None:
             tapered_ops_list = [

@@ -243,7 +243,7 @@ class BasicPrinter:
         self.stream.write("let ")
         self.visit(node.identifier)
         self.stream.write(" = ")
-        self._visit_sequence(node.concatenation, separator=" || ")
+        self._visit_sequence(node.concatenation, separator=" ++ ")
         self._end_statement()
 
     def _visit_QuantumGateModifier(self, node: QuantumGateModifier) -> None:
