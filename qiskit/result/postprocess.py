@@ -182,7 +182,7 @@ def format_statevector(vec, decimals=None):
     Returns:
         list[complex]: a list of python complex numbers.
     """
-    # pylint: disable=cyclic-import,import-outside-toplevel
+    # pylint: disable=cyclic-import
     from qiskit.quantum_info.states.statevector import Statevector
 
     if isinstance(vec, Statevector):
@@ -217,7 +217,7 @@ def format_unitary(mat, decimals=None):
     Returns:
         list[list[complex]]: a matrix of complex numbers
     """
-    # pylint: disable=cyclic-import,import-outside-toplevel
+    # pylint: disable=cyclic-import
     from qiskit.quantum_info.operators.operator import Operator
 
     if isinstance(mat, Operator):
