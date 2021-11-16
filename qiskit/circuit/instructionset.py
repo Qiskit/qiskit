@@ -167,7 +167,10 @@ class InstructionSet:
         :obj:`.ClassicalRegister` or :obj:`.Clbit` ``classical`` and value ``val``.
 
         .. note::
-            This overrides any previously set condition.
+
+            This is a setter method, not an additive one.  Calling this multiple times will silently
+            override any previously set condition on any of the contained instructions; it does not
+            stack.
 
         Args:
             classical: the classical resource the equality condition should be on.  If this is given

@@ -409,7 +409,8 @@ class Instruction:
 
         .. note::
 
-            This silently overrides any previously set condition; it does not stack.
+            This is a setter method, not an additive one.  Calling this multiple times will silently
+            override any previously set condition; it does not stack.
         """
         if not isinstance(classical, (ClassicalRegister, Clbit)):
             raise CircuitError("c_if must be used with a classical register or classical bit")
