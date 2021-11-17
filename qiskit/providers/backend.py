@@ -22,8 +22,6 @@ import itertools
 import logging
 from typing import List, Union, Iterable, Tuple
 
-import numpy as np
-
 from qiskit.providers.provider import Provider
 from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.circuit.gate import Instruction

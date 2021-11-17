@@ -14,7 +14,6 @@
 # pylint: disable=missing-module-docstring
 
 import math
-import statistics
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
