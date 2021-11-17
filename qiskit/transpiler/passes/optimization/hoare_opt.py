@@ -80,7 +80,7 @@ class HoareOptimizer(TransformationPass):
             self.gatenum[qbt] = 0
             self.variables[qbt] = []
             self.gatecache[qbt] = []
-            self.varnum[qbt] = dict()
+            self.varnum[qbt] = {}
             x = self._gen_variable(qbt)
             self.solver.add(Not(x))
 
@@ -395,10 +395,10 @@ class HoareOptimizer(TransformationPass):
         so it can be run multiple times.
         """
         self.solver = Solver()
-        self.variables = dict()
-        self.gatenum = dict()
-        self.gatecache = dict()
-        self.varnum = dict()
+        self.variables = {}
+        self.gatenum = {}
+        self.gatecache = {}
+        self.varnum = {}
 
     def run(self, dag):
         """

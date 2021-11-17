@@ -321,10 +321,10 @@ class _PulseBuilder:
         self._lazy_circuit = None
 
         #: Dict[str, Any]: Transpiler setting dictionary.
-        self._transpiler_settings = default_transpiler_settings or dict()
+        self._transpiler_settings = default_transpiler_settings or {}
 
         #: Dict[str, Any]: Scheduler setting dictionary.
-        self._circuit_scheduler_settings = default_circuit_scheduler_settings or dict()
+        self._circuit_scheduler_settings = default_circuit_scheduler_settings or {}
 
         #: List[ScheduleBlock]: Stack of context.
         self._context_stack = []
@@ -462,7 +462,7 @@ class _PulseBuilder:
 
     def _compile_circuit(self, circ) -> Schedule:
         """Take a QuantumCircuit and output the pulse schedule associated with the circuit."""
-        import qiskit.compiler as compiler  # pylint: disable=cyclic-import
+        from qiskit import compiler  # pylint: disable=cyclic-import
 
         transpiled_circuit = compiler.transpile(circ, self.backend, **self.transpiler_settings)
         sched = compiler.schedule(
@@ -542,7 +542,7 @@ class _PulseBuilder:
             )
 
         if not empty_subroutine:
-            param_value_map = dict()
+            param_value_map = {}
             for param_name, assigned_value in kw_params.items():
                 param_objs = subroutine.get_parameters(param_name)
                 if len(param_objs) > 0:
@@ -2102,7 +2102,7 @@ def delay_qubits(duration: int, *qubits: Union[int, Iterable[int]]):
             the channels returned by :func:`pulse.qubit_channels`.
     """
     qubit_chans = set(itertools.chain.from_iterable(qubit_channels(qubit) for qubit in qubits))
-    with align_left():  # pylint: disable=not-context-manager
+    with align_left():
         for chan in qubit_chans:
             delay(duration, chan)
 
