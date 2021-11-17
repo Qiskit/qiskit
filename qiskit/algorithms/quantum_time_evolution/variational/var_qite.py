@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 from typing import Optional, Union
 
-from scipy.integrate import RK45, OdeSolver
+from scipy.integrate import OdeSolver
 
 from qiskit.algorithms.quantum_time_evolution.evolution_base import EvolutionBase
 from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import (
@@ -40,7 +40,7 @@ class VarQite(VarQte, EvolutionBase):
         regularization: Optional[str] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
         error_based_ode: Optional[bool] = False,
-        ode_solver_callable: OdeSolver = RK45,
+        ode_solver_callable: OdeSolver = 'RK45',
         optimizer: str = "COBYLA",
     ):
         r"""
@@ -105,6 +105,7 @@ class VarQite(VarQte, EvolutionBase):
         init_state_param_dict = self._create_init_state_param_dict(
             hamiltonian_value_dict, list(initial_state.parameters)
         )
+
         return super().evolve_helper(
             self._create_imag_ode_function_generator,
             init_state_param_dict,

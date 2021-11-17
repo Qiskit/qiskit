@@ -145,8 +145,7 @@ class NaturalGradient(GradientBase):
             raise Warning("The imaginary part of the gradient are non-negligible.")
         c = np.real(c)
         a = np.real(a)
-        print('A ', a)
-        print('c ', c)
+
 
         if regularization:
             # If a regularization method is chosen then use a regularized solver to

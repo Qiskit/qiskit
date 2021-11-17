@@ -70,9 +70,6 @@ def eval_grad_result(
     else:
         grad_result = grad(param_dict, backend)
 
-    print('Gradient object')
-    print(grad_result)
-    print('Parameter dict ', param_dict)
     if backend is not None:
         grad_result = grad_circ_sampler.convert(grad_result, param_dict)
     else:

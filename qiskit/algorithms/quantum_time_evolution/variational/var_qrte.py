@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 from typing import Optional, Union
 
-from scipy.integrate import OdeSolver, RK45
+from scipy.integrate import OdeSolver
 
 from qiskit.algorithms.quantum_time_evolution.evolution_base import EvolutionBase
 from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import (
@@ -42,7 +42,7 @@ class VarQrte(VarQte, EvolutionBase):
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
         # TODO: Boolean argument missing to decide whether or not to compute the error bounds
         error_based_ode: Optional[bool] = False,
-        ode_solver_callable: OdeSolver = RK45,
+        ode_solver_callable: OdeSolver = 'RK45',
         optimizer: str = "COBYLA",
     ):
         r"""
