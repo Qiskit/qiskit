@@ -334,10 +334,14 @@ class HoareOptimizer(TransformationPass):
             return
 
         # try to optimize this qubit's pipeline
+        removed = set()
         for seq in self._target_successive_seq(qubit):
+            if set(seq) & removed:
+                continue
             if self._is_identity(seq) and self._seq_as_one(seq):
                 for node in seq:
                     dag.remove_op_node(node)
+                    removed.add(node)
                     # if recursive call, gate will be removed further down
                     if max_idx is None:
                         for qbt in node.qargs:
