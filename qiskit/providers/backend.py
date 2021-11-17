@@ -244,13 +244,14 @@ class BackendV1(Backend, ABC):
 class QubitProperties:
     """A representation of the properties of a qubit on a backend.
 
-    This class provides the minimum expected optional properties that a backend
-    can provide for a qubit. However, if your backend provides additional
+    This class provides the optional properties that a backend can provide for
+    a qubit. These represent the set of qubit properties that Qiskit can
+    currently work with if present. Howeverm if your backend provides additional
     properties of qubits you should subclass this to add additional custom
     attributes for those custom/additional properties provided by the backend.
     """
 
-    __slots = ("t1", "t2", "frequency", "properties")
+    __slots = ("t1", "t2", "frequency")
 
     def __init__(self, t1=None, t2=None, frequency=None, properties=None):
         """Create a new ``QubitProperties`` object

@@ -19,7 +19,7 @@ from collections.abc import Mapping
 from collections import defaultdict
 import io
 import logging
-from typing import Union, Dict, Any
+from typing import Union
 
 import retworkx as rx
 
@@ -32,16 +32,22 @@ logger = logging.getLogger(__name__)
 
 
 class InstructionProperties:
-    """A representation of the properties of a gate implementation."""
+    """A representation of the properties of a gate implementation.
 
-    __slots__ = ("length", "error", "calibration", "properties")
+    This class provides the optional properties that a backend can provide
+    about an instruction. These represent the set that the transpiler can
+    currently work with if present. However, if your backend provides additional
+    properties for instructions you should subclass this to add additional
+    custom attributes for those custom/additional properties by the backend.
+    """
+
+    __slots__ = ("length", "error", "calibration")
 
     def __init__(
         self,
         length: float = None,
         error: float = None,
         calibration: Union["Schedule", "ScheduleBlock"] = None,
-        properties: Dict[str, Any] = None,
     ):
         """Create a new ``InstructionProperties`` object
 
@@ -51,20 +57,15 @@ class InstructionProperties:
             error: The average error rate for the instruction on the specified
                 set of qubits.
             calibration: The pulse representation of the instruction
-            properties: A free form dictionary of additional properties the
-                backend has for a specified instruction (the
-                :class:`~qiskit.circuit.Instruction` object and qarg pair).
-
         """
         self.length = length
         self.error = error
         self.calibration = calibration
-        self.properties = properties
 
     def __repr__(self):
         return (
             f"InstructionProperties(length={self.length}, error={self.error}"
-            f", calibration={self.calibration}, properties={self.properties})"
+            f", calibration={self.calibration})"
         )
 
 

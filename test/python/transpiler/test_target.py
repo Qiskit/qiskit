@@ -645,7 +645,7 @@ class TestTarget(QiskitTestCase):
         self.aqt_target.update_instruction_properties(
             "rxx",
             (0, 1),
-            InstructionProperties(length=1e-6, error=1e-5, properties={"updated": True}),
+            InstructionProperties(length=1e-6, error=1e-5),
         )
         self.assertEqual(self.aqt_target["rxx"][(0, 1)].length, 1e-6)
         self.assertEqual(self.aqt_target["rxx"][(0, 1)].error, 1e-5)
@@ -841,12 +841,21 @@ Instructions:
 
     def test_extra_props_str(self):
         target = Target(description="Extra Properties")
-        extra_props = {
-            "tuned": False,
-            "diamond_norm_error": 2.12e-6,
-        }
+
+        class ExtraProperties(InstructionProperties):
+            """An example properties subclass."""
+
+            def __init__(
+                self, length=None, error=None, calibration=None, tuned=None, diamond_norm_error=None
+            ):
+                super().__init__(length=length, error=error, calibration=calibration)
+                self.tuned = tuned
+                self.diamond_norm_error = diamond_norm_error
+
         cx_props = {
-            (3, 4): InstructionProperties(length=270.22e-9, error=0.00713, properties=extra_props),
+            (3, 4): ExtraProperties(
+                length=270.22e-9, error=0.00713, tuned=False, diamond_norm_error=2.12e-6
+            ),
         }
         target.add_instruction(CXGate(), cx_props)
         expected = """Target: Extra Properties
@@ -856,10 +865,6 @@ Instructions:
 		(3, 4):
 			Duration: 2.7022e-07 sec.
 			Error Rate: 0.00713
-			Extra properties:
-				tuned: False
-				diamond_norm_error: 2.12e-06
-
 """
         self.assertEqual(expected, str(target))
 
@@ -1022,5 +1027,5 @@ class TestInstructionProperties(QiskitTestCase):
         properties = InstructionProperties()
         self.assertEqual(
             repr(properties),
-            "InstructionProperties(length=None, error=None, calibration=None, properties=None)",
+            "InstructionProperties(length=None, error=None, calibration=None)",
         )
