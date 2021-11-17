@@ -14,7 +14,7 @@
 # https://github.com/Qiskit/qiskit-ignis/blob/b91066c72171bcd55a70e6e8993b813ec763cf41/qiskit/ignis/mitigation/measurement/filters.py
 # it was migrated as qiskit-ignis is being deprecated
 
-# pylint: disable=cell-var-from-loop,invalid-name
+# pylint: disable=cell-var-from-loop
 
 
 """

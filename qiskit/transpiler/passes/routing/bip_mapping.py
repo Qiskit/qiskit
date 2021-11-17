@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=import-error
-
 """Map a DAGCircuit onto a given ``coupling_map``, allocating qubits and adding swap gates."""
 import copy
 import logging
