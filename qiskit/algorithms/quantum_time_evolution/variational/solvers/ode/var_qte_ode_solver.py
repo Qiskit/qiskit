@@ -9,11 +9,12 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+import itertools
 
-from scipy.integrate import RK45, OdeSolver
+from scipy.integrate import OdeSolver, solve_ivp
 
-from qiskit import QiskitError
-from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
+from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode\
+    .abstract_ode_function_generator import (
     AbstractOdeFunctionGenerator,
 )
 
@@ -23,7 +24,7 @@ class VarQteOdeSolver:
         self,
         init_params,
         ode_function_generator: AbstractOdeFunctionGenerator,
-        ode_solver_callable: OdeSolver = RK45,
+        ode_solver_callable: OdeSolver = 'RK45',
     ):
         """
         Initialize ODE Solver
@@ -42,29 +43,9 @@ class VarQteOdeSolver:
         Args:
             evolution_time: Evolution time.
         """
-        ode_solver = self._ode_solver_callable(
-            self._ode_function,
-            t_bound=evolution_time,
-            t0=0,
-            y0=self._init_params,  # appending 0 was here in case of bounds, not yet supported.
-            vectorized=False,
-            atol=1e-6,
-        )
-        param_values = None
+        print(self._ode_function(0, self._init_params))
+        print("******************")
+        sol = solve_ivp(self._ode_function, (0, evolution_time), self._init_params, method=self._ode_solver_callable, t_eval=[evolution_time])
+        final_params_vals = list(itertools.chain(*sol.y))
 
-        _ = ode_solver.fun(ode_solver.t, ode_solver.y)
-        while ode_solver.t < evolution_time:
-            ode_solver.step()
-            if ode_solver.t <= evolution_time:
-                _ = ode_solver.fun(ode_solver.t, ode_solver.y)
-            param_values = ode_solver.y  # was ode_solver.y[:-1] if last element error bound
-            # related, currently no error bound appended
-            if ode_solver.status == "finished":
-                break
-            elif ode_solver.status == "failed":
-                raise QiskitError("ODESolver failed.")
-            #TODO It seems weird to me that the ODE time here is not yet the evolution time.
-            # Where does it change?
-            print('ODE time', ode_solver.t)
-
-        return param_values
+        return final_params_vals
