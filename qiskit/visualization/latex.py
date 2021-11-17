@@ -23,7 +23,13 @@ from qiskit.circuit.library.standard_gates import SwapGate, XGate, ZGate, RZZGat
 from qiskit.circuit.measure import Measure
 from qiskit.visualization.qcstyle import load_style
 from qiskit.circuit.tools.pi_check import pi_check
-from .utils import get_gate_ctrl_text, get_param_str, get_bit_label, generate_latex_label
+from .utils import (
+    get_gate_ctrl_text,
+    get_param_str,
+    get_bit_label,
+    generate_latex_label,
+    get_condition_label,
+)
 
 
 class QCircuitImage:
@@ -77,9 +83,6 @@ class QCircuitImage:
 
         # image scaling
         self.scale = 1.0 if scale is None else scale
-
-        # Map of qregs to sizes
-        self.qregs = {}
 
         # Map of cregs to sizes
         self.cregs = {}
@@ -581,78 +584,70 @@ class QCircuitImage:
 
     def _add_condition(self, op, wire_list, col):
         """Add a condition to the _latex list"""
-        # if_value - a bit string for the condition
         # cwire - the wire number for the first wire for the condition register
         #         or if cregbundle, wire number of the condition register itself
         # gap - the number of wires from cwire to the bottom gate qubit
 
+        label, clbit_mask, val_list = get_condition_label(
+            op.condition, self._clbits, self.bit_locations, self.cregbundle
+        )
+        if not self.reverse_bits:
+            val_list = val_list[::-1]
         cond_is_bit = isinstance(op.condition[0], Clbit)
-        if cond_is_bit:
-            cond_reg = self.bit_locations[op.condition[0]]["register"]
-            cond_reg_name = cond_reg.name if cond_reg is not None else ""
-            if_value = op.condition[1]
-        else:
-            cond_reg = op.condition[0]
-            creg_size = self.cregs[cond_reg]
-            if_value = format(op.condition[1], "b").zfill(creg_size)
-            if not self.reverse_bits:
-                if_value = if_value[::-1]
-
+        cond_reg = (
+            op.condition[0] if not cond_is_bit else self.bit_locations[op.condition[0]]["register"]
+        )
+        # if cregbundle, add 1 to cwire for each register and each registerless bit, until
+        # the condition bit/register is found. If not cregbundle, add 1 to cwire for every
+        # bit until condition found.
         cwire = len(self._qubits)
-        iter_cregs = iter(list(self.cregs)) if self.cregbundle else iter(self.cregs_bits)
-        for creg in iter_cregs:
-            if creg == cond_reg:
-                break
-            cwire += 1
+        if self.cregbundle:
+            prev_reg = None
+            for i, reg in enumerate(self.cregs_bits):
+                # if it's a registerless bit
+                if reg is None:
+                    if self._clbits[i] == op.condition[0]:
+                        break
+                    cwire += 1
+                    continue
+                # if it's a whole register or a bit in a register
+                if reg == cond_reg:
+                    break
+                if self.cregbundle and prev_reg and prev_reg == reg:
+                    continue
+                cwire += 1
+                prev_reg = reg
+        else:
+            for bit in clbit_mask:
+                if bit == "1":
+                    break
+                cwire += 1
 
         gap = cwire - max(wire_list)
         meas_offset = -0.3 if isinstance(op, Measure) else 0.0
-        if self.cregbundle:
-            # Print the condition value at the bottom and put bullet on creg line
-            if cond_is_bit:
-                ctrl_bit = (
-                    str(cond_reg_name) + "_" + str(self.bit_locations[op.condition[0]]["index"])
-                )
-                label = "T" if if_value is True else "F"
-                self._latex[cwire][col] = "\\control \\cw^(%s){^{\\mathtt{%s=%s}}} \\cwx[-%s]" % (
-                    meas_offset,
-                    ctrl_bit,
-                    label,
-                    str(gap),
-                )
-            else:
-                self._latex[cwire][col] = "\\control \\cw^(%s){^{\\mathtt{%s}}} \\cwx[-%s]" % (
-                    meas_offset,
-                    str(hex(op.condition[1])),
-                    str(gap),
-                )
+        # Print the condition value at the bottom and put bullet on creg line
+        if cond_is_bit or self.cregbundle:
+            control = "\\control" if op.condition[1] else "\\controlo"
+            self._latex[cwire][col] = f"{control}" + " \\cw^(%s){^{\\mathtt{%s}}} \\cwx[-%s]" % (
+                meas_offset,
+                label,
+                str(gap),
+            )
         else:
-            # Add the open and closed buttons to indicate the condition value
-            if cond_is_bit:
-                extra_gap = 0  # list(cond_reg).index(op.condition[0])
-                gap += extra_gap
-                control = "\\control" if if_value is True else "\\controlo"
-                self._latex[cwire + extra_gap][col] = (
-                    f"{control}" + " \\cw^(%s){^{\\mathtt{%s}}} \\cwx[-%s]"
-                ) % (
-                    meas_offset,
-                    str(hex(op.condition[1])),
-                    str(gap),
-                )
-            else:
-                for i in range(creg_size - 1):
-                    control = "\\control" if if_value[i] == "1" else "\\controlo"
-                    self._latex[cwire + i][col] = f"{control} \\cw \\cwx[-" + str(gap) + "]"
-                    gap = 1
-                # Add (hex condition value) below the last cwire
-                control = "\\control" if if_value[creg_size - 1] == "1" else "\\controlo"
-                self._latex[creg_size + cwire - 1][col] = (
-                    f"{control}" + " \\cw^(%s){^{\\mathtt{%s}}} \\cwx[-%s]"
-                ) % (
-                    meas_offset,
-                    str(hex(op.condition[1])),
-                    str(gap),
-                )
+            creg_size = op.condition[0].size
+            for i in range(creg_size - 1):
+                control = "\\control" if val_list[i] == "1" else "\\controlo"
+                self._latex[cwire + i][col] = f"{control} \\cw \\cwx[-" + str(gap) + "]"
+                gap = 1
+            # Add (hex condition value) below the last cwire
+            control = "\\control" if val_list[creg_size - 1] == "1" else "\\controlo"
+            self._latex[creg_size + cwire - 1][col] = (
+                f"{control}" + " \\cw^(%s){^{\\mathtt{%s}}} \\cwx[-%s]"
+            ) % (
+                meas_offset,
+                label,
+                str(gap),
+            )
 
     def _truncate_float(self, matchobj, ndigits=4):
         """Truncate long floats."""

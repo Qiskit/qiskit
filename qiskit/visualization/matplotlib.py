@@ -837,19 +837,19 @@ class MatplotlibDrawer:
 
     def _condition(self, node, cond_xy):
         """Add a conditional to a gate"""
-        label, cmask, vlist = get_condition_label(
+        label, clbit_mask, val_list = get_condition_label(
             node.op.condition, self._clbits, self._bit_locations, self._cregbundle
         )
         if not self._reverse_bits:
-            vlist = vlist[::-1]
+            val_list = val_list[::-1]
 
         # plot the conditionals
         v_ind = 0
         xy_plot = []
-        for xy, m in zip(cond_xy, cmask):
+        for xy, m in zip(cond_xy, clbit_mask):
             if m == "1":
                 if xy not in xy_plot:
-                    if node.op.condition[1] != 0 and (vlist[v_ind] == "1" or self._cregbundle):
+                    if node.op.condition[1] != 0 and (val_list[v_ind] == "1" or self._cregbundle):
                         fc = self._style["lc"]
                     else:
                         fc = self._style["bg"]

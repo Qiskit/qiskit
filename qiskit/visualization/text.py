@@ -24,7 +24,12 @@ from qiskit.circuit import Reset
 from qiskit.circuit import Measure
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
 from qiskit.circuit.tools.pi_check import pi_check
-from qiskit.visualization.utils import get_gate_ctrl_text, get_param_str, get_bit_label, get_condition_label
+from qiskit.visualization.utils import (
+    get_gate_ctrl_text,
+    get_param_str,
+    get_bit_label,
+    get_condition_label,
+)
 from .exceptions import VisualizationError
 
 
@@ -1339,17 +1344,17 @@ class Layer:
             condition (list[Union(Clbit, ClassicalRegister), int]): The condition
             top_connect (char): The char to connect the box on the top.
         """
-        label, clbit_mask, vlist = get_condition_label(
+        label, clbit_mask, val_list = get_condition_label(
             condition, self.clbits_raw, self._clbit_locations, self.cregbundle
         )
         if not self.reverse_bits:
-            vlist = vlist[::-1]
+            val_list = val_list[::-1]
 
         if self.cregbundle:
             if isinstance(condition[0], Clbit):
                 # if it's a registerless Clbit
                 if self._clbit_locations[condition[0]]["register"] is None:
-                    self.set_cond_bullets(label, vlist, [condition[0]])
+                    self.set_cond_bullets(label, val_list, [condition[0]])
                 # if it's a single bit in a register
                 else:
                     self.set_clbit(condition[0], BoxOnClWire(label=label, top_connect=top_connect))
@@ -1361,9 +1366,9 @@ class Layer:
             for i, val in enumerate(clbit_mask):
                 if clbit_mask[i] == "1":
                     clbits.append(self.clbits[i])
-            self.set_cond_bullets(label, vlist, clbits)
+            self.set_cond_bullets(label, val_list, clbits)
 
-    def set_cond_bullets(self, label, vlist, clbits):
+    def set_cond_bullets(self, label, val_list, clbits):
         """Sets bullets for classical conditioning when cregbundle=False.
 
         Args:
@@ -1375,10 +1380,14 @@ class Layer:
             bot_connect = " "
             if bit == clbits[-1]:
                 bot_connect = label
-            if vlist[i] == "1":
-                self.clbit_layer[self.clbits.index(bit)] = ClBullet(top_connect="║", bot_connect=bot_connect)
-            elif vlist[i] == "0":
-                self.clbit_layer[self.clbits.index(bit)] = ClOpenBullet(top_connect="║", bot_connect=bot_connect)
+            if val_list[i] == "1":
+                self.clbit_layer[self.clbits.index(bit)] = ClBullet(
+                    top_connect="║", bot_connect=bot_connect
+                )
+            elif val_list[i] == "0":
+                self.clbit_layer[self.clbits.index(bit)] = ClOpenBullet(
+                    top_connect="║", bot_connect=bot_connect
+                )
 
     def set_qu_multibox(
         self,

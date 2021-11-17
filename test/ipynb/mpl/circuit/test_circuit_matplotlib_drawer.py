@@ -486,7 +486,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         self.circuit_drawer(circuit, filename="scale_double.png", scale=2)
 
     def test_pi_param_expr(self):
-        """Text pi in circuit with parameter expression."""
+        """Test pi in circuit with parameter expression."""
         x, y = Parameter("x"), Parameter("y")
         circuit = QuantumCircuit(1)
         circuit.rx((pi - x) * (pi - y), 0)
