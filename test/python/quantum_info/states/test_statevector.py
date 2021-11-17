@@ -208,6 +208,22 @@ class TestStatevector(QiskitTestCase):
             vec = self.rand_vec(4)
             self.assertEqual(Statevector(vec), Statevector(vec.tolist()))
 
+    def test_getitem(self):
+        """Test __getitem__ method"""
+        for _ in range(10):
+            vec = self.rand_vec(4)
+            state = Statevector(vec)
+            for i in range(4):
+                self.assertEqual(state[i], vec[i])
+                self.assertEqual(state[format(i, "b")], vec[i])
+
+    def test_getitem_except(self):
+        """Test __getitem__ method raises exceptions."""
+        for i in range(1, 4):
+            state = Statevector(self.rand_vec(2 ** i))
+            self.assertRaises(QiskitError, state.__getitem__, 2 ** i)
+            self.assertRaises(QiskitError, state.__getitem__, -1)
+
     def test_copy(self):
         """Test Statevector copy method"""
         for _ in range(5):
@@ -334,6 +350,29 @@ class TestStatevector(QiskitTestCase):
             self.assertEqual(state.dim, 6)
             self.assertEqual(state.dims(), (3, 2))
             assert_allclose(state.data, target)
+
+    def test_inner(self):
+        """Test inner method."""
+        for _ in range(10):
+            vec0 = Statevector(self.rand_vec(4))
+            vec1 = Statevector(self.rand_vec(4))
+            target = np.vdot(vec0.data, vec1.data)
+            result = vec0.inner(vec1)
+            self.assertAlmostEqual(result, target)
+            vec0 = Statevector(self.rand_vec(6), dims=(2, 3))
+            vec1 = Statevector(self.rand_vec(6), dims=(2, 3))
+            target = np.vdot(vec0.data, vec1.data)
+            result = vec0.inner(vec1)
+            self.assertAlmostEqual(result, target)
+
+    def test_inner_except(self):
+        """Test inner method raises exceptions."""
+        vec0 = Statevector(self.rand_vec(4))
+        vec1 = Statevector(self.rand_vec(3))
+        self.assertRaises(QiskitError, vec0.inner, vec1)
+        vec0 = Statevector(self.rand_vec(6), dims=(2, 3))
+        vec1 = Statevector(self.rand_vec(6), dims=(3, 2))
+        self.assertRaises(QiskitError, vec0.inner, vec1)
 
     def test_add(self):
         """Test add method."""

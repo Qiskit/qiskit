@@ -96,8 +96,7 @@ def instruction_duration_validation(duration: int):
 
     if not isinstance(duration, (int, np.integer)) or duration < 0:
         raise QiskitError(
-            "Instruction duration must be a non-negative integer, "
-            "got {} instead.".format(duration)
+            f"Instruction duration must be a non-negative integer, got {duration} instead."
         )
 
 

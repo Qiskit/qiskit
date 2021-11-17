@@ -954,9 +954,9 @@ class TextDrawing:
         args_qubits = node.qargs[num_ctrl_qubits:]
         ctrl_state = f"{op.ctrl_state:b}".rjust(num_ctrl_qubits, "0")[::-1]
 
-        in_box = list()
-        top_box = list()
-        bot_box = list()
+        in_box = []
+        top_box = []
+        bot_box = []
 
         qubit_index = sorted(i for i, x in enumerate(layer.qubits) if x in args_qubits)
 
