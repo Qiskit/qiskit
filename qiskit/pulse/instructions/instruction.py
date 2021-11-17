@@ -22,7 +22,7 @@ For example::
     sched += Delay(duration, channel)  # Delay is a specific subclass of Instruction
 """
 from abc import ABC, abstractmethod
-from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Any
+from typing import Callable, Iterable, List, Optional, Set, Tuple
 
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
