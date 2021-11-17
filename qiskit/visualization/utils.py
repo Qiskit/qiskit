@@ -224,7 +224,7 @@ def get_condition_label(condition, clbits, bit_locations, cregbundle):
     """Get the label to display as a condition
 
     Args:
-        condition ((Union[Clbit, ClassicalRegister], int)): classical condition
+        condition (Union[Clbit, ClassicalRegister], int): classical condition
         clbits (list(Clbit)): the classical bits in the circuit
         bit_locations (dict): the bits in the circuit with register and index
         cregbundle (bool): if set True bundle classical registers
@@ -473,12 +473,12 @@ class _LayerSpooler(list):
             curr_index = index
             last_insertable_index = -1
             index_stop = -1
-            """if node.op.condition:
+            if node.op.condition:
                 if isinstance(node.op.condition[0], Clbit):
                     cond_reg = [creg for creg in self.cregs if node.op.condition[0] in creg]
                     index_stop = self.measure_map[cond_reg[0]]
                 else:
-                    index_stop = self.measure_map[node.op.condition[0]]"""
+                    index_stop = self.measure_map[node.op.condition[0]]
             if node.cargs:
                 for carg in node.cargs:
                     try:
