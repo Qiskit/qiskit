@@ -773,7 +773,7 @@ class NLocal(BlueprintCircuit):
             for i in entangler_map:
                 params = self.ordered_parameters[-len(get_parameters(block)) :]
                 parameterized_block = self._parameterize_block(block, params=params)
-                layer.compose(parameterized_block, i)
+                layer.compose(parameterized_block, i, inplace=True)
 
             self.compose(layer, inplace=True)
         else:
