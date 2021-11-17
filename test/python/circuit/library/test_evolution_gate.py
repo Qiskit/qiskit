@@ -17,7 +17,7 @@ from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.synthesis import LieTrotter, SuzukiTrotter, MatrixExponential
+from qiskit.synthesis import LieTrotter, SuzukiTrotter, MatrixExponential, QDrift
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.opflow import I, X, Y, Z, PauliSumOp
@@ -110,6 +110,25 @@ class TestEvolutionGate(QiskitTestCase):
             expected.rx(p_4 * time, 0)
             expected.ry(2 * p_4 * time, 0)
             expected.rx(p_4 * time, 0)
+
+        self.assertEqual(evo_gate.definition.decompose(), expected)
+
+    def test_qdrift_manual(self):
+        """Test the evolution circuit of Suzuki Trotter against a manually constructed circuit."""
+        op = X + Y
+        time = 0.5
+        reps = 1
+        qdrift = QDrift(reps=reps)
+        evo_gate = PauliEvolutionGate(op, time, synthesis=qdrift)
+        evo_gate.definition.decompose()
+
+        # manually construct expected evolution
+        expected = QuantumCircuit(1)
+        for pauli in qdrift.sampled_ops:
+            if pauli[0].to_label() == 'X':
+                expected.rx(2 * pauli[1], 0)
+            elif pauli[0].to_label() == 'Y':
+                expected.ry(2 * pauli[1], 0)
 
         self.assertEqual(evo_gate.definition.decompose(), expected)
 

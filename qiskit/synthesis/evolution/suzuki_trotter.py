@@ -103,7 +103,8 @@ class SuzukiTrotter(ProductFormula):
     @staticmethod
     def _recurse(order, time, pauli_list):
         if order < 1:
-            raise ValueError("This bitch empty -- yeet!")
+            raise ValueError("The order of the Trotterization should be an integer number at least "
+                             "1.")
 
         if order == 1:
             return pauli_list
