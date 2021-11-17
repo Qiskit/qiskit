@@ -21,8 +21,8 @@ For example::
     sched = Schedule()
     sched += Delay(duration, channel)  # Delay is a specific subclass of Instruction
 """
-from abc import ABC, abstractproperty
-from typing import Callable, Iterable, List, Optional, Set, Tuple
+from abc import ABC, abstractmethod
+from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Any
 
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
@@ -75,7 +75,8 @@ class Instruction(ABC):
         """Return instruction operands."""
         return self._operands
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def channels(self) -> Tuple[Channel]:
         """Returns the channels that this schedule uses."""
         raise NotImplementedError

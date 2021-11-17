@@ -54,7 +54,7 @@ class Call(instruction.Instruction):
         if not isinstance(subroutine, (ScheduleBlock, Schedule)):
             raise PulseError(f"Subroutine type {subroutine.__class__.__name__} cannot be called.")
 
-        value_dict = value_dict or dict()
+        value_dict = value_dict or {}
 
         # initialize parameter template
         if subroutine.is_parameterized():
@@ -63,7 +63,7 @@ class Call(instruction.Instruction):
                 value_dict=self.arguments, inplace=False
             )
         else:
-            self._arguments = dict()
+            self._arguments = {}
             assigned_subroutine = subroutine
 
         # create cache data of parameter-assigned subroutine

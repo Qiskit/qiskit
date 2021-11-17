@@ -83,7 +83,7 @@ class EventsOutputChannels:
             pulse = instruction.pulse
         else:
             pulse = instruction
-        if start_time in self.pulses.keys():
+        if start_time in self.pulses:
             self.pulses[start_time].append(pulse)
         else:
             self.pulses[start_time] = [pulse]

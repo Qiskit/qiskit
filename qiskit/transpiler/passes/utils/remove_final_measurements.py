@@ -36,7 +36,7 @@ class RemoveFinalMeasurements(TransformationPass):
         """
         final_op_types = {"measure", "barrier"}
         final_ops = []
-        cregs_to_remove = dict()
+        cregs_to_remove = {}
         clbits_with_final_measures = set()
         clbit_registers = {clbit: creg for creg in dag.cregs.values() for clbit in creg}
 

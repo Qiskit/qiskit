@@ -85,7 +85,7 @@ def _parallel_allocation(block: ScheduleBlock) -> rx.PyDAG:
     """A helper function to create a DAG of a parallel alignment context."""
     dag_blocks = rx.PyDAG()
 
-    slots = dict()
+    slots = {}
     edges = []
     for inst in block.blocks:
         current_node = dag_blocks.add_node(inst)

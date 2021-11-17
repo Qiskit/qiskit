@@ -111,7 +111,7 @@ class Waveform(Pulse):
     @property
     def parameters(self) -> Dict[str, Any]:
         """Return a dictionary containing the pulse's parameters."""
-        return dict()
+        return {}
 
     def __eq__(self, other: Pulse) -> bool:
         return (
