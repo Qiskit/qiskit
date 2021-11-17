@@ -226,6 +226,7 @@ def get_condition_label(condition, clbits, bit_locations, cregbundle):
 
     Args:
         condition ((Union[Clbit, ClassicalRegister], int)): classical condition
+        clbits (list(Clbit)): the classical bits in the circuit
         bit_locations (dict): the bits in the circuit with register and index
         cregbundle (bool): if set True bundle classical registers
 

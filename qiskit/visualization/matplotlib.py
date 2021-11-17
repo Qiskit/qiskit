@@ -27,7 +27,7 @@ try:
 except ImportError:
     HAS_PYLATEX = False
 
-from qiskit.circuit import ControlledGate, Clbit
+from qiskit.circuit import ControlledGate
 from qiskit.circuit import Measure
 from qiskit.circuit.library.standard_gates import (
     SwapGate,

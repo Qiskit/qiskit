@@ -1363,7 +1363,7 @@ class Layer:
                 self.set_clbit(condition[0][0], BoxOnClWire(label=label, top_connect=top_connect))
         else:
             clbits = []
-            for i, val in enumerate(clbit_mask):
+            for i, _ in enumerate(clbit_mask):
                 if clbit_mask[i] == "1":
                     clbits.append(self.clbits[i])
             self.set_cond_bullets(label, val_list, clbits)
@@ -1372,7 +1372,8 @@ class Layer:
         """Sets bullets for classical conditioning when cregbundle=False.
 
         Args:
-            val (str): The condition value as a string
+            label (str): String to display below the condition
+            val_list (list(int)): A list of bit values
             clbits (list[Clbit]): The list of classical bits on
                 which the instruction is conditioned.
         """
