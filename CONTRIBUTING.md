@@ -29,7 +29,7 @@ contributing to terra, these are documented below.
 Qiskit terra uses the following labels to help non-maintainers find issues best suited to their interests and experience level:
 
 * [good first issue](https://github.com/Qiskit/qiskit-terra/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) - these issues are typically the simplest available to work on, perfect for newcomers
-* [good for community](https://github.com/Qiskit/qiskit-terra/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+for+community%22) - these issues are low priority work that core maintainers may not have capacity to work on. They are generally more complex than good first issues, a great option for experienced contributors looking for something a bit more challenging
+* [help wanted](https://github.com/Qiskit/qiskit-terra/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22) - these issues are potentially low priority work that core maintainers may not have capacity to work on. They are generally more complex than good first issues, a great option for experienced contributors looking for something a bit more challenging
 * [short project](https://github.com/Qiskit/qiskit-terra/issues?q=is%3Aopen+is%3Aissue+label%3A%22short+project%22) - these issues are bigger pieces of work that require greater time commitment. Good options for hackathons, internship projects etc.
 
 ### Pull request checklist
