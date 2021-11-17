@@ -237,7 +237,7 @@ class Layout:
             LayoutError: another_layout can be bigger than self, but not smaller.
                 Otherwise, raises.
         """
-        edge_map = dict()
+        edge_map = {}
 
         for virtual, physical in self.get_virtual_bits().items():
             if physical not in another_layout._p2v:
