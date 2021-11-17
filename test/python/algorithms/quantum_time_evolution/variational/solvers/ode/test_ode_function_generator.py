@@ -21,7 +21,6 @@ from qiskit import Aer
 from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
-from qiskit.circuit import Parameter
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import (
     SummedOp,
@@ -57,9 +56,9 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         backend = Aer.get_backend("qasm_simulator")
 
         var_principle = ImaginaryMcLachlanVariationalPrinciple()
-        regularization = "ridge"
+
         # for the purpose of the test we invoke lazy_init
-        var_principle._lazy_init(observable, ansatz, param_dict, regularization)
+        var_principle._lazy_init(observable, ansatz, parameters)
         time = 2
 
         ode_function_generator = OdeFunctionGenerator(

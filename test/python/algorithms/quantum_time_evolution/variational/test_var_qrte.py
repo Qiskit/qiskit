@@ -13,7 +13,7 @@
 import unittest
 
 import numpy as np
-
+from qiskit.quantum_info import state_fidelity, Statevector
 from qiskit.algorithms.quantum_time_evolution.variational.principles.real.implementations\
     .real_mc_lachlan_variational_principle import (
     RealMcLachlanVariationalPrinciple,
@@ -26,7 +26,7 @@ from qiskit.opflow import (
     X,
     Y,
     I,
-    Z,
+    Z, StateFn,
 )
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
@@ -81,6 +81,8 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
                            1.50506159, 2.28006157,  1.1236262]
 
         parameter_values = evolution_result.data[0][0].params
+
+        print(state_fidelity(Statevector(evolution_result), Statevector(ansatz.assign_parameters(dict(zip(ansatz.parameters, thetas_expected))))))
         print('Expected ', thetas_expected)
         print('Computed ', parameter_values)
         for i, parameter_value in enumerate(parameter_values):
