@@ -45,14 +45,14 @@ class TestRealMcLachlanVariationalPrinciple(QiskitAlgorithmsTestCase):
         parameters = ansatz.ordered_parameters
         param_dict = {param: np.pi / 4 for param in parameters}
         var_principle = RealMcLachlanVariationalPrinciple()
-        regularization = "ridge"
+
         # for the purpose of the test we invoke lazy_init
-        var_principle._lazy_init(observable, ansatz, param_dict, regularization)
+        var_principle._lazy_init(observable, ansatz, parameters)
 
         raw_metric_tensor = metric_tensor_calculator.calculate(
             ansatz, parameters, var_principle._qfi_method
         )
-        metric_tensor = var_principle.metric_tensor
+        metric_tensor = var_principle._raw_metric_tensor
 
         bound_raw_metric_tensor = raw_metric_tensor.bind_parameters(param_dict)
         expected_metric_tensor = bound_raw_metric_tensor / 4.0
@@ -78,14 +78,14 @@ class TestRealMcLachlanVariationalPrinciple(QiskitAlgorithmsTestCase):
         parameters = ansatz.ordered_parameters
         param_dict = {param: np.pi / 4 for param in parameters}
         var_principle = RealMcLachlanVariationalPrinciple()
-        regularization = "ridge"
+
         # for the purpose of the test we invoke lazy_init
-        var_principle._lazy_init(observable, ansatz, param_dict, regularization)
+        var_principle._lazy_init(observable, ansatz, parameters)
 
         raw_evolution_grad = evolution_grad_calculator.calculate(
             observable, ansatz, parameters, var_principle._grad_method, basis=-1j * Y
         )
-        evolution_grad = var_principle.evolution_grad
+        evolution_grad = var_principle._raw_evolution_grad
 
         bound_raw_evolution_grad = raw_evolution_grad.bind_parameters(param_dict)
         expected_evolution_grad = bound_raw_evolution_grad
