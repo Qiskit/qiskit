@@ -207,8 +207,7 @@ def get_bit_label(drawer, register, index, qubit=True, layout=None, cregbundle=T
                 bit_label = f"{virt_reg.name}_{virt_reg[:].index(virt_bit)} -> {index}"
             else:
                 bit_label = (
-                    f"{{{virt_reg.name}}}_{{{virt_reg[:].index(virt_bit)}}}"
-                    f" \\mapsto {{{index}}}"
+                    f"{{{virt_reg.name}}}_{{{virt_reg[:].index(virt_bit)}}} \\mapsto {{{index}}}"
                 )
         except StopIteration:
             if drawer == "text":

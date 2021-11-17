@@ -379,8 +379,7 @@ def execute(
             if not hasattr(backend.options, key):
                 if run_kwargs[key] is not None:
                     logger.info(
-                        "%s backend doesn't support option %s so not "
-                        "passing that kwarg to run()",
+                        "%s backend doesn't support option %s so not passing that kwarg to run()",
                         backend.name,
                         key,
                     )
