@@ -69,6 +69,9 @@ try:
 except Exception:  # pylint: disable=broad-except
     HAS_PYGMENTS = False
 
+if typing.TYPE_CHECKING:
+    import qiskit  # pylint: disable=cyclic-import
+
 BitLocations = namedtuple("BitLocations", ("index", "registers"))
 
 
@@ -242,6 +245,14 @@ class QuantumCircuit:
         # Data contains a list of instructions and their contexts,
         # in the order they were applied.
         self._data = []
+
+        # A stack to hold the instruction sets that are being built up during for-, if- and
+        # while-block construction.  These are stored as a stripped down sequence of instructions,
+        # and sets of qubits and clbits, rather than a full QuantumCircuit instance because the
+        # builder interfaces need to wait until they are completed before they can fill in things
+        # like `break` and `continue`.  This is because these instructions need to "operate" on the
+        # full width of bits, but the builder interface won't know what bits are used until the end.
+        self._control_flow_scopes = []
 
         self.qregs = []
         self.cregs = []
@@ -1209,9 +1220,15 @@ class QuantumCircuit:
         expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
         expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
 
-        instructions = InstructionSet(resource_requester=self._resolve_classical_resource)
-        for (qarg, carg) in instruction.broadcast_arguments(expanded_qargs, expanded_cargs):
-            instructions.add(self._append(instruction, qarg, carg), qarg, carg)
+        if self._control_flow_scopes:
+            appender = self._control_flow_scopes[-1].append
+            requester = self._control_flow_scopes[-1].request_classical_resource
+        else:
+            appender = self._append
+            requester = self._resolve_classical_resource
+        instructions = InstructionSet(resource_requester=requester)
+        for qarg, carg in instruction.broadcast_arguments(expanded_qargs, expanded_cargs):
+            instructions.add(appender(instruction, qarg, carg), qarg, carg)
         return instructions
 
     def _append(
@@ -1219,6 +1236,16 @@ class QuantumCircuit:
     ) -> Instruction:
         """Append an instruction to the end of the circuit, modifying
         the circuit in place.
+
+        .. note::
+
+            This function may be used by callers other than :obj:`.QuantumCircuit` when the caller
+            is sure that all error-checking, broadcasting and scoping has already been performed,
+            and the only reference to the circuit the instructions are being appended to is within
+            that same function.  In particular, it is not safe to call
+            :meth:`QuantumCircuit._append` on a circuit that is received by a function argument.
+            This is because :meth:`.QuantumCircuit._append` will not recognise the scoping
+            constructs of the control-flow builder interface.
 
         Args:
             instruction: Instruction instance to append
@@ -1253,26 +1280,26 @@ class QuantumCircuit:
         return instruction
 
     def _update_parameter_table(self, instruction: Instruction) -> Instruction:
-
         for param_index, param in enumerate(instruction.params):
-            if isinstance(param, ParameterExpression):
-                current_parameters = self._parameter_table
+            if isinstance(param, (ParameterExpression, QuantumCircuit)):
+                # Scoped constructs like the control-flow ops use QuantumCircuit as a parameter.
+                atomic_parameters = set(param.parameters)
+            else:
+                atomic_parameters = set()
 
-                for parameter in param.parameters:
-                    if parameter in current_parameters:
-                        if not self._check_dup_param_spec(
-                            self._parameter_table[parameter], instruction, param_index
-                        ):
-                            self._parameter_table[parameter].append((instruction, param_index))
-                    else:
-                        if parameter.name in self._parameter_table.get_names():
-                            raise CircuitError(
-                                f"Name conflict on adding parameter: {parameter.name}"
-                            )
-                        self._parameter_table[parameter] = [(instruction, param_index)]
+            for parameter in atomic_parameters:
+                if parameter in self._parameter_table:
+                    if not self._check_dup_param_spec(
+                        self._parameter_table[parameter], instruction, param_index
+                    ):
+                        self._parameter_table[parameter].append((instruction, param_index))
+                else:
+                    if parameter.name in self._parameter_table.get_names():
+                        raise CircuitError(f"Name conflict on adding parameter: {parameter.name}")
+                    self._parameter_table[parameter] = [(instruction, param_index)]
 
-                        # clear cache if new parameter is added
-                        self._parameters = None
+                    # clear cache if new parameter is added
+                    self._parameters = None
 
         return instruction
 
@@ -1356,7 +1383,7 @@ class QuantumCircuit:
             else:
                 raise CircuitError("expected a register")
 
-    def add_bits(self, bits: Sequence[Bit]) -> None:
+    def add_bits(self, bits: Iterable[Bit]) -> None:
         """Add Bits to the circuit."""
         duplicate_bits = set(self._qubit_indices).union(self._clbit_indices).intersection(bits)
         if duplicate_bits:
@@ -2514,18 +2541,37 @@ class QuantumCircuit:
             parameter (ParameterExpression): Parameter to be bound
             value (Union(ParameterExpression, float, int)): A numeric or parametric expression to
                 replace instances of ``parameter``.
+
+        Raises:
+            RuntimeError: if some internal logic error has caused the circuit instruction sequence
+                and the parameter table to become out of sync, and the table now contains a
+                reference to a value that cannot be assigned.
         """
         # parameter might be in global phase only
         if parameter in self._parameter_table.keys():
             for instr, param_index in self._parameter_table[parameter]:
-                new_param = instr.params[param_index].assign(parameter, value)
-                # if fully bound, validate
-                if len(new_param.parameters) == 0:
-                    instr.params[param_index] = instr.validate_parameter(new_param)
-                else:
-                    instr.params[param_index] = new_param
+                assignee = instr.params[param_index]
+                # Normal ParameterExpression.
+                if isinstance(assignee, ParameterExpression):
+                    new_param = assignee.assign(parameter, value)
+                    # if fully bound, validate
+                    if len(new_param.parameters) == 0:
+                        instr.params[param_index] = instr.validate_parameter(new_param)
+                    else:
+                        instr.params[param_index] = new_param
 
-                self._rebind_definition(instr, parameter, value)
+                    self._rebind_definition(instr, parameter, value)
+                # Scoped block of a larger instruction.
+                elif isinstance(assignee, QuantumCircuit):
+                    # It's possible that someone may re-use a loop body, so we need to mutate the
+                    # parameter vector with a new circuit, rather than mutating the body.
+                    instr.params[param_index] = assignee.assign_parameters({parameter: value})
+                else:
+                    raise RuntimeError(  # pragma: no cover
+                        "The ParameterTable or data of this QuantumCircuit have become out-of-sync."
+                        f"\nParameterTable: {self._parameter_table}"
+                        f"\nData: {self.data}"
+                    )
 
             if isinstance(value, ParameterExpression):
                 entry = self._parameter_table.pop(parameter)
@@ -3968,38 +4014,198 @@ class QuantumCircuit:
 
         return self.append(PauliGate(pauli_string), qubits, [])
 
+    def _push_scope(
+        self, qubits: Iterable[Qubit] = (), clbits: Iterable[Clbit] = (), allow_jumps: bool = True
+    ):
+        """Add a scope for collecting instructions into this circuit.
+
+        This should only be done by the control-flow context managers, which will handle cleaning up
+        after themselves at the end as well.
+
+        Args:
+            qubits: Any qubits that this scope should automatically use.
+            clbits: Any clbits that this scope should automatically use.
+            allow_jumps: Whether this scope allows jumps to be used within it.
+        """
+        from qiskit.circuit.controlflow.builder import ControlFlowBuilderBlock
+
+        self._control_flow_scopes.append(
+            ControlFlowBuilderBlock(
+                qubits,
+                clbits,
+                resource_requester=self._resolve_classical_resource,
+                allow_jumps=allow_jumps,
+            )
+        )
+
+    def _pop_scope(self) -> "qiskit.circuit.controlflow.builder.ControlFlowBuilderBlock":
+        """Finish a scope used in the control-flow builder interface, and return it to the caller.
+
+        This should only be done by the control-flow context managers, since they naturally
+        synchronise the creation and deletion of stack elements."""
+        return self._control_flow_scopes.pop()
+
+    def _peek_previous_instruction_in_scope(
+        self,
+    ) -> Tuple[Instruction, Sequence[Qubit], Sequence[Clbit]]:
+        """Return the instruction 3-tuple of the most recent instruction in the current scope, even
+        if that scope is currently under construction.
+
+        This function is only intended for use by the control-flow ``if``-statement builders, which
+        may need to modify to a previous instruction."""
+        if self._control_flow_scopes:
+            return self._control_flow_scopes[-1].peek()
+        if not self._data:
+            raise CircuitError("This circuit contains no instructions.")
+        return self._data[-1]
+
+    def _pop_previous_instruction_in_scope(
+        self,
+    ) -> Tuple[Instruction, Sequence[Qubit], Sequence[Clbit]]:
+        """Return the instruction 3-tuple of the most recent instruction in the current scope, even
+        if that scope is currently under construction, and remove it from that scope.
+
+        This function is only intended for use by the control-flow ``if``-statement builders, which
+        may need to replace a previous instruction with another.
+        """
+        if self._control_flow_scopes:
+            return self._control_flow_scopes[-1].pop()
+        if not self._data:
+            raise CircuitError("This circuit contains no instructions.")
+        instruction, qubits, clbits = self._data.pop()
+        self._update_parameter_table_on_instruction_removal(instruction)
+        return instruction, qubits, clbits
+
+    def _update_parameter_table_on_instruction_removal(self, instruction: Instruction) -> None:
+        """Update the :obj:`.ParameterTable` of this circuit given that an instance of the given
+        ``instruction`` has just been removed from the circuit.
+
+        .. note::
+
+            This does not account for the possibility for the same instruction instance being added
+            more than once to the circuit.  At the time of writing (2021-11-17, main commit 271a82f)
+            there is a defensive ``deepcopy`` of parameterised instructions inside
+            :meth:`.QuantumCircuit.append`, so this should be safe.  Trying to account for it would
+            involve adding a potentially quadratic-scaling loop to check each entry in ``data``.
+        """
+        atomic_parameters = set()
+        for parameter in instruction.params:
+            if isinstance(parameter, (ParameterExpression, QuantumCircuit)):
+                atomic_parameters.update(parameter.parameters)
+        if not atomic_parameters:
+            return
+        for atomic_parameter in atomic_parameters:
+            entries = self._parameter_table[atomic_parameter]
+            new_entries = [
+                (entry_instruction, entry_index)
+                for entry_instruction, entry_index in entries
+                if entry_instruction is not instruction
+            ]
+            if not new_entries:
+                del self._parameter_table[atomic_parameter]
+                # Invalidate cache.
+                self._parameters = None
+            else:
+                self._parameter_table[atomic_parameter] = new_entries
+
+    @typing.overload
     def while_loop(
         self,
-        condition: Union[
-            Tuple[ClassicalRegister, int],
-            Tuple[Clbit, int],
-            Tuple[Clbit, bool],
-        ],
+        condition: Tuple[Union[ClassicalRegister, Clbit], int],
+        body: None,
+        qubits: None,
+        clbits: None,
+        *,
+        label: Optional[str],
+    ) -> "qiskit.circuit.controlflow.while_loop.WhileLoopContext":
+        ...
+
+    @typing.overload
+    def while_loop(
+        self,
+        condition: Tuple[Union[ClassicalRegister, Clbit], int],
         body: "QuantumCircuit",
         qubits: Sequence[QubitSpecifier],
         clbits: Sequence[ClbitSpecifier],
-        label: Optional[str] = None,
+        *,
+        label: Optional[str],
     ) -> InstructionSet:
-        """Apply :class:`~qiskit.circuit.controlflow.WhileLoopOp`.
+        ...
+
+    def while_loop(self, condition, body=None, qubits=None, clbits=None, *, label=None):
+        """Create a ``while`` loop on this circuit.
+
+        There are two forms for calling this function.  If called with all its arguments (with the
+        possible exception of ``label``), it will create a
+        :obj:`~qiskit.circuit.controlflow.WhileLoopOp` with the given ``body``.  If ``body`` (and
+        ``qubits`` and ``clbits``) are *not* passed, then this acts as a context manager, which
+        will automatically build a :obj:`~qiskit.circuit.controlflow.WhileLoopOp` when the scope
+        finishes.  In this form, you do not need to keep track of the qubits or clbits you are
+        using, because the scope will handle it for you.
+
+        Example usage::
+
+            from qiskit.circuit import QuantumCircuit, Clbit, Qubit
+            bits = [Qubit(), Qubit(), Clbit()]
+            qc = QuantumCircuit(bits)
+
+            with qc.while_loop((bits[2], 0)):
+                qc.h(0)
+                qc.cx(0, 1)
+                qc.measure(0, 0)
 
         Args:
-            condition: A condition to be checked prior to executing ``body``. Can
-                be specified as either a tuple of a ``ClassicalRegister`` to be
-                tested for equality with a given ``int``, or as a tuple of a
-                ``Clbit`` to be compared to either a ``bool`` or an ``int``.
-            body: The loop body to be repeatedly executed.
-            qubits: The circuit qubits over which the loop body should be run.
-            clbits: The circuit clbits over which the loop body should be run.
-            label: The string label of the instruction in the circuit.
+            condition (Tuple[Union[ClassicalRegister, Clbit], int]): An equality condition to be
+                checked prior to executing ``body``. The left-hand side of the condition must be a
+                :obj:`~ClassicalRegister` or a :obj:`~Clbit`, and the right-hand side must be an
+                integer or boolean.
+            body (Optional[QuantumCircuit]): The loop body to be repeatedly executed.  Omit this to
+                use the context-manager mode.
+            qubits (Optional[Sequence[Qubit]]): The circuit qubits over which the loop body should
+                be run.  Omit this to use the context-manager mode.
+            clbits (Optional[Sequence[Clbit]]): The circuit clbits over which the loop body should
+                be run.  Omit this to use the context-manager mode.
+            label (Optional[str]): The string label of the instruction in the circuit.
 
         Returns:
-            A handle to the instruction created.
+            InstructionSet or WhileLoopContext: If used in context-manager mode, then this should be
+            used as a ``with`` resource, which will infer the block content and operands on exit.
+            If the full form is used, then this returns a handle to the instructions created.
+
+        Raises:
+            CircuitError: if an incorrect calling convention is used.
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.controlflow.while_loop import WhileLoopOp
+        from qiskit.circuit.controlflow.while_loop import WhileLoopOp, WhileLoopContext
+
+        if body is None:
+            if qubits is not None or clbits is not None:
+                raise CircuitError(
+                    "When using 'while_loop' as a context manager,"
+                    " you cannot pass qubits or clbits."
+                )
+            return WhileLoopContext(self, condition, label=label)
+        elif qubits is None or clbits is None:
+            raise CircuitError(
+                "When using 'while_loop' with a body, you must pass qubits and clbits."
+            )
 
         return self.append(WhileLoopOp(condition, body, label), qubits, clbits)
 
+    @typing.overload
+    def for_loop(
+        self,
+        loop_parameter: Optional[Parameter],
+        indexset: Iterable[int],
+        body: None,
+        qubits: None,
+        clbits: None,
+        *,
+        label: Optional[str],
+    ) -> "qiskit.circuit.controlflow.for_loop.ForLoopContext":
+        ...
+
+    @typing.overload
     def for_loop(
         self,
         loop_parameter: Union[Parameter, None],
@@ -4007,65 +4213,185 @@ class QuantumCircuit:
         body: "QuantumCircuit",
         qubits: Sequence[QubitSpecifier],
         clbits: Sequence[ClbitSpecifier],
-        label: Optional[str] = None,
+        *,
+        label: Optional[str],
     ) -> InstructionSet:
-        """Apply :class:`~qiskit.circuit.controlflow.ForLoopOp`.
+        ...
+
+    def for_loop(
+        self, loop_parameter, indexset, body=None, qubits=None, clbits=None, *, label=None
+    ):
+        """Create a ``for`` loop on this circuit.
+
+        There are two forms for calling this function.  If called with all its arguments (with the
+        possible exception of ``label``), it will create a
+        :obj:`~qiskit.circuit.controlflow.ForLoopOp` with the given ``body``.  If ``body`` (and
+        ``qubits`` and ``clbits``) are *not* passed, then this acts as a context manager, which,
+        when entered, provides a loop variable (if ``None`` is passed as the ``loop_parameter``) and
+        will automatically build a :obj:`~qiskit.circuit.controlflow.ForLoopOp` when the scope
+        finishes.  In this form, you do not need to keep track of the qubits or clbits you are
+        using, because the scope will handle it for you.
+
+        For example::
+
+            from qiskit import QuantumCircuit
+            qc = QuantumCircuit(2, 1)
+
+            with qc.for_loop(None, range(5)) as i:
+                qc.h(0)
+                qc.cx(0, 1)
+                qc.measure(0, 0)
+                qc.break_loop().c_if(0)
 
         Args:
-            loop_parameter: The placeholder parameterizing ``body`` to which
-                the values from ``indexset`` will be assigned. If None is
-                provided, ``body`` will be repeated for each of the values
-                in ``indexset`` but the values will not be assigned to ``body``.
-            indexset: A collection of integers to loop over.
-            body: The loop body to be repeatedly executed.
-            qubits: The circuit qubits over which the loop body should be run.
-            clbits: The circuit clbits over which the loop body should be run.
-            label: The string label of the instruction in the circuit.
+            loop_parameter (Optional[Parameter]): The placeholder parameterizing ``body`` to which
+                the values from ``indexset`` will be assigned.  This can be ``None``, in which case
+                ``body`` will be repeated for each of the values in ``indexset`` but the values will
+                not be assigned.  If ``None`` is given while using this as a context manager, it
+                will allocate and return a loop parameter for you to use, and bind it only if you do
+                use it.
+            indexset (Iterable[int]): A collection of integers to loop over.  Always necessary.
+            body (Optional[QuantumCircuit]): The loop body to be repeatedly executed.  Omit this to
+                use the context-manager mode.
+            qubits (Optional[Sequence[QubitSpecifier]]): The circuit qubits over which the loop body
+                should be run.  Omit this to use the context-manager mode.
+            clbits (Optional[Sequence[ClbitSpecifier]]): The circuit clbits over which the loop body
+                should be run.  Omit this to use the context-manager mode.
+            label (Optional[str]): The string label of the instruction in the circuit.
 
         Returns:
-            A handle to the instruction created.
+            InstructionSet or ForLoopContext: depending on the call signature, either a context
+            manager for creating the for loop (it will automatically be added to the circuit at the
+            end of the block), or an :obj:`~InstructionSet` handle to the appended loop operation.
+
+        Raises:
+            CircuitError: if an incorrect calling convention is used.
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.controlflow.for_loop import ForLoopOp
+        from qiskit.circuit.controlflow.for_loop import ForLoopOp, ForLoopContext
+
+        if body is None:
+            if qubits is not None or clbits is not None:
+                raise CircuitError(
+                    "When using 'for_loop' as a context manager, you cannot pass qubits or clbits."
+                )
+            return ForLoopContext(self, loop_parameter, indexset, label=label)
+        elif qubits is None or clbits is None:
+            raise CircuitError(
+                "When using 'for_loop' with a body, you must pass qubits and clbits."
+            )
 
         return self.append(ForLoopOp(loop_parameter, indexset, body, label), qubits, clbits)
 
+    @typing.overload
     def if_test(
         self,
-        condition: Union[
-            Tuple[ClassicalRegister, int],
-            Tuple[Clbit, int],
-            Tuple[Clbit, bool],
-        ],
+        condition: Tuple[Union[ClassicalRegister, Clbit], int],
+        true_body: None,
+        qubits: None,
+        clbits: None,
+        *,
+        label: Optional[str],
+    ) -> "qiskit.circuit.controlflow.if_else.IfContext":
+        ...
+
+    @typing.overload
+    def if_test(
+        self,
+        condition: Tuple[Union[ClassicalRegister, Clbit], int],
         true_body: "QuantumCircuit",
         qubits: Sequence[QubitSpecifier],
         clbits: Sequence[ClbitSpecifier],
+        *,
         label: Optional[str] = None,
     ) -> InstructionSet:
-        """Apply :class:`~qiskit.circuit.controlflow.IfElseOp` without a ``false_body``.
+        ...
+
+    def if_test(
+        self,
+        condition,
+        true_body=None,
+        qubits=None,
+        clbits=None,
+        *,
+        label=None,
+    ):
+        """Create an ``if`` statement on this circuit.
+
+        There are two forms for calling this function.  If called with all its arguments (with the
+        possible exception of ``label``), it will create a
+        :obj:`~qiskit.circuit.controlflow.IfElseOp` with the given ``true_body``, and there will be
+        no branch for the ``false`` condition (see also the :meth:`.if_else` method).  However, if
+        ``true_body`` (and ``qubits`` and ``clbits``) are *not* passed, then this acts as a context
+        manager, which can be used to build ``if`` statements.  The return value of the ``with``
+        statement is a chainable context manager, which can be used to create subsequent ``else``
+        blocks.  In this form, you do not need to keep track of the qubits or clbits you are using,
+        because the scope will handle it for you.
+
+        For example::
+
+            from qiskit.circuit import QuantumCircuit, Qubit, Clbit
+            bits = [Qubit(), Qubit(), Qubit(), Clbit(), Clbit()]
+            qc = QuantumCircuit(bits)
+
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.measure(0, 0)
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.measure(0, 1)
+
+            with qc.if_test((bits[3], 0)) as else_:
+                qc.x(2)
+            with else_:
+                qc.h(2)
+                qc.z(2)
 
         Args:
-            condition: A condition to be evaluated at circuit runtime which,
-                if true, will trigger the evaluation of ``true_body``. Can be
-                specified as either a tuple of a ``ClassicalRegister`` to be
-                tested for equality with a given ``int``, or as a tuple of a
-                ``Clbit`` to be compared to either a ``bool`` or an ``int``.
-            true_body: The circuit body to be run if ``condition`` is true.
-            qubits: The circuit qubits over which the if/else should be run.
-            clbits: The circuit clbits over which the if/else should be run.
-            label: The string label of the instruction in the circuit.
+            condition (Tuple[Union[ClassicalRegister, Clbit], int]): A condition to be evaluated at
+                circuit runtime which, if true, will trigger the evaluation of ``true_body``. Can be
+                specified as either a tuple of a ``ClassicalRegister`` to be tested for equality
+                with a given ``int``, or as a tuple of a ``Clbit`` to be compared to either a
+                ``bool`` or an ``int``.
+            true_body (Optional[QuantumCircuit]): The circuit body to be run if ``condition`` is
+                true.
+            qubits (Optional[Sequence[QubitSpecifier]]): The circuit qubits over which the if/else
+                should be run.
+            clbits (Optional[Sequence[ClbitSpecifier]]): The circuit clbits over which the if/else
+                should be run.
+            label (Optional[str]): The string label of the instruction in the circuit.
+
+        Returns:
+            InstructionSet or IfContext: depending on the call signature, either a context
+            manager for creating the ``if`` block (it will automatically be added to the circuit at
+            the end of the block), or an :obj:`~InstructionSet` handle to the appended conditional
+            operation.
 
         Raises:
             CircuitError: If the provided condition references Clbits outside the
                 enclosing circuit.
+            CircuitError: if an incorrect calling convention is used.
 
         Returns:
             A handle to the instruction created.
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.controlflow.if_else import IfElseOp
+        from qiskit.circuit.controlflow.if_else import IfElseOp, IfContext
 
         condition = (self._resolve_classical_resource(condition[0]), condition[1])
+
+        if true_body is None:
+            if qubits is not None or clbits is not None:
+                raise CircuitError(
+                    "When using 'if_test' as a context manager, you cannot pass qubits or clbits."
+                )
+            # We can only allow jumps if we're in a loop block, but the default path (no scopes)
+            # also allows adding jumps to support the more verbose internal mode.
+            in_loop = bool(self._control_flow_scopes and self._control_flow_scopes[-1].allow_jumps)
+            return IfContext(self, condition, in_loop=in_loop, label=label)
+        elif qubits is None or clbits is None:
+            raise CircuitError("When using 'if_test' with a body, you must pass qubits and clbits.")
+
         return self.append(IfElseOp(condition, true_body, None, label), qubits, clbits)
 
     def if_else(
@@ -4082,6 +4408,23 @@ class QuantumCircuit:
         label: Optional[str] = None,
     ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.controlflow.IfElseOp`.
+
+        .. note::
+
+            This method does not have an associated context-manager form, because it is already
+            handled by the :meth:`.if_test` method.  You can use the ``else`` part of that with
+            something such as::
+
+                from qiskit.circuit import QuantumCircuit, Qubit, Clbit
+                bits = [Qubit(), Qubit(), Clbit()]
+                qc = QuantumCircuit(bits)
+                qc.h(0)
+                qc.cx(0, 1)
+                qc.measure(0, 0)
+                with qc.if_test((bits[2], 0)) as else_:
+                    qc.h(0)
+                with else_:
+                    qc.x(0)
 
         Args:
             condition: A condition to be evaluated at circuit runtime which,
@@ -4109,25 +4452,61 @@ class QuantumCircuit:
         return self.append(IfElseOp(condition, true_body, false_body, label), qubits, clbits)
 
     def break_loop(self) -> InstructionSet:
-        """Apply :class:`~qiskit.circuit.controlflow.BreakLoop`.
+        """Apply :class:`~qiskit.circuit.controlflow.BreakLoopOp`.
+
+        .. warning::
+
+            If you are using the context-manager "builder" forms of :meth:`.if_test`,
+            :meth:`.for_loop` or :meth:`.while_loop`, you can only call this method if you are
+            within a loop context, because otherwise the "resource width" of the operation cannot be
+            determined.  This would quickly lead to invalid circuits, and so if you are trying to
+            construct a reusable loop body (without the context managers), you must also use the
+            non-context-manager form of :meth:`.if_test` and :meth:`.if_else`.  Take care that the
+            :obj:`.BreakLoopOp` instruction must span all the resources of its containing loop, not
+            just the immediate scope.
 
         Returns:
             A handle to the instruction created.
+
+        Raises:
+            CircuitError: if this method was called within a builder context, but not contained
+                within a loop.
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.controlflow.break_loop import BreakLoopOp
+        from qiskit.circuit.controlflow.break_loop import BreakLoopOp, BreakLoopPlaceholder
 
+        if self._control_flow_scopes:
+            operation = BreakLoopPlaceholder()
+            return self.append(operation, *operation.placeholder_resources())
         return self.append(BreakLoopOp(self.num_qubits, self.num_clbits), self.qubits, self.clbits)
 
     def continue_loop(self) -> InstructionSet:
-        """Apply :class:`~qiskit.circuit.controlflow.ContinueLoop`.
+        """Apply :class:`~qiskit.circuit.controlflow.ContinueLoopOp`.
+
+        .. warning::
+
+            If you are using the context-manager "builder" forms of :meth:`.if_test`,
+            :meth:`.for_loop` or :meth:`.while_loop`, you can only call this method if you are
+            within a loop context, because otherwise the "resource width" of the operation cannot be
+            determined.  This would quickly lead to invalid circuits, and so if you are trying to
+            construct a reusable loop body (without the context managers), you must also use the
+            non-context-manager form of :meth:`.if_test` and :meth:`.if_else`.  Take care that the
+            :obj:`.ContinueLoopOp` instruction must span all the resources of its containing loop,
+            not just the immediate scope.
 
         Returns:
             A handle to the instruction created.
+
+        Raises:
+            CircuitError: if this method was called within a builder context, but not contained
+                within a loop.
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.controlflow.continue_loop import ContinueLoopOp
+        from qiskit.circuit.controlflow.continue_loop import ContinueLoopOp, ContinueLoopPlaceholder
 
+        if self._control_flow_scopes:
+            operation = ContinueLoopPlaceholder()
+            return self.append(operation, *operation.placeholder_resources())
         return self.append(
             ContinueLoopOp(self.num_qubits, self.num_clbits), self.qubits, self.clbits
         )

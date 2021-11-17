@@ -21,7 +21,7 @@ from qiskit import execute
 from qiskit.circuit import Gate, Instruction, Parameter
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
-from qiskit.circuit.library.standard_gates import SGate
+from qiskit.circuit.library.standard_gates import SGate, RXGate
 from qiskit.quantum_info import Operator
 
 
@@ -853,8 +853,35 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertFalse(qc1 == qc2)
 
 
-class TestCircuitBuilding(QiskitTestCase):
-    """QuantumCircuit tests."""
+class TestCircuitPrivateOperations(QiskitTestCase):
+    """Direct tests of some of the private methods of QuantumCircuit.  These do not represent
+    functionality that we want to expose to users, but there are some cases where private methods
+    are used internally (similar to "protected" access in .NET or "friend" access in C++), and we
+    want to make sure they work in those cases."""
 
-    def test_append_dimension_mismatch(self):
-        """Test appending to incompatible wires."""
+    def test_previous_instruction_in_scope_failures(self):
+        """Test the failure paths of the peek and pop methods for retrieving the most recent
+        instruction in a scope."""
+        test = QuantumCircuit(1, 1)
+        with self.assertRaisesRegex(CircuitError, r"This circuit contains no instructions\."):
+            test._peek_previous_instruction_in_scope()
+        with self.assertRaisesRegex(CircuitError, r"This circuit contains no instructions\."):
+            test._pop_previous_instruction_in_scope()
+        with test.for_loop(None, range(2)):
+            with self.assertRaisesRegex(CircuitError, r"This scope contains no instructions\."):
+                test._peek_previous_instruction_in_scope()
+            with self.assertRaisesRegex(CircuitError, r"This scope contains no instructions\."):
+                test._pop_previous_instruction_in_scope()
+
+    def test_pop_previous_instruction_removes_parameters(self):
+        """Test that the private "pop instruction" method removes parameters from the parameter
+        table if that instruction is the only instance."""
+        x, y = Parameter("x"), Parameter("y")
+        test = QuantumCircuit(1, 1)
+        test.rx(y, 0)
+        last_instructions = test.u(x, y, 0, 0)
+        self.assertEqual({x, y}, set(test.parameters))
+
+        instruction, _, _ = test._pop_previous_instruction_in_scope()
+        self.assertEqual(list(last_instructions), [instruction])
+        self.assertEqual({y}, set(test.parameters))

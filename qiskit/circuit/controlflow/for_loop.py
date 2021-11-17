@@ -116,3 +116,101 @@ class ForLoopOp(ControlFlowOp):
     @property
     def blocks(self):
         return (self._params[2],)
+
+
+class ForLoopContext:
+    """A context manager for building up ``for`` loops onto circuits in a natural order, without
+    having to construct the loop body first.
+
+    Within the block, a lot of the bookkeeping is done for you; you do not need to keep track of
+    which qubits and clbits you are using, for example, and a loop parameter will be allocated for
+    you, if you do not supply one yourself.  All normal methods of accessing the qubits on the
+    underlying :obj:`~QuantumCircuit` will work correctly, and resolve into correct accesses within
+    the interior block.
+
+    You generally should never need to instantiate this object directly.  Instead, use
+    :obj:`.QuantumCircuit.for_loop` in its context-manager form, i.e. by not supplying a ``body`` or
+    sets of qubits and clbits.
+
+    Example usage::
+
+        import math
+        from qiskit import QuantumCircuit
+        qc = QuantumCircuit(2, 1)
+
+        with qc.for_loop(None, range(5)) as i:
+            qc.rx(i * math.pi/4, 0)
+            qc.cx(0, 1)
+            qc.measure(0, 0)
+            qc.break_loop().c_if(0)
+
+    This context should almost invariably be created by a :meth:`.QuantumCircuit.for_loop` call, and
+    the resulting instance is a "friend" of the calling circuit.  The context will manipulate the
+    circuit's defined scopes when it is entered (by pushing a new scope onto the stack) and exited
+    (by popping its scope, building it, and appending the resulting :obj:`.ForLoopOp`).
+    """
+
+    # Class-level variable keep track of the number of auto-generated loop variables, so we don't
+    # get naming clashes.
+    _generated_loop_parameters = 0
+
+    __slots__ = (
+        "_circuit",
+        "_generate_loop_parameter",
+        "_loop_parameter",
+        "_indexset",
+        "_label",
+        "_used",
+    )
+
+    def __init__(
+        self,
+        circuit: QuantumCircuit,
+        loop_parameter: Optional[Parameter],
+        indexset: Iterable[int],
+        *,
+        label: Optional[str] = None,
+    ):
+        self._circuit = circuit
+        self._generate_loop_parameter = loop_parameter is None
+        self._loop_parameter = loop_parameter
+        # We can pass through `range` instances because OpenQASM 3 has native support for this type
+        # of iterator set.
+        self._indexset = indexset if isinstance(indexset, range) else tuple(indexset)
+        self._label = label
+        self._used = False
+
+    def __enter__(self):
+        if self._used:
+            raise CircuitError("A for-loop context manager cannot be re-entered.")
+        self._used = True
+        self._circuit._push_scope()
+        if self._generate_loop_parameter:
+            self._loop_parameter = Parameter(f"_loop_i_{self._generated_loop_parameters}")
+            type(self)._generated_loop_parameters += 1
+        return self._loop_parameter
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type is not None:
+            # If we're leaving the context manager because an exception was raised, there's nothing
+            # to do except restore the circuit state.
+            self._circuit._pop_scope()
+            return False
+        scope = self._circuit._pop_scope()
+        # Loops do not need to pass any further resources in, because this scope itself defines the
+        # extent of ``break`` and ``continue`` statements.
+        body = scope.build(scope.qubits, scope.clbits)
+        # We always bind the loop parameter if the user gave it to us, even if it isn't actually
+        # used, because they requested we do that by giving us a parameter.  However, if they asked
+        # us to auto-generate a parameter, then we only add it if they actually used it, to avoid
+        # using unnecessary resources.
+        if self._generate_loop_parameter and self._loop_parameter not in body.parameters:
+            loop_parameter = None
+        else:
+            loop_parameter = self._loop_parameter
+        self._circuit.append(
+            ForLoopOp(loop_parameter, self._indexset, body, label=self._label),
+            tuple(body.qubits),
+            tuple(body.clbits),
+        )
+        return False
