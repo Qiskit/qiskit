@@ -59,18 +59,6 @@ class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):
 
         return raw_evolution_grad_real
 
-    @staticmethod
-    def _calc_metric_tensor(
-        raw_metric_tensor_imag: OperatorBase, param_dict: Dict[Parameter, Union[float, complex]]
-    ) -> OperatorBase:
-        return raw_metric_tensor_imag.bind_parameters(param_dict) / 4.0
-
-    @staticmethod
-    def _calc_evolution_grad(
-        raw_evolution_grad_real: OperatorBase, param_dict: Dict[Parameter, Union[float, complex]]
-    ) -> OperatorBase:
-        return -raw_evolution_grad_real.bind_parameters(param_dict)
-
     def _calc_nat_grad(
         self,
         raw_operator: OperatorBase, # <ansatz|H|ansatz>

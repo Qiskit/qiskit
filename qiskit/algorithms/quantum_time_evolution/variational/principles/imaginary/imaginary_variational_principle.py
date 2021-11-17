@@ -68,20 +68,6 @@ class ImaginaryVariationalPrinciple(VariationalPrinciple):
     ):
         pass
 
-    @staticmethod
-    @abstractmethod
-    def _calc_metric_tensor(
-        raw_metric_tensor: OperatorBase, param_dict: Dict[Parameter, Union[float, complex]]
-    ) -> OperatorBase:
-        pass
-
-    @staticmethod
-    @abstractmethod
-    def _calc_evolution_grad(
-        raw_evolution_grad: OperatorBase, param_dict: Dict[Parameter, Union[float, complex]]
-    ) -> OperatorBase:
-        pass
-
     def _calc_nat_grad(
         self,
         raw_operator: OperatorBase,

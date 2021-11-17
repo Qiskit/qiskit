@@ -78,18 +78,6 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
                                                        self._grad_method, basis=basis_operator)
         return raw_evolution_grad_imag
 
-    @staticmethod
-    def _calc_metric_tensor(
-        raw_metric_tensor_real: OperatorBase, param_dict: Dict[Parameter, Union[float, complex]]
-    ) -> OperatorBase:
-        return raw_metric_tensor_real.bind_parameters(param_dict) / 4.0
-
-    @staticmethod
-    def _calc_evolution_grad(
-        raw_evolution_grad_imag: OperatorBase, param_dict: Dict[Parameter, Union[float, complex]]
-    ) -> OperatorBase:
-        return raw_evolution_grad_imag.bind_parameters(param_dict) / 2.0
-
     def _calc_nat_grad(
         self,
         raw_operator: OperatorBase,

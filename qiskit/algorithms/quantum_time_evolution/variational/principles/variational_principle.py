@@ -51,15 +51,8 @@ class VariationalPrinciple(ABC):
         self._operator = ~StateFn(hamiltonian) @ StateFn(ansatz)
         self._params = parameters
 
-
-
         self._raw_evolution_grad = self._get_raw_evolution_grad(hamiltonian, ansatz, parameters)
         self._raw_metric_tensor = self._get_raw_metric_tensor(ansatz, parameters)
-
-        # self._metric_tensor = self._calc_metric_tensor(raw_metric_tensor, param_dict)
-        # self._evolution_grad = self._calc_evolution_grad(raw_evolution_grad, param_dict)
-
-        # self._nat_grad = self._calc_nat_grad(self._operator, param_dict, regularization)
 
     @abstractmethod
     def _get_raw_metric_tensor(
@@ -75,18 +68,6 @@ class VariationalPrinciple(ABC):
         hamiltonian,
         ansatz,
         parameters: List[Parameter],
-    ):
-        pass
-
-    @staticmethod
-    @abstractmethod
-    def _calc_metric_tensor(raw_metric_tensor, param_dict: Dict[Parameter, Union[float, complex]]):
-        pass
-
-    @staticmethod
-    @abstractmethod
-    def _calc_evolution_grad(
-        raw_evolution_grad, param_dict: Dict[Parameter, Union[float, complex]]
     ):
         pass
 
@@ -109,10 +90,3 @@ class VariationalPrinciple(ABC):
     ) -> float:
         pass
 
-    @property
-    def metric_tensor(self) -> OperatorBase:
-        return self._metric_tensor
-
-    @property
-    def evolution_grad(self) -> OperatorBase:
-        return self._evolution_grad
