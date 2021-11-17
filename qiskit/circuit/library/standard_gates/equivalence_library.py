@@ -752,16 +752,19 @@ for inst, qargs, cargs in [
 _sel.add_equivalence(CCXGate(), def_ccx)
 
 q = QuantumRegister(3, "q")
-def_ccx_sleator_weinfurter = QuantumCircuit(q)
+ccx_to_cx_csx = QuantumCircuit(q)
 for inst, qargs, cargs in [
     (CSXGate(), [q[1], q[2]], []),
     (CXGate(), [q[0], q[1]], []),
-    (CSXGate().inverse(), [q[1], q[2]], []),
+    (ZGate(), [q[2]], []),
+    (SdgGate(), [q[1]], []),
+    (CSXGate(), [q[1], q[2]], []),
+    (ZGate(), [q[2]], []),
     (CXGate(), [q[0], q[1]], []),
     (CSXGate(), [q[0], q[2]], []),
 ]:
-    def_ccx_sleator_weinfurter.append(inst, qargs, cargs)
-_sel.add_equivalence(CCXGate(), def_ccx_sleator_weinfurter)
+    ccx_to_cx_csx.append(inst, qargs, cargs)
+_sel.add_equivalence(CCXGate(), ccx_to_cx_csx)
 
 # YGate
 
