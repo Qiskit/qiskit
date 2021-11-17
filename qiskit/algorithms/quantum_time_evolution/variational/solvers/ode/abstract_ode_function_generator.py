@@ -9,7 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from abc import abstractmethod, ABC
+from abc import ABC
 from typing import Iterable, Union, Dict, Optional
 
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
@@ -52,9 +52,11 @@ class AbstractOdeFunctionGenerator(ABC):
         )
         self._t_param = t_param
 
-    @abstractmethod
     def var_qte_ode_function(self, t: float, parameters_values: Iterable) -> Iterable:
         current_param_dict = dict(zip(self._param_dict.keys(), parameters_values))
+        print("t ", t)
+        print("params ", parameters_values)
+
         nat_grad_res = self._linear_solver._solve_sle(
             self._variational_principle, current_param_dict, self._t_param, t, self._regularization
         )

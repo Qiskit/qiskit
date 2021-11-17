@@ -191,7 +191,7 @@ class VarQte(ABC):
         raise NotImplementedError()
 
     def bind_initial_state(self, state, param_dict: Dict[Parameter, Union[float, complex]]):
-        if self._backend is not None:
+        if self._state_circ_sampler:
             self._initial_state = self._state_circ_sampler.convert(state, param_dict)
         else:
             self._initial_state = state.assign_parameters(param_dict)

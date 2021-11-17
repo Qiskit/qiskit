@@ -46,9 +46,8 @@ def eval_nat_grad_result(
     nat_grad,
     param_dict: Dict[Parameter, Union[float, complex]],
     nat_grad_circ_sampler: CircuitSampler,
-    backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
 ):
-    if backend is not None:
+    if nat_grad_circ_sampler:
         nat_grad_result = nat_grad_circ_sampler.convert(nat_grad, params=param_dict).eval()
     else:
         nat_grad_result = nat_grad.assign_parameters(param_dict).eval()
@@ -70,7 +69,7 @@ def eval_grad_result(
     else:
         grad_result = grad(param_dict, backend)
 
-    if backend is not None:
+    if grad_circ_sampler:
         grad_result = grad_circ_sampler.convert(grad_result, param_dict)
     else:
         grad_result = grad_result.assign_parameters(param_dict)
@@ -84,9 +83,8 @@ def eval_metric_result(
     metric,
     param_dict: Dict[Parameter, Union[float, complex]],
     metric_circ_sampler: CircuitSampler,
-    backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
     ):
-    if backend is not None:
+    if metric_circ_sampler:
         metric_result = metric_circ_sampler.convert(metric, params=param_dict).eval()
     else:
         metric_result = metric.assign_parameters(param_dict).eval()

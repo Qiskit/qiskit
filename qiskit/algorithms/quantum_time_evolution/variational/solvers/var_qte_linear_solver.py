@@ -83,7 +83,6 @@ class VarQteLinearSolver:
             var_principle._raw_metric_tensor,
             param_dict,
             self._metric_circ_sampler,
-            self._backend,
         )
 
         if t_param is not None:
@@ -108,6 +107,7 @@ class VarQteLinearSolver:
                                                               regularization=regularization)
         return np.real(nat_grad_result)
 
+    # TODO update
     def _solve_sle_for_error_bounds(
         self,
         var_principle: VariationalPrinciple,
@@ -126,26 +126,29 @@ class VarQteLinearSolver:
         Returns: dω/dt, 2Re⟨dψ(ω)/dω|H|ψ(ω) for VarQITE/ 2Im⟨dψ(ω)/dω|H|ψ(ω) for VarQRTE,
         Fubini-Study Metric.
         """
-        metric_tensor = var_principle.metric_tensor
-        evolution_grad = var_principle.evolution_grad
 
         # bind time parameter for the current value of time from the ODE solver
 
-        if t_param is not None:
-            # TODO bind here
-            time_dict = {t_param: t}
-            evolution_grad = evolution_grad.bind_parameters(time_dict)
-        grad_res = eval_evolution_grad(
-            evolution_grad, param_dict, self._grad_circ_sampler, self._backend
+        # if t_param is not None:
+        #     # TODO bind here
+        #     time_dict = {t_param: t}
+        #     evolution_grad = evolution_grad.bind_parameters(time_dict)
+        grad_result = eval_grad_result(
+            var_principle._raw_evolution_grad,
+            param_dict,
+            self._grad_circ_sampler,
+            self._backend,
         )
-        metric_res = eval_metric_tensor(
-            metric_tensor, param_dict, self._metric_circ_sampler, self._backend
+        metric_result = eval_metric_result(
+            var_principle._raw_metric_tensor,
+            param_dict,
+            self._metric_circ_sampler,
         )
 
-        self._inspect_imaginary_parts(grad_res, metric_res)
+        self._inspect_imaginary_parts(grad_result, metric_result)
 
-        metric_res = np.real(metric_res)
-        grad_res = np.real(grad_res)
+        metric_res = np.real(metric_result)
+        grad_res = np.real(grad_result)
 
         # Check if numerical instabilities lead to a metric which is not positive semidefinite
         metric_res = self._check_and_fix_metric_psd(metric_res)

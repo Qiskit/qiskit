@@ -31,10 +31,10 @@ class ErrorCalculator:
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
     ):
         self._h_squared = self._bind_or_sample_operator(
-            h_squared, h_squared_sampler, param_dict, backend
+            h_squared, h_squared_sampler, param_dict
         )
         self._exp_operator = self._bind_or_sample_operator(
-            exp_operator, exp_operator_sampler, param_dict, backend
+            exp_operator, exp_operator_sampler, param_dict
         )
         self._param_dict = param_dict
         self._backend = backend
@@ -44,10 +44,9 @@ class ErrorCalculator:
         operator: OperatorBase,
         operator_circuit_sampler: CircuitSampler,
         param_dict: Dict[Parameter, float],
-        backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
     ) -> OperatorBase:
         # ⟨ψ(ω)|H^2|ψ(ω)〉
-        if backend is not None:
+        if operator_circuit_sampler:
             operator = operator_circuit_sampler.convert(operator, params=param_dict)
         else:
             operator = operator.assign_parameters(param_dict)
