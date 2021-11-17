@@ -503,6 +503,46 @@ class TestMultipleTrials(QiskitTestCase):
 
         self.assertEqual(set(property_set["layout"].get_physical_bits()), {2, 0})
 
+    def test_reasonable_limits_for_simple_layouts(self):
+        """Test that the default trials is set to a reasonable number."""
+        backend = FakeManhattan()
+        qc = QuantumCircuit(5)
+        qc.cx(0, 1)
+        cmap = CouplingMap(backend.configuration().coupling_map)
+        properties = backend.properties()
+        # Run without any limits set
+        vf2_pass = VF2Layout(cmap, properties=properties, seed=42)
+        property_set = {}
+        with self.assertLogs("qiskit.transpiler.passes.layout.vf2_layout", level="DEBUG") as cm:
+            vf2_pass(qc, property_set)
+        self.assertIn(
+            "DEBUG:qiskit.transpiler.passes.layout.vf2_layout:Trial 159 is >= configured max trials 159",
+            cm.output,
+        )
+        self.assertEqual(set(property_set["layout"].get_physical_bits()), {48, 49, 40, 47, 58})
+
+    def test_no_limits_with_negative(self):
+        """Test that we're not enforcing a trial limit if set to negative."""
+        backend = FakeYorktown()
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        cmap = CouplingMap(backend.configuration().coupling_map)
+        implicit_max = len(cmap.graph.edge_list()) + 15
+        properties = backend.properties()
+        # Run without any limits set
+        vf2_pass = VF2Layout(cmap, properties=properties, seed=42, max_trials=0)
+        property_set = {}
+        with self.assertLogs("qiskit.transpiler.passes.layout.vf2_layout", level="DEBUG") as cm:
+            vf2_pass(qc, property_set)
+        for output in cm.output:
+            self.assertNotIn("is >= configured max trials", output)
+        last_line = cm.output[-1]
+        # The last line should be
+        # DEBUG:qiskit.transpiler.passes.layout.vf2_layout: Trial n has score 0.122
+        trials = int(last_line.split(" ")[1])
+        self.assertGreater(trials, implicit_max)
+        self.assertEqual(set(property_set["layout"].get_physical_bits()), {3, 1, 0})
+
 
 if __name__ == "__main__":
     unittest.main()
