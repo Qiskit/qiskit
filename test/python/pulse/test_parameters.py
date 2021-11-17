@@ -12,14 +12,12 @@
 
 """Test cases for parameters used in Schedules."""
 import unittest
-import cmath
 from copy import deepcopy
 
 import numpy as np
 
 from qiskit import pulse, assemble
 from qiskit.circuit import Parameter
-from qiskit.circuit.parameterexpression import HAS_SYMENGINE
 from qiskit.pulse import PulseError
 from qiskit.pulse.channels import DriveChannel, AcquireChannel, MemorySlot
 from qiskit.pulse.transforms import inline_subroutines
@@ -395,18 +393,7 @@ class TestPulseParameters(QiskitTestCase):
         self.assertEqual(len(main_prog.parameters), 2)
         target = deepcopy(main_prog).assign_parameters({param_sub1: 0.1, param_sub2: 0.5})
         result = inline_subroutines(target)
-        if not HAS_SYMENGINE:
-            self.assertEqual(result, reference)
-        else:
-            # Because of simplification differences between sympy and symengine when
-            # symengine is used we get 0.1*exp(0.5*I) instead of the evaluated
-            # 0.0877582562 + 0.0479425539*I resulting in a failure. When
-            # symengine is installed manually build the amplitude as a complex to
-            # avoid this.
-            reference = pulse.Schedule()
-            waveform = pulse.library.Constant(duration=100, amp=0.1 * cmath.exp(0.5j))
-            reference += pulse.Play(waveform, DriveChannel(0))
-            self.assertEqual(result, reference)
+        self.assertEqual(result, reference)
 
 
 class TestParameterDuration(QiskitTestCase):
