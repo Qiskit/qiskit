@@ -20,6 +20,8 @@ from qiskit.utils import algorithm_globals
 
 from .product_formula import ProductFormula
 
+# pylint: disable=invalid-name
+
 
 class QDrift(ProductFormula):
     r"""The QDrift Trotterization method, which selects each each term in the
@@ -32,18 +34,24 @@ class QDrift(ProductFormula):
     """
 
     def __init__(
-            self,
-            reps: int = 1,
-            insert_barriers: bool = False,
-            cx_structure: str = "chain",
-            atomic_evolution: Optional[
-                Callable[[Union[Pauli, SparsePauliOp], float], QuantumCircuit]
-            ] = None,
+        self,
+        reps: int = 1,
+        insert_barriers: bool = False,
+        cx_structure: str = "chain",
+        atomic_evolution: Optional[
+            Callable[[Union[Pauli, SparsePauliOp], float], QuantumCircuit]
+        ] = None,
     ) -> None:
         r"""
-        questions: order 1 the trotterisation. Should i make it as an argument in init or directly pass 1 to super?
         Args:
             reps: The number of times to repeat the Trotterization circuit.
+            insert_barriers: Whether to insert barriers between the atomic evolutions.
+            cx_structure: How to arrange the CX gates for the Pauli evolutions, can be
+                "chain", where next neighbor connections are used, or "fountain", where all
+                qubits are connected to one.
+            atomic_evolution: A function to construct the circuit for the evolution of single
+                Pauli string. Per default, a single Pauli evolution is decomopsed in a CX chain
+                and a single qubit Z rotation.
         """
         super().__init__(1, reps, insert_barriers, cx_structure, atomic_evolution)
         self.sampled_ops = None
@@ -79,9 +87,11 @@ class QDrift(ProductFormula):
         # The protocol calls for the removal of the individual coefficients,
         # and multiplication by a constant factor.
         scaled_ops = [(op, factor / coeff) for op, coeff in pauli_list]
-        self.sampled_ops = algorithm_globals.random.choice(np.array(scaled_ops, dtype=object),
-                                                           size=(int(np.ceil(N * self.reps)),),
-                                                           p=weights / lambd)
+        self.sampled_ops = algorithm_globals.random.choice(
+            np.array(scaled_ops, dtype=object),
+            size=(int(np.ceil(N * self.reps)),),
+            p=weights / lambd,
+        )
 
         # construct the evolution circuit
         evo = QuantumCircuit(operators[0].num_qubits)

@@ -1,0 +1,6 @@
+---
+prelude: >
+    Reformulate the former QDrift class in qiskit.opflow.evolutions.trotterizations as a ProductFormula instead of a TrotterizationBase.
+other:
+  - |
+    Reformulate the former QDrift class in qiskit.opflow.evolutions.trotterizations as a ProductFormula instead of a TrotterizationBase.
