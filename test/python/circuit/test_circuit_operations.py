@@ -21,7 +21,7 @@ from qiskit import execute
 from qiskit.circuit import Gate, Instruction, Parameter
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
-from qiskit.circuit.library.standard_gates import SGate, RXGate
+from qiskit.circuit.library.standard_gates import SGate
 from qiskit.quantum_info import Operator
 
 

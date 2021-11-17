@@ -4027,6 +4027,7 @@ class QuantumCircuit:
             clbits: Any clbits that this scope should automatically use.
             allow_jumps: Whether this scope allows jumps to be used within it.
         """
+        # pylint: disable=cyclic-import
         from qiskit.circuit.controlflow.builder import ControlFlowBuilderBlock
 
         self._control_flow_scopes.append(
