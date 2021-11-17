@@ -473,13 +473,13 @@ class _LayerSpooler(list):
             curr_index = index
             last_insertable_index = -1
             index_stop = -1
-            if node.op.condition:
+            """if node.op.condition:
                 if isinstance(node.op.condition[0], Clbit):
                     cond_reg = [creg for creg in self.cregs if node.op.condition[0] in creg]
                     index_stop = self.measure_map[cond_reg[0]]
                 else:
-                    index_stop = self.measure_map[node.op.condition[0]]
-            elif node.cargs:
+                    index_stop = self.measure_map[node.op.condition[0]]"""
+            if node.cargs:
                 for carg in node.cargs:
                     try:
                         carg_reg = next(reg for reg in self.measure_map if carg in reg)
