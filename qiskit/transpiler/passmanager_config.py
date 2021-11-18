@@ -35,6 +35,7 @@ class PassManagerConfig:
         seed_transpiler=None,
         timing_constraints=None,
         unitary_synthesis_method="default",
+        unitary_synthesis_plugin_config=None,
     ):
         """Initialize a PassManagerConfig object
 
@@ -80,6 +81,7 @@ class PassManagerConfig:
         self.seed_transpiler = seed_transpiler
         self.timing_constraints = timing_constraints
         self.unitary_synthesis_method = unitary_synthesis_method
+        self.unitary_synthesis_plugin_config = unitary_synthesis_plugin_config
 
     @classmethod
     def from_backend(cls, backend, **pass_manager_options):
