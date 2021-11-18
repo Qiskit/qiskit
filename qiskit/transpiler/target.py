@@ -443,8 +443,8 @@ class Target(Mapping):
         self._instruction_schedule_map = out_inst_schedule_map
         return out_inst_schedule_map
 
-    def get_instruction_from_name(self, instruction):
-        """Get the :class:`~qiskit.circuit.Instruction` object for a given name
+    def operation_from_name(self, instruction):
+        """Get the operation class object for a given name
 
         Args:
             instruction (str): The instruction name to get the
@@ -454,15 +454,15 @@ class Target(Mapping):
         """
         return self._gate_name_map[instruction]
 
-    def get_instructions_for_qargs(self, qarg):
-        """Get the qargs for a given gate by name
+    def operations_for_qargs(self, qarg):
+        """Get the operation class object for a specified qarg
 
         Args:
             qarg (tuple): A qarg tuple of the qubits to get the gates that apply
                 to it. For example, ``(0,)`` will return the set of all
                 instructions that apply to qubit 0.
         Returns:
-            list: The set of :class:`~qiskit.circuit.Instruction` instances
+            list: The list of :class:`~qiskit.circuit.Instruction` instances
             that apply to the specified qarg.
 
         Raises:
@@ -479,7 +479,7 @@ class Target(Mapping):
 
     @property
     def operations(self):
-        """Get the :class:`~qiskit.circuit.Instruction` objects in the target."""
+        """Get the operation class objects in the target."""
         return list(self._gate_name_map.values())
 
     @property

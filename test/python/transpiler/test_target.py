@@ -355,30 +355,28 @@ class TestTarget(QiskitTestCase):
 
     def test_get_instruction_from_name(self):
         with self.assertRaises(KeyError):
-            self.empty_target.get_instruction_from_name("measure")
-        self.assertEqual(self.ibm_target.get_instruction_from_name("measure"), Measure())
+            self.empty_target.operation_from_name("measure")
+        self.assertEqual(self.ibm_target.operation_from_name("measure"), Measure())
+        self.assertEqual(self.fake_backend_target.operation_from_name("rx_30"), RXGate(math.pi / 6))
         self.assertEqual(
-            self.fake_backend_target.get_instruction_from_name("rx_30"), RXGate(math.pi / 6)
-        )
-        self.assertEqual(
-            self.fake_backend_target.get_instruction_from_name("rx"),
+            self.fake_backend_target.operation_from_name("rx"),
             RXGate(self.fake_backend._theta),
         )
-        self.assertEqual(self.ideal_sim_target.get_instruction_from_name("ccx"), CCXGate())
+        self.assertEqual(self.ideal_sim_target.operation_from_name("ccx"), CCXGate())
 
     def test_get_instructions_for_qargs(self):
         with self.assertRaises(KeyError):
-            self.empty_target.get_instructions_for_qargs((0,))
+            self.empty_target.operations_for_qargs((0,))
         expected = [RZGate(self.theta), IGate(), SXGate(), XGate(), Measure()]
-        res = self.ibm_target.get_instructions_for_qargs((0,))
+        res = self.ibm_target.operations_for_qargs((0,))
         for gate in expected:
             self.assertIn(gate, res)
         expected = [CXGate(), ECRGate()]
-        res = self.fake_backend_target.get_instructions_for_qargs((1, 0))
+        res = self.fake_backend_target.operations_for_qargs((1, 0))
         for gate in expected:
             self.assertIn(gate, res)
         expected = [CXGate()]
-        res = self.fake_backend_target.get_instructions_for_qargs((0, 1))
+        res = self.fake_backend_target.operations_for_qargs((0, 1))
         self.assertEqual(expected, res)
         ideal_sim_expected = [
             UGate(self.theta, self.phi, self.lam),
@@ -391,7 +389,7 @@ class TestTarget(QiskitTestCase):
             Measure(),
         ]
         for gate in ideal_sim_expected:
-            self.assertIn(gate, self.ideal_sim_target.get_instructions_for_qargs(None))
+            self.assertIn(gate, self.ideal_sim_target.operations_for_qargs(None))
 
     def test_coupling_map(self):
         self.assertEqual(CouplingMap().get_edges(), self.empty_target.coupling_map().get_edges())
