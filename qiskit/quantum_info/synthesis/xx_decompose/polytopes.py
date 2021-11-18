@@ -171,7 +171,6 @@ class XXPolytope:
         """
         Returns True when `point` is a member of `self`.
         """
-        global A  # pylint:disable=global-statement
 
         reflected_point = point.copy().reshape(-1, 3)
         rows = reflected_point[:, 0] >= np.pi / 4 + EPSILON
@@ -195,7 +194,7 @@ class XXPolytope:
         #
         #       Skipping this pair won't save much work, so we don't bother.
 
-        global A1, A1inv, A2, A2inv, A3, A3inv  # pylint:disable=global-statement
+        # A1, A1inv, A2, A2inv, A3, A3inv
         # These global variables contain projection matrices, computed once-and-for-all, which
         # produce the Euclidean-nearest projection.
 

@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member
-
 """Tests basic functionality of the transpile function"""
 
 import io
@@ -523,8 +521,7 @@ class TestTranspile(QiskitTestCase):
             transpile(qc, backend, initial_layout=bad_initial_layout)
 
         self.assertEqual(
-            "FullAncillaAllocation: The layout refers to a qubit that does "
-            "not exist in circuit.",
+            "FullAncillaAllocation: The layout refers to a qubit that does not exist in circuit.",
             cm.exception.message,
         )
 

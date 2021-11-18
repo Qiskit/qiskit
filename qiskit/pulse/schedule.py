@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=cyclic-import, missing-return-doc, missing-return-type-doc
+# pylint: disable=cyclic-import, missing-return-doc
 
 """The Schedule is one of the most fundamental objects to this pulse-level programming module.
 A ``Schedule`` is a representation of a *program* in Pulse. Each schedule tracks the time of each
@@ -138,7 +138,7 @@ class Schedule:
 
         if not isinstance(metadata, dict) and metadata is not None:
             raise TypeError("Only a dictionary or None is accepted for schedule metadata")
-        self._metadata = metadata or dict()
+        self._metadata = metadata or {}
 
         self._duration = 0
 
@@ -205,7 +205,7 @@ class Schedule:
         """Update the schedule metadata"""
         if not isinstance(metadata, dict) and metadata is not None:
             raise TypeError("Only a dictionary or None is accepted for schedule metadata")
-        self._metadata = metadata or dict()
+        self._metadata = metadata or {}
 
     @property
     def timeslots(self) -> TimeSlots:
@@ -728,8 +728,7 @@ class Schedule:
                 return new_sched
             except PulseError as err:
                 raise PulseError(
-                    "Replacement of {old} with {new} results in "
-                    "overlapping instructions.".format(old=old, new=new)
+                    f"Replacement of {old} with {new} results in overlapping instructions."
                 ) from err
 
     def is_parameterized(self) -> bool:
@@ -939,10 +938,10 @@ class ScheduleBlock:
 
         if not isinstance(metadata, dict) and metadata is not None:
             raise TypeError("Only a dictionary or None is accepted for schedule metadata")
-        self._metadata = metadata or dict()
+        self._metadata = metadata or {}
 
         self._alignment_context = alignment_context or AlignLeft()
-        self._blocks = list()
+        self._blocks = []
 
         # get parameters from context
         self._parameter_manager.update_parameter_table(self._alignment_context)
@@ -1004,7 +1003,7 @@ class ScheduleBlock:
         """Update the schedule metadata"""
         if not isinstance(metadata, dict) and metadata is not None:
             raise TypeError("Only a dictionary or None is accepted for schedule metadata")
-        self._metadata = metadata or dict()
+        self._metadata = metadata or {}
 
     @property
     def alignment_context(self):

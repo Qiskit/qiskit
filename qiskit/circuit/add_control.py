@@ -91,7 +91,7 @@ def control(
     from math import pi
 
     # pylint: disable=cyclic-import
-    import qiskit.circuit.controlledgate as controlledgate
+    from qiskit.circuit import controlledgate
 
     q_control = QuantumRegister(num_ctrl_qubits, name="control")
     q_target = QuantumRegister(operation.num_qubits, name="target")
