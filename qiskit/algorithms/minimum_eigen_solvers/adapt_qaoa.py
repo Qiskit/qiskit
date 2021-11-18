@@ -6,10 +6,11 @@ import numpy as np
 from qiskit import QuantumCircuit
 from qiskit.algorithms.optimizers import Optimizer
 from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
-from qiskit.opflow import ExpectationBase, I, OperatorBase, X, Y, Z
+from qiskit.opflow import ExpectationBase, I, OperatorBase, X, Y, Z, H, PauliSumOp
 from qiskit.opflow.expectations.expectation_factory import ExpectationFactory
 from qiskit.opflow.gradients import GradientBase
 from qiskit.opflow.primitive_ops import MatrixOp
+from qiskit.opflow.primitive_ops import primitive_op
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
 from qiskit.opflow.state_fns.state_fn import StateFn
@@ -116,7 +117,10 @@ class AdaptQAOA(QAOA):
         self.threshold = threshold
         self.mixer_pool = mixer_pool
         self.mixer_pool_type = mixer_pool_type
-        self.optimal_mixer_list = []  # --------------> Will be appending optimal mixers to this.
+
+        mix = PauliSumOp.from_list([("X" * 5, 1)]*5) # placeholder starting mixer - should be H
+
+        self.optimal_mixer_list = mix  # will be appending optimal mixers to this, first mixer is H see above
         self.cost_operator = None
         self.max_reps = max_reps
         self.best_gamma = []
@@ -151,7 +155,7 @@ class AdaptQAOA(QAOA):
 
         self.ansatz = QAOAAnsatz(
             operator, self._reps, initial_state=self._initial_state, mixer_operator=mixer_list
-        )
+        ).decompose()
 
         self._ansatz_params = sorted(self.ansatz.parameters, key=lambda p: p.name)
 
@@ -247,6 +251,7 @@ class AdaptQAOA(QAOA):
         (5) Repeat 1-4.
         """ ""
         pass
+
 
     def run_adapt(
         self, operator: OperatorBase, aux_operators: Optional[List[Optional[OperatorBase]]] = None
@@ -348,30 +353,3 @@ def adapt_mixer_pool(num_qubits: int, add_single: bool = True, add_multi: bool =
 
     mixer_pool = [string_to_op(mixer) for mixer in mixer_pool]
     return mixer_pool
-
-
-# num, reps = 6, 2
-# mixers_list = adapt_mixer_pool(num)
-# mixerop_pool = []
-# for mix_str in mixers_list:
-#     qr = QuantumRegister(num)
-#     qc = QuantumCircuit(qr)
-#     for i, mix in enumerate(mix_str):
-#         qiskit_dict = {"I": IGate(), "X": XGate(), "Y":YGate(), "Z":ZGate()}
-
-#         mix_qis_gate = qiskit_dict[mix]
-#         qc.append(mix_qis_gate, [i])
-#     mixerop_pool.append(MatrixOp(Operator(qc)))
-# G = nx.random_regular_graph(5, 6, seed=1234) # connectivity, vertices
-# for (u, v) in G.edges():
-#     G.edges[u,v]['weight'] = random.randint(0,1000)/1000
-# Hc = MatrixOp(build_maxcut_hamiltonian(G).full())
-# init_params_gamma  = [0.01 for i in range(0, reps)]
-# init_params_beta = [-np.pi/4 for i in range(0, reps)]
-# init_guess = init_params_gamma+init_params_beta
-
-
-# adqaoa = AdaptQAOA(optimizer=SLSQP(), reps=reps, mixer_list=mixerop_pool, quantum_instance=Aer.get_backend('statevector_simulator'),
-#             initial_point=init_guess)
-# # print(adqaoa.compute_minimum_eigenvalue(Hc))
-# print(adqaoa.construct_circuit(init_guess,Hc))
