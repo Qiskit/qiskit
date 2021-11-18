@@ -366,8 +366,7 @@ class Result:
         if key is None:
             if len(self.results) != 1:
                 raise QiskitError(
-                    "You have to select a circuit or schedule when there is more than "
-                    "one available"
+                    "You have to select a circuit or schedule when there is more than one available"
                 )
             key = 0
 

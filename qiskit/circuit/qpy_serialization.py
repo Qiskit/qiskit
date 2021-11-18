@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,too-many-boolean-expressions,redundant-keyword-arg
+# pylint: disable=invalid-name,too-many-boolean-expressions
 
 """
 ###########################################################
@@ -842,7 +842,7 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
         )
         or gate_class_name == "Gate"
         or gate_class_name == "Instruction"
-        or isinstance(instruction_tuple[0], library.BlueprintCircuit)
+        or isinstance(instruction_tuple[0], (library.BlueprintCircuit, library.PauliEvolutionGate))
     ):
         if instruction_tuple[0].name not in custom_instructions:
             custom_instructions[instruction_tuple[0].name] = instruction_tuple[0]
