@@ -199,12 +199,8 @@ class VarQte(ABC):
         self._operator_circ_sampler = CircuitSampler(self._backend) if self._backend else None
         self._state_circ_sampler = CircuitSampler(self._backend) if self._backend else None
         self._h_squared_circ_sampler = CircuitSampler(self._backend) if self._backend else None
-        self._h_trip_circ_sampler = CircuitSampler(self._backend) if self._backend else None
         self._grad_circ_sampler = CircuitSampler(self._backend) if self._backend else None
         self._metric_circ_sampler = CircuitSampler(self._backend) if self._backend else None
-        self._nat_grad_circ_sampler = (
-            CircuitSampler(self._backend, caching="all") if self._backend else None
-        )
 
     def _init_ham_objects(self) -> None:
         """
@@ -240,7 +236,6 @@ class VarQte(ABC):
                 self._variational_principle,
                 self._grad_circ_sampler,
                 self._metric_circ_sampler,
-                self._nat_grad_circ_sampler,
                 self._regularization,
                 self._backend,
                 t_param,
@@ -252,7 +247,6 @@ class VarQte(ABC):
                 self._variational_principle,
                 self._grad_circ_sampler,
                 self._metric_circ_sampler,
-                self._nat_grad_circ_sampler,
                 self._regularization,
                 self._backend,
                 t_param,

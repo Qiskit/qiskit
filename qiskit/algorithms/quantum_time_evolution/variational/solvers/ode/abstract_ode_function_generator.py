@@ -31,7 +31,6 @@ class AbstractOdeFunctionGenerator(ABC):
         variational_principle: VariationalPrinciple,
         grad_circ_sampler: CircuitSampler,
         metric_circ_sampler: CircuitSampler,
-        nat_grad_circ_sampler: CircuitSampler,
         regularization: Optional[str] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
         t_param: Parameter = None,
@@ -40,13 +39,11 @@ class AbstractOdeFunctionGenerator(ABC):
         self._variational_principle = variational_principle
         self._grad_circ_sampler = grad_circ_sampler
         self._metric_circ_sampler = metric_circ_sampler
-        self._nat_grad_circ_sampler = nat_grad_circ_sampler
         self._regularization = regularization
         self._backend = backend
         self._linear_solver = VarQteLinearSolver(
             self._grad_circ_sampler,
             self._metric_circ_sampler,
-            self._nat_grad_circ_sampler,
             self._regularization,
             self._backend,
         )

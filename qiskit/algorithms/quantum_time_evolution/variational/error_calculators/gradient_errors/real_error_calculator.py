@@ -9,20 +9,20 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from typing import Union, List, Tuple, Any, Dict, Optional
+from typing import Union, List, Dict, Optional
 
 import numpy as np
 
-from qiskit.algorithms.quantum_time_evolution.variational.calculators.distance_energy_calculator import (
+from qiskit.algorithms.quantum_time_evolution.variational.calculators.distance_energy_calculator \
+    import (
     _inner_prod,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.error_calculator import (
+from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors\
+    .error_calculator import (
     ErrorCalculator,
 )
 from qiskit.circuit import Parameter
 from qiskit.opflow import OperatorBase, CircuitSampler
-
-
 # TODO used by variational principle
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance

@@ -33,7 +33,6 @@ class VarQteLinearSolver:
         self,
         grad_circ_sampler: CircuitSampler,
         metric_circ_sampler: CircuitSampler,
-        nat_grad_circ_sampler: CircuitSampler,
         regularization: Optional[str] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
     ):
@@ -42,7 +41,6 @@ class VarQteLinearSolver:
         self._regularization = regularization
         self._grad_circ_sampler = grad_circ_sampler
         self._metric_circ_sampler = metric_circ_sampler
-        self._nat_grad_circ_sampler = nat_grad_circ_sampler
 
     def _solve_sle(
         self,

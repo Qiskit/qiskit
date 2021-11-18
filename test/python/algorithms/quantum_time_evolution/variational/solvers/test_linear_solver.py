@@ -32,7 +32,6 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
         linear_solver = VarQteLinearSolver(
             CircuitSampler(backend),
             CircuitSampler(backend),
-            CircuitSampler(backend),
             backend=None,
         )
 
