@@ -13,7 +13,7 @@
 """Test the evolution gate."""
 
 import scipy
-from ddt import ddt, data
+from ddt import ddt, data, idata, unpack
 
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import PauliEvolutionGate
@@ -113,11 +113,15 @@ class TestEvolutionGate(QiskitTestCase):
 
         self.assertEqual(evo_gate.definition.decompose(), expected)
 
-    def test_qdrift_manual(self):
+    @idata(
+        [
+            [X + Y, 0.5, 1],
+            [X, 0.238, 2],
+        ]
+    )
+    @unpack
+    def test_qdrift_manual(self, op, time, reps):
         """Test the evolution circuit of Suzuki Trotter against a manually constructed circuit."""
-        op = X + Y
-        time = 0.5
-        reps = 1
         qdrift = QDrift(reps=reps)
         evo_gate = PauliEvolutionGate(op, time, synthesis=qdrift)
         evo_gate.definition.decompose()

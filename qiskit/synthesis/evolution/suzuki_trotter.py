@@ -103,7 +103,10 @@ class SuzukiTrotter(ProductFormula):
     def _recurse(order, time, pauli_list):
         if order < 1:
             raise ValueError(
-                "The order of the Trotterization should be an integer number at least " "1."
+                "The given order of the Trotterization was "
+                + str(order)
+                + " but it should be an integer number at least "
+                "1."
             )
 
         if order == 1:
