@@ -101,7 +101,7 @@ class SabreLayout(AnalysisPass):
                 # Update initial layout and reverse the unmapped circuit.
                 pass_final_layout = pm.property_set["final_layout"]
                 final_layout = self._compose_layouts(
-                    initial_layout, pass_final_layout, new_circ.qregs  # pylint: disable=no-member
+                    initial_layout, pass_final_layout, new_circ.qregs
                 )
                 initial_layout = final_layout
                 circ, rev_circ = rev_circ, circ
