@@ -41,30 +41,30 @@ class InstructionProperties:
     custom attributes for those custom/additional properties by the backend.
     """
 
-    __slots__ = ("length", "error", "calibration")
+    __slots__ = ("duration", "error", "calibration")
 
     def __init__(
         self,
-        length: float = None,
+        duration: float = None,
         error: float = None,
         calibration: Union["Schedule", "ScheduleBlock"] = None,
     ):
         """Create a new ``InstructionProperties`` object
 
         Args:
-            length: The duration, in seconds, of the instruction on the
+            duration: The duration, in seconds, of the instruction on the
                 specified set of qubits
             error: The average error rate for the instruction on the specified
                 set of qubits.
             calibration: The pulse representation of the instruction
         """
-        self.length = length
+        self.duration = duration
         self.error = error
         self.calibration = calibration
 
     def __repr__(self):
         return (
-            f"InstructionProperties(length={self.length}, error={self.error}"
+            f"InstructionProperties(duration={self.duration}, error={self.error}"
             f", calibration={self.calibration})"
         )
 
@@ -87,13 +87,13 @@ class Target(Mapping):
         phi = Parameter('phi')
         lam = Parameter('lambda')
         u_props = {
-            (0,): InstructionProperties(length=5.23e-8, error=0.00038115),
-            (1,): InstructionProperties(length=4.52e-8, error=0.00032115),
+            (0,): InstructionProperties(duration=5.23e-8, error=0.00038115),
+            (1,): InstructionProperties(duration=4.52e-8, error=0.00032115),
         }
         gmap.add_instruction(UGate(theta, phi, lam), u_props)
         cx_props = {
-            (0,1): InstructionProperties(length=5.23e-7, error=0.00098115),
-            (1,0): InstructionProperties(length=4.52e-7, error=0.00132115),
+            (0,1): InstructionProperties(duration=5.23e-7, error=0.00098115),
+            (1,0): InstructionProperties(duration=4.52e-7, error=0.00132115),
         }
         gmap.add_instruction(CXGate(), cx_props)
 
@@ -122,11 +122,11 @@ class Target(Mapping):
         target = Target()
         theta = Parameter('theta')
         rx_props = {
-            (0,): InstructionProperties(length=5.23e-8, error=0.00038115),
+            (0,): InstructionProperties(duration=5.23e-8, error=0.00038115),
         }
         target.add_instruction(RXGate(theta), rx_props)
         rx_30_props = {
-            (0,): InstructionProperties(length=1.74e-6, error=.00012)
+            (0,): InstructionProperties(duration=1.74e-6, error=.00012)
         }
         target.add_instruction(RXGate(math.pi / 6), rx_30_props, name='rx_30')
 
@@ -354,9 +354,9 @@ class Target(Mapping):
                     qarg = (qarg,)
                 if inst in self._gate_map:
                     if self.dt is not None:
-                        val.length = sched.duration * self.dt
+                        val.duration = sched.duration * self.dt
                     else:
-                        val.length = None
+                        val.duration = None
                     if error_dict is not None:
                         error_inst = error_dict.get(inst)
                         if error_inst:
@@ -410,8 +410,8 @@ class Target(Mapping):
         out_durations = []
         for instruction, props_map in self._gate_map.items():
             for qarg, properties in props_map.items():
-                if properties is not None and properties.length is not None:
-                    out_durations.append((instruction, list(qarg), properties.length, "s"))
+                if properties is not None and properties.duration is not None:
+                    out_durations.append((instruction, list(qarg), properties.duration, "s"))
         self._instruction_durations = InstructionDurations(out_durations, dt=self.dt)
         return self._instruction_durations
 
@@ -632,9 +632,9 @@ class Target(Mapping):
                     output.write(f"\t\t{qarg}\n")
                     continue
                 prop_str_pieces = [f"\t\t{qarg}:\n"]
-                length = getattr(props, "length", None)
-                if length is not None:
-                    prop_str_pieces.append(f"\t\t\tDuration: {length} sec.\n")
+                duration = getattr(props, "duration", None)
+                if duration is not None:
+                    prop_str_pieces.append(f"\t\t\tDuration: {duration} sec.\n")
                 error = getattr(props, "error", None)
                 if error is not None:
                     prop_str_pieces.append(f"\t\t\tError Rate: {error}\n")

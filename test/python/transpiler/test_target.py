@@ -50,54 +50,54 @@ class TestTarget(QiskitTestCase):
         self.phi = Parameter("phi")
         self.ibm_target = Target()
         i_props = {
-            (0,): InstructionProperties(length=35.5e-9, error=0.000413),
-            (1,): InstructionProperties(length=35.5e-9, error=0.000502),
-            (2,): InstructionProperties(length=35.5e-9, error=0.0004003),
-            (3,): InstructionProperties(length=35.5e-9, error=0.000614),
-            (4,): InstructionProperties(length=35.5e-9, error=0.006149),
+            (0,): InstructionProperties(duration=35.5e-9, error=0.000413),
+            (1,): InstructionProperties(duration=35.5e-9, error=0.000502),
+            (2,): InstructionProperties(duration=35.5e-9, error=0.0004003),
+            (3,): InstructionProperties(duration=35.5e-9, error=0.000614),
+            (4,): InstructionProperties(duration=35.5e-9, error=0.006149),
         }
         self.ibm_target.add_instruction(IGate(), i_props)
         rz_props = {
-            (0,): InstructionProperties(length=0, error=0),
-            (1,): InstructionProperties(length=0, error=0),
-            (2,): InstructionProperties(length=0, error=0),
-            (3,): InstructionProperties(length=0, error=0),
-            (4,): InstructionProperties(length=0, error=0),
+            (0,): InstructionProperties(duration=0, error=0),
+            (1,): InstructionProperties(duration=0, error=0),
+            (2,): InstructionProperties(duration=0, error=0),
+            (3,): InstructionProperties(duration=0, error=0),
+            (4,): InstructionProperties(duration=0, error=0),
         }
         self.ibm_target.add_instruction(RZGate(self.theta), rz_props)
         sx_props = {
-            (0,): InstructionProperties(length=35.5e-9, error=0.000413),
-            (1,): InstructionProperties(length=35.5e-9, error=0.000502),
-            (2,): InstructionProperties(length=35.5e-9, error=0.0004003),
-            (3,): InstructionProperties(length=35.5e-9, error=0.000614),
-            (4,): InstructionProperties(length=35.5e-9, error=0.006149),
+            (0,): InstructionProperties(duration=35.5e-9, error=0.000413),
+            (1,): InstructionProperties(duration=35.5e-9, error=0.000502),
+            (2,): InstructionProperties(duration=35.5e-9, error=0.0004003),
+            (3,): InstructionProperties(duration=35.5e-9, error=0.000614),
+            (4,): InstructionProperties(duration=35.5e-9, error=0.006149),
         }
         self.ibm_target.add_instruction(SXGate(), sx_props)
         x_props = {
-            (0,): InstructionProperties(length=35.5e-9, error=0.000413),
-            (1,): InstructionProperties(length=35.5e-9, error=0.000502),
-            (2,): InstructionProperties(length=35.5e-9, error=0.0004003),
-            (3,): InstructionProperties(length=35.5e-9, error=0.000614),
-            (4,): InstructionProperties(length=35.5e-9, error=0.006149),
+            (0,): InstructionProperties(duration=35.5e-9, error=0.000413),
+            (1,): InstructionProperties(duration=35.5e-9, error=0.000502),
+            (2,): InstructionProperties(duration=35.5e-9, error=0.0004003),
+            (3,): InstructionProperties(duration=35.5e-9, error=0.000614),
+            (4,): InstructionProperties(duration=35.5e-9, error=0.006149),
         }
         self.ibm_target.add_instruction(XGate(), x_props)
         cx_props = {
-            (3, 4): InstructionProperties(length=270.22e-9, error=0.00713),
-            (4, 3): InstructionProperties(length=305.77e-9, error=0.00713),
-            (3, 1): InstructionProperties(length=462.22e-9, error=0.00929),
-            (1, 3): InstructionProperties(length=497.77e-9, error=0.00929),
-            (1, 2): InstructionProperties(length=227.55e-9, error=0.00659),
-            (2, 1): InstructionProperties(length=263.11e-9, error=0.00659),
-            (0, 1): InstructionProperties(length=519.11e-9, error=0.01201),
-            (1, 0): InstructionProperties(length=554.66e-9, error=0.01201),
+            (3, 4): InstructionProperties(duration=270.22e-9, error=0.00713),
+            (4, 3): InstructionProperties(duration=305.77e-9, error=0.00713),
+            (3, 1): InstructionProperties(duration=462.22e-9, error=0.00929),
+            (1, 3): InstructionProperties(duration=497.77e-9, error=0.00929),
+            (1, 2): InstructionProperties(duration=227.55e-9, error=0.00659),
+            (2, 1): InstructionProperties(duration=263.11e-9, error=0.00659),
+            (0, 1): InstructionProperties(duration=519.11e-9, error=0.01201),
+            (1, 0): InstructionProperties(duration=554.66e-9, error=0.01201),
         }
         self.ibm_target.add_instruction(CXGate(), cx_props)
         measure_props = {
-            (0,): InstructionProperties(length=5.813e-6, error=0.0751),
-            (1,): InstructionProperties(length=5.813e-6, error=0.0225),
-            (2,): InstructionProperties(length=5.813e-6, error=0.0146),
-            (3,): InstructionProperties(length=5.813e-6, error=0.0215),
-            (4,): InstructionProperties(length=5.813e-6, error=0.0333),
+            (0,): InstructionProperties(duration=5.813e-6, error=0.0751),
+            (1,): InstructionProperties(duration=5.813e-6, error=0.0225),
+            (2,): InstructionProperties(duration=5.813e-6, error=0.0146),
+            (3,): InstructionProperties(duration=5.813e-6, error=0.0215),
+            (4,): InstructionProperties(duration=5.813e-6, error=0.0333),
         }
         self.ibm_target.add_instruction(Measure(), measure_props)
 
@@ -645,9 +645,9 @@ class TestTarget(QiskitTestCase):
         self.aqt_target.update_instruction_properties(
             "rxx",
             (0, 1),
-            InstructionProperties(length=1e-6, error=1e-5),
+            InstructionProperties(duration=1e-6, error=1e-5),
         )
-        self.assertEqual(self.aqt_target["rxx"][(0, 1)].length, 1e-6)
+        self.assertEqual(self.aqt_target["rxx"][(0, 1)].duration, 1e-6)
         self.assertEqual(self.aqt_target["rxx"][(0, 1)].error, 1e-5)
 
     def test_update_instruction_properties_invalid_instruction(self):
@@ -846,15 +846,20 @@ Instructions:
             """An example properties subclass."""
 
             def __init__(
-                self, length=None, error=None, calibration=None, tuned=None, diamond_norm_error=None
+                self,
+                duration=None,
+                error=None,
+                calibration=None,
+                tuned=None,
+                diamond_norm_error=None,
             ):
-                super().__init__(length=length, error=error, calibration=calibration)
+                super().__init__(duration=duration, error=error, calibration=calibration)
                 self.tuned = tuned
                 self.diamond_norm_error = diamond_norm_error
 
         cx_props = {
             (3, 4): ExtraProperties(
-                length=270.22e-9, error=0.00713, tuned=False, diamond_norm_error=2.12e-6
+                duration=270.22e-9, error=0.00713, tuned=False, diamond_norm_error=2.12e-6
             ),
         }
         target.add_instruction(CXGate(), cx_props)
@@ -892,10 +897,10 @@ class TestPulseTarget(QiskitTestCase):
             pulse.play(pulse.Constant(100, 0.2), pulse.DriveChannel(1))
         sx_props = {
             (0,): InstructionProperties(
-                length=35.5e-9, error=0.000413, calibration=self.custom_sx_q0
+                duration=35.5e-9, error=0.000413, calibration=self.custom_sx_q0
             ),
             (1,): InstructionProperties(
-                length=35.5e-9, error=0.000502, calibration=self.custom_sx_q1
+                duration=35.5e-9, error=0.000502, calibration=self.custom_sx_q1
             ),
         }
         self.pulse_target.add_instruction(SXGate(), sx_props)
@@ -959,9 +964,9 @@ Instructions:
         inst_map.add("sx", 1, custom_sx)
         self.pulse_target.update_from_instruction_schedule_map(inst_map, {"sx": SXGate()})
         self.assertEqual(inst_map, self.pulse_target.instruction_schedule_map())
-        self.assertIsNone(self.pulse_target["sx"][(0,)].length)
+        self.assertIsNone(self.pulse_target["sx"][(0,)].duration)
         self.assertIsNone(self.pulse_target["sx"][(0,)].error)
-        self.assertIsNone(self.pulse_target["sx"][(1,)].length)
+        self.assertIsNone(self.pulse_target["sx"][(1,)].duration)
         self.assertIsNone(self.pulse_target["sx"][(1,)].error)
 
     def test_update_from_instruction_schedule_map_new_instruction_no_name_map(self):
@@ -990,7 +995,7 @@ Instructions:
         self.pulse_target.dt = 1.0
         self.pulse_target.update_from_instruction_schedule_map(inst_map, {"sx": SXGate()})
         self.assertEqual(inst_map, self.pulse_target.instruction_schedule_map())
-        self.assertEqual(self.pulse_target["sx"][(1,)].length, 1000.0)
+        self.assertEqual(self.pulse_target["sx"][(1,)].duration, 1000.0)
         self.assertIsNone(self.pulse_target["sx"][(1,)].error)
         self.assertIsNone(self.pulse_target["sx"][(0,)].error)
 
@@ -1027,5 +1032,5 @@ class TestInstructionProperties(QiskitTestCase):
         properties = InstructionProperties()
         self.assertEqual(
             repr(properties),
-            "InstructionProperties(length=None, error=None, calibration=None)",
+            "InstructionProperties(duration=None, error=None, calibration=None)",
         )
