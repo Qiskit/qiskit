@@ -63,7 +63,8 @@ from .ast import (
     Include,
     Header,
     Identifier,
-    IndexIdentifier2,
+    SubscriptedIdentifier,
+    Range,
     QuantumBlock,
     QuantumBarrier,
     Designator,
@@ -448,15 +449,33 @@ class Qasm3Builder:
         )
         # aliases
         for qreg in self.circuit_ctx[-1].qregs:
-            qubits = []
+            elements = []
+            # Greedily consolidate runs of qubits into ranges.  We don't bother trying to handle
+            # steps; there's no need in generated code.  Even single qubits are referenced as ranges
+            # because the concatenation in an alias statement can only concatenate arraylike values.
+            start_index, prev_index = None, None
             for qubit in qreg:
-                qubits.append(
-                    IndexIdentifier2(
+                cur_index = self.circuit_ctx[-1].find_bit(qubit).index
+                if start_index is None:
+                    start_index = cur_index
+                elif cur_index != prev_index + 1:
+                    elements.append(
+                        SubscriptedIdentifier(
+                            Identifier(self.base_register_name),
+                            Range(start=Integer(start_index), end=Integer(prev_index)),
+                        )
+                    )
+                    start_index = prev_index = cur_index
+                prev_index = cur_index
+            # After the loop, if there were any bits at all, there's always one unemitted range.
+            if len(qreg) != 0:
+                elements.append(
+                    SubscriptedIdentifier(
                         Identifier(self.base_register_name),
-                        [Integer(self.circuit_ctx[-1].find_bit(qubit).index)],
+                        Range(start=Integer(start_index), end=Integer(prev_index)),
                     )
                 )
-            ret.append(AliasStatement(Identifier(qreg.name), qubits))
+            ret.append(AliasStatement(Identifier(qreg.name), elements))
         return ret
 
     def build_quantuminstructions(self, instructions):
@@ -475,17 +494,17 @@ class Qasm3Builder:
                 else:
                     ret.append(self.build_quantumgatecall(instruction))
             elif isinstance(instruction[0], Barrier):
-                indexIdentifierList = self.build_indexIdentifierlist(instruction[1])
-                ret.append(QuantumBarrier(indexIdentifierList))
+                operands = [self.build_single_bit_reference(operand) for operand in instruction[1]]
+                ret.append(QuantumBarrier(operands))
             elif isinstance(instruction[0], Measure):
                 quantumMeasurement = QuantumMeasurement(
-                    self.build_indexIdentifierlist(instruction[1])
+                    [self.build_single_bit_reference(operand) for operand in instruction[1]]
                 )
-                indexIdentifierList = self.build_indexidentifier(instruction[2][0])
-                ret.append(QuantumMeasurementAssignment(indexIdentifierList, quantumMeasurement))
+                qubit = self.build_single_bit_reference(instruction[2][0])
+                ret.append(QuantumMeasurementAssignment(qubit, quantumMeasurement))
             elif isinstance(instruction[0], Reset):
-                for identifier in instruction[1]:
-                    ret.append(QuantumReset(self.build_indexidentifier(identifier)))
+                for operand in instruction[1]:
+                    ret.append(QuantumReset(self.build_single_bit_reference(operand)))
             else:
                 ret.append(self.build_subroutinecall(instruction))
         return ret
@@ -497,7 +516,7 @@ class Qasm3Builder:
     def build_eqcondition(self, condition):
         """Classical Conditional condition from a instruction.condition"""
         if isinstance(condition[0], Clbit):
-            condition_on = self.build_indexidentifier(condition[0])
+            condition_on = self.build_single_bit_reference(condition[0])
         else:
             condition_on = Identifier(condition[0].name)
         return ComparisonExpression(condition_on, EqualsOperator(), Integer(int(condition[1])))
@@ -519,20 +538,13 @@ class Qasm3Builder:
                 )
         return quantumArgumentList
 
-    def build_indexIdentifierlist(self, bitlist: [Bit]):
-        """Builds a indexIdentifierList"""
-        indexIdentifierList = []
-        for bit in bitlist:
-            indexIdentifierList.append(self.build_indexidentifier(bit))
-        return indexIdentifierList
-
     def build_quantumgatecall(self, instruction):
         """Builds a QuantumGateCall"""
         if isinstance(instruction[0], UGate):
             quantumGateName = Identifier("U")
         else:
             quantumGateName = Identifier(self.global_namespace[instruction[0]])
-        indexIdentifierList = self.build_indexIdentifierlist(instruction[1])
+        qubits = [self.build_single_bit_reference(qubit) for qubit in instruction[1]]
         if self.disable_constants:
             parameters = [Expression(param) for param in instruction[0].params]
         else:
@@ -540,28 +552,28 @@ class Qasm3Builder:
                 Expression(pi_check(param, output="qasm")) for param in instruction[0].params
             ]
 
-        return QuantumGateCall(quantumGateName, indexIdentifierList, parameters=parameters)
+        return QuantumGateCall(quantumGateName, qubits, parameters=parameters)
 
     def build_subroutinecall(self, instruction):
         """Builds a SubroutineCall"""
         identifier = Identifier(self.global_namespace[instruction[0]])
         expressionList = [Expression(param) for param in instruction[0].params]
-        indexIdentifierList = self.build_indexIdentifierlist(instruction[1])
-
+        # TODO: qubits should go inside the brackets of subroutine calls, but neither Terra nor the
+        # AST here really support the calls, so there's no sensible way of writing it yet.
+        indexIdentifierList = [self.build_single_bit_reference(bit) for bit in instruction[1]]
         return SubroutineCall(identifier, indexIdentifierList, expressionList)
 
-    def build_indexidentifier(self, bit: Bit):
-        """Build a IndexIdentifier2"""
-        reg, idx = self.find_bit(bit)
+    def build_single_bit_reference(self, bit: Bit) -> Identifier:
+        """Get an identifier node that refers to one particular bit."""
         if self._physical_qubit and isinstance(bit, Qubit):
             return PhysicalQubitIdentifier(
                 Identifier(str(self.circuit_ctx[-1].find_bit(bit).index))
             )
+        reg, idx = self.find_bit(bit)
         if self._flat_reg:
             bit_name = f"{reg.name}_{idx}"
-            return IndexIdentifier2(Identifier(bit_name))
-        else:
-            return IndexIdentifier2(Identifier(reg.name), [Integer(idx)])
+            return Identifier(bit_name)
+        return SubscriptedIdentifier(Identifier(reg.name), Integer(idx))
 
     def find_bit(self, bit):
         """Returns the register and the index in that register for a particular bit"""

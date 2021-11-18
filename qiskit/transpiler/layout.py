@@ -239,7 +239,7 @@ class Layout:
             LayoutError: another_layout can be bigger than self, but not smaller.
                 Otherwise, raises.
         """
-        edge_map = dict()
+        edge_map = {}
 
         for virtual, physical in self._v2p.items():
             if physical not in another_layout._p2v:
@@ -310,7 +310,10 @@ class Layout:
         num_qubits = sum(reg.size for reg in qregs)
         # Check if list is too short to cover all qubits
         if len(int_list) != num_qubits:
-            raise LayoutError("Integer list length must equal number of qubits in circuit.")
+            raise LayoutError(
+                f"Integer list length ({len(int_list)}) must equal number of qubits "
+                f"in circuit ({num_qubits}): {int_list}."
+            )
         out = Layout()
         main_idx = 0
         for qreg in qregs:

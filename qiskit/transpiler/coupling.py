@@ -288,7 +288,7 @@ class CouplingMap:
         return CouplingMap(reduced_cmap)
 
     @classmethod
-    def from_full(cls, num_qubits, bidirectional=True):
+    def from_full(cls, num_qubits, bidirectional=True) -> "CouplingMap":
         """Return a fully connected coupling map on n qubits."""
         cmap = cls(description="full")
         if bidirectional:
@@ -302,22 +302,22 @@ class CouplingMap:
         return cmap
 
     @classmethod
-    def from_line(cls, num_qubits, bidirectional=True):
-        """Return a fully connected coupling map on n qubits."""
+    def from_line(cls, num_qubits, bidirectional=True) -> "CouplingMap":
+        """Return a coupling map of n qubits connected in a line."""
         cmap = cls(description="line")
         cmap.graph = rx.generators.directed_path_graph(num_qubits, bidirectional=bidirectional)
         return cmap
 
     @classmethod
-    def from_ring(cls, num_qubits, bidirectional=True):
-        """Return a fully connected coupling map on n qubits."""
+    def from_ring(cls, num_qubits, bidirectional=True) -> "CouplingMap":
+        """Return a coupling map of n qubits connected to each of their neighbors in a ring."""
         cmap = cls(description="ring")
         cmap.graph = rx.generators.directed_cycle_graph(num_qubits, bidirectional=bidirectional)
         return cmap
 
     @classmethod
-    def from_grid(cls, num_rows, num_columns, bidirectional=True):
-        """Return qubits connected on a grid of num_rows x num_columns."""
+    def from_grid(cls, num_rows, num_columns, bidirectional=True) -> "CouplingMap":
+        """Return a coupling map of qubits connected on a grid of num_rows x num_columns."""
         cmap = cls(description="grid")
         cmap.graph = rx.generators.directed_grid_graph(
             num_rows, num_columns, bidirectional=bidirectional
@@ -325,8 +325,8 @@ class CouplingMap:
         return cmap
 
     @classmethod
-    def from_heavy_hex(cls, distance, bidirectional=True):
-        """Return a heavy hexagon graph coupling map
+    def from_heavy_hex(cls, distance, bidirectional=True) -> "CouplingMap":
+        """Return a heavy hexagon graph coupling map.
 
         A heavy hexagon graph is described in:
 
@@ -349,7 +349,7 @@ class CouplingMap:
         return cmap
 
     @classmethod
-    def from_heavy_square(cls, distance, bidirectional=True):
+    def from_heavy_square(cls, distance, bidirectional=True) -> "CouplingMap":
         """Return a heavy square graph coupling map.
 
         A heavy square graph is described in:
@@ -375,7 +375,7 @@ class CouplingMap:
         return cmap
 
     @classmethod
-    def from_hexagonal_lattice(cls, rows, cols, bidirectional=True):
+    def from_hexagonal_lattice(cls, rows, cols, bidirectional=True) -> "CouplingMap":
         """Return a hexagonal lattice graph coupling map.
 
         Args:

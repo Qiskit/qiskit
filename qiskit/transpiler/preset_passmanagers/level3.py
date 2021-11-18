@@ -106,6 +106,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     approximation_degree = pass_manager_config.approximation_degree
     unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
     timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
+    unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
 
     # 1. Unroll to 1q or 2q gates
     _unroll3q = [
@@ -116,6 +117,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             coupling_map=coupling_map,
             backend_props=backend_properties,
             method=unitary_synthesis_method,
+            plugin_config=unitary_synthesis_plugin_config,
             min_qubits=3,
         ),
         Unroll3qOrMore(),
@@ -200,8 +202,10 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     elif routing_method == "none":
         _swap += [
             Error(
-                msg="No routing method selected, but circuit is not routed to device. "
-                "CheckMap Error: {check_map_msg}",
+                msg=(
+                    "No routing method selected, but circuit is not routed to device. "
+                    "CheckMap Error: {check_map_msg}"
+                ),
                 action="raise",
             )
         ]
@@ -220,6 +224,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 approximation_degree=approximation_degree,
                 coupling_map=coupling_map,
                 backend_props=backend_properties,
+                plugin_config=unitary_synthesis_plugin_config,
                 method=unitary_synthesis_method,
             ),
             UnrollCustomDefinitions(sel, basis_gates),
@@ -233,6 +238,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 coupling_map=coupling_map,
                 backend_props=backend_properties,
                 method=unitary_synthesis_method,
+                plugin_config=unitary_synthesis_plugin_config,
                 min_qubits=3,
             ),
             Unroll3qOrMore(),
@@ -244,6 +250,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 coupling_map=coupling_map,
                 backend_props=backend_properties,
                 method=unitary_synthesis_method,
+                plugin_config=unitary_synthesis_plugin_config,
             ),
         ]
     else:
@@ -277,6 +284,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             coupling_map=coupling_map,
             backend_props=backend_properties,
             method=unitary_synthesis_method,
+            plugin_config=unitary_synthesis_plugin_config,
         ),
         Optimize1qGatesDecomposition(basis_gates),
         CommutativeCancellation(),

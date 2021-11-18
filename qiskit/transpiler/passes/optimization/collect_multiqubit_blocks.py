@@ -175,7 +175,7 @@ class CollectMultiQBlocks(AnalysisPass):
                 tot_size = 0
                 for bit in cur_qubits:
                     top = self.find_set(bit)
-                    if top in savings.keys():
+                    if top in savings:
                         savings[top] = savings[top] - 1
                     else:
                         savings[top] = len(self.bit_groups[top]) - 1

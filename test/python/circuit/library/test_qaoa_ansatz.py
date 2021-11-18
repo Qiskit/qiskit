@@ -18,7 +18,7 @@ from ddt import ddt, data
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import HGate, RXGate, YGate, RYGate, RZGate
 from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
-from qiskit.opflow import I, Y, Z
+from qiskit.opflow import I, Y, Z, PauliSumOp
 from qiskit.test import QiskitTestCase
 
 
@@ -158,3 +158,16 @@ class TestQAOAAnsatz(QiskitTestCase):
 
         circuit = QAOAAnsatz(cost_operator=I ^ num_qubits, reps=5)
         self.assertEqual(circuit.num_qubits, num_qubits)
+
+    def test_identity(self):
+        """Test construction with identity"""
+        reps = 4
+        num_qubits = 3
+        pauli_sum_op = PauliSumOp.from_list([("I" * num_qubits, 1)])
+        pauli_op = I ^ num_qubits
+        for cost in [pauli_op, pauli_sum_op]:
+            for mixer in [None, pauli_op, pauli_sum_op]:
+                with self.subTest(f"cost: {type(cost)}, mixer:{type(mixer)}"):
+                    circuit = QAOAAnsatz(cost_operator=cost, mixer_operator=mixer, reps=reps)
+                    target = reps if mixer is None else 0
+                    self.assertEqual(circuit.num_parameters, target)

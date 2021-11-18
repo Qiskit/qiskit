@@ -287,12 +287,12 @@ class SabreSwap(TransformationPass):
         """Populate extended_set by looking ahead a fixed number of gates.
         For each existing element add a successor until reaching limit.
         """
-        extended_set = list()
-        incremented = list()
+        extended_set = []
+        incremented = []
         tmp_front_layer = front_layer
         done = False
         while tmp_front_layer and not done:
-            new_tmp_front_layer = list()
+            new_tmp_front_layer = []
             for node in tmp_front_layer:
                 for successor in self._successors(node, dag):
                     incremented.append(successor)
