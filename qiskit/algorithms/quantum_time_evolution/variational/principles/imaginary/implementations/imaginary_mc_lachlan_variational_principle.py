@@ -9,13 +9,14 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from typing import Union, Dict, List
+from typing import Union, List
 
 from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
     metric_tensor_calculator,
     evolution_grad_calculator,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.imaginary_variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary\
+    .imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
 )
 from qiskit.circuit import Parameter

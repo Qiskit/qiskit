@@ -68,22 +68,6 @@ class ImaginaryVariationalPrinciple(VariationalPrinciple):
     ):
         pass
 
-    def _calc_nat_grad(
-        self,
-        raw_operator: OperatorBase,
-        param_dict: Dict[Parameter, Union[float, complex]],
-        regularization: Optional[str] = None,
-    ) -> OperatorBase:
-
-        nat_grad = natural_gradient_calculator.calculate(
-            -raw_operator,
-            list(param_dict.keys()),
-            self._grad_method,
-            self._qfi_method,
-            regularization,
-        )
-        return nat_grad
-
     def _calc_error_bound(
         self,
         error: float,

@@ -87,10 +87,3 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
 
         return raw_evolution_grad_imag
 
-    def _calc_nat_grad(
-        self,
-        raw_operator: OperatorBase,
-        param_dict: Dict[Parameter, Union[float, complex]],
-        regularization: Optional[str] = None,
-    ) -> OperatorBase:
-        return super()._calc_nat_grad(raw_operator, param_dict, regularization)

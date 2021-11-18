@@ -13,14 +13,8 @@ from typing import Union, List, Dict, Optional
 
 import numpy as np
 
-from qiskit.algorithms.quantum_time_evolution.variational.calculators.evolution_grad_calculator import (
-    eval_evolution_grad,
-)
-from qiskit.algorithms.quantum_time_evolution.variational.calculators.metric_tensor_calculator import (
-    eval_metric_tensor,
-)
-from qiskit.algorithms.quantum_time_evolution.variational.calculators.natural_gradient_calculator import (
-    eval_nat_grad_result,
+from qiskit.algorithms.quantum_time_evolution.variational.calculators.natural_gradient_calculator\
+    import (
     eval_grad_result,
     eval_metric_result,
 )

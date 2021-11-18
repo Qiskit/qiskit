@@ -10,13 +10,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 from abc import ABC, abstractmethod
-from typing import Union, Dict, Optional, List
+from typing import Union, Optional, List
 
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
     CircuitQFI,
     CircuitGradient,
-    OperatorBase,
     StateFn,
 )
 
@@ -65,15 +64,6 @@ class VariationalPrinciple(ABC):
         parameters: List[Parameter],
     ):
         pass
-
-    @abstractmethod
-    def _calc_nat_grad(
-        self,
-        raw_operator: OperatorBase,
-        param_dict: Dict[Parameter, Union[float, complex]],
-        regularization: Optional[str] = None,
-    ) -> OperatorBase:
-        raise NotImplementedError()
 
     @abstractmethod
     def _calc_error_bound(
