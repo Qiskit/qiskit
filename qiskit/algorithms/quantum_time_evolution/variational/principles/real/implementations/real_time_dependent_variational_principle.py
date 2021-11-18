@@ -36,7 +36,7 @@ class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):
             qfi_method,
         )
 
-    def _get_raw_metric_tensor(
+    def _get_metric_tensor(
         self,
         ansatz,
         param_dict: Dict[Parameter, Union[float, complex]],
@@ -47,7 +47,7 @@ class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):
 
         return raw_metric_tensor_imag
 
-    def _get_raw_evolution_grad(
+    def _get_evolution_grad(
         self,
         hamiltonian,
         ansatz,
@@ -61,7 +61,7 @@ class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):
 
     def _calc_nat_grad(
         self,
-        raw_operator: OperatorBase, # <ansatz|H|ansatz>
+        raw_operator: OperatorBase,  # <ansatz|H|ansatz>
         param_dict: Dict[Parameter, Union[float, complex]],
         regularization: Optional[str] = None,
     ) -> OperatorBase:

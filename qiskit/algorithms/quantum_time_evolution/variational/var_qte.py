@@ -23,12 +23,10 @@ from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result 
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode\
-    .error_based_ode_function_generator import (
+from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.error_based_ode_function_generator import (
     ErrorBasedOdeFunctionGenerator,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.ode_function_generator \
-    import (
+from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.ode_function_generator import (
     OdeFunctionGenerator,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.var_qte_ode_solver import (
@@ -56,13 +54,13 @@ class VarQte(ABC):
     """
 
     def __init__(
-            self,
-            variational_principle: VariationalPrinciple,
-            regularization: Optional[str] = None,
-            backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
-            error_based_ode: Optional[bool] = False,
-            ode_solver_callable: OdeSolver = RK45,
-            optimizer: str = "COBYLA",
+        self,
+        variational_principle: VariationalPrinciple,
+        regularization: Optional[str] = None,
+        backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
+        error_based_ode: Optional[bool] = False,
+        ode_solver_callable: OdeSolver = RK45,
+        optimizer: str = "COBYLA",
     ):
         r"""
         Args:
@@ -102,13 +100,13 @@ class VarQte(ABC):
 
     @abstractmethod
     def evolve(
-            self,
-            hamiltonian: OperatorBase,
-            time: float,
-            initial_state: OperatorBase = None,
-            observable: OperatorBase = None,
-            t_param=None,
-            hamiltonian_value_dict=None,
+        self,
+        hamiltonian: OperatorBase,
+        time: float,
+        initial_state: OperatorBase = None,
+        observable: OperatorBase = None,
+        t_param=None,
+        hamiltonian_value_dict=None,
     ) -> StateFn:
         """
         Apply Variational Quantum Imaginary Time Evolution (VarQITE) w.r.t. the given
@@ -155,8 +153,7 @@ class VarQte(ABC):
         init_state_parameters_values = list(init_state_param_dict.values())
         # TODO bind Hamiltonian?
 
-        self._variational_principle._lazy_init(
-            hamiltonian, initial_state, init_state_parameters)
+        self._variational_principle._lazy_init(hamiltonian, initial_state, init_state_parameters)
         self.bind_initial_state(StateFn(initial_state), init_state_param_dict)
         self._operator = self._variational_principle._operator
         self._validate_operator(self._operator)
@@ -167,8 +164,9 @@ class VarQte(ABC):
 
         ode_function_generator = ode_function_generator_callable(init_state_param_dict, t_param)
 
-        ode_solver = VarQteOdeSolver(init_state_parameters_values, ode_function_generator,
-                                     self._ode_solver_callable)
+        ode_solver = VarQteOdeSolver(
+            init_state_parameters_values, ode_function_generator, self._ode_solver_callable
+        )
         parameter_values = ode_solver._run(time)
         # return evolved
         # initial state here is not with self because we need a parametrized state (input to this
@@ -178,15 +176,15 @@ class VarQte(ABC):
 
     @abstractmethod
     def gradient(
-            self,
-            hamiltonian: OperatorBase,
-            time: float,
-            initial_state: StateFn,
-            gradient_object: Gradient,
-            observable: OperatorBase = None,
-            t_param=None,
-            hamiltonian_value_dict=None,
-            gradient_params=None,
+        self,
+        hamiltonian: OperatorBase,
+        time: float,
+        initial_state: StateFn,
+        gradient_object: Gradient,
+        observable: OperatorBase = None,
+        t_param=None,
+        hamiltonian_value_dict=None,
+        gradient_params=None,
     ) -> EvolutionGradientResult:
         raise NotImplementedError()
 
@@ -266,7 +264,7 @@ class VarQte(ABC):
         if not isinstance(operator[-1], CircuitStateFn):
             raise TypeError("Please provide the respective Ansatz as a CircuitStateFn.")
         elif not isinstance(operator, ComposedOp) and not all(
-                isinstance(op, CircuitStateFn) for op in operator.oplist
+            isinstance(op, CircuitStateFn) for op in operator.oplist
         ):
             raise TypeError(
                 "Please provide the operator either as ComposedOp or as ListOp of a "

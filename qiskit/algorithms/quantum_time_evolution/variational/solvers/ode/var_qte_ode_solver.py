@@ -13,8 +13,7 @@ import itertools
 
 from scipy.integrate import OdeSolver, solve_ivp
 
-from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode\
-    .abstract_ode_function_generator import (
+from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
     AbstractOdeFunctionGenerator,
 )
 
@@ -24,7 +23,7 @@ class VarQteOdeSolver:
         self,
         init_params,
         ode_function_generator: AbstractOdeFunctionGenerator,
-        ode_solver_callable: OdeSolver = 'RK45',
+        ode_solver_callable: OdeSolver = "RK45",
     ):
         """
         Initialize ODE Solver
@@ -45,7 +44,13 @@ class VarQteOdeSolver:
         """
         print(self._ode_function(0, self._init_params))
         print("******************")
-        sol = solve_ivp(self._ode_function, (0, evolution_time), self._init_params, method=self._ode_solver_callable, t_eval=[evolution_time])
+        sol = solve_ivp(
+            self._ode_function,
+            (0, evolution_time),
+            self._init_params,
+            method=self._ode_solver_callable,
+            t_eval=[evolution_time],
+        )
         final_params_vals = list(itertools.chain(*sol.y))
 
         return final_params_vals

@@ -84,8 +84,14 @@ class TestVarQite(QiskitAlgorithmsTestCase):
             2.10770301585949,
             1.92775891861825,
         ]
-        print(state_fidelity(Statevector(evolution_result), Statevector(
-            ansatz.assign_parameters(dict(zip(ansatz.parameters, thetas_expected))))))
+        print(
+            state_fidelity(
+                Statevector(evolution_result),
+                Statevector(
+                    ansatz.assign_parameters(dict(zip(ansatz.parameters, thetas_expected)))
+                ),
+            )
+        )
         parameter_values = evolution_result.data[0][0].params
         for i, parameter_value in enumerate(parameter_values):
             np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=3)
@@ -191,8 +197,14 @@ class TestVarQite(QiskitAlgorithmsTestCase):
             2.04214275514208,
             2.04009918594422,
         ]
-        print(state_fidelity(Statevector(evolution_result), Statevector(
-            ansatz.assign_parameters(dict(zip(ansatz.parameters, thetas_expected))))))
+        print(
+            state_fidelity(
+                Statevector(evolution_result),
+                Statevector(
+                    ansatz.assign_parameters(dict(zip(ansatz.parameters, thetas_expected)))
+                ),
+            )
+        )
         parameter_values = evolution_result.data[0][0].params
         for i, parameter_value in enumerate(parameter_values):
             np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=2)
@@ -251,8 +263,14 @@ class TestVarQite(QiskitAlgorithmsTestCase):
             0.839305697704923,
             0.663689581255428,
         ]
-        print(state_fidelity(Statevector(evolution_result), Statevector(
-            ansatz.assign_parameters(dict(zip(ansatz.parameters, thetas_expected))))))
+        print(
+            state_fidelity(
+                Statevector(evolution_result),
+                Statevector(
+                    ansatz.assign_parameters(dict(zip(ansatz.parameters, thetas_expected)))
+                ),
+            )
+        )
         parameter_values = evolution_result.data[0][0].params
         for i, parameter_value in enumerate(parameter_values):
             np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=4)

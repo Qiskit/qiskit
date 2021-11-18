@@ -38,11 +38,11 @@ class VarQrte(VarQte, EvolutionBase):
         self,
         variational_principle: RealVariationalPrinciple,
         regularization: Optional[str] = None,
-            # TODO: Should we keep this more general? And pass here a natural gradient object?
+        # TODO: Should we keep this more general? And pass here a natural gradient object?
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
         # TODO: Boolean argument missing to decide whether or not to compute the error bounds
         error_based_ode: Optional[bool] = False,
-        ode_solver_callable: OdeSolver = 'RK45',
+        ode_solver_callable: OdeSolver = "RK45",
         optimizer: str = "COBYLA",
     ):
         r"""

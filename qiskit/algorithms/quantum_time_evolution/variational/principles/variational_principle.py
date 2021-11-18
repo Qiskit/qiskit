@@ -39,23 +39,18 @@ class VariationalPrinciple(ABC):
         self._grad_method = grad_method
         self._is_error_supported = is_error_supported
 
-    def _lazy_init(
-        self,
-        hamiltonian,
-        ansatz,
-        parameters: List[Parameter]
-    ):
+    def _lazy_init(self, hamiltonian, ansatz, parameters: List[Parameter]):
 
         self._hamiltonian = hamiltonian
         self._ansatz = ansatz
         self._operator = ~StateFn(hamiltonian) @ StateFn(ansatz)
         self._params = parameters
 
-        self._raw_evolution_grad = self._get_raw_evolution_grad(hamiltonian, ansatz, parameters)
-        self._raw_metric_tensor = self._get_raw_metric_tensor(ansatz, parameters)
+        self._raw_evolution_grad = self._get_evolution_grad(hamiltonian, ansatz, parameters)
+        self._raw_metric_tensor = self._get_metric_tensor(ansatz, parameters)
 
     @abstractmethod
-    def _get_raw_metric_tensor(
+    def _get_metric_tensor(
         self,
         ansatz,
         parameters: List[Parameter],
@@ -63,7 +58,7 @@ class VariationalPrinciple(ABC):
         pass
 
     @abstractmethod
-    def _get_raw_evolution_grad(
+    def _get_evolution_grad(
         self,
         hamiltonian,
         ansatz,
@@ -82,11 +77,11 @@ class VariationalPrinciple(ABC):
 
     @abstractmethod
     def _calc_error_bound(
-        self, error: float,
-            et: float,
-            h_squared_expectation: float,
-            h_trip: float,
-            trained_energy: float
+        self,
+        error: float,
+        et: float,
+        h_squared_expectation: float,
+        h_trip: float,
+        trained_energy: float,
     ) -> float:
         pass
-

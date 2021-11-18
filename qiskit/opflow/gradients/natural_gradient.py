@@ -146,7 +146,6 @@ class NaturalGradient(GradientBase):
         c = np.real(c)
         a = np.real(a)
 
-
         if regularization:
             # If a regularization method is chosen then use a regularized solver to
             # construct the natural gradient.

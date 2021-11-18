@@ -40,7 +40,7 @@ class VarQite(VarQte, EvolutionBase):
         regularization: Optional[str] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
         error_based_ode: Optional[bool] = False,
-        ode_solver_callable: OdeSolver = 'RK45',
+        ode_solver_callable: OdeSolver = "RK45",
         optimizer: str = "COBYLA",
     ):
         r"""

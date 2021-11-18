@@ -40,26 +40,23 @@ class ImaginaryMcLachlanVariationalPrinciple(ImaginaryVariationalPrinciple):
             grad_method,
         )
 
-    def _get_raw_metric_tensor(
+    def _get_metric_tensor(
         self,
         ansatz,
         params: List[Parameter],
     ):
-        raw_metric_tensor_real = metric_tensor_calculator.calculate(
-            ansatz, params, self._qfi_method
-        )
+        metric_tensor_real = metric_tensor_calculator.calculate(ansatz, params, self._qfi_method)
 
-        return raw_metric_tensor_real/4.0
+        return metric_tensor_real * 0.25
 
-    def _get_raw_evolution_grad(
+    def _get_evolution_grad(
         self,
         hamiltonian,
         ansatz,
         params: List[Parameter],
     ):
-        raw_evolution_grad_real = evolution_grad_calculator.calculate(
+        evolution_grad_real = evolution_grad_calculator.calculate(
             hamiltonian, ansatz, params, self._grad_method
         )
 
-        return (-1)*raw_evolution_grad_real / 2.0
-
+        return (-1) * evolution_grad_real * 0.5

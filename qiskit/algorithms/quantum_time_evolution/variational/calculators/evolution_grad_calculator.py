@@ -16,8 +16,6 @@ import numpy as np
 from qiskit.circuit import ParameterVector, ParameterExpression, Parameter
 from qiskit.opflow import StateFn, Gradient, CircuitGradient, OperatorBase, Z, CircuitSampler
 from qiskit.opflow.gradients.circuit_gradients import LinComb
-from qiskit.providers import BaseBackend
-from qiskit.utils import QuantumInstance
 
 
 def calculate(
@@ -38,8 +36,6 @@ def eval_evolution_grad(
     param_dict: Dict[Parameter, Union[float, complex]],
     grad_circ_sampler: CircuitSampler,
 ):
-    # TODO use hashing for more efficient execution
-    # TODO Where is the backend used? Something is wrong here
     if grad_circ_sampler:
         grad_res = np.array(grad_circ_sampler.convert(evolution_grad, params=param_dict).eval())
     else:

@@ -63,11 +63,12 @@ def _inner_prod(x: Iterable, y: Iterable) -> Union[np.ndarray, np.complex, np.fl
     return np.matmul(np.conj(np.transpose(x)), y)
 
 
-def energy(hamiltonian: OperatorBase,
-           ansatz: QuantumCircuit,
-           param_dict: Dict,
-           backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
-          ) -> float:
+def energy(
+    hamiltonian: OperatorBase,
+    ansatz: QuantumCircuit,
+    param_dict: Dict,
+    backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
+) -> float:
     """
     Compute energy for a given Hamiltonian, Ansatz and parameter dictionary.
     Args:
@@ -84,4 +85,3 @@ def energy(hamiltonian: OperatorBase,
         energy = CircuitSampler(backend).convert(energy)
     energy_val = energy.assign_parameters(param_dict).eval()
     return energy_val
-

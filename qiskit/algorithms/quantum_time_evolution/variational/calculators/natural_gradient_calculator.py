@@ -37,7 +37,7 @@ def calculate(
         qfi_method=qfi_method,
         regularization=regularization,
     ).convert(operator * 0.5, parameters)
-    #TODO we should include the Circuit Sampler here not below to allow for hashing
+    # TODO we should include the Circuit Sampler here not below to allow for hashing
 
     return nat_grad
 
@@ -57,12 +57,13 @@ def eval_nat_grad_result(
 
     return nat_grad_result
 
+
 def eval_grad_result(
     grad: Union[OperatorBase, callable],
     param_dict: Dict[Parameter, Union[float, complex]],
     grad_circ_sampler: CircuitSampler,
     backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
-    ):
+):
 
     if isinstance(grad, OperatorBase):
         grad_result = grad
@@ -79,11 +80,12 @@ def eval_grad_result(
 
     return grad_result
 
+
 def eval_metric_result(
     metric,
     param_dict: Dict[Parameter, Union[float, complex]],
     metric_circ_sampler: CircuitSampler,
-    ):
+):
     if metric_circ_sampler:
         metric_result = metric_circ_sampler.convert(metric, params=param_dict).eval()
     else:

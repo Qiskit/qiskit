@@ -20,7 +20,9 @@ from qiskit.algorithms.quantum_time_evolution.variational.calculators.metric_ten
     eval_metric_tensor,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.calculators.natural_gradient_calculator import (
-    eval_nat_grad_result, eval_grad_result, eval_metric_result
+    eval_nat_grad_result,
+    eval_grad_result,
+    eval_metric_result,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
@@ -103,8 +105,9 @@ class VarQteLinearSolver:
             self._backend,
         )
 
-        nat_grad_result = NaturalGradient().nat_grad_combo_fn([grad_result, metric_result],
-                                                              regularization=regularization)
+        nat_grad_result = NaturalGradient().nat_grad_combo_fn(
+            [grad_result, metric_result], regularization=regularization
+        )
         return np.real(nat_grad_result)
 
     # TODO update

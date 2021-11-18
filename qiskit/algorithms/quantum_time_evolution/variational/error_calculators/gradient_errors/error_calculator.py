@@ -30,9 +30,7 @@ class ErrorCalculator:
         param_dict: Dict[Parameter, Union[float, complex]],
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
     ):
-        self._h_squared = self._bind_or_sample_operator(
-            h_squared, h_squared_sampler, param_dict
-        )
+        self._h_squared = self._bind_or_sample_operator(h_squared, h_squared_sampler, param_dict)
         self._exp_operator = self._bind_or_sample_operator(
             exp_operator, exp_operator_sampler, param_dict
         )

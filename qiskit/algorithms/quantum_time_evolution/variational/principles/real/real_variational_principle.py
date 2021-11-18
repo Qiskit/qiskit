@@ -42,7 +42,7 @@ class RealVariationalPrinciple(VariationalPrinciple):
         )
 
     @abstractmethod
-    def _get_raw_metric_tensor(
+    def _get_metric_tensor(
         self,
         ansatz,
         param_dict: Dict[Parameter, Union[float, complex]],
@@ -50,7 +50,7 @@ class RealVariationalPrinciple(VariationalPrinciple):
         pass
 
     @abstractmethod
-    def _get_raw_evolution_grad(
+    def _get_evolution_grad(
         self,
         hamiltonian,
         ansatz,
