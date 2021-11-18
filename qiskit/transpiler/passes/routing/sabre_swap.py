@@ -332,10 +332,10 @@ class SabreSwap(TransformationPass):
 
     def _compute_cost(self, layer, layout):
         cost = 0
+        layout_map = layout._v2p
+        dist_matrix = self.coupling_map._dist_matrix
         for node in layer:
-            cost += self.coupling_map._dist_matrix[
-                layout._v2p[node.qargs[0]], layout._v2p[node.qargs[1]]
-            ]
+            cost += dist_matrix[layout_map[node.qargs[0]], layout_map[node.qargs[1]]]
         return cost
 
     def _score_heuristic(self, heuristic, front_layer, extended_set, layout, swap_qubits=None):
