@@ -178,8 +178,7 @@ class Pauli(BasePauli):
         elif isinstance(data, tuple):
             if len(data) not in [2, 3]:
                 raise QiskitError(
-                    "Invalid input tuple for Pauli, input tuple must be"
-                    " `(z, x, phase)` or `(z, x)`"
+                    "Invalid input tuple for Pauli, input tuple must be `(z, x, phase)` or `(z, x)`"
                 )
             base_z, base_x, base_phase = self._from_array(*data)
         elif isinstance(data, str):
