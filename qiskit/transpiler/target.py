@@ -71,11 +71,11 @@ class InstructionProperties:
 
 class Target(Mapping):
     """
-    A description of gates on a backend. It exists around a central mapping of
-    :class:`~qiskit.circuit.Instruction` objects to their properties on the
-    device. As a basic example, lets assume your device is two qubits, supports
+    A description of instructions available on a backend. It exists around a central
+    mapping of :class:`~qiskit.circuit.Instruction` objects to their properties on the
+    device. As a basic example, let's assume your device has two qubits, supports
     :class:`~qiskit.circuit.library.UGate` on both qubits and
-    :class:`~qiskit.circuit.library.CXGate` in both directions you would create
+    :class:`~qiskit.circuit.library.CXGate` in both directions. You would create
     the target like::
 
         from qiskit.transpiler import Target, InstructionProperties
@@ -514,7 +514,7 @@ class Target(Mapping):
             props = target['x'][(1,)]
 
         (assuming the ``XGate``'s canonical name in the target is ``'x'``)
-        This is especially for larger targets as this will scale worse with the number
+        This is especially true for larger targets as this will scale worse with the number
         of instruction tuples in a target.
 
         Args:
