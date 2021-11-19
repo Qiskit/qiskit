@@ -49,6 +49,8 @@ class CheckMap(AnalysisPass):
         self.coupling_map.compute_distance_matrix()
 
         qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
+        # Use dist matrix directly to avoid validation overhead
+        dist_matrix = self.coupling_map._dist_matrix
 
         for gate in dag.two_qubit_ops():
             if dag.has_calibration_for(gate):
@@ -56,7 +58,7 @@ class CheckMap(AnalysisPass):
             physical_q0 = qubit_indices[gate.qargs[0]]
             physical_q1 = qubit_indices[gate.qargs[1]]
 
-            if self.coupling_map._dist_matrix[physical_q0, physical_q1] != 1:
+            if dist_matrix[physical_q0, physical_q1] != 1:
                 self.property_set["check_map_msg"] = "{}({}, {}) failed".format(
                     gate.name,
                     physical_q0,
