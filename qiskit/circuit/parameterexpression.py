@@ -35,6 +35,11 @@ except ImportError:
 ParameterValueType = Union["ParameterExpression", float]
 
 
+class ParameterTypeError(TypeError):
+    """The type error throw by parameter if we try to cast to number unbind parameter."""
+    pass
+
+
 class ParameterExpression:
     """ParameterExpression class to enable creating expressions of Parameters."""
 
@@ -427,7 +432,7 @@ class ParameterExpression:
 
     def __complex__(self):
         if self.parameters:
-            raise TypeError(
+            raise ParameterTypeError(
                 "ParameterExpression with unbound parameters ({}) "
                 "cannot be cast to a complex.".format(self.parameters)
             )

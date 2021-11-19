@@ -316,10 +316,6 @@ class TestTemplateMatching(QiskitTestCase):
         self.assertEqual(count_cx(circuit_out), 2)  # One match => two CX gates.
         np.testing.assert_almost_equal(Operator(circuit_in).data, Operator(circuit_out).data)
 
-    @unittest.skip(
-        "Skipping because the inverse gate is defined as a UnitaryGate that is \
-        currently cast to a complex numpy array"
-    )
     def test_unbound_parameters(self):
         """
         Test that partial matches with parameters will not raise errors.
@@ -359,9 +355,7 @@ class TestTemplateMatching(QiskitTestCase):
         pass_ = TemplateOptimization(template_list=[template()])
         circuit_out = PassManager(pass_).run(circuit_in)
 
-        # This template will not fully match as long as gates with parameters do not
-        # commute with any other gates in the DAG dependency.
-        self.assertEqual(circuit_out.count_ops().get("cx", 0), 2)
+        self.assertEqual(circuit_out.count_ops().get("cx", 0), 0)
 
 
 if __name__ == "__main__":
