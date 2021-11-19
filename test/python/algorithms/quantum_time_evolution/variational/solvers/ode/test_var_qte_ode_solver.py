@@ -79,6 +79,7 @@ class TestVarQteOdeSolver(QiskitAlgorithmsTestCase):
             var_principle,
             CircuitSampler(backend),
             CircuitSampler(backend),
+            CircuitSampler(backend),
             reg,
             None,
         )

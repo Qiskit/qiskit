@@ -66,6 +66,7 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
             var_principle,
             CircuitSampler(backend),
             CircuitSampler(backend),
+            CircuitSampler(backend),
         )
 
         qte_ode_function = ode_function_generator.var_qte_ode_function(time, param_dict.values())

@@ -37,7 +37,6 @@ from qiskit.utils import QuantumInstance
 #         qfi_method=qfi_method,
 #         regularization=regularization,
 #     ).convert(operator * 0.5, parameters)
-#     # TODO we should include the Circuit Sampler here not below to allow for hashing
 #
 #     return nat_grad
 #
@@ -61,14 +60,14 @@ from qiskit.utils import QuantumInstance
 def eval_grad_result(
     grad: Union[OperatorBase, callable],
     param_dict: Dict[Parameter, Union[float, complex]],
-    grad_circ_sampler: CircuitSampler,
-    backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
+    grad_circ_sampler: CircuitSampler = None,
+    energy_sampler: CircuitSampler = None,
 ):
-
+    # TODO would be nicer to get rid of this if
     if isinstance(grad, OperatorBase):
         grad_result = grad
     else:
-        grad_result = grad(param_dict, backend)
+        grad_result = grad(param_dict, energy_sampler)
 
     if grad_circ_sampler:
         grad_result = grad_circ_sampler.convert(grad_result, param_dict)

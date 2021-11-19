@@ -23,7 +23,6 @@ from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.grad
 )
 from qiskit.circuit import Parameter
 from qiskit.opflow import OperatorBase, CircuitSampler
-# TODO used by variational principle
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
 

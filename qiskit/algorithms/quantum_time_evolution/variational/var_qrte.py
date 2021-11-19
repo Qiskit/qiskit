@@ -132,7 +132,7 @@ class VarQrte(VarQte, EvolutionBase):
         else:
             return super()._create_ode_function_generator(None, init_state_param_dict, t_param)
 
-    def gradient(  # TODO: What is this function?
+    def gradient(
         self,
         hamiltonian: OperatorBase,
         time: float,

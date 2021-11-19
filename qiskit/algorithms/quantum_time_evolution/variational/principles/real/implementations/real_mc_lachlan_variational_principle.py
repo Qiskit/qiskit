@@ -9,21 +9,19 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from typing import Union, Dict, Optional, List
+from typing import Union, Dict, List
 
 from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
     evolution_grad_calculator,
     metric_tensor_calculator,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.principles.real.real_variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.principles.real\
+    .real_variational_principle import (
     RealVariationalPrinciple,
 )
 from qiskit.circuit import Parameter
-from qiskit.providers import BaseBackend
-from qiskit.utils import QuantumInstance
 from qiskit.opflow import (
     CircuitQFI,
-    OperatorBase,
     StateFn,
     SummedOp,
     Y,
@@ -65,13 +63,13 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
         parameters: List[Parameter],
     ):
         def raw_evolution_grad_imag(
-            param_dict: Dict, backend: Optional[Union[BaseBackend, QuantumInstance]] = None
+            param_dict: Dict, energy_sampler: CircuitSampler
         ):
             energy = ~StateFn(hamiltonian) @ StateFn(ansatz)
             energy = PauliExpectation().convert(energy)
-            # TODO rewrite to be more efficient
-            if backend is not None:
-                energy = CircuitSampler(backend).convert(energy, param_dict).eval()
+
+            if energy_sampler:
+                energy = energy_sampler.convert(energy, param_dict).eval()
             else:
                 energy = energy.assign_parameters(param_dict).eval()
 
