@@ -174,7 +174,15 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
              List[Union[OperatorBase, QuantumCircuit]]: The operators to be evolved (and circuits)
                 in this ansatz.
         """
-        return [self.cost_operator, self.mixer_operator]
+        if not isinstance(self.mixer_operator,list):
+            return [self.cost_operator, self.mixer_operator]
+        else:
+            varied_operators = list(
+                itertools.chain.from_iterable(
+                    [[self.cost_operator, mixer] for mixer in self.mixer_operator]
+                )
+            )
+            return varied_operators
 
     @property
     def cost_operator(self):
@@ -274,99 +282,3 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         if self._cost_operator is None:
             return 0
         return self._cost_operator.num_qubits
-
-    def _build_ansatz_circuit(
-        self, operators_
-    ):  # builds the ansatz from the list of mixer operators
-        circuits = []
-        is_evolved_operator = []
-        coeff = Parameter("c")
-        for op in operators_:
-            if isinstance(op, QuantumCircuit):
-                circuits.append(op)
-                is_evolved_operator.append(False)  # has no time coeff
-            else:
-                # check if the operator is just the identity, if yes, skip it
-                from ....opflow.primitive_ops.pauli_op import PauliOp
-
-                if isinstance(op, PauliOp):
-                    sig_qubits = 0 if _is_pauli_identity(op) else 1
-                    if sum(sig_qubits) == 0:
-                        continue
-
-                evolved_op = self.evolution.convert(
-                    (coeff * op).exp_i()
-                ).reduce()  # TODO: check this, might need negative?
-                circuits.append(evolved_op.to_circuit())
-                is_evolved_operator.append(True)  # has time coeff
-
-        try:
-            qr = QuantumRegister(self.num_qubits, "q")
-            self.add_register(qr)
-        except CircuitError:
-            # the register already exists, probably because of a previous composition
-            pass
-
-        times = ParameterVector("t", sum(is_evolved_operator))
-        times_it = iter(times)
-
-        evolution_ = QuantumCircuit(*self.qregs, name=self.name)
-        # TODO: need to figure out how initial_point is passed/ updated with reps
-        evolution_.compose(self.initial_state, inplace=True)
-
-        first = True
-        for is_evolved, circuit in zip(is_evolved_operator, circuits):
-            if first:
-                first = False
-            else:
-                if self._insert_barriers:
-                    evolution_.barrier()
-
-            if is_evolved:
-                bound = circuit.assign_parameters({coeff: next(times_it)})
-            else:
-                bound = circuit
-            evolution_.compose(bound, inplace=True)
-        # then append opt params to self.gamma_values and self.beta_values
-        return evolution_
-
-    def _build(self):
-        if self._data is not None:
-            return
-
-        super()._build()
-
-        # keep old parameter order: first cost operator, then mixer operators
-        num_cost = 0 if _is_pauli_identity(self.cost_operator) else 1
-        if isinstance(self.mixer_operator, QuantumCircuit):
-            num_mixer = self.mixer_operator.num_parameters
-        else:
-            num_mixer = 0 if _is_pauli_identity(self.mixer_operator) else 1
-
-        betas = ParameterVector("β", self.reps * num_mixer)
-        gammas = ParameterVector("γ", self.reps * num_cost)
-
-        # Create a permutation to take us from (cost_1, mixer_1, cost_2, mixer_2, ...)
-        # to (cost_1, cost_2, ..., mixer_1, mixer_2, ...), or if the mixer is a circuit
-        # with more than 1 parameters, from (cost_1, mixer_1a, mixer_1b, cost_2, ...)
-        # to (cost_1, cost_2, ..., mixer_1a, mixer_1b, mixer_2a, mixer_2b, ...)
-        reordered = []
-        for rep in range(self.reps):
-            reordered.extend(gammas[rep * num_cost : (rep + 1) * num_cost])
-            reordered.extend(betas[rep * num_mixer : (rep + 1) * num_mixer])
-
-        self.assign_parameters(dict(zip(self.ordered_parameters, reordered)), inplace=True)
-
-        varied_operators = list(
-            itertools.chain.from_iterable(
-                [[self.operators[0], mixer] for mixer in self.operators[-1]]
-            )
-        )
-        evolution = self._build_ansatz_circuit(varied_operators)
-
-        try:
-            instr = evolution.to_gate()
-        except QiskitError:
-            instr = evolution.to_instruction()
-
-        self.append(instr, self.qubits)
