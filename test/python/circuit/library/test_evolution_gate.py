@@ -49,6 +49,21 @@ class TestEvolutionGate(QiskitTestCase):
         decomposed = evo_gate.definition.decompose()
         self.assertEqual(decomposed.count_ops()["cx"], reps * 3 * 4)
 
+    def test_rzx_order(self):
+        """Test ZX is mapped onto the correct qubits."""
+        evo_gate = PauliEvolutionGate(X ^ Z)
+        decomposed = evo_gate.definition.decompose()
+
+        ref = QuantumCircuit(2)
+        ref.h(1)
+        ref.cx(1, 0)
+        ref.rz(2.0, 0)
+        ref.cx(1, 0)
+        ref.h(1)
+
+        # don't use circuit equality since RZX here decomposes with RZ on the bottom
+        self.assertTrue(Operator(decomposed).equiv(ref))
+
     def test_suzuki_trotter(self):
         """Test constructing the circuit with Lie Trotter decomposition."""
         op = (X ^ 3) + (Y ^ 3) + (Z ^ 3)
@@ -139,7 +154,7 @@ class TestEvolutionGate(QiskitTestCase):
         dag = circuit_to_dag(circuit)
 
         expected_ops = {"HGate", "CXGate", "PauliEvolutionGate"}
-        ops = set(node.op.__class__.__name__ for node in dag.op_nodes())
+        ops = {node.op.__class__.__name__ for node in dag.op_nodes()}
 
         self.assertEqual(ops, expected_ops)
 

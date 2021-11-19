@@ -63,7 +63,6 @@ class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
 
         # Check that the calibrations contain the correct instructions
         # and pulses on the correct channels.
-        # pylint: disable=no-member
         rzx_qc_instructions = cal_qc.calibrations["rzx"][((1, 0), (theta / 2,))].instructions
         self.assertEqual(rzx_qc_instructions[0][1].channel, DriveChannel(0))
         self.assertTrue(isinstance(rzx_qc_instructions[0][1], Play))

@@ -168,7 +168,6 @@ class LogNormalDistribution(QuantumCircuit):
         self._bounds = bounds
 
         # use default the isometry (or initialize w/o resets) algorithm to construct the circuit
-        # pylint: disable=no-member
         if upto_diag:
             circuit.isometry(np.sqrt(normalized_probabilities), circuit.qubits, None)
         else:
