@@ -240,6 +240,9 @@ def transpile(
     arg_circuits_list = isinstance(circuits, list)
     circuits = circuits if arg_circuits_list else [circuits]
 
+    if not circuits:
+        return []
+
     # transpiling schedules is not supported yet.
     start_time = time()
     if all(isinstance(c, Schedule) for c in circuits):
