@@ -117,6 +117,7 @@ class GateDirection(TransformationPass):
 
         trivial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
         layout_map = trivial_layout.get_virtual_bits()
+        dist_matrix = self.coupling_map.distance_matrix
 
         for node in dag.two_qubit_ops():
             control = node.qargs[0]
@@ -125,7 +126,7 @@ class GateDirection(TransformationPass):
             physical_q0 = layout_map[control]
             physical_q1 = layout_map[target]
 
-            if self.coupling_map._dist_matrix[physical_q0, physical_q1] != 1:
+            if dist_matrix[physical_q0, physical_q1] != 1:
                 raise TranspilerError(
                     "The circuit requires a connection between physical "
                     "qubits %s and %s" % (physical_q0, physical_q1)

@@ -46,11 +46,9 @@ class CheckMap(AnalysisPass):
         if self.coupling_map is None or len(self.coupling_map.graph) == 0:
             return
 
-        self.coupling_map.compute_distance_matrix()
-
         qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         # Use dist matrix directly to avoid validation overhead
-        dist_matrix = self.coupling_map._dist_matrix
+        dist_matrix = self.coupling_map.distance_matrix
 
         for gate in dag.two_qubit_ops():
             if dag.has_calibration_for(gate):
