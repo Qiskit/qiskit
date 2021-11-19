@@ -142,5 +142,5 @@ class SabreLayout(AnalysisPass):
         """
         trivial_layout = Layout.generate_trivial_layout(*qregs)
         qubit_map = Layout.combine_into_edge_map(initial_layout, trivial_layout)
-        final_layout = {v: pass_final_layout[qubit_map[v]] for v in initial_layout._v2p}
+        final_layout = {v: pass_final_layout._v2p[qubit_map[v]] for v in initial_layout._v2p}
         return Layout(final_layout)

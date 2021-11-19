@@ -135,6 +135,7 @@ class SabreSwap(TransformationPass):
         self.applied_predecessors = None
         self.qubits_decay = None
         self._bit_indices = None
+        self.dist_matrix = None
 
     def run(self, dag):
         """Run the SabreSwap pass on `dag`.
@@ -153,7 +154,7 @@ class SabreSwap(TransformationPass):
         if len(dag.qubits) > self.coupling_map.size():
             raise TranspilerError("More virtual qubits exist than physical.")
 
-        self.coupling_map.compute_distance_matrix()
+        self.dist_matrix = self.coupling_map.distance_matrix
 
         rng = np.random.default_rng(self.seed)
 
@@ -185,6 +186,8 @@ class SabreSwap(TransformationPass):
             for node in front_layer:
                 if len(node.qargs) == 2:
                     v0, v1 = node.qargs
+                    # Accessing layout._v2p directly to avoid overhead from __getitem__ and a
+                    # single access isn't feasible because the layout is updated on each iteration
                     if self.coupling_map.graph.has_edge(
                         current_layout._v2p[v0], current_layout._v2p[v1]
                     ):
@@ -333,9 +336,8 @@ class SabreSwap(TransformationPass):
     def _compute_cost(self, layer, layout):
         cost = 0
         layout_map = layout._v2p
-        dist_matrix = self.coupling_map._dist_matrix
         for node in layer:
-            cost += dist_matrix[layout_map[node.qargs[0]], layout_map[node.qargs[1]]]
+            cost += self.dist_matrix[layout_map[node.qargs[0]], layout_map[node.qargs[1]]]
         return cost
 
     def _score_heuristic(self, heuristic, front_layer, extended_set, layout, swap_qubits=None):
