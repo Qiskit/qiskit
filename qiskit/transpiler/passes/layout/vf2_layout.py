@@ -70,10 +70,12 @@ class VF2Layout(AnalysisPass):
                                      Default is False.
             seed (int): Sets the seed of the PRNG. -1 Means no node shuffling.
             call_limit (int): The number of state visits to attempt in each execution of
-                vf2.
-            time_limit (float): The total time limit in seconds to run vf2layout
-            properties (BackendProperties): The backend properties for the backend
-            max_trials (int): The maximum number of trials to run vf2 to find
+                VF2.
+            time_limit (float): The total time limit in seconds to run ``VF2Layout``
+            properties (BackendProperties): The backend properties for the backend. If
+                :meth:`~qiskit.providers.models.BackendProperties.readout_error` is available
+                it is used to score the layout.
+            max_trials (int): The maximum number of trials to run VF2 to find
                 a layout. If this is not specified the number of trials will be limited
                 based on the number of edges in the interaction graph or the coupling graph
                 (whichever is larger). If set to a value <= 0 no limit on the number of trials
