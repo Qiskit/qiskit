@@ -124,7 +124,6 @@ class VarQrte(VarQte, EvolutionBase):
                 self._operator,
                 self._h_squared_circ_sampler,
                 self._operator_circ_sampler,
-                init_state_param_dict,
             )
             return super()._create_ode_function_generator(
                 error_calculator, init_state_param_dict, t_param

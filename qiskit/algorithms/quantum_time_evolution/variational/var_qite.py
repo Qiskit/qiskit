@@ -122,7 +122,6 @@ class VarQite(VarQte, EvolutionBase):
                 self._operator,
                 self._h_squared_circ_sampler,
                 self._operator_circ_sampler,
-                init_state_param_dict,
                 self._backend,
             )
             return super()._create_ode_function_generator(

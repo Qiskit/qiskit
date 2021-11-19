@@ -34,11 +34,10 @@ class RealErrorCalculator(ErrorCalculator):
         exp_operator: OperatorBase,
         h_squared_sampler: CircuitSampler,
         exp_operator_sampler: CircuitSampler,
-        param_dict: Dict[Parameter, Union[float, complex]],
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
     ):
         super().__init__(
-            h_squared, exp_operator, h_squared_sampler, exp_operator_sampler, param_dict, backend
+            h_squared, exp_operator, h_squared_sampler, exp_operator_sampler, backend
         )
 
     def _calc_single_step_error(
@@ -46,6 +45,7 @@ class RealErrorCalculator(ErrorCalculator):
         ng_res: Union[List, np.ndarray],
         grad_res: Union[List, np.ndarray],
         metric: Union[List, np.ndarray],
+        param_dict: Dict[Parameter, float],
     ) -> [float]:
 
         """
@@ -59,9 +59,13 @@ class RealErrorCalculator(ErrorCalculator):
             The l2 norm of the error
         """
         eps_squared = 0
-
-        eps_squared += self._h_squared
-        eps_squared -= np.real(self._exp_operator ** 2)
+        h_squared_bound = self._bind_or_sample_operator(self._h_squared, self._h_squared_sampler,
+                                                        param_dict)
+        exp_operator_bound = self._bind_or_sample_operator(
+            self._exp_operator, self._exp_operator_sampler, param_dict
+        )
+        eps_squared += h_squared_bound
+        eps_squared -= np.real(exp_operator_bound ** 2)
 
         # ⟨dtψ(ω)|dtψ(ω)〉= dtωdtω⟨dωψ(ω)|dωψ(ω)〉
         dtdt_state = _inner_prod(ng_res, np.dot(metric, ng_res))

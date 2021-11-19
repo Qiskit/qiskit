@@ -42,7 +42,7 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 @ddt
 class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
     pass
-    # TODO adjust implementations to PR changes
+    # # TODO adjust implementations to PR changes
     # def test_calc_single_step_error(self):
     #     observable = SummedOp(
     #         [
@@ -80,7 +80,6 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
     #         operator,
     #         h_squared_sampler,
     #         exp_operator_sampler,
-    #         param_dict,
     #         backend=None,
     #     )
     #     backend = Aer.get_backend("qasm_simulator")
@@ -94,7 +93,7 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
     #     grad_res, metric_res = linear_solver._solve_sle_for_error_bounds(var_principle, param_dict)
     #
     #     eps_squared, dtdt_state, regrad2 = imaginary_error_calculator._calc_single_step_error(
-    #         ng_res, grad_res, metric_res
+    #         ng_res, grad_res, metric_res, param_dict
     #     )
     #     # TODO verify if values correct
     #     eps_squared_expected = 1.033501133414088
@@ -141,7 +140,6 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
     #         operator,
     #         h_squared_sampler,
     #         exp_operator_sampler,
-    #         param_dict,
     #         backend=None,
     #     )
     #     backend = Aer.get_backend("qasm_simulator")

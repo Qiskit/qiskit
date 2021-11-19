@@ -72,7 +72,7 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
                 ||e_t||^2 for given for dω/dt
             """
             (et_squared) = self._error_calculator._calc_single_step_error(
-                dt_param_values, grad_res, metric_res
+                dt_param_values, grad_res, metric_res, current_param_dict
             )[0]
 
             return et_squared
