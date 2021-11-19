@@ -3,6 +3,7 @@ from itertools import combinations_with_replacement, permutations, product
 from typing import Callable, Dict, Iterable, List, Optional, Union
 
 import numpy as np
+from numpy.random.mtrand import hypergeometric
 from qiskit import QuantumCircuit
 from qiskit.algorithms.optimizers import Optimizer
 from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
@@ -128,8 +129,10 @@ class AdaptQAOA(QAOA):
         self.optimal_mixer_list = []  # will be appending optimal mixers to this, first mixer is H see above
         self.reps = 1
         self.max_reps = reps
+        # self.hyperparameter_dict = self.gamma_init+self.beta_init
         self.best_gamma = []
         self.best_beta = []
+        self.name = 'AdaptQAOA'
 
         if self.mixer_pool_type is None:
             self.mixer_pool = mixer_pool  # todo: check if this list of operators/circuits needs more preprocessing before use
@@ -159,22 +162,19 @@ class AdaptQAOA(QAOA):
 
         if not isinstance(cost_operator, MatrixOp):
             cost_operator = MatrixOp(Operator(cost_operator.to_matrix()))
+        
         if ansatz: # set parameters if ansatz is provided
-            param_dict = dict(
-                zip(
-                    self._ansatz_params,
-                    self.best_gamma + [self.gamma_init] + self.best_beta + [self.beta_init],
-                )
-            )  # type: Dict
-            wave_function = ansatz.assign_parameters(param_dict)
+            wave_function = ansatz.assign_parameters(self.hyperparameter_dict)
         else:   # if no ansatz is provided, assume that algorithm is of depth 1,
             param_dict = None # which means there are no parameters in reference state
             wave_function = self.initial_state # and we set the ref state as the initial state
 
         # construct expectation operator
         exp_hc = (self.gamma_init * cost_operator).exp_i()
-        exp_hc, exp_hc_ad = [_.to_matrix() for _ in [exp_hc, exp_hc.adjoint()]]
-        energy_grad_op = exp_hc_ad @ (commutator(1j * cost_operator, mixer).to_matrix()) @ exp_hc
+        #TODO: Change self.gamma_init to self.gamma[-1]
+        exp_hc_ad = exp_hc.adjoint().to_matrix()
+        exp_hc = exp_hc.to_matrix()
+        energy_grad_op = exp_hc_ad @ (commutator(cost_operator, mixer).to_matrix()) @ exp_hc
         energy_grad_op = PrimitiveOp(energy_grad_op)
 
         expectation = ExpectationFactory.build(
@@ -201,7 +201,8 @@ class AdaptQAOA(QAOA):
             sampled_expect_op = self._circuit_sampler.convert(expect_op, params=param_dict)
             meas = np.abs(np.real(sampled_expect_op.eval()))
             energy_gradients.append(meas)
-        return self.mixer_pool[np.argmax(energy_gradients)], np.max(energy_gradients)
+        max_energy_idx = np.argmax(energy_gradients)
+        return self.mixer_pool[max_energy_idx], energy_gradients[max_energy_idx]
 
     def _check_problem_configuration(self, operator: OperatorBase):
         # Generates the pool of mixers with respect to the cost operator size
@@ -222,19 +223,17 @@ class AdaptQAOA(QAOA):
                             .format(err_str,mixer_n_qubits[check_mixer_qubits], self.num_qubits))
             
     def constuct_adapt_ansatz(self, operator: OperatorBase) -> OperatorBase:
-        best_mixer, energy_norm = self._test_mixer_pool(operator=operator) # for depth=1 compute best mixer and energy norm
-        p = 0 # initialise layer loop counter p
-        self.optimal_mixer_list.append(best_mixer)
+        energy_norm, p, trial_ansatz = 100, 0, None # initialise layer loop counter and energy norm
         while p < self.max_reps:
             if energy_norm<self.threshold:
                 break
-            best_mixer, max_energy_grad = self._test_mixer_pool(operator=operator)
+            best_mixer, max_energy_grad = self._test_mixer_pool(operator=operator)#, ansatz=trial_ansatz)
             self.optimal_mixer_list.append(best_mixer)
-            trial_ansatz = QAOAAnsatz(reps=p, cost_operator=operator, initial_state=self._initial_state, mixer_operator=self.optimal_mixer_list)
-            cost_optimal_param_dict = self.find_minimum(cost_fn=operator, ansatz=trial_ansatz, optimizer=self.optimizer)
+            del self.ansatz
+            self.ansatz = QAOAAnsatz(reps=p, cost_operator=operator, initial_state=self._initial_state, mixer_operator=self.optimal_mixer_list)
+            cost_optimal_param_dict = self.compute_minimum_eigenvalue(operator=operator)
             self._reps+=1
-
-            # TODO: Update self.best_gamma and self.best_beta
+            # TODO: Update self.best_gamma and self.best_beta from cost_optimal_param_dict
             p+=1
         """"
             Loop goes here, steps are roughly as follows:
@@ -319,6 +318,22 @@ class AdaptQAOA(QAOA):
         self._initial_state = initial_state
         self._invalidate()
 
+    @property
+    def hyperparameter_dict(self) -> Dict:
+        if not self._hyperparameter_dict:
+            self._hyperparameter_dict = dict(
+                            zip(
+                                self._ansatz_params,
+                                self.best_gamma + [self.gamma_init] + self.best_beta + [self.beta_init],
+                            )
+                        )
+        else:
+            pass
+        return self._hyperparameter_dict
+
+    @hyperparameter_dict.setter
+    def hyperparameter_dict(self, hyperparameter_dict) -> Dict:
+        self._hyperparameter_dict = hyperparameter_dict
 
 def adapt_mixer_pool(num_qubits: int, add_single: bool = True, add_multi: bool = True, pool_type: str = None) -> List:
     """
