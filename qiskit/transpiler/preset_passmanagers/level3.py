@@ -166,7 +166,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         # set by trivial layout so we clear that before running CSP
         if property_set["trivial_layout_score"] is not None:
             if property_set["trivial_layout_score"] != 0:
-                property_set["layout"]._wrapped = None
                 return True
         return False
 
