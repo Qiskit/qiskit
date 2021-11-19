@@ -159,6 +159,8 @@ class StochasticSwap(TransformationPass):
         logger.debug("layer_permutation: gates = %s", gates)
 
         # Can we already apply the gates? If so, there is no work to do.
+        # Accessing via private attributes to avoid overhead from __getitem__
+        # and to optimize performance of the distance matrix access
         dist = sum(coupling._dist_matrix[layout._v2p[g[0]], layout._v2p[g[1]]] for g in gates)
         logger.debug("layer_permutation: distance = %s", dist)
         if dist == len(gates):
