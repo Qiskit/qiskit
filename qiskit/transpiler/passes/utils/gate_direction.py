@@ -116,13 +116,14 @@ class GateDirection(TransformationPass):
             )
 
         trivial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
+        layout_map = trivial_layout.get_virtual_bits()
 
         for node in dag.two_qubit_ops():
             control = node.qargs[0]
             target = node.qargs[1]
 
-            physical_q0 = trivial_layout._v2p[control]
-            physical_q1 = trivial_layout._v2p[target]
+            physical_q0 = layout_map[control]
+            physical_q1 = layout_map[target]
 
             if self.coupling_map._dist_matrix[physical_q0, physical_q1] != 1:
                 raise TranspilerError(
