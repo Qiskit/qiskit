@@ -1,0 +1,9 @@
+---
+prelude: >
+    The linear solvers package API documentation was incomplete.
+fixes:
+  - |
+    The linear solvers package API documentation was incomplete. The subfolders
+    'matrices' and 'observables', and all classes therein have now been added.
+    Furthermore, the documentation for linear solvers has been modified to 
+    be more descriptive.
