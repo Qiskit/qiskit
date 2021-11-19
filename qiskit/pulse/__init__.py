@@ -275,6 +275,11 @@ be used to align all pulses as late as possible in a pulse program.
 .. autosummary::
     :toctree: ../stubs/
 
+    ~qiskit.pulse.builder.align_equispaced
+    ~qiskit.pulse.builder.align_func
+    ~qiskit.pulse.builder.align_left
+    ~qiskit.pulse.builder.align_right
+    ~qiskit.pulse.builder.align_sequential
     ~qiskit.pulse.builder.circuit_scheduler_settings
     ~qiskit.pulse.builder.frequency_offset
     ~qiskit.pulse.builder.phase_offset
