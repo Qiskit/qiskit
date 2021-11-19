@@ -75,7 +75,7 @@ class Gate(Instruction):
         # Should be diagonalized because it's a unitary.
         decomposition, unitary = schur(Operator(self).data, output="complex")
         # Raise the diagonal entries to the specified power
-        decomposition_power = list()
+        decomposition_power = []
 
         decomposition_diagonal = decomposition.diagonal()
         # assert off-diagonal are 0
