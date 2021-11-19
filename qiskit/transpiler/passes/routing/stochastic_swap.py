@@ -291,7 +291,7 @@ class StochasticSwap(TransformationPass):
         for i, v in enumerate(layerlist):
             logger.debug("    %d: %s", i, v["partition"])
 
-        qubit_subset = self.trivial_layout._v2p.keys()
+        qubit_subset = self.trivial_layout.get_virtual_bits().keys()
 
         # Find swap circuit to precede each layer of input circuit
         layout = self.trivial_layout.copy()
