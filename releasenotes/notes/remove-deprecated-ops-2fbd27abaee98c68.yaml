@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    Remove the overloaded operators `*` (`__mul__`) for the `dot` method and `@` (`__matmul__`) for
+    the `compose` of `BaseOperator`, that is deprecated as of version 0.17.0.
