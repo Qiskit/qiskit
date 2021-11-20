@@ -10,14 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=wrong-import-position, no-name-in-module
+# pylint: disable=wrong-import-position
 
 """Main Qiskit public functionality."""
 
 import pkgutil
 import sys
 import warnings
-import os
 
 # qiskit errors operator
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
@@ -128,4 +127,21 @@ class IBMQWrapper:
 Aer = AerWrapper()
 IBMQ = IBMQWrapper()
 
-__all__ = []
+__all__ = [
+    "Aer",
+    "AncillaRegister",
+    "BasicAer",
+    "ClassicalRegister",
+    "_config",
+    "IBMQ",
+    "MissingOptionalLibraryError",
+    "QiskitError",
+    "__qiskit_version__",
+    "QuantumCircuit",
+    "QuantumRegister",
+    "assemble",
+    "execute",
+    "schedule",
+    "sequence",
+    "transpile",
+]
