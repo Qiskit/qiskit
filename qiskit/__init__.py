@@ -128,4 +128,4 @@ class IBMQWrapper:
 Aer = AerWrapper()
 IBMQ = IBMQWrapper()
 
-del circuit  # pylint: disable=wrong-import-position, undefined-variable
+__all__ = []
