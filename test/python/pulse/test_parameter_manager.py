@@ -16,6 +16,8 @@
 
 from copy import deepcopy
 
+import numpy as np
+
 from qiskit import pulse
 from qiskit.circuit import Parameter
 from qiskit.pulse.parameter_manager import ParameterGetter, ParameterSetter
@@ -278,6 +280,60 @@ class TestParameterSetter(ParameterTestBase):
 
     def test_complex_valued_parameter(self):
         """Test complex valued parameter can be casted to a complex value."""
+        amp = Parameter("amp")
+        test_obj = pulse.Constant(duration=160, amp=1j * amp)
+
+        value_dict = {amp: 0.1}
+
+        visitor = ParameterSetter(param_map=value_dict)
+        assigned = visitor.visit(test_obj)
+
+        ref_obj = pulse.Constant(duration=160, amp=1j * 0.1)
+
+        self.assertEqual(assigned, ref_obj)
+
+    def test_complex_value_to_parameter(self):
+        """Test complex value can be assigned to parameter object."""
+        amp = Parameter("amp")
+        test_obj = pulse.Constant(duration=160, amp=amp)
+
+        value_dict = {amp: 0.1j}
+
+        visitor = ParameterSetter(param_map=value_dict)
+        assigned = visitor.visit(test_obj)
+
+        ref_obj = pulse.Constant(duration=160, amp=1j * 0.1)
+
+        self.assertEqual(assigned, ref_obj)
+
+    def test_complex_parameter_expression(self):
+        """Test assignment of complex-valued parameter expression to parameter."""
+        amp = Parameter("amp")
+
+        mag = Parameter("A")
+        phi = Parameter("phi")
+
+        test_obj = pulse.Constant(duration=160, amp=amp)
+
+        # generate parameter expression
+        value_dict = {amp: mag * np.exp(1j * phi)}
+        visitor = ParameterSetter(param_map=value_dict)
+        assigned = visitor.visit(test_obj)
+
+        # generate complex value
+        value_dict = {mag: 0.1, phi: 0.5}
+        visitor = ParameterSetter(param_map=value_dict)
+        assigned = visitor.visit(assigned)
+
+        # evaluated parameter expression: 0.0877582561890373 + 0.0479425538604203*I
+        value_dict = {amp: 0.1 * np.exp(0.5j)}
+        visitor = ParameterSetter(param_map=value_dict)
+        ref_obj = visitor.visit(test_obj)
+
+        self.assertEqual(assigned, ref_obj)
+
+    def test_invalid_pulse_amplitude(self):
+        """Test that invalid parameters are still checked upon assignment."""
         amp = Parameter("amp")
 
         test_sched = pulse.ScheduleBlock()

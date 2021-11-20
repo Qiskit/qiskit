@@ -1,0 +1,20 @@
+---
+fixes:
+  - |
+    Complex valued pulse parameter assignment with symengine has been fixed. For example,
+
+    .. code-block:: python
+
+      from qiskit import circuit, pulse
+      import numpy as np
+
+      amp = circuit.Parameter("amp")
+      phase = circuit.Parameter("phase")
+
+      with pulse.build() as sched:
+          pulse.play(pulse.Gaussian(160, amp * np.exp(1j * phase), 40), pulse.DriveChannel(0))
+      sched.assign_parameters({amp: 0.1, phase: 1.57}, inplace=True)
+
+    The assigned amplitude has been shown as ``ParameterExpression(0.1*exp(1.57*I))``
+    after symengine is introduced in #6270. This is now correctly
+    evaluated and shown as 7.96327e-05+0.0999999683j.
