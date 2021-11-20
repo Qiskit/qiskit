@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Calling :obj:`~qiskit.compiler.transpile` on an empty list will now correctly return an empty list without issuing a warning.
+    Fix of `#7287 <https://github.com/Qiskit/qiskit-terra/issues/7287>`__.
