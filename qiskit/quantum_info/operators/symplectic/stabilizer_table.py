@@ -292,8 +292,9 @@ class StabilizerTable(PauliTable, AdjointMixin):
             ind = [ind]
         if max(ind) >= self.size:
             raise QiskitError(
-                "Indices {} are not all less than the size"
-                " of the SatbilizerTable ({})".format(ind, self.size)
+                "Indices {} are not all less than the size of the StabilizerTable ({})".format(
+                    ind, self.size
+                )
             )
         return StabilizerTable(
             np.delete(self._array, ind, axis=0), np.delete(self._phase, ind, axis=0)
