@@ -55,7 +55,4 @@ upgrade:
     Redundant pulse builder commands have been removed and no longer exist as per the
     deprecation notice from 0.17. The :func:`qiskit.pulse.builder.call_schedule` and
     :func:`qiskit.pulse.builder.call_circuit` command has been integrated into
-    :func:`~qiskit.pulse.builder.call` command. The :func:`qiskit.pulse.builder.pad` and
-    :func:`qiskit.pulse.builder.inline` have been just removed. These operations can be
-    replaced by transforms :func:`qiskit.pulse.transforms.canonicalization.inline_subroutines`
-    and :func:`qiskit.pulse.transforms.canonicalization.pad` if necessary.
+    :func:`~qiskit.pulse.builder.call` command.

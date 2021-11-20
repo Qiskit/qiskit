@@ -196,6 +196,7 @@ import collections
 import contextvars
 import functools
 import itertools
+import warnings
 from contextlib import contextmanager
 from typing import (
     Any,
@@ -226,6 +227,7 @@ from qiskit.pulse import (
     macros,
     library,
     transforms,
+    utils,
 )
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
@@ -1122,6 +1124,62 @@ def general_transforms(alignment_context: AlignmentKind) -> ContextManager[None]
     finally:
         current = builder.pop_context()
         builder.append_block(current)
+
+
+@utils.deprecated_functionality
+@contextmanager
+def inline() -> ContextManager[None]:
+    """Deprecated. Inline all instructions within this context into the parent context,
+    inheriting the scheduling policy of the parent context.
+
+    .. warning:: This will cause all scheduling directives within this context
+        to be ignored.
+    """
+
+    def _flatten(block):
+        for inst in block.blocks:
+            if isinstance(inst, ScheduleBlock):
+                yield from _flatten(inst)
+            else:
+                yield inst
+
+    builder = _active_builder()
+
+    # set a placeholder
+    builder.push_context(transforms.AlignLeft())
+    try:
+        yield
+    finally:
+        placeholder = builder.pop_context()
+        for inst in _flatten(placeholder):
+            builder.append_instruction(inst)
+
+
+@contextmanager
+def pad(*chs: chans.Channel) -> ContextManager[None]:  # pylint: disable=unused-argument
+    """Deprecated. Pad all available timeslots with delays upon exiting context.
+
+    Args:
+        chs: Channels to pad with delays. Defaults to all channels in context
+            if none are supplied.
+
+    Yields:
+        None
+    """
+    warnings.warn(
+        "Context-wise padding is being deprecated. Requested padding is being ignored. "
+        "Now the pulse builder generate a program in `ScheduleBlock` representation. "
+        "The padding with delay as a blocker is no longer necessary for this program. "
+        "However, if you still want delays, you can convert the output program "
+        "into `Schedule` representation by calling "
+        "`qiskit.pulse.transforms.target_qobj_transform`. Then, you can apply "
+        "`qiskit.pulse.transforms.pad` to the converted schedule. ",
+        DeprecationWarning,
+    )
+    try:
+        yield
+    finally:
+        pass
 
 
 @contextmanager

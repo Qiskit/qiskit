@@ -282,6 +282,8 @@ be used to align all pulses as late as possible in a pulse program.
     ~qiskit.pulse.builder.align_sequential
     ~qiskit.pulse.builder.circuit_scheduler_settings
     ~qiskit.pulse.builder.frequency_offset
+    ~qiskit.pulse.builder.inline
+    ~qiskit.pulse.builder.pad
     ~qiskit.pulse.builder.phase_offset
     ~qiskit.pulse.builder.transpiler_settings
 
@@ -414,6 +416,8 @@ from qiskit.pulse.builder import (
     align_sequential,
     circuit_scheduler_settings,
     frequency_offset,
+    inline,
+    pad,
     phase_offset,
     transpiler_settings,
     # Macros.
