@@ -111,8 +111,6 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         UnitarySynthesis(
             basis_gates,
             approximation_degree=approximation_degree,
-            coupling_map=coupling_map,
-            backend_props=backend_properties,
             method=unitary_synthesis_method,
             min_qubits=3,
             plugin_config=unitary_synthesis_plugin_config,
