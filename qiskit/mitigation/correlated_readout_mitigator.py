@@ -23,11 +23,13 @@ from .utils import counts_probability_vector, z_diagonal, str2diag
 
 class CorrelatedReadoutMitigator(BaseReadoutMitigator):
     """N-qubit readout error mitigator.
-    Mitigates expectation_value and quasi_probabilities.
-    The mitigation_matrix should be calibrated using qiskit.experiments."""
+
+    Mitigates :meth:`expectation_value` and :meth:`quasi_probabilities`.
+    The mitigation_matrix should be calibrated using qiskit experiments."""
 
     def __init__(self, amat: np.ndarray, qubits: Optional[Iterable[int]] = None):
         """Initialize a CorrelatedReadoutMitigator
+
         Args:
             amat: readout error assignment matrix.
             qubits: Optional, the measured physical qubits for mitigation.
@@ -50,6 +52,7 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         shots: Optional[int] = None,
     ) -> Tuple[float, float]:
         r"""Compute the mitigated expectation value of a diagonal observable.
+
         This computes the mitigated estimator of
         :math:`\langle O \rangle = \mbox{Tr}[\rho. O]` of a diagonal observable
         :math:`O = \sum_{x\in\{0, 1\}^n} O(x)|x\rangle\!\langle x|`.
@@ -146,10 +149,13 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
 
     def mitigation_matrix(self, qubits: List[int] = None) -> np.ndarray:
         r"""Return the readout mitigation matrix for the specified qubits.
+
         The mitigation matrix :math:`A^{-1}` is defined as the inverse of the
         :meth:`assignment_matrix` :math:`A`.
+
         Args:
             qubits: Optional, qubits being measured.
+
         Returns:
             np.ndarray: the measurement error mitigation matrix :math:`A^{-1}`.
         """
@@ -172,17 +178,20 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
 
     def assignment_matrix(self, qubits: List[int] = None) -> np.ndarray:
         r"""Return the readout assignment matrix for specified qubits.
+
         The assignment matrix is the stochastic matrix :math:`A` which assigns
         a noisy readout probability distribution to an ideal input
         readout distribution: :math:`P(i|j) = \langle i | A | j \rangle`.
+
         Args:
             qubits: Optional, qubits being measured.
+
         Returns:
             np.ndarray: the assignment matrix A.
         """
         if qubits is None:
             qubits = self._qubits
-        if qubits is None:
+        if qubits == self._num_qubits:
             return self._assignment_mat
 
         if isinstance(qubits, int):

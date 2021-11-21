@@ -27,19 +27,22 @@ from .utils import counts_probability_vector, z_diagonal, str2diag
 
 class LocalReadoutMitigator(BaseReadoutMitigator):
     """1-qubit tensor product readout error mitigator.
-    Mitigates expectation_value and quasi_probabilities.
-    The mitigator should either be calibrated using qiskit.experiments,
+
+    Mitigates :meth:`expectation_value` and :meth:`quasi_probabilities`.
+    The mitigator should either be calibrated using qiskit experiments,
     or calculated directly from the backend properties."""
 
     def __init__(
         self,
         amats: Optional[List[np.ndarray]] = None,
-        backend: Optional[Union[Backend, BackendProperties]] = None,
         qubits: Optional[Iterable[int]] = None,
+        backend: Optional[Union[Backend, BackendProperties]] = None,
     ):
         """Initialize a LocalReadoutMitigator
+
         Args:
             amats: Optional, list of single-qubit readout error assignment matrices.
+            qubits: Optional, the measured physical qubits for mitigation.
             backend: Optional, backend name.
         """
         if amats is None:
@@ -77,6 +80,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         shots: Optional[int] = None,
     ) -> Tuple[float, float]:
         r"""Compute the mitigated expectation value of a diagonal observable.
+
         This computes the mitigated estimator of
         :math:`\langle O \rangle = \mbox{Tr}[\rho. O]` of a diagonal observable
         :math:`O = \sum_{x\in\{0, 1\}^n} O(x)|x\rangle\!\langle x|`.
@@ -184,10 +188,13 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
 
     def mitigation_matrix(self, qubits: List[int] = None) -> np.ndarray:
         r"""Return the measurement mitigation matrix for the specified qubits.
+
         The mitigation matrix :math:`A^{-1}` is defined as the inverse of the
         :meth:`assignment_matrix` :math:`A`.
+
         Args:
             qubits: Optional, qubits being measured for operator expval.
+
         Returns:
             np.ndarray: the measurement error mitigation matrix :math:`A^{-1}`.
         """
@@ -202,11 +209,14 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
 
     def assignment_matrix(self, qubits: List[int] = None) -> np.ndarray:
         r"""Return the measurement assignment matrix for specified qubits.
+
         The assignment matrix is the stochastic matrix :math:`A` which assigns
         a noisy measurement probability distribution to an ideal input
         measurement distribution: :math:`P(i|j) = \langle i | A | j \rangle`.
+
         Args:
             qubits: Optional, qubits being measured for operator expval.
+
         Returns:
             np.ndarray: the assignment matrix A.
         """
