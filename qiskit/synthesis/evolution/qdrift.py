@@ -94,17 +94,17 @@ class QDrift(ProductFormula):
         )
 
         # construct the evolution circuit
-        evo = QuantumCircuit(operators[0].num_qubits)
+        evolution_circuit = QuantumCircuit(operators[0].num_qubits)
         first_barrier = False
 
         for op, coeff in self.sampled_ops:
             # add barriers
             if first_barrier:
                 if self.insert_barriers:
-                    evo.barrier()
+                    evolution_circuit.barrier()
             else:
                 first_barrier = True
 
-            evo.compose(self.atomic_evolution(op, coeff), wrap=True, inplace=True)
+            evolution_circuit.compose(self.atomic_evolution(op, coeff), wrap=True, inplace=True)
 
-        return evo
+        return evolution_circuit
