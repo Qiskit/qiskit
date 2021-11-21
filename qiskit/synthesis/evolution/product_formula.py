@@ -290,7 +290,6 @@ def _default_atomic_evolution(operator, time, cx_structure):
         name = f"exp(it {[pauli.to_label() for pauli, _ in pauli_list]})"
         evolution_circuit = QuantumCircuit(operator.num_qubits, name=name)
         for pauli, coeff in pauli_list:
-            evolution_circuit.compose(evolve_pauli(pauli, coeff * time, cx_structure),
-                                      inplace=True)
+            evolution_circuit.compose(evolve_pauli(pauli, coeff * time, cx_structure), inplace=True)
 
     return evolution_circuit
