@@ -231,7 +231,7 @@ class InstructionScheduleMap:
             if isinstance(function, ParameterizedSchedule):
                 return function.bind_parameters(**binds.arguments)
 
-            value_dict = dict()
+            value_dict = {}
             for param in function.parameters:
                 try:
                     value_dict[param] = binds.arguments[param.name]
@@ -281,7 +281,7 @@ class InstructionScheduleMap:
                     )
                 ordered_names = arguments
 
-            parameters = list()
+            parameters = []
             for argname in ordered_names:
                 param_signature = inspect.Parameter(
                     name=argname,
@@ -298,7 +298,7 @@ class InstructionScheduleMap:
                 DeprecationWarning,
             )
 
-            parameters = list()
+            parameters = []
             for argname in schedule.parameters:
                 param_signature = inspect.Parameter(
                     name=argname,
