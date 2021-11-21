@@ -2904,7 +2904,8 @@ class TestTextConditional(QiskitTestCase):
                 "                  0x1 ",
             ]
         )
-
+        print('\n', str(_text_circuit_drawer(circuit)))
+        print(expected)
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_text_bit_conditional(self):

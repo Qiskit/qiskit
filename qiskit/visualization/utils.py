@@ -345,7 +345,7 @@ def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wi
     # Create a mapping of each register to the max layer number for all measure ops
     # with that register as the target. Then when an op with condition is seen,
     # it will be placed to the right of the measure op if the register matches.
-    measure_map = OrderedDict([(c, -1) for c in circuit.cregs])
+    measure_map = OrderedDict([(c, -1) for c in clbits])
 
     if justify == "none":
         for node in dag.topological_op_nodes():
@@ -422,6 +422,7 @@ class _LayerSpooler(list):
         super().__init__()
         self.dag = dag
         self.qubits = dag.qubits
+        self.clbits = dag.clbits
         self.justification = justification
         self.measure_map = measure_map
         self.cregs = [self.dag.cregs[reg] for reg in self.dag.cregs]
@@ -463,7 +464,7 @@ class _LayerSpooler(list):
         """Insert node into first layer where there is no conflict going l > r"""
         measure_layer = None
         if isinstance(node.op, Measure):
-            measure_reg = next(reg for reg in self.measure_map if node.cargs[0] in reg)
+            measure_bit = next(bit for bit in self.measure_map if node.cargs[0] == bit)
 
         if not self:
             inserted = True
@@ -475,19 +476,22 @@ class _LayerSpooler(list):
             index_stop = -1
             if node.op.condition:
                 if isinstance(node.op.condition[0], Clbit):
-                    cond_reg = [creg for creg in self.cregs if node.op.condition[0] in creg]
-                    index_stop = self.measure_map[cond_reg[0]]
+                    cond_bit = [clbit for clbit in self.clbits if node.op.condition[0] == clbit]
+                    index_stop = self.measure_map[cond_bit[0]]
                 else:
-                    index_stop = self.measure_map[node.op.condition[0]]
+                    for bit in node.op.condition[0]:
+                        max_index = -1
+                        if bit in self.measure_map:
+                            if self.measure_map[bit] > max_index:
+                                index_stop = max_index = self.measure_map[bit]
             if node.cargs:
                 for carg in node.cargs:
                     try:
-                        carg_reg = next(reg for reg in self.measure_map if carg in reg)
-                        if self.measure_map[carg_reg] > index_stop:
-                            index_stop = self.measure_map[carg_reg]
+                        carg_bit = next(bit for bit in self.measure_map if carg == bit)
+                        if self.measure_map[carg_bit] > index_stop:
+                            index_stop = self.measure_map[carg_bit]
                     except StopIteration:
                         pass
-
             while curr_index > index_stop:
                 if self.is_found_in(node, self[curr_index]):
                     break
@@ -516,8 +520,8 @@ class _LayerSpooler(list):
         if isinstance(node.op, Measure):
             if not measure_layer:
                 measure_layer = len(self) - 1
-            if measure_layer > self.measure_map[measure_reg]:
-                self.measure_map[measure_reg] = measure_layer
+            if measure_layer > self.measure_map[measure_bit]:
+                self.measure_map[measure_bit] = measure_layer
 
     def slide_from_right(self, node, index):
         """Insert node into rightmost layer as long there is no conflict."""
