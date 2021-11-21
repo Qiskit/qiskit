@@ -75,10 +75,10 @@ class Acquire(Instruction):
         if not (mem_slot or reg_slot):
             raise PulseError("Neither MemorySlots nor RegisterSlots were supplied.")
 
-        self._kernel = kernel
-        self._discriminator = discriminator
-
-        super().__init__(operands=(duration, channel, mem_slot, reg_slot), name=name)
+        super().__init__(
+            operands=(duration, channel, mem_slot, reg_slot, kernel, discriminator),
+            name=name,
+        )
 
     @property
     def channel(self) -> AcquireChannel:
@@ -90,7 +90,9 @@ class Acquire(Instruction):
     @property
     def channels(self) -> Tuple[Union[AcquireChannel, MemorySlot, RegisterSlot]]:
         """Returns the channels that this schedule uses."""
-        return tuple(self.operands[ind] for ind in (1, 2, 3) if self.operands[ind] is not None)
+        return tuple(
+            c for c in [self.acquire, self.mem_slot, self.reg_slot] if c is not None
+        )
 
     @property
     def duration(self) -> Union[int, ParameterExpression]:
@@ -100,12 +102,12 @@ class Acquire(Instruction):
     @property
     def kernel(self) -> Kernel:
         """Return kernel settings."""
-        return self._kernel
+        return self.operands[4]
 
     @property
     def discriminator(self) -> Discriminator:
         """Return discrimination settings."""
-        return self._discriminator
+        return self.operands[5]
 
     @property
     def acquire(self) -> AcquireChannel:
