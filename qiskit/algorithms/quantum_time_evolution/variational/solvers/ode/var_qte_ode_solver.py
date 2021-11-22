@@ -42,6 +42,7 @@ class VarQteOdeSolver:
         Args:
             evolution_time: Evolution time.
         """
+        # TODO remove prints later; useful for debugging
         print(self._ode_function(0, self._init_params))
         print("******************")
         sol = solve_ivp(

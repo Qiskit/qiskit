@@ -9,6 +9,16 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-class OdeFunctionGeneratorFactory:
-    def build(self, error_based_ode: bool):
-        raise NotImplementedError()
+import unittest
+
+from test.python.algorithms import QiskitAlgorithmsTestCase
+
+# TODO test how metric and evolution grad results are calculated
+
+
+class TestNaturalGradientCalculator(QiskitAlgorithmsTestCase):
+    pass
+
+
+if __name__ == "__main__":
+    unittest.main()

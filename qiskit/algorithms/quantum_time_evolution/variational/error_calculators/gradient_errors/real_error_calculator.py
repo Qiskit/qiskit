@@ -13,9 +13,6 @@ from typing import Union, List, Dict, Optional
 
 import numpy as np
 
-from qiskit.algorithms.quantum_time_evolution.variational.calculators.distance_energy_calculator import (
-    _inner_prod,
-)
 from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.error_calculator import (
     ErrorCalculator,
 )
@@ -65,12 +62,12 @@ class RealErrorCalculator(ErrorCalculator):
         eps_squared -= np.real(exp_operator_bound ** 2)
 
         # ⟨dtψ(ω)|dtψ(ω)〉= dtωdtω⟨dωψ(ω)|dωψ(ω)〉
-        dtdt_state = _inner_prod(ng_res, np.dot(metric, ng_res))
+        dtdt_state = self._inner_prod(ng_res, np.dot(metric, ng_res))
         eps_squared += dtdt_state
 
         # 2Im⟨dtψ(ω)| H | ψ(ω)〉= 2Im dtω⟨dωψ(ω)|H | ψ(ω)
         # 2 missing b.c. of Im
-        imgrad2 = _inner_prod(grad_res, ng_res)
+        imgrad2 = self._inner_prod(grad_res, ng_res)
         eps_squared -= imgrad2
 
         eps_squared = self._validate_epsilon_squared(eps_squared)

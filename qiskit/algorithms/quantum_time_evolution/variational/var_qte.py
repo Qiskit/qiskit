@@ -139,7 +139,7 @@ class VarQte(ABC):
         initial_state: OperatorBase = None,
         observable: OperatorBase = None,
         t_param=None,
-    ) -> StateFn:
+    ) -> OperatorBase:
         """
         Helper method for performing time evolution. Works both for imaginary and real case.
         Args:
@@ -192,6 +192,9 @@ class VarQte(ABC):
         # initial state here is not with self because we need a parametrized state (input to this
         # method)
         param_dict_from_ode = dict(zip(init_state_parameters, parameter_values))
+        # TODO sampler?
+        # if self._state_circ_sampler:
+        #     return self._state_circ_sampler.convert(initial_state, param_dict_from_ode)
         return initial_state.assign_parameters(param_dict_from_ode)
 
     @abstractmethod

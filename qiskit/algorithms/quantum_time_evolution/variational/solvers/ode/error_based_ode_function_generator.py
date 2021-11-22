@@ -60,8 +60,8 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
         current_param_dict = dict(zip(self._param_dict.keys(), parameters_values))
         nat_grad_res = super().var_qte_ode_function(t, parameters_values)
         # TODO update _solve_sle_for_error_bounds
-        grad_res, metric_res = self._linear_solver._solve_sle_for_error_bounds(
-            self._variational_principle, current_param_dict, self._t_param, t
+        grad_res, metric_res = self._linear_solver._solve_sle(
+            self._variational_principle, current_param_dict, self._t_param, t, self._regularization
         )
 
         def argmin_fun(dt_param_values: Union[List, np.ndarray]) -> float:
@@ -72,7 +72,7 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
             Returns:
                 ||e_t||^2 for given for dω/dt
             """
-            (et_squared) = self._error_calculator._calc_single_step_error(
+            et_squared = self._error_calculator._calc_single_step_error(
                 dt_param_values, grad_res, metric_res, current_param_dict
             )[0]
 
