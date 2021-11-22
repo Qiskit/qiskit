@@ -9,7 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from typing import Union, Dict, Optional
+from typing import Union, List
 
 from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
     metric_tensor_calculator,
@@ -19,7 +19,7 @@ from qiskit.algorithms.quantum_time_evolution.variational.principles.real.real_v
     RealVariationalPrinciple,
 )
 from qiskit.circuit import Parameter
-from qiskit.opflow import CircuitQFI, OperatorBase, Y
+from qiskit.opflow import CircuitQFI, Y
 
 
 class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):
@@ -39,10 +39,10 @@ class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):
     def _get_metric_tensor(
         self,
         ansatz,
-        param_dict: Dict[Parameter, Union[float, complex]],
+        parameters: List[Parameter],
     ):
         raw_metric_tensor_imag = metric_tensor_calculator.calculate(
-            ansatz, list(param_dict.keys()), self._qfi_method, basis=-1j * Y
+            ansatz, parameters, self._qfi_method, basis=-1j * Y
         )
 
         return raw_metric_tensor_imag * 0.25
@@ -51,11 +51,10 @@ class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):
         self,
         hamiltonian,
         ansatz,
-        param_dict: Dict[Parameter, Union[float, complex]],
+        parameters: List[Parameter],
     ):
         raw_evolution_grad_real = evolution_grad_calculator.calculate(
-            hamiltonian, ansatz, list(param_dict.keys()), self._grad_method
+            hamiltonian, ansatz, parameters, self._grad_method
         )
 
         return raw_evolution_grad_real * 0.5
-

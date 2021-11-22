@@ -34,9 +34,7 @@ class ImaginaryErrorCalculator(ErrorCalculator):
         exp_operator_sampler: CircuitSampler,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
     ):
-        super().__init__(
-            h_squared, exp_operator, h_squared_sampler, exp_operator_sampler, backend
-        )
+        super().__init__(h_squared, exp_operator, h_squared_sampler, exp_operator_sampler, backend)
 
     def _calc_single_step_error(
         self,
@@ -45,7 +43,6 @@ class ImaginaryErrorCalculator(ErrorCalculator):
         metric: Union[List, np.ndarray],
         param_dict: Dict[Parameter, float],
     ) -> Tuple[int, Union[np.ndarray, complex, float], Union[Union[complex, float], Any]]:
-
         """
         Evaluate the l2 norm of the error for a single time step of VarQITE.
         Args:
@@ -56,7 +53,9 @@ class ImaginaryErrorCalculator(ErrorCalculator):
             square root of the l2 norm of the error
         """
         eps_squared = 0
-        h_squared_bound = self._bind_or_sample_operator(self._h_squared, self._h_squared_sampler, param_dict)
+        h_squared_bound = self._bind_or_sample_operator(
+            self._h_squared, self._h_squared_sampler, param_dict
+        )
         exp_operator_bound = self._bind_or_sample_operator(
             self._exp_operator, self._exp_operator_sampler, param_dict
         )
@@ -81,7 +80,6 @@ class ImaginaryErrorCalculator(ErrorCalculator):
         grad_res: Union[List, np.ndarray],
         metric: Union[List, np.ndarray],
     ) -> float:
-
         """
         Evaluate the gradient of the l2 norm for a single time step of VarQITE.
         Args:

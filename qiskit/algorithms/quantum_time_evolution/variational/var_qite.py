@@ -32,8 +32,12 @@ from qiskit.algorithms.quantum_time_evolution.variational.var_qte import VarQte
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
 
+"""Variational Quantum Imaginary Time Evolution algorithm."""
+
 
 class VarQite(VarQte, EvolutionBase):
+    """Variational Quantum Imaginary Time Evolution algorithm."""
+
     def __init__(
         self,
         variational_principle: ImaginaryVariationalPrinciple,
@@ -106,7 +110,7 @@ class VarQite(VarQte, EvolutionBase):
             hamiltonian_value_dict, list(initial_state.parameters)
         )
 
-        return super().evolve_helper(
+        return super()._evolve_helper(
             self._create_imag_ode_function_generator,
             init_state_param_dict,
             hamiltonian,
@@ -118,7 +122,7 @@ class VarQite(VarQte, EvolutionBase):
     def _create_imag_ode_function_generator(self, init_state_param_dict, t_param):
         if self._error_based_ode:
             error_calculator = ImaginaryErrorCalculator(
-                self._h_squared,
+                self._hamiltonian_squared,
                 self._operator,
                 self._h_squared_circ_sampler,
                 self._operator_circ_sampler,

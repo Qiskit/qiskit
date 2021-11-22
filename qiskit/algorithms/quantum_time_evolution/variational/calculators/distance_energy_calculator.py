@@ -63,14 +63,15 @@ def _inner_prod(x: Iterable, y: Iterable) -> Union[np.ndarray, np.complex, np.fl
     return np.matmul(np.conj(np.transpose(x)), y)
 
 
-def energy(
+# TODO not used anywhere
+def calc_energy(
     hamiltonian: OperatorBase,
     ansatz: QuantumCircuit,
     param_dict: Dict,
     backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
 ) -> float:
     """
-    Compute energy for a given Hamiltonian, Ansatz and parameter dictionary.
+    Compute energy for a given Hamiltonian, ansatz and parameter dictionary.
     Args:
         hamiltonian: System hamiltonian.
         ansatz: Parameterized ansatz.

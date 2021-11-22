@@ -17,8 +17,12 @@ from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result 
 from qiskit.algorithms.quantum_time_evolution.results.evolution_result import EvolutionResult
 from qiskit.opflow import OperatorBase, StateFn, Gradient
 
+"""Base class for quantum time evolution."""
+
 
 class EvolutionBase(ABC):
+    """Base class for quantum time evolution."""
+
     @abstractmethod
     def evolve(
         self,

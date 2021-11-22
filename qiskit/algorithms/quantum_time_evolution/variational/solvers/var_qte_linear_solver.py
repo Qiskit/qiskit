@@ -13,8 +13,7 @@ from typing import Union, List, Dict, Optional
 
 import numpy as np
 
-from qiskit.algorithms.quantum_time_evolution.variational.calculators.natural_gradient_calculator\
-    import (
+from qiskit.algorithms.quantum_time_evolution.variational.calculators.tensor_evaluator import (
     eval_grad_result,
     eval_metric_result,
 )
@@ -49,7 +48,7 @@ class VarQteLinearSolver:
         var_principle: VariationalPrinciple,
         param_dict: Dict[Parameter, Union[float, complex]],
         t_param: Optional[Parameter] = None,
-        t: Optional[float] = None,
+        time_value: Optional[float] = None,
         regularization: Optional[str] = None,
     ) -> (Union[List, np.ndarray], Union[List, np.ndarray], np.ndarray):
         """
@@ -59,7 +58,7 @@ class VarQteLinearSolver:
             var_principle: Variational Principle to be used.
             param_dict: Dictionary which relates parameter values to the parameters in the Ansatz.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
-            t: Time value that will be bound to t_param.
+            time_value: Time value that will be bound to t_param.
             regularization: Use the following regularization with a least square method to solve the
                 underlying system of linear equations.
                 Can be either None or ``'ridge'`` or ``'lasso'`` or ``'perturb_diag'``
@@ -70,11 +69,6 @@ class VarQteLinearSolver:
         Returns: dω/dt, 2Re⟨dψ(ω)/dω|H|ψ(ω) for VarQITE/ 2Im⟨dψ(ω)/dω|H|ψ(ω) for VarQRTE,
                 Fubini-Study Metric.
         """
-
-        """
-        Get left side, get right side & solve SLE here
-        """
-
         metric_result = eval_metric_result(
             var_principle._raw_metric_tensor,
             param_dict,
@@ -82,7 +76,7 @@ class VarQteLinearSolver:
         )
 
         if t_param is not None:
-            time_dict = {t_param: t}
+            time_dict = {t_param: time_value}
             # TODO
             # Use var_principle to understand type and get gradient
             # bind parameters to H(t)
@@ -94,10 +88,7 @@ class VarQteLinearSolver:
             grad = var_principle._raw_evolution_grad
 
         grad_result = eval_grad_result(
-            grad,
-            param_dict,
-            self._grad_circ_sampler,
-            self._energy_sampler
+            grad, param_dict, self._grad_circ_sampler, self._energy_sampler
         )
 
         nat_grad_result = NaturalGradient().nat_grad_combo_fn(

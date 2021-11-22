@@ -32,8 +32,12 @@ from qiskit.opflow import (
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
 
+"""Variational Quantum Real Time Evolution algorithm."""
+
 
 class VarQrte(VarQte, EvolutionBase):
+    """Variational Quantum Real Time Evolution algorithm."""
+
     def __init__(
         self,
         variational_principle: RealVariationalPrinciple,
@@ -108,7 +112,7 @@ class VarQrte(VarQte, EvolutionBase):
             hamiltonian_value_dict, list(initial_state.parameters)
         )
 
-        return super().evolve_helper(
+        return super()._evolve_helper(
             self._create_real_ode_function_generator,
             init_state_param_dict,
             hamiltonian,
@@ -120,7 +124,7 @@ class VarQrte(VarQte, EvolutionBase):
     def _create_real_ode_function_generator(self, init_state_param_dict, t_param):
         if self._error_based_ode:
             error_calculator = RealErrorCalculator(
-                self._h_squared,
+                self._hamiltonian_squared,
                 self._operator,
                 self._h_squared_circ_sampler,
                 self._operator_circ_sampler,

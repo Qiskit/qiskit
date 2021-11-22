@@ -15,8 +15,7 @@ from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
     evolution_grad_calculator,
     metric_tensor_calculator,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.principles.real\
-    .real_variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.principles.real.real_variational_principle import (
     RealVariationalPrinciple,
 )
 from qiskit.circuit import Parameter
@@ -62,9 +61,7 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
         ansatz,
         parameters: List[Parameter],
     ):
-        def raw_evolution_grad_imag(
-            param_dict: Dict, energy_sampler: CircuitSampler
-        ):
+        def raw_evolution_grad_imag(param_dict: Dict, energy_sampler: CircuitSampler):
             energy = ~StateFn(hamiltonian) @ StateFn(ansatz)
             energy = PauliExpectation().convert(energy)
 
@@ -84,4 +81,3 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
             )
 
         return raw_evolution_grad_imag
-

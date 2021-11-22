@@ -94,10 +94,6 @@ class VarQte(ABC):
         self._operator = None
         self._initial_state = None
 
-    @property
-    def initial_state(self):
-        return self._initial_state
-
     @abstractmethod
     def evolve(
         self,
@@ -134,7 +130,7 @@ class VarQte(ABC):
         """
         raise NotImplementedError()
 
-    def evolve_helper(
+    def _evolve_helper(
         self,
         ode_function_generator_callable,
         init_state_param_dict,
@@ -144,7 +140,31 @@ class VarQte(ABC):
         observable: OperatorBase = None,
         t_param=None,
     ) -> StateFn:
-        """ """
+        """
+        Helper method for performing time evolution. Works both for imaginary and real case.
+        Args:
+            ode_function_generator_callable: Callable of a function that will be used by an ODE
+                                            solver.
+            init_state_param_dict: Parameter dictionary with initial values for a given
+                                parametrized state/ansatz.
+            hamiltonian:
+                ⟨ψ(ω)|H|ψ(ω)〉
+                Operator used vor Variational Quantum Imaginary Time Evolution (VarQITE)
+                The coefficient of the operator (operator.coeff) determines the evolution
+                time.
+                The operator may be given either as a composed op consisting of a Hermitian
+                observable and a CircuitStateFn or a ListOp of a CircuitStateFn with a
+                ComboFn.
+                The latter case enables the evaluation of a Quantum Natural Gradient.
+            time: Total time of evolution.
+            initial_state: Quantum state to be evolved.
+            observable: Observable to be evolved. Not supported by VarQite.
+            t_param: Time parameter in case of a time-dependent Hamiltonian.
+        Returns:
+            StateFn (parameters are bound) which represents an approximation to the
+            respective
+            time evolution.
+        """
         if observable is not None:
             raise TypeError(
                 "Observable argument provided. Observable evolution not supported by VarQte."
@@ -207,11 +227,11 @@ class VarQte(ABC):
         """
         Initialize the gradient objects needed to perform VarQTE.
         """
-        self._h = self._operator.oplist[0].primitive * self._operator.oplist[0].coeff
-        self._h_squared = self._h_pow(2)
+        self._hamiltonian = self._operator.oplist[0].primitive * self._operator.oplist[0].coeff
+        self._hamiltonian_squared = self._hamiltonian_power(2)
 
-    def _h_pow(self, power: int) -> OperatorBase:
-        h_power = self._h ** power
+    def _hamiltonian_power(self, power: int) -> OperatorBase:
+        h_power = self._hamiltonian ** power
         h_power = ComposedOp([~StateFn(h_power.reduce()), StateFn(self._initial_state)])
         h_power = PauliExpectation().convert(h_power)
         # TODO Include Sampler here if backend is given
@@ -260,7 +280,7 @@ class VarQte(ABC):
     def _validate_operator(self, operator):
         if not isinstance(operator[-1], CircuitStateFn):
             raise TypeError("Please provide the respective Ansatz as a CircuitStateFn.")
-        elif not isinstance(operator, ComposedOp) and not all(
+        if not isinstance(operator, ComposedOp) and not all(
             isinstance(op, CircuitStateFn) for op in operator.oplist
         ):
             raise TypeError(

@@ -69,7 +69,8 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
 
         nat_grad_res = linear_solver._solve_sle(var_principle, param_dict)
         # TODO uncomment when solve_sle_for_error_bounds updated
-        #grad_res, metric_res = linear_solver._solve_sle_for_error_bounds(var_principle, param_dict)
+        # grad_res, metric_res = linear_solver._solve_sle_for_error_bounds(var_principle, param_dict)
+        print(repr(nat_grad_res))
 
         # TODO verify all values below if correct
         expected_nat_grad_res = [

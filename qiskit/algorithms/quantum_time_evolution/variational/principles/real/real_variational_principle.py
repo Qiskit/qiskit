@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 from abc import abstractmethod
-from typing import Union, Dict
+from typing import Union, Dict, List
 
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
@@ -41,7 +41,7 @@ class RealVariationalPrinciple(VariationalPrinciple):
     def _get_metric_tensor(
         self,
         ansatz,
-        param_dict: Dict[Parameter, Union[float, complex]],
+        param_dict: List[Parameter],
     ):
         pass
 
@@ -50,7 +50,7 @@ class RealVariationalPrinciple(VariationalPrinciple):
         self,
         hamiltonian,
         ansatz,
-        param_dict: Dict[Parameter, Union[float, complex]],
+        param_dict: List[Parameter],
     ):
         pass
 

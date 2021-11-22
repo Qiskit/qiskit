@@ -13,12 +13,10 @@ from typing import Union, List, Dict, Optional
 
 import numpy as np
 
-from qiskit.algorithms.quantum_time_evolution.variational.calculators.distance_energy_calculator \
-    import (
+from qiskit.algorithms.quantum_time_evolution.variational.calculators.distance_energy_calculator import (
     _inner_prod,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors\
-    .error_calculator import (
+from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.error_calculator import (
     ErrorCalculator,
 )
 from qiskit.circuit import Parameter
@@ -36,9 +34,7 @@ class RealErrorCalculator(ErrorCalculator):
         exp_operator_sampler: CircuitSampler,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
     ):
-        super().__init__(
-            h_squared, exp_operator, h_squared_sampler, exp_operator_sampler, backend
-        )
+        super().__init__(h_squared, exp_operator, h_squared_sampler, exp_operator_sampler, backend)
 
     def _calc_single_step_error(
         self,
@@ -59,8 +55,9 @@ class RealErrorCalculator(ErrorCalculator):
             The l2 norm of the error
         """
         eps_squared = 0
-        h_squared_bound = self._bind_or_sample_operator(self._h_squared, self._h_squared_sampler,
-                                                        param_dict)
+        h_squared_bound = self._bind_or_sample_operator(
+            self._h_squared, self._h_squared_sampler, param_dict
+        )
         exp_operator_bound = self._bind_or_sample_operator(
             self._exp_operator, self._exp_operator_sampler, param_dict
         )

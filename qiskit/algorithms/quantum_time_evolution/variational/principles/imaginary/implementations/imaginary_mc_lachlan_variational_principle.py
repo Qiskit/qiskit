@@ -15,8 +15,7 @@ from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
     metric_tensor_calculator,
     evolution_grad_calculator,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary\
-    .imaginary_variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
 )
 from qiskit.circuit import Parameter

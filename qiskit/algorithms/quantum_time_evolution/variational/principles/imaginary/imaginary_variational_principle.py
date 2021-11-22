@@ -10,14 +10,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 from abc import abstractmethod
-from typing import Union, Dict, Optional
+from typing import Union, List
 import math
 
 import numpy as np
 
-from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
-    natural_gradient_calculator,
-)
 from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.time_step_errors.time_step_error_calculator import (
     _calculate_max_bures,
     _calculate_energy_factor,
@@ -29,7 +26,6 @@ from qiskit.circuit import Parameter
 from qiskit.opflow import (
     CircuitQFI,
     CircuitGradient,
-    OperatorBase,
 )
 
 
@@ -55,7 +51,7 @@ class ImaginaryVariationalPrinciple(VariationalPrinciple):
     def _get_metric_tensor(
         self,
         ansatz,
-        param_dict: Dict[Parameter, Union[float, complex]],
+        param_dict: List[Parameter],
     ):
         pass
 
@@ -64,7 +60,7 @@ class ImaginaryVariationalPrinciple(VariationalPrinciple):
         self,
         hamiltonian,
         ansatz,
-        param_dict: Dict[Parameter, Union[float, complex]],
+        param_dict: List[Parameter],
     ):
         pass
 

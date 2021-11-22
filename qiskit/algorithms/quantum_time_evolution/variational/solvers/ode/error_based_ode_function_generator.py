@@ -59,6 +59,7 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
     def var_qte_ode_function(self, t: float, parameters_values: Iterable):
         current_param_dict = dict(zip(self._param_dict.keys(), parameters_values))
         nat_grad_res = super().var_qte_ode_function(t, parameters_values)
+        # TODO update _solve_sle_for_error_bounds
         grad_res, metric_res = self._linear_solver._solve_sle_for_error_bounds(
             self._variational_principle, current_param_dict, self._t_param, t
         )
