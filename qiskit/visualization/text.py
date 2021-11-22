@@ -1206,7 +1206,7 @@ class Layer:
             clbit (cbit): Element of self.clbits.
             element (DrawElement): Element to set in the clbit
         """
-        if self.cregbundle:
+        if self.cregbundle and self._clbit_locations[clbit]["register"] is not None:
             self.clbit_layer[self.clbits.index(self._clbit_locations[clbit]["register"])] = element
         else:
             self.clbit_layer[self.clbits.index(clbit)] = element

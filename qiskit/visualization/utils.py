@@ -259,7 +259,7 @@ def get_condition_label(condition, clbits, bit_locations, cregbundle):
     if cond_is_bit and cregbundle:
         cond_reg = bit_locations[condition[0]]["register"]
         ctrl_bit = bit_locations[condition[0]]["index"]
-        truth = "T" if val else "F"
+        truth = "0x1" if val else "0x0"
         if cond_reg is not None:
             label = f"{cond_reg.name}_{ctrl_bit}={truth}"
     elif not cond_is_bit:
