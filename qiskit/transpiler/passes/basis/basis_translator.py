@@ -15,7 +15,6 @@
 import time
 import logging
 
-from heapq import heappush, heappop
 from itertools import zip_longest
 
 import retworkx
@@ -204,41 +203,74 @@ def _basis_search(equiv_lib, source_basis, target_basis):
     if not source_basis:
         return []
 
-    class BasisSearchVisitor(retworkx.visit.BFSVisitor):
-        def __init__(self, source_basis, target_basis, num_gates_for_rule):
+    class StopIfBasisRewritable(Exception):
+        pass
+
+    class BasisSearchVisitor(retworkx.visit.DijkstraVisitor):
+        def __init__(self, graph, source_basis, target_basis, num_gates_for_rule):
+            self.graph = graph
             self.target_basis = set(target_basis)
             self._source_gates_remain = set(source_basis)
             self._num_gates_remain_for_rule = dict(num_gates_for_rule)
             self._basis_transforms = []
+            self._predecessors = dict()
+            self._opt_cost_map = dict()
 
-        def discover_vertex(self, v):
-            self._source_gates_remain.discard(graph[v])
+        def discover_vertex(self, v, score):
+            gate = self.graph[v]
+            self._source_gates_remain.discard(gate)
+            self._opt_cost_map[gate] = score
+            rule = self._predecessors.get(gate, None)
+            if rule is not None:
+                self._basis_transforms.append(
+                    (gate.name, gate.num_qubits, rule.params, rule.circuit)
+                )
             # we can stop the search if we have found all gates in the original ciruit.
             if not self._source_gates_remain:
                 # if we start from source gates and apply `basis_transforms` in reverse order, we'll end up with
                 # gates in the target basis. Note though that `basis_transforms` may include additional transformations
                 # that are not required to map our source gates to the given target basis.
                 self._basis_transforms.reverse()
-                raise retworkx.visit.StopSearch
+                raise StopIfBasisRewritable
 
-        def tree_edge(self, edge):
+        def examine_edge(self, edge):
             _, target, edata = edge
             if edata is None:
                 return
 
-            rule = edata["rule"]
             index = edata["index"]
             self._num_gates_remain_for_rule[index] -= 1
 
-            target = graph[target]
+            target = self.graph[target]
             # if there are gates in this `rule` that we have not yet generated, we can't apply this `rule`.
             # if `target` is already in basis, it's not beneficial to use this rule.
             if self._num_gates_remain_for_rule[index] > 0 or target in self.target_basis:
                 raise retworkx.visit.PruneSearch
 
-            self._basis_transforms.append(
-                (target.name, target.num_qubits, rule.params, rule.circuit)
-            )
+        def edge_relaxed(self, edge):
+            _, target, edata = edge
+            if edata is not None:
+                gate = self.graph[target]
+                self._predecessors[gate] = edata["rule"]
+
+        # This function computes the cost of this edge rule by summing
+        # the costs of all gates in the rule equivalence circuit. In the
+        # end, we need to subtract the cost of the source since `dijkstra`
+        # will later add it.
+        def edge_cost(self, edge):
+            if edge is None:
+                # the target of the edge is a gate in the target basis,
+                # so we return a default value of 1.
+                return 1
+
+            cost_tot = 0
+            rule = edge["rule"]
+            for gate, qargs, _ in rule.circuit:
+                key = Key(name=gate.name, num_qubits=len(qargs))
+                cost_tot += self._opt_cost_map[key]
+
+            source = edge["source"]
+            return cost_tot - self._opt_cost_map[source]
 
         @property
         def basis_transforms(self):
@@ -255,29 +287,6 @@ def _basis_search(equiv_lib, source_basis, target_basis):
             nodes_to_indices[key] = graph.add_node(key)
         return nodes_to_indices[key]
 
-    # We want to find basis transforms such that the equivalent circuit
-    # has as few gates as possible. BFS does not find shortest paths in
-    # weighted graphs. However, if weights are small integers we can split
-    # each edge of cost `n` into `n` edges of unit cost and apply BFS.
-    # Alternatively, we could apply Dijkstra algorithm and introduce weights
-    # in equivalence rules that reflect the noise profiles of the target device.
-    def split_edges_into_unit_costs(edges):
-        unit_edges = []
-        for edge in edges:
-            source, target, edata = edge
-            cost = edata["cost"]
-            if cost > 1:
-                aux_nodes = graph.add_nodes_from(["aux" for _ in range(1, cost)])
-                unit_edges.append((source, aux_nodes[0], None))
-                unit_edges += [
-                    (aux_nodes[i], aux_nodes[i + 1], None) for i in range(len(aux_nodes) - 1)
-                ]
-                unit_edges.append((aux_nodes[-1], target, edata))
-            else:
-                unit_edges.append(edge)
-
-        return unit_edges
-
     rcounter = 0  # running sum of the number of equivalence rules in the library.
     for key in equiv_lib._get_all_keys():
         target = get_nid_or_insert(key)
@@ -291,11 +300,10 @@ def _basis_search(equiv_lib, source_basis, target_basis):
                 (
                     get_nid_or_insert(source),
                     target,
-                    {"index": rcounter, "rule": equiv, "cost": len(equiv.circuit)},
+                    {"index": rcounter, "rule": equiv, "source": source},
                 )
                 for source in sources
             ]
-            edges = split_edges_into_unit_costs(edges)
 
             num_gates_for_rule[rcounter] = len(sources)
             graph.add_edges_from(edges)
@@ -309,15 +317,15 @@ def _basis_search(equiv_lib, source_basis, target_basis):
         for key in filter(lambda key: key.name == gate, all_gates_in_lib)
     ]
 
-    vis = BasisSearchVisitor(source_basis, target_basis_keys, num_gates_for_rule)
+    vis = BasisSearchVisitor(graph, source_basis, target_basis_keys, num_gates_for_rule)
     # we add a dummy node and connect it with gates in the target basis.
     # we'll start the search from this dummy node.
     dummy = graph.add_node("dummy starting node")
     graph.add_edges_from_no_data([(dummy, nodes_to_indices[key]) for key in target_basis_keys])
     rtn = None
     try:
-        retworkx.digraph_bfs_search(graph, [dummy], vis)
-    except retworkx.visit.StopSearch:
+        retworkx.digraph_dijkstra_search(graph, [dummy], vis.edge_cost, vis)
+    except StopIfBasisRewritable:
         rtn = vis.basis_transforms
 
         logger.debug("Transformation path:")
