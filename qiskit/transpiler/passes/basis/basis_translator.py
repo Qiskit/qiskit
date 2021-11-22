@@ -204,9 +204,13 @@ def _basis_search(equiv_lib, source_basis, target_basis):
         return []
 
     class StopIfBasisRewritable(Exception):
+        """Custom exception that signals `retworkx.dijkstra_search` to stop."""
+
         pass
 
     class BasisSearchVisitor(retworkx.visit.DijkstraVisitor):
+        """Handles events emitted during `retworkx.dijkstra_search`."""
+
         def __init__(self, graph, source_basis, target_basis, num_gates_for_rule):
             self.graph = graph
             self.target_basis = set(target_basis)
@@ -227,9 +231,10 @@ def _basis_search(equiv_lib, source_basis, target_basis):
                 )
             # we can stop the search if we have found all gates in the original ciruit.
             if not self._source_gates_remain:
-                # if we start from source gates and apply `basis_transforms` in reverse order, we'll end up with
-                # gates in the target basis. Note though that `basis_transforms` may include additional transformations
-                # that are not required to map our source gates to the given target basis.
+                # if we start from source gates and apply `basis_transforms` in reverse order, we'll end
+                # up with gates in the target basis. Note though that `basis_transforms` may include
+                # additional transformations that are not required to map our source gates to the given
+                # target basis.
                 self._basis_transforms.reverse()
                 raise StopIfBasisRewritable
 
@@ -242,8 +247,8 @@ def _basis_search(equiv_lib, source_basis, target_basis):
             self._num_gates_remain_for_rule[index] -= 1
 
             target = self.graph[target]
-            # if there are gates in this `rule` that we have not yet generated, we can't apply this `rule`.
-            # if `target` is already in basis, it's not beneficial to use this rule.
+            # if there are gates in this `rule` that we have not yet generated, we can't apply
+            # this `rule`. if `target` is already in basis, it's not beneficial to use this rule.
             if self._num_gates_remain_for_rule[index] > 0 or target in self.target_basis:
                 raise retworkx.visit.PruneSearch
 
@@ -253,11 +258,15 @@ def _basis_search(equiv_lib, source_basis, target_basis):
                 gate = self.graph[target]
                 self._predecessors[gate] = edata["rule"]
 
-        # This function computes the cost of this edge rule by summing
-        # the costs of all gates in the rule equivalence circuit. In the
-        # end, we need to subtract the cost of the source since `dijkstra`
-        # will later add it.
         def edge_cost(self, edge):
+            """Returns the cost of an edge.
+
+            This function computes the cost of this edge rule by summing
+            the costs of all gates in the rule equivalence circuit. In the
+            end, we need to subtract the cost of the source since `dijkstra`
+            will later add it.
+            """
+
             if edge is None:
                 # the target of the edge is a gate in the target basis,
                 # so we return a default value of 1.
@@ -274,6 +283,7 @@ def _basis_search(equiv_lib, source_basis, target_basis):
 
         @property
         def basis_transforms(self):
+            """Returns the gate basis transforms."""
             return self._basis_transforms
 
     all_gates_in_lib = set()
@@ -293,7 +303,7 @@ def _basis_search(equiv_lib, source_basis, target_basis):
         all_gates_in_lib.add(key)
         for equiv in equiv_lib._get_equivalences(key):
             sources = set(
-                [Key(name=gate.name, num_qubits=len(qargs)) for gate, qargs, _ in equiv.circuit]
+                Key(name=gate.name, num_qubits=len(qargs)) for gate, qargs, _ in equiv.circuit
             )
             all_gates_in_lib |= sources
             edges = [
@@ -314,7 +324,7 @@ def _basis_search(equiv_lib, source_basis, target_basis):
     target_basis_keys = [
         key
         for gate in target_basis
-        for key in filter(lambda key: key.name == gate, all_gates_in_lib)
+        for key in filter(lambda key, name=gate: key.name == name, all_gates_in_lib)
     ]
 
     vis = BasisSearchVisitor(graph, source_basis, target_basis_keys, num_gates_for_rule)
