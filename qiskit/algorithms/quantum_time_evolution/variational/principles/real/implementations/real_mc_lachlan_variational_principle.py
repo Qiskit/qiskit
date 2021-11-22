@@ -9,7 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from typing import Union, Dict, Optional, List
+from typing import Union, Dict, List
 
 from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
     evolution_grad_calculator,
@@ -19,10 +19,15 @@ from qiskit.algorithms.quantum_time_evolution.variational.principles.real.real_v
     RealVariationalPrinciple,
 )
 from qiskit.circuit import Parameter
-from qiskit.providers import BaseBackend
-from qiskit.utils import QuantumInstance
-from qiskit.opflow import CircuitQFI, OperatorBase, StateFn, SummedOp, Y, I, \
-    PauliExpectation, CircuitSampler
+from qiskit.opflow import (
+    CircuitQFI,
+    StateFn,
+    SummedOp,
+    Y,
+    I,
+    PauliExpectation,
+    CircuitSampler,
+)
 
 
 class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
@@ -39,32 +44,29 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
             qfi_method,
         )
 
-    def _get_raw_metric_tensor(
+    def _get_metric_tensor(
         self,
         ansatz,
         parameters: List[Parameter],
-        # param_dict: Dict[Parameter, Union[float, complex]],
     ):
         raw_metric_tensor_real = metric_tensor_calculator.calculate(
             ansatz, parameters, self._qfi_method
         )
 
-        return raw_metric_tensor_real * 0.25 # QFI/4
+        return raw_metric_tensor_real * 0.25  # QFI/4
 
-    def _get_raw_evolution_grad(
+    def _get_evolution_grad(
         self,
         hamiltonian,
         ansatz,
         parameters: List[Parameter],
     ):
-
-        def raw_evolution_grad_imag(param_dict: Dict,
-                                    backend: Optional[Union[BaseBackend, QuantumInstance]] = None):
+        def raw_evolution_grad_imag(param_dict: Dict, energy_sampler: CircuitSampler):
             energy = ~StateFn(hamiltonian) @ StateFn(ansatz)
             energy = PauliExpectation().convert(energy)
-            #TODO rewrite to be more efficient
-            if backend is not None:
-                energy = CircuitSampler(backend).convert(energy, param_dict).eval()
+
+            if energy_sampler:
+                energy = energy_sampler.convert(energy, param_dict).eval()
             else:
                 energy = energy.assign_parameters(param_dict).eval()
 
@@ -74,26 +76,8 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
             hamiltonian_ = SummedOp([hamiltonian, energy_term])
             basis_operator = Y
             basis_operator *= -1j
-            return evolution_grad_calculator.calculate(hamiltonian_, ansatz, parameters,
-                                                       self._grad_method, basis=basis_operator)
+            return evolution_grad_calculator.calculate(
+                hamiltonian_, ansatz, parameters, self._grad_method, basis=basis_operator
+            )
+
         return raw_evolution_grad_imag
-
-    @staticmethod
-    def _calc_metric_tensor(
-        raw_metric_tensor_real: OperatorBase, param_dict: Dict[Parameter, Union[float, complex]]
-    ) -> OperatorBase:
-        return raw_metric_tensor_real.bind_parameters(param_dict) / 4.0
-
-    @staticmethod
-    def _calc_evolution_grad(
-        raw_evolution_grad_imag: OperatorBase, param_dict: Dict[Parameter, Union[float, complex]]
-    ) -> OperatorBase:
-        return raw_evolution_grad_imag.bind_parameters(param_dict) / 2.0
-
-    def _calc_nat_grad(
-        self,
-        raw_operator: OperatorBase,
-        param_dict: Dict[Parameter, Union[float, complex]],
-        regularization: Optional[str] = None,
-    ) -> OperatorBase:
-        return super()._calc_nat_grad(raw_operator, param_dict, regularization)

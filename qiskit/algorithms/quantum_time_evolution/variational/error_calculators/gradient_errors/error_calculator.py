@@ -27,16 +27,12 @@ class ErrorCalculator:
         exp_operator: OperatorBase,
         h_squared_sampler: CircuitSampler,
         exp_operator_sampler: CircuitSampler,
-        param_dict: Dict[Parameter, Union[float, complex]],
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
     ):
-        self._h_squared = self._bind_or_sample_operator(
-            h_squared, h_squared_sampler, param_dict, backend
-        )
-        self._exp_operator = self._bind_or_sample_operator(
-            exp_operator, exp_operator_sampler, param_dict, backend
-        )
-        self._param_dict = param_dict
+        self._h_squared = h_squared
+        self._exp_operator = exp_operator
+        self._h_squared_sampler = h_squared_sampler
+        self._exp_operator_sampler = exp_operator_sampler
         self._backend = backend
 
     def _bind_or_sample_operator(
@@ -44,10 +40,9 @@ class ErrorCalculator:
         operator: OperatorBase,
         operator_circuit_sampler: CircuitSampler,
         param_dict: Dict[Parameter, float],
-        backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
     ) -> OperatorBase:
         # ⟨ψ(ω)|H^2|ψ(ω)〉
-        if backend is not None:
+        if operator_circuit_sampler:
             operator = operator_circuit_sampler.convert(operator, params=param_dict)
         else:
             operator = operator.assign_parameters(param_dict)
@@ -60,6 +55,7 @@ class ErrorCalculator:
         ng_res: Union[List, np.ndarray],
         grad_res: Union[List, np.ndarray],
         metric: Union[List, np.ndarray],
+        param_dict: Dict[Parameter, float],
     ) -> Tuple[int, Union[np.ndarray, complex, float], Union[Union[complex, float], Any],]:
 
         """

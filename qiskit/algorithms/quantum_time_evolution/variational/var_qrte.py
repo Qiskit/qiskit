@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 from typing import Optional, Union
 
-from scipy.integrate import OdeSolver, RK45
+from scipy.integrate import OdeSolver
 
 from qiskit.algorithms.quantum_time_evolution.evolution_base import EvolutionBase
 from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import (
@@ -32,19 +32,22 @@ from qiskit.opflow import (
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
 
+"""Variational Quantum Real Time Evolution algorithm."""
+
 
 class VarQrte(VarQte, EvolutionBase):
+    """Variational Quantum Real Time Evolution algorithm."""
+
     def __init__(
         self,
         variational_principle: RealVariationalPrinciple,
         regularization: Optional[str] = None,
-            # TODO: Should we keep this more general? And pass here a natural gradient object?
+        # TODO: Should we keep this more general? And pass here a natural gradient object?
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
         # TODO: Boolean argument missing to decide whether or not to compute the error bounds
         error_based_ode: Optional[bool] = False,
-        ode_solver_callable: OdeSolver = RK45,
+        ode_solver_callable: OdeSolver = "RK45",
         optimizer: str = "COBYLA",
-        epsilon: Optional[float] = 10e-6,
     ):
         r"""
         Args:
@@ -62,8 +65,6 @@ class VarQrte(VarQte, EvolutionBase):
                              Deprecated if error is not being computed.
             ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
             optimizer: Optimizer used in case error_based_ode is true.
-            epsilon: # TODO, not sure where this will be used.
-            # TODO @DAL Where did you get this epsilon from? It's not in the original code.
         """
         super().__init__(
             variational_principle,
@@ -72,7 +73,6 @@ class VarQrte(VarQte, EvolutionBase):
             error_based_ode,
             ode_solver_callable,
             optimizer,
-            epsilon,
         )
 
     def evolve(
@@ -112,7 +112,7 @@ class VarQrte(VarQte, EvolutionBase):
             hamiltonian_value_dict, list(initial_state.parameters)
         )
 
-        return super().evolve_helper(
+        return super()._evolve_helper(
             self._create_real_ode_function_generator,
             init_state_param_dict,
             hamiltonian,
@@ -124,11 +124,10 @@ class VarQrte(VarQte, EvolutionBase):
     def _create_real_ode_function_generator(self, init_state_param_dict, t_param):
         if self._error_based_ode:
             error_calculator = RealErrorCalculator(
-                self._h_squared,
+                self._hamiltonian_squared,
                 self._operator,
                 self._h_squared_circ_sampler,
                 self._operator_circ_sampler,
-                init_state_param_dict,
             )
             return super()._create_ode_function_generator(
                 error_calculator, init_state_param_dict, t_param
@@ -136,7 +135,7 @@ class VarQrte(VarQte, EvolutionBase):
         else:
             return super()._create_ode_function_generator(None, init_state_param_dict, t_param)
 
-    def gradient(  # TODO: What is this function?
+    def gradient(
         self,
         hamiltonian: OperatorBase,
         time: float,

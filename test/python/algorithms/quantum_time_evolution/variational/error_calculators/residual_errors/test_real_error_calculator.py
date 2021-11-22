@@ -80,21 +80,19 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
     #         operator,
     #         h_squared_sampler,
     #         exp_operator_sampler,
-    #         param_dict,
     #         backend=None,
     #     )
     #     linear_solver = VarQteLinearSolver(
     #         CircuitSampler(backend), CircuitSampler(backend), CircuitSampler(backend), backend=None
     #     )
     #     var_principle = RealMcLachlanVariationalPrinciple()
-    #     regularization = "ridge"
     #     # for the purpose of the test we invoke lazy_init
-    #     var_principle._lazy_init(observable, ansatz, param_dict, regularization)
+    #     var_principle._lazy_init(observable, ansatz, param_dict)
     #     ng_res = linear_solver._solve_sle(var_principle, param_dict)
     #     grad_res, metric_res = linear_solver._solve_sle_for_error_bounds(var_principle, param_dict)
     #
     #     eps_squared, dtdt_state, regrad2 = imaginary_error_calculator._calc_single_step_error(
-    #         ng_res, grad_res, metric_res
+    #         ng_res, grad_res, metric_res, param_dict
     #     )
     #
     #     eps_squared_expected = 0.9873032115354428
@@ -141,16 +139,15 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
     #         operator,
     #         h_squared_sampler,
     #         exp_operator_sampler,
-    #         param_dict,
     #         backend=None,
     #     )
     #     linear_solver = VarQteLinearSolver(
     #         CircuitSampler(backend), CircuitSampler(backend), CircuitSampler(backend), backend=None
     #     )
     #     var_principle = RealMcLachlanVariationalPrinciple()
-    #     regularization = "ridge"
+    #
     #     # for the purpose of the test we invoke lazy_init
-    #     var_principle._lazy_init(observable, ansatz, param_dict, regularization)
+    #     var_principle._lazy_init(observable, ansatz, param_dict)
     #     ng_res = linear_solver._solve_sle(var_principle, param_dict)
     #     grad_res, metric_res = linear_solver._solve_sle_for_error_bounds(var_principle, param_dict)
     #     eps_squared = imaginary_error_calculator._calc_single_step_error_gradient(

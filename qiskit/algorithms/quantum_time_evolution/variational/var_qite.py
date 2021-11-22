@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 from typing import Optional, Union
 
-from scipy.integrate import RK45, OdeSolver
+from scipy.integrate import OdeSolver
 
 from qiskit.algorithms.quantum_time_evolution.evolution_base import EvolutionBase
 from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import (
@@ -32,17 +32,20 @@ from qiskit.algorithms.quantum_time_evolution.variational.var_qte import VarQte
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
 
+"""Variational Quantum Imaginary Time Evolution algorithm."""
+
 
 class VarQite(VarQte, EvolutionBase):
+    """Variational Quantum Imaginary Time Evolution algorithm."""
+
     def __init__(
         self,
         variational_principle: ImaginaryVariationalPrinciple,
         regularization: Optional[str] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
         error_based_ode: Optional[bool] = False,
-        ode_solver_callable: OdeSolver = RK45,
+        ode_solver_callable: OdeSolver = "RK45",
         optimizer: str = "COBYLA",
-        epsilon: Optional[float] = 10e-6,
     ):
         r"""
         Args:
@@ -59,7 +62,6 @@ class VarQite(VarQte, EvolutionBase):
                              If True use the argument that minimizes the error error_bounds.
             ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
             optimizer: Optimizer used in case error_based_ode is true.
-            epsilon: # TODO, not sure where this will be used.
         """
         super().__init__(
             variational_principle,
@@ -68,7 +70,6 @@ class VarQite(VarQte, EvolutionBase):
             error_based_ode,
             ode_solver_callable,
             optimizer,
-            epsilon,
         )
 
     def evolve(
@@ -109,7 +110,8 @@ class VarQite(VarQte, EvolutionBase):
             hamiltonian_value_dict, list(initial_state.parameters)
         )
 
-        return super().evolve_helper(
+
+        return super()._evolve_helper(
             self._create_imag_ode_function_generator,
             init_state_param_dict,
             hamiltonian,
@@ -121,11 +123,10 @@ class VarQite(VarQte, EvolutionBase):
     def _create_imag_ode_function_generator(self, init_state_param_dict, t_param):
         if self._error_based_ode:
             error_calculator = ImaginaryErrorCalculator(
-                self._h_squared,
+                self._hamiltonian_squared,
                 self._operator,
                 self._h_squared_circ_sampler,
                 self._operator_circ_sampler,
-                init_state_param_dict,
                 self._backend,
             )
             return super()._create_ode_function_generator(

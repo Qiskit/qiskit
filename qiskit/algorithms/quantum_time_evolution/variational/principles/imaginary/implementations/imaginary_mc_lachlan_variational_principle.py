@@ -9,7 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from typing import Union, Dict, List
+from typing import Union, List
 
 from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
     metric_tensor_calculator,
@@ -19,7 +19,7 @@ from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.i
     ImaginaryVariationalPrinciple,
 )
 from qiskit.circuit import Parameter
-from qiskit.opflow import CircuitQFI, CircuitGradient, OperatorBase
+from qiskit.opflow import CircuitQFI, CircuitGradient
 
 
 class ImaginaryMcLachlanVariationalPrinciple(ImaginaryVariationalPrinciple):
@@ -40,39 +40,23 @@ class ImaginaryMcLachlanVariationalPrinciple(ImaginaryVariationalPrinciple):
             grad_method,
         )
 
-    def _get_raw_metric_tensor(
+    def _get_metric_tensor(
         self,
         ansatz,
         params: List[Parameter],
-        # param_dict: Dict[Parameter, Union[float, complex]],
     ):
-        raw_metric_tensor_real = metric_tensor_calculator.calculate(
-            ansatz, params, self._qfi_method
-        )
+        metric_tensor_real = metric_tensor_calculator.calculate(ansatz, params, self._qfi_method)
 
-        return raw_metric_tensor_real * 0.25
+        return metric_tensor_real * 0.25
 
-    def _get_raw_evolution_grad(
+    def _get_evolution_grad(
         self,
         hamiltonian,
         ansatz,
         params: List[Parameter],
-        # param_dict: Dict[Parameter, Union[float, complex]],
     ):
-        raw_evolution_grad_real = evolution_grad_calculator.calculate(
+        evolution_grad_real = evolution_grad_calculator.calculate(
             hamiltonian, ansatz, params, self._grad_method
         )
 
-        return (-1)*raw_evolution_grad_real
-
-    @staticmethod
-    def _calc_metric_tensor(
-        raw_metric_tensor: OperatorBase, param_dict: Dict[Parameter, Union[float, complex]]
-    ) -> OperatorBase:
-        return raw_metric_tensor.bind_parameters(param_dict) / 4.0
-
-    @staticmethod
-    def _calc_evolution_grad(
-        raw_evolution_grad: OperatorBase, param_dict: Dict[Parameter, Union[float, complex]]
-    ) -> OperatorBase:
-        return raw_evolution_grad.bind_parameters(param_dict) / 2.0
+        return (-1) * evolution_grad_real * 0.5

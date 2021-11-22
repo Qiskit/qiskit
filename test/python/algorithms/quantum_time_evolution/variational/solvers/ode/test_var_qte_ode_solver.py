@@ -67,9 +67,9 @@ class TestVarQteOdeSolver(QiskitAlgorithmsTestCase):
         backend = Aer.get_backend("statevector_simulator")
 
         var_principle = ImaginaryMcLachlanVariationalPrinciple()
-        regularization = "ridge"
+
         # for the purpose of the test we invoke lazy_init
-        var_principle._lazy_init(observable, ansatz, param_dict, regularization)
+        var_principle._lazy_init(observable, ansatz, parameters)
         time = 1
 
         reg = "ridge"

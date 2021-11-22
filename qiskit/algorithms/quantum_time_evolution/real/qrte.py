@@ -18,8 +18,12 @@ from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result 
 from qiskit.algorithms.quantum_time_evolution.results.evolution_result import EvolutionResult
 from qiskit.opflow import StateFn, OperatorBase, Gradient
 
+"""Base class for quantum real time evolution."""
+
 
 class Qrte(EvolutionBase):
+    """Base class for quantum real time evolution."""
+
     @abstractmethod
     def evolve(
         self,

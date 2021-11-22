@@ -41,19 +41,18 @@ def _calculate_error_term(
         y = _calculate_max_bures(eps_t, energy, energy_factor, h_squared_expectation, d_t)
         eps_t_next = y + d_t * grad_err + d_t * energy_factor
 
-    # TODO Write terms to csv file
     return eps_t_next
 
 
 # TODO extract grid search to reduce code duplication
 def _calculate_max_bures(
-    eps: float, e: float, e_factor: float, h_squared_expectation: float, delta_t: float
+    eps: float, energy: float, e_factor: float, h_squared_expectation: float, delta_t: float
 ) -> float:
     """
     Compute  max_alpha B(I + delta_t(E_t-H)|psi_t>, I + delta_t(E_t-H)|psi*_t>(alpha))
     Args:
         eps: Error from the previous time step
-        e: Energy <psi_t|H|psi_t>
+        energy: Energy <psi_t|H|psi_t>
         e_factor: Upper bound to |E - E*|
         h_squared_expectation: <psi_t|H^2|psi_t>
         delta_t: time step
@@ -61,7 +60,7 @@ def _calculate_max_bures(
     """
 
     c_alpha = lambda a: np.sqrt(
-        (1 - np.abs(a)) ** 2 + 2 * a * (1 - np.abs(a)) * e + a ** 2 * h_squared_expectation
+        (1 - np.abs(a)) ** 2 + 2 * a * (1 - np.abs(a)) * energy + a ** 2 * h_squared_expectation
     )
 
     def overlap(alpha: Iterable[float]) -> float:
@@ -77,8 +76,8 @@ def _calculate_max_bures(
 
         x = np.abs(
             (
-                (1 + 2 * delta_t * e) * (1 - np.abs(alpha) + alpha * e)
-                - 2 * delta_t * ((1 - np.abs(alpha)) * e + alpha * h_squared_expectation)
+                (1 + 2 * delta_t * energy) * (1 - np.abs(alpha) + alpha * energy)
+                - 2 * delta_t * ((1 - np.abs(alpha)) * energy + alpha * h_squared_expectation)
             )
             / c_alpha(alpha)
         )
@@ -94,7 +93,7 @@ def _calculate_max_bures(
         Returns: |<|psi_t|psi*_t>| - (1 + eps^2/2)
         """
         alpha = alpha[0]
-        return np.abs((1 - np.abs(alpha) + alpha * e) / c_alpha(alpha)) - 1 + eps ** 2 / 2
+        return np.abs((1 - np.abs(alpha) + alpha * energy) / c_alpha(alpha)) - 1 + eps ** 2 / 2
 
     x = None
     # TODO Use again finer grid of 10**6
@@ -137,9 +136,9 @@ def _calculate_energy_factor(eps_t: float, energy: float, stddev: float, h_norm:
         if math.isnan(returned_x):
             print("eps_t", eps_t)
             raise Warning("optimization fun is nan")
-        else:
-            # Check if the current bures metric is bigger than the max.
-            if x is None or returned_x > x:
-                x = returned_x
+
+        # Check if the current bures metric is bigger than the max.
+        if x is None or returned_x > x:
+            x = returned_x
 
     return eps_t ** 2 * h_norm + 2 * x

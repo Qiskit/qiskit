@@ -302,10 +302,11 @@ class LinComb(CircuitGradient):
                     prob_dict[key] *= 2
                 return prob_dict
             elif isinstance(item, scipy.sparse.spmatrix):
-                #TODO Generalize
+                # TODO Generalize
                 if aux_meas_op != Z:
-                    raise Warning('Currently only Z measurements are supported for the chosen '
-                                  'backend.')
+                    raise Warning(
+                        "Currently only Z measurements are supported for the chosen " "backend."
+                    )
                 # Generate the operator which computes the linear combination
                 trace = _z_exp(item)
                 return trace

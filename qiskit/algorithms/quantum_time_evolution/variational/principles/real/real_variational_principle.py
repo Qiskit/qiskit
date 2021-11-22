@@ -10,18 +10,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 from abc import abstractmethod
-from typing import Union, Dict, Optional
+from typing import Union, Dict, List
 
-from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
-    natural_gradient_calculator,
-)
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
 )
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
     CircuitQFI,
-    OperatorBase,
 )
 
 
@@ -42,53 +38,21 @@ class RealVariationalPrinciple(VariationalPrinciple):
         )
 
     @abstractmethod
-    def _get_raw_metric_tensor(
+    def _get_metric_tensor(
         self,
         ansatz,
-        param_dict: Dict[Parameter, Union[float, complex]],
+        param_dict: List[Parameter],
     ):
         pass
 
     @abstractmethod
-    def _get_raw_evolution_grad(
+    def _get_evolution_grad(
         self,
         hamiltonian,
         ansatz,
-        param_dict: Dict[Parameter, Union[float, complex]],
+        param_dict: List[Parameter],
     ):
         pass
-
-    @staticmethod
-    @abstractmethod
-    def _calc_metric_tensor(
-        raw_metric_tensor: OperatorBase, param_dict: Dict[Parameter, Union[float, complex]]
-    ) -> OperatorBase:
-        pass
-
-    @staticmethod
-    @abstractmethod
-    def _calc_evolution_grad(
-        raw_evolution_grad: OperatorBase, param_dict: Dict[Parameter, Union[float, complex]]
-    ) -> OperatorBase:
-        pass
-
-    @abstractmethod
-    def _calc_nat_grad(
-        self,
-        raw_operator: OperatorBase,
-        param_dict: Dict[Parameter, Union[float, complex]],
-        regularization: Optional[str] = None,
-    ) -> OperatorBase:
-
-        nat_grad = natural_gradient_calculator.calculate(
-            raw_operator,
-            list(param_dict.keys()),
-            self._grad_method,
-            self._qfi_method,
-            regularization,
-        )
-
-        return nat_grad
 
     def _calc_error_bound(
         self,

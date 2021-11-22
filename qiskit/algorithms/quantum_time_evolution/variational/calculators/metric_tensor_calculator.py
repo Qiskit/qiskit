@@ -17,8 +17,6 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector, ParameterExpression, Parameter
 from qiskit.opflow import QFI, CircuitQFI, CircuitStateFn, OperatorBase, Z, CircuitSampler
 from qiskit.opflow.gradients.circuit_qfis import LinCombFull
-from qiskit.providers import BaseBackend
-from qiskit.utils import QuantumInstance
 
 
 def calculate(
@@ -40,9 +38,8 @@ def eval_metric_tensor(
     metric_tensor,
     param_dict: Dict[Parameter, Union[float, complex]],
     metric_circ_sampler: CircuitSampler,
-    backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
 ):
-    if backend is not None:
+    if metric_circ_sampler:
         metric_res = np.array(metric_circ_sampler.convert(metric_tensor, params=param_dict).eval())
     else:
         metric_res = np.array(metric_tensor.assign_parameters(param_dict).eval())

@@ -13,14 +13,9 @@ from typing import Union, List, Dict, Optional
 
 import numpy as np
 
-from qiskit.algorithms.quantum_time_evolution.variational.calculators.evolution_grad_calculator import (
-    eval_evolution_grad,
-)
-from qiskit.algorithms.quantum_time_evolution.variational.calculators.metric_tensor_calculator import (
-    eval_metric_tensor,
-)
-from qiskit.algorithms.quantum_time_evolution.variational.calculators.natural_gradient_calculator import (
-    eval_nat_grad_result, eval_grad_result, eval_metric_result
+from qiskit.algorithms.quantum_time_evolution.variational.calculators.tensor_evaluator import (
+    eval_grad_result,
+    eval_metric_result,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
@@ -37,7 +32,7 @@ class VarQteLinearSolver:
         self,
         grad_circ_sampler: CircuitSampler,
         metric_circ_sampler: CircuitSampler,
-        nat_grad_circ_sampler: CircuitSampler,
+        energy_sampler: CircuitSampler,
         regularization: Optional[str] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
     ):
@@ -46,14 +41,14 @@ class VarQteLinearSolver:
         self._regularization = regularization
         self._grad_circ_sampler = grad_circ_sampler
         self._metric_circ_sampler = metric_circ_sampler
-        self._nat_grad_circ_sampler = nat_grad_circ_sampler
+        self._energy_sampler = energy_sampler
 
     def _solve_sle(
         self,
         var_principle: VariationalPrinciple,
         param_dict: Dict[Parameter, Union[float, complex]],
         t_param: Optional[Parameter] = None,
-        t: Optional[float] = None,
+        time_value: Optional[float] = None,
         regularization: Optional[str] = None,
     ) -> (Union[List, np.ndarray], Union[List, np.ndarray], np.ndarray):
         """
@@ -63,7 +58,7 @@ class VarQteLinearSolver:
             var_principle: Variational Principle to be used.
             param_dict: Dictionary which relates parameter values to the parameters in the Ansatz.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
-            t: Time value that will be bound to t_param.
+            time_value: Time value that will be bound to t_param.
             regularization: Use the following regularization with a least square method to solve the
                 underlying system of linear equations.
                 Can be either None or ``'ridge'`` or ``'lasso'`` or ``'perturb_diag'``
@@ -74,83 +69,80 @@ class VarQteLinearSolver:
         Returns: dω/dt, 2Re⟨dψ(ω)/dω|H|ψ(ω) for VarQITE/ 2Im⟨dψ(ω)/dω|H|ψ(ω) for VarQRTE,
                 Fubini-Study Metric.
         """
-
-        """
-        Get left side, get right side & solve SLE here
-        """
-
         metric_result = eval_metric_result(
             var_principle._raw_metric_tensor,
             param_dict,
             self._metric_circ_sampler,
-            self._backend,
         )
 
         if t_param is not None:
-            time_dict = {t_param: t}
+            time_dict = {t_param: time_value}
             # TODO
             # Use var_principle to understand type and get gradient
             # bind parameters to H(t)
             # grad
             # natural gradient with nat_grad_combo_fn(x, regularization=None)
+            # TODO raw_evolution_grad might be a callback
             grad = var_principle._raw_evolution_grad.bind_parameters(time_dict)
         else:
             grad = var_principle._raw_evolution_grad
 
         grad_result = eval_grad_result(
-            grad,
-            param_dict,
-            self._grad_circ_sampler,
-            self._backend,
+            grad, param_dict, self._grad_circ_sampler, self._energy_sampler
         )
 
-        nat_grad_result = NaturalGradient().nat_grad_combo_fn([grad_result, metric_result],
-                                                              regularization=regularization)
+        nat_grad_result = NaturalGradient().nat_grad_combo_fn(
+            [grad_result, metric_result], regularization=regularization
+        )
         return np.real(nat_grad_result)
 
-    def _solve_sle_for_error_bounds(
-        self,
-        var_principle: VariationalPrinciple,
-        param_dict: Dict[Parameter, Union[float, complex]],
-        t_param: Parameter = None,
-        t: float = None,
-    ) -> (Union[List, np.ndarray], Union[List, np.ndarray], np.ndarray):
-        """
-        Solve the system of linear equations underlying McLachlan's variational principle for the
-        calculation with error bounds.
-        Args:
-            var_principle: Variational Principle to be used.
-            param_dict: Dictionary which relates parameter values to the parameters in the Ansatz.
-            t_param: Time parameter in case of a time-dependent Hamiltonian.
-            t: Time value that will be bound to t_param.
-        Returns: dω/dt, 2Re⟨dψ(ω)/dω|H|ψ(ω) for VarQITE/ 2Im⟨dψ(ω)/dω|H|ψ(ω) for VarQRTE,
-        Fubini-Study Metric.
-        """
-        metric_tensor = var_principle.metric_tensor
-        evolution_grad = var_principle.evolution_grad
-
-        # bind time parameter for the current value of time from the ODE solver
-
-        if t_param is not None:
-            # TODO bind here
-            time_dict = {t_param: t}
-            evolution_grad = evolution_grad.bind_parameters(time_dict)
-        grad_res = eval_evolution_grad(
-            evolution_grad, param_dict, self._grad_circ_sampler, self._backend
-        )
-        metric_res = eval_metric_tensor(
-            metric_tensor, param_dict, self._metric_circ_sampler, self._backend
-        )
-
-        self._inspect_imaginary_parts(grad_res, metric_res)
-
-        metric_res = np.real(metric_res)
-        grad_res = np.real(grad_res)
-
-        # Check if numerical instabilities lead to a metric which is not positive semidefinite
-        metric_res = self._check_and_fix_metric_psd(metric_res)
-
-        return grad_res, metric_res
+    # # TODO update
+    # def _solve_sle_for_error_bounds(
+    #     self,
+    #     var_principle: VariationalPrinciple,
+    #     param_dict: Dict[Parameter, Union[float, complex]],
+    #     t_param: Parameter = None,
+    #     t: float = None,
+    # ) -> (Union[List, np.ndarray], Union[List, np.ndarray], np.ndarray):
+    #     """
+    #     Solve the system of linear equations underlying McLachlan's variational principle for the
+    #     calculation with error bounds.
+    #     Args:
+    #         var_principle: Variational Principle to be used.
+    #         param_dict: Dictionary which relates parameter values to the parameters in the Ansatz.
+    #         t_param: Time parameter in case of a time-dependent Hamiltonian.
+    #         t: Time value that will be bound to t_param.
+    #     Returns: dω/dt, 2Re⟨dψ(ω)/dω|H|ψ(ω) for VarQITE/ 2Im⟨dψ(ω)/dω|H|ψ(ω) for VarQRTE,
+    #     Fubini-Study Metric.
+    #     """
+    #
+    #     # bind time parameter for the current value of time from the ODE solver
+    #
+    #     # if t_param is not None:
+    #     #     # TODO bind here
+    #     #     time_dict = {t_param: t}
+    #     #     evolution_grad = evolution_grad.bind_parameters(time_dict)
+    #     grad_result = eval_grad_result(
+    #         var_principle._raw_evolution_grad,
+    #         param_dict,
+    #         self._grad_circ_sampler,
+    #         self._backend,
+    #     )
+    #     metric_result = eval_metric_result(
+    #         var_principle._raw_metric_tensor,
+    #         param_dict,
+    #         self._metric_circ_sampler,
+    #     )
+    #
+    #     self._inspect_imaginary_parts(grad_result, metric_result)
+    #
+    #     metric_res = np.real(metric_result)
+    #     grad_res = np.real(grad_result)
+    #
+    #     # Check if numerical instabilities lead to a metric which is not positive semidefinite
+    #     metric_res = self._check_and_fix_metric_psd(metric_res)
+    #
+    #     return grad_res, metric_res
 
     def _inspect_imaginary_parts(self, grad_res, metric_res):
         if any(np.abs(np.imag(grad_res_item)) > 1e-3 for grad_res_item in grad_res):
