@@ -114,6 +114,27 @@ class QuantumInstruction(ASTNode):
         pass
 
 
+class ClassicalType(ASTNode):
+    """Information about a classical type.  This is just an abstract base for inheritance tests."""
+
+
+class FloatType(ClassicalType, enum.IntEnum):
+    """Allowed values for the width of floating-point types."""
+
+    half = 16
+    single = 32
+    double = 64
+    quad = 128
+    oct = 256
+
+
+class BitArrayType(ClassicalType):
+    """Type information for a sized number of classical bits."""
+
+    def __init__(self, size: int):
+        self.size = size
+
+
 class Identifier(ASTNode):
     """
     Identifier : FirstIdCharacter GeneralIdCharacter* ;
@@ -173,6 +194,17 @@ class SubscriptedIdentifier(Identifier):
     def __init__(self, identifier: Identifier, subscript: Union[Range, Expression]):
         self.identifier = identifier
         self.subscript = subscript
+
+
+class IndexSet(ASTNode):
+    """
+    A literal index set of values::
+
+        { Expression (, Expression)* }
+    """
+
+    def __init__(self, values: List[Expression]):
+        self.values = values
 
 
 class Constant(Expression, enum.Enum):
@@ -240,17 +272,13 @@ class Designator(ASTNode):
         self.expression = expression
 
 
-class BitDeclaration(ASTNode):
-    """
-    bitDeclaration
-        : ( 'creg' Identifier designator? |   # NOT SUPPORTED
-            'bit' designator? Identifier ) equalsExpression?
-    """
+class ClassicalDeclaration(Statement):
+    """Declaration of a classical type, optionally initialising it to a value."""
 
-    def __init__(self, identifier: Identifier, designator=None, equalsExpression=None):
+    def __init__(self, type_: ClassicalType, identifier: Identifier, initializer=None):
+        self.type = type_
         self.identifier = identifier
-        self.designator = designator
-        self.equalsExpression = equalsExpression
+        self.initializer = initializer
 
 
 class QuantumDeclaration(ASTNode):
@@ -510,12 +538,56 @@ class BranchingStatement(Statement):
         : 'if' LPAREN booleanExpression RPAREN programBlock ( 'else' programBlock )?
     """
 
+    def __init__(self, condition: BooleanExpression, true_body: ProgramBlock, false_body=None):
+        self.condition = condition
+        self.true_body = true_body
+        self.false_body = false_body
+
+
+class ForLoopStatement(Statement):
+    """
+    AST node for ``for`` loops.
+
+    ::
+
+        ForLoop: "for" Identifier "in" SetDeclaration ProgramBlock
+        SetDeclaration:
+            | Identifier
+            | "{" Expression ("," Expression)* "}"
+            | "[" Range "]"
+    """
+
     def __init__(
-        self, booleanExpression: BooleanExpression, programTrue: ProgramBlock, programFalse=None
+        self,
+        parameter: Identifier,
+        indexset: Union[Identifier, IndexSet, Range],
+        body: ProgramBlock,
     ):
-        self.booleanExpression = booleanExpression
-        self.programTrue = programTrue
-        self.programFalse = programFalse
+        self.parameter = parameter
+        self.indexset = indexset
+        self.body = body
+
+
+class WhileLoopStatement(Statement):
+    """
+    AST node for ``while`` loops.
+
+    ::
+
+        WhileLoop: "while" "(" Expression ")" ProgramBlock
+    """
+
+    def __init__(self, condition: BooleanExpression, body: ProgramBlock):
+        self.condition = condition
+        self.body = body
+
+
+class BreakStatement(Statement):
+    """AST node for ``break`` statements.  Has no associated information."""
+
+
+class ContinueStatement(Statement):
+    """AST node for ``continue`` statements.  Has no associated information."""
 
 
 class IOModifier(enum.Enum):
@@ -525,10 +597,9 @@ class IOModifier(enum.Enum):
     output = enum.auto()
 
 
-class IO(ASTNode):
-    """UNDEFINED in the grammar yet"""
+class IODeclaration(ClassicalDeclaration):
+    """A declaration of an IO variable."""
 
-    def __init__(self, modifier: IOModifier, input_type, input_variable):
+    def __init__(self, modifier: IOModifier, type_: ClassicalType, identifier: Identifier):
+        super().__init__(type_, identifier)
         self.modifier = modifier
-        self.type = input_type
-        self.variable = input_variable
