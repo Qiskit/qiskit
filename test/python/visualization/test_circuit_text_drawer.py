@@ -4759,8 +4759,6 @@ class TestTextPhase(QiskitTestCase):
 
     def test_registerless_one_bit(self):
         """Text circuit with one-bit registers and registerless bits."""
-        from qiskit.circuit import Qubit, Clbit
-
         # fmt: off
         expected = "\n".join(["       ",
                               "qrx_0: ",
