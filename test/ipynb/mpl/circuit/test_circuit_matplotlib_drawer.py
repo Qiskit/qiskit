@@ -810,8 +810,8 @@ class TestMatplotlibDrawer(QiskitTestCase):
     def test_conditions_measures_with_bits(self):
         """Test that gates with conditions and measures work with bits"""
         bits = [Qubit(), Qubit(), Clbit(), Clbit()]
-        cr = ClassicalRegister(2)
-        crx = ClassicalRegister(3)
+        cr = ClassicalRegister(2, "cr")
+        crx = ClassicalRegister(3, "cs")
         circuit = QuantumCircuit(bits, cr, [Clbit()], crx)
         circuit.x(0).c_if(crx[1], 0)
         circuit.measure(0, bits[3])
