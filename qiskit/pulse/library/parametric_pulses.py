@@ -42,13 +42,12 @@ from typing import Any, Dict, Optional, Union
 import math
 import numpy as np
 
-from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library import continuous
 from qiskit.pulse.library.discrete import gaussian, gaussian_square, drag, constant
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
-from qiskit.pulse.utils import format_parameter_value, deprecated_functionality
 
 
 class ParametricPulse(Pulse):
@@ -93,39 +92,6 @@ class ParametricPulse(Pulse):
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
         return any(_is_parameterized(val) for val in self.parameters.values())
-
-    @deprecated_functionality
-    def assign(
-        self, parameter: ParameterExpression, value: ParameterValueType
-    ) -> "ParametricPulse":
-        """Assign one parameter to a value, which can either be numeric or another parameter
-        expression.
-        """
-        return self.assign_parameters({parameter: value})
-
-    @deprecated_functionality
-    def assign_parameters(
-        self, value_dict: Dict[ParameterExpression, ParameterValueType]
-    ) -> "ParametricPulse":
-        """Return a new ParametricPulse with parameters assigned.
-
-        Args:
-            value_dict: A mapping from Parameters to either numeric values or another
-                Parameter expression.
-
-        Returns:
-            New pulse with updated parameters.
-        """
-        if not self.is_parameterized():
-            return self
-
-        new_parameters = {}
-        for op, op_value in self.parameters.items():
-            for parameter, value in value_dict.items():
-                if _is_parameterized(op_value) and parameter in op_value.parameters:
-                    op_value = format_parameter_value(op_value.assign(parameter, value))
-                new_parameters[op] = op_value
-        return type(self)(**new_parameters, name=self.name)
 
     def __eq__(self, other: Pulse) -> bool:
         return super().__eq__(other) and self.parameters == other.parameters

@@ -1,0 +1,58 @@
+---
+upgrade:
+  - |
+    :meth:`assign_parameters` method of :class:`qiskit.pulse.instructions.instruction.Instruction`
+    has been removed and no longer exist as per the deprecation notice from 0.17 release.
+    :meth:`assign` method of :class:`~qiskit.pulse.channels.Channel`,
+    :meth:`assign` method and :meth:`assign_parameters` method of :class:`~qiskit.pulse.library.\
+    parametric_pulses.ParametricPulse` have also been removed.
+    These parameters should be assigned from the pulse program (:class:`qiskit.pulse.schedule.\
+    Schedule` and :class:`qiskit.pulse.schedule.ScheduleBlock`) rather than operands of
+    the pulse program instruction.
+  - |
+    :meth:`flatten` method of :class:`qiskit.pulse.instructions.instruction.Instruction` and
+    :class:`qiskit.pulse.schedule.Schedule` has been removed and no longer exist as per the
+    deprecation notice from 0.17 release. This transformation is defined as a standalone
+    function in :func:`qiskit.pulse.transforms.canonicalization.flatten`.
+  - |
+    :class:`qiskit.pulse.interfaces.ScheduleComponent` has been removed and no longer exist
+    as per the deprecation notice from 0.15 release. No alternative class will be provided.
+  - |
+    Legacy pulse drawer arguments have been removed from :meth:`qiskit.pulse.library.\
+    pulse.Pulse#draw`, :meth:`qiskit.pulse.schedule.Schedule#draw` and
+    :meth:`qiskit.pulse.schedule.ScheduleBlock#draw` and no longer exist as per
+    the deprecation notice from 0.16 release. Now these draw methods support only
+    V2 pulse drawer arguments. See method documentations for details.
+  - |
+    :mod:`qiskit.pulse.reschedule` has been removed and this import path no longer exist
+    as per the deprecation notice from 0.14 release. Use :mod:`qiskit.pulse.transforms` instead.
+  - |
+    A protecte method :meth:`qiskit.pulse.schedule.Schedule#_children` has been removed and
+    replaced by a protected instance variable as per the deprecation notice from
+    0.17 release. This is now provided as a public method :meth:`qiskit.pulse.schedule.\
+    Schedule#children`.
+  - |
+    Timeslot relevant methods and properties have been removed and no longer exist in
+    :class:`qiskit.pulse.schedule.ScheduleBlock` as per the deprecation notice
+    from 0.17 release. Since this representation doesn't have notion of instruction time t0,
+    the timeslot information will be available after it is transformed by
+    :func:`~qiskit.pulse.transforms.canonicalization.block_to_schedule` function.
+    Corresponding attributes have been provided by the implicit program conversion into
+    :class:`qiskit.pulse.schedule.Schedule` with the function, but they are no longer supported.
+    Following attributes are removed: ``timeslots``, ``start_time``, ``stop_time``,
+    ``ch_start_time``, ``ch_stop_time``, ``shift``, and ``insert``.
+  - |
+    Alignment pulse schedule transforms have been removed and no longer exist as per
+    the deprecation notice from 0.17 relase. These transforms are integrated and implemented
+    in the :class:`~qiskit.pulse.transforms.alignments.AlignmentKind` context of the schedule block.
+    Following explicit transform functions are removed:
+    :func:`qiskit.pulse.transforms.align_equispaced`,
+    :func:`qiskit.pulse.transforms.align_func`,
+    :func:`qiskit.pulse.transforms.align_left`,
+    :func:`qiskit.pulse.transforms.align_right`,
+    and :func:`qiskit.pulse.transforms.align_sequential`.
+  - |
+    Redundant pulse builder commands have been removed and no longer exist as per the
+    deprecation notice from 0.17. The :func:`qiskit.pulse.builder.call_schedule` and
+    :func:`qiskit.pulse.builder.call_circuit` command has been integrated into
+    :func:`~qiskit.pulse.builder.call` command.
