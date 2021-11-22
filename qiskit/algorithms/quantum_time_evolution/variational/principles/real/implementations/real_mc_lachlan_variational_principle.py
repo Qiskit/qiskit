@@ -78,6 +78,6 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
             basis_operator *= -1j
             return evolution_grad_calculator.calculate(
                 hamiltonian_, ansatz, parameters, self._grad_method, basis=basis_operator
-            )
+            ) * 0.5
 
         return raw_evolution_grad_imag

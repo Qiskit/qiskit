@@ -139,6 +139,8 @@ class NaturalGradient(GradientBase):
     def nat_grad_combo_fn(x, regularization=None):
         c = x[0]
         a = x[1]
+        print('c ', c)
+        print('a ', a)
         if any(np.abs(np.imag(c_item)) > 1e-8 for c_item in c):
             raise Warning("The imaginary part of the gradient are non-negligible.")
         if np.any([[np.abs(np.imag(a_item)) > 1e-8 for a_item in a_row] for a_row in a]):
