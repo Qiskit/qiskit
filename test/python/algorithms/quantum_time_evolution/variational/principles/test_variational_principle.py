@@ -39,7 +39,7 @@ class TestVariationalPrinciple(QiskitAlgorithmsTestCase):
 
         # Define a set of initial parameters
         parameters = ansatz.ordered_parameters
-        param_dict = {param: np.pi / 4 for param in parameters}
+
         var_principle = ImaginaryMcLachlanVariationalPrinciple()
 
         # for the purpose of the test we invoke lazy_init
@@ -47,7 +47,6 @@ class TestVariationalPrinciple(QiskitAlgorithmsTestCase):
 
         np.testing.assert_equal(var_principle._hamiltonian, observable)
         np.testing.assert_equal(var_principle._ansatz, ansatz)
-        # np.testing.assert_equal(var_principle._param_dict, param_dict) # TODO likely to be deleted
 
         assert var_principle._operator is not None
         assert var_principle._raw_metric_tensor is not None
