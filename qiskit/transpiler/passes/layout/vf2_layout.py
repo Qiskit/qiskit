@@ -60,7 +60,7 @@ class VF2Layout(AnalysisPass):
         call_limit=None,
         time_limit=None,
         properties=None,
-        max_trials=-1,
+        max_trials=None,
     ):
         """Initialize a ``VF2Layout`` pass instance
 
@@ -70,11 +70,16 @@ class VF2Layout(AnalysisPass):
                                      Default is False.
             seed (int): Sets the seed of the PRNG. -1 Means no node shuffling.
             call_limit (int): The number of state visits to attempt in each execution of
-                vf2.
-            time_limit (float): The total time limit in seconds to run vf2layout
-            properties (BackendProperties): The backend properties for the backend
-            max_trials (int): The maximum number of trials to run vf2 to find
-                a layout.
+                VF2.
+            time_limit (float): The total time limit in seconds to run ``VF2Layout``
+            properties (BackendProperties): The backend properties for the backend. If
+                :meth:`~qiskit.providers.models.BackendProperties.readout_error` is available
+                it is used to score the layout.
+            max_trials (int): The maximum number of trials to run VF2 to find
+                a layout. If this is not specified the number of trials will be limited
+                based on the number of edges in the interaction graph or the coupling graph
+                (whichever is larger). If set to a value <= 0 no limit on the number of trials
+                will be set.
         """
         super().__init__()
         self.coupling_map = coupling_map
@@ -115,8 +120,17 @@ class VF2Layout(AnalysisPass):
             shuffled_cm_graph.add_edges_from_no_data(new_edges)
             cm_nodes = [k for k, v in sorted(enumerate(cm_nodes), key=lambda item: item[1])]
             cm_graph = shuffled_cm_graph
+
         im_graph.add_nodes_from(range(len(qubits)))
         im_graph.add_edges_from_no_data(interactions)
+        # To avoid trying to over optimize the result by default limit the number
+        # of trials based on the size of the graphs. For circuits with simple layouts
+        # like an all 1q circuit we don't want to sit forever trying every possible
+        # mapping in the search space
+        if self.max_trials is None:
+            im_graph_edge_count = len(im_graph.edge_list())
+            cm_graph_edge_count = len(cm_graph.edge_list())
+            self.max_trials = max(im_graph_edge_count, cm_graph_edge_count) + 15
 
         logger.debug("Running VF2 to find mappings")
         mappings = vf2_mapping(
@@ -157,7 +171,7 @@ class VF2Layout(AnalysisPass):
                 )
                 chosen_layout = layout
                 chosen_layout_score = layout_score
-            if trials <= self.max_trials:
+            if self.max_trials > 0 and trials >= self.max_trials:
                 logger.debug("Trial %s is >= configured max trials %s", trials, self.max_trials)
                 break
             elapsed_time = time.time() - start_time

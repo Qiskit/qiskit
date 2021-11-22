@@ -48,6 +48,10 @@ from qiskit.transpiler.preset_passmanagers import level_0_pass_manager
 class TestTranspile(QiskitTestCase):
     """Test transpile function."""
 
+    def test_empty_transpilation(self):
+        """Test that transpiling an empty list is a no-op.  Regression test of gh-7287."""
+        self.assertEqual(transpile([]), [])
+
     def test_pass_manager_none(self):
         """Test passing the default (None) pass manager to the transpiler.
 
