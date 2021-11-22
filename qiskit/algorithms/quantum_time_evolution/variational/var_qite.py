@@ -109,9 +109,7 @@ class VarQite(VarQte, EvolutionBase):
             hamiltonian_value_dict, list(initial_state.parameters)
         )
 
-        operator_coefficient = 1.0
         return super().evolve_helper(
-            operator_coefficient,
             self._create_imag_ode_function_generator,
             init_state_param_dict,
             hamiltonian,

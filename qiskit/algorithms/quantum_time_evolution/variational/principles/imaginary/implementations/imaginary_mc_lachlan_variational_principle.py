@@ -50,7 +50,7 @@ class ImaginaryMcLachlanVariationalPrinciple(ImaginaryVariationalPrinciple):
             ansatz, params, self._qfi_method
         )
 
-        return raw_metric_tensor_real
+        return raw_metric_tensor_real * 0.25
 
     def _get_raw_evolution_grad(
         self,
@@ -75,4 +75,4 @@ class ImaginaryMcLachlanVariationalPrinciple(ImaginaryVariationalPrinciple):
     def _calc_evolution_grad(
         raw_evolution_grad: OperatorBase, param_dict: Dict[Parameter, Union[float, complex]]
     ) -> OperatorBase:
-        return raw_evolution_grad.bind_parameters(param_dict)
+        return raw_evolution_grad.bind_parameters(param_dict) / 2.0
