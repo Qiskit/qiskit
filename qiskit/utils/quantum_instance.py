@@ -17,12 +17,14 @@ from enum import Enum
 import copy
 import logging
 import time
+import warnings
+
 import numpy as np
 
 from qiskit.qobj import Qobj
 from qiskit.utils import circuit_utils
-from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
-from .backend_utils import (
+from qiskit.exceptions import QiskitError
+from qiskit.utils.backend_utils import (
     is_ibmq_provider,
     is_statevector_backend,
     is_simulator_backend,
@@ -30,6 +32,10 @@ from .backend_utils import (
     is_aer_qasm,
     is_basicaer_provider,
     support_backend_options,
+)
+from qiskit.utils.mitigation import (
+    CompleteMeasFitter,
+    TensoredMeasFitter,
 )
 
 logger = logging.getLogger(__name__)
@@ -46,20 +52,34 @@ class _MeasFitterType(Enum):
         """
         Returns fitter type from class
         """
-        try:
-            from qiskit.ignis.mitigation.measurement import (
-                CompleteMeasFitter,
-                TensoredMeasFitter,
-            )
-        except ImportError as ex:
-            raise MissingOptionalLibraryError(
-                libname="qiskit-ignis",
-                name="QuantumInstance",
-                pip_install="pip install qiskit-ignis",
-            ) from ex
         if meas_class == CompleteMeasFitter:
             return _MeasFitterType.COMPLETE_MEAS_FITTER
         elif meas_class == TensoredMeasFitter:
+            return _MeasFitterType.TENSORED_MEAS_FITTER
+        try:
+            from qiskit.ignis.mitigation.measurement import (
+                CompleteMeasFitter as CompleteMeasFitter_IG,
+                TensoredMeasFitter as TensoredMeasFitter_IG,
+            )
+        except ImportError:
+            pass
+        if meas_class == CompleteMeasFitter_IG:
+            warnings.warn(
+                "The use of qiskit-ignis for measurement mitigation is "
+                "deprecated and will be removed in a future release. Instead "
+                "use the CompleteMeasFitter class from qiskit.utils.mitigation",
+                DeprecationWarning,
+                stacklevel=3,
+            )
+            return _MeasFitterType.COMPLETE_MEAS_FITTER
+        elif meas_class == TensoredMeasFitter_IG:
+            warnings.warn(
+                "The use of qiskit-ignis for measurement mitigation is "
+                "deprecated and will be removed in a future release. Instead "
+                "use the TensoredMeasFitter class from qiskit.utils.mitigation",
+                DeprecationWarning,
+                stacklevel=3,
+            )
             return _MeasFitterType.TENSORED_MEAS_FITTER
         else:
             raise QiskitError(f"Unknown fitter {meas_class}")
@@ -69,20 +89,34 @@ class _MeasFitterType(Enum):
         """
         Returns fitter type from instance
         """
-        try:
-            from qiskit.ignis.mitigation.measurement import (
-                CompleteMeasFitter,
-                TensoredMeasFitter,
-            )
-        except ImportError as ex:
-            raise MissingOptionalLibraryError(
-                libname="qiskit-ignis",
-                name="QuantumInstance",
-                pip_install="pip install qiskit-ignis",
-            ) from ex
         if isinstance(meas_instance, CompleteMeasFitter):
             return _MeasFitterType.COMPLETE_MEAS_FITTER
         elif isinstance(meas_instance, TensoredMeasFitter):
+            return _MeasFitterType.TENSORED_MEAS_FITTER
+        try:
+            from qiskit.ignis.mitigation.measurement import (
+                CompleteMeasFitter as CompleteMeasFitter_IG,
+                TensoredMeasFitter as TensoredMeasFitter_IG,
+            )
+        except ImportError:
+            pass
+        if isinstance(meas_instance, CompleteMeasFitter_IG):
+            warnings.warn(
+                "The use of qiskit-ignis for measurement mitigation is "
+                "deprecated and will be removed in a future release. Instead "
+                "use the CompleteMeasFitter class from qiskit.utils.mitigation",
+                DeprecationWarning,
+                stacklevel=3,
+            )
+            return _MeasFitterType.COMPLETE_MEAS_FITTER
+        elif isinstance(meas_instance, TensoredMeasFitter_IG):
+            warnings.warn(
+                "The use of qiskit-ignis for measurement mitigation is "
+                "deprecated and will be removed in a future release. Instead "
+                "use the TensoredMeasFitter class from qiskit.utils.mitigation",
+                DeprecationWarning,
+                stacklevel=3,
+            )
             return _MeasFitterType.TENSORED_MEAS_FITTER
         else:
             raise QiskitError(f"Unknown fitter {meas_instance}")
@@ -169,10 +203,11 @@ class QuantumInstance:
             skip_qobj_validation: Bypass Qobj validation to decrease circuit
                 processing time during submission to backend.
             measurement_error_mitigation_cls: The approach to mitigate
-                measurement errors. Qiskit Ignis provides fitter classes for this functionality
-                and CompleteMeasFitter or TensoredMeasFitter
-                from qiskit.ignis.mitigation.measurement module can be used here.
-                TensoredMeasFitter doesn't support subset fitter.
+                measurement errors. The classes :class:`~qiskit.utils.mitigation.CompleteMeasFitter`
+                or :class:`~qiskit.utils.mitigation.TensoredMeasFitter` from the
+                :mod:`qiskit.utils.mitigation` module can be used here as exact values, not
+                instances. ``TensoredMeasFitter`` doesn't support the ``subset_fitter`` method.
+
             cals_matrix_refresh_period: How often to refresh the calibration
                 matrix in measurement mitigation. in minutes
             measurement_error_mitigation_shots: The number of shots number for
@@ -476,6 +511,8 @@ class QuantumInstance:
                 self.maybe_refresh_cals_matrix(timestamp) or meas_error_mitigation_fitter is None
             )
 
+            cal_circuits = None
+            prepended_calibration_circuits: int = 0
             if build_cals_matrix:
                 if circuit_job:
                     logger.info("Updating to also run measurement error mitigation.")
@@ -523,6 +560,7 @@ class QuantumInstance:
                         self._time_taken += result.time_taken
                     else:
                         circuits[0:0] = cal_circuits
+                        prepended_calibration_circuits = len(cal_circuits)
                         result = run_circuits(
                             circuits,
                             self._backend,
@@ -650,7 +688,8 @@ class QuantumInstance:
                     num_param_variations = len(self._run_config.parameterizations[0][0])
                     num_circuits = num_circuit_templates * num_param_variations
                 else:
-                    num_circuits = len(circuits)
+                    input_circuits = circuits[prepended_calibration_circuits:]
+                    num_circuits = len(input_circuits)
                 skip_num_circuits = len(result.results) - num_circuits
                 #  remove the calibration counts from result object to assure the length of
                 #  ExperimentalResult is equal length to input circuits
@@ -675,6 +714,12 @@ class QuantumInstance:
                         tmp_result, self._meas_error_mitigation_method
                     )
                     for i, n in enumerate(c_idx):
+                        # convert counts to integer and remove 0 values
+                        tmp_result.results[i].data.counts = {
+                            k: round(v)
+                            for k, v in tmp_result.results[i].data.counts.items()
+                            if round(v) != 0
+                        }
                         result.results[n] = tmp_result.results[i]
 
         else:

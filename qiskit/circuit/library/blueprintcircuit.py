@@ -40,7 +40,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         self._qregs = []
         self._cregs = []
         self._qubits = []
-        self._qubit_indices = dict()
+        self._qubit_indices = {}
 
     @abstractmethod
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
@@ -96,6 +96,16 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         if self._data is None:
             self._build()
         return super().data
+
+    def decompose(self, gates_to_decompose=None):
+        if self._data is None:
+            self._build()
+        return super().decompose(gates_to_decompose)
+
+    def draw(self, *args, **kwargs):
+        if self._data is None:
+            self._build()
+        return super().draw(*args, **kwargs)
 
     @property
     def num_parameters(self) -> int:

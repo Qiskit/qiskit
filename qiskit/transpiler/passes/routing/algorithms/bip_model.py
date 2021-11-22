@@ -16,20 +16,6 @@ from functools import lru_cache
 
 import numpy as np
 
-try:
-    from docplex.mp.model import Model
-
-    HAS_DOCPLEX = True
-except ImportError:
-    HAS_DOCPLEX = False
-
-try:
-    import cplex  # pylint: disable=unused-import
-
-    HAS_CPLEX = True
-except ImportError:
-    HAS_CPLEX = False
-
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.transpiler.exceptions import TranspilerError, CouplingError
 from qiskit.transpiler.layout import Layout
@@ -69,12 +55,14 @@ class BIPMappingModel:
             TranspilerError: If size of virtual qubits and physical qubits differ, or
                 if coupling_map is not symmetric (bidirectional).
         """
-        if not HAS_DOCPLEX:
+        try:
+            from docplex.mp.model import Model  # pylint: disable=unused-import
+        except ImportError as error:
             raise MissingOptionalLibraryError(
                 libname="DOcplex",
                 name="Decision Optimization CPLEX Modeling for Python",
                 pip_install="pip install docplex",
-            )
+            ) from error
 
         self._dag = dag
         self._coupling = copy.deepcopy(coupling_map)  # reduced coupling map
@@ -203,12 +191,20 @@ class BIPMappingModel:
 
         Raises:
             TranspilerError: if unknown objective type is specified or invalid options are specified.
-
+            MissingOptionalLibraryError: If docplex is not installed
         """
         self.bprop = backend_prop
         self.default_cx_error_rate = default_cx_error_rate
         if self.bprop is None and self.default_cx_error_rate is None:
             raise TranspilerError("BackendProperties or default_cx_error_rate must be specified")
+        try:
+            from docplex.mp.model import Model
+        except ImportError as error:
+            raise MissingOptionalLibraryError(
+                libname="DOcplex",
+                name="Decision Optimization CPLEX Modeling for Python",
+                pip_install="pip install docplex",
+            ) from error
 
         mdl = Model()
 
@@ -458,12 +454,14 @@ class BIPMappingModel:
         Raises:
             MissingOptionalLibraryError: If CPLEX is not installed
         """
-        if not HAS_CPLEX:
+        try:
+            import cplex  # pylint: disable=unused-import
+        except ImportError as error:
             raise MissingOptionalLibraryError(
                 libname="CPLEX",
                 name="CplexOptimizer",
                 pip_install="pip install cplex",
-            )
+            ) from error
         self.problem.set_time_limit(time_limit)
         if threads is not None:
             self.problem.context.cplex_parameters.threads = threads

@@ -12,6 +12,9 @@
 
 """Pass Manager Configuration class."""
 
+from qiskit.transpiler.coupling import CouplingMap
+from qiskit.transpiler.instruction_durations import InstructionDurations
+
 
 class PassManagerConfig:
     """Pass Manager Configuration."""
@@ -31,6 +34,8 @@ class PassManagerConfig:
         approximation_degree=None,
         seed_transpiler=None,
         timing_constraints=None,
+        unitary_synthesis_method="default",
+        unitary_synthesis_plugin_config=None,
     ):
         """Initialize a PassManagerConfig object
 
@@ -58,6 +63,9 @@ class PassManagerConfig:
             seed_transpiler (int): Sets random seed for the stochastic parts of
                 the transpiler.
             timing_constraints (TimingConstraints): Hardware time alignment restrictions.
+            unitary_synthesis_method (str): The string method to use for the
+                :class:`~qiskit.transpiler.passes.UnitarySynthesis` pass. Will
+                search installed plugins for a valid method.
         """
         self.initial_layout = initial_layout
         self.basis_gates = basis_gates
@@ -72,3 +80,38 @@ class PassManagerConfig:
         self.approximation_degree = approximation_degree
         self.seed_transpiler = seed_transpiler
         self.timing_constraints = timing_constraints
+        self.unitary_synthesis_method = unitary_synthesis_method
+        self.unitary_synthesis_plugin_config = unitary_synthesis_plugin_config
+
+    @classmethod
+    def from_backend(cls, backend, **pass_manager_options):
+        """Construct a configuration based on a backend and user input.
+
+        This method automatically gererates a PassManagerConfig object based on the backend's
+        features. User options can be used to overwrite the configuration.
+
+        Args:
+            backend (BackendV1): The backend that provides the configuration.
+            pass_manager_options: User-defined option-value pairs.
+
+        Returns:
+            PassManagerConfig: The configuration generated based on the arguments.
+
+        Raises:
+            AttributeError: If the backend does not support a `configuration()` method.
+        """
+        res = cls(**pass_manager_options)
+        config = backend.configuration()
+
+        if res.basis_gates is None:
+            res.basis_gates = getattr(config, "basis_gates", None)
+        if res.inst_map is None and hasattr(backend, "defaults"):
+            res.inst_map = backend.defaults().instruction_schedule_map
+        if res.coupling_map is None:
+            res.coupling_map = CouplingMap(getattr(config, "coupling_map", None))
+        if res.instruction_durations is None:
+            res.instruction_durations = InstructionDurations.from_backend(backend)
+        if res.backend_properties is None:
+            res.backend_properties = backend.properties()
+
+        return res

@@ -62,8 +62,8 @@ class DrawerBackendInfo(ABC):
         """
         self.backend_name = name or "no-backend"
         self._dt = dt
-        self._chan_freq_map = channel_frequency_map or dict()
-        self._qubit_channel_map = qubit_channel_map or dict()
+        self._chan_freq_map = channel_frequency_map or {}
+        self._qubit_channel_map = qubit_channel_map or {}
 
     @classmethod
     @abstractmethod
@@ -115,7 +115,7 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
         dt = configuration.dt
 
         # load frequencies
-        chan_freqs = dict()
+        chan_freqs = {}
 
         chan_freqs.update(
             {pulse.DriveChannel(qind): freq for qind, freq in enumerate(defaults.qubit_freq_est)}
