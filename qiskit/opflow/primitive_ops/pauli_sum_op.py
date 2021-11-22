@@ -136,9 +136,25 @@ class PauliSumOp(PrimitiveOp):
 
         return SummedOp([self, other])
 
+    #Flatten self to a SummedOp of Paulis
+    def flatten_op(self) -> SummedOp:
+        ops = []
+        for i, op in enumerate(self):
+            if len(op) > 1:
+                ops_tmp = op.flatten_op()
+                ops.extend(ops_tmp)
+            else:
+                ops.append(op.to_pauli_op())
+        return SummedOp(ops)
+
     def mul(self, scalar: Union[complex, ParameterExpression]) -> OperatorBase:
         if isinstance(scalar, (int, float, complex)) and scalar != 0:
             return PauliSumOp(scalar * self.primitive, coeff=self.coeff)
+
+        #Return a SummedOp if scalar is a ParameterExpression
+        if isinstance(scalar, ParameterExpression):
+            op_to_flatten = PauliSumOp(self.primitive, coeff=self.coeff * scalar)
+            return op_to_flatten.flatten_op()
 
         return PauliSumOp(self.primitive, coeff=self.coeff * scalar)
 
