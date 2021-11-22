@@ -27,14 +27,11 @@ jobs:
           platforms: all
       - name: Install cibuildwheel
         run: |
-          python -m pip install cibuildwheel==2.1.2 twine
+          python -m pip install cibuildwheel==2.2.2 twine
       - name: Build wheels
         run: |
           python -m cibuildwheel --output-dir wheelhouse
         env:
-          CIBW_SKIP: cp36-* pp*
-          CIBW_BEFORE_BUILD: pip install -U Cython
-          CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
           CIBW_ARCHS_LINUX: aarch64
       - uses: actions/upload-artifact@v2
         with:

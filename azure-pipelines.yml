@@ -27,16 +27,13 @@ stages:
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
         python.version: '3.7'
-        CIBW_BEFORE_BUILD: pip install -U Cython
-        CIBW_SKIP: pp* cp36-*
         TWINE_USERNAME: qiskit
-        CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
       steps:
         - task: UsePythonVersion@0
         - bash: |
             set -e
             python -m pip install --upgrade pip
-            pip install cibuildwheel==2.1.2
+            pip install cibuildwheel==2.2.2
             pip install -U twine
             cibuildwheel --output-dir wheelhouse .
         - task: PublishBuildArtifacts@1
@@ -71,16 +68,13 @@ stages:
       pool: {vmImage: 'macOS-10.15'}
       variables:
         python.version: '3.7'
-        CIBW_BEFORE_BUILD: pip install -U Cython
-        CIBW_SKIP: pp* cp36-
         TWINE_USERNAME: qiskit
-        CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
       steps:
       - task: UsePythonVersion@0
       - bash: |
           set -e
           python -m pip install --upgrade pip
-          pip install cibuildwheel==2.1.2
+          pip install cibuildwheel==2.2.2
           pip install -U twine
           cibuildwheel --output-dir wheelhouse .
       - task: PublishBuildArtifacts@1
@@ -95,17 +89,14 @@ stages:
       pool: {vmImage: 'macOS-10.15'}
       variables:
         python.version: '3.7'
-        CIBW_BEFORE_BUILD: pip install -U Cython
-        CIBW_SKIP: pp* cp36-*
         CIBW_ARCHS_MACOS: universal2
         TWINE_USERNAME: qiskit
-        CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
       steps:
       - task: UsePythonVersion@0
       - bash: |
           set -e
           python -m pip install --upgrade pip
-          pip install cibuildwheel==2.1.2
+          pip install cibuildwheel==2.2.2
           pip install -U twine
           cibuildwheel --output-dir wheelhouse .
       - task: PublishBuildArtifacts@1
@@ -119,10 +110,7 @@ stages:
       pool: {vmImage: 'vs2017-win2016'}
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
-        CIBW_BEFORE_BUILD: pip install -U Cython
-        CIBW_SKIP: pp* cp36-*
         TWINE_USERNAME: qiskit
-        CIBW_TEST_COMMAND: python {project}\examples\python\stochastic_swap.py
       steps:
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x86}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x64}}
@@ -135,7 +123,7 @@ stages:
         - bash: |
             set -e
             python -m pip install --upgrade pip
-            pip install cibuildwheel==2.1.2
+            pip install cibuildwheel==2.2.2
             pip install -U twine
             cibuildwheel --output-dir wheelhouse
         - task: PublishBuildArtifacts@1
