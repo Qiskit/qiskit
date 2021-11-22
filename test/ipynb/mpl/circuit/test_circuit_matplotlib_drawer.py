@@ -787,8 +787,6 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
     def test_registerless_one_bit(self):
         """Test circuit with one-bit registers and registerless bits."""
-        from qiskit.circuit import Qubit, Clbit
-
         qrx = QuantumRegister(2, "qrx")
         qry = QuantumRegister(1, "qry")
         crx = ClassicalRegister(2, "crx")
@@ -830,7 +828,6 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.h(qr[1]).c_if(cr[1], 0)
         circuit.h(qr[2]).c_if(cr[0], 0)
         self.circuit_drawer(circuit, cregbundle=False, filename="measure_cond_bits_right.png")
-        # self.circuit_drawer(circuit, cregbundle=True, filename="measure_cond_bits_true.png")
 
 
 if __name__ == "__main__":
