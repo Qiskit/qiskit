@@ -97,13 +97,12 @@ class RXGate(Gate):
         """
         if isinstance(self.params[0], ParameterExpression):
             if self.params[0].parameters:
-                return RXGate(
-                    ParameterExpression(
-                        self.params[0]._parameter_symbols, -self.params[0]._symbol_expr
-                    )
-                )
+                param_dict = {}
+                for param in self.params[0].parameters:
+                    param_dict[param] = param.name
+                return RXGate(ParameterExpression(param_dict, -self.params[0].get_sympy_expr()))
             else:
-                return RXGate(-float(self.params[0]._symbol_expr))
+                return RXGate(-float(self.params[0].get_sympy_expr()))
         else:
             return RXGate(-self.params[0])
 
