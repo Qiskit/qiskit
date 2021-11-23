@@ -12,8 +12,7 @@ pip install matplotlib pylatexenc pillow appmode seaborn
 pip install .
 
 # Install QCircuit for LaTeX drawer
-mkdir -p $(kpsewhich -var-value=TEXMFHOME)/tex/latex/qcircuit/
-wget https://mirrors.ctan.org/graphics/qcircuit/qcircuit.sty -P $(kpsewhich -var-value=TEXMFHOME)/tex/latex/qcircuit/
+tlmgr install qcircuit
 
 # Activation of appmode extension
 jupyter nbextension     enable --py --sys-prefix appmode

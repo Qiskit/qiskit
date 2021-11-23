@@ -1,5 +1,0 @@
-texlive-pictures
-texlive-latex-recommended
-texlive-latex-extra
-texlive-fonts-recommended
-poppler-utils
