@@ -17,6 +17,7 @@ from typing import Optional, List, Tuple, Iterable, Callable, Union
 import numpy as np
 
 from qiskit.result import Counts, QuasiDistribution
+from qiskit import QiskitError
 from .base_readout_mitigator import BaseReadoutMitigator
 from .utils import counts_probability_vector, z_diagonal, str2diag
 
@@ -33,13 +34,20 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         Args:
             amat: readout error assignment matrix.
             qubits: Optional, the measured physical qubits for mitigation.
+
+        Raises:
+            QiskitError: matrix size does not agree with number of qubits
         """
+        matrix_qubits_num = int(np.log2(amat.shape[0]))
         if qubits is None:
-            self._num_qubits = int(np.log2(amat.shape[0]))
+            self._num_qubits = matrix_qubits_num
             self._qubits = range(self._num_qubits)
         else:
+            if len(qubits) != int(np.log2(amat.shape[0])):
+                raise QiskitError("The number of given qubits ({}) is different than the number of qubits inferred from the matrices ({})".format(len(qubits), matrix_qubits_num))
             self._qubits = qubits
             self._num_qubits = len(self._qubits)
+        self._qubit_index = dict(zip(self._qubits, range(self._num_qubits)))
         self._assignment_mat = amat
         self._mitigation_mats = {}
 
@@ -71,9 +79,6 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         Returns:
             (float, float): the expectation value and an upper bound of the standard deviation.
 
-        Raises:
-            QiskitError: if input arguments are invalid.
-
         Additional Information:
             The diagonal observable :math:`O` is input using the ``diagonal`` kwarg as
             a list or Numpy array :math:`[O(0), ..., O(2^n -1)]`. If no diagonal is specified
@@ -87,7 +92,7 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
 
         if qubits is None:
             qubits = self._qubits
-        probs_vec, shots = counts_probability_vector(data, clbits=clbits, qubits=qubits)
+        probs_vec, shots = counts_probability_vector(data, qubit_index=self._qubit_index, clbits=clbits, qubits=qubits)
 
         # Get qubit mitigation matrix and mitigate probs
         mit_mat = self.mitigation_matrix(qubits)
@@ -125,13 +130,10 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
                 is the key in the dictionaries,
                 which is the length-N bitstring of a measured standard basis state,
                 and "mean" is the mean of non-zero quasi-probability estimates.
-
-        Raises:
-            QiskitError: if qubit and clbit kwargs are not valid.
         """
         if qubits is None:
             qubits = self._qubits
-        probs_vec, shots = counts_probability_vector(data, clbits=clbits, qubits=qubits)
+        probs_vec, shots = counts_probability_vector(data, qubit_index=self._qubit_index, clbits=clbits, qubits=qubits)
 
         # Get qubit mitigation matrix and mitigate probs
         mit_mat = self.mitigation_matrix(qubits)

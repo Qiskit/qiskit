@@ -104,17 +104,18 @@ class TestReadoutMitigation(QiskitTestCase):
         diagonals.append("101")
         diagonals.append("IZI")
         mitigators = [CRM, LRM]
+        qubit_index = {i: i for i in range(num_qubits)}
         for circuit_name, circuit_data in circuits_data["circuits"].items():
             counts_ideal = Counts(circuit_data["counts_ideal"])
             counts_noise = Counts(circuit_data["counts_noise"])
-            probs_ideal, _ = counts_probability_vector(counts_ideal)
-            probs_noise, _ = counts_probability_vector(counts_noise)
+            probs_ideal, _ = counts_probability_vector(counts_ideal, qubit_index=qubit_index)
+            probs_noise, _ = counts_probability_vector(counts_noise, qubit_index=qubit_index)
             for diagonal in diagonals:
                 if isinstance(diagonal, str):
                     diagonal = str2diag(diagonal)
                 unmitigated_expectation, unmitigated_stddev = expval_with_stddev(
                     diagonal, probs_noise, shots=counts_noise.shots()
-                )  # np.dot(probs_noise, diagonal)
+                )
                 ideal_expectation = np.dot(probs_ideal, diagonal)
                 unmitigated_error = np.abs(ideal_expectation - unmitigated_expectation)
                 for mitigator in mitigators:
@@ -258,6 +259,44 @@ class TestReadoutMitigation(QiskitTestCase):
                 ),
             )
 
+    @data([test_data["test_1"]])
+    @unpack
+    def test_qubits_subset_parameter(self, circuits_data):
+        """Tests mitigation on a subset of the initial set of qubits."""
+        counts_ideal_012 = Counts({"000": 5000, "001": 5000})
+        counts_ideal_02 = Counts({"00": 5000, "01": 5000})
+        counts_ideal_20 = Counts({"00": 5000, "10": 5000})
+        counts_noise = Counts(
+            {"000": 4844, "001": 4962, "100": 56, "101": 65, "011": 37, "010": 35, "110": 1}
+        )
+        CRM = CorrelatedReadoutMitigator(
+            circuits_data["correlated_method_matrix"], qubits=[0, 1, 2]
+        )
+        LRM = LocalReadoutMitigator(circuits_data["local_method_matrices"], qubits=[0, 1, 2])
+        mitigators = [CRM, LRM]
+        for mitigator in mitigators:
+            mitigated_probs_02 = (
+                mitigator.quasi_probabilities(counts_noise, qubits=[0, 2])
+                    .nearest_probability_distribution()
+                    .binary_probabilities()
+            )
+            mitigated_error = self.compare_results(counts_ideal_02, mitigated_probs_02)
+            self.assertTrue(
+                mitigated_error < 0.001,
+                "Mitigator {} did not correctly handle qubit order 2,1,0".format(mitigator),
+            )
+
+            mitigated_probs_20 = (
+                mitigator.quasi_probabilities(counts_noise, qubits=[2, 0])
+                    .nearest_probability_distribution()
+                    .binary_probabilities()
+            )
+            mitigated_error = self.compare_results(counts_ideal_20, mitigated_probs_20)
+            self.assertTrue(
+                mitigated_error < 0.001,
+                "Mitigator {} did not correctly handle qubit order 2,1,0".format(mitigator),
+            )
+
     def test_from_backend(self):
         """Test whether a local mitigator can be created directly from backend properties"""
         backend = FakeYorktown()
@@ -291,3 +330,4 @@ class TestReadoutMitigation(QiskitTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

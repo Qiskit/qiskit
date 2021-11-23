@@ -54,6 +54,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
             self._qubits = qubits
             self._num_qubits = len(self._qubits)
 
+        self._qubit_index = dict(zip(self._qubits, range(self._num_qubits)))
         self._assignment_mats = amats
         self._mitigation_mats = np.zeros([self._num_qubits, 2, 2], dtype=float)
         self._gammas = np.zeros(self._num_qubits, dtype=float)
@@ -111,7 +112,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         """
         if qubits is None:
             qubits = self._qubits
-        probs_vec, shots = counts_probability_vector(data, clbits=clbits, qubits=qubits)
+        probs_vec, shots = counts_probability_vector(data, qubit_index=self._qubit_index, clbits=clbits, qubits=qubits)
 
         # Get qubit mitigation matrix and mitigate probs
         ainvs = self._mitigation_mats[list(qubits)]
@@ -164,7 +165,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
 
         num_qubits = len(qubits)
 
-        probs_vec, shots = counts_probability_vector(data, clbits=clbits, qubits=qubits)
+        probs_vec, shots = counts_probability_vector(data, qubit_index=self._qubit_index, clbits=clbits, qubits=qubits)
 
         # Get qubit mitigation matrix and mitigate probs
         ainvs = self._mitigation_mats[list(qubits)]
@@ -186,7 +187,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
 
         return quasi_dist
 
-    def mitigation_matrix(self, qubits: List[int] = None) -> np.ndarray:
+    def mitigation_matrix(self, qubits: Optional[Union[List[int], int]] = None) -> np.ndarray:
         r"""Return the measurement mitigation matrix for the specified qubits.
 
         The mitigation matrix :math:`A^{-1}` is defined as the inverse of the
@@ -194,6 +195,8 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
 
         Args:
             qubits: Optional, qubits being measured for operator expval.
+                    if a single int is given, it is assumed to be the index
+                    of the qubit in self._qubits
 
         Returns:
             np.ndarray: the measurement error mitigation matrix :math:`A^{-1}`.
@@ -201,7 +204,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         if qubits is None:
             qubits = self._qubits
         if isinstance(qubits, int):
-            qubits = [qubits]
+            qubits = [self._qubits[qubits]]
         mat = self._mitigation_mats[qubits[0]]
         for i in qubits[1:]:
             mat = np.kron(self._mitigation_mats[i], mat)

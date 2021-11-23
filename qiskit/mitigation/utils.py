@@ -14,7 +14,7 @@ Readout mitigation data handling utils
 """
 
 import logging
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Dict
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -108,6 +108,7 @@ def remap_qubits(
 
 def marganalize_counts(
     counts: Counts,
+    qubit_index: Dict[int, int],
     qubits: Optional[List[int]] = None,
     clbits: Optional[List[int]] = None,
 ) -> np.ndarray:
@@ -122,22 +123,25 @@ def marganalize_counts(
                 )
             )
         counts = marginal_counts(counts, clbits)
+    if clbits is None and qubits is not None:
+        clbits = [qubit_index[qubit] for qubit in qubits]
+        counts = marginal_counts(counts, clbits)
     return counts
 
 
 def counts_probability_vector(
     counts: Counts,
+    qubit_index: Dict[int, int],
     qubits: Optional[List[int]] = None,
     clbits: Optional[List[int]] = None,
-    num_qubits: Optional[int] = None,
 ) -> Tuple[np.ndarray, int]:
     """Compute a probability vector for all count outcomes.
 
     Args:
         counts: counts object
+        qubits_index: For each qubit, its index in the mitigator qubit_list
         qubits: qubits the count bitstrings correspond to.
         clbits: Optional, marginalize counts to just these bits.
-        num_qubits: the total number of qubits.
 
     Raises:
         QiskitError: if qubits and clbits kwargs are not valid.
@@ -145,9 +149,11 @@ def counts_probability_vector(
     Returns:
         np.ndarray: a probability vector for all count outcomes.
     """
-    counts = marganalize_counts(counts, qubits, clbits)
-    if num_qubits is None:
-        num_qubits = len(next(iter(counts)))
+    counts = marganalize_counts(counts, qubit_index, qubits, clbits)
+    if qubits is not None:
+        num_qubits = len(qubits)
+    else:
+        num_qubits = len(qubit_index.keys())
     vec, shots = counts_to_vector(counts, num_qubits)
     vec = remap_qubits(vec, num_qubits, qubits)
     return vec, shots
