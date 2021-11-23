@@ -103,28 +103,28 @@ class TestGrover(QiskitAlgorithmsTestCase):
         result = grover.amplify(problem)
         self.assertEqual(result.top_measurement, "0")
 
-    def test_fixed_iterations(self):  # CHECK
+    def test_fixed_iterations(self):
         """Test the iterations argument with an int"""
         grover = Grover(iterations=2, quantum_instance=self.statevector)
         problem = AmplificationProblem(Statevector.from_label("111"), is_good_state=["111"])
         result = grover.amplify(problem)
         self.assertEqual(result.top_measurement, "111")
 
-    def test_fixed_iterations_without_good_state(self):  # NO CHECK
+    def test_fixed_iterations_without_good_state(self):
         """Test the iterations argument with an int and without good state"""
         grover = Grover(iterations=2, quantum_instance=self.statevector)
         problem = AmplificationProblem(Statevector.from_label("111"))
         result = grover.amplify(problem)
         self.assertEqual(result.top_measurement, "111")
 
-    def test_no_iterations_with_good_state(self):  # CHECK
+    def test_no_iterations_with_good_state(self):
         """Test with a good state argument and without iterations"""
         grover = Grover(quantum_instance=self.statevector)
         problem = AmplificationProblem(Statevector.from_label("111"), is_good_state=["111"])
         result = grover.amplify(problem)
         self.assertEqual(result.top_measurement, "111")
 
-    def test_no_iterations_without_good_state(self):  # ERROR
+    def test_no_iterations_without_good_state(self):
         """Test that correct error is thrown without iterations and good state argument"""
         grover = Grover(quantum_instance=self.statevector)
         problem = AmplificationProblem(Statevector.from_label("111"))
@@ -133,14 +133,14 @@ class TestGrover(QiskitAlgorithmsTestCase):
         ):
             grover.amplify(problem)
 
-    def test_multiple_iterations(self):  # CHECK
+    def test_multiple_iterations(self):
         """Test the algorithm for a list of iterations."""
         grover = Grover(iterations=[1, 2, 3], quantum_instance=self.statevector)
         problem = AmplificationProblem(Statevector.from_label("111"), is_good_state=["111"])
         result = grover.amplify(problem)
         self.assertEqual(result.top_measurement, "111")
 
-    def test_multiple_iterations_without_good_state(self):  # ERROR
+    def test_multiple_iterations_without_good_state(self):
         """Test the correct error is thrown for a list of iterations but not good state argument"""
         grover = Grover(iterations=[1, 2, 3], quantum_instance=self.statevector)
         problem = AmplificationProblem(Statevector.from_label("111"))
