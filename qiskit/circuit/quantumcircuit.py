@@ -2205,7 +2205,7 @@ class QuantumCircuit:
         else:
             return None
 
-    def measure_all(self, inplace: bool = True) -> Optional["QuantumCircuit"]:
+    def measure_all(self, inplace: bool = True, add_creg: bool = True) -> Optional["QuantumCircuit"]:
         """Adds measurement to all qubits. Creates a new ClassicalRegister with a
         size equal to the number of qubits being measured.
 
@@ -2221,11 +2221,17 @@ class QuantumCircuit:
             circ = self
         else:
             circ = self.copy()
-
-        new_creg = circ._create_creg(len(circ.qubits), "meas")
-        circ.add_register(new_creg)
-        circ.barrier()
-        circ.measure(circ.qubits, new_creg)
+        if add_creg:
+            new_creg = circ._create_creg(len(circ.qubits), "meas")
+            circ.add_register(new_creg)
+            circ.barrier()
+            circ.measure(circ.qubits, new_creg)
+        else:
+            if len(circ.clbits) < len(circ.qubits):
+                raise CircuitError("The number of classical bits must be equal or greater than the number of qubits.")
+            else:
+                circ.barrier()
+                circ.measure(circ.qubits,circ.clbits[0:len(circ.qubits)])
 
         if not inplace:
             return circ
