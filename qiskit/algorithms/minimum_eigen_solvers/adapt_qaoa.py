@@ -167,7 +167,7 @@ class AdaptQAOA(QAOA):
     def _test_mixer_pool(self, operator: OperatorBase, ansatz: QuantumCircuit = None):
         self._check_problem_configuration(operator=operator)
         energy_gradients = []
-        print(self.ansatz.decompose().draw())
+        # print(self.ansatz.decompose().draw())
         for mixer in self.mixer_pool:
             expect_op = self.compute_energy_gradient(mixer, operator, ansatz=self.ansatz)
             # run expectation circuit
