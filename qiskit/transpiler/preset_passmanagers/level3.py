@@ -155,7 +155,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         else VF2Layout(
             coupling_map,
             seed=vf2_seed,
-            call_limit=int(3e7),
+            call_limit=int(3e7),  # Set call limit to ~60 sec with retworkx 0.10.2
             time_limit=60,
             properties=backend_properties,
         )
