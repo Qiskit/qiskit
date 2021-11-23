@@ -40,11 +40,12 @@ class TestAQCSynthesisPlugin(QiskitTestCase):
         )
 
         self._target_unitary = Operator(self._qc).data
+        self._seed_config = {"seed": 12345}
 
     def test_aqc_plugin(self):
         """Basic test of the plugin."""
         plugin = AQCSynthesisPlugin()
-        dag = plugin.run(self._target_unitary)
+        dag = plugin.run(self._target_unitary, config=self._seed_config)
 
         approx_circuit = dag_to_circuit(dag)
         approx_unitary = Operator(approx_circuit).data
@@ -53,7 +54,9 @@ class TestAQCSynthesisPlugin(QiskitTestCase):
 
     def test_plugin_setup(self):
         """Tests the plugin via unitary synthesis pass"""
-        transpiler_pass = UnitarySynthesis(basis_gates=["rx", "ry", "rz", "cx"], method="aqc")
+        transpiler_pass = UnitarySynthesis(
+            basis_gates=["rx", "ry", "rz", "cx"], method="aqc", plugin_config=self._seed_config
+        )
 
         dag = circuit_to_dag(self._qc)
         dag = transpiler_pass.run(dag)
@@ -91,8 +94,7 @@ class TestAQCSynthesisPlugin(QiskitTestCase):
         aqc = PassManager(
             [
                 UnitarySynthesis(
-                    basis_gates=["u", "cx"],
-                    method="aqc",
+                    basis_gates=["u", "cx"], method="aqc", plugin_config=self._seed_config
                 )
             ]
         ).run(qc)
