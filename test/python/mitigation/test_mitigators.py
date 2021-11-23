@@ -279,8 +279,8 @@ class TestReadoutMitigation(QiskitTestCase):
         for mitigator in mitigators:
             mitigated_probs_2 = (
                 mitigator.quasi_probabilities(counts_noise, qubits=[2])
-                    .nearest_probability_distribution()
-                    .binary_probabilities()
+                .nearest_probability_distribution()
+                .binary_probabilities()
             )
             mitigated_error = self.compare_results(counts_ideal_2, mitigated_probs_2)
             self.assertTrue(
@@ -290,8 +290,8 @@ class TestReadoutMitigation(QiskitTestCase):
 
             mitigated_probs_6 = (
                 mitigator.quasi_probabilities(counts_noise, qubits=[6])
-                    .nearest_probability_distribution()
-                    .binary_probabilities()
+                .nearest_probability_distribution()
+                .binary_probabilities()
             )
             mitigated_error = self.compare_results(counts_ideal_6, mitigated_probs_6)
             self.assertTrue(
@@ -301,14 +301,12 @@ class TestReadoutMitigation(QiskitTestCase):
             diagonal = str2diag("ZZ")
             ideal_expectation = 0
             mitigated_expectation, _ = mitigator.expectation_value(
-                counts_noise, diagonal, qubits=[2,6]
+                counts_noise, diagonal, qubits=[2, 6]
             )
             mitigated_error = np.abs(ideal_expectation - mitigated_expectation)
             self.assertTrue(
                 mitigated_error < 0.1,
-                "Mitigator {} did not improve circuit expectation".format(
-                    mitigator
-                ),
+                "Mitigator {} did not improve circuit expectation".format(mitigator),
             )
 
     def test_from_backend(self):
@@ -344,4 +342,3 @@ class TestReadoutMitigation(QiskitTestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

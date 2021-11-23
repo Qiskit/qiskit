@@ -113,7 +113,9 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         if qubits is None:
             qubits = self._qubits
         num_qubits = len(qubits)
-        probs_vec, shots = counts_probability_vector(data, qubit_index=self._qubit_index, clbits=clbits, qubits=qubits)
+        probs_vec, shots = counts_probability_vector(
+            data, qubit_index=self._qubit_index, clbits=clbits, qubits=qubits
+        )
 
         # Get qubit mitigation matrix and mitigate probs
         qubit_indices = [self._qubit_index[qubit] for qubit in qubits]
@@ -167,7 +169,9 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
 
         num_qubits = len(qubits)
 
-        probs_vec, shots = counts_probability_vector(data, qubit_index=self._qubit_index, clbits=clbits, qubits=qubits)
+        probs_vec, shots = counts_probability_vector(
+            data, qubit_index=self._qubit_index, clbits=clbits, qubits=qubits
+        )
 
         # Get qubit mitigation matrix and mitigate probs
         qubit_indices = [self._qubit_index[qubit] for qubit in qubits]
