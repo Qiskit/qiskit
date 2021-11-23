@@ -196,7 +196,7 @@ class AdaptQAOA(QAOA):
     def _test_mixer_pool(self, operator: OperatorBase, ansatz=None):
         self._check_problem_configuration(operator=operator)
         energy_gradients = []
-        print(self.ansatz.decompose().draw())
+        # print(self.ansatz.decompose().draw())
         for mixer in self.mixer_pool:
             new_mixer_list = self.optimal_mixer_list + [mixer]
             if ansatz is not None:
