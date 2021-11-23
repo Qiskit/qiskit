@@ -16,6 +16,7 @@ Arbitrary unitary circuit instruction.
 
 from collections import OrderedDict
 import numpy
+import sympy as sp
 
 from qiskit.circuit import Gate, ControlledGate
 from qiskit.circuit import QuantumCircuit
@@ -29,9 +30,25 @@ from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
 from qiskit.quantum_info.synthesis.two_qubit_decompose import two_qubit_cnot_decompose
 from qiskit.extensions.exceptions import ExtensionError
-from qiskit.circuit.parameterexpression import ParameterTypeError
+from qiskit.circuit.parameterexpression import ParameterTypeError, ParameterExpression
 
 _DECOMPOSER1Q = OneQubitEulerDecomposer("U3")
+
+
+def to_sympy_matrix(numpy_matrix):
+    """Convert (numpy) matrix to sympy matrix."""
+    matrix = []
+    i = 0
+    for row in numpy_matrix:
+        nrow = []
+        i += 1
+        for e in row:
+            if isinstance(e, ParameterExpression):
+                e = e.get_expr()
+            nrow.append(e)
+        matrix.append(nrow)
+
+    return sp.Matrix(matrix), i
 
 
 class UnitaryGate(Gate):
@@ -58,17 +75,22 @@ class UnitaryGate(Gate):
             data = data.to_operator().data
 
         # Check if there is any unbound parameter in array
-        can_check_unitary = True
         try:
             # Convert to numpy array in case not already an array
             data = numpy.array(data, dtype=complex)
-        except ParameterTypeError:
-            can_check_unitary = False
 
-        # We only check if input is unitary for bounded parameters
-        if can_check_unitary:
             # Check input is unitary
             if not is_unitary_matrix(data):
+                raise ExtensionError("Input matrix is not unitary.")
+        except ParameterTypeError:
+            from sympy.physics.quantum import Dagger
+            matrix, matrix_dim = to_sympy_matrix(data)
+            iden = sp.sympify(matrix * Dagger(matrix))
+
+            if iden != sp.eye(matrix_dim):
+                # There may be a case when there is still a parameter and
+                # we are not quite sure if this is unitary or not.
+                # But just in case we throw exception :)
                 raise ExtensionError("Input matrix is not unitary.")
 
         # Check input is N-qubit matrix

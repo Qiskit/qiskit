@@ -505,11 +505,11 @@ class TemplateSubstitution:
                 equations.append(sym.Eq(temp_params.get_expr(), circ_param_sym))
 
                 for param in temp_params.parameters:
-                    temp_symbols[param] = sym.Symbol(str(param))
+                    temp_symbols[param] = sym.Symbol(str(param), real=True)
 
                 if isinstance(circuit_params[t_idx], ParameterExpression):
                     for param in circuit_params[t_idx].parameters:
-                        circ_dict[param] = sym.Symbol(str(param))
+                        circ_dict[param] = sym.Symbol(str(param), real=True)
 
         if not temp_symbols:
             return template_dag_dep

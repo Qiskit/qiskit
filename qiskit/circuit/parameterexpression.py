@@ -171,7 +171,7 @@ class ParameterExpression:
         else:
             from sympy import Symbol
 
-            new_parameter_symbols = {p: Symbol(p.name) for p in inbound_parameters}
+            new_parameter_symbols = {p: Symbol(p.name, real=True) for p in inbound_parameters}
 
         # Include existing parameters in self not set to be replaced.
         new_parameter_symbols.update(
