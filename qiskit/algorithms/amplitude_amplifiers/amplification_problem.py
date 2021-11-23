@@ -161,7 +161,6 @@ class AmplificationProblem:
             A callable that takes in a bitstring and returns True if the measurement is a good
             state, False otherwise.
         """
-        print("ENTERED IS_GOOD_STATE CHECKER")
         if callable(self._is_good_state):
             return self._is_good_state
         elif isinstance(self._is_good_state, list):
