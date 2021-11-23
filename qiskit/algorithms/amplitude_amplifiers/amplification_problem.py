@@ -54,9 +54,6 @@ class AmplificationProblem:
                 if the ``oracle`` argument has an ``evaluate_bitstring`` method (currently only
                 provided by the :class:`~qiskit.circuit.library.PhaseOracle` class) this will be
                 used, otherwise this kwarg is required and **must** be specified.
-
-        Raises:
-            TypeError: if ``is_good_state`` is not provided and is required
         """
         self._oracle = oracle
         self._state_preparation = state_preparation
@@ -67,8 +64,6 @@ class AmplificationProblem:
             self._is_good_state = is_good_state
         elif hasattr(oracle, "evaluate_bitstring"):
             self._is_good_state = oracle.evaluate_bitstring
-        else:
-            raise TypeError("A is_good_state function is required with the provided oracle")
 
     @property
     def oracle(self) -> Union[QuantumCircuit, Statevector]:
@@ -166,6 +161,7 @@ class AmplificationProblem:
             A callable that takes in a bitstring and returns True if the measurement is a good
             state, False otherwise.
         """
+        print("ENTERED IS_GOOD_STATE CHECKER")
         if callable(self._is_good_state):
             return self._is_good_state
         elif isinstance(self._is_good_state, list):
