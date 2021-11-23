@@ -174,15 +174,15 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
              List[Union[OperatorBase, QuantumCircuit]]: The operators to be evolved (and circuits)
                 in this ansatz.
         """
-        if not isinstance(self.mixer_operator,list):
-            return [self.cost_operator, self.mixer_operator]
-        else:
+        if isinstance(self.mixer_operator,list) and self.name=='AdaptQAOA':
             varied_operators = list(
                 itertools.chain.from_iterable(
                     [[self.cost_operator, mixer] for mixer in self.mixer_operator]
                 )
             )
             return varied_operators
+        else:
+            return [self.cost_operator, self.mixer_operator]
 
     @property
     def cost_operator(self):

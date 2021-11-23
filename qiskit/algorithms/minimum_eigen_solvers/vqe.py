@@ -761,7 +761,7 @@ def _validate_initial_point(point, ansatz):
     if point is None:
         # get bounds if ansatz has them set, otherwise use [-2pi, 2pi] for each parameter
         bounds = getattr(ansatz, "parameter_bounds", None)
-        if bounds is None:
+        if not bounds:
             bounds = [(-2 * np.pi, 2 * np.pi)] * expected_size
 
         # replace all Nones by [-2pi, 2pi]
