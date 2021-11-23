@@ -118,7 +118,7 @@ class ClassicalType(ASTNode):
     """Information about a classical type.  This is just an abstract base for inheritance tests."""
 
 
-class FloatType(ClassicalType, enum.IntEnum):
+class FloatType(ClassicalType, enum.Enum):
     """Allowed values for the width of floating-point types."""
 
     half = 16
