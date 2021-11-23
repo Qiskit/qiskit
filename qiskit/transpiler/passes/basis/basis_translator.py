@@ -300,9 +300,9 @@ def _basis_search(equiv_lib, source_basis, target_basis):
         target = lazy_setdefault(key)
         all_gates_in_lib.add(key)
         for equiv in equiv_lib._get_equivalences(key):
-            sources = set(
+            sources = {
                 Key(name=gate.name, num_qubits=len(qargs)) for gate, qargs, _ in equiv.circuit
-            )
+            }
             all_gates_in_lib |= sources
             edges = [
                 (
