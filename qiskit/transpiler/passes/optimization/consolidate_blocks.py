@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=cell-var-from-loop
-
 """Replace each block of consecutive gates by a single Unitary node."""
 
 from qiskit.circuit.classicalregister import ClassicalRegister
@@ -56,11 +54,7 @@ class ConsolidateBlocks(TransformationPass):
         if kak_basis_gate is not None:
             self.decomposer = TwoQubitBasisDecomposer(kak_basis_gate)
         elif basis_gates is not None:
-            kak_basis_gate = unitary_synthesis._choose_kak_gate(basis_gates)
-            if kak_basis_gate is not None:
-                self.decomposer = TwoQubitBasisDecomposer(kak_basis_gate)
-            else:
-                self.decomposer = None
+            self.decomposer = unitary_synthesis._basis_gates_to_decomposer_2q(basis_gates)
         else:
             self.decomposer = TwoQubitBasisDecomposer(CXGate())
 

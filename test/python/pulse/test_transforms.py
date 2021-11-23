@@ -490,6 +490,8 @@ class TestAlignSequential(QiskitTestCase):
 
     def test_align_sequential(self):
         """Test sequential alignment without a barrier."""
+        context = transforms.AlignSequential()
+
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
 
@@ -497,8 +499,7 @@ class TestAlignSequential(QiskitTestCase):
         schedule.insert(1, instructions.Delay(3, d0), inplace=True)
         schedule.insert(4, instructions.Delay(5, d1), inplace=True)
         schedule.insert(12, instructions.Delay(7, d0), inplace=True)
-
-        schedule = transforms.align_sequential(schedule)
+        schedule = context.align(schedule)
 
         reference = pulse.Schedule()
         # d0
@@ -511,6 +512,8 @@ class TestAlignSequential(QiskitTestCase):
 
     def test_align_sequential_with_barrier(self):
         """Test sequential alignment with a barrier."""
+        context = transforms.AlignSequential()
+
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
 
@@ -519,8 +522,7 @@ class TestAlignSequential(QiskitTestCase):
         schedule.append(directives.RelativeBarrier(d0, d1), inplace=True)
         schedule.insert(4, instructions.Delay(5, d1), inplace=True)
         schedule.insert(12, instructions.Delay(7, d0), inplace=True)
-
-        schedule = transforms.align_sequential(schedule)
+        schedule = context.align(schedule)
 
         reference = pulse.Schedule()
         reference.insert(0, instructions.Delay(3, d0), inplace=True)
@@ -536,6 +538,8 @@ class TestAlignLeft(QiskitTestCase):
 
     def test_align_left(self):
         """Test left alignment without a barrier."""
+        context = transforms.AlignLeft()
+
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
         d2 = pulse.DriveChannel(2)
@@ -548,8 +552,8 @@ class TestAlignLeft(QiskitTestCase):
         sched_grouped += instructions.Delay(5, d1)
         sched_grouped += instructions.Delay(7, d0)
         schedule.append(sched_grouped, inplace=True)
+        schedule = context.align(schedule)
 
-        schedule = transforms.align_left(schedule)
         reference = pulse.Schedule()
         # d0
         reference.insert(0, instructions.Delay(3, d0), inplace=True)
@@ -563,6 +567,8 @@ class TestAlignLeft(QiskitTestCase):
 
     def test_align_left_with_barrier(self):
         """Test left alignment with a barrier."""
+        context = transforms.AlignLeft()
+
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
         d2 = pulse.DriveChannel(2)
@@ -576,7 +582,7 @@ class TestAlignLeft(QiskitTestCase):
         sched_grouped += instructions.Delay(5, d1)
         sched_grouped += instructions.Delay(7, d0)
         schedule.append(sched_grouped, inplace=True)
-        schedule = transforms.remove_directives(transforms.align_left(schedule))
+        schedule = transforms.remove_directives(context.align(schedule))
 
         reference = pulse.Schedule()
         # d0
@@ -595,6 +601,8 @@ class TestAlignRight(QiskitTestCase):
 
     def test_align_right(self):
         """Test right alignment without a barrier."""
+        context = transforms.AlignRight()
+
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
         d2 = pulse.DriveChannel(2)
@@ -608,7 +616,7 @@ class TestAlignRight(QiskitTestCase):
         sched_grouped += instructions.Delay(7, d0)
 
         schedule.append(sched_grouped, inplace=True)
-        schedule = transforms.align_right(schedule)
+        schedule = context.align(schedule)
 
         reference = pulse.Schedule()
         # d0
@@ -622,6 +630,8 @@ class TestAlignRight(QiskitTestCase):
 
     def test_align_right_with_barrier(self):
         """Test right alignment with a barrier."""
+        context = transforms.AlignRight()
+
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
         d2 = pulse.DriveChannel(2)
@@ -636,7 +646,7 @@ class TestAlignRight(QiskitTestCase):
         sched_grouped += instructions.Delay(7, d0)
 
         schedule.append(sched_grouped, inplace=True)
-        schedule = transforms.remove_directives(transforms.align_right(schedule))
+        schedule = transforms.remove_directives(context.align(schedule))
 
         reference = pulse.Schedule()
         # d0
@@ -655,73 +665,77 @@ class TestAlignEquispaced(QiskitTestCase):
 
     def test_equispaced_with_short_duration(self):
         """Test equispaced context with duration shorter than the schedule duration."""
+        context = transforms.AlignEquispaced(duration=20)
+
         d0 = pulse.DriveChannel(0)
 
-        sched = pulse.Schedule()
+        schedule = pulse.Schedule()
         for _ in range(3):
-            sched.append(Delay(10, d0), inplace=True)
-
-        sched = transforms.align_equispaced(sched, duration=20)
+            schedule.append(Delay(10, d0), inplace=True)
+        schedule = context.align(schedule)
 
         reference = pulse.Schedule()
         reference.insert(0, Delay(10, d0), inplace=True)
         reference.insert(10, Delay(10, d0), inplace=True)
         reference.insert(20, Delay(10, d0), inplace=True)
 
-        self.assertEqual(sched, reference)
+        self.assertEqual(schedule, reference)
 
     def test_equispaced_with_longer_duration(self):
         """Test equispaced context with duration longer than the schedule duration."""
+        context = transforms.AlignEquispaced(duration=50)
+
         d0 = pulse.DriveChannel(0)
 
-        sched = pulse.Schedule()
+        schedule = pulse.Schedule()
         for _ in range(3):
-            sched.append(Delay(10, d0), inplace=True)
-
-        sched = transforms.align_equispaced(sched, duration=50)
+            schedule.append(Delay(10, d0), inplace=True)
+        schedule = context.align(schedule)
 
         reference = pulse.Schedule()
         reference.insert(0, Delay(10, d0), inplace=True)
         reference.insert(20, Delay(10, d0), inplace=True)
         reference.insert(40, Delay(10, d0), inplace=True)
 
-        self.assertEqual(sched, reference)
+        self.assertEqual(schedule, reference)
 
     def test_equispaced_with_multiple_channels_short_duration(self):
         """Test equispaced context with multiple channels and duration shorter than the total
         duration."""
+        context = transforms.AlignEquispaced(duration=20)
+
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
 
-        sched = pulse.Schedule()
-        sched.append(Delay(10, d0), inplace=True)
-        sched.append(Delay(20, d1), inplace=True)
-
-        sched = transforms.align_equispaced(sched, duration=20)
+        schedule = pulse.Schedule()
+        schedule.append(Delay(10, d0), inplace=True)
+        schedule.append(Delay(20, d1), inplace=True)
+        schedule = context.align(schedule)
 
         reference = pulse.Schedule()
         reference.insert(0, Delay(10, d0), inplace=True)
         reference.insert(0, Delay(20, d1), inplace=True)
 
-        self.assertEqual(sched, reference)
+        self.assertEqual(schedule, reference)
 
     def test_equispaced_with_multiple_channels_longer_duration(self):
         """Test equispaced context with multiple channels and duration longer than the total
         duration."""
+        context = transforms.AlignEquispaced(duration=30)
+
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
 
-        sched = pulse.Schedule()
-        sched.append(Delay(10, d0), inplace=True)
-        sched.append(Delay(20, d1), inplace=True)
-
-        sched = transforms.align_equispaced(sched, duration=30)
+        schedule = pulse.Schedule()
+        schedule.append(Delay(10, d0), inplace=True)
+        schedule.append(Delay(20, d1), inplace=True)
+        schedule = context.align(schedule)
 
         reference = pulse.Schedule()
         reference.insert(0, Delay(10, d0), inplace=True)
         reference.insert(10, Delay(20, d1), inplace=True)
 
-        self.assertEqual(sched, reference)
+        self.assertEqual(schedule, reference)
 
 
 class TestAlignFunc(QiskitTestCase):
@@ -734,37 +748,39 @@ class TestAlignFunc(QiskitTestCase):
 
     def test_numerical_with_short_duration(self):
         """Test numerical alignment context with duration shorter than the schedule duration."""
+        context = transforms.AlignFunc(duration=20, func=self._position)
+
         d0 = pulse.DriveChannel(0)
 
-        sched = pulse.Schedule()
+        schedule = pulse.Schedule()
         for _ in range(3):
-            sched.append(Delay(10, d0), inplace=True)
-
-        sched = transforms.align_func(sched, duration=20, func=self._position)
+            schedule.append(Delay(10, d0), inplace=True)
+        schedule = context.align(schedule)
 
         reference = pulse.Schedule()
         reference.insert(0, Delay(10, d0), inplace=True)
         reference.insert(10, Delay(10, d0), inplace=True)
         reference.insert(20, Delay(10, d0), inplace=True)
 
-        self.assertEqual(sched, reference)
+        self.assertEqual(schedule, reference)
 
     def test_numerical_with_longer_duration(self):
         """Test numerical alignment context with duration longer than the schedule duration."""
+        context = transforms.AlignFunc(duration=80, func=self._position)
+
         d0 = pulse.DriveChannel(0)
 
-        sched = pulse.Schedule()
+        schedule = pulse.Schedule()
         for _ in range(3):
-            sched.append(Delay(10, d0), inplace=True)
-
-        sched = transforms.align_func(sched, duration=80, func=self._position)
+            schedule.append(Delay(10, d0), inplace=True)
+        schedule = context.align(schedule)
 
         reference = pulse.Schedule()
         reference.insert(15, Delay(10, d0), inplace=True)
         reference.insert(35, Delay(10, d0), inplace=True)
         reference.insert(55, Delay(10, d0), inplace=True)
 
-        self.assertEqual(sched, reference)
+        self.assertEqual(schedule, reference)
 
 
 class TestFlatten(QiskitTestCase):
@@ -772,6 +788,8 @@ class TestFlatten(QiskitTestCase):
 
     def test_flatten(self):
         """Test the flatten transform."""
+        context_left = transforms.AlignLeft()
+
         d0 = pulse.DriveChannel(0)
         d1 = pulse.DriveChannel(1)
 
@@ -788,8 +806,8 @@ class TestFlatten(QiskitTestCase):
         flattened = transforms.flatten(grouped)
 
         # align all the instructions to the left after flattening
-        flattened = transforms.align_left(flattened)
-        grouped = transforms.align_left(grouped)
+        flattened = context_left.align(flattened)
+        grouped = context_left.align(grouped)
 
         reference = pulse.Schedule()
         # d0
