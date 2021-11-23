@@ -74,7 +74,7 @@ class Arrow3D(Patch3D, FancyArrowPatch):
 
     def __init__(self, xs, ys, zs, zdir="z", **kwargs):
         # The Patch3D.__init__() method just calls its own super() method and then
-        # self.set_3d_properties, but it its __init__ signature is actually pretty incompatible with
+        # self.set_3d_properties, but its __init__ signature is actually pretty incompatible with
         # how it goes on to call set_3d_properties, so we just have to do things ourselves.  The
         # parent of Patch3D is Patch, which is also a parent of FancyArrowPatch, so its __init__ is
         # still getting suitably called.
