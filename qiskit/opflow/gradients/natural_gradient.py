@@ -174,6 +174,7 @@ class NaturalGradient(GradientBase):
                     # If all eigenvalues are non-negative use the metric
                     break
             nat_grad = np.linalg.lstsq(a, c, rcond=1e-2)[0]
+        print('nat_grad ', nat_grad)
         return nat_grad
 
     @property

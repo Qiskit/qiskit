@@ -640,7 +640,6 @@ class LinComb(CircuitGradient):
             AquaError: If one of the circuits could not be constructed.
             TypeError: If the operators is of unsupported type.
         """
-
         # unroll separately from the H gate since we need the H gate to be the first
         # operation in the data attributes of the circuit
         unrolled = self._transpile_to_supported_operations(state_op.primitive, self.SUPPORTED_GATES)
