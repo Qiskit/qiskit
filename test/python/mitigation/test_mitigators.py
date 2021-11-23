@@ -263,8 +263,8 @@ class TestReadoutMitigation(QiskitTestCase):
     @unpack
     def test_qubits_subset_parameter(self, circuits_data):
         """Tests mitigation on a subset of the initial set of qubits."""
-        counts_ideal_246 = Counts({"000": 5000, "001": 5000})
-        counts_ideal_26 = Counts({"00": 5000, "01": 5000})
+        # counts_ideal_246 = Counts({"000": 5000, "001": 5000})
+        # counts_ideal_26 = Counts({"00": 5000, "01": 5000})
         counts_ideal_2 = Counts({"0": 5000, "1": 5000})
         counts_ideal_6 = Counts({"0": 10000})
 

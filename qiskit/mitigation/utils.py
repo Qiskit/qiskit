@@ -139,7 +139,7 @@ def counts_probability_vector(
 
     Args:
         counts: counts object
-        qubits_index: For each qubit, its index in the mitigator qubit_list
+        qubit_index: For each qubit, its index in the mitigator qubits list
         qubits: qubits the count bitstrings correspond to.
         clbits: Optional, marginalize counts to just these bits.
 
