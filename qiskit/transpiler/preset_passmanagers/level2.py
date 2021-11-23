@@ -57,6 +57,7 @@ from qiskit.transpiler.passes import ValidatePulseGates
 from qiskit.transpiler.passes import PulseGates
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import ContainsInstruction
+from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 
 from qiskit.transpiler import TranspilerError
 
@@ -120,7 +121,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         # to run layout since VF2 didn't converge.
         if (
             property_set["VF2Layout_stop_reason"] is not None
-            and property_set["VF2Layout_stop_reason"].value != "solution found"
+            and property_set["VF2Layout_stop_reason"] is not VF2LayoutStopReason.SOLUTION_FOUND
         ):
             return True
         return False
