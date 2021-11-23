@@ -27,7 +27,7 @@ try:
 except ImportError:
     HAS_PYLATEX = False
 
-from qiskit.circuit import ControlledGate
+from qiskit.circuit import ControlledGate, Qubit
 from qiskit.circuit import Measure
 from qiskit.circuit.library.standard_gates import (
     SwapGate,
@@ -113,6 +113,11 @@ class MatplotlibDrawer:
         }
         for index, bit in list(enumerate(qubits)) + list(enumerate(clbits)):
             if bit not in self._bit_locations:
+                if reverse_bits:
+                    if isinstance(bit, Qubit):
+                        index = len(qubits) - index - 1
+                    else:
+                        index = len(clbits) - index - 1
                 self._bit_locations[bit] = {"register": None, "index": index}
 
         self._qubits = qubits
