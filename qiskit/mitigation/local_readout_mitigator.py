@@ -44,6 +44,9 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
             amats: Optional, list of single-qubit readout error assignment matrices.
             qubits: Optional, the measured physical qubits for mitigation.
             backend: Optional, backend name.
+
+        Raises:
+            QiskitError: matrices sizes do not agree with number of qubits
         """
         if amats is None:
             amats = self._from_backend(backend, qubits)
@@ -51,6 +54,11 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
             self._num_qubits = len(amats)
             self._qubits = range(self._num_qubits)
         else:
+            if len(qubits) != len(amats):
+                raise QiskitError(
+                    "The number of given qubits ({}) is different than the number of qubits "
+                    "inferred from the matrices ({})".format(len(qubits), len(amats))
+                )
             self._qubits = qubits
             self._num_qubits = len(self._qubits)
 

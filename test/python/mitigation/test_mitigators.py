@@ -263,8 +263,6 @@ class TestReadoutMitigation(QiskitTestCase):
     @unpack
     def test_qubits_subset_parameter(self, circuits_data):
         """Tests mitigation on a subset of the initial set of qubits."""
-        # counts_ideal_246 = Counts({"000": 5000, "001": 5000})
-        # counts_ideal_26 = Counts({"00": 5000, "01": 5000})
         counts_ideal_2 = Counts({"0": 5000, "1": 5000})
         counts_ideal_6 = Counts({"0": 10000})
 
@@ -285,7 +283,7 @@ class TestReadoutMitigation(QiskitTestCase):
             mitigated_error = self.compare_results(counts_ideal_2, mitigated_probs_2)
             self.assertTrue(
                 mitigated_error < 0.001,
-                "Mitigator {} did not correctly handle qubit order 2,1,0".format(mitigator),
+                "Mitigator {} did not correctly handle qubit subset".format(mitigator),
             )
 
             mitigated_probs_6 = (
@@ -296,7 +294,7 @@ class TestReadoutMitigation(QiskitTestCase):
             mitigated_error = self.compare_results(counts_ideal_6, mitigated_probs_6)
             self.assertTrue(
                 mitigated_error < 0.001,
-                "Mitigator {} did not correctly handle qubit order 2,1,0".format(mitigator),
+                "Mitigator {} did not correctly handle qubit subset".format(mitigator),
             )
             diagonal = str2diag("ZZ")
             ideal_expectation = 0
