@@ -43,8 +43,8 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
             self._num_qubits = matrix_qubits_num
             self._qubits = range(self._num_qubits)
         else:
-            if len(qubits) != int(np.log2(amat.shape[0])):
-                raise QiskitError("The number of given qubits ({}) is different than the number of qubits inferred from the matrices ({})".format(len(qubits), matrix_qubits_num))
+            # if len(qubits) != int(np.log2(amat.shape[0])):
+            #     raise QiskitError("The number of given qubits ({}) is different than the number of qubits inferred from the matrices ({})".format(len(qubits), matrix_qubits_num))
             self._qubits = qubits
             self._num_qubits = len(self._qubits)
         self._qubit_index = dict(zip(self._qubits, range(self._num_qubits)))
@@ -199,13 +199,15 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         if isinstance(qubits, int):
             qubits = [qubits]
 
+        qubit_indices = [self._qubit_index[qubit] for qubit in qubits]
         # Compute marginal matrix
         axis = tuple(
-            self._num_qubits - 1 - i for i in set(range(self._num_qubits)).difference(qubits)
+            self._num_qubits - 1 - i for i in set(range(self._num_qubits)).difference(qubit_indices)
         )
         num_qubits = len(qubits)
+
         new_amat = np.zeros(2 * [2 ** num_qubits], dtype=float)
-        for i, col in enumerate(self._assignment_mat.T[self._keep_indexes(qubits)]):
+        for i, col in enumerate(self._assignment_mat.T[self._keep_indexes(qubit_indices)]):
             new_amat[i] = (
                 np.reshape(col, self._num_qubits * [2]).sum(axis=axis).reshape([2 ** num_qubits])
             )

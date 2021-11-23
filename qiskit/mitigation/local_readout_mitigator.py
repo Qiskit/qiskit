@@ -112,23 +112,25 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         """
         if qubits is None:
             qubits = self._qubits
+        num_qubits = len(qubits)
         probs_vec, shots = counts_probability_vector(data, qubit_index=self._qubit_index, clbits=clbits, qubits=qubits)
 
         # Get qubit mitigation matrix and mitigate probs
-        ainvs = self._mitigation_mats[list(qubits)]
+        qubit_indices = [self._qubit_index[qubit] for qubit in qubits]
+        ainvs = self._mitigation_mats[qubit_indices]
 
         # Get operator coeffs
         if diagonal is None:
-            diagonal = z_diagonal(2 ** self._num_qubits)
+            diagonal = z_diagonal(2 ** num_qubits)
         elif isinstance(diagonal, str):
             diagonal = str2diag(diagonal)
 
         # Apply transpose of mitigation matrix
-        coeffs = np.reshape(diagonal, self._num_qubits * [2])
-        einsum_args = [coeffs, list(range(self._num_qubits))]
+        coeffs = np.reshape(diagonal, num_qubits * [2])
+        einsum_args = [coeffs, list(range(num_qubits))]
         for i, ainv in enumerate(reversed(ainvs)):
-            einsum_args += [ainv.T, [self._num_qubits + i, i]]
-        einsum_args += [list(range(self._num_qubits, 2 * self._num_qubits))]
+            einsum_args += [ainv.T, [num_qubits + i, i]]
+        einsum_args += [list(range(num_qubits, 2 * num_qubits))]
         coeffs = np.einsum(*einsum_args).ravel()
 
         expval = coeffs.dot(probs_vec)
@@ -168,7 +170,8 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         probs_vec, shots = counts_probability_vector(data, qubit_index=self._qubit_index, clbits=clbits, qubits=qubits)
 
         # Get qubit mitigation matrix and mitigate probs
-        ainvs = self._mitigation_mats[list(qubits)]
+        qubit_indices = [self._qubit_index[qubit] for qubit in qubits]
+        ainvs = self._mitigation_mats[qubit_indices]
 
         # Apply transpose of mitigation matrix
         prob_tens = np.reshape(probs_vec, num_qubits * [2])
@@ -237,7 +240,8 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         if qubits is None:
             gammas = self._gammas
         else:
-            gammas = self._gammas[list(qubits)]
+            qubit_indices = [self._qubit_index[qubit] for qubit in qubits]
+            gammas = self._gammas[qubit_indices]
         return np.product(gammas)
 
     def stddev_upper_bound(self, shots: int, qubits: List[int] = None):
