@@ -2207,12 +2207,13 @@ class QuantumCircuit:
 
     def measure_all(self, inplace: bool = True, add_creg: bool = True) -> Optional["QuantumCircuit"]:
         """Adds measurement to all qubits. Creates a new ClassicalRegister with a
-        size equal to the number of qubits being measured.
+        size equal to the number of qubits being measured if `add_creg = True`.
 
         Returns a new circuit with measurements if `inplace=False`.
 
         Args:
             inplace (bool): All measurements inplace or return new circuit.
+            add_creg (bool): Adds a new classical register.
 
         Returns:
             QuantumCircuit: Returns circuit with measurements when `inplace = False`.
