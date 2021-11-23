@@ -45,9 +45,9 @@ class Options:
     def set_validator(self, field, validator_value):
         """Set an optional validator for a field in the options
 
-        Setting a validator enables
-        If a validator is already present for the specified field it will
-        be silently overriden. For example if you have a numeric field like
+        Setting a validator enables changes to an options values to be
+        validated for correctness when :meth:`~qiskit.providers.Options.update_options`
+        is called. For example if you have a numeric field like
         ``shots`` you can specify a bounds tuple that set an upper and lower
         bound on the value such as::
 
@@ -55,7 +55,8 @@ class Options:
 
         In this case whenever the ``"shots"`` option is updated by the user
         it will enforce that the value is >=1 and <=4096. A ``ValueError`` will
-        be raised if it's outside those bounds.
+        be raised if it's outside those bounds. If a validator is already present
+        for the specified field it will be silently overriden.
 
         Args:
             field (str): The field name to set the validator on
