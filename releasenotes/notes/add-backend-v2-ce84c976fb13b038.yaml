@@ -35,7 +35,7 @@ features:
     as a custom addition for that particular backend. But it's not something
     that is expected to be exposed by all backends.
 
-    The other critical change is primarily important for provider authors is
+    The other critical change that is primarily important for provider authors is
     how a :class:`~qiskit.providers.BackendV2` exposes the properties of
     a particular backend to the transpiler. With
     :class:`~qiskit.providers.BackendV2` this is done via a
