@@ -122,7 +122,7 @@ class AdaptQAOA(QAOA):
             self.threshold = 0.001      # TODO: work out a way to better set a default threshold
 
         self.initial_point[0] = 0.01    # Set an initial value for gamma according to https://arxiv.org/abs/2005.10258
-        self.best_gamma = [self.initial_point[0]]
+        self.best_gamma, self.best_beta = [self.initial_point[0]], []
 
     def _check_operator_ansatz(self, operator: OperatorBase) -> OperatorBase:
         # Recreates a circuit based on operator parameter.
@@ -147,11 +147,12 @@ class AdaptQAOA(QAOA):
         
         wave_function = ansatz.assign_parameters(self.hyperparameter_dict)
         # construct expectation operator
-        exp_hc = (self.best_gamma[-1] * cost_operator).exp_i() 
+        exp_hc = (0.01 * cost_operator).exp_i() #TODO: Check if this is legit?
+        # exp_hc = (self.best_gamma[-1] * cost_operator).exp_i() 
         exp_hc_ad = exp_hc.adjoint().to_matrix()
         exp_hc = exp_hc.to_matrix()
         energy_grad_op = exp_hc_ad @ (commutator(cost_operator, mixer).to_matrix()) @ exp_hc
-        energy_grad_op = PrimitiveOp(energy_grad_op)
+        energy_grad_op = PrimitiveOp(1j*energy_grad_op)
 
         expectation = ExpectationFactory.build(
             operator=energy_grad_op,
@@ -161,24 +162,24 @@ class AdaptQAOA(QAOA):
         observable_meas = expectation.convert(StateFn(energy_grad_op, is_measurement=True))
         ansatz_circuit_op = CircuitStateFn(wave_function)
         expect_op = observable_meas.compose(ansatz_circuit_op).reduce()
-
         return expect_op
 
     def _test_mixer_pool(self, operator: OperatorBase, ansatz: QuantumCircuit = None):
         self._check_problem_configuration(operator=operator)
         energy_gradients = []
+        print(self.ansatz.decompose().draw())
         for mixer in self.mixer_pool:
             expect_op = self.compute_energy_gradient(mixer, operator, ansatz=self.ansatz)
             # run expectation circuit
             sampled_expect_op = self._circuit_sampler.convert(expect_op, params=self.hyperparameter_dict)
-            meas = np.abs(np.real(sampled_expect_op.eval()))
+            meas = np.abs(sampled_expect_op.eval())
             energy_gradients.append(meas)
         max_energy_idx = np.argmax(energy_gradients)
-        print('test_mixer_pool ansatz')
-        print(self.mixer_pool[max_energy_idx])
         return self.mixer_pool[max_energy_idx], energy_gradients[max_energy_idx]
 
-    def constuct_adapt_ansatz(self, operator: OperatorBase) -> OperatorBase:
+    def run_adapt(
+        self, operator: OperatorBase, aux_operators: Optional[List[Optional[OperatorBase]]] = None
+    ):
         self.cost_operator = operator
         p, self.ansatz = 0, self.initial_state  # initialise layer loop counter and ansatz
         while p < self.max_reps:        # loop over number of maximum reps
@@ -193,14 +194,14 @@ class AdaptQAOA(QAOA):
                                     mixer_operator=self.optimal_mixer_list,
                                     name=self.name
                                 )
-            # print(self.ansatz.decompose().draw())
-            result = self.compute_minimum_eigenvalue(operator=operator)#self.find_minimum(cost_fn = operator, ansatz = ansatz)
-            # print(self.ansatz.decompose().draw())
+            result = self.compute_minimum_eigenvalue(operator=operator, aux_operators=aux_operators)
             opt_params = result.optimal_point
             self.best_gamma = list(opt_params[0:][::2])
             self.best_beta = list(opt_params[1:][::2])
+            print()
             print("Optimal parameters: {}".format(opt_params))
             print("Initial point: {}".format(self.initial_point))
+            print()
             self._reps+=1
             p += 1
         pass
@@ -225,20 +226,6 @@ class AdaptQAOA(QAOA):
                     err_str, mixer_n_qubits[check_mixer_qubits], self.num_qubits
                 )
             )
-    def run_adapt(
-        self, operator: OperatorBase, aux_operators: Optional[List[Optional[OperatorBase]]] = None
-    ):
-        # main loop
-        self.num_qubits = operator.num_qubits
-        layer_reps = 0
-        terminate = False
-        while layer_reps < self.max_reps and terminate == False:
-            best_mixer, energy = self._test_mixer_pool(operator)
-            if energy < self.threshold:
-                terminate = True
-            self.optimal_mixer_list.append(best_mixer)
-            # perform optimisation of circuit:
-            self.compute_minimum_eigenvalue(operator)
     
     @property
     def mixer_pool(self) -> List:
@@ -279,13 +266,11 @@ class AdaptQAOA(QAOA):
     def hyperparameter_dict(self) -> Dict:
         self._hyperparameter_dict = {}
         if self._ansatz_params:
-            reordered_params = list(np.zeros(len(self._ansatz_params)))
-            reordered_params[0:][::2] = self.best_gamma
-            reordered_params[1:][::2] = self.best_beta
+            reordered_params = self._reorder_parameters()
             self._hyperparameter_dict = dict(
                 zip(
                     self._ansatz_params,
-                    self.best_gamma + self.best_beta,
+                    reordered_params
                 )
             )
         return self._hyperparameter_dict
@@ -331,7 +316,15 @@ class AdaptQAOA(QAOA):
         return algorithm_globals.random.uniform(2 * reps * [-2 * np.pi], 2 * reps * [2 * np.pi])
 
     def _update_initial_point(self):
+        # optimised_initial_point = self._reorder_parameters()
+        # assert len(optimised_initial_point)==len(self._initial_point)
         self._initial_point = np.concatenate((self._initial_point,self._generate_initial_point()))
+
+    def _reorder_parameters(self):
+        reordered_params = np.zeros(len(self._initial_point))
+        reordered_params[0:][::2] = np.array(self.best_gamma)
+        reordered_params[1:][::2] = np.array(self.best_beta)
+        return list(reordered_params)
 
 def adapt_mixer_pool(
     num_qubits: int, add_single: bool = True, add_multi: bool = True, pool_type: str = None
@@ -438,8 +431,8 @@ if __name__ == "__main__":
 
     quantum_instance = QuantumInstance(Aer.get_backend("qasm_simulator"), shots=1024)
 
-    adapt = AdaptQAOA(mixer_pool_type="singular", max_reps=5, quantum_instance=quantum_instance)
-    print(adapt.constuct_adapt_ansatz(cost_op))
+    adapt = AdaptQAOA(mixer_pool_type="multi", max_reps=5, quantum_instance=quantum_instance)
+    print(adapt.run_adapt(cost_op))
 
     # qaoa = QAOA(reps=5, quantum_instance=quantum_instance)
     # out = qaoa.compute_minimum_eigenvalue(cost_op)
