@@ -75,9 +75,6 @@ class VarQteLinearSolver:
             self._metric_circ_sampler,
         )
 
-        # print(' Metric Tensor ', var_principle._raw_metric_tensor)
-        print('Grad ', var_principle._raw_evolution_grad)
-
         if t_param is not None:
             time_dict = {t_param: time_value}
             # TODO

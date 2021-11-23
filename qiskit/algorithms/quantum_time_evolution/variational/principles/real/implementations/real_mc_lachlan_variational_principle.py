@@ -75,15 +75,10 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
             energy_term *= -1
             energy_term *= energy
             hamiltonian_ = SummedOp([hamiltonian, energy_term]).reduce()
-            # basis_operator = -1 * Y
             basis_operator = Y
-            print(' energy ', energy)
-            print('hamiltonian ', hamiltonian_)
-            print('basis operator ', basis_operator)
             grad = evolution_grad_calculator.calculate(
                 hamiltonian_, ansatz, parameters, self._grad_method, basis=basis_operator
-            ) * 0.5
-            # print(' Grad Tensor ', grad)
+            ) * 0.5 # Im(...)
             return grad
 
         return raw_evolution_grad_imag

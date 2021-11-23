@@ -37,7 +37,6 @@ def eval_grad_result(
     else:
         grad_result = grad_result.assign_parameters(param_dict)
     grad_result = grad_result.eval()
-    print('grad result ', grad_result)
     if any(np.abs(np.imag(grad_item)) > 1e-8 for grad_item in grad_result):
         raise Warning("The imaginary part of the gradient are non-negligible.")
 

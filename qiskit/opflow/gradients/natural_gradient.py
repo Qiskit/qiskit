@@ -139,8 +139,6 @@ class NaturalGradient(GradientBase):
     def nat_grad_combo_fn(x, regularization=None):
         c = x[0]
         a = x[1]
-        print('c ', np.round(c, 3))
-        print('a ', np.round(a, 3))
         if any(np.abs(np.imag(c_item)) > 1e-8 for c_item in c):
             raise Warning("The imaginary part of the gradient are non-negligible.")
         if np.any([[np.abs(np.imag(a_item)) > 1e-8 for a_item in a_row] for a_row in a]):
@@ -174,7 +172,6 @@ class NaturalGradient(GradientBase):
                     # If all eigenvalues are non-negative use the metric
                     break
             nat_grad = np.linalg.lstsq(a, c, rcond=1e-2)[0]
-        print('nat_grad ', nat_grad)
         return nat_grad
 
     @property

@@ -62,7 +62,7 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
 
         param_dict = dict(zip(parameters, init_param_values))
 
-        reg = 'ridge'
+        reg = None
         backend = Aer.get_backend("statevector_simulator")
 
         var_qrte = VarQrte(
@@ -78,17 +78,16 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
         )
 
         # values from the prototype
-        thetas_expected = [-0.02417581,  1.12012969,  1.51326909,  1.66610599,  1.68460371,
-                           1.50506159, 2.28006157,  1.1236262]
+        thetas_expected = [0.88689233, 1.53841938, 1.57100495, 1.58891647, 1.59947863, 1.57016298,
+                            1.63950734, 1.53843156]
 
         parameter_values = evolution_result.data[0][0].params
 
-        print(state_fidelity(Statevector(evolution_result), Statevector(ansatz.assign_parameters(dict(
-            zip(ansatz.parameters, thetas_expected))))))
-        print('Expected ', thetas_expected)
-        print('Computed ', parameter_values)
+        print(state_fidelity(Statevector(evolution_result),
+                             Statevector(ansatz.assign_parameters(dict(
+                                 zip(ansatz.parameters, thetas_expected))))))
         for i, parameter_value in enumerate(parameter_values):
-            np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=2)
+            np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=3)
 
 #
 if __name__ == "__main__":
