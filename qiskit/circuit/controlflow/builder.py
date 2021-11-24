@@ -288,12 +288,17 @@ class ControlFlowBuilderBlock:
             bits: The qubits and clbits that should be added to a scope.  It is not an error if
                 there are duplicates, either within the iterable or with the bits currently in
                 scope.
+
+        Raises:
+            TypeError: if the provided bit is of an incorrect type.
         """
         for bit in bits:
             if isinstance(bit, Qubit):
                 self.qubits.add(bit)
-            else:
+            elif isinstance(bit, Clbit):
                 self.clbits.add(bit)
+            else:
+                raise TypeError(f"Can only add qubits or classical bits, but received '{bit}'.")
 
     def build(
         self, all_qubits: FrozenSet[Qubit], all_clbits: FrozenSet[Clbit]

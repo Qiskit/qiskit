@@ -26,6 +26,7 @@ from qiskit.circuit import (
     Qubit,
 )
 from qiskit.circuit.controlflow import ForLoopOp, IfElseOp, WhileLoopOp, BreakLoopOp, ContinueLoopOp
+from qiskit.circuit.controlflow.builder import ControlFlowBuilderBlock
 from qiskit.circuit.controlflow.if_else import IfElsePlaceholder
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
@@ -2171,3 +2172,20 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
                 r"When using 'if_test' with a body, you must pass qubits and clbits\.",
             ):
                 test.if_test((test.clbits[0], 0), true_body=body, qubits=qubits, clbits=clbits)
+
+    @ddt.data(None, [Clbit()], 0)
+    def test_builder_block_add_bits_reject_bad_bits(self, bit):
+        """Test that :obj:`.ControlFlowBuilderBlock` raises if something is given that is an
+        incorrect type.
+
+        This isn't intended to be something users do at all; the builder block is an internal
+        construct only, but this keeps coverage checking happy."""
+
+        def dummy_requester(resource):
+            raise CircuitError
+
+        builder_block = ControlFlowBuilderBlock(
+            qubits=(), clbits=(), resource_requester=dummy_requester
+        )
+        with self.assertRaisesRegex(TypeError, r"Can only add qubits or classical bits.*"):
+            builder_block.add_bits([bit])
