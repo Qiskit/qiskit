@@ -29,6 +29,7 @@ Layout Selection (Placement)
    NoiseAdaptiveLayout
    SabreLayout
    CSPLayout
+   VF2Layout
    ApplyLayout
    Layout2qDistance
    EnlargeWithAncilla
@@ -151,6 +152,7 @@ from .layout import DenseLayout
 from .layout import NoiseAdaptiveLayout
 from .layout import SabreLayout
 from .layout import CSPLayout
+from .layout import VF2Layout
 from .layout import ApplyLayout
 from .layout import Layout2qDistance
 from .layout import EnlargeWithAncilla

@@ -23,8 +23,16 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.extensions.quantum_initializer import isometry
 from qiskit.quantum_info.synthesis import one_qubit_decompose
+from qiskit.quantum_info.synthesis.xx_decompose import XXDecomposer
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitBasisDecomposer
-from qiskit.circuit.library.standard_gates import iSwapGate, CXGate, CZGate, RXXGate, ECRGate
+from qiskit.circuit.library.standard_gates import (
+    iSwapGate,
+    CXGate,
+    CZGate,
+    RXXGate,
+    RZXGate,
+    ECRGate,
+)
 from qiskit.transpiler.passes.synthesis import plugin
 from qiskit.providers.models import BackendProperties
 
@@ -38,6 +46,7 @@ def _choose_kak_gate(basis_gates):
         "iswap": iSwapGate(),
         "rxx": RXXGate(pi / 2),
         "ecr": ECRGate(),
+        "rzx": RZXGate(pi / 4),  # typically pi/6 is also available
     }
 
     kak_gate = None
@@ -78,6 +87,23 @@ def _choose_bases(basis_gates, basis_dict=None):
     return out_basis
 
 
+def _basis_gates_to_decomposer_2q(basis_gates, pulse_optimize=None):
+    kak_gate = _choose_kak_gate(basis_gates)
+    euler_basis = _choose_euler_basis(basis_gates)
+
+    if isinstance(kak_gate, RZXGate):
+        backup_optimizer = TwoQubitBasisDecomposer(
+            CXGate(), euler_basis=euler_basis, pulse_optimize=pulse_optimize
+        )
+        return XXDecomposer(euler_basis=euler_basis, backup_optimizer=backup_optimizer)
+    elif kak_gate is not None:
+        return TwoQubitBasisDecomposer(
+            kak_gate, euler_basis=euler_basis, pulse_optimize=pulse_optimize
+        )
+    else:
+        return None
+
+
 class UnitarySynthesis(TransformationPass):
     """Synthesize gates according to their basis gates."""
 
@@ -92,6 +118,7 @@ class UnitarySynthesis(TransformationPass):
         synth_gates: Union[List[str], None] = None,
         method: str = "default",
         min_qubits: int = None,
+        plugin_config: dict = None,
     ):
         """Synthesize unitaries over some basis gates.
 
@@ -135,6 +162,11 @@ class UnitarySynthesis(TransformationPass):
             min_qubits: The minimum number of qubits in the unitary to synthesize. If this is set
                 and the unitary is less than the specified number of qubits it will not be
                 synthesized.
+            plugin_config: Optional extra configuration arguments (as a dict)
+                which are passed directly to the specified unitary synthesis
+                plugin. By default this will have no effect as the default
+                plugin has no extra arguments. Refer to the documentation of
+                your unitary synthesis plugin on how to use this.
         """
         super().__init__()
         self._basis_gates = set(basis_gates or ())
@@ -146,6 +178,7 @@ class UnitarySynthesis(TransformationPass):
         self._backend_props = backend_props
         self._pulse_optimize = pulse_optimize
         self._natural_direction = natural_direction
+        self._plugin_config = plugin_config
         if synth_gates:
             self._synth_gates = synth_gates
         else:
@@ -179,7 +212,7 @@ class UnitarySynthesis(TransformationPass):
             return dag
 
         plugin_method = self.plugins.ext_plugins[self.method].obj
-        plugin_kwargs = {}
+        plugin_kwargs = {"config": self._plugin_config}
         _gate_lengths = _gate_errors = None
         dag_bit_indices = {}
 
@@ -332,15 +365,12 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         qubits = options["coupling_map"][1]
 
         euler_basis = _choose_euler_basis(basis_gates)
-        kak_gate = _choose_kak_gate(basis_gates)
-
-        decomposer1q, decomposer2q = None, None
         if euler_basis is not None:
             decomposer1q = one_qubit_decompose.OneQubitEulerDecomposer(euler_basis)
-        if kak_gate is not None:
-            decomposer2q = TwoQubitBasisDecomposer(
-                kak_gate, euler_basis=euler_basis, pulse_optimize=pulse_optimize
-            )
+        else:
+            decomposer1q = None
+
+        decomposer2q = _basis_gates_to_decomposer_2q(basis_gates, pulse_optimize=pulse_optimize)
 
         synth_dag = None
         wires = None

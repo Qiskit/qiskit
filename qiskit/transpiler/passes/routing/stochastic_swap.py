@@ -103,7 +103,7 @@ class StochasticSwap(TransformationPass):
             self.seed = np.random.randint(0, np.iinfo(np.int32).max)
         self.rng = np.random.default_rng(self.seed)
         logger.debug("StochasticSwap default_rng seeded with seed=%s", self.seed)
-
+        self.coupling_map.compute_distance_matrix()
         new_dag = self._mapper(dag, self.coupling_map, trials=self.trials)
         return new_dag
 
@@ -159,7 +159,9 @@ class StochasticSwap(TransformationPass):
         logger.debug("layer_permutation: gates = %s", gates)
 
         # Can we already apply the gates? If so, there is no work to do.
-        dist = sum(coupling.distance(layout[g[0]], layout[g[1]]) for g in gates)
+        # Accessing via private attributes to avoid overhead from __getitem__
+        # and to optimize performance of the distance matrix access
+        dist = sum(coupling._dist_matrix[layout._v2p[g[0]], layout._v2p[g[1]]] for g in gates)
         logger.debug("layer_permutation: distance = %s", dist)
         if dist == len(gates):
             logger.debug("layer_permutation: nothing to do")
@@ -232,8 +234,8 @@ class StochasticSwap(TransformationPass):
 
         edges = best_edges.edges()
         for idx in range(best_edges.size // 2):
-            swap_src = self.trivial_layout[edges[2 * idx]]
-            swap_tgt = self.trivial_layout[edges[2 * idx + 1]]
+            swap_src = self.trivial_layout._p2v[edges[2 * idx]]
+            swap_tgt = self.trivial_layout._p2v[edges[2 * idx + 1]]
             trial_circuit.apply_operation_back(SwapGate(), [swap_src, swap_tgt], [])
         best_circuit = trial_circuit
 

@@ -472,6 +472,28 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         np.testing.assert_array_equal(spp_op.paulis.phase, np.zeros(spp_op.size))
         np.testing.assert_array_equal(simplified_op.paulis.phase, np.zeros(simplified_op.size))
 
+    @combine(num_qubits=[1, 2, 3, 4], num_ops=[1, 2, 3, 4])
+    def test_sum(self, num_qubits, num_ops):
+        """Test sum method for {num_qubits} qubits with {num_ops} operators."""
+        ops = [self.random_spp_op(num_qubits, 2 ** num_qubits) for _ in range(num_ops)]
+        sum_op = SparsePauliOp.sum(ops)
+        value = Operator(sum_op)
+        target_operator = sum((Operator(op) for op in ops[1:]), Operator(ops[0]))
+        self.assertEqual(value, target_operator)
+        target_spp_op = sum((op for op in ops[1:]), ops[0])
+        self.assertEqual(sum_op, target_spp_op)
+        np.testing.assert_array_equal(sum_op.paulis.phase, np.zeros(sum_op.size))
+
+    def test_sum_error(self):
+        """Test sum method with invalid cases."""
+        with self.assertRaises(QiskitError):
+            SparsePauliOp.sum([])
+        with self.assertRaises(QiskitError):
+            ops = [self.random_spp_op(num_qubits, 2 ** num_qubits) for num_qubits in [1, 2]]
+            SparsePauliOp.sum(ops)
+        with self.assertRaises(QiskitError):
+            SparsePauliOp.sum([1, 2])
+
 
 if __name__ == "__main__":
     unittest.main()
