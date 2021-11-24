@@ -1039,6 +1039,7 @@ def align_equispaced(duration: Union[int, ParameterExpression]) -> AlignmentKind
         builder.append_block(current)
 
 
+@utils.deprecated_functionality
 @contextmanager
 def align_func(
     duration: Union[int, ParameterExpression], func: Callable[[int], float]
