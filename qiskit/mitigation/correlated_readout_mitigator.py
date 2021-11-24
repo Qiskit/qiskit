@@ -38,6 +38,9 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         Raises:
             QiskitError: matrix size does not agree with number of qubits
         """
+        if np.any(amat < 0) or not np.allclose(np.sum(amat, axis=0), 1):
+            raise QiskitError("Assignment matrix columns must be valid probability distributions")
+        amat = np.asarray(amat, dtype=float)
         matrix_qubits_num = int(np.log2(amat.shape[0]))
         if qubits is None:
             self._num_qubits = matrix_qubits_num
@@ -151,8 +154,9 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
         for index, _ in enumerate(probs_vec):
             probs_dict[index] = probs_vec[index]
 
-        quasi_dist = QuasiDistribution(probs_dict)
-        quasi_dist._stddev_upper_bound = self.stddev_upper_bound(shots)
+        quasi_dist = QuasiDistribution(
+            probs_dict, stddev_upper_bound=self.stddev_upper_bound(shots)
+        )
 
         return quasi_dist
 
