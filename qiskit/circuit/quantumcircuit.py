@@ -2219,7 +2219,7 @@ class QuantumCircuit:
 
         Returns:
             QuantumCircuit: Returns circuit with measurements when `inplace = False`.
-        
+
         Raises:
             CircuitError: if `add_creg = False` and `len(circ.clbits) < len(circ.qubits)`.
         """
