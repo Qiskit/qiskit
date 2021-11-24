@@ -16,6 +16,7 @@ Arbitrary unitary circuit instruction.
 
 from collections import OrderedDict
 import numpy
+import sympy as sp
 
 from qiskit.circuit import Gate, ControlledGate
 from qiskit.circuit import QuantumCircuit
@@ -30,8 +31,25 @@ from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
 from qiskit.quantum_info.synthesis.two_qubit_decompose import two_qubit_cnot_decompose
 from qiskit.extensions.exceptions import ExtensionError
+from qiskit.circuit.parameterexpression import ParameterTypeError, ParameterExpression
 
 _DECOMPOSER1Q = OneQubitEulerDecomposer("U3")
+
+
+def to_sympy_matrix(numpy_matrix):
+    """Convert (numpy) matrix to sympy matrix."""
+    matrix = []
+    i = 0
+    for row in numpy_matrix:
+        nrow = []
+        i += 1
+        for e in row:
+            if isinstance(e, ParameterExpression):
+                e = e.get_sympy_expr()
+            nrow.append(e)
+        matrix.append(nrow)
+
+    return sp.Matrix(matrix), i
 
 
 class UnitaryGate(Gate):
@@ -56,11 +74,26 @@ class UnitaryGate(Gate):
             # the object to an Operator so that we can extract the underlying
             # numpy matrix from `Operator.data`.
             data = data.to_operator().data
-        # Convert to numpy array in case not already an array
-        data = numpy.array(data, dtype=complex)
-        # Check input is unitary
-        if not is_unitary_matrix(data):
-            raise ExtensionError("Input matrix is not unitary.")
+
+        # Check if there is any unbound parameter in array
+        try:
+            # Convert to numpy array in case not already an array
+            data = numpy.array(data, dtype=complex)
+
+            # Check input is unitary
+            if not is_unitary_matrix(data):
+                raise ExtensionError("Input matrix is not unitary.")
+        except ParameterTypeError:
+            from sympy.physics.quantum import Dagger
+            matrix, matrix_dim = to_sympy_matrix(data)
+            iden = sp.sympify(matrix * Dagger(matrix))
+
+            if iden != sp.eye(matrix_dim):
+                # There may be a case when there is still a parameter and
+                # we are not quite sure if this is unitary or not.
+                # But just in case we throw exception :)
+                raise ExtensionError("Input matrix is not unitary.")
+
         # Check input is N-qubit matrix
         input_dim, output_dim = data.shape
         num_qubits = int(numpy.log2(input_dim))
