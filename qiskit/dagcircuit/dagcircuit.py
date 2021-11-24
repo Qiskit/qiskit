@@ -400,15 +400,14 @@ class DAGCircuit:
         Args:
             wire (Bit): the wire to be removed, which MUST be idle.
         """
-        if wire in self._wires:
-            inp_node = self.input_map[wire]
-            oup_node = self.output_map[wire]
+        inp_node = self.input_map[wire]
+        oup_node = self.output_map[wire]
 
-            self._multi_graph.remove_node(inp_node._node_id)
-            self._multi_graph.remove_node(oup_node._node_id)
-            self._wires.remove(wire)
-            del self.input_map[wire]
-            del self.output_map[wire]
+        self._multi_graph.remove_node(inp_node._node_id)
+        self._multi_graph.remove_node(oup_node._node_id)
+        self._wires.remove(wire)
+        del self.input_map[wire]
+        del self.output_map[wire]
 
     def _check_condition(self, name, condition):
         """Verify that the condition is valid.
