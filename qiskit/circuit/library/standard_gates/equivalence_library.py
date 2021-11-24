@@ -71,14 +71,26 @@ _sel = StandardEquivalenceLibrary = EquivalenceLibrary()
 
 # Import existing gate definitions
 
-# HGate
+""" 
+HGate
+     ┌───┐          ┌─────────┐
+q_0: ┤ H ├  ≡  q_0: ┤ U2(0,π) ├
+     └───┘          └─────────┘
+"""
 
 q = QuantumRegister(1, "q")
 def_h = QuantumCircuit(q)
 def_h.append(U2Gate(0, pi), [q[0]], [])
 _sel.add_equivalence(HGate(), def_h)
 
-# CHGate
+"""
+CHGate
+
+q_0: ──■──     q_0: ─────────────────■─────────────────────
+     ┌─┴─┐  ≡       ┌───┐┌───┐┌───┐┌─┴─┐┌─────┐┌───┐┌─────┐
+q_1: ┤ H ├     q_1: ┤ S ├┤ H ├┤ T ├┤ X ├┤ Tdg ├┤ H ├┤ Sdg ├
+     └───┘          └───┘└───┘└───┘└───┘└─────┘└───┘└─────┘
+"""
 
 q = QuantumRegister(2, "q")
 def_ch = QuantumCircuit(q)
@@ -107,8 +119,13 @@ for num_qubits in range(2, 20):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
         _sel.add_equivalence(MSGate(num_qubits, theta), def_ms)
 
-# PhaseGate
+"""
+PhaseGate
 
+     ┌──────┐          ┌───────┐
+q_0: ┤ P(ϴ) ├  ≡  q_0: ┤ U1(ϴ) ├
+     └──────┘          └───────┘
+"""
 q = QuantumRegister(1, "q")
 theta = Parameter("theta")
 phase_to_u1 = QuantumCircuit(q)
@@ -121,8 +138,15 @@ phase_to_u = QuantumCircuit(q)
 phase_to_u.u(0, 0, theta, 0)
 _sel.add_equivalence(PhaseGate(theta), phase_to_u)
 
-# CPhaseGate
+"""
+CPhaseGate
 
+                     ┌────────┐
+q_0: ─■────     q_0: ┤ P(ϴ/2) ├──■─────────────────■────────────
+      │P(ϴ)  ≡       └────────┘┌─┴─┐┌───────────┐┌─┴─┐┌────────┐
+q_1: ─■────     q_1: ──────────┤ X ├┤ P(-0.5*ϴ) ├┤ X ├┤ P(ϴ/2) ├
+                               └───┘└───────────┘└───┘└────────┘
+"""
 q = QuantumRegister(2, "q")
 theta = Parameter("theta")
 def_cphase = QuantumCircuit(q)
