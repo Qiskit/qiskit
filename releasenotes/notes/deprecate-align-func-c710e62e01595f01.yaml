@@ -1,0 +1,10 @@
+---
+deprecations:
+  - |
+    Pulse builder alignment context :func:`~qiskit.pulse.builder.align_func` and
+    its representation :class:`~qiskit.pulse.transforms.alignments.AlignFunc` have been
+    deprecated and will be removed in a future release. This context is hindrance to
+    serialization of pulse programs because of the arbitrary python callable of its
+    input argument. This context is expected to be used for constructing complicated
+    dynamical decoupling sequences, however, you can still create the same schedule by
+    manually inserting delays in between instructions.
