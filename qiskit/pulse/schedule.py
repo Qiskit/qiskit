@@ -33,7 +33,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression, ParameterVal
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions import Instruction
-from qiskit.pulse.utils import instruction_duration_validation, deprecated_functionality
+from qiskit.pulse.utils import instruction_duration_validation
 from qiskit.utils.multiprocessing import is_main_process
 
 
@@ -144,7 +144,7 @@ class Schedule:
 
         # These attributes are populated by ``_mutable_insert``
         self._timeslots = {}
-        self.__children = []
+        self._children = []
         for sched_pair in schedules:
             try:
                 time, sched = sched_pair
@@ -233,27 +233,6 @@ class Schedule:
         return tuple(self._timeslots.keys())
 
     @property
-    def _children(self) -> Tuple[Tuple[int, ScheduleComponent], ...]:
-        """Deprecated. Return the child schedule components of this ``Schedule`` in the
-        order they were added to the schedule.
-
-        Notes:
-            Nested schedules are returned as-is. If you want to collect only instructions,
-            use py:meth:`~Schedule.instructions` instead.
-
-        Returns:
-            A tuple, where each element is a two-tuple containing the initial
-            scheduled time of each ``NamedValue`` and the component
-            itself.
-        """
-        warnings.warn(
-            "Schedule._children is now available as the public property "
-            "Schedule.children. Access to this private property is being deprecated.",
-            DeprecationWarning,
-        )
-        return tuple(self.__children)
-
-    @property
     def children(self) -> Tuple[Tuple[int, ScheduleComponent], ...]:
         """Return the child schedule components of this ``Schedule`` in the
         order they were added to the schedule.
@@ -267,7 +246,7 @@ class Schedule:
             scheduled time of each ``NamedValue`` and the component
             itself.
         """
-        return tuple(self.__children)
+        return tuple(self._children)
 
     @property
     def instructions(self) -> Tuple[Tuple[int, Instruction]]:
@@ -275,7 +254,7 @@ class Schedule:
 
         def key(time_inst_pair):
             inst = time_inst_pair[1]
-            return (time_inst_pair[0], inst.duration, sorted(chan.name for chan in inst.channels))
+            return time_inst_pair[0], inst.duration, sorted(chan.name for chan in inst.channels)
 
         return tuple(sorted(self._instructions(), key=key))
 
@@ -377,7 +356,7 @@ class Schedule:
 
         self._duration = self._duration + time
         self._timeslots = timeslots
-        self.__children = [(orig_time + time, child) for orig_time, child in self.children]
+        self._children = [(orig_time + time, child) for orig_time, child in self.children]
         return self
 
     def insert(
@@ -408,7 +387,7 @@ class Schedule:
             schedule: Schedule to mutably insert.
         """
         self._add_timeslots(start_time, schedule)
-        self.__children.append((start_time, schedule))
+        self._children.append((start_time, schedule))
         self._parameter_manager.update_parameter_table(schedule)
         return self
 
@@ -449,18 +428,6 @@ class Schedule:
         common_channels = set(self.channels) & set(schedule.channels)
         time = self.ch_stop_time(*common_channels)
         return self.insert(time, schedule, name=name, inplace=inplace)
-
-    def flatten(self) -> "Schedule":
-        """Deprecated."""
-        from qiskit.pulse.transforms import flatten
-
-        warnings.warn(
-            "`This method is being deprecated. Please use "
-            "`qiskit.pulse.transforms.flatten` function with this schedule.",
-            DeprecationWarning,
-        )
-
-        return flatten(self)
 
     def filter(
         self,
@@ -716,7 +683,7 @@ class Schedule:
                 new_parameters.update_parameter_table(child)
 
         if inplace:
-            self.__children = new_children
+            self._children = new_children
             self._parameter_manager = new_parameters
             self._renew_timeslots()
             return self
@@ -1028,30 +995,9 @@ class ScheduleBlock:
         return True
 
     @property
-    @deprecated_functionality
-    @_require_schedule_conversion
-    def timeslots(self) -> TimeSlots:
-        """Time keeping attribute."""
-        return self.timeslots
-
-    @property
     @_require_schedule_conversion
     def duration(self) -> int:
         """Duration of this schedule block."""
-        return self.duration
-
-    @property
-    @deprecated_functionality
-    @_require_schedule_conversion
-    def start_time(self) -> int:
-        """Starting time of this schedule block."""
-        return self.ch_start_time(*self.channels)
-
-    @property
-    @deprecated_functionality
-    @_require_schedule_conversion
-    def stop_time(self) -> int:
-        """Stopping time of this schedule block."""
         return self.duration
 
     @property
@@ -1087,79 +1033,6 @@ class ScheduleBlock:
             *channels: Channels within ``self`` to include.
         """
         return self.ch_duration(*channels)
-
-    @deprecated_functionality
-    @_require_schedule_conversion
-    def ch_start_time(self, *channels: Channel) -> int:
-        """Return the time of the start of the first instruction over the supplied channels.
-
-        Args:
-            *channels: Channels within ``self`` to include.
-        """
-        return self.ch_start_time(*channels)
-
-    @deprecated_functionality
-    @_require_schedule_conversion
-    def ch_stop_time(self, *channels: Channel) -> int:
-        """Return maximum start time over supplied channels.
-
-        Args:
-            *channels: Channels within ``self`` to include.
-        """
-        return self.ch_stop_time(*channels)
-
-    @deprecated_functionality
-    def shift(self, time: int, name: Optional[str] = None, inplace: bool = True):
-        """This method will be removed. Temporarily added for backward compatibility.
-
-        .. note:: This method is not supported and being deprecated.
-
-        Args:
-            time: Time to shift by.
-            name: Name of the new schedule. Defaults to the name of self.
-            inplace: Perform operation inplace on this schedule. Otherwise
-                return a new ``Schedule``.
-
-        Raises:
-            PulseError: When this method is called. This method is not supported.
-        """
-        raise PulseError(
-            "Method ``ScheduleBlock.shift`` is not supported as this program "
-            "representation does not have the notion of instruction "
-            "time. Apply ``qiskit.pulse.transforms.block_to_schedule`` function to "
-            "this program to obtain the ``Schedule`` representation supporting "
-            "this method."
-        )
-
-    @deprecated_functionality
-    def insert(
-        self,
-        start_time: int,
-        block: ScheduleComponent,
-        name: Optional[str] = None,
-        inplace: bool = True,
-    ):
-        """This method will be removed. Temporarily added for backward compatibility.
-
-        .. note:: This method is not supported and being deprecated.
-
-        Args:
-            start_time: Time to insert the schedule.
-            block: Schedule to insert.
-            name: Name of the new schedule. Defaults to the name of self.
-            inplace: Perform operation inplace on this schedule. Otherwise
-                return a new ``Schedule``.
-
-        Raises:
-            PulseError: When this method is called. This method is not supported.
-        """
-        raise PulseError(
-            "Method ``ScheduleBlock.insert`` is not supported as this program "
-            "representation does not have the notion of instruction "
-            "time. Apply ``qiskit.pulse.transforms.block_to_schedule`` function to "
-            "this program to obtain the ``Schedule`` representation supporting "
-            "this method."
-        )
 
     def append(
         self, block: BlockComponent, name: Optional[str] = None, inplace: bool = True
@@ -1547,21 +1420,7 @@ def _common_method(*classes):
 @_common_method(Schedule, ScheduleBlock)
 def draw(
     self,
-    dt: Any = None,  # deprecated
     style: Optional[Dict[str, Any]] = None,
-    filename: Any = None,  # deprecated
-    interp_method: Any = None,  # deprecated
-    scale: Any = None,  # deprecated
-    channel_scales: Any = None,  # deprecated
-    plot_all: Any = None,  # deprecated
-    plot_range: Any = None,  # deprecated
-    interactive: Any = None,  # deprecated
-    table: Any = None,  # deprecated
-    label: Any = None,  # deprecated
-    framechange: Any = None,  # deprecated
-    channels: Any = None,  # deprecated
-    show_framechange_channels: Any = None,  # deprecated
-    draw_title: Any = None,  # deprecated
     backend=None,  # importing backend causes cyclic import
     time_range: Optional[Tuple[int, int]] = None,
     time_unit: str = "dt",
@@ -1605,22 +1464,6 @@ def draw(
             the plotters use a given ``axis`` instead of internally initializing
             a figure object. This object format depends on the plotter.
             See plotter argument for details.
-        dt: Deprecated. This argument is used by the legacy pulse drawer.
-        filename: Deprecated. This argument is used by the legacy pulse drawer.
-            To save output image, you can call ``.savefig`` method with
-            returned Matplotlib Figure object.
-        interp_method: Deprecated. This argument is used by the legacy pulse drawer.
-        scale: Deprecated. This argument is used by the legacy pulse drawer.
-        channel_scales: Deprecated. This argument is used by the legacy pulse drawer.
-        plot_all: Deprecated. This argument is used by the legacy pulse drawer.
-        plot_range: Deprecated. This argument is used by the legacy pulse drawer.
-        interactive: Deprecated. This argument is used by the legacy pulse drawer.
-        table: Deprecated. This argument is used by the legacy pulse drawer.
-        label: Deprecated. This argument is used by the legacy pulse drawer.
-        framechange: Deprecated. This argument is used by the legacy pulse drawer.
-        channels: Deprecated. This argument is used by the legacy pulse drawer.
-        show_framechange_channels: Deprecated. This argument is used by the legacy pulse drawer.
-        draw_title: Deprecated. This argument is used by the legacy pulse drawer.
 
     Returns:
         Visualization output data.
@@ -1628,54 +1471,7 @@ def draw(
         If matplotlib family is specified, this will be a ``matplotlib.pyplot.Figure`` data.
     """
     # pylint: disable=cyclic-import, missing-return-type-doc
-    from qiskit.visualization import pulse_drawer_v2, SchedStyle
-
-    legacy_args = {
-        "dt": dt,
-        "filename": filename,
-        "interp_method": interp_method,
-        "scale": scale,
-        "channel_scales": channel_scales,
-        "plot_all": plot_all,
-        "plot_range": plot_range,
-        "interactive": interactive,
-        "table": table,
-        "label": label,
-        "framechange": framechange,
-        "channels": channels,
-        "show_framechange_channels": show_framechange_channels,
-        "draw_title": draw_title,
-    }
-
-    active_legacy_args = []
-    for name, legacy_arg in legacy_args.items():
-        if legacy_arg is not None:
-            active_legacy_args.append(name)
-
-    if active_legacy_args:
-        warnings.warn(
-            "Legacy pulse drawer is deprecated. "
-            "Specified arguments {dep_args} are deprecated. "
-            "Please check the API document of new pulse drawer "
-            "`qiskit.visualization.pulse_drawer_v2`."
-            "".format(dep_args=", ".join(active_legacy_args)),
-            DeprecationWarning,
-        )
-
-    if filename:
-        warnings.warn(
-            "File saving is delegated to the plotter software in new drawer. "
-            "If you specify matplotlib plotter family to `plotter` argument, "
-            "you can call `savefig` method with the returned Figure object.",
-            DeprecationWarning,
-        )
-
-    if isinstance(style, SchedStyle):
-        style = None
-        warnings.warn(
-            "Legacy stylesheet is specified. This is ignored in the new drawer. "
-            "Please check the API documentation for this method."
-        )
+    from qiskit.visualization import pulse_drawer_v2
 
     return pulse_drawer_v2(
         program=self,

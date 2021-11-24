@@ -83,11 +83,6 @@ from qiskit.pulse.transforms.alignments import (
     AlignLeft,
     AlignRight,
     AlignSequential,
-    align_equispaced,
-    align_func,
-    align_left,
-    align_right,
-    align_sequential,
 )
 
 from qiskit.pulse.transforms.base_transforms import target_qobj_transform
