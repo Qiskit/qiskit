@@ -45,7 +45,7 @@ def to_sympy_matrix(numpy_matrix):
         i += 1
         for e in row:
             if isinstance(e, ParameterExpression):
-                e = e.get_expr()
+                e = e.get_sympy_expr()
             nrow.append(e)
         matrix.append(nrow)
 
