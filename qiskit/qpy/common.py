@@ -9,27 +9,23 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""Common functions across several serialization and deserialization modules."""
 
-import io
 import struct
 from collections import namedtuple
 from enum import Flag
+
+import numpy as np
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.library import Waveform, ParametricPulse
 
-import numpy as np
-
-# PARAMETER_VALUE binary format
+# OBJECT binary format
 OBJECT = namedtuple("OBJECT", ["type", "size"])
 OBJECT_PACK = "!1cQ"
 OBJECT_PACK_SIZE = struct.calcsize(OBJECT_PACK)
-
-# COMPLEX binary format
-COMPLEX = namedtuple("COMPLEX", ["real", "imag"])
-COMPLEX_PACK = "!dd"
 
 
 class TypeKey(Flag):
@@ -95,35 +91,3 @@ def write_binary(file_obj, data_binary, type_key):
     data_header = struct.pack(OBJECT_PACK, type_key.value.encode("utf8"), len(data_binary))
     file_obj.write(data_header)
     file_obj.write(data_binary)
-
-
-def loads_numbers(type_key, data_binary):
-    if type_key == TypeKey.FLOAT:
-        return struct.unpack("!d", data_binary)
-    if type_key == TypeKey.INTEGER:
-        return struct.unpack("!q", data_binary)
-    if type_key == TypeKey.COMPLEX:
-        return complex(*struct.unpack(COMPLEX_PACK, data_binary))
-    if type_key == TypeKey.NUMPY:
-        with io.BytesIO(data_binary) as container:
-            value = np.load(container)
-        return value
-
-    raise TypeError(f"Invalid number type {type_key} for value {data_binary}")
-
-
-def dumps_numbers(type_key, value):
-    if type_key == TypeKey.FLOAT:
-        return struct.pack("!d", value)
-    if type_key == TypeKey.INTEGER:
-        return struct.pack("!q", value)
-    if type_key == TypeKey.COMPLEX:
-        return struct.pack(COMPLEX_PACK, value.real, value.imag)
-    if type_key == TypeKey.NUMPY:
-        with io.BytesIO() as container:
-            np.save(container, value)
-            container.seek(0)
-            data_binary = container.read()
-        return data_binary
-
-    raise TypeError(f"Invalid number type for {value}: {type(value)}")

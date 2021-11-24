@@ -9,17 +9,18 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""Read and write parameter values."""
 
 import io
 import struct
 import uuid
 from collections import namedtuple
 
+import numpy as np
+
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.qpy.common import (
-    dumps_numbers,
-    loads_numbers,
     assign_key,
     TypeKey,
     OBJECT_PACK,
@@ -43,6 +44,10 @@ PARAMETER_SIZE = struct.calcsize(PARAMETER_PACK)
 PARAMETER_EXPR = namedtuple("PARAMETER_EXPR", ["map_elements", "expr_size"])
 PARAMETER_EXPR_PACK = "!QQ"
 PARAMETER_EXPR_SIZE = struct.calcsize(PARAMETER_EXPR_PACK)
+
+# COMPLEX binary format
+COMPLEX = namedtuple("COMPLEX", ["real", "imag"])
+COMPLEX_PACK = "!dd"
 
 
 def _read_parameter(file_obj):
@@ -82,6 +87,21 @@ def _read_parameter_expression(file_obj):
             raise TypeError("Invalid parameter expression map type: %s" % elem_type)
         symbol_map[param] = value
     return ParameterExpression(symbol_map, expr)
+
+
+def loads_numbers(type_key, data_binary):
+    if type_key == TypeKey.FLOAT:
+        return struct.unpack("!d", data_binary)
+    if type_key == TypeKey.INTEGER:
+        return struct.unpack("!q", data_binary)
+    if type_key == TypeKey.COMPLEX:
+        return complex(*struct.unpack(COMPLEX_PACK, data_binary))
+    if type_key == TypeKey.NUMPY:
+        with io.BytesIO(data_binary) as container:
+            value = np.load(container)
+        return value
+
+    raise TypeError(f"Invalid number type {type_key} for value {data_binary}")
 
 
 def loads_parameter_value(type_key, data_binary):
@@ -143,6 +163,23 @@ def _write_parameter_expression(file_obj, param):
         file_obj.write(elem_header)
         file_obj.write(parameter_data)
         file_obj.write(data)
+
+
+def dumps_numbers(type_key, value):
+    if type_key == TypeKey.FLOAT:
+        return struct.pack("!d", value)
+    if type_key == TypeKey.INTEGER:
+        return struct.pack("!q", value)
+    if type_key == TypeKey.COMPLEX:
+        return struct.pack(COMPLEX_PACK, value.real, value.imag)
+    if type_key == TypeKey.NUMPY:
+        with io.BytesIO() as container:
+            np.save(container, value)
+            container.seek(0)
+            data_binary = container.read()
+        return data_binary
+
+    raise TypeError(f"Invalid number type for {value}: {type(value)}")
 
 
 def dumps_parameter_value(type_key, value):
