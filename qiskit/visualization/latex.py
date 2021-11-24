@@ -146,7 +146,7 @@ class QCircuitImage:
         self.cregs_bits = [self.bit_locations[bit]["register"] for bit in clbits]
         self.img_regs = {bit: ind for ind, bit in enumerate(self.ordered_bits)}
 
-        num_reg_bits = sum([reg.size for reg in self.cregs])
+        num_reg_bits = sum(reg.size for reg in self.cregs)
         if self.cregbundle:
             self.img_width = len(qubits) + len(clbits) - (num_reg_bits - len(self.cregs))
         else:

@@ -1574,7 +1574,7 @@ class DAGCircuit:
     def collect_2q_runs(self):
         """Return a set of non-conditional runs of 2q "op" nodes."""
 
-        to_qid = dict()
+        to_qid = {}
         for i, qubit in enumerate(self.qubits):
             to_qid[qubit] = i
 

@@ -96,8 +96,8 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     inst_map = pass_manager_config.inst_map
     coupling_map = pass_manager_config.coupling_map
     initial_layout = pass_manager_config.initial_layout
-    layout_method = pass_manager_config.layout_method or "dense"
-    routing_method = pass_manager_config.routing_method or "stochastic"
+    layout_method = pass_manager_config.layout_method or "sabre"
+    routing_method = pass_manager_config.routing_method or "sabre"
     translation_method = pass_manager_config.translation_method or "translator"
     scheduling_method = pass_manager_config.scheduling_method
     instruction_durations = pass_manager_config.instruction_durations
@@ -166,7 +166,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         # set by trivial layout so we clear that before running CSP
         if property_set["trivial_layout_score"] is not None:
             if property_set["trivial_layout_score"] != 0:
-                property_set["layout"]._wrapped = None
                 return True
         return False
 
@@ -203,8 +202,10 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     elif routing_method == "none":
         _swap += [
             Error(
-                msg="No routing method selected, but circuit is not routed to device. "
-                "CheckMap Error: {check_map_msg}",
+                msg=(
+                    "No routing method selected, but circuit is not routed to device. "
+                    "CheckMap Error: {check_map_msg}"
+                ),
                 action="raise",
             )
         ]
