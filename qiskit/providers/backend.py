@@ -280,7 +280,7 @@ class BackendV2(Backend, ABC):
 
     This abstract class is to be used for all Backend objects created by a
     provider. This version differs from earlier abstract Backend classes in
-    that the configuration attribute no longer exists instead attributes
+    that the configuration attribute no longer exists. Instead, attributes
     exposing equivalent required immutable properties of the backend device
     are added. For example ``backend.configuration().n_qubits`` is accessible
     from ``backend.num_qubits`` now.
