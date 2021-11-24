@@ -4093,8 +4093,6 @@ class QuantumCircuit:
         for parameter in instruction.params:
             if isinstance(parameter, (ParameterExpression, QuantumCircuit)):
                 atomic_parameters.update(parameter.parameters)
-        if not atomic_parameters:
-            return
         for atomic_parameter in atomic_parameters:
             entries = self._parameter_table[atomic_parameter]
             new_entries = [
