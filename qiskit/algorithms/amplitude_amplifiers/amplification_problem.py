@@ -163,8 +163,8 @@ class AmplificationProblem:
             A callable that takes in a bitstring and returns True if the measurement is a good
             state, False otherwise.
         """
-        if callable(self._is_good_state):
-            return self._is_good_state
+        if (self._is_good_state is None) or callable(self._is_good_state):
+            return self._is_good_state  # returns None if no is_good_state arg has been set
         elif isinstance(self._is_good_state, list):
             if all(isinstance(good_bitstr, str) for good_bitstr in self._is_good_state):
                 return lambda bitstr: bitstr in self._is_good_state

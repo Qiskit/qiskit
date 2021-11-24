@@ -252,10 +252,10 @@ class Grover(AmplitudeAmplifier):
 
             all_circuit_results.append(circuit_results)
 
-            # only check if top measurement is a good state if an _is_good_state arg is provided
-            if amplification_problem._is_good_state is not None:
+            # only check if top measurement is a good state if an is_good_state arg has been provided
+            if amplification_problem.is_good_state is not None:
                 oracle_evaluation = amplification_problem.is_good_state(top_measurement)
-            # _is_good_state must be provided if iterations arg is not an integer
+            # is_good_state arg must be provided if iterations arg is not an integer
             elif (
                 iterations is None or len(iterations) > 1
             ) and amplification_problem.is_good_state is None:
