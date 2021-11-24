@@ -324,13 +324,13 @@ class DAGCircuit:
         Remove classical bits from the circuit. All bits MUST be idle.
         Any registers with references to at least one of the specified bits will
         also be removed.
+        
+        Args:
+            clbits (List[Clbit]): The bits to remove.
 
         Raises:
-            DAGCircuitError: a clbit is not a Clbit, is not in the circuit,
-            or is not idle.
-
-        Returns:
-            set(Clbit): The set of Clbits that were removed.
+            DAGCircuitError: a clbit is not a :obj:`.Clbit`, is not in the circuit,
+                or is not idle.
         """
         if any(not isinstance(clbit, Clbit) for clbit in clbits):
             raise DAGCircuitError("not a Clbit instance.")
