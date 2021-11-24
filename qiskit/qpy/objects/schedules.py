@@ -46,6 +46,7 @@ from qiskit.qpy.common import (
     TypeKey,
 )
 from .parameter_values import dumps_parameter_value, loads_parameter_value
+from .mapping import write_mapping, read_mapping
 
 
 # CHANNEL binary format
@@ -65,7 +66,6 @@ PARAMETRIC_PULSE = namedtuple(
         "name_size",
         "module_path_size",
         "label_size",
-        "num_params",
         "amp_limited",
     ]
 )
@@ -116,18 +116,8 @@ def _read_parametric_pulse(file_obj):
     pulse_class_name = file_obj.read(param_pulse_header[0]).decode("utf8")
     module_path = file_obj.read(param_pulse_header[1]).encode("utf8")
     label = file_obj.read(param_pulse_header[2]).decode("utf8")
-    amp_limited = bool(param_pulse_header[4])
-
-    parameters = dict()
-    for _ in range(param_pulse_header[3]):
-        param_item_header = struct.unpack(
-            PULSE_PARAM_ITEM_PACK, file_obj.read(PULSE_PARAM_ITEM_PACK_SIZE)
-        )
-        param_name = file_obj.read(param_item_header[0]).decode("utf8")
-        type_key = TypeKey(param_item_header[1].decode("utf8"))
-        value_binary = file_obj.read(param_item_header[2])
-        value = loads_parameter_value(type_key, value_binary)
-        parameters[param_name] = value
+    amp_limited = bool(param_pulse_header[3])
+    parameters = read_mapping(file_obj)
 
     if "duration" not in parameters:
         raise KeyError(
@@ -230,27 +220,13 @@ def _write_parametric_pulse(file_obj, data):
         len(pulse_class_name),
         len(module_path),
         len(label),
-        len(data.parameters),
         data.limit_amplitude,
     )
     file_obj.write(param_pulse_header)
     file_obj.write(module_path)
     file_obj.write(pulse_class_name)
     file_obj.write(label)
-
-    for name, value in data.parameters.items():
-        name_binary = name.encode("utf8")
-        type_key = assign_key(value)
-        value_binary = dumps_parameter_value(type_key, value)
-        param_item_header = struct.pack(
-            PULSE_PARAM_ITEM_PACK,
-            len(name_binary),
-            type_key.value.encode("utf8"),
-            len(value_binary),
-        )
-        file_obj.write(param_item_header)
-        file_obj.write(name_binary)
-        file_obj.write(value_binary)
+    write_mapping(file_obj, data.parameters)
 
 
 def _write_instruction(file_obj, instruction):
