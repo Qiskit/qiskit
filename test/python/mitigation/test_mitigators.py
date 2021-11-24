@@ -17,6 +17,7 @@ import unittest
 from test.python.mitigation.generate_data import test_data
 import numpy as np
 from ddt import ddt, data, unpack
+from qiskit import QiskitError
 from qiskit.test import QiskitTestCase
 from qiskit.result import Counts
 from qiskit.mitigation import CorrelatedReadoutMitigator
@@ -335,6 +336,34 @@ class TestReadoutMitigation(QiskitTestCase):
             matrix_equal(
                 LRM_from_backend.assignment_matrix(), LRM_from_matrices.assignment_matrix()
             )
+        )
+
+    def test_error_handling(self):
+        bad_matrix_A = np.array([[-0.3, 1], [1.3, 0]])  # negative indices
+        bad_matrix_B = np.array([[0.2, 1], [0.7, 0]])  # columns not summing to 1
+        good_matrix_A = np.array([[0.2, 1], [0.8, 0]])
+        for bad_matrix in [bad_matrix_A, bad_matrix_B]:
+            with self.assertRaises(QiskitError) as cm:
+                CRM = CorrelatedReadoutMitigator(bad_matrix)
+            self.assertEqual(
+                cm.exception.message,
+                "Assignment matrix columns must be valid probability distributions",
+            )
+
+        with self.assertRaises(QiskitError) as cm:
+            amats = [good_matrix_A, bad_matrix_A]
+            LRM = LocalReadoutMitigator(amats)
+        self.assertEqual(
+            cm.exception.message,
+            "Assignment matrix columns must be valid probability distributions",
+        )
+
+        with self.assertRaises(QiskitError) as cm:
+            amats = [bad_matrix_B, good_matrix_A]
+            LRM = LocalReadoutMitigator(amats)
+        self.assertEqual(
+            cm.exception.message,
+            "Assignment matrix columns must be valid probability distributions",
         )
 
 

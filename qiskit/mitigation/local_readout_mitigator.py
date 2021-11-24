@@ -50,6 +50,13 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         """
         if amats is None:
             amats = self._from_backend(backend, qubits)
+        else:
+            amats = [np.asarray(amat, dtype=float) for amat in amats]
+        for amat in amats:
+            if np.any(amat < 0) or not np.allclose(np.sum(amat, axis=0), 1):
+                raise QiskitError(
+                    "Assignment matrix columns must be valid probability distributions"
+                )
         if qubits is None:
             self._num_qubits = len(amats)
             self._qubits = range(self._num_qubits)
@@ -197,9 +204,9 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         for index, _ in enumerate(probs_vec):
             probs_dict[index] = probs_vec[index]
 
-        quasi_dist = QuasiDistribution(probs_dict)
-        quasi_dist._stddev_upper_bound = self.stddev_upper_bound(shots, qubits)
-
+        quasi_dist = QuasiDistribution(
+            probs_dict, stddev_upper_bound=self.stddev_upper_bound(shots, qubits)
+        )
         return quasi_dist
 
     def mitigation_matrix(self, qubits: Optional[Union[List[int], int]] = None) -> np.ndarray:
