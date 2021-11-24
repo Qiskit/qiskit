@@ -4,7 +4,7 @@ ipython<7.22.0
 ipykernel<5.5.2
 ipywidgets>=7.3.0
 jupyter
-matplotlib>=3.3,<3.5
+matplotlib>=3.3
 pillow>=4.2.1
 black==21.4b2
 pydot

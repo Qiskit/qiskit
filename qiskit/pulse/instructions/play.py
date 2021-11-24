@@ -13,14 +13,13 @@
 """An instruction to transmit a given pulse on a ``PulseChannel`` (i.e., those which support
 transmitted pulses, such as ``DriveChannel``).
 """
-from typing import Dict, Optional, Union, Tuple, Any, Set
+from typing import Optional, Union, Tuple, Set
 
-from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.instructions.instruction import Instruction
-from qiskit.pulse.utils import deprecated_functionality
+from qiskit.pulse.library.pulse import Pulse
 
 
 class Play(Instruction):
@@ -76,21 +75,6 @@ class Play(Instruction):
         """Duration of this instruction."""
         return self.pulse.duration
 
-    def _initialize_parameter_table(self, operands: Tuple[Any]):
-        """A helper method to initialize parameter table.
-
-        Args:
-            operands: List of operands associated with this instruction.
-        """
-        super()._initialize_parameter_table(operands)
-
-        if any(isinstance(val, ParameterExpression) for val in self.pulse.parameters.values()):
-            for value in self.pulse.parameters.values():
-                if isinstance(value, ParameterExpression):
-                    for param in value.parameters:
-                        # Table maps parameter to operand index, 0 for ``pulse``
-                        self._parameter_table[param].append(0)
-
     @property
     def parameters(self) -> Set:
         """Parameters which determine the instruction behavior."""
@@ -104,15 +88,6 @@ class Play(Instruction):
                 parameters.add(ch_param)
 
         return parameters
-
-    @deprecated_functionality
-    def assign_parameters(
-        self, value_dict: Dict[ParameterExpression, ParameterValueType]
-    ) -> "Play":
-        super().assign_parameters(value_dict)
-        pulse = self.pulse.assign_parameters(value_dict)
-        self._operands = (pulse, self.channel)
-        return self
 
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
