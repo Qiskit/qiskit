@@ -86,7 +86,7 @@ class RemoveFinalMeasurements(TransformationPass):
 
         # ignore any non-idle clbits now that all final op nodes are removed
         idle_wires = set(dag.idle_wires())
-        clbits_with_final_measures.intersection_update(idle_wires)
+        clbits_with_final_measures &= idle_wires
 
         if not clbits_with_final_measures:
             # no idle wires to remove
@@ -94,23 +94,21 @@ class RemoveFinalMeasurements(TransformationPass):
 
         # determine bits of all registers where register is now idle
         # as a result of the removal.
-        bits_to_remove = set()
-        bits_to_keep = set()
+        idle_register_bits = set()
+        busy_register_bits = set()
         for creg in dag.cregs.values():
             clbits = set(creg)
             if not clbits.isdisjoint(clbits_with_final_measures) and clbits.issubset(idle_wires):
                 # register contains a newly idle bit, and all other bits are idle.
-                bits_to_remove |= clbits
+                idle_register_bits |= clbits
             else:
                 # register does not contain a newly idle bit, or contains other busy bits
                 # and thus should not be removed.
-                bits_to_keep |= clbits
+                busy_register_bits |= clbits
 
-        # keep bits of registers we'll keep
-        bits_to_remove -= bits_to_keep
-
-        # also remove bits that aren't in a register at all
-        bits_to_remove |= clbits_with_final_measures - (bits_to_remove | bits_to_keep)
+        # note: `clbits_with_final_measure` is needed here to account for loose
+        # bits not in any register.
+        bits_to_remove = (clbits_with_final_measures | idle_register_bits) - busy_register_bits
 
         dag.remove_clbits(*bits_to_remove)
         return dag
