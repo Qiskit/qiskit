@@ -13,6 +13,7 @@
 """Optimize chains of single-qubit u1, u2, u3 gates by combining them into a single gate."""
 
 from itertools import groupby
+from typing import Union
 
 import numpy as np
 
@@ -22,11 +23,19 @@ from qiskit.circuit.library.standard_gates.u import UGate
 from qiskit.circuit.library.standard_gates.u1 import U1Gate
 from qiskit.circuit.library.standard_gates.u2 import U2Gate
 from qiskit.circuit.library.standard_gates.u3 import U3Gate
+from qiskit.circuit import ParameterExpression
 from qiskit.circuit.gate import Gate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info.synthesis import Quaternion
 
 _CHOP_THRESHOLD = 1e-15
+
+
+def to_number(value: Union[float, ParameterExpression]) -> Union[float, ParameterExpression]:
+    if isinstance(value, ParameterExpression):
+        return value
+    else:
+        return float(value)
 
 
 class Optimize1qGates(TransformationPass):
@@ -99,7 +108,7 @@ class Optimize1qGates(TransformationPass):
                     right_global_phase += current_node.op.definition.global_phase
                 # If there are any sympy objects coming from the gate convert
                 # to numpy.
-                left_parameters = tuple(float(x) for x in left_parameters)
+                left_parameters = tuple(to_number(x) for x in left_parameters)
                 # Compose gates
                 name_tuple = (left_name, right_name)
                 if name_tuple in (("u1", "u1"), ("p", "p")):
@@ -200,7 +209,8 @@ class Optimize1qGates(TransformationPass):
 
                 # Y rotation is 0 mod 2*pi, so the gate is a u1
                 if (
-                    abs(np.mod(right_parameters[0], (2 * np.pi))) < self.eps
+                    not isinstance(right_parameters[0], ParameterExpression)
+                    and abs(np.mod(right_parameters[0], (2 * np.pi))) < self.eps
                     and right_name != "u1"
                     and right_name != "p"
                 ):
@@ -215,31 +225,34 @@ class Optimize1qGates(TransformationPass):
                     )
                 # Y rotation is pi/2 or -pi/2 mod 2*pi, so the gate is a u2
                 if right_name in ("u3", "u"):
-                    # theta = pi/2 + 2*k*pi
-                    right_angle = right_parameters[0] - np.pi / 2
-                    if abs(right_angle) < self.eps:
-                        right_angle = 0
-                    if abs(np.mod((right_angle), 2 * np.pi)) < self.eps:
-                        right_name = "u2"
-                        right_parameters = (
-                            np.pi / 2,
-                            right_parameters[1],
-                            right_parameters[2] + (right_parameters[0] - np.pi / 2),
-                        )
-                    # theta = -pi/2 + 2*k*pi
-                    right_angle = right_parameters[0] + np.pi / 2
-                    if abs(right_angle) < self.eps:
-                        right_angle = 0
-                    if abs(np.mod(right_angle, 2 * np.pi)) < self.eps:
-                        right_name = "u2"
-                        right_parameters = (
-                            np.pi / 2,
-                            right_parameters[1] + np.pi,
-                            right_parameters[2] - np.pi + (right_parameters[0] + np.pi / 2),
-                        )
+                    if not isinstance(right_parameters[0], ParameterExpression):
+                        # theta = pi/2 + 2*k*pi
+                        right_angle = right_parameters[0] - np.pi / 2
+                        if abs(right_angle) < self.eps:
+                            right_angle = 0
+                        if abs(np.mod((right_angle), 2 * np.pi)) < self.eps:
+                            right_name = "u2"
+                            right_parameters = (
+                                np.pi / 2,
+                                right_parameters[1],
+                                right_parameters[2] + (right_parameters[0] - np.pi / 2),
+                            )
+                        # theta = -pi/2 + 2*k*pi
+                        right_angle = right_parameters[0] + np.pi / 2
+                        if abs(right_angle) < self.eps:
+                            right_angle = 0
+                        if abs(np.mod(right_angle, 2 * np.pi)) < self.eps:
+                            right_name = "u2"
+                            right_parameters = (
+                                np.pi / 2,
+                                right_parameters[1] + np.pi,
+                                right_parameters[2] - np.pi + (right_parameters[0] + np.pi / 2),
+                            )
+
                 # u1 and lambda is 0 mod 2*pi so gate is nop (up to a global phase)
                 if (
-                    right_name in ("u1", "p")
+                    not isinstance(right_parameters[2], ParameterExpression)
+                    and right_name in ("u1", "p")
                     and abs(np.mod(right_parameters[2], 2 * np.pi)) < self.eps
                 ):
                     right_name = "nop"
@@ -335,7 +348,7 @@ def _split_runs_on_parameters(runs):
 
     out = []
     for run in runs:
-        groups = groupby(run, lambda x: x.op.is_parameterized())
+        groups = groupby(run, lambda x: x.op.is_parameterized() and x.op.name == 'u3')
 
         for group_is_parameterized, gates in groups:
             if not group_is_parameterized:
