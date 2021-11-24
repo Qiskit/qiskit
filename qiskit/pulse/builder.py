@@ -1056,7 +1056,7 @@ def align_func(
 
     Examples:
 
-    .. jupyter-execute::
+    .. code-block:: python
 
         import numpy as np
         from qiskit import pulse
@@ -1074,8 +1074,6 @@ def align_func(
                 for _ in range(10):
                     pulse.play(x180, d0)
             pulse.play(x90, d0)
-
-        udd_sched.draw()
 
     Args:
         duration: Duration of context. This should be larger than the schedule duration.
