@@ -2235,7 +2235,8 @@ class QuantumCircuit:
         else:
             if len(circ.clbits) < len(circ.qubits):
                 raise CircuitError(
-                    "The size of the ClassicalRegister must be equal or greater than the size of the QuantumRegister."
+                    "The size of the ClassicalRegister must be equal or greater than"
+                    "the size of the QuantumRegister."
                 )
             circ.barrier()
             circ.measure(circ.qubits, circ.clbits[0 : len(circ.qubits)])
