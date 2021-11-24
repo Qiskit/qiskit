@@ -41,7 +41,7 @@ def hellinger_distance(dist_p, dist_q):
 
     total = 0
     for key, val in p_normed.items():
-        if key in q_normed.keys():
+        if key in q_normed:
             total += (np.sqrt(val) - np.sqrt(q_normed[key])) ** 2
             del q_normed[key]
         else:

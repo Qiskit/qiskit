@@ -40,7 +40,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         self._qregs = []
         self._cregs = []
         self._qubits = []
-        self._qubit_indices = dict()
+        self._qubit_indices = {}
 
     @abstractmethod
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:

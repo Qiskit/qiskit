@@ -347,9 +347,7 @@ def plot_gate_map(
     config = backend.configuration()
     num_qubits = config.n_qubits
     coupling_map = config.coupling_map
-    qubit_coordinates = None
-    if num_qubits in qubit_coordinates_map.keys():
-        qubit_coordinates = qubit_coordinates_map[num_qubits]
+    qubit_coordinates = qubit_coordinates_map.get(num_qubits)
     return plot_coupling_map(
         num_qubits,
         qubit_coordinates,
@@ -734,8 +732,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
         )
     import matplotlib
     import matplotlib.pyplot as plt
-    import matplotlib.gridspec as gridspec
-    from matplotlib import ticker
+    from matplotlib import gridspec, ticker
 
     color_map = sns.cubehelix_palette(reverse=True, as_cmap=True)
 

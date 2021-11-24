@@ -220,16 +220,16 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         # if no mixer is passed and we know the number of qubits, then initialize it.
         if self.cost_operator is not None:
             # local imports to avoid circular imports
-            from qiskit.opflow import I, X
+            from qiskit.opflow import PauliSumOp
 
             num_qubits = self.cost_operator.num_qubits
 
             # Mixer is just a sum of single qubit X's on each qubit. Evolving by this operator
             # will simply produce rx's on each qubit.
             mixer_terms = [
-                (I ^ left) ^ X ^ (I ^ (num_qubits - left - 1)) for left in range(num_qubits)
+                ("I" * left + "X" + "I" * (num_qubits - left - 1), 1) for left in range(num_qubits)
             ]
-            mixer = sum(mixer_terms)
+            mixer = PauliSumOp.from_list(mixer_terms)
             return mixer
 
         # otherwise we cannot provide a default
