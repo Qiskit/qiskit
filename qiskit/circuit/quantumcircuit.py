@@ -4053,7 +4053,7 @@ class QuantumCircuit:
         if that scope is currently under construction.
 
         This function is only intended for use by the control-flow ``if``-statement builders, which
-        may need to modify to a previous instruction."""
+        may need to modify a previous instruction."""
         if self._control_flow_scopes:
             return self._control_flow_scopes[-1].peek()
         if not self._data:

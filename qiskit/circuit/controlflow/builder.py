@@ -137,8 +137,8 @@ class ControlFlowBuilderBlock:
     control-flow builder instructions, and in general should never be instantiated by any code other
     than that.
 
-    Not the instructions that are added to this scope may not be valid yet, so this elides some of
-    the type-checking of :obj:`.QuantumCircuit` until those things are known.
+    Note that the instructions that are added to this scope may not be valid yet, so this elides
+    some of the type-checking of :obj:`.QuantumCircuit` until those things are known.
 
     The general principle of the resource tracking through these builder blocks is that every
     necessary resource should pass through an :meth:`.append` call, so that at the point that
@@ -151,7 +151,7 @@ class ControlFlowBuilderBlock:
 
     In short, :meth:`.append` adds resources, and :meth:`.build` may use only a subset of the extra
     ones passed.  This ensures that all instructions know about all the resources they need, even in
-    the case of ``break``, but do not block any resources that do *not* need.
+    the case of ``break``, but do not block any resources that they do *not* need.
     """
 
     __slots__ = (
@@ -246,7 +246,7 @@ class ControlFlowBuilderBlock:
         Args:
             specifier (Union[Clbit, ClassicalRegister, int]): a specifier of a classical resource
                 present in this circuit.  An ``int`` will be resolved into a :obj:`.Clbit` using the
-                same conventions as measurement operations on this circuit use.
+                same conventions that measurement operations on this circuit use.
 
         Returns:
             Union[Clbit, ClassicalRegister]: the requested resource, resolved into a concrete
