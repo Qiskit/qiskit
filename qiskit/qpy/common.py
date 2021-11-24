@@ -18,6 +18,7 @@ from enum import Flag
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.channels import Channel
+from qiskit.pulse.library import Waveform, ParametricPulse
 
 import numpy as np
 
@@ -39,7 +40,10 @@ class TypeKey(Flag):
     NUMPY = "n"
     PARAMETER = "p"
     PARAMETER_EXPRESSION = "e"
-    CHANNEL = 'd'
+    STRING = "s"
+    CHANNEL = "d"
+    PARAMETRIC_PULSE = "r"
+    WAVEFORM = "w"
 
     @classmethod
     def is_number(cls, type_key):
@@ -67,8 +71,14 @@ def assign_key(obj):
         return TypeKey.PARAMETER
     if isinstance(obj, ParameterExpression):
         return TypeKey.PARAMETER_EXPRESSION
+    if isinstance(obj, str):
+        return TypeKey.STRING
     if isinstance(obj, Channel):
         return TypeKey.CHANNEL
+    if isinstance(obj, Waveform):
+        return TypeKey.WAVEFORM
+    if isinstance(obj, ParametricPulse):
+        return TypeKey.PARAMETRIC_PULSE
 
     raise TypeError(f"Object type {type(obj)} is not supported.")
 
