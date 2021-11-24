@@ -186,7 +186,8 @@ class Grover(AmplitudeAmplifier):
             as ``result.top_measurement``.
 
         Raises:
-            TypeError: If ``is_good_state`` is not provided and is required (i.e. when iterations is ``None`` or or a ``list``)
+            TypeError: If ``is_good_state`` is not provided and is required (i.e. when iterations
+            is ``None`` or or a ``list``)
         """
         if isinstance(self._iterations, list):
             max_iterations = len(self._iterations)
@@ -254,11 +255,13 @@ class Grover(AmplitudeAmplifier):
 
             if len(iterations) == 1 and amplification_problem.is_good_state is None:
                 oracle_evaluation = None  # cannot check for good state without is_good_state arg
-            elif (  # is_good_state arg must be provided if iterations arg is not an integer
+            # is_good_state arg must be provided if iterations arg is not an integer
+            elif (
                 iterations is None or len(iterations) > 1
             ) and amplification_problem.is_good_state is None:
                 raise TypeError("An is_good_state function is required with the provided oracle")
-            else:  # only check if top measurement is a good state if an is_good_state arg has been provided
+            # only check if top measurement is a good state if an is_good_state arg is provided
+            else:
                 oracle_evaluation = amplification_problem.is_good_state(top_measurement)
 
             if oracle_evaluation is True:
