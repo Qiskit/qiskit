@@ -35,17 +35,21 @@ from qiskit.version import __version__
 from qiskit.exceptions import QiskitError
 
 from qiskit.pulse import channels, instructions, library
+from qiskit.pulse.transforms import alignments
 
 from qiskit.pulse.channels import Channel
 from qiskit.qpy.common import (
     write_binary,
     read_binary,
-    dumps_numbers,
-    loads_numbers,
     assign_key,
     TypeKey,
 )
-from .parameter_values import dumps_parameter_value, loads_parameter_value
+from .parameter_values import (
+    dumps_parameter_value,
+    dumps_numbers,
+    loads_parameter_value,
+    loads_numbers,
+)
 from .mapping import write_mapping, read_mapping
 
 
@@ -71,11 +75,6 @@ PARAMETRIC_PULSE = namedtuple(
 )
 PARAMETRIC_PULSE_PACK = "!HHHH?"
 PARAMETRIC_PULSE_PACK_SIZE = struct.calcsize(PARAMETRIC_PULSE_PACK)
-
-# PULSE_PARAM_ITEM binary format
-PULSE_PARAM_ITEM = namedtuple("MAP_ITEM", ["name_size", "type", "data_size"])
-PULSE_PARAM_ITEM_PACK = "!H1cQ"
-PULSE_PARAM_ITEM_PACK_SIZE = struct.calcsize(PULSE_PARAM_ITEM_PACK)
 
 # INSTRUCTION binary format
 INSTRUCTION = namedtuple("INSTRUCTION", ["name_size", "label_size", "num_operands"])
@@ -163,6 +162,19 @@ def _read_instruction(file_obj):
         return instruction_type(*operands, name=label)
 
     raise TypeError(f"Invalid instruction class name {instruction_class_name}.")
+
+
+def _read_alignment_context(file_obj):
+    name_size_raw = file_obj.read(struct.calcsize("!H"))
+    name_size = struct.unpack("!H", name_size_raw)
+    alignment_class_name = file_obj.read(name_size).decode("utf8")
+    kwargs = read_mapping(file_obj)
+
+    if hasattr(alignments, alignment_class_name):
+        alignment_type = getattr(alignments, alignment_class_name)
+        return alignment_type(**kwargs)
+
+    raise TypeError(f"Invalid alignment context name {alignment_class_name}.")
 
 
 def _write_channel(file_obj, data):
@@ -275,3 +287,11 @@ def _write_instruction(file_obj, instruction):
             )
 
         write_binary(file_obj, data, type_key)
+
+
+def _write_alignment_context(file_obj, context):
+    alignment_class_name = context.__class__.__name__.encode("utf8")
+    name_size = struct.pack("!H", len(alignment_class_name))
+    file_obj.write(name_size)
+    file_obj.write(alignment_class_name)
+    write_mapping(file_obj, context.to_dict())
