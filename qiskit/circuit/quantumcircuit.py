@@ -2219,6 +2219,9 @@ class QuantumCircuit:
 
         Returns:
             QuantumCircuit: Returns circuit with measurements when `inplace = False`.
+        
+        Raises:
+            CircuitError: if `add_creg = False` and `len(circ.clbits) < len(circ.qubits)`.
         """
         if inplace:
             circ = self
@@ -2232,11 +2235,10 @@ class QuantumCircuit:
         else:
             if len(circ.clbits) < len(circ.qubits):
                 raise CircuitError(
-                    "The number of classical bits must be equal or greater than the number of qubits."
+                    "The size of the ClassicalRegister must be equal or greater than the size of the QuantumRegister."
                 )
-            else:
-                circ.barrier()
-                circ.measure(circ.qubits, circ.clbits[0 : len(circ.qubits)])
+            circ.barrier()
+            circ.measure(circ.qubits, circ.clbits[0 : len(circ.qubits)])
 
         if not inplace:
             return circ

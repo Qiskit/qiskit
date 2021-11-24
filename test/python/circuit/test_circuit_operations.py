@@ -439,6 +439,22 @@ class TestCircuitOperations(QiskitTestCase):
         expected.measure(qr, cr)
 
         self.assertEqual(expected, circuit)
+        
+    def test_measure_all_not_add_creg(self):
+        """Test measure_all applies measurements to all qubits.
+        Does not create a new ClassicalRegister if the existing one is big enough.
+        """
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2, "meas")
+
+        circuit = QuantumCircuit(qr,cr)
+        circuit.measure_all(add_creg=False)
+
+        expected = QuantumCircuit(qr, cr)
+        expected.barrier()
+        expected.measure(qr, cr)
+
+        self.assertEqual(expected, circuit)
 
     def test_measure_all_copy(self):
         """Test measure_all with inplace=False"""
