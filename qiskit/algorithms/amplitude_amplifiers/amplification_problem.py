@@ -64,6 +64,8 @@ class AmplificationProblem:
             self._is_good_state = is_good_state
         elif hasattr(oracle, "evaluate_bitstring"):
             self._is_good_state = oracle.evaluate_bitstring
+        else:
+            self._is_good_state = None
 
     @property
     def oracle(self) -> Union[QuantumCircuit, Statevector]:

@@ -116,7 +116,7 @@ class Grover(AmplitudeAmplifier):
                 * If a list, all the powers in the list are run in the specified order.
                 * If an iterator, the powers yielded by the iterator are checked, until a maximum
                 number of iterations or maximum power is reached.
-                * If None, the AmplificationProblem provided must have an is_good_state, and
+                * If ``None``, the :obj:`.AmplificationProblem` provided must have an is_good_state, and
                 circuits are run until that good state is reached.
             growth_rate: If specified, the iterator is set to increasing powers of ``growth_rate``,
                 i.e. to ``int(growth_rate ** 1), int(growth_rate ** 2), ...`` until a maximum
@@ -184,7 +184,7 @@ class Grover(AmplitudeAmplifier):
         Returns:
             The result as a ``GroverResult``, where e.g. the most likely state can be queried
             as ``result.top_measurement``.
-        
+
         Raises:
             TypeError: If ``is_good_state`` is not provided and is required
         """
@@ -253,12 +253,12 @@ class Grover(AmplitudeAmplifier):
             all_circuit_results.append(circuit_results)
 
             # only check if top measurement is a good state if an _is_good_state arg is provided
-            if hasattr(amplification_problem, "_is_good_state"):
+            if amplification_problem._is_good_state is not None:
                 oracle_evaluation = amplification_problem.is_good_state(top_measurement)
             # _is_good_state must be provided if iterations arg is not an integer
-            elif (iterations is None or len(iterations) > 1) and not hasattr(
-                amplification_problem, "_is_good_state"
-            ):
+            elif (
+                iterations is None or len(iterations) > 1
+            ) and amplification_problem.is_good_state is None:
                 raise TypeError("An is_good_state function is required with the provided oracle")
 
             if oracle_evaluation is True:
