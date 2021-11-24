@@ -32,8 +32,8 @@ from qiskit.opflow import (
     StateFn,
     CircuitStateFn,
     ListOp,
-    I,
     CircuitSampler,
+    PauliSumOp,
 )
 from qiskit.opflow.gradients import GradientBase
 from qiskit.utils.validation import validate_min
@@ -46,9 +46,6 @@ from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult, 
 from ..exceptions import AlgorithmError
 
 logger = logging.getLogger(__name__)
-
-# disable check for ansatzes, optimizer setter because of pylint bug
-# pylint: disable=no-member
 
 
 class VQE(VariationalAlgorithm, MinimumEigensolver):
@@ -446,8 +443,11 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         else:
             list_op = ListOp(aux_operators)
 
-        aux_op_meas = expectation.convert(StateFn(list_op, is_measurement=True))
-        aux_op_expect = aux_op_meas.compose(CircuitStateFn(self.ansatz.bind_parameters(parameters)))
+        aux_op_expect = expectation.convert(
+            StateFn(list_op, is_measurement=True).compose(
+                CircuitStateFn(self.ansatz.bind_parameters(parameters))
+            )
+        )
         aux_op_expect_sampled = sampler.convert(aux_op_expect)
 
         # compute means
@@ -502,7 +502,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         bounds = _validate_bounds(self.ansatz)
         # We need to handle the array entries being zero or Optional i.e. having value None
         if aux_operators:
-            zero_op = I.tensorpower(operator.num_qubits) * 0.0
+            zero_op = PauliSumOp.from_list([("I" * self.ansatz.num_qubits, 0)])
 
             # Convert the None and zero values when aux_operators is a list.
             # Drop None and convert zero values when aux_operators is a dict.
@@ -626,7 +626,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             start_time = time()
             sampled_expect_op = self._circuit_sampler.convert(expect_op, params=param_bindings)
             means = np.real(sampled_expect_op.eval())
-            
+
             if self._callback is not None:
                 variance = np.real(expectation.compute_variance(sampled_expect_op))
                 estimator_error = np.sqrt(variance / self.quantum_instance.run_config.shots)
@@ -677,8 +677,7 @@ queried as VQEResult.ansatz.bind_parameters(VQEResult.optimal_point)."""
         """Get the circuit with the optimal parameters."""
         if self._ret.optimal_point is None:
             raise AlgorithmError(
-                "Cannot find optimal circuit before running the "
-                "algorithm to find optimal params."
+                "Cannot find optimal circuit before running the algorithm to find optimal params."
             )
         return self.ansatz.assign_parameters(self._ret.optimal_parameters)
 
@@ -693,8 +692,7 @@ queried as VQEResult.eigenvector."""
         """Get the simulation outcome of the optimal circuit."""
         if self._ret.optimal_parameters is None:
             raise AlgorithmError(
-                "Cannot find optimal circuit before running the "
-                "algorithm to find optimal vector."
+                "Cannot find optimal circuit before running the algorithm to find optimal vector."
             )
         return self._get_eigenstate(self._ret.optimal_parameters)
 
@@ -763,7 +761,7 @@ def _validate_initial_point(point, ansatz):
     if point is None:
         # get bounds if ansatz has them set, otherwise use [-2pi, 2pi] for each parameter
         bounds = getattr(ansatz, "parameter_bounds", None)
-        if bounds is None:
+        if not bounds:
             bounds = [(-2 * np.pi, 2 * np.pi)] * expected_size
 
         # replace all Nones by [-2pi, 2pi]

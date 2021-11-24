@@ -15,25 +15,16 @@
 # pylint: disable=cyclic-import
 
 import itertools
-from qiskit.circuit.parametervector import ParameterVector
+from typing import List, Optional, Tuple
 import numpy as np
-from typing import Optional, Set, List, Tuple
-from qiskit.opflow.primitive_ops.pauli_op import PauliOp
-from qiskit.circuit.library.evolved_operator_ansatz import EvolvedOperatorAnsatz
-from qiskit.circuit.parameter import Parameter
-from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit import QuantumRegister
-from qiskit.circuit.exceptions import CircuitError
-from qiskit.exceptions import QiskitError
-
-from typing import Optional, List, Tuple
-import numpy as np
-
 from qiskit.circuit.library.evolved_operator_ansatz import EvolvedOperatorAnsatz, _is_pauli_identity
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 
+from ...exceptions import CircuitError
+from ...parameter import Parameter
+from ...exceptions import QiskitError
 
 
 class QAOAAnsatz(EvolvedOperatorAnsatz):
@@ -105,12 +96,10 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
                     )
                 )
 
-
         if self.mixer_operator is not None:
             if isinstance(self.mixer_operator, list):
                 mixer_qubit_check = np.argwhere(
                     [_.num_qubits != self.num_qubits for _ in self.mixer_operator] is True
-
                 )
                 if len(mixer_qubit_check) > 0:
                     valid = False
@@ -136,80 +125,6 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
                         )
 
         return valid
-
-    def _build(self):
-        if self._data is not None:
-            return
-        self._check_configuration()
-        self._data = []
-
-        def build_ansatz_circuit(operators_):  # builds the ansatz from the list of mixer operators
-            circuits = []
-            is_evolved_operator = []
-            coeff = Parameter("c")
-            for op in operators_:
-                if isinstance(op, QuantumCircuit):
-                    circuits.append(op)
-                    is_evolved_operator.append(False)  # has no time coeff
-                else:
-                    # check if the operator is just the identity, if yes, skip it
-                    if isinstance(op, PauliOp):
-                        # possibly need a replacement for the numpy import here
-                        # TODO
-                        sig_qubits = np.logical_or(op.primitive.x, op.primitive.z)
-                        if sum(sig_qubits) == 0:
-                            continue
-                    evolved_op = self.evolution.convert(
-                        (coeff * op).exp_i()
-                    ).reduce()  # ------------ check this, might need negative?
-                    circuits.append(evolved_op.to_circuit())
-                    is_evolved_operator.append(True)  # has time coeff
-            if not circuits:
-                # ADD WARNING HERE TODO
-                print("At least one mixer needs to be defined")
-                return None
-            num_qubits = circuits[0].num_qubits
-            try:
-                qr = QuantumRegister(num_qubits, "q")
-                self.add_register(qr)
-            except CircuitError:
-                # the register already exists, probably because of a previous composition
-                pass
-            times = ParameterVector("t", sum(is_evolved_operator))
-            times_it = iter(times)
-
-            evolution_ = QuantumCircuit(
-                *self.qregs, name=self.name
-            )  # ------- need to figure out how initial_point is passed/ updated with reps
-            evolution_.compose(self.initial_state, inplace=True)
-            first = True
-            for is_evolved, circuit in zip(is_evolved_operator, circuits):
-                if first:
-                    first = False
-                else:
-                    if self._insert_barriers:
-                        evolution_.barrier()
-                if is_evolved:
-                    # not sure what this line does
-                    bound = circuit.assign_parameters({coeff: next(times_it)})
-                else:
-                    bound = circuit
-                evolution_.compose(bound, inplace=True)
-            # then append opt params to self.gamma_values and self.beta_values
-            return evolution_
-
-        varied_operators = list(
-            itertools.chain.from_iterable(
-                [[self.operators[0], mixer] for mixer in self.operators[-1]]
-            )
-        )
-        evolution = build_ansatz_circuit(varied_operators)
-        try:
-            instr = evolution.to_gate()
-        except QiskitError:
-            instr = evolution.to_instruction()
-
-        self.append(instr, self.qubits)
 
     @property
     def parameter_bounds(self) -> Optional[List[Tuple[Optional[float], Optional[float]]]]:
@@ -259,7 +174,15 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
              List[Union[OperatorBase, QuantumCircuit]]: The operators to be evolved (and circuits)
                 in this ansatz.
         """
-        return [self.cost_operator, self.mixer_operator]
+        if isinstance(self.mixer_operator,list) and self.name=='AdaptQAOA':
+            varied_operators = list(
+                itertools.chain.from_iterable(
+                    [[self.cost_operator, mixer] for mixer in self.mixer_operator]
+                )
+            )
+            return varied_operators
+        else:
+            return [self.cost_operator, self.mixer_operator]
 
     @property
     def cost_operator(self):
@@ -328,16 +251,16 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         # if no mixer is passed and we know the number of qubits, then initialize it.
         if self.cost_operator is not None:
             # local imports to avoid circular imports
-            from qiskit.opflow import I, X
+            from qiskit.opflow import PauliSumOp
 
             num_qubits = self.cost_operator.num_qubits
 
             # Mixer is just a sum of single qubit X's on each qubit. Evolving by this operator
             # will simply produce rx's on each qubit.
             mixer_terms = [
-                (I ^ left) ^ X ^ (I ^ (num_qubits - left - 1)) for left in range(num_qubits)
+                ("I" * left + "X" + "I" * (num_qubits - left - 1), 1) for left in range(num_qubits)
             ]
-            mixer = sum(mixer_terms)
+            mixer = PauliSumOp.from_list(mixer_terms)
             return mixer
 
         # otherwise we cannot provide a default
@@ -354,29 +277,8 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         self._mixer = mixer_operator
         self._invalidate()
 
-    def _build(self):
-        if self._data is not None:
-            return
-
-        super()._build()
-
-        # keep old parameter order: first cost operator, then mixer operators
-        num_cost = 0 if _is_pauli_identity(self.cost_operator) else 1
-        if isinstance(self.mixer_operator, QuantumCircuit):
-            num_mixer = self.mixer_operator.num_parameters
-        else:
-            num_mixer = 0 if _is_pauli_identity(self.mixer_operator) else 1
-
-        betas = ParameterVector("β", self.reps * num_mixer)
-        gammas = ParameterVector("γ", self.reps * num_cost)
-
-        # Create a permutation to take us from (cost_1, mixer_1, cost_2, mixer_2, ...)
-        # to (cost_1, cost_2, ..., mixer_1, mixer_2, ...), or if the mixer is a circuit
-        # with more than 1 parameters, from (cost_1, mixer_1a, mixer_1b, cost_2, ...)
-        # to (cost_1, cost_2, ..., mixer_1a, mixer_1b, mixer_2a, mixer_2b, ...)
-        reordered = []
-        for rep in range(self.reps):
-            reordered.extend(gammas[rep * num_cost : (rep + 1) * num_cost])
-            reordered.extend(betas[rep * num_mixer : (rep + 1) * num_mixer])
-
-        self.assign_parameters(dict(zip(self.ordered_parameters, reordered)), inplace=True)
+    @property
+    def num_qubits(self) -> int:
+        if self._cost_operator is None:
+            return 0
+        return self._cost_operator.num_qubits

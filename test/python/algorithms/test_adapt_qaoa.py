@@ -51,7 +51,6 @@ def _string_to_qiskit(qstring):
     return reduce(lambda a, b: a ^ b, [qis_dict[char.upper()] for char in qstring])
 
 
-
 def _create_mixer_pool(num_q, add_multi, circ, parameterize):
     """Compute the mixer pool
     Args:
@@ -83,7 +82,6 @@ def _create_mixer_pool(num_q, add_multi, circ, parameterize):
 
             mixer_pool.append("".join(iden_str))
 
-
     mixer_circ_list = []
     for mix_str in mixer_pool:
         if circ:
@@ -95,7 +93,6 @@ def _create_mixer_pool(num_q, add_multi, circ, parameterize):
                 qiskit_dict = {"I": IGate(), "X": XGate(), "Y": YGate(), "Z": ZGate()}
                 if parameterize:
                     qiskit_dict = {"I": IGate(), "X": XGate(), "Y": YGate(), "Z": ZGate()}
-
 
                 mix_qis_gate = qiskit_dict[mix]
                 qc.append(mix_qis_gate, [i])
@@ -197,11 +194,9 @@ class TestAdaptQAOA(QiskitAlgorithmsTestCase):
         num_qubits = qubit_op.num_qubits
         mixer = _create_mixer_pool(num_qubits, add_multi=True, circ=True, parameterize=True)
 
-
         adapt_qaoa = AdaptQAOA(
             optimizer, prob, mixer=mixer, quantum_instance=self.statevector_simulator
         )
-
 
         result = adapt_qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
