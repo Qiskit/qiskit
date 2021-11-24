@@ -174,7 +174,10 @@ class ControlFlowBuilderBlock:
         """
         Args:
             qubits: Any qubits this scope should consider itself as using from the beginning.
-            clbits: Any clbits this scope should consider itself as using from the beginning.
+            clbits: Any clbits this scope should consider itself as using from the beginning.  Along
+                with ``qubits``, this is useful for things such as ``if`` and ``while`` loop
+                builders, where the classical condition has associated resources, and is known when
+                this scope is created.
             allow_jumps: Whether this builder scope should allow ``break`` and ``continue``
                 statements within it.  This is intended to help give sensible error messages when
                 dangerous behaviour is encountered, such as using ``break`` inside an ``if`` context
