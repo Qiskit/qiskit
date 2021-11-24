@@ -116,7 +116,7 @@ class Grover(AmplitudeAmplifier):
                 * If a list, all the powers in the list are run in the specified order.
                 * If an iterator, the powers yielded by the iterator are checked, until a maximum
                 number of iterations or maximum power is reached.
-                * If ``None``, the :obj:`.AmplificationProblem` provided must have an is_good_state, and
+                * If ``None``, the :obj:`AmplificationProblem` provided must have an is_good_state, and
                 circuits are run until that good state is reached.
             growth_rate: If specified, the iterator is set to increasing powers of ``growth_rate``,
                 i.e. to ``int(growth_rate ** 1), int(growth_rate ** 2), ...`` until a maximum
@@ -186,7 +186,7 @@ class Grover(AmplitudeAmplifier):
             as ``result.top_measurement``.
 
         Raises:
-            TypeError: If ``is_good_state`` is not provided and is required
+            TypeError: If ``is_good_state`` is not provided and is required (i.e. when iterations is ``None`` or or a ``list``)
         """
         if isinstance(self._iterations, list):
             max_iterations = len(self._iterations)
@@ -252,14 +252,14 @@ class Grover(AmplitudeAmplifier):
 
             all_circuit_results.append(circuit_results)
 
-            # only check if top measurement is a good state if an is_good_state arg has been provided
-            if amplification_problem.is_good_state is not None:
-                oracle_evaluation = amplification_problem.is_good_state(top_measurement)
-            # is_good_state arg must be provided if iterations arg is not an integer
-            elif (
+            if len(iterations) == 1 and amplification_problem.is_good_state is None:
+                oracle_evaluation = None  # cannot check for good state without is_good_state arg
+            elif (  # is_good_state arg must be provided if iterations arg is not an integer
                 iterations is None or len(iterations) > 1
             ) and amplification_problem.is_good_state is None:
                 raise TypeError("An is_good_state function is required with the provided oracle")
+            else:  # only check if top measurement is a good state if an is_good_state arg has been provided
+                oracle_evaluation = amplification_problem.is_good_state(top_measurement)
 
             if oracle_evaluation is True:
                 break  # we found a solution
