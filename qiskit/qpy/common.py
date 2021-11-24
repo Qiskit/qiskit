@@ -21,6 +21,8 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.library import Waveform, ParametricPulse
+from qiskit.pulse.schedule import ScheduleBlock
+from qiskit.pulse.instructions import Instruction as PulseInstruction
 
 # OBJECT binary format
 OBJECT = namedtuple("OBJECT", ["type", "size"])
@@ -40,6 +42,8 @@ class TypeKey(Flag):
     CHANNEL = "d"
     PARAMETRIC_PULSE = "r"
     WAVEFORM = "w"
+    SCHEDULE_BLOCK = "b"
+    INSTRUCTION = "j"
 
     @classmethod
     def is_number(cls, type_key):
@@ -75,6 +79,10 @@ def assign_key(obj):
         return TypeKey.WAVEFORM
     if isinstance(obj, ParametricPulse):
         return TypeKey.PARAMETRIC_PULSE
+    if isinstance(obj, ScheduleBlock):
+        return TypeKey.SCHEDULE_BLOCK
+    if isinstance(obj, PulseInstruction):
+        return TypeKey.INSTRUCTION
 
     raise TypeError(f"Object type {type(obj)} is not supported.")
 

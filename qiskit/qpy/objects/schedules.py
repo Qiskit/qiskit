@@ -36,6 +36,7 @@ from qiskit.exceptions import QiskitError
 
 from qiskit.pulse import channels, instructions, library
 from qiskit.pulse.transforms import alignments
+from qiskit.pulse.schedule import ScheduleBlock
 
 from qiskit.pulse.channels import Channel
 from qiskit.qpy.common import (
@@ -52,6 +53,18 @@ from .parameter_values import (
 )
 from .mapping import write_mapping, read_mapping
 
+# SCHEDULE_BLOCK binary format
+SCHEDULE_BLOCK = namedtuple(
+    "SCHEDULE_BLOCK",
+    [
+        "name_size",
+        "metadata_size",
+        "alignment_data_size",
+        "num_elements",
+    ]
+)
+SCHEDULE_BLOCK_PACK = "!HQQQ"
+SCHEDULE_BLOCK_PACK_SIZE = struct.calcsize(SCHEDULE_BLOCK_PACK)
 
 # CHANNEL binary format
 CHANNEL = namedtuple("CHANNEL", ["name_size", "index_type", "index_size"])
@@ -295,3 +308,73 @@ def _write_alignment_context(file_obj, context):
     file_obj.write(name_size)
     file_obj.write(alignment_class_name)
     write_mapping(file_obj, context.to_dict())
+
+
+def _read_schedule_block(file_obj):
+    block_header = struct.unpack(SCHEDULE_BLOCK_PACK, file_obj.read(SCHEDULE_BLOCK_PACK_SIZE))
+    block_name = file_obj.read(block_header[0]).decode("utf8")
+    metadata = json.loads(file_obj.read(block_header[1]))
+    with io.BytesIO(file_obj.read(block_header[2])) as alignment_container:
+        alignment_data = _read_alignment_context(alignment_container)
+
+    blocks = []
+    for _ in range(block_header[3]):
+        type_key, data_binary = read_binary(file_obj)
+        if type_key == TypeKey.SCHEDULE_BLOCK:
+            with io.BytesIO(data_binary) as block_container:
+                block_elem = _read_schedule_block(block_container)
+        elif type_key == TypeKey.INSTRUCTION:
+            with io.BytesIO(data_binary) as block_container:
+                block_elem = _read_instruction(block_container)
+        else:
+            raise TypeError(f"Invalid block component type {type_key} for {data_binary}.")
+        blocks.append(block_elem)
+
+    deser_block = ScheduleBlock(
+        name=block_name,
+        metadata=metadata,
+        alignment_context=alignment_data,
+    )
+    for block in blocks:
+        deser_block.append(block, inplace=True)
+
+    return deser_block
+
+
+def _write_schedule_block(file_obj, block):
+    block_name = block.name.encode("utf8")
+    metadata = json.dumps(block.metadata, separators=(",", ":")).encode("utf8")
+    with io.BytesIO() as alignment_container:
+        _write_alignment_context(alignment_container, block.alignment_context)
+        alignment_container.seek(0)
+        alignment_data = alignment_container.read()
+
+    block_header = struct.pack(
+        SCHEDULE_BLOCK_PACK,
+        len(block_name),
+        len(metadata),
+        len(alignment_data),
+        len(block),
+    )
+    file_obj.write(block_header)
+    file_obj.write(block_name)
+    file_obj.write(metadata)
+    file_obj.write(alignment_data)
+
+    for block_elem in block.blocks:
+        if isinstance(block_elem, ScheduleBlock):
+            type_key = TypeKey.SCHEDULE_BLOCK
+            with io.BytesIO() as block_container:
+                _write_schedule_block(block_container, block_elem)
+                block_container.seek(0)
+                block_data = block_container.read()
+        elif isinstance(block_elem, instructions.Instruction):
+            type_key = TypeKey.INSTRUCTION
+            with io.BytesIO() as block_container:
+                _write_instruction(block_container, block_elem)
+                block_container.seek(0)
+                block_data = block_container.read()
+        else:
+            raise TypeError(f"Invalid block component {type(block_elem)}.")
+
+        write_binary(file_obj, block_data, type_key)
