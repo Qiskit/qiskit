@@ -23,7 +23,6 @@ decorators in the ``decorators`` package.
 """
 
 import inspect
-import itertools
 import logging
 import os
 import sys
@@ -33,64 +32,47 @@ from unittest.util import safe_repr
 
 try:
     import fixtures
-    from testtools.compat import advance_iterator
-    from testtools import content
+    import testtools
 
     HAS_FIXTURES = True
 except ImportError:
     HAS_FIXTURES = False
 
-from qiskit.exceptions import MissingOptionalLibraryError
 from .decorators import enforce_subclasses_call
-from .runtest import RunTest, MultipleExceptions
 from .utils import Path, setup_test_logging
 
 
 __unittest = True  # Allows shorter stack trace for .assertDictAlmostEqual
 
 
-def _copy_content(content_object):
-    """Make a copy of the given content object.
+# If testtools is installed use that as a (mostly) drop in replacement for
+# unittest's TestCase. This will enable the fixtures used for capturing stdout
+# stderr, and pylogging to attach the output to stestr's result stream.
+if HAS_FIXTURES:
 
-    The content within ``content_object`` is iterated and saved. This is
-    useful when the source of the content is volatile, a log file in a
-    temporary directory for example.
+    class BaseTestCase(testtools.TestCase):
+        """Base test class."""
 
-    Args:
-    content_object (content.Content): A ``content.Content`` instance.
-
-    Returns:
-        content.Content: An instance with the same mime-type as
-            ``content_object`` and a non-volatile copy of its content.
-    """
-    content_bytes = list(content_object.iter_bytes())
-
-    def content_callback():
-        return content_bytes
-
-    return content.Content(content_object.content_type, content_callback)
+        # testtools maintains their own version of assert functions which mostly
+        # behave as value adds to the std unittest assertion methods. However,
+        # for assertEquals and assertRaises modern unittest has diverged from
+        # the forks in testtools and offer more (or different) options that are
+        # incompatible testtools versions. Just use the stdlib versions so that
+        # our tests work as expected.
+        assertRaises = unittest.TestCase.assertRaises
+        assertEqual = unittest.TestCase.assertEqual
 
 
-def gather_details(source_dict, target_dict):
-    """Merge the details from ``source_dict`` into ``target_dict``.
+else:
 
-    ``gather_details`` evaluates all details in ``source_dict``. Do not use it
-    if the details are not ready to be evaluated.
+    class BaseTestCase(unittest.TestCase):
+        """Base test class."""
 
-    :param source_dict: A dictionary of details will be gathered.
-    :param target_dict: A dictionary into which details will be gathered.
-    """
-    for name, content_object in source_dict.items():
-        new_name = name
-        disambiguator = itertools.count(1)
-        while new_name in target_dict:
-            new_name = "%s-%d" % (name, advance_iterator(disambiguator))
-        name = new_name
-        target_dict[name] = _copy_content(content_object)
+        pass
 
 
 @enforce_subclasses_call(["setUp", "setUpClass", "tearDown", "tearDownClass"])
-class BaseQiskitTestCase(unittest.TestCase):
+class BaseQiskitTestCase(BaseTestCase):
     """Additions for test cases for all Qiskit-family packages.
 
     The additions here are intended for all packages, not just Terra.  Terra-specific logic should
@@ -256,165 +238,6 @@ class FullQiskitTestCase(QiskitTestCase):
     If you derive directly from it, you may try and instantiate the class without satisfying its
     dependencies."""
 
-    run_tests_with = RunTest
-
-    def __init__(self, *args, **kwargs):
-        """Construct a TestCase."""
-        if not HAS_FIXTURES:
-            raise MissingOptionalLibraryError(
-                libname="testtools",
-                name="test runner",
-                pip_install="pip install testtools",
-            )
-        super().__init__(*args, **kwargs)
-        self.__RunTest = self.run_tests_with
-        self._reset()
-        self.__exception_handlers = []
-        self.exception_handlers = [
-            (unittest.SkipTest, self._report_skip),
-            (self.failureException, self._report_failure),
-            (unittest.case._UnexpectedSuccess, self._report_unexpected_success),
-            (Exception, self._report_error),
-        ]
-
-    def _reset(self):
-        """Reset the test case as if it had never been run."""
-        self._cleanups = []
-        self._unique_id_gen = itertools.count(1)
-        # Generators to ensure unique traceback ids.  Maps traceback label to
-        # iterators.
-        self._traceback_id_gens = {}
-        self.__details = None
-
-    def onException(self, exc_info, tb_label="traceback"):
-        """Called when an exception propagates from test code.
-
-        :seealso addOnException:
-        """
-        if exc_info[0] not in [unittest.SkipTest, unittest.case._UnexpectedSuccess]:
-            self._report_traceback(exc_info, tb_label=tb_label)
-        for handler in self.__exception_handlers:
-            handler(exc_info)
-
-    def _run_teardown(self, result):
-        """Run the tearDown function for this test."""
-        self.tearDown()
-
-    def _get_test_method(self):
-        method_name = getattr(self, "_testMethodName")
-        return getattr(self, method_name)
-
-    def _run_test_method(self, result):
-        """Run the test method for this test."""
-        return self._get_test_method()()
-
-    def useFixture(self, fixture):
-        """Use fixture in a test case.
-
-        The fixture will be setUp, and self.addCleanup(fixture.cleanUp) called.
-
-        Args:
-            fixture: The fixture to use.
-
-        Returns:
-            fixture: The fixture, after setting it up and scheduling a cleanup
-                for it.
-
-        Raises:
-            MultipleExceptions: When there is an error during fixture setUp
-            Exception: If an exception is raised during fixture setUp
-        """
-        try:
-            fixture.setUp()
-        except MultipleExceptions as e:
-            if fixtures is not None and e.args[-1][0] is fixtures.fixture.SetupError:
-                gather_details(e.args[-1][1].args[0], self.getDetails())
-            raise
-        except Exception:
-            exc_info = sys.exc_info()
-            try:
-                # fixture._details is not available if using the newer
-                # _setUp() API in Fixtures because it already cleaned up
-                # the fixture.  Ideally this whole try/except is not
-                # really needed any more, however, we keep this code to
-                # remain compatible with the older setUp().
-                if hasattr(fixture, "_details") and fixture._details is not None:
-                    gather_details(fixture.getDetails(), self.getDetails())
-            except Exception:
-                # Report the setUp exception, then raise the error during
-                # gather_details.
-                self._report_traceback(exc_info)
-                raise
-            else:
-                # Gather_details worked, so raise the exception setUp
-                # encountered.
-                def reraise(exc_class, exc_obj, exc_tb, _marker=object()):
-                    """Re-raise an exception received from sys.exc_info() or similar."""
-                    raise exc_obj.with_traceback(exc_tb)
-
-                reraise(*exc_info)
-        else:
-            self.addCleanup(fixture.cleanUp)
-            self.addCleanup(gather_details, fixture.getDetails(), self.getDetails())
-            return fixture
-
-    def _run_setup(self, result):
-        """Run the setUp function for this test."""
-        self.setUp()
-
-    def _add_reason(self, reason):
-        self.addDetail("reason", content.text_content(reason))
-
-    @staticmethod
-    def _report_error(self, result, err):
-        result.addError(self, details=self.getDetails())
-
-    @staticmethod
-    def _report_expected_failure(self, result, err):
-        result.addExpectedFailure(self, details=self.getDetails())
-
-    @staticmethod
-    def _report_failure(self, result, err):
-        result.addFailure(self, details=self.getDetails())
-
-    @staticmethod
-    def _report_skip(self, result, err):
-        if err.args:
-            reason = err.args[0]
-        else:
-            reason = "no reason given."
-        self._add_reason(reason)
-        result.addSkip(self, details=self.getDetails())
-
-    def _report_traceback(self, exc_info, tb_label="traceback"):
-        id_gen = self._traceback_id_gens.setdefault(tb_label, itertools.count(0))
-        while True:
-            tb_id = advance_iterator(id_gen)
-            if tb_id:
-                tb_label = "%s-%d" % (tb_label, tb_id)
-            if tb_label not in self.getDetails():
-                break
-        self.addDetail(
-            tb_label,
-            content.TracebackContent(
-                exc_info, self, capture_locals=getattr(self, "__testtools_tb_locals__", False)
-            ),
-        )
-
-    @staticmethod
-    def _report_unexpected_success(self, result, err):
-        result.addUnexpectedSuccess(self, details=self.getDetails())
-
-    def run(self, result=None):
-        self._reset()
-        try:
-            run_test = self.__RunTest(self, self.exception_handlers, last_resort=self._report_error)
-        except TypeError:
-            # Backwards compat: if we can't call the constructor
-            # with last_resort, try without that.
-            run_test = self.__RunTest(self, self.exception_handlers)
-        return run_test.run(result)
-
     def setUp(self):
         super().setUp()
         if os.environ.get("QISKIT_TEST_CAPTURE_STREAMS"):
@@ -423,42 +246,6 @@ class FullQiskitTestCase(QiskitTestCase):
             stderr = self.useFixture(fixtures.StringStream("stderr")).stream
             self.useFixture(fixtures.MonkeyPatch("sys.stderr", stderr))
             self.useFixture(fixtures.LoggerFixture(nuke_handlers=False, level=None))
-
-    def addDetail(self, name, content_object):
-        """Add a detail to be reported with this test's outcome.
-
-        :param name: The name to give this detail.
-        :param content_object: The content object for this detail. See
-            testtools.content for more detail.
-        """
-        if self.__details is None:
-            self.__details = {}
-        self.__details[name] = content_object
-
-    def addDetailUniqueName(self, name, content_object):
-        """Add a detail to the test, but ensure it's name is unique.
-
-        This method checks whether ``name`` conflicts with a detail that has
-        already been added to the test. If it does, it will modify ``name`` to
-        avoid the conflict.
-
-        :param name: The name to give this detail.
-        :param content_object: The content object for this detail. See
-            testtools.content for more detail.
-        """
-        existing_details = self.getDetails()
-        full_name = name
-        suffix = 1
-        while full_name in existing_details:
-            full_name = "%s-%d" % (name, suffix)
-            suffix += 1
-        self.addDetail(full_name, content_object)
-
-    def getDetails(self):
-        """Get the details dict that will be reported with this test's outcome."""
-        if self.__details is None:
-            self.__details = {}
-        return self.__details
 
 
 def dicts_almost_equal(dict1, dict2, delta=None, places=None, default_value=0):
