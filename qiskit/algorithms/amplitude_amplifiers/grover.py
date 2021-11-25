@@ -154,6 +154,7 @@ class Grover(AmplitudeAmplifier):
             self.quantum_instance = quantum_instance
 
         self._sample_from_iterations = sample_from_iterations
+        self._iterations_arg = iterations
 
     @property
     def quantum_instance(self) -> Optional[QuantumInstance]:
@@ -253,12 +254,14 @@ class Grover(AmplitudeAmplifier):
 
             all_circuit_results.append(circuit_results)
 
-            if len(iterations) == 1 and amplification_problem.is_good_state is None:
+            if (isinstance(self._iterations_arg, int)) and (
+                amplification_problem.is_good_state is None
+            ):
                 oracle_evaluation = None  # cannot check for good state without is_good_state arg
                 break
             # is_good_state arg must be provided if iterations arg is not an integer
             elif (
-                iterations is None or len(iterations) > 1
+                self._iterations_arg is None or isinstance(self._iterations_arg, list)
             ) and amplification_problem.is_good_state is None:
                 raise TypeError("An is_good_state function is required with the provided oracle")
             # only check if top measurement is a good state if an is_good_state arg is provided
