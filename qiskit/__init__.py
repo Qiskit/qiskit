@@ -137,6 +137,7 @@ __all__ = [
     "MissingOptionalLibraryError",
     "QiskitError",
     "__qiskit_version__",
+    "__version__",
     "QuantumCircuit",
     "QuantumRegister",
     "assemble",
