@@ -182,8 +182,10 @@ class AdaptQAOA(QAOA):
     ):
         self.cost_operator = operator
         p, self.ansatz = 0, self.initial_state  # initialise layer loop counter and ansatz
+        print("--------------------------------------------------------")
         while p < self.max_reps:        # loop over number of maximum reps
             best_mixer, energy_norm = self._test_mixer_pool(operator=operator)
+            print("REPETITION: {}".format(p))
             print("Current energy norm | Threshold  =====> | {} | {} |".format(energy_norm,self.threshold))
             if energy_norm < self.threshold:          # Threshold stoppage condition
                 break
@@ -198,11 +200,11 @@ class AdaptQAOA(QAOA):
             opt_params = result.optimal_point
             self.best_gamma = list(opt_params[0:][::2])
             self.best_beta = list(opt_params[1:][::2])
-            print()
+            print(self.ansatz.decompose().draw())
             print("Optimal parameters: {}".format(opt_params))
             print("Initial point: {}".format(self.initial_point))
-            print()
-            self._reps+=1
+            print("New mixer {}".format(self.optimal_mixer_list[-1]))
+            print("--------------------------------------------------------")
             p += 1
         pass
 
@@ -230,12 +232,13 @@ class AdaptQAOA(QAOA):
     @property
     def mixer_pool(self) -> List:
         if not self._mixer_pool:
-            try:
+            if not hasattr(self,"num_qubits"):
+                raise AttributeError("Unable to automatically generate operators in mixer pool "
+                                    "without reference to a problem operator.")
+            else:
                 self._mixer_pool = adapt_mixer_pool(
                     num_qubits=self.num_qubits, pool_type=self.mixer_pool_type
                 )
-            except:  # TODO: Fix this num_qubits exception
-                self._mixer_pool = adapt_mixer_pool(num_qubits=5, pool_type=self.mixer_pool_type)
         return self._mixer_pool
 
     @mixer_pool.setter
@@ -425,13 +428,11 @@ if __name__ == "__main__":
     def is_all_same(items):
         return all(x == items[0] for x in items)
 
-    mixer_list = ["XXIII", "XIIX", "IXXII"]
-    cost_op = string_to_qiskit("IIIZZ") + string_to_qiskit("ZZIII")
-    mixer_list = [string_to_qiskit(x) for x in mixer_list]
+    cost_op = string_to_qiskit("IIIZ") + string_to_qiskit("ZZII")
 
     quantum_instance = QuantumInstance(Aer.get_backend("qasm_simulator"), shots=1024)
 
-    adapt = AdaptQAOA(mixer_pool_type="multi", max_reps=5, quantum_instance=quantum_instance)
+    adapt = AdaptQAOA(mixer_pool_type="multi", max_reps=10, quantum_instance=quantum_instance)
     print(adapt.run_adapt(cost_op))
 
     # qaoa = QAOA(reps=5, quantum_instance=quantum_instance)
