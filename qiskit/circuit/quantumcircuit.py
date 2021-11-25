@@ -2206,28 +2206,32 @@ class QuantumCircuit:
             return None
 
     def measure_all(
-        self, inplace: bool = True, add_creg: bool = True
+        self, inplace: bool = True, add_bits: bool = True
     ) -> Optional["QuantumCircuit"]:
-        """Adds measurement to all qubits. Creates a new ClassicalRegister with a
-        size equal to the number of qubits being measured if `add_creg = True`.
-
+        """Adds measurement to all qubits.
+        
+        By default, creates a new ClassicalRegister to store these measurements.
+        If `add_bits=False`, the results of the measurements will be stored in
+        the already existing classical bits, with qubit `n` being measured into
+        classical bit `n`.
+        
         Returns a new circuit with measurements if `inplace=False`.
 
         Args:
             inplace (bool): All measurements inplace or return new circuit.
-            add_creg (bool): Adds a new classical register.
+            add_bits (bool): Whether to add new bits to store the results.
 
         Returns:
             QuantumCircuit: Returns circuit with measurements when `inplace = False`.
 
         Raises:
-            CircuitError: if `add_creg = False` and `len(circ.clbits) < len(circ.qubits)`.
+            CircuitError: if `add_bits = False` but there are not enough classical bits.
         """
         if inplace:
             circ = self
         else:
             circ = self.copy()
-        if add_creg:
+        if add_bits:
             new_creg = circ._create_creg(len(circ.qubits), "meas")
             circ.add_register(new_creg)
             circ.barrier()
@@ -2235,8 +2239,8 @@ class QuantumCircuit:
         else:
             if len(circ.clbits) < len(circ.qubits):
                 raise CircuitError(
-                    "The size of the ClassicalRegister must be equal or greater than"
-                    "the size of the QuantumRegister."
+                    "The size of classical bits must be equal or greater than "
+                    "the number of qubits."
                 )
             circ.barrier()
             circ.measure(circ.qubits, circ.clbits[0 : len(circ.qubits)])
