@@ -19,8 +19,7 @@ from qiskit.quantum_info.operators import SparsePauliOp, Pauli
 from qiskit.utils import algorithm_globals
 
 from .product_formula import ProductFormula
-
-# pylint: disable=invalid-name
+from .lie_trotter import LieTrotter
 
 
 class QDrift(ProductFormula):
@@ -58,12 +57,12 @@ class QDrift(ProductFormula):
 
     @property
     def sampled_ops(self) -> List[Tuple[Pauli, float]]:
-        """returns the list of sampled Pauli ops and their coefficients"""
+        """returns the list of the last sampled Pauli ops and their coefficients"""
         return self._sampled_ops
 
     @sampled_ops.setter
     def sampled_ops(self, sampled_ops: List[Tuple[Pauli, float]]) -> None:
-        """sets the list of sampled Pauli ops and their coefficients"""
+        """sets the list of the last sampled Pauli ops and their coefficients"""
         self._sampled_ops = sampled_ops
 
     def synthesize(self, evolution):
@@ -78,33 +77,33 @@ class QDrift(ProductFormula):
             pauli_list = [(op, 1) for op in operators]
             coeffs = [1 for op in operators]
 
-        # We artificially make the weights positive, TODO check approximation performance
+        # We artificially make the weights positive
         weights = np.abs(coeffs)
         lambd = np.sum(weights)
 
-        N = 2 * (lambd ** 2) * (time ** 2)
-        factor = lambd * time / N * self.reps
+        num_gates = 2 * (lambd ** 2) * (time ** 2)
+        factor = lambd * time / num_gates * self.reps
         # The protocol calls for the removal of the individual coefficients,
         # and multiplication by a constant factor.
         scaled_ops = [(op, factor / coeff) for op, coeff in pauli_list]
         self.sampled_ops = algorithm_globals.random.choice(
             np.array(scaled_ops, dtype=object),
-            size=(int(np.ceil(N * self.reps)),),
+            size=(int(np.ceil(num_gates * self.reps)),),
             p=weights / lambd,
         )
 
-        # construct the evolution circuit
-        evolution_circuit = QuantumCircuit(operators[0].num_qubits)
-        first_barrier = False
+        from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
+        from qiskit.opflow import PauliOp
 
-        for op, coeff in self.sampled_ops:
-            # add barriers
-            if first_barrier:
-                if self.insert_barriers:
-                    evolution_circuit.barrier()
-            else:
-                first_barrier = True
-
-            evolution_circuit.compose(self.atomic_evolution(op, coeff), wrap=True, inplace=True)
+        # Build the evolution circuit using the LieTrotter synthesis with the sampled operators
+        lie_trotter = LieTrotter(
+            insert_barriers=self.insert_barriers, atomic_evolution=self.atomic_evolution
+        )
+        # We pass time=1 because the time is already contained in the coefficients of the Paulis.
+        evolution_circuit = PauliEvolutionGate(
+            sum(coeff * PauliOp(op) for op, coeff in self.sampled_ops),
+            time=1,
+            synthesis=lie_trotter,
+        ).definition
 
         return evolution_circuit

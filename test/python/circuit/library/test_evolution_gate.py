@@ -11,9 +11,8 @@
 # that they have been altered from the originals.
 
 """Test the evolution gate."""
-
 import scipy
-from ddt import ddt, data, idata, unpack
+from ddt import ddt, data, unpack
 
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import PauliEvolutionGate
@@ -113,11 +112,9 @@ class TestEvolutionGate(QiskitTestCase):
 
         self.assertEqual(evo_gate.definition.decompose(), expected)
 
-    @idata(
-        [
-            [X + Y, 0.5, 1],
-            [X, 0.238, 2],
-        ]
+    @data(
+        (X + Y, 0.5, 1),
+        (X, 0.238, 2),
     )
     @unpack
     def test_qdrift_manual(self, op, time, reps):
@@ -134,7 +131,7 @@ class TestEvolutionGate(QiskitTestCase):
             elif pauli[0].to_label() == "Y":
                 expected.ry(2 * pauli[1], 0)
 
-        self.assertEqual(evo_gate.definition.decompose(), expected)
+        self.assertTrue(Operator(evo_gate.definition).equiv(expected))
 
     def test_passing_grouped_paulis(self):
         """Test passing a list of already grouped Paulis."""
