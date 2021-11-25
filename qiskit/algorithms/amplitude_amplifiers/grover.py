@@ -255,6 +255,7 @@ class Grover(AmplitudeAmplifier):
 
             if len(iterations) == 1 and amplification_problem.is_good_state is None:
                 oracle_evaluation = None  # cannot check for good state without is_good_state arg
+                break
             # is_good_state arg must be provided if iterations arg is not an integer
             elif (
                 iterations is None or len(iterations) > 1
