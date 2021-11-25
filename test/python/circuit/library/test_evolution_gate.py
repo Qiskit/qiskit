@@ -125,7 +125,7 @@ class TestEvolutionGate(QiskitTestCase):
 
         # manually construct expected evolution
         expected = QuantumCircuit(1)
-        for pauli in qdrift.sampled_ops:
+        for pauli in qdrift._sampled_ops:
             if pauli[0].to_label() == "X":
                 expected.rx(2 * pauli[1], 0)
             elif pauli[0].to_label() == "Y":

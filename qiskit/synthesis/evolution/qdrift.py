@@ -12,7 +12,7 @@
 
 """QDrift Class"""
 
-from typing import List, Union, Optional, Callable, Tuple
+from typing import Union, Optional, Callable
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
@@ -53,17 +53,7 @@ class QDrift(ProductFormula):
                 and a single qubit Z rotation.
         """
         super().__init__(1, reps, insert_barriers, cx_structure, atomic_evolution)
-        self.sampled_ops = None
-
-    @property
-    def sampled_ops(self) -> List[Tuple[Pauli, float]]:
-        """returns the list of the last sampled Pauli ops and their coefficients"""
-        return self._sampled_ops
-
-    @sampled_ops.setter
-    def sampled_ops(self, sampled_ops: List[Tuple[Pauli, float]]) -> None:
-        """sets the list of the last sampled Pauli ops and their coefficients"""
-        self._sampled_ops = sampled_ops
+        self._sampled_ops = None
 
     def synthesize(self, evolution):
         # get operators and time to evolve
@@ -86,7 +76,7 @@ class QDrift(ProductFormula):
         # The protocol calls for the removal of the individual coefficients,
         # and multiplication by a constant factor.
         scaled_ops = [(op, factor / coeff) for op, coeff in pauli_list]
-        self.sampled_ops = algorithm_globals.random.choice(
+        self._sampled_ops = algorithm_globals.random.choice(
             np.array(scaled_ops, dtype=object),
             size=(int(np.ceil(num_gates * self.reps)),),
             p=weights / lambd,
@@ -101,7 +91,7 @@ class QDrift(ProductFormula):
         )
         # We pass time=1 because the time is already contained in the coefficients of the Paulis.
         evolution_circuit = PauliEvolutionGate(
-            sum(coeff * PauliOp(op) for op, coeff in self.sampled_ops),
+            sum(coeff * PauliOp(op) for op, coeff in self._sampled_ops),
             time=1,
             synthesis=lie_trotter,
         ).definition
