@@ -122,10 +122,8 @@ class HHL(LinearSolver):
 
         self._scaling = None  # scaling of the solution
 
-        if quantum_instance is not None:
-            self._sampler = CircuitSampler(quantum_instance)
-        else:
-            self._sampler = None
+        self._sampler = None
+        self.quantum_instance = quantum_instance
 
         self._expectation = expectation
 
@@ -141,18 +139,22 @@ class HHL(LinearSolver):
         Returns:
             The quantum instance used to run this algorithm.
         """
-        return self._sampler.quantum_instance
+        return None if self._sampler is None else self._sampler.quantum_instance
 
     @quantum_instance.setter
     def quantum_instance(
-        self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]
+        self, quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]]
     ) -> None:
         """Set quantum instance.
 
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
+                If None, a Statevector calculation is done.
         """
-        self._sampler.quantum_instance = quantum_instance
+        if quantum_instance is not None:
+            self._sampler = CircuitSampler(quantum_instance)
+        else:
+            self._sampler = None
 
     @property
     def scaling(self) -> float:
@@ -405,7 +407,7 @@ class HHL(LinearSolver):
             # Calculate breakpoints for the reciprocal approximation
             num_values = 2 ** nl
             constant = delta
-            a = int(round(num_values ** (2 / 3)))  # pylint: disable=invalid-name
+            a = int(round(num_values ** (2 / 3)))
 
             # Calculate the degree of the polynomial and the number of intervals
             r = 2 * constant / a + np.sqrt(np.abs(1 - (2 * constant / a) ** 2))
@@ -517,8 +519,7 @@ class HHL(LinearSolver):
         if observable is not None:
             if observable_circuit is not None or post_processing is not None:
                 raise ValueError(
-                    "If observable is passed, observable_circuit and post_processing "
-                    "cannot be set."
+                    "If observable is passed, observable_circuit and post_processing cannot be set."
                 )
 
         solution = LinearSolverResult()

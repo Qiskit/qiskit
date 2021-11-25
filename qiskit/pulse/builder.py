@@ -321,10 +321,10 @@ class _PulseBuilder:
         self._lazy_circuit = None
 
         #: Dict[str, Any]: Transpiler setting dictionary.
-        self._transpiler_settings = default_transpiler_settings or dict()
+        self._transpiler_settings = default_transpiler_settings or {}
 
         #: Dict[str, Any]: Scheduler setting dictionary.
-        self._circuit_scheduler_settings = default_circuit_scheduler_settings or dict()
+        self._circuit_scheduler_settings = default_circuit_scheduler_settings or {}
 
         #: List[ScheduleBlock]: Stack of context.
         self._context_stack = []
@@ -462,7 +462,7 @@ class _PulseBuilder:
 
     def _compile_circuit(self, circ) -> Schedule:
         """Take a QuantumCircuit and output the pulse schedule associated with the circuit."""
-        import qiskit.compiler as compiler  # pylint: disable=cyclic-import
+        from qiskit import compiler  # pylint: disable=cyclic-import
 
         transpiled_circuit = compiler.transpile(circ, self.backend, **self.transpiler_settings)
         sched = compiler.schedule(
@@ -542,7 +542,7 @@ class _PulseBuilder:
             )
 
         if not empty_subroutine:
-            param_value_map = dict()
+            param_value_map = {}
             for param_name, assigned_value in kw_params.items():
                 param_objs = subroutine.get_parameters(param_name)
                 if len(param_objs) > 0:
@@ -1645,87 +1645,6 @@ def snapshot(label: str, snapshot_type: str = "statevector"):
     append_instruction(instructions.Snapshot(label, snapshot_type=snapshot_type))
 
 
-def call_schedule(schedule: Schedule):
-    """Call a pulse ``schedule`` in the builder context.
-
-    Examples:
-
-    .. jupyter-execute::
-
-        from qiskit import pulse
-        from qiskit.pulse import builder
-
-        d0 = pulse.DriveChannel(0)
-
-        sched = pulse.Schedule()
-        sched += pulse.Play(pulse.Constant(10, 1.0), d0)
-
-        with pulse.build() as pulse_prog:
-            builder.call_schedule(sched)
-
-        assert pulse_prog == sched
-
-    Args:
-        Schedule to call.
-    """
-    warnings.warn(
-        "``call_schedule`` is being deprecated. "
-        "``call`` function can take both a schedule and a circuit.",
-        DeprecationWarning,
-    )
-
-    call(schedule)
-
-
-def call_circuit(circ: circuit.QuantumCircuit):
-    """Call a quantum ``circuit`` within the active builder context.
-
-    .. note::
-        Calling gates directly within the pulse builder namespace will be
-        deprecated in the future in favor of tight integration with a circuit
-        builder interface which is under development.
-
-    Examples:
-
-    .. jupyter-execute::
-
-        from qiskit import circuit, pulse, schedule, transpile
-        from qiskit.pulse import builder
-        from qiskit.test.mock import FakeOpenPulse2Q
-
-        backend = FakeOpenPulse2Q()
-
-        d0 = pulse.DriveChannel(0)
-
-        qc = circuit.QuantumCircuit(2)
-        qc.cx(0, 1)
-        qc_transpiled = transpile(qc, optimization_level=3)
-        sched = schedule(qc_transpiled, backend)
-
-        with pulse.build(backend) as pulse_prog:
-            # with default settings
-            builder.call_circuit(qc)
-
-        with pulse.build(backend) as pulse_prog:
-            with pulse.transpiler_settings(optimization_level=3):
-                builder.call_circuit(qc)
-
-        assert pulse_prog == sched
-
-    .. note:: Requires the active builder context to have a backend set.
-
-    Args:
-        Circuit to call.
-    """
-    warnings.warn(
-        "``call_circuit`` is being deprecated. "
-        "``call`` function can take both a schedule and a circuit.",
-        DeprecationWarning,
-    )
-
-    call(circ)
-
-
 def call(
     target: Union[circuit.QuantumCircuit, Schedule, ScheduleBlock],
     name: Optional[str] = None,
@@ -2102,7 +2021,7 @@ def delay_qubits(duration: int, *qubits: Union[int, Iterable[int]]):
             the channels returned by :func:`pulse.qubit_channels`.
     """
     qubit_chans = set(itertools.chain.from_iterable(qubit_channels(qubit) for qubit in qubits))
-    with align_left():  # pylint: disable=not-context-manager
+    with align_left():
         for chan in qubit_chans:
             delay(duration, chan)
 

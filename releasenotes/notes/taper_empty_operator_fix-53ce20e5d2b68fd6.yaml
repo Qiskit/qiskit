@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    When tapering an empty/zero operator, the code, on detecting it was zero, logged a
+    warning and returned the original operator.  Such operators are commonly found in
+    the auxiliary operators, when using Qiskit Nature, and the above behavior caused VQE
+    to throw an exception as tapered non-zero operators were a different number of qubits
+    from the tapered zero operators (since taper has returned the input operator unchanged).
+    The code will now correctly taper a zero operator such that the number of qubits is
+    reduced as expected and matches to tapered non-zero operators e.g 0*"IIII" when we are
+    tapering by 3 qubits will become 0*"I".
