@@ -16,7 +16,7 @@ import pickle
 
 import numpy as np
 
-import qiskit.pulse.library as library
+from qiskit.pulse import library
 from qiskit.circuit.library.standard_gates import U1Gate, U3Gate, CXGate, XGate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression

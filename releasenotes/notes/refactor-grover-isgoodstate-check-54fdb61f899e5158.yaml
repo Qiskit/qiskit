@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adapted :class:`~qiskit.algorithms.Grover` and 
+    :class:`~qiskit.algorithms.AmplificationProblem` to allow running the 
+    algorithm without an ``is_good_state`` argument if the number of iterations 
+    is provided.

@@ -407,7 +407,7 @@ class HHL(LinearSolver):
             # Calculate breakpoints for the reciprocal approximation
             num_values = 2 ** nl
             constant = delta
-            a = int(round(num_values ** (2 / 3)))  # pylint: disable=invalid-name
+            a = int(round(num_values ** (2 / 3)))
 
             # Calculate the degree of the polynomial and the number of intervals
             r = 2 * constant / a + np.sqrt(np.abs(1 - (2 * constant / a) ** 2))
@@ -519,8 +519,7 @@ class HHL(LinearSolver):
         if observable is not None:
             if observable_circuit is not None or post_processing is not None:
                 raise ValueError(
-                    "If observable is passed, observable_circuit and post_processing "
-                    "cannot be set."
+                    "If observable is passed, observable_circuit and post_processing cannot be set."
                 )
 
         solution = LinearSolverResult()
