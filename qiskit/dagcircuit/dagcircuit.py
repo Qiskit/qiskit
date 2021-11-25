@@ -324,7 +324,7 @@ class DAGCircuit:
         Remove classical bits from the circuit. All bits MUST be idle.
         Any registers with references to at least one of the specified bits will
         also be removed.
-        
+
         Args:
             clbits (List[Clbit]): The bits to remove.
 
