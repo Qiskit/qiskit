@@ -455,7 +455,7 @@ class TestCircuitOperations(QiskitTestCase):
         expected.measure(qr, cr)
 
         self.assertEqual(expected, circuit)
-    
+
     def test_measure_all_not_add_bits_bigger(self):
         """Test measure_all applies measurements to all qubits.
         Does not create a new ClassicalRegister if the existing one is big enough.
@@ -471,7 +471,7 @@ class TestCircuitOperations(QiskitTestCase):
         expected.measure(qr, cr[0:2])
 
         self.assertEqual(expected, circuit)
-        
+
     def test_measure_all_not_add_bits_smaller(self):
         """Test measure_all applies measurements to all qubits.
         Raises an error if there are not enough classical bits to store the measurements.
