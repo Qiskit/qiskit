@@ -10,48 +10,29 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-from collections import namedtuple
+import importlib
 import io
 import json
 import struct
-import importlib
-import uuid
-import warnings
+from collections import namedtuple
 
-import numpy as np
-
-from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister, Qubit
-from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
-from qiskit.circuit.parameter import Parameter
-from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.circuit.gate import Gate
-from qiskit.circuit.instruction import Instruction
 from qiskit.circuit import library
-from qiskit import circuit as circuit_mod
-from qiskit import extensions
-from qiskit.extensions import quantum_initializer
-from qiskit.version import __version__
-from qiskit.exceptions import QiskitError
-
 from qiskit.pulse import channels, instructions, library
-from qiskit.pulse.transforms import alignments
 from qiskit.pulse.schedule import ScheduleBlock
-
-from qiskit.pulse.channels import Channel
+from qiskit.pulse.transforms import alignments
 from qiskit.qpy.common import (
     write_binary,
     read_binary,
     assign_key,
     TypeKey,
 )
+from .mapping import write_mapping, read_mapping
 from .parameter_values import (
     dumps_parameter_value,
     dumps_numbers,
     loads_parameter_value,
     loads_numbers,
 )
-from .mapping import write_mapping, read_mapping
 
 # SCHEDULE_BLOCK binary format
 SCHEDULE_BLOCK = namedtuple(
@@ -310,7 +291,7 @@ def _write_alignment_context(file_obj, context):
     write_mapping(file_obj, context.to_dict())
 
 
-def _read_schedule_block(file_obj):
+def read_schedule_block(file_obj):
     block_header = struct.unpack(SCHEDULE_BLOCK_PACK, file_obj.read(SCHEDULE_BLOCK_PACK_SIZE))
     block_name = file_obj.read(block_header[0]).decode("utf8")
     metadata = json.loads(file_obj.read(block_header[1]))
@@ -322,7 +303,7 @@ def _read_schedule_block(file_obj):
         type_key, data_binary = read_binary(file_obj)
         if type_key == TypeKey.SCHEDULE_BLOCK:
             with io.BytesIO(data_binary) as block_container:
-                block_elem = _read_schedule_block(block_container)
+                block_elem = read_schedule_block(block_container)
         elif type_key == TypeKey.INSTRUCTION:
             with io.BytesIO(data_binary) as block_container:
                 block_elem = _read_instruction(block_container)
@@ -341,7 +322,7 @@ def _read_schedule_block(file_obj):
     return deser_block
 
 
-def _write_schedule_block(file_obj, block):
+def write_schedule_block(file_obj, block):
     block_name = block.name.encode("utf8")
     metadata = json.dumps(block.metadata, separators=(",", ":")).encode("utf8")
     with io.BytesIO() as alignment_container:
@@ -365,7 +346,7 @@ def _write_schedule_block(file_obj, block):
         if isinstance(block_elem, ScheduleBlock):
             type_key = TypeKey.SCHEDULE_BLOCK
             with io.BytesIO() as block_container:
-                _write_schedule_block(block_container, block_elem)
+                write_schedule_block(block_container, block_elem)
                 block_container.seek(0)
                 block_data = block_container.read()
         elif isinstance(block_elem, instructions.Instruction):

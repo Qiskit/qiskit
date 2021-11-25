@@ -42,6 +42,7 @@ class TypeKey(Flag):
     CHANNEL = "d"
     PARAMETRIC_PULSE = "r"
     WAVEFORM = "w"
+    QUANTUM_CIRCUIT = "t"
     SCHEDULE_BLOCK = "b"
     INSTRUCTION = "j"
 
