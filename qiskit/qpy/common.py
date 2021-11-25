@@ -32,6 +32,7 @@ OBJECT_PACK_SIZE = struct.calcsize(OBJECT_PACK)
 
 class TypeKey(Flag):
     """Reserved type string for binary format header."""
+
     FLOAT = "f"
     INTEGER = "i"
     COMPLEX = "c"
@@ -47,19 +48,20 @@ class TypeKey(Flag):
     INSTRUCTION = "j"
 
     @classmethod
-    def is_number(cls, type_key):
+    def is_number(cls, type_key) -> bool:
         if type_key in [cls.FLOAT, cls.INTEGER, cls.COMPLEX, cls.NUMPY]:
             return True
         return False
 
     @classmethod
-    def is_variable(cls, type_key):
+    def is_variable(cls, type_key) -> bool:
         if type_key in [cls.PARAMETER, cls.PARAMETER_EXPRESSION]:
             return True
         return False
 
 
-def assign_key(obj):
+# pylint: disable=too-many-return-statements
+def assign_key(obj) -> TypeKey:
     if isinstance(obj, float):
         return TypeKey.FLOAT
     if isinstance(obj, int):

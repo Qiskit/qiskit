@@ -10,6 +10,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=invalid-name
+
+"""User interface of qpy serializer."""
+
 import struct
 import warnings
 from collections import namedtuple
@@ -66,18 +70,18 @@ def load(file_obj, verbose=False):
     qpy_version = file_header[1]
     version_parts = [int(x) for x in __version__.split(".")[0:3]]
     header_version_parts = [file_header[2], file_header[3], file_header[4]]
-    if (
-        verbose and (
-            version_parts[0] < header_version_parts[0]
-            or (
-                version_parts[0] == header_version_parts[0]
-                and header_version_parts[1] > version_parts[1]
-            )
-            or (
-                version_parts[0] == header_version_parts[0]
-                and header_version_parts[1] == version_parts[1]
-                and header_version_parts[2] > version_parts[2]
-            )
+
+    # pylint: disable=too-many-boolean-expressions
+    if verbose and (
+        version_parts[0] < header_version_parts[0]
+        or (
+            version_parts[0] == header_version_parts[0]
+            and header_version_parts[1] > version_parts[1]
+        )
+        or (
+            version_parts[0] == header_version_parts[0]
+            and header_version_parts[1] == version_parts[1]
+            and header_version_parts[2] > version_parts[2]
         )
     ):
         warnings.warn(

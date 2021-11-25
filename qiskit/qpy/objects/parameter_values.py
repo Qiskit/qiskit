@@ -9,6 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
+# pylint: disable=invalid-name
+
 """Read and write parameter values."""
 
 import io
@@ -198,8 +201,6 @@ def dumps_parameter_value(type_key, value):
             container.seek(0)
             data_binary = container.read()
     else:
-        raise TypeError(
-            f"Invalid parameter value type {type_key} for value {value}."
-        )
+        raise TypeError(f"Invalid parameter value type {type_key} for value {value}.")
 
     return data_binary

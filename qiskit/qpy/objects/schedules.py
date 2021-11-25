@@ -10,13 +10,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=invalid-name
+
+"""Read and write schedule and schedule instructions."""
+
 import importlib
 import io
 import json
 import struct
 from collections import namedtuple
 
-from qiskit.circuit import library
 from qiskit.pulse import channels, instructions, library
 from qiskit.pulse.schedule import ScheduleBlock
 from qiskit.pulse.transforms import alignments
@@ -42,7 +45,7 @@ SCHEDULE_BLOCK = namedtuple(
         "metadata_size",
         "alignment_data_size",
         "num_elements",
-    ]
+    ],
 )
 SCHEDULE_BLOCK_PACK = "!HQQQ"
 SCHEDULE_BLOCK_PACK_SIZE = struct.calcsize(SCHEDULE_BLOCK_PACK)
@@ -65,7 +68,7 @@ PARAMETRIC_PULSE = namedtuple(
         "module_path_size",
         "label_size",
         "amp_limited",
-    ]
+    ],
 )
 PARAMETRIC_PULSE_PACK = "!HHH?"
 PARAMETRIC_PULSE_PACK_SIZE = struct.calcsize(PARAMETRIC_PULSE_PACK)
@@ -130,8 +133,8 @@ def _read_parametric_pulse(file_obj):
         try:
             custom_module = importlib.import_module(module_path)
             pulse_type = getattr(custom_module, pulse_class_name)
-        except ModuleNotFoundError:
-            raise TypeError(f"Invalid parametric pulse class name {pulse_class_name}.")
+        except ModuleNotFoundError as ex:
+            raise TypeError(f"Invalid parametric pulse class name {pulse_class_name}.") from ex
 
     kwargs = parameters
     kwargs["limit_amplitude"] = amp_limited
@@ -262,10 +265,7 @@ def _write_instruction(file_obj, instruction):
         label_binary = bytes()
 
     instruction_header = struct.pack(
-        INSTRUCTION_PACK,
-        len(instruction_class_name),
-        len(label_binary),
-        len(instruction.operands)
+        INSTRUCTION_PACK, len(instruction_class_name), len(label_binary), len(instruction.operands)
     )
     file_obj.write(instruction_header)
     file_obj.write(instruction_class_name)
@@ -293,9 +293,7 @@ def _write_instruction(file_obj, instruction):
                 container.seek(0)
                 data = container.read()
         else:
-            raise TypeError(
-                f"Invalid instruction operand type {type(operand)} for {operand}."
-            )
+            raise TypeError(f"Invalid instruction operand type {type(operand)} for {operand}.")
 
         write_binary(file_obj, data, type_key)
 
