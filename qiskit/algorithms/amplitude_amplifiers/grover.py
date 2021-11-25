@@ -116,8 +116,8 @@ class Grover(AmplitudeAmplifier):
                 * If a list, all the powers in the list are run in the specified order.
                 * If an iterator, the powers yielded by the iterator are checked, until a maximum
                 number of iterations or maximum power is reached.
-                * If ``None``, the :obj:`AmplificationProblem` provided must have an `is_good_state`, and
-                circuits are run until that good state is reached.
+                * If ``None``, the :obj:`AmplificationProblem` provided must have an ``is_good_state``,
+                and circuits are run until that good state is reached.
             growth_rate: If specified, the iterator is set to increasing powers of ``growth_rate``,
                 i.e. to ``int(growth_rate ** 1), int(growth_rate ** 2), ...`` until a maximum
                 number of iterations is reached.
@@ -188,7 +188,7 @@ class Grover(AmplitudeAmplifier):
 
         Raises:
             TypeError: If ``is_good_state`` is not provided and is required (i.e. when iterations
-            is ``None`` or or a ``list``)
+            is ``None`` or a ``list``)
         """
         if isinstance(self._iterations, list):
             max_iterations = len(self._iterations)
