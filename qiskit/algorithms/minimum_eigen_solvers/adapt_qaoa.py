@@ -213,11 +213,11 @@ class AdaptQAOA(QAOA):
         self.cost_operator = operator
         p, self.ansatz = 0, self.initial_state  # initialise layer loop counter and ansatz
         print("--------------------------------------------------------")
-        while p < self.max_reps:        # loop over number of maximum reps
+        while p < self.max_reps:  # loop over number of maximum reps
             best_mixer, energy_norm = self._test_mixer_pool(operator=operator)
             print(f"REPETITION: {p}")
             print(f"Current energy norm | Threshold  =====> | {energy_norm} | {self.threshold} |")
-            if energy_norm < self.threshold:          # Threshold stoppage condition
+            if energy_norm < self.threshold:  # Threshold stoppage condition
                 break
             self.optimal_mixer_list.append(
                 best_mixer
