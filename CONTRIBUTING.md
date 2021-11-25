@@ -26,10 +26,10 @@ contributing to terra, these are documented below.
 * [Dealing with git blame ignore list](#dealing-with-the-git-blame-ignore-list)
 
 ### Choose an issue to work on
-Qiskit terra uses the following labels to help non-maintainers find issues best suited to their interests and experience level:
+Qiskit Terra uses the following labels to help non-maintainers find issues best suited to their interests and experience level:
 
-* [good first issue](https://github.com/Qiskit/qiskit-terra/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) - these issues are typically the simplest available to work on, perfect for newcomers. They should already be fully scoped, with a clear approach outlined in the descriptions
-* [help wanted](https://github.com/Qiskit/qiskit-terra/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22) - these issues are generally more complex than good first issues. They typically cover work that core maintainers don't currently have capacity to implement and may require more investigation/discussion. These are a great option for experienced contributors looking for something a bit more challenging
+* [good first issue](https://github.com/Qiskit/qiskit-terra/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) - these issues are typically the simplest available to work on, perfect for newcomers. They should already be fully scoped, with a clear approach outlined in the descriptions.
+* [help wanted](https://github.com/Qiskit/qiskit-terra/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22) - these issues are generally more complex than good first issues. They typically cover work that core maintainers don't currently have capacity to implement and may require more investigation/discussion. These are a great option for experienced contributors looking for something a bit more challenging.
 * [short project](https://github.com/Qiskit/qiskit-terra/issues?q=is%3Aopen+is%3Aissue+label%3A%22short+project%22) - these issues are bigger pieces of work that require greater time commitment. Good options for hackathons, internship projects etc.
 
 ### Pull request checklist
