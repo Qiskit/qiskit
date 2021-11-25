@@ -67,7 +67,7 @@ PARAMETRIC_PULSE = namedtuple(
         "amp_limited",
     ]
 )
-PARAMETRIC_PULSE_PACK = "!HHHH?"
+PARAMETRIC_PULSE_PACK = "!HHH?"
 PARAMETRIC_PULSE_PACK_SIZE = struct.calcsize(PARAMETRIC_PULSE_PACK)
 
 # INSTRUCTION binary format
@@ -97,9 +97,15 @@ def _read_waveform(file_obj):
     amp_limited = bool(waveform_header[3])
     samples = loads_numbers(TypeKey.NUMPY, file_obj.read(waveform_header[2]))
 
-    return library.Waveform(
-        samples=samples, name=label, epsilon=epsilon, limit_amplitude=amp_limited
-    )
+    kwargs = {
+        "samples": samples,
+        "epsilon": epsilon,
+        "limit_amplitude": amp_limited,
+    }
+    if label:
+        kwargs["name"] = label
+
+    return library.Waveform(**kwargs)
 
 
 def _read_parametric_pulse(file_obj):
@@ -107,7 +113,7 @@ def _read_parametric_pulse(file_obj):
         PARAMETRIC_PULSE_PACK, file_obj.read(PARAMETRIC_PULSE_PACK_SIZE)
     )
     pulse_class_name = file_obj.read(param_pulse_header[0]).decode("utf8")
-    module_path = file_obj.read(param_pulse_header[1]).encode("utf8")
+    module_path = file_obj.read(param_pulse_header[1]).decode("utf8")
     label = file_obj.read(param_pulse_header[2]).decode("utf8")
     amp_limited = bool(param_pulse_header[3])
     parameters = read_mapping(file_obj)
@@ -127,9 +133,12 @@ def _read_parametric_pulse(file_obj):
         except ModuleNotFoundError:
             raise TypeError(f"Invalid parametric pulse class name {pulse_class_name}.")
 
-    return pulse_type(
-        name=label, limit_amplitude=amp_limited, **parameters
-    )
+    kwargs = parameters
+    kwargs["limit_amplitude"] = amp_limited
+    if label:
+        kwargs["name"] = label
+
+    return pulse_type(**kwargs)
 
 
 def _read_instruction(file_obj):
@@ -147,20 +156,28 @@ def _read_instruction(file_obj):
         elif type_key == TypeKey.CHANNEL:
             with io.BytesIO(data) as container:
                 value = _read_channel(container)
+        elif type_key == TypeKey.WAVEFORM:
+            with io.BytesIO(data) as container:
+                value = _read_waveform(container)
+        elif type_key == TypeKey.PARAMETRIC_PULSE:
+            with io.BytesIO(data) as container:
+                value = _read_parametric_pulse(container)
         else:
             raise TypeError(f"Invalid instruction operand type {type_key} for value {data}.")
         operands.append(value)
 
     if hasattr(instructions, instruction_class_name):
         instruction_type = getattr(instructions, instruction_class_name)
-        return instruction_type(*operands, name=label)
+        if label:
+            return instruction_type(*operands, name=label)
+        return instruction_type(*operands)
 
     raise TypeError(f"Invalid instruction class name {instruction_class_name}.")
 
 
 def _read_alignment_context(file_obj):
     name_size_raw = file_obj.read(struct.calcsize("!H"))
-    name_size = struct.unpack("!H", name_size_raw)
+    name_size = struct.unpack("!H", name_size_raw)[0]
     alignment_class_name = file_obj.read(name_size).decode("utf8")
     kwargs = read_mapping(file_obj)
 
@@ -210,7 +227,7 @@ def _write_waveform(file_obj, data):
 def _write_parametric_pulse(file_obj, data):
     pulse_class_name = data.__class__.__name__.encode("utf8")
 
-    if hasattr(library, pulse_class_name):
+    if hasattr(library, data.__class__.__name__):
         module_path = bytes()
     else:
         # user defined parametric pulse
@@ -229,8 +246,8 @@ def _write_parametric_pulse(file_obj, data):
         data.limit_amplitude,
     )
     file_obj.write(param_pulse_header)
-    file_obj.write(module_path)
     file_obj.write(pulse_class_name)
+    file_obj.write(module_path)
     file_obj.write(label)
     write_mapping(file_obj, data.parameters)
 
@@ -266,13 +283,13 @@ def _write_instruction(file_obj, instruction):
                 container.seek(0)
                 data = container.read()
         elif type_key == TypeKey.WAVEFORM:
-            with io.BytesIO as container:
-                _write_waveform(file_obj, operand)
+            with io.BytesIO() as container:
+                _write_waveform(container, operand)
                 container.seek(0)
                 data = container.read()
         elif type_key == TypeKey.PARAMETRIC_PULSE:
-            with io.BytesIO as container:
-                _write_parametric_pulse(file_obj, operand)
+            with io.BytesIO() as container:
+                _write_parametric_pulse(container, operand)
                 container.seek(0)
                 data = container.read()
         else:

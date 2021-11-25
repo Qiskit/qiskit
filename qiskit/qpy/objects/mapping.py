@@ -25,7 +25,7 @@ MAPPING_ITEM_PACK_SIZE = struct.calcsize(MAPPING_ITEM_PACK)
 
 def read_mapping(file_obj):
     map_size_raw = file_obj.read(struct.calcsize("!Q"))
-    map_size = struct.unpack("!Q", map_size_raw)
+    map_size = struct.unpack("!Q", map_size_raw)[0]
 
     mapping = dict()
     for _ in range(map_size):
@@ -50,7 +50,7 @@ def write_mapping(file_obj, data):
     map_size = struct.pack("!Q", len(data))
     file_obj.write(map_size)
 
-    for name, value in data.parameters.items():
+    for name, value in data.items():
         name_binary = name.encode("utf8")
         type_key = assign_key(value)
         if TypeKey.is_number(type_key) or TypeKey.is_variable(type_key):

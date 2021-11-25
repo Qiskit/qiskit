@@ -30,7 +30,7 @@ FILE_HEADER_PACK = "!6sBBBBQ"
 FILE_HEADER_SIZE = struct.calcsize(FILE_HEADER_PACK)
 
 
-def dumps(programs, file_obj):
+def dump(programs, file_obj):
     if not isinstance(programs, list):
         programs = [programs]
 
@@ -67,15 +67,17 @@ def load(file_obj, verbose=False):
     version_parts = [int(x) for x in __version__.split(".")[0:3]]
     header_version_parts = [file_header[2], file_header[3], file_header[4]]
     if (
-        verbose and version_parts[0] < header_version_parts[0]
-        or (
-            version_parts[0] == header_version_parts[0]
-            and header_version_parts[1] > version_parts[1]
-        )
-        or (
-            version_parts[0] == header_version_parts[0]
-            and header_version_parts[1] == version_parts[1]
-            and header_version_parts[2] > version_parts[2]
+        verbose and (
+            version_parts[0] < header_version_parts[0]
+            or (
+                version_parts[0] == header_version_parts[0]
+                and header_version_parts[1] > version_parts[1]
+            )
+            or (
+                version_parts[0] == header_version_parts[0]
+                and header_version_parts[1] == version_parts[1]
+                and header_version_parts[2] > version_parts[2]
+            )
         )
     ):
         warnings.warn(
@@ -93,7 +95,7 @@ def load(file_obj, verbose=False):
             type_key = TypeKey.QUANTUM_CIRCUIT
         else:
             type_key_raw = struct.unpack("!1c", file_obj.read(struct.calcsize("!1c")))
-            type_key = TypeKey(type_key_raw.decode("utf8"))
+            type_key = TypeKey(type_key_raw[0].decode("utf8"))
 
         if type_key == TypeKey.QUANTUM_CIRCUIT:
             loader = None

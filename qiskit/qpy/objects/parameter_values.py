@@ -91,9 +91,9 @@ def _read_parameter_expression(file_obj):
 
 def loads_numbers(type_key, data_binary):
     if type_key == TypeKey.FLOAT:
-        return struct.unpack("!d", data_binary)
+        return struct.unpack("!d", data_binary)[0]
     if type_key == TypeKey.INTEGER:
-        return struct.unpack("!q", data_binary)
+        return struct.unpack("!q", data_binary)[0]
     if type_key == TypeKey.COMPLEX:
         return complex(*struct.unpack(COMPLEX_PACK, data_binary))
     if type_key == TypeKey.NUMPY:
@@ -143,21 +143,23 @@ def _write_parameter_expression(file_obj, param):
             parameter_data = parameter_container.read()
 
         # serialize value
-        type_key = assign_key(value)
-
-        if TypeKey.is_number(type_key):
-            data = dumps_numbers(type_key, value)
-        elif type_key == TypeKey.PARAMETER:
+        if value == parameter._symbol_expr:
+            type_key = TypeKey.PARAMETER
             data = bytes()
-        elif type_key == TypeKey.PARAMETER_EXPRESSION:
-            with io.BytesIO() as container:
-                _write_parameter_expression(container, value)
-                container.seek(0)
-                data = container.read()
         else:
-            raise TypeError(
-                f"Invalid parameter expression map type {type_key} for value {value}."
-            )
+            type_key = assign_key(value)
+
+            if TypeKey.is_number(type_key):
+                data = dumps_numbers(type_key, value)
+            elif type_key == TypeKey.PARAMETER_EXPRESSION:
+                with io.BytesIO() as container:
+                    _write_parameter_expression(container, value)
+                    container.seek(0)
+                    data = container.read()
+            else:
+                raise TypeError(
+                    f"Invalid parameter expression map type {type_key} for value {value}."
+                )
 
         elem_header = struct.pack(OBJECT_PACK, type_key.value.encode("utf8"), len(data))
         file_obj.write(elem_header)
