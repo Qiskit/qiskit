@@ -480,9 +480,8 @@ class TestCircuitOperations(QiskitTestCase):
         cr = ClassicalRegister(2, "meas")
 
         circuit = QuantumCircuit(qr, cr)
-        circuit.measure_all(add_bits=False)
 
-        self.assertRaises(CircuitError, circuit)
+        self.assertRaises(CircuitError, circuit.measure_all(add_bits=False))
 
     def test_measure_all_copy(self):
         """Test measure_all with inplace=False"""
