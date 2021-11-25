@@ -140,12 +140,9 @@ class AdaptQAOA(QAOA):
             # TODO: check if this list of operators/circuits needs more preprocessing before use
             self.mixer_pool = mixer_pool
         if self.threshold is None:
-            self.threshold = 0.001  # TODO: work out a way to better set a default threshold
+            self.threshold = 0.01  # TODO: work out a way to better set a default threshold
 
-        self.initial_point[
-            0
-        ] = 0.01  # Set an initial value for gamma according to https://arxiv.org/abs/2005.10258
-        self.best_gamma, self.best_beta = [self.initial_point[0]], []
+        self.best_gamma, self.best_beta = [self.initial_point[-1]], []
 
     def _check_operator_ansatz(self, operator: OperatorBase) -> OperatorBase:
         # Recreates a circuit based on operator parameter.
@@ -172,7 +169,6 @@ class AdaptQAOA(QAOA):
         if not isinstance(cost_operator, MatrixOp):
             cost_operator = MatrixOp(Operator(cost_operator.to_matrix()))
         self.cost_operator = cost_operator
-
         wave_function = ansatz.assign_parameters(self.hyperparameter_dict)
         # construct expectation operator
         exp_hc = (0.01 * cost_operator).exp_i()  # TODO: Check if this is legit?
@@ -180,7 +176,7 @@ class AdaptQAOA(QAOA):
         exp_hc_ad = exp_hc.adjoint().to_matrix()
         exp_hc = exp_hc.to_matrix()
         energy_grad_op = exp_hc_ad @ (commutator(cost_operator, mixer).to_matrix()) @ exp_hc
-        energy_grad_op = PrimitiveOp(1j * energy_grad_op)
+        energy_grad_op = PrimitiveOp(energy_grad_op)
 
         expectation = ExpectationFactory.build(
             operator=energy_grad_op,
@@ -190,7 +186,7 @@ class AdaptQAOA(QAOA):
         observable_meas = expectation.convert(StateFn(energy_grad_op, is_measurement=True))
         ansatz_circuit_op = CircuitStateFn(wave_function)
         expect_op = observable_meas.compose(ansatz_circuit_op).reduce()
-        return expect_op
+        return 1j*expect_op
 
     def _test_mixer_pool(self, operator: OperatorBase):
         self._check_problem_configuration(operator=operator)
@@ -213,6 +209,7 @@ class AdaptQAOA(QAOA):
         self.cost_operator = operator
         p, self.ansatz = 0, self.initial_state  # initialise layer loop counter and ansatz
         print("--------------------------------------------------------")
+        print("Cost operator {}".format(operator))
         while p < self.max_reps:  # loop over number of maximum reps
             best_mixer, energy_norm = self._test_mixer_pool(operator=operator)
             print(f"REPETITION: {p}")
@@ -230,15 +227,18 @@ class AdaptQAOA(QAOA):
             )
             result = self.compute_minimum_eigenvalue(operator=operator, aux_operators=aux_operators)
             opt_params = result.optimal_point
-            self.best_gamma = list(opt_params[0:][::2])
-            self.best_beta = list(opt_params[1:][::2])
-            print(self.ansatz.decompose().draw())
-            print(f"Optimal parameters: {opt_params}")
-            print(f"Initial point: {self.initial_point}")
-            print(f"New mixer {self.optimal_mixer_list[-1]}")
+            self.best_beta, self.best_gamma = np.split(opt_params, 2)
+            self.best_beta = list(self.best_beta)
+            self.best_gamma = list(self.best_gamma)
+            print("Optimal value", result.optimal_value)
+            # print(self.ansatz.decompose().draw())
+            # print(f"Optimal parameters: {result.optimal_parameters}")
+            # print(f"Initial point: {self.initial_point}")
+            # print(f"New mixer {self.optimal_mixer_list}")
             print("--------------------------------------------------------")
             p += 1
-        pass
+        print("Optimal mixers:", self.optimal_mixer_list)
+        return result
 
     def _check_problem_configuration(self, operator: OperatorBase):
         # Generates the pool of mixers with respect to the cost operator size
@@ -317,8 +317,8 @@ class AdaptQAOA(QAOA):
         """
         self._hyperparameter_dict = {}
         if self._ansatz_params:
-            reordered_params = self._reorder_parameters()
-            self._hyperparameter_dict = dict(zip(self._ansatz_params, reordered_params))
+            # reordered_params = self._reorder_parameters()
+            self._hyperparameter_dict = dict(zip(self._ansatz_params, self.best_beta+self.best_gamma))
         return self._hyperparameter_dict
 
     @hyperparameter_dict.setter
@@ -353,7 +353,7 @@ class AdaptQAOA(QAOA):
 
         """
         if self._ansatz_params:
-            self.ansatz.parameter_bounds = [(-2 * np.pi, 2 * np.pi)] * self.ansatz.num_parameters
+            # self.ansatz.parameter_bounds = [(-2 * np.pi, 2 * np.pi)] * self.ansatz.num_parameters
             if len(self._initial_point) != self.ansatz.num_parameters:
                 self._update_initial_point()
         return self._initial_point
@@ -364,8 +364,8 @@ class AdaptQAOA(QAOA):
             initial_point = self._generate_initial_point()
         self._initial_point = initial_point
 
-    def _generate_initial_point(self, reps=1):
-        return algorithm_globals.random.uniform(2 * reps * [-2 * np.pi], 2 * reps * [2 * np.pi])
+    def _generate_initial_point(self, reps=1): # set initial value for gamma according to https://arxiv.org/abs/2005.10258
+        return np.array([algorithm_globals.random.uniform(-2 * np.pi, 2 * np.pi),0.01])
 
     def _update_initial_point(self):
         # optimised_initial_point = self._reorder_parameters()

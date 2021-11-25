@@ -34,7 +34,12 @@ cme = adapt.compute_minimum_eigenvalue(cost_op)
 print(cme)
 '''
 
+adaptqaoa = AdaptQAOA(max_reps=6, quantum_instance=quantum_instance, mixer_pool_type="singular")
+out = adaptqaoa.run_adapt(cost_op)
+print("Adapt result: ", out)
+print(adaptqaoa.get_optimal_circuit().draw())
 
-qaoa = QAOA(reps=5, quantum_instance=quantum_instance)
-out = qaoa.compute_minimum_eigenvalue(cost_op)
-print(out)
+# qaoa = QAOA(reps=5, quantum_instance=quantum_instance)
+# out = qaoa.compute_minimum_eigenvalue(cost_op)
+# print(out)
+# print(qaoa.get_optimal_circuit().draw())

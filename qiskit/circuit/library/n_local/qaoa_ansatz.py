@@ -290,22 +290,34 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         super()._build()
 
         # keep old parameter order: first cost operator, then mixer operators
+        reps = self.reps
         num_cost = 0 if _is_pauli_identity(self.cost_operator) else 1
         if isinstance(self.mixer_operator, QuantumCircuit):
             num_mixer = self.mixer_operator.num_parameters
+        elif isinstance(self.mixer_operator,list) and self.name == 'AdaptQAOA':
+            num_mixer = 1   
+            # for mix in self.operators[1:][::2]:
+            #     if isinstance(mix, QuantumCircuit):
+            #         num_mixer += mix.num_parameters
+            #     else:
+            #         num_mixer += 0 if _is_pauli_identity(mix) else 1                
+            # num_cost = num_mixer
+            reps = int(0.5*len(self.operators))
+            # assert (num_mixer+num_cost)==len(self.operators)
         else:
             num_mixer = 0 if _is_pauli_identity(self.mixer_operator) else 1
 
-        betas = ParameterVector("β", self.reps * num_mixer)
-        gammas = ParameterVector("γ", self.reps * num_cost)
+        betas = ParameterVector("β", reps * num_mixer)
+        gammas = ParameterVector("γ", reps * num_cost)
 
         # Create a permutation to take us from (cost_1, mixer_1, cost_2, mixer_2, ...)
         # to (cost_1, cost_2, ..., mixer_1, mixer_2, ...), or if the mixer is a circuit
         # with more than 1 parameters, from (cost_1, mixer_1a, mixer_1b, cost_2, ...)
         # to (cost_1, cost_2, ..., mixer_1a, mixer_1b, mixer_2a, mixer_2b, ...)
         reordered = []
-        for rep in range(self.reps):
+        for rep in range(reps):
             reordered.extend(gammas[rep * num_cost : (rep + 1) * num_cost])
             reordered.extend(betas[rep * num_mixer : (rep + 1) * num_mixer])
+
 
         self.assign_parameters(dict(zip(self.ordered_parameters, reordered)), inplace=True)
