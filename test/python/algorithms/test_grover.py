@@ -121,7 +121,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
 
     @data([1, 2, 3], None)
     def test_iterations_without_good_state(self, iterations):
-        """Test the correct error is thrown for none or a list of iterations and without good state argument"""
+        """Test the correct error is thrown for none/list of iterations and without good state"""
         grover = Grover(iterations, quantum_instance=self.statevector)
         problem = AmplificationProblem(Statevector.from_label("111"))
         with self.assertRaisesRegex(

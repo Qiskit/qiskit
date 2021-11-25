@@ -260,7 +260,7 @@ class Grover(AmplitudeAmplifier):
                 oracle_evaluation = None  # cannot check for good state without is_good_state arg
                 break
             # is_good_state arg must be provided if iterations arg is not an integer
-            elif (
+            if (
                 self._iterations_arg is None or isinstance(self._iterations_arg, list)
             ) and amplification_problem.is_good_state is None:
                 raise TypeError("An is_good_state function is required with the provided oracle")
