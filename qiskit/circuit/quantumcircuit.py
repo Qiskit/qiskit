@@ -2239,7 +2239,7 @@ class QuantumCircuit:
         else:
             if len(circ.clbits) < len(circ.qubits):
                 raise CircuitError(
-                    "The size of classical bits must be equal or greater than "
+                    "The number of classical bits must be equal or greater than "
                     "the number of qubits."
                 )
             circ.barrier()

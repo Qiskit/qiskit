@@ -481,7 +481,7 @@ class TestCircuitOperations(QiskitTestCase):
 
         circuit = QuantumCircuit(qr, cr)
 
-        with self.assertRaisesRegex(CircuitError, "Not enough classical bits"):
+        with self.assertRaisesRegex(CircuitError, "The number of classical bits"):
             circuit.measure_all(add_bits=False)
 
     def test_measure_all_copy(self):
