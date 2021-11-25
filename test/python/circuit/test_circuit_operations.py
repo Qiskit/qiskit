@@ -578,15 +578,9 @@ class TestCircuitOperations(QiskitTestCase):
         c1_0 = Clbit()
         c2 = ClassicalRegister(1)
         c3 = ClassicalRegister(1)
-        circuit = QuantumCircuit(QuantumRegister(1))
-
-        circuit.add_register(c0)
 
         # add an individual bit that's not in any register of this circuit
-        circuit.add_bits([c1_0])
-
-        circuit.add_register(c2)
-        circuit.add_register(c3)
+        circuit = QuantumCircuit(QuantumRegister(1), c0, [c1_0], c2, c3)
 
         circuit.measure(0, c1_0)
         circuit.measure(0, c2[0])
