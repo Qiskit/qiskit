@@ -1,8 +1,5 @@
 ---
 fixes:
   - |
-    Fixes a bug in the function ``_multigate_opt``. When a gate and its
-    previous gate combine to the identity, and the gate and its next gate also
-    combine to the identity, the gate would be removed twice. Refer to
-    `#7271 <https://github.com/Qiskit/qiskit-terra/issues/7271>` for more
-    details.
+    Fixed a bug in the Hoare optimizer transpilation pass where it could attempt to remove a gate twice if it could be separately combined with both its predecessor and its successor to form the identity.
+    Refer to `#7271 <https://github.com/Qiskit/qiskit-terra/issues/7271>`__ for more details.
