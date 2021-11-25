@@ -13,7 +13,7 @@
 
 import struct
 from collections import namedtuple
-from enum import Flag
+from enum import Enum
 
 import numpy as np
 
@@ -30,7 +30,7 @@ OBJECT_PACK = "!1cQ"
 OBJECT_PACK_SIZE = struct.calcsize(OBJECT_PACK)
 
 
-class TypeKey(Flag):
+class TypeKey(str, Enum):
     """Reserved type string for binary format header."""
 
     FLOAT = "f"
@@ -49,12 +49,14 @@ class TypeKey(Flag):
 
     @classmethod
     def is_number(cls, type_key) -> bool:
+        """Return if input type is representation of numerical value."""
         if type_key in [cls.FLOAT, cls.INTEGER, cls.COMPLEX, cls.NUMPY]:
             return True
         return False
 
     @classmethod
     def is_variable(cls, type_key) -> bool:
+        """Return if input type is representation of parameter value."""
         if type_key in [cls.PARAMETER, cls.PARAMETER_EXPRESSION]:
             return True
         return False
@@ -62,6 +64,17 @@ class TypeKey(Flag):
 
 # pylint: disable=too-many-return-statements
 def assign_key(obj) -> TypeKey:
+    """Assign type key to input object.
+
+    Args:
+        obj (Any): Input object to evaluate.
+
+    Returns:
+        Corresponding type key.
+
+    Raises:
+        TypeError: if object is not valid data type in QPY module.
+    """
     if isinstance(obj, float):
         return TypeKey.FLOAT
     if isinstance(obj, int):
@@ -91,6 +104,14 @@ def assign_key(obj) -> TypeKey:
 
 
 def read_binary(file_obj):
+    """Read a single data chunk from the file like object.
+
+    Args:
+        file_obj (File): A file like object that contains the QPY binary data.
+
+    Returns:
+        tuple: Tuple of ``TypeKey`` and the bytes object of the single data.
+    """
     data_chunk = struct.unpack(OBJECT_PACK, file_obj.read(OBJECT_PACK_SIZE))
     type_key = data_chunk[0].decode("utf8")
     data_binary = file_obj.read(data_chunk[1])
@@ -99,6 +120,13 @@ def read_binary(file_obj):
 
 
 def write_binary(file_obj, data_binary, type_key):
-    data_header = struct.pack(OBJECT_PACK, type_key.value.encode("utf8"), len(data_binary))
+    """Write a single binary data to the file like object.
+
+    Args:
+        file_obj (File): A file like object to write data.
+        data_binary (bytes): Binary data to write.
+        type_key (TypeKey): Object type of the data.
+    """
+    data_header = struct.pack(OBJECT_PACK, type_key.encode("utf8"), len(data_binary))
     file_obj.write(data_header)
     file_obj.write(data_binary)

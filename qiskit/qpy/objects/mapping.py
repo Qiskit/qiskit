@@ -27,6 +27,18 @@ MAPPING_ITEM_PACK_SIZE = struct.calcsize(MAPPING_ITEM_PACK)
 
 
 def read_mapping(file_obj):
+    """Read a single mapping object from the file like object.
+
+    Args:
+        file_obj (File): A file like object that contains the QPY binary data.
+
+    Returns:
+        dict: A dictionary keyed on string value and values consisting of
+            parameter values or strings.
+
+    Raises:
+        TypeError: if dict value cannot be evaluated.
+    """
     map_size_raw = file_obj.read(struct.calcsize("!Q"))
     map_size = struct.unpack("!Q", map_size_raw)[0]
 
@@ -50,6 +62,16 @@ def read_mapping(file_obj):
 
 
 def write_mapping(file_obj, data):
+    """Write a single mapping object to the file like object.
+
+    Args:
+        file_obj (File): A file like object to write data.
+        data (dict): A dictionary keyed on string value and values consists of
+            parameter values or strings.
+
+    Raises:
+        TypeError: if dict value is invalid data format.
+    """
     map_size = struct.pack("!Q", len(data))
     file_obj.write(map_size)
 
@@ -65,7 +87,7 @@ def write_mapping(file_obj, data):
         param_item_header = struct.pack(
             MAPPING_ITEM_PACK,
             len(name_binary),
-            type_key.value.encode("utf8"),
+            type_key.encode("utf8"),
             len(value_binary),
         )
         file_obj.write(param_item_header)

@@ -35,6 +35,53 @@ FILE_HEADER_SIZE = struct.calcsize(FILE_HEADER_PACK)
 
 
 def dump(programs, file_obj):
+    """Write QPY binary data to a file
+
+    This function is used to save a Qiskit program to a file for later use or transfer
+    between machines. The QPY format is backwards compatible and can be
+    loaded with future versions of Qiskit.
+
+    For example:
+
+    .. code-block:: python
+
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.circuit import qpy_serialization
+
+        qc = QuantumCircuit(2, name='Bell', metadata={'test': True})
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+
+    from this you can write the qpy data to a file:
+
+    .. code-block:: python
+
+        with open('bell.qpy', 'wb') as fd:
+            qpy_serialization.dump(qc, fd)
+
+    or a gzip compressed file:
+
+    .. code-block:: python
+
+        import gzip
+
+        with gzip.open('bell.qpy.gz', 'wb') as fd:
+            qpy_serialization.dump(qc, fd)
+
+    Which will save the qpy serialized circuit to the provided file.
+    You can also write pulse programs to a file in the samy way.
+
+    Args:
+        programs (list or QuantumCircuit or ScheduleBlock):
+            The quantum circuit object(s) or ScheduleBlock object(s) to
+            store in the specified file like object. This can either be a
+            single program object or a list of programs.
+        file_obj (file): The file like object to write the QPY data to
+
+    Raises:
+        TypeError: if any of the entries is not supported data format.
+    """
     if not isinstance(programs, list):
         programs = [programs]
 
@@ -59,11 +106,54 @@ def dump(programs, file_obj):
             writer = write_schedule_block
         else:
             raise TypeError(f"Program format {type(program)} is not supported.")
-        file_obj.write(struct.pack("!1c", type_key.value.encode("utf8")))
+        file_obj.write(struct.pack("!1c", type_key.encode("utf8")))
         writer(file_obj, program)
 
 
 def load(file_obj, verbose=False):
+    """Load a QPY binary file
+
+    This function is used to load a serialized QPY Qiskit program file and create
+    :class:`~qiskit.circuit.QuantumCircuit` objects or
+    :class:`~qiskit.pulse.schedule.ScheduleBlock` objects from its contents.
+    For example:
+
+    .. code-block:: python
+
+        from qiskit.circuit import qpy_serialization
+
+        with open('bell.qpy', 'rb') as fd:
+            circuits = qpy_serialization.load(fd)
+
+    or with a gzip compressed file:
+
+    .. code-block:: python
+
+        import gzip
+        from qiskit.circuit import qpy_serialization
+
+        with gzip.open('bell.qpy.gz', 'rb') as fd:
+            circuits = qpy_serialization.load(fd)
+
+    which will read the contents of the qpy and return a list of
+    :class:`~qiskit.circuit.QuantumCircuit` objects or
+    :class:`~qiskit.pulse.schedule.ScheduleBlock` objects from the file.
+
+    Args:
+        file_obj (File): A file like object that contains the QPY binary
+            data for a circuit or pulse schedule
+        verbose (bool): Raise a user warning if the Qiskit version in the QPY file and
+            the currently loaded package are different.
+    Returns:
+        list: List of ``QuantumCircuit`` or ``ScheduleBlock``
+            The list of :class:`~qiskit.circuit.QuantumCircuit` objects
+            or :class:`~qiskit.pulse.schedule.ScheduleBlock` objects
+            contained in the QPY data. A list is always returned, even if there
+            is only 1 program in the QPY data.
+    Raises:
+        QiskitError: if ``file_obj`` is not a valid QPY file
+        TypeError: if any of the entries is not supported data format.
+    """
     file_header = struct.unpack(FILE_HEADER_PACK, file_obj.read(FILE_HEADER_SIZE))
     if file_header[0].decode("utf8") != "QISKIT":
         raise QiskitError("Input file is not a valid QPY file")
@@ -89,7 +179,8 @@ def load(file_obj, verbose=False):
             "file, %s, is newer than the current qiskit version %s. "
             "This may result in an error if the QPY file uses "
             "instructions not present in this current qiskit "
-            "version" % (".".join([str(x) for x in header_version_parts]), __version__)
+            "version" % (".".join([str(x) for x in header_version_parts]), __version__),
+            UserWarning,
         )
 
     programs = []

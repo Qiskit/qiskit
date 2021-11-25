@@ -93,6 +93,18 @@ def _read_parameter_expression(file_obj):
 
 
 def loads_numbers(type_key, data_binary):
+    """Deserialize numerical value
+
+    Args:
+        type_key (TypeKey): Data type.
+        data_binary (bytearray): Serialized binary data in QPY file.
+
+    Returns:
+        any: float or int or complex or numpy object including arrays.
+
+    Raises:
+        TypeError: if object is not valid numerical data type.
+    """
     if type_key == TypeKey.FLOAT:
         return struct.unpack("!d", data_binary)[0]
     if type_key == TypeKey.INTEGER:
@@ -108,7 +120,18 @@ def loads_numbers(type_key, data_binary):
 
 
 def loads_parameter_value(type_key, data_binary):
+    """Deserialize parameter value
 
+    Args:
+        type_key (TypeKey): Data type.
+        data_binary (bytearray): Serialized binary data in QPY file.
+
+    Returns:
+        any: Arbitrary value including Qiskit ``ParameterExpression`` object.
+
+    Raises:
+        TypeError: if object is not valid value type.
+    """
     if TypeKey.is_number(type_key):
         value = loads_numbers(type_key, data_binary)
     elif type_key == TypeKey.PARAMETER:
@@ -164,13 +187,25 @@ def _write_parameter_expression(file_obj, param):
                     f"Invalid parameter expression map type {type_key} for value {value}."
                 )
 
-        elem_header = struct.pack(OBJECT_PACK, type_key.value.encode("utf8"), len(data))
+        elem_header = struct.pack(OBJECT_PACK, type_key.encode("utf8"), len(data))
         file_obj.write(elem_header)
         file_obj.write(parameter_data)
         file_obj.write(data)
 
 
 def dumps_numbers(type_key, value):
+    """Serialize numerical value
+
+    Args:
+        type_key (TypeKey): Data type.
+        value (Any): Arbitrary numerical object.
+
+    Returns:
+        bytes: QPY binary data of numerical object.
+
+    Raises:
+        TypeError: if object is not valid numerical data type.
+    """
     if type_key == TypeKey.FLOAT:
         return struct.pack("!d", value)
     if type_key == TypeKey.INTEGER:
@@ -188,6 +223,18 @@ def dumps_numbers(type_key, value):
 
 
 def dumps_parameter_value(type_key, value):
+    """Serialize parameter value
+
+    Args:
+        type_key (TypeKey): Data type.
+        value (Any): Arbitrary value including Qiskit ``ParameterExpression`` object.
+
+    Returns:
+        bytes: QPY binary data of parameter value object.
+
+    Raises:
+        TypeError: if object is not valid parameter value type.
+    """
     if TypeKey.is_number(type_key):
         data_binary = dumps_numbers(type_key, value)
     elif type_key == TypeKey.PARAMETER:

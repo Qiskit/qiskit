@@ -199,7 +199,7 @@ def _write_channel(file_obj, data):
     channel_header = struct.pack(
         CHANNEL_PACK,
         len(channel_class_name),
-        index_type_key.value.encode("utf8"),
+        index_type_key.encode("utf8"),
         len(index_binany),
     )
     file_obj.write(channel_header)
@@ -307,6 +307,17 @@ def _write_alignment_context(file_obj, context):
 
 
 def read_schedule_block(file_obj):
+    """Read a single schedule block from the file like object.
+
+    Args:
+        file_obj (File): A file like object that contains the QPY binary data.
+
+    Returns:
+        ScheduleBlock: Deserialized schedule block object.
+
+    Raises:
+        TypeError: If any of the instructions is invalid data format.
+    """
     block_header = struct.unpack(SCHEDULE_BLOCK_PACK, file_obj.read(SCHEDULE_BLOCK_PACK_SIZE))
     block_name = file_obj.read(block_header[0]).decode("utf8")
     metadata = json.loads(file_obj.read(block_header[1]))
@@ -338,6 +349,15 @@ def read_schedule_block(file_obj):
 
 
 def write_schedule_block(file_obj, block):
+    """Write a single schedule block to the file like object.
+
+    Args:
+        file_obj (File): A file like object to write schedule block data.
+        block (ScheduleBlock): A pulse program to write.
+
+    Raises:
+        TypeError: If any of the instructions is invalid data format.
+    """
     block_name = block.name.encode("utf8")
     metadata = json.dumps(block.metadata, separators=(",", ":")).encode("utf8")
     with io.BytesIO() as alignment_container:
