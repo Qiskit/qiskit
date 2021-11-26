@@ -32,8 +32,8 @@ class MatrixFunctional(LinearSystemObservable):
 
             import numpy as np
             from qiskit import QuantumCircuit
-            from qiskit.algorithms.linear_solvers.observables.matrix_functional import
-             MatrixFunctional
+            from qiskit.algorithms.linear_solvers.observables.matrix_functional import \
+            MatrixFunctional
             from qiskit.transpiler.passes import RemoveResetInZeroState
             from qiskit.opflow import StateFn
 
