@@ -36,6 +36,7 @@ class AbsoluteAverage(LinearSystemObservable):
             from qiskit import QuantumCircuit
             from qiskit.algorithms.linear_solvers.observables.absolute_average import \
             AbsoluteAverage
+            from qiskit.opflow import StateFn
 
             observable = AbsoluteAverage()
             vector = [1.0, -2.1, 3.2, -4.3]
