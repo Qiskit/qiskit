@@ -89,7 +89,6 @@ class QDrift(ProductFormula):
         lie_trotter = LieTrotter(
             insert_barriers=self.insert_barriers, atomic_evolution=self.atomic_evolution
         )
-        # We pass time=1 because the time is already contained in the coefficients of the Paulis.
         evolution_circuit = PauliEvolutionGate(
             sum(PauliOp(op) for op, coeff in self.sampled_ops),
             time=evolution_time,
