@@ -2205,27 +2205,45 @@ class QuantumCircuit:
         else:
             return None
 
-    def measure_all(self, inplace: bool = True) -> Optional["QuantumCircuit"]:
-        """Adds measurement to all qubits. Creates a new ClassicalRegister with a
-        size equal to the number of qubits being measured.
+    def measure_all(
+        self, inplace: bool = True, add_bits: bool = True
+    ) -> Optional["QuantumCircuit"]:
+        """Adds measurement to all qubits.
 
-        Returns a new circuit with measurements if `inplace=False`.
+        By default, adds new classical bits in a :obj:`.ClassicalRegister` to store these
+        measurements.  If ``add_bits=False``, the results of the measurements will instead be stored
+        in the already existing classical bits, with qubit ``n`` being measured into classical bit
+        ``n``.
+
+        Returns a new circuit with measurements if ``inplace=False``.
 
         Args:
             inplace (bool): All measurements inplace or return new circuit.
+            add_bits (bool): Whether to add new bits to store the results.
 
         Returns:
-            QuantumCircuit: Returns circuit with measurements when `inplace = False`.
+            QuantumCircuit: Returns circuit with measurements when ``inplace=False``.
+
+        Raises:
+            CircuitError: if ``add_bits=False`` but there are not enough classical bits.
         """
         if inplace:
             circ = self
         else:
             circ = self.copy()
-
-        new_creg = circ._create_creg(len(circ.qubits), "meas")
-        circ.add_register(new_creg)
-        circ.barrier()
-        circ.measure(circ.qubits, new_creg)
+        if add_bits:
+            new_creg = circ._create_creg(len(circ.qubits), "meas")
+            circ.add_register(new_creg)
+            circ.barrier()
+            circ.measure(circ.qubits, new_creg)
+        else:
+            if len(circ.clbits) < len(circ.qubits):
+                raise CircuitError(
+                    "The number of classical bits must be equal or greater than "
+                    "the number of qubits."
+                )
+            circ.barrier()
+            circ.measure(circ.qubits, circ.clbits[0 : len(circ.qubits)])
 
         if not inplace:
             return circ
@@ -2233,17 +2251,20 @@ class QuantumCircuit:
             return None
 
     def remove_final_measurements(self, inplace: bool = True) -> Optional["QuantumCircuit"]:
-        """Removes final measurement on all qubits if they are present.
-        Deletes the ClassicalRegister that was used to store the values from these measurements
-        if it is idle.
+        """Removes final measurements and barriers on all qubits if they are present.
+        Deletes the classical registers that were used to store the values from these measurements
+        that become idle as a result of this operation, and deletes classical bits that are
+        referenced only by removed registers, or that aren't referenced at all but have
+        become idle as a result of this operation.
 
-        Returns a new circuit without measurements if `inplace=False`.
+        Measurements and barriers are considered final if they are
+        followed by no other operations (aside from other measurements or barriers.)
 
         Args:
             inplace (bool): All measurements removed inplace or return new circuit.
 
         Returns:
-            QuantumCircuit: Returns circuit with measurements removed when `inplace = False`.
+            QuantumCircuit: Returns the resulting circuit when ``inplace=False``, else None.
         """
         # pylint: disable=cyclic-import
         from qiskit.transpiler.passes import RemoveFinalMeasurements
@@ -2257,18 +2278,34 @@ class QuantumCircuit:
         dag = circuit_to_dag(circ)
         remove_final_meas = RemoveFinalMeasurements()
         new_dag = remove_final_meas.run(dag)
+        kept_cregs = set(new_dag.cregs.values())
+        kept_clbits = set(new_dag.clbits)
 
-        # Set circ cregs and instructions to match the new DAGCircuit's
+        # Filter only cregs/clbits still in new DAG, preserving original circuit order
+        cregs_to_add = [creg for creg in circ.cregs if creg in kept_cregs]
+        clbits_to_add = [clbit for clbit in circ._clbits if clbit in kept_clbits]
+
+        # Clear cregs and clbits
+        circ.cregs = []
+        circ._clbits = []
+        circ._clbit_indices = {}
+
+        # We must add the clbits first to preserve the original circuit
+        # order. This way, add_register never adds clbits and just
+        # creates registers that point to them.
+        circ.add_bits(clbits_to_add)
+        for creg in cregs_to_add:
+            circ.add_register(creg)
+
+        # Clear instruction info
         circ.data.clear()
         circ._parameter_table.clear()
-        circ.cregs = list(new_dag.cregs.values())
 
+        # Set circ instructions to match the new DAG
         for node in new_dag.topological_op_nodes():
             # Get arguments for classical condition (if any)
             inst = node.op.copy()
             circ.append(inst, node.qargs, node.cargs)
-
-        circ.clbits.clear()
 
         if not inplace:
             return circ
