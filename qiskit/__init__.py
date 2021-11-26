@@ -130,8 +130,6 @@ __all__ = [
     "IBMQ",
     "MissingOptionalLibraryError",
     "QiskitError",
-    "__qiskit_version__",
-    "__version__",
     "QuantumCircuit",
     "QuantumRegister",
     "assemble",
