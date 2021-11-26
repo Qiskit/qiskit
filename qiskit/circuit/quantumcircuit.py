@@ -2210,22 +2210,22 @@ class QuantumCircuit:
     ) -> Optional["QuantumCircuit"]:
         """Adds measurement to all qubits.
 
-        By default, creates a new ClassicalRegister to store these measurements.
-        If `add_bits=False`, the results of the measurements will be stored in
-        the already existing classical bits, with qubit `n` being measured into
-        classical bit `n`.
+        By default, adds new classical bits in a :obj:`.ClassicalRegister` to store these
+        measurements.  If ``add_bits=False``, the results of the measurements will instead be stored
+        in the already existing classical bits, with qubit ``n`` being measured into classical bit
+        ``n``.
 
-        Returns a new circuit with measurements if `inplace=False`.
+        Returns a new circuit with measurements if ``inplace=False``.
 
         Args:
             inplace (bool): All measurements inplace or return new circuit.
             add_bits (bool): Whether to add new bits to store the results.
 
         Returns:
-            QuantumCircuit: Returns circuit with measurements when `inplace = False`.
+            QuantumCircuit: Returns circuit with measurements when ``inplace=False``.
 
         Raises:
-            CircuitError: if `add_bits = False` but there are not enough classical bits.
+            CircuitError: if ``add_bits=False`` but there are not enough classical bits.
         """
         if inplace:
             circ = self
