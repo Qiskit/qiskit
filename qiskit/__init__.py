@@ -27,9 +27,6 @@ from qiskit.circuit import QuantumRegister
 from qiskit.circuit import AncillaRegister
 from qiskit.circuit import QuantumCircuit
 
-# user config
-from qiskit import user_config as _user_config
-
 # The qiskit.extensions.x imports needs to be placed here due to the
 # mechanism for adding gates dynamically.
 import qiskit.extensions
@@ -43,8 +40,6 @@ __path__ = pkgutil.extend_path(__path__, __name__)
 
 # Please note these are global instances, not modules.
 from qiskit.providers.basicaer import BasicAer
-
-_config = _user_config.get_config()
 
 # Moved to after IBMQ and Aer imports due to import issues
 # with other modules that check for IBMQ (tools)
@@ -132,7 +127,6 @@ __all__ = [
     "AncillaRegister",
     "BasicAer",
     "ClassicalRegister",
-    "_config",
     "IBMQ",
     "MissingOptionalLibraryError",
     "QiskitError",
