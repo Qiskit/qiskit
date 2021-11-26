@@ -304,7 +304,7 @@ class TestHoareOptimizer(QiskitTestCase):
         expected.x(1)
 
         stv = Statevector.from_label("0" * circuit.num_qubits)
-        self.assertEqual(stv @ circuit, stv @ expected)
+        self.assertEqual(stv & circuit, stv & expected)
 
         pass_ = HoareOptimizer(size=5)
         result = pass_.run(circuit_to_dag(circuit))
@@ -324,7 +324,7 @@ class TestHoareOptimizer(QiskitTestCase):
         expected.h(0)
 
         stv = Statevector.from_label("0" * circuit.num_qubits)
-        self.assertEqual(stv @ circuit, stv @ expected)
+        self.assertEqual(stv & circuit, stv & expected)
 
         pass_ = HoareOptimizer(size=5)
         result = pass_.run(circuit_to_dag(circuit))
