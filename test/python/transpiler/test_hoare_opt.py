@@ -175,6 +175,26 @@ class TestHoareOptimizer(QiskitTestCase):
 
         self.assertEqual(result, circuit_to_dag(expected))
 
+    def test_successive_identity_removal(self):
+        """Should remove a successive pair of H gates applying
+        on the same qubit.
+        """
+        circuit = QuantumCircuit(1)
+        circuit.h(0)
+        circuit.h(0)
+        circuit.h(0)
+
+        expected = QuantumCircuit(1)
+        expected.h(0)
+
+        stv = Statevector.from_label("0" * circuit.num_qubits)
+        self.assertEqual(stv & circuit, stv & expected)
+
+        pass_ = HoareOptimizer(size=4)
+        result = pass_.run(circuit_to_dag(circuit))
+
+        self.assertEqual(result, circuit_to_dag(expected))
+
     def test_targetsuccessive_identity_removal(self):
         """Should remove pair of controlled target successive
         which are the inverse of each other, if they can be
