@@ -21,11 +21,17 @@ from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.opflow import I, X, Y, Z, PauliSumOp
 from qiskit.quantum_info import Operator, SparsePauliOp, Pauli
+from qiskit.utils import algorithm_globals
 
 
 @ddt
 class TestEvolutionGate(QiskitTestCase):
     """Test the evolution gate."""
+
+    def setUp(self):
+        super().setUp()
+        # fix random seed for reproducibility (used in QDrift)
+        algorithm_globals.random_seed = 2
 
     def test_matrix_decomposition(self):
         """Test the default decomposition."""
@@ -113,11 +119,11 @@ class TestEvolutionGate(QiskitTestCase):
         self.assertEqual(evo_gate.definition.decompose(), expected)
 
     @data(
-        (X + Y, 0.5, 1),
-        (X, 0.238, 2),
+        (X + Y, 0.5, 1, [(Pauli("X"), 0.5), (Pauli("X"), 0.5)]),
+        (X, 0.238, 2, [(Pauli("X"), 4.201680672268908)]),
     )
     @unpack
-    def test_qdrift_manual(self, op, time, reps):
+    def test_qdrift_manual(self, op, time, reps, sampled_ops):
         """Test the evolution circuit of Suzuki Trotter against a manually constructed circuit."""
         qdrift = QDrift(reps=reps)
         evo_gate = PauliEvolutionGate(op, time, synthesis=qdrift)
@@ -125,7 +131,7 @@ class TestEvolutionGate(QiskitTestCase):
 
         # manually construct expected evolution
         expected = QuantumCircuit(1)
-        for pauli in qdrift._sampled_ops:
+        for pauli in sampled_ops:
             if pauli[0].to_label() == "X":
                 expected.rx(2 * pauli[1], 0)
             elif pauli[0].to_label() == "Y":
