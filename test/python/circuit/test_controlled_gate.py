@@ -1177,6 +1177,31 @@ class TestControlledGate(QiskitTestCase):
 
 
 @ddt
+class TestFutureMulticontrolled(QiskitTestCase):
+
+    def setUp(self):
+        super().setUp()
+
+        from qiskit.future import multicontrolled_gates
+
+    def tearDown(self):
+        super().tearDown()
+
+        # from qiskit import future
+        # future.__MULTICONTROLLED_GATES__ = False
+
+    @data(
+        ("ch", [], [0, 1], 2),
+        ("crx", [0.4], [0, 1, 2], 3)
+    )
+    @unpack
+    def test_future_multicontrolled(self, method, args, control, target):
+        qc = QuantumCircuit(5)
+        getattr(qc, method)(*args, control, target)
+        print(qc.draw())
+
+
+@ddt
 class TestOpenControlledToMatrix(QiskitTestCase):
     """Test controlled_gates implementing to_matrix work with ctrl_state"""
 

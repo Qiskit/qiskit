@@ -51,6 +51,7 @@ class MCMT(QuantumCircuit):
         num_ctrl_qubits: int,
         num_target_qubits: int,
         label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None
     ) -> None:
         """Create a new multi-control multi-target gate.
 
@@ -62,6 +63,8 @@ class MCMT(QuantumCircuit):
             num_target_qubits: The number of target qubits.
             label: The name for the controlled circuit block. If None, set to `C-name` where
                 `name` is `gate.name`.
+            ctrl_state: The control state in decimal, or as a bitstring (e.g. '1'). Defaults to
+                all open controls.
 
         Raises:
             AttributeError: If the gate cannot be casted to a controlled gate.
@@ -81,6 +84,7 @@ class MCMT(QuantumCircuit):
 
         # set the internal properties and determine the number of qubits
         self.gate = self._identify_gate(gate)
+        self.ctrl_state = ctrl_state
         self.num_ctrl_qubits = num_ctrl_qubits
         self.num_target_qubits = num_target_qubits
         num_qubits = num_ctrl_qubits + num_target_qubits + self.num_ancilla_qubits
@@ -107,7 +111,7 @@ class MCMT(QuantumCircuit):
                 broadcasted.append(self.gate, [target], [])
             broadcasted_gate = broadcasted.to_gate()
 
-        mcmt_gate = broadcasted_gate.control(self.num_ctrl_qubits)
+        mcmt_gate = broadcasted_gate.control(self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
         self.append(mcmt_gate, self.qubits, [])
 
     @property
