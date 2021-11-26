@@ -154,7 +154,7 @@ class ParameterSetter(NodeVisitor):
 
     def visit_AlignmentKind(self, node: AlignmentKind):
         """Assign parameters to block's ``AlignmentKind`` specification."""
-        new_parameters = tuple(self.visit(param) for param in node._context_params)
+        new_parameters = tuple(self.visit(param) for param in node.context_params)
         node._context_params = new_parameters
 
         return node
@@ -289,7 +289,7 @@ class ParameterGetter(NodeVisitor):
 
     def visit_AlignmentKind(self, node: AlignmentKind):
         """Get parameters from block's ``AlignmentKind`` specification."""
-        for param in node._context_params:
+        for param in node.context_params:
             self.visit(param)
 
     # Mid layer: Get parameters from instructions

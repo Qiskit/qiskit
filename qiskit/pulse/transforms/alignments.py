@@ -12,11 +12,11 @@
 """A collection of passes to reallocate the timeslots of instructions according to context."""
 
 import abc
-from typing import Callable, Dict, Any, Union
+from typing import Callable, Dict, Any, Union, Tuple, Sequence, Optional
 
 import numpy as np
 
-from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ScheduleComponent
 from qiskit.pulse.utils import instruction_duration_validation, deprecated_functionality
@@ -27,9 +27,14 @@ class AlignmentKind(abc.ABC):
 
     is_sequential = None
 
-    def __init__(self):
-        """Create new context."""
-        self._context_params = tuple()
+    def __init__(self, context_params: Optional[Schedule[ParameterValueType]] = None):
+        """Create new context.
+
+        Args:
+            context_params: Parameters to define behavior of alignment.
+                This will be a sequence of numerical values or parameter objects.
+        """
+        self._context_params = context_params or tuple()
 
     @abc.abstractmethod
     def align(self, schedule: Schedule) -> Schedule:
@@ -46,6 +51,12 @@ class AlignmentKind(abc.ABC):
         """
         pass
 
+    @property
+    def context_params(self) -> Tuple[ParameterValueType]:
+        """Returns parameter that defines alignment."""
+        return tuple(self._context_params)
+
+    @deprecated_functionality
     def to_dict(self) -> Dict[str, Any]:
         """Returns dictionary to represent this alignment."""
         return dict()
@@ -55,9 +66,7 @@ class AlignmentKind(abc.ABC):
         return isinstance(other, type(self)) and self.to_dict() == other.to_dict()
 
     def __repr__(self):
-        name = self.__class__.__name__
-        opts_str = ", ".join(f"{key}={val}" for key, val in self.to_dict().items())
-        return f"{name}({opts_str})"
+        return f"{self.__class__.__name__}()"
 
 
 class AlignLeft(AlignmentKind):
@@ -229,9 +238,7 @@ class AlignEquispaced(AlignmentKind):
                 no alignment is performed and the input schedule is just returned.
                 This duration can be parametrized.
         """
-        super().__init__()
-
-        self._context_params = (duration,)
+        super().__init__(context_params=(duration, ))
 
     @property
     def duration(self):
@@ -279,9 +286,13 @@ class AlignEquispaced(AlignmentKind):
 
         return aligned
 
+    @deprecated_functionality
     def to_dict(self) -> Dict[str, Any]:
         """Returns dictionary to represent this alignment."""
         return {"duration": self.duration}
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(duration={self.duration})"
 
 
 class AlignFunc(AlignmentKind):
@@ -316,15 +327,18 @@ class AlignFunc(AlignmentKind):
                 fractional coordinate of of that sub-schedule. The returned value should be
                 defined within [0, 1]. The pulse index starts from 1.
         """
-        super().__init__()
-
-        self._context_params = (duration,)
+        super().__init__(context_params=(duration, ))
         self._func = func
 
     @property
     def duration(self):
         """Return context duration."""
         return self._context_params[0]
+
+    @property
+    def func(self):
+        """Return alignment function."""
+        return self._func
 
     def align(self, schedule: Schedule) -> Schedule:
         """Reallocate instructions according to the policy.
@@ -345,7 +359,7 @@ class AlignFunc(AlignmentKind):
 
         aligned = Schedule.initialize_from(schedule)
         for ind, (_, child) in enumerate(schedule.children):
-            _t_center = self.duration * self._func(ind + 1)
+            _t_center = self.duration * self.func(ind + 1)
             _t0 = int(_t_center - 0.5 * child.duration)
             if _t0 < 0 or _t0 > self.duration:
                 PulseError("Invalid schedule position t=%d is specified at index=%d" % (_t0, ind))
@@ -353,6 +367,10 @@ class AlignFunc(AlignmentKind):
 
         return aligned
 
+    @deprecated_functionality
     def to_dict(self) -> Dict[str, Any]:
         """Returns dictionary to represent this alignment."""
         return {"duration": self.duration, "func": self._func}
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(duration={self.duration}, func={repr(self.func)})"

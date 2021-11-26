@@ -8,3 +8,7 @@ deprecations:
     input argument. This context is expected to be used for constructing complicated
     dynamical decoupling sequences, however, you can still create the same schedule by
     manually inserting delays in between instructions.
+  - |
+    Pusle alignment class method :meth:`~qiskit.pulse.transforms.alignments.AlignmentKind.to_dict`
+    has been deprecated and will be removed in a future release. This is replaced with
+    property :meth:`~qiskit.pulse.transforms.alignments.AlignmentKind.context_params`.
