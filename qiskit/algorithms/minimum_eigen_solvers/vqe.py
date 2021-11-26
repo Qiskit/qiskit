@@ -51,19 +51,20 @@ logger = logging.getLogger(__name__)
 
 # callable that takes an array as input and returns either a SciPy or Qiskit optimizer result
 
+OBJECTIVE = Callable[[np.ndarray], float]
+GRADIENT = Callable[[np.ndarray], np.ndarray]
+RESULT = Union[scipy.optimize.OptimizeResult, OptimizerResult]
+BOUNDS = List[Tuple[float, float]]
 
-class OptimizerHandle(Protocol):
-    """Type hint for the callable that can be passed as optimizer into the VQE."""
-
-    # pylint: disable=invalid-name
-    def __call__(
-        self,
-        fun: Callable[[np.ndarray], float],  # cost function (the energy in the VQE case)
-        x0: np.ndarray,  # the initial value for the parameters
-        jac: Optional[Callable[[np.ndarray], np.ndarray]] = None,  # cost function gradient
-        bounds: Optional[List[Tuple[float, float]]] = None,  # bounds for the minimization
-    ) -> Union[scipy.optimize.OptimizeResult, OptimizerResult]:
-        ...
+MINIMIZER = Callable[
+    [
+        OBJECTIVE,  # the objective function to minimize (the energy in the case of the VQE)
+        np.ndarray,  # the initial point for the optimization
+        Optional[GRADIENT],  # the gradient of the objective function
+        Optional[BOUNDS],  # parameters bounds for the optimization
+    ],
+    RESULT,  # a result object (either SciPy's or Qiskit's)
+]
 
 
 class VQE(VariationalAlgorithm, MinimumEigensolver):
@@ -106,7 +107,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         from qiskit.algorithms.optimizers import OptimizerResult
 
-        def my_optimizer(fun, x0, jac=None, bounds=None) -> OptimizerResult:
+        def my_minimizer(fun, x0, jac=None, bounds=None) -> OptimizerResult:
             # Args:
             #     fun (callable): the function to minimize
             #     x0 (np.ndarray): the initial point for the optimization
@@ -132,7 +133,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     def __init__(
         self,
         ansatz: Optional[QuantumCircuit] = None,
-        optimizer: Optional[Union[Optimizer, OptimizerHandle]] = None,
+        optimizer: Optional[Union[Optimizer, MINIMIZER]] = None,
         initial_point: Optional[np.ndarray] = None,
         gradient: Optional[Union[GradientBase, Callable]] = None,
         expectation: Optional[ExpectationBase] = None,
