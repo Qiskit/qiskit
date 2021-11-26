@@ -20,11 +20,11 @@ Logically, these optimizers can be divided into two categories:
 `Local Optimizers`_
   Given an optimization problem, a **local optimizer** is a function
   that attempts to find an optimal value within the neighboring set of a candidate solution.
-  
+
 `Global Optimizers`_
   Given an optimization problem, a **global optimizer** is a function
   that attempts to find an optimal value among all possible solutions.
-  
+
 .. currentmodule:: qiskit.algorithms.optimizers
 
 Optimizer Base Class
