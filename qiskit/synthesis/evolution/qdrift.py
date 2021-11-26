@@ -64,7 +64,7 @@ class QDrift(ProductFormula):
             pauli_list = [(Pauli(op), coeff) for op, coeff in operators.to_list()]
             coeffs = [np.real(coeff) for op, coeff in operators.to_list()]
         else:
-            pauli_list = [op for op in operators]
+            pauli_list = [(op, 1) for op in operators]
             coeffs = [1 for op in operators]
 
         # We artificially make the weights positive
