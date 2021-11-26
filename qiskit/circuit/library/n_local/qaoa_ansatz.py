@@ -22,6 +22,10 @@ from qiskit.circuit.parametervector import ParameterVector
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 
+from ...exceptions import CircuitError
+from ...parameter import Parameter
+from ...exceptions import QiskitError
+
 
 class QAOAAnsatz(EvolvedOperatorAnsatz):
     """A generalized QAOA quantum circuit with a support of custom initial states and mixers.
@@ -86,9 +90,10 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
             valid = False
             if raise_on_failure:
                 raise ValueError(
-                    "The number of qubits of the initial state {}"
-                    "does not match the number of qubits of the "
-                    "cost operator {}".format(self.initial_state.num_qubits, self.num_qubits)
+                    "The number of qubits of the initial state {} does not match "
+                    "the number of qubits of the cost operator {}".format(
+                        self.initial_state.num_qubits, self.num_qubits
+                    )
                 )
 
         if self.mixer_operator is not None:
@@ -100,19 +105,23 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
                     valid = False
                     if raise_on_failure:
                         raise AttributeError(
-                            "The number of qubits of the mixer operator(s) {} at argument(s) "
-                            "{} does not match the number of qubits of the cost operator "
-                            "{}".format([_.num_qubits for _ in self.mixer_operator[mixer_qubit_check]],
-                                mixer_qubit_check[0], self.num_qubits)
+                            "The number of qubits of the mixer operator(s) {} at "
+                            "argument(s) {} does not match the number of qubits of "
+                            "the cost operator {}".format(
+                                [_.num_qubits for _ in self.mixer_operator[mixer_qubit_check]],
+                                mixer_qubit_check[0],
+                                self.num_qubits,
+                            )
                         )
             else:
                 if self.mixer_operator.num_qubits != self.num_qubits:
                     valid = False
                     if raise_on_failure:
                         raise AttributeError(
-                            "The number of qubits of the mixer {} does not match the number of "
-                            "qubits of the cost operator {}.".format(self.mixer_operator.num_qubits,
-                                self.num_qubits)
+                            "The number of qubits of the mixer {} does not match "
+                            "the number of qubits of the cost operator {}".format(
+                                self.mixer_operator.num_qubits, self.num_qubits
+                            )
                         )
 
         return valid
@@ -281,22 +290,34 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         super()._build()
 
         # keep old parameter order: first cost operator, then mixer operators
+        reps = self.reps
         num_cost = 0 if _is_pauli_identity(self.cost_operator) else 1
         if isinstance(self.mixer_operator, QuantumCircuit):
             num_mixer = self.mixer_operator.num_parameters
+        elif isinstance(self.mixer_operator,list) and self.name == 'AdaptQAOA':
+            num_mixer = 1   
+            # for mix in self.operators[1:][::2]:
+            #     if isinstance(mix, QuantumCircuit):
+            #         num_mixer += mix.num_parameters
+            #     else:
+            #         num_mixer += 0 if _is_pauli_identity(mix) else 1                
+            # num_cost = num_mixer
+            reps = int(0.5*len(self.operators))
+            # assert (num_mixer+num_cost)==len(self.operators)
         else:
             num_mixer = 0 if _is_pauli_identity(self.mixer_operator) else 1
 
-        betas = ParameterVector("β", self.reps * num_mixer)
-        gammas = ParameterVector("γ", self.reps * num_cost)
+        betas = ParameterVector("β", reps * num_mixer)
+        gammas = ParameterVector("γ", reps * num_cost)
 
         # Create a permutation to take us from (cost_1, mixer_1, cost_2, mixer_2, ...)
         # to (cost_1, cost_2, ..., mixer_1, mixer_2, ...), or if the mixer is a circuit
         # with more than 1 parameters, from (cost_1, mixer_1a, mixer_1b, cost_2, ...)
         # to (cost_1, cost_2, ..., mixer_1a, mixer_1b, mixer_2a, mixer_2b, ...)
         reordered = []
-        for rep in range(self.reps):
+        for rep in range(reps):
             reordered.extend(gammas[rep * num_cost : (rep + 1) * num_cost])
             reordered.extend(betas[rep * num_mixer : (rep + 1) * num_mixer])
+
 
         self.assign_parameters(dict(zip(self.ordered_parameters, reordered)), inplace=True)
