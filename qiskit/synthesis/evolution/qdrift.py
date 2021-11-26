@@ -61,24 +61,23 @@ class QDrift(ProductFormula):
         time = evolution.time
 
         if not isinstance(operators, list):
-            pauli_list = [(Pauli(op), np.real(coeff)) for op, coeff in operators.to_list()]
+            pauli_list = [(Pauli(op), coeff) for op, coeff in operators.to_list()]
             coeffs = [np.real(coeff) for op, coeff in operators.to_list()]
         else:
-            pauli_list = [(op, 1) for op in operators]
+            pauli_list = [op for op in operators]
             coeffs = [1 for op in operators]
 
         # We artificially make the weights positive
         weights = np.abs(coeffs)
         lambd = np.sum(weights)
 
-        num_gates = 2 * (lambd ** 2) * (time ** 2)
-        factor = lambd * time / num_gates * self.reps
+        num_gates = 2 * (lambd ** 2) * (time ** 2) * self.reps
         # The protocol calls for the removal of the individual coefficients,
-        # and multiplication by a constant factor.
-        scaled_ops = [(op, factor / coeff) for op, coeff in pauli_list]
+        # and multiplication by a constant evolution time.
+        evolution_time = lambd * time / num_gates
         self.sampled_ops = algorithm_globals.random.choice(
-            np.array(scaled_ops, dtype=object),
-            size=(int(np.ceil(num_gates * self.reps)),),
+            np.array(pauli_list, dtype=object),
+            size=(int(np.ceil(num_gates)),),
             p=weights / lambd,
         )
 
@@ -92,8 +91,8 @@ class QDrift(ProductFormula):
         )
         # We pass time=1 because the time is already contained in the coefficients of the Paulis.
         evolution_circuit = PauliEvolutionGate(
-            sum(coeff * PauliOp(op) for op, coeff in self.sampled_ops),
-            time=1,
+            sum(PauliOp(op) for op, coeff in self.sampled_ops),
+            time=evolution_time,
             synthesis=lie_trotter,
         ).definition
 
