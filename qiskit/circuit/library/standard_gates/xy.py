@@ -41,7 +41,8 @@ class XYGate(Gate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        XY(\theta, \beta)\ q_0, q_1 = RZ_1(beta) \cdot exp(-i \frac{\theta}{2} \frac{XX+YY}{2}) \cdot RZ_1(-beta) =
+        XY(\theta, \beta)\ q_0, q_1 =
+          RZ_1(\beta) \cdot exp(-i \frac{\theta}{2} \frac{XX+YY}{2}) \cdot RZ_1(-\beta) =
             \begin{pmatrix}
                 1 & 0                     & 0                    & 0  \\
                 0 & \cos(\th)             & i\sin(\th)e^{i\beta} & 0  \\
@@ -54,7 +55,7 @@ class XYGate(Gate):
     In Qiskit's convention, higher qubit indices are more significant
     (little endian convention). In the above example we apply the gate
     on (q_0, q_1) which results in adding the (optional) phase defined
-    by :math:`beta` on q_1. Instead, if we apply it on (q_1, q_0), the 
+    by :math:`beta` on q_1. Instead, if we apply it on (q_1, q_0), the
     phase is added on q_0. If :math:`beta` is set to its default value
     of :math:`0`, the gate is equivalent in big and little endian.
 
@@ -70,7 +71,8 @@ class XYGate(Gate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        XY(\theta, \beta)\ q_1, q_0 = RZ_0(beta) \cdot exp(-i \frac{\theta}{2} \frac{XX+YY}{2}) \cdot RZ_0(-beta) =
+        XY(\theta, \beta)\ q_1, q_0 =
+          RZ_0(\beta) \cdot exp(-i \frac{\theta}{2} \frac{XX+YY}{2}) \cdot RZ_0(-\beta) =
             \begin{pmatrix}
                 1 & 0                     & 0                     & 0  \\
                 0 & \cos(\th)             & i\sin(\th)e^{-i\beta} & 0  \\
