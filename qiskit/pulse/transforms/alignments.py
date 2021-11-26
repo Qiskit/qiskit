@@ -27,14 +27,14 @@ class AlignmentKind(abc.ABC):
 
     is_sequential = None
 
-    def __init__(self, context_params: Optional[Schedule[ParameterValueType]] = None):
+    def __init__(self, *context_params: ParameterValueType):
         """Create new context.
 
         Args:
             context_params: Parameters to define behavior of alignment.
                 This will be a sequence of numerical values or parameter objects.
         """
-        self._context_params = context_params or tuple()
+        self._context_params = tuple(context_params)
 
     @abc.abstractmethod
     def align(self, schedule: Schedule) -> Schedule:
@@ -76,6 +76,10 @@ class AlignLeft(AlignmentKind):
     """
 
     is_sequential = False
+
+    def __init__(self):
+        """Create left alignment context."""
+        super().__init__()
 
     def align(self, schedule: Schedule) -> Schedule:
         """Reallocate instructions according to the policy.
@@ -137,6 +141,10 @@ class AlignRight(AlignmentKind):
     """
 
     is_sequential = False
+
+    def __init__(self):
+        """Create right alignment context."""
+        super().__init__()
 
     def align(self, schedule: Schedule) -> Schedule:
         """Reallocate instructions according to the policy.
@@ -201,6 +209,10 @@ class AlignSequential(AlignmentKind):
 
     is_sequential = True
 
+    def __init__(self):
+        """Create sequential alignment context."""
+        super().__init__()
+
     def align(self, schedule: Schedule) -> Schedule:
         """Reallocate instructions according to the policy.
 
@@ -238,7 +250,7 @@ class AlignEquispaced(AlignmentKind):
                 no alignment is performed and the input schedule is just returned.
                 This duration can be parametrized.
         """
-        super().__init__(context_params=(duration, ))
+        super().__init__(duration)
 
     @property
     def duration(self):
@@ -327,7 +339,7 @@ class AlignFunc(AlignmentKind):
                 fractional coordinate of of that sub-schedule. The returned value should be
                 defined within [0, 1]. The pulse index starts from 1.
         """
-        super().__init__(context_params=(duration, ))
+        super().__init__(duration)
         self._func = func
 
     @property
