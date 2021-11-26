@@ -19,6 +19,8 @@ import sys
 import warnings
 import os
 
+# from qiskit.future import __FUTURE_MCGATES__
+
 # qiskit errors operator
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 
@@ -51,6 +53,8 @@ _config = _user_config.get_config()
 # with other modules that check for IBMQ (tools)
 from qiskit.execute_function import execute  # noqa
 from qiskit.compiler import transpile, assemble, schedule, sequence  # noqa
+
+# Import future variables
 
 from .version import __version__  # noqa
 from .version import QiskitVersion  # noqa

@@ -37,6 +37,7 @@ from typing import (
 )
 import typing
 import numpy as np
+from qiskit import future
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
@@ -3627,13 +3628,27 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.x import CXGate
+        if future.__MULTICONTROLLED_GATES__:
+            controls = self.qbit_argument_conversion(control_qubit)
+            targets = self.qbit_argument_conversion(target_qubit)
+            qubits = controls + targets
 
-        _warn_on_broadcasting_controlled_gate([control_qubit, target_qubit], "cx")
+            if len(targets) == 1:
+                from .library.standard_gates.x import MCXGate
+                gate = MCXGate(len(controls), ctrl_state=ctrl_state)
+            else:
+                from .library.standard_gates.x import XGate
+                from .library.generalized_gates.mcmt import MCMT
+                gate = MCMT(XGate(), len(controls), len(targets))
 
-        return self.append(
-            CXGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
-        )
+        else:
+            from .library.standard_gates.x import CXGate
+
+            _warn_on_broadcasting_controlled_gate([control_qubit, target_qubit], "cx")
+            gate = CXGate(label=label, ctrl_state=ctrl_state)
+            qubits = [control_qubit, target_qubit]
+
+        return self.append(gate, qubits, [])
 
     def cnot(
         self,
