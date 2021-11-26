@@ -1039,7 +1039,6 @@ def align_equispaced(duration: Union[int, ParameterExpression]) -> AlignmentKind
         builder.append_block(current)
 
 
-@utils.deprecated_functionality
 @contextmanager
 def align_func(
     duration: Union[int, ParameterExpression], func: Callable[[int], float]
@@ -1056,7 +1055,7 @@ def align_func(
 
     Examples:
 
-    .. code-block:: python
+    .. jupyter-execute::
 
         import numpy as np
         from qiskit import pulse
@@ -1074,6 +1073,8 @@ def align_func(
                 for _ in range(10):
                     pulse.play(x180, d0)
             pulse.play(x90, d0)
+
+        udd_sched.draw()
 
     Args:
         duration: Duration of context. This should be larger than the schedule duration.

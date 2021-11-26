@@ -9,10 +9,13 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
+# pylint: disable=useless-super-delegation
+
 """A collection of passes to reallocate the timeslots of instructions according to context."""
 
 import abc
-from typing import Callable, Dict, Any, Union, Tuple, Sequence, Optional
+from typing import Callable, Dict, Any, Union, Tuple, Optional
 
 import numpy as np
 
@@ -25,6 +28,7 @@ from qiskit.pulse.utils import instruction_duration_validation, deprecated_funct
 class AlignmentKind(abc.ABC):
     """An abstract class for schedule alignment."""
 
+    is_serializable = True
     is_sequential = None
 
     def __init__(self, *context_params: ParameterValueType):
@@ -63,7 +67,7 @@ class AlignmentKind(abc.ABC):
 
     def __eq__(self, other):
         """Check equality of two transforms."""
-        return isinstance(other, type(self)) and self.to_dict() == other.to_dict()
+        return isinstance(other, type(self)) and self.context_params == other.context_params
 
     def __repr__(self):
         return f"{self.__class__.__name__}()"
@@ -308,7 +312,7 @@ class AlignEquispaced(AlignmentKind):
 
 
 class AlignFunc(AlignmentKind):
-    """Deprecated. Allocate instructions at position specified by callback function.
+    """Allocate instructions at position specified by callback function.
 
     The position is specified for each instruction of index ``j`` as a
     fractional coordinate in [0, 1] within the specified duration.
@@ -321,12 +325,12 @@ class AlignFunc(AlignmentKind):
     .. code-block:: python
 
         def udd10_pos(j):
-        return np.sin(np.pi*j/(2*10 + 2))**2
+            return np.sin(np.pi*j/(2*10 + 2))**2
     """
 
+    is_serializable = False
     is_sequential = True
 
-    @deprecated_functionality
     def __init__(self, duration: Union[int, ParameterExpression], func: Callable):
         """Create new equispaced context.
 

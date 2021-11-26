@@ -980,7 +980,7 @@ class ScheduleBlock:
     def is_schedulable(self) -> bool:
         """Return ``True`` if all durations are assigned."""
         # check context assignment
-        for context_param in self.alignment_context._context_params:
+        for context_param in self.alignment_context.context_params:
             if isinstance(context_param, ParameterExpression):
                 return False
 
