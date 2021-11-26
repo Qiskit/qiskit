@@ -28,3 +28,4 @@ from .crosstalk_adaptive_schedule import CrosstalkAdaptiveSchedule
 from .hoare_opt import HoareOptimizer
 from .template_optimization import TemplateOptimization
 from .inverse_cancellation import InverseCancellation
+from .collect_1q_runs import Collect1qRuns
