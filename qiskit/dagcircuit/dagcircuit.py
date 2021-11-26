@@ -332,8 +332,9 @@ class DAGCircuit:
                 or is not idle.
         """
         if any(not isinstance(clbit, Clbit) for clbit in clbits):
-            raise DAGCircuitError("clbits not of type Clbit: %s" 
-                % [b for b in clbits if not isinstance(b, Clbit)])
+            raise DAGCircuitError(
+                "clbits not of type Clbit: %s" % [b for b in clbits if not isinstance(b, Clbit)]
+            )
 
         clbits = set(clbits)
         unknown_clbits = clbits.difference(self.clbits)
@@ -362,8 +363,10 @@ class DAGCircuit:
             the circuit.
         """
         if any(not isinstance(creg, ClassicalRegister) for creg in cregs):
-            raise DAGCircuitError("cregs not of type ClassicalRegister: %s"
-                % [r for r in cregs if not isinstance(r, ClassicalRegister)])
+            raise DAGCircuitError(
+                "cregs not of type ClassicalRegister: %s"
+                % [r for r in cregs if not isinstance(r, ClassicalRegister)]
+            )
 
         unknown_cregs = set(cregs).difference(self.cregs.values())
         if unknown_cregs:
