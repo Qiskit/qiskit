@@ -82,6 +82,7 @@ class QDrift(ProductFormula):
             p=weights / lambd,
         )
 
+        # pylint: disable=cyclic-import
         from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
         from qiskit.opflow import PauliOp
 
