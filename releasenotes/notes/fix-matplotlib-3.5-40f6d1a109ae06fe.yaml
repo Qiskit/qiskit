@@ -1,0 +1,4 @@
+fixes:
+  - |
+    Fixed a compatibility issue with Matplotlib 3.5, where the Bloch sphere would fail to render if it had any vectors attached, such as by using :obj:`~qiskit.visualization.plot_bloch_vector`.
+    See `#7272 <https://github.com/Qiskit/qiskit-terra/issues/7272>`__ for more detail.

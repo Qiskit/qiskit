@@ -27,7 +27,7 @@ try:
 except ImportError:
     HAS_PYLATEX = False
 
-from qiskit.circuit import ControlledGate, Qubit
+from qiskit.circuit import ControlledGate
 from qiskit.circuit import Measure
 from qiskit.circuit.library.standard_gates import (
     SwapGate,
@@ -894,7 +894,9 @@ class MatplotlibDrawer:
         """Draw the measure symbol and the line to the clbit"""
         qx, qy = self._data[node]["q_xy"][0]
         cx, cy = self._data[node]["c_xy"][0]
-        cid = self._clbits_dict[self._data[node]["c_indxs"][0]]["index"]
+        clbit_idx = self._clbits_dict[self._data[node]["c_indxs"][0]]
+        cid = clbit_idx["index"]
+        creg = clbit_idx["register"]
 
         # draw gate box
         self._gate(node)
@@ -937,7 +939,7 @@ class MatplotlibDrawer:
         )
         self._ax.add_artist(arrowhead)
         # target
-        if self._cregbundle:
+        if self._cregbundle and creg is not None:
             self._ax.text(
                 cx + 0.25,
                 cy + 0.1,

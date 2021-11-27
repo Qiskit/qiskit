@@ -1020,7 +1020,7 @@ class TextDrawing:
         if isinstance(op, Measure):
             gate = MeasureFrom()
             layer.set_qubit(node.qargs[0], gate)
-            if self.cregbundle:
+            if self.cregbundle and self.bit_locations[node.cargs[0]]["register"] is not None:
                 layer.set_clbit(
                     node.cargs[0],
                     MeasureTo(str(self.bit_locations[node.cargs[0]]["index"])),

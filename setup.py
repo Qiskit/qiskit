@@ -79,7 +79,7 @@ with open(README_PATH) as readme_file:
 
 
 visualization_extras = [
-    "matplotlib>=3.3,<3.5",
+    "matplotlib>=3.3",
     "ipywidgets>=7.3.0",
     "pydot",
     "pillow>=4.2.1",
@@ -143,6 +143,7 @@ setup(
     entry_points={
         "qiskit.unitary_synthesis": [
             "default = qiskit.transpiler.passes.synthesis.unitary_synthesis:DefaultUnitarySynthesis",
+            "aqc = qiskit.transpiler.synthesis.aqc.aqc_plugin:AQCSynthesisPlugin",
         ]
     },
 )
