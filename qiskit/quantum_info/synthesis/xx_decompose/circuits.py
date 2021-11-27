@@ -180,8 +180,8 @@ def xx_circuit_step(source, strength, target, embodiment):
                 continue
 
             # pick out the other coordinates
-            source_first, source_second = [x for x in [0, 1, 2] if x != source_shared]
-            target_first, target_second = [x for x in [0, 1, 2] if x != target_shared]
+            source_first, source_second = (x for x in [0, 1, 2] if x != source_shared)
+            target_first, target_second = (x for x in [0, 1, 2] if x != target_shared)
 
             # check for arccos validity
             r, s, u, v, x, y = decompose_xxyy_into_xxyy_xx(
@@ -205,7 +205,7 @@ def xx_circuit_step(source, strength, target, embodiment):
 
     if permute_source_for_overlap is None:
         raise QiskitError(
-            f"Error during RZX decomposition: Could not find a suitable Weyl "
+            "Error during RZX decomposition: Could not find a suitable Weyl "
             f"reflection to match {source} to {target} along {strength}."
         )
 

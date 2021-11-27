@@ -135,6 +135,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
     @property
     def settings(self):
+        """Return settings."""
         return {"data": self.to_labels()}
 
     def __array__(self, dtype=None):

@@ -1,0 +1,14 @@
+features:
+  - |
+    :obj:`~qiskit.cicuit.ParameterExpression` now delegates its numeric
+    conversions to the underlying symbolic library, even if there are
+    potentially unbound parameters.  This allows conversions of expressions such
+    as ::
+
+      >>> from qiskit.circuit import Parameter
+      >>> x = Parameter('x')
+      >>> float(x - x + 2.3)
+      2.3
+
+    where the underlying expression has a fixed value, but the parameter ``x``
+    is not yet bound.
