@@ -11,6 +11,8 @@
 # that they have been altered from the originals.
 
 """Test the evolution gate."""
+
+import numpy as np
 import scipy
 from ddt import ddt, data, unpack
 
@@ -20,7 +22,7 @@ from qiskit.synthesis import LieTrotter, SuzukiTrotter, MatrixExponential, QDrif
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.opflow import I, X, Y, Z, PauliSumOp
-from qiskit.quantum_info import Operator, SparsePauliOp, Pauli
+from qiskit.quantum_info import Operator, SparsePauliOp, Pauli, Statevector
 from qiskit.utils import algorithm_globals
 
 
@@ -138,6 +140,18 @@ class TestEvolutionGate(QiskitTestCase):
                 expected.ry(2 * pauli[1], 0)
 
         self.assertTrue(Operator(evo_gate.definition).equiv(expected))
+
+    def test_qdrift_evolution(self):
+        """Test QDrift on an example."""
+        op = 0.1 * (Z ^ Z) + (X ^ I) + (I ^ X) + 0.2 * (X ^ X)
+        reps = 20
+        qdrift = PauliEvolutionGate(op, time=0.5 / reps, synthesis=QDrift(reps=reps)).definition
+        exact = scipy.linalg.expm(-0.5j * op.to_matrix()).dot(np.eye(4)[0, :])
+
+        def energy(evo):
+            return Statevector(evo).expectation_value(op.to_matrix())
+
+        self.assertAlmostEqual(energy(exact), energy(qdrift), places=2)
 
     def test_passing_grouped_paulis(self):
         """Test passing a list of already grouped Paulis."""
