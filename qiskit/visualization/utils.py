@@ -224,10 +224,11 @@ def get_bit_locations(qregs, cregs, qubits, clbits, reverse_bits):
     """Build and return the bit_locations dict for all 3 drawers
 
     Args:
-        qregs (list(QuantumRegister): list of quantum registers
+        qregs (list(QuantumRegister)): list of quantum registers
         cregs (list(ClassicalRegister)): list of classical registers
         qubits (list(Qubit)): list of quantum bits
         clbits (list(Clbit)): list of classical bits
+        reverse_bits (bool): reverse order of the bits if True
 
     Returns:
         dict: bit location dict in form {bit: {"register": register, "index": index}}
