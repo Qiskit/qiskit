@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :func:`~qiskit.visualization.circuit_drawer`
+    function and :meth:`~qiskit.circuit.QuantumCircuit.draw` method of
+    :class:`~qiskit.circuit.QuantumCircuit`. When using the ``reverse_bits``
+    option with the ``mpl``, ``latex``, or ``text`` options, bits without
+    registers did not display in the correct order.

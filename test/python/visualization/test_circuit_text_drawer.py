@@ -3115,10 +3115,15 @@ class TestTextConditional(QiskitTestCase):
                 "           ",
                 "   0: ═════",
                 "           ",
-           ]
+            ]
         )
         self.assertEqual(
-            str(_text_circuit_drawer(circuit, cregbundle=True, initial_state=False, reverse_bits=True)), expected
+            str(
+                _text_circuit_drawer(
+                    circuit, cregbundle=True, initial_state=False, reverse_bits=True
+                )
+            ),
+            expected,
         )
 
 

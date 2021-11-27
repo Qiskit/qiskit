@@ -626,7 +626,9 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         crx = ClassicalRegister(3, "cs")
         circuit = QuantumCircuit(bits, cr, [Clbit()], crx)
         circuit.x(0).c_if(bits[3], 0)
-        circuit_drawer(circuit, cregbundle=False, reverse_bits=True, filename=filename, output="latex_source")
+        circuit_drawer(
+            circuit, cregbundle=False, reverse_bits=True, filename=filename, output="latex_source"
+        )
         self.assertEqualToReference(filename)
 
 

@@ -836,7 +836,9 @@ class TestMatplotlibDrawer(QiskitTestCase):
         crx = ClassicalRegister(2, "cs")
         circuit = QuantumCircuit(bits, cr, [Clbit()], crx)
         circuit.x(0).c_if(bits[3], 0)
-        self.circuit_drawer(circuit, cregbundle=False, reverse_bits=True, filename="cond_bits_reverse.png")
+        self.circuit_drawer(
+            circuit, cregbundle=False, reverse_bits=True, filename="cond_bits_reverse.png"
+        )
 
 
 if __name__ == "__main__":
