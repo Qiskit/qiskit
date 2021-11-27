@@ -24,8 +24,7 @@ from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.test.mock import FakeTenerife
 from qiskit.circuit.library import XGate, MCXGate, RZZGate, SwapGate, DCXGate
 from qiskit.extensions import HamiltonianGate
-from qiskit.circuit import Parameter
-from qiskit.circuit import Qubit, Clbit
+from qiskit.circuit import Parameter, Qubit, Clbit
 from qiskit.circuit.library import IQP
 from qiskit.quantum_info.random import random_unitary
 from .visualization import QiskitVisualizationTestCase
@@ -618,6 +617,17 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit_drawer(circuit, cregbundle=True, filename=filename2, output="latex_source")
         self.assertEqualToReference(filename1)
         self.assertEqualToReference(filename2)
+
+    def test_conditions_with_bits_reverse(self):
+        """Test that gates with conditions and measures work with bits reversed"""
+        filename = self._get_resource_path("test_latex_cond_reverse.tex")
+        bits = [Qubit(), Qubit(), Clbit(), Clbit()]
+        cr = ClassicalRegister(2, "cr")
+        crx = ClassicalRegister(3, "cs")
+        circuit = QuantumCircuit(bits, cr, [Clbit()], crx)
+        circuit.x(0).c_if(bits[3], 0)
+        circuit_drawer(circuit, cregbundle=False, reverse_bits=True, filename=filename, output="latex_source")
+        self.assertEqualToReference(filename)
 
 
 if __name__ == "__main__":

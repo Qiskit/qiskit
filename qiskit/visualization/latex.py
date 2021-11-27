@@ -29,6 +29,7 @@ from .utils import (
     get_bit_label,
     generate_latex_label,
     get_condition_label,
+    get_bit_locations,
 )
 
 
@@ -129,15 +130,7 @@ class QCircuitImage:
         self._ordered_bits = qubits + clbits
         self.cregs = {reg: reg.size for reg in cregs}
 
-        self._bit_locations = {
-            bit: {"register": register, "index": index}
-            for register in cregs + qregs
-            for index, bit in enumerate(register)
-        }
-        for index, bit in list(enumerate(qubits)) + list(enumerate(clbits)):
-            if bit not in self._bit_locations:
-                self._bit_locations[bit] = {"register": None, "index": index}
-
+        self._bit_locations = get_bit_locations(qregs, cregs, qubits, clbits, reverse_bits)
         self.cregbundle = cregbundle
         # If there is any custom instruction that uses clasiscal bits
         # then cregbundle is forced to be False.

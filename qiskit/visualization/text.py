@@ -29,6 +29,7 @@ from qiskit.visualization.utils import (
     get_param_str,
     get_bit_label,
     get_condition_label,
+    get_bit_locations,
 )
 from .exceptions import VisualizationError
 
@@ -631,14 +632,7 @@ class TextDrawing:
             else:
                 self.encoding = "utf8"
 
-        self.bit_locations = {
-            bit: {"register": register, "index": index}
-            for register in cregs + qregs
-            for index, bit in enumerate(register)
-        }
-        for index, bit in list(enumerate(qubits)) + list(enumerate(clbits)):
-            if bit not in self.bit_locations:
-                self.bit_locations[bit] = {"register": None, "index": index}
+        self._bit_locations = get_bit_locations(qregs, cregs, qubits, clbits, reverse_bits)
 
     def __str__(self):
         return self.single_string()
@@ -782,8 +776,8 @@ class TextDrawing:
         # quantum register
         qubit_labels = []
         for reg in self.qubits:
-            register = self.bit_locations[reg]["register"]
-            index = self.bit_locations[reg]["index"]
+            register = self._bit_locations[reg]["register"]
+            index = self._bit_locations[reg]["index"]
             qubit_label = get_bit_label("text", register, index, qubit=True, layout=self.layout)
             qubit_label += ": " if self.layout is None else " "
             qubit_labels.append(qubit_label + initial_qubit_value)
@@ -793,8 +787,8 @@ class TextDrawing:
         if self.clbits:
             prev_creg = None
             for reg in self.clbits:
-                register = self.bit_locations[reg]["register"]
-                index = self.bit_locations[reg]["index"]
+                register = self._bit_locations[reg]["register"]
+                index = self._bit_locations[reg]["index"]
                 clbit_label = get_bit_label(
                     "text", register, index, qubit=False, cregbundle=self.cregbundle
                 )
@@ -1020,10 +1014,10 @@ class TextDrawing:
         if isinstance(op, Measure):
             gate = MeasureFrom()
             layer.set_qubit(node.qargs[0], gate)
-            if self.cregbundle and self.bit_locations[node.cargs[0]]["register"] is not None:
+            if self.cregbundle and self._bit_locations[node.cargs[0]]["register"] is not None:
                 layer.set_clbit(
                     node.cargs[0],
-                    MeasureTo(str(self.bit_locations[node.cargs[0]]["index"])),
+                    MeasureTo(str(self._bit_locations[node.cargs[0]]["index"])),
                 )
             else:
                 layer.set_clbit(node.cargs[0], MeasureTo())

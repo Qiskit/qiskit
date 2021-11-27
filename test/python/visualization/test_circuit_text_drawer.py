@@ -3089,6 +3089,38 @@ class TestTextConditional(QiskitTestCase):
             str(_text_circuit_drawer(circuit, cregbundle=False, reverse_bits=True)), expected
         )
 
+    def test_text_condition_bits_reverse(self):
+        """Condition and measure on single bits cregbundle true and reverse_bits true"""
+
+        bits = [Qubit(), Qubit(), Clbit(), Clbit()]
+        cr = ClassicalRegister(2, "cr")
+        crx = ClassicalRegister(3, "cs")
+        circuit = QuantumCircuit(bits, cr, [Clbit()], crx)
+        circuit.x(0).c_if(bits[3], 0)
+
+        expected = "\n".join(
+            [
+                "           ",
+                "   1: ─────",
+                "      ┌───┐",
+                "   0: ┤ X ├",
+                "      └─╥─┘",
+                "cs: 3/══╬══",
+                "        ║  ",
+                "   4: ══╬══",
+                "        ║  ",
+                "cr: 2/══╬══",
+                "        ║  ",
+                "   1: ══o══",
+                "           ",
+                "   0: ═════",
+                "           ",
+           ]
+        )
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, cregbundle=True, initial_state=False, reverse_bits=True)), expected
+        )
+
 
 class TestTextIdleWires(QiskitTestCase):
     """The idle_wires option"""

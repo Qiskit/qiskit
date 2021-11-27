@@ -220,6 +220,38 @@ def get_bit_label(drawer, register, index, qubit=True, layout=None, cregbundle=T
     return bit_label
 
 
+def get_bit_locations(qregs, cregs, qubits, clbits, reverse_bits):
+    """Build and return the bit_locations dict for all 3 drawers
+
+    Args:
+        qregs (list(QuantumRegister): list of quantum registers
+        cregs (list(ClassicalRegister)): list of classical registers
+        qubits (list(Qubit)): list of quantum bits
+        clbits (list(Clbit)): list of classical bits
+
+    Returns:
+        dict: bit location dict in form {bit: {"register": register, "index": index}}
+
+    """
+    # First load register and index info for the cregs and qregs,
+    # then add any bits which don't have registers associated with them.
+    bit_locations = {
+        bit: {"register": register, "index": index}
+        for register in cregs + qregs
+        for index, bit in enumerate(register)
+    }
+    for index, bit in list(enumerate(qubits)) + list(enumerate(clbits)):
+        if bit not in bit_locations:
+            if reverse_bits:
+                if isinstance(bit, Clbit):
+                    index = len(clbits) - index - 1
+                else:
+                    index = len(qubits) - index - 1
+            bit_locations[bit] = {"register": None, "index": index}
+
+    return bit_locations
+
+
 def get_condition_label(condition, clbits, bit_locations, cregbundle):
     """Get the label to display as a condition
 
