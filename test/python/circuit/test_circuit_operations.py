@@ -442,6 +442,50 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(expected, circuit)
 
+    def test_measure_all_not_add_bits_equal(self):
+        """Test measure_all applies measurements to all qubits.
+        Does not create a new ClassicalRegister if the existing one is big enough.
+        """
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2, "meas")
+
+        circuit = QuantumCircuit(qr, cr)
+        circuit.measure_all(add_bits=False)
+
+        expected = QuantumCircuit(qr, cr)
+        expected.barrier()
+        expected.measure(qr, cr)
+
+        self.assertEqual(expected, circuit)
+
+    def test_measure_all_not_add_bits_bigger(self):
+        """Test measure_all applies measurements to all qubits.
+        Does not create a new ClassicalRegister if the existing one is big enough.
+        """
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(3, "meas")
+
+        circuit = QuantumCircuit(qr, cr)
+        circuit.measure_all(add_bits=False)
+
+        expected = QuantumCircuit(qr, cr)
+        expected.barrier()
+        expected.measure(qr, cr[0:2])
+
+        self.assertEqual(expected, circuit)
+
+    def test_measure_all_not_add_bits_smaller(self):
+        """Test measure_all applies measurements to all qubits.
+        Raises an error if there are not enough classical bits to store the measurements.
+        """
+        qr = QuantumRegister(3)
+        cr = ClassicalRegister(2, "meas")
+
+        circuit = QuantumCircuit(qr, cr)
+
+        with self.assertRaisesRegex(CircuitError, "The number of classical bits"):
+            circuit.measure_all(add_bits=False)
+
     def test_measure_all_copy(self):
         """Test measure_all with inplace=False"""
         qr = QuantumRegister(2)
