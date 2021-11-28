@@ -21,7 +21,6 @@ import scipy.linalg
 from qiskit.circuit import Gate, QuantumCircuit, QuantumRegister, ParameterExpression
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
-from qiskit.extensions.exceptions import ExtensionError
 from qiskit.circuit.exceptions import CircuitError
 
 from .unitary import UnitaryGate
@@ -41,7 +40,7 @@ class HamiltonianGate(Gate):
             label (str): unitary name for backend [Default: None].
 
         Raises:
-            ExtensionError: if input data is not an N-qubit unitary operator.
+            CircuitError: if input data is not an N-qubit unitary operator.
         """
         if hasattr(data, "to_matrix"):
             # If input is Gate subclass or some other class object that has
@@ -56,14 +55,14 @@ class HamiltonianGate(Gate):
         data = numpy.array(data, dtype=complex)
         # Check input is unitary
         if not is_hermitian_matrix(data):
-            raise ExtensionError("Input matrix is not Hermitian.")
+            raise CircuitError("Input matrix is not Hermitian.")
         if isinstance(time, Number) and time != numpy.real(time):
-            raise ExtensionError("Evolution time is not real.")
+            raise CircuitError("Evolution time is not real.")
         # Check input is N-qubit matrix
         input_dim, output_dim = data.shape
         num_qubits = int(numpy.log2(input_dim))
         if input_dim != output_dim or 2 ** num_qubits != input_dim:
-            raise ExtensionError("Input matrix is not an N-qubit operator.")
+            raise CircuitError("Input matrix is not an N-qubit operator.")
 
         # Store instruction params
         super().__init__("hamiltonian", num_qubits, [data, time], label=label)
@@ -113,7 +112,7 @@ class HamiltonianGate(Gate):
 
     def qasm(self):
         """Raise an error, as QASM is not defined for the HamiltonianGate."""
-        raise ExtensionError("HamiltonianGate has no QASM definition.")
+        raise CircuitError("HamiltonianGate has no QASM definition.")
 
     def validate_parameter(self, parameter):
         """Hamiltonian parameter has to be an ndarray, operator or float."""

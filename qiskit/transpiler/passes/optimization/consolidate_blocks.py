@@ -18,7 +18,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.dagcircuit.dagnode import DAGOpNode
 from qiskit.quantum_info import Operator
 from qiskit.quantum_info.synthesis import TwoQubitBasisDecomposer
-from qiskit.extensions import UnitaryGate
+from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.synthesis import unitary_synthesis

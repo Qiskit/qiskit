@@ -29,7 +29,6 @@ from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
 from qiskit.quantum_info.synthesis.two_qubit_decompose import two_qubit_cnot_decompose
-from qiskit.extensions.exceptions import ExtensionError
 
 _DECOMPOSER1Q = OneQubitEulerDecomposer("U3")
 
@@ -45,7 +44,7 @@ class UnitaryGate(Gate):
             label (str): unitary name for backend [Default: None].
 
         Raises:
-            ExtensionError: if input data is not an N-qubit unitary operator.
+            CircuitError: if input data is not an N-qubit unitary operator.
         """
         if hasattr(data, "to_matrix"):
             # If input is Gate subclass or some other class object that has
@@ -60,12 +59,12 @@ class UnitaryGate(Gate):
         data = numpy.array(data, dtype=complex)
         # Check input is unitary
         if not is_unitary_matrix(data):
-            raise ExtensionError("Input matrix is not unitary.")
+            raise CircuitError("Input matrix is not unitary.")
         # Check input is N-qubit matrix
         input_dim, output_dim = data.shape
         num_qubits = int(numpy.log2(input_dim))
         if input_dim != output_dim or 2 ** num_qubits != input_dim:
-            raise ExtensionError("Input matrix is not an N-qubit operator.")
+            raise CircuitError("Input matrix is not an N-qubit operator.")
 
         self._qasm_name = None
         self._qasm_definition = None
@@ -133,7 +132,7 @@ class UnitaryGate(Gate):
 
         Raises:
             QiskitError: Invalid ctrl_state.
-            ExtensionError: Non-unitary controlled unitary.
+            CircuitError: Non-unitary controlled unitary.
         """
         mat = self.to_matrix()
         cmat = _compute_control_matrix(mat, num_ctrl_qubits, ctrl_state=None)
@@ -154,7 +153,7 @@ class UnitaryGate(Gate):
         pmat = Operator(iso.inverse()).data @ cmat
         diag = numpy.diag(pmat)
         if not numpy.allclose(diag, diag[0]):
-            raise ExtensionError("controlled unitary generation failed")
+            raise CircuitError("controlled unitary generation failed")
         phase = numpy.angle(diag[0])
         if phase:
             # need to apply to _definition since open controls creates temporary definition
