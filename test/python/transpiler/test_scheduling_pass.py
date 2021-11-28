@@ -35,7 +35,7 @@ class TestSchedulingPass(QiskitTestCase):
         qc.measure_all()
 
         durations = InstructionDurations(
-            [("h", 0, 200), ("cx", [0, 1], 700), ("measure", None, 1000)]
+            [("h", 0, None, 200), ("cx", [0, 1], None, 700), ("measure", None, None, 1000)]
         )
 
         pm = PassManager(ALAPSchedule(durations))
@@ -77,7 +77,7 @@ class TestSchedulingPass(QiskitTestCase):
         qc.measure(0, 0)
         qc.x(1).c_if(0, True)
 
-        durations = InstructionDurations([("x", None, 200), ("measure", None, 1000)])
+        durations = InstructionDurations([("x", None, None, 200), ("measure", None, None, 1000)])
         pm = PassManager(schedule_pass(durations))
         scheduled = pm.run(qc)
 
@@ -117,7 +117,7 @@ class TestSchedulingPass(QiskitTestCase):
         qc.measure(0, 0)
         qc.measure(1, 0)
 
-        durations = InstructionDurations([("x", None, 200), ("measure", None, 1000)])
+        durations = InstructionDurations([("x", None, None, 200), ("measure", None, None, 1000)])
         pm = PassManager(schedule_pass(durations))
         scheduled = pm.run(qc)
 
@@ -162,7 +162,7 @@ class TestSchedulingPass(QiskitTestCase):
         qc.x(1).c_if(0, True)
         qc.x(2).c_if(0, True)
 
-        durations = InstructionDurations([("x", None, 200), ("measure", None, 1000)])
+        durations = InstructionDurations([("x", None, None, 200), ("measure", None, None, 1000)])
         pm = PassManager(schedule_pass(durations))
         scheduled = pm.run(qc)
 
@@ -202,7 +202,7 @@ class TestSchedulingPass(QiskitTestCase):
         qc.measure(0, 0)
         qc.measure(1, 0)
 
-        durations = InstructionDurations([("measure", 0, 1000), ("measure", 1, 700)])
+        durations = InstructionDurations([("measure", 0, None, 1000), ("measure", 1, None, 700)])
         pm = PassManager(schedule_pass(durations))
         scheduled = pm.run(qc)
 
@@ -254,7 +254,7 @@ class TestSchedulingPass(QiskitTestCase):
         qc.x(1).c_if(0, 1)
         qc.measure(2, 0)
 
-        durations = InstructionDurations([("x", None, 200), ("measure", None, 1000)])
+        durations = InstructionDurations([("x", None, None, 200), ("measure", None, None, 1000)])
         actual_asap = PassManager(ASAPSchedule(durations)).run(qc)
         actual_alap = PassManager(ALAPSchedule(durations)).run(qc)
 

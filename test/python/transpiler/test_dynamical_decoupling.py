@@ -71,16 +71,16 @@ class TestDynamicalDecoupling(QiskitTestCase):
 
         self.durations = InstructionDurations(
             [
-                ("h", 0, 50),
-                ("cx", [0, 1], 700),
-                ("cx", [1, 2], 200),
-                ("cx", [2, 3], 300),
-                ("x", None, 50),
-                ("y", None, 50),
-                ("u", None, 100),
-                ("rx", None, 100),
-                ("measure", None, 1000),
-                ("reset", None, 1500),
+                ("h", 0, None, 50),
+                ("cx", [0, 1], None, 700),
+                ("cx", [1, 2], None, 200),
+                ("cx", [2, 3], None, 300),
+                ("x", None, None, 50),
+                ("y", None, None, 50),
+                ("u", None, None, 100),
+                ("rx", None, None, 100),
+                ("measure", None, None, 1000),
+                ("reset", None, None, 1500),
             ]
         )
 

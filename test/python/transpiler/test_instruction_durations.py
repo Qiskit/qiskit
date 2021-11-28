@@ -29,10 +29,10 @@ class TestInstructionDurationsClass(QiskitTestCase):
         durations = InstructionDurations()
         self.assertEqual(durations.dt, None)
         with self.assertRaises(TranspilerError):
-            durations.get("cx", [0, 1], "dt")
+            durations.get("cx", [0, 1], None, "dt")
 
     def test_fail_if_invalid_dict_is_supplied_when_construction(self):
-        invalid_dic = [("cx", [0, 1])]  # no duration
+        invalid_dic = [("cx", [0, 1], None)]  # no duration
         with self.assertRaises(TranspilerError):
             InstructionDurations(invalid_dic)
 
@@ -48,7 +48,7 @@ class TestInstructionDurationsClass(QiskitTestCase):
         gate = self._find_gate_with_length(backend)
         durations = InstructionDurations.from_backend(backend)
         self.assertIsNone(durations.dt)
-        self.assertGreater(durations.get(gate, 0, "s"), 0)
+        self.assertGreater(durations.get(gate, 0, unit="s"), 0)
         with self.assertRaises(TranspilerError):
             durations.get(gate, 0)
 

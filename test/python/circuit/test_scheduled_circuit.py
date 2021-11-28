@@ -212,7 +212,11 @@ class TestScheduledCircuit(QiskitTestCase):
             qc,
             basis_gates=["h", "cx", "delay"],
             scheduling_method="alap",
-            instruction_durations=[("h", 0, 200), ("cx", None, 900), ("cx", [0, 1], 800)],
+            instruction_durations=[
+                ("h", 0, None, 200),
+                ("cx", None, None, 900),
+                ("cx", [0, 1], None, 800),
+            ],
         )
         self.assertEqual(scheduled.duration, 1300)
 
@@ -227,7 +231,7 @@ class TestScheduledCircuit(QiskitTestCase):
 
         # update durations
         durations = InstructionDurations.from_backend(self.backend_with_dt)
-        durations.update([("cx", [0, 1], 1000 * self.dt, "s")])
+        durations.update([("cx", [0, 1], None, 1000 * self.dt, "s")])
         scheduled = transpile(
             qc,
             backend=self.backend_with_dt,
@@ -246,7 +250,7 @@ class TestScheduledCircuit(QiskitTestCase):
         sc = transpile(
             qc,
             scheduling_method="alap",
-            instruction_durations=[("h", None, 200), ("cx", [0, 1], 700)],
+            instruction_durations=[("h", None, None, 200), ("cx", [0, 1], None, 700)],
         )
         self.assertEqual(sc.qubit_start_time(0), 300)
         self.assertEqual(sc.qubit_stop_time(0), 1200)
@@ -261,7 +265,11 @@ class TestScheduledCircuit(QiskitTestCase):
         sc = transpile(
             qc,
             scheduling_method="alap",
-            instruction_durations=[("h", None, 200), ("cx", [0, 1], 700), ("measure", None, 1000)],
+            instruction_durations=[
+                ("h", None, None, 200),
+                ("cx", [0, 1], None, 700),
+                ("measure", None, None, 1000),
+            ],
         )
         q = sc.qubits
         self.assertEqual(sc.qubit_start_time(q[0]), 300)

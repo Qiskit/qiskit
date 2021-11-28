@@ -35,6 +35,7 @@ class InstructionDurations:
     ):
         self.duration_by_name = {}
         self.duration_by_name_qubits = {}
+        self.duration_by_name_qubits_params = {}
         self.dt = dt
         if instruction_durations:
             self.update(instruction_durations)
@@ -108,25 +109,29 @@ class InstructionDurations:
         if isinstance(inst_durations, InstructionDurations):
             self.duration_by_name.update(inst_durations.duration_by_name)
             self.duration_by_name_qubits.update(inst_durations.duration_by_name_qubits)
+            self.duration_by_name_qubits_params.update(inst_durations.duration_by_name_qubits_params)
         else:
             for i, items in enumerate(inst_durations):
                 if len(items) == 3:
                     inst_durations[i] = (*items, "dt")  # set default unit
-                elif len(items) != 4:
+                elif len(items) != 5:
                     raise TranspilerError(
                         "Each entry of inst_durations dictionary must be "
-                        "(inst_name, qubits, duration) or "
-                        "(inst_name, qubits, duration, unit)"
+                        "(inst_name, qubits, parameters, duration) or "
+                        "(inst_name, qubits, parameters, duration, unit)"
                     )
 
-            for name, qubits, duration, unit in inst_durations:
+            for name, qubits, parameters, duration, unit in inst_durations:
                 if isinstance(qubits, int):
                     qubits = [qubits]
 
-                if qubits is None:
+                if qubits is None and parameters is None:
                     self.duration_by_name[name] = duration, unit
-                else:
+                elif parameters is None:
                     self.duration_by_name_qubits[(name, tuple(qubits))] = duration, unit
+                else:
+                    key = (name, tuple(qubits), tuple(parameters))
+                    self.duration_by_name_qubits_params[key] = duration, int
 
         return self
 
@@ -134,13 +139,17 @@ class InstructionDurations:
         self,
         inst: Union[str, Instruction],
         qubits: Union[int, List[int], Qubit, List[Qubit]],
+        parameters: Optional[List[float]] = None,
         unit: str = "dt",
     ) -> float:
-        """Get the duration of the instruction with the name and the qubits.
+        """Get the duration of the instruction with the name, qubits, and parameters.
+
+        Some instructions may have a parameter dependent duration.
 
         Args:
             inst: An instruction or its name to be queried.
             qubits: Qubits or its indices that the instruction acts on.
+            parameters: The value of the parameters of the desired instruction.
             unit: The unit of duration to be returned. It must be 's' or 'dt'.
 
         Returns:
@@ -174,19 +183,31 @@ class InstructionDurations:
             qubits = [q.index for q in qubits]
 
         try:
-            return self._get(inst_name, qubits, unit)
+            return self._get(inst_name, qubits, unit, parameters)
         except TranspilerError as ex:
             raise TranspilerError(
                 f"Duration of {inst_name} on qubits {qubits} is not found."
             ) from ex
 
-    def _get(self, name: str, qubits: List[int], to_unit: str) -> float:
-        """Get the duration of the instruction with the name and the qubits."""
+    def _get(
+        self,
+        name: str,
+        qubits: List[int],
+        to_unit: str,
+        parameters: Optional[Iterable[float]] = None
+    ) -> float:
+        """Get the duration of the instruction with the name, qubits, and parameters."""
         if name == "barrier":
             return 0
 
-        key = (name, tuple(qubits))
-        if key in self.duration_by_name_qubits:
+        if parameters is None:
+            key = (name, tuple(qubits), tuple(parameters))
+        else:
+            key = (name, tuple(qubits))
+
+        if key in self.duration_by_name_qubits_params:
+            duration, unit = self.duration_by_name_qubits_params[key]
+        elif key in self.duration_by_name_qubits:
             duration, unit = self.duration_by_name_qubits[key]
         elif name in self.duration_by_name:
             duration, unit = self.duration_by_name[name]
@@ -232,8 +253,8 @@ class InstructionDurations:
 
 
 InstructionDurationsType = Union[
-    List[Tuple[str, Optional[Iterable[int]], float, str]],
-    List[Tuple[str, Optional[Iterable[int]], float]],
+    List[Tuple[str, Optional[Iterable[int]], Optional[Iterable[float]], float, str]],
+    List[Tuple[str, Optional[Iterable[int]], Optional[Iterable[float]], float]],
     InstructionDurations,
 ]
-"""List of tuples representing (instruction name, qubits indices, duration)."""
+"""List of tuples representing (instruction name, qubits indices, parameters, duration)."""

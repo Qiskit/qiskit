@@ -32,15 +32,15 @@ class TestAlignMeasures(QiskitTestCase):
         instruction_durations = InstructionDurations()
         instruction_durations.update(
             [
-                ("rz", (0,), 0),
-                ("rz", (1,), 0),
-                ("x", (0,), 160),
-                ("x", (1,), 160),
-                ("sx", (0,), 160),
-                ("sx", (1,), 160),
-                ("cx", (0, 1), 800),
-                ("cx", (1, 0), 800),
-                ("measure", None, 1600),
+                ("rz", (0,), None, 0),
+                ("rz", (1,), None, 0),
+                ("x", (0,), None, 160),
+                ("x", (1,), None, 160),
+                ("sx", (0,), None, 160),
+                ("sx", (1,), None, 160),
+                ("cx", (0, 1), None, 800),
+                ("cx", (1, 0), None, 800),
+                ("measure", None, None, 1600),
             ]
         )
         self.time_conversion_pass = TimeUnitConversion(inst_durations=instruction_durations)
