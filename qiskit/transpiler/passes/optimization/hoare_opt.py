@@ -232,23 +232,24 @@ class HoareOptimizer(TransformationPass):
 
             self._add_postconditions(gate, ctrl_ones, trgtqb, trgtvar)
 
-    def _target_successive_seq(self, qubit):
-        """gates are target successive if they have the same set of target
-            qubits and follow each other immediately on these target qubits
-            (consider sequences of length 2 for now)
+    def _remove_successive_identity(self, dag, qubit, from_idx=None):
+        """remove gates that have the same set of target qubits, follow each
+            other immediately on these target qubits, and combine to the
+            identity (consider sequences of length 2 for now)
         Args:
+            dag (DAGCircuit): the directed acyclic graph to run on.
             qubit (Qubit): qubit cache to inspect
-        Returns:
-            list(list(DAGOpNode or DAGOutNode)): list of target successive gate sequences for
-                                 this qubit's cache
+            from_idx (int): only gates whose indexes in the cache are larger
+                            than this value can be removed
         """
-        seqs = []
-        for i in range(len(self.gatecache[qubit]) - 1):
+        i = 0
+        while i < len(self.gatecache[qubit]) - 1:
             append = True
             node1 = self.gatecache[qubit][i]
             node2 = self.gatecache[qubit][i + 1]
             trgtqb1 = self._seperate_ctrl_trgt(node1)[2]
             trgtqb2 = self._seperate_ctrl_trgt(node2)[2]
+            i += 1
 
             if trgtqb1 != trgtqb2:
                 continue
@@ -260,10 +261,14 @@ class HoareOptimizer(TransformationPass):
             except (IndexError, ValueError):
                 continue
 
-            if append:
-                seqs.append([node1, node2])
-
-        return seqs
+            seq = [node1, node2]
+            if append and self._is_identity(seq) and self._seq_as_one(seq):
+                i += 1
+                for node in seq:
+                    dag.remove_op_node(node)
+                    if from_idx is None or self.gatecache[qubit].index(node) > from_idx:
+                        for qbt in node.qargs:
+                            self.gatecache[qbt].remove(node)
 
     def _is_identity(self, sequence):
         """determine whether the sequence of gates combines to the identity
@@ -334,19 +339,7 @@ class HoareOptimizer(TransformationPass):
             return
 
         # try to optimize this qubit's pipeline
-        for seq in self._target_successive_seq(qubit):
-            if self._is_identity(seq) and self._seq_as_one(seq):
-                for node in seq:
-                    dag.remove_op_node(node)
-                    # if recursive call, gate will be removed further down
-                    if max_idx is None:
-                        for qbt in node.qargs:
-                            self.gatecache[qbt].remove(node)
-                    else:
-                        if self.gatecache[qubit].index(node) > max_idx:
-                            for qbt in node.qargs:
-                                self.gatecache[qbt].remove(node)
-
+        self._remove_successive_identity(dag, qubit, max_idx)
         if len(self.gatecache[qubit]) < self.size and max_idx is None:
             # unless in a rec call, we are done if the cache isn't full
             return

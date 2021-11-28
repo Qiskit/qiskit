@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a bug in the Hoare optimizer transpilation pass where it could attempt to remove a gate twice if it could be separately combined with both its predecessor and its successor to form the identity.
+    Refer to `#7271 <https://github.com/Qiskit/qiskit-terra/issues/7271>`__ for more details.

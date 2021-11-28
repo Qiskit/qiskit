@@ -318,6 +318,101 @@ class DAGCircuit:
         else:
             raise DAGCircuitError(f"duplicate wire {wire}")
 
+    def remove_clbits(self, *clbits):
+        """
+        Remove classical bits from the circuit. All bits MUST be idle.
+        Any registers with references to at least one of the specified bits will
+        also be removed.
+
+        Args:
+            clbits (List[Clbit]): The bits to remove.
+
+        Raises:
+            DAGCircuitError: a clbit is not a :obj:`.Clbit`, is not in the circuit,
+                or is not idle.
+        """
+        if any(not isinstance(clbit, Clbit) for clbit in clbits):
+            raise DAGCircuitError(
+                "clbits not of type Clbit: %s" % [b for b in clbits if not isinstance(b, Clbit)]
+            )
+
+        clbits = set(clbits)
+        unknown_clbits = clbits.difference(self.clbits)
+        if unknown_clbits:
+            raise DAGCircuitError("clbits not in circuit: %s" % unknown_clbits)
+
+        busy_clbits = {bit for bit in clbits if not self._is_wire_idle(bit)}
+        if busy_clbits:
+            raise DAGCircuitError("clbits not idle: %s" % busy_clbits)
+
+        # remove any references to bits
+        cregs_to_remove = {creg for creg in self.cregs.values() if not clbits.isdisjoint(creg)}
+        self.remove_cregs(*cregs_to_remove)
+
+        for clbit in clbits:
+            self._remove_idle_wire(clbit)
+            self.clbits.remove(clbit)
+
+    def remove_cregs(self, *cregs):
+        """
+        Remove classical registers from the circuit, leaving underlying bits
+        in place.
+
+        Raises:
+            DAGCircuitError: a creg is not a ClassicalRegister, or is not in
+            the circuit.
+        """
+        if any(not isinstance(creg, ClassicalRegister) for creg in cregs):
+            raise DAGCircuitError(
+                "cregs not of type ClassicalRegister: %s"
+                % [r for r in cregs if not isinstance(r, ClassicalRegister)]
+            )
+
+        unknown_cregs = set(cregs).difference(self.cregs.values())
+        if unknown_cregs:
+            raise DAGCircuitError("cregs not in circuit: %s" % unknown_cregs)
+
+        for creg in cregs:
+            del self.cregs[creg.name]
+
+    def _is_wire_idle(self, wire):
+        """Check if a wire is idle.
+
+        Args:
+            wire (Bit): a wire in the circuit.
+
+        Returns:
+            bool: true if the wire is idle, false otherwise.
+
+        Raises:
+            DAGCircuitError: the wire is not in the circuit.
+        """
+        if wire not in self._wires:
+            raise DAGCircuitError("wire %s not in circuit" % wire)
+
+        try:
+            child = next(self.successors(self.input_map[wire]))
+        except StopIteration as e:
+            raise DAGCircuitError(
+                "Invalid dagcircuit input node %s has no output" % self.input_map[wire]
+            ) from e
+        return child is self.output_map[wire]
+
+    def _remove_idle_wire(self, wire):
+        """Remove an idle qubit or bit from the circuit.
+
+        Args:
+            wire (Bit): the wire to be removed, which MUST be idle.
+        """
+        inp_node = self.input_map[wire]
+        oup_node = self.output_map[wire]
+
+        self._multi_graph.remove_node(inp_node._node_id)
+        self._multi_graph.remove_node(oup_node._node_id)
+        self._wires.remove(wire)
+        del self.input_map[wire]
+        del self.output_map[wire]
+
     def _check_condition(self, name, condition):
         """Verify that the condition is valid.
 
@@ -768,13 +863,7 @@ class DAGCircuit:
         ignore_set = set(ignore)
         for wire in self._wires:
             if not ignore:
-                try:
-                    child = next(self.successors(self.input_map[wire]))
-                except StopIteration as e:
-                    raise DAGCircuitError(
-                        "Invalid dagcircuit input node %s has no output" % self.input_map[wire]
-                    ) from e
-                if isinstance(child, DAGOutNode):
+                if self._is_wire_idle(wire):
                     yield wire
             else:
                 for node in self.nodes_on_wire(wire, only_ops=True):

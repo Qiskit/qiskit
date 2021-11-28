@@ -137,7 +137,6 @@ class TestPTM(ChannelTestCase):
         chan2 = PTM(self.ptmY)
         rho_targ = rho.evolve(PTM(self.ptmZ))
         self.assertEqual(rho.evolve(chan2.dot(chan1)), rho_targ)
-        self.assertEqual(rho.evolve(chan2 * chan1), rho_targ)
 
         # Compose random
         ptm1 = self.rand_matrix(4, 4, real=True)
@@ -146,7 +145,6 @@ class TestPTM(ChannelTestCase):
         chan2 = PTM(ptm2, input_dims=2, output_dims=2)
         rho_targ = rho.evolve(chan1).evolve(chan2)
         self.assertEqual(rho.evolve(chan2.dot(chan1)), rho_targ)
-        self.assertEqual(rho.evolve(chan2 * chan1), rho_targ)
 
     def test_compose_front(self):
         """Test deprecated front compose method."""
