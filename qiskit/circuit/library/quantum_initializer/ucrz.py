@@ -13,20 +13,20 @@
 """
 Implementation of the abstract class UCPauliRotGate for uniformly controlled
 (also called multiplexed) single-qubit rotations
-around the Y-axes (i.e., uniformly controlled R_y rotations).
+around the Z-axes (i.e., uniformly controlled R_z rotations).
 These gates can have several control qubits and a single target qubit.
 If the k control qubits are in the state ket(i) (in the computational bases),
-a single-qubit rotation R_y(a_i) is applied to the target qubit.
+a single-qubit rotation R_z(a_i) is applied to the target qubit.
 """
 import math
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.exceptions import QiskitError
-from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate
+from qiskit.circuit.library.quantum_initializer.uc_pauli_rot import UCPauliRotGate
 
 
-class UCRYGate(UCPauliRotGate):
+class UCRZGate(UCPauliRotGate):
     """
     Uniformly controlled rotations (also called multiplexed rotations).
     The decomposition is based on
@@ -38,22 +38,22 @@ class UCRYGate(UCPauliRotGate):
     """
 
     def __init__(self, angle_list):
-        super().__init__(angle_list, "Y")
+        super().__init__(angle_list, "Z")
 
 
-def ucry(self, angle_list, q_controls, q_target):
-    """Attach a uniformly controlled (also called multiplexed) Ry rotation gate to a circuit.
+def ucrz(self, angle_list, q_controls, q_target):
+    """Attach a uniformly controlled (also called multiplexed gates) Rz rotation gate to a circuit.
 
     The decomposition is base on https://arxiv.org/pdf/quant-ph/0406176.pdf by Shende et al.
 
     Args:
-        angle_list (list[numbers): list of (real) rotation angles :math:`[a_0,...,a_{2^k-1}]`
+        angle_list (list[numbers): list of (real) rotation angles [a_0,...,a_{2^k-1}]
         q_controls (QuantumRegister|list[Qubit]): list of k control qubits
             (or empty list if no controls). The control qubits are ordered according to their
-            significance in increasing order: For example if ``q_controls=[q[0],q[1]]``
-            (with ``q = QuantumRegister(2)``), the rotation ``Ry(a_0)`` is performed if ``q[0]``
-            and ``q[1]`` are in the state zero, the rotation ``Ry(a_1)`` is performed if ``q[0]``
-            is in the state one and ``q[1]`` is in the state zero, and so on
+            significance in increasing order: For example if q_controls=[q[1],q[2]]
+            (with q = QuantumRegister(2)), the rotation Rz(a_0)is performed if q[1] and q[2]
+            are in the state zero, the rotation  Rz(a_1) is performed if q[1] is in
+            the state one and q[2] is in the state zero, and so on
         q_target (QuantumRegister|Qubit): target qubit, where we act on with
             the single-qubit rotation gates
 
@@ -61,8 +61,9 @@ def ucry(self, angle_list, q_controls, q_target):
         QuantumCircuit: the uniformly controlled rotation gate is attached to the circuit.
 
     Raises:
-        QiskitError: if the list number of control qubits does not correspond to the provided
-            number of single-qubit unitaries; if an input is of the wrong type
+        QiskitError: if the list number of control qubits does not correspond to
+            the provided number of single-qubit unitaries; if an input is of
+            the wrong type
     """
 
     if isinstance(q_controls, QuantumRegister):
@@ -88,7 +89,7 @@ def ucry(self, angle_list, q_controls, q_target):
         raise QiskitError(
             "Number of controlled rotations does not correspond to the number of control-qubits."
         )
-    return self.append(UCRYGate(angle_list), [q_target] + q_controls, [])
+    return self.append(UCRZGate(angle_list), [q_target] + q_controls, [])
 
 
-QuantumCircuit.ucry = ucry
+QuantumCircuit.ucrz = ucrz

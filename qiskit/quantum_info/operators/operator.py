@@ -214,7 +214,7 @@ class Operator(LinearOp):
     def to_instruction(self):
         """Convert to a UnitaryGate instruction."""
         # pylint: disable=cyclic-import
-        from qiskit.extensions.unitary import UnitaryGate
+        from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 
         return UnitaryGate(self.data)
 

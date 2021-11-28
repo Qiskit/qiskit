@@ -226,7 +226,6 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.h(q[1])
 
         # this import appears to be unused, but is actually needed to get snapshot instruction
-        import qiskit.extensions.simulator  # pylint: disable=unused-import
 
         circuit.snapshot("1")
 

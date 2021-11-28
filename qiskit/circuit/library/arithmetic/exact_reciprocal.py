@@ -14,7 +14,7 @@
 from math import isclose
 import numpy as np
 from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.extensions.quantum_initializer import UCRYGate
+from qiskit.circuit.library.quantum_initializer import UCRYGate
 
 
 class ExactReciprocal(QuantumCircuit):

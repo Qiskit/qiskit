@@ -24,7 +24,7 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.circuit.quantumcircuit import _qasm_escape_gate_name
 from qiskit.circuit.library.standard_gates import U3Gate
-from qiskit.extensions.quantum_initializer import isometry
+from qiskit.circuit.library.quantum_initializer import isometry
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer

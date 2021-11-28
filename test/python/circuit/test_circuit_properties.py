@@ -19,7 +19,7 @@ from qiskit.circuit import Clbit
 from qiskit.circuit.library import RXGate, RYGate
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.extensions.simulator import Snapshot
+from qiskit.circuit.library.simulator import Snapshot
 
 
 class TestCircuitProperties(QiskitTestCase):

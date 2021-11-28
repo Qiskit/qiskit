@@ -18,7 +18,7 @@ from numpy.testing import assert_allclose
 
 
 import qiskit
-from qiskit.extensions.hamiltonian_gate import HamiltonianGate, UnitaryGate
+from qiskit.circuit.library.generalized_gates.hamiltonian_gate import HamiltonianGate, UnitaryGate
 from qiskit.extensions.exceptions import ExtensionError
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit

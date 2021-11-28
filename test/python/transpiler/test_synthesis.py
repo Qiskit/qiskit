@@ -14,7 +14,7 @@
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info.operators import Operator
-from qiskit.extensions.unitary import UnitaryGate
+from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 from qiskit.transpiler.synthesis import graysynth, cnot_synth
 from qiskit.test import QiskitTestCase
 

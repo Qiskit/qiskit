@@ -21,7 +21,7 @@ from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
-from qiskit.extensions.quantum_initializer import isometry
+from qiskit.circuit.library.quantum_initializer import isometry
 from qiskit.quantum_info.synthesis import one_qubit_decompose
 from qiskit.quantum_info.synthesis.xx_decompose import XXDecomposer
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitBasisDecomposer

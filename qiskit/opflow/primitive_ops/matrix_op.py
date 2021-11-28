@@ -19,7 +19,7 @@ from scipy.sparse import spmatrix
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Instruction, ParameterExpression
-from qiskit.extensions.hamiltonian_gate import HamiltonianGate
+from qiskit.circuit.library.generalized_gates.hamiltonian_gate import HamiltonianGate
 from qiskit.opflow.exceptions import OpflowError
 from qiskit.opflow.list_ops.summed_op import SummedOp
 from qiskit.opflow.list_ops.tensored_op import TensoredOp

@@ -23,7 +23,7 @@ from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit import execute
 from qiskit.test import QiskitTestCase
-from qiskit.extensions.quantum_initializer.squ import SingleQubitUnitary
+from qiskit.circuit.library.quantum_initializer import SingleQubitUnitary
 from qiskit.compiler import transpile
 from qiskit.quantum_info.operators.predicates import matrix_equal
 

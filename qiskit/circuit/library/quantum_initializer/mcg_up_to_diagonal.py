@@ -26,7 +26,7 @@ from qiskit.circuit.quantumcircuit import QuantumRegister, QuantumCircuit
 from qiskit.quantum_info.operators.predicates import is_isometry
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.extensions.quantum_initializer.uc import UCGate
+from qiskit.circuit.library.quantum_initializer.uc import UCGate
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 

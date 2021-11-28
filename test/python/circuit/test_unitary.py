@@ -17,7 +17,7 @@ import numpy
 from numpy.testing import assert_allclose
 
 import qiskit
-from qiskit.extensions.unitary import UnitaryGate
+from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler import PassManager

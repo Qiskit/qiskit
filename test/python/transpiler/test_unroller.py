@@ -16,7 +16,7 @@
 from numpy import pi
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.extensions.simulator import Snapshot
+from qiskit.circuit.library.simulator import Snapshot
 from qiskit.transpiler.passes import Unroller
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info import Operator

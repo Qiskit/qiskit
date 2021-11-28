@@ -26,7 +26,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.compiler import transpile
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info import Operator
-from qiskit.extensions.quantum_initializer.isometry import Isometry
+from qiskit.circuit.library.quantum_initializer.isometry import Isometry
 
 
 @ddt

@@ -404,7 +404,7 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit import library
 from qiskit import circuit as circuit_mod
 from qiskit import extensions
-from qiskit.extensions import quantum_initializer
+from qiskit.circuit.library import quantum_initializer
 from qiskit.version import __version__
 from qiskit.exceptions import QiskitError
 
