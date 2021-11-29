@@ -403,7 +403,6 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit import library
 from qiskit import circuit as circuit_mod
-from qiskit import extensions
 from qiskit.circuit.library import quantum_initializer
 from qiskit.version import __version__
 from qiskit.exceptions import QiskitError
@@ -721,8 +720,6 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions):
         gate_class = getattr(library, gate_name)
     elif hasattr(circuit_mod, gate_name):
         gate_class = getattr(circuit_mod, gate_name)
-    elif hasattr(extensions, gate_name):
-        gate_class = getattr(extensions, gate_name)
     elif hasattr(quantum_initializer, gate_name):
         gate_class = getattr(quantum_initializer, gate_name)
     else:
@@ -837,7 +834,6 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
         (
             not hasattr(library, gate_class_name)
             and not hasattr(circuit_mod, gate_class_name)
-            and not hasattr(extensions, gate_class_name)
             and not hasattr(quantum_initializer, gate_class_name)
         )
         or gate_class_name == "Gate"
