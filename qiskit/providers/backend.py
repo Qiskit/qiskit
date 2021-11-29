@@ -329,7 +329,6 @@ class BackendV2(Backend, ABC):
 
         self._options = self._default_options()
         self._provider = provider
-        self._coupling_map = None
         if fields:
             for field in fields:
                 if field not in self._options.data:
@@ -399,7 +398,7 @@ class BackendV2(Backend, ABC):
     @property
     def coupling_map(self):
         """Return the :class:`~qiskit.transpiler.CouplingMap` object"""
-        return self.target.coupling_map()
+        return self.target.build_coupling_map()
 
     @property
     def instruction_durations(self):

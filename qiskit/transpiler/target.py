@@ -546,7 +546,7 @@ class Target(Mapping):
                     except rx.NoEdgeBetweenNodes:
                         self._coupling_graph.add_edge(*qarg, {gate: properties})
 
-    def coupling_map(self, two_q_gate=None):
+    def build_coupling_map(self, two_q_gate=None):
         """Get a :class:`~qiskit.transpiler.CouplingMap` from this target.
 
         Args:

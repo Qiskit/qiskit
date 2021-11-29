@@ -396,12 +396,16 @@ class TestTarget(QiskitTestCase):
             self.assertIn(gate, self.ideal_sim_target.operations_for_qargs(None))
 
     def test_coupling_map(self):
-        self.assertEqual(CouplingMap().get_edges(), self.empty_target.coupling_map().get_edges())
+        self.assertEqual(
+            CouplingMap().get_edges(), self.empty_target.build_coupling_map().get_edges()
+        )
         self.assertEqual(
             set(CouplingMap.from_full(5).get_edges()),
-            set(self.aqt_target.coupling_map().get_edges()),
+            set(self.aqt_target.build_coupling_map().get_edges()),
         )
-        self.assertEqual({(0, 1), (1, 0)}, set(self.fake_backend_target.coupling_map().get_edges()))
+        self.assertEqual(
+            {(0, 1), (1, 0)}, set(self.fake_backend_target.build_coupling_map().get_edges())
+        )
         self.assertEqual(
             {
                 (3, 4),
@@ -413,12 +417,12 @@ class TestTarget(QiskitTestCase):
                 (0, 1),
                 (1, 0),
             },
-            set(self.ibm_target.coupling_map().get_edges()),
+            set(self.ibm_target.build_coupling_map().get_edges()),
         )
-        self.assertEqual(None, self.ideal_sim_target.coupling_map())
+        self.assertEqual(None, self.ideal_sim_target.build_coupling_map())
 
     def test_coupling_map_2q_gate(self):
-        cmap = self.fake_backend_target.coupling_map("ecr")
+        cmap = self.fake_backend_target.build_coupling_map("ecr")
         self.assertEqual(
             [
                 (1, 0),
@@ -435,7 +439,7 @@ class TestTarget(QiskitTestCase):
         }
         fake_target.add_instruction(CCXGate(), ccx_props)
         with self.assertLogs("qiskit.transpiler.target", level="WARN") as log:
-            cmap = fake_target.coupling_map()
+            cmap = fake_target.build_coupling_map()
         self.assertEqual(
             log.output,
             [
@@ -447,7 +451,7 @@ class TestTarget(QiskitTestCase):
         )
         self.assertEqual([], cmap.get_edges())
         with self.assertRaises(ValueError):
-            fake_target.coupling_map("ccx")
+            fake_target.build_coupling_map("ccx")
 
     def test_physical_qubits(self):
         self.assertEqual([], self.empty_target.physical_qubits)
