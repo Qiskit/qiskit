@@ -71,7 +71,7 @@ class LieTrotter(ProductFormula):
         time = evolution.time
 
         # construct the evolution circuit
-        evo = QuantumCircuit(operators[0].num_qubits)
+        evolution_circuit = QuantumCircuit(operators[0].num_qubits)
         first_barrier = False
 
         if not isinstance(operators, list):
@@ -87,12 +87,12 @@ class LieTrotter(ProductFormula):
                 # add barriers
                 if first_barrier:
                     if self.insert_barriers:
-                        evo.barrier()
+                        evolution_circuit.barrier()
                 else:
                     first_barrier = True
 
-                evo.compose(
+                evolution_circuit.compose(
                     self.atomic_evolution(op, coeff * time / self.reps), wrap=wrap, inplace=True
                 )
 
-        return evo
+        return evolution_circuit
