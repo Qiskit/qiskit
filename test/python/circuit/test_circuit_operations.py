@@ -19,7 +19,9 @@ from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
 from qiskit.circuit import Gate, Instruction, Parameter
+from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.quantumcircuit import BitLocations
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.library.standard_gates import SGate
 from qiskit.quantum_info import Operator
@@ -440,6 +442,50 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(expected, circuit)
 
+    def test_measure_all_not_add_bits_equal(self):
+        """Test measure_all applies measurements to all qubits.
+        Does not create a new ClassicalRegister if the existing one is big enough.
+        """
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2, "meas")
+
+        circuit = QuantumCircuit(qr, cr)
+        circuit.measure_all(add_bits=False)
+
+        expected = QuantumCircuit(qr, cr)
+        expected.barrier()
+        expected.measure(qr, cr)
+
+        self.assertEqual(expected, circuit)
+
+    def test_measure_all_not_add_bits_bigger(self):
+        """Test measure_all applies measurements to all qubits.
+        Does not create a new ClassicalRegister if the existing one is big enough.
+        """
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(3, "meas")
+
+        circuit = QuantumCircuit(qr, cr)
+        circuit.measure_all(add_bits=False)
+
+        expected = QuantumCircuit(qr, cr)
+        expected.barrier()
+        expected.measure(qr, cr[0:2])
+
+        self.assertEqual(expected, circuit)
+
+    def test_measure_all_not_add_bits_smaller(self):
+        """Test measure_all applies measurements to all qubits.
+        Raises an error if there are not enough classical bits to store the measurements.
+        """
+        qr = QuantumRegister(3)
+        cr = ClassicalRegister(2, "meas")
+
+        circuit = QuantumCircuit(qr, cr)
+
+        with self.assertRaisesRegex(CircuitError, "The number of classical bits"):
+            circuit.measure_all(add_bits=False)
+
     def test_measure_all_copy(self):
         """Test measure_all with inplace=False"""
         qr = QuantumRegister(2)
@@ -554,6 +600,56 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(circuit.cregs, [])
         self.assertEqual(circuit.clbits, [])
+
+    def test_remove_final_measurements_7089(self):
+        """Test remove_final_measurements removes resulting unused registers
+        even if not all bits were measured into.
+        https://github.com/Qiskit/qiskit-terra/issues/7089.
+        """
+        circuit = QuantumCircuit(2, 5)
+        circuit.measure(0, 0)
+        circuit.measure(1, 1)
+        circuit.remove_final_measurements(inplace=True)
+
+        self.assertEqual(circuit.cregs, [])
+        self.assertEqual(circuit.clbits, [])
+
+    def test_remove_final_measurements_bit_locations(self):
+        """Test remove_final_measurements properly recalculates clbit indicies
+        and preserves order of remaining cregs and clbits.
+        """
+        c0 = ClassicalRegister(1)
+        c1_0 = Clbit()
+        c2 = ClassicalRegister(1)
+        c3 = ClassicalRegister(1)
+
+        # add an individual bit that's not in any register of this circuit
+        circuit = QuantumCircuit(QuantumRegister(1), c0, [c1_0], c2, c3)
+
+        circuit.measure(0, c1_0)
+        circuit.measure(0, c2[0])
+
+        # assert cregs and clbits before measure removal
+        self.assertEqual(circuit.cregs, [c0, c2, c3])
+        self.assertEqual(circuit.clbits, [c0[0], c1_0, c2[0], c3[0]])
+
+        # assert clbit indices prior to measure removal
+        self.assertEqual(circuit.find_bit(c0[0]), BitLocations(0, [(c0, 0)]))
+        self.assertEqual(circuit.find_bit(c1_0), BitLocations(1, []))
+        self.assertEqual(circuit.find_bit(c2[0]), BitLocations(2, [(c2, 0)]))
+        self.assertEqual(circuit.find_bit(c3[0]), BitLocations(3, [(c3, 0)]))
+
+        circuit.remove_final_measurements()
+
+        # after measure removal, creg c2 should be gone, as should lone bit c1_0
+        # and c0 should still come before c3
+        self.assertEqual(circuit.cregs, [c0, c3])
+        self.assertEqual(circuit.clbits, [c0[0], c3[0]])
+
+        # there should be no gaps in clbit indices
+        # e.g. c3[0] is now the second clbit
+        self.assertEqual(circuit.find_bit(c0[0]), BitLocations(0, [(c0, 0)]))
+        self.assertEqual(circuit.find_bit(c3[0]), BitLocations(1, [(c3, 0)]))
 
     def test_reverse(self):
         """Test reverse method reverses but does not invert."""
