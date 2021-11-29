@@ -475,7 +475,7 @@ class Target(Mapping):
     @property
     def operation_names(self):
         """Get the operation names in the target."""
-        return set(self._gate_map)
+        return self._gate_map.keys()
 
     @property
     def operations(self):
