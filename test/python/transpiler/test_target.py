@@ -352,7 +352,7 @@ class TestTarget(QiskitTestCase):
         ]
         self.assertEqual(ideal_sim_expected, self.ideal_sim_target.instructions)
 
-    def instruction_properties(self):
+    def test_instruction_properties(self):
         i_gate_2 = self.ibm_target.instruction_properties(2)
         self.assertEqual(i_gate_2.error, 0.0004003)
         self.assertIsNone(self.ideal_sim_target.instruction_properties(4))
