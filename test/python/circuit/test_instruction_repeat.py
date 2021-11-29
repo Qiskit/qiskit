@@ -19,7 +19,7 @@ from numpy import pi
 from qiskit.transpiler import PassManager
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.test import QiskitTestCase
-from qiskit.extensions import UnitaryGate
+from qiskit.circuit.library import UnitaryGate
 from qiskit.circuit.library import SGate, U3Gate, CXGate
 from qiskit.circuit import Instruction, Measure, Gate
 from qiskit.transpiler.passes import Unroller

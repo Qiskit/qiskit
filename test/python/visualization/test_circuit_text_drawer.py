@@ -27,7 +27,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.transpiler import Layout
 from qiskit.visualization import text as elements
 from qiskit.visualization.circuit_visualization import _text_circuit_drawer
-from qiskit.extensions import UnitaryGate, HamiltonianGate
+from qiskit.circuit.library import UnitaryGate, HamiltonianGate
 from qiskit.circuit.library.quantum_initializer import UCGate
 from qiskit.circuit.library import (
     HGate,

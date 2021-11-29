@@ -112,11 +112,11 @@ class TestMonodromyCircuits(unittest.TestCase):
 
             source_embodiment = qiskit.QuantumCircuit(2)
             source_embodiment.append(
-                qiskit.extensions.UnitaryGate(canonical_matrix(*source_coordinate)), [0, 1]
+                qiskit.circuit.library.UnitaryGate(canonical_matrix(*source_coordinate)), [0, 1]
             )
             interaction_embodiment = qiskit.QuantumCircuit(2)
             interaction_embodiment.append(
-                qiskit.extensions.UnitaryGate(canonical_matrix(*interaction)), [0, 1]
+                qiskit.circuit.library.UnitaryGate(canonical_matrix(*interaction)), [0, 1]
             )
 
             prefix_circuit, affix_circuit = itemgetter("prefix_circuit", "affix_circuit")(

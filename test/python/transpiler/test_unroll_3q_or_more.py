@@ -18,7 +18,7 @@ from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.random import random_unitary
 from qiskit.test import QiskitTestCase
-from qiskit.extensions import UnitaryGate
+from qiskit.circuit.library import UnitaryGate
 
 
 class TestUnroll3qOrMore(QiskitTestCase):

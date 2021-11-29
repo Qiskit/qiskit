@@ -16,7 +16,7 @@ Simulator command to snapshot internal simulator representation.
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.instruction import Instruction
-from qiskit.extensions.exceptions import QiskitError, ExtensionError
+from qiskit.circuit.exceptions import QiskitError, CircuitError
 
 
 class Snapshot(Instruction):
@@ -36,10 +36,10 @@ class Snapshot(Instruction):
             params (list or None): the parameters for snapshot_type [Default: None].
 
         Raises:
-            ExtensionError: if snapshot label is invalid.
+            QiskitError: if snapshot label is invalid.
         """
         if not isinstance(label, str):
-            raise ExtensionError("Snapshot label must be a string.")
+            raise QiskitError("Snapshot label must be a string.")
         self._snapshot_type = snapshot_type
         if params is None:
             params = []
@@ -100,7 +100,7 @@ def snapshot(self, label, snapshot_type="statevector", qubits=None, params=None)
         QuantumCircuit: with attached command
 
     Raises:
-        ExtensionError: malformed command
+        QiskitError: malformed command
     """
     # If no qubits are specified we add all qubits so it acts as a barrier
     # This is needed for full register snapshots like statevector
@@ -112,7 +112,7 @@ def snapshot(self, label, snapshot_type="statevector", qubits=None, params=None)
             for register in self.qregs:
                 tuples.append(register)
         if not tuples:
-            raise ExtensionError("no qubits for snapshot")
+            raise QiskitError("no qubits for snapshot")
         qubits = []
         for tuple_element in tuples:
             if isinstance(tuple_element, QuantumRegister):

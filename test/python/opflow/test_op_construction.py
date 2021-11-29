@@ -32,7 +32,7 @@ from qiskit.circuit import (
     QuantumRegister,
 )
 from qiskit.circuit.library import CZGate, ZGate
-from qiskit.extensions.exceptions import ExtensionError
+from qiskit.circuit.exceptions import CircuitError, QiskitError
 from qiskit.opflow import (
     CX,
     CircuitOp,
@@ -296,7 +296,7 @@ class TestOpConstruction(QiskitOpflowTestCase):
 
         matop = ((H ^ 3) + (Z ^ 3)).to_matrix_op()
         with self.subTest("matrix operator is not unitary"):
-            with self.assertRaises(ExtensionError):
+            with self.assertRaises(CircuitError):
                 matop.to_instruction()
 
     def test_adjoint(self):
@@ -861,8 +861,8 @@ class TestOpConstruction(QiskitOpflowTestCase):
         pm1 = (X ^ Y) ^ m_op1  # non-unitary TensoredOp
         pm2 = (X ^ Y) ^ m_op2  # non-unitary TensoredOp
 
-        self.assertRaises(ExtensionError, pm1.to_circuit)
-        self.assertRaises(ExtensionError, pm2.to_circuit)
+        self.assertRaises(QiskitError, pm1.to_circuit)
+        self.assertRaises(QiskitError, pm2.to_circuit)
 
         summed_op = pm1 + pm2  # unitary SummedOp([TensoredOp, TensoredOp])
         circuit = summed_op.to_circuit()  # should transpile without any exception

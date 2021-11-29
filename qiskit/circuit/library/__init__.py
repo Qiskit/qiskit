@@ -99,6 +99,7 @@ Generalized Gates
    GRZ
    RVGate
    PauliGate
+   HamiltonianGate
 
 Boolean Logic Circuits
 ======================
@@ -368,6 +369,8 @@ from .generalized_gates import (
     GRZ,
     RVGate,
     PauliGate,
+    HamiltonianGate,
+    UnitaryGate
 )
 from .pauli_evolution import PauliEvolutionGate
 from .boolean_logic import (

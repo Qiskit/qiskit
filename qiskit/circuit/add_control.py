@@ -15,7 +15,7 @@
 from typing import Union, Optional
 
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.extensions import UnitaryGate
+from qiskit.circuit.library import UnitaryGate
 from . import ControlledGate, Gate, QuantumRegister, QuantumCircuit
 
 

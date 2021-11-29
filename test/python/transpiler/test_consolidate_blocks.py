@@ -19,7 +19,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import U2Gate
-from qiskit.extensions import UnitaryGate
+from qiskit.circuit.library import UnitaryGate
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.quantum_info.operators import Operator

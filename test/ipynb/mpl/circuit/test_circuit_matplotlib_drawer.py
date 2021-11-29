@@ -27,7 +27,7 @@ from qiskit.test.mock import FakeTenerife
 from qiskit.visualization.circuit_visualization import _matplotlib_circuit_drawer
 from qiskit.circuit.library import XGate, MCXGate, HGate, RZZGate, SwapGate, DCXGate, ZGate, SGate
 from qiskit.circuit.library import MCXVChain
-from qiskit.extensions import HamiltonianGate
+from qiskit.circuit.library import HamiltonianGate
 from qiskit.circuit import Parameter, Qubit, Clbit
 from qiskit.circuit.library import IQP
 from qiskit.quantum_info.random import random_unitary

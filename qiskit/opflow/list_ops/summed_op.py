@@ -153,7 +153,7 @@ class SummedOp(ListOp):
         OpflowError is raised). In the next step, the MatrixOp representation of SummedOp is
         converted to circuit. In most cases, if the summands themselves are unitary operators,
         the SummedOp itself is non-unitary and can not be converted to circuit. In that case,
-        ExtensionError is raised in the underlying modules.
+        QiskitError is raised in the underlying modules.
 
         Returns:
             The circuit representation of the summed operator.

@@ -18,7 +18,7 @@ from ddt import ddt, data
 from numpy import array, eye
 
 from qiskit.test import QiskitTestCase
-from qiskit.extensions import SGate, UnitaryGate, CXGate
+from qiskit.circuit.library import SGate, UnitaryGate, CXGate
 from qiskit.circuit import Gate, QuantumCircuit
 from qiskit.quantum_info.operators import Operator
 

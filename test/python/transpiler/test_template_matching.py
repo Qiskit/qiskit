@@ -17,7 +17,7 @@ import unittest
 import numpy as np
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit import Parameter, Gate
-from qiskit.extensions import UnitaryGate
+from qiskit.circuit.library import UnitaryGate
 from qiskit.quantum_info import Operator
 from qiskit.circuit.library.templates import template_nct_2a_2, template_nct_5a_3
 from qiskit.converters.circuit_to_dag import circuit_to_dag

@@ -24,7 +24,7 @@ import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import RXXGate, RZXGate
 from qiskit.exceptions import QiskitError
-from qiskit.extensions import UnitaryGate
+from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 from qiskit.quantum_info.operators import Operator, average_gate_fidelity
 from qiskit.quantum_info.synthesis.one_qubit_decompose import ONE_QUBIT_EULER_BASIS_GATES
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitWeylDecomposition
