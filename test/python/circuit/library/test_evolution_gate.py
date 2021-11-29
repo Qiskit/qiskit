@@ -122,7 +122,7 @@ class TestEvolutionGate(QiskitTestCase):
 
     @data(
         (X + Y, 0.5, 1, [(Pauli("X"), 0.5), (Pauli("X"), 0.5)]),
-        (X, 0.238, 2, [(Pauli("X"), 1.050420168067227)]),
+        (X, 0.238, 2, [(Pauli("X"), 0.238)]),
     )
     @unpack
     def test_qdrift_manual(self, op, time, reps, sampled_ops):
