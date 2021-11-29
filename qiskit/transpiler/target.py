@@ -138,11 +138,11 @@ class Target(Mapping):
 
         This class assumes that qubit indices start at 0 and are a contiguous
         set if you want a submapping the bits will need to be reindexed in
-        a new object
+        a new``Target`` object.
 
     .. note::
 
-        This class is designed to be additive only for gates, qargs, and qubits.
+        This class only supports additions of gates, qargs, and qubits.
         If you need to remove one of these the best option is to iterate over
         an existing object and create a new subset (or use one of the methods
         to do this). The object internally caches different views and these
@@ -181,7 +181,7 @@ class Target(Mapping):
         Args:
             description (str): An optional string to describe the Target.
             num_qubits (int): An optional int to specify the number of qubits
-                the backend target has. If not set it will beimplicitly set
+                the backend target has. If not set it will be implicitly set
                 based on the qargs when :meth:`~qiskit.Target.add_instruction`
                 is called. Note this must be set if the backend target is for a
                 noiseless simulator that doesn't have constraints on the
@@ -273,8 +273,10 @@ class Target(Mapping):
             name (str): An optional name to use for identifying the instruction. If not
                 specified the :attr:`~qiskit.circuit.Instruction.name` attribute
                 of ``gate`` will be used. All gates in the ``Target`` need unique
-                names. Using a custom name allows a backend to specify duplicate
-                gates with different parameters.
+                names. Backends can differentiate between different
+                parameterizations of a single gate by providing a unique name for
+                each (e.g. `"rx30"`, `"rx60", ``"rx90"`` similar to the example in the
+                documentation for the :class:`~qiskit.transpiler.Target` class).
         Raises:
             AttributeError: If gate is already in map
         """
