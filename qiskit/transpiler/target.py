@@ -532,7 +532,7 @@ class Target(Mapping):
 
     def _build_coupling_graph(self):
         self._coupling_graph = rx.PyDiGraph(multigraph=False)
-        self._coupling_graph.add_nodes_from(list({} for _ in range(self.num_qubits)))
+        self._coupling_graph.add_nodes_from([{} for _ in range(self.num_qubits)])
         for gate, qarg_map in self._gate_map.items():
             for qarg, properties in qarg_map.items():
                 if len(qarg) == 1:

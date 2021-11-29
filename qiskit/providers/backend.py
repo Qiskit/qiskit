@@ -251,7 +251,7 @@ class QubitProperties:
     attributes for those custom/additional properties provided by the backend.
     """
 
-    __slots = ("t1", "t2", "frequency")
+    __slots__ = ("t1", "t2", "frequency")
 
     def __init__(self, t1=None, t2=None, frequency=None, properties=None):
         """Create a new ``QubitProperties`` object
@@ -590,7 +590,7 @@ class BackendV2(Backend, ABC):
         """
         for field in fields:
             if not hasattr(self._options, field):
-                raise AttributeError("Options field %s is not valid for this " "backend" % field)
+                raise AttributeError("Options field %s is not valid for this backend" % field)
         self._options.update_options(**fields)
 
     @property

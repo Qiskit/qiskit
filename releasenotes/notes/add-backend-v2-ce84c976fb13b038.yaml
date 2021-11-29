@@ -21,11 +21,11 @@ features:
     number of qubits for a backend with :class:`~qiskit.providers.BackendV1`
     you would do::
 
-      num_qubits = backend.configuration().n_qubits
+        num_qubits = backend.configuration().n_qubits
 
     while with :class:`~qiskit.providers.BackendV2` it is::
 
-      num_qubits = backend.num_qubits
+        num_qubits = backend.num_qubits
 
     The other change around this is that the number of attributes exposed in
     the abstract :class:`~qiskit.providers.BackendV2` class is designed to be
@@ -74,13 +74,12 @@ features:
     for fields in the :class:`~qiskit.providers.Options` object. For example,
     if you had an :class:`~qiskit.providers.Options` object defined with::
 
-      from qiskit.providers.Options
-
-      options = Options(shots=1024)
+        from qiskit.providers.Options
+        options = Options(shots=1024)
 
     you can set a validator on shots for it to be between 1 and 4096 with::
 
-      options.set_validator('shots', (1, 4096))
+        options.set_validator('shots', (1, 4096))
 
     With the validator set any call to the
     :meth:`~qiskit.providers.Options.update_options` method will check that
