@@ -350,8 +350,7 @@ class ControlFlowBuilderBlock:
             if isinstance(operation, InstructionPlaceholder):
                 operation, qubits, clbits = operation.concrete_instruction(all_qubits, all_clbits)
                 # We want to avoid iterating over the tuples unnecessarily if there's no chance
-                # we'll need to add bits to the circuit.  QuantumCircuit._append will already
-                # iterate over them, but we can help out by not doing it again.
+                # we'll need to add bits to the circuit.
                 if potential_qubits and qubits:
                     add_qubits = potential_qubits.intersection(qubits)
                     if add_qubits:
