@@ -384,7 +384,7 @@ class Target(Mapping):
         """The set of qargs in the target."""
         if None in self._qarg_gate_map:
             return None
-        return set(self._qarg_gate_map)
+        return self._qarg_gate_map.keys()
 
     def get_qargs(self, gate):
         """Get the qargs for a given gate name
@@ -396,7 +396,7 @@ class Target(Mapping):
         """
         if None in self._gate_map:
             return None
-        return set(self._gate_map[gate])
+        return self._gate_map[gate].keys()
 
     def durations(self):
         """Get an InstructionDurations object from the target
