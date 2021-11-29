@@ -238,8 +238,12 @@ class TestTarget(QiskitTestCase):
     def test_qargs_for_operation_name(self):
         with self.assertRaises(KeyError):
             self.empty_target.qargs_for_operation_name("rz")
-        self.assertEqual(self.ibm_target.qargs_for_operation_name("rz"), {(0,), (1,), (2,), (3,), (4,)})
-        self.assertEqual(self.aqt_target.qargs_for_operation_name("rz"), {(0,), (1,), (2,), (3,), (4,)})
+        self.assertEqual(
+            self.ibm_target.qargs_for_operation_name("rz"), {(0,), (1,), (2,), (3,), (4,)}
+        )
+        self.assertEqual(
+            self.aqt_target.qargs_for_operation_name("rz"), {(0,), (1,), (2,), (3,), (4,)}
+        )
         self.assertEqual(self.fake_backend_target.qargs_for_operation_name("cx"), {(0, 1), (1, 0)})
         self.assertEqual(
             self.fake_backend_target.qargs_for_operation_name("ecr"),

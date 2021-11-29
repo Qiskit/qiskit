@@ -392,7 +392,7 @@ class Target(Mapping):
         """Get the qargs for a given operation name
 
         Args:
-           gate (str): The gate instance to get qargs for
+           operation (str): The operation name to get qargs for
         Returns:
             set: The set of qargs the gate instance applies to.
         """
