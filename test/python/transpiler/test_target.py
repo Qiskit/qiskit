@@ -235,19 +235,19 @@ class TestTarget(QiskitTestCase):
         self.assertEqual(expected_fake, self.fake_backend_target.qargs)
         self.assertEqual(None, self.ideal_sim_target.qargs)
 
-    def test_get_qargs(self):
+    def test_qargs_for_operation_name(self):
         with self.assertRaises(KeyError):
-            self.empty_target.get_qargs("rz")
-        self.assertEqual(self.ibm_target.get_qargs("rz"), {(0,), (1,), (2,), (3,), (4,)})
-        self.assertEqual(self.aqt_target.get_qargs("rz"), {(0,), (1,), (2,), (3,), (4,)})
-        self.assertEqual(self.fake_backend_target.get_qargs("cx"), {(0, 1), (1, 0)})
+            self.empty_target.qargs_for_operation_name("rz")
+        self.assertEqual(self.ibm_target.qargs_for_operation_name("rz"), {(0,), (1,), (2,), (3,), (4,)})
+        self.assertEqual(self.aqt_target.qargs_for_operation_name("rz"), {(0,), (1,), (2,), (3,), (4,)})
+        self.assertEqual(self.fake_backend_target.qargs_for_operation_name("cx"), {(0, 1), (1, 0)})
         self.assertEqual(
-            self.fake_backend_target.get_qargs("ecr"),
+            self.fake_backend_target.qargs_for_operation_name("ecr"),
             {
                 (1, 0),
             },
         )
-        self.assertEqual(self.ideal_sim_target.get_qargs("cx"), {None})
+        self.assertEqual(self.ideal_sim_target.qargs_for_operation_name("cx"), None)
 
     def test_instruction_names(self):
         self.assertEqual(self.empty_target.operation_names, set())

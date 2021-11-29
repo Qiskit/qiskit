@@ -388,17 +388,17 @@ class Target(Mapping):
             return None
         return self._qarg_gate_map.keys()
 
-    def get_qargs(self, gate):
-        """Get the qargs for a given gate name
+    def qargs_for_operation_name(self, operation):
+        """Get the qargs for a given operation name
 
         Args:
            gate (str): The gate instance to get qargs for
         Returns:
-            set: The set of qargs the gate instance applies to
+            set: The set of qargs the gate instance applies to.
         """
-        if None in self._gate_map:
+        if None in self._gate_map[operation]:
             return None
-        return self._gate_map[gate].keys()
+        return self._gate_map[operation].keys()
 
     def durations(self):
         """Get an InstructionDurations object from the target
