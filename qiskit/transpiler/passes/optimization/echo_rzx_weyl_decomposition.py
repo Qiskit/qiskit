@@ -14,7 +14,7 @@
 
 from typing import Tuple
 
-from qiskit import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit.library.standard_gates import RZXGate, HGate, XGate
 
 from qiskit.transpiler.basepasses import TransformationPass
@@ -24,10 +24,7 @@ from qiskit.transpiler.layout import Layout
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag
 
-from qiskit.providers import basebackend
-
-import qiskit.quantum_info as qi
-from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitControlledUDecomposer
+from qiskit.providers.basebackend import BaseBackend
 
 
 class EchoRZXWeylDecomposition(TransformationPass):
@@ -38,7 +35,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
     Each pair of RZXGates forms an echoed RZXGate.
     """
 
-    def __init__(self, backend: basebackend):
+    def __init__(self, backend: BaseBackend):
         """EchoRZXWeylDecomposition pass."""
         self._inst_map = backend.defaults().instruction_schedule_map
         super().__init__()
@@ -92,6 +89,10 @@ class EchoRZXWeylDecomposition(TransformationPass):
             TranspilerError: If the circuit cannot be rewritten.
         """
 
+        # pylint: disable=cyclic-import
+        from qiskit.quantum_info import Operator
+        from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitControlledUDecomposer
+
         if len(dag.qregs) > 1:
             raise TranspilerError(
                 "EchoRZXWeylDecomposition expects a single qreg input DAG,"
@@ -104,7 +105,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
 
         for node in dag.two_qubit_ops():
 
-            unitary = qi.Operator(node.op).data
+            unitary = Operator(node.op).data
             dag_weyl = circuit_to_dag(decomposer(unitary))
             dag.substitute_node_with_dag(node, dag_weyl)
 

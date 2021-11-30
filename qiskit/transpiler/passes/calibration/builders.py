@@ -22,7 +22,7 @@ from qiskit.circuit import Instruction as CircuitInst
 from qiskit.circuit.library.standard_gates import RZXGate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.providers import basebackend
+from qiskit.providers.basebackend import BaseBackend
 from qiskit.pulse import (
     Play,
     Delay,
@@ -103,7 +103,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
     angle. Additional details can be found in https://arxiv.org/abs/2012.11660.
     """
 
-    def __init__(self, backend: basebackend):
+    def __init__(self, backend: BaseBackend):
         """
         Initializes a RZXGate calibration builder.
 
