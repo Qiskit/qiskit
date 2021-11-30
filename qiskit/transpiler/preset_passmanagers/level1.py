@@ -112,7 +112,20 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _choose_layout_condition(property_set):
         return not property_set["layout"]
 
-    # 2. Use a better layout on densely connected qubits, if circuit needs swaps
+    # 2. Decompose so only 1-qubit and 2-qubit gates remain
+    _unroll3q = [
+        # Use unitary synthesis for basis aware decomposition of UnitaryGates
+        UnitarySynthesis(
+            basis_gates,
+            approximation_degree=approximation_degree,
+            method=unitary_synthesis_method,
+            min_qubits=3,
+            plugin_config=unitary_synthesis_plugin_config,
+        ),
+        Unroll3qOrMore(),
+    ]
+
+    # 3. Use a better layout on densely connected qubits, if circuit needs swaps
     if layout_method == "trivial":
         _improve_layout = TrivialLayout(coupling_map)
     elif layout_method == "dense":
@@ -130,23 +143,8 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             and property_set["trivial_layout_score"] != 0
         )
 
-    # 3. Extend dag/layout with ancillas using the full coupling map
+    # 4. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
-
-    # 4. Decompose so only 1-qubit and 2-qubit gates remain
-    _unroll3q = [
-        # Use unitary synthesis for basis aware decomposition of UnitaryGates
-        UnitarySynthesis(
-            basis_gates,
-            approximation_degree=approximation_degree,
-            coupling_map=coupling_map,
-            method=unitary_synthesis_method,
-            backend_props=backend_properties,
-            min_qubits=3,
-            plugin_config=unitary_synthesis_plugin_config,
-        ),
-        Unroll3qOrMore(),
-    ]
 
     # 5. Swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
@@ -279,10 +277,10 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     pm1 = PassManager()
     if coupling_map or initial_layout:
         pm1.append(_given_layout)
+        pm1.append(_unroll3q)
         pm1.append(_choose_layout_and_score, condition=_choose_layout_condition)
         pm1.append(_improve_layout, condition=_not_perfect_yet)
         pm1.append(_embed)
-        pm1.append(_unroll3q)
         pm1.append(_swap_check)
         pm1.append(_swap, condition=_swap_condition)
     pm1.append(_unroll)

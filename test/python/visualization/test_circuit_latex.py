@@ -25,6 +25,7 @@ from qiskit.test.mock import FakeTenerife
 from qiskit.circuit.library import XGate, MCXGate, RZZGate, SwapGate, DCXGate
 from qiskit.extensions import HamiltonianGate
 from qiskit.circuit import Parameter
+from qiskit.circuit import Qubit, Clbit
 from qiskit.circuit.library import IQP
 from qiskit.quantum_info.random import random_unitary
 from .visualization import QiskitVisualizationTestCase
@@ -576,8 +577,6 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
     def test_registerless_one_bit(self):
         """Text circuit with one-bit registers and registerless bits."""
-        from qiskit.circuit import Qubit, Clbit
-
         filename = self._get_resource_path("test_latex_registerless_one_bit.tex")
         qrx = QuantumRegister(2, "qrx")
         qry = QuantumRegister(1, "qry")
@@ -600,6 +599,21 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.measure(0, cr1[1])
         circuit.measure(1, cr2[0]).c_if(cr1, 1)
         circuit.h(0).c_if(cr2, 3)
+        circuit_drawer(circuit, cregbundle=False, filename=filename1, output="latex_source")
+        circuit_drawer(circuit, cregbundle=True, filename=filename2, output="latex_source")
+        self.assertEqualToReference(filename1)
+        self.assertEqualToReference(filename2)
+
+    def test_measures_with_conditions_with_bits(self):
+        """Condition and measure on single bits cregbundle true"""
+        filename1 = self._get_resource_path("test_latex_meas_cond_bits_false.tex")
+        filename2 = self._get_resource_path("test_latex_meas_cond_bits_true.tex")
+        bits = [Qubit(), Qubit(), Clbit(), Clbit()]
+        cr = ClassicalRegister(2, "cr")
+        crx = ClassicalRegister(3, "cs")
+        circuit = QuantumCircuit(bits, cr, [Clbit()], crx)
+        circuit.x(0).c_if(crx[1], 0)
+        circuit.measure(0, bits[3])
         circuit_drawer(circuit, cregbundle=False, filename=filename1, output="latex_source")
         circuit_drawer(circuit, cregbundle=True, filename=filename2, output="latex_source")
         self.assertEqualToReference(filename1)
