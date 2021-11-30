@@ -414,7 +414,7 @@ def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]
         A ``Schedule`` with the additional acquisition instructions.
     """
     new_schedule = Schedule.initialize_from(schedule)
-    acquire_map = dict()
+    acquire_map = {}
 
     for time, inst in schedule.instructions:
         if isinstance(inst, instructions.Acquire):

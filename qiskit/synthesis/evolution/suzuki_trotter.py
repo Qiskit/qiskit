@@ -12,9 +12,8 @@
 
 """The Suzuki-Trotter product formula."""
 
-from typing import List, Callable, Optional, Union
+from typing import Callable, Optional, Union
 import numpy as np
-from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
 
@@ -85,7 +84,7 @@ class SuzukiTrotter(ProductFormula):
 
             single_rep.compose(self.atomic_evolution(op, coeff), wrap=True, inplace=True)
 
-        evo = QuantumCircuit(operators[0].num_qubits)
+        evolution_circuit = QuantumCircuit(operators[0].num_qubits)
         first_barrier = False
 
         for _ in range(self.reps):
@@ -96,15 +95,12 @@ class SuzukiTrotter(ProductFormula):
             else:
                 first_barrier = True
 
-            evo.compose(single_rep, inplace=True)
+            evolution_circuit.compose(single_rep, inplace=True)
 
-        return evo
+        return evolution_circuit
 
     @staticmethod
     def _recurse(order, time, pauli_list):
-        if order < 1:
-            raise ValueError("This bitch empty -- yeet!")
-
         if order == 1:
             return pauli_list
 

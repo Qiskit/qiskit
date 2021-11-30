@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    In this version, ``from qiskit import *`` will not import submodules, but only a selected list of objects.
+    This might break existing code using ``from qiskit import *`` and referring to objects that are not part of the current namespace.
+    As a reminder, ``import *`` is  considered bad practice and it should not be used in production code.
+    Qiskit sets ``__all__`` in ``qiskit/__init__.py`` as a way to mitigate the effects of said bad practice.
+    If your code raises ``name '<something>' is not defined``, add ``from qiskit import <something>`` and try again.
