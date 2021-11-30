@@ -371,8 +371,9 @@ from .generalized_gates import (
     RVGate,
     PauliGate,
     HamiltonianGate,
-    UnitaryGate
+    UnitaryGate,
 )
+from .quantum_initializer.initializer import Initialize
 from .pauli_evolution import PauliEvolutionGate
 from .boolean_logic import (
     AND,
