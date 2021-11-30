@@ -19,6 +19,7 @@ import itertools
 import functools
 import multiprocessing as mp
 import string
+import re
 from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
     Union,
@@ -32,6 +33,7 @@ from typing import (
     Callable,
     Mapping,
     Set,
+    Iterable,
 )
 import typing
 import numpy as np
@@ -101,6 +103,9 @@ ClbitSpecifier = Union[
 # Generic type which is either :obj:`~Qubit` or :obj:`~Clbit`, used to specify types of functions
 # which operate on either type of bit, but not both at the same time.
 BitType = TypeVar("BitType", Qubit, Clbit)
+
+# Regex pattern to match valid OpenQASM identifiers
+VALID_QASM2_IDENTIFIER = re.compile("[a-z][a-zA-Z_0-9]*")
 
 
 class QuantumCircuit:
@@ -247,8 +252,8 @@ class QuantumCircuit:
         # corresponding index in circuit.{qubits,clbits} and 1) a list of
         # Register-int pairs for each Register containing the Bit and its index
         # within that register.
-        self._qubit_indices = dict()
-        self._clbit_indices = dict()
+        self._qubit_indices = {}
+        self._clbit_indices = {}
 
         self._ancillas = []
         self._calibrations = defaultdict(dict)
@@ -826,8 +831,8 @@ class QuantumCircuit:
             qubit_map = identity_qubit_map
         elif len(qubits) != len(other.qubits):
             raise CircuitError(
-                "Number of items in qubits parameter does not"
-                " match number of qubits in the circuit."
+                f"Number of items in qubits parameter ({len(qubits)}) does not"
+                f" match number of qubits in the circuit ({len(other.qubits)})."
             )
         else:
             qubit_map = {
@@ -838,8 +843,8 @@ class QuantumCircuit:
             clbit_map = identity_clbit_map
         elif len(clbits) != len(other.clbits):
             raise CircuitError(
-                "Number of items in clbits parameter does not"
-                " match number of clbits in the circuit."
+                f"Number of items in clbits parameter ({len(clbits)}) does not"
+                f" match number of clbits in the circuit ({len(other.clbits)})."
             )
         else:
             clbit_map = {
@@ -1120,6 +1125,46 @@ class QuantumCircuit:
         """
         return QuantumCircuit._bit_argument_conversion(clbit_representation, self.clbits)
 
+    def _resolve_classical_resource(self, specifier):
+        """Resolve a single classical resource specifier into a concrete resource, raising an error
+        if the specifier is invalid.
+
+        This is slightly different to :meth:`.cbit_argument_conversion`, because it should not
+        unwrap :obj:`.ClassicalRegister` instances into lists, and in general it should not allow
+        iterables or broadcasting.  It is expected to be used as a callback for things like
+        :meth:`.InstructionSet.c_if` to check the validity of their arguments.
+
+        Args:
+            specifier (Union[Clbit, ClassicalRegister, int]): a specifier of a classical resource
+                present in this circuit.  An ``int`` will be resolved into a :obj:`.Clbit` using the
+                same conventions as measurement operations on this circuit use.
+
+        Returns:
+            Union[Clbit, ClassicalRegister]: the resolved resource.
+
+        Raises:
+            CircuitError: if the resource is not present in this circuit, or if the integer index
+                passed is out-of-bounds.
+        """
+        if isinstance(specifier, Clbit):
+            if specifier not in self._clbit_indices:
+                raise CircuitError(f"Clbit {specifier} is not present in this circuit.")
+            return specifier
+        if isinstance(specifier, ClassicalRegister):
+            # This is linear complexity for something that should be constant, but QuantumCircuit
+            # does not currently keep a hashmap of registers, and requires non-trivial changes to
+            # how it exposes its registers publically before such a map can be safely stored so it
+            # doesn't miss updates. (Jake, 2021-11-10).
+            if specifier not in self.cregs:
+                raise CircuitError(f"Register {specifier} is not present in this circuit.")
+            return specifier
+        if isinstance(specifier, int):
+            try:
+                return self._clbits[specifier]
+            except IndexError:
+                raise CircuitError(f"Classical bit index {specifier} is out-of-range.") from None
+        raise CircuitError(f"Unknown classical resource specifier: '{specifier}'.")
+
     def append(
         self,
         instruction: Instruction,
@@ -1164,7 +1209,7 @@ class QuantumCircuit:
         expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
         expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
 
-        instructions = InstructionSet(self.cregs)
+        instructions = InstructionSet(resource_requester=self._resolve_classical_resource)
         for (qarg, carg) in instruction.broadcast_arguments(expanded_qargs, expanded_cargs):
             instructions.add(self._append(instruction, qarg, carg), qarg, carg)
         return instructions
@@ -1377,14 +1422,14 @@ class QuantumCircuit:
         """Raise exception if a qarg is not in this circuit or bad format."""
         if not all(isinstance(i, Qubit) for i in qargs):
             raise CircuitError("qarg is not a Qubit")
-        if not set(qargs).issubset(self._qubit_indices):
+        if not set(qargs) <= self._qubit_indices.keys():
             raise CircuitError("qargs not in this circuit")
 
     def _check_cargs(self, cargs: Sequence[Clbit]) -> None:
         """Raise exception if clbit is not in this circuit or bad format."""
         if not all(isinstance(i, Clbit) for i in cargs):
             raise CircuitError("carg is not a Clbit")
-        if not set(cargs).issubset(self._clbit_indices):
+        if not set(cargs) <= self._clbit_indices.keys():
             raise CircuitError("cargs not in this circuit")
 
     def to_instruction(
@@ -1605,6 +1650,10 @@ class QuantumCircuit:
                     bit_labels[clbit],
                 )
             else:
+                # Check instructions names or label are valid
+                if not VALID_QASM2_IDENTIFIER.fullmatch(instruction.name):
+                    instruction = instruction.copy(name=_qasm_escape_gate_name(instruction.name))
+
                 # decompose gate using definitions if they are not defined in OpenQASM2
                 if (
                     instruction.name not in existing_gate_names
@@ -1978,12 +2027,8 @@ class QuantumCircuit:
                 num_touched = 0
                 # Controls necessarily join all the cbits in the
                 # register that they use.
-                if instr.condition and not unitary_only:
-                    if isinstance(instr.condition[0], Clbit):
-                        condition_bits = [instr.condition[0]]
-                    else:
-                        condition_bits = instr.condition[0]
-                    for bit in condition_bits:
+                if not unitary_only:
+                    for bit in instr.condition_bits:
                         idx = bit_indices[bit]
                         for k in range(num_sub_graphs):
                             if idx in sub_graphs[k]:
@@ -2160,27 +2205,45 @@ class QuantumCircuit:
         else:
             return None
 
-    def measure_all(self, inplace: bool = True) -> Optional["QuantumCircuit"]:
-        """Adds measurement to all qubits. Creates a new ClassicalRegister with a
-        size equal to the number of qubits being measured.
+    def measure_all(
+        self, inplace: bool = True, add_bits: bool = True
+    ) -> Optional["QuantumCircuit"]:
+        """Adds measurement to all qubits.
 
-        Returns a new circuit with measurements if `inplace=False`.
+        By default, adds new classical bits in a :obj:`.ClassicalRegister` to store these
+        measurements.  If ``add_bits=False``, the results of the measurements will instead be stored
+        in the already existing classical bits, with qubit ``n`` being measured into classical bit
+        ``n``.
+
+        Returns a new circuit with measurements if ``inplace=False``.
 
         Args:
             inplace (bool): All measurements inplace or return new circuit.
+            add_bits (bool): Whether to add new bits to store the results.
 
         Returns:
-            QuantumCircuit: Returns circuit with measurements when `inplace = False`.
+            QuantumCircuit: Returns circuit with measurements when ``inplace=False``.
+
+        Raises:
+            CircuitError: if ``add_bits=False`` but there are not enough classical bits.
         """
         if inplace:
             circ = self
         else:
             circ = self.copy()
-
-        new_creg = circ._create_creg(len(circ.qubits), "meas")
-        circ.add_register(new_creg)
-        circ.barrier()
-        circ.measure(circ.qubits, new_creg)
+        if add_bits:
+            new_creg = circ._create_creg(len(circ.qubits), "meas")
+            circ.add_register(new_creg)
+            circ.barrier()
+            circ.measure(circ.qubits, new_creg)
+        else:
+            if len(circ.clbits) < len(circ.qubits):
+                raise CircuitError(
+                    "The number of classical bits must be equal or greater than "
+                    "the number of qubits."
+                )
+            circ.barrier()
+            circ.measure(circ.qubits, circ.clbits[0 : len(circ.qubits)])
 
         if not inplace:
             return circ
@@ -2188,17 +2251,20 @@ class QuantumCircuit:
             return None
 
     def remove_final_measurements(self, inplace: bool = True) -> Optional["QuantumCircuit"]:
-        """Removes final measurement on all qubits if they are present.
-        Deletes the ClassicalRegister that was used to store the values from these measurements
-        if it is idle.
+        """Removes final measurements and barriers on all qubits if they are present.
+        Deletes the classical registers that were used to store the values from these measurements
+        that become idle as a result of this operation, and deletes classical bits that are
+        referenced only by removed registers, or that aren't referenced at all but have
+        become idle as a result of this operation.
 
-        Returns a new circuit without measurements if `inplace=False`.
+        Measurements and barriers are considered final if they are
+        followed by no other operations (aside from other measurements or barriers.)
 
         Args:
             inplace (bool): All measurements removed inplace or return new circuit.
 
         Returns:
-            QuantumCircuit: Returns circuit with measurements removed when `inplace = False`.
+            QuantumCircuit: Returns the resulting circuit when ``inplace=False``, else None.
         """
         # pylint: disable=cyclic-import
         from qiskit.transpiler.passes import RemoveFinalMeasurements
@@ -2212,18 +2278,34 @@ class QuantumCircuit:
         dag = circuit_to_dag(circ)
         remove_final_meas = RemoveFinalMeasurements()
         new_dag = remove_final_meas.run(dag)
+        kept_cregs = set(new_dag.cregs.values())
+        kept_clbits = set(new_dag.clbits)
 
-        # Set circ cregs and instructions to match the new DAGCircuit's
+        # Filter only cregs/clbits still in new DAG, preserving original circuit order
+        cregs_to_add = [creg for creg in circ.cregs if creg in kept_cregs]
+        clbits_to_add = [clbit for clbit in circ._clbits if clbit in kept_clbits]
+
+        # Clear cregs and clbits
+        circ.cregs = []
+        circ._clbits = []
+        circ._clbit_indices = {}
+
+        # We must add the clbits first to preserve the original circuit
+        # order. This way, add_register never adds clbits and just
+        # creates registers that point to them.
+        circ.add_bits(clbits_to_add)
+        for creg in cregs_to_add:
+            circ.add_register(creg)
+
+        # Clear instruction info
         circ.data.clear()
         circ._parameter_table.clear()
-        circ.cregs = list(new_dag.cregs.values())
 
+        # Set circ instructions to match the new DAG
         for node in new_dag.topological_op_nodes():
             # Get arguments for classical condition (if any)
             inst = node.op.copy()
             circ.append(inst, node.qargs, node.cargs)
-
-        circ.clbits.clear()
 
         if not inplace:
             return circ
@@ -2405,8 +2487,11 @@ class QuantumCircuit:
                     "Mismatching number of values and parameters. For partial binding "
                     "please pass a dictionary of {parameter: value} pairs."
                 )
+            # use a copy of the parameters, to ensure we don't change the contents of
+            # self.parameters while iterating over them
+            fixed_parameters_copy = self.parameters.copy()
             for i, value in enumerate(parameters):
-                bound_circuit._assign_parameter(self.parameters[i], value)
+                bound_circuit._assign_parameter(fixed_parameters_copy[i], value)
         return None if inplace else bound_circuit
 
     def bind_parameters(
@@ -2604,7 +2689,7 @@ class QuantumCircuit:
             else:
                 qubits.append(qarg)
 
-        instructions = InstructionSet()
+        instructions = InstructionSet(resource_requester=self._resolve_classical_resource)
         for q in qubits:
             inst = (Delay(duration, unit), [q], [])
             self.append(*inst)
@@ -3920,6 +4005,170 @@ class QuantumCircuit:
 
         return self.append(PauliGate(pauli_string), qubits, [])
 
+    def while_loop(
+        self,
+        condition: Union[
+            Tuple[ClassicalRegister, int],
+            Tuple[Clbit, int],
+            Tuple[Clbit, bool],
+        ],
+        body: "QuantumCircuit",
+        qubits: Sequence[QubitSpecifier],
+        clbits: Sequence[ClbitSpecifier],
+        label: Optional[str] = None,
+    ) -> InstructionSet:
+        """Apply :class:`~qiskit.circuit.controlflow.WhileLoopOp`.
+
+        Args:
+            condition: A condition to be checked prior to executing ``body``. Can
+                be specified as either a tuple of a ``ClassicalRegister`` to be
+                tested for equality with a given ``int``, or as a tuple of a
+                ``Clbit`` to be compared to either a ``bool`` or an ``int``.
+            body: The loop body to be repeatedly executed.
+            qubits: The circuit qubits over which the loop body should be run.
+            clbits: The circuit clbits over which the loop body should be run.
+            label: The string label of the instruction in the circuit.
+
+        Returns:
+            A handle to the instruction created.
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.controlflow.while_loop import WhileLoopOp
+
+        return self.append(WhileLoopOp(condition, body, label), qubits, clbits)
+
+    def for_loop(
+        self,
+        loop_parameter: Union[Parameter, None],
+        indexset: Iterable[int],
+        body: "QuantumCircuit",
+        qubits: Sequence[QubitSpecifier],
+        clbits: Sequence[ClbitSpecifier],
+        label: Optional[str] = None,
+    ) -> InstructionSet:
+        """Apply :class:`~qiskit.circuit.controlflow.ForLoopOp`.
+
+        Args:
+            loop_parameter: The placeholder parameterizing ``body`` to which
+                the values from ``indexset`` will be assigned. If None is
+                provided, ``body`` will be repeated for each of the values
+                in ``indexset`` but the values will not be assigned to ``body``.
+            indexset: A collection of integers to loop over.
+            body: The loop body to be repeatedly executed.
+            qubits: The circuit qubits over which the loop body should be run.
+            clbits: The circuit clbits over which the loop body should be run.
+            label: The string label of the instruction in the circuit.
+
+        Returns:
+            A handle to the instruction created.
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.controlflow.for_loop import ForLoopOp
+
+        return self.append(ForLoopOp(loop_parameter, indexset, body, label), qubits, clbits)
+
+    def if_test(
+        self,
+        condition: Union[
+            Tuple[ClassicalRegister, int],
+            Tuple[Clbit, int],
+            Tuple[Clbit, bool],
+        ],
+        true_body: "QuantumCircuit",
+        qubits: Sequence[QubitSpecifier],
+        clbits: Sequence[ClbitSpecifier],
+        label: Optional[str] = None,
+    ) -> InstructionSet:
+        """Apply :class:`~qiskit.circuit.controlflow.IfElseOp` without a ``false_body``.
+
+        Args:
+            condition: A condition to be evaluated at circuit runtime which,
+                if true, will trigger the evaluation of ``true_body``. Can be
+                specified as either a tuple of a ``ClassicalRegister`` to be
+                tested for equality with a given ``int``, or as a tuple of a
+                ``Clbit`` to be compared to either a ``bool`` or an ``int``.
+            true_body: The circuit body to be run if ``condition`` is true.
+            qubits: The circuit qubits over which the if/else should be run.
+            clbits: The circuit clbits over which the if/else should be run.
+            label: The string label of the instruction in the circuit.
+
+        Raises:
+            CircuitError: If the provided condition references Clbits outside the
+                enclosing circuit.
+
+        Returns:
+            A handle to the instruction created.
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.controlflow.if_else import IfElseOp
+
+        condition = (self._resolve_classical_resource(condition[0]), condition[1])
+        return self.append(IfElseOp(condition, true_body, None, label), qubits, clbits)
+
+    def if_else(
+        self,
+        condition: Union[
+            Tuple[ClassicalRegister, int],
+            Tuple[Clbit, int],
+            Tuple[Clbit, bool],
+        ],
+        true_body: "QuantumCircuit",
+        false_body: "QuantumCircuit",
+        qubits: Sequence[QubitSpecifier],
+        clbits: Sequence[ClbitSpecifier],
+        label: Optional[str] = None,
+    ) -> InstructionSet:
+        """Apply :class:`~qiskit.circuit.controlflow.IfElseOp`.
+
+        Args:
+            condition: A condition to be evaluated at circuit runtime which,
+                if true, will trigger the evaluation of ``true_body``. Can be
+                specified as either a tuple of a ``ClassicalRegister`` to be
+                tested for equality with a given ``int``, or as a tuple of a
+                ``Clbit`` to be compared to either a ``bool`` or an ``int``.
+            true_body: The circuit body to be run if ``condition`` is true.
+            false_body: The circuit to be run if ``condition`` is false.
+            qubits: The circuit qubits over which the if/else should be run.
+            clbits: The circuit clbits over which the if/else should be run.
+            label: The string label of the instruction in the circuit.
+
+        Raises:
+            CircuitError: If the provided condition references Clbits outside the
+                enclosing circuit.
+
+        Returns:
+            A handle to the instruction created.
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.controlflow.if_else import IfElseOp
+
+        condition = (self._resolve_classical_resource(condition[0]), condition[1])
+        return self.append(IfElseOp(condition, true_body, false_body, label), qubits, clbits)
+
+    def break_loop(self) -> InstructionSet:
+        """Apply :class:`~qiskit.circuit.controlflow.BreakLoop`.
+
+        Returns:
+            A handle to the instruction created.
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.controlflow.break_loop import BreakLoopOp
+
+        return self.append(BreakLoopOp(self.num_qubits, self.num_clbits), self.qubits, self.clbits)
+
+    def continue_loop(self) -> InstructionSet:
+        """Apply :class:`~qiskit.circuit.controlflow.ContinueLoop`.
+
+        Returns:
+            A handle to the instruction created.
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.controlflow.continue_loop import ContinueLoopOp
+
+        return self.append(
+            ContinueLoopOp(self.num_qubits, self.num_clbits), self.qubits, self.clbits
+        )
+
     def add_calibration(
         self,
         gate: Union[Gate, str],
@@ -4082,6 +4331,11 @@ def _add_sub_instruction_to_existing_composite_circuits(
     instruction to existing_composite_circuit list.
     """
     for sub_instruction, _, _ in instruction.definition:
+        # Check instructions names are valid
+        if not VALID_QASM2_IDENTIFIER.fullmatch(sub_instruction.name):
+            sub_instruction = sub_instruction.copy(
+                name=_qasm_escape_gate_name(sub_instruction.name)
+            )
         if (
             sub_instruction.name not in existing_gate_names
             and sub_instruction not in existing_composite_circuits
@@ -4090,6 +4344,17 @@ def _add_sub_instruction_to_existing_composite_circuits(
             _add_sub_instruction_to_existing_composite_circuits(
                 sub_instruction, existing_gate_names, existing_composite_circuits
             )
+
+
+def _qasm_escape_gate_name(name: str) -> str:
+    """Returns a valid OpenQASM gate identifier"""
+    # Replace all non-ASCII-word characters with the underscore.
+    escaped_name = re.sub(r"\W", "_", name, flags=re.ASCII)
+    if not escaped_name or escaped_name[0] not in string.ascii_lowercase:
+        # Add an arbitrary, guaranteed-to-be-valid prefix.
+        escaped_name = "gate_" + escaped_name
+
+    return escaped_name
 
 
 def _get_composite_circuit_qasm_from_instruction(instruction: Instruction) -> str:
@@ -4108,6 +4373,11 @@ def _get_composite_circuit_qasm_from_instruction(instruction: Instruction) -> st
         bit: idx for bits in (definition.qubits, definition.clbits) for idx, bit in enumerate(bits)
     }
     for sub_instruction, qargs, _ in definition:
+        if not VALID_QASM2_IDENTIFIER.fullmatch(sub_instruction.name):
+            sub_instruction = sub_instruction.copy(
+                name=_qasm_escape_gate_name(sub_instruction.name)
+            )
+
         gate_qargs = ",".join(
             ["q%i" % index for index in [definition_bit_labels[qubit] for qubit in qargs]]
         )
