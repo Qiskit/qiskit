@@ -1,0 +1,6 @@
+---
+other:
+  - |
+    In the docstring of qiskit.circuit.Parameter, added a short example of
+    using that class to create a parameterized circuit and binding the value
+    of the parameter after the circuit has been defined.
