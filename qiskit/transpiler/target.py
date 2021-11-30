@@ -19,7 +19,6 @@ from collections.abc import Mapping
 from collections import defaultdict
 import io
 import logging
-from typing import Union
 
 import retworkx as rx
 
@@ -47,7 +46,7 @@ class InstructionProperties:
         self,
         duration: float = None,
         error: float = None,
-        calibration: Union["Schedule", "ScheduleBlock"] = None,
+        calibration = None,
     ):
         """Create a new ``InstructionProperties`` object
 
@@ -56,7 +55,8 @@ class InstructionProperties:
                 specified set of qubits
             error: The average error rate for the instruction on the specified
                 set of qubits.
-            calibration: The pulse representation of the instruction
+            calibration (Union["qiskit.pulse.Schedule", "qiskit.pulse.ScheduleBlock"]): The pulse
+                representation of the instruction
         """
         self.duration = duration
         self.error = error
@@ -254,7 +254,7 @@ class Target(Mapping):
         supports.
 
         Args:
-            instruction (Instruction): The gate object to add to the map. If it's
+            instruction (qiskit.circuit.Instruction): The operation object to add to the map. If it's
                 paramerterized any value of the parameter can be set
             properties (dict): A dictionary of qarg entries to an
                 :class:`~qiskit.transpiler.InstructionProperties` object for that
@@ -452,7 +452,7 @@ class Target(Mapping):
             instruction (str): The instruction name to get the
                 :class:`~qiskit.circuit.Instruction` instance for
         Returns:
-            Instruction: The Instruction instance corresponding to the name
+            qiskit.circuit.Instruction: The Instruction instance corresponding to the name
         """
         return self._gate_name_map[instruction]
 
