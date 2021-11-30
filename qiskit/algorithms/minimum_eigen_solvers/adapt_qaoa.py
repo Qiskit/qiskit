@@ -72,6 +72,7 @@ class AdaptQAOA(QAOA):
             optimizer: A classical optimizer.
             max_reps: An optional maximum number of repetitions of the ADAPT-QAOA circuit
                 (defaults to 5).
+            initial_point: An optional initial point (i.e. initial parameter values) for the optimizer.
             initial_state: An optional initial state to prepend the ADAPT-QAOA circuit with.
             gamma_init: An optional initial value for the parameter gamma to use as a starting
                 value for the optimizer.
