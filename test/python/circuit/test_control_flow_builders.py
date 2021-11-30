@@ -474,8 +474,8 @@ class TestControlFlowBuilders(QiskitTestCase):
 
     @ddt.data(QuantumCircuit.break_loop, QuantumCircuit.continue_loop)
     def test_break_continue_only_expand_to_nearest_loop(self, loop_operation):
-        """Test that a ``break`` or ``continue`` nested in more than loop only expands as far as the
-        inner loop scope, not further."""
+        """Test that a ``break`` or ``continue`` nested in more than one loop only expands as far as
+        the inner loop scope, not further."""
         qubits = [Qubit(), Qubit(), Qubit()]
         clbits = [Clbit(), Clbit(), Clbit()]
         cond_inner = (clbits[0], 0)
@@ -1903,6 +1903,15 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
             with else_:
                 pass
             with self.assertRaisesRegex(CircuitError, r"Cannot re-use an 'else' context\."):
+                with else_:
+                    pass
+
+        with self.subTest("else from an inner block"):
+            test = QuantumCircuit(bits)
+            with test.if_test(cond):
+                with test.if_test(cond) as else_:
+                    pass
+            with self.assertRaisesRegex(CircuitError, "The 'if' block is not the most recent"):
                 with else_:
                     pass
 
