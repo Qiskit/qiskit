@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    QPY serialization has been upgraded to support :class:`~qiskit.pulse.schedule.ScheduleBlock`.
+    The import path `qiskit.circuit.qpy_serialization` has been deprecated and will be removed in
+    a future release. QPY version has been bumped to 3 due to the data structure update.
+    Loading QPY data generated with the previous versions is still supported.
