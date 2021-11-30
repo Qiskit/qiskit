@@ -674,10 +674,33 @@ class TestFinalLayouts(QiskitTestCase):
             19: ancilla[14],
         }
 
+        sabre_layout = {
+            0: ancilla[0],
+            1: ancilla[1],
+            2: ancilla[2],
+            3: ancilla[3],
+            4: ancilla[4],
+            5: ancilla[5],
+            6: ancilla[6],
+            7: qr[4],
+            8: qr[1],
+            9: ancilla[7],
+            10: ancilla[8],
+            11: ancilla[9],
+            12: qr[2],
+            13: qr[0],
+            14: ancilla[10],
+            15: ancilla[11],
+            16: ancilla[12],
+            17: ancilla[13],
+            18: ancilla[14],
+            19: qr[3],
+        }
+
         expected_layout_level0 = trivial_layout
         expected_layout_level1 = dense_layout
         expected_layout_level2 = dense_layout
-        expected_layout_level3 = dense_layout
+        expected_layout_level3 = sabre_layout
 
         expected_layouts = [
             expected_layout_level0,

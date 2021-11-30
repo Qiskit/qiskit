@@ -148,7 +148,6 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         # layout so we need to clear it before continuing.
         if property_set["trivial_layout_score"] is not None:
             if property_set["trivial_layout_score"] != 0:
-                property_set["layout"]._wrapped = None
                 return True
         return False
 
