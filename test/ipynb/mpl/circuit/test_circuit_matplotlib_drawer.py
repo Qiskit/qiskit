@@ -294,6 +294,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.h(q[1])
 
         # this import appears to be unused, but is actually needed to get snapshot instruction
+        import qiskit.circuit.simulator  # pylint: disable=unused-import
 
         circuit.snapshot("1")
 

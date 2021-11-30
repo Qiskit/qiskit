@@ -21,7 +21,7 @@ from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, transpile
 from qiskit.circuit import Instruction, ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import IGate
-from qiskit.circuit.library.quantum_initializer.initializer import Initialize
+from qiskit.circuit.library import Initialize
 from qiskit.opflow.exceptions import OpflowError
 from qiskit.opflow.list_ops.composed_op import ComposedOp
 from qiskit.opflow.list_ops.list_op import ListOp

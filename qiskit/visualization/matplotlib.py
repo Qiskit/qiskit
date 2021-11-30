@@ -37,7 +37,7 @@ from qiskit.circuit.library.standard_gates import (
     XGate,
     ZGate,
 )
-from qiskit.circuit.library.quantum_initializer.initializer import Initialize
+from qiskit.circuit.library import Initialize
 from qiskit.visualization.qcstyle import load_style
 from qiskit.visualization.utils import (
     get_gate_ctrl_text,
