@@ -551,7 +551,7 @@ class TestUseCases(SchedulerTestCase):
         )
 
     def test_nested_conditional_in_loop(self):
-        """Run a loop with a nested conditional."""
+        """Run a loop with a nested conditional. test"""
         nested_conditional = [
             ConditionalController(
                 [PassA_TP_NR_NP()], condition=lambda property_set: property_set["property"]
