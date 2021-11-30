@@ -28,7 +28,7 @@ from qiskit.pulse.utils import instruction_duration_validation, deprecated_funct
 class AlignmentKind(abc.ABC):
     """An abstract class for schedule alignment."""
 
-    is_serializable = True
+    is_serializable = False
     is_sequential = None
 
     def __init__(self, *context_params: ParameterValueType):
@@ -79,6 +79,7 @@ class AlignLeft(AlignmentKind):
     Instructions are placed at earliest available timeslots.
     """
 
+    is_serializable = True
     is_sequential = False
 
     def __init__(self):
@@ -144,6 +145,7 @@ class AlignRight(AlignmentKind):
     Instructions are placed at latest available timeslots.
     """
 
+    is_serializable = True
     is_sequential = False
 
     def __init__(self):
@@ -211,6 +213,7 @@ class AlignSequential(AlignmentKind):
     No buffer time is inserted in between instructions.
     """
 
+    is_serializable = True
     is_sequential = True
 
     def __init__(self):
@@ -243,6 +246,7 @@ class AlignEquispaced(AlignmentKind):
     This alignment is convenient to create dynamical decoupling sequences such as PDD.
     """
 
+    is_serializable = True
     is_sequential = True
 
     def __init__(self, duration: Union[int, ParameterExpression]):
