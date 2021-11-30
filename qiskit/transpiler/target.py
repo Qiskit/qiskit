@@ -297,21 +297,21 @@ class Target(Mapping):
         self._instruction_durations = None
         self._instruction_schedule_map = None
 
-    def update_instruction_properties(self, instruction, qarg, properties):
+    def update_instruction_properties(self, instruction, qargs, properties):
         """Update the property object for an instruction qarg pair already in the Target
 
         Args:
             instruction (str): The instruction name to update
-            qarg (tuple): The qarg to update the properties of
+            qargs (tuple): The qargs to update the properties of
             properties (InstructionProperties): The properties to set for this nstruction
         Raises:
             KeyError: If ``instruction`` or ``qarg`` are not in the target
         """
         if instruction not in self._gate_map:
             raise KeyError(f"Provided instruction: '{instruction}' not in this Target")
-        if qarg not in self._gate_map[instruction]:
-            raise KeyError(f"Provided qarg: '{qarg}' not in this Target for {instruction}")
-        self._gate_map[instruction][qarg] = properties
+        if qargs not in self._gate_map[instruction]:
+            raise KeyError(f"Provided qarg: '{qargs}' not in this Target for {instruction}")
+        self._gate_map[instruction][qargs] = properties
         self._instruction_durations = None
         self._instruction_schedule_map = None
 
@@ -456,11 +456,11 @@ class Target(Mapping):
         """
         return self._gate_name_map[instruction]
 
-    def operations_for_qargs(self, qarg):
+    def operations_for_qargs(self, qargs):
         """Get the operation class object for a specified qarg
 
         Args:
-            qarg (tuple): A qarg tuple of the qubits to get the gates that apply
+            qargs (tuple): A qargs tuple of the qubits to get the gates that apply
                 to it. For example, ``(0,)`` will return the set of all
                 instructions that apply to qubit 0.
         Returns:
@@ -468,11 +468,11 @@ class Target(Mapping):
             that apply to the specified qarg.
 
         Raises:
-            KeyError: If qarg is not in target
+            KeyError: If qargs is not in target
         """
-        if qarg not in self._qarg_gate_map:
-            raise KeyError(f"{qarg} not in target.")
-        return [self._gate_name_map[x] for x in self._qarg_gate_map[qarg]]
+        if qargs not in self._qarg_gate_map:
+            raise KeyError(f"{qargs} not in target.")
+        return [self._gate_name_map[x] for x in self._qarg_gate_map[qargs]]
 
     @property
     def operation_names(self):
