@@ -13,7 +13,6 @@
 """Optimize chains of single-qubit u1, u2, u3 gates by combining them into a single gate."""
 
 from itertools import groupby
-from typing import Union
 
 import numpy as np
 
