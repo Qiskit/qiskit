@@ -37,4 +37,5 @@ from .evolution import (
     LieTrotter,
     SuzukiTrotter,
     MatrixExponential,
+    QDrift,
 )

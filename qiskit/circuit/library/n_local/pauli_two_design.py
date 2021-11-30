@@ -81,7 +81,7 @@ class PauliTwoDesign(TwoLocal):
         self._rng = np.random.default_rng(seed)
 
         # store a dict to keep track of the random gates
-        self._gates = dict()
+        self._gates = {}
 
         super().__init__(
             num_qubits,
