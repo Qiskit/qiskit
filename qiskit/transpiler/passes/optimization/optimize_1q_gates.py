@@ -31,13 +31,6 @@ from qiskit.quantum_info.synthesis import Quaternion
 _CHOP_THRESHOLD = 1e-15
 
 
-def to_number(value: Union[float, ParameterExpression]) -> Union[float, ParameterExpression]:
-    if isinstance(value, ParameterExpression):
-        return value
-    else:
-        return float(value)
-
-
 class Optimize1qGates(TransformationPass):
     """Optimize chains of single-qubit u1, u2, u3 gates by combining them into a single gate."""
 
@@ -106,9 +99,6 @@ class Optimize1qGates(TransformationPass):
                     and current_node.op.definition.global_phase
                 ):
                     right_global_phase += current_node.op.definition.global_phase
-                # If there are any sympy objects coming from the gate convert
-                # to numpy.
-                left_parameters = tuple(to_number(x) for x in left_parameters)
                 # Compose gates
                 name_tuple = (left_name, right_name)
                 if name_tuple in (("u1", "u1"), ("p", "p")):

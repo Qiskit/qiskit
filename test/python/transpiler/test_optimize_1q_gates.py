@@ -637,6 +637,7 @@ class TestOptimize1qGatesBasis(QiskitTestCase):
         self.assertEqual(expected, result)
 
     def test_optimize_u3_with_parameters(self):
+        """Test correct behavior for u3 gates."""
         phi = Parameter('φ')
         alpha = Parameter('α')
         qr = QuantumRegister(1, 'qr')
