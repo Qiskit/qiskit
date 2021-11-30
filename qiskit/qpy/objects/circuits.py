@@ -323,6 +323,8 @@ def _read_custom_instructions(file_obj, version):
 
 def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_map):
     gate_class_name = instruction_tuple[0].__class__.__name__
+
+    # pylint: disable=too-many-boolean-expressions
     if (
         (
             not hasattr(library, gate_class_name)
@@ -514,6 +516,7 @@ def read_circuit(file_obj, version):
 
     Raises:
         TypeError: If any of the instructions is invalid data format.
+        QiskitError: Invalid register index.
     """
     if version < 2:
         header, name, metadata = _read_header(file_obj)

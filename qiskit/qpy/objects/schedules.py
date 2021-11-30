@@ -152,7 +152,9 @@ def _read_parametric_pulse(file_obj):
 
 
 def _read_measure_processor(file_obj, processor):
-    processor_header = struct.unpack(MEASURE_PROCESSOR_PACK, file_obj.read(MEASURE_PROCESSOR_PACK_SIZE))
+    processor_header = struct.unpack(
+        MEASURE_PROCESSOR_PACK, file_obj.read(MEASURE_PROCESSOR_PACK_SIZE)
+    )
     name = file_obj.read(processor_header[0]).encode("utf8")
     params = json.loads(file_obj.read(processor_header[1]).decode("utf8"))
 
@@ -280,11 +282,7 @@ def _write_measure_processor(file_obj, data):
     name = data.name.encode("utf8")
     params = json.dumps(data.params, separators=(",", ":")).encode("utf8")
 
-    processor_header = struct.pack(
-        MEASURE_PROCESSOR_PACK,
-        len(name),
-        len(params)
-    )
+    processor_header = struct.pack(MEASURE_PROCESSOR_PACK, len(name), len(params))
     file_obj.write(processor_header)
     file_obj.write(name)
     file_obj.write(params)
@@ -351,7 +349,7 @@ def read_schedule_block(file_obj, version):
 
     Args:
         file_obj (File): A file like object that contains the QPY binary data.
-        version: QPY version.
+        version (int): QPY version.
 
     Returns:
         ScheduleBlock: Deserialized schedule block object.
@@ -374,7 +372,7 @@ def read_schedule_block(file_obj, version):
         type_key, data_binary = read_binary(file_obj)
         if type_key == TypeKey.SCHEDULE_BLOCK:
             with io.BytesIO(data_binary) as block_container:
-                block_elem = read_schedule_block(block_container)
+                block_elem = read_schedule_block(block_container, version)
         elif type_key == TypeKey.INSTRUCTION:
             with io.BytesIO(data_binary) as block_container:
                 block_elem = _read_instruction(block_container)

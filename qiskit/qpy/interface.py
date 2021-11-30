@@ -200,6 +200,6 @@ def load(file_obj, verbose=False):
             loader = read_schedule_block
         else:
             raise TypeError(f"Invalid payload format data kind {type_key}")
-        programs.append(loader(file_obj), qpy_version)
+        programs.append(loader(file_obj, qpy_version))
 
     return programs
