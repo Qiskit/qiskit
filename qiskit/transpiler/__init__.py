@@ -358,6 +358,15 @@ Supplementary Information
 Transpiler API
 ==============
 
+Transpiler Target
+-----------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Target
+   InstructionProperties
+
 Pass Manager Construction
 -------------------------
 
