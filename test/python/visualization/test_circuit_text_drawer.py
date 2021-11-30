@@ -20,7 +20,7 @@ from math import pi
 import numpy
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
-from qiskit.circuit import Gate, Parameter
+from qiskit.circuit import Gate, Parameter, Qubit, Clbit
 from qiskit.quantum_info.operators import SuperOp
 from qiskit.quantum_info.random import random_unitary
 from qiskit.test import QiskitTestCase
@@ -2904,7 +2904,6 @@ class TestTextConditional(QiskitTestCase):
                 "                  0x1 ",
             ]
         )
-
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_text_bit_conditional(self):
@@ -2924,9 +2923,9 @@ class TestTextConditional(QiskitTestCase):
                 "qr_1: |0>──╫──┤ H ├",
                 "           ║  └─╥─┘",
                 " cr_0: 0 ══■════╬══",
-                "          0x1   ║  ",
+                "                ║  ",
                 " cr_1: 0 ═══════o══",
-                "               0x0 ",
+                "                   ",
             ]
         )
 
@@ -2949,7 +2948,7 @@ class TestTextConditional(QiskitTestCase):
                 "qr_1: |0>─────╫─────────┤ H ├────",
                 "              ║         └─╥─┘    ",
                 "         ┌────╨─────┐┌────╨─────┐",
-                " cr: 0 2/╡ cr_0 = T ╞╡ cr_1 = F ╞",
+                " cr: 0 2/╡ cr_0=0x1 ╞╡ cr_1=0x0 ╞",
                 "         └──────────┘└──────────┘",
             ]
         )
@@ -2957,6 +2956,78 @@ class TestTextConditional(QiskitTestCase):
         self.assertEqual(
             str(_text_circuit_drawer(circuit, cregbundle=True, vertical_compression="medium")),
             expected,
+        )
+
+    def test_text_condition_measure_bits_true(self):
+        """Condition and measure on single bits cregbundle true"""
+
+        bits = [Qubit(), Qubit(), Clbit(), Clbit()]
+        cr = ClassicalRegister(2, "cr")
+        crx = ClassicalRegister(3, "cs")
+        circuit = QuantumCircuit(bits, cr, [Clbit()], crx)
+        circuit.x(0).c_if(crx[1], 0)
+        circuit.measure(0, bits[3])
+
+        expected = "\n".join(
+            [
+                "         ┌───┐    ┌─┐",
+                "   0: ───┤ X ├────┤M├",
+                "         └─╥─┘    └╥┘",
+                "   1: ─────╫───────╫─",
+                "           ║       ║ ",
+                "   0: ═════╬═══════╬═",
+                "           ║       ║ ",
+                "   1: ═════╬═══════╩═",
+                "           ║         ",
+                "cr: 2/═════╬═════════",
+                "           ║         ",
+                "   4: ═════╬═════════",
+                "      ┌────╨─────┐   ",
+                "cs: 3/╡ cs_1=0x0 ╞═══",
+                "      └──────────┘   ",
+            ]
+        )
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, cregbundle=True, initial_state=False)), expected
+        )
+
+    def test_text_condition_measure_bits_false(self):
+        """Condition and measure on single bits cregbundle false"""
+
+        bits = [Qubit(), Qubit(), Clbit(), Clbit()]
+        cr = ClassicalRegister(2, "cr")
+        crx = ClassicalRegister(3, "cs")
+        circuit = QuantumCircuit(bits, cr, [Clbit()], crx)
+        circuit.x(0).c_if(crx[1], 0)
+        circuit.measure(0, bits[3])
+
+        expected = "\n".join(
+            [
+                "      ┌───┐┌─┐",
+                "   0: ┤ X ├┤M├",
+                "      └─╥─┘└╥┘",
+                "   1: ──╫───╫─",
+                "        ║   ║ ",
+                "   0: ══╬═══╬═",
+                "        ║   ║ ",
+                "   1: ══╬═══╩═",
+                "        ║     ",
+                "cr_0: ══╬═════",
+                "        ║     ",
+                "cr_1: ══╬═════",
+                "        ║     ",
+                "   4: ══╬═════",
+                "        ║     ",
+                "cs_0: ══╬═════",
+                "        ║     ",
+                "cs_1: ══o═════",
+                "              ",
+                "cs_2: ════════",
+                "              ",
+            ]
+        )
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, cregbundle=False, initial_state=False)), expected
         )
 
     def test_text_conditional_reverse_bits_1(self):
@@ -4688,8 +4759,6 @@ class TestTextPhase(QiskitTestCase):
 
     def test_registerless_one_bit(self):
         """Text circuit with one-bit registers and registerless bits."""
-        from qiskit.circuit import Qubit, Clbit
-
         # fmt: off
         expected = "\n".join(["       ",
                               "qrx_0: ",
