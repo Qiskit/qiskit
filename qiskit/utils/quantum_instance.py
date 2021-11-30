@@ -185,18 +185,19 @@ class QuantumInstance:
             seed_simulator: Random seed for simulators
             max_credits: Maximum credits to use
             basis_gates: List of basis gate names supported by the
-                                               target. Defaults to basis gates of the backend.
+                target. Defaults to basis gates of the backend.
             coupling_map (Optional[Union['CouplingMap', List[List]]]):
-                        Coupling map (perhaps custom) to target in mapping
+                Coupling map (perhaps custom) to target in mapping
             initial_layout (Optional[Union['Layout', Dict, List]]):
-                        Initial layout of qubits in mapping
+                Initial layout of qubits in mapping
             pass_manager (Optional['PassManager']): Pass manager to handle how to compile the circuits.
                 To run only this pass manager and not the ``bound_pass_manager``, call the
-                ``transpile`` method with the argument
+                :meth:`~qiskit.utils.QuantumInstance.transpile` method with the argument
                 ``pass_manager=quantum_instance.unbound_pass_manager``.
             bound_pass_manager (Optional['PassManager']): A second pass manager to apply on bound
                 circuits only, that is, circuits without any free parameters. To only run this pass
-                manager and not ``pass_manager`` call the ``transpile`` method with the argument
+                manager and not ``pass_manager`` call the
+                :meth:`~qiskit.utils.QuantumInstance.transpile` method with the argument
                 ``pass_manager=quantum_instance.bound_pass_manager``.
                 manager should also be run.
             seed_transpiler: The random seed for circuit mapper
