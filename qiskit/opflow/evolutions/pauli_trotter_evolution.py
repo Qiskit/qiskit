@@ -112,13 +112,19 @@ class PauliTrotterEvolution(EvolutionBase):
         return SuzukiTrotter(reps=self.trotter.reps, order=self.trotter.order)
 
     def _recursive_convert(self, operator: OperatorBase) -> OperatorBase:
+        print("Running recursive convert with operator of type: ",type(operator))
+        print(operator)
         if isinstance(operator, EvolvedOp):
-            if isinstance(operator.primitive, (PauliOp, PauliSumOp)):
+            if isinstance(operator.primitive, (PauliOp)):
+                return self.evolution_for_pauli(operator.primitive)
+            if isinstance(operator.primitive, (PauliSumOp)):
                 pauli = operator.primitive.primitive
                 time = operator.coeff * operator.primitive.coeff
                 evo = PauliEvolutionGate(
                     pauli, time=time, synthesis=self._get_evolution_synthesis()
                 )
+                print("Operator was either a PauliOp or PauliSumOp and evo.definition is: ")
+                print(evo.definition, '\n')
                 return CircuitOp(evo.definition)
                 # operator = EvolvedOp(operator.primitive.to_pauli_op(), coeff=operator.coeff)
             if not {"Pauli"} == operator.primitive_strings():
@@ -151,9 +157,18 @@ class PauliTrotterEvolution(EvolutionBase):
                     if isinstance(x, PauliOp) and sum(x.primitive.x + x.primitive.z) == 0
                 ]
                 # Construct sum without the identity operators.
+                print("Operator is a SummedOp and new primitive is: ")
                 new_primitive = SummedOp(oplist, coeff=operator.primitive.coeff)
+                print(new_primitive)
                 trotterized = self.trotter.convert(new_primitive)
+                print("Trotterized is: ")
+                print(trotterized)
+                print("############################# RUNNING RECURSIVE CONVERT ####################################")
                 circuit_no_identities = self._recursive_convert(trotterized)
+                print("############################# COMPLETED RECURSIVE CONVERT ####################################")
+
+                print("Circuit w/o Identities is: ", type(circuit_no_identities))
+                print(circuit_no_identities)
                 # Set the global phase of the QuantumCircuit to account for removed identity terms.
                 global_phase = -sum(identity_phases) * operator.primitive.coeff
                 circuit_no_identities.primitive.global_phase = global_phase
@@ -161,10 +176,19 @@ class PauliTrotterEvolution(EvolutionBase):
             # Covers ListOp, ComposedOp, TensoredOp
             elif isinstance(operator.primitive, ListOp):
                 converted_ops = [self._recursive_convert(op) for op in operator.primitive.oplist]
+                print("Op was ListOp so converted_ops are: ", converted_ops)
                 return operator.primitive.__class__(converted_ops, coeff=operator.coeff)
         elif isinstance(operator, ListOp):
-            return operator.traverse(self.convert).reduce()
+            print("##################### RUNNING OPERATOR TRAVERSE #####################")
+            traversed_op = operator.traverse(self.convert).reduce()
+            print("Reduced Traversed Operator is: ",type(traversed_op))
+            print(traversed_op)
+            print("################# END OF TRAVERSE DEBUG #################","\n")
+            return traversed_op
+            #return operator.traverse(self.convert).reduce()
 
+        print("Operator was something different: ")
+        print(operator)
         return operator
 
     def evolution_for_pauli(self, pauli_op: PauliOp) -> PrimitiveOp:
