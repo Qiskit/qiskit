@@ -102,16 +102,20 @@ class InstructionPlaceholder(Instruction, abc.ABC):
         """Copy mutable properties from ourselves onto a non-placeholder instruction.
 
         The mutable properties are expected to be things like ``condition``, added onto a
-        placeholder by the :meth:`.c_if` method.  This mutates ``instruction``, and returns the same
+        placeholder by the :meth:`c_if` method.  This mutates ``instruction``, and returns the same
         instance that was passed.  This is mostly intended to make writing concrete versions of
         :meth:`.concrete_instruction` easy.
+
+        The complete list of mutations is:
+
+        * ``condition``, added by :meth:`c_if`.
 
         Args:
             instruction: the concrete instruction instance to be mutated.
 
         Returns:
-            The same instruction instance that was passed, but mutated so its ``condition`` matches
-            this object.
+            The same instruction instance that was passed, but mutated to propagate the tracked
+            changes to this class.
         """
         # In general the tuple creation should be a no-op, because ``tuple(t) is t`` for tuples.
         instruction.condition = None if self.condition is None else tuple(self.condition)
