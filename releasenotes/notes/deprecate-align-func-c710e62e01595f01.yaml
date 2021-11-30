@@ -1,6 +1,6 @@
 ---
 deprecations:
   - |
-    Pusle alignment class method :meth:`~qiskit.pulse.transforms.alignments.AlignmentKind.to_dict`
-    has been deprecated and will be removed in a future release. This is replaced with
+    The pulse alignment class method :meth:`~qiskit.pulse.transforms.alignments.AlignmentKind.to_dict`
+    has been deprecated and will be removed in a future release. This method is replaced with the
     property :meth:`~qiskit.pulse.transforms.alignments.AlignmentKind.context_params`.
