@@ -22,6 +22,7 @@ from collections import namedtuple
 
 from qiskit.pulse import channels, instructions, library
 from qiskit.pulse.schedule import ScheduleBlock
+from qiskit.pulse.configuration import Kernel, Discriminator
 from qiskit.pulse.transforms import alignments
 from qiskit.qpy.common import (
     write_binary,
@@ -77,6 +78,11 @@ PARAMETRIC_PULSE_PACK_SIZE = struct.calcsize(PARAMETRIC_PULSE_PACK)
 INSTRUCTION = namedtuple("INSTRUCTION", ["name_size", "label_size", "num_operands"])
 INSTRUCTION_PACK = "!HHH"
 INSTRUCTION_PACK_SIZE = struct.calcsize(INSTRUCTION_PACK)
+
+# MEASURE_PROCESSOR binary format
+MEASURE_PROCESSOR = namedtuple("MEASURE_PROCESSOR", ["name_size", "params_size"])
+MEASURE_PROCESSOR_PACK = "!HQ"
+MEASURE_PROCESSOR_PACK_SIZE = struct.calcsize(MEASURE_PROCESSOR_PACK)
 
 
 def _read_channel(file_obj):
@@ -144,6 +150,14 @@ def _read_parametric_pulse(file_obj):
     return pulse_type(**kwargs)
 
 
+def _read_measure_processor(file_obj, processor):
+    processor_header = struct.unpack(MEASURE_PROCESSOR_PACK, file_obj.read(MEASURE_PROCESSOR_PACK_SIZE))
+    name = file_obj.read(processor_header[0]).encode("utf8")
+    params = json.loads(file_obj.read(processor_header[1]).decode("utf8"))
+
+    return processor(name, **params)
+
+
 def _read_instruction(file_obj):
     instruction_header = struct.unpack(INSTRUCTION_PACK, file_obj.read(INSTRUCTION_PACK_SIZE))
     instruction_class_name = file_obj.read(instruction_header[0]).decode("utf8")
@@ -165,6 +179,12 @@ def _read_instruction(file_obj):
         elif type_key == TypeKey.PARAMETRIC_PULSE:
             with io.BytesIO(data) as container:
                 value = _read_parametric_pulse(container)
+        elif type_key == TypeKey.KERNEL:
+            with io.BytesIO(data) as container:
+                value = _read_measure_processor(container, Kernel)
+        elif type_key == TypeKey.DISCRIMINATOR:
+            with io.BytesIO(data) as container:
+                value = _read_measure_processor(container, Discriminator)
         else:
             raise TypeError(f"Invalid instruction operand type {type_key} for value {data}.")
         operands.append(value)
@@ -255,6 +275,20 @@ def _write_parametric_pulse(file_obj, data):
     write_mapping(file_obj, data.parameters)
 
 
+def _write_measure_processor(file_obj, data):
+    name = data.name.encode("utf8")
+    params = json.dumps(data.params, separators=(",", ":")).encode("utf8")
+
+    processor_header = struct.pack(
+        MEASURE_PROCESSOR_PACK,
+        len(name),
+        len(params)
+    )
+    file_obj.write(processor_header)
+    file_obj.write(name)
+    file_obj.write(params)
+
+
 def _write_instruction(file_obj, instruction):
     instruction_class_name = instruction.__class__.__name__.encode("utf8")
 
@@ -292,6 +326,11 @@ def _write_instruction(file_obj, instruction):
                 _write_parametric_pulse(container, operand)
                 container.seek(0)
                 data = container.read()
+        elif type_key in [TypeKey.KERNEL, TypeKey.DISCRIMINATOR]:
+            with io.BytesIO() as container:
+                _write_measure_processor(container, operand)
+                container.seek(0)
+                data = container.read()
         else:
             raise TypeError(f"Invalid instruction operand type {type(operand)} for {operand}.")
 
@@ -320,7 +359,7 @@ def read_schedule_block(file_obj):
     """
     block_header = struct.unpack(SCHEDULE_BLOCK_PACK, file_obj.read(SCHEDULE_BLOCK_PACK_SIZE))
     block_name = file_obj.read(block_header[0]).decode("utf8")
-    metadata = json.loads(file_obj.read(block_header[1]))
+    metadata = json.loads(file_obj.read(block_header[1]).decode("utf8"))
     with io.BytesIO(file_obj.read(block_header[2])) as alignment_container:
         alignment_data = _read_alignment_context(alignment_container)
 

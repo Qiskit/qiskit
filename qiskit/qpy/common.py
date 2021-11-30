@@ -23,6 +23,7 @@ from qiskit.pulse.channels import Channel
 from qiskit.pulse.library import Waveform, ParametricPulse
 from qiskit.pulse.schedule import ScheduleBlock
 from qiskit.pulse.instructions import Instruction as PulseInstruction
+from qiskit.pulse.configuration import Kernel, Discriminator
 
 # OBJECT binary format
 OBJECT = namedtuple("OBJECT", ["type", "size"])
@@ -46,6 +47,8 @@ class TypeKey(str, Enum):
     QUANTUM_CIRCUIT = "t"
     SCHEDULE_BLOCK = "b"
     INSTRUCTION = "j"
+    DISCRIMINATOR = "m"
+    KERNEL = "k"
 
     @classmethod
     def is_number(cls, type_key) -> bool:
@@ -99,6 +102,10 @@ def assign_key(obj) -> TypeKey:
         return TypeKey.SCHEDULE_BLOCK
     if isinstance(obj, PulseInstruction):
         return TypeKey.INSTRUCTION
+    if isinstance(obj, Kernel):
+        return TypeKey.KERNEL
+    if isinstance(obj, Discriminator):
+        return TypeKey.DISCRIMINATOR
 
     raise TypeError(f"Object type {type(obj)} is not supported.")
 
