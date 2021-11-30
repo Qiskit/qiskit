@@ -30,6 +30,7 @@ from qiskit.qpy.common import (
     assign_key,
     TypeKey,
 )
+from qiskit.exceptions import QiskitError
 from .mapping import write_mapping, read_mapping
 from .parameter_values import (
     dumps_parameter_value,
@@ -345,18 +346,23 @@ def _write_alignment_context(file_obj, context):
     write_mapping(file_obj, context.to_dict())
 
 
-def read_schedule_block(file_obj):
+def read_schedule_block(file_obj, version):
     """Read a single schedule block from the file like object.
 
     Args:
         file_obj (File): A file like object that contains the QPY binary data.
+        version: QPY version.
 
     Returns:
         ScheduleBlock: Deserialized schedule block object.
 
     Raises:
         TypeError: If any of the instructions is invalid data format.
+        QiskitError: QPY version is earlier than block support.
     """
+    if version < 3:
+        QiskitError(f"QPY version {version} does not support ScheduleBlock.")
+
     block_header = struct.unpack(SCHEDULE_BLOCK_PACK, file_obj.read(SCHEDULE_BLOCK_PACK_SIZE))
     block_name = file_obj.read(block_header[0]).decode("utf8")
     metadata = json.loads(file_obj.read(block_header[1]).decode("utf8"))

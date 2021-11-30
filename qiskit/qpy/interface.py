@@ -23,12 +23,14 @@ from qiskit.exceptions import QiskitError
 from qiskit.pulse.schedule import ScheduleBlock
 from qiskit.version import __version__
 from .common import TypeKey
-from .objects.schedules import write_schedule_block, read_schedule_block
+from .objects import write_schedule_block, read_schedule_block, write_circuit, read_circuit
+
+QPY_VERSION = 3
 
 # FILE_HEADER
 FILE_HEADER = namedtuple(
     "FILE_HEADER",
-    ["preface", "qpy_version", "major_version", "minor_version", "patch_version", "num_circuits"],
+    ["preface", "qpy_version", "major_version", "minor_version", "patch_version", "num_programs"],
 )
 FILE_HEADER_PACK = "!6sBBBBQ"
 FILE_HEADER_SIZE = struct.calcsize(FILE_HEADER_PACK)
@@ -46,7 +48,7 @@ def dump(programs, file_obj):
     .. code-block:: python
 
         from qiskit.circuit import QuantumCircuit
-        from qiskit.circuit import qpy_serialization
+        from qiskit import qpy
 
         qc = QuantumCircuit(2, name='Bell', metadata={'test': True})
         qc.h(0)
@@ -58,7 +60,7 @@ def dump(programs, file_obj):
     .. code-block:: python
 
         with open('bell.qpy', 'wb') as fd:
-            qpy_serialization.dump(qc, fd)
+            qpy.dump(qc, fd)
 
     or a gzip compressed file:
 
@@ -67,7 +69,7 @@ def dump(programs, file_obj):
         import gzip
 
         with gzip.open('bell.qpy.gz', 'wb') as fd:
-            qpy_serialization.dump(qc, fd)
+            qpy.dump(qc, fd)
 
     Which will save the qpy serialized circuit to the provided file.
     You can also write pulse programs to a file in the samy way.
@@ -89,7 +91,7 @@ def dump(programs, file_obj):
     file_header = struct.pack(
         FILE_HEADER_PACK,
         b"QISKIT",
-        3,
+        QPY_VERSION,
         version_parts[0],
         version_parts[1],
         version_parts[2],
@@ -100,7 +102,7 @@ def dump(programs, file_obj):
     for program in programs:
         if isinstance(program, QuantumCircuit):
             type_key = TypeKey.QUANTUM_CIRCUIT
-            writer = None
+            writer = write_circuit
         elif isinstance(program, ScheduleBlock):
             type_key = TypeKey.SCHEDULE_BLOCK
             writer = write_schedule_block
@@ -120,10 +122,10 @@ def load(file_obj, verbose=False):
 
     .. code-block:: python
 
-        from qiskit.circuit import qpy_serialization
+        from qiskit import qpy
 
         with open('bell.qpy', 'rb') as fd:
-            circuits = qpy_serialization.load(fd)
+            circuits = qpy.load(fd)
 
     or with a gzip compressed file:
 
@@ -133,7 +135,7 @@ def load(file_obj, verbose=False):
         from qiskit.circuit import qpy_serialization
 
         with gzip.open('bell.qpy.gz', 'rb') as fd:
-            circuits = qpy_serialization.load(fd)
+            circuits = qpy.load(fd)
 
     which will read the contents of the qpy and return a list of
     :class:`~qiskit.circuit.QuantumCircuit` objects or
@@ -193,11 +195,11 @@ def load(file_obj, verbose=False):
             type_key = TypeKey(type_key_raw[0].decode("utf8"))
 
         if type_key == TypeKey.QUANTUM_CIRCUIT:
-            loader = None
+            loader = read_circuit
         elif type_key == TypeKey.SCHEDULE_BLOCK:
             loader = read_schedule_block
         else:
             raise TypeError(f"Invalid payload format data kind {type_key}")
-        programs.append(loader(file_obj))
+        programs.append(loader(file_obj), qpy_version)
 
     return programs

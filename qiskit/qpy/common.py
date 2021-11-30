@@ -44,7 +44,7 @@ class TypeKey(str, Enum):
     CHANNEL = "d"
     PARAMETRIC_PULSE = "r"
     WAVEFORM = "w"
-    QUANTUM_CIRCUIT = "t"
+    QUANTUM_CIRCUIT = "q"
     SCHEDULE_BLOCK = "b"
     INSTRUCTION = "j"
     DISCRIMINATOR = "m"
