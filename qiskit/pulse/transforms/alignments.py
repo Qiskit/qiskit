@@ -35,8 +35,8 @@ class AlignmentKind(abc.ABC):
         """Create new context.
 
         Args:
-            context_params: Parameters to define behavior of alignment.
-                This will be a sequence of numerical values or parameter objects.
+            context_params: Parameters that define the behavior of the alignment context.
+                These are a sequence of numerical values or ``Parameter`` objects.
         """
         self._context_params = tuple(context_params)
 
