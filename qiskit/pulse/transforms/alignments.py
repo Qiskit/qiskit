@@ -57,7 +57,7 @@ class AlignmentKind(abc.ABC):
 
     @property
     def context_params(self) -> Tuple[ParameterValueType]:
-        """Returns parameter that defines alignment."""
+        """Return the parameters that define the alignment context."""
         return tuple(self._context_params)
 
     @deprecated_functionality
