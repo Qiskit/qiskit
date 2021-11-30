@@ -35,13 +35,7 @@ class BasicPrinter:
         ast.QuantumGateModifierName.pow: "pow",
     }
 
-    _FLOAT_WIDTH_LOOKUP = {
-        ast.FloatType.half: "16",
-        ast.FloatType.single: "32",
-        ast.FloatType.double: "64",
-        ast.FloatType.quad: "128",
-        ast.FloatType.oct: "256",
-    }
+    _FLOAT_WIDTH_LOOKUP = {type: str(type.value) for type in ast.FloatType}
 
     # The visitor names include the class names, so they mix snake_case with PascalCase.
     # pylint: disable=invalid-name
