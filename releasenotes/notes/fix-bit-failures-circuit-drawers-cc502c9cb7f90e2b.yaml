@@ -1,0 +1,25 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :func:`~qiskit.visualization.circuit_drawer`
+    function and :meth:`~qiskit.circuit.QuantumCircuit.draw` method of
+    :class:`~qiskit.circuit.QuantumCircuit`. When displaying a ``measure``
+    instruction targeted on a classical bit instead of a register, using
+    the ``latex`` drawer option, the drawer would fail.
+fixes:
+  - |
+    Fixed an issue with the :func:`~qiskit.visualization.circuit_drawer`
+    function and :meth:`~qiskit.circuit.QuantumCircuit.draw` method of
+    :class:`~qiskit.circuit.QuantumCircuit`. With any of the 3 drawer
+    options, ``mpl``, ``latex``, or ``text``, if a gate with a classical
+    condition was encountered that was conditioned on a classical bit
+    without a register, the drawer would fail.
+fixes:
+  - |
+    Fixed an issue with the :func:`~qiskit.visualization.circuit_drawer`
+    function and :meth:`~qiskit.circuit.QuantumCircuit.draw` method of
+    :class:`~qiskit.circuit.QuantumCircuit`. With any of the 3 drawer
+    options, ``mpl``, ``latex``, or ``text``, if a gate with a classical
+    condition was conditioned on the same classical bit as a ``measure``
+    and the bit that the measure targeted did not have a register, the
+    drawer would fail.
