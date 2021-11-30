@@ -100,6 +100,7 @@ Generalized Gates
    RVGate
    PauliGate
    HamiltonianGate
+   UnitaryGate
 
 Boolean Logic Circuits
 ======================
