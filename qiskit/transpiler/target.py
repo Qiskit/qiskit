@@ -71,12 +71,20 @@ class InstructionProperties:
 
 class Target(Mapping):
     """
-    A description of instructions available on a backend. It exists around a central
-    mapping of :class:`~qiskit.circuit.Instruction` objects to their properties on the
-    device. As a basic example, let's assume your device has two qubits, supports
+    The intent of the ``Target`` object is to inform Qiskit's compiler about
+    the constraints of a particular backend so the compiler can compile an
+    input circuit to something that works and is optimized for a device. It
+    currently contains a description of instructions on a backend and their
+    properties as well as some timing information. However, this exact
+    interface may evolve over time as the needs of the compiler change. These
+    changes will be done in a backwards compatible and controlled manner when
+    they are made (either through versioning, subclassing, or mixins) to add
+    on to the set of information exposed by a target.
+
+    As a basic example, let's assume backend has two qubits, supports
     :class:`~qiskit.circuit.library.UGate` on both qubits and
-    :class:`~qiskit.circuit.library.CXGate` in both directions. You would create
-    the target like::
+    :class:`~qiskit.circuit.library.CXGate` in both directions. To model this
+    you would create the target like::
 
         from qiskit.transpiler import Target, InstructionProperties
         from qiskit.circuit.library import UGate, CXGate
@@ -96,10 +104,6 @@ class Target(Mapping):
             (1,0): InstructionProperties(duration=4.52e-7, error=0.00132115),
         }
         gmap.add_instruction(CXGate(), cx_props)
-
-    The intent of the ``Target`` object is to inform Qiskit's compiler about
-    the constraints of a particular backend so the compiler can compile an
-    input circuit to something that works and is optimized for a device.
 
     Each instruction in the Target is indexed by a unique string name that uniquely
     identifies that instance of an :class:`~qiskit.circuit.Instruction` object in

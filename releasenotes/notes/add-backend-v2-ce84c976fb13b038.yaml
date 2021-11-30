@@ -55,8 +55,8 @@ features:
   - |
     Added a new :class:`~qiskit.transpiler.Target` class to the
     :mod:`~qiskit.transpiler` module. The :class:`~qiskit.transpiler.Target`
-    class is designed to represent the constraints of backend. The
-    :class:`~qiskit.transpiler.Target` class is intended to be used directly
+    class is designed to represent the constraints of backend to the compiler.
+    The :class:`~qiskit.transpiler.Target` class is intended to be used
     with a :class:`~qiskit.providers.BackendV2` backend and is how backends
     will model their constraints for the transpiler moving forward. It combines
     the previously distinct fields used for controlling the
