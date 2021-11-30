@@ -25,10 +25,8 @@ from typing import Any, Set, Union
 
 import numpy as np
 
-from qiskit.circuit import Parameter
-from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.utils import deprecated_functionality
 
 
 class Channel(metaclass=ABCMeta):
@@ -71,10 +69,6 @@ class Channel(metaclass=ABCMeta):
         self._index = index
         self._hash = hash((self.__class__.__name__, self._index))
 
-        self._parameters = set()
-        if isinstance(index, ParameterExpression):
-            self._parameters = index.parameters
-
     @property
     def index(self) -> Union[int, ParameterExpression]:
         """Return the index of this channel. The index is a label for a control signal line
@@ -111,30 +105,6 @@ class Channel(metaclass=ABCMeta):
     def is_parameterized(self) -> bool:
         """Return True iff the channel is parameterized."""
         return isinstance(self.index, ParameterExpression)
-
-    @deprecated_functionality
-    def assign(self, parameter: Parameter, value: ParameterValueType) -> "Channel":
-        """Return a new channel with the input Parameter assigned to value.
-
-        Args:
-            parameter: A parameter in this expression whose value will be updated.
-            value: The new value to bind to.
-
-        Returns:
-            A new channel with updated parameters.
-
-        Raises:
-            PulseError: If the parameter is not present in the channel.
-        """
-        if parameter not in self.parameters:
-            raise PulseError(f"Cannot bind parameters ({parameter}) not present in the channel.")
-
-        new_index = self.index.assign(parameter, value)
-        if not new_index.parameters:
-            self._validate_index(new_index)
-            new_index = int(new_index)
-
-        return type(self)(new_index)
 
     @property
     def name(self) -> str:

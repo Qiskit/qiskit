@@ -451,6 +451,19 @@ for inst, qargs, cargs in [
     def_csx.append(inst, qargs, cargs)
 _sel.add_equivalence(CSXGate(), def_csx)
 
+q = QuantumRegister(2, "q")
+csx_to_zx45 = QuantumCircuit(q, global_phase=pi / 8)
+for inst, qargs, cargs in [
+    (XGate(), [q[0]], []),
+    (RZXGate(pi / 4), [q[0], q[1]], []),
+    (TdgGate(), [q[0]], []),
+    (XGate(), [q[0]], []),
+    (SXGate().power(0.5), [q[1]], []),
+]:
+    csx_to_zx45.append(inst, qargs, cargs)
+_sel.add_equivalence(CSXGate(), csx_to_zx45)
+
+
 # DCXGate
 
 q = QuantumRegister(2, "q")
@@ -705,6 +718,16 @@ for inst, qargs, cargs in [
     cx_to_ecr.append(inst, qargs, cargs)
 _sel.add_equivalence(CXGate(), cx_to_ecr)
 
+q = QuantumRegister(2, "q")
+cx_to_zx90 = QuantumCircuit(q, global_phase=pi / 4)
+for inst, qargs, cargs in [
+    (RZXGate(pi / 2), [q[0], q[1]], []),
+    (SdgGate(), [q[0]], []),
+    (SXdgGate(), [q[1]], []),
+]:
+    cx_to_zx90.append(inst, qargs, cargs)
+_sel.add_equivalence(CXGate(), cx_to_zx90)
+
 # CCXGate
 
 q = QuantumRegister(3, "q")
@@ -728,6 +751,21 @@ for inst, qargs, cargs in [
 ]:
     def_ccx.append(inst, qargs, cargs)
 _sel.add_equivalence(CCXGate(), def_ccx)
+
+q = QuantumRegister(3, "q")
+ccx_to_cx_csx = QuantumCircuit(q)
+for inst, qargs, cargs in [
+    (CSXGate(), [q[1], q[2]], []),
+    (CXGate(), [q[0], q[1]], []),
+    (ZGate(), [q[2]], []),
+    (SdgGate(), [q[1]], []),
+    (CSXGate(), [q[1], q[2]], []),
+    (ZGate(), [q[2]], []),
+    (CXGate(), [q[0], q[1]], []),
+    (CSXGate(), [q[0], q[2]], []),
+]:
+    ccx_to_cx_csx.append(inst, qargs, cargs)
+_sel.add_equivalence(CCXGate(), ccx_to_cx_csx)
 
 # YGate
 
