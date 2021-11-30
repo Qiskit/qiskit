@@ -14,13 +14,8 @@ An AQC synthesis plugin to Qiskit's transpiler.
 """
 import numpy as np
 
-from qiskit.algorithms.optimizers import L_BFGS_B
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes.synthesis.plugin import UnitarySynthesisPlugin
-from qiskit.transpiler.synthesis.aqc.aqc import AQC
-from qiskit.transpiler.synthesis.aqc.cnot_structures import make_cnot_network
-from qiskit.transpiler.synthesis.aqc.cnot_unit_circuit import CNOTUnitCircuit
-from qiskit.transpiler.synthesis.aqc.cnot_unit_objective import DefaultCNOTUnitObjective
 
 
 class AQCSynthesisPlugin(UnitarySynthesisPlugin):
@@ -96,6 +91,15 @@ class AQCSynthesisPlugin(UnitarySynthesisPlugin):
         return False
 
     def run(self, unitary, **options):
+
+        # Runtime imports to avoid the overhead of these imports for
+        # plugin discovery and only use them if the plugin is run/used
+        from qiskit.algorithms.optimizers import L_BFGS_B
+        from qiskit.transpiler.synthesis.aqc.aqc import AQC
+        from qiskit.transpiler.synthesis.aqc.cnot_structures import make_cnot_network
+        from qiskit.transpiler.synthesis.aqc.cnot_unit_circuit import CNOTUnitCircuit
+        from qiskit.transpiler.synthesis.aqc.cnot_unit_objective import DefaultCNOTUnitObjective
+
         num_qubits = int(round(np.log2(unitary.shape[0])))
 
         config = options.get("config") or {}
