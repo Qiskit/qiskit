@@ -12,7 +12,7 @@ features:
     Added a new analysis transpiler pass,
     :class:`~qiskit.transpiler.passes.Collect1qRuns`, to the
     :mod:`qiskit.transpiler.passes` module. This pass is used to find sequences
-    of uninterrupted gates acting on a single qubit. It's similar to the
+    of uninterrupted gates acting on a single qubit. It is similar to the
     :class:`~qiskit.transpiler.passes.Collect2qBlocks` and
     :class:`~qiskit.transpiler.passes.CollectMultiQBlocks` but optimized for
     single qubit runs instead of multiple qubit blocks.

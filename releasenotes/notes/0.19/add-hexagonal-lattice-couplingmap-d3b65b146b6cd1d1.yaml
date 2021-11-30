@@ -1,10 +1,7 @@
 ---
 features:
   - |
-    Add a new constructor method, :meth: `~qiskit.transpiler.CouplingMap.from_hexagonal_lattice`, to
-    the :class:`~qiskit.transpiler.CouplingMap` class.
-
-    For example:
+    Added a new coupling-map constructor method :meth:`.CouplingMap.from_hexagonal_lattice`.  For example:
 
     .. jupyter-execute::
 

@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Add `termination_callback` argument to :class:`qiskit.algorithms.optimizers.spsa.SPSA` optimizer.
+    Added the ``termination_callback`` argument to the :class:`~qiskit.algorithms.optimizers.SPSA` optimizer.
     This allows the user to implement a custom termination criterion.
     
     .. code-block:: python
@@ -15,14 +15,17 @@ features:
         class TerminationChecker:
             
             def __init__(self, N : int):
-                """ Callback to terminate optimization when the average decrease over the last N data points is smaller than the specified tolerance """ 
+                """
+                Callback to terminate optimization when the average decrease over
+                the last N data points is smaller than the specified tolerance.
+                """
                 self.N = N
                 self.values = []
             
             def __call__(self, nfev, parameters, value, stepsize, accepted) -> bool:
                 """ 
                 Returns:
-                    True if the optimization loop should be terminated
+                    True if the optimization loop should be terminated.
                 """
                 self.values.append(value)
                 

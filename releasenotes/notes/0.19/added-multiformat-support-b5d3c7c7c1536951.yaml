@@ -1,9 +1,8 @@
 ---
 features:
   - |
-    Using ``QuantumCircuit.draw()`` function with ``latex`` will now generate the file
-    in the correct image format determined from the filename extension,
-    for example::
+    Using :meth:`.QuantumCircuit.draw` with the ``latex`` drawer will now generate a file
+    in an image format inferred from the filename extension, for example::
 
       import qiskit
 
@@ -13,25 +12,11 @@ features:
       circuit.draw('latex', filename='./file.jpg')
     
     This will save the circuit in the JPEG format (earlier it always used to save it in PNG).
-    Refer to `#6448 <https://github.com/Qiskit/qiskit-terra/issues/6448>` for more details.
+    Refer to `#6448 <https://github.com/Qiskit/qiskit-terra/issues/6448>`__ for more details.
 
-    Now, if it encountered a filename extension which is not supported,
-
-    for example::
+    Now, if it encounters a filename extension which is not supported, for example::
       
       circuit.draw('latex', filename='./file.spooky')
 
-    It will give user a `ValueError` to change the filename extension to a supported image format::
-
-      "ERROR: This image format is not supported. Please change file extension to a supported image format."
-    
-    Similarly, if a user tries to save a file using the ``text`` option in ``QuantumCircuit.draw()`` 
-    without using a ``.txt`` filename extension, another `ValueError` will be thrown.
-
-    for example::
-
-      circuit.draw('text', filename'./file.nottxt')
-    
-    will generate::
-
-      "ERROR: Filename extension is not .txt. Please use a .txt file extension to save in text format."
+    it will give user a ``ValueError`` to change the filename extension to a supported image format.
+    A similar ``ValueError`` is raised if a user tries to save the output of the ``text`` drawer to a file without using a ``.txt`` extension.

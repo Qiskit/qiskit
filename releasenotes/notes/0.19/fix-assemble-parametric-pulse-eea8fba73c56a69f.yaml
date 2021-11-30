@@ -7,4 +7,4 @@ fixes:
     ``parametric_pulses`` setting from the given backend's
     :class:`~qiskit.providers.models.BackendConfiguration` instead of the
     expected empty list.
-    Fixed `#6898 <https://github.com/Qiskit/qiskit-terra/issues/6898>`__
+    Fixed `#6898 <https://github.com/Qiskit/qiskit-terra/issues/6898>`__.

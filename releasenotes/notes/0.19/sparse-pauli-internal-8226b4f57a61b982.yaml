@@ -6,7 +6,7 @@ upgrade:
     :class:`~qiskit.quantum_info.operators.PauliList`.
 deprecations:
   - |
-    Deprecate the property :meth:`~qiskit.quantum_info.SparsePauliOp.table` as the 
+    Deprecated the property :attr:`~qiskit.quantum_info.SparsePauliOp.table` as the 
     :class:`~qiskit.quantum_info.SparsePauliOp` has been updated to internally use 
     :class:`~qiskit.quantum_info.operators.PauliList` instead of 
     :class:`~qiskit.quantum_info.PauliTable`.

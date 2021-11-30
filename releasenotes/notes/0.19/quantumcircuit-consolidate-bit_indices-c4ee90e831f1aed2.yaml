@@ -2,7 +2,7 @@
 features:
   - |
     A new :meth:`~qiskit.circuit.QuantumCircuit.find_bit` method has
-    been added to the :class:`~qiskit.circuit.QuantumCircuit` class
+    been added to the :class:`~qiskit.circuit.QuantumCircuit` class,
     which allows lookups of the index and registers of a provided
     :class:`~qiskit.circuit.Bit` on the given circuit. The method
     returns a two-element ``namedtuple`` containing 0) the index of the ``Bit``

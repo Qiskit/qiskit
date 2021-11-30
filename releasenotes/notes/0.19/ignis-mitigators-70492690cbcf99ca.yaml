@@ -24,6 +24,6 @@ deprecations:
     no longer be supported in the near future.
     It's worth noting that unlike the equivalent classes from ``qiskit-ignis``
     the versions from :mod:`qiskit.utils.mitigation` are supported only in
-    their use with :class:`~qiskit.utils.QuantumInstance` (ie as a class not
+    their use with :class:`~qiskit.utils.QuantumInstance` (i.e. as a class not
     an instance with the ``measurement_error_mitigation_cls`` kwarg) and not
     intended for standalone use.

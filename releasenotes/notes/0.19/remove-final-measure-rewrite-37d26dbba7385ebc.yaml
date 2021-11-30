@@ -36,10 +36,10 @@ fixes:
     handling of registers with shared underlying bits.
   - |
     Fixed an issue with :obj:`~qiskit.transpiler.passes.RemoveFinalMeasurements`
-    which could cause the resulting :obj:`DAGCircuit` to become invalid.  See
+    which could cause the resulting :obj:`.DAGCircuit` to become invalid.  See
     `#7196 <https://github.com/Qiskit/qiskit-terra/pull/7196>`__ for more details.
   - |
     Fixed an issue with method :meth:`~qiskit.circuit.QuantumCircuit.remove_final_measurements`
-    of class :class:`~qiskit.circuit.QuantumCircuit` that caused ``QuantumCircuit.clbits``
+    of class :class:`~qiskit.circuit.QuantumCircuit` that caused :attr:`.QuantumCircuit.clbits`
     to be incorrect after invocation. Refer to
     `#7089 <https://github.com/Qiskit/qiskit-terra/issues/7089>`__ for details.

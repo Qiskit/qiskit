@@ -1,9 +1,9 @@
 features:
   - |
-    :obj:`~qiskit.cicuit.ParameterExpression` now delegates its numeric
+    :obj:`~qiskit.circuit.ParameterExpression` now delegates its numeric
     conversions to the underlying symbolic library, even if there are
     potentially unbound parameters.  This allows conversions of expressions such
-    as ::
+    as::
 
       >>> from qiskit.circuit import Parameter
       >>> x = Parameter('x')

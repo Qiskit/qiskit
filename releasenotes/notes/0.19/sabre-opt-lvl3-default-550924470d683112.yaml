@@ -1,7 +1,7 @@
 ---
 upgrade:
   - |
-    The default routing pass and layout pass for optimization level 3 has
+    The default routing pass and layout pass for transpiler optimization level 3 has
     changed to use :class:`~qiskit.transpiler.passes.SabreSwap` and
     :class:`~qiskit.transpiler.passes.SabreLayout` respectively. This
     was done to improve the quality of the output result, as using the sabre

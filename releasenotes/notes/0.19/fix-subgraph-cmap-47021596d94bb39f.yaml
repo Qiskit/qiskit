@@ -9,4 +9,4 @@ fixes:
     indices in ``nodelist`` the output
     :class:`~qiskit.transpiler.CouplingMap` will only contained the specified
     nodes reindexed starting at 0.
-    Fixes `#6736 <https://github.com/Qiskit/qiskit-terra/issues/6736>`__
+    Fixes `#6736 <https://github.com/Qiskit/qiskit-terra/issues/6736>`__.

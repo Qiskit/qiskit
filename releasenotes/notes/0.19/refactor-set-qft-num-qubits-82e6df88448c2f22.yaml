@@ -1,4 +1,4 @@
 ---
 fixes:
   - |
-    Refactored the QFT ``num_qubits`` setter to avoid potential problems when changing the number of qubits of the QFT circuit. 
+    Refactored the :attr:`.QFT.num_qubits` setter to avoid potential problems when changing the number of qubits of the :obj:`.QFT` circuit. 

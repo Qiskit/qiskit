@@ -4,7 +4,7 @@ features:
     Allow two transpiler stages in the :class:`~qiskit.utils.QuantumInstance`, one for
     parameterized circuits and a second one for bound circuits (i.e. no free parameters) only.
     If a quantum instance with passes for unbound and bound circuits is passed into a
-    :class:`~qiskit.opflow.CircuitSampler`, the sampler will attempt to apply the unbound pass
+    :class:`.CircuitSampler`, the sampler will attempt to apply the unbound pass
     once on the parameterized circuit, cache it, and only apply the bound pass for all future
     evaluations.
 

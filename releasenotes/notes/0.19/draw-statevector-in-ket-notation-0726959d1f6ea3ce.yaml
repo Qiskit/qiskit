@@ -1,15 +1,16 @@
 ---
 features:
   - |
-    Allow drawing of a Statevector in latex both in vector and ket notation.
+    :obj:`.Statevector` can now be drawn in LaTeX in both vector and ket notation.
     In ket notation the entries of the statevector are processed such that 
-    exact factors like fractions or sqrt of two are drawn as such.
-    The old notation is still available as an option by setting the `convention` argument.
+    exact factors like fractions or square roots of two are drawn as such.
+    The old notation is still available as an option by setting the ``convention`` argument.
 
     .. code-block:: python
 
-        from numpy import sqrt, pi, e
+        import math
         from qiskit.quantum_info import Statevector
-        sv=Statevector([sqrt(2)/2, 0, 0, -1/sqrt(2)])
+
+        sv = Statevector([math.sqrt(0.5), 0, 0, -math.sqrt(0.5)])
         sv.draw(output='latex')
-        sv.draw(output='latex', convention='vector') # old behaviour
+        sv.draw(output='latex', convention='vector')  # old behaviour

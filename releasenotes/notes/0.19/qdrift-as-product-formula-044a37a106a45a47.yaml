@@ -1,19 +1,15 @@
 ---
 features:
   - |
-    Reformulate the former :class:`~qiskit.opflow.evolutions.trotterizations.QDrift`
-    as a synthesis method instead of a :obj:`~qiskit.opflow.evolutions.TrotterizationBase`. The
-    other available synthesis methods are
-
-    * :class:`~qiskit.synthesis.LieTrotter` - first order Trotterization
-    * :class:`~qiskit.synthesis.SuzukiTrotter` - higher order Trotterization
-    * :class:`~qiskit.synthesis.MatrixExponentiation` - exact, matrix-based evolution
+    The :class:`~qiskit.opflow.evolutions.QDrift` class was reformulated
+    as a synthesis method for :obj:`.PauliEvolutionGate`, deriving from :obj:`~qiskit.opflow.evolutions.TrotterizationBase`.
 
     .. code-block:: python
 
         from qiskit.circuit import QuantumCircuit
         from qiskit.circuit.library import PauliEvolutionGate
         from qiskit.synthesis import QDrift
+        from qiskit.opflow import X, Y, Z
 
         qdrift = QDrift(reps=2)
         operator = (X ^ 3) + (Y ^ 3) + (Z ^ 3)
@@ -25,4 +21,3 @@ features:
         circuit.append(evolution_gate, range(3))
 
         print(circuit.draw())
-

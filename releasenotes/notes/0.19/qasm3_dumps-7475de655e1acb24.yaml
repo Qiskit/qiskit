@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Initial support for OpenQASM3 serializer. 
+    Terra now has initial support for serializing to `OpenQASM 3 <https://github.com/Qiskit/openqasm>`__:
 
     .. jupyter-execute::
 
@@ -15,7 +15,7 @@ features:
             print(qasm3.dumps(qc))
 
     This initial release has limited support for named registers, basic builtin instructions
-    (just as measure and barriers), user-defined gates, user-defined instructions (as
+    (such as measure, barrier and reset), user-defined gates, user-defined instructions (as
     subroutines), and opaque gates/instructions as ``defcal``.
 
     .. jupyter-execute::

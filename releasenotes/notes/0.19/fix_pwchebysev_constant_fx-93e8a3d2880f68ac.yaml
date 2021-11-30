@@ -1,12 +1,11 @@
 ---
 fixes:
   - |
-    There was a problem when the function to be approximated was constant.
-    The error came from trying to approximate such function with 
-    numpy.polynomial.chebyshev.interpolate, which is used to approximate the
-    input function. The fix avoids calling interpolate for constant functions
-    but this means that such functions cannot be given in lambda type.
-    Added a fix and an error message explaining how to declare constant 
-    functions.
-    Also updated the documentation with a message on how to declare a constant 
-    function.
+    Fixed an issue in :obj:`.PiecewiseChebyshev` when the function to be approximated was constant.
+    In these cases, you should now pass the constant directly as the ``f_x`` argument, rather than using a function, such as::
+
+        from qiskit.circuit.library.arithmetic import PiecewiseChebyshev
+
+        PiecewiseChebyshev(1.0, degree=3)
+
+    See `#6707 <https://github.com/Qiskit/qiskit-terra/pull/6707>`__ for more details.

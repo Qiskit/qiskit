@@ -1,13 +1,13 @@
 ---
 upgrade:
   - |
-    When running the :func:`qiskit.execute_function.execute` with a
+    When running :func:`~qiskit.execute_function.execute` with a
     :class:`~qiskit.providers.BackendV1` backend the default values for the
-    kwargs, ``shots``, ``max_credits``, ``meas_level``, ``meas_return``,
+    kwargs ``shots``, ``max_credits``, ``meas_level``, ``meas_return`` and
     ``memory_slot_size`` will now be whatever the set default is on the
     target backend's :attr:`~qiskit.providers.BackendV1.options` attribute.
     Previously these defaults were set to match the default values when
-    calling :func:`qiskit.execute_function.execute` with a legacy
+    calling :func:`~qiskit.execute_function.execute` with a legacy
     :class:`~qiskit.providers.BaseBackend` backend. For example running::
 
       from qiskit.test.mock import FakeMumbai

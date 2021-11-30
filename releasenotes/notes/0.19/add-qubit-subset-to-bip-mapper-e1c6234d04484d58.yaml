@@ -2,7 +2,7 @@
 features:
   - |
     Introduced a new option ``qubit_subset`` to the constructor of
-    :class:`qiskit.transpiler.passes.BIPMapping`.
+    :class:`.BIPMapping`.
     The option enables us to specify physical qubits to be used
     (in ``coupling_map`` of the device) during the mapping in one line:
 

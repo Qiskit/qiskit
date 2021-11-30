@@ -1,10 +1,10 @@
 ---
 features:
   - |
-    Adds an argument ``limit_amplitude`` to the constructor of ParametricPulse
-    class, and derived classes Gaussian, GaussianSquare, Drag and Constant, to
-    enable or disable the amplitude limit of 1 on the pulse. Fixes #6544.  This
-    option gets propagated to the parent class Pulse. With this option enabled,
-    ParametricPulse class and its subclasses do not allow amplitudes larger
+    Added an argument ``limit_amplitude`` to the constructor of ``ParametricPulse``,
+    which is the base class of :obj:`.Gaussian`, :obj:`.GaussianSquare`, :obj:`.Drag` and :obj:`.Constant`, to
+    enable or disable the amplitude limit of 1 on the pulse. This
+    option gets propagated to the parent class ``Pulse``. With this option enabled,
+    the ``ParametricPulse`` class and its subclasses do not allow amplitudes larger
     than 1. By default, the value of ``limit_amplitude`` is true, so that the
-    amplitude is constrained to be less than 1. 
+    amplitude is constrained to be less than 1. See `#6544 <https://github.com/Qiskit/qiskit-terra/issues/6544>`__ for more detail.

@@ -16,5 +16,5 @@ fixes:
       sched.assign_parameters({amp: 0.1, phase: 1.57}, inplace=True)
 
     The assigned amplitude has been shown as ``ParameterExpression(0.1*exp(1.57*I))``
-    after symengine is introduced in #6270. This is now correctly
-    evaluated and shown as 7.96327e-05+0.0999999683j.
+    after ``symengine`` is introduced in `#6270 <https://github.com/Qiskit/qiskit-terra/pull/6270>`__. This is now correctly
+    evaluated and shown as ``7.96327e-05 + 0.0999999683j``.

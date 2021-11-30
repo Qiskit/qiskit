@@ -1,10 +1,7 @@
 ---
 features:
   - |
-    Modified the HHL class within the linear solvers package and the ExactReciprocal 
-    class in the arithmetics package so that the quantum algorithm for linear systems
-    can find the solution when the matrix has negative eigenvalues. The modification
-    was required because the eigenvalues are represented digitally within the algorithm
-    but there was no logic in place to store the sign. Now there is an additional qubit 
-    storing the sign and the appropriate logic in ExactReciprocal to process the right
-    value.
+    The :obj:`.HHL` algorithm can now find solutions when its matrix has negative eigenvalues.
+    This involved adding an extra qubit to represent the sign of the value, and updating
+    the helper algorithm :obj:`.ExactReciprocal` to process this new information.
+    See `#6971 <https://github.com/Qiskit/qiskit-terra/pull/6971>`__ for more details.
