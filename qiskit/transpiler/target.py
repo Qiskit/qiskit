@@ -46,7 +46,7 @@ class InstructionProperties:
         self,
         duration: float = None,
         error: float = None,
-        calibration = None,
+        calibration=None,
     ):
         """Create a new ``InstructionProperties`` object
 
