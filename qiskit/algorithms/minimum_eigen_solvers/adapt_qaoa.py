@@ -28,6 +28,10 @@ from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
 from qiskit.opflow.state_fns.state_fn import StateFn
 from qiskit.quantum_info import Operator
 from qiskit.utils import algorithm_globals
+from typing import List, Optional, Tuple
+from qiskit.circuit.library.evolved_operator_ansatz import _is_pauli_identity
+from qiskit.circuit.parametervector import ParameterVector
+
 
 from .qaoa import QAOA
 
@@ -116,7 +120,7 @@ class AdaptQAOA(QAOA):
         Raises:
             AttributeError: If both a mixer pool and mixer pool type has been defined.
         """
-        self._exp_seed = randint(1, 100)
+        self.max_reps = max_reps
         super().__init__(**kwargs)
         self.threshold = threshold
 
@@ -127,7 +131,6 @@ class AdaptQAOA(QAOA):
 
         self.mixer_pool = mixer_pool
         self.mixer_pool_type = mixer_pool_type
-        self.max_reps = max_reps
 
         self.optimal_mixer_list = (
             []
@@ -142,18 +145,20 @@ class AdaptQAOA(QAOA):
         if self.threshold is None:
             self.threshold = 0.01  # TODO: work out a way to better set a default threshold
 
-        self.best_gamma, self.best_beta = [self.initial_point[-1]], []
+        # self.best_gamma, self.best_beta = [self.initial_point[-1]], []
 
-    def _check_operator_ansatz(self, operator: OperatorBase) -> OperatorBase:
+    def _update_ansatz(self):#, operator: OperatorBase) -> OperatorBase:
         # Recreates a circuit based on operator parameter.
-        if operator != self._cost_operator:
-            self._cost_operator = operator
-            self.ansatz = QAOAAnsatz(
-                operator,
+        self.ansatz = QAOAAnsatz(
+                cost_operator=self.cost_operator,
                 initial_state=self._initial_state,
                 mixer_operator=self.optimal_mixer_list,
                 name=self.name,
-            ).decompose()  # TODO remove decompose once #6674 is fixed
+            )    
+        # depth = len(self.ansatz.operators[::2])
+        beta_bounds = self._reps*[(0, 2*np.pi)]
+        gamma_bounds = self._reps*[(None, None)]
+        self.ansatz._bounds = beta_bounds+gamma_bounds
 
     def compute_energy_gradient(self, mixer, cost_operator, ansatz=None) -> ComposedOp:
         """Computes the energy gradient of the cost operator wrt the mixer pool at an
@@ -168,10 +173,9 @@ class AdaptQAOA(QAOA):
 
         if not isinstance(cost_operator, MatrixOp):
             cost_operator = MatrixOp(Operator(cost_operator.to_matrix()))
-        self.cost_operator = cost_operator
         wave_function = ansatz.assign_parameters(self.hyperparameter_dict)
         # construct expectation operator
-        exp_hc = (0.01 * cost_operator).exp_i()  # TODO: Check if this is legit?
+        exp_hc = (self.initial_point[-1] * cost_operator).exp_i()  # TODO: Check if this is legit?
         # exp_hc = (self.best_gamma[-1] * cost_operator).exp_i()
         exp_hc_ad = exp_hc.adjoint().to_matrix()
         exp_hc = exp_hc.to_matrix()
@@ -186,6 +190,7 @@ class AdaptQAOA(QAOA):
         observable_meas = expectation.convert(StateFn(energy_grad_op, is_measurement=True))
         ansatz_circuit_op = CircuitStateFn(wave_function)
         expect_op = observable_meas.compose(ansatz_circuit_op).reduce()
+        print(wave_function.decompose().draw())
         return 1j*expect_op
 
     def _test_mixer_pool(self, operator: OperatorBase):
@@ -207,47 +212,35 @@ class AdaptQAOA(QAOA):
     ):
         """Runs ADAPT-QAOA for each iteration"""
         self.cost_operator = operator
-        p, self.ansatz = 0, self.initial_state  # initialise layer loop counter and ansatz
+        self._reps, self.ansatz = 1, self.initial_state  # initialise layer loop counter and ansatz
         print("--------------------------------------------------------")
         print("Cost operator {}".format(operator))
-        while p < self.max_reps:  # loop over number of maximum reps
+        while self._reps < self.max_reps+1:  # loop over number of maximum reps
             best_mixer, energy_norm = self._test_mixer_pool(operator=operator)
-            print(f"REPETITION: {p}")
+            print(f"REPETITION: {self._reps}")
             print(f"Current energy norm | Threshold  =====> | {energy_norm} | {self.threshold} |")
             if energy_norm < self.threshold:  # Threshold stoppage condition
                 break
             self.optimal_mixer_list.append(
                 best_mixer
             )  # Append mixer associated with largest energy gradient to list
-            self.ansatz = QAOAAnsatz(
-                cost_operator=operator,
-                initial_state=self._initial_state,
-                mixer_operator=self.optimal_mixer_list,
-                name=self.name,
-            )
+            print("Heeeeeeeerrreeee!!!!*384r239423")
+            print(self.optimal_mixer_list[-1])
+            self._update_ansatz()
             result = self.compute_minimum_eigenvalue(operator=operator, aux_operators=aux_operators)
             opt_params = result.optimal_point
             self.best_beta, self.best_gamma = np.split(opt_params, 2)
             self.best_beta = list(self.best_beta)
             self.best_gamma = list(self.best_gamma)
             print("Optimal value", result.optimal_value)
-            # print(self.ansatz.decompose().draw())
-            # print(f"Optimal parameters: {result.optimal_parameters}")
-            # print(f"Initial point: {self.initial_point}")
-            # print(f"New mixer {self.optimal_mixer_list}")
+
             print("--------------------------------------------------------")
-            p += 1
+            self._reps += 1
         print("Optimal mixers:", self.optimal_mixer_list)
         return result
 
     def _check_problem_configuration(self, operator: OperatorBase):
         # Generates the pool of mixers with respect to the cost operator size
-        self.num_qubits = (
-            operator.num_qubits
-        )  # Compute the number of qubits from the problem operator
-        # if not self.mixer_pool: # Set a generate a mixer pool if none was provided
-        #     self.mixer_pool =
-        #       adapt_mixer_pool(num_qubits=self.num_qubits, pool_type=self.mixer_pool_type)
         if isinstance(self.mixer_pool, list):
             mixer_n_qubits = [mixer.num_qubits for mixer in self.mixer_pool]
         else:
@@ -317,7 +310,6 @@ class AdaptQAOA(QAOA):
         """
         self._hyperparameter_dict = {}
         if self._ansatz_params:
-            # reordered_params = self._reorder_parameters()
             self._hyperparameter_dict = dict(zip(self._ansatz_params, self.best_beta+self.best_gamma))
         return self._hyperparameter_dict
 
@@ -353,7 +345,6 @@ class AdaptQAOA(QAOA):
 
         """
         if self._ansatz_params:
-            # self.ansatz.parameter_bounds = [(-2 * np.pi, 2 * np.pi)] * self.ansatz.num_parameters
             if len(self._initial_point) != self.ansatz.num_parameters:
                 self._update_initial_point()
         return self._initial_point
@@ -361,22 +352,24 @@ class AdaptQAOA(QAOA):
     @initial_point.setter
     def initial_point(self, initial_point) -> Optional[np.ndarray]:
         if initial_point is None:
+            self._user_specified_ip = None
             initial_point = self._generate_initial_point()
+        else:
+            self._user_specified_ip = initial_point
+            if len(initial_point)!=2*self.max_reps:
+                raise AttributeError("The number of user specified initial points {} must "
+                                    "be equal to twice the maximum ansatz depth {}"
+                                    .format(len(initial_point),2*self.max_reps))
         self._initial_point = initial_point
 
-    def _generate_initial_point(self, reps=1): # set initial value for gamma according to https://arxiv.org/abs/2005.10258
-        return np.array([algorithm_globals.random.uniform(-2 * np.pi, 2 * np.pi),0.01])
+    def _generate_initial_point(self): # set initial value for gamma according to https://arxiv.org/abs/2005.10258
+        return algorithm_globals.random.uniform(2 * [-2 * np.pi], 2 * [2 * np.pi])
 
-    def _update_initial_point(self):
-        # optimised_initial_point = self._reorder_parameters()
-        # assert len(optimised_initial_point)==len(self._initial_point)
-        self._initial_point = np.concatenate((self._initial_point, self._generate_initial_point()))
-
-    def _reorder_parameters(self):
-        reordered_params = np.zeros(len(self._initial_point))
-        reordered_params[0:][::2] = np.array(self.best_gamma)
-        reordered_params[1:][::2] = np.array(self.best_beta)
-        return list(reordered_params)
+    def _update_initial_point(self):       
+        if self._user_specified_ip:
+            self._initial_point = self._user_specified_ip[:2*self._reps]
+        else:
+            self._initial_point = np.concatenate((self._initial_point, self._generate_initial_point()))
 
 
 def adapt_mixer_pool(
