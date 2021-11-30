@@ -14,5 +14,6 @@
 
 from .numpy_eigen_solver import NumPyEigensolver
 from .eigen_solver import Eigensolver, EigensolverResult
+from .kstatevqe import kStateVQE, kVQEResult
 
-__all__ = ["NumPyEigensolver", "Eigensolver", "EigensolverResult"]
+__all__ = ["NumPyEigensolver", "Eigensolver", "EigensolverResult", "kStateVQE", "kVQEResult"]

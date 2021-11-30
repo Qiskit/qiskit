@@ -33,7 +33,7 @@ from qiskit.opflow import (
     CircuitStateFn,
     ListOp,
     I,
-    CircuitSampler,
+    CircuitSampler, 
 )
 from qiskit.opflow.gradients import GradientBase
 from qiskit.utils.validation import validate_min
@@ -89,7 +89,8 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
     def __init__(
         self,
         ansatz: Optional[QuantumCircuit] = None,
-        k :int=2,
+        k: int = 1,
+        betas: Optional[List[float]]  = None,
         optimizer: Optional[Optimizer] = None,
         initial_point: Optional[np.ndarray] = None,
         gradient: Optional[Union[GradientBase, Callable]] = None,
@@ -105,7 +106,7 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
             ansatz: A parameterized circuit used as Ansatz for the wave function.
 
             optimizer: A classical optimizer.
-            k: stands for the k-th excited state to compute. 
+            k: stands for the k-th excited state to compute. (defaults to 1) 
             initial_point: An optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then VQE will look to the ansatz for a preferred
                 point and if not will simply compute a random one.
@@ -124,9 +125,9 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
                 allow the factory to include the custom Aer pauli expectation.
             max_evals_grouped: Max number of evaluations performed simultaneously. Signals the
                 given optimizer that more than one set of parameters can be supplied so that
+                multiple points to compute the gradient can be passed and if computed in parallel
                 potentially the expectation values can be computed in parallel. Typically this is
                 possible when a finite difference gradient is used by the optimizer such that
-                multiple points to compute the gradient can be passed and if computed in parallel
                 improve overall execution time. Deprecated if a gradient operator or function is
                 given.
             callback: a callback that can access the intermediate data during the optimization.
@@ -151,6 +152,9 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
         self._ansatz_params = None
         self._ansatz = None
         self.ansatz = ansatz
+
+        #TODO add betas defaults
+        self.betas = betas
 
         self.k = k
 
@@ -504,7 +508,7 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
         # set an expectation for this algorithm run (will be reset to None at the end)
         initial_point = _validate_initial_point(self.initial_point, self.ansatz)
 
-        bounds = _validate_bounds(self.ansatz)
+        bounds = _validate_bounds(self.k, self.ansatz)
         # We need to handle the array entries being zero or Optional i.e. having value None
         if aux_operators:
             zero_op = I.tensorpower(operator.num_qubits) * 0.0
@@ -537,51 +541,73 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
         else:
             gradient = self._gradient
 
-        self._eval_count = 0
-        energy_evaluation, expectation = self.get_energy_evaluation(
-            operator, return_expectation=True
-        )
-
-        start_time = time()
-
-        # keep this until Optimizer.optimize is removed
-        try:
-            opt_result = self.optimizer.minimize(
-                fun=energy_evaluation, x0=initial_point, jac=gradient, bounds=bounds
-            )
-        except AttributeError:
-            # self.optimizer is an optimizer with the deprecated interface that uses
-            # ``optimize`` instead of ``minimize```
-            warnings.warn(
-                "Using an optimizer that is run with the ``optimize`` method is "
-                "deprecated as of Qiskit Terra 0.19.0 and will be unsupported no "
-                "sooner than 3 months after the release date. Instead use an optimizer "
-                "providing ``minimize`` (see qiskit.algorithms.optimizers.Optimizer).",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-
-            opt_result = self.optimizer.optimize(
-                len(initial_point), energy_evaluation, gradient, bounds, initial_point
-            )
-
-        eval_time = time() - start_time
-
+            
         result = kVQEResult()
-        result.optimal_point = opt_result.x
-        result.optimal_parameters = dict(zip(self._ansatz_params, opt_result.x))
-        result.optimal_value = opt_result.fun
-        result.cost_function_evals = opt_result.nfev
-        result.optimizer_time = eval_time
-        result.eigenvalue = opt_result.fun + 0j
-        result.eigenstate = self._get_eigenstate(result.optimal_parameters)
+        result.optimal_point = []
+        result.optimal_parameters = []
+        result.optimal_value = []
+        result.cost_function_evals = []
+        result.optimizer_time = []
+        result.eigenvalue = []
+        result.eigenstate = []
 
-        logger.info(
-            " Ground state optimization complete in %s seconds.\nFound opt_params %s in %s evals",
-            eval_time,
-            result.optimal_point,
-            self._eval_count,
-        )
+        
+        for step in range(self.k):
+            
+            self._eval_count = 0
+            energy_evaluation, expectation = self.get_energy_evaluation(
+                step, operator, return_expectation=True
+            )
+
+            start_time = time()
+
+            # keep this until Optimizer.optimize is removed
+            try:
+                opt_result = self.optimizer.minimize(
+                    fun=energy_evaluation, x0=initial_point, jac=gradient, bounds=bounds
+                )
+            except AttributeError:
+                # self.optimizer is an optimizer with the deprecated interface that uses
+                # ``optimize`` instead of ``minimize```
+                warnings.warn(
+                    "Using an optimizer that is run with the ``optimize`` method is "
+                    "deprecated as of Qiskit Terra 0.19.0 and will be unsupported no "
+                    "sooner than 3 months after the release date. Instead use an optimizer "
+                    "providing ``minimize`` (see qiskit.algorithms.optimizers.Optimizer).",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+
+                opt_result = self.optimizer.optimize(
+                    len(initial_point), energy_evaluation, gradient, bounds, initial_point
+                )
+
+            eval_time = time() - start_time
+
+            result.optimal_point.append(opt_result.x)
+            result.optimal_parameters.append(dict(zip(self._ansatz_params, opt_result.x)))
+            result.optimal_value.append(opt_result.fun)
+            result.cost_function_evals.append(opt_result.nfev)
+            result.optimizer_time.append(eval_time)
+            result.eigenvalue.append(opt_result.fun + 0j)
+            result.eigenstate.append(self._get_eigenstate(result.optimal_parameters))
+            
+            if step == 0:
+                
+                logger.info(
+                    " Ground state optimization complete in %s seconds.\nFound opt_params %s in %s evals",
+                    eval_time,
+                    result.optimal_point,
+                    self._eval_count,
+                )
+            else:
+                logger.info(
+                    " %s excited state optimization complete in %s seconds.\nFound opt_params %s in %s evals",
+                    str(step),
+                    eval_time,
+                    result.optimal_point,
+                    self._eval_count,
+                )
     
         # TODO delete as soon as get_optimal_vector etc are removed
         self._ret = result
@@ -594,6 +620,7 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
 
     def get_energy_evaluation(
         self,
+        step,
         operator: OperatorBase,
         return_expectation: bool = False,
     ) -> Callable[[np.ndarray], Union[float, List[float]]]:
@@ -620,22 +647,30 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
         if num_parameters == 0:
             raise RuntimeError("The ansatz must be parameterized, but has 0 free parameters.")
 
-        k = self.k
+        if operator is None:
+            raise AlgorithmError("The operator was never provided.")
 
-        expect_op, expectation = self.construct_expectation(
-            self._ansatz_params, operator, return_expectation=True
-        )
+        self._check_operator_ansatz(operator)
+        final_op = []
+
+        observable_meas = StateFn(op, is_measurement = True)
+        ansatz_circ_op = CircuitStateFn(ansatz)
+        expect_op = observable_meas.compose(ansatz_circ_op).reduce()
+        
+        final_op.append(expect_op)
+
 
         def energy_evaluation(parameters):
-            parameter_sets = np.reshape(parameters, (-1, k * num_parameters))
+            parameter_sets = np.reshape(parameters, (-1, num_parameters))
             # Create dict associating each parameter with the lists of parameterization values for it
             param_bindings = dict(zip(self._ansatz_params, parameter_sets.transpose().tolist()))
 
             start_time = time()
-            sampled_expect_op = self._circuit_sampler.convert(expect_op, params=param_bindings)
+            sampled_expect_op = self._circuit_sampler.convert(final_op, params=param_bindings)
             means = np.real(sampled_expect_op.eval())
 
             if self._callback is not None:
+                print("no expectation avaliable due to mixed state")
                 variance = np.real(expectation.compute_variance(sampled_expect_op))
                 estimator_error = np.sqrt(variance / self.quantum_instance.run_config.shots)
                 for i, param_set in enumerate(parameter_sets):
@@ -654,8 +689,6 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
 
             return means if len(means) > 1 else means[0]
 
-        if return_expectation:
-            return energy_evaluation, expectation
 
         return energy_evaluation
 
@@ -760,8 +793,8 @@ class kVQEResult(VariationalResult, EigensolverResult):
         self._eigenstate = value
 
 
-def _validate_initial_point(point, ansatz):
-    expected_size = ansatz.num_parameters
+def _validate_initial_point(k, point, ansatz):
+    expected_size = ansatz.num_parameters * k
 
     # try getting the initial point from the ansatz
     if point is None and hasattr(ansatz, "preferred_init_points"):
@@ -793,15 +826,15 @@ def _validate_initial_point(point, ansatz):
     return point
 
 
-def _validate_bounds(ansatz):
+def _validate_bounds(k, ansatz):
     if hasattr(ansatz, "parameter_bounds") and ansatz.parameter_bounds is not None:
         bounds = ansatz.parameter_bounds
-        if len(bounds) != ansatz.num_parameters:
+        if len(bounds) != k * ansatz.num_parameters:
             raise ValueError(
                 f"The number of bounds ({len(bounds)}) does not match the number of "
                 f"parameters in the circuit ({ansatz.num_parameters})."
             )
     else:
-        bounds = [(None, None)] * ansatz.num_parameters
+        bounds = [(None, None)] * k * ansatz.num_parameters
 
     return bounds
