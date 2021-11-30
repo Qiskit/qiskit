@@ -255,7 +255,7 @@ class TestOptimize1qGates(QiskitTestCase):
         dag = circuit_to_dag(qc)
 
         expected = QuantumCircuit(qr)
-        expected.append(U1Gate(2*theta + 1.5), [qr])
+        expected.append(U1Gate(2 * theta + 1.5), [qr])
 
         after = Optimize1qGates().run(dag)
 
@@ -282,7 +282,7 @@ class TestOptimize1qGates(QiskitTestCase):
         dag = circuit_to_dag(qc)
 
         expected = QuantumCircuit(qr)
-        expected.append(U1Gate(2*theta + 2*phi + product_ + 1.2), [qr])
+        expected.append(U1Gate(2 * theta + 2 * phi + product_ + 1.2), [qr])
 
         after = Optimize1qGates().run(dag)
 
@@ -638,9 +638,9 @@ class TestOptimize1qGatesBasis(QiskitTestCase):
 
     def test_optimize_u3_with_parameters(self):
         """Test correct behavior for u3 gates."""
-        phi = Parameter('φ')
-        alpha = Parameter('α')
-        qr = QuantumRegister(1, 'qr')
+        phi = Parameter("φ")
+        alpha = Parameter("α")
+        qr = QuantumRegister(1, "qr")
 
         qc = QuantumCircuit(qr)
         qc.ry(2 * phi, qr[0])
@@ -648,7 +648,7 @@ class TestOptimize1qGatesBasis(QiskitTestCase):
         qc.ry(0.1, qr[0])
         qc.ry(0.2, qr[0])
 
-        passmanager = PassManager([Unroller(['u3']), Optimize1qGates()])
+        passmanager = PassManager([Unroller(["u3"]), Optimize1qGates()])
         result = passmanager.run(qc)
 
         expected = QuantumCircuit(qr)
@@ -659,5 +659,5 @@ class TestOptimize1qGatesBasis(QiskitTestCase):
         self.assertEqual(expected, result)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
