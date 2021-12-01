@@ -1,0 +1,46 @@
+---
+features:
+  - |
+    The constructor of :class:`~qiskit.transpiler.passes.RZXCalibrationBuilder`
+    has two new kwargs ``instruction_schedule_map`` and ``qubit_channel_mapping``
+    which take a :class:`~qiskit.pulse.InstructionScheduleMap` and list of
+    channel name lists for each qubit respectively. These new arguments are used
+    to directly specify the information needed from a backend target. They should
+    be used instead of passing a :class:`~qiskit.providers.BaseBackend` or
+    :class:`~qiskit.providers.BackendV1` object directly to the pass with the
+    ``backend`` argument.
+
+deprecations:
+  - |
+    For the constructor of the
+    :class:`~qiskit.transpiler.passes.RZXCalibrationBuilder` passing a backend
+    either as the first positional argument or with the named ``backend`` kwarg
+    is deprecated and will no longer work in a future release. Instead a
+    a :class:`~qiskit.pulse.InstructionScheduleMap` should be passed directly to
+    the ``instruction_schedule_map`` kwarg and a list of channel name lists for
+    each qubit should be passed directly to ``qubit_channel_mapping``. For example,
+    if you were calling the pass like::
+
+        from qiskit.transpiler.passes import RZXCalibrationBuilder
+        from qiskit.test.mock import FakeMumbai
+
+        backend = FakeMumbai()
+        cal_pass = RZXCalibrationBuilder(backend)
+
+    instead you should call it like::
+
+        from qiskit.transpiler.passes import RZXCalibrationBuilder
+        from qiskit.test.mock import FakeMumbai
+
+        backend = FakeMumbai()
+        inst_map = backend.defaults().instruction_schedule_map
+        channel_map = self.backend.configuration().qubit_channel_mapping
+        cal_pass = RZXCalibrationBuilder(
+            instruction_schedule_map=inst_map,
+            qubit_channel_mapping=channel_map,
+        )
+
+    This change is necessary because as a general rule backend objects are not
+    pickle serializeable and it would break when it was used with multiple
+    processes inside of :func:`~qiskit.compiler.transpile` when compliing
+    multiple circuits at once.

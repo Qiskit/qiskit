@@ -12,16 +12,24 @@
 
 """Test QASM3 exporter."""
 
+# We can't really help how long the lines output by the exporter are in some cases.
+# pylint: disable=line-too-long
+
+import unittest
 from io import StringIO
 
+import ddt
+
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
-from qiskit.circuit import Parameter, Qubit
+from qiskit.circuit import Parameter, Qubit, Clbit
 from qiskit.test import QiskitTestCase
-from qiskit.qasm3 import Exporter, dumps, dump
+from qiskit.qasm3 import Exporter, dumps, dump, QASM3ExporterError
+from qiskit.qasm3.exporter import QASM3Builder
+from qiskit.qasm3.printer import BasicPrinter
 from qiskit.qasm import pi
 
 
-class TestQasm3Functions(QiskitTestCase):
+class TestQASM3Functions(QiskitTestCase):
     """QASM3 module - high level functions"""
 
     def setUp(self):
@@ -31,8 +39,8 @@ class TestQasm3Functions(QiskitTestCase):
             [
                 "OPENQASM 3;",
                 'include "stdgates.inc";',
-                "qubit[2] _q;",
-                "let q = _q[0:1];",
+                "qubit[2] _all_qubits;",
+                "let q = _all_qubits[0:1];",
                 "U(2*pi, 3*pi, -5*pi) q[0];",
                 "",
             ]
@@ -52,7 +60,7 @@ class TestQasm3Functions(QiskitTestCase):
         self.assertEqual(result, self.expected_qasm)
 
 
-class TestCircuitQasm3(QiskitTestCase):
+class TestCircuitQASM3(QiskitTestCase):
     """QASM3 exporter."""
 
     def test_regs_conds_qasm(self):
@@ -72,9 +80,9 @@ class TestCircuitQasm3(QiskitTestCase):
                 "OPENQASM 3;",
                 'include "stdgates.inc";',
                 "bit[3] cr;",
-                "qubit[3] _q;",
-                "let qr1 = _q[0:0];",
-                "let qr2 = _q[1:2];",
+                "qubit[3] _all_qubits;",
+                "let qr1 = _all_qubits[0:0];",
+                "let qr2 = _all_qubits[1:2];",
                 "cr[0] = measure qr1[0];",
                 "cr[1] = measure qr2[0];",
                 "cr[2] = measure qr2[1];",
@@ -104,12 +112,12 @@ class TestCircuitQasm3(QiskitTestCase):
             [
                 "OPENQASM 3;",
                 'include "stdgates.inc";',
-                "qubit[10] _q;",
-                "let first_four = _q[0:3];",
-                "let last_five = _q[5:9];",
+                "qubit[10] _all_qubits;",
+                "let first_four = _all_qubits[0:3];",
+                "let last_five = _all_qubits[5:9];",
                 # The exporter does not attempt to output steps.
-                "let alternate = _q[0:0] ++ _q[2:2] ++ _q[4:4] ++ _q[6:6] ++ _q[8:8];",
-                "let sporadic = _q[4:4] ++ _q[2:2] ++ _q[9:9];",
+                "let alternate = _all_qubits[0:0] ++ _all_qubits[2:2] ++ _all_qubits[4:4] ++ _all_qubits[6:6] ++ _all_qubits[8:8];",
+                "let sporadic = _all_qubits[4:4] ++ _all_qubits[2:2] ++ _all_qubits[9:9];",
                 "",
             ]
         )
@@ -137,14 +145,14 @@ class TestCircuitQasm3(QiskitTestCase):
             [
                 "OPENQASM 3;",
                 'include "stdgates.inc";',
-                "def composite_circ(qubit q_0, qubit q_1) {",
-                "  h q_0;",
-                "  x q_1;",
-                "  cx q_0, q_1;",
+                "def composite_circ(qubit _gate_q_0, qubit _gate_q_1) {",
+                "  h _gate_q_0;",
+                "  x _gate_q_1;",
+                "  cx _gate_q_0, _gate_q_1;",
                 "}",
                 "bit[2] cr;",
-                "qubit[2] _q;",
-                "let qr = _q[0:1];",
+                "qubit[2] _all_qubits;",
+                "let qr = _all_qubits[0:1];",
                 "h qr[0];",
                 "cx qr[0], qr[1];",
                 "barrier qr[0], qr[1];",
@@ -178,14 +186,14 @@ class TestCircuitQasm3(QiskitTestCase):
             [
                 "OPENQASM 3;",
                 'include "stdgates.inc";',
-                "gate composite_circ q_0, q_1 {",
-                "  h q_0;",
-                "  x q_1;",
-                "  cx q_0, q_1;",
+                "gate composite_circ _gate_q_0, _gate_q_1 {",
+                "  h _gate_q_0;",
+                "  x _gate_q_1;",
+                "  cx _gate_q_0, _gate_q_1;",
                 "}",
                 "bit[2] cr;",
-                "qubit[2] _q;",
-                "let qr = _q[0:1];",
+                "qubit[2] _all_qubits;",
+                "let qr = _all_qubits[0:1];",
                 "h qr[0];",
                 "cx qr[0], qr[1];",
                 "barrier qr[0], qr[1];",
@@ -220,14 +228,14 @@ class TestCircuitQasm3(QiskitTestCase):
             [
                 "OPENQASM 3;",
                 'include "stdgates.inc";',
-                "def composite_circ(qubit q_0, qubit q_1) {",
-                "  h q_0;",
-                "  x q_1;",
-                "  cx q_0, q_1;",
+                "def composite_circ(qubit _gate_q_0, qubit _gate_q_1) {",
+                "  h _gate_q_0;",
+                "  x _gate_q_1;",
+                "  cx _gate_q_0, _gate_q_1;",
                 "}",
                 "bit[2] cr;",
-                "qubit[2] _q;",
-                "let qr = _q[0:1];",
+                "qubit[2] _all_qubits;",
+                "let qr = _all_qubits[0:1];",
                 "h qr[0];",
                 "cx qr[0], qr[1];",
                 "barrier qr[0], qr[1];",
@@ -241,7 +249,8 @@ class TestCircuitQasm3(QiskitTestCase):
         self.assertEqual(Exporter().dumps(qc), expected_qasm)
 
     def test_composite_circuits_with_same_name(self):
-        """Test when multiple composite circuit instructions same name and different implementation"""
+        """Test when multiple composite circuit instructions same name and different
+        implementation."""
         my_gate = QuantumCircuit(1, name="my_gate")
         my_gate.h(0)
         my_gate_inst1 = my_gate.to_instruction()
@@ -265,17 +274,17 @@ class TestCircuitQasm3(QiskitTestCase):
             [
                 "OPENQASM 3;",
                 'include "stdgates.inc";',
-                "def my_gate(qubit q_0) {",
-                "  h q_0;",
+                "def my_gate(qubit _gate_q_0) {",
+                "  h _gate_q_0;",
                 "}",
-                f"def my_gate_{my_gate_inst2_id}(qubit q_0) {{",
-                "  x q_0;",
+                f"def my_gate_{my_gate_inst2_id}(qubit _gate_q_0) {{",
+                "  x _gate_q_0;",
                 "}",
-                f"def my_gate_{my_gate_inst3_id}(qubit q_0) {{",
-                "  x q_0;",
+                f"def my_gate_{my_gate_inst3_id}(qubit _gate_q_0) {{",
+                "  x _gate_q_0;",
                 "}",
-                "qubit[1] _q;",
-                "let qr = _q[0:0];",
+                "qubit[1] _all_qubits;",
+                "let qr = _all_qubits[0:0];",
                 "my_gate qr[0];",
                 f"my_gate_{my_gate_inst2_id} qr[0];",
                 f"my_gate_{my_gate_inst3_id} qr[0];",
@@ -292,8 +301,8 @@ class TestCircuitQasm3(QiskitTestCase):
             [
                 "OPENQASM 3;",
                 'include "stdgates.inc";',
-                "qubit[2] _q;",
-                "let q = _q[0:1];",
+                "qubit[2] _all_qubits;",
+                "let q = _all_qubits[0:1];",
                 "U(2*pi, 3*pi, -5*pi) q[0];",
                 "",
             ]
@@ -308,8 +317,8 @@ class TestCircuitQasm3(QiskitTestCase):
             [
                 "OPENQASM 3;",
                 'include "stdgates.inc";',
-                "qubit[2] _q;",
-                "let q = _q[0:1];",
+                "qubit[2] _all_qubits;",
+                "let q = _all_qubits[0:1];",
                 "U(6.283185307179586, 9.42477796076938, -15.707963267948966) q[0];",
                 "",
             ]
@@ -329,12 +338,12 @@ class TestCircuitQasm3(QiskitTestCase):
             [
                 "OPENQASM 3;",
                 'include "stdgates.inc";',
-                "gate custom(a) q_0 {",
-                "  rx(a) q_0;",
+                "gate custom(a) _gate_q_0 {",
+                "  rx(a) _gate_q_0;",
                 "}",
-                "input float[32] a;",
-                "qubit[1] _q;",
-                "let q = _q[0:0];",
+                "input float[64] a;",
+                "qubit[1] _all_qubits;",
+                "let q = _all_qubits[0:0];",
                 "custom(a) q[0];",
                 "",
             ]
@@ -357,11 +366,11 @@ class TestCircuitQasm3(QiskitTestCase):
             [
                 "OPENQASM 3;",
                 'include "stdgates.inc";',
-                "gate custom q_0 {",
-                "  rx(0.5) q_0;",
+                "gate custom _gate_q_0 {",
+                "  rx(0.5) _gate_q_0;",
                 "}",
-                "qubit[1] _q;",
-                "let q = _q[0:0];",
+                "qubit[1] _all_qubits;",
+                "let q = _all_qubits[0:0];",
                 "custom q[0];",
                 "",
             ]
@@ -370,39 +379,38 @@ class TestCircuitQasm3(QiskitTestCase):
 
     def test_custom_gate_with_params_bound_main_call(self):
         """Custom gate with unbound parameters that are bound in the main circuit"""
-        parameter0 = Parameter("param_0")
-        parameter1 = Parameter("param_1")
+        parameter0 = Parameter("p0")
+        parameter1 = Parameter("p1")
 
         custom = QuantumCircuit(2, name="custom")
         custom.rz(parameter0, 0)
         custom.rz(parameter1 / 2, 1)
 
-        qr_q = QuantumRegister(3, "q")
+        qr_all_qubits = QuantumRegister(3, "q")
         qr_r = QuantumRegister(3, "r")
-        circuit = QuantumCircuit(qr_q, qr_r)
-        circuit.append(custom.to_gate(), [qr_q[0], qr_r[0]])
+        circuit = QuantumCircuit(qr_all_qubits, qr_r)
+        circuit.append(custom.to_gate(), [qr_all_qubits[0], qr_r[0]])
 
         circuit.assign_parameters({parameter0: pi, parameter1: pi / 2}, inplace=True)
 
-        qubit_name = circuit.data[0][0].definition.qregs[0].name
         expected_qasm = "\n".join(
             [
                 "OPENQASM 3;",
                 'include "stdgates.inc";',
-                f"gate custom(param_0, param_1) {qubit_name}_0, {qubit_name}_1 {{",
-                f"  rz(pi) {qubit_name}_0;",
-                f"  rz(pi/4) {qubit_name}_1;",
+                "gate custom(p0, p1) _gate_q_0, _gate_q_1 {",
+                "  rz(pi) _gate_q_0;",
+                "  rz(pi/4) _gate_q_1;",
                 "}",
-                "qubit[6] _q;",
-                "let q = _q[0:2];",
-                "let r = _q[3:5];",
+                "qubit[6] _all_qubits;",
+                "let q = _all_qubits[0:2];",
+                "let r = _all_qubits[3:5];",
                 "custom(pi, pi/2) q[0], r[0];",
                 "",
             ]
         )
         self.assertEqual(Exporter().dumps(circuit), expected_qasm)
 
-    def test_reused_custom_gate_parameter(self):
+    def test_reused_custom_parameter(self):
         """Test reused custom gate with parameter."""
         parameter_a = Parameter("a")
 
@@ -420,14 +428,14 @@ class TestCircuitQasm3(QiskitTestCase):
             [
                 "OPENQASM 3;",
                 'include "stdgates.inc";',
-                f"gate {circuit_name_0} q_0 {{",
-                "  rx(0.5) q_0;",
+                f"gate {circuit_name_0} _gate_q_0 {{",
+                "  rx(0.5) _gate_q_0;",
                 "}",
-                f"gate {circuit_name_1} q_0 {{",
-                "  rx(1) q_0;",
+                f"gate {circuit_name_1} _gate_q_0 {{",
+                "  rx(1) _gate_q_0;",
                 "}",
-                "qubit[1] _q;",
-                "let q = _q[0:0];",
+                "qubit[1] _all_qubits;",
+                "let q = _all_qubits[0:0];",
                 f"{circuit_name_0} q[0];",
                 f"{circuit_name_1} q[0];",
                 "",
@@ -444,9 +452,9 @@ class TestCircuitQasm3(QiskitTestCase):
             [
                 "OPENQASM 3;",
                 'include "stdgates.inc";',
-                "input float[32] θ;",
-                "qubit[1] _q;",
-                "let q = _q[0:0];",
+                "input float[64] θ;",
+                "qubit[1] _all_qubits;",
+                "let q = _all_qubits[0:0];",
                 "rz(θ) q[0];",
                 "",
             ]
@@ -462,13 +470,13 @@ class TestCircuitQasm3(QiskitTestCase):
             [
                 "OPENQASM 3;",
                 'include "stdgates.inc";',
-                "gate ch_o0 q_0, q_1 {",
-                "  x q_0;",
-                "  ch q_0, q_1;",
-                "  x q_0;",
+                "gate ch_o0 _gate_q_0, _gate_q_1 {",
+                "  x _gate_q_0;",
+                "  ch _gate_q_0, _gate_q_1;",
+                "  x _gate_q_0;",
                 "}",
-                "qubit[2] _q;",
-                "let q = _q[0:1];",
+                "qubit[2] _all_qubits;",
+                "let q = _all_qubits[0:1];",
                 "ch_o0 q[0], q[1];",
                 "",
             ]
@@ -488,11 +496,11 @@ class TestCircuitQasm3(QiskitTestCase):
             [
                 "OPENQASM 3;",
                 'include "stdgates.inc";',
-                f"gate cx_{custom_gate_id} q_0, q_1 {{",
-                "  cx q_0, q_1;",
+                f"gate cx_{custom_gate_id} _gate_q_0, _gate_q_1 {{",
+                "  cx _gate_q_0, _gate_q_1;",
                 "}",
-                "qubit[2] _q;",
-                "let q = _q[0:1];",
+                "qubit[2] _all_qubits;",
+                "let q = _all_qubits[0:1];",
                 f"cx_{custom_gate_id} q[0], q[1];",
                 "",
             ]
@@ -512,31 +520,31 @@ class TestCircuitQasm3(QiskitTestCase):
                 "gate cx c, t {",
                 "  ctrl @ U(pi, 0, pi) c, t;",
                 "}",
-                "gate u3(param_0, param_1, param_2) q_0 {",
-                "  U(0, 0, pi/2) q_0;",
+                "gate u3(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {",
+                "  U(0, 0, pi/2) _gate_q_0;",
                 "}",
-                "gate u1(param_0) q_0 {",
-                "  u3(0, 0, pi/2) q_0;",
+                "gate u1(_gate_p_0) _gate_q_0 {",
+                "  u3(0, 0, pi/2) _gate_q_0;",
                 "}",
-                "gate rz(param_0) q_0 {",
-                "  u1(pi/2) q_0;",
+                "gate rz(_gate_p_0) _gate_q_0 {",
+                "  u1(pi/2) _gate_q_0;",
                 "}",
-                "gate sdg q_0 {",
-                "  u1(-pi/2) q_0;",
+                "gate sdg _gate_q_0 {",
+                "  u1(-pi/2) _gate_q_0;",
                 "}",
-                "gate u2(param_0, param_1) q_0 {",
-                "  u3(pi/2, 0, pi) q_0;",
+                "gate u2(_gate_p_0, _gate_p_1) _gate_q_0 {",
+                "  u3(pi/2, 0, pi) _gate_q_0;",
                 "}",
-                "gate h q_0 {",
-                "  u2(0, pi) q_0;",
+                "gate h _gate_q_0 {",
+                "  u2(0, pi) _gate_q_0;",
                 "}",
-                "gate sx q_0 {",
-                "  sdg q_0;",
-                "  h q_0;",
-                "  sdg q_0;",
+                "gate sx _gate_q_0 {",
+                "  sdg _gate_q_0;",
+                "  h _gate_q_0;",
+                "  sdg _gate_q_0;",
                 "}",
-                "qubit[2] _q;",
-                "let q = _q[0:1];",
+                "qubit[2] _all_qubits;",
+                "let q = _all_qubits[0:1];",
                 "rz(pi/2) q[0];",
                 "sx q[0];",
                 "cx q[0], q[1];",
@@ -566,23 +574,23 @@ class TestCircuitQasm3(QiskitTestCase):
                 "gate cx c, t {",
                 "  ctrl @ U(pi, 0, pi) c, t;",
                 "}",
-                "gate u3(param_0, param_1, param_2) q_0 {",
-                "  U(pi/2, 0, pi) q_0;",
+                "gate u3(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {",
+                "  U(pi/2, 0, pi) _gate_q_0;",
                 "}",
-                "gate u2(param_0, param_1) q_0 {",
-                "  u3(pi/2, 0, pi) q_0;",
+                "gate u2(_gate_p_0, _gate_p_1) _gate_q_0 {",
+                "  u3(pi/2, 0, pi) _gate_q_0;",
                 "}",
-                "gate h q_0 {",
-                "  u2(0, pi) q_0;",
+                "gate h _gate_q_0 {",
+                "  u2(0, pi) _gate_q_0;",
                 "}",
-                "gate x q_0 {",
-                "  u3(pi, 0, pi) q_0;",
+                "gate x _gate_q_0 {",
+                "  u3(pi, 0, pi) _gate_q_0;",
                 "}",
-                "gate u1(param_0) q_0 {",
-                "  u3(0, 0, pi) q_0;",
+                "gate u1(_gate_p_0) _gate_q_0 {",
+                "  u3(0, 0, pi) _gate_q_0;",
                 "}",
-                "gate z q_0 {",
-                "  u1(pi) q_0;",
+                "gate z _gate_q_0 {",
+                "  u1(pi) _gate_q_0;",
                 "}",
                 "bit[2] c;",
                 "h $1;",
@@ -623,17 +631,17 @@ class TestCircuitQasm3(QiskitTestCase):
         expected_qasm = "\n".join(
             [
                 "OPENQASM 3;",
-                "gate u3(param_0, param_1, param_2) q_0 {",
-                "  U(pi/2, 0, pi) q_0;",
+                "gate u3(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {",
+                "  U(pi/2, 0, pi) _gate_q_0;",
                 "}",
-                "gate u2(param_0, param_1) q_0 {",
-                "  u3(pi/2, 0, pi) q_0;",
+                "gate u2(_gate_p_0, _gate_p_1) _gate_q_0 {",
+                "  u3(pi/2, 0, pi) _gate_q_0;",
                 "}",
-                "gate h q_0 {",
-                "  u2(0, pi) q_0;",
+                "gate h _gate_q_0 {",
+                "  u2(0, pi) _gate_q_0;",
                 "}",
-                "gate x q_0 {",
-                "  u3(pi, 0, pi) q_0;",
+                "gate x _gate_q_0 {",
+                "  u3(pi, 0, pi) _gate_q_0;",
                 "}",
                 "bit[2] c;",
                 "h $1;",
@@ -672,14 +680,629 @@ class TestCircuitQasm3(QiskitTestCase):
         expected_qasm = "\n".join(
             [
                 "OPENQASM 3;",
-                "def inner_gate(qubit q_0) {",
-                "  reset q_0;",
+                "def inner_gate(qubit _gate_q_0) {",
+                "  reset _gate_q_0;",
                 "}",
-                "qubit[2] _q;",
-                "let qr = _q[0:1];",
+                "qubit[2] _all_qubits;",
+                "let qr = _all_qubits[0:1];",
                 "reset qr[0];",
                 "inner_gate qr[1];",
                 "",
             ]
         )
         self.assertEqual(Exporter(includes=[]).dumps(qc), expected_qasm)
+
+    def test_loose_qubits(self):
+        """Test that qubits that are not in any register can be used without issue."""
+        bits = [Qubit(), Qubit()]
+        qr = QuantumRegister(2, name="qr")
+        cr = ClassicalRegister(2, name="cr")
+        qc = QuantumCircuit(bits, qr, cr)
+        qc.h(0)
+        qc.h(1)
+        qc.h(2)
+        qc.h(3)
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3;",
+                'include "stdgates.inc";',
+                "bit[2] cr;",
+                "qubit[4] _all_qubits;",
+                "let qr = _all_qubits[2:3];",
+                "h _all_qubits[0];",
+                "h _all_qubits[1];",
+                "h qr[0];",
+                "h qr[1];",
+                "",
+            ]
+        )
+        self.assertEqual(dumps(qc), expected_qasm)
+
+    def test_loose_clbits(self):
+        """Test that clbits that are not in any register can be used without issue."""
+        qreg = QuantumRegister(1, name="qr")
+        bits = [Clbit() for _ in [None] * 7]
+        cr1 = ClassicalRegister(name="cr1", bits=bits[1:3])
+        cr2 = ClassicalRegister(name="cr2", bits=bits[4:6])
+        qc = QuantumCircuit(bits, qreg, cr1, cr2)
+        qc.measure(0, 0)
+        qc.measure(0, 1)
+        qc.measure(0, 2)
+        qc.measure(0, 3)
+        qc.measure(0, 4)
+        qc.measure(0, 5)
+        qc.measure(0, 6)
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3;",
+                'include "stdgates.inc";',
+                "bit[3] _loose_clbits;",
+                "bit[2] cr1;",
+                "bit[2] cr2;",
+                "qubit[1] _all_qubits;",
+                "let qr = _all_qubits[0:0];",
+                "_loose_clbits[0] = measure qr[0];",
+                "cr1[0] = measure qr[0];",
+                "cr1[1] = measure qr[0];",
+                "_loose_clbits[1] = measure qr[0];",
+                "cr2[0] = measure qr[0];",
+                "cr2[1] = measure qr[0];",
+                "_loose_clbits[2] = measure qr[0];",
+                "",
+            ]
+        )
+        self.assertEqual(dumps(qc), expected_qasm)
+
+    def test_alias_classical_registers(self):
+        """Test that clbits that are not in any register can be used without issue."""
+        qreg = QuantumRegister(1, name="qr")
+        bits = [Clbit() for _ in [None] * 7]
+        cr1 = ClassicalRegister(name="cr1", bits=bits[1:3])
+        cr2 = ClassicalRegister(name="cr2", bits=bits[4:6])
+        # cr3 overlaps cr2, but this should be allowed in this alias form.
+        cr3 = ClassicalRegister(name="cr3", bits=bits[5:])
+        qc = QuantumCircuit(bits, qreg, cr1, cr2, cr3)
+        qc.measure(0, 0)
+        qc.measure(0, 1)
+        qc.measure(0, 2)
+        qc.measure(0, 3)
+        qc.measure(0, 4)
+        qc.measure(0, 5)
+        qc.measure(0, 6)
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3;",
+                'include "stdgates.inc";',
+                "bit[7] _all_clbits;",
+                "let cr1 = _all_clbits[1:2];",
+                "let cr2 = _all_clbits[4:5];",
+                "let cr3 = _all_clbits[5:6];",
+                "qubit[1] _all_qubits;",
+                "let qr = _all_qubits[0:0];",
+                "_all_clbits[0] = measure qr[0];",
+                "cr1[0] = measure qr[0];",
+                "cr1[1] = measure qr[0];",
+                "_all_clbits[3] = measure qr[0];",
+                "cr2[0] = measure qr[0];",
+                "cr2[1] = measure qr[0];",
+                "cr3[1] = measure qr[0];",
+                "",
+            ]
+        )
+        self.assertEqual(dumps(qc, alias_classical_registers=True), expected_qasm)
+
+    def test_simple_for_loop(self):
+        """Test that a simple for loop outputs the expected result."""
+        parameter = Parameter("x")
+        loop_body = QuantumCircuit(1)
+        loop_body.rx(parameter, 0)
+        loop_body.break_loop()
+        loop_body.continue_loop()
+
+        qc = QuantumCircuit(2)
+        qc.for_loop(parameter, [0, 3, 4], loop_body, [1], [])
+        qc.x(0)
+
+        qr_name = qc.qregs[0].name
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3;",
+                'include "stdgates.inc";',
+                "qubit[2] _all_qubits;",
+                f"let {qr_name} = _all_qubits[0:1];",
+                f"for {parameter.name} in {{0, 3, 4}} {{",
+                f"  rx({parameter.name}) {qr_name}[1];",
+                "  break;",
+                "  continue;",
+                "}",
+                f"x {qr_name}[0];",
+                "",
+            ]
+        )
+        self.assertEqual(dumps(qc), expected_qasm)
+
+    def test_nested_for_loop(self):
+        """Test that a for loop nested inside another outputs the expected result."""
+        inner_parameter = Parameter("x")
+        outer_parameter = Parameter("y")
+
+        inner_body = QuantumCircuit(2)
+        inner_body.rz(inner_parameter, 0)
+        inner_body.rz(outer_parameter, 1)
+        inner_body.break_loop()
+
+        outer_body = QuantumCircuit(2)
+        outer_body.h(0)
+        outer_body.rz(outer_parameter, 1)
+        # Note we reverse the order of the bits here to test that this is traced.
+        outer_body.for_loop(inner_parameter, range(1, 5, 2), inner_body, [1, 0], [])
+        outer_body.continue_loop()
+
+        qc = QuantumCircuit(2)
+        qc.for_loop(outer_parameter, range(4), outer_body, [0, 1], [])
+        qc.x(0)
+
+        qr_name = qc.qregs[0].name
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3;",
+                'include "stdgates.inc";',
+                "qubit[2] _all_qubits;",
+                f"let {qr_name} = _all_qubits[0:1];",
+                f"for {outer_parameter.name} in [0:3] {{",
+                f"  h {qr_name}[0];",
+                f"  rz({outer_parameter.name}) {qr_name}[1];",
+                f"  for {inner_parameter.name} in [1:2:4] {{",
+                # Note the reversed bit order.
+                f"    rz({inner_parameter.name}) {qr_name}[1];",
+                f"    rz({outer_parameter.name}) {qr_name}[0];",
+                "    break;",
+                "  }",
+                "  continue;",
+                "}",
+                f"x {qr_name}[0];",
+                "",
+            ]
+        )
+        self.assertEqual(dumps(qc), expected_qasm)
+
+    # This test _should_ pass, but the inner "regular" parameter won't get declared in the global
+    # scope until gh-7280 is closed.  "expectedFailure" seems to be ignored by stestr.
+    @unittest.expectedFailure
+    def test_regular_parameter_in_nested_for_loop(self):
+        """Test that a for loop nested inside another outputs the expected result, including
+        defining parameters that are used in nested loop scopes."""
+        inner_parameter = Parameter("x")
+        outer_parameter = Parameter("y")
+        regular_parameter = Parameter("t")
+
+        inner_body = QuantumCircuit(2)
+        inner_body.h(0)
+        inner_body.rx(regular_parameter, 1)
+        inner_body.break_loop()
+
+        outer_body = QuantumCircuit(2)
+        outer_body.h(0)
+        outer_body.h(1)
+        # Note we reverse the order of the bits here to test that this is traced.
+        outer_body.for_loop(inner_parameter, range(1, 5, 2), inner_body, [1, 0], [])
+        outer_body.continue_loop()
+
+        qc = QuantumCircuit(2)
+        qc.for_loop(outer_parameter, range(4), outer_body, [0, 1], [])
+        qc.x(0)
+
+        qr_name = qc.qregs[0].name
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3;",
+                'include "stdgates.inc";',
+                # This next line will be missing until gh-7280 is fixed.
+                f"input float[64] {regular_parameter.name};",
+                "qubit[2] _all_qubits;",
+                f"let {qr_name} = _all_qubits[0:1];",
+                f"for {outer_parameter.name} in [0:3] {{",
+                f"  h {qr_name}[0];",
+                f"  h {qr_name}[1];",
+                f"  for {inner_parameter.name} in [1:2:4] {{",
+                # Note the reversed bit order.
+                f"    h {qr_name}[1];",
+                f"    rx({regular_parameter.name}) {qr_name}[0];",
+                "    break;",
+                "  }",
+                "  continue;",
+                "}",
+                f"x {qr_name}[0];",
+                "",
+            ]
+        )
+        self.assertEqual(dumps(qc), expected_qasm)
+
+    def test_for_loop_with_no_parameter(self):
+        """Test that a for loop with the parameter set to ``None`` outputs the expected result."""
+        loop_body = QuantumCircuit(1)
+        loop_body.h(0)
+
+        qc = QuantumCircuit(2)
+        qc.for_loop(None, [0, 3, 4], loop_body, [1], [])
+        qr_name = qc.qregs[0].name
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3;",
+                'include "stdgates.inc";',
+                "qubit[2] _all_qubits;",
+                f"let {qr_name} = _all_qubits[0:1];",
+                "for _ in {0, 3, 4} {",
+                f"  h {qr_name}[1];",
+                "}",
+                "",
+            ]
+        )
+        self.assertEqual(dumps(qc), expected_qasm)
+
+    def test_simple_while_loop(self):
+        """Test that a simple while loop works correctly."""
+        loop_body = QuantumCircuit(1)
+        loop_body.h(0)
+        loop_body.break_loop()
+        loop_body.continue_loop()
+
+        qr = QuantumRegister(2, name="qr")
+        cr = ClassicalRegister(2, name="cr")
+        qc = QuantumCircuit(qr, cr)
+        qc.while_loop((cr, 0), loop_body, [1], [])
+        qc.x(0)
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3;",
+                'include "stdgates.inc";',
+                "bit[2] cr;",
+                "qubit[2] _all_qubits;",
+                "let qr = _all_qubits[0:1];",
+                "while (cr == 0) {",
+                "  h qr[1];",
+                "  break;",
+                "  continue;",
+                "}",
+                "x qr[0];",
+                "",
+            ]
+        )
+        self.assertEqual(dumps(qc), expected_qasm)
+
+    def test_nested_while_loop(self):
+        """Test that a while loop nested inside another outputs the expected result."""
+        inner_body = QuantumCircuit(2, 2)
+        inner_body.measure(0, 0)
+        inner_body.measure(1, 1)
+        inner_body.break_loop()
+
+        outer_body = QuantumCircuit(2, 2)
+        outer_body.measure(0, 0)
+        outer_body.measure(1, 1)
+        # We reverse the order of the bits here to test this works, and test a single-bit condition.
+        outer_body.while_loop((outer_body.clbits[0], 0), inner_body, [1, 0], [1, 0])
+        outer_body.continue_loop()
+
+        qr = QuantumRegister(2, name="qr")
+        cr = ClassicalRegister(2, name="cr")
+        qc = QuantumCircuit(qr, cr)
+        qc.while_loop((cr, 0), outer_body, [0, 1], [0, 1])
+        qc.x(0)
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3;",
+                'include "stdgates.inc";',
+                "bit[2] cr;",
+                "qubit[2] _all_qubits;",
+                "let qr = _all_qubits[0:1];",
+                "while (cr == 0) {",
+                "  cr[0] = measure qr[0];",
+                "  cr[1] = measure qr[1];",
+                # Note the reversed bits in the body.
+                "  while (cr[0] == 0) {",
+                "    cr[1] = measure qr[1];",
+                "    cr[0] = measure qr[0];",
+                "    break;",
+                "  }",
+                "  continue;",
+                "}",
+                "x qr[0];",
+                "",
+            ]
+        )
+        self.assertEqual(dumps(qc), expected_qasm)
+
+    def test_simple_if_statement(self):
+        """Test that a simple if statement with no else works correctly."""
+        true_body = QuantumCircuit(1)
+        true_body.h(0)
+
+        qr = QuantumRegister(2, name="qr")
+        cr = ClassicalRegister(2, name="cr")
+        qc = QuantumCircuit(qr, cr)
+        qc.if_test((cr, 0), true_body, [1], [])
+        qc.x(0)
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3;",
+                'include "stdgates.inc";',
+                "bit[2] cr;",
+                "qubit[2] _all_qubits;",
+                "let qr = _all_qubits[0:1];",
+                "if (cr == 0) {",
+                "  h qr[1];",
+                "}",
+                "x qr[0];",
+                "",
+            ]
+        )
+        self.assertEqual(dumps(qc), expected_qasm)
+
+    def test_simple_if_else_statement(self):
+        """Test that a simple if statement with an else branch works correctly."""
+        true_body = QuantumCircuit(1)
+        true_body.h(0)
+        false_body = QuantumCircuit(1)
+        false_body.z(0)
+
+        qr = QuantumRegister(2, name="qr")
+        cr = ClassicalRegister(2, name="cr")
+        qc = QuantumCircuit(qr, cr)
+        qc.if_else((cr, 0), true_body, false_body, [1], [])
+        qc.x(0)
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3;",
+                'include "stdgates.inc";',
+                "bit[2] cr;",
+                "qubit[2] _all_qubits;",
+                "let qr = _all_qubits[0:1];",
+                "if (cr == 0) {",
+                "  h qr[1];",
+                "} else {",
+                "  z qr[1];",
+                "}",
+                "x qr[0];",
+                "",
+            ]
+        )
+        self.assertEqual(dumps(qc), expected_qasm)
+
+    def test_nested_if_else_statement(self):
+        """Test that a nested if/else statement works correctly."""
+        inner_true_body = QuantumCircuit(2, 2)
+        inner_true_body.measure(0, 0)
+        inner_false_body = QuantumCircuit(2, 2)
+        inner_false_body.measure(1, 1)
+
+        outer_true_body = QuantumCircuit(2, 2)
+        outer_true_body.if_else(
+            (outer_true_body.clbits[0], 0), inner_true_body, inner_false_body, [0, 1], [0, 1]
+        )
+        outer_false_body = QuantumCircuit(2, 2)
+        # Note the flipped bits here.
+        outer_false_body.if_else(
+            (outer_false_body.clbits[0], 1), inner_true_body, inner_false_body, [1, 0], [1, 0]
+        )
+
+        qr = QuantumRegister(2, name="qr")
+        cr = ClassicalRegister(2, name="cr")
+        qc = QuantumCircuit(qr, cr)
+        qc.if_else((cr, 0), outer_true_body, outer_false_body, [0, 1], [0, 1])
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3;",
+                'include "stdgates.inc";',
+                "bit[2] cr;",
+                "qubit[2] _all_qubits;",
+                "let qr = _all_qubits[0:1];",
+                "if (cr == 0) {",
+                "  if (cr[0] == 0) {",
+                "    cr[0] = measure qr[0];",
+                "  } else {",
+                "    cr[1] = measure qr[1];",
+                "  }",
+                "} else {",
+                "  if (cr[0] == 1) {",
+                "    cr[1] = measure qr[1];",
+                "  } else {",
+                "    cr[0] = measure qr[0];",
+                "  }",
+                "}",
+                "",
+            ]
+        )
+        self.assertEqual(dumps(qc), expected_qasm)
+
+    def test_chain_else_if(self):
+        """Test the basic 'else/if' chaining logic for flattening the else scope if its content is a
+        single if/else statement."""
+        inner_true_body = QuantumCircuit(2, 2)
+        inner_true_body.measure(0, 0)
+        inner_false_body = QuantumCircuit(2, 2)
+        inner_false_body.measure(1, 1)
+
+        outer_true_body = QuantumCircuit(2, 2)
+        outer_true_body.if_else(
+            (outer_true_body.clbits[0], 0), inner_true_body, inner_false_body, [0, 1], [0, 1]
+        )
+        outer_false_body = QuantumCircuit(2, 2)
+        # Note the flipped bits here.
+        outer_false_body.if_else(
+            (outer_false_body.clbits[0], 1), inner_true_body, inner_false_body, [1, 0], [1, 0]
+        )
+
+        qr = QuantumRegister(2, name="qr")
+        cr = ClassicalRegister(2, name="cr")
+        qc = QuantumCircuit(qr, cr)
+        qc.if_else((cr, 0), outer_true_body, outer_false_body, [0, 1], [0, 1])
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3;",
+                'include "stdgates.inc";',
+                "bit[2] cr;",
+                "qubit[2] _all_qubits;",
+                "let qr = _all_qubits[0:1];",
+                "if (cr == 0) {",
+                "  if (cr[0] == 0) {",
+                "    cr[0] = measure qr[0];",
+                "  } else {",
+                "    cr[1] = measure qr[1];",
+                "  }",
+                "} else if (cr[0] == 1) {",
+                "  cr[1] = measure qr[1];",
+                "} else {",
+                "  cr[0] = measure qr[0];",
+                "}",
+                "",
+            ]
+        )
+        # This is not the default behaviour, and it's pretty buried how you'd access it.
+        builder = QASM3Builder(
+            qc,
+            includeslist=("stdgates.inc",),
+            basis_gates=("U",),
+            disable_constants=False,
+            alias_classical_registers=False,
+        )
+        stream = StringIO()
+        BasicPrinter(stream, indent="  ", chain_else_if=True).visit(builder.build_program())
+        self.assertEqual(stream.getvalue(), expected_qasm)
+
+    def test_chain_else_if_does_not_chain_if_extra_instructions(self):
+        """Test the basic 'else/if' chaining logic for flattening the else scope if its content is a
+        single if/else statement does not cause a flattening if the 'else' block is not a single
+        if/else."""
+        inner_true_body = QuantumCircuit(2, 2)
+        inner_true_body.measure(0, 0)
+        inner_false_body = QuantumCircuit(2, 2)
+        inner_false_body.measure(1, 1)
+
+        outer_true_body = QuantumCircuit(2, 2)
+        outer_true_body.if_else(
+            (outer_true_body.clbits[0], 0), inner_true_body, inner_false_body, [0, 1], [0, 1]
+        )
+        outer_false_body = QuantumCircuit(2, 2)
+        # Note the flipped bits here.
+        outer_false_body.if_else(
+            (outer_false_body.clbits[0], 1), inner_true_body, inner_false_body, [1, 0], [1, 0]
+        )
+        outer_false_body.h(0)
+
+        qr = QuantumRegister(2, name="qr")
+        cr = ClassicalRegister(2, name="cr")
+        qc = QuantumCircuit(qr, cr)
+        qc.if_else((cr, 0), outer_true_body, outer_false_body, [0, 1], [0, 1])
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3;",
+                'include "stdgates.inc";',
+                "bit[2] cr;",
+                "qubit[2] _all_qubits;",
+                "let qr = _all_qubits[0:1];",
+                "if (cr == 0) {",
+                "  if (cr[0] == 0) {",
+                "    cr[0] = measure qr[0];",
+                "  } else {",
+                "    cr[1] = measure qr[1];",
+                "  }",
+                "} else {",
+                "  if (cr[0] == 1) {",
+                "    cr[1] = measure qr[1];",
+                "  } else {",
+                "    cr[0] = measure qr[0];",
+                "  }",
+                "  h qr[0];",
+                "}",
+                "",
+            ]
+        )
+        # This is not the default behaviour, and it's pretty buried how you'd access it.
+        builder = QASM3Builder(
+            qc,
+            includeslist=("stdgates.inc",),
+            basis_gates=("U",),
+            disable_constants=False,
+            alias_classical_registers=False,
+        )
+        stream = StringIO()
+        BasicPrinter(stream, indent="  ", chain_else_if=True).visit(builder.build_program())
+        self.assertEqual(stream.getvalue(), expected_qasm)
+
+    def test_custom_gate_used_in_loop_scope(self):
+        """Test that a custom gate only used within a loop scope still gets a definition at the top
+        level."""
+        parameter_a = Parameter("a")
+        parameter_b = Parameter("b")
+
+        custom = QuantumCircuit(1)
+        custom.rx(parameter_a, 0)
+        custom_gate = custom.bind_parameters({parameter_a: 0.5}).to_gate()
+        custom_gate.name = "custom"
+
+        loop_body = QuantumCircuit(1)
+        loop_body.append(custom_gate, [0])
+
+        qc = QuantumCircuit(1)
+        qc.for_loop(parameter_b, range(2), loop_body, [0], [])
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3;",
+                'include "stdgates.inc";',
+                "gate custom _gate_q_0 {",
+                "  rx(0.5) _gate_q_0;",
+                "}",
+                "qubit[1] _all_qubits;",
+                "let q = _all_qubits[0:0];",
+                "for b in [0:1] {",
+                "  custom q[0];",
+                "}",
+                "",
+            ]
+        )
+        self.assertEqual(dumps(qc), expected_qasm)
+
+
+@ddt.ddt
+class TestQASM3ExporterFailurePaths(QiskitTestCase):
+    """Tests of the failure paths for the exporter."""
+
+    def test_disallow_overlapping_classical_registers_if_no_aliasing(self):
+        """Test that the exporter rejects circuits with a classical bit in more than one register if
+        the ``alias_classical_registers`` option is set false."""
+        qubits = [Qubit() for _ in [None] * 3]
+        clbits = [Clbit() for _ in [None] * 5]
+        registers = [ClassicalRegister(bits=clbits[:4]), ClassicalRegister(bits=clbits[1:])]
+        qc = QuantumCircuit(qubits, *registers)
+        exporter = Exporter(alias_classical_registers=False)
+        with self.assertRaisesRegex(QASM3ExporterError, r"Clbit .* is in multiple registers.*"):
+            exporter.dumps(qc)
+
+    @ddt.data([1, 2, 1.1], [1j, 2])
+    def test_disallow_for_loops_with_non_integers(self, indices):
+        """Test that the exporter rejects ``for`` loops that include non-integer values in their
+        index sets."""
+        loop_body = QuantumCircuit()
+        qc = QuantumCircuit(2, 2)
+        qc.for_loop(None, indices, loop_body, [], [])
+        exporter = Exporter()
+        with self.assertRaisesRegex(
+            QASM3ExporterError, r"The values in QASM 3 'for' loops must all be integers.*"
+        ):
+            exporter.dumps(qc)
