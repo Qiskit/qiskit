@@ -155,8 +155,6 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
         self._ansatz = None
         self.ansatz = ansatz
 
-        #TODO add betas defaults
-        self.betas = betas
 
         self.k = k
         self.betas = betas
@@ -551,7 +549,7 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
         result.optimal_value = []
         result.cost_function_evals = []
         result.optimizer_time = []
-        result.eigenvalue = []
+        result.eigenvalues = []
         result.eigenstate = []
 
         
@@ -587,13 +585,14 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
 
             eval_time = time() - start_time
 
+            print(dict(zip(self._ansatz_params, opt_result.x)))
 
             result.optimal_point.append(opt_result.x)
             result.optimal_parameters.append(dict(zip(self._ansatz_params, opt_result.x)))
             result.optimal_value.append(opt_result.fun)
             result.cost_function_evals.append(opt_result.nfev)
             result.optimizer_time.append(eval_time)
-            result.eigenvalue.append(opt_result.fun + 0j)
+            result.eigenvalues.append(opt_result.fun + 0j)
             result.eigenstate.append(self._get_eigenstate(result.optimal_parameters[-1]))
             
             if step == 0:
@@ -667,11 +666,12 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
 
         for state in range(step):
             #prev_values = dict(zip(self._ansatz_params,prev_states[state - 1]))
-            prev_circ = CircuitStateFn(self.ansatz.bind_parameters(prev_states[state - 1]))
+            prev_circ = CircuitStateFn(self.ansatz.bind_parameters(prev_states[state]))
             final_op.append(self.betas[state - 1] * ~ansatz_circ_op @ prev_circ)
 
         final_op = SummedOp(oplist = final_op)
-
+        print(final_op)
+        print("*"* 50)
 
         def energy_evaluation(parameters):
             parameter_sets = np.reshape(parameters, (-1, num_parameters))
