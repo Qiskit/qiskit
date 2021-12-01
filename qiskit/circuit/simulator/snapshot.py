@@ -16,7 +16,7 @@ Simulator command to snapshot internal simulator representation.
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.instruction import Instruction
-from qiskit.circuit.exceptions import QiskitError, CircuitError
+from qiskit.circuit.exceptions import QiskitError
 
 
 class Snapshot(Instruction):

@@ -23,7 +23,6 @@ import scipy
 from ddt import data, ddt
 from scipy.stats import unitary_group
 
-from qiskit import QiskitError
 from qiskit.circuit import (
     Instruction,
     Parameter,

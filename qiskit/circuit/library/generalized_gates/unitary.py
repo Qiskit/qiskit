@@ -147,7 +147,7 @@ class UnitaryGate(Gate):
             ctrl_state=ctrl_state,
             base_gate=self.copy(),
         )
-        from qiskit.quantum_info import Operator
+        from qiskit.quantum_info.operators.operator import Operator
 
         # hack to correct global phase; should fix to prevent need for correction here
         pmat = Operator(iso.inverse()).data @ cmat
