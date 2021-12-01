@@ -206,8 +206,8 @@ class CXGate(ControlledGate):
         call = QuantumGateCall(
             Identifier("U"),
             [control, target],
-            parameters=[Constant.pi, Integer(0), Constant.pi],
-            modifiers=[QuantumGateModifier(QuantumGateModifierName.ctrl)],
+            parameters=[Constant.PI, Integer(0), Constant.PI],
+            modifiers=[QuantumGateModifier(QuantumGateModifierName.CTRL)],
         )
         return QuantumGateDefinition(
             QuantumGateSignature(Identifier("cx"), [control, target]),
