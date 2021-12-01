@@ -25,6 +25,7 @@ from qiskit.opflow import (
     SummedOp,
     Y,
     I,
+    Z,
     PauliExpectation,
     CircuitSampler,
 )
@@ -73,11 +74,11 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
             energy_term = I ^ hamiltonian.num_qubits
             energy_term *= -1
             energy_term *= energy
-            hamiltonian_ = SummedOp([hamiltonian, energy_term])
+            hamiltonian_ = SummedOp([hamiltonian, energy_term]).reduce()
             basis_operator = Y
-            basis_operator *= -1j
-            return evolution_grad_calculator.calculate(
+            grad = evolution_grad_calculator.calculate(
                 hamiltonian_, ansatz, parameters, self._grad_method, basis=basis_operator
-            )
+            ) * 0.5 # Im(...)
+            return grad
 
         return raw_evolution_grad_imag

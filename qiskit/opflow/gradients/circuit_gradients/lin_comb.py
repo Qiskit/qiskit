@@ -123,7 +123,7 @@ class LinComb(CircuitGradient):
                     is given, then the 2nd order derivative of the operator is calculated.
             aux_meas_op: The operator that the auxiliary qubit is measured with respect to.
                          for aux_meas_op = Z we compute Re[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]
-                         for aux_meas_op = -iY we compute Im[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]
+                         for aux_meas_op = -Y we compute Im[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]
 
         Returns:
             An operator corresponding to the gradient resp. Hessian. The order is in accordance with
@@ -162,7 +162,7 @@ class LinComb(CircuitGradient):
                 is given, then the 2nd order derivative of the operator is calculated.
             aux_meas_op: The operator that the auxiliary qubit is measured with respect to.
                  for aux_meas_op = Z we compute Re[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]
-                 for aux_meas_op = -iY we compute Im[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]
+                 for aux_meas_op = -Y we compute Im[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]
 
         Returns:
             The adapted operator.
@@ -631,7 +631,7 @@ class LinComb(CircuitGradient):
             target_params: The parameters we are taking the gradient wrt: ω
             aux_meas_op: The operator that the auxiliary qubit is measured with respect to.
                  for aux_meas_op = Z we compute Re[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]
-                 for aux_meas_op = -iY we compute Im[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]
+                 for aux_meas_op = -Y we compute Im[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]
         Returns:
             ListOp of StateFns as quantum circuits which are the states w.r.t. which we compute the
             gradient. If a parameter appears multiple times, one circuit is created per
@@ -640,7 +640,6 @@ class LinComb(CircuitGradient):
             AquaError: If one of the circuits could not be constructed.
             TypeError: If the operators is of unsupported type.
         """
-
         # unroll separately from the H gate since we need the H gate to be the first
         # operation in the data attributes of the circuit
         unrolled = self._transpile_to_supported_operations(state_op.primitive, self.SUPPORTED_GATES)
@@ -649,7 +648,6 @@ class LinComb(CircuitGradient):
         state_qc = QuantumCircuit(*state_op.primitive.qregs, qr_superpos)
         state_qc.h(qr_superpos)
 
-        # TODO Check here
         if not isinstance(meas_op, bool):
             if meas_op is not None:
                 meas_op = meas_op.reduce()
@@ -693,9 +691,9 @@ class LinComb(CircuitGradient):
                         param_expression = gate.params[idx]
 
                         if isinstance(meas_op, OperatorBase):
-                            # state = meas_op @ state
                             state = StateFn(meas_op, is_measurement=True) @ state
-                            # state = PauliExpectation().convert(state).reduce()
+                            state = PauliExpectation().convert(state).reduce()
+
                         elif meas_op is True:
                             state = ListOp(
                                 [state],
