@@ -16,8 +16,7 @@ from numpy import array
 from qiskit import QiskitError
 
 try:
-    from qiskit import Aer
-    from qiskit.providers.aer import noise
+    from qiskit.providers.aer import Aer, noise
 
     HAS_AER = True
 except ImportError:
