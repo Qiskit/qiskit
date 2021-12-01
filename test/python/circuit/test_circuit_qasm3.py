@@ -63,7 +63,7 @@ class TestQASM3Functions(QiskitTestCase):
 class TestCircuitQASM3(QiskitTestCase):
     """QASM3 exporter."""
 
-    def test_regs_conds_all_qubitsasm(self):
+    def test_regs_conds_qasm(self):
         """Test with registers and conditionals."""
         qr1 = QuantumRegister(1, "qr1")
         qr2 = QuantumRegister(2, "qr2")
@@ -461,7 +461,7 @@ class TestCircuitQASM3(QiskitTestCase):
         )
         self.assertEqual(Exporter().dumps(qc), expected_qasm)
 
-    def test_gate_all_qubitsasm_with_ctrl_state(self):
+    def test_gate_qasm_with_ctrl_state(self):
         """Test with open controlled gate that has ctrl_state"""
         qc = QuantumCircuit(2)
         qc.ch(0, 1, ctrl_state=0)
