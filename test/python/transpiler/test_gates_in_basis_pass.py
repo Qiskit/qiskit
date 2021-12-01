@@ -18,10 +18,6 @@ from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import BasisTranslator
 from qiskit.transpiler.passes import GatesInBasis
 from qiskit.test import QiskitTestCase
-from qiskit import transpile
-from qiskit.circuit.library import QuantumVolume
-from qiskit.converters import circuit_to_dag
-from qiskit.test.mock import FakeBelem
 
 
 class TestGatesInBasisPass(QiskitTestCase):
@@ -92,17 +88,3 @@ class TestGatesInBasisPass(QiskitTestCase):
         pm.append(analysis_pass)
         pm.run(circuit)
         self.assertTrue(pm.property_set["all_gates_in_basis"])
-
-    def test_efficient_1q_subsequences(self):
-        """Test that unroll condition checks gates in basis and runs translation accordingly."""
-        qcomp = FakeBelem()
-        qv_circuit = QuantumVolume(3)
-        qv_circuit.draw()
-        transpiled_circuit = transpile(
-            qv_circuit, backend=qcomp, optimization_level=3, translation_method="synthesis"
-        )
-        nodes = "".join(str(i.name) for i in circuit_to_dag(transpiled_circuit).nodes())
-
-        # ensuring the inefficient 1Q subsequence [rz,sx,rz,sx,rz,rz,x] is not present
-        lookup = "rzsxrzsxrzrzx"
-        assert lookup not in nodes

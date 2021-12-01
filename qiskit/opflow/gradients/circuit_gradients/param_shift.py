@@ -19,7 +19,8 @@ from typing import List, Union, Tuple, Dict
 
 import scipy
 import numpy as np
-from qiskit import transpile, QuantumCircuit
+
+from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter, ParameterExpression, ParameterVector
 from .circuit_gradient import CircuitGradient
 from ...operator_base import OperatorBase
@@ -42,6 +43,8 @@ class ParamShift(CircuitGradient):
     probabilities of the basis states of a state |ψ(ω)〉w.r.t. ω with the parameter shift
     method.
     """
+
+    SUPPORTED_GATES = {"x", "y", "z", "h", "rx", "ry", "rz", "p", "u", "cx", "cy", "cz"}
 
     def __init__(self, analytic: bool = True, epsilon: float = 1e-6):
         r"""
@@ -194,7 +197,7 @@ class ParamShift(CircuitGradient):
             if self.analytic:
                 # Unroll the circuit into a gate set for which the gradient may be computed
                 # using pi/2 shifts.
-                circ = ParamShift._unroll_to_supported_operations(circ)
+                circ = ParamShift._transpile_to_supported_operations(circ, self.SUPPORTED_GATES)
                 operator = ParamShift._replace_operator_circuit(operator, circ)
 
             if param not in circ._parameter_table:
@@ -341,24 +344,6 @@ class ParamShift(CircuitGradient):
         raise TypeError(
             "Probability gradients can only be evaluated from VectorStateFs or DictStateFns."
         )
-
-    @staticmethod
-    def _unroll_to_supported_operations(circuit: QuantumCircuit) -> QuantumCircuit:
-        """Unroll the given circuit into a gate set for which the gradients may be computed using
-           pi/2 shifts.
-
-        Args:
-            circuit: Quantum circuit to be unrolled into supported operations
-
-        Returns:
-            Quantum circuit which is unrolled into supported operations
-
-        """
-        supported = {"x", "y", "z", "h", "rx", "ry", "rz", "p", "u", "cx", "cy", "cz"}
-        unique_ops = set(circuit.count_ops().keys())
-        if not unique_ops.issubset(supported):
-            circuit = transpile(circuit, basis_gates=list(supported), optimization_level=0)
-        return circuit
 
     @staticmethod
     def _replace_operator_circuit(operator: OperatorBase, circuit: QuantumCircuit) -> OperatorBase:

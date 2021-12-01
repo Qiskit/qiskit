@@ -24,7 +24,12 @@ from qiskit.circuit import Reset
 from qiskit.circuit import Measure
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
 from qiskit.circuit.tools.pi_check import pi_check
-from qiskit.visualization.utils import get_gate_ctrl_text, get_param_str
+from qiskit.visualization.utils import (
+    get_gate_ctrl_text,
+    get_param_str,
+    get_bit_label,
+    get_condition_label,
+)
 from .exceptions import VisualizationError
 
 
@@ -774,66 +779,32 @@ class TextDrawing:
             initial_qubit_value = ""
             initial_clbit_value = ""
 
+        # quantum register
         qubit_labels = []
-        if self.layout is None:
-            for bit in self.qubits:
-                label = "{name}_{index}: " + initial_qubit_value
-                if self.bit_locations[bit]["register"] is not None:
-                    qubit_labels.append(
-                        label.format(
-                            name=self.bit_locations[bit]["register"].name,
-                            index=self.bit_locations[bit]["index"],
-                        )
-                    )
-                else:
-                    qubit_labels.append(
-                        label.format(name="", index=self.bit_locations[bit]["index"], physical="")
-                    )
+        for reg in self.qubits:
+            register = self.bit_locations[reg]["register"]
+            index = self.bit_locations[reg]["index"]
+            qubit_label = get_bit_label("text", register, index, qubit=True, layout=self.layout)
+            qubit_label += ": " if self.layout is None else " "
+            qubit_labels.append(qubit_label + initial_qubit_value)
 
-        else:
-            for bit in self.qubits:
-                bit_index = self.bit_locations[bit]["index"]
-                if self.layout[bit_index]:
-                    try:
-                        layout_reg = next(
-                            reg
-                            for reg in self.layout.get_registers()
-                            if self.layout[bit_index] in reg
-                        )
-                        label = "{name}_{index} -> {physical} " + initial_qubit_value
-                        qubit_labels.append(
-                            label.format(
-                                name=layout_reg.name,
-                                index=layout_reg[:].index(self.layout[bit_index]),
-                                physical=bit_index,
-                            )
-                        )
-                    except StopIteration:
-                        label = "{name} -> {physical} " + initial_qubit_value
-                        qubit_labels.append(label.format(name="", physical=bit_index))
-                else:
-                    qubit_labels.append("%s " % bit_index + initial_qubit_value)
-
+        # classical register
         clbit_labels = []
-        previous_creg = None
-        for bit in self.clbits:
-            register = self.bit_locations[bit]["register"]
-            index = self.bit_locations[bit]["index"]
-            if self.cregbundle and register is not None:
-                if previous_creg and previous_creg == register:
-                    continue
-                previous_creg = register
-                label = "{name}: {initial_value}{size}/"
-                clbit_labels.append(
-                    label.format(
-                        name=register.name, initial_value=initial_clbit_value, size=register.size
+        if self.clbits:
+            prev_creg = None
+            for reg in self.clbits:
+                register = self.bit_locations[reg]["register"]
+                index = self.bit_locations[reg]["index"]
+                clbit_label = get_bit_label(
+                    "text", register, index, qubit=False, cregbundle=self.cregbundle
+                )
+                if register is None or not self.cregbundle or prev_creg != register:
+                    cregb_add = (
+                        str(register.size) + "/" if self.cregbundle and register is not None else ""
                     )
-                )
-            else:
-                label = "{name}_{index}: " + initial_clbit_value
-                clbit_labels.append(
-                    label.format(name=register.name if register is not None else "", index=index)
-                )
+                    clbit_labels.append(clbit_label + ": " + initial_clbit_value + cregb_add)
+                prev_creg = register
+
         return qubit_labels + clbit_labels
 
     def should_compress(self, top_line, bot_line):
@@ -988,9 +959,9 @@ class TextDrawing:
         args_qubits = node.qargs[num_ctrl_qubits:]
         ctrl_state = f"{op.ctrl_state:b}".rjust(num_ctrl_qubits, "0")[::-1]
 
-        in_box = list()
-        top_box = list()
-        bot_box = list()
+        in_box = []
+        top_box = []
+        bot_box = []
 
         qubit_index = sorted(i for i, x in enumerate(layer.qubits) if x in args_qubits)
 
@@ -1035,8 +1006,7 @@ class TextDrawing:
 
         if op.condition is not None:
             # conditional
-            op_cond = op.condition
-            layer.set_cl_multibox(op_cond[0], op_cond[1], top_connect="╨")
+            layer.set_cl_multibox(op.condition, top_connect="╨")
             conditional = True
 
         # add in a gate that operates over multiple qubits
@@ -1050,7 +1020,7 @@ class TextDrawing:
         if isinstance(op, Measure):
             gate = MeasureFrom()
             layer.set_qubit(node.qargs[0], gate)
-            if self.cregbundle:
+            if self.cregbundle and self.bit_locations[node.cargs[0]]["register"] is not None:
                 layer.set_clbit(
                     node.cargs[0],
                     MeasureTo(str(self.bit_locations[node.cargs[0]]["index"])),
@@ -1181,6 +1151,7 @@ class Layer:
         cregs = [] if cregs is None else cregs
 
         self.qubits = qubits
+        self.clbits_raw = clbits  # list of clbits ignoring cregbundle change below
 
         self._clbit_locations = {
             bit: {"register": register, "index": index}
@@ -1197,8 +1168,11 @@ class Layer:
             for bit in clbits:
                 if previous_creg and previous_creg == self._clbit_locations[bit]["register"]:
                     continue
-                previous_creg = self._clbit_locations[bit]["register"]
-                self.clbits.append(previous_creg)
+                if self._clbit_locations[bit]["register"] is None:
+                    self.clbits.append(bit)
+                else:
+                    previous_creg = self._clbit_locations[bit]["register"]
+                    self.clbits.append(previous_creg)
         else:
             self.clbits = clbits
         self.qubit_layer = [None] * len(qubits)
@@ -1232,7 +1206,7 @@ class Layer:
             clbit (cbit): Element of self.clbits.
             element (DrawElement): Element to set in the clbit
         """
-        if self.cregbundle:
+        if self.cregbundle and self._clbit_locations[clbit]["register"] is not None:
             self.clbit_layer[self.clbits.index(self._clbit_locations[clbit]["register"])] = element
         else:
             self.clbit_layer[self.clbits.index(clbit)] = element
@@ -1363,53 +1337,58 @@ class Layer:
             )
         return bit_index
 
-    def set_cl_multibox(self, creg, val, top_connect="┴"):
+    def set_cl_multibox(self, condition, top_connect="┴"):
         """Sets the multi clbit box.
 
         Args:
-            creg (string): The affected classical register.
-            val (int): The value of the condition.
+            condition (list[Union(Clbit, ClassicalRegister), int]): The condition
             top_connect (char): The char to connect the box on the top.
         """
-        if self.cregbundle:
-            if isinstance(creg, Clbit):
-                bit_reg = self._clbit_locations[creg]["register"]
-                bit_index = self._clbit_locations[creg]["index"]
-                label_bool = "= T" if val is True else "= F"
-                label = f"{bit_reg.name}_{bit_index} {label_bool}"
-                self.set_clbit(creg, BoxOnClWire(label=label, top_connect=top_connect))
-            else:
-                label = "%s" % str(hex(val))
-                self.set_clbit(creg[0], BoxOnClWire(label=label, top_connect=top_connect))
-        else:
-            if isinstance(creg, Clbit):
-                clbit = [creg]
-                cond_bin = "1" if val is True else "0"
-                self.set_cond_bullets(cond_bin, clbit)
-            else:
-                clbit = [
-                    bit for bit in self.clbits if self._clbit_locations[bit]["register"] == creg
-                ]
-                cond_bin = bin(val)[2:].zfill(len(clbit))
-                self.set_cond_bullets(cond_bin, clbits=clbit)
+        label, clbit_mask, val_list = get_condition_label(
+            condition, self.clbits_raw, self._clbit_locations, self.cregbundle
+        )
+        if not self.reverse_bits:
+            val_list = val_list[::-1]
 
-    def set_cond_bullets(self, val, clbits):
+        if self.cregbundle:
+            if isinstance(condition[0], Clbit):
+                # if it's a registerless Clbit
+                if self._clbit_locations[condition[0]]["register"] is None:
+                    self.set_cond_bullets(label, val_list, [condition[0]])
+                # if it's a single bit in a register
+                else:
+                    self.set_clbit(condition[0], BoxOnClWire(label=label, top_connect=top_connect))
+            # if it's a whole register
+            else:
+                self.set_clbit(condition[0][0], BoxOnClWire(label=label, top_connect=top_connect))
+        else:
+            clbits = []
+            for i, _ in enumerate(clbit_mask):
+                if clbit_mask[i] == "1":
+                    clbits.append(self.clbits[i])
+            self.set_cond_bullets(label, val_list, clbits)
+
+    def set_cond_bullets(self, label, val_list, clbits):
         """Sets bullets for classical conditioning when cregbundle=False.
 
         Args:
-            val (int): The condition value.
+            label (str): String to display below the condition
+            val_list (list(int)): A list of bit values
             clbits (list[Clbit]): The list of classical bits on
                 which the instruction is conditioned.
         """
-        vlist = list(val) if self.reverse_bits else list(val[::-1])
         for i, bit in enumerate(clbits):
             bot_connect = " "
             if bit == clbits[-1]:
-                bot_connect = "%s" % str(hex(int(val, 2)))
-            if vlist[i] == "1":
-                self.set_clbit(bit, ClBullet(top_connect="║", bot_connect=bot_connect))
-            elif vlist[i] == "0":
-                self.set_clbit(bit, ClOpenBullet(top_connect="║", bot_connect=bot_connect))
+                bot_connect = label
+            if val_list[i] == "1":
+                self.clbit_layer[self.clbits.index(bit)] = ClBullet(
+                    top_connect="║", bot_connect=bot_connect
+                )
+            elif val_list[i] == "0":
+                self.clbit_layer[self.clbits.index(bit)] = ClOpenBullet(
+                    top_connect="║", bot_connect=bot_connect
+                )
 
     def set_qu_multibox(
         self,

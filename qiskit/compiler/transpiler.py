@@ -65,6 +65,8 @@ def transpile(
     pass_manager: Optional[PassManager] = None,
     callback: Optional[Callable[[BasePass, DAGCircuit, float, PropertySet, int], Any]] = None,
     output_name: Optional[Union[str, List[str]]] = None,
+    unitary_synthesis_method: str = "default",
+    unitary_synthesis_plugin_config: dict = None,
 ) -> Union[QuantumCircuit, List[QuantumCircuit]]:
     """Transpile one or more circuits, according to some desired transpilation targets.
 
@@ -143,6 +145,7 @@ def transpile(
             in the ground state when possible. (alias: ``'alap'``)
             If ``None``, no scheduling will be done.
         instruction_durations: Durations of instructions.
+            Applicable only if scheduling_method is specified.
             The gate lengths defined in ``backend.properties`` are used as default.
             They are overwritten if this ``instruction_durations`` is specified.
             The format of ``instruction_durations`` must be as follows.
@@ -214,6 +217,18 @@ def transpile(
 
         output_name: A list with strings to identify the output circuits. The length of
             the list should be exactly the length of the ``circuits`` parameter.
+        unitary_synthesis_method (str): The name of the unitary synthesis
+            method to use. By default 'default' is used, which is the only
+            method included with qiskit. If you have installed any unitary
+            synthesis plugins you can use the name exported by the plugin.
+        unitary_synthesis_plugin_config: An optional configuration dictionary
+            that will be passed directly to the unitary synthesis plugin. By
+            default this setting will have no effect as the default unitary
+            synthesis method does not take custom configuration. This should
+            only be necessary when a unitary synthesis plugin is specified with
+            the ``unitary_synthesis`` argument. As this is custom for each
+            unitary synthesis plugin refer to the plugin documentation for how
+            to use this option.
 
     Returns:
         The transpiled circuit(s).
@@ -224,6 +239,9 @@ def transpile(
     """
     arg_circuits_list = isinstance(circuits, list)
     circuits = circuits if arg_circuits_list else [circuits]
+
+    if not circuits:
+        return []
 
     # transpiling schedules is not supported yet.
     start_time = time()
@@ -248,6 +266,7 @@ def transpile(
             routing_method=routing_method,
             translation_method=translation_method,
             approximation_degree=approximation_degree,
+            unitary_synthesis_method=unitary_synthesis_method,
             backend=backend,
         )
 
@@ -293,6 +312,8 @@ def transpile(
         callback,
         output_name,
         timing_constraints,
+        unitary_synthesis_method,
+        unitary_synthesis_plugin_config,
     )
 
     _check_circuits_coupling_map(circuits, transpile_args, backend)
@@ -331,8 +352,15 @@ def _check_circuits_coupling_map(circuits, transpile_args, backend):
             max_qubits = parsed_coupling_map.size()
 
         # If coupling_map is None, the limit might be in the backend (like in 1Q devices)
-        elif backend is not None and not backend.configuration().simulator:
-            max_qubits = backend.configuration().n_qubits
+        elif backend is not None:
+            backend_version = getattr(backend, "version", 0)
+            if not isinstance(backend_version, int):
+                backend_version = 0
+            if backend_version <= 1:
+                if not backend.configuration().simulator:
+                    max_qubits = backend.configuration().n_qubits
+            else:
+                max_qubits = backend.num_qubits
 
         if max_qubits is not None and (num_qubits > max_qubits):
             raise TranspilerError(
@@ -475,6 +503,8 @@ def _parse_transpile_args(
     callback,
     output_name,
     timing_constraints,
+    unitary_synthesis_method,
+    unitary_synthesis_plugin_config,
 ) -> List[Dict]:
     """Resolve the various types of args allowed to the transpile() function through
     duck typing, overriding args, etc. Refer to the transpile() docstring for details on
@@ -507,6 +537,12 @@ def _parse_transpile_args(
     routing_method = _parse_routing_method(routing_method, num_circuits)
     translation_method = _parse_translation_method(translation_method, num_circuits)
     approximation_degree = _parse_approximation_degree(approximation_degree, num_circuits)
+    unitary_synthesis_method = _parse_unitary_synthesis_method(
+        unitary_synthesis_method, num_circuits
+    )
+    unitary_synthesis_plugin_config = _parse_unitary_plugin_config(
+        unitary_synthesis_plugin_config, num_circuits
+    )
     seed_transpiler = _parse_seed_transpiler(seed_transpiler, num_circuits)
     optimization_level = _parse_optimization_level(optimization_level, num_circuits)
     output_name = _parse_output_name(output_name, circuits)
@@ -541,6 +577,8 @@ def _parse_transpile_args(
             "callback": callback,
             "backend_num_qubits": backend_num_qubits,
             "faulty_qubits_map": faulty_qubits_map,
+            "unitary_synthesis_method": unitary_synthesis_method,
+            "unitary_synthesis_plugin_config": unitary_synthesis_plugin_config,
         }
     ):
         transpile_args = {
@@ -558,6 +596,8 @@ def _parse_transpile_args(
                 approximation_degree=kwargs["approximation_degree"],
                 timing_constraints=kwargs["timing_constraints"],
                 seed_transpiler=kwargs["seed_transpiler"],
+                unitary_synthesis_method=kwargs["unitary_synthesis_method"],
+                unitary_synthesis_plugin_config=kwargs["unitary_synthesis_plugin_config"],
             ),
             "optimization_level": kwargs["optimization_level"],
             "output_name": kwargs["output_name"],
@@ -575,6 +615,11 @@ def _create_faulty_qubits_map(backend):
     from working qubit in the backend to dummy qubits that are consecutive and connected."""
     faulty_qubits_map = None
     if backend is not None:
+        backend_version = getattr(backend, "version", 0)
+        if not isinstance(backend_version, int):
+            backend_version = 0
+        if backend_version > 1:
+            return None
         if backend.properties():
             faulty_qubits = backend.properties().faulty_qubits()
             faulty_edges = [gates.qubits for gates in backend.properties().faulty_gates()]
@@ -606,8 +651,14 @@ def _create_faulty_qubits_map(backend):
 def _parse_basis_gates(basis_gates, backend, circuits):
     # try getting basis_gates from user, else backend
     if basis_gates is None:
-        if getattr(backend, "configuration", None):
-            basis_gates = getattr(backend.configuration(), "basis_gates", None)
+        backend_version = getattr(backend, "version", 0)
+        if not isinstance(backend_version, int):
+            backend_version = 0
+        if backend_version <= 1:
+            if getattr(backend, "configuration", None):
+                basis_gates = getattr(backend.configuration(), "basis_gates", None)
+        else:
+            basis_gates = backend.operation_names
     # basis_gates could be None, or a list of basis, e.g. ['u3', 'cx']
     if basis_gates is None or (
         isinstance(basis_gates, list) and all(isinstance(i, str) for i in basis_gates)
@@ -633,28 +684,34 @@ def _parse_inst_map(inst_map, backend, num_circuits):
 def _parse_coupling_map(coupling_map, backend, num_circuits):
     # try getting coupling_map from user, else backend
     if coupling_map is None:
-        if getattr(backend, "configuration", None):
-            configuration = backend.configuration()
-            if hasattr(configuration, "coupling_map") and configuration.coupling_map:
-                faulty_map = _create_faulty_qubits_map(backend)
-                if faulty_map:
-                    faulty_edges = [gate.qubits for gate in backend.properties().faulty_gates()]
-                    functional_gates = [
-                        edge for edge in configuration.coupling_map if edge not in faulty_edges
-                    ]
-                    coupling_map = CouplingMap()
-                    for qubit1, qubit2 in functional_gates:
-                        if faulty_map[qubit1] is not None and faulty_map[qubit2] is not None:
-                            coupling_map.add_edge(faulty_map[qubit1], faulty_map[qubit2])
-                    if configuration.n_qubits != coupling_map.size():
-                        warnings.warn(
-                            "The backend has currently some qubits/edges out of service."
-                            " This temporarily reduces the backend size from "
-                            f"{configuration.n_qubits} to {coupling_map.size()}",
-                            UserWarning,
-                        )
-                else:
-                    coupling_map = CouplingMap(configuration.coupling_map)
+        backend_version = getattr(backend, "version", 0)
+        if not isinstance(backend_version, int):
+            backend_version = 0
+        if backend_version <= 1:
+            if getattr(backend, "configuration", None):
+                configuration = backend.configuration()
+                if hasattr(configuration, "coupling_map") and configuration.coupling_map:
+                    faulty_map = _create_faulty_qubits_map(backend)
+                    if faulty_map:
+                        faulty_edges = [gate.qubits for gate in backend.properties().faulty_gates()]
+                        functional_gates = [
+                            edge for edge in configuration.coupling_map if edge not in faulty_edges
+                        ]
+                        coupling_map = CouplingMap()
+                        for qubit1, qubit2 in functional_gates:
+                            if faulty_map[qubit1] is not None and faulty_map[qubit2] is not None:
+                                coupling_map.add_edge(faulty_map[qubit1], faulty_map[qubit2])
+                        if configuration.n_qubits != coupling_map.size():
+                            warnings.warn(
+                                "The backend has currently some qubits/edges out of service."
+                                " This temporarily reduces the backend size from "
+                                f"{configuration.n_qubits} to {coupling_map.size()}",
+                                UserWarning,
+                            )
+                    else:
+                        coupling_map = CouplingMap(configuration.coupling_map)
+        else:
+            coupling_map = backend.coupling_map
 
     # coupling_map could be None, or a list of lists, e.g. [[0, 1], [2, 1]]
     if coupling_map is None or isinstance(coupling_map, CouplingMap):
@@ -710,10 +767,22 @@ def _parse_backend_num_qubits(backend, num_circuits):
     if backend is None:
         return [None] * num_circuits
     if not isinstance(backend, list):
-        return [backend.configuration().n_qubits] * num_circuits
+        backend_version = getattr(backend, "version", 0)
+        if not isinstance(backend_version, int):
+            backend_version = 0
+        if backend_version <= 1:
+            return [backend.configuration().n_qubits] * num_circuits
+        else:
+            return [backend.num_qubits] * num_circuits
     backend_num_qubits = []
     for a_backend in backend:
-        backend_num_qubits.append(a_backend.configuration().n_qubits)
+        backend_version = getattr(backend, "version", 0)
+        if not isinstance(backend_version, int):
+            backend_version = 0
+        if backend_version <= 1:
+            backend_num_qubits.append(a_backend.configuration().n_qubits)
+        else:
+            backend_num_qubits.append(a_backend.num_qubits)
     return backend_num_qubits
 
 
@@ -817,6 +886,18 @@ def _parse_approximation_degree(approximation_degree, num_circuits):
     return approximation_degree
 
 
+def _parse_unitary_synthesis_method(unitary_synthesis_method, num_circuits):
+    if not isinstance(unitary_synthesis_method, list):
+        unitary_synthesis_method = [unitary_synthesis_method] * num_circuits
+    return unitary_synthesis_method
+
+
+def _parse_unitary_plugin_config(unitary_synthesis_plugin_config, num_circuits):
+    if not isinstance(unitary_synthesis_plugin_config, list):
+        unitary_synthesis_plugin_config = [unitary_synthesis_plugin_config] * num_circuits
+    return unitary_synthesis_plugin_config
+
+
 def _parse_seed_transpiler(seed_transpiler, num_circuits):
     if not isinstance(seed_transpiler, list):
         seed_transpiler = [seed_transpiler] * num_circuits
@@ -893,11 +974,16 @@ def _parse_timing_constraints(backend, timing_constraints, num_circuits):
     if backend is None and timing_constraints is None:
         timing_constraints = TimingConstraints()
     else:
-        if timing_constraints is None:
-            # get constraints from backend
-            timing_constraints = getattr(backend.configuration(), "timing_constraints", {})
-        timing_constraints = TimingConstraints(**timing_constraints)
-
+        backend_version = getattr(backend, "version", 0)
+        if not isinstance(backend_version, int):
+            backend_version = 0
+        if backend_version <= 1:
+            if timing_constraints is None:
+                # get constraints from backend
+                timing_constraints = getattr(backend.configuration(), "timing_constraints", {})
+            timing_constraints = TimingConstraints(**timing_constraints)
+        else:
+            timing_constraints = backend.target.timing_constraints()
     return [timing_constraints] * num_circuits
 
 

@@ -29,7 +29,7 @@ from .amplitude_amplifier import AmplitudeAmplifier, AmplitudeAmplifierResult
 class Grover(AmplitudeAmplifier):
     r"""Grover's Search algorithm.
 
-    Grover's Search [1, 2] is a well known quantum algorithm for that can be used for
+    Grover's Search [1, 2] is a well known quantum algorithm that can be used for
     searching through unstructured collections of records for particular targets
     with quadratic speedup compared to classical algorithms.
 
@@ -58,10 +58,10 @@ class Grover(AmplitudeAmplifier):
     The details of how :math:`S_f` works are unimportant to the algorithm; Grover's
     search algorithm treats the oracle as a black box.
 
-    This class supports oracles in form of :class:`~qiskit.QuantumCircuit`
+    This class supports oracles in form of a :class:`~qiskit.circuit.QuantumCircuit`.
 
-    With oracle at hand, Grover's Search constructs the Grover operator to amplify the amplitudes
-    of the good states:
+    With the given oracle, Grover's Search constructs the Grover operator to amplify the
+    amplitudes of the good states:
 
     .. math::
 
@@ -78,7 +78,7 @@ class Grover(AmplitudeAmplifier):
     powers of Grover's operator, see the `iterations` argument, and after each iteration checks
     if a good state has been measured using `good_state`.
 
-    The generalization of Grover's Search, Quantum Amplitude Amplification [3] uses a modified
+    The generalization of Grover's Search, Quantum Amplitude Amplification [3], uses a modified
     version of :math:`\mathcal{Q}` where the diffusion operator does not reflect about the
     equal superposition state, but another state specified via an operator :math:`\mathcal{A}`:
 
@@ -111,11 +111,13 @@ class Grover(AmplitudeAmplifier):
         Args:
             iterations: Specify the number of iterations/power of Grover's operator to be checked.
                 * If an int, only one circuit is run with that power of the Grover operator.
-                If the number of solutions is known, this is option should be used with the optimal
+                If the number of solutions is known, this option should be used with the optimal
                 power. The optimal power can be computed with ``Grover.optimal_num_iterations``.
                 * If a list, all the powers in the list are run in the specified order.
                 * If an iterator, the powers yielded by the iterator are checked, until a maximum
                 number of iterations or maximum power is reached.
+                * If ``None``, the :obj:`AmplificationProblem` provided must have an ``is_good_state``,
+                and circuits are run until that good state is reached.
             growth_rate: If specified, the iterator is set to increasing powers of ``growth_rate``,
                 i.e. to ``int(growth_rate ** 1), int(growth_rate ** 2), ...`` until a maximum
                 number of iterations is reached.
@@ -152,6 +154,7 @@ class Grover(AmplitudeAmplifier):
             self.quantum_instance = quantum_instance
 
         self._sample_from_iterations = sample_from_iterations
+        self._iterations_arg = iterations
 
     @property
     def quantum_instance(self) -> Optional[QuantumInstance]:
@@ -182,6 +185,10 @@ class Grover(AmplitudeAmplifier):
         Returns:
             The result as a ``GroverResult``, where e.g. the most likely state can be queried
             as ``result.top_measurement``.
+
+        Raises:
+            TypeError: If ``is_good_state`` is not provided and is required (i.e. when iterations
+            is ``None`` or a ``list``)
         """
         if isinstance(self._iterations, list):
             max_iterations = len(self._iterations)
@@ -246,7 +253,22 @@ class Grover(AmplitudeAmplifier):
                 )
 
             all_circuit_results.append(circuit_results)
+
+            if (isinstance(self._iterations_arg, int)) and (
+                amplification_problem.is_good_state is None
+            ):
+                oracle_evaluation = None  # cannot check for good state without is_good_state arg
+                break
+
+            # is_good_state arg must be provided if iterations arg is not an integer
+            if (
+                self._iterations_arg is None or isinstance(self._iterations_arg, list)
+            ) and amplification_problem.is_good_state is None:
+                raise TypeError("An is_good_state function is required with the provided oracle")
+
+            # only check if top measurement is a good state if an is_good_state arg is provided
             oracle_evaluation = amplification_problem.is_good_state(top_measurement)
+
             if oracle_evaluation is True:
                 break  # we found a solution
 

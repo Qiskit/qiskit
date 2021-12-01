@@ -296,7 +296,9 @@ class CircuitSampler(ConverterBase):
                 circuits = [op_c.to_circuit(meas=True) for op_c in circuit_sfns]
 
             try:
-                self._transpiled_circ_cache = self.quantum_instance.transpile(circuits)
+                self._transpiled_circ_cache = self.quantum_instance.transpile(
+                    circuits, pass_manager=self.quantum_instance.unbound_pass_manager
+                )
             except QiskitError:
                 logger.debug(
                     r"CircuitSampler failed to transpile circuits with unbound "
@@ -325,6 +327,12 @@ class CircuitSampler(ConverterBase):
                 logger.debug("Parameter binding %.5f (ms)", (end_time - start_time) * 1000)
         else:
             ready_circs = self._transpiled_circ_cache
+
+        # run transpiler passes on bound circuits
+        if self._transpile_before_bind:
+            ready_circs = self.quantum_instance.transpile(
+                ready_circs, pass_manager=self.quantum_instance.bound_pass_manager
+            )
 
         results = self.quantum_instance.execute(
             ready_circs, had_transpiled=self._transpile_before_bind

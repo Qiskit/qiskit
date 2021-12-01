@@ -358,6 +358,34 @@ def_sdg = QuantumCircuit(q)
 def_sdg.append(U1Gate(-pi / 2), [q[0]], [])
 _sel.add_equivalence(SdgGate(), def_sdg)
 
+q = QuantumRegister(1, "q")
+def_sdg = QuantumCircuit(q)
+for inst, qargs, cargs in [
+    (SGate(), [q[0]], []),
+    (ZGate(), [q[0]], []),
+]:
+    def_sdg.append(inst, qargs, cargs)
+_sel.add_equivalence(SdgGate(), def_sdg)
+
+q = QuantumRegister(1, "q")
+def_sdg = QuantumCircuit(q)
+for inst, qargs, cargs in [
+    (ZGate(), [q[0]], []),
+    (SGate(), [q[0]], []),
+]:
+    def_sdg.append(inst, qargs, cargs)
+_sel.add_equivalence(SdgGate(), def_sdg)
+
+q = QuantumRegister(1, "q")
+def_sdg = QuantumCircuit(q)
+for inst, qargs, cargs in [
+    (SGate(), [q[0]], []),
+    (SGate(), [q[0]], []),
+    (SGate(), [q[0]], []),
+]:
+    def_sdg.append(inst, qargs, cargs)
+_sel.add_equivalence(SdgGate(), def_sdg)
+
 # SwapGate
 
 q = QuantumRegister(2, "q")
@@ -422,6 +450,19 @@ for inst, qargs, cargs in [
 ]:
     def_csx.append(inst, qargs, cargs)
 _sel.add_equivalence(CSXGate(), def_csx)
+
+q = QuantumRegister(2, "q")
+csx_to_zx45 = QuantumCircuit(q, global_phase=pi / 8)
+for inst, qargs, cargs in [
+    (XGate(), [q[0]], []),
+    (RZXGate(pi / 4), [q[0], q[1]], []),
+    (TdgGate(), [q[0]], []),
+    (XGate(), [q[0]], []),
+    (SXGate().power(0.5), [q[1]], []),
+]:
+    csx_to_zx45.append(inst, qargs, cargs)
+_sel.add_equivalence(CSXGate(), csx_to_zx45)
+
 
 # DCXGate
 
@@ -543,7 +584,7 @@ for inst, qargs, cargs in [
     def_cu1.append(inst, qargs, cargs)
 _sel.add_equivalence(CU1Gate(theta), def_cu1)
 
-# U1Gate
+# U2Gate
 
 q = QuantumRegister(1, "q")
 phi = Parameter("phi")
@@ -617,6 +658,18 @@ def_x = QuantumCircuit(q)
 def_x.append(U3Gate(pi, 0, pi), [q[0]], [])
 _sel.add_equivalence(XGate(), def_x)
 
+q = QuantumRegister(1, "q")
+def_x = QuantumCircuit(q)
+for inst, qargs, cargs in [
+    (HGate(), [q[0]], []),
+    (SGate(), [q[0]], []),
+    (SGate(), [q[0]], []),
+    (HGate(), [q[0]], []),
+]:
+    def_x.append(inst, qargs, cargs)
+_sel.add_equivalence(XGate(), def_x)
+
+
 # CXGate
 
 for plus_ry in [False, True]:
@@ -665,6 +718,16 @@ for inst, qargs, cargs in [
     cx_to_ecr.append(inst, qargs, cargs)
 _sel.add_equivalence(CXGate(), cx_to_ecr)
 
+q = QuantumRegister(2, "q")
+cx_to_zx90 = QuantumCircuit(q, global_phase=pi / 4)
+for inst, qargs, cargs in [
+    (RZXGate(pi / 2), [q[0], q[1]], []),
+    (SdgGate(), [q[0]], []),
+    (SXdgGate(), [q[1]], []),
+]:
+    cx_to_zx90.append(inst, qargs, cargs)
+_sel.add_equivalence(CXGate(), cx_to_zx90)
+
 # CCXGate
 
 q = QuantumRegister(3, "q")
@@ -689,11 +752,54 @@ for inst, qargs, cargs in [
     def_ccx.append(inst, qargs, cargs)
 _sel.add_equivalence(CCXGate(), def_ccx)
 
+q = QuantumRegister(3, "q")
+ccx_to_cx_csx = QuantumCircuit(q)
+for inst, qargs, cargs in [
+    (CSXGate(), [q[1], q[2]], []),
+    (CXGate(), [q[0], q[1]], []),
+    (ZGate(), [q[2]], []),
+    (SdgGate(), [q[1]], []),
+    (CSXGate(), [q[1], q[2]], []),
+    (ZGate(), [q[2]], []),
+    (CXGate(), [q[0], q[1]], []),
+    (CSXGate(), [q[0], q[2]], []),
+]:
+    ccx_to_cx_csx.append(inst, qargs, cargs)
+_sel.add_equivalence(CCXGate(), ccx_to_cx_csx)
+
 # YGate
 
 q = QuantumRegister(1, "q")
 def_y = QuantumCircuit(q)
 def_y.append(U3Gate(pi, pi / 2, pi / 2), [q[0]], [])
+_sel.add_equivalence(YGate(), def_y)
+
+q = QuantumRegister(1, "q")
+def_y = QuantumCircuit(q)
+def_y.global_phase = 3 * pi / 2
+for inst, qargs, cargs in [
+    (HGate(), [q[0]], []),
+    (SGate(), [q[0]], []),
+    (SGate(), [q[0]], []),
+    (HGate(), [q[0]], []),
+    (SGate(), [q[0]], []),
+    (SGate(), [q[0]], []),
+]:
+    def_y.append(inst, qargs, cargs)
+_sel.add_equivalence(YGate(), def_y)
+
+q = QuantumRegister(1, "q")
+def_y = QuantumCircuit(q)
+def_y.global_phase = pi / 2
+for inst, qargs, cargs in [
+    (SGate(), [q[0]], []),
+    (SGate(), [q[0]], []),
+    (HGate(), [q[0]], []),
+    (SGate(), [q[0]], []),
+    (SGate(), [q[0]], []),
+    (HGate(), [q[0]], []),
+]:
+    def_y.append(inst, qargs, cargs)
 _sel.add_equivalence(YGate(), def_y)
 
 # CYGate
@@ -713,6 +819,15 @@ _sel.add_equivalence(CYGate(), def_cy)
 q = QuantumRegister(1, "q")
 def_z = QuantumCircuit(q)
 def_z.append(U1Gate(pi), [q[0]], [])
+_sel.add_equivalence(ZGate(), def_z)
+
+q = QuantumRegister(1, "q")
+def_z = QuantumCircuit(q)
+for inst, qargs, cargs in [
+    (SGate(), [q[0]], []),
+    (SGate(), [q[0]], []),
+]:
+    def_z.append(inst, qargs, cargs)
 _sel.add_equivalence(ZGate(), def_z)
 
 # CZGate
