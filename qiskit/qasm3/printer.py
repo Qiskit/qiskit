@@ -67,8 +67,10 @@ class BasicPrinter:
                         // ...
                     }
 
-                This collapsed form may have less support on backends, as it can be grammatically
-                ambiguous when ``else`` blocks are nested.
+                This collapsed form may have less support on backends, so it is turned off by
+                default.  While the output of this printer is always unambiguous, using ``else``
+                without immediately opening an explicit scope with ``{ }`` in nested contexts can
+                cause issues, in the general case, which is why it is sometimes less supported.
         """
         self.stream = stream
         self.indent = indent
