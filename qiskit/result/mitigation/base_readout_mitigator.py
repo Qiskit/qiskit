@@ -16,7 +16,7 @@ Base class for readout error mitigation.
 from abc import ABC, abstractmethod
 from typing import Optional, List, Iterable, Tuple, Union, Callable
 import numpy as np
-from qiskit.result import Counts, QuasiDistribution
+from .. import Counts, QuasiDistribution
 
 
 class BaseReadoutMitigator(ABC):
