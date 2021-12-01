@@ -176,8 +176,8 @@ class AdaptQAOA(QAOA):
             cost_operator = MatrixOp(Operator(cost_operator.to_matrix()))
         wave_function = ansatz.assign_parameters(self.hyperparameter_dict)
         # construct expectation operator
+        # exp_hc = (self.initial_point[-1] * cost_operator).exp_i()  # TODO: Check if this is legit?
         exp_hc = (self.initial_point[-1] * cost_operator).exp_i()  # TODO: Check if this is legit?
-        # exp_hc = (self.best_gamma[-1] * cost_operator).exp_i()
         exp_hc_ad = exp_hc.adjoint().to_matrix()
         exp_hc = exp_hc.to_matrix()
         energy_grad_op = exp_hc_ad @ (commutator(cost_operator, mixer).to_matrix()) @ exp_hc
@@ -191,8 +191,7 @@ class AdaptQAOA(QAOA):
         observable_meas = expectation.convert(StateFn(energy_grad_op, is_measurement=True))
         ansatz_circuit_op = CircuitStateFn(wave_function)
         expect_op = observable_meas.compose(ansatz_circuit_op).reduce()
-        print(wave_function.decompose().draw())
-        return 1j*expect_op
+        return expect_op#1j*expect_op
 
     def _test_mixer_pool(self, operator: OperatorBase):
         self._check_problem_configuration(operator=operator)
@@ -209,13 +208,15 @@ class AdaptQAOA(QAOA):
         return self.mixer_pool[max_energy_idx], energy_gradients[max_energy_idx]
 
     def run_adapt(
-        self, operator: OperatorBase, aux_operators: Optional[List[Optional[OperatorBase]]] = None
+        self, operator: OperatorBase, aux_operators: Optional[List[Optional[OperatorBase]]] = None,
+        iter_results = True
     ):
         """Runs ADAPT-QAOA for each iteration"""
         self.cost_operator = operator
         self._reps, self.ansatz = 1, self.initial_state  # initialise layer loop counter and ansatz
         print("--------------------------------------------------------")
         print("Cost operator {}".format(operator))
+        result_p = []
         while self._reps < self.max_reps+1:  # loop over number of maximum reps
             best_mixer, energy_norm = self._test_mixer_pool(operator=operator)
             print(f"REPETITION: {self._reps}")
@@ -225,19 +226,21 @@ class AdaptQAOA(QAOA):
             self.optimal_mixer_list.append(
                 best_mixer
             )  # Append mixer associated with largest energy gradient to list
-            print("Heeeeeeeerrreeee!!!!*384r239423")
-            print(self.optimal_mixer_list[-1])
             self._update_ansatz()
             result = self.compute_minimum_eigenvalue(operator=operator, aux_operators=aux_operators)
             opt_params = result.optimal_point
+            result_p.append(result)
             self.best_beta, self.best_gamma = np.split(opt_params, 2)
             self.best_beta = list(self.best_beta)
             self.best_gamma = list(self.best_gamma)
+            print()
             print("Optimal value", result.optimal_value)
 
             print("--------------------------------------------------------")
             self._reps += 1
         print("Optimal mixers:", self.optimal_mixer_list)
+        if iter_results:
+            return result, result_p
         return result
 
     def _check_problem_configuration(self, operator: OperatorBase):
