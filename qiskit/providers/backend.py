@@ -246,7 +246,7 @@ class QubitProperties:
 
     This class provides the optional properties that a backend can provide for
     a qubit. These represent the set of qubit properties that Qiskit can
-    currently work with if present. Howeverm if your backend provides additional
+    currently work with if present. However if your backend provides additional
     properties of qubits you should subclass this to add additional custom
     attributes for those custom/additional properties provided by the backend.
     """
