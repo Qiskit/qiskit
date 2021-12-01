@@ -429,29 +429,35 @@ class ParameterExpression:
 
         return sstr(sympify(self._symbol_expr), full_prec=False)
 
-    def __float__(self):
-        if self.parameters:
-            raise TypeError(
-                "ParameterExpression with unbound parameters ({}) "
-                "cannot be cast to a float.".format(self.parameters)
-            )
-        return float(self._symbol_expr)
-
     def __complex__(self):
-        if self.parameters:
+        try:
+            return complex(self._symbol_expr)
+        # TypeError is for sympy, RuntimeError for symengine
+        except (TypeError, RuntimeError) as exc:
             raise TypeError(
                 "ParameterExpression with unbound parameters ({}) "
                 "cannot be cast to a complex.".format(self.parameters)
-            )
-        return complex(self._symbol_expr)
+            ) from exc
+
+    def __float__(self):
+        try:
+            return float(self._symbol_expr)
+        # TypeError is for sympy, RuntimeError for symengine
+        except (TypeError, RuntimeError) as exc:
+            raise TypeError(
+                "ParameterExpression with unbound parameters ({}) "
+                "cannot be cast to a float.".format(self.parameters)
+            ) from exc
 
     def __int__(self):
-        if self.parameters:
+        try:
+            return int(self._symbol_expr)
+        # TypeError is for sympy, RuntimeError for symengine
+        except (TypeError, RuntimeError) as exc:
             raise TypeError(
                 "ParameterExpression with unbound parameters ({}) "
                 "cannot be cast to an int.".format(self.parameters)
-            )
-        return int(self._symbol_expr)
+            ) from exc
 
     def __hash__(self):
         return hash((frozenset(self._parameter_symbols), self._symbol_expr))
