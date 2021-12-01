@@ -18,7 +18,8 @@ from typing import Optional, List, Tuple, Dict
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from .. import Counts, marginal_counts
+from ..utils import marginal_counts
+from ..counts import Counts
 
 logger = logging.getLogger(__name__)
 
