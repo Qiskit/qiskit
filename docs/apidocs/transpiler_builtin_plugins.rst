@@ -1,7 +1,7 @@
 .. _qiskit-transpiler-builtin-plugins:
 
 ====================================
-Builtin Transpiler Synthesis Plugins
+Built-in Transpiler Synthesis Plugins
 ====================================
 
 .. toctree::
