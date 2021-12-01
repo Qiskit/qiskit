@@ -17,7 +17,6 @@
 
 from abc import ABC
 from abc import abstractmethod
-from collections import defaultdict
 import datetime
 import logging
 from typing import List, Union, Iterable, Tuple
@@ -334,7 +333,6 @@ class BackendV2(Backend, ABC):
                 if field not in self._options.data:
                     raise AttributeError("Options field %s is not valid for this backend" % field)
             self._options.update_config(**fields)
-        self._basis_gates_all = None
         self.name = name
         self.description = description
         self.online_date = online_date
@@ -350,29 +348,12 @@ class BackendV2(Backend, ABC):
         """A list of :class:`~qiskit.circuit.Instruction` instances that the backend supports."""
         return list(self.target.operations)
 
-    def _compute_non_global_basis(self):
-        incomplete_basis_gates = []
-        size_dict = defaultdict(int)
-        size_dict[1] = self.target.num_qubits
-        for qarg in self.target.qargs:
-            if len(qarg) == 1:
-                continue
-            size_dict[len(qarg)] += 1
-        for inst, qargs in self.target.items():
-            qarg_sample = next(iter(qargs))
-            if qarg_sample is None:
-                continue
-            if len(qargs) != size_dict[len(qarg_sample)]:
-                incomplete_basis_gates.append(inst)
-        self._basis_gates_all = incomplete_basis_gates
-
     @property
     def operation_names(self) -> List[str]:
         """A list of instruction names that the backend supports."""
-        if self._basis_gates_all is None:
-            self._compute_non_global_basis()
-        if self._basis_gates_all:
-            invalid_str = ",".join(self._basis_gates_all)
+        non_global_ops = self.target.get_non_global_operation_names()
+        if non_global_ops:
+            invalid_str = ",".join(non_global_ops)
             msg = (
                 f"This backend's operations: {invalid_str} only apply to a subset of "
                 "qubits. Using this property to get 'basis_gates' for the "

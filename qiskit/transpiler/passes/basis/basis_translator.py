@@ -67,7 +67,7 @@ class BasisTranslator(TransformationPass):
         self._target = target
         self._incomplete_basis = None
         if target is not None:
-            self._incomplete_basis = _compute_incomplete_basis(target)
+            self._incomplete_basis = self._target.get_non_global_operation_names()
 
     def run(self, dag):
         """Translate an input DAGCircuit to the target basis.
@@ -440,20 +440,3 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
                 )
 
     return mapped_instrs
-
-
-def _compute_incomplete_basis(target):
-    incomplete_basis_gates = []
-    size_dict = defaultdict(int)
-    size_dict[1] = target.num_qubits
-    for qarg in target.qargs:
-        if len(qarg) == 1:
-            continue
-        size_dict[len(qarg)] += 1
-    for inst, qargs in target.items():
-        qarg_sample = next(iter(qargs))
-        if qarg_sample is None:
-            continue
-        if len(qargs) != size_dict[len(qarg_sample)]:
-            incomplete_basis_gates.append(inst)
-    return incomplete_basis_gates
