@@ -378,6 +378,7 @@ def _text_circuit_drawer(
         encoding=encoding,
         qregs=circuit.qregs,
         cregs=circuit.cregs,
+        circuit=circuit,
     )
     text_drawing.plotbarriers = plot_barriers
     text_drawing.line_length = fold
@@ -584,6 +585,7 @@ def _generate_latex_source(
         global_phase=global_phase,
         qregs=circuit.qregs,
         cregs=circuit.cregs,
+        circuit=circuit,
     )
     latex = qcimg.latex()
     if filename:
@@ -676,5 +678,6 @@ def _matplotlib_circuit_drawer(
         qregs=circuit.qregs,
         cregs=circuit.cregs,
         calibrations=circuit.calibrations,
+        circuit=circuit,
     )
     return qcd.draw(filename)

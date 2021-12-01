@@ -29,7 +29,6 @@ from qiskit.visualization.utils import (
     get_param_str,
     get_bit_label,
     get_condition_label,
-    get_bit_locations,
 )
 from .exceptions import VisualizationError
 

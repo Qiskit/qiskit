@@ -29,7 +29,6 @@ from .utils import (
     get_bit_label,
     generate_latex_label,
     get_condition_label,
-    get_bit_locations,
 )
 
 
@@ -57,6 +56,7 @@ class QCircuitImage:
         global_phase=None,
         qregs=None,
         cregs=None,
+        circuit=None,
     ):
         """QCircuitImage initializer.
 
@@ -86,7 +86,7 @@ class QCircuitImage:
         self.scale = 1.0 if scale is None else scale
 
         # Map of cregs to sizes
-        self.cregs = {}
+        self._cregs = {}
 
         # List of qubits and cbits in order of appearance in code and image
         # May also include ClassicalRegisters if cregbundle=True
@@ -128,9 +128,9 @@ class QCircuitImage:
         self._qubits = qubits
         self._clbits = clbits
         self._ordered_bits = qubits + clbits
-        self.cregs = {reg: reg.size for reg in cregs}
+        self._cregs = {reg: reg.size for reg in cregs}
+        self._circuit = circuit
 
-        self._bit_locations = get_bit_locations(qregs, cregs, qubits, clbits, reverse_bits)
         self.cregbundle = cregbundle
         # If there is any custom instruction that uses clasiscal bits
         # then cregbundle is forced to be False.
@@ -139,12 +139,17 @@ class QCircuitImage:
                 if node.op.name not in {"measure"} and node.cargs:
                     self.cregbundle = False
 
-        self.cregs_bits = [self._bit_locations[bit]["register"] for bit in clbits]
+        self._cregs_bits = []
+        for bit in clbits:
+            cbit = self._circuit.find_bit(bit)
+            register = cbit.registers[0][0] if cbit.registers else None
+            self._cregs_bits.append(register)
+
         self.img_regs = {bit: ind for ind, bit in enumerate(self._ordered_bits)}
 
-        num_reg_bits = sum(reg.size for reg in self.cregs)
+        num_reg_bits = sum(reg.size for reg in self._cregs)
         if self.cregbundle:
-            self.img_width = len(qubits) + len(clbits) - (num_reg_bits - len(self.cregs))
+            self.img_width = len(qubits) + len(clbits) - (num_reg_bits - len(self._cregs))
         else:
             self.img_width = len(self.img_regs)
         self.global_phase = global_phase
@@ -214,9 +219,10 @@ class QCircuitImage:
         self._latex.append([" "] * (self.img_depth + 1))
 
         # quantum register
-        for ii, reg in enumerate(self._qubits):
-            register = self._bit_locations[reg]["register"]
-            index = self._bit_locations[reg]["index"]
+        for ii, bit in enumerate(self._qubits):
+            qubit = self._circuit.find_bit(bit)
+            register = qubit.registers[0][0] if qubit.registers else None
+            index = qubit.index
             qubit_label = get_bit_label("latex", register, index, qubit=True, layout=self.layout)
             qubit_label += " : "
             if self.initial_state:
@@ -228,8 +234,9 @@ class QCircuitImage:
         offset = 0
         if self._clbits:
             for ii in range(len(self._qubits), self.img_width):
-                register = self._bit_locations[self._ordered_bits[ii + offset]]["register"]
-                index = self._bit_locations[self._ordered_bits[ii + offset]]["index"]
+                clbit = self._circuit.find_bit(self._ordered_bits[ii + offset])
+                register = clbit.registers[0][0] if clbit.registers else None
+                index = clbit.index
                 clbit_label = get_bit_label(
                     "latex", register, index, qubit=False, cregbundle=self.cregbundle
                 )
@@ -325,8 +332,9 @@ class QCircuitImage:
 
         max_reg_name = 3
         for reg in self._ordered_bits:
-            if self._bit_locations[reg]["register"] is not None:
-                max_reg_name = max(max_reg_name, len(self._bit_locations[reg]["register"].name))
+            registers = self._circuit.find_bit(reg).registers
+            if registers:
+                max_reg_name = max(max_reg_name, len(registers[0][0].name))
         sum_column_widths += 5 + max_reg_name / 3
 
         # could be a fraction so ceil
@@ -526,7 +534,7 @@ class QCircuitImage:
             prev_reg = None
             idx_str = ""
             cond_offset = 1.5 if node.op.condition else 0.0
-            for i, reg in enumerate(self.cregs_bits):
+            for i, reg in enumerate(self._cregs_bits):
                 # if it's a registerless bit
                 if reg is None:
                     if self._clbits[i] == node.cargs[0]:
@@ -534,8 +542,9 @@ class QCircuitImage:
                     wire2 += 1
                     continue
                 # if it's a whole register or a bit in a register
-                if reg == self._bit_locations[node.cargs[0]]["register"]:
-                    idx_str = str(self._bit_locations[node.cargs[0]]["index"])
+                clbit = self._circuit.find_bit(node.cargs[0])
+                if clbit.registers and reg == clbit.registers[0][0]:
+                    idx_str = str(clbit.index)
                     break
                 if self.cregbundle and prev_reg and prev_reg == reg:
                     continue
@@ -594,21 +603,26 @@ class QCircuitImage:
         # gap - the number of wires from cwire to the bottom gate qubit
 
         label, clbit_mask, val_list = get_condition_label(
-            op.condition, self._clbits, self._bit_locations, self.cregbundle
+            op.condition, self._clbits, self._circuit, self.cregbundle
         )
         if not self.reverse_bits:
             val_list = val_list[::-1]
         cond_is_bit = isinstance(op.condition[0], Clbit)
-        cond_reg = (
-            op.condition[0] if not cond_is_bit else self._bit_locations[op.condition[0]]["register"]
-        )
+        registers = self._circuit.find_bit(op.condition[0]).registers
+        if not cond_is_bit:
+            cond_reg = op.condition[0]
+        elif registers:
+            cond_reg = registers[0][0]
+        else:
+            cond_reg = None
+
         # if cregbundle, add 1 to cwire for each register and each registerless bit, until
         # the condition bit/register is found. If not cregbundle, add 1 to cwire for every
         # bit until condition found.
         cwire = len(self._qubits)
         if self.cregbundle:
             prev_reg = None
-            for i, reg in enumerate(self.cregs_bits):
+            for i, reg in enumerate(self._cregs_bits):
                 # if it's a registerless bit
                 if reg is None:
                     if self._clbits[i] == op.condition[0]:

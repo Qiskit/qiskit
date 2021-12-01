@@ -44,7 +44,6 @@ from qiskit.visualization.utils import (
     get_param_str,
     get_bit_label,
     get_condition_label,
-    get_bit_locations,
     matplotlib_close_if_inline,
 )
 from qiskit.circuit.tools.pi_check import pi_check
@@ -84,6 +83,7 @@ class MatplotlibDrawer:
         qregs=None,
         cregs=None,
         calibrations=None,
+        circuit=None,
     ):
 
         if not HAS_MATPLOTLIB:
@@ -105,12 +105,12 @@ class MatplotlibDrawer:
                 pip_install="pip install pylatexenc",
             )
 
-        self._bit_locations = get_bit_locations(qregs, cregs, qubits, clbits, reverse_bits)
         self._qubits = qubits
         self._clbits = clbits
         self._qubits_dict = {}
         self._clbits_dict = {}
         self._nodes = nodes
+        self._circuit = circuit
         self._scale = 1.0 if scale is None else scale
 
         self._style, def_font_ratio = load_style(style)
@@ -452,9 +452,10 @@ class MatplotlibDrawer:
             return bit_label
 
         # quantum register
-        for ii, reg in enumerate(self._qubits):
-            register = self._bit_locations[reg]["register"]
-            index = self._bit_locations[reg]["index"]
+        for ii, bit in enumerate(self._qubits):
+            qubit = self._circuit.find_bit(bit)
+            register = qubit.registers[0][0] if qubit.registers else None
+            index = qubit.index
             qubit_label = get_bit_label("mpl", register, index, qubit=True, layout=self._layout)
             qubit_label = "$" + _fix_double_script(qubit_label) + "$" + initial_qbit
 
@@ -475,9 +476,10 @@ class MatplotlibDrawer:
             prev_creg = None
             idx = 0
             pos = y_off = -len(self._qubits) + 1
-            for ii, reg in enumerate(self._clbits):
-                register = self._bit_locations[reg]["register"]
-                index = self._bit_locations[reg]["index"]
+            for ii, bit in enumerate(self._clbits):
+                clbit = self._circuit.find_bit(bit)
+                register = clbit.registers[0][0] if clbit.registers else None
+                index = clbit.index
                 if register is None or not self._cregbundle or prev_creg != register:
                     n_lines += 1
                     idx += 1
@@ -522,22 +524,20 @@ class MatplotlibDrawer:
                 # get qubit index
                 q_indxs = []
                 for qarg in node.qargs:
-                    for index, reg in self._qubits_dict.items():
-                        if (
-                            reg["register"] == self._bit_locations[qarg]["register"]
-                            and reg["index"] == self._bit_locations[qarg]["index"]
-                        ):
+                    for index, bit in self._qubits_dict.items():
+                        qubit = self._circuit.find_bit(qarg)
+                        register = qubit.registers[0][0] if qubit.registers else None
+                        if bit["register"] == register and bit["index"] == qubit.index:
                             q_indxs.append(index)
                             break
 
                 # get clbit index
                 c_indxs = []
                 for carg in node.cargs:
-                    for index, reg in self._clbits_dict.items():
-                        if (
-                            reg["register"] == self._bit_locations[carg]["register"]
-                            and reg["index"] == self._bit_locations[carg]["index"]
-                        ):
+                    for index, bit in self._clbits_dict.items():
+                        clbit = self._circuit.find_bit(carg)
+                        register = clbit.registers[0][0] if clbit.registers else None
+                        if bit["register"] == register and bit["index"] == clbit.index:
                             c_indxs.append(index)
                             break
 
@@ -829,7 +829,7 @@ class MatplotlibDrawer:
     def _condition(self, node, cond_xy):
         """Add a conditional to a gate"""
         label, clbit_mask, val_list = get_condition_label(
-            node.op.condition, self._clbits, self._bit_locations, self._cregbundle
+            node.op.condition, self._clbits, self._circuit, self._cregbundle
         )
         if not self._reverse_bits:
             val_list = val_list[::-1]
@@ -1144,7 +1144,7 @@ class MatplotlibDrawer:
         """Determine which qubits are controls and whether they are open or closed"""
         # place the control label at the top or bottom of controls
         if text:
-            qlist = [self._bit_locations[qubit]["index"] for qubit in qargs]
+            qlist = [self._circuit.find_bit(qbit).index for qubit in qargs]
             ctbits = qlist[:num_ctrl_qubits]
             qubits = qlist[num_ctrl_qubits:]
             max_ctbit = max(ctbits)
