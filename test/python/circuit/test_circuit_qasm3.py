@@ -873,7 +873,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
     # This test _should_ pass, but the inner "regular" parameter won't get declared in the global
     # scope until gh-7280 is closed.  "expectedFailure" seems to be ignored by stestr.
-    @unittest.skip
+    @unittest.expectedFailure
     def test_regular_parameter_in_nested_for_loop(self):
         """Test that a for loop nested inside another outputs the expected result, including
         defining parameters that are used in nested loop scopes."""
