@@ -212,7 +212,9 @@ class PassManager:
         Returns:
             The transformed circuit(s).
         """
-        if isinstance(circuits, QuantumCircuit):
+        if not self._pass_sets and output_name is None and callback is None:
+            return circuits
+        elif isinstance(circuits, QuantumCircuit):
             return self._run_single_circuit(circuits, output_name, callback)
         elif len(circuits) == 1:
             return self._run_single_circuit(circuits[0], output_name, callback)
