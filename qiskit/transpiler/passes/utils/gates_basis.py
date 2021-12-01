@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-
 """Check if all gates in the DAGCircuit are in the specified basis gates."""
 
 from qiskit.transpiler.basepasses import AnalysisPass
