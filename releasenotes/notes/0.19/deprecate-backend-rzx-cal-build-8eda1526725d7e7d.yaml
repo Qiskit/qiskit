@@ -15,7 +15,7 @@ deprecations:
     For the constructor of the
     :class:`~qiskit.transpiler.passes.RZXCalibrationBuilder` passing a backend
     either as the first positional argument or with the named ``backend`` kwarg
-    is deprecated and will no longer work in a future release. Instead a
+    is deprecated and will no longer work in a future release. Instead
     a :class:`~qiskit.pulse.InstructionScheduleMap` should be passed directly to
     the ``instruction_schedule_map`` kwarg and a list of channel name lists for
     each qubit should be passed directly to ``qubit_channel_mapping``. For example,
@@ -41,6 +41,6 @@ deprecations:
         )
 
     This change is necessary because as a general rule backend objects are not
-    pickle serializeable and it would break when it was used with multiple
-    processes inside of :func:`~qiskit.compiler.transpile` when compliing
+    pickle serializable and it would break when it was used with multiple
+    processes inside of :func:`~qiskit.compiler.transpile` when compiling
     multiple circuits at once.
