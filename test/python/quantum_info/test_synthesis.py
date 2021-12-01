@@ -176,7 +176,9 @@ class CheckDecompositions(QiskitTestCase):
 
     def assertRoundTripPickle(self, weyl1: TwoQubitWeylDecomposition):
         """Fail if loads(dumps(weyl1)) not equal to weyl1"""
-        weyl2 = pickle.loads(pickle.dumps(weyl1))
+
+        pkl = pickle.dumps(weyl1, protocol=max(4, pickle.DEFAULT_PROTOCOL))
+        weyl2 = pickle.loads(pkl)
         msg_base = f"weyl1:\n{weyl1}\nweyl2:\n{repr(weyl2)}"
         self.assertEqual(type(weyl1), type(weyl2), msg_base)
         maxdiff = np.max(abs(weyl1.unitary_matrix - weyl2.unitary_matrix))
