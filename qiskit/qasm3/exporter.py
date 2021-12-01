@@ -840,5 +840,5 @@ def _infer_variable_declaration(
     # Arbitrary choice of double-precision float for all other parameters, but it's what we actually
     # expect people to be binding to their Parameters right now.
     return ast.IODeclaration(
-        ast.IOModifier.input, ast.FloatType.double, ast.Identifier(parameter.name)
+        ast.IOModifier.input, ast.FloatType.DOUBLE, ast.Identifier(parameter.name)
     )

@@ -23,16 +23,16 @@ class BasicPrinter:
     formatting is simple block indentation."""
 
     _CONSTANT_LOOKUP = {
-        ast.Constant.pi: "pi",
-        ast.Constant.euler: "euler",
-        ast.Constant.tau: "tau",
+        ast.Constant.PI: "pi",
+        ast.Constant.EULER: "euler",
+        ast.Constant.TAU: "tau",
     }
 
     _MODIFIER_LOOKUP = {
-        ast.QuantumGateModifierName.ctrl: "ctrl",
-        ast.QuantumGateModifierName.negctrl: "negctrl",
-        ast.QuantumGateModifierName.inv: "inv",
-        ast.QuantumGateModifierName.pow: "pow",
+        ast.QuantumGateModifierName.CTRL: "ctrl",
+        ast.QuantumGateModifierName.NEGCTRL: "negctrl",
+        ast.QuantumGateModifierName.INV: "inv",
+        ast.QuantumGateModifierName.POW: "pow",
     }
 
     _FLOAT_WIDTH_LOOKUP = {type: str(type.value) for type in ast.FloatType}

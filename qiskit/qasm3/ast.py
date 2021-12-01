@@ -121,11 +121,11 @@ class ClassicalType(ASTNode):
 class FloatType(ClassicalType, enum.Enum):
     """Allowed values for the width of floating-point types."""
 
-    half = 16
-    single = 32
-    double = 64
-    quad = 128
-    oct = 256
+    HALF = 16
+    SINGLE = 32
+    DOUBLE = 64
+    QUAD = 128
+    OCT = 256
 
 
 class BitArrayType(ClassicalType):
@@ -210,9 +210,9 @@ class IndexSet(ASTNode):
 class Constant(Expression, enum.Enum):
     """A constant value defined by the QASM 3 spec."""
 
-    pi = enum.auto()
-    euler = enum.auto()
-    tau = enum.auto()
+    PI = enum.auto()
+    EULER = enum.auto()
+    TAU = enum.auto()
 
 
 class QuantumMeasurement(ASTNode):
@@ -307,10 +307,10 @@ class AliasStatement(ASTNode):
 class QuantumGateModifierName(enum.Enum):
     """The names of the allowed modifiers of quantum gates."""
 
-    ctrl = enum.auto()
-    negctrl = enum.auto()
-    inv = enum.auto()
-    pow = enum.auto()
+    CTRL = enum.auto()
+    NEGCTRL = enum.auto()
+    INV = enum.auto()
+    POW = enum.auto()
 
 
 class QuantumGateModifier(ASTNode):
@@ -593,8 +593,8 @@ class ContinueStatement(Statement):
 class IOModifier(enum.Enum):
     """IO Modifier object"""
 
-    input = enum.auto()
-    output = enum.auto()
+    INPUT = enum.auto()
+    OUTPUT = enum.auto()
 
 
 class IODeclaration(ClassicalDeclaration):
