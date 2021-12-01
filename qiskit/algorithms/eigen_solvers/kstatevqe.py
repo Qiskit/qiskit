@@ -31,6 +31,7 @@ from qiskit.opflow import (
     ExpectationFactory,
     StateFn,
     CircuitStateFn,
+    SummedOp,
     ListOp,
     I,
     CircuitSampler, 
@@ -106,7 +107,8 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
             ansatz: A parameterized circuit used as Ansatz for the wave function.
 
             optimizer: A classical optimizer.
-            k: stands for the k-th excited state to compute. (defaults to 1) 
+            k: stands for the k-th excited state to compute. (defaults to 1 for first excited state)
+            beta: beta parameter in the VQD paper. Should have same length as  
             initial_point: An optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then VQE will look to the ansatz for a preferred
                 point and if not will simply compute a random one.
@@ -157,6 +159,7 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
         self.betas = betas
 
         self.k = k
+        self.betas = betas
 
         self._optimizer = None
         self.optimizer = optimizer
@@ -552,11 +555,11 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
         result.eigenstate = []
 
         
-        for step in range(self.k):
+        for step in range(self.k + 1):
             
             self._eval_count = 0
-            energy_evaluation, expectation = self.get_energy_evaluation(
-                step, operator, return_expectation=True
+            energy_evaluation= self.get_energy_evaluation(
+                step, operator, return_expectation=True, prev_states = result.optimal_parameters 
             )
 
             start_time = time()
@@ -584,13 +587,14 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
 
             eval_time = time() - start_time
 
+
             result.optimal_point.append(opt_result.x)
             result.optimal_parameters.append(dict(zip(self._ansatz_params, opt_result.x)))
             result.optimal_value.append(opt_result.fun)
             result.cost_function_evals.append(opt_result.nfev)
             result.optimizer_time.append(eval_time)
             result.eigenvalue.append(opt_result.fun + 0j)
-            result.eigenstate.append(self._get_eigenstate(result.optimal_parameters))
+            result.eigenstate.append(self._get_eigenstate(result.optimal_parameters[-1]))
             
             if step == 0:
                 
@@ -623,6 +627,7 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
         step,
         operator: OperatorBase,
         return_expectation: bool = False,
+        prev_states: List[float] = [],
     ) -> Callable[[np.ndarray], Union[float, List[float]]]:
         """Returns a function handle to evaluates the energy at given parameters for the ansatz.
 
@@ -643,6 +648,7 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
             RuntimeError: If the circuit is not parameterized (i.e. has 0 free parameters).
 
         """
+
         num_parameters = self.ansatz.num_parameters
         if num_parameters == 0:
             raise RuntimeError("The ansatz must be parameterized, but has 0 free parameters.")
@@ -653,11 +659,18 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
         self._check_operator_ansatz(operator)
         final_op = []
 
-        observable_meas = StateFn(op, is_measurement = True)
-        ansatz_circ_op = CircuitStateFn(ansatz)
+        observable_meas = StateFn(operator, is_measurement = True)
+        ansatz_circ_op = CircuitStateFn(self._ansatz)
         expect_op = observable_meas.compose(ansatz_circ_op).reduce()
         
         final_op.append(expect_op)
+
+        for state in range(step):
+            #prev_values = dict(zip(self._ansatz_params,prev_states[state - 1]))
+            prev_circ = CircuitStateFn(self.ansatz.bind_parameters(prev_states[state - 1]))
+            final_op.append(self.betas[state - 1] * ~ansatz_circ_op @ prev_circ)
+
+        final_op = SummedOp(oplist = final_op)
 
 
         def energy_evaluation(parameters):
@@ -669,15 +682,7 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
             sampled_expect_op = self._circuit_sampler.convert(final_op, params=param_bindings)
             means = np.real(sampled_expect_op.eval())
 
-            if self._callback is not None:
-                print("no expectation avaliable due to mixed state")
-                variance = np.real(expectation.compute_variance(sampled_expect_op))
-                estimator_error = np.sqrt(variance / self.quantum_instance.run_config.shots)
-                for i, param_set in enumerate(parameter_sets):
-                    self._eval_count += 1
-                    self._callback(self._eval_count, param_set, means[i], estimator_error[i])
-            else:
-                self._eval_count += len(means)
+            self._eval_count += len(means)
 
             end_time = time()
             logger.info(
@@ -793,8 +798,8 @@ class kVQEResult(VariationalResult, EigensolverResult):
         self._eigenstate = value
 
 
-def _validate_initial_point(k, point, ansatz):
-    expected_size = ansatz.num_parameters * k
+def _validate_initial_point(point, ansatz):
+    expected_size = ansatz.num_parameters
 
     # try getting the initial point from the ansatz
     if point is None and hasattr(ansatz, "preferred_init_points"):

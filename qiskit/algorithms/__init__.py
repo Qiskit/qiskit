@@ -193,7 +193,7 @@ from .amplitude_estimators import (
     MaximumLikelihoodAmplitudeEstimationResult,
     EstimationProblem,
 )
-from .eigen_solvers import NumPyEigensolver, Eigensolver, EigensolverResult
+from .eigen_solvers import NumPyEigensolver, Eigensolver, EigensolverResult, kStateVQE, kVQEResult
 from .factorizers import Shor, ShorResult
 from .linear_solvers import HHL, LinearSolver, NumPyLinearSolver, LinearSolverResult
 from .minimum_eigen_solvers import (
@@ -249,6 +249,8 @@ __all__ = [
     "MinimumEigensolverResult",
     "HamiltonianPhaseEstimation",
     "HamiltonianPhaseEstimationResult",
+    "kStateVQE",
+    "kVQEResult",
     "PhaseEstimationScale",
     "PhaseEstimation",
     "PhaseEstimationResult",
