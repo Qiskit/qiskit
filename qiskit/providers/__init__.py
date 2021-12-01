@@ -261,8 +261,8 @@ example would be something like::
 Transpiler Interface
 --------------------
 
-The key piece of the :class:`~qiskit.providers.Backend` object is how it describes itself to the compiler.
-This is handled with the :class:`~qiskit.transpiler.Target` class which defines
+The key piece of the :class:`~qiskit.providers.Backend` object is how it describes itself to the
+compiler. This is handled with the :class:`~qiskit.transpiler.Target` class which defines
 a model of a backend for the transpiler. A backend object will need to return
 a :class:`~qiskit.transpiler.Target` object from the :attr:`~qiskit.providers.BackendV2.target`
 attribute which the :func:`~qiskit.compiler.transpile` function will use as
