@@ -141,9 +141,8 @@ steps for writing a provider are:
  * Implement a :class:`~qiskit.providers.JobV1` subclass that handles
    interacting with a running job.
 
-For a simple example of a provider the
-`qiskit-aqt-provider <https://github.com/qiskit-community/qiskit-aqt-provider>`__
-package is worth using as an example.
+For a simple example of a provider, see the
+`qiskit-aqt-provider <https://github.com/Qiskit-Partners/qiskit-aqt-provider>`__
 
 Provider
 ========
