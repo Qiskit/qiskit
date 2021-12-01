@@ -106,6 +106,8 @@ class BasisTranslator(TransformationPass):
             incomplete_source_basis = defaultdict(set)
             for node in dag.op_nodes():
                 qargs = tuple(qarg_indices[bit] for bit in node.qargs)
+                if dag.has_calibration_for(node):
+                    continue
                 if qargs in qarg_with_incomplete:
                     incomplete_source_basis[qargs].add((node.name, node.op.num_qubits))
                 else:
