@@ -11,79 +11,52 @@ import numpy as np
 from qiskit.algorithms.optimizers import NELDER_MEAD
 import random
 from qiskit.opflow.primitive_ops import MatrixOp
+from max_cut import max_cut_hamiltonian
 
-QISKIT_DICT = {"I": I, "X": X, "Y": Y, "Z": Z}
-
-
-def build_maxcut_hamiltonian(G, return_pauli_strings=False):
-    import copy
-    from qiskit.quantum_info.operators import Pauli
-    num_qubits = G.order()
-    iden_str = list("I" * num_qubits)
-    H_terms = []
-    H_str_terms = []
-    iden = (I^(num_qubits)).to_matrix()
-    H_str_terms.append((iden_str, G.size()))
-    for edge in list(G.edges):
-        term = copy.deepcopy(iden_str)
-        term[edge[0]] = "Z"
-        term[edge[1]] = "Z"
-        pauli_str = ''
-        for i in term:
-            pauli_str += i
-        term_mat = Pauli(pauli_str).to_matrix()
-        weight = G.edges[edge[0], edge[1]]['weight']
-        H_str_terms.append((term, weight))
-        H_terms.append(-0.5*weight*(iden - term_mat))
-
-    if return_pauli_strings:
-        return H_str_terms
-    else:
-        return sum(H_terms)
-
-
-def string_to_qiskit(qstring):
-    if is_all_same(qstring):
-        # case where its all X's or Y's
-        gate = qstring[0]
-        list_string = [
-            i * "I" + gate + (len(qstring) - i - 1) * "I" for i in range(len(qstring))]
-        return sum([reduce(lambda a, b: a ^ b, [QISKIT_DICT[char.upper()] for char in x]) for x in list_string])
-
-    return reduce(lambda a, b: a ^ b, [QISKIT_DICT[char.upper()] for char in qstring])
-def is_all_same(items):
-    return all(x == items[0] for x in items)
+def extend_initial_points(max_reps, gamma_0 = 0.01, beta_0 = np.pi/4):
+    return [beta_0]*max_reps+[gamma_0]*max_reps
 
 D, nq = 3, 6
-G = nx.random_regular_graph(D, nq, seed=1234) # connectivity, vertices
-for (u, v) in G.edges():
-    G.edges[u,v]['weight'] = random.randint(0,1000)/1000
-cost_op = MatrixOp(build_maxcut_hamiltonian(G)).to_pauli_op()
-
-
-
-# mixer_list = ["XXIII","XIIX","IXXII"]
-# cost_op = string_to_qiskit("ZZZZZ")
-# cost_op = string_to_qiskit("IIIZZ")# + string_to_qiskit("ZZIII")
-# mixer_list = [string_to_qiskit(x) for x in mixer_list]
-
+cost_op = max_cut_hamiltonian(D=D, nq=nq)
+gs_energy = min(np.real(np.linalg.eig(cost_op.to_matrix())[0]))
 quantum_instance = QuantumInstance(Aer.get_backend('qasm_simulator'), shots=1024)
+optimiser = NELDER_MEAD()
+max_reps = 4
+# run adapt
+adaptqaoa = AdaptQAOA(max_reps=max_reps, quantum_instance=quantum_instance, mixer_pool_type="multi", optimizer=optimiser)#
+                        # initial_point=extend_initial_points(max_reps=max_reps))
+final_result, total_results = adaptqaoa.run_adapt(cost_op)
+adapt_depth = len(total_results)
+print("Optimal values for adapt:")
+print([total_results[i].optimal_value for i in range(adapt_depth)])
+adapt_vals = [(total_results[i].optimal_value-gs_energy) for i in range(adapt_depth)]
 
-'''
-adapt = AdaptQAOA(mixer_pool_type='singular', max_reps=5, quantum_instance=quantum_instance)
-#adapt.optimal_mixer_list = mixer_list
-cme = adapt.compute_minimum_eigenvalue(cost_op)
-print(cme)
-'''
-max_reps = 3
-adaptqaoa = AdaptQAOA(max_reps=max_reps, quantum_instance=quantum_instance, mixer_pool_type="multi", optimizer=NELDER_MEAD(),
-                        initial_point=[np.pi/4, 0.01]*max_reps)
-out = adaptqaoa.run_adapt(cost_op)
-# print("Adapt result: ", out)
-print("Optimal cost",adaptqaoa.get_optimal_cost())
-# print(adaptqaoa.get_optimal_circuit().draw())
+# now run regular qaoa over the maximum number of iterations!!!!
+print("Beginning QAOA experiment up to circuit depth {}".format(adapt_depth))
+qaoa_vals = []
+for p in range(1,adapt_depth+1):
+    qaoa = QAOA(reps=p, quantum_instance=quantum_instance, optimizer=optimiser)
+    out = qaoa.compute_minimum_eigenvalue(cost_op)
+    qaoa_vals.append(out.optimal_value-gs_energy)
+    print("Depth {}:".format(p))
+    print("Optimal value: {}".format(out.optimal_value))
+    print("Relative energy: {}".format(qaoa_vals[-1]))
 
-# qaoa = QAOA(reps=5, quantum_instance=quantum_instance)
-# out = qaoa.compute_minimum_eigenvalue(cost_op)
-# print(out)
-# print(qaoa.get_optimal_circuit().draw())
+import matplotlib.pylab as pylab
+import matplotlib.pyplot as plt
+params = {'legend.fontsize': 'xx-large',
+          'figure.figsize': (12, 12),
+         'axes.labelsize': 'xx-large',
+         'axes.titlesize':'xx-large',
+         'xtick.labelsize':'x-large',
+         'ytick.labelsize':'x-large'}
+pylab.rcParams.update(params)
+plt.plot(np.arange(1,adapt_depth+1),qaoa_vals,label='QAOA')
+plt.plot(np.arange(1,adapt_depth+1),adapt_vals,label='AdaptQAOA')
+plt.xlabel("Circuit depth")
+plt.ylabel("Energy")
+plt.legend()
+plt.savefig('adaptqaoa_vs_qaoa.png')
+
+
+
