@@ -35,7 +35,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         self,
         amats: Optional[List[np.ndarray]] = None,
         qubits: Optional[Iterable[int]] = None,
-        backend = None,
+        backend=None,
     ):
         """Initialize a LocalReadoutMitigator
 
