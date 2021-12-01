@@ -796,12 +796,12 @@ class TestCircuitQASM3(QiskitTestCase):
 
     def test_simple_for_loop(self):
         """Test that a simple for loop outputs the expected result."""
+        parameter = Parameter("x")
         loop_body = QuantumCircuit(1)
-        loop_body.h(0)
+        loop_body.rx(parameter, 0)
         loop_body.break_loop()
         loop_body.continue_loop()
 
-        parameter = Parameter("x")
         qc = QuantumCircuit(2)
         qc.for_loop(parameter, [0, 3, 4], loop_body, [1], [])
         qc.x(0)
@@ -815,7 +815,7 @@ class TestCircuitQASM3(QiskitTestCase):
                 "qubit[2] _all_qubits;",
                 f"let {qr_name} = _all_qubits[0:1];",
                 f"for {parameter.name} in {{0, 3, 4}} {{",
-                f"  h {qr_name}[1];",
+                f"  rx({parameter.name}) {qr_name}[1];",
                 "  break;",
                 "  continue;",
                 "}",
@@ -831,13 +831,13 @@ class TestCircuitQASM3(QiskitTestCase):
         outer_parameter = Parameter("y")
 
         inner_body = QuantumCircuit(2)
-        inner_body.h(0)
-        inner_body.h(1)
+        inner_body.rz(inner_parameter, 0)
+        inner_body.rz(outer_parameter, 1)
         inner_body.break_loop()
 
         outer_body = QuantumCircuit(2)
         outer_body.h(0)
-        outer_body.h(1)
+        outer_body.rz(outer_parameter, 1)
         # Note we reverse the order of the bits here to test that this is traced.
         outer_body.for_loop(inner_parameter, range(1, 5, 2), inner_body, [1, 0], [])
         outer_body.continue_loop()
@@ -856,11 +856,11 @@ class TestCircuitQASM3(QiskitTestCase):
                 f"let {qr_name} = _all_qubits[0:1];",
                 f"for {outer_parameter.name} in [0:3] {{",
                 f"  h {qr_name}[0];",
-                f"  h {qr_name}[1];",
+                f"  rz({outer_parameter.name}) {qr_name}[1];",
                 f"  for {inner_parameter.name} in [1:2:4] {{",
                 # Note the reversed bit order.
-                f"    h {qr_name}[1];",
-                f"    h {qr_name}[0];",
+                f"    rz({inner_parameter.name}) {qr_name}[1];",
+                f"    rz({outer_parameter.name}) {qr_name}[0];",
                 "    break;",
                 "  }",
                 "  continue;",
