@@ -40,6 +40,17 @@ class TestSkipQobjValidation(QiskitAlgorithmsTestCase):
         super().setUp()
         self.random_seed = 10598
 
+        """
+        (qc)
+
+              ┌───┐      ░ ┌─┐ ░
+        q0_0: ┤ H ├──■───░─┤M├─░────
+              └───┘┌─┴─┐ ░ └╥┘ ░ ┌─┐
+        q0_1: ─────┤ X ├─░──╫──░─┤M├
+                   └───┘ ░  ║  ░ └╥┘
+        c0: 2/══════════════╩═════╩═
+                            0     1
+        """
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2)
         qc = QuantumCircuit(qr, cr)

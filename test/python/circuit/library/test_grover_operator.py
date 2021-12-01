@@ -128,7 +128,25 @@ class TestGroverOperator(QiskitTestCase):
             self.assertEqual(expected, grover_op.decompose())
 
     def test_num_mcx_ancillas(self):
-        """Test the number of ancilla bits for the mcx gate in zero_reflection."""
+        """Test the number of ancilla bits for the mcx gate in zero_reflection.
+
+        (oracle)
+
+        q_0: ──■──────────────────────
+               │
+        q_1: ──■──────────────────────
+               │
+        q_2: ──┼────■─────────────────
+               │    │
+        q_3: ──┼────■─────────────────
+             ┌─┴─┐  │
+        q_4: ┤ X ├──┼────■────────────
+             └───┘┌─┴─┐  │
+        q_5: ─────┤ X ├──■────────────
+             ┌───┐├───┤┌─┴─┐┌───┐┌───┐
+        q_6: ┤ X ├┤ H ├┤ X ├┤ H ├┤ X ├
+             └───┘└───┘└───┘└───┘└───┘
+        """
         oracle = QuantumCircuit(7)
         oracle.x(6)
         oracle.h(6)
