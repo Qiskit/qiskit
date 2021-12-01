@@ -16,7 +16,7 @@ Readout mitigator class based on the A-matrix inversion method
 from typing import Optional, List, Tuple, Iterable, Callable, Union
 import numpy as np
 
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 from ..distributions.quasi import QuasiDistribution
 from ..counts import Counts
 from .base_readout_mitigator import BaseReadoutMitigator
