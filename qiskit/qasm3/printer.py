@@ -228,7 +228,7 @@ class BasicPrinter:
 
     def _visit_IODeclaration(self, node: ast.IODeclaration) -> None:
         self._start_line()
-        modifier = "input" if node.modifier is ast.IOModifier.input else "output"
+        modifier = "input" if node.modifier is ast.IOModifier.INPUT else "output"
         self.stream.write(modifier + " ")
         self.visit(node.type)
         self.stream.write(" ")

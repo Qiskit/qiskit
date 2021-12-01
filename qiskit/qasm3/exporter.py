@@ -474,7 +474,7 @@ class QASM3Builder:
             if declaration is None:
                 continue
             if isinstance(declaration, ast.IODeclaration):
-                if declaration.modifier is ast.IOModifier.input:
+                if declaration.modifier is ast.IOModifier.INPUT:
                     inputs.append(declaration)
                 else:
                     outputs.append(declaration)
@@ -840,5 +840,5 @@ def _infer_variable_declaration(
     # Arbitrary choice of double-precision float for all other parameters, but it's what we actually
     # expect people to be binding to their Parameters right now.
     return ast.IODeclaration(
-        ast.IOModifier.input, ast.FloatType.DOUBLE, ast.Identifier(parameter.name)
+        ast.IOModifier.INPUT, ast.FloatType.DOUBLE, ast.Identifier(parameter.name)
     )
