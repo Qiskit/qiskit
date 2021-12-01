@@ -110,7 +110,6 @@ class VarQite(VarQte, EvolutionBase):
             hamiltonian_value_dict, list(initial_state.parameters)
         )
 
-
         return super()._evolve_helper(
             self._create_imag_ode_function_generator,
             init_state_param_dict,

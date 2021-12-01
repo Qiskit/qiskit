@@ -14,8 +14,7 @@ import unittest
 
 import numpy as np
 from qiskit.quantum_info import state_fidelity, Statevector
-from qiskit.algorithms.quantum_time_evolution.variational.principles.real.implementations\
-    .real_mc_lachlan_variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.principles.real.implementations.real_mc_lachlan_variational_principle import (
     RealMcLachlanVariationalPrinciple,
 )
 from qiskit import Aer
@@ -26,19 +25,21 @@ from qiskit.opflow import (
     X,
     Y,
     I,
-    Z, StateFn,
+    Z,
+    StateFn,
 )
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 np.random.seed = 11
 from qiskit.utils import algorithm_globals
+
 algorithm_globals.random_seed = 11
 
 
 class TestVarQrte(QiskitAlgorithmsTestCase):
     # pass
     def test_run_d_1(self):
-    # def test_run_d_1():
+        # def test_run_d_1():
         observable = SummedOp(
             [
                 0.2252 * (I ^ I),
@@ -78,16 +79,30 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
         )
 
         # values from the prototype
-        thetas_expected = [0.88689233, 1.53841938, 1.57100495, 1.58891647, 1.59947863, 1.57016298,
-                            1.63950734, 1.53843156]
+        thetas_expected = [
+            0.88689233,
+            1.53841938,
+            1.57100495,
+            1.58891647,
+            1.59947863,
+            1.57016298,
+            1.63950734,
+            1.53843156,
+        ]
 
         parameter_values = evolution_result.data[0][0].params
 
-        print(state_fidelity(Statevector(evolution_result),
-                             Statevector(ansatz.assign_parameters(dict(
-                                 zip(ansatz.parameters, thetas_expected))))))
+        print(
+            state_fidelity(
+                Statevector(evolution_result),
+                Statevector(
+                    ansatz.assign_parameters(dict(zip(ansatz.parameters, thetas_expected)))
+                ),
+            )
+        )
         for i, parameter_value in enumerate(parameter_values):
             np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=3)
+
 
 #
 if __name__ == "__main__":

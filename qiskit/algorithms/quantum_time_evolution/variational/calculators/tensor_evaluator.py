@@ -44,7 +44,7 @@ def eval_grad_result(
 
 
 def eval_metric_result(
-    metric,
+    metric: OperatorBase,
     param_dict: Dict[Parameter, Union[float, complex]],
     metric_circ_sampler: CircuitSampler,
 ):
