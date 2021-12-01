@@ -11,3 +11,4 @@
 # that they have been altered from the originals.
 
 """Qiskit result integration tests."""
+from .generate_data import test_data

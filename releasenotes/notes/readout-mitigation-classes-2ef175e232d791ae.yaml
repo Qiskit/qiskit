@@ -1,8 +1,8 @@
 ---
 features:
   - |
-    New readout mitigation classes:
-    :class:`~qiskit.mitigation.CorrelatedReadoutMitigator`,
+    New readout mitigation classes to mitigate qiskit experiment results:
+    :class:`~qiskit.result.CorrelatedReadoutMitigator`,
     which is based on the A-matrix inversion method, and
-    :class:`~qiskit.mitigation.LocalReadoutMitigator`,
+    :class:`~qiskit.result.LocalReadoutMitigator`,
     which is based on the 1-qubit tensored mitigation method.
