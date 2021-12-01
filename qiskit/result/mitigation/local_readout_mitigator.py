@@ -17,8 +17,8 @@ Readout mitigator class based on the 1-qubit local tensored mitigation method
 from typing import Optional, List, Tuple, Iterable, Callable, Union
 import numpy as np
 
-from qiskit.providers import Backend
-from qiskit.providers.models import BackendProperties
+from qiskit.providers.backend import Backend
+from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.exceptions import QiskitError
 from ..distributions.quasi import QuasiDistribution
 from ..counts import Counts
