@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed `#7156 <https://github.com/Qiskit/qiskit-terra/issues/7156>`__ .
+    Many layout methods ignore 3-or-more qubit gates resulting in expected layout allocation decisions.
+    The pass :class:`qiskit.transpiler.passes.Unroll3qOrMore` is now being executed before the layout pass.
