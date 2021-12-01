@@ -92,4 +92,3 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
 #
 if __name__ == "__main__":
     unittest.main()
-    # test_run_d_1()

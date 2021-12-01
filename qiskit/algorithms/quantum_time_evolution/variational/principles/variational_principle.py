@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 from abc import ABC, abstractmethod
-from typing import Union, Optional, List, Dict
+from typing import Union, Optional, List
 
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
@@ -63,15 +63,4 @@ class VariationalPrinciple(ABC):
         ansatz,
         parameters: List[Parameter],
     ):
-        pass
-
-    @abstractmethod
-    def _calc_error_bound(
-        self,
-        error: float,
-        et: float,
-        h_squared_expectation: float,
-        h_trip: float,
-        trained_energy: float,
-    ) -> float:
         pass

@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 from abc import abstractmethod
-from typing import Union, List, Tuple, Any, Dict, Optional
+from typing import Union, List, Tuple, Any, Dict, Optional, Iterable
 
 import numpy as np
 
@@ -86,6 +86,16 @@ class ErrorCalculator:
             square root of the l2 norm of the error
         """
         raise NotImplementedError
+
+    def _inner_prod(self, x: Iterable, y: Iterable) -> Union[np.ndarray, np.complex, np.float]:
+        """
+        Compute the inner product of two vectors
+        Args:
+            x: vector
+            y: vector
+        Returns: Inner product of x,y
+        """
+        return np.matmul(np.conj(np.transpose(x)), y)
 
     def _validate_epsilon_squared(self, eps_squared: float) -> float:
         if eps_squared < 0:

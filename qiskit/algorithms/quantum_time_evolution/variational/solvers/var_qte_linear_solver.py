@@ -82,7 +82,7 @@ class VarQteLinearSolver:
             # bind parameters to H(t)
             # grad
             # natural gradient with nat_grad_combo_fn(x, regularization=None)
-            # TODO raw_evolution_grad might be a callback
+            # TODO raw_evolution_grad might be passed as a callback
             grad = var_principle._raw_evolution_grad.bind_parameters(time_dict)
         else:
             grad = var_principle._raw_evolution_grad
@@ -95,83 +95,3 @@ class VarQteLinearSolver:
             [grad_result, metric_result], regularization=regularization
         )
         return np.real(nat_grad_result)
-
-    # # TODO update
-    # def _solve_sle_for_error_bounds(
-    #     self,
-    #     var_principle: VariationalPrinciple,
-    #     param_dict: Dict[Parameter, Union[float, complex]],
-    #     t_param: Parameter = None,
-    #     t: float = None,
-    # ) -> (Union[List, np.ndarray], Union[List, np.ndarray], np.ndarray):
-    #     """
-    #     Solve the system of linear equations underlying McLachlan's variational principle for the
-    #     calculation with error bounds.
-    #     Args:
-    #         var_principle: Variational Principle to be used.
-    #         param_dict: Dictionary which relates parameter values to the parameters in the Ansatz.
-    #         t_param: Time parameter in case of a time-dependent Hamiltonian.
-    #         t: Time value that will be bound to t_param.
-    #     Returns: dω/dt, 2Re⟨dψ(ω)/dω|H|ψ(ω) for VarQITE/ 2Im⟨dψ(ω)/dω|H|ψ(ω) for VarQRTE,
-    #     Fubini-Study Metric.
-    #     """
-    #
-    #     # bind time parameter for the current value of time from the ODE solver
-    #
-    #     # if t_param is not None:
-    #     #     # TODO bind here
-    #     #     time_dict = {t_param: t}
-    #     #     evolution_grad = evolution_grad.bind_parameters(time_dict)
-    #     grad_result = eval_grad_result(
-    #         var_principle._raw_evolution_grad,
-    #         param_dict,
-    #         self._grad_circ_sampler,
-    #         self._backend,
-    #     )
-    #     metric_result = eval_metric_result(
-    #         var_principle._raw_metric_tensor,
-    #         param_dict,
-    #         self._metric_circ_sampler,
-    #     )
-    #
-    #     self._inspect_imaginary_parts(grad_result, metric_result)
-    #
-    #     metric_res = np.real(metric_result)
-    #     grad_res = np.real(grad_result)
-    #
-    #     # Check if numerical instabilities lead to a metric which is not positive semidefinite
-    #     metric_res = self._check_and_fix_metric_psd(metric_res)
-    #
-    #     return grad_res, metric_res
-
-    def _inspect_imaginary_parts(self, grad_res, metric_res):
-        if any(np.abs(np.imag(grad_res_item)) > 1e-3 for grad_res_item in grad_res):
-            raise Warning("The imaginary part of the gradient are non-negligible.")
-        if np.any(
-            [
-                [np.abs(np.imag(metric_res_item)) > 1e-3 for metric_res_item in metric_res_row]
-                for metric_res_row in metric_res
-            ]
-        ):
-            raise Warning("The imaginary part of the metric are non-negligible.")
-
-    def _check_and_fix_metric_psd(self, metric_res):
-        while True:
-            w, v = np.linalg.eigh(metric_res)
-
-            if not all(ew >= -1e-2 for ew in w):
-                raise Warning(
-                    "The underlying metric has ein Eigenvalue < ",
-                    -1e-2,
-                    ". Please use a regularized least-square solver for this problem.",
-                )
-            if not all(ew >= 0 for ew in w):
-                # If not all eigenvalues are non-negative, set them to a small positive
-                # value
-                w = [max(1e-10, ew) for ew in w]
-                # Recompose the adapted eigenvalues with the eigenvectors to get a new metric
-                metric_res = np.real(v @ np.diag(w) @ np.linalg.inv(v))
-            else:
-                # If all eigenvalues are non-negative use the metric
-                break
-        return metric_res

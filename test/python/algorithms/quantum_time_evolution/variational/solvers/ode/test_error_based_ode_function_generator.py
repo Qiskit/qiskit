@@ -70,7 +70,7 @@ class TestErrorBasedOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         h_squared = PauliExpectation().convert(h_squared)
 
         error_calculator = ImaginaryErrorCalculator(
-            h_squared, operator, CircuitSampler(backend), CircuitSampler(backend), param_dict
+            h_squared, operator, CircuitSampler(backend), CircuitSampler(backend)
         )
 
         var_principle = ImaginaryMcLachlanVariationalPrinciple()

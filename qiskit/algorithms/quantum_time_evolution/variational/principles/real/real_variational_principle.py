@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 from abc import abstractmethod
-from typing import Union, Dict, List
+from typing import Union, List
 
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
@@ -53,13 +53,3 @@ class RealVariationalPrinciple(VariationalPrinciple):
         param_dict: List[Parameter],
     ):
         pass
-
-    def _calc_error_bound(
-        self,
-        error: float,
-        et: float,
-        h_squared_expectation: float,
-        h_norm: float,
-        trained_energy: float,
-    ):
-        return et
