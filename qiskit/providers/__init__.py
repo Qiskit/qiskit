@@ -262,7 +262,7 @@ example would be something like::
 Transpiler Interface
 --------------------
 
-The key piece of the backend object is how it describes itself to the compiler.
+The key piece of the :class:`~qiskit.providers.Backend` object is how it describes itself to the compiler.
 This is handled with the :class:`~qiskit.transpiler.Target` class which defines
 a model of a backend for the transpiler. A backend object will need to return
 a :class:`~qiskit.transpiler.Target` object from the :attr:`~qiskit.providers.BackendV2.target`
@@ -275,7 +275,7 @@ Custom Basis Gates
 1. If your backend doesn't use gates in the Qiskit circuit library
    (:mod:`qiskit.circuit.library`) you can integrate support for this into your
    provider. The basic method for doing this is first to define a
-   :class:`~qiskit.circuit.Gate` class for all the custom gates in the basis
+   :class:`~qiskit.circuit.Gate` subclass for each custom gate in the basis
    set. For example::
 
        import numpy as np
@@ -318,9 +318,9 @@ Custom Basis Gates
    The keys in ``sy_props`` define the qubits on the backend ``SYGate`` can be
    used on, and the values define the properties of ``SYGate`` on that qubit.
    For multiqubit gates the tuple keys contain all qubit combinations the gate
-   works on (order is significant ``(0, 1)`` is different from ``(1, 0)``).
+   works on (order is significant, i.e. ``(0, 1)`` is different from ``(1, 0)``).
 
-3. After you've defined the custom gates to use for the Backend's basis set
+3. After you've defined the custom gates to use for the backend's basis set
    then you need to add equivalence rules to the standard equivalence library
    so that the :func:`~qiskit.compiler.transpile` function and
    :mod:`~qiskit.transpiler` module can convert an arbitrary circuit using the
@@ -590,7 +590,7 @@ with :obj:`~BackendV2`:
    * - ``backend.configuration().coupling_map``
      - ``backend.coupling_map``
      - The return from :obj:`~BackendV2` is a :class:`~qiskit.transpiler.CouplingMap` object.
-       while in :obj:`~BackendV1` it is just an edge list. Also this is just a view of
+       while in :obj:`~BackendV1` it is an edge list. Also this is just a view of
        the information contained in ``backend.target`` which may only be a subset of the
        information contained in :class:`~qiskit.transpiler.Target` object.
    * - ``backend.configuration().backend_name``
