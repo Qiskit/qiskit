@@ -58,8 +58,8 @@ class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
 
         # apply the RZXCalibrationBuilderNoEcho.
         pass_ = RZXCalibrationBuilderNoEcho(
-            self.backend.defaults().instruction_schedule_map,
-            self.backend.configuration().qubit_channel_mapping,
+            instruction_schedule_map=self.backend.defaults().instruction_schedule_map,
+            qubit_channel_mapping=self.backend.configuration().qubit_channel_mapping,
         )
         cal_qc = PassManager(pass_).run(rzx_qc)
         rzx_qc_duration = schedule(cal_qc, self.backend).duration
