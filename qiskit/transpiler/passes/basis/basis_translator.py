@@ -127,7 +127,7 @@ class BasisTranslator(TransformationPass):
             self._equiv_lib, source_basis, target_basis, _basis_heuristic
         )
 
-        extra_basis_transforms = {}
+        qarg_local_basis_transforms = {}
         for qarg, extra_source_basis in incomplete_source_basis.items():
             expanded_target = target_basis | qarg_with_incomplete[qarg]
 
@@ -138,7 +138,7 @@ class BasisTranslator(TransformationPass):
                 expanded_target,
                 qarg,
             )
-            extra_basis_transforms[qarg] = _basis_search(
+            qarg_local_basis_transforms[qarg] = _basis_search(
                 self._equiv_lib, extra_source_basis, expanded_target, _basis_heuristic
             )
 
@@ -159,7 +159,7 @@ class BasisTranslator(TransformationPass):
         instr_map = _compose_transforms(basis_transforms, source_basis, dag)
         extra_instr_map = {
             qarg: _compose_transforms(transforms, incomplete_source_basis[qarg], dag)
-            for qarg, transforms in extra_basis_transforms.items()
+            for qarg, transforms in qarg_local_basis_transforms.items()
         }
 
         compose_end_time = time.time()
