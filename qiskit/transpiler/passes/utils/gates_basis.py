@@ -25,6 +25,8 @@ class GatesInBasis(AnalysisPass):
             basis_gates (list): The list of strings representing the set of basis gates.
         """
         super().__init__()
+        if basis_gates is None:
+            basis_gates = []
         self._basis_gates = set(basis_gates)
 
     def run(self, dag):
