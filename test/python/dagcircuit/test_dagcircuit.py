@@ -1135,6 +1135,20 @@ class TestCircuitProperties(QiskitTestCase):
     """DAGCircuit properties test."""
 
     def setUp(self):
+        """
+              ┌───┐                ┌───┐
+        q0_0: ┤ H ├────────────────┤ X ├──────────
+              └───┘                └─┬─┘     ┌───┐
+        q0_1: ───────────────────────┼───────┤ H ├
+                        ┌───┐        │  ┌───┐└─┬─┘
+        q0_2: ──■───────┤ H ├────────┼──┤ T ├──■──
+              ┌─┴─┐┌────┴───┴─────┐  │  └───┘
+        q0_3: ┤ X ├┤ U(0,0.1,0.2) ├──┼────────────
+              └───┘└──────────────┘  │
+        q1_0: ───────────────────────■────────────
+                                     │
+        q1_1: ───────────────────────■────────────
+        """
         super().setUp()
         qr1 = QuantumRegister(4)
         qr2 = QuantumRegister(2)
@@ -1199,6 +1213,20 @@ class TestDagEquivalence(QiskitTestCase):
     """DAGCircuit equivalence check."""
 
     def setUp(self):
+        """
+               ┌───┐                ┌───┐
+        qr1_0: ┤ H ├────────────────┤ X ├──────────
+               └───┘                └─┬─┘     ┌───┐
+        qr1_1: ───────────────────────┼───────┤ H ├
+                         ┌───┐        │  ┌───┐└─┬─┘
+        qr1_2: ──■───────┤ H ├────────┼──┤ T ├──■──
+               ┌─┴─┐┌────┴───┴─────┐  │  └───┘
+        qr1_3: ┤ X ├┤ U(0,0.1,0.2) ├──┼────────────
+               └───┘└──────────────┘  │
+        qr2_0: ───────────────────────■────────────
+                                      │
+        qr2_1: ───────────────────────■────────────
+        """
         super().setUp()
         self.qr1 = QuantumRegister(4, "qr1")
         self.qr2 = QuantumRegister(2, "qr2")
@@ -1213,7 +1241,21 @@ class TestDagEquivalence(QiskitTestCase):
         self.dag1 = circuit_to_dag(circ1)
 
     def test_dag_eq(self):
-        """DAG equivalence check: True."""
+        """DAG equivalence check: True.
+
+               ┌───┐                ┌───┐
+        qr1_0: ┤ H ├────────────────┤ X ├──────────
+               └───┘                └─┬─┘     ┌───┐
+        qr1_1: ───────────────────────┼───────┤ H ├
+                         ┌───┐        │  ┌───┐└─┬─┘
+        qr1_2: ──■───────┤ H ├────────┼──┤ T ├──■──
+               ┌─┴─┐┌────┴───┴─────┐  │  └───┘
+        qr1_3: ┤ X ├┤ U(0,0.1,0.2) ├──┼────────────
+               └───┘└──────────────┘  │
+        qr2_0: ───────────────────────■────────────
+                                      │
+        qr2_1: ───────────────────────■────────────
+        """
         circ2 = QuantumCircuit(self.qr1, self.qr2)
         circ2.cx(self.qr1[2], self.qr1[3])
         circ2.u(0.0, 0.1, 0.2, self.qr1[3])
@@ -1227,7 +1269,21 @@ class TestDagEquivalence(QiskitTestCase):
         self.assertEqual(self.dag1, dag2)
 
     def test_dag_neq_topology(self):
-        """DAG equivalence check: False. Different topology."""
+        """DAG equivalence check: False. Different topology.
+
+               ┌───┐                     ┌───┐
+        qr1_0: ┤ H ├───────■─────────────┤ X ├
+               └───┘     ┌─┴─┐           └─┬─┘
+        qr1_1: ──────────┤ H ├─────────────┼──
+                         ├───┤      ┌───┐  │
+        qr1_2: ──■───────┤ H ├──────┤ T ├──┼──
+               ┌─┴─┐┌────┴───┴─────┐└───┘  │
+        qr1_3: ┤ X ├┤ U(0,0.1,0.2) ├───────┼──
+               └───┘└──────────────┘       │
+        qr2_0: ────────────────────────────■──
+                                           │
+        qr2_1: ────────────────────────────■──
+        """
         circ2 = QuantumCircuit(self.qr1, self.qr2)
         circ2.cx(self.qr1[2], self.qr1[3])
         circ2.u(0.0, 0.1, 0.2, self.qr1[3])
@@ -1241,7 +1297,21 @@ class TestDagEquivalence(QiskitTestCase):
         self.assertNotEqual(self.dag1, dag2)
 
     def test_dag_neq_same_topology(self):
-        """DAG equivalence check: False. Same topology."""
+        """DAG equivalence check: False. Same topology.
+
+               ┌───┐                ┌───┐
+        qr1_0: ┤ H ├────────────────┤ X ├──────────
+               └───┘                └─┬─┘     ┌───┐
+        qr1_1: ───────────────────────┼───────┤ X ├
+                         ┌───┐        │  ┌───┐└─┬─┘
+        qr1_2: ──■───────┤ H ├────────┼──┤ T ├──■──
+               ┌─┴─┐┌────┴───┴─────┐  │  └───┘
+        qr1_3: ┤ X ├┤ U(0,0.1,0.2) ├──┼────────────
+               └───┘└──────────────┘  │
+        qr2_0: ───────────────────────■────────────
+                                      │
+        qr2_1: ───────────────────────■────────────
+        """
         circ2 = QuantumCircuit(self.qr1, self.qr2)
         circ2.cx(self.qr1[2], self.qr1[3])
         circ2.u(0.0, 0.1, 0.2, self.qr1[3])
@@ -1531,6 +1601,20 @@ class TestDagProperties(QiskitTestCase):
     """Test the DAG properties."""
 
     def setUp(self):
+        """
+              ┌───┐                ┌───┐
+        q0_0: ┤ H ├────────────────┤ X ├──────────
+              └───┘                └─┬─┘     ┌───┐
+        q0_1: ───────────────────────┼───────┤ H ├
+                        ┌───┐        │  ┌───┐└─┬─┘
+        q0_2: ──■───────┤ H ├────────┼──┤ T ├──■──
+              ┌─┴─┐┌────┴───┴─────┐  │  └───┘
+        q0_3: ┤ X ├┤ U(0,0.1,0.2) ├──┼────────────
+              └───┘└──────────────┘  │
+        q1_0: ───────────────────────■────────────
+                                     │
+        q1_1: ───────────────────────■────────────
+        """
         super().setUp()
         qr1 = QuantumRegister(4)
         qr2 = QuantumRegister(2)
@@ -1586,7 +1670,21 @@ class TestDagProperties(QiskitTestCase):
         self.assertEqual(len(wires), 1)
 
     def test_dag_depth1(self):
-        """Test DAG depth #1"""
+        """Test DAG depth #1
+
+              ┌───┐
+        q1_0: ┤ H ├──■────■─────────────────
+              ├───┤  │  ┌─┴─┐
+        q1_1: ┤ H ├──┼──┤ X ├──■────────────
+              ├───┤  │  └───┘  │  ┌───┐
+        q1_2: ┤ H ├──┼─────────┼──┤ X ├──■──
+              ├───┤┌─┴─┐       │  └─┬─┘┌─┴─┐
+        q2_0: ┤ H ├┤ X ├───────┼────┼──┤ X ├
+              ├───┤└─┬─┘     ┌─┴─┐  │  └───┘
+        q2_1: ┤ H ├──■───────┤ X ├──■───────
+              └───┘          └───┘
+        c: 5/══════════════════════════════
+        """
         qr1 = QuantumRegister(3, "q1")
         qr2 = QuantumRegister(2, "q2")
         c = ClassicalRegister(5, "c")
@@ -1605,7 +1703,22 @@ class TestDagProperties(QiskitTestCase):
         self.assertEqual(dag.depth(), 6)
 
     def test_dag_depth2(self):
-        """Test barrier increases DAG depth"""
+        """Test barrier increases DAG depth
+
+             ┌───┐                     ░
+        q_0: ┤ H ├──■──────────────────░────
+             └───┘  │            ┌───┐ ░ ┌─┐
+        q_1: ───────┼────────────┤ X ├─░─┤M├
+             ┌───┐  │  ┌───┐┌───┐└─┬─┘ ░ └╥┘
+        q_2: ┤ X ├──┼──┤ X ├┤ X ├──┼───░──╫─
+             └───┘  │  └───┘└───┘  │   ░  ║
+        q_3: ───────┼──────────────┼───░──╫─
+                  ┌─┴─┐┌───┐       │   ░  ║
+        q_4: ─────┤ X ├┤ X ├───────■───░──╫─
+                  └───┘└───┘           ░  ║
+        c: 1/═════════════════════════════╩═
+                                        0
+        """
         q = QuantumRegister(5, "q")
         c = ClassicalRegister(1, "c")
         qc = QuantumCircuit(q, c)
@@ -1622,7 +1735,24 @@ class TestDagProperties(QiskitTestCase):
         self.assertEqual(dag.depth(), 6)
 
     def test_dag_depth3(self):
-        """Test DAG depth for silly circuit."""
+        """Test DAG depth for silly circuit.
+
+             ┌───┐       ░    ░       ┌─┐
+        q_0: ┤ H ├──■────░────░───────┤M├─────
+             └───┘┌─┴─┐  ░    ░       └╥┘
+        q_1: ─────┤ X ├──■─────────────╫──────
+                  └───┘┌─┴─┐           ║
+        q_2: ──────────┤ X ├──■────────╫──────
+                       └───┘┌─┴─┐      ║
+        q_3: ───────────────┤ X ├──■───╫──────
+                            └───┘┌─┴─┐ ║
+        q_4: ────────────────────┤ X ├─╫───■──
+                                 └───┘ ║ ┌─┴─┐
+        q_5: ──────────────────────────╫─┤ X ├
+                                       ║ └───┘
+        c: 1/══════════════════════════╩══════
+                                       0
+        """
         q = QuantumRegister(6, "q")
         c = ClassicalRegister(1, "c")
         qc = QuantumCircuit(q, c)
