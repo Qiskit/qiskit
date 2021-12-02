@@ -351,7 +351,7 @@ class BackendV2(Backend, ABC):
     @property
     def operation_names(self) -> List[str]:
         """A list of instruction names that the backend supports."""
-        non_global_ops = self.target.get_non_global_operation_names(True)
+        non_global_ops = self.target.get_non_global_operation_names(strict_direction=True)
         if non_global_ops:
             invalid_str = ",".join(non_global_ops)
             msg = (
