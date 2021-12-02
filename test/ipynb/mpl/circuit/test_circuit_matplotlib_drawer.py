@@ -628,8 +628,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         style = {"name": "iqx", "subfontsize": 11}
 
         self.circuit_drawer(circuit, style=style, filename="subfont.png")
-        # check does not change style
-        self.assertEqual(style, {"name": "iqx", "subfontsize": 11})
+        self.assertEqual(style, {"name": "iqx", "subfontsize": 11})  # check does not change style
 
     def test_meas_condition(self):
         """Tests measure with a condition"""
