@@ -2,7 +2,25 @@
 features:
   - |
     New readout mitigation classes to mitigate qiskit experiment results:
-    :class:`~qiskit.result.CorrelatedReadoutMitigator`,
-    which is based on the A-matrix inversion method, and
-    :class:`~qiskit.result.LocalReadoutMitigator`,
-    which is based on the 1-qubit tensored mitigation method.
+    :class:`~qiskit.result.CorrelatedReadoutMitigator` and
+    :class:`~qiskit.result.LocalReadoutMitigator`.
+    The class :class:`~qiskit.result.CorrelatedReadoutMitigator`
+    is based on the A-matrix inversion method, and
+    should be used in case the readout errors of the qubits
+    are assumed to be correlated. The mitigation_matrix of *N* qubits is of size
+    :math:`2^N x 2^N` so the mitigation complexity is :math:`O(4^N)`.
+    The class :class:`~qiskit.result.LocalReadoutMitigator`
+    is based on the 1-qubit tensored mitigation method, and
+    should be used in case the readout errors of the qubits
+    are assumed to be uncorrelated. For *N* qubits there are *N* mitigation matrices,
+    each of size :math:`2 x 2` and the mitigation complexity is :math:`O(2^N)`,
+    so it is more efficient than the :class:`CorrelatedReadoutMitigator` class.
+    Both classes are based on the abstract base class
+    :class:`~qiskit.result.BaseReadoutMitigator`, which contains two methods:
+    :meth:`expectation_value` that calculates the mitigated expectation value and
+    :meth:`quasi_probabilities` that calculates the mitigated quasi-probabilities
+    from the counts. Both methods also return an upper bound of the standard deviation.
+    The :class:`~qiskit.result.QuasiDistribution` has a new method
+    :meth:`stddev_upper_bound` that returns an upper bound on standard deviation.
+    The :class:`~qiskit.result.Counts` has a new method
+    :meth:`shots` that returns the number of shots.
