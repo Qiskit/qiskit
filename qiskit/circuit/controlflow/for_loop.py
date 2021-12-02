@@ -27,9 +27,9 @@ class ForLoopOp(ControlFlowOp):
     the set of integer values provided in ``indexset``.
 
     Parameters:
+        indexset: A collection of integers to loop over.
         loop_parameter: The placeholder parameterizing ``body`` to which
             the values from ``indexset`` will be assigned.
-        indexset: A collection of integers to loop over.
         body: The loop body to be repeatedly executed.
         label: An optional label for identifying the instruction.
 
@@ -51,8 +51,8 @@ class ForLoopOp(ControlFlowOp):
 
     def __init__(
         self,
-        loop_parameter: Union[Parameter, None],
         indexset: Iterable[int],
+        loop_parameter: Union[Parameter, None],
         body: QuantumCircuit,
         label: Optional[str] = None,
     ):
@@ -60,7 +60,7 @@ class ForLoopOp(ControlFlowOp):
         num_clbits = body.num_clbits
 
         super().__init__(
-            "for_loop", num_qubits, num_clbits, [loop_parameter, indexset, body], label=label
+            "for_loop", num_qubits, num_clbits, [indexset, loop_parameter, body], label=label
         )
 
     @property
@@ -69,7 +69,7 @@ class ForLoopOp(ControlFlowOp):
 
     @params.setter
     def params(self, parameters):
-        loop_parameter, indexset, body = parameters
+        indexset, loop_parameter, body = parameters
 
         if not isinstance(loop_parameter, (Parameter, type(None))):
             raise CircuitError(
@@ -111,7 +111,7 @@ class ForLoopOp(ControlFlowOp):
         # Preserve ranges so that they can be exported as OpenQASM3 ranges.
         indexset = indexset if isinstance(indexset, range) else tuple(indexset)
 
-        self._params = [loop_parameter, indexset, body]
+        self._params = [indexset, loop_parameter, body]
 
     @property
     def blocks(self):
@@ -166,8 +166,8 @@ class ForLoopContext:
     def __init__(
         self,
         circuit: QuantumCircuit,
-        loop_parameter: Optional[Parameter],
         indexset: Iterable[int],
+        loop_parameter: Optional[Parameter] = None,
         *,
         label: Optional[str] = None,
     ):
@@ -209,7 +209,7 @@ class ForLoopContext:
         else:
             loop_parameter = self._loop_parameter
         self._circuit.append(
-            ForLoopOp(loop_parameter, self._indexset, body, label=self._label),
+            ForLoopOp(self._indexset, loop_parameter, body, label=self._label),
             tuple(body.qubits),
             tuple(body.clbits),
         )

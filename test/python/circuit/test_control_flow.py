@@ -90,14 +90,14 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
 
         body.rx(loop_parameter, 0)
 
-        op = ForLoopOp(loop_parameter, indexset, body)
+        op = ForLoopOp(indexset, loop_parameter, body)
 
         self.assertIsInstance(op, ControlFlowOp)
         self.assertIsInstance(op, Instruction)
         self.assertEqual(op.name, "for_loop")
         self.assertEqual(op.num_qubits, 3)
         self.assertEqual(op.num_clbits, 1)
-        self.assertEqual(op.params, [loop_parameter, tuple(range(0, 10, 2)), body])
+        self.assertEqual(op.params, [tuple(range(0, 10, 2)), loop_parameter, body])
         self.assertEqual(op.blocks, (body,))
 
     def test_for_loop_range_instantiation(self):
@@ -108,14 +108,14 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
 
         body.rx(loop_parameter, 0)
 
-        op = ForLoopOp(loop_parameter, indexset, body)
+        op = ForLoopOp(indexset, loop_parameter, body)
 
         self.assertIsInstance(op, ControlFlowOp)
         self.assertIsInstance(op, Instruction)
         self.assertEqual(op.name, "for_loop")
         self.assertEqual(op.num_qubits, 3)
         self.assertEqual(op.num_clbits, 1)
-        self.assertEqual(op.params, [loop_parameter, indexset, body])
+        self.assertEqual(op.params, [indexset, loop_parameter, body])
         self.assertEqual(op.blocks, (body,))
 
     def test_for_loop_no_parameter_instantiation(self):
@@ -126,14 +126,14 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
 
         body.rx(3.14, 0)
 
-        op = ForLoopOp(loop_parameter, indexset, body)
+        op = ForLoopOp(indexset, loop_parameter, body)
 
         self.assertIsInstance(op, ControlFlowOp)
         self.assertIsInstance(op, Instruction)
         self.assertEqual(op.name, "for_loop")
         self.assertEqual(op.num_qubits, 3)
         self.assertEqual(op.num_clbits, 1)
-        self.assertEqual(op.params, [loop_parameter, indexset, body])
+        self.assertEqual(op.params, [indexset, loop_parameter, body])
         self.assertEqual(op.blocks, (body,))
 
     def test_for_loop_invalid_instantiation(self):
@@ -145,10 +145,10 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         body.rx(loop_parameter, 0)
 
         with self.assertWarnsRegex(UserWarning, r"loop_parameter was not found"):
-            _ = ForLoopOp(Parameter("foo"), indexset, body)
+            _ = ForLoopOp(indexset, Parameter("foo"), body)
 
         with self.assertRaisesRegex(CircuitError, r"to be of type QuantumCircuit"):
-            _ = ForLoopOp(loop_parameter, indexset, RXGate(loop_parameter))
+            _ = ForLoopOp(indexset, loop_parameter, RXGate(loop_parameter))
 
     def test_for_loop_invalid_params_setter(self):
         """Verify we catch invalid param settings for ForLoopOp."""
@@ -158,22 +158,22 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
 
         body.rx(loop_parameter, 0)
 
-        op = ForLoopOp(loop_parameter, indexset, body)
+        op = ForLoopOp(indexset, loop_parameter, body)
 
         with self.assertWarnsRegex(UserWarning, r"loop_parameter was not found"):
-            op.params = [Parameter("foo"), indexset, body]
+            op.params = [indexset, Parameter("foo"), body]
 
         with self.assertRaisesRegex(CircuitError, r"to be of type QuantumCircuit"):
-            op.params = [loop_parameter, indexset, RXGate(loop_parameter)]
+            op.params = [indexset, loop_parameter, RXGate(loop_parameter)]
 
         bad_body = QuantumCircuit(2, 1)
         with self.assertRaisesRegex(
             CircuitError, r"num_clbits different than that of the ForLoopOp"
         ):
-            op.params = [loop_parameter, indexset, bad_body]
+            op.params = [indexset, loop_parameter, bad_body]
 
         with self.assertRaisesRegex(CircuitError, r"to be either of type Parameter or None"):
-            _ = ForLoopOp("foo", indexset, body)
+            _ = ForLoopOp(indexset, "foo", body)
 
     @data(
         (Clbit(), True),
@@ -345,13 +345,13 @@ class TestAddingControlFlowOperations(QiskitTestCase):
 
         body.rx(loop_parameter, [0, 1, 2])
 
-        op = ForLoopOp(loop_parameter, indexset, body)
+        op = ForLoopOp(indexset, loop_parameter, body)
 
         qc = QuantumCircuit(5, 2)
         qc.append(op, [1, 2, 3], [1])
 
         self.assertEqual(qc.data[0][0].name, "for_loop")
-        self.assertEqual(qc.data[0][0].params, [loop_parameter, indexset, body])
+        self.assertEqual(qc.data[0][0].params, [indexset, loop_parameter, body])
         self.assertEqual(qc.data[0][1], qc.qubits[1:4])
         self.assertEqual(qc.data[0][2], [qc.clbits[1]])
 
@@ -364,10 +364,10 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         body.rx(loop_parameter, [0, 1, 2])
 
         qc = QuantumCircuit(5, 2)
-        qc.for_loop(loop_parameter, indexset, body, [1, 2, 3], [1])
+        qc.for_loop(indexset, loop_parameter, body, [1, 2, 3], [1])
 
         self.assertEqual(qc.data[0][0].name, "for_loop")
-        self.assertEqual(qc.data[0][0].params, [loop_parameter, indexset, body])
+        self.assertEqual(qc.data[0][0].params, [indexset, loop_parameter, body])
         self.assertEqual(qc.data[0][1], qc.qubits[1:4])
         self.assertEqual(qc.data[0][2], [qc.clbits[1]])
 
@@ -534,7 +534,7 @@ class TestAddingControlFlowOperations(QiskitTestCase):
             body.rx(x, 0)
 
             main = QuantumCircuit(1, 1)
-            main.for_loop(None, range(1), body, [0], [0])
+            main.for_loop(range(1), None, body, [0], [0])
             self.assertEqual({x}, set(main.parameters))
 
     def test_nested_parameters_can_be_assigned(self):
@@ -590,15 +590,15 @@ class TestAddingControlFlowOperations(QiskitTestCase):
             body.rx(x, 0)
 
             test = QuantumCircuit(1, 1)
-            test.for_loop(None, range(1), body, [0], [0])
+            test.for_loop(range(1), None, body, [0], [0])
             self.assertEqual({x}, set(test.parameters))
             assigned = test.assign_parameters({x: math.pi})
             self.assertEqual(set(), set(assigned.parameters))
 
             expected = QuantumCircuit(1, 1)
             expected.for_loop(
-                None,
                 range(1),
+                None,
                 body.assign_parameters({x: math.pi}),
                 [0],
                 [0],

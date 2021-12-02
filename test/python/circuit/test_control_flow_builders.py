@@ -80,8 +80,8 @@ class TestControlFlowBuilders(QiskitTestCase):
             elif isinstance(a_op, ForLoopOp):
                 self.assertEqual(set(a_qubits), set(b_qubits))
                 self.assertEqual(set(a_clbits), set(b_clbits))
-                a_loop_parameter, a_indexset, a_body = a_op.params
-                b_loop_parameter, b_indexset, b_body = b_op.params
+                a_indexset, a_loop_parameter, a_body = a_op.params
+                b_indexset, b_loop_parameter, b_body = b_op.params
                 self.assertEqual(a_loop_parameter is None, b_loop_parameter is None)
                 self.assertEqual(a_indexset, b_indexset)
                 if a_loop_parameter is not None:
@@ -397,7 +397,7 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         with self.subTest("for"):
             test = QuantumCircuit(qubits, clbits)
-            with test.for_loop(None, range(2)):
+            with test.for_loop(range(2)):
                 test.break_loop()
                 test.h(0)
                 test.continue_loop()
@@ -410,7 +410,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             body.measure(qubits[1], clbits[0])
 
             expected = QuantumCircuit(qubits, clbits)
-            expected.for_loop(None, range(2), body, qubits, [clbits[0]])
+            expected.for_loop(range(2), None, body, qubits, [clbits[0]])
 
             self.assertCircuitsEquivalent(test, expected)
 
@@ -443,7 +443,7 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         with self.subTest("for"):
             test = QuantumCircuit(qubits, clbits)
-            with test.for_loop(None, range(2)):
+            with test.for_loop(range(2)):
                 test.h(0)
                 loop_operation(test).c_if(1, 0)
 
@@ -452,7 +452,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             loop_operation(body).c_if(clbits[1], 0)
 
             expected = QuantumCircuit(qubits, clbits)
-            expected.for_loop(None, range(2), body, [qubits[0]], [clbits[1]])
+            expected.for_loop(range(2), None, body, [qubits[0]], [clbits[1]])
 
             self.assertCircuitsEquivalent(test, expected)
 
@@ -483,9 +483,9 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         with self.subTest("for for"):
             test = QuantumCircuit(qubits, clbits)
-            with test.for_loop(None, range(2)):
+            with test.for_loop(range(2)):
                 test.measure(1, 1)
-                with test.for_loop(None, range(2)):
+                with test.for_loop(range(2)):
                     test.h(0)
                     loop_operation(test)
                 loop_operation(test)
@@ -496,17 +496,17 @@ class TestControlFlowBuilders(QiskitTestCase):
 
             outer_body = QuantumCircuit([qubits[0], qubits[1], clbits[1]])
             outer_body.measure(qubits[1], clbits[1])
-            outer_body.for_loop(None, range(2), inner_body, [qubits[0]], [])
+            outer_body.for_loop(range(2), None, inner_body, [qubits[0]], [])
             loop_operation(outer_body)
 
             expected = QuantumCircuit(qubits, clbits)
-            expected.for_loop(None, range(2), outer_body, [qubits[0], qubits[1]], [clbits[1]])
+            expected.for_loop(range(2), None, outer_body, [qubits[0], qubits[1]], [clbits[1]])
 
             self.assertCircuitsEquivalent(test, expected)
 
         with self.subTest("for while"):
             test = QuantumCircuit(qubits, clbits)
-            with test.for_loop(None, range(2)):
+            with test.for_loop(range(2)):
                 test.measure(1, 1)
                 with test.while_loop(cond_inner):
                     test.h(0)
@@ -524,7 +524,7 @@ class TestControlFlowBuilders(QiskitTestCase):
 
             expected = QuantumCircuit(qubits, clbits)
             expected.for_loop(
-                None, range(2), outer_body, [qubits[0], qubits[1]], [clbits[0], clbits[1]]
+                range(2), None, outer_body, [qubits[0], qubits[1]], [clbits[0], clbits[1]]
             )
 
             self.assertCircuitsEquivalent(test, expected)
@@ -533,7 +533,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             test = QuantumCircuit(qubits, clbits)
             with test.while_loop(cond_outer):
                 test.measure(1, 1)
-                with test.for_loop(None, range(2)):
+                with test.for_loop(range(2)):
                     test.h(0)
                     loop_operation(test)
                 loop_operation(test)
@@ -544,7 +544,7 @@ class TestControlFlowBuilders(QiskitTestCase):
 
             outer_body = QuantumCircuit([qubits[0], qubits[1], clbits[1]])
             outer_body.measure(qubits[1], clbits[1])
-            outer_body.for_loop(None, range(2), inner_body, [qubits[0]], [])
+            outer_body.for_loop(range(2), None, inner_body, [qubits[0]], [])
             loop_operation(outer_body)
 
             expected = QuantumCircuit(qubits, clbits)
@@ -581,12 +581,12 @@ class TestControlFlowBuilders(QiskitTestCase):
             # This test is specifically to check that multiple inner loops with different numbers of
             # variables to each ``break`` still expand correctly.
             test = QuantumCircuit(qubits, clbits)
-            with test.for_loop(None, range(2)):
+            with test.for_loop(range(2)):
                 test.measure(1, 1)
-                with test.for_loop(None, range(2)):
+                with test.for_loop(range(2)):
                     test.h(0)
                     loop_operation(test)
-                with test.for_loop(None, range(2)):
+                with test.for_loop(range(2)):
                     test.h(2)
                     loop_operation(test)
                 loop_operation(test)
@@ -601,12 +601,12 @@ class TestControlFlowBuilders(QiskitTestCase):
 
             outer_body = QuantumCircuit([qubits[0], qubits[1], qubits[2], clbits[1]])
             outer_body.measure(qubits[1], clbits[1])
-            outer_body.for_loop(None, range(2), inner_body1, [qubits[0]], [])
-            outer_body.for_loop(None, range(2), inner_body2, [qubits[2]], [])
+            outer_body.for_loop(range(2), None, inner_body1, [qubits[0]], [])
+            outer_body.for_loop(range(2), None, inner_body2, [qubits[2]], [])
             loop_operation(outer_body)
 
             expected = QuantumCircuit(qubits, clbits)
-            expected.for_loop(None, range(2), outer_body, qubits, [clbits[1]])
+            expected.for_loop(range(2), None, outer_body, qubits, [clbits[1]])
 
             self.assertCircuitsEquivalent(test, expected)
 
@@ -632,7 +632,7 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         with self.subTest("for/if"):
             test = QuantumCircuit(qubits, clbits)
-            with test.for_loop(None, range(2)):
+            with test.for_loop(range(2)):
                 with test.if_test(cond_inner):
                     loop_operation(test)
                 # The second empty `if` is to test that only blocks that _need_ to expand to be the
@@ -652,13 +652,13 @@ class TestControlFlowBuilders(QiskitTestCase):
             loop_body.h(qubits[0]).c_if(clbits[2], 0)
 
             expected = QuantumCircuit(qubits, clbits)
-            expected.for_loop(None, range(2), loop_body, [qubits[0]], [clbits[0], clbits[2]])
+            expected.for_loop(range(2), None, loop_body, [qubits[0]], [clbits[0], clbits[2]])
 
             self.assertCircuitsEquivalent(test, expected)
 
         with self.subTest("for/else"):
             test = QuantumCircuit(qubits, clbits)
-            with test.for_loop(None, range(2)):
+            with test.for_loop(range(2)):
                 with test.if_test(cond_inner) as else_:
                     test.h(1)
                 with else_:
@@ -686,7 +686,7 @@ class TestControlFlowBuilders(QiskitTestCase):
 
             expected = QuantumCircuit(qubits, clbits)
             expected.for_loop(
-                None, range(2), loop_body, [qubits[0], qubits[1]], [clbits[0], clbits[2]]
+                range(2), None, loop_body, [qubits[0], qubits[1]], [clbits[0], clbits[2]]
             )
 
             self.assertCircuitsEquivalent(test, expected)
@@ -784,7 +784,7 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         with self.subTest("for/if/if"):
             test = QuantumCircuit(qubits, clbits)
-            with test.for_loop(None, range(2)):
+            with test.for_loop(range(2)):
                 # outer true 1
                 with test.if_test(cond_outer):
                     # inner true 1
@@ -823,13 +823,13 @@ class TestControlFlowBuilders(QiskitTestCase):
             loop_body.h(qubits[3]).c_if(clbits[6], 0)
 
             expected = QuantumCircuit(qubits, clbits)
-            expected.for_loop(None, range(2), loop_body, qubits[:4], clbits[:2] + clbits[3:7])
+            expected.for_loop(range(2), None, loop_body, qubits[:4], clbits[:2] + clbits[3:7])
 
             self.assertCircuitsEquivalent(test, expected)
 
         with self.subTest("for/if/else"):
             test = QuantumCircuit(qubits, clbits)
-            with test.for_loop(None, range(2)):
+            with test.for_loop(range(2)):
                 # outer 1
                 with test.if_test(cond_outer):
                     # inner 1
@@ -890,7 +890,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             loop_body.h(qubits[6]).c_if(clbits[10], 0)
 
             expected = QuantumCircuit(qubits, clbits)
-            expected.for_loop(None, range(2), loop_body, qubits[:7], clbits[:2] + clbits[3:11])
+            expected.for_loop(range(2), None, loop_body, qubits[:7], clbits[:2] + clbits[3:11])
 
             self.assertCircuitsEquivalent(test, expected)
 
@@ -900,7 +900,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             # (but also hopefully this is less hubristic pretension and more a useful stress test)
 
             test = QuantumCircuit(qubits, clbits)
-            with test.for_loop(None, range(2)):
+            with test.for_loop(range(2)):
                 test.h(0).c_if(3, 0)
 
                 # outer 1
@@ -1045,15 +1045,15 @@ class TestControlFlowBuilders(QiskitTestCase):
             loop_body.h(qubits[16]).c_if(clbits[19], 0)
 
             expected = QuantumCircuit(qubits, clbits)
-            expected.for_loop(None, range(2), loop_body, loop_qubits, loop_clbits)
+            expected.for_loop(range(2), None, loop_body, loop_qubits, loop_clbits)
 
             self.assertCircuitsEquivalent(test, expected)
 
         # And now we repeat everything for "while" loops...  Trying to parameterize the test over
         # 'for/while' mostly just ends up in it being a bit illegible, because so many parameters
         # vary in the explicit construction form.  These tests are just copies of the above tests,
-        # but with `while_loop(cond_loop)` instead of `for_loop(None, range(2))`, and the
-        # corresponding clbit ranges updated to include `clbits[2]` from the condition.
+        # but with `while_loop(cond_loop)` instead of `for_loop(range(2))`, and the corresponding
+        # clbit ranges updated to include `clbits[2]` from the condition.
 
         with self.subTest("while/if/if"):
             test = QuantumCircuit(qubits, clbits)
@@ -1323,20 +1323,20 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         with self.subTest("list"):
             test = QuantumCircuit(bits)
-            with test.for_loop(None, list(expected_indices)):
+            with test.for_loop(list(expected_indices)):
                 pass
             instruction, _, _ = test.data[-1]
             self.assertIsInstance(instruction, ForLoopOp)
-            _, indices, _ = instruction.params
+            indices, _, _ = instruction.params
             self.assertEqual(indices, expected_indices)
 
         with self.subTest("tuple"):
             test = QuantumCircuit(bits)
-            with test.for_loop(None, tuple(expected_indices)):
+            with test.for_loop(tuple(expected_indices)):
                 pass
             instruction, _, _ = test.data[-1]
             self.assertIsInstance(instruction, ForLoopOp)
-            _, indices, _ = instruction.params
+            indices, _, _ = instruction.params
             self.assertEqual(indices, expected_indices)
 
         with self.subTest("consumable"):
@@ -1345,29 +1345,29 @@ class TestControlFlowBuilders(QiskitTestCase):
                 yield from expected_indices
 
             test = QuantumCircuit(bits)
-            with test.for_loop(None, consumable()):
+            with test.for_loop(consumable()):
                 pass
             instruction, _, _ = test.data[-1]
             self.assertIsInstance(instruction, ForLoopOp)
-            _, indices, _ = instruction.params
+            indices, _, _ = instruction.params
             self.assertEqual(indices, expected_indices)
 
         with self.subTest("range"):
             range_indices = range(0, 8, 2)
 
             test = QuantumCircuit(bits)
-            with test.for_loop(None, range_indices):
+            with test.for_loop(range_indices):
                 pass
             instruction, _, _ = test.data[-1]
             self.assertIsInstance(instruction, ForLoopOp)
-            _, indices, _ = instruction.params
+            indices, _, _ = instruction.params
             self.assertEqual(indices, range_indices)
 
     def test_for_returns_a_given_parameter(self):
         """Test that the ``for``-loop manager returns the parameter that we gave it."""
         parameter = Parameter("x")
         test = QuantumCircuit(1, 1)
-        with test.for_loop(parameter, (0, 1)) as test_parameter:
+        with test.for_loop((0, 1), parameter) as test_parameter:
             pass
         self.assertIs(test_parameter, parameter)
 
@@ -1379,49 +1379,49 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         with self.subTest("passed and used"):
             circuit = QuantumCircuit(1, 1)
-            with circuit.for_loop(parameter, (0, 0.5 * math.pi)) as received_parameter:
+            with circuit.for_loop((0, 0.5 * math.pi), parameter) as received_parameter:
                 circuit.rx(received_parameter, 0)
             self.assertIs(parameter, received_parameter)
             instruction = circuit.data[-1][0]
             self.assertIsInstance(instruction, ForLoopOp)
-            bound_parameter, _, _ = instruction.params
+            _, bound_parameter, _ = instruction.params
             self.assertIs(bound_parameter, parameter)
 
         with self.subTest("passed and unused"):
             circuit = QuantumCircuit(1, 1)
-            with circuit.for_loop(parameter, (0, 0.5 * math.pi)) as received_parameter:
+            with circuit.for_loop((0, 0.5 * math.pi), parameter) as received_parameter:
                 circuit.x(0)
             self.assertIs(parameter, received_parameter)
             instruction = circuit.data[-1][0]
             self.assertIsInstance(instruction, ForLoopOp)
-            bound_parameter, _, _ = instruction.params
+            _, bound_parameter, _ = instruction.params
             self.assertIs(parameter, received_parameter)
 
         with self.subTest("generated and used"):
             circuit = QuantumCircuit(1, 1)
-            with circuit.for_loop(None, (0, 0.5 * math.pi)) as received_parameter:
+            with circuit.for_loop((0, 0.5 * math.pi)) as received_parameter:
                 circuit.rx(received_parameter, 0)
             self.assertIsInstance(received_parameter, Parameter)
             instruction = circuit.data[-1][0]
             self.assertIsInstance(instruction, ForLoopOp)
-            bound_parameter, _, _ = instruction.params
+            _, bound_parameter, _ = instruction.params
             self.assertIs(bound_parameter, received_parameter)
 
         with self.subTest("generated and used in deferred-build if"):
             circuit = QuantumCircuit(1, 1)
-            with circuit.for_loop(None, (0, 0.5 * math.pi)) as received_parameter:
+            with circuit.for_loop((0, 0.5 * math.pi)) as received_parameter:
                 with circuit.if_test((0, 0)):
                     circuit.rx(received_parameter, 0)
                     circuit.break_loop()
             self.assertIsInstance(received_parameter, Parameter)
             instruction = circuit.data[-1][0]
             self.assertIsInstance(instruction, ForLoopOp)
-            bound_parameter, _, _ = instruction.params
+            _, bound_parameter, _ = instruction.params
             self.assertIs(bound_parameter, received_parameter)
 
         with self.subTest("generated and used in deferred-build else"):
             circuit = QuantumCircuit(1, 1)
-            with circuit.for_loop(None, (0, 0.5 * math.pi)) as received_parameter:
+            with circuit.for_loop((0, 0.5 * math.pi)) as received_parameter:
                 with circuit.if_test((0, 0)) as else_:
                     pass
                 with else_:
@@ -1430,18 +1430,18 @@ class TestControlFlowBuilders(QiskitTestCase):
             self.assertIsInstance(received_parameter, Parameter)
             instruction = circuit.data[-1][0]
             self.assertIsInstance(instruction, ForLoopOp)
-            bound_parameter, _, _ = instruction.params
+            _, bound_parameter, _ = instruction.params
             self.assertIs(bound_parameter, received_parameter)
 
     def test_for_does_not_bind_generated_parameter_if_unused(self):
         """Test that the ``for`` manager does not bind a generated parameter into the resulting
         :obj:`.ForLoopOp` if the parameter was not used."""
         test = QuantumCircuit(1, 1)
-        with test.for_loop(None, range(2)) as generated_parameter:
+        with test.for_loop(range(2)) as generated_parameter:
             pass
         instruction = test.data[-1][0]
         self.assertIsInstance(instruction, ForLoopOp)
-        bound_parameter, _, _ = instruction.params
+        _, bound_parameter, _ = instruction.params
         self.assertIsNot(generated_parameter, None)
         self.assertIs(bound_parameter, None)
 
@@ -1449,10 +1449,10 @@ class TestControlFlowBuilders(QiskitTestCase):
         """Test that the ``for``-loop manager allocates a parameter if it is given ``None``, and
         that it always allocates new parameters."""
         test = QuantumCircuit(1, 1)
-        with test.for_loop(None, range(2)) as outer_parameter:
-            with test.for_loop(None, range(2)) as inner_parameter:
+        with test.for_loop(range(2)) as outer_parameter:
+            with test.for_loop(range(2)) as inner_parameter:
                 pass
-        with test.for_loop(None, range(2)) as final_parameter:
+        with test.for_loop(range(2)) as final_parameter:
             pass
         self.assertIsInstance(outer_parameter, Parameter)
         self.assertIsInstance(inner_parameter, Parameter)
@@ -1497,13 +1497,13 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         with self.subTest("for"):
             test = QuantumCircuit(qubits, clbits)
-            with test.for_loop(None, range(2)):
+            with test.for_loop(range(2)):
                 test.append(Measure(), [qubits[1]], [clbits[1]])
 
             body = QuantumCircuit([qubits[1]], [clbits[1]])
             body.measure(qubits[1], clbits[1])
             expected = QuantumCircuit(qubits, clbits)
-            expected.for_loop(None, range(2), body, [qubits[1]], [clbits[1]])
+            expected.for_loop(range(2), None, body, [qubits[1]], [clbits[1]])
 
             self.assertCircuitsEquivalent(test, expected)
 
@@ -1552,13 +1552,13 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         with self.subTest("for"):
             test = QuantumCircuit(bits)
-            with test.for_loop(None, range(2)):
+            with test.for_loop(range(2)):
                 test.h(0).c_if(1, 0)
 
             body = QuantumCircuit([qubits[0]], clbits)
             body.h(qubits[0]).c_if(clbits[1], 0)
             expected = QuantumCircuit(bits)
-            expected.for_loop(None, range(2), body, [qubits[0]], clbits)
+            expected.for_loop(range(2), None, body, [qubits[0]], clbits)
 
         with self.subTest("while"):
             test = QuantumCircuit(bits)
@@ -1572,7 +1572,7 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         with self.subTest("if inside for"):
             test = QuantumCircuit(bits)
-            with test.for_loop(None, range(2)):
+            with test.for_loop(range(2)):
                 with test.if_test(cond):
                     test.h(0).c_if(1, 0)
 
@@ -1581,7 +1581,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             body = QuantumCircuit([qubits[0]], clbits)
             body.if_test(cond, body, [qubits[0]], clbits)
             expected = QuantumCircuit(bits)
-            expected.for_loop(None, range(2), body, [qubits[0]], clbits)
+            expected.for_loop(range(2), None, body, [qubits[0]], clbits)
 
     def test_access_of_classicalregister_from_c_if(self):
         """Test that resources added from a call to :meth:`.InstructionSet.c_if` propagate through
@@ -1617,13 +1617,13 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         with self.subTest("for"):
             test = QuantumCircuit(qubits, clbits, creg)
-            with test.for_loop(None, range(2)):
+            with test.for_loop(range(2)):
                 test.h(0).c_if(1, 0)
 
             body = QuantumCircuit([qubits[0]], clbits, creg)
             body.h(qubits[0]).c_if(creg, 0)
             expected = QuantumCircuit(qubits, clbits, creg)
-            expected.for_loop(None, range(2), body, [qubits[0]], all_clbits)
+            expected.for_loop(range(2), None, body, [qubits[0]], all_clbits)
 
         with self.subTest("while"):
             test = QuantumCircuit(qubits, clbits, creg)
@@ -1637,7 +1637,7 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         with self.subTest("if inside for"):
             test = QuantumCircuit(qubits, clbits, creg)
-            with test.for_loop(None, range(2)):
+            with test.for_loop(range(2)):
                 with test.if_test(cond):
                     test.h(0).c_if(creg, 0)
 
@@ -1646,7 +1646,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             body = QuantumCircuit([qubits[0]], clbits, creg)
             body.if_test(cond, body, [qubits[0]], all_clbits)
             expected = QuantumCircuit(qubits, clbits, creg)
-            expected.for_loop(None, range(2), body, [qubits[0]], all_clbits)
+            expected.for_loop(range(2), None, body, [qubits[0]], all_clbits)
 
     def test_accept_broadcast_gates(self):
         """Test that the context managers accept gates that are broadcast during their addition to
@@ -1690,7 +1690,7 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         with self.subTest("for"):
             test = QuantumCircuit(qubits, clbits)
-            with test.for_loop(None, range(2)):
+            with test.for_loop(range(2)):
                 test.measure([0, 1], [0, 1])
 
             body = QuantumCircuit([qubits[0], qubits[1], clbits[0], clbits[1]])
@@ -1698,7 +1698,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             body.measure(qubits[1], clbits[1])
 
             expected = QuantumCircuit(qubits, clbits)
-            expected.for_loop(None, range(2), body, [qubits[0], qubits[1]], [clbits[0], clbits[1]])
+            expected.for_loop(range(2), None, body, [qubits[0], qubits[1]], [clbits[0], clbits[1]])
 
             self.assertCircuitsEquivalent(test, expected)
 
@@ -1718,7 +1718,7 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         with self.subTest("if inside for"):
             test = QuantumCircuit(qubits, clbits)
-            with test.for_loop(None, range(2)):
+            with test.for_loop(range(2)):
                 with test.if_test(cond):
                     test.measure([0, 1], [0, 1])
 
@@ -1731,7 +1731,7 @@ class TestControlFlowBuilders(QiskitTestCase):
 
             expected = QuantumCircuit(qubits, clbits)
             expected.for_loop(
-                None, range(2), for_body, [qubits[0], qubits[1]], [clbits[0], clbits[1]]
+                range(2), None, for_body, [qubits[0], qubits[1]], [clbits[0], clbits[1]]
             )
 
             self.assertCircuitsEquivalent(test, expected)
@@ -1762,7 +1762,7 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         with self.subTest("for"):
             test = QuantumCircuit(bits)
-            with test.for_loop(None, range(2), label=label):
+            with test.for_loop(range(2), label=label):
                 pass
             instruction = test.data[-1][0]
             self.assertIsInstance(instruction, ForLoopOp)
@@ -1780,7 +1780,7 @@ class TestControlFlowBuilders(QiskitTestCase):
         # 'if' scope is built lazily at the completion of the 'for'.
         with self.subTest("if inside for"):
             test = QuantumCircuit(bits)
-            with test.for_loop(None, range(2)):
+            with test.for_loop(range(2)):
                 with test.if_test(cond, label=label):
                     # Use break to ensure that we're triggering the lazy building of 'if'.
                     test.break_loop()
@@ -1791,7 +1791,7 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         with self.subTest("else inside for"):
             test = QuantumCircuit(bits)
-            with test.for_loop(None, range(2)):
+            with test.for_loop(range(2)):
                 with test.if_test(cond, label=label) as else_:
                     # Use break to ensure that we're triggering the lazy building of 'if'.
                     test.break_loop()
@@ -1852,7 +1852,7 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
         holds some forms of state during execution (the loop variable, which may be generated), we
         can't safely re-enter it and get the expected behaviour."""
 
-        for_manager = QuantumCircuit(2, 2).for_loop(None, range(2))
+        for_manager = QuantumCircuit(2, 2).for_loop(range(2))
         with for_manager:
             pass
         with self.assertRaisesRegex(
@@ -1928,7 +1928,7 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
 
         with self.subTest("if"):
             test = QuantumCircuit(bits)
-            with test.for_loop(None, range(2)):
+            with test.for_loop(range(2)):
                 with test.if_test((bits[1], 0)):
                     test.break_loop()
                 # These tests need to be done before the 'for' context exits so we don't trigger the
@@ -1943,7 +1943,7 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
 
         with self.subTest("else"):
             test = QuantumCircuit(bits)
-            with test.for_loop(None, range(2)):
+            with test.for_loop(range(2)):
                 with test.if_test((bits[1], 0)) as else_:
                     pass
                 with else_:
@@ -1986,7 +1986,7 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
 
         with self.subTest("for"):
             test = QuantumCircuit(bits)
-            with test.for_loop(None, range(2)):
+            with test.for_loop(range(2)):
                 instructions = test.h(0)
             with self.assertRaisesRegex(
                 CircuitError, r"Cannot add resources after the scope has been built\."
@@ -2008,7 +2008,7 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
             # within the 'for' loop.  It should actually manage the resource correctly as well, but
             # it's "undefined behaviour" than something we specifically want to forbid or allow.
             test = QuantumCircuit(bits)
-            with test.for_loop(None, range(2)):
+            with test.for_loop(range(2)):
                 with test.if_test(cond):
                     instructions = test.h(0)
             with self.assertRaisesRegex(
@@ -2027,7 +2027,7 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
             test = QuantumCircuit(1, 1)
             test.h(0)
             with self.assertRaises(SentinelException):
-                with test.for_loop(x, range(2)) as bound_x:
+                with test.for_loop(range(2), x) as bound_x:
                     test.x(0)
                     test.rx(bound_x, 0)
                     test.ry(y, 0)
@@ -2142,7 +2142,7 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
                 CircuitError,
                 r"When using 'for_loop' as a context manager, you cannot pass qubits or clbits\.",
             ):
-                test.for_loop(None, range(2), body=None, qubits=qubits, clbits=clbits)
+                test.for_loop(range(2), None, body=None, qubits=qubits, clbits=clbits)
         with self.subTest("while"):
             with self.assertRaisesRegex(
                 CircuitError,
@@ -2168,7 +2168,7 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
                 CircuitError,
                 r"When using 'for_loop' with a body, you must pass qubits and clbits\.",
             ):
-                test.for_loop(None, range(2), body=body, qubits=qubits, clbits=clbits)
+                test.for_loop(range(2), None, body=body, qubits=qubits, clbits=clbits)
         with self.subTest("while"):
             with self.assertRaisesRegex(
                 CircuitError,

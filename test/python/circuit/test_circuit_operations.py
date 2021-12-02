@@ -963,7 +963,7 @@ class TestCircuitPrivateOperations(QiskitTestCase):
             test._peek_previous_instruction_in_scope()
         with self.assertRaisesRegex(CircuitError, r"This circuit contains no instructions\."):
             test._pop_previous_instruction_in_scope()
-        with test.for_loop(None, range(2)):
+        with test.for_loop(range(2)):
             with self.assertRaisesRegex(CircuitError, r"This scope contains no instructions\."):
                 test._peek_previous_instruction_in_scope()
             with self.assertRaisesRegex(CircuitError, r"This scope contains no instructions\."):

@@ -7,7 +7,7 @@ features:
     For example, you can now do::
 
         qc = QuantumCircuit(2, 2)
-        with qc.for_loop(None, range(5)) as i:
+        with qc.for_loop(range(5)) as i:
             qc.rx(i * math.pi / 4, 0)
 
     This will produce a :obj:`.ForLoopOp` on ``qc``, which knows that qubit 0 is the only resource used within the loop body.

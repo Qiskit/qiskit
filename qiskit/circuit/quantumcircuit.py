@@ -4231,8 +4231,8 @@ class QuantumCircuit:
     @typing.overload
     def for_loop(
         self,
-        loop_parameter: Optional[Parameter],
         indexset: Iterable[int],
+        loop_parameter: Optional[Parameter],
         body: None,
         qubits: None,
         clbits: None,
@@ -4244,8 +4244,8 @@ class QuantumCircuit:
     @typing.overload
     def for_loop(
         self,
-        loop_parameter: Union[Parameter, None],
         indexset: Iterable[int],
+        loop_parameter: Union[Parameter, None],
         body: "QuantumCircuit",
         qubits: Sequence[QubitSpecifier],
         clbits: Sequence[ClbitSpecifier],
@@ -4255,7 +4255,7 @@ class QuantumCircuit:
         ...
 
     def for_loop(
-        self, loop_parameter, indexset, body=None, qubits=None, clbits=None, *, label=None
+        self, indexset, loop_parameter=None, body=None, qubits=None, clbits=None, *, label=None
     ):
         """Create a ``for`` loop on this circuit.
 
@@ -4263,9 +4263,9 @@ class QuantumCircuit:
         possible exception of ``label``), it will create a
         :obj:`~qiskit.circuit.controlflow.ForLoopOp` with the given ``body``.  If ``body`` (and
         ``qubits`` and ``clbits``) are *not* passed, then this acts as a context manager, which,
-        when entered, provides a loop variable (if ``None`` is passed as the ``loop_parameter``) and
-        will automatically build a :obj:`~qiskit.circuit.controlflow.ForLoopOp` when the scope
-        finishes.  In this form, you do not need to keep track of the qubits or clbits you are
+        when entered, provides a loop variable (unless one is given, in which case it will be
+        reused) and will automatically build a :obj:`~qiskit.circuit.controlflow.ForLoopOp` when the
+        scope finishes.  In this form, you do not need to keep track of the qubits or clbits you are
         using, because the scope will handle it for you.
 
         For example::
@@ -4273,20 +4273,23 @@ class QuantumCircuit:
             from qiskit import QuantumCircuit
             qc = QuantumCircuit(2, 1)
 
-            with qc.for_loop(None, range(5)) as i:
+            with qc.for_loop(range(5)) as i:
                 qc.h(0)
                 qc.cx(0, 1)
                 qc.measure(0, 0)
                 qc.break_loop().c_if(0)
 
         Args:
-            loop_parameter (Optional[Parameter]): The placeholder parameterizing ``body`` to which
-                the values from ``indexset`` will be assigned.  This can be ``None``, in which case
-                ``body`` will be repeated for each of the values in ``indexset`` but the values will
-                not be assigned.  If ``None`` is given while using this as a context manager, it
-                will allocate and return a loop parameter for you to use, and bind it only if you do
-                use it.
             indexset (Iterable[int]): A collection of integers to loop over.  Always necessary.
+            loop_parameter (Optional[Parameter]): The parameter used within ``body`` to which
+                the values from ``indexset`` will be assigned.  In the context-manager form, if this
+                argument is not supplied, then a loop parameter will be allocated for you and
+                returned as the value of the ``with`` statement.  This will only be bound into the
+                circuit if it is used within the body.
+
+                If this argument is ``None`` in the manual form of this method, ``body`` will be
+                repeated once for each of the items in ``indexset`` but their values will be
+                ignored.
             body (Optional[QuantumCircuit]): The loop body to be repeatedly executed.  Omit this to
                 use the context-manager mode.
             qubits (Optional[Sequence[QubitSpecifier]]): The circuit qubits over which the loop body
@@ -4311,13 +4314,13 @@ class QuantumCircuit:
                 raise CircuitError(
                     "When using 'for_loop' as a context manager, you cannot pass qubits or clbits."
                 )
-            return ForLoopContext(self, loop_parameter, indexset, label=label)
+            return ForLoopContext(self, indexset, loop_parameter, label=label)
         elif qubits is None or clbits is None:
             raise CircuitError(
                 "When using 'for_loop' with a body, you must pass qubits and clbits."
             )
 
-        return self.append(ForLoopOp(loop_parameter, indexset, body, label), qubits, clbits)
+        return self.append(ForLoopOp(indexset, loop_parameter, body, label), qubits, clbits)
 
     @typing.overload
     def if_test(

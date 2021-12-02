@@ -848,7 +848,7 @@ class TestCircuitQASM3(QiskitTestCase):
         loop_body.continue_loop()
 
         qc = QuantumCircuit(2)
-        qc.for_loop(parameter, [0, 3, 4], loop_body, [1], [])
+        qc.for_loop([0, 3, 4], parameter, loop_body, [1], [])
         qc.x(0)
 
         qr_name = qc.qregs[0].name
@@ -884,11 +884,11 @@ class TestCircuitQASM3(QiskitTestCase):
         outer_body.h(0)
         outer_body.rz(outer_parameter, 1)
         # Note we reverse the order of the bits here to test that this is traced.
-        outer_body.for_loop(inner_parameter, range(1, 5, 2), inner_body, [1, 0], [])
+        outer_body.for_loop(range(1, 5, 2), inner_parameter, inner_body, [1, 0], [])
         outer_body.continue_loop()
 
         qc = QuantumCircuit(2)
-        qc.for_loop(outer_parameter, range(4), outer_body, [0, 1], [])
+        qc.for_loop(range(4), outer_parameter, outer_body, [0, 1], [])
         qc.x(0)
 
         qr_name = qc.qregs[0].name
@@ -932,11 +932,11 @@ class TestCircuitQASM3(QiskitTestCase):
         outer_body.h(0)
         outer_body.h(1)
         # Note we reverse the order of the bits here to test that this is traced.
-        outer_body.for_loop(inner_parameter, range(1, 5, 2), inner_body, [1, 0], [])
+        outer_body.for_loop(range(1, 5, 2), inner_parameter, inner_body, [1, 0], [])
         outer_body.continue_loop()
 
         qc = QuantumCircuit(2)
-        qc.for_loop(outer_parameter, range(4), outer_body, [0, 1], [])
+        qc.for_loop(range(4), outer_parameter, outer_body, [0, 1], [])
         qc.x(0)
 
         qr_name = qc.qregs[0].name
@@ -972,7 +972,7 @@ class TestCircuitQASM3(QiskitTestCase):
         loop_body.h(0)
 
         qc = QuantumCircuit(2)
-        qc.for_loop(None, [0, 3, 4], loop_body, [1], [])
+        qc.for_loop([0, 3, 4], None, loop_body, [1], [])
         qr_name = qc.qregs[0].name
 
         expected_qasm = "\n".join(
@@ -1301,7 +1301,7 @@ class TestCircuitQASM3(QiskitTestCase):
         loop_body.append(custom_gate, [0])
 
         qc = QuantumCircuit(1)
-        qc.for_loop(parameter_b, range(2), loop_body, [0], [])
+        qc.for_loop(range(2), parameter_b, loop_body, [0], [])
 
         expected_qasm = "\n".join(
             [
@@ -1590,7 +1590,7 @@ class TestQASM3ExporterFailurePaths(QiskitTestCase):
         index sets."""
         loop_body = QuantumCircuit()
         qc = QuantumCircuit(2, 2)
-        qc.for_loop(None, indices, loop_body, [], [])
+        qc.for_loop(indices, None, loop_body, [], [])
         exporter = Exporter()
         with self.assertRaisesRegex(
             QASM3ExporterError, r"The values in QASM 3 'for' loops must all be integers.*"
