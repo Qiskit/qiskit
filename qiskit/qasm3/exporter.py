@@ -162,7 +162,15 @@ class GlobalNamespace:
 
     def __getitem__(self, key):
         if isinstance(key, Instruction):
-            return self._data.get(id(key), key.name)
+            try:
+                # Registered gates.
+                return self._data[id(key)]
+            except KeyError:
+                pass
+            # Built-in gates.
+            if key.name not in self._data:
+                raise KeyError(key)
+            return key.name
         return self._data[key]
 
     def __iter__(self):
@@ -184,10 +192,31 @@ class GlobalNamespace:
 
     def register(self, instruction):
         """Register an instruction in the namespace"""
-        if instruction.name in self._data:
-            self[f"{instruction.name}_{id(instruction)}"] = instruction
+        # The second part of the condition is a nasty hack to ensure that gates that come with at
+        # least one parameter always have their id in the name.  This is a workaround a bug, where
+        # gates with parameters do not contain the information required to build the gate definition
+        # in symbolic form (unless the parameters are all symbolic).  The exporter currently
+        # (2021-12-01) builds gate declarations with parameters in the signature, but then ignores
+        # those parameters during the body, and just uses the concrete values from the first
+        # instance of the gate it sees, such as:
+        #     gate rzx(_gate_p_0) _gate_q_0, _gate_q_1 {
+        #         h _gate_q_1;
+        #         cx _gate_q_0, _gate_q_1;
+        #         rz(0.2) _gate_q_1;        // <- note the concrete value.
+        #         cx _gate_q_0, _gate_q_1;
+        #         h _gate_q_1;
+        #     }
+        # This then means that multiple calls to the same gate with different parameters will be
+        # incorrect.  By forcing all gates to be defined including their id, we generate a QASM3
+        # program that does what was intended, even though the output QASM3 is silly.  See gh-7335.
+        if instruction.name in self._data or (
+            isinstance(instruction, Gate)
+            and not all(isinstance(param, Parameter) for param in instruction.params)
+        ):
+            key = f"{instruction.name}_{id(instruction)}"
         else:
-            self[instruction.name] = instruction
+            key = instruction.name
+        self[key] = instruction
 
 
 # A _Scope is the structure used in the builder to store the contexts and re-mappings of bits from
@@ -421,14 +450,23 @@ class QASM3Builder:
 
     def build_opaque_definition(self, instruction):
         """Builds an Opaque gate definition as a CalibrationDefinition"""
-        name = self.global_namespace[instruction]
-        quantum_arguments = [
-            ast.Identifier(f"{self.gate_qubit_prefix}_{n}") for n in range(instruction.num_qubits)
-        ]
-        return ast.CalibrationDefinition(ast.Identifier(name), quantum_arguments)
+        # We can't do anything sensible with this yet, so it's better to loudly say that.
+        raise QASM3ExporterError(
+            "Exporting opaque instructions with pulse-level calibrations is not yet supported by"
+            " the OpenQASM 3 exporter. Received this instruction, which appears opaque:"
+            f"\n{instruction}"
+        )
 
     def build_subroutine_definition(self, instruction):
         """Builds a SubroutineDefinition"""
+        if instruction.definition.parameters:
+            # We don't yet have the type system to store the parameter types in a symbol table, and
+            # we currently don't have the correct logic in place to handle parameters correctly in
+            # the definition.
+            raise QASM3ExporterError(
+                "Exporting subroutines with parameters is not yet supported by the OpenQASM 3"
+                " exporter. Received this instruction, which appears parameterized:\n{instruction}"
+            )
         name = self.global_namespace[instruction]
         self.push_context(instruction.definition)
         quantum_arguments = [
