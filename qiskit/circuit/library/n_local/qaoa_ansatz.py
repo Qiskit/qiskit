@@ -281,13 +281,13 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
 
         # keep old parameter order: first cost operator, then mixer operators
         num_cost = 0 if _is_pauli_identity(self.cost_operator) else 1
-        if isinstance(self.mixer_operator,list) and self.name == 'AdaptQAOA':
+        if isinstance(self.mixer_operator, list) and self.name == "AdaptQAOA":
             num_mixer = []
             for reps, mix in enumerate(self.operators[1:][::2], 1):
                 if isinstance(mix, QuantumCircuit):
                     num_mixer.append(mix.num_parameters)
                 else:
-                    num_mixer.append(0 if _is_pauli_identity(mix) else 1)         
+                    num_mixer.append(0 if _is_pauli_identity(mix) else 1)
         else:
             reps = self.reps
             if isinstance(self.mixer_operator, QuantumCircuit):
@@ -296,8 +296,8 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
                 num_mixer = 0 if _is_pauli_identity(self.mixer_operator) else 1
 
         def _reorder_parameters(num_mixer: Union[int, List], num_cost: int, reps: int):
-            if not isinstance(num_mixer,list):
-                num_mixer = [num_mixer]*reps
+            if not isinstance(num_mixer, list):
+                num_mixer = [num_mixer] * reps
             num_beta_params = sum(num_mixer)
             betas = ParameterVector("β", num_beta_params)
             gammas = ParameterVector("γ", reps * num_cost)

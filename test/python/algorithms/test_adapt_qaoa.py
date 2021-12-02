@@ -222,7 +222,7 @@ class TestAdaptQAOA(QiskitAlgorithmsTestCase):
         qubit_op, _ = self._get_operator(W1)
 
         num_qubits = qubit_op.num_qubits
-        # TODO: differentiate between this function (>1 params) and 
+        # TODO: differentiate between this function (>1 params) and
         # prev function (=1 params) or delete one
         mixer = _create_mixer_pool(num_qubits, add_multi=True, circ=True)
 

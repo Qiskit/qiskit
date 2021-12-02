@@ -623,6 +623,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             parameter_sets = np.reshape(parameters, (-1, num_parameters))
             # Create dict associating each parameter with the lists of parameterization values for it
             param_bindings = dict(zip(self._ansatz_params, parameter_sets.transpose().tolist()))
+
             start_time = time()
             sampled_expect_op = self._circuit_sampler.convert(expect_op, params=param_bindings)
             means = np.real(sampled_expect_op.eval())
@@ -761,7 +762,7 @@ def _validate_initial_point(point, ansatz):
     if point is None:
         # get bounds if ansatz has them set, otherwise use [-2pi, 2pi] for each parameter
         bounds = getattr(ansatz, "parameter_bounds", None)
-        if not bounds:
+        if bounds is None:
             bounds = [(-2 * np.pi, 2 * np.pi)] * expected_size
 
         # replace all Nones by [-2pi, 2pi]
