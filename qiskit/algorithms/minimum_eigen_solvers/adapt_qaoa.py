@@ -126,6 +126,9 @@ class AdaptQAOA(QAOA):
                 "A custom mixer pool can be passed in or a mixer pool type can be passed in but not both"
             )
 
+        if type(mixer_pool[0]) == QuantumCircuit:
+            mixer_pool = [PrimitiveOp(Operator(mixer)) for mixer in mixer_pool]
+
         self.mixer_pool = mixer_pool
         self.mixer_pool_type = mixer_pool_type
 
@@ -190,7 +193,7 @@ class AdaptQAOA(QAOA):
         observable_meas = expectation.convert(StateFn(energy_grad_op, is_measurement=True))
         ansatz_circuit_op = CircuitStateFn(wave_function)
         expect_op = observable_meas.compose(ansatz_circuit_op).reduce()
-        return 1j*expect_op
+        return 1j * expect_op
 
     def _test_mixer_pool(self, operator: OperatorBase):
         self._check_problem_configuration()
@@ -376,19 +379,25 @@ class AdaptQAOA(QAOA):
                 )
         self._initial_point = initial_point
 
-    def _generate_initial_point(self): # set initial value for gamma according to https://arxiv.org/abs/2005.10258
+    def _generate_initial_point(
+        self,
+    ):  # set initial value for gamma according to https://arxiv.org/abs/2005.10258
         gamma_ip = 0.01
-        beta_ip = algorithm_globals.random.uniform([-2 * np.pi], [2 * np.pi])#-np.pi/4
-        return np.append(beta_ip,[gamma_ip])
+        beta_ip = algorithm_globals.random.uniform([-2 * np.pi], [2 * np.pi])  # -np.pi/4
+        return np.append(beta_ip, [gamma_ip])
 
     def _update_initial_point(self):
         if self._user_specified_ip:
             self._initial_point = self._user_specified_ip[: 2 * self._reps]
         else:
             new_beta, new_gamma = self._generate_initial_point()
-            ordered_initial_points = np.zeros(2*self._reps+2)
-            ordered_initial_points[:self._reps+1] = np.append(self._initial_point[:self._reps],new_beta)
-            ordered_initial_points[self._reps+1:] = np.append(self._initial_point[self._reps:],new_gamma)
+            ordered_initial_points = np.zeros(2 * self._reps + 2)
+            ordered_initial_points[: self._reps + 1] = np.append(
+                self._initial_point[: self._reps], new_beta
+            )
+            ordered_initial_points[self._reps + 1 :] = np.append(
+                self._initial_point[self._reps :], new_gamma
+            )
             self._initial_point = ordered_initial_points
 
 
@@ -416,11 +425,11 @@ def adapt_mixer_pool(
         ValueError: If an unrecognisible mixer type has been provided.
     """
     if pool_type:
-        if pool_type == "Multi":
+        if pool_type == "multi":
             add_multi, add_single = True, True
-        elif pool_type == "Singular":
+        elif pool_type == "singular":
             add_multi, add_single = False, True
-        elif pool_type == "Single":
+        elif pool_type == "single":
             add_multi, add_single = False, False
         else:
             raise ValueError(
