@@ -79,12 +79,12 @@ class TestBackendV2(QiskitTestCase):
         expected.cx(0, 1)
         expected.u(math.pi / 2, 0, -math.pi, 0)
         expected.u(math.pi / 2, 0, -math.pi, 1)
-        self.assertEqual(tqc, expected)
+        self.assertTrue(Operator(tqc).equiv(qc))
+        self.assertEqual(tqc.count_ops(), {"cx": 1, "u": 4})
         # Test ECR on wrong link
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.ecr(0, 1)
-        qc.measure_all()
         tqc = transpile(qc, self.backend)
         expected = QuantumCircuit(2)
         expected.u(0, 0, -math.pi, 0)
@@ -92,15 +92,15 @@ class TestBackendV2(QiskitTestCase):
         expected.ecr(1, 0)
         expected.u(math.pi / 2, 0, -math.pi, 0)
         expected.u(math.pi / 2, 0, -math.pi, 1)
-        expected.measure_all()
         self.assertEqual(tqc, expected)
+        self.assertTrue(Operator(tqc).equiv(qc))
+        self.assertEqual(tqc.count_ops(), {"ecr": 1, "u": 4})
 
     def test_transpile_relies_on_gate_direction(self):
         """Test that transpile() relies on gate direction pass for 2q."""
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.ecr(0, 1)
-        qc.measure_all()
         tqc = transpile(qc, self.backend)
         expected = QuantumCircuit(2)
         expected.u(0, 0, -math.pi, 0)
@@ -108,8 +108,8 @@ class TestBackendV2(QiskitTestCase):
         expected.ecr(1, 0)
         expected.u(math.pi / 2, 0, -math.pi, 0)
         expected.u(math.pi / 2, 0, -math.pi, 1)
-        expected.measure_all()
-        self.assertEqual(tqc, expected)
+        self.assertTrue(Operator(tqc).equiv(qc))
+        self.assertEqual(tqc.count_ops(), {"ecr": 1, "u": 4})
 
     def test_transpile_mumbai_target(self):
         """Test that transpile respects a more involved target for a fake mumbai."""

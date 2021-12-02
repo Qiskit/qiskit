@@ -134,7 +134,7 @@ class BasisTranslator(TransformationPass):
                 qubit_set = frozenset(qarg)
                 for non_local_qarg, local_basis in qarg_with_incomplete.items():
                     if qubit_set.issuperset(non_local_qarg):
-                        expanded_target |= qarg_with_incomplete[non_local_qarg]
+                        expanded_target |= local_basis
 
             logger.info(
                 "Performing BasisTranslator search from source basis %s to target "
