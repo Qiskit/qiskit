@@ -58,7 +58,7 @@ class VarQteLinearSolver:
             var_principle: Variational Principle to be used.
             param_dict: Dictionary which relates parameter values to the parameters in the Ansatz.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
-            time_value: Time value that will be bound to t_param.
+            time_value: Time value that will be bound to t_param. It is required if t_param is not None.
             regularization: Use the following regularization with a least square method to solve the
                 underlying system of linear equations.
                 Can be either None or ``'ridge'`` or ``'lasso'`` or ``'perturb_diag'``
@@ -69,11 +69,8 @@ class VarQteLinearSolver:
         Returns: dω/dt, 2Re⟨dψ(ω)/dω|H|ψ(ω) for VarQITE/ 2Im⟨dψ(ω)/dω|H|ψ(ω) for VarQRTE,
                 Fubini-Study Metric.
         """
-        metric_result = eval_metric_result(
-            var_principle._raw_metric_tensor,
-            param_dict,
-            self._metric_circ_sampler,
-        )
+        grad = var_principle._raw_evolution_grad
+        metric = var_principle._raw_metric_tensor
 
         if t_param is not None:
             time_dict = {t_param: time_value}
@@ -84,14 +81,21 @@ class VarQteLinearSolver:
             # natural gradient with nat_grad_combo_fn(x, regularization=None)
             # TODO raw_evolution_grad might be passed as a callback
             grad = var_principle._raw_evolution_grad.bind_parameters(time_dict)
-        else:
-            grad = var_principle._raw_evolution_grad
+            metric = var_principle._raw_metric_tensor.bind_parameters(time_dict)
 
         grad_result = eval_grad_result(
             grad, param_dict, self._grad_circ_sampler, self._energy_sampler
         )
 
+        metric_result = eval_metric_result(
+            metric,
+            param_dict,
+            self._metric_circ_sampler,
+        )
+
         nat_grad_result = NaturalGradient().nat_grad_combo_fn(
             [grad_result, metric_result], regularization=regularization
         )
-        return np.real(nat_grad_result)
+
+        # error-based needs all three, non-error-based needs only nat_grad_result
+        return np.real(nat_grad_result), metric_result, grad_result
