@@ -72,8 +72,18 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         qte_ode_function = ode_function_generator.var_qte_ode_function(time, param_dict.values())
         # TODO check if values correct
         expected_qte_ode_function = [
-            0.442145, -0.022081, 0.106223, -0.117468, 0.251233, 0.321256,
-            -0.062728, -0.036209, -0.509219, -0.183459, -0.050739, -0.093163
+            0.442145,
+            -0.022081,
+            0.106223,
+            -0.117468,
+            0.251233,
+            0.321256,
+            -0.062728,
+            -0.036209,
+            -0.509219,
+            -0.183459,
+            -0.050739,
+            -0.093163,
         ]
 
         np.testing.assert_array_almost_equal(expected_qte_ode_function, qte_ode_function)

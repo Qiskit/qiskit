@@ -76,7 +76,8 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
         imaginary_error_calculator = ImaginaryErrorCalculator(
             h_squared,
             operator,
-            circuit_sampler, circuit_sampler,
+            circuit_sampler,
+            circuit_sampler,
             backend=backend,
         )
 
@@ -94,8 +95,8 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
         )
         # TODO verify if values correct
         eps_squared_expected = 0.7813473565426678
-        dtdt_state_expected = (0.2604491188475557+0j)
-        regrad2_expected = (0.13022455942377797+0j)
+        dtdt_state_expected = 0.2604491188475557 + 0j
+        regrad2_expected = 0.13022455942377797 + 0j
         np.testing.assert_almost_equal(eps_squared, eps_squared_expected, decimal=5)
         np.testing.assert_almost_equal(dtdt_state, dtdt_state_expected, decimal=5)
         np.testing.assert_almost_equal(regrad2, regrad2_expected, decimal=5)
@@ -133,7 +134,8 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
         imaginary_error_calculator = ImaginaryErrorCalculator(
             h_squared,
             operator,
-            circuit_sampler, circuit_sampler,
+            circuit_sampler,
+            circuit_sampler,
             backend=backend,
         )
 
@@ -151,8 +153,18 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
         )
         # TODO verify if values correct
         eps_squared_expected = [
-            0.435052, 0.014177, 0.065261, -0.134481, 0.166601, 0.260416,
-            -0.001525, -0.099443, -0.352939, -0.003129, 0.046254, -0.043715
+            0.435052,
+            0.014177,
+            0.065261,
+            -0.134481,
+            0.166601,
+            0.260416,
+            -0.001525,
+            -0.099443,
+            -0.352939,
+            -0.003129,
+            0.046254,
+            -0.043715,
         ]
 
         np.testing.assert_array_almost_equal(eps_squared, eps_squared_expected, decimal=5)

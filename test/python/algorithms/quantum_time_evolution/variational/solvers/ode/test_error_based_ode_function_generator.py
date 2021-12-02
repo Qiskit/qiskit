@@ -92,8 +92,14 @@ class TestErrorBasedOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         # TODO verify values if correct
         expected_qte_ode_function = array(
             [
-                0.3328437, -0.2671846, -0.2880071, -0.2972437, -0.3522935,
-                0.0375734, -0.0342469, 0.304171
+                0.3328437,
+                -0.2671846,
+                -0.2880071,
+                -0.2972437,
+                -0.3522935,
+                0.0375734,
+                -0.0342469,
+                0.304171,
             ]
         )
         np.testing.assert_almost_equal(expected_qte_ode_function, qte_ode_function)

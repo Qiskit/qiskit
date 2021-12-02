@@ -92,8 +92,14 @@ class TestVarQteOdeSolver(QiskitAlgorithmsTestCase):
         result = var_qte_ode_solver._run(time)
 
         expected_result = [
-            -0.334644, -0.790279, -0.021695, -0.002949, 2.503808, 1.147496,
-            -0.008201, -0.003358
+            -0.334644,
+            -0.790279,
+            -0.021695,
+            -0.002949,
+            2.503808,
+            1.147496,
+            -0.008201,
+            -0.003358,
         ]
 
         # TODO check if values correct
