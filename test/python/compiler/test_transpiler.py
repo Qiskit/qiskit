@@ -105,13 +105,15 @@ class TestTranspile(QiskitTestCase):
         """Transpile pipeline can handle manual layout on non-adjacent qubits.
 
         circuit:
-        qr0:-[H]--.------------  -> 1
-                  |
-        qr1:-----(+)--.--------  -> 2
-                      |
-        qr2:---------(+)--.----  -> 3
-                          |
-        qr3:-------------(+)---  -> 5
+              ┌───┐
+        qr_0: ┤ H ├──■──────────── -> 1
+              └───┘┌─┴─┐
+        qr_1: ─────┤ X ├──■─────── -> 2
+                   └───┘┌─┴─┐
+        qr_2: ──────────┤ X ├──■── -> 3
+                        └───┘┌─┴─┐
+        qr_3: ───────────────┤ X ├ -> 5
+                             └───┘
 
         device:
         0  -  1  -  2  -  3  -  4  -  5  -  6
@@ -204,6 +206,32 @@ class TestTranspile(QiskitTestCase):
         """Test that a manual layout that satisfies a coupling map does not get altered.
 
         See: https://github.com/Qiskit/qiskit-terra/issues/2036
+
+        circuit:
+              ┌───┐                  ┌───┐ ░ ┌─┐
+        qn_0: ┤ H ├──■────────────■──┤ H ├─░─┤M├─── -> 9
+              └───┘  │            │  └───┘ ░ └╥┘
+        qn_1: ───────┼────────────┼────────░──╫──── -> 6
+                     │            │        ░  ║
+        qn_2: ───────┼────────────┼────────░──╫──── -> 5
+                     │            │        ░  ║
+        qn_3: ───────┼────────────┼────────░──╫──── -> 0
+                     │            │        ░  ║
+        qn_4: ───────┼────────────┼────────░──╫──── -> 1
+              ┌───┐┌─┴─┐┌──────┐┌─┴─┐┌───┐ ░  ║ ┌─┐
+        qn_5: ┤ H ├┤ X ├┤ P(2) ├┤ X ├┤ H ├─░──╫─┤M├ -> 4
+              └───┘└───┘└──────┘└───┘└───┘ ░  ║ └╥┘
+        cn: 2/════════════════════════════════╩══╩═
+                                              0  1
+
+        device:
+        0 -- 1 -- 2 -- 3 -- 4
+        |                   |
+        5 -- 6 -- 7 -- 8 -- 9
+        |                   |
+        10 - 11 - 12 - 13 - 14
+        |                   |
+        15 - 16 - 17 - 18 - 19
         """
         basis_gates = ["u1", "u2", "u3", "cx", "id"]
         coupling_map = [
@@ -627,7 +655,14 @@ class TestTranspile(QiskitTestCase):
 
     def test_optimize_to_nothing(self):
         """Optimize gates up to fixed point in the default pipeline
-        See https://github.com/Qiskit/qiskit-terra/issues/2035"""
+        See https://github.com/Qiskit/qiskit-terra/issues/2035
+
+              ┌───┐     ┌───┐┌───┐┌───┐     ┌───┐
+        q0_0: ┤ H ├──■──┤ X ├┤ Y ├┤ Z ├──■──┤ H ├──■────■──
+              └───┘┌─┴─┐└───┘└───┘└───┘┌─┴─┐└───┘┌─┴─┐┌─┴─┐
+        q0_1: ─────┤ X ├───────────────┤ X ├─────┤ X ├┤ X ├
+                   └───┘               └───┘     └───┘└───┘
+        """
         qr = QuantumRegister(2)
         circ = QuantumCircuit(qr)
         circ.h(qr[0])
