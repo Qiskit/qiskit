@@ -206,19 +206,25 @@ class TestPresetPassManager(QiskitTestCase):
 
     def test_unroll_only_if_not_gates_in_basis(self, level=3):
         qcomp = FakeBelem()
-        qv_circuit=QuantumVolume(3)
+        qv_circuit = QuantumVolume(3)
         gates_in_basis_true_count = 0
         collect_2q_blocks_count = 0
 
-        def counting_callback_func(pass_,dag, time, property_set, count):
+        def counting_callback_func(pass_, dag, time, property_set, count):
             nonlocal gates_in_basis_true_count
             nonlocal collect_2q_blocks_count
             if isinstance(pass_, GatesInBasis) and property_set["all_gates_in_basis"]:
                 gates_in_basis_true_count += 1
-            if isinstance (pass_, Collect2qBlocks):
+            if isinstance(pass_, Collect2qBlocks):
                 collect_2q_blocks_count += 1
 
-        transpile(qv_circuit,backend=qcomp, optimization_level=3, callback=counting_callback_func,translation_method='synthesis')
+        transpile(
+            qv_circuit,
+            backend=qcomp,
+            optimization_level=3,
+            callback=counting_callback_func,
+            translation_method="synthesis",
+        )
         self.assertEqual(gates_in_basis_true_count + 1, collect_2q_blocks_count)
 
 
