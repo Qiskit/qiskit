@@ -4865,16 +4865,6 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
         self.assertFilesAreEqual(filename, self.text_reference_cp437, "cp437")
         os.remove(filename)
 
-    def test_filename_extension_error_message(self):
-        """Test that the error message shown for wrong file extension is correct."""
-        circuit = self.sample_circuit()
-        with self.assertRaises(VisualizationError) as ve:
-            _text_circuit_drawer(circuit, filename="file.spooky")
-            self.assertEqual(
-                str(ve.exception),
-                "ERROR: filename parameter does not use .txt extension.",
-            )
-
 
 if __name__ == "__main__":
     unittest.main()
