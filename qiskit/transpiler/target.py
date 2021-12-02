@@ -614,7 +614,13 @@ class Target(Mapping):
         (for multi-qubit operations).
 
         Args:
-            strict_direction (bool): Whether to
+            strict_direction (bool): If set to ``True`` the multi-qubit
+                operations considered as non-global respect the strict
+                direction (or order of qubits in the qargs is signifcant). For
+                example, if ``cx`` is defined on ``(0, 1)`` and ``ecr`` is
+                defined over ``(1, 0)`` by default neither would be considered
+                non-global, but if ``strict_direction`` is set ``True`` both
+                ``cx`` and ``ecr`` would be returned.
 
         Returns:
             List[str]: A list of operation names for operations that aren't global in this target
