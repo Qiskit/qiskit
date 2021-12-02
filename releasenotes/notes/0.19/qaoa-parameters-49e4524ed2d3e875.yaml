@@ -5,5 +5,6 @@ fixes:
     :class:`~qiskit.circuit.library.QAOAAnsatz` were not been set.
 other:
   - |
-    Terra now uses the QAOA notation for the cost operator (``γ``) and mixer (``β``) operator parameters in
-    :class:`~qiskit.circuit.library.QAOAAnsatz`.
+    The :class:`~qiskit.circuit.library.QAOAAnsatz` has been updated to use the parameter
+    symbol ``γ`` for the cost operator and ``β`` for the mixer operator, as is the standard
+    notation in QAOA literature.
