@@ -1,7 +1,8 @@
 ---
 fixes:
   - |
-    Fix a bug in :meth:`qiskit.opflow.PauliSumOp.permute` where the original object on which
-    the method is called is permuted, instead of only returning a new, permuted copy. 
-    This bug only occured for permutations that left the number of qubits in the operator 
-    unchanged.
+    Fix a bug in the :class:`~qiskit.opflow.PauliSumOp` which previously stored the
+    :class:`~qiskit.quantum_info.SparsePauliOp` it was instantiated with by reference and not
+    by value. This led to several bugs, where e.g. the ``PauliSumOp`` was affected by changes in the
+    original ``SparsePauliOp`` or methods such as :meth:`~qiskit.opflow.PauliSumOp.permute` modified
+    the object they are called on instead of leaving them unchanged.
