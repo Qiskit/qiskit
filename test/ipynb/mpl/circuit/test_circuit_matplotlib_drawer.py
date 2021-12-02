@@ -620,18 +620,16 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
     def test_subfont_change(self):
         """Tests changing the subfont size"""
-        for name in ["iqx", "iqx-dark"]:
-            with self.subTest(name=name):
-                circuit = QuantumCircuit(3)
-                circuit.h(0)
-                circuit.x(0)
-                circuit.u(pi / 2, pi / 2, pi / 2, 1)
-                circuit.p(pi / 2, 2)
-                style = {"name": name, "subfontsize": 11}
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.x(0)
+        circuit.u(pi / 2, pi / 2, pi / 2, 1)
+        circuit.p(pi / 2, 2)
+        style = {"name": "iqx", "subfontsize": 11}
 
-                self.circuit_drawer(circuit, style=style, filename="subfont.png")
-                # check does not change style
-                self.assertEqual(style, {"name": name, "subfontsize": 11})
+        self.circuit_drawer(circuit, style=style, filename="subfont.png")
+        # check does not change style
+        self.assertEqual(style, {"name": "iqx", "subfontsize": 11})
 
     def test_meas_condition(self):
         """Tests measure with a condition"""
