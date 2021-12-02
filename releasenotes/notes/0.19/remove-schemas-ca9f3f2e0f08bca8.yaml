@@ -4,7 +4,8 @@ upgrade:
     The deprecated ``qiskit.schemas`` module and the ``qiskit.validation``
     module which build jsonschema validator from the schemas have been removed.
     This was deprecated in the 0.17.0 release and has been replaced with a
-    `dedicated repository for the IBM Quantum API payload schemas <https://github.com/Qiskit/ibm-quantum-schemas>`__.
+    `dedicated repository for the IBM Quantum API payload schemas
+    <https://github.com/Qiskit/ibm-quantum-schemas>`__.
 
     If you were relying on the schema files previously packaged in
     ``qiskit.schemas`` or the validators built on them you should use that

@@ -33,8 +33,13 @@ class EchoRZXWeylDecomposition(TransformationPass):
     Each pair of RZXGates forms an echoed RZXGate.
     """
 
-    def __init__(self, instruction_schedule_map: "InstructionScheduleMap"):
-        """EchoRZXWeylDecomposition pass."""
+    def __init__(self, instruction_schedule_map):
+        """EchoRZXWeylDecomposition pass.
+
+        Args:
+            instruction_schedule_map (InstructionScheduleMap): the mapping from circuit
+                :class:`~.circuit.Instruction` names and arguments to :class:`.Schedule`\\ s.
+        """
         super().__init__()
         self._inst_map = instruction_schedule_map
 

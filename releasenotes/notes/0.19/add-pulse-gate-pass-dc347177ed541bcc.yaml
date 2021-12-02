@@ -1,35 +1,38 @@
 ---
 features:
   - |
-    A new transpiler pass group ``qiskit.transpiler.passes.calibration`` has been added.
-    This group consists of
+    A new transpiler pass group ``qiskit.transpiler.passes.calibration`` has
+    been added.  This group consists of
 
     - :class:`~qiskit.transpiler.passes.RZXCalibrationBuilder`
     - :class:`~qiskit.transpiler.passes.RZXCalibrationBuilderNoEcho`
     - :func:`~qiskit.transpiler.passes.calibration.rzx_templates.rzx_templates`.
     - :class:`~qiskit.transpiler.passes.PulseGates`
 
-    :obj:`.RZXCalibrationBuilder`, :obj:`.RZXCalibrationBuilderNoEcho`, and ``rzx_templates`` were
-    moved from ``qiskit.transpiler.passes.scheduling``, whereas :obj:`.PulseGates`
-    is the new pass that automatically extracts user-provided calibrations
-    from the instruction schedule map and attaches the gate schedule to the
-    given (transpiled) quantum circuit as a pulse gate.
-    Any transpiler pass that interacts with the pulse gate feature will be grouped to
-    ``qiskit.transpiler.passes.calibration``.
+    :obj:`.RZXCalibrationBuilder`, :obj:`.RZXCalibrationBuilderNoEcho`, and
+    ``rzx_templates`` were moved from ``qiskit.transpiler.passes.scheduling``,
+    whereas :obj:`.PulseGates` is the new pass that automatically extracts
+    user-provided calibrations from the instruction schedule map and attaches
+    the gate schedule to the given (transpiled) quantum circuit as a pulse gate.
+    Any transpiler pass that interacts with the pulse gate feature will be
+    grouped to ``qiskit.transpiler.passes.calibration``.
 
     This pass is applied to all optimization levels from 0 to 3.
     No gate implementation is updated unless the end-user explicitly overrides
     the ``backend.defaults().instruction_schedule_map``.
 
-    This pass saves users from individually calling :meth:`.QuantumCircuit.add_calibration` for every circuit run on the hardware.
+    This pass saves users from individually calling
+    :meth:`.QuantumCircuit.add_calibration` for every circuit run on the
+    hardware.
 
-    Along with this change, a schedule was added to :class:`~qiskit.pulse.InstructionScheduleMap`
-    and is implicitly updated with a metadata ``"publisher"``.
-    Backend-calibrated gate schedules have a special publisher kind to avoid overriding
-    circuits with calibrations of already known schedules.
-    Usually, end-users don't need to take care of this metadata as it is applied automatically.
-    You can call :meth:`.InstructionScheduleMap.has_custom_gate`
-    to check if the map has custom gate calibration.
+    Along with this change, a schedule was added to
+    :class:`~qiskit.pulse.InstructionScheduleMap` and is implicitly updated with
+    a metadata ``"publisher"``.  Backend-calibrated gate schedules have a
+    special publisher kind to avoid overriding circuits with calibrations of
+    already known schedules.  Usually, end-users don't need to take care of this
+    metadata as it is applied automatically.  You can call
+    :meth:`.InstructionScheduleMap.has_custom_gate` to check if the map has
+    custom gate calibration.
 
     See the below code example to learn how to apply custom gate implementation
     for all circuits under execution.

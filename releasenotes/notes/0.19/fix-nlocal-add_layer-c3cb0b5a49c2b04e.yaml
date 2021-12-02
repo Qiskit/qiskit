@@ -1,5 +1,5 @@
 ---
 fixes:
   - |
-    Fix :meth:`.NLocal.add_layer` to append layers correctly when its ``_data``
-    attribute is already built.
+    Fixed an issue with the :meth:`.NLocal.add_layer` method incorrectly
+    appending layers if the :obj:`.NLocal` object had already been built.

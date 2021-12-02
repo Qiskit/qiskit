@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    Fixed a ``TypeError`` occurring during :meth:`.PauliExpectation.compute_variance`
-    when computing multiple variances at once. Previously, lists were attempted
-    to be subtracted, requiring them to be wrapped into Numpy arrays to work as
-    expected.

@@ -2,10 +2,11 @@
 features:
   - |
     Added a :class:`~qiskit.circuit.library.PauliEvolutionGate` to the circuit
-    library which defines a gate performing time evolution of
-    (sums or sums-of-sums of) :obj:`.Pauli`\ s. The synthesis of this gate is
-    performed by :class:`~qiskit.synthesis.EvolutionSynthesis` and is decoupled
-    from the gate itself. Currently available synthesis methods are:
+    library (:mod:`qiskit.circuit.library`) which defines a gate performing time
+    evolution of (sums or sums-of-sums of) :obj:`.Pauli`\ s. The synthesis of
+    this gate is performed by :class:`~qiskit.synthesis.EvolutionSynthesis` and
+    is decoupled from the gate itself. Currently available synthesis methods
+    are:
 
     * :class:`~qiskit.synthesis.LieTrotter`: first order Trotterization
     * :class:`~qiskit.synthesis.SuzukiTrotter`: higher order Trotterization
@@ -28,5 +29,3 @@ features:
 
         circuit = QuantumCircuit(3)
         circuit.append(evo, range(3))
-
-        print(circuit.draw())

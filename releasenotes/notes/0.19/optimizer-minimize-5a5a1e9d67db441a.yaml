@@ -3,8 +3,8 @@ features:
   - |
     Added an :meth:`.Optimizer.minimize` method to all optimizers:
     :class:`~qiskit.algorithms.optimizers.Optimizer` and derived classes.
-    This method mimics the signature of SciPy's ``minimize()`` function and returns an
-    :class:`~qiskit.algorithms.optimizers.OptimizerResult`.
+    This method mimics the signature of SciPy's ``minimize()`` function and
+    returns an :class:`~qiskit.algorithms.optimizers.OptimizerResult`.
 
     For example
 
@@ -27,9 +27,10 @@ features:
 deprecations:
   - |
     The :meth:`.Optimizer.optimize` method for all the optimizers
-    (:class:`~qiskit.algorithms.optimizers.Optimizer` and derived classes) is now deprecated. Instead,
-    the :meth:`.Optimizer.minimize` method should be used which mimics the signature of SciPy's ``minimize()``
-    function.
+    (:class:`~qiskit.algorithms.optimizers.Optimizer` and derived classes) is
+    now deprecated and will be removed in a future release. Instead, the
+    :meth:`.Optimizer.minimize` method should be used which mimics the signature
+    of SciPy's ``minimize()`` function.
 
     To replace the current `optimize` call with `minimize` you can replace
 

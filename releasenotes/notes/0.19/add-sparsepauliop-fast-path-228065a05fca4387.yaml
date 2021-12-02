@@ -1,9 +1,13 @@
 ---
 features:
   - |
-    Added the ``ignore_pauli_phase`` and ``copy`` arguments to the constructor of :obj:`~qiskit.quantum_info.SparsePauliOp`.
-    ``ignore_pauli_phase`` prevents the ``phase`` attribute of an input :class:`~qiskit.quantum_info.PauliList` from being read, which is more performant if the :obj:`.PauliList` is already known to have all phases as zero in the internal ZX convention.
-    ``copy`` allows users to avoid the copy of the input data when they explicitly set ``copy=False``.
+    Added the ``ignore_pauli_phase`` and ``copy`` arguments to the constructor
+    of :obj:`~qiskit.quantum_info.SparsePauliOp`.  ``ignore_pauli_phase``
+    prevents the ``phase`` attribute of an input
+    :class:`~qiskit.quantum_info.PauliList` from being read, which is more
+    performant if the :obj:`.PauliList` is already known to have all phases as
+    zero in the internal ZX convention.  ``copy`` allows users to avoid the copy
+    of the input data when they explicitly set ``copy=False``.
   - |
     Improved performance of the following :class:`~qiskit.quantum_info.SparsePauliOp` operations:
 

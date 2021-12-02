@@ -1,7 +1,8 @@
 ---
 features:
   - |
-    Terra now has initial support for serializing to `OpenQASM 3 <https://github.com/Qiskit/openqasm>`__:
+    Qiskit Terra now has initial support for serializing
+    :class:`.QuantumCircuit`\ s to `OpenQASM 3 <https://github.com/Qiskit/openqasm>`__:
 
     .. jupyter-execute::
 
@@ -14,9 +15,10 @@ features:
 
             print(qasm3.dumps(qc))
 
-    This initial release has limited support for named registers, basic builtin instructions
-    (such as measure, barrier and reset), user-defined gates, user-defined instructions (as
-    subroutines), and opaque gates/instructions as ``defcal``.
+    This initial release has limited support for named registers, basic builtin
+    instructions (such as measure, barrier and reset), user-defined gates,
+    user-defined instructions (as subroutines), and opaque gates/instructions as
+    ``defcal``.
 
     .. jupyter-execute::
 
@@ -25,7 +27,7 @@ features:
         composite_circ.h(0)
         composite_circ.x(1)
         composite_circ.cx(0, 1)
-        composite_circ_instr = composite_circ.to_instruction()
+        composite_circ_gate = composite_circ.to_gate()
 
         qr = QuantumRegister(2, "qr")
         cr = ClassicalRegister(2, "cr")
@@ -33,7 +35,7 @@ features:
         qc.h(0)
         qc.cx(0, 1)
         qc.barrier()
-        qc.append(composite_circ_instr, [0, 1])
+        qc.append(composite_circ_gate, [0, 1])
         qc.measure([0, 1], [0, 1])
 
         print(qasm3.dumps(qc))

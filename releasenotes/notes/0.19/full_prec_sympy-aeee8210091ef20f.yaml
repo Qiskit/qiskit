@@ -1,9 +1,10 @@
 ---
 other:
   - |
-    The string cast for :class:`qiskit.circuit.ParameterExpression` does not have full precision
-    anymore. This removes the trailing 0s when printing parameters that are bound to floats.
-    This has consequences for QASM serialization and the circuit text drawer::
+    The string cast for :class:`qiskit.circuit.ParameterExpression` does not
+    have full precision anymore. This removes the trailing 0s when printing
+    parameters that are bound to floats.  This has consequences for QASM
+    serialization and the circuit text drawer::
 
     .. code-block:: python
 

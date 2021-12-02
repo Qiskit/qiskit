@@ -1,8 +1,9 @@
 ---
 features:
   - |
-    The :class:`~qiskit.opflow.evolutions.QDrift` class was reformulated
-    as a synthesis method for :obj:`.PauliEvolutionGate`, deriving from :obj:`~qiskit.opflow.evolutions.TrotterizationBase`.
+    The :class:`~qiskit.opflow.evolutions.QDrift` class was reformulated as a
+    synthesis method for :obj:`.PauliEvolutionGate`, deriving from
+    :obj:`~qiskit.opflow.evolutions.TrotterizationBase`.
 
     .. code-block:: python
 
