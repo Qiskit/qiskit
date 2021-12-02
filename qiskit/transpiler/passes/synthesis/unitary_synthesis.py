@@ -451,10 +451,21 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                 "could be determined from coupling map or "
                 "gate lengths."
             )
-        if approximation_degree is not None:
-            basis_fidelity = approximation_degree
-        else:
-            basis_fidelity = physical_gate_fidelity
+
+        # GH-6581 introduced a behavior of setting the basis_fidelity used
+        # by decomposer2q from the reported device gate_error of the
+        # corresponding 2q gate. GH-7341 reported a case where this
+        # approximation removed small but significant interactions
+        # resulting in an non-equivalent output circuit. As a workaround,
+        # revert to the prior behavior of using decomposer2q's default
+        # basis_fidelity (1, no approximation).
+
+        # if approximation_degree is not None:
+        #     basis_fidelity = approximation_degree
+        # else:
+        #     basis_fidelity = physical_gate_fidelity
+        basis_fidelity = approximation_degree
+
         synth_circ = decomposer2q(su4_mat, basis_fidelity=basis_fidelity)
         synth_dag = circuit_to_dag(synth_circ)
 
