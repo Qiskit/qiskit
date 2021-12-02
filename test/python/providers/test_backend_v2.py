@@ -15,13 +15,17 @@
 
 import math
 
+from ddt import ddt, data
+
 from qiskit.circuit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.compiler import transpile
 from qiskit.test.base import QiskitTestCase
 from qiskit.test.mock.fake_backend_v2 import FakeBackendV2
 from qiskit.test.mock.fake_mumbai_v2 import FakeMumbaiV2
+from qiskit.quantum_info import Operator
 
 
+@ddt
 class TestBackendV2(QiskitTestCase):
     def setUp(self):
         super().setUp()
@@ -43,14 +47,14 @@ class TestBackendV2(QiskitTestCase):
             "Specified value for 'shots' is not a valid value, must be >=1 or <=4096",
         )
 
-    def test_transpile(self):
+    @data(0, 1, 2, 3)
+    def test_transpile(self, opt_level):
         """Test that transpile() works with a BackendV2 backend."""
         qc = QuantumCircuit(2)
         qc.h(1)
         qc.cz(1, 0)
-        qc.measure_all()
         with self.assertLogs("qiskit.providers.backend", level="WARN") as log:
-            tqc = transpile(qc, self.backend)
+            tqc = transpile(qc, self.backend, optimization_level=opt_level)
         self.assertEqual(
             log.output,
             [
@@ -60,25 +64,50 @@ class TestBackendV2(QiskitTestCase):
                 "invalid output"
             ],
         )
-        expected = QuantumCircuit(2, global_phase=math.pi / 4)
-        expected.u(math.pi / 2, 0, -math.pi / 2, 0)
-        expected.u(math.pi / 2, -math.pi / 2, 0, 1)
-        expected.ecr(1, 0)
-        expected.u(math.pi / 2, 0, -math.pi, 0)
-        expected.measure_all()
-        self.assertEqual(tqc, expected)
+        self.assertTrue(Operator(tqc).equiv(qc))
 
     def test_transpile_respects_arg_constraints(self):
         """Test that transpile() respects a heterogenous basis."""
+        # Test CX on wrong link
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.cx(1, 0)
+        tqc = transpile(qc, self.backend)
+        expected = QuantumCircuit(2)
+        expected.u(0, -math.pi, -math.pi, 0)
+        expected.u(math.pi / 2, 0, -math.pi, 1)
+        expected.cx(0, 1)
+        expected.u(math.pi / 2, 0, -math.pi, 0)
+        expected.u(math.pi / 2, 0, -math.pi, 1)
+        self.assertEqual(tqc, expected)
+        # Test ECR on wrong link
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.ecr(0, 1)
         qc.measure_all()
         tqc = transpile(qc, self.backend)
-        expected = QuantumCircuit(2, global_phase=7 * math.pi / 4)
-        expected.u(math.pi / 2, 0, -math.pi / 2, 0)
-        expected.u(math.pi, 0, -math.pi / 2, 1)
+        expected = QuantumCircuit(2)
+        expected.u(0, 0, -math.pi, 0)
+        expected.u(math.pi / 2, 0, 0, 1)
         expected.ecr(1, 0)
+        expected.u(math.pi / 2, 0, -math.pi, 0)
+        expected.u(math.pi / 2, 0, -math.pi, 1)
+        expected.measure_all()
+        self.assertEqual(tqc, expected)
+
+    def test_transpile_relies_on_gate_direction(self):
+        """Test that transpile() relies on gate direction pass for 2q."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.ecr(0, 1)
+        qc.measure_all()
+        tqc = transpile(qc, self.backend)
+        expected = QuantumCircuit(2)
+        expected.u(0, 0, -math.pi, 0)
+        expected.u(math.pi / 2, 0, 0, 1)
+        expected.ecr(1, 0)
+        expected.u(math.pi / 2, 0, -math.pi, 0)
+        expected.u(math.pi / 2, 0, -math.pi, 1)
         expected.measure_all()
         self.assertEqual(tqc, expected)
 
