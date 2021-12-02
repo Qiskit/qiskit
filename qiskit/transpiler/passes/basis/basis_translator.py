@@ -130,6 +130,9 @@ class BasisTranslator(TransformationPass):
         qarg_local_basis_transforms = {}
         for qarg, extra_source_basis in incomplete_source_basis.items():
             expanded_target = target_basis | qarg_with_incomplete[qarg]
+            if len(qarg) > 1:
+                for qubit in qarg:
+                    expanded_target |= qarg_with_incomplete.get((qubit,), set())
 
             logger.info(
                 "Performing BasisTranslator search from source basis %s to target "
