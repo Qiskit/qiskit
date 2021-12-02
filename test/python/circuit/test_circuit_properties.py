@@ -79,7 +79,22 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.depth(), 1)
 
     def test_circuit_depth_barrier(self):
-        """Make sure barriers do not add to depth"""
+        """Make sure barriers do not add to depth
+
+             ┌───┐                     ░ ┌─┐
+        q_0: ┤ H ├──■──────────────────░─┤M├────────────
+             ├───┤┌─┴─┐                ░ └╥┘┌─┐
+        q_1: ┤ H ├┤ X ├──■─────────────░──╫─┤M├─────────
+             ├───┤└───┘  │  ┌───┐      ░  ║ └╥┘┌─┐
+        q_2: ┤ H ├───────┼──┤ X ├──■───░──╫──╫─┤M├──────
+             ├───┤       │  └─┬─┘┌─┴─┐ ░  ║  ║ └╥┘┌─┐
+        q_3: ┤ H ├───────┼────┼──┤ X ├─░──╫──╫──╫─┤M├───
+             ├───┤     ┌─┴─┐  │  └───┘ ░  ║  ║  ║ └╥┘┌─┐
+        q_4: ┤ H ├─────┤ X ├──■────────░──╫──╫──╫──╫─┤M├
+             └───┘     └───┘           ░  ║  ║  ║  ║ └╥┘
+        c: 5/═════════════════════════════╩══╩══╩══╩══╩═
+                                          0  1  2  3  4
+        """
         q = QuantumRegister(5, "q")
         c = ClassicalRegister(5, "c")
         qc = QuantumCircuit(q, c)
@@ -97,7 +112,21 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.depth(), 6)
 
     def test_circuit_depth_simple(self):
-        """Test depth for simple circuit"""
+        """Test depth for simple circuit
+             ┌───┐
+        q_0: ┤ H ├──■────────────────────
+             └───┘  │            ┌───┐┌─┐
+        q_1: ───────┼────────────┤ X ├┤M├
+             ┌───┐  │  ┌───┐┌───┐└─┬─┘└╥┘
+        q_2: ┤ X ├──┼──┤ X ├┤ X ├──┼───╫─
+             └───┘  │  └───┘└───┘  │   ║
+        q_3: ───────┼──────────────┼───╫─
+                  ┌─┴─┐┌───┐       │   ║
+        q_4: ─────┤ X ├┤ X ├───────■───╫─
+                  └───┘└───┘           ║
+        c: 1/══════════════════════════╩═
+                                       0
+        """
         q = QuantumRegister(5, "q")
         c = ClassicalRegister(1, "c")
         qc = QuantumCircuit(q, c)
@@ -112,7 +141,21 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.depth(), 5)
 
     def test_circuit_depth_multi_reg(self):
-        """Test depth for multiple registers"""
+        """Test depth for multiple registers
+
+              ┌───┐
+        q1_0: ┤ H ├──■─────────────────
+              ├───┤┌─┴─┐
+        q1_1: ┤ H ├┤ X ├──■────────────
+              ├───┤└───┘  │  ┌───┐
+        q1_2: ┤ H ├───────┼──┤ X ├──■──
+              ├───┤       │  └─┬─┘┌─┴─┐
+        q2_0: ┤ H ├───────┼────┼──┤ X ├
+              ├───┤     ┌─┴─┐  │  └───┘
+        q2_1: ┤ H ├─────┤ X ├──■───────
+              └───┘     └───┘
+        c: 5/═════════════════════════
+        """
         q1 = QuantumRegister(3, "q1")
         q2 = QuantumRegister(2, "q2")
         c = ClassicalRegister(5, "c")
@@ -129,7 +172,21 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.depth(), 5)
 
     def test_circuit_depth_3q_gate(self):
-        """Test depth for 3q gate"""
+        """Test depth for 3q gate
+
+              ┌───┐
+        q1_0: ┤ H ├──■────■─────────────────
+              ├───┤  │  ┌─┴─┐
+        q1_1: ┤ H ├──┼──┤ X ├──■────────────
+              ├───┤  │  └───┘  │  ┌───┐
+        q1_2: ┤ H ├──┼─────────┼──┤ X ├──■──
+              ├───┤┌─┴─┐       │  └─┬─┘┌─┴─┐
+        q2_0: ┤ H ├┤ X ├───────┼────┼──┤ X ├
+              ├───┤└─┬─┘     ┌─┴─┐  │  └───┘
+        q2_1: ┤ H ├──■───────┤ X ├──■───────
+              └───┘          └───┘
+        c: 5/══════════════════════════════
+        """
         q1 = QuantumRegister(3, "q1")
         q2 = QuantumRegister(2, "q2")
         c = ClassicalRegister(5, "c")
@@ -147,7 +204,21 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.depth(), 6)
 
     def test_circuit_depth_conditionals1(self):
-        """Test circuit depth for conditional gates #1."""
+        """Test circuit depth for conditional gates #1.
+
+             ┌───┐     ┌─┐
+        q_0: ┤ H ├──■──┤M├─────────────────
+             ├───┤┌─┴─┐└╥┘┌─┐
+        q_1: ┤ H ├┤ X ├─╫─┤M├──────────────
+             ├───┤└───┘ ║ └╥┘ ┌───┐
+        q_2: ┤ H ├──■───╫──╫──┤ H ├────────
+             ├───┤┌─┴─┐ ║  ║  └─╥─┘  ┌───┐
+        q_3: ┤ H ├┤ X ├─╫──╫────╫────┤ H ├─
+             └───┘└───┘ ║  ║    ║    └─╥─┘
+                        ║  ║ ┌──╨──┐┌──╨──┐
+        c: 4/═══════════╩══╩═╡ 0x2 ╞╡ 0x4 ╞
+                        0  1 └─────┘└─────┘
+        """
         size = 4
         q = QuantumRegister(size, "q")
         c = ClassicalRegister(size, "c")
@@ -166,7 +237,21 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.depth(), 5)
 
     def test_circuit_depth_conditionals2(self):
-        """Test circuit depth for conditional gates #2."""
+        """Test circuit depth for conditional gates #2.
+
+             ┌───┐     ┌─┐┌─┐
+        q_0: ┤ H ├──■──┤M├┤M├──────────────
+             ├───┤┌─┴─┐└╥┘└╥┘
+        q_1: ┤ H ├┤ X ├─╫──╫───────────────
+             ├───┤└───┘ ║  ║  ┌───┐
+        q_2: ┤ H ├──■───╫──╫──┤ H ├────────
+             ├───┤┌─┴─┐ ║  ║  └─╥─┘  ┌───┐
+        q_3: ┤ H ├┤ X ├─╫──╫────╫────┤ H ├─
+             └───┘└───┘ ║  ║    ║    └─╥─┘
+                        ║  ║ ┌──╨──┐┌──╨──┐
+        c: 4/═══════════╩══╩═╡ 0x2 ╞╡ 0x4 ╞
+                        0  0 └─────┘└─────┘
+        """
         size = 4
         q = QuantumRegister(size, "q")
         c = ClassicalRegister(size, "c")
@@ -185,7 +270,21 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.depth(), 6)
 
     def test_circuit_depth_conditionals3(self):
-        """Test circuit depth for conditional gates #3."""
+        """Test circuit depth for conditional gates #3.
+
+             ┌───┐┌─┐
+        q_0: ┤ H ├┤M├───■────────────
+             ├───┤└╥┘   │   ┌─┐
+        q_1: ┤ H ├─╫────┼───┤M├──────
+             ├───┤ ║    │   └╥┘┌─┐
+        q_2: ┤ H ├─╫────┼────╫─┤M├───
+             ├───┤ ║  ┌─┴─┐  ║ └╥┘┌─┐
+        q_3: ┤ H ├─╫──┤ X ├──╫──╫─┤M├
+             └───┘ ║  └─╥─┘  ║  ║ └╥┘
+                   ║ ┌──╨──┐ ║  ║  ║
+        c: 4/══════╩═╡ 0x2 ╞═╩══╩══╩═
+                   0 └─────┘ 1  2  3
+        """
         size = 4
         q = QuantumRegister(size, "q")
         c = ClassicalRegister(size, "c")
@@ -204,7 +303,21 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.depth(), 4)
 
     def test_circuit_depth_bit_conditionals1(self):
-        """Test circuit depth for single bit conditional gates #1."""
+        """Test circuit depth for single bit conditional gates #1.
+
+             ┌───┐┌─┐
+        q_0: ┤ H ├┤M├─────────────────────────
+             ├───┤└╥┘      ┌───┐
+        q_1: ┤ H ├─╫───────┤ H ├──────────────
+             ├───┤ ║ ┌─┐   └─╥─┘
+        q_2: ┤ H ├─╫─┤M├─────╫────────────────
+             ├───┤ ║ └╥┘     ║        ┌───┐
+        q_3: ┤ H ├─╫──╫──────╫────────┤ H ├───
+             └───┘ ║  ║      ║        └─╥─┘
+                   ║  ║ ┌────╨────┐┌────╨────┐
+        c: 4/══════╩══╩═╡ c_0=0x1 ╞╡ c_2=0x0 ╞
+                   0  2 └─────────┘└─────────┘
+        """
         size = 4
         q = QuantumRegister(size, "q")
         c = ClassicalRegister(size, "c")
@@ -221,7 +334,33 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.depth(), 3)
 
     def test_circuit_depth_bit_conditionals2(self):
-        """Test circuit depth for single bit conditional gates #2."""
+        """Test circuit depth for single bit conditional gates #2.
+
+             ┌───┐┌─┐                                                          »
+        q_0: ┤ H ├┤M├──────────────────────────────■─────────────────────■─────»
+             ├───┤└╥┘      ┌───┐                 ┌─┴─┐                   │     »
+        q_1: ┤ H ├─╫───────┤ H ├─────────────────┤ X ├───────────────────┼─────»
+             ├───┤ ║ ┌─┐   └─╥─┘                 └─╥─┘                 ┌─┴─┐   »
+        q_2: ┤ H ├─╫─┤M├─────╫─────────────────────╫──────────■────────┤ H ├───»
+             ├───┤ ║ └╥┘     ║        ┌───┐        ║        ┌─┴─┐      └─╥─┘   »
+        q_3: ┤ H ├─╫──╫──────╫────────┤ H ├────────╫────────┤ X ├────────╫─────»
+             └───┘ ║  ║      ║        └─╥─┘        ║        └─╥─┘        ║     »
+                   ║  ║ ┌────╨────┐┌────╨────┐┌────╨────┐┌────╨────┐┌────╨────┐»
+        c: 4/══════╩══╩═╡ c_1=0x1 ╞╡ c_3=0x1 ╞╡ c_0=0x0 ╞╡ c_2=0x0 ╞╡ c_1=0x1 ╞»
+                   0  2 └─────────┘└─────────┘└─────────┘└─────────┘└─────────┘»
+        «
+        «q_0: ───────────
+        «
+        «q_1: ─────■─────
+        «          │
+        «q_2: ─────┼─────
+        «        ┌─┴─┐
+        «q_3: ───┤ H ├───
+        «        └─╥─┘
+        «     ┌────╨────┐
+        «c: 4/╡ c_3=0x1 ╞
+        «     └─────────┘
+        """
         size = 4
         q = QuantumRegister(size, "q")
         c = ClassicalRegister(size, "c")
@@ -242,7 +381,21 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.depth(), 4)
 
     def test_circuit_depth_bit_conditionals3(self):
-        """Test circuit depth for single bit conditional gates #3."""
+        """Test circuit depth for single bit conditional gates #3.
+
+             ┌───┐┌─┐
+        q_0: ┤ H ├┤M├──────────────────────────────────────
+             ├───┤└╥┘   ┌───┐                     ┌─┐
+        q_1: ┤ H ├─╫────┤ H ├─────────────────────┤M├──────
+             ├───┤ ║    └─╥─┘    ┌───┐            └╥┘┌─┐
+        q_2: ┤ H ├─╫──────╫──────┤ H ├─────────────╫─┤M├───
+             ├───┤ ║      ║      └─╥─┘    ┌───┐    ║ └╥┘┌─┐
+        q_3: ┤ H ├─╫──────╫────────╫──────┤ H ├────╫──╫─┤M├
+             └───┘ ║      ║        ║      └─╥─┘    ║  ║ └╥┘
+                   ║ ┌────╨────┐┌──╨──┐┌────╨────┐ ║  ║  ║
+        c: 4/══════╩═╡ c_0=0x1 ╞╡ 0x2 ╞╡ c_3=0x1 ╞═╩══╩══╩═
+                   0 └─────────┘└─────┘└─────────┘ 1  2  3
+        """
         size = 4
         q = QuantumRegister(size, "q")
         c = ClassicalRegister(size, "c")
@@ -262,7 +415,20 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.depth(), 6)
 
     def test_circuit_depth_measurements1(self):
-        """Test circuit depth for measurements #1."""
+        """Test circuit depth for measurements #1.
+
+             ┌───┐┌─┐
+        q_0: ┤ H ├┤M├─────────
+             ├───┤└╥┘┌─┐
+        q_1: ┤ H ├─╫─┤M├──────
+             ├───┤ ║ └╥┘┌─┐
+        q_2: ┤ H ├─╫──╫─┤M├───
+             ├───┤ ║  ║ └╥┘┌─┐
+        q_3: ┤ H ├─╫──╫──╫─┤M├
+             └───┘ ║  ║  ║ └╥┘
+        c: 4/══════╩══╩══╩══╩═
+                   0  1  2  3
+        """
         size = 4
         q = QuantumRegister(size, "q")
         c = ClassicalRegister(size, "c")
@@ -279,7 +445,20 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.depth(), 2)
 
     def test_circuit_depth_measurements2(self):
-        """Test circuit depth for measurements #2."""
+        """Test circuit depth for measurements #2.
+
+             ┌───┐┌─┐┌─┐┌─┐┌─┐
+        q_0: ┤ H ├┤M├┤M├┤M├┤M├
+             ├───┤└╥┘└╥┘└╥┘└╥┘
+        q_1: ┤ H ├─╫──╫──╫──╫─
+             ├───┤ ║  ║  ║  ║
+        q_2: ┤ H ├─╫──╫──╫──╫─
+             ├───┤ ║  ║  ║  ║
+        q_3: ┤ H ├─╫──╫──╫──╫─
+             └───┘ ║  ║  ║  ║
+        c: 4/══════╩══╩══╩══╩═
+                   0  1  2  3
+        """
         size = 4
         q = QuantumRegister(size, "q")
         c = ClassicalRegister(size, "c")
@@ -296,7 +475,20 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.depth(), 5)
 
     def test_circuit_depth_measurements3(self):
-        """Test circuit depth for measurements #3."""
+        """Test circuit depth for measurements #3.
+
+             ┌───┐┌─┐
+        q_0: ┤ H ├┤M├─────────
+             ├───┤└╥┘┌─┐
+        q_1: ┤ H ├─╫─┤M├──────
+             ├───┤ ║ └╥┘┌─┐
+        q_2: ┤ H ├─╫──╫─┤M├───
+             ├───┤ ║  ║ └╥┘┌─┐
+        q_3: ┤ H ├─╫──╫──╫─┤M├
+             └───┘ ║  ║  ║ └╥┘
+        c: 4/══════╩══╩══╩══╩═
+                   0  0  0  0
+        """
         size = 4
         q = QuantumRegister(size, "q")
         c = ClassicalRegister(size, "c")
@@ -313,7 +505,19 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.depth(), 5)
 
     def test_circuit_depth_barriers1(self):
-        """Test circuit depth for barriers #1."""
+        """Test circuit depth for barriers #1.
+
+             ┌───┐      ░
+        q_0: ┤ H ├──■───░───────────
+             └───┘┌─┴─┐ ░
+        q_1: ─────┤ X ├─░───────────
+                  └───┘ ░ ┌───┐
+        q_2: ───────────░─┤ H ├──■──
+                        ░ └───┘┌─┴─┐
+        q_3: ───────────░──────┤ X ├
+                        ░      └───┘
+        c: 4/═══════════════════════
+        """
         q = QuantumRegister(4, "q")
         c = ClassicalRegister(4, "c")
         circ = QuantumCircuit(q, c)
@@ -325,7 +529,19 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(circ.depth(), 4)
 
     def test_circuit_depth_barriers2(self):
-        """Test circuit depth for barriers #2."""
+        """Test circuit depth for barriers #2.
+
+             ┌───┐ ░       ░       ░
+        q_0: ┤ H ├─░───■───░───────░──────
+             └───┘ ░ ┌─┴─┐ ░       ░
+        q_1: ──────░─┤ X ├─░───────░──────
+                   ░ └───┘ ░ ┌───┐ ░
+        q_2: ──────░───────░─┤ H ├─░───■──
+                   ░       ░ └───┘ ░ ┌─┴─┐
+        q_3: ──────░───────░───────░─┤ X ├
+                   ░       ░       ░ └───┘
+        c: 4/═════════════════════════════
+        """
         q = QuantumRegister(4, "q")
         c = ClassicalRegister(4, "c")
         circ = QuantumCircuit(q, c)
@@ -339,7 +555,19 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(circ.depth(), 4)
 
     def test_circuit_depth_barriers3(self):
-        """Test circuit depth for barriers #3."""
+        """Test circuit depth for barriers #3.
+
+             ┌───┐ ░       ░  ░  ░       ░
+        q_0: ┤ H ├─░───■───░──░──░───────░──────
+             └───┘ ░ ┌─┴─┐ ░  ░  ░       ░
+        q_1: ──────░─┤ X ├─░──░──░───────░──────
+                   ░ └───┘ ░  ░  ░ ┌───┐ ░
+        q_2: ──────░───────░──░──░─┤ H ├─░───■──
+                   ░       ░  ░  ░ └───┘ ░ ┌─┴─┐
+        q_3: ──────░───────░──░──░───────░─┤ X ├
+                   ░       ░  ░  ░       ░ └───┘
+        c: 4/═══════════════════════════════════
+        """
         q = QuantumRegister(4, "q")
         c = ClassicalRegister(4, "c")
         circ = QuantumCircuit(q, c)
@@ -355,7 +583,19 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(circ.depth(), 4)
 
     def test_circuit_depth_snap1(self):
-        """Test circuit depth for snapshots #1."""
+        """Test circuit depth for snapshots #1.
+
+             ┌───┐      ░
+        q_0: ┤ H ├──■───░───────────
+             └───┘┌─┴─┐ ░
+        q_1: ─────┤ X ├─░───────────
+                  └───┘ ░ ┌───┐
+        q_2: ───────────░─┤ H ├──■──
+                        ░ └───┘┌─┴─┐
+        q_3: ───────────░──────┤ X ├
+                        ░      └───┘
+        c: 4/═══════════════════════
+        """
         q = QuantumRegister(4, "q")
         c = ClassicalRegister(4, "c")
         circ = QuantumCircuit(q, c)
@@ -367,7 +607,19 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(circ.depth(), 4)
 
     def test_circuit_depth_snap2(self):
-        """Test circuit depth for snapshots #2."""
+        """Test circuit depth for snapshots #2.
+
+             ┌───┐ ░       ░       ░
+        q_0: ┤ H ├─░───■───░───────░──────
+             └───┘ ░ ┌─┴─┐ ░       ░
+        q_1: ──────░─┤ X ├─░───────░──────
+                   ░ └───┘ ░ ┌───┐ ░
+        q_2: ──────░───────░─┤ H ├─░───■──
+                   ░       ░ └───┘ ░ ┌─┴─┐
+        q_3: ──────░───────░───────░─┤ X ├
+                   ░       ░       ░ └───┘
+        c: 4/═════════════════════════════
+        """
         q = QuantumRegister(4, "q")
         c = ClassicalRegister(4, "c")
         circ = QuantumCircuit(q, c)
@@ -381,7 +633,19 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(circ.depth(), 4)
 
     def test_circuit_depth_snap3(self):
-        """Test circuit depth for snapshots #3."""
+        """Test circuit depth for snapshots #3.
+
+             ┌───┐      ░  ░
+        q_0: ┤ H ├──■───░──░───────────
+             └───┘┌─┴─┐ ░  ░
+        q_1: ─────┤ X ├─░──░───────────
+                  └───┘ ░  ░ ┌───┐
+        q_2: ───────────░──░─┤ H ├──■──
+                        ░  ░ └───┘┌─┴─┐
+        q_3: ───────────░──░──────┤ X ├
+                        ░  ░      └───┘
+        c: 4/══════════════════════════
+        """
         q = QuantumRegister(4, "q")
         c = ClassicalRegister(4, "c")
         circ = QuantumCircuit(q, c)
@@ -535,7 +799,24 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(expected, result)
 
     def test_circuit_nonlocal_gates(self):
-        """Test num_nonlocal_gates."""
+        """Test num_nonlocal_gates.
+
+             ┌───┐                   ┌────────┐
+        q_0: ┤ H ├───────────────────┤0       ├
+             ├───┤   ┌───┐           │        │
+        q_1: ┤ H ├───┤ X ├─────────■─┤        ├
+             ├───┤   └───┘         │ │        │
+        q_2: ┤ H ├─────■───────────X─┤  Iswap ├
+             ├───┤     │     ┌───┐ │ │        │
+        q_3: ┤ H ├─────┼─────┤ Z ├─X─┤        ├
+             ├───┤┌────┴────┐├───┤   │        │
+        q_4: ┤ H ├┤ Ry(0.1) ├┤ Z ├───┤1       ├
+             ├───┤└──┬───┬──┘└───┘   └───╥────┘
+        q_5: ┤ H ├───┤ Z ├───────────────╫─────
+             └───┘   └───┘            ┌──╨──┐
+        c: 2/═════════════════════════╡ 0x2 ╞══
+                                      └─────┘
+        """
         q = QuantumRegister(6, "q")
         c = ClassicalRegister(2, "c")
         qc = QuantumCircuit(q, c)
@@ -567,7 +848,20 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(7, qc.num_connected_components())
 
     def test_circuit_connected_components_multi_reg(self):
-        """Test tensor factors works over multi registers"""
+        """Test tensor factors works over multi registers
+
+              ┌───┐
+        q1_0: ┤ H ├──■─────────────────
+              ├───┤┌─┴─┐
+        q1_1: ┤ H ├┤ X ├──■────────────
+              ├───┤└───┘  │  ┌───┐
+        q1_2: ┤ H ├───────┼──┤ X ├──■──
+              ├───┤       │  └─┬─┘┌─┴─┐
+        q2_0: ┤ H ├───────┼────┼──┤ X ├
+              ├───┤     ┌─┴─┐  │  └───┘
+        q2_1: ┤ H ├─────┤ X ├──■───────
+              └───┘     └───┘
+        """
         q1 = QuantumRegister(3, "q1")
         q2 = QuantumRegister(2, "q2")
         qc = QuantumCircuit(q1, q2)
@@ -583,7 +877,19 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.num_connected_components(), 1)
 
     def test_circuit_connected_components_multi_reg2(self):
-        """Test tensor factors works over multi registers #2."""
+        """Test tensor factors works over multi registers #2.
+
+        q1_0: ──■────────────
+                │
+        q1_1: ──┼─────────■──
+                │  ┌───┐  │
+        q1_2: ──┼──┤ X ├──┼──
+                │  └─┬─┘┌─┴─┐
+        q2_0: ──┼────■──┤ X ├
+              ┌─┴─┐     └───┘
+        q2_1: ┤ X ├──────────
+              └───┘
+        """
         q1 = QuantumRegister(3, "q1")
         q2 = QuantumRegister(2, "q2")
         qc = QuantumCircuit(q1, q2)
@@ -593,7 +899,29 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.num_connected_components(), 2)
 
     def test_circuit_connected_components_disconnected(self):
-        """Test tensor factors works with 2q subspaces."""
+        """Test tensor factors works with 2q subspaces.
+
+        q1_0: ──■──────────────────────
+                │
+        q1_1: ──┼────■─────────────────
+                │    │
+        q1_2: ──┼────┼────■────────────
+                │    │    │
+        q1_3: ──┼────┼────┼────■───────
+                │    │    │    │
+        q1_4: ──┼────┼────┼────┼────■──
+                │    │    │    │  ┌─┴─┐
+        q2_0: ──┼────┼────┼────┼──┤ X ├
+                │    │    │  ┌─┴─┐└───┘
+        q2_1: ──┼────┼────┼──┤ X ├─────
+                │    │  ┌─┴─┐└───┘
+        q2_2: ──┼────┼──┤ X ├──────────
+                │  ┌─┴─┐└───┘
+        q2_3: ──┼──┤ X ├───────────────
+              ┌─┴─┐└───┘
+        q2_4: ┤ X ├────────────────────
+              └───┘
+        """
         q1 = QuantumRegister(5, "q1")
         q2 = QuantumRegister(5, "q2")
         qc = QuantumCircuit(q1, q2)
@@ -605,7 +933,20 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.num_connected_components(), 5)
 
     def test_circuit_connected_components_with_clbits(self):
-        """Test tensor components with classical register."""
+        """Test tensor components with classical register.
+
+             ┌───┐┌─┐
+        q_0: ┤ H ├┤M├─────────
+             ├───┤└╥┘┌─┐
+        q_1: ┤ H ├─╫─┤M├──────
+             ├───┤ ║ └╥┘┌─┐
+        q_2: ┤ H ├─╫──╫─┤M├───
+             ├───┤ ║  ║ └╥┘┌─┐
+        q_3: ┤ H ├─╫──╫──╫─┤M├
+             └───┘ ║  ║  ║ └╥┘
+        c: 4/══════╩══╩══╩══╩═
+                  0  1  2  3
+        """
         size = 4
         q = QuantumRegister(size, "q")
         c = ClassicalRegister(size, "c")
@@ -621,7 +962,21 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.num_connected_components(), 4)
 
     def test_circuit_connected_components_with_cond(self):
-        """Test tensor components with one conditional gate."""
+        """Test tensor components with one conditional gate.
+
+             ┌───┐┌─┐
+        q_0: ┤ H ├┤M├───■────────────
+             ├───┤└╥┘   │   ┌─┐
+        q_1: ┤ H ├─╫────┼───┤M├──────
+             ├───┤ ║    │   └╥┘┌─┐
+        q_2: ┤ H ├─╫────┼────╫─┤M├───
+             ├───┤ ║  ┌─┴─┐  ║ └╥┘┌─┐
+        q_3: ┤ H ├─╫──┤ X ├──╫──╫─┤M├
+             └───┘ ║  └─╥─┘  ║  ║ └╥┘
+                   ║ ┌──╨──┐ ║  ║  ║
+        c: 4/══════╩═╡ 0x2 ╞═╩══╩══╩═
+                   0 └─────┘ 1  2  3
+        """
         size = 4
         q = QuantumRegister(size, "q")
         c = ClassicalRegister(size, "c")
@@ -638,7 +993,20 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.num_connected_components(), 1)
 
     def test_circuit_connected_components_with_cond2(self):
-        """Test tensor components with two conditional gates."""
+        """Test tensor components with two conditional gates.
+
+             ┌───┐ ┌───┐
+        q_0: ┤ H ├─┤ H ├────────
+             ├───┤ └─╥─┘
+        q_1: ┤ H ├───╫──────■───
+             ├───┤   ║    ┌─┴─┐
+        q_2: ┤ H ├───╫────┤ X ├─
+             ├───┤   ║    └─╥─┘
+        q_3: ┤ H ├───╫──────╫───
+             └───┘┌──╨──┐┌──╨──┐
+        c: 8/═════╡ 0x0 ╞╡ 0x4 ╞
+                  └─────┘└─────┘
+        """
         size = 4
         q = QuantumRegister(size, "q")
         c = ClassicalRegister(2 * size, "c")
@@ -652,7 +1020,21 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.num_connected_components(), 2)
 
     def test_circuit_connected_components_with_cond3(self):
-        """Test tensor components with three conditional gates and measurements."""
+        """Test tensor components with three conditional gates and measurements.
+
+              ┌───┐┌─┐ ┌───┐
+        q0_0: ┤ H ├┤M├─┤ H ├──────────────────
+              ├───┤└╥┘ └─╥─┘
+        q0_1: ┤ H ├─╫────╫──────■─────────────
+              ├───┤ ║    ║    ┌─┴─┐ ┌─┐
+        q0_2: ┤ H ├─╫────╫────┤ X ├─┤M├───────
+              ├───┤ ║    ║    └─╥─┘ └╥┘ ┌───┐
+        q0_3: ┤ H ├─╫────╫──────╫────╫──┤ X ├─
+              └───┘ ║    ║      ║    ║  └─╥─┘
+                    ║ ┌──╨──┐┌──╨──┐ ║ ┌──╨──┐
+        c0: 4/══════╩═╡ 0x0 ╞╡ 0x1 ╞═╩═╡ 0x2 ╞
+                    0 └─────┘└─────┘ 2 └─────┘
+        """
         size = 4
         q = QuantumRegister(size)
         c = ClassicalRegister(size)
@@ -669,7 +1051,21 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.num_connected_components(), 1)
 
     def test_circuit_connected_components_with_bit_cond(self):
-        """Test tensor components with one single bit conditional gate."""
+        """Test tensor components with one single bit conditional gate.
+
+             ┌───┐┌─┐
+        q_0: ┤ H ├┤M├───────────■────────
+             ├───┤└╥┘┌─┐        │
+        q_1: ┤ H ├─╫─┤M├────────┼────────
+             ├───┤ ║ └╥┘┌─┐     │
+        q_2: ┤ H ├─╫──╫─┤M├─────┼────────
+             ├───┤ ║  ║ └╥┘   ┌─┴─┐   ┌─┐
+        q_3: ┤ H ├─╫──╫──╫────┤ X ├───┤M├
+             └───┘ ║  ║  ║    └─╥─┘   └╥┘
+                   ║  ║  ║ ┌────╨────┐ ║
+        c: 4/══════╩══╩══╩═╡ c_0=0x1 ╞═╩═
+                   0  1  2 └─────────┘ 3
+        """
         size = 4
         q = QuantumRegister(size, "q")
         c = ClassicalRegister(size, "c")
@@ -686,7 +1082,20 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.num_connected_components(), 3)
 
     def test_circuit_connected_components_with_bit_cond2(self):
-        """Test tensor components with two bit conditional gates."""
+        """Test tensor components with two bit conditional gates.
+
+             ┌───┐   ┌───┐                 ┌───┐
+        q_0: ┤ H ├───┤ H ├─────────────────┤ X ├───
+             ├───┤   └─╥─┘                 └─┬─┘
+        q_1: ┤ H ├─────╫─────────────────────■─────
+             ├───┤     ║                     ║
+        q_2: ┤ H ├─────╫──────────■──────────╫─────
+             ├───┤     ║          │          ║
+        q_3: ┤ H ├─────╫──────────■──────────╫─────
+             └───┘┌────╨────┐┌────╨────┐┌────╨────┐
+        c: 6/═════╡ c_1=0x1 ╞╡ c_0=0x1 ╞╡ c_4=0x0 ╞
+                  └─────────┘└─────────┘└─────────┘
+        """
         size = 4
         q = QuantumRegister(size, "q")
         c = ClassicalRegister(size + 2, "c")
@@ -701,7 +1110,21 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.num_connected_components(), 5)
 
     def test_circuit_connected_components_with_bit_cond3(self):
-        """Test tensor components with register and bit conditional gates."""
+        """Test tensor components with register and bit conditional gates.
+
+              ┌───┐   ┌───┐
+        q0_0: ┤ H ├───┤ H ├───────────────────────
+              ├───┤   └─╥─┘
+        q0_1: ┤ H ├─────╫─────────■───────────────
+              ├───┤     ║       ┌─┴─┐
+        q0_2: ┤ H ├─────╫───────┤ X ├─────────────
+              ├───┤     ║       └─╥─┘    ┌───┐
+        q0_3: ┤ H ├─────╫─────────╫──────┤ X ├────
+              └───┘     ║         ║      └─╥─┘
+                   ┌────╨─────┐┌──╨──┐┌────╨─────┐
+        c0: 4/═════╡ c0_0=0x1 ╞╡ 0x1 ╞╡ c0_2=0x1 ╞
+                   └──────────┘└─────┘└──────────┘
+        """
         size = 4
         q = QuantumRegister(size)
         c = ClassicalRegister(size)
@@ -732,7 +1155,21 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.num_unitary_factors(), 4)
 
     def test_circuit_unitary_factors3(self):
-        """Test unitary factors measurements and conditionals."""
+        """Test unitary factors measurements and conditionals.
+
+             ┌───┐                                      ┌─┐
+        q_0: ┤ H ├────────■──────────■────■──────────■──┤M├───
+             ├───┤        │          │    │  ┌─┐     │  └╥┘
+        q_1: ┤ H ├──■─────┼─────■────┼────┼──┤M├─────┼───╫────
+             ├───┤┌─┴─┐   │   ┌─┴─┐  │    │  └╥┘┌─┐  │   ║
+        q_2: ┤ H ├┤ X ├───┼───┤ X ├──┼────┼───╫─┤M├──┼───╫────
+             ├───┤└───┘ ┌─┴─┐ └───┘┌─┴─┐┌─┴─┐ ║ └╥┘┌─┴─┐ ║ ┌─┐
+        q_3: ┤ H ├──────┤ X ├──────┤ X ├┤ X ├─╫──╫─┤ X ├─╫─┤M├
+             └───┘      └─╥─┘      └───┘└───┘ ║  ║ └───┘ ║ └╥┘
+                       ┌──╨──┐                ║  ║       ║  ║
+        c: 4/══════════╡ 0x2 ╞════════════════╩══╩═══════╩══╩═
+                       └─────┘                1  2       0  3
+        """
         size = 4
         q = QuantumRegister(size, "q")
         c = ClassicalRegister(size, "c")
@@ -754,7 +1191,22 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.num_unitary_factors(), 2)
 
     def test_circuit_unitary_factors4(self):
-        """Test unitary factors measurements go to same cbit."""
+        """Test unitary factors measurements go to same cbit.
+
+             ┌───┐┌─┐
+        q_0: ┤ H ├┤M├─────────
+             ├───┤└╥┘┌─┐
+        q_1: ┤ H ├─╫─┤M├──────
+             ├───┤ ║ └╥┘┌─┐
+        q_2: ┤ H ├─╫──╫─┤M├───
+             ├───┤ ║  ║ └╥┘┌─┐
+        q_3: ┤ H ├─╫──╫──╫─┤M├
+             └───┘ ║  ║  ║ └╥┘
+        q_4: ──────╫──╫──╫──╫─
+                   ║  ║  ║  ║
+        c: 5/══════╩══╩══╩══╩═
+                   0  0  0  0
+        """
         size = 5
         q = QuantumRegister(size, "q")
         c = ClassicalRegister(size, "c")

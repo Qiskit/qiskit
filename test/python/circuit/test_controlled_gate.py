@@ -914,6 +914,15 @@ class TestControlledGate(QiskitTestCase):
         unroller = Unroller(["x", "ccx"])
         unrolled_dag = unroller.run(dag)
 
+        """
+              ┌───┐     ┌───┐
+        q0_0: ┤ X ├──■──┤ X ├
+              ├───┤  │  ├───┤
+        q0_1: ┤ X ├──■──┤ X ├
+              └───┘┌─┴─┐└───┘
+        q0_2: ─────┤ X ├─────
+                   └───┘
+        """
         ref_circuit = QuantumCircuit(qreg)
         ref_circuit.x(qreg[0])
         ref_circuit.x(qreg[1])
