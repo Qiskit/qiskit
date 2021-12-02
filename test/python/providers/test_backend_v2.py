@@ -73,26 +73,21 @@ class TestBackendV2(QiskitTestCase):
         qc.h(0)
         qc.cx(1, 0)
         tqc = transpile(qc, self.backend)
-        expected = QuantumCircuit(2)
-        expected.u(0, -math.pi, -math.pi, 0)
-        expected.u(math.pi / 2, 0, -math.pi, 1)
-        expected.cx(0, 1)
-        expected.u(math.pi / 2, 0, -math.pi, 0)
-        expected.u(math.pi / 2, 0, -math.pi, 1)
         self.assertTrue(Operator(tqc).equiv(qc))
-        self.assertEqual(tqc.count_ops(), {"cx": 1, "u": 4})
+        # Below is done to check we're decomposing cx(1, 0) with extra
+        # rotations to correct for direction. However because of fp
+        # differences between windows and other platforms the optimization
+        # from the 1q optimization passes differ and the output gates
+        # change (while still being equivalent). This relaxes the check to
+        # still ensure it's valid but not so specific that it fails on windows
+        self.assertEqual(tqc.count_ops().keys(), {"cx", "u"})
+        self.assertEqual(tqc.count_ops()["cx"], 1)
+        self.assertLessEqual(tqc.count_ops()["u"], 4)
         # Test ECR on wrong link
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.ecr(0, 1)
         tqc = transpile(qc, self.backend)
-        expected = QuantumCircuit(2)
-        expected.u(0, 0, -math.pi, 0)
-        expected.u(math.pi / 2, 0, 0, 1)
-        expected.ecr(1, 0)
-        expected.u(math.pi / 2, 0, -math.pi, 0)
-        expected.u(math.pi / 2, 0, -math.pi, 1)
-        self.assertEqual(tqc, expected)
         self.assertTrue(Operator(tqc).equiv(qc))
         self.assertEqual(tqc.count_ops(), {"ecr": 1, "u": 4})
 
