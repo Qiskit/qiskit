@@ -14,15 +14,17 @@
 
 from abc import abstractmethod
 from typing import List, Union
+import warnings
 
 import math
 import numpy as np
 
+from qiskit.providers.basebackend import BaseBackend
+from qiskit.providers.backend import BackendV1
 from qiskit.circuit import Instruction as CircuitInst
 from qiskit.circuit.library.standard_gates import RZXGate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.providers import basebackend
 from qiskit.pulse import (
     Play,
     Delay,
@@ -103,26 +105,53 @@ class RZXCalibrationBuilder(CalibrationBuilder):
     angle. Additional details can be found in https://arxiv.org/abs/2012.11660.
     """
 
-    def __init__(self, backend: basebackend):
+    def __init__(
+        self,
+        backend: Union[BaseBackend, BackendV1] = None,
+        instruction_schedule_map: InstructionScheduleMap = None,
+        qubit_channel_mapping: List[List[str]] = None,
+    ):
         """
         Initializes a RZXGate calibration builder.
 
         Args:
-            backend: Backend for which to construct the gates.
+            backend: DEPRECATED a backend object to build the calibrations for.
+                Use of this argument is deprecated in favor of directly
+                specifying ``instruction_schedule_map`` and
+                ``qubit_channel_map``.
+            instruction_schedule_map: The :obj:`InstructionScheduleMap` object representing the
+                default pulse calibrations for the target backend
+            qubit_channel_mapping: The list mapping qubit indices to the list of
+                channel names that apply on that qubit.
 
         Raises:
             QiskitError: if open pulse is not supported by the backend.
         """
         super().__init__()
-        if not backend.configuration().open_pulse:
-            raise QiskitError(
-                "Calibrations can only be added to Pulse-enabled backends, "
-                "but {} is not enabled with Pulse.".format(backend.name())
+        if backend is not None:
+            warnings.warn(
+                "Passing a backend object directly to this pass (either as the first positional "
+                "argument or as the named 'backend' kwarg is deprecated and will no long be "
+                "supported in a future release. Instead use the instruction_schedule_map and "
+                "qubit_channel_mapping kwargs.",
+                DeprecationWarning,
+                stacklevel=2,
             )
 
-        self._inst_map = backend.defaults().instruction_schedule_map
-        self._config = backend.configuration()
-        self._channel_map = backend.configuration().qubit_channel_mapping
+            if not backend.configuration().open_pulse:
+                raise QiskitError(
+                    "Calibrations can only be added to Pulse-enabled backends, "
+                    "but {} is not enabled with Pulse.".format(backend.name())
+                )
+            self._inst_map = backend.defaults().instruction_schedule_map
+            self._channel_map = backend.configuration().qubit_channel_mapping
+
+        else:
+            if instruction_schedule_map is None or qubit_channel_mapping is None:
+                raise QiskitError("Calibrations can only be added to Pulse-enabled backends")
+
+            self._inst_map = instruction_schedule_map
+            self._channel_map = qubit_channel_mapping
 
     def supported(self, node_op: CircuitInst, qubits: List) -> bool:
         """Determine if a given node supports the calibration.
