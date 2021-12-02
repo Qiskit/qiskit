@@ -33,7 +33,7 @@ def get_operator(weight_matrix):
                 z_p = np.zeros(num_nodes, dtype=bool)
                 z_p[i] = True
                 z_p[j] = True
-                pauli_list.append([0.5 * weight_matrix[i, j], reduce(lambda a, b: a ^ b, [QISKIT_DICT[char.upper()] for char in Pauli(z_p, x_p).to_label()])])
+                pauli_list.append([0.5 * weight_matrix[i, j], reduce(lambda a, b: a ^ b, [QISKIT_DICT[char.upper()] for char in Pauli((z_p, x_p)).to_label()])])
                 shift -= 0.5 * weight_matrix[i, j]
     return pauli_list, shift
 
