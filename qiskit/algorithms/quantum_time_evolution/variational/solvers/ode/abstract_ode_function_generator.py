@@ -57,7 +57,7 @@ class AbstractOdeFunctionGenerator(ABC):
         print("t ", time)
         print("params ", parameters_values)
 
-        nat_grad_res = self._linear_solver._solve_sle(
+        nat_grad_res, _, _ = self._linear_solver._solve_sle(
             self._variational_principle,
             current_param_dict,
             self._t_param,
