@@ -9,7 +9,11 @@ upgrade:
     blamed with a warning if internal Qiskit functions call deprecated
     behaviour.  If you write libraries, you should occasionally run with the
     default warning filters disabled, or have tests which always run with them
-    disabled.
+    disabled.  See the `Python documentation on warnings`_, and in particular the
+    `section on testing for deprecations`_ for more information on how to do this.
+
+    .. _Python documentation on warnings: https://docs.python.org/3/library/warnings.html
+    .. _section on testing for deprecations: https://docs.python.org/3/library/warnings.html#updating-code-for-new-versions-of-dependencies
   - |
     Certain warnings used to be only issued once, even if triggered from
     multiple places.  This behaviour has been removed, so it is possible that if
