@@ -15,7 +15,6 @@
 # We can't really help how long the lines output by the exporter are in some cases.
 # pylint: disable=line-too-long
 
-import unittest
 from io import StringIO
 
 import ddt
