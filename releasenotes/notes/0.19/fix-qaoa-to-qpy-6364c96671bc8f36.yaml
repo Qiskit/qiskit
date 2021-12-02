@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    Fixed a bug in :class:`~qiskit.circuit.library.EvolvedOperatorAnsatz` when the
-    global phase became 0 (such as for :class:`~qiskit.circuit.library.QAOAAnsatz`) but
-    was still wrapped in a :class:`~qiskit.circuit.ParameterExpression`.
