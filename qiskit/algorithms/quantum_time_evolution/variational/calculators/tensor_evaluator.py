@@ -25,8 +25,8 @@ def eval_grad_result(
     param_dict: Dict[Parameter, Union[float, complex]],
     grad_circ_sampler: CircuitSampler = None,
     energy_sampler: CircuitSampler = None,
-):
-    # TODO would be nicer to get rid of this if
+) -> OperatorBase:
+    # TODO would be nicer to somehow get rid of this if statement
     if isinstance(grad, OperatorBase):
         grad_result = grad
     else:
@@ -47,7 +47,7 @@ def eval_metric_result(
     metric: OperatorBase,
     param_dict: Dict[Parameter, Union[float, complex]],
     metric_circ_sampler: CircuitSampler,
-):
+) -> OperatorBase:
     if metric_circ_sampler:
         metric_result = metric_circ_sampler.convert(metric, params=param_dict).eval()
     else:

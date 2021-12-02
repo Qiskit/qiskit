@@ -10,13 +10,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 from abc import ABC, abstractmethod
-from typing import Union, Optional, List
+from typing import Union, Optional, List, Callable
 
+from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
     CircuitQFI,
     CircuitGradient,
     StateFn,
+    ListOp,
+    OperatorBase,
 )
 
 
@@ -25,7 +28,6 @@ class VariationalPrinciple(ABC):
         self,
         qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
         grad_method: Union[str, CircuitGradient] = "lin_comb",
-        is_error_supported: Optional[bool] = False,
     ):
         """
         Args:
@@ -36,9 +38,13 @@ class VariationalPrinciple(ABC):
         """
         self._qfi_method = qfi_method
         self._grad_method = grad_method
-        self._is_error_supported = is_error_supported
 
-    def _lazy_init(self, hamiltonian, ansatz, parameters: List[Parameter]):
+    def _lazy_init(
+        self,
+        hamiltonian: OperatorBase,
+        ansatz: Union[StateFn, QuantumCircuit],
+        parameters: List[Parameter],
+    ) -> None:
 
         self._hamiltonian = hamiltonian
         self._ansatz = ansatz
@@ -51,16 +57,16 @@ class VariationalPrinciple(ABC):
     @abstractmethod
     def _get_metric_tensor(
         self,
-        ansatz,
+        ansatz: QuantumCircuit,
         parameters: List[Parameter],
-    ):
+    ) -> ListOp:
         pass
 
     @abstractmethod
     def _get_evolution_grad(
         self,
-        hamiltonian,
-        ansatz,
+        hamiltonian: OperatorBase,
+        ansatz: Union[StateFn, QuantumCircuit],
         parameters: List[Parameter],
-    ):
+    ) -> Union[OperatorBase, Callable]:
         pass

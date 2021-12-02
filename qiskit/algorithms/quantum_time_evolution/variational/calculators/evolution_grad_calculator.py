@@ -13,6 +13,7 @@ from typing import Union, Optional, List, Dict
 
 import numpy as np
 
+from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector, ParameterExpression, Parameter
 from qiskit.opflow import StateFn, Gradient, CircuitGradient, OperatorBase, Z, CircuitSampler
 from qiskit.opflow.gradients.circuit_gradients import LinComb
@@ -20,11 +21,11 @@ from qiskit.opflow.gradients.circuit_gradients import LinComb
 
 def calculate(
     observable: OperatorBase,
-    ansatz: OperatorBase,
+    ansatz: Union[StateFn, QuantumCircuit],
     parameters: Optional[Union[ParameterVector, ParameterExpression, List[ParameterExpression]]],
     grad_method: Union[str, CircuitGradient],
     basis: OperatorBase = Z,
-):
+) -> OperatorBase:
     operator = ~StateFn(observable) @ StateFn(ansatz)
     if grad_method == "lin_comb":
         return LinComb().convert(operator, parameters, aux_meas_op=basis)
@@ -32,10 +33,10 @@ def calculate(
 
 
 def eval_evolution_grad(
-    evolution_grad,
+    evolution_grad: OperatorBase,
     param_dict: Dict[Parameter, Union[float, complex]],
     grad_circ_sampler: CircuitSampler,
-):
+) -> np.ndarray:
     if grad_circ_sampler:
         grad_res = np.array(grad_circ_sampler.convert(evolution_grad, params=param_dict).eval())
     else:

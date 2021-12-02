@@ -10,8 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 from abc import abstractmethod
-from typing import Union, List
+from typing import Union, List, Dict
 
+from qiskit import QuantumCircuit
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
 )
@@ -19,6 +20,9 @@ from qiskit.circuit import Parameter
 from qiskit.opflow import (
     CircuitQFI,
     CircuitGradient,
+    StateFn,
+    OperatorBase,
+    ListOp,
 )
 
 
@@ -43,16 +47,16 @@ class ImaginaryVariationalPrinciple(VariationalPrinciple):
     @abstractmethod
     def _get_metric_tensor(
         self,
-        ansatz,
-        param_dict: List[Parameter],
-    ):
+        ansatz: QuantumCircuit,
+        param_dict: Dict[Parameter, Union[float, complex]],
+    ) -> ListOp:
         pass
 
     @abstractmethod
     def _get_evolution_grad(
         self,
-        hamiltonian,
-        ansatz,
-        param_dict: List[Parameter],
-    ):
+        hamiltonian: OperatorBase,
+        ansatz: Union[StateFn, QuantumCircuit],
+        param_dict: Dict[Parameter, Union[float, complex]],
+    ) -> OperatorBase:
         pass

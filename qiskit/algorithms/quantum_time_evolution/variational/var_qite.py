@@ -9,7 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from typing import Optional, Union
+from typing import Optional, Union, Dict
 
 from scipy.integrate import OdeSolver
 
@@ -23,6 +23,7 @@ from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.grad
 from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
 )
+from qiskit.circuit import Parameter
 from qiskit.opflow import (
     OperatorBase,
     Gradient,
@@ -59,7 +60,7 @@ class VarQite(VarQte, EvolutionBase):
             backend: Backend used to evaluate the quantum circuit outputs
             error_based_ode: If False use the provided variational principle to get the parameter
                                 updates.
-                             If True use the argument that minimizes the error error_bounds.
+                             If True use the argument that minimizes the error.
             ode_solver_callable: ODE solver callable that follows a SciPy OdeSolver interface.
             optimizer: Optimizer used in case error_based_ode is true.
         """
@@ -119,7 +120,9 @@ class VarQite(VarQte, EvolutionBase):
             observable,
         )
 
-    def _create_imag_ode_function_generator(self, init_state_param_dict, t_param):
+    def _create_imag_ode_function_generator(
+        self, init_state_param_dict: Dict[Parameter, Union[float, complex]], t_param
+    ):
         if self._error_based_ode:
             error_calculator = ImaginaryErrorCalculator(
                 self._hamiltonian_squared,

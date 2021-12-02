@@ -9,7 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from typing import Optional, Union
+from typing import Optional, Union, Dict
 
 from scipy.integrate import OdeSolver
 
@@ -24,6 +24,7 @@ from qiskit.algorithms.quantum_time_evolution.variational.principles.real.real_v
     RealVariationalPrinciple,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.var_qte import VarQte
+from qiskit.circuit import Parameter
 from qiskit.opflow import (
     OperatorBase,
     Gradient,
@@ -44,7 +45,6 @@ class VarQrte(VarQte, EvolutionBase):
         regularization: Optional[str] = None,
         # TODO: Should we keep this more general? And pass here a natural gradient object?
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
-        # TODO: Boolean argument missing to decide whether or not to compute the error bounds
         error_based_ode: Optional[bool] = False,
         ode_solver_callable: OdeSolver = "RK45",
         optimizer: str = "COBYLA",
@@ -81,8 +81,8 @@ class VarQrte(VarQte, EvolutionBase):
         time: float,
         initial_state: Optional[StateFn] = None,
         observable: Optional[OperatorBase] = None,
-        t_param=None,
-        hamiltonian_value_dict=None,
+        t_param: Parameter = None,
+        hamiltonian_value_dict: Dict[Parameter, Union[float, complex]] = None,
     ) -> StateFn:
 
         """
@@ -121,7 +121,9 @@ class VarQrte(VarQte, EvolutionBase):
             observable,
         )
 
-    def _create_real_ode_function_generator(self, init_state_param_dict, t_param):
+    def _create_real_ode_function_generator(
+        self, init_state_param_dict: Dict[Parameter, Union[float, complex]], t_param: Parameter
+    ):
         if self._error_based_ode:
             error_calculator = RealErrorCalculator(
                 self._hamiltonian_squared,
@@ -142,8 +144,8 @@ class VarQrte(VarQte, EvolutionBase):
         initial_state: StateFn,
         gradient_object: Gradient,
         observable: Optional[OperatorBase] = None,
-        t_param=None,
-        hamiltonian_value_dict=None,
+        t_param: Parameter = None,
+        hamiltonian_value_dict: Dict[Parameter, Union[float, complex]] = None,
         gradient_params=None,
     ) -> EvolutionGradientResult:
         raise NotImplementedError()

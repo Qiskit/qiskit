@@ -9,7 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from typing import Union, List, Dict, Optional
+from typing import Union, List, Dict, Optional, Tuple
 
 import numpy as np
 
@@ -38,16 +38,16 @@ class RealErrorCalculator(ErrorCalculator):
         ng_res: Union[List, np.ndarray],
         grad_res: Union[List, np.ndarray],
         metric: Union[List, np.ndarray],
-        param_dict: Dict[Parameter, float],
-    ) -> [float]:
+        param_dict: Dict[Parameter, Union[float, complex]],
+    ) -> Tuple[float, float, float]:
 
         """
         Evaluate the l2 norm of the error for a single time step of VarQRTE.
         Args:
-            operator: ⟨ψ(ω)|H|ψ(ω)〉
-            ng_res: dω/dt
-            grad_res: -2Im⟨dψ(ω)/dω|H|ψ(ω)〉
-            metric: Fubini-Study Metric
+            ng_res: dω/dt.
+            grad_res: -2Im⟨dψ(ω)/dω|H|ψ(ω).
+            metric: Fubini-Study Metric.
+            param_dict: Dictionary of parameters to be bound.
         Returns:
             The l2 norm of the error
         """
@@ -84,7 +84,6 @@ class RealErrorCalculator(ErrorCalculator):
         """
         Evaluate the gradient of the l2 norm for a single time step of VarQRTE.
         Args:
-            operator: ⟨ψ(ω)|H|ψ(ω)〉
             ng_res: dω/dt
             grad_res: -2Im⟨dψ(ω)/dω|H|ψ(ω)〉
             metric: Fubini-Study Metric

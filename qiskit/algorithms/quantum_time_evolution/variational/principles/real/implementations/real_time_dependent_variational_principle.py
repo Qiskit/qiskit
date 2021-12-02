@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 from typing import Union, List
 
+from qiskit import QuantumCircuit
 from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
     metric_tensor_calculator,
     evolution_grad_calculator,
@@ -19,7 +20,7 @@ from qiskit.algorithms.quantum_time_evolution.variational.principles.real.real_v
     RealVariationalPrinciple,
 )
 from qiskit.circuit import Parameter
-from qiskit.opflow import CircuitQFI, Y
+from qiskit.opflow import CircuitQFI, Y, OperatorBase, ListOp, StateFn
 
 
 class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):
@@ -38,9 +39,9 @@ class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):
 
     def _get_metric_tensor(
         self,
-        ansatz,
+        ansatz: QuantumCircuit,
         parameters: List[Parameter],
-    ):
+    ) -> ListOp:
         raw_metric_tensor_imag = metric_tensor_calculator.calculate(
             ansatz, parameters, self._qfi_method, basis=-1j * Y
         )
@@ -49,10 +50,10 @@ class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):
 
     def _get_evolution_grad(
         self,
-        hamiltonian,
-        ansatz,
+        hamiltonian: OperatorBase,
+        ansatz: Union[StateFn, QuantumCircuit],
         parameters: List[Parameter],
-    ):
+    ) -> OperatorBase:
         raw_evolution_grad_real = evolution_grad_calculator.calculate(
             hamiltonian, ansatz, parameters, self._grad_method
         )

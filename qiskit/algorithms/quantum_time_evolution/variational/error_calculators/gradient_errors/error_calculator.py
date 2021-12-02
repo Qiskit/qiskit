@@ -39,7 +39,7 @@ class ErrorCalculator:
         self,
         operator: OperatorBase,
         operator_circuit_sampler: CircuitSampler,
-        param_dict: Dict[Parameter, float],
+        param_dict: Dict[Parameter, Union[float, complex]],
     ) -> OperatorBase:
         # ⟨ψ(ω)|H^2|ψ(ω)〉
         if operator_circuit_sampler:
@@ -55,7 +55,7 @@ class ErrorCalculator:
         ng_res: Union[List, np.ndarray],
         grad_res: Union[List, np.ndarray],
         metric: Union[List, np.ndarray],
-        param_dict: Dict[Parameter, float],
+        param_dict: Dict[Parameter, Union[float, complex]],
     ) -> Tuple[int, Union[np.ndarray, complex, float], Union[Union[complex, float], Any],]:
 
         """

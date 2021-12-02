@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 from typing import Union, List
 
+from qiskit import QuantumCircuit
 from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
     metric_tensor_calculator,
     evolution_grad_calculator,
@@ -19,7 +20,7 @@ from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.i
     ImaginaryVariationalPrinciple,
 )
 from qiskit.circuit import Parameter
-from qiskit.opflow import CircuitQFI, CircuitGradient
+from qiskit.opflow import CircuitQFI, CircuitGradient, StateFn, OperatorBase, ListOp
 
 
 class ImaginaryMcLachlanVariationalPrinciple(ImaginaryVariationalPrinciple):
@@ -30,10 +31,10 @@ class ImaginaryMcLachlanVariationalPrinciple(ImaginaryVariationalPrinciple):
     ):
         """
         Args:
-            grad_method: The method used to compute the state gradient. Can be either
-                        ``'param_shift'`` or ``'lin_comb'`` or ``'fin_diff'``.
             qfi_method: The method used to compute the QFI. Can be either
                 ``'lin_comb_full'`` or ``'overlap_block_diag'`` or ``'overlap_diag'``.
+            grad_method: The method used to compute the state gradient. Can be either
+                        ``'param_shift'`` or ``'lin_comb'`` or ``'fin_diff'``.
         """
         super().__init__(
             qfi_method,
@@ -42,19 +43,19 @@ class ImaginaryMcLachlanVariationalPrinciple(ImaginaryVariationalPrinciple):
 
     def _get_metric_tensor(
         self,
-        ansatz,
+        ansatz: Union[StateFn, QuantumCircuit],
         params: List[Parameter],
-    ):
+    ) -> ListOp:
         metric_tensor_real = metric_tensor_calculator.calculate(ansatz, params, self._qfi_method)
 
         return metric_tensor_real * 0.25
 
     def _get_evolution_grad(
         self,
-        hamiltonian,
-        ansatz,
+        hamiltonian: OperatorBase,
+        ansatz: Union[StateFn, QuantumCircuit],
         params: List[Parameter],
-    ):
+    ) -> OperatorBase:
         evolution_grad_real = evolution_grad_calculator.calculate(
             hamiltonian, ansatz, params, self._grad_method
         )

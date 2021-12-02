@@ -12,16 +12,23 @@
 
 """The Variational Quantum Time Evolution Interface"""
 from abc import ABC, abstractmethod
-from typing import Optional, Union, Dict
+from typing import Optional, Union, Dict, Callable
 
 import numpy as np
 from scipy.integrate import RK45, OdeSolver
 
+from qiskit import QuantumCircuit
 from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import (
     EvolutionGradientResult,
 )
+from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.error_calculator import (
+    ErrorCalculator,
+)
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
+)
+from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
+    AbstractOdeFunctionGenerator,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.error_based_ode_function_generator import (
     ErrorBasedOdeFunctionGenerator,
@@ -132,13 +139,13 @@ class VarQte(ABC):
 
     def _evolve_helper(
         self,
-        ode_function_generator_callable,
-        init_state_param_dict,
+        ode_function_generator_callable: Callable,
+        init_state_param_dict: Dict[Parameter, Union[float, complex]],
         hamiltonian: OperatorBase,
         time: float,
         initial_state: OperatorBase = None,
         observable: OperatorBase = None,
-        t_param=None,
+        t_param: Parameter = None,
     ) -> OperatorBase:
         """
         Helper method for performing time evolution. Works both for imaginary and real case.
@@ -171,7 +178,6 @@ class VarQte(ABC):
             )
         init_state_parameters = list(init_state_param_dict.keys())
         init_state_parameters_values = list(init_state_param_dict.values())
-        # TODO bind Hamiltonian?
 
         self._variational_principle._lazy_init(hamiltonian, initial_state, init_state_parameters)
         self.bind_initial_state(StateFn(initial_state), init_state_param_dict)
@@ -192,7 +198,7 @@ class VarQte(ABC):
         # initial state here is not with self because we need a parametrized state (input to this
         # method)
         param_dict_from_ode = dict(zip(init_state_parameters, parameter_values))
-        # TODO sampler?
+
         # if self._state_circ_sampler:
         #     return self._state_circ_sampler.convert(initial_state, param_dict_from_ode)
         return initial_state.assign_parameters(param_dict_from_ode)
@@ -205,20 +211,24 @@ class VarQte(ABC):
         initial_state: StateFn,
         gradient_object: Gradient,
         observable: OperatorBase = None,
-        t_param=None,
-        hamiltonian_value_dict=None,
+        t_param: Parameter = None,
+        hamiltonian_value_dict: Dict[Parameter, Union[float, complex]] = None,
         gradient_params=None,
     ) -> EvolutionGradientResult:
         raise NotImplementedError()
 
-    def bind_initial_state(self, state, param_dict: Dict[Parameter, Union[float, complex]]):
+    def bind_initial_state(
+        self,
+        state: Union[QuantumCircuit, StateFn],
+        param_dict: Dict[Parameter, Union[float, complex]],
+    ) -> None:
         if self._state_circ_sampler:
             self._initial_state = self._state_circ_sampler.convert(state, param_dict)
         else:
             self._initial_state = state.assign_parameters(param_dict)
         self._initial_state = self._initial_state.eval().primitive.data
 
-    def _init_samplers(self):
+    def _init_samplers(self) -> None:
         self._operator_circ_sampler = CircuitSampler(self._backend) if self._backend else None
         self._state_circ_sampler = CircuitSampler(self._backend) if self._backend else None
         self._h_squared_circ_sampler = CircuitSampler(self._backend) if self._backend else None
@@ -240,7 +250,9 @@ class VarQte(ABC):
         # TODO Include Sampler here if backend is given
         return h_power
 
-    def _create_init_state_param_dict(self, hamiltonian_value_dict, init_state_parameters):
+    def _create_init_state_param_dict(
+        self, hamiltonian_value_dict: Dict[Parameter, Union[float, complex]], init_state_parameters
+    ) -> Dict[Parameter, Union[float, complex]]:
         if hamiltonian_value_dict is None:
             init_state_parameter_values = np.random.random(len(init_state_parameters))
         else:
@@ -251,7 +263,12 @@ class VarQte(ABC):
         init_state_param_dict = dict(zip(init_state_parameters, init_state_parameter_values))
         return init_state_param_dict
 
-    def _create_ode_function_generator(self, error_calculator, init_state_param_dict, t_param):
+    def _create_ode_function_generator(
+        self,
+        error_calculator: ErrorCalculator,
+        init_state_param_dict: Dict[Parameter, Union[float, complex]],
+        t_param: Parameter,
+    ) -> AbstractOdeFunctionGenerator:
         # TODO potentially introduce a factory
         if self._error_based_ode:
             ode_function_generator = ErrorBasedOdeFunctionGenerator(
@@ -280,7 +297,7 @@ class VarQte(ABC):
 
         return ode_function_generator
 
-    def _validate_operator(self, operator):
+    def _validate_operator(self, operator) -> None:
         if not isinstance(operator[-1], CircuitStateFn):
             raise TypeError("Please provide the respective Ansatz as a CircuitStateFn.")
         if not isinstance(operator, ComposedOp) and not all(

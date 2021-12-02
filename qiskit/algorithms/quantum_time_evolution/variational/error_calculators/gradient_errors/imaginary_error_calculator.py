@@ -38,7 +38,7 @@ class ImaginaryErrorCalculator(ErrorCalculator):
         ng_res: Union[List, np.ndarray],
         grad_res: Union[List, np.ndarray],
         metric: Union[List, np.ndarray],
-        param_dict: Dict[Parameter, float],
+        param_dict: Dict[Parameter, Union[float, complex]],
     ) -> Tuple[int, Union[np.ndarray, complex, float], Union[Union[complex, float], Any]]:
         """
         Evaluate the l2 norm of the error for a single time step of VarQITE.

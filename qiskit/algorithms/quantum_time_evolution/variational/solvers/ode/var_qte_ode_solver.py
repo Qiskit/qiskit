@@ -10,6 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 import itertools
+from typing import List, Union
 
 from scipy.integrate import OdeSolver, solve_ivp
 
@@ -21,7 +22,7 @@ from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.abstract_o
 class VarQteOdeSolver:
     def __init__(
         self,
-        init_params,
+        init_params: List[Union[float, complex]],
         ode_function_generator: AbstractOdeFunctionGenerator,
         ode_solver_callable: OdeSolver = "RK45",
     ):
@@ -36,7 +37,7 @@ class VarQteOdeSolver:
         self._ode_function = ode_function_generator.var_qte_ode_function
         self._ode_solver_callable = ode_solver_callable
 
-    def _run(self, evolution_time: float):
+    def _run(self, evolution_time: float) -> List[Union[float, complex]]:
         """
         Find numerical solution with ODE Solver.
         Args:

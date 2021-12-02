@@ -15,7 +15,7 @@ import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector, ParameterExpression, Parameter
-from qiskit.opflow import QFI, CircuitQFI, CircuitStateFn, OperatorBase, Z, CircuitSampler
+from qiskit.opflow import QFI, CircuitQFI, CircuitStateFn, OperatorBase, Z, CircuitSampler, ListOp
 from qiskit.opflow.gradients.circuit_qfis import LinCombFull
 
 
@@ -25,7 +25,7 @@ def calculate(
     qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
     basis: OperatorBase = Z,
     phase_fix: bool = True,
-):
+) -> ListOp:
     operator = CircuitStateFn(ansatz)
 
     if qfi_method == "lin_comb_full":
@@ -35,10 +35,10 @@ def calculate(
 
 
 def eval_metric_tensor(
-    metric_tensor,
+    metric_tensor: OperatorBase,
     param_dict: Dict[Parameter, Union[float, complex]],
     metric_circ_sampler: CircuitSampler,
-):
+) -> np.ndarray:
     if metric_circ_sampler:
         metric_res = np.array(metric_circ_sampler.convert(metric_tensor, params=param_dict).eval())
     else:

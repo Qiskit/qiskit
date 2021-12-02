@@ -9,8 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from typing import Union, Dict, List
+from typing import Union, Dict, List, Callable
 
+from qiskit import QuantumCircuit
 from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
     evolution_grad_calculator,
     metric_tensor_calculator,
@@ -25,9 +26,10 @@ from qiskit.opflow import (
     SummedOp,
     Y,
     I,
-    Z,
     PauliExpectation,
     CircuitSampler,
+    ListOp,
+    OperatorBase,
 )
 
 
@@ -47,9 +49,9 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
 
     def _get_metric_tensor(
         self,
-        ansatz,
+        ansatz: QuantumCircuit,
         parameters: List[Parameter],
-    ):
+    ) -> ListOp:
         raw_metric_tensor_real = metric_tensor_calculator.calculate(
             ansatz, parameters, self._qfi_method
         )
@@ -59,10 +61,12 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
     def _get_evolution_grad(
         self,
         hamiltonian,
-        ansatz,
+        ansatz: Union[StateFn, QuantumCircuit],
         parameters: List[Parameter],
-    ):
-        def raw_evolution_grad_imag(param_dict: Dict, energy_sampler: CircuitSampler):
+    ) -> Callable:
+        def raw_evolution_grad_imag(
+            param_dict: Dict[Parameter, Union[float, complex]], energy_sampler: CircuitSampler
+        ) -> OperatorBase:
             energy = ~StateFn(hamiltonian) @ StateFn(ansatz)
             energy = PauliExpectation().convert(energy)
 
