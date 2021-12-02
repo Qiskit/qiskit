@@ -165,10 +165,7 @@ class TestPauliSumOp(QiskitOpflowTestCase):
             expected = (Z ^ Z) + (Z ^ I)
             self.assertEqual(pauli_sum, expected)
 
-    @data(
-        ([1, 2, 4], "XIYZI"),
-        ([2, 1, 0], "ZYX")
-    )
+    @data(([1, 2, 4], "XIYZI"), ([2, 1, 0], "ZYX"))
     @unpack
     def test_permute(self, permutation, expected_pauli):
         """Test the permute method."""
