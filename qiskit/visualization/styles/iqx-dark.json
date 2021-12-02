@@ -6,8 +6,8 @@
     "linecolor": "#FFFFFF",
     "creglinecolor": "#778899",
     "gatefacecolor": "#FF7EB6",
-    "barrierfacecolor": "#A8A8A8",
-    "backgroundcolor": "#161616",
+    "barrierfacecolor": "#8D8D8D",
+    "backgroundcolor": "#262626",
     "edgecolor": null,
     "fontsize": 13,
     "subfontsize": 8,
@@ -187,7 +187,7 @@
             "#000000"
         ],
         "reset": [
-            "#A8A8A8",
+            "#8D8D8D",
             "#000000"
         ],
         "target": [
