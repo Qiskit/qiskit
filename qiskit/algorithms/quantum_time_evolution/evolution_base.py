@@ -43,7 +43,7 @@ class EvolutionBase(ABC):
             observable: Observable to be evolved.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
             hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to
-                                    certain values, including the t_param.
+                                    certain values, including the t_param. # TODO do we allow binding t_param here?
         """
         raise NotImplementedError()
 

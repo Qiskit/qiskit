@@ -53,7 +53,7 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         parameters = ansatz.ordered_parameters
 
         param_dict = {param: np.pi / 4 for param in parameters}
-        backend = Aer.get_backend("qasm_simulator")
+        backend = Aer.get_backend("statevector_simulator")
 
         var_principle = ImaginaryMcLachlanVariationalPrinciple()
 
@@ -70,19 +70,10 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         )
 
         qte_ode_function = ode_function_generator.var_qte_ode_function(time, param_dict.values())
+        # TODO check if values correct
         expected_qte_ode_function = [
-            0.442093,
-            -0.023687,
-            0.103311,
-            -0.115833,
-            0.243872,
-            0.316421,
-            -0.061792,
-            -0.040776,
-            -0.50459,
-            -0.178336,
-            -0.048126,
-            -0.091065,
+            0.442145, -0.022081, 0.106223, -0.117468, 0.251233, 0.321256,
+            -0.062728, -0.036209, -0.509219, -0.183459, -0.050739, -0.093163
         ]
 
         np.testing.assert_array_almost_equal(expected_qte_ode_function, qte_ode_function)

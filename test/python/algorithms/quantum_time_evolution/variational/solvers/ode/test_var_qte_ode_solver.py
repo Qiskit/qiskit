@@ -92,18 +92,12 @@ class TestVarQteOdeSolver(QiskitAlgorithmsTestCase):
         result = var_qte_ode_solver._run(time)
 
         expected_result = [
-            -0.33464405,
-            -0.79027874,
-            -0.02169548,
-            -0.00294898,
-            2.50380805,
-            1.14749586,
-            -0.00820108,
-            -0.00335803,
+            -0.334644, -0.790279, -0.021695, -0.002949, 2.503808, 1.147496,
+            -0.008201, -0.003358
         ]
 
         # TODO check if values correct
-        np.testing.assert_array_almost_equal(result, expected_result)
+        np.testing.assert_array_almost_equal(result, expected_result, decimal=4)
 
 
 if __name__ == "__main__":

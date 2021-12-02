@@ -53,7 +53,7 @@ class TestErrorBasedOdeFunctionGenerator(QiskitAlgorithmsTestCase):
             ]
         ).reduce()
 
-        d = 2
+        d = 1
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
 
         # Define a set of initial parameters
@@ -61,7 +61,7 @@ class TestErrorBasedOdeFunctionGenerator(QiskitAlgorithmsTestCase):
 
         operator = ~StateFn(observable) @ StateFn(ansatz)
         param_dict = {param: np.pi / 4 for param in parameters}
-        backend = Aer.get_backend("qasm_simulator")
+        backend = Aer.get_backend("statevector_simulator")
         state = operator[-1]
 
         h = operator.oplist[0].primitive * operator.oplist[0].coeff
@@ -86,24 +86,14 @@ class TestErrorBasedOdeFunctionGenerator(QiskitAlgorithmsTestCase):
             CircuitSampler(backend),
             CircuitSampler(backend),
         )
-
-        qte_ode_function = ode_function_generator.var_qte_ode_function(1, param_dict.values())
+        time = 0.1
+        qte_ode_function = ode_function_generator.var_qte_ode_function(time, param_dict.values())
 
         # TODO verify values if correct
         expected_qte_ode_function = array(
             [
-                -0.26957449,
-                0.85174383,
-                0.12884831,
-                0.97108248,
-                -0.06349041,
-                -0.34860101,
-                -0.3624084,
-                -0.30428379,
-                0.56149924,
-                0.70019006,
-                -0.48223514,
-                -0.27522535,
+                0.3328437, -0.2671846, -0.2880071, -0.2972437, -0.3522935,
+                0.0375734, -0.0342469, 0.304171
             ]
         )
         np.testing.assert_almost_equal(expected_qte_ode_function, qte_ode_function)
