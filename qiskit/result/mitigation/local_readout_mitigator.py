@@ -29,7 +29,12 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
 
     Mitigates :meth:`expectation_value` and :meth:`quasi_probabilities`.
     The mitigator should either be calibrated using qiskit experiments,
-    or calculated directly from the backend properties."""
+    or calculated directly from the backend properties.
+    This mitigation method should be used in case the readout errors of the qubits
+    are assumed to be uncorrelated. For *N* qubits there are *N* mitigation matrices,
+    each of size :math:`2 x 2` and the mitigation complexity is :math:`O(2^N)`,
+    so it is more efficient than the :class:`CorrelatedReadoutMitigator` class.
+    """
 
     def __init__(
         self,

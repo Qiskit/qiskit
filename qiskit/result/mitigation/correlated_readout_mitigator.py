@@ -27,7 +27,11 @@ class CorrelatedReadoutMitigator(BaseReadoutMitigator):
     """N-qubit readout error mitigator.
 
     Mitigates :meth:`expectation_value` and :meth:`quasi_probabilities`.
-    The mitigation_matrix should be calibrated using qiskit experiments."""
+    The mitigation_matrix should be calibrated using qiskit experiments.
+    This mitigation method should be used in case the readout errors of the qubits
+    are assumed to be correlated. The mitigation_matrix of *N* qubits is of size
+    :math:`2^N x 2^N` so the mitigation complexity is :math:`O(4^N)`.
+    """
 
     def __init__(self, amat: np.ndarray, qubits: Optional[Iterable[int]] = None):
         """Initialize a CorrelatedReadoutMitigator
