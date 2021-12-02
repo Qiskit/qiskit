@@ -156,8 +156,7 @@ class AdaptQAOA(QAOA):
                 mixer_operator=self.optimal_mixer_list,
                 name=self.name,
             )    
-        # depth = len(self.ansatz.operators[::2])
-        beta_bounds = self._reps*[(0, 2*np.pi)]
+        beta_bounds = self._reps*[(-2*np.pi, 2*np.pi)]
         gamma_bounds = self._reps*[(None, None)]
         self.ansatz._bounds = beta_bounds+gamma_bounds
 
@@ -176,8 +175,7 @@ class AdaptQAOA(QAOA):
             cost_operator = MatrixOp(Operator(cost_operator.to_matrix()))
         wave_function = ansatz.assign_parameters(self.hyperparameter_dict)
         # construct expectation operator
-        # exp_hc = (self.initial_point[-1] * cost_operator).exp_i()  # TODO: Check if this is legit?
-        exp_hc = (self.initial_point[-1] * cost_operator).exp_i()  # TODO: Check if this is legit?
+        exp_hc = (self.initial_point[-1] * cost_operator).exp_i()
         exp_hc_ad = exp_hc.adjoint().to_matrix()
         exp_hc = exp_hc.to_matrix()
         energy_grad_op = exp_hc_ad @ (commutator(cost_operator, mixer).to_matrix()) @ exp_hc
@@ -191,7 +189,7 @@ class AdaptQAOA(QAOA):
         observable_meas = expectation.convert(StateFn(energy_grad_op, is_measurement=True))
         ansatz_circuit_op = CircuitStateFn(wave_function)
         expect_op = observable_meas.compose(ansatz_circuit_op).reduce()
-        return expect_op#1j*expect_op
+        return 1j*expect_op
 
     def _test_mixer_pool(self, operator: OperatorBase):
         self._check_problem_configuration(operator=operator)
@@ -202,12 +200,12 @@ class AdaptQAOA(QAOA):
             sampled_expect_op = self._circuit_sampler.convert(
                 expect_op, params=self.hyperparameter_dict
             )
-            meas = np.abs(sampled_expect_op.eval())
-            energy_gradients.append(meas)
+            meas = sampled_expect_op.eval()
+            energy_gradients.append(np.real(meas))
         max_energy_idx = np.argmax(energy_gradients)
-        return self.mixer_pool[max_energy_idx], energy_gradients[max_energy_idx]
+        return self.mixer_pool[max_energy_idx], np.abs(energy_gradients[max_energy_idx])
 
-    def run_adapt(
+    def compute_minimum_eigenvalue(
         self, operator: OperatorBase, aux_operators: Optional[List[Optional[OperatorBase]]] = None,
         iter_results = True
     ):
@@ -219,6 +217,7 @@ class AdaptQAOA(QAOA):
         result_p = []
         while self._reps < self.max_reps+1:  # loop over number of maximum reps
             best_mixer, energy_norm = self._test_mixer_pool(operator=operator)
+            print(best_mixer)
             print(f"REPETITION: {self._reps}")
             print(f"Current energy norm | Threshold  =====> | {energy_norm} | {self.threshold} |")
             if energy_norm < self.threshold:  # Threshold stoppage condition
@@ -227,15 +226,15 @@ class AdaptQAOA(QAOA):
                 best_mixer
             )  # Append mixer associated with largest energy gradient to list
             self._update_ansatz()
-            result = self.compute_minimum_eigenvalue(operator=operator, aux_operators=aux_operators)
+            result = super().compute_minimum_eigenvalue(operator=operator, aux_operators=aux_operators)
             opt_params = result.optimal_point
             result_p.append(result)
             self.best_beta, self.best_gamma = np.split(opt_params, 2)
             self.best_beta = list(self.best_beta)
             self.best_gamma = list(self.best_gamma)
+            self._update_initial_point()
             print()
             print("Optimal value", result.optimal_value)
-
             print("--------------------------------------------------------")
             self._reps += 1
         print("Optimal mixers:", self.optimal_mixer_list)
@@ -349,7 +348,7 @@ class AdaptQAOA(QAOA):
 
         """
         if self._ansatz_params:
-            if len(self._initial_point) != self.ansatz.num_parameters:
+            if len(self._initial_point) < self.ansatz.num_parameters:
                 self._update_initial_point()
         return self._initial_point
 
@@ -367,13 +366,19 @@ class AdaptQAOA(QAOA):
         self._initial_point = initial_point
 
     def _generate_initial_point(self): # set initial value for gamma according to https://arxiv.org/abs/2005.10258
-        return algorithm_globals.random.uniform(2 * [-2 * np.pi], 2 * [2 * np.pi])
+        gamma_ip = 0.01
+        beta_ip = algorithm_globals.random.uniform([-2 * np.pi], [2 * np.pi])#-np.pi/4
+        return np.append(beta_ip,[gamma_ip])
 
     def _update_initial_point(self):       
         if self._user_specified_ip:
             self._initial_point = self._user_specified_ip[:2*self._reps]
         else:
-            self._initial_point = np.concatenate((self._initial_point, self._generate_initial_point()))
+            new_beta, new_gamma = self._generate_initial_point()
+            ordered_initial_points = np.zeros(2*self._reps+2)
+            ordered_initial_points[:self._reps+1] = np.append(self._initial_point[:self._reps],new_beta)
+            ordered_initial_points[self._reps+1:] = np.append(self._initial_point[self._reps:],new_gamma)
+            self._initial_point = ordered_initial_points
 
 
 def adapt_mixer_pool(
@@ -400,11 +405,11 @@ def adapt_mixer_pool(
         ValueError: If an unrecognisible mixer type has been provided.
     """
     if pool_type:
-        if pool_type == "multi":
+        if pool_type == "Multi":
             add_multi, add_single = True, True
-        elif pool_type == "singular":
+        elif pool_type == "Singular":
             add_multi, add_single = False, True
-        elif pool_type == "single":
+        elif pool_type == "Single":
             add_multi, add_single = False, False
         else:
             raise ValueError(
