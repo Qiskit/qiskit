@@ -56,17 +56,6 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         self.assertEqual(pauli_sum.coeff, coeff)
         self.assertEqual(pauli_sum.num_qubits, 4)
 
-    def test_primitive_is_copied(self):
-        """Test the PauliSumOp is not affected by changes of the primitive after construction."""
-        sparse_pauli = SparsePauliOp(Pauli("X"), coeffs=[1.0])
-        pauli_sum = PauliSumOp(sparse_pauli)
-
-        # change SparsePauliOp from which PauliSumOp is constructed
-        sparse_pauli.coeffs[0] = 2
-
-        # assert PauliSumOp is unchanged
-        self.assertEqual(pauli_sum.primitive.coeffs[0], 1)
-
     def test_coeffs(self):
         """ListOp.coeffs test"""
         sum1 = SummedOp(

@@ -54,7 +54,7 @@ class PauliSumOp(PrimitiveOp):
                 f"PauliSumOp can only be instantiated with SparsePauliOp, not {type(primitive)}"
             )
 
-        super().__init__(primitive.copy(), coeff=coeff)
+        super().__init__(primitive, coeff=coeff)
         self._grouping_type = grouping_type
 
     def primitive_strings(self) -> Set[str]:
@@ -210,15 +210,13 @@ class PauliSumOp(PrimitiveOp):
         if length > self.num_qubits:
             spop = self.primitive.tensor(SparsePauliOp(Pauli("I" * (length - self.num_qubits))))
         else:
-            spop = self.primitive
-
-        permuted = PauliSumOp(spop, self.coeff)
+            spop = self.primitive.copy()
 
         permutation = [i for i in range(length) if i not in permutation] + permutation
         permu_arr = np.arange(length)[np.argsort(permutation)]
-        permuted.primitive.paulis.x = permuted.primitive.paulis.x[:, permu_arr]
-        permuted.primitive.paulis.z = permuted.primitive.paulis.z[:, permu_arr]
-        return permuted
+        spop.paulis.x = spop.paulis.x[:, permu_arr]
+        spop.paulis.z = spop.paulis.z[:, permu_arr]
+        return PauliSumOp(spop, self.coeff)
 
     def compose(
         self,
