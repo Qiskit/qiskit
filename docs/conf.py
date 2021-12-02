@@ -199,7 +199,6 @@ modindex_common_prefix = ['qiskit.']
 # Refer to https://www.sphinx-doc.org/en/master/usage/extensions/extlinks.html
 extlinks = {
     'pull_terra': ('https://github.com/Qiskit/qiskit-terra/pull/%s', '#'),
-    'pull_aqua': ('https://github.com/Qiskit/qiskit-aqua/pull/%s', '#'),
     'pull_aer': ('https://github.com/Qiskit/qiskit-aer/pull/%s', '#'),
     'pull_ignis': ('https://github.com/Qiskit/qiskit-ignis/pull/%s', '#'),
     'pull_ibmq-provider': ('https://github.com/Qiskit/qiskit-ibmq-provider/pull/%s', '#')
@@ -237,7 +236,7 @@ autoclass_content = 'both'
 
 # Elements with api doc sources
 qiskit_elements = ['qiskit-terra', 'qiskit-aer', 'qiskit-ignis',
-                   'qiskit-aqua', 'qiskit-ibmq-provider']
+                   'qiskit-ibmq-provider']
 apidocs_exists = False
 apidocs_master = None
 
@@ -274,12 +273,6 @@ def _git_copy(package, sha1, api_docs_dir):
             dir_util.copy_tree(
                 os.path.join(temp_dir, 'docs', 'apidocs'),
                 api_docs_dir)
-            # Copy over the qiskit-aqua migration guide too
-            if package == 'qiskit-aqua':
-                dir_util.copy_tree(
-                    os.path.join(temp_dir, 'docs', 'tutorials'),
-                    os.path.join(os.path.dirname(api_docs_dir),
-                                 'aqua_tutorials'))
 
     except FileNotFoundError:
         warnings.warn('Copy from git failed for %s at %s, skipping...' %
@@ -330,9 +323,6 @@ def clean_api_source(app, exc):
         shutil.rmtree(api_docs_dir)
         shutil.move(os.path.join(apidocs_master, 'apidoc'), api_docs_dir)
         return
-    shutil.rmtree(
-        os.path.join(os.path.dirname(api_docs_dir),
-                     'aqua_tutorials'))
     shutil.rmtree(api_docs_dir)
 
 

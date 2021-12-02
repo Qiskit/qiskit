@@ -133,15 +133,7 @@ Interested in quantum hardware design?
   Qiskit Terra <apidoc/terra>
   Qiskit Aer <apidoc/aer>
   Qiskit Ignis (deprecated) <apidoc/ignis>
-  Qiskit Aqua (deprecated) <apidoc/aqua>
   Qiskit IBM Quantum Provider <apidoc/ibmq-provider>
-
-.. toctree::
-  :maxdepth: 1
-  :caption: Qiskit Aqua Migration Guide
-  :hidden:
-
-  Qiskit Aqua Migration Guide <aqua_migration>
 
 .. toctree::
   :maxdepth: 1

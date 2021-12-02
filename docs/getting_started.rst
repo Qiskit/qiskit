@@ -131,7 +131,6 @@ Installation
    #. :ref:`qiskit-terra <install-qiskit-terra>`
    #. :ref:`qiskit-aer <install-qiskit-aer>`
    #. :ref:`qiskit-ignis <install-qiskit-ignis>`
-   #. :ref:`qiskit-aqua <install-qiskit-aqua>`
    #. :ref:`qiskit-ibmq-provider <install-qiskit-ibmq-provider>`
       (if you want to connect to the IBM Quantum devices or online
       simulator)
@@ -507,45 +506,6 @@ Installation
          pip install -r requirements-dev.txt
 
    4. Install Ignis.
-
-      .. code:: sh
-
-         pip install .
-
-   If you want to install it in editable mode, meaning that code changes to the
-   project don't require a reinstall to be applied:
-
-   .. code:: sh
-
-      pip install -e .
-
-   .. _install-qiskit-aqua:
-
-   .. raw:: html
-
-      <h2>Installing Aqua from Source</h2>
-
-   1. Clone the Aqua repository.
-
-      .. code:: sh
-
-         git clone https://github.com/Qiskit/qiskit-aqua.git
-
-   2. Cloning the repository creates a local directory called ``qiskit-aqua``.
-
-      .. code:: sh
-
-         cd qiskit-aqua
-
-   3. If you want to run tests or linting checks, install the developer requirements.
-      This is not required to install or use the qiskit-aqua package when installing
-      from source.
-
-      .. code:: sh
-
-         pip install -r requirements-dev.txt
-
-   4. Install Aqua.
 
       .. code:: sh
 
