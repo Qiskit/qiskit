@@ -15,8 +15,7 @@ import unittest
 import numpy as np
 
 from qiskit.quantum_info import state_fidelity, Statevector
-from qiskit.algorithms.quantum_time_evolution.variational.principles.real.implementations\
-    .real_mc_lachlan_variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.principles.real.implementations.real_mc_lachlan_variational_principle import (
     RealMcLachlanVariationalPrinciple,
 )
 from qiskit import Aer
@@ -194,9 +193,7 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
         reg = "ridge"
         backend = Aer.get_backend("statevector_simulator")
 
-        var_qrte = VarQrte(
-            var_principle, regularization=reg, backend=backend, error_based_ode=True
-        )
+        var_qrte = VarQrte(var_principle, regularization=reg, backend=backend, error_based_ode=True)
         time = 0.1
 
         evolution_result = var_qrte.evolve(
@@ -208,8 +205,14 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
 
         # values from the prototype
         thetas_expected = [
-            0.63886479, 1.56391727, 0.96591303, 1.57332808, 1.15739773, 0.96590066,
-            1.15161309, - 0.3293391
+            0.63886479,
+            1.56391727,
+            0.96591303,
+            1.57332808,
+            1.15739773,
+            0.96590066,
+            1.15161309,
+            -0.3293391,
         ]
 
         parameter_values = evolution_result.data[0][0].params
@@ -222,8 +225,7 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
             )
         )
         for i, parameter_value in enumerate(parameter_values):
-            np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i],
-                                           decimal=3)
+            np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=3)
 
     def test_run_d_1_error_based_t_006(self):
         observable = SummedOp(
@@ -251,9 +253,7 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
         reg = "ridge"
         backend = Aer.get_backend("statevector_simulator")
 
-        var_qrte = VarQrte(
-            var_principle, regularization=reg, backend=backend, error_based_ode=True
-        )
+        var_qrte = VarQrte(var_principle, regularization=reg, backend=backend, error_based_ode=True)
         time = 0.06
 
         evolution_result = var_qrte.evolve(
@@ -265,8 +265,14 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
 
         # values from the prototype
         thetas_expected = [
-            0.650027700129024, 1.56194984853426, 0.926353536023022, 1.57053579386368,
-            1.15169824084686, 0.924784887323687, 1.14070867127809, -0.316445310366042
+            0.650027700129024,
+            1.56194984853426,
+            0.926353536023022,
+            1.57053579386368,
+            1.15169824084686,
+            0.924784887323687,
+            1.14070867127809,
+            -0.316445310366042,
         ]
 
         parameter_values = evolution_result.data[0][0].params
@@ -279,8 +285,7 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
             )
         )
         for i, parameter_value in enumerate(parameter_values):
-            np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i],
-                                           decimal=3)
+            np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=3)
 
 
 if __name__ == "__main__":

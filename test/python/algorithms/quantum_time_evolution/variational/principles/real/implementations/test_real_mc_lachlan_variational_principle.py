@@ -17,8 +17,7 @@ from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
     metric_tensor_calculator,
     evolution_grad_calculator,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.principles.real.implementations\
-    .real_mc_lachlan_variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.principles.real.implementations.real_mc_lachlan_variational_principle import (
     RealMcLachlanVariationalPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
@@ -258,18 +257,20 @@ class TestRealMcLachlanVariationalPrinciple(QiskitAlgorithmsTestCase):
 
         bound_raw_evolution_grad = evolution_grad.bind_parameters(param_dict)
 
-        expected_bound_evolution_grad = [(-0.04514911474522546 + 4e-18j),
-                                         (0.0963123928027075 - 1.5e-18j),
-                                         (0.1365347823673539 - 7e-18j),
-                                         (0.004969316401057883 - 4.9999999999999996e-18j),
-                                         (-0.003843833929692342 - 4.999999999999998e-19j),
-                                         (0.07036988622493834 - 7e-18j),
-                                         (0.16560609099860682 - 3.5e-18j),
-                                         (0.16674183768051887 + 1e-18j),
-                                         (-0.03843296670360974 - 6e-18j),
-                                         (0.08891074158680243 - 6e-18j),
-                                         (0.06425681697616654 + 7e-18j),
-                                         (-0.03172376682078948 - 7e-18j)]
+        expected_bound_evolution_grad = [
+            (-0.04514911474522546 + 4e-18j),
+            (0.0963123928027075 - 1.5e-18j),
+            (0.1365347823673539 - 7e-18j),
+            (0.004969316401057883 - 4.9999999999999996e-18j),
+            (-0.003843833929692342 - 4.999999999999998e-19j),
+            (0.07036988622493834 - 7e-18j),
+            (0.16560609099860682 - 3.5e-18j),
+            (0.16674183768051887 + 1e-18j),
+            (-0.03843296670360974 - 6e-18j),
+            (0.08891074158680243 - 6e-18j),
+            (0.06425681697616654 + 7e-18j),
+            (-0.03172376682078948 - 7e-18j),
+        ]
 
         np.testing.assert_almost_equal(
             bound_raw_evolution_grad.eval(), expected_bound_evolution_grad, decimal=5
