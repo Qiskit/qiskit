@@ -48,6 +48,33 @@ class BasisTranslator(TransformationPass):
     * The composed replacement rules are applied in-place to each op node which
       is not already in the target_basis.
 
+    If the target keyword argument is specified and that
+    :class:`~qiskit.transpiler.Target` objects contains operations in
+    which are non-global (i.e. they are defined only for a subset of qubits),
+    as calculated by :meth:`~qiskit.transpiler.Target.get_non_global_operation_names`,
+    this pass will attempt to match the output translation to those constraints.
+    For 1 qubit operations this is straightforward, the pass will perform a
+    search using the union of the set of global operations with the set of operations
+    defined solely on that qubit. For multi-qubit gates this is a bit more involved,
+    while the behavior is initially similar to the single qubit case, just using all
+    the qubits the operation is run on (where order is not significant) isn't sufficient.
+    We also need to consider any potential local qubits defined on subsets of the
+    quantum arguments for the multi-qubit operation. This means the target used for the
+    searching on a non-global multi-qubit gate is the set of global operations with the
+    non-global multi-qubit gates on the qubits and any non-global operations defined on
+    subsets of the qubits used.
+
+
+    .. note::
+
+        In the case of non-global operations it is possible for a single
+        execution of this pass to output an incomplete translation if any
+        non-global gates are defined on qubits that are a subset of a larger
+        multi-qubit gate. For example, if you have a ``u`` gate only defined on
+        qubit 0 and an ``x`` gate only on qubit 1 it is possible when
+        translating a 2 qubit operation on qubit 0 and 1 that the output might
+        have ``u`` on qubit 1 and ``x`` on qubit 0. Typically running this pass
+        a second time will correct these issues.
     """
 
     def __init__(self, equivalence_library, target_basis, target=None):
