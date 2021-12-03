@@ -115,7 +115,7 @@ Where:
         cpy.update_options(opt1=10, opt3=20)
         self.assertEqual(options.opt1, 1)
         self.assertEqual(options.opt2, 2)
-        self.assertNotIn('opt3', options)
+        self.assertNotIn("opt3", options)
         self.assertEqual(cpy.opt1, 10)
         self.assertEqual(cpy.opt2, 2)
         self.assertEqual(cpy.opt3, 20)
