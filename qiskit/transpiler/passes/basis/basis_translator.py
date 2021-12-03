@@ -108,7 +108,19 @@ class BasisTranslator(TransformationPass):
                 qargs = tuple(qarg_indices[bit] for bit in node.qargs)
                 if dag.has_calibration_for(node):
                     continue
-                if qargs in qarg_with_incomplete:
+                # Treat the instruction as on an incomplete basis if the qargs are in the
+                # qarg_with_incomplete dictionary or if any of the qubits in qargs
+                # are a superset for a non-local operation. For example, if the qargs
+                # are (0, 1) and that's a global (ie no non-local operations on (0, 1)
+                # operation but there is a non-local operation on (1,) we need to
+                # do an extra non-local search for this op to ensure we include any
+                # single qubit operation for (1,) as valid. This pattern also holds
+                # true for > 2q ops too (so for 4q operations we need to check for 3q, 2q,
+                # and 1q opertaions in the same manner)
+                if qargs in qarg_with_incomplete or any(
+                    frozenset(qargs).issuperset(incomplete_qargs)
+                    for incomplete_qargs in qarg_with_incomplete
+                ):
                     incomplete_source_basis[qargs].add((node.name, node.op.num_qubits))
                 else:
                     source_basis.add((node.name, node.op.num_qubits))
@@ -130,6 +142,10 @@ class BasisTranslator(TransformationPass):
         qarg_local_basis_transforms = {}
         for qarg, extra_source_basis in incomplete_source_basis.items():
             expanded_target = target_basis | qarg_with_incomplete[qarg]
+            # For any multiqubit operation that contains a subset of qubits that
+            # has a non-local operation, include that non-local operation in the
+            # search. This matches with the check we did above to include those
+            # subset non-local operations in the check here.
             if len(qarg) > 1:
                 qubit_set = frozenset(qarg)
                 for non_local_qarg, local_basis in qarg_with_incomplete.items():
