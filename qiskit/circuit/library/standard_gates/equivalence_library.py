@@ -598,11 +598,7 @@ q: ┤ √X ├  ≡  q: ┤ Sdg ├┤ H ├┤ Sdg ├
 """
 q = QuantumRegister(1, "q")
 def_sx = QuantumCircuit(q, global_phase=pi / 4)
-for inst, qargs, cargs in [
-    (SdgGate(), [q[0]], []), 
-    (HGate(), [q[0]], []), 
-    (SdgGate(), [q[0]], [])
-]:
+for inst, qargs, cargs in [(SdgGate(), [q[0]], []), (HGate(), [q[0]], []), (SdgGate(), [q[0]], [])]:
     def_sx.append(inst, qargs, cargs)
 _sel.add_equivalence(SXGate(), def_sx)
 
@@ -627,11 +623,7 @@ q: ┤ √Xdg ├  ≡  q: ┤ S ├┤ H ├┤ S ├
 """
 q = QuantumRegister(1, "q")
 def_sxdg = QuantumCircuit(q, global_phase=-pi / 4)
-for inst, qargs, cargs in [
-    (SGate(), [q[0]], []), 
-    (HGate(), [q[0]], []), 
-    (SGate(), [q[0]], [])
-]:
+for inst, qargs, cargs in [(SGate(), [q[0]], []), (HGate(), [q[0]], []), (SGate(), [q[0]], [])]:
     def_sxdg.append(inst, qargs, cargs)
 _sel.add_equivalence(SXdgGate(), def_sxdg)
 
@@ -698,10 +690,7 @@ q_1: ┤1     ├     q_1: ┤ X ├──■──
 """
 q = QuantumRegister(2, "q")
 def_dcx = QuantumCircuit(q)
-for inst, qargs, cargs in [
-    (CXGate(), [q[0], q[1]], []), 
-    (CXGate(), [q[1], q[0]], [])
-]:
+for inst, qargs, cargs in [(CXGate(), [q[0], q[1]], []), (CXGate(), [q[1], q[0]], [])]:
     def_dcx.append(inst, qargs, cargs)
 _sel.add_equivalence(DCXGate(), def_dcx)
 

@@ -38,7 +38,7 @@ class MergeAdjacentBarriers(TransformationPass):
         circuit.barrier(qr[0])
         circuit.barrier(qr)
 
-    i.e, 
+    i.e,
 
           ░  ░             ░  ░
     q_0: ─░──░─      q_0: ─░──░─

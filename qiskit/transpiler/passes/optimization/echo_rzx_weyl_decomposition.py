@@ -69,7 +69,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
     @staticmethod
     def _reverse_echo_rzx_dag(theta):
         """Return the following circuit::
-        
+
              ┌───┐┌───────────────┐     ┌────────────────┐┌───┐
         q_0: ┤ H ├┤1              ├─────┤1               ├┤ H ├─────
              ├───┤│  Rzx(theta/2) │┌───┐│  Rzx(-theta/2) │├───┤┌───┐
