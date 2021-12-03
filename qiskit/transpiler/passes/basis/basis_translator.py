@@ -148,7 +148,7 @@ class BasisTranslator(TransformationPass):
                     frozenset(qargs).issuperset(incomplete_qargs)
                     for incomplete_qargs in self._qargs_with_non_global_operation
                 ):
-                    qargs_local_source_basis[qargs].add((node.name, node.op.num_qubits))
+                    qargs_local_source_basis[frozenset(qargs)].add((node.name, node.op.num_qubits))
                 else:
                     source_basis.add((node.name, node.op.num_qubits))
 
@@ -174,9 +174,8 @@ class BasisTranslator(TransformationPass):
             # search. This matches with the check we did above to include those
             # subset non-local operations in the check here.
             if len(qarg) > 1:
-                qubit_set = frozenset(qarg)
                 for non_local_qarg, local_basis in self._qargs_with_non_global_operation.items():
-                    if qubit_set.issuperset(non_local_qarg):
+                    if qarg.issuperset(non_local_qarg):
                         expanded_target |= local_basis
 
             logger.info(
@@ -220,6 +219,7 @@ class BasisTranslator(TransformationPass):
         replace_start_time = time.time()
         for node in dag.op_nodes():
             node_qargs = tuple(qarg_indices[bit] for bit in node.qargs)
+            qubit_set = frozenset(node_qargs)
 
             if node.name in target_basis:
                 continue
@@ -272,8 +272,8 @@ class BasisTranslator(TransformationPass):
                 else:
                     dag.substitute_node_with_dag(node, bound_target_dag)
 
-            if node_qargs in extra_instr_map:
-                replace_node(node, extra_instr_map[node_qargs])
+            if qubit_set in extra_instr_map:
+                replace_node(node, extra_instr_map[qubit_set])
             elif (node.op.name, node.op.num_qubits) in instr_map:
                 replace_node(node, instr_map)
             else:
