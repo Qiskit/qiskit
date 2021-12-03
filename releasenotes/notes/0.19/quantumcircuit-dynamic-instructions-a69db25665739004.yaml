@@ -11,7 +11,7 @@ features:
     support breaking from and continuing to the next iteration of a loop
     context, respectively.
 
-    These can be created as stand alone :class:`~qiskit.circuit.Instruction`\ s,
+    These can be created as stand-alone :class:`~qiskit.circuit.Instruction`\ s,
     or appended to an existing :class:`~qiskit.circuit.QuantumCircuit` instance
     via their respective methods,
     :meth:`.QuantumCircuit.while_loop`,

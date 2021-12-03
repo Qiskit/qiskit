@@ -8,7 +8,7 @@ upgrade:
     target backend's :attr:`~qiskit.providers.BackendV1.options` attribute.
     Previously these defaults were set to match the default values when
     calling :func:`~qiskit.execute_function.execute` with a legacy
-    :class:`~qiskit.providers.BaseBackend` backend. For example running::
+    :class:`~qiskit.providers.BaseBackend` backend. For example::
 
       from qiskit.test.mock import FakeMumbai
       from qiskit import QuantumCircuit, execute

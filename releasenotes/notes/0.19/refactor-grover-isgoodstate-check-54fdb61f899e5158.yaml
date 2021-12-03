@@ -10,8 +10,6 @@ features:
     :attr:`~qiskit.algorithms.AmplificationProblem.is_good_state` function to
     check whether a good bitstring has been measured.  For example, you are now
     able to run something like::
-    
-    .. code-block::
 
       from qiskit.algorithms import Grover, AmplificationProblem
       from qiskit.providers.aer import AerSimulator

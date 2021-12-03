@@ -32,7 +32,7 @@ Use the pulse builder DSL to write pulse programs with an imperative syntax.
 The pulse builder provides an imperative API for writing pulse programs
 with less difficulty than the :class:`~qiskit.pulse.Schedule` API.
 It contextually constructs a pulse schedule and then emits the schedule for
-execution. For example to play a series of pulses on channels is as simple as:
+execution. For example, to play a series of pulses on channels is as simple as:
 
 
 .. jupyter-execute::
