@@ -140,7 +140,7 @@ class BasisTranslator(TransformationPass):
         )
 
         qarg_local_basis_transforms = {}
-        for qarg, extra_source_basis in incomplete_source_basis.items():
+        for qarg, local_source_basis in incomplete_source_basis.items():
             expanded_target = target_basis | qarg_with_incomplete[qarg]
             # For any multiqubit operation that contains a subset of qubits that
             # has a non-local operation, include that non-local operation in the
@@ -155,12 +155,12 @@ class BasisTranslator(TransformationPass):
             logger.info(
                 "Performing BasisTranslator search from source basis %s to target "
                 "basis %s on qarg %s.",
-                extra_source_basis,
+                local_source_basis,
                 expanded_target,
                 qarg,
             )
             qarg_local_basis_transforms[qarg] = _basis_search(
-                self._equiv_lib, extra_source_basis, expanded_target, _basis_heuristic
+                self._equiv_lib, local_source_basis, expanded_target, _basis_heuristic
             )
 
         search_end_time = time.time()
