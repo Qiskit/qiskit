@@ -286,7 +286,7 @@ def transpile(
         )
         return pass_manager.run(circuits, output_name=output_name, callback=callback)
     # If a target is specified have it override any implicit selections from a backend
-    # but if an argument is explicitly passed used that instead of the target version
+    # but if an argument is explicitly passed use that instead of the target version
     if target is not None:
         if coupling_map is None:
             coupling_map = target.coupling_map()
@@ -870,7 +870,7 @@ def _parse_backend_properties(backend_properties, backend, num_circuits):
 
                     backend_properties.gates = gates
         else:
-            _target_to_backend_properties(backend.target)
+            backend_properties = _target_to_backend_properties(backend.target)
     if not isinstance(backend_properties, list):
         backend_properties = [backend_properties] * num_circuits
     return backend_properties

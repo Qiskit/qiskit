@@ -107,7 +107,7 @@ class FakeBackend5QV2(BackendV2):
     def __init__(self, bidirectional=True):
         super().__init__(
             None,
-            name="FakeV2",
+            name="Fake5QV2",
             description="A fake BackendV2 example",
             online_date=datetime.datetime.utcnow(),
             backend_version="0.0.1",

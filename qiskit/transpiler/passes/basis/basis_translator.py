@@ -49,7 +49,7 @@ class BasisTranslator(TransformationPass):
       is not already in the target_basis.
 
     If the target keyword argument is specified and that
-    :class:`~qiskit.transpiler.Target` objects contains operations in
+    :class:`~qiskit.transpiler.Target` objects contains operations
     which are non-global (i.e. they are defined only for a subset of qubits),
     as calculated by :meth:`~qiskit.transpiler.Target.get_non_global_operation_names`,
     this pass will attempt to match the output translation to those constraints.
@@ -60,9 +60,9 @@ class BasisTranslator(TransformationPass):
     the qubits the operation is run on (where order is not significant) isn't sufficient.
     We also need to consider any potential local qubits defined on subsets of the
     quantum arguments for the multi-qubit operation. This means the target used for the
-    searching on a non-global multi-qubit gate is the set of global operations with the
-    non-global multi-qubit gates on the qubits and any non-global operations defined on
-    subsets of the qubits used.
+    search of a non-global multi-qubit gate is the union of global operations, non-global
+    multi-qubit gates sharing the same qubits, and any non-global gates defined on
+    any subset of the qubits used.
 
 
     .. note::
