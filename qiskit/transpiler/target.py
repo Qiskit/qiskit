@@ -645,6 +645,8 @@ class Target(Mapping):
             qarg_sample = next(iter(qargs))
             if qarg_sample is None:
                 continue
+            if not strict_direction:
+                qargs = {frozenset(qarg) for qarg in qargs}
             if len(qargs) != size_dict[len(qarg_sample)]:
                 incomplete_basis_gates.append(inst)
         if strict_direction:
