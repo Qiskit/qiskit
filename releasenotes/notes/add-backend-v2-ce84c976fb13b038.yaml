@@ -85,3 +85,8 @@ features:
     :meth:`~qiskit.providers.Options.update_options` method will check that
     if ``shots`` is being updated the proposed new value is within the valid
     range.
+  - |
+    Adds a :meth:`~qiskit.providers.Options.copy` method to the
+    :class:`~qiskit.providers.Options` class which returns a shallow copy
+    of the option where updates to the copies fields or validator will
+    not change the originals values.

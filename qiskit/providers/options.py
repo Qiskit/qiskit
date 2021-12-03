@@ -99,6 +99,15 @@ class Options:
             return self._fields == other._fields
         return NotImplemented
 
+    def copy(self):
+        """Return a copy of the Options.
+
+        The returned option and validator values are shallow copies of the originals.
+        """
+        out = Options()
+        out.__setstate__((self._fields.copy(), self.validator.copy()))
+        return out
+
     def set_validator(self, field, validator_value):
         """Set an optional validator for a field in the options
 
