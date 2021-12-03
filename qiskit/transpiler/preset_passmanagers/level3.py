@@ -340,8 +340,15 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     ):
         pm3.append(_direction_check)
         pm3.append(_direction, condition=_direction_condition)
-    pm3.append(_reset)
-    pm3.append(_depth_check + _opt + _unroll, do_while=_opt_control)
+        pm3.append(_reset)
+        # For transpiling to a target we need to run GateDirection in the
+        # optimization loop to correct for incorrect directions that might be
+        # inserted by UnitarySynthesis which is direction aware but only via
+        # the coupling map which with a target doesn't give a full picture
+        pm3.append(_depth_check + _opt + _direction + _unroll, do_while=_opt_control)
+    else:
+        pm3.append(_reset)
+        pm3.append(_depth_check + _opt + _unroll, do_while=_opt_control)
     if inst_map and inst_map.has_custom_gate():
         pm3.append(PulseGates(inst_map=inst_map))
     if scheduling_method:
