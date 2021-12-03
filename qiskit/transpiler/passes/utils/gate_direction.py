@@ -152,16 +152,6 @@ class GateDirection(TransformationPass):
             # This will require iterating over the target names to build a mapping
             # of names to gates that implement CXGate, ECRGate, RZXGate (including
             # fixed angle variants)
-            cx_weak_set = None
-            if "cx" in self.target:
-                cx_weak_set = {frozenset(qarg) for qarg in self.target["cx"]}
-            ecr_weak_set = None
-            if "ecr" in self.target:
-                ecr_weak_set = {frozenset(qarg) for qarg in self.target["ecr"]}
-            rzx_weak_set = None
-            if "rzx" in self.target:
-                rzx_weak_set = {frozenset(qarg) for qarg in self.target["rzx"]}
-
             for node in dag.two_qubit_ops():
                 control = node.qargs[0]
                 target = node.qargs[1]
@@ -170,30 +160,35 @@ class GateDirection(TransformationPass):
                 physical_q1 = layout_map[target]
 
                 if node.name == "cx":
-                    if frozenset((physical_q0, physical_q1)) not in cx_weak_set:
+                    if (physical_q0, physical_q1) in self.target["cx"]:
+                        continue
+                    if (physical_q1, physical_q0) in self.target["cx"]:
+                        dag.substitute_node_with_dag(node, self._cx_dag)
+                    else:
                         raise TranspilerError(
                             "The circuit requires a connection between physical "
                             "qubits %s and %s for cx" % (physical_q0, physical_q1)
                         )
-                    if (physical_q0, physical_q1) not in self.target["cx"]:
-                        dag.substitute_node_with_dag(node, self._cx_dag)
                 elif node.name == "ecr":
-                    if frozenset((physical_q0, physical_q1)) not in ecr_weak_set:
+                    if (physical_q0, physical_q1) in self.target["ecr"]:
+                        continue
+                    if (physical_q1, physical_q0) in self.target["ecr"]:
+                        dag.substitute_node_with_dag(node, self._ecr_dag)
+                    else:
                         raise TranspilerError(
                             "The circuit requires a connection between physical "
                             "qubits %s and %s for ecr" % (physical_q0, physical_q1)
                         )
-                    if (physical_q0, physical_q1) not in self.target["ecr"]:
-                        dag.substitute_node_with_dag(node, self._ecr_dag)
                 elif node.name == "rzx":
-                    if frozenset((physical_q0, physical_q1)) not in rzx_weak_set:
+                    if (physical_q0, physical_q1) in self.target["rzx"]:
+                        continue
+                    if (physical_q1, physical_q0) in self.target["rzx"]:
+                        dag.substitute_node_with_dag(node, self._rzx_dag(*node.op.params))
+                    else:
                         raise TranspilerError(
                             "The circuit requires a connection between physical "
                             "qubits %s and %s for rzx" % (physical_q0, physical_q1)
                         )
-                    if (physical_q0, physical_q1) not in self.target["rzx"]:
-                        dag.substitute_node_with_dag(node, self._ecr_dag)
-                    dag.substitute_node_with_dag(node, self._rzx_dag(*node.op.params))
                 else:
                     raise TranspilerError(
                         f"Flipping of gate direction is only supported "
