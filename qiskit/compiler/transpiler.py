@@ -782,7 +782,7 @@ def _target_to_backend_properties(target: Target):
                         property_list.append(
                             {
                                 "date": datetime.datetime.utcnow(),
-                                "name": "gate_length",
+                                "name": "gate_error",
                                 "unit": "",
                                 "value": props.error,
                             }
