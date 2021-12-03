@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Circuit transpile function"""
+import datetime
 import logging
 import warnings
 from time import time
@@ -284,6 +285,23 @@ def transpile(
             stacklevel=2,
         )
         return pass_manager.run(circuits, output_name=output_name, callback=callback)
+    # If a target is specified have it override any implicit selections from a backend
+    # but if an argument is explicitly passed used that instead of the target version
+    if target is not None:
+        if coupling_map is None:
+            coupling_map = target.coupling_map()
+        if basis_gates is None:
+            basis_gates = target.operation_names()
+        if instruction_durations is None:
+            instruction_durations = target.durations()
+        if inst_map is None:
+            inst_map = target.instruction_schedule_map()
+        if dt is None:
+            dt = target.dt
+        if timing_constraints is None:
+            timing_constraints = target.timing_constraints()
+        if backend_properties is None:
+            backend_properties = _target_to_backend_properties(target)
 
     if optimization_level is None:
         # Take optimization level from the configuration or 1 as default.
@@ -737,38 +755,122 @@ def _parse_coupling_map(coupling_map, backend, num_circuits):
     return coupling_map
 
 
+def _target_to_backend_properties(target: Target):
+    properties_dict = {
+        "backend_name": "",
+        "backend_version": "",
+        "last_update_date": None,
+        "general": [],
+    }
+    gates = []
+    qubits = []
+    for gate, qargs_list in target.items():
+        if gate != "measure":
+            for qargs, props in qargs_list.items():
+                property_list = []
+                if props is not None:
+                    if props.duration is not None:
+                        property_list.append(
+                            {
+                                "date": datetime.datetime.utcnow(),
+                                "name": "gate_length",
+                                "unit": "s",
+                                "value": props.duration,
+                            }
+                        )
+                    if props.error is not None:
+                        property_list.append(
+                            {
+                                "date": datetime.datetime.utcnow(),
+                                "name": "gate_length",
+                                "unit": "",
+                                "value": props.error,
+                            }
+                        )
+                if property_list:
+                    gates.append(
+                        {
+                            "gate": gate,
+                            "qubits": list(qargs),
+                            "parameters": property_list,
+                            "name": gate + "_".join([str(x) for x in qargs]),
+                        }
+                    )
+        else:
+            qubit_props = {x: None for x in range(target.num_qubits)}
+            for qargs, props in qargs_list.items():
+                qubit = qargs[0]
+                props_list = []
+                if props.error is not None:
+                    props_list.append(
+                        {
+                            "date": datetime.datetime.utcnow(),
+                            "name": "readout_error",
+                            "unit": "",
+                            "value": props.error,
+                        }
+                    )
+                if props.duration is not None:
+                    props_list.append(
+                        {
+                            "date": datetime.datetime.utcnow(),
+                            "name": "readout_length",
+                            "unit": "s",
+                            "value": props.duration,
+                        }
+                    )
+                if not props_list:
+                    qubit_props = {}
+                    break
+                qubit_props[qubit] = props_list
+            if qubit_props and all(x is not None for x in qubit_props.values()):
+                qubits = [qubit_props[i] for i in range(target.num_qubits)]
+    if gates or qubits:
+        properties_dict["gates"] = gates
+        properties_dict["qubits"] = qubits
+        return BackendProperties.from_dict(properties_dict)
+    else:
+        return None
+
+
 def _parse_backend_properties(backend_properties, backend, num_circuits):
     # try getting backend_properties from user, else backend
     if backend_properties is None:
-        if getattr(backend, "properties", None):
-            backend_properties = backend.properties()
-            if backend_properties and (
-                backend_properties.faulty_qubits() or backend_properties.faulty_gates()
-            ):
-                faulty_qubits = sorted(backend_properties.faulty_qubits(), reverse=True)
-                faulty_edges = [gates.qubits for gates in backend_properties.faulty_gates()]
-                # remove faulty qubits in backend_properties.qubits
-                for faulty_qubit in faulty_qubits:
-                    del backend_properties.qubits[faulty_qubit]
+        backend_version = getattr(backend, "version", None)
+        if not isinstance(backend_version, int):
+            backend_version = 0
+        if backend_version <= 1:
+            if getattr(backend, "properties", None):
+                backend_properties = backend.properties()
+                if backend_properties and (
+                    backend_properties.faulty_qubits() or backend_properties.faulty_gates()
+                ):
+                    faulty_qubits = sorted(backend_properties.faulty_qubits(), reverse=True)
+                    faulty_edges = [gates.qubits for gates in backend_properties.faulty_gates()]
+                    # remove faulty qubits in backend_properties.qubits
+                    for faulty_qubit in faulty_qubits:
+                        del backend_properties.qubits[faulty_qubit]
 
-                gates = []
-                for gate in backend_properties.gates:
-                    # remove gates using faulty edges or with faulty qubits (and remap the
-                    # gates in terms of faulty_qubits_map)
-                    faulty_qubits_map = _create_faulty_qubits_map(backend)
-                    if (
-                        any(faulty_qubits_map[qubits] is not None for qubits in gate.qubits)
-                        or gate.qubits in faulty_edges
-                    ):
-                        continue
-                    gate_dict = gate.to_dict()
-                    replacement_gate = Gate.from_dict(gate_dict)
-                    gate_dict["qubits"] = [faulty_qubits_map[qubit] for qubit in gate.qubits]
-                    args = "_".join([str(qubit) for qubit in gate_dict["qubits"]])
-                    gate_dict["name"] = "{}{}".format(gate_dict["gate"], args)
-                    gates.append(replacement_gate)
+                    gates = []
+                    for gate in backend_properties.gates:
+                        # remove gates using faulty edges or with faulty qubits (and remap the
+                        # gates in terms of faulty_qubits_map)
+                        faulty_qubits_map = _create_faulty_qubits_map(backend)
+                        if (
+                            any(faulty_qubits_map[qubits] is not None for qubits in gate.qubits)
+                            or gate.qubits in faulty_edges
+                        ):
+                            continue
+                        gate_dict = gate.to_dict()
+                        replacement_gate = Gate.from_dict(gate_dict)
+                        gate_dict["qubits"] = [faulty_qubits_map[qubit] for qubit in gate.qubits]
+                        args = "_".join([str(qubit) for qubit in gate_dict["qubits"]])
+                        gate_dict["name"] = "{}{}".format(gate_dict["gate"], args)
+                        gates.append(replacement_gate)
 
-                backend_properties.gates = gates
+                    backend_properties.gates = gates
+        else:
+            _target_to_backend_properties(backend.target)
     if not isinstance(backend_properties, list):
         backend_properties = [backend_properties] * num_circuits
     return backend_properties
