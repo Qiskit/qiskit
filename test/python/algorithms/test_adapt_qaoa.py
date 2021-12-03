@@ -156,7 +156,6 @@ class TestAdaptQAOA(QiskitAlgorithmsTestCase):
         adapt_qaoa = AdaptQAOA(
             optimizer=COBYLA(), reps=prob, mixer_pool=m, quantum_instance=self.statevector_simulator
         )
-
         result = adapt_qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
