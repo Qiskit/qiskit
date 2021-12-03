@@ -15,12 +15,14 @@
 
 import math
 
+from test import combine
+
 from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.compiler import transpile
 from qiskit.test.base import QiskitTestCase
-from qiskit.test.mock.fake_backend_v2 import FakeBackendV2
+from qiskit.test.mock.fake_backend_v2 import FakeBackendV2, FakeBackend5QV2
 from qiskit.test.mock.fake_mumbai_v2 import FakeMumbaiV2
 from qiskit.quantum_info import Operator
 
@@ -77,6 +79,28 @@ class TestBackendV2(QiskitTestCase):
         )
         self.assertTrue(Operator(tqc).equiv(qc))
         self.assertMatchesTargetConstraints(tqc, self.backend.target)
+
+    @combine(
+        opt_level=[0, 1, 2, 3],
+        gate=["cx", "ecr", "cz"],
+        bidirectional=[True, False],
+        dsc=(
+            "Test GHZ circuit with {gate} using opt level {opt_level} on backend "
+            "with bidirectional={bidirectional}"
+        ),
+        name="{gate}_level_{opt_level}_bidirectional_{bidirectional}",
+    )
+    def test_5q_ghz(self, opt_level, gate, bidirectional):
+        backend = FakeBackend5QV2(bidirectional)
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        getattr(qc, gate)(0, 1)
+        getattr(qc, gate)(1, 2)
+        getattr(qc, gate)(2, 3)
+        getattr(qc, gate)(3, 4)
+        tqc = transpile(qc, backend, optimization_level=opt_level)
+        self.assertTrue(Operator(tqc).equiv(qc))
+        self.assertMatchesTargetConstraints(tqc, backend.target)
 
     def test_transpile_respects_arg_constraints(self):
         """Test that transpile() respects a heterogenous basis."""
