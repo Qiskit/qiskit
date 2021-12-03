@@ -66,8 +66,13 @@ class BasisTranslator(TransformationPass):
         self._target_basis = target_basis
         self._target = target
         self._non_global_operations = None
+        self._qargs_with_non_global_operation = {}  # pylint: disable=invalid-name
         if target is not None:
             self._non_global_operations = self._target.get_non_global_operation_names()
+            self._qargs_with_non_global_operation = defaultdict(set)
+            for gate in self._non_global_operations:
+                for qarg in self._target[gate]:
+                    self._qargs_with_non_global_operation[qarg].add(gate)
 
     def run(self, dag):
         """Translate an input DAGCircuit to the target basis.
@@ -93,16 +98,11 @@ class BasisTranslator(TransformationPass):
             for node in dag.op_nodes():
                 if not dag.has_calibration_for(node):
                     source_basis.add((node.name, node.op.num_qubits))
-            qargs_with_non_global_operation = {}
             qargs_local_source_basis = {}
         else:
             basic_instrs = ["barrier", "snapshot"]
             source_basis = set()
             target_basis = self._target.keys() - set(self._non_global_operations)
-            qargs_with_non_global_operation = defaultdict(set)
-            for gate in self._non_global_operations:
-                for qarg in self._target[gate]:
-                    qargs_with_non_global_operation[qarg].add(gate)
             qargs_local_source_basis = defaultdict(set)
             for node in dag.op_nodes():
                 qargs = tuple(qarg_indices[bit] for bit in node.qargs)
@@ -117,9 +117,9 @@ class BasisTranslator(TransformationPass):
                 # single qubit operation for (1,) as valid. This pattern also holds
                 # true for > 2q ops too (so for 4q operations we need to check for 3q, 2q,
                 # and 1q opertaions in the same manner)
-                if qargs in qargs_with_non_global_operation or any(
+                if qargs in self._qargs_with_non_global_operation or any(
                     frozenset(qargs).issuperset(incomplete_qargs)
-                    for incomplete_qargs in qargs_with_non_global_operation
+                    for incomplete_qargs in self._qargs_with_non_global_operation
                 ):
                     qargs_local_source_basis[qargs].add((node.name, node.op.num_qubits))
                 else:
@@ -141,14 +141,14 @@ class BasisTranslator(TransformationPass):
 
         qarg_local_basis_transforms = {}
         for qarg, local_source_basis in qargs_local_source_basis.items():
-            expanded_target = target_basis | qargs_with_non_global_operation[qarg]
+            expanded_target = target_basis | self._qargs_with_non_global_operation[qarg]
             # For any multiqubit operation that contains a subset of qubits that
             # has a non-local operation, include that non-local operation in the
             # search. This matches with the check we did above to include those
             # subset non-local operations in the check here.
             if len(qarg) > 1:
                 qubit_set = frozenset(qarg)
-                for non_local_qarg, local_basis in qargs_with_non_global_operation.items():
+                for non_local_qarg, local_basis in self._qargs_with_non_global_operation.items():
                     if qubit_set.issuperset(non_local_qarg):
                         expanded_target |= local_basis
 
@@ -197,8 +197,8 @@ class BasisTranslator(TransformationPass):
             if node.name in target_basis:
                 continue
             if (
-                node_qargs in qargs_with_non_global_operation
-                and node.name in qargs_with_non_global_operation[node_qargs]
+                node_qargs in self._qargs_with_non_global_operation
+                and node.name in self._qargs_with_non_global_operation[node_qargs]
             ):
                 continue
 
