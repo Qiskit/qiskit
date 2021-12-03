@@ -93,23 +93,23 @@ class BasisTranslator(TransformationPass):
             for node in dag.op_nodes():
                 if not dag.has_calibration_for(node):
                     source_basis.add((node.name, node.op.num_qubits))
-            qarg_with_incomplete = {}
-            incomplete_source_basis = {}
+            qargs_with_non_global_operation = {}
+            qargs_local_source_basis = {}
         else:
             basic_instrs = ["barrier", "snapshot"]
             source_basis = set()
             target_basis = self._target.keys() - set(self._non_global_operations)
-            qarg_with_incomplete = defaultdict(set)
+            qargs_with_non_global_operation = defaultdict(set)
             for gate in self._non_global_operations:
                 for qarg in self._target[gate]:
-                    qarg_with_incomplete[qarg].add(gate)
-            incomplete_source_basis = defaultdict(set)
+                    qargs_with_non_global_operation[qarg].add(gate)
+            qargs_local_source_basis = defaultdict(set)
             for node in dag.op_nodes():
                 qargs = tuple(qarg_indices[bit] for bit in node.qargs)
                 if dag.has_calibration_for(node):
                     continue
                 # Treat the instruction as on an incomplete basis if the qargs are in the
-                # qarg_with_incomplete dictionary or if any of the qubits in qargs
+                # qargs_with_non_global_operation dictionary or if any of the qubits in qargs
                 # are a superset for a non-local operation. For example, if the qargs
                 # are (0, 1) and that's a global (ie no non-local operations on (0, 1)
                 # operation but there is a non-local operation on (1,) we need to
@@ -117,11 +117,11 @@ class BasisTranslator(TransformationPass):
                 # single qubit operation for (1,) as valid. This pattern also holds
                 # true for > 2q ops too (so for 4q operations we need to check for 3q, 2q,
                 # and 1q opertaions in the same manner)
-                if qargs in qarg_with_incomplete or any(
+                if qargs in qargs_with_non_global_operation or any(
                     frozenset(qargs).issuperset(incomplete_qargs)
-                    for incomplete_qargs in qarg_with_incomplete
+                    for incomplete_qargs in qargs_with_non_global_operation
                 ):
-                    incomplete_source_basis[qargs].add((node.name, node.op.num_qubits))
+                    qargs_local_source_basis[qargs].add((node.name, node.op.num_qubits))
                 else:
                     source_basis.add((node.name, node.op.num_qubits))
 
@@ -140,15 +140,15 @@ class BasisTranslator(TransformationPass):
         )
 
         qarg_local_basis_transforms = {}
-        for qarg, local_source_basis in incomplete_source_basis.items():
-            expanded_target = target_basis | qarg_with_incomplete[qarg]
+        for qarg, local_source_basis in qargs_local_source_basis.items():
+            expanded_target = target_basis | qargs_with_non_global_operation[qarg]
             # For any multiqubit operation that contains a subset of qubits that
             # has a non-local operation, include that non-local operation in the
             # search. This matches with the check we did above to include those
             # subset non-local operations in the check here.
             if len(qarg) > 1:
                 qubit_set = frozenset(qarg)
-                for non_local_qarg, local_basis in qarg_with_incomplete.items():
+                for non_local_qarg, local_basis in qargs_with_non_global_operation.items():
                     if qubit_set.issuperset(non_local_qarg):
                         expanded_target |= local_basis
 
@@ -179,7 +179,7 @@ class BasisTranslator(TransformationPass):
         compose_start_time = time.time()
         instr_map = _compose_transforms(basis_transforms, source_basis, dag)
         extra_instr_map = {
-            qarg: _compose_transforms(transforms, incomplete_source_basis[qarg], dag)
+            qarg: _compose_transforms(transforms, qargs_local_source_basis[qarg], dag)
             for qarg, transforms in qarg_local_basis_transforms.items()
         }
 
@@ -196,7 +196,10 @@ class BasisTranslator(TransformationPass):
 
             if node.name in target_basis:
                 continue
-            if node_qargs in qarg_with_incomplete and node.name in qarg_with_incomplete[node_qargs]:
+            if (
+                node_qargs in qargs_with_non_global_operation
+                and node.name in qargs_with_non_global_operation[node_qargs]
+            ):
                 continue
 
             if dag.has_calibration_for(node):
