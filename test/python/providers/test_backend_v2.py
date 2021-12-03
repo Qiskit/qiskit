@@ -31,6 +31,17 @@ class TestBackendV2(QiskitTestCase):
         super().setUp()
         self.backend = FakeBackendV2()
 
+    def assertMatchesTargetConstraints(self, tqc, target):
+        qubit_indices = {qubit: index for index, qubit in enumerate(tqc.qubits)}
+        for instr, qargs, _ in tqc.data:
+            qargs = tuple(qubit_indices[x] for x in qargs)
+            target_set = target[instr.name].keys()
+            self.assertIn(
+                qargs,
+                target_set,
+                f"qargs: {qargs} not found in target for operation {instr.name}: {set(target_set)}",
+            )
+
     def test_qubit_properties(self):
         """Test that qubit properties are returned as expected."""
         props = self.backend.qubit_properties([1, 0])
@@ -65,6 +76,7 @@ class TestBackendV2(QiskitTestCase):
             ],
         )
         self.assertTrue(Operator(tqc).equiv(qc))
+        self.assertMatchesTargetConstraints(tqc, self.backend.target)
 
     def test_transpile_respects_arg_constraints(self):
         """Test that transpile() respects a heterogenous basis."""
@@ -83,6 +95,7 @@ class TestBackendV2(QiskitTestCase):
         self.assertEqual(tqc.count_ops().keys(), {"cx", "u"})
         self.assertEqual(tqc.count_ops()["cx"], 1)
         self.assertLessEqual(tqc.count_ops()["u"], 4)
+        self.assertMatchesTargetConstraints(tqc, self.backend.target)
         # Test ECR on wrong link
         qc = QuantumCircuit(2)
         qc.h(0)
@@ -90,6 +103,7 @@ class TestBackendV2(QiskitTestCase):
         tqc = transpile(qc, self.backend)
         self.assertTrue(Operator(tqc).equiv(qc))
         self.assertEqual(tqc.count_ops(), {"ecr": 1, "u": 4})
+        self.assertMatchesTargetConstraints(tqc, self.backend.target)
 
     def test_transpile_relies_on_gate_direction(self):
         """Test that transpile() relies on gate direction pass for 2q."""
@@ -105,6 +119,7 @@ class TestBackendV2(QiskitTestCase):
         expected.u(math.pi / 2, 0, -math.pi, 1)
         self.assertTrue(Operator(tqc).equiv(qc))
         self.assertEqual(tqc.count_ops(), {"ecr": 1, "u": 4})
+        self.assertMatchesTargetConstraints(tqc, self.backend.target)
 
     def test_transpile_mumbai_target(self):
         """Test that transpile respects a more involved target for a fake mumbai."""
