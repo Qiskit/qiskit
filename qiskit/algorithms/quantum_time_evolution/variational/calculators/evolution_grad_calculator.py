@@ -26,19 +26,33 @@ def calculate(
     grad_method: Union[str, CircuitGradient],
     basis: OperatorBase = Z,
 ) -> OperatorBase:
+    """Calculates a parametrized evolution gradient object."""
     operator = ~StateFn(observable) @ StateFn(ansatz)
     if grad_method == "lin_comb":
         return LinComb().convert(operator, parameters, aux_meas_op=basis)
     return Gradient(grad_method).convert(operator, parameters)
 
 
-def eval_evolution_grad(
-    evolution_grad: OperatorBase,
+def eval_grad_result(
+    grad: Union[OperatorBase, callable],
     param_dict: Dict[Parameter, Union[float, complex]],
-    grad_circ_sampler: CircuitSampler,
-) -> np.ndarray:
-    if grad_circ_sampler:
-        grad_res = np.array(grad_circ_sampler.convert(evolution_grad, params=param_dict).eval())
+    grad_circ_sampler: CircuitSampler = None,
+    energy_sampler: CircuitSampler = None,
+) -> OperatorBase:
+    """Binds a parametrized evolution grad object to parameters values provided. Uses circuit
+    samplers if available."""
+    # TODO would be nicer to somehow get rid of this if statement
+    if isinstance(grad, OperatorBase):
+        grad_result = grad
     else:
-        grad_res = np.array(evolution_grad.assign_parameters(param_dict).eval())
-    return grad_res
+        grad_result = grad(param_dict, energy_sampler)
+
+    if grad_circ_sampler:
+        grad_result = grad_circ_sampler.convert(grad_result, param_dict)
+    else:
+        grad_result = grad_result.assign_parameters(param_dict)
+    grad_result = grad_result.eval()
+    if any(np.abs(np.imag(grad_item)) > 1e-8 for grad_item in grad_result):
+        raise Warning("The imaginary part of the gradient are non-negligible.")
+
+    return grad_result

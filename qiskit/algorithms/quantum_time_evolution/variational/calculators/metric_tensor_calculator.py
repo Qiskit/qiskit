@@ -11,11 +11,9 @@
 # that they have been altered from the originals.
 from typing import Union, Optional, List, Dict
 
-import numpy as np
-
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector, ParameterExpression, Parameter
-from qiskit.opflow import QFI, CircuitQFI, CircuitStateFn, OperatorBase, Z, CircuitSampler, ListOp
+from qiskit.opflow import QFI, CircuitQFI, CircuitStateFn, OperatorBase, Z, ListOp, CircuitSampler
 from qiskit.opflow.gradients.circuit_qfis import LinCombFull
 
 
@@ -26,6 +24,7 @@ def calculate(
     basis: OperatorBase = Z,
     phase_fix: bool = True,
 ) -> ListOp:
+    """Calculates a parametrized metric tensor object."""
     operator = CircuitStateFn(ansatz)
 
     if qfi_method == "lin_comb_full":
@@ -34,13 +33,16 @@ def calculate(
     return QFI(qfi_method).convert(operator, parameters)
 
 
-def eval_metric_tensor(
-    metric_tensor: OperatorBase,
+def eval_metric_result(
+    metric: OperatorBase,
     param_dict: Dict[Parameter, Union[float, complex]],
     metric_circ_sampler: CircuitSampler,
-) -> np.ndarray:
+) -> OperatorBase:
+    """Binds a parametrized metric tensor object to parameters values provided. Uses circuit
+    samplers if available."""
     if metric_circ_sampler:
-        metric_res = np.array(metric_circ_sampler.convert(metric_tensor, params=param_dict).eval())
+        metric_result = metric_circ_sampler.convert(metric, params=param_dict).eval()
     else:
-        metric_res = np.array(metric_tensor.assign_parameters(param_dict).eval())
-    return metric_res
+        metric_result = metric.assign_parameters(param_dict).eval()
+
+    return metric_result

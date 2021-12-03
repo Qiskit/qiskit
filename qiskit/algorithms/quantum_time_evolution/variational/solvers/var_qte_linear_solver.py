@@ -13,9 +13,11 @@ from typing import Union, List, Dict, Optional
 
 import numpy as np
 
-from qiskit.algorithms.quantum_time_evolution.variational.calculators.tensor_evaluator import (
-    eval_grad_result,
+from qiskit.algorithms.quantum_time_evolution.variational.calculators.metric_tensor_calculator import (
     eval_metric_result,
+)
+from qiskit.algorithms.quantum_time_evolution.variational.calculators.evolution_grad_calculator import (
+    eval_grad_result,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
     VariationalPrinciple,
