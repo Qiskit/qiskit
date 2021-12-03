@@ -22,7 +22,6 @@ import numpy as np
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.quantumregister import Qubit
-from qiskit.circuit.random import random_circuit
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.qpy_serialization import dump, load
 from qiskit.opflow import X, Y, Z
@@ -72,11 +71,11 @@ def generate_random_circuits():
             for j in range(i - 1):
                 qc.cx(0, j + 1)
         qc.measure_all()
-        for i in range(i):
-            qc.reset(i)
+        for j in range(i):
+            qc.reset(j)
         qc.x(0).c_if(qc.cregs[0], i)
-        for i in range(i):
-            qc.measure(i, i)
+        for j in range(i):
+            qc.measure(j, j)
         random_circuits.append(qc)
     return random_circuits
 
@@ -302,7 +301,7 @@ def generate_qpy(qpy_files):
 def load_qpy(qpy_files):
     """Load qpy circuits from files and compare to reference circuits."""
     for path, circuits in qpy_files.items():
-        print("Loading qpy file: %s" % path)
+        print(f"Loading qpy file: {path}")
         with open(path, "rb") as fd:
             qpy_circuits = load(fd)
         for i, circuit in enumerate(circuits):
@@ -324,9 +323,11 @@ def _main():
     parser.add_argument(
         "--version",
         "-v",
-        help="Optionally specify the version being tested. "
-        "This will enable additional circuit features "
-        "to test generating and loading QPY.",
+        help=(
+            "Optionally specify the version being tested. "
+            "This will enable additional circuit features "
+            "to test generating and loading QPY."
+        ),
     )
     args = parser.parse_args()
     qpy_files = generate_circuits(args.version)

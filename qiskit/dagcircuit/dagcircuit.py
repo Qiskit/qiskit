@@ -23,7 +23,6 @@ directly from the graph.
 from collections import OrderedDict, defaultdict
 import copy
 import itertools
-import warnings
 import math
 
 import numpy as np
@@ -318,6 +317,101 @@ class DAGCircuit:
             self._multi_graph.add_edge(inp_node._node_id, outp_node._node_id, wire)
         else:
             raise DAGCircuitError(f"duplicate wire {wire}")
+
+    def remove_clbits(self, *clbits):
+        """
+        Remove classical bits from the circuit. All bits MUST be idle.
+        Any registers with references to at least one of the specified bits will
+        also be removed.
+
+        Args:
+            clbits (List[Clbit]): The bits to remove.
+
+        Raises:
+            DAGCircuitError: a clbit is not a :obj:`.Clbit`, is not in the circuit,
+                or is not idle.
+        """
+        if any(not isinstance(clbit, Clbit) for clbit in clbits):
+            raise DAGCircuitError(
+                "clbits not of type Clbit: %s" % [b for b in clbits if not isinstance(b, Clbit)]
+            )
+
+        clbits = set(clbits)
+        unknown_clbits = clbits.difference(self.clbits)
+        if unknown_clbits:
+            raise DAGCircuitError("clbits not in circuit: %s" % unknown_clbits)
+
+        busy_clbits = {bit for bit in clbits if not self._is_wire_idle(bit)}
+        if busy_clbits:
+            raise DAGCircuitError("clbits not idle: %s" % busy_clbits)
+
+        # remove any references to bits
+        cregs_to_remove = {creg for creg in self.cregs.values() if not clbits.isdisjoint(creg)}
+        self.remove_cregs(*cregs_to_remove)
+
+        for clbit in clbits:
+            self._remove_idle_wire(clbit)
+            self.clbits.remove(clbit)
+
+    def remove_cregs(self, *cregs):
+        """
+        Remove classical registers from the circuit, leaving underlying bits
+        in place.
+
+        Raises:
+            DAGCircuitError: a creg is not a ClassicalRegister, or is not in
+            the circuit.
+        """
+        if any(not isinstance(creg, ClassicalRegister) for creg in cregs):
+            raise DAGCircuitError(
+                "cregs not of type ClassicalRegister: %s"
+                % [r for r in cregs if not isinstance(r, ClassicalRegister)]
+            )
+
+        unknown_cregs = set(cregs).difference(self.cregs.values())
+        if unknown_cregs:
+            raise DAGCircuitError("cregs not in circuit: %s" % unknown_cregs)
+
+        for creg in cregs:
+            del self.cregs[creg.name]
+
+    def _is_wire_idle(self, wire):
+        """Check if a wire is idle.
+
+        Args:
+            wire (Bit): a wire in the circuit.
+
+        Returns:
+            bool: true if the wire is idle, false otherwise.
+
+        Raises:
+            DAGCircuitError: the wire is not in the circuit.
+        """
+        if wire not in self._wires:
+            raise DAGCircuitError("wire %s not in circuit" % wire)
+
+        try:
+            child = next(self.successors(self.input_map[wire]))
+        except StopIteration as e:
+            raise DAGCircuitError(
+                "Invalid dagcircuit input node %s has no output" % self.input_map[wire]
+            ) from e
+        return child is self.output_map[wire]
+
+    def _remove_idle_wire(self, wire):
+        """Remove an idle qubit or bit from the circuit.
+
+        Args:
+            wire (Bit): the wire to be removed, which MUST be idle.
+        """
+        inp_node = self.input_map[wire]
+        oup_node = self.output_map[wire]
+
+        self._multi_graph.remove_node(inp_node._node_id)
+        self._multi_graph.remove_node(oup_node._node_id)
+        self._wires.remove(wire)
+        del self.input_map[wire]
+        del self.output_map[wire]
 
     def _check_condition(self, name, condition):
         """Verify that the condition is valid.
@@ -628,36 +722,7 @@ class DAGCircuit:
             new_condition = (new_creg, new_cond_val)
         return new_condition
 
-    def extend_back(self, dag, edge_map=None):
-        """DEPRECATED: Add `dag` at the end of `self`, using `edge_map`."""
-        warnings.warn(
-            "dag.extend_back is deprecated, please use dag.compose.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        edge_map = edge_map or {}
-        for qreg in dag.qregs.values():
-            if qreg.name not in self.qregs:
-                self.add_qreg(QuantumRegister(qreg.size, qreg.name))
-            edge_map.update([(qbit, qbit) for qbit in qreg if qbit not in edge_map])
-
-        for creg in dag.cregs.values():
-            if creg.name not in self.cregs:
-                self.add_creg(ClassicalRegister(creg.size, creg.name))
-            edge_map.update([(cbit, cbit) for cbit in creg if cbit not in edge_map])
-
-        self.compose_back(dag, edge_map)
-
-    def compose_back(self, input_circuit, edge_map=None):
-        """DEPRECATED: use DAGCircuit.compose() instead."""
-        warnings.warn(
-            "dag.compose_back is deprecated, please use dag.compose.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self.compose(input_circuit, edge_map)
-
-    def compose(self, other, edge_map=None, qubits=None, clbits=None, front=False, inplace=True):
+    def compose(self, other, qubits=None, clbits=None, front=False, inplace=True):
         """Compose the ``other`` circuit onto the output of this circuit.
 
         A subset of input wires of ``other`` are mapped
@@ -667,9 +732,6 @@ class DAGCircuit:
 
         Args:
             other (DAGCircuit): circuit to compose with self
-            edge_map (dict): DEPRECATED - a {Bit: Bit} map from input wires of other
-                to output wires of self (i.e. rhs->lhs).
-                The key, value pairs can be either Qubit or Clbit mappings.
             qubits (list[Qubit|int]): qubits of self to compose onto.
             clbits (list[Clbit|int]): clbits of self to compose onto.
             front (bool): If True, front composition will be performed (not implemented yet)
@@ -687,15 +749,6 @@ class DAGCircuit:
         if len(other.qubits) > len(self.qubits) or len(other.clbits) > len(self.clbits):
             raise DAGCircuitError(
                 "Trying to compose with another DAGCircuit which has more 'in' edges."
-            )
-
-        if edge_map is not None:
-            warnings.warn(
-                "edge_map arg as a dictionary is deprecated. "
-                "Use qubits and clbits args to specify a list of "
-                "self edges to compose onto.",
-                DeprecationWarning,
-                stacklevel=2,
             )
 
         # number of qubits and clbits must match number in circuit or None
@@ -725,7 +778,7 @@ class DAGCircuit:
                 other.clbits[i]: (self.clbits[c] if isinstance(c, int) else c)
                 for i, c in enumerate(clbits)
             }
-        edge_map = edge_map or {**qubit_map, **clbit_map} or None
+        edge_map = {**qubit_map, **clbit_map} or None
 
         # if no edge_map, try to do a 1-1 mapping in order
         if edge_map is None:
@@ -810,13 +863,7 @@ class DAGCircuit:
         ignore_set = set(ignore)
         for wire in self._wires:
             if not ignore:
-                try:
-                    child = next(self.successors(self.input_map[wire]))
-                except StopIteration as e:
-                    raise DAGCircuitError(
-                        "Invalid dagcircuit input node %s has no output" % self.input_map[wire]
-                    ) from e
-                if isinstance(child, DAGOutNode):
+                if self._is_wire_idle(wire):
                     yield wire
             else:
                 for node in self.nodes_on_wire(wire, only_ops=True):
@@ -1359,34 +1406,6 @@ class DAGCircuit:
                 named_nodes.append(node)
         return named_nodes
 
-    def twoQ_gates(self):
-        """Get list of 2-qubit gates. Ignore snapshot, barriers, and the like."""
-        warnings.warn(
-            "deprecated function, use dag.two_qubit_ops(). "
-            "filter output by isinstance(op, Gate) to only get unitary Gates.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        two_q_gates = []
-        for node in self.gate_nodes():
-            if len(node.qargs) == 2:
-                two_q_gates.append(node)
-        return two_q_gates
-
-    def threeQ_or_more_gates(self):
-        """Get list of 3-or-more-qubit gates: (id, data)."""
-        warnings.warn(
-            "deprecated function, use dag.multi_qubit_ops(). "
-            "filter output by isinstance(op, Gate) to only get unitary Gates.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        three_q_gates = []
-        for node in self.gate_nodes():
-            if len(node.qargs) >= 3:
-                three_q_gates.append(node)
-        return three_q_gates
-
     def two_qubit_ops(self):
         """Get list of 2 qubit operations. Ignore directives like snapshot and barrier."""
         ops = []
@@ -1644,7 +1663,7 @@ class DAGCircuit:
     def collect_2q_runs(self):
         """Return a set of non-conditional runs of 2q "op" nodes."""
 
-        to_qid = dict()
+        to_qid = {}
         for i, qubit in enumerate(self.qubits):
             to_qid[qubit] = i
 

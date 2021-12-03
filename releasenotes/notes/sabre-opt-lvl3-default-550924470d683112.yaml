@@ -1,0 +1,18 @@
+---
+upgrade:
+  - |
+    The default routing pass and layout pass for optimization level 3 has
+    changed to use :class:`~qiskit.transpiler.passes.SabreSwap` and
+    :class:`~qiskit.transpiler.passes.SabreLayout` respectively. This
+    was done to improve the quality of the output result, as using the sabre
+    passes produces better results than using
+    :class:`~qiskit.transpiler.passes.StochasticSwap` and
+    :class:`~qiskit.transpiler.passes.DenseLayout`, which were used as the
+    defaults in prior releases. This change will improve the quality of the
+    results when running :func:`~qiskit.compiler.transpile` or
+    :func:`~qiskit.execute_function.execute` functions with the
+    ``optimization_level`` kwarg set to ``3``. While this is generally an
+    improvement, if you need to retain the previous behavior for any reason
+    you can do this by explicitly setting the ``routing_method="stochastic"``
+    and ``layout_method="dense"`` when calling
+    :func:`~qiskit.compiler.transpile` with ``optimization_level=3``.

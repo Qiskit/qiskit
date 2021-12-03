@@ -17,7 +17,6 @@
 import pkgutil
 import sys
 import warnings
-import os
 
 # from qiskit.future import __FUTURE_MCGATES__
 
@@ -131,3 +130,20 @@ class IBMQWrapper:
 
 Aer = AerWrapper()
 IBMQ = IBMQWrapper()
+
+__all__ = [
+    "Aer",
+    "AncillaRegister",
+    "BasicAer",
+    "ClassicalRegister",
+    "IBMQ",
+    "MissingOptionalLibraryError",
+    "QiskitError",
+    "QuantumCircuit",
+    "QuantumRegister",
+    "assemble",
+    "execute",
+    "schedule",
+    "sequence",
+    "transpile",
+]

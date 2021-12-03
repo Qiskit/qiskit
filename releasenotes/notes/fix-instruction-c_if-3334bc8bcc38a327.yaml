@@ -1,0 +1,46 @@
+---
+deprecations:
+  - |
+    Creating an instance of :obj:`.InstructionSet` with the ``circuit_cregs`` keyword argument is deprecated.
+    In general, these classes never need to be constructed by users (but are used internally), but should you need to, you should pass a callable as the ``resource_requester`` keyword argument.
+    For example::
+
+        from qiskit.circuit import Clbit, ClassicalRegister, InstructionSet
+        from qiskit.circuit.exceptions import CircuitError
+
+        def my_requester(bits, registers):
+            bits_set = set(bits)
+            bits_flat = tuple(bits)
+            registers_set = set(registers)
+
+            def requester(specifier):
+                if isinstance(specifer, Clbit) and specifier in bits_set:
+                    return specifier
+                if isinstance(specifer, ClassicalRegster) and specifier in register_set:
+                    return specifier
+                if isinstance(specifier, int) and 0 <= specifier < len(bits_flat):
+                    return bits_flat[specifier]
+                raise CircuitError(f"Unknown resource: {specifier}")
+
+            return requester
+
+        my_bits = [Clbit() for _ in [None]*5]
+        my_registers = [ClassicalRegister(n) for n in range(3)]
+
+        InstructionSet(resource_requester=my_requester(my_bits, my_registers))
+
+
+fixes:
+  - |
+    Making an instruction conditional with the standard :meth:`.InstructionSet.c_if` method with integer indices is now consistent with the numbering scheme used by the :obj:`.QuantumCircuit` the instructions are part of.
+    Previously, if there were two :obj:`.ClassicalRegister`\ s with overlapping :obj:`.Clbit`\ s, the numbering would be incorrect.
+    See `#7246 <https://github.com/Qiskit/qiskit-terra/issues/7246>`__ for more detail.
+  - |
+    Making an instruction conditional with the standard :meth:`.InstructionSet.c_if` method will now succeed, even if there are no :obj:`.ClassicalRegister`\ s in the circuit.
+    See `#7250 <https://github.com/Qiskit/qiskit-terra/issues/7250>`__ for more detail.
+  - |
+    Making an instruction conditional with the standard :meth:`.InstructionSet.c_if` method when using a :obj:`.Clbit` that is contained in a :obj:`.ClassicalRegister` of size one will now correctly create a condition on the bit, not the register.
+    See `#7255 <https://github.com/Qiskit/qiskit-terra/pull/7255>`__ for more detail.
+  - |
+    Trying to make an instruction conditional with the standard :meth:`.InstructionSet.c_if` method will now correctly raise an error if the classical resource is not present in the circuit.
+    See `#7255 <https://github.com/Qiskit/qiskit-terra/pull/7255>`__ for more detail.

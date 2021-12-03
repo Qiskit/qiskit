@@ -19,7 +19,7 @@ import numpy as np
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ScheduleComponent
-from qiskit.pulse.utils import instruction_duration_validation, deprecated_functionality
+from qiskit.pulse.utils import instruction_duration_validation
 
 
 class AlignmentKind(abc.ABC):
@@ -364,91 +364,3 @@ class AlignFunc(AlignmentKind):
             "duration": self._context_params[0],
             "func": self._func.__name__,
         }
-
-
-@deprecated_functionality
-def align_left(schedule: Schedule) -> Schedule:
-    """Align a list of pulse instructions on the left.
-
-    Args:
-        schedule: Input schedule of which top-level sub-schedules will be rescheduled.
-
-    Returns:
-        New schedule with input `schedule`` child schedules and instructions
-        left aligned.
-    """
-    context = AlignLeft()
-    return context.align(schedule)
-
-
-@deprecated_functionality
-def align_right(schedule: Schedule) -> Schedule:
-    """Align a list of pulse instructions on the right.
-
-    Args:
-        schedule: Input schedule of which top-level sub-schedules will be rescheduled.
-
-    Returns:
-        New schedule with input `schedule`` child schedules and instructions
-        right aligned.
-    """
-    context = AlignRight()
-    return context.align(schedule)
-
-
-@deprecated_functionality
-def align_sequential(schedule: Schedule) -> Schedule:
-    """Schedule all top-level nodes in parallel.
-
-    Args:
-        schedule: Input schedule of which top-level sub-schedules will be rescheduled.
-
-    Returns:
-        New schedule with input `schedule`` child schedules and instructions
-        applied sequentially across channels
-    """
-    context = AlignSequential()
-    return context.align(schedule)
-
-
-@deprecated_functionality
-def align_equispaced(schedule: Schedule, duration: int) -> Schedule:
-    """Schedule a list of pulse instructions with equivalent interval.
-
-    Args:
-        schedule: Input schedule of which top-level sub-schedules will be rescheduled.
-        duration: Duration of context. This should be larger than the schedule duration.
-
-    Returns:
-        New schedule with input `schedule`` child schedules and instructions
-        aligned with equivalent interval.
-
-    Notes:
-        This context is convenient for writing PDD or Hahn echo sequence for example.
-    """
-    context = AlignEquispaced(duration=duration)
-    return context.align(schedule)
-
-
-@deprecated_functionality
-def align_func(schedule: Schedule, duration: int, func: Callable[[int], float]) -> Schedule:
-    """Schedule a list of pulse instructions with schedule position defined by the
-    numerical expression.
-
-    Args:
-        schedule: Input schedule of which top-level sub-schedules will be rescheduled.
-        duration: Duration of context. This should be larger than the schedule duration.
-        func: A function that takes an index of sub-schedule and returns the
-            fractional coordinate of of that sub-schedule.
-            The returned value should be defined within [0, 1].
-            The pulse index starts from 1.
-
-    Returns:
-        New schedule with input `schedule`` child schedules and instructions
-        aligned with equivalent interval.
-
-    Notes:
-        This context is convenient for writing UDD sequence for example.
-    """
-    context = AlignFunc(duration=duration, func=func)
-    return context.align(schedule)

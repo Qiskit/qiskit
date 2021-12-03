@@ -103,8 +103,22 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     approximation_degree = pass_manager_config.approximation_degree
     unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
     timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
+    unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
 
-    # 1. Search for a perfect layout, or choose a dense layout, if no layout given
+    # 1. Unroll to 1q or 2q gates
+    _unroll3q = [
+        # Use unitary synthesis for basis aware decomposition of UnitaryGates
+        UnitarySynthesis(
+            basis_gates,
+            approximation_degree=approximation_degree,
+            method=unitary_synthesis_method,
+            min_qubits=3,
+            plugin_config=unitary_synthesis_plugin_config,
+        ),
+        Unroll3qOrMore(),
+    ]
+
+    # 2. Search for a perfect layout, or choose a dense layout, if no layout given
     _given_layout = SetLayout(initial_layout)
 
     def _choose_layout_condition(property_set):
@@ -120,7 +134,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             Layout2qDistance(coupling_map, property_name="trivial_layout_score"),
         ]
     )
-    # 1b. If a trivial layout wasn't perfect (ie no swaps are needed) then try using
+    # 2b. If a trivial layout wasn't perfect (ie no swaps are needed) then try using
     # CSP layout to find a perfect layout
     _choose_layout_1 = (
         []
@@ -131,10 +145,9 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     def _trivial_not_perfect(property_set):
         # Verify that a trivial layout  is perfect. If trivial_layout_score > 0
         # the layout is not perfect. The layout is unconditionally set by trivial
-        # layout so we need to clear it before contuing.
+        # layout so we need to clear it before continuing.
         if property_set["trivial_layout_score"] is not None:
             if property_set["trivial_layout_score"] != 0:
-                property_set["layout"]._wrapped = None
                 return True
         return False
 
@@ -151,7 +164,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             return True
         return False
 
-    # 1c. if CSP layout doesn't converge on a solution use layout_method (dense) to get a layout
+    # 2c. if CSP layout doesn't converge on a solution use layout_method (dense) to get a layout
     if layout_method == "trivial":
         _choose_layout_2 = TrivialLayout(coupling_map)
     elif layout_method == "dense":
@@ -163,22 +176,8 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     else:
         raise TranspilerError("Invalid layout method %s." % layout_method)
 
-    # 2. Extend dag/layout with ancillas using the full coupling map
+    # 3. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
-
-    # 3. Unroll to 1q or 2q gates
-    _unroll3q = [
-        # Use unitary synthesis for basis aware decomposition of UnitaryGates
-        UnitarySynthesis(
-            basis_gates,
-            approximation_degree=approximation_degree,
-            coupling_map=coupling_map,
-            backend_props=backend_properties,
-            method=unitary_synthesis_method,
-            min_qubits=3,
-        ),
-        Unroll3qOrMore(),
-    ]
 
     # 4. Swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
@@ -198,8 +197,10 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     elif routing_method == "none":
         _swap += [
             Error(
-                msg="No routing method selected, but circuit is not routed to device. "
-                "CheckMap Error: {check_map_msg}",
+                msg=(
+                    "No routing method selected, but circuit is not routed to device. "
+                    "CheckMap Error: {check_map_msg}"
+                ),
                 action="raise",
             )
         ]
@@ -221,6 +222,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 coupling_map=coupling_map,
                 backend_props=backend_properties,
                 method=unitary_synthesis_method,
+                plugin_config=unitary_synthesis_plugin_config,
             ),
             UnrollCustomDefinitions(sel, basis_gates),
             BasisTranslator(sel, basis_gates),
@@ -235,6 +237,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 coupling_map=coupling_map,
                 backend_props=backend_properties,
                 method=unitary_synthesis_method,
+                plugin_config=unitary_synthesis_plugin_config,
                 min_qubits=3,
             ),
             Unroll3qOrMore(),
@@ -246,6 +249,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 coupling_map=coupling_map,
                 backend_props=backend_properties,
                 method=unitary_synthesis_method,
+                plugin_config=unitary_synthesis_plugin_config,
             ),
         ]
     else:
@@ -310,11 +314,11 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     pm2 = PassManager()
     if coupling_map or initial_layout:
         pm2.append(_given_layout)
+        pm2.append(_unroll3q)
         pm2.append(_choose_layout_0, condition=_choose_layout_condition)
         pm2.append(_choose_layout_1, condition=_trivial_not_perfect)
         pm2.append(_choose_layout_2, condition=_csp_not_found_match)
         pm2.append(_embed)
-        pm2.append(_unroll3q)
         pm2.append(_swap_check)
         pm2.append(_swap, condition=_swap_condition)
     pm2.append(_unroll)

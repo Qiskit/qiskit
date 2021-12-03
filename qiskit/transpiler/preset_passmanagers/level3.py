@@ -96,8 +96,8 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     inst_map = pass_manager_config.inst_map
     coupling_map = pass_manager_config.coupling_map
     initial_layout = pass_manager_config.initial_layout
-    layout_method = pass_manager_config.layout_method or "dense"
-    routing_method = pass_manager_config.routing_method or "stochastic"
+    layout_method = pass_manager_config.layout_method or "sabre"
+    routing_method = pass_manager_config.routing_method or "sabre"
     translation_method = pass_manager_config.translation_method or "translator"
     scheduling_method = pass_manager_config.scheduling_method
     instruction_durations = pass_manager_config.instruction_durations
@@ -106,6 +106,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     approximation_degree = pass_manager_config.approximation_degree
     unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
     timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
+    unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
 
     # 1. Unroll to 1q or 2q gates
     _unroll3q = [
@@ -113,9 +114,8 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         UnitarySynthesis(
             basis_gates,
             approximation_degree=approximation_degree,
-            coupling_map=coupling_map,
-            backend_props=backend_properties,
             method=unitary_synthesis_method,
+            plugin_config=unitary_synthesis_plugin_config,
             min_qubits=3,
         ),
         Unroll3qOrMore(),
@@ -164,7 +164,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         # set by trivial layout so we clear that before running CSP
         if property_set["trivial_layout_score"] is not None:
             if property_set["trivial_layout_score"] != 0:
-                property_set["layout"]._wrapped = None
                 return True
         return False
 
@@ -201,8 +200,10 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     elif routing_method == "none":
         _swap += [
             Error(
-                msg="No routing method selected, but circuit is not routed to device. "
-                "CheckMap Error: {check_map_msg}",
+                msg=(
+                    "No routing method selected, but circuit is not routed to device. "
+                    "CheckMap Error: {check_map_msg}"
+                ),
                 action="raise",
             )
         ]
@@ -221,6 +222,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 approximation_degree=approximation_degree,
                 coupling_map=coupling_map,
                 backend_props=backend_properties,
+                plugin_config=unitary_synthesis_plugin_config,
                 method=unitary_synthesis_method,
             ),
             UnrollCustomDefinitions(sel, basis_gates),
@@ -234,6 +236,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 coupling_map=coupling_map,
                 backend_props=backend_properties,
                 method=unitary_synthesis_method,
+                plugin_config=unitary_synthesis_plugin_config,
                 min_qubits=3,
             ),
             Unroll3qOrMore(),
@@ -245,6 +248,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 coupling_map=coupling_map,
                 backend_props=backend_properties,
                 method=unitary_synthesis_method,
+                plugin_config=unitary_synthesis_plugin_config,
             ),
         ]
     else:
@@ -278,6 +282,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
             coupling_map=coupling_map,
             backend_props=backend_properties,
             method=unitary_synthesis_method,
+            plugin_config=unitary_synthesis_plugin_config,
         ),
         Optimize1qGatesDecomposition(basis_gates),
         CommutativeCancellation(),
