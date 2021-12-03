@@ -285,30 +285,18 @@ def transpile(
             stacklevel=2,
         )
         return pass_manager.run(circuits, output_name=output_name, callback=callback)
-    # If a target is specified have it override any implicit selections from a backend
-    # but if an argument is explicitly passed use that instead of the target version
-    if target is not None:
-        if coupling_map is None:
-            coupling_map = target.coupling_map()
-        if basis_gates is None:
-            basis_gates = target.operation_names()
-        if instruction_durations is None:
-            instruction_durations = target.durations()
-        if inst_map is None:
-            inst_map = target.instruction_schedule_map()
-        if dt is None:
-            dt = target.dt
-        if timing_constraints is None:
-            timing_constraints = target.timing_constraints()
-        if backend_properties is None:
-            backend_properties = _target_to_backend_properties(target)
 
     if optimization_level is None:
         # Take optimization level from the configuration or 1 as default.
         config = user_config.get_config()
         optimization_level = config.get("transpile_optimization_level", 1)
 
-    if scheduling_method is not None and backend is None and not instruction_durations:
+    if (
+        scheduling_method is not None
+        and backend is None
+        and target is None
+        and not instruction_durations
+    ):
         warnings.warn(
             "When scheduling circuits without backend,"
             " 'instruction_durations' should be usually provided.",
@@ -551,6 +539,24 @@ def _parse_transpile_args(
     # Each arg could be single or a list. If list, it must be the same size as
     # number of circuits. If single, duplicate to create a list of that size.
     num_circuits = len(circuits)
+
+    # If a target is specified have it override any implicit selections from a backend
+    # but if an argument is explicitly passed use that instead of the target version
+    if target is not None:
+        if coupling_map is None:
+            coupling_map = target.coupling_map()
+        if basis_gates is None:
+            basis_gates = target.operation_names()
+        if instruction_durations is None:
+            instruction_durations = target.durations()
+        if inst_map is None:
+            inst_map = target.instruction_schedule_map()
+        if dt is None:
+            dt = target.dt
+        if timing_constraints is None:
+            timing_constraints = target.timing_constraints()
+        if backend_properties is None:
+            backend_properties = _target_to_backend_properties(target)
 
     basis_gates = _parse_basis_gates(basis_gates, backend, circuits)
     inst_map = _parse_inst_map(inst_map, backend, num_circuits)
