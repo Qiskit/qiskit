@@ -61,13 +61,11 @@ class TestEvolutionGate(QiskitTestCase):
         evo_gate = PauliEvolutionGate(X ^ Z)
         decomposed = evo_gate.definition.decompose()
 
-        """
-                  ┌───┐┌───────┐┌───┐
-        q_0: ─────┤ X ├┤ Rz(2) ├┤ X ├─────
-             ┌───┐└─┬─┘└───────┘└─┬─┘┌───┐
-        q_1: ┤ H ├──■─────────────■──┤ H ├
-             └───┘                   └───┘
-        """
+        #           ┌───┐┌───────┐┌───┐
+        # q_0: ─────┤ X ├┤ Rz(2) ├┤ X ├─────
+        #      ┌───┐└─┬─┘└───────┘└─┬─┘┌───┐
+        # q_1: ┤ H ├──■─────────────■──┤ H ├
+        #      └───┘                   └───┘
         ref = QuantumCircuit(2)
         ref.h(1)
         ref.cx(1, 0)

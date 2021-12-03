@@ -95,16 +95,14 @@ class TestCXCancellation(QiskitTestCase):
         pass_manager.append(CXCancellation())
         out_circuit = pass_manager.run(circuit)
 
-        """
-              ┌───┐
-        q0_0: ┤ H ├──■─────────■──
-              ├───┤┌─┴─┐     ┌─┴─┐
-        q0_1: ┤ H ├┤ X ├──■──┤ X ├
-              └───┘└───┘┌─┴─┐└───┘
-        q0_2: ──────────┤ X ├─────
-                        └───┘
-        q0_3: ────────────────────
-        """
+        #       ┌───┐
+        # q0_0: ┤ H ├──■─────────■──
+        #       ├───┤┌─┴─┐     ┌─┴─┐
+        # q0_1: ┤ H ├┤ X ├──■──┤ X ├
+        #       └───┘└───┘┌─┴─┐└───┘
+        # q0_2: ──────────┤ X ├─────
+        #                 └───┘
+        # q0_3: ────────────────────
         expected = QuantumCircuit(qr)
         expected.h(qr[0])
         expected.h(qr[1])

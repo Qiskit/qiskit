@@ -111,14 +111,12 @@ class TestOptimize1qSimpleCommutation(QiskitTestCase):
         optimize_pass = Optimize1qGatesSimpleCommutation(basis=["sx", "p"], run_to_completion=True)
         result = optimize_pass(qc)
 
-        """
-        global phase: π/2
-             ┌────────┐┌────┐     ┌─────────┐┌────┐┌────────┐
-        q_0: ┤ P(π/8) ├┤ √X ├──■──┤ P(2π/7) ├┤ √X ├┤ P(π/8) ├
-             ├────────┤└────┘┌─┴─┐└─────────┘└────┘└────────┘
-        q_1: ┤ P(π/4) ├──────┤ X ├───────────────────────────
-             └────────┘      └───┘
-        """
+        # global phase: π/2
+        #      ┌────────┐┌────┐     ┌─────────┐┌────┐┌────────┐
+        # q_0: ┤ P(π/8) ├┤ √X ├──■──┤ P(2π/7) ├┤ √X ├┤ P(π/8) ├
+        #      ├────────┤└────┘┌─┴─┐└─────────┘└────┘└────────┘
+        # q_1: ┤ P(π/4) ├──────┤ X ├───────────────────────────
+        #      └────────┘      └───┘
         expected = QuantumCircuit(2, global_phase=np.pi / 2)
         expected.p(np.pi / 8, 0)
         expected.sx(0)

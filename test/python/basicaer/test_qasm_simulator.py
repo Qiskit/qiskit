@@ -178,18 +178,16 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         qr = QuantumRegister(3, "qr")
         cr = ClassicalRegister(3, "cr")
 
-        """
-              ┌───┐┌─┐          ┌─┐
-        qr_0: ┤ X ├┤M├──────────┤M├──────
-              ├───┤└╥┘┌─┐       └╥┘┌─┐
-        qr_1: ┤ X ├─╫─┤M├────────╫─┤M├───
-              └───┘ ║ └╥┘ ┌───┐  ║ └╥┘┌─┐
-        qr_2: ──────╫──╫──┤ X ├──╫──╫─┤M├
-                    ║  ║  └─╥─┘  ║  ║ └╥┘
-                    ║  ║ ┌──╨──┐ ║  ║  ║
-        cr: 3/══════╩══╩═╡ 0x3 ╞═╩══╩══╩═
-                    0  1 └─────┘ 0  1  2
-        """
+        #       ┌───┐┌─┐          ┌─┐
+        # qr_0: ┤ X ├┤M├──────────┤M├──────
+        #       ├───┤└╥┘┌─┐       └╥┘┌─┐
+        # qr_1: ┤ X ├─╫─┤M├────────╫─┤M├───
+        #       └───┘ ║ └╥┘ ┌───┐  ║ └╥┘┌─┐
+        # qr_2: ──────╫──╫──┤ X ├──╫──╫─┤M├
+        #             ║  ║  └─╥─┘  ║  ║ └╥┘
+        #             ║  ║ ┌──╨──┐ ║  ║  ║
+        # cr: 3/══════╩══╩═╡ 0x3 ╞═╩══╩══╩═
+        #             0  1 └─────┘ 0  1  2
         circuit_if_true = QuantumCircuit(qr, cr)
         circuit_if_true.x(qr[0])
         circuit_if_true.x(qr[1])
@@ -200,18 +198,16 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         circuit_if_true.measure(qr[1], cr[1])
         circuit_if_true.measure(qr[2], cr[2])
 
-        """
-              ┌───┐┌─┐       ┌─┐
-        qr_0: ┤ X ├┤M├───────┤M├──────
-              └┬─┬┘└╥┘       └╥┘┌─┐
-        qr_1: ─┤M├──╫─────────╫─┤M├───
-               └╥┘  ║  ┌───┐  ║ └╥┘┌─┐
-        qr_2: ──╫───╫──┤ X ├──╫──╫─┤M├
-                ║   ║  └─╥─┘  ║  ║ └╥┘
-                ║   ║ ┌──╨──┐ ║  ║  ║
-        cr: 3/══╩═══╩═╡ 0x3 ╞═╩══╩══╩═
-                1   0 └─────┘ 0  1  2
-        """
+        #       ┌───┐┌─┐       ┌─┐
+        # qr_0: ┤ X ├┤M├───────┤M├──────
+        #       └┬─┬┘└╥┘       └╥┘┌─┐
+        # qr_1: ─┤M├──╫─────────╫─┤M├───
+        #        └╥┘  ║  ┌───┐  ║ └╥┘┌─┐
+        # qr_2: ──╫───╫──┤ X ├──╫──╫─┤M├
+        #         ║   ║  └─╥─┘  ║  ║ └╥┘
+        #         ║   ║ ┌──╨──┐ ║  ║  ║
+        # cr: 3/══╩═══╩═╡ 0x3 ╞═╩══╩══╩═
+        #         1   0 └─────┘ 0  1  2
         circuit_if_false = QuantumCircuit(qr, cr)
         circuit_if_false.x(qr[0])
         circuit_if_false.measure(qr[0], cr[0])
