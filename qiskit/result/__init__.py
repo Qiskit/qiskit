@@ -34,6 +34,14 @@ Distributions
    ProbDistribution
    QuasiDistribution
 
+Mitigation
+==========
+.. autosummary::
+   :toctree: ../stubs/
+
+   CorrelatedReadoutMitigator
+   LocalReadoutMitigator
+
 """
 
 from .result import Result
@@ -43,3 +51,5 @@ from .counts import Counts
 
 from .distributions.probability import ProbDistribution
 from .distributions.quasi import QuasiDistribution
+from .mitigation.correlated_readout_mitigator import CorrelatedReadoutMitigator
+from .mitigation.local_readout_mitigator import LocalReadoutMitigator
