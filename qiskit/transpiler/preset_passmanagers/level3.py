@@ -345,7 +345,10 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         # optimization loop to correct for incorrect directions that might be
         # inserted by UnitarySynthesis which is direction aware but only via
         # the coupling map which with a target doesn't give a full picture
-        pm3.append(_depth_check + _opt + _direction + _unroll, do_while=_opt_control)
+        if target is not None:
+            pm3.append(_depth_check + _opt + _unroll + _direction, do_while=_opt_control)
+        else:
+            pm3.append(_depth_check + _opt + _unroll, do_while=_opt_control)
     else:
         pm3.append(_reset)
         pm3.append(_depth_check + _opt + _unroll, do_while=_opt_control)
