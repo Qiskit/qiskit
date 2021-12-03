@@ -32,19 +32,9 @@ class TestHoareOptimizer(QiskitTestCase):
         """Should remove the phase on a classical state,
         but not on a superposition state.
 
-        (circuit)
-
              ┌───┐
         q_0: ┤ Z ├──────
              ├───┤┌───┐
-        q_1:─┤ H ├┤ Z ├─
-             └───┘└───┘
-        q_2: ───────────
-
-        (expected)
-
-        q_0: ───────────
-             ┌───┐┌───┐
         q_1:─┤ H ├┤ Z ├─
              └───┘└───┘
         q_2: ───────────
@@ -55,6 +45,14 @@ class TestHoareOptimizer(QiskitTestCase):
         circuit.h(1)
         circuit.z(1)
 
+        """
+        q_0: ───────────
+             ┌───┐┌───┐
+        q_1:─┤ H ├┤ Z ├─
+             └───┘└───┘
+        q_2: ───────────
+
+        """
         expected = QuantumCircuit(3)
         expected.h(1)
         expected.z(1)
@@ -70,8 +68,6 @@ class TestHoareOptimizer(QiskitTestCase):
     def test_cswap_removal(self):
         """Should remove Fredkin gates because the optimizer
         can deduce the targets are in the same state
-
-        (circuit)
 
              ┌───┐┌───┐     ┌───┐     ┌───┐          ┌───┐
         q_0: ┤ X ├┤ X ├──■──┤ X ├──■──┤ X ├──■────■──┤ X ├─────────────────────────────────
@@ -93,30 +89,6 @@ class TestHoareOptimizer(QiskitTestCase):
         q_8: ──────────────────────────────────────────────X──X──┼─────┼─────X─────┼───────
                                                               │  │     │           │
         q_9: ─────────────────────────────────────────────────X──X─────X───────────X───────
-
-
-        (expected)
-
-             ┌───┐┌───┐     ┌───┐     ┌───┐          ┌───┐
-        q_0: ┤ X ├┤ X ├──■──┤ X ├──■──┤ X ├──■────■──┤ X ├───────────────
-             └───┘└─┬─┘┌─┴─┐└─┬─┘  │  └─┬─┘┌─┴─┐  │  └─┬─┘
-        q_1: ───────┼──┤ X ├──■────┼────┼──┤ X ├──┼────■───■──■──■───────
-                    │  └─┬─┘     ┌─┴─┐  │  └─┬─┘┌─┴─┐  │   │  │  │
-        q_2: ───────┼────┼───────┤ X ├──■────┼──┤ X ├──■───┼──┼──┼──■──■─
-             ┌───┐  │    │       └─┬─┘       │  └─┬─┘      │  │  │  │  │
-        q_3: ┤ H ├──■────┼─────────┼─────────┼────┼────────X──┼──┼──X──┼─
-             ├───┤       │         │         │    │        │  │  │  │  │
-        q_4: ┤ H ├───────■─────────┼─────────┼────┼────────X──X──┼──┼──X─
-             ├───┤                 │         │    │           │  │  │  │
-        q_5: ┤ H ├─────────────────■─────────┼────┼───────────X──X──X──┼─
-             ├───┤                           │    │              │     │
-        q_6: ┤ H ├───────────────────────────■────■──────────────X─────X─
-             └───┘
-        q_7: ────────────────────────────────────────────────────────────
-
-        q_8: ────────────────────────────────────────────────────────────
-
-        q_9: ────────────────────────────────────────────────────────────
 
         """
         circuit = QuantumCircuit(10)
@@ -148,6 +120,29 @@ class TestHoareOptimizer(QiskitTestCase):
         circuit.cswap(2, 3, 5)
         circuit.cswap(2, 4, 6)
 
+        """
+             ┌───┐┌───┐     ┌───┐     ┌───┐          ┌───┐
+        q_0: ┤ X ├┤ X ├──■──┤ X ├──■──┤ X ├──■────■──┤ X ├───────────────
+             └───┘└─┬─┘┌─┴─┐└─┬─┘  │  └─┬─┘┌─┴─┐  │  └─┬─┘
+        q_1: ───────┼──┤ X ├──■────┼────┼──┤ X ├──┼────■───■──■──■───────
+                    │  └─┬─┘     ┌─┴─┐  │  └─┬─┘┌─┴─┐  │   │  │  │
+        q_2: ───────┼────┼───────┤ X ├──■────┼──┤ X ├──■───┼──┼──┼──■──■─
+             ┌───┐  │    │       └─┬─┘       │  └─┬─┘      │  │  │  │  │
+        q_3: ┤ H ├──■────┼─────────┼─────────┼────┼────────X──┼──┼──X──┼─
+             ├───┤       │         │         │    │        │  │  │  │  │
+        q_4: ┤ H ├───────■─────────┼─────────┼────┼────────X──X──┼──┼──X─
+             ├───┤                 │         │    │           │  │  │  │
+        q_5: ┤ H ├─────────────────■─────────┼────┼───────────X──X──X──┼─
+             ├───┤                           │    │              │     │
+        q_6: ┤ H ├───────────────────────────■────■──────────────X─────X─
+             └───┘
+        q_7: ────────────────────────────────────────────────────────────
+
+        q_8: ────────────────────────────────────────────────────────────
+
+        q_9: ────────────────────────────────────────────────────────────
+
+        """
         expected = QuantumCircuit(10)
         # prep
         expected.x(0)
@@ -184,8 +179,6 @@ class TestHoareOptimizer(QiskitTestCase):
         because of linear nearest architecture. Only uses
         single-gate optimization techniques.
 
-        (circuit)
-
              ┌───┐     ┌───┐                                                       »
         q_0: ┤ H ├──■──┤ X ├──■────────────────────────────────────────────────────»
              └───┘┌─┴─┐└─┬─┘┌─┴─┐     ┌───┐                                        »
@@ -208,20 +201,6 @@ class TestHoareOptimizer(QiskitTestCase):
         «
         «q_4: ───────────────
         «
-
-        (expected)
-
-             ┌───┐     ┌───┐                                   ┌───┐
-        q_0: ┤ H ├──■──┤ X ├───────────────────────────────────┤ X ├
-             └───┘┌─┴─┐└─┬─┘     ┌───┐                    ┌───┐└─┬─┘
-        q_1: ─────┤ X ├──■────■──┤ X ├────────────────────┤ X ├──■──
-                  └───┘     ┌─┴─┐└─┬─┘     ┌───┐     ┌───┐└─┬─┘
-        q_2: ───────────────┤ X ├──■────■──┤ X ├─────┤ X ├──■───────
-                            └───┘     ┌─┴─┐└─┬─┘     └─┬─┘
-        q_3: ─────────────────────────┤ X ├──■────■────■────────────
-                                      └───┘     ┌─┴─┐
-        q_4: ───────────────────────────────────┤ X ├───────────────
-                                                └───┘
         """
         circuit = QuantumCircuit(5)
         circuit.h(0)
@@ -234,6 +213,19 @@ class TestHoareOptimizer(QiskitTestCase):
             circuit.cx(i - 1, i)
             circuit.cx(i, i - 1)
 
+        """
+             ┌───┐     ┌───┐                                   ┌───┐
+        q_0: ┤ H ├──■──┤ X ├───────────────────────────────────┤ X ├
+             └───┘┌─┴─┐└─┬─┘     ┌───┐                    ┌───┐└─┬─┘
+        q_1: ─────┤ X ├──■────■──┤ X ├────────────────────┤ X ├──■──
+                  └───┘     ┌─┴─┐└─┬─┘     ┌───┐     ┌───┐└─┬─┘
+        q_2: ───────────────┤ X ├──■────■──┤ X ├─────┤ X ├──■───────
+                            └───┘     ┌─┴─┐└─┬─┘     └─┬─┘
+        q_3: ─────────────────────────┤ X ├──■────■────■────────────
+                                      └───┘     ┌─┴─┐
+        q_4: ───────────────────────────────────┤ X ├───────────────
+                                                └───┘
+        """
         expected = QuantumCircuit(5)
         expected.h(0)
         for i in range(0, 3):
@@ -256,8 +248,6 @@ class TestHoareOptimizer(QiskitTestCase):
         because of linear nearest architecture. This time
         using multi-gate optimization techniques.
 
-        (circuit)
-
              ┌───┐     ┌───┐                                                       »
         q_0: ┤ H ├──■──┤ X ├──■────────────────────────────────────────────────────»
              └───┘┌─┴─┐└─┬─┘┌─┴─┐     ┌───┐                                        »
@@ -280,20 +270,6 @@ class TestHoareOptimizer(QiskitTestCase):
         «
         «q_4: ───────────────
         «
-
-        (expected)
-
-             ┌───┐
-        q_0: ┤ H ├──■─────────────────
-             └───┘┌─┴─┐
-        q_1: ─────┤ X ├──■────────────
-                  └───┘┌─┴─┐
-        q_2: ──────────┤ X ├──■───────
-                       └───┘┌─┴─┐
-        q_3: ───────────────┤ X ├──■──
-                            └───┘┌─┴─┐
-        q_4: ────────────────────┤ X ├
-                                 └───┘
         """
         circuit = QuantumCircuit(5)
         circuit.h(0)
@@ -306,6 +282,19 @@ class TestHoareOptimizer(QiskitTestCase):
             circuit.cx(i - 1, i)
             circuit.cx(i, i - 1)
 
+        """
+             ┌───┐
+        q_0: ┤ H ├──■─────────────────
+             └───┘┌─┴─┐
+        q_1: ─────┤ X ├──■────────────
+                  └───┘┌─┴─┐
+        q_2: ──────────┤ X ├──■───────
+                       └───┘┌─┴─┐
+        q_3: ───────────────┤ X ├──■──
+                            └───┘┌─┴─┐
+        q_4: ────────────────────┤ X ├
+                                 └───┘
+        """
         expected = QuantumCircuit(5)
         expected.h(0)
         for i in range(0, 4):
@@ -344,8 +333,6 @@ class TestHoareOptimizer(QiskitTestCase):
         which are the inverse of each other, if they can be
         identified to be executed as a unit (either both or none).
 
-        (circuit)
-
              ┌───┐     ┌───┐┌───┐
         q_0: ┤ H ├──■──┤ X ├┤ X ├──■──
              ├───┤  │  └─┬─┘└───┘  │
@@ -353,16 +340,6 @@ class TestHoareOptimizer(QiskitTestCase):
              ├───┤┌─┴─┐          ┌─┴─┐
         q_2: ┤ H ├┤ X ├──────────┤ X ├
              └───┘└───┘          └───┘
-
-        (expected)
-
-             ┌───┐┌───┐┌───┐
-        q_0: ┤ H ├┤ X ├┤ X ├
-             ├───┤└─┬─┘└───┘
-        q_1: ┤ H ├──■───────
-             ├───┤
-        q_2: ┤ H ├──────────
-             └───┘
         """
         circuit = QuantumCircuit(3)
         circuit.h(0)
@@ -373,6 +350,15 @@ class TestHoareOptimizer(QiskitTestCase):
         circuit.x(0)
         circuit.ccx(0, 1, 2)
 
+        """
+             ┌───┐┌───┐┌───┐
+        q_0: ┤ H ├┤ X ├┤ X ├
+             ├───┤└─┬─┘└───┘
+        q_1: ┤ H ├──■───────
+             ├───┤
+        q_2: ┤ H ├──────────
+             └───┘
+        """
         expected = QuantumCircuit(3)
         expected.h(0)
         expected.h(1)
@@ -392,8 +378,6 @@ class TestHoareOptimizer(QiskitTestCase):
         """Should remove target successive identity gates
         with DIFFERENT sets of control qubits.
         In this case CCCX(4,5,6,7) & CCX(5,6,7).
-
-        (circuit)
 
              ┌───┐┌───┐                                                            »
         q_0: ┤ H ├┤ X ├───────■─────────────────────────────■───────────────────■──»
@@ -446,9 +430,47 @@ class TestHoareOptimizer(QiskitTestCase):
         «               ┌─┴─┐
         «q_7: ──────────┤ X ├
         «               └───┘
+        """
+        circuit = QuantumCircuit(8)
+        circuit.h(0)
+        circuit.h(1)
+        circuit.h(2)
+        circuit.h(3)
+        circuit.h(4)
+        circuit.h(5)
+        for i in range(3):
+            circuit.cx(i * 2 + 1, i * 2)
+        circuit.cx(3, 5)
+        for i in range(2):
+            circuit.ccx(i * 2, i * 2 + 1, i * 2 + 3)
+            circuit.cx(i * 2 + 3, i * 2 + 2)
+        circuit.ccx(4, 5, 6)
+        for i in range(1, -1, -1):
+            circuit.ccx(i * 2, i * 2 + 1, i * 2 + 3)
+        circuit.cx(3, 5)
+        circuit.cx(5, 6)
+        circuit.cx(3, 5)
+        circuit.x(6)
+        for i in range(2):
+            circuit.ccx(i * 2, i * 2 + 1, i * 2 + 3)
+        for i in range(1, -1, -1):
+            circuit.cx(i * 2 + 3, i * 2 + 2)
+            circuit.ccx(i * 2, i * 2 + 1, i * 2 + 3)
+        circuit.cx(1, 0)
+        circuit.ccx(6, 1, 0)
+        circuit.ccx(0, 1, 3)
+        circuit.ccx(6, 3, 2)
+        circuit.ccx(2, 3, 5)
+        circuit.ccx(6, 5, 4)
+        circuit.append(XGate().control(3), [4, 5, 6, 7], [])
+        for i in range(1, -1, -1):
+            circuit.ccx(i * 2, i * 2 + 1, i * 2 + 3)
+        circuit.cx(3, 5)
+        for i in range(1, 3):
+            circuit.cx(i * 2 + 1, i * 2)
+        circuit.ccx(5, 6, 7)
 
-        (expected)
-
+        """
              ┌───┐┌───┐                                                            »
         q_0: ┤ H ├┤ X ├───────■─────────────────────────────■───────────────────■──»
              ├───┤└─┬─┘       │                             │                   │  »
@@ -501,45 +523,6 @@ class TestHoareOptimizer(QiskitTestCase):
         «q_7: ─────
         «
         """
-        circuit = QuantumCircuit(8)
-        circuit.h(0)
-        circuit.h(1)
-        circuit.h(2)
-        circuit.h(3)
-        circuit.h(4)
-        circuit.h(5)
-        for i in range(3):
-            circuit.cx(i * 2 + 1, i * 2)
-        circuit.cx(3, 5)
-        for i in range(2):
-            circuit.ccx(i * 2, i * 2 + 1, i * 2 + 3)
-            circuit.cx(i * 2 + 3, i * 2 + 2)
-        circuit.ccx(4, 5, 6)
-        for i in range(1, -1, -1):
-            circuit.ccx(i * 2, i * 2 + 1, i * 2 + 3)
-        circuit.cx(3, 5)
-        circuit.cx(5, 6)
-        circuit.cx(3, 5)
-        circuit.x(6)
-        for i in range(2):
-            circuit.ccx(i * 2, i * 2 + 1, i * 2 + 3)
-        for i in range(1, -1, -1):
-            circuit.cx(i * 2 + 3, i * 2 + 2)
-            circuit.ccx(i * 2, i * 2 + 1, i * 2 + 3)
-        circuit.cx(1, 0)
-        circuit.ccx(6, 1, 0)
-        circuit.ccx(0, 1, 3)
-        circuit.ccx(6, 3, 2)
-        circuit.ccx(2, 3, 5)
-        circuit.ccx(6, 5, 4)
-        circuit.append(XGate().control(3), [4, 5, 6, 7], [])
-        for i in range(1, -1, -1):
-            circuit.ccx(i * 2, i * 2 + 1, i * 2 + 3)
-        circuit.cx(3, 5)
-        for i in range(1, 3):
-            circuit.cx(i * 2 + 1, i * 2)
-        circuit.ccx(5, 6, 7)
-
         expected = QuantumCircuit(8)
         expected.h(0)
         expected.h(1)
@@ -588,26 +571,23 @@ class TestHoareOptimizer(QiskitTestCase):
     def test_control_removal(self):
         """Should replace CX by X.
 
-        (circuit)
-
              ┌───┐
         q_0: ┤ X ├──■──
              └───┘┌─┴─┐
         q_1: ─────┤ X ├
                   └───┘
+        """
+        circuit = QuantumCircuit(2)
+        circuit.x(0)
+        circuit.cx(0, 1)
 
-        (expected)
-
+        """
              ┌───┐
         q_0: ┤ X ├
              ├───┤
         q_1: ┤ X ├
              └───┘
         """
-        circuit = QuantumCircuit(2)
-        circuit.x(0)
-        circuit.cx(0, 1)
-
         expected = QuantumCircuit(2)
         expected.x(0)
         expected.x(1)
@@ -623,29 +603,25 @@ class TestHoareOptimizer(QiskitTestCase):
         """
         Should replace CZ by Z
 
-        (circuit)
-
              ┌───┐   ┌───┐
         q_0: ┤ H ├─■─┤ H ├
              ├───┤ │ └───┘
         q_1: ┤ X ├─■──────
              └───┘
-
-        (expected)
-
-             ┌───┐┌───┐┌───┐
-        q_0: ┤ H ├┤ Z ├┤ H ├
-             ├───┤└───┘└───┘
-        q_1: ┤ X ├──────────
-             └───┘
         """
-
         circuit = QuantumCircuit(2)
         circuit.h(0)
         circuit.x(1)
         circuit.cz(0, 1)
         circuit.h(0)
 
+        """
+             ┌───┐┌───┐┌───┐
+        q_0: ┤ H ├┤ Z ├┤ H ├
+             ├───┤└───┘└───┘
+        q_1: ┤ X ├──────────
+             └───┘
+        """
         expected = QuantumCircuit(2)
         expected.h(0)
         expected.x(1)
@@ -680,21 +656,11 @@ class TestHoareOptimizer(QiskitTestCase):
         """Verify that multiple pass can be run
         with the same Hoare instance.
 
-        (circuit2)
-
              ┌───┐┌───┐
         q_0:─┤ H ├┤ Z ├─
              ├───┤└───┘
         q_1: ┤ Z ├──────
              └───┘
-
-        (expected)
-
-             ┌───┐┌───┐
-        q_0:─┤ H ├┤ Z ├─
-             └───┘└───┘
-        q_1: ───────────
-
         """
         circuit1 = QuantumCircuit(2)
         circuit1.z(0)
@@ -706,6 +672,13 @@ class TestHoareOptimizer(QiskitTestCase):
         circuit2.h(0)
         circuit2.z(0)
 
+        """
+             ┌───┐┌───┐
+        q_0:─┤ H ├┤ Z ├─
+             └───┘└───┘
+        q_1: ───────────
+
+        """
         expected = QuantumCircuit(2)
         expected.h(0)
         expected.z(0)

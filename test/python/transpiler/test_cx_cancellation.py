@@ -69,7 +69,18 @@ class TestCXCancellation(QiskitTestCase):
         self.assertEqual(out_circuit, expected)
 
     def test_pass_cx_cancellation_chained_cx(self):
-        """Include a test were not all operations can be cancelled."""
+        """Include a test were not all operations can be cancelled.
+
+              ┌───┐
+        q0_0: ┤ H ├──■─────────■───────
+              ├───┤┌─┴─┐     ┌─┴─┐
+        q0_1: ┤ H ├┤ X ├──■──┤ X ├─────
+              └───┘└───┘┌─┴─┐└───┘
+        q0_2: ──────────┤ X ├──■────■──
+                        └───┘┌─┴─┐┌─┴─┐
+        q0_3: ───────────────┤ X ├┤ X ├
+                             └───┘└───┘
+        """
         qr = QuantumRegister(4)
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
@@ -84,6 +95,16 @@ class TestCXCancellation(QiskitTestCase):
         pass_manager.append(CXCancellation())
         out_circuit = pass_manager.run(circuit)
 
+        """
+              ┌───┐
+        q0_0: ┤ H ├──■─────────■──
+              ├───┤┌─┴─┐     ┌─┴─┐
+        q0_1: ┤ H ├┤ X ├──■──┤ X ├
+              └───┘└───┘┌─┴─┐└───┘
+        q0_2: ──────────┤ X ├─────
+                        └───┘
+        q0_3: ────────────────────
+        """
         expected = QuantumCircuit(qr)
         expected.h(qr[0])
         expected.h(qr[1])

@@ -534,6 +534,20 @@ class TestStochasticSwap(QiskitTestCase):
         """Test if single qubit gates are omitted."""
 
         coupling_map = [[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]]
+
+        """
+        q_0: ──■──────────────────
+               │
+        q_1: ──┼─────────■────────
+               │       ┌─┴─┐
+        q_2: ──┼───────┤ X ├──────
+               │  ┌────┴───┴─────┐
+        q_3: ──┼──┤ U(1,1.5,0.7) ├
+             ┌─┴─┐└──────────────┘
+        q_4: ┤ X ├────────────────
+             └───┘
+        c: 5/═════════════════════
+        """
         qr = QuantumRegister(5, "q")
         cr = ClassicalRegister(5, "c")
         circuit = QuantumCircuit(qr, cr)
@@ -541,6 +555,17 @@ class TestStochasticSwap(QiskitTestCase):
         circuit.cx(qr[1], qr[2])
         circuit.u(1, 1.5, 0.7, qr[3])
 
+        """
+        q_0: ─────────────────X──────
+                              │
+        q_1: ───────■─────────X───■──
+                  ┌─┴─┐           │
+        q_2: ─────┤ X ├───────────┼──
+             ┌────┴───┴─────┐   ┌─┴─┐
+        q_3: ┤ U(1,1.5,0.7) ├─X─┤ X ├
+             └──────────────┘ │ └───┘
+        q_4: ─────────────────X──────
+        """
         expected = QuantumCircuit(qr, cr)
         expected.cx(qr[1], qr[2])
         expected.u(1, 1.5, 0.7, qr[3])

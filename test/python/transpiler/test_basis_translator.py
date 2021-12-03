@@ -409,7 +409,21 @@ class TestUnrollerCompatability(QiskitTestCase):
             self.assertIn(node.name, ["h", "t", "tdg", "cx"])
 
     def test_unroll_1q_chain_conditional(self):
-        """Test unroll chain of 1-qubit gates interrupted by conditional."""
+        """Test unroll chain of 1-qubit gates interrupted by conditional.
+
+            ┌───┐┌─────┐┌───┐┌───┐┌─────────┐┌─────────┐┌─────────┐┌─┐ ┌───┐  ┌───┐ »
+        qr: ┤ H ├┤ Tdg ├┤ Z ├┤ T ├┤ Ry(0.5) ├┤ Rz(0.3) ├┤ Rx(0.1) ├┤M├─┤ X ├──┤ Y ├─»
+            └───┘└─────┘└───┘└───┘└─────────┘└─────────┘└─────────┘└╥┘ └─╥─┘  └─╥─┘ »
+                                                                    ║ ┌──╨──┐┌──╨──┐»
+        cr: 1/══════════════════════════════════════════════════════╩═╡ 0x1 ╞╡ 0x1 ╞»
+                                                                    0 └─────┘└─────┘»
+        «       ┌───┐
+        «  qr: ─┤ Z ├─
+        «       └─╥─┘
+        «      ┌──╨──┐
+        «cr: 1/╡ 0x1 ╞
+        «      └─────┘
+        """
         qr = QuantumRegister(1, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
@@ -431,7 +445,22 @@ class TestUnrollerCompatability(QiskitTestCase):
         pass_ = BasisTranslator(std_eqlib, ["u1", "u2", "u3"])
         unrolled_dag = pass_.run(dag)
 
-        # Pick up -1 * 0.3 / 2 global phase for one RZ -> U1.
+        """
+        Pick up -1 * 0.3 / 2 global phase for one RZ -> U1.
+
+        global phase: 6.1332
+            ┌─────────┐┌──────────┐┌───────┐┌─────────┐┌─────────────┐┌─────────┐»
+        qr: ┤ U2(0,π) ├┤ U1(-π/4) ├┤ U1(π) ├┤ U1(π/4) ├┤ U3(0.5,0,0) ├┤ U1(0.3) ├»
+            └─────────┘└──────────┘└───────┘└─────────┘└─────────────┘└─────────┘»
+        cr: 1/═══════════════════════════════════════════════════════════════════»
+                                                                                 »
+        «      ┌──────────────────┐┌─┐┌───────────┐┌───────────────┐┌───────┐
+        «  qr: ┤ U3(0.1,-π/2,π/2) ├┤M├┤ U3(π,0,π) ├┤ U3(π,π/2,π/2) ├┤ U1(π) ├
+        «      └──────────────────┘└╥┘└─────╥─────┘└───────╥───────┘└───╥───┘
+        «                           ║    ┌──╨──┐        ┌──╨──┐      ┌──╨──┐
+        «cr: 1/═════════════════════╩════╡ 0x1 ╞════════╡ 0x1 ╞══════╡ 0x1 ╞═
+        «                           0    └─────┘        └─────┘      └─────┘
+        """
         ref_circuit = QuantumCircuit(qr, cr, global_phase=-0.3 / 2)
         ref_circuit.append(U2Gate(0, pi), [qr[0]])
         ref_circuit.append(U1Gate(-pi / 4), [qr[0]])
@@ -765,6 +794,13 @@ class TestBasisExamples(QiskitTestCase):
         in_dag = circuit_to_dag(bell)
         out_dag = BasisTranslator(std_eqlib, ["ecr", "u"]).run(in_dag)
 
+        """
+                ┌────────────┐  ┌─────────────┐┌──────────┐┌──────┐
+        q_0: ───┤ U(π/2,0,π) ├──┤ U(0,0,-π/2) ├┤ U(π,0,0) ├┤0     ├
+             ┌──┴────────────┴─┐└─────────────┘└──────────┘│  Ecr │
+        q_1: ┤ U(π/2,-π/2,π/2) ├───────────────────────────┤1     ├
+             └─────────────────┘                           └──────┘
+        """
         qr = QuantumRegister(2, "q")
         expected = QuantumCircuit(2)
         expected.u(pi / 2, 0, pi, qr[0])
@@ -798,7 +834,16 @@ class TestBasisExamples(QiskitTestCase):
         self.assertEqual(Operator(dag_to_circuit(out_dag)), Operator(expected))
 
     def test_condition_set_substitute_node(self):
-        """Verify condition is set in BasisTranslator on substitute_node"""
+        """Verify condition is set in BasisTranslator on substitute_node
+
+             ┌───┐         ┌───┐
+        q_0: ┤ H ├──■──────┤ H ├─
+             └───┘┌─┴─┐┌─┐ └─╥─┘
+        q_1: ─────┤ X ├┤M├───╫───
+                  └───┘└╥┘┌──╨──┐
+        c: 2/═══════════╩═╡ 0x1 ╞
+                        1 └─────┘
+        """
         qr = QuantumRegister(2, "q")
         cr = ClassicalRegister(2, "c")
         circ = QuantumCircuit(qr, cr)
@@ -809,6 +854,16 @@ class TestBasisExamples(QiskitTestCase):
         circ_transpiled = transpile(
             circ, optimization_level=3, basis_gates=["cx", "id", "u1", "u2", "u3"]
         )
+
+        """
+             ┌─────────┐        ┌─────────┐
+        q_0: ┤ U2(0,π) ├──■─────┤ U2(0,π) ├
+             └─────────┘┌─┴─┐┌─┐└────╥────┘
+        q_1: ───────────┤ X ├┤M├─────╫─────
+                        └───┘└╥┘  ┌──╨──┐
+        c: 2/═════════════════╩═══╡ 0x1 ╞══
+                              1   └─────┘
+        """
         qr = QuantumRegister(2, "q")
         cr = ClassicalRegister(2, "c")
         expected = QuantumCircuit(qr, cr)

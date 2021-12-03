@@ -50,7 +50,16 @@ class TestBasicSchedule(QiskitTestCase):
         self.assertRaises(QiskitError, lambda: schedule(qc, backend))
 
     def test_alap_pass(self):
-        """Test ALAP scheduling."""
+        """Test ALAP scheduling.
+
+              ┌───────────────┐                    ░      ┌─┐
+        q0_0: ┤ U2(3.14,1.57) ├────────────────────░───■──┤M├───
+              └┬──────────────┤ ░ ┌──────────────┐ ░ ┌─┴─┐└╥┘┌─┐
+        q0_1: ─┤ U2(0.5,0.25) ├─░─┤ U2(0.5,0.25) ├─░─┤ X ├─╫─┤M├
+               └──────────────┘ ░ └──────────────┘ ░ └───┘ ║ └╥┘
+        c0: 2/═════════════════════════════════════════════╩══╩═
+                                                           0  1
+        """
         q = QuantumRegister(2)
         c = ClassicalRegister(2)
         qc = QuantumCircuit(q, c)
@@ -118,7 +127,16 @@ class TestBasicSchedule(QiskitTestCase):
         )
 
     def test_asap_pass(self):
-        """Test ASAP scheduling."""
+        """Test ASAP scheduling.
+
+              ┌───────────────┐                    ░      ┌─┐
+        q0_0: ┤ U2(3.14,1.57) ├────────────────────░───■──┤M├───
+              └┬──────────────┤ ░ ┌──────────────┐ ░ ┌─┴─┐└╥┘┌─┐
+        q0_1: ─┤ U2(0.5,0.25) ├─░─┤ U2(0.5,0.25) ├─░─┤ X ├─╫─┤M├
+               └──────────────┘ ░ └──────────────┘ ░ └───┘ ║ └╥┘
+        c0: 2/═════════════════════════════════════════════╩══╩═
+                                                           0  1
+        """
         q = QuantumRegister(2)
         c = ClassicalRegister(2)
         qc = QuantumCircuit(q, c)
@@ -208,7 +226,17 @@ class TestBasicSchedule(QiskitTestCase):
         self.assertEqual(sched.instructions, expected.instructions)
 
     def test_3q_schedule(self):
-        """Test a schedule that was recommended by David McKay :D"""
+        """Test a schedule that was recommended by David McKay :D
+
+                                 ┌─────────────────┐
+        q0_0: ─────────■─────────┤ U3(3.14,1.57,0) ├────────────────────────
+                     ┌─┴─┐       └┬───────────────┬┘
+        q0_1: ───────┤ X ├────────┤ U2(3.14,1.57) ├───■─────────────────────
+              ┌──────┴───┴──────┐ └───────────────┘ ┌─┴─┐┌─────────────────┐
+        q0_2: ┤ U2(0.778,0.122) ├───────────────────┤ X ├┤ U2(0.778,0.122) ├
+              └─────────────────┘                   └───┘└─────────────────┘
+        c0: 3/══════════════════════════════════════════════════════════════
+        """
         backend = FakeOpenPulse3Q()
         inst_map = backend.defaults().instruction_schedule_map
         q = QuantumRegister(3)
