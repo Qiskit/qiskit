@@ -10,13 +10,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Instruction sub-classes for dynamic circuits."""
+"""Exceptions that may be raised during processing OpenQASM 3."""
+
+from qiskit.exceptions import QiskitError
 
 
-from .control_flow import ControlFlowOp
-from .continue_loop import ContinueLoopOp
-from .break_loop import BreakLoopOp
+class QASM3Error(QiskitError):
+    """An error raised while working with OpenQASM 3 representations of circuits."""
 
-from .if_else import IfElseOp
-from .while_loop import WhileLoopOp
-from .for_loop import ForLoopOp
+
+class QASM3ExporterError(QASM3Error):
+    """An error raised during running the OpenQASM 3 exporter."""

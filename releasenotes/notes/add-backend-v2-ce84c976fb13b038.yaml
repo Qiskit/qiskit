@@ -1,0 +1,87 @@
+---
+features:
+  - |
+    Added a new version of the :class:`~qiskit.providers.Backend` interface,
+    :class:`~qiskit.providers.BackendV2`. This new version is a large change
+    from the previous version, :class:`~qiskit.providers.BackendV1` and
+    changes both the user access pattern for properties of the backend (like
+    number of qubits, etc) and how the backend represents its constraints
+    to the transpiler. The execution of circuits (via the
+    :meth:`~qiskit.providers.BackendV2.run` method) remains unchanged. With
+    a :class:`~qiskit.providers.BackendV2` backend instead of having a separate
+    :meth:`~qiskit.providers.BackendV1.configuration`,
+    :meth:`~qiskit.providers.BackendV1.properties`, and
+    :meth:`~qiskit.providers.BackendV1.defaults` methods that construct
+    :class:`~qiskit.providers.models.BackendConfiguration`, 
+    :class:`~qiskit.providers.models.BackendProperties`, and
+    :class:`~qiskit.providers.models.PulseDefaults` objects respectively,
+    like in the :class:`~qiskit.providers.BackendV1` interface, the attributes
+    contained in those output objects are accessible directly as attributes of
+    the :class:`~qiskit.providers.BackendV2` object. For example, to get the
+    number of qubits for a backend with :class:`~qiskit.providers.BackendV1`
+    you would do::
+
+        num_qubits = backend.configuration().n_qubits
+
+    while with :class:`~qiskit.providers.BackendV2` it is::
+
+        num_qubits = backend.num_qubits
+
+    The other change around this is that the number of attributes exposed in
+    the abstract :class:`~qiskit.providers.BackendV2` class is designed to be
+    a hardware/vendor agnostic set of the required or optional fields that the
+    rest of Qiskit can use today with any backend. Sub-classes of the abstract
+    :class:`~qiskit.providers.BackendV2` class can add support for additional
+    attributes and methods beyond those defined in
+    :class:`~qiskit.providers.BackendV2`, but these will not be supported
+    universally throughout Qiskit.
+
+    The other critical change that is primarily important for provider authors is
+    how a :class:`~qiskit.providers.BackendV2` exposes the properties of
+    a particular backend to the transpiler. With
+    :class:`~qiskit.providers.BackendV2` this is done via a
+    :class:`~qiskit.transpiler.Target` object. The
+    :class:`~qiskit.transpiler.Target`, which is exposed via the
+    :attr:`~qiskit.providers.BackendV2.target` attribute, is used to represent
+    the set of constraints for running circuits on a particular backend. It
+    contains the subset of information previously exposed by the
+    :class:`~qiskit.providers.models.BackendConfiguration`,
+    :class:`~qiskit.providers.models.BackendProperties`, and
+    :class:`~qiskit.providers.models.PulseDefaults` classes which the transpiler
+    can actively use. When migrating a provider to use
+    :class:`~qiskit.providers.BackendV2` (or when creating a new provider
+    package) the construction of backend objects will primarily be around
+    creating a :class:`~qiskit.transpiler.Target` object for the backend.
+  - |
+    Added a new :class:`~qiskit.transpiler.Target` class to the
+    :mod:`~qiskit.transpiler` module. The :class:`~qiskit.transpiler.Target`
+    class is designed to represent the constraints of backend to the compiler.
+    The :class:`~qiskit.transpiler.Target` class is intended to be used
+    with a :class:`~qiskit.providers.BackendV2` backend and is how backends
+    will model their constraints for the transpiler moving forward. It combines
+    the previously distinct fields used for controlling the
+    :func:`~qiskit.compiler.transpile` target device (e.g. ``basis_gates``,
+    ``coupling_map``, ``instruction_durations``, etc) into a single data
+    structure. It also adds additional functionality on top of what was
+    available previously such as representing heterogeneous gate sets,
+    multi-qubit gate connectivity, and tuned variants of the same gates.
+    Currently the transpiler doesn't factor in all these constraints, but
+    over time it will grow to leverage the extra functionality.
+  - |
+    The :class:`~qiskit.providers.Options` class now has optional support for
+    specifying validators. This enables :class:`~qiskit.providers.Backend`
+    authors to optionally specify basic validation on the user supplied values
+    for fields in the :class:`~qiskit.providers.Options` object. For example,
+    if you had an :class:`~qiskit.providers.Options` object defined with::
+
+        from qiskit.providers.Options
+        options = Options(shots=1024)
+
+    you can set a validator on shots for it to be between 1 and 4096 with::
+
+        options.set_validator('shots', (1, 4096))
+
+    With the validator set any call to the
+    :meth:`~qiskit.providers.Options.update_options` method will check that
+    if ``shots`` is being updated the proposed new value is within the valid
+    range.
