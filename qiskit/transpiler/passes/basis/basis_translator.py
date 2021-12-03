@@ -65,9 +65,9 @@ class BasisTranslator(TransformationPass):
         self._equiv_lib = equivalence_library
         self._target_basis = target_basis
         self._target = target
-        self._incomplete_basis = None
+        self._non_global_operations = None
         if target is not None:
-            self._incomplete_basis = self._target.get_non_global_operation_names()
+            self._non_global_operations = self._target.get_non_global_operation_names()
 
     def run(self, dag):
         """Translate an input DAGCircuit to the target basis.
@@ -98,9 +98,9 @@ class BasisTranslator(TransformationPass):
         else:
             basic_instrs = ["barrier", "snapshot"]
             source_basis = set()
-            target_basis = self._target.keys() - set(self._incomplete_basis)
+            target_basis = self._target.keys() - set(self._non_global_operations)
             qarg_with_incomplete = defaultdict(set)
-            for gate in self._incomplete_basis:
+            for gate in self._non_global_operations:
                 for qarg in self._target[gate]:
                     qarg_with_incomplete[qarg].add(gate)
             incomplete_source_basis = defaultdict(set)
