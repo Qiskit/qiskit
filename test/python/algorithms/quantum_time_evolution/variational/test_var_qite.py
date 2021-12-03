@@ -96,57 +96,6 @@ class TestVarQite(QiskitAlgorithmsTestCase):
         for i, parameter_value in enumerate(parameter_values):
             np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=3)
 
-    # # TODO incorrect results, likely a problem with error calculators
-    # def test_run_d_1_error_based(self):
-    #     observable = SummedOp(
-    #         [
-    #             0.2252 * (I ^ I),
-    #             0.5716 * (Z ^ Z),
-    #             0.3435 * (I ^ Z),
-    #             -0.4347 * (Z ^ I),
-    #             0.091 * (Y ^ Y),
-    #             0.091 * (X ^ X),
-    #         ]
-    #     ).reduce()
-    #
-    #     d = 1
-    #     ansatz = EfficientSU2(observable.num_qubits, reps=d)
-    #
-    #     parameters = ansatz.ordered_parameters
-    #     init_param_values = np.zeros(len(ansatz.ordered_parameters))
-    #     for i in range(len(ansatz.ordered_parameters)):
-    #         init_param_values[i] = np.pi / 2
-    #     init_param_values[0] = 1
-    #     var_principle = ImaginaryMcLachlanVariationalPrinciple()
-    #
-    #     param_dict = dict(zip(parameters, init_param_values))
-    #
-    #     reg = None
-    #     backend = Aer.get_backend("statevector_simulator")
-    #
-    #     var_qite = VarQite(
-    #         var_principle, regularization=reg, backend=backend, error_based_ode=True
-    #     )
-    #     time = 1
-    #
-    #     evolution_result = var_qite.evolve(
-    #         observable,
-    #         time,
-    #         ansatz,  # ansatz is a state in this case
-    #         hamiltonian_value_dict=param_dict,
-    #     )
-    #
-    #     # values from the prototype
-    #     thetas_expected = [
-    #         0.905891405461676, 2.00336851206939, 2.69397807006896, 2.74463568490402,
-    #         2.33138537974477, 1.74695500227078, 2.10772805384302, 1.92775503832114
-    #     ]
-    #
-    #     parameter_values = evolution_result.data[0][0].params
-    #     print(parameter_values)
-    #     for i, parameter_value in enumerate(parameter_values):
-    #         np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=3)
-
     def test_run_d_1_t_7(self):
         observable = SummedOp(
             [
