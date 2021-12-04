@@ -244,7 +244,7 @@ class TestTarget(QiskitTestCase):
         self.assertEqual(
             self.aqt_target.qargs_for_operation_name("rz"), {(0,), (1,), (2,), (3,), (4,)}
         )
-        self.assertEqual(self.fake_backend_target.qargs_for_operation_name("cx"), {(0, 1), (1, 0)})
+        self.assertEqual(self.fake_backend_target.qargs_for_operation_name("cx"), {(0, 1)})
         self.assertEqual(
             self.fake_backend_target.qargs_for_operation_name("ecr"),
             {
@@ -375,7 +375,7 @@ class TestTarget(QiskitTestCase):
         res = self.ibm_target.operations_for_qargs((0,))
         for gate in expected:
             self.assertIn(gate, res)
-        expected = [CXGate(), ECRGate()]
+        expected = [ECRGate()]
         res = self.fake_backend_target.operations_for_qargs((1, 0))
         for gate in expected:
             self.assertIn(gate, res)
