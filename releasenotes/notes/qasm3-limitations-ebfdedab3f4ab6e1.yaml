@@ -1,0 +1,8 @@
+---
+issues:
+  - |
+    The OpenQASM 3 export capabilities are in a beta state, and some features of
+    Terra's :obj:`.QuantumCircuit` are not yet supported.  In particular, you
+    may see errors if you try to export custom subroutines with classical
+    parameters, and there is no provision yet for exporting pulse-calibrated
+    operations into OpenPulse.

@@ -15,6 +15,7 @@
 from typing import Optional
 
 from qiskit.circuit.instruction import Instruction
+from .builder import InstructionPlaceholder
 
 
 class ContinueLoopOp(Instruction):
@@ -43,5 +44,24 @@ class ContinueLoopOp(Instruction):
     """
 
     def __init__(self, num_qubits: int, num_clbits: int, label: Optional[str] = None):
-
         super().__init__("continue_loop", num_qubits, num_clbits, [], label=label)
+
+
+class ContinueLoopPlaceholder(InstructionPlaceholder):
+    """A placeholder instruction for use in control-flow context managers, when the number of qubits
+    and clbits is not yet known."""
+
+    def __init__(self, *, label: Optional[str] = None):
+        super().__init__("continue_loop", 0, 0, [], label=label)
+
+    def concrete_instruction(self, qubits, clbits):
+        return (
+            self._copy_mutable_properties(
+                ContinueLoopOp(len(qubits), len(clbits), label=self.label)
+            ),
+            tuple(qubits),
+            tuple(clbits),
+        )
+
+    def placeholder_resources(self):
+        return ((), ())
