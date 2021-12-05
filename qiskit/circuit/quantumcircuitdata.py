@@ -58,6 +58,10 @@ class QuantumCircuitData(MutableSequence):
 
         self._circuit._update_parameter_table(instruction)
 
+        param = instruction.params[0]
+        self._circuit._parameter_table[param][idx] = self._circuit._parameter_table[param][-1]
+        self._circuit._parameter_table[param].pop()
+
     def insert(self, index, value):
         self._circuit._data.insert(index, None)
         self[index] = value
