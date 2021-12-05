@@ -15,6 +15,7 @@ Qiskit Terra API Reference
    converters
    assembler
    dagcircuit
+   extensions
    providers_basicaer
    providers
    providers_models
