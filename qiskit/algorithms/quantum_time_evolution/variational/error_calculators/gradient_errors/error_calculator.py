@@ -41,6 +41,14 @@ class ErrorCalculator:
         operator_circuit_sampler: CircuitSampler,
         param_dict: Dict[Parameter, Union[float, complex]],
     ) -> OperatorBase:
+        """
+        Args:
+            operator: Operator to be bound with parameter values.
+            operator_circuit_sampler: CircuitSampler for the operator.
+            param_dict: Dictionary which relates parameter values to the parameters in the operator.
+        Returns:
+            Operator with all parameters bound.
+        """
         # ⟨ψ(ω)|H^2|ψ(ω)〉
         if operator_circuit_sampler:
             operator = operator_circuit_sampler.convert(operator, params=param_dict)
@@ -61,13 +69,13 @@ class ErrorCalculator:
         """
         Evaluate the l2 norm of the error for a single time step of VarQITE.
         Args:
-            ng_res: dω/dt
-            grad_res: 2Re⟨dψ(ω)/dω|H|ψ(ω)〉
-            metric: Fubini-Study Metric
+            ng_res: dω/dt.
+            grad_res: 2Re⟨dψ(ω)/dω|H|ψ(ω)〉.
+            metric: Fubini-Study Metric.
         Returns:
-            square root of the l2 norm of the error
+            Square root of the l2 norm of the error.
         """
-        raise NotImplementedError
+        pass
 
     @abstractmethod
     def _calc_single_step_error_gradient(
@@ -79,28 +87,40 @@ class ErrorCalculator:
         """
         Evaluate the gradient of the l2 norm for a single time step of VarQRTE.
         Args:
-            ng_res: dω/dt
-            grad_res: -2Im⟨dψ(ω)/dω|H|ψ(ω)〉
-            metric: Fubini-Study Metric
+            ng_res: dω/dt.
+            grad_res: -2Im⟨dψ(ω)/dω|H|ψ(ω)〉.
+            metric: Fubini-Study Metric.
         Returns:
-            square root of the l2 norm of the error
+            Square root of the l2 norm of the error.
         """
-        raise NotImplementedError
+        pass
 
     def _inner_prod(self, x: Iterable, y: Iterable) -> Union[np.ndarray, np.complex, np.float]:
         """
-        Compute the inner product of two vectors
+        Compute the inner product of two vectors.
         Args:
-            x: vector
-            y: vector
-        Returns: Inner product of x,y
+            x: vector.
+            y: vector.
+        Returns:
+            Inner product of x and y.
         """
         return np.matmul(np.conj(np.transpose(x)), y)
 
     def _validate_epsilon_squared(self, eps_squared: float) -> float:
+        """
+        Sets an epsilon provided to 0 if it is small enough and negative (smaller than 1e-3 in
+        absolute value).
+        Args:
+            eps_squared: Value to be validated.
+        Returns:
+            Modified (or not) value provided.
+        Raises:
+            Warning if the value provided is too large.
+        """
         if eps_squared < 0:
             if np.abs(eps_squared) < 1e-3:
                 eps_squared = 0
             else:
+                # TODO should this be an excpetion?
                 raise Warning("Propagation failed")
         return eps_squared

@@ -12,7 +12,7 @@
 
 """The Variational Quantum Time Evolution Interface"""
 from abc import ABC, abstractmethod
-from typing import Optional, Union, Dict, Callable
+from typing import Optional, Union, Dict, Callable, List
 
 import numpy as np
 from scipy.integrate import RK45, OdeSolver
@@ -135,7 +135,7 @@ class VarQte(ABC):
             respective
             time evolution.
         """
-        raise NotImplementedError()
+        pass
 
     def _evolve_helper(
         self,
@@ -171,6 +171,8 @@ class VarQte(ABC):
             StateFn (parameters are bound) which represents an approximation to the
             respective
             time evolution.
+        Raises:
+            TypeError: If observable is provided - not supported by this algorithm.
         """
         if observable is not None:
             raise TypeError(
@@ -215,13 +217,20 @@ class VarQte(ABC):
         hamiltonian_value_dict: Dict[Parameter, Union[float, complex]] = None,
         gradient_params=None,
     ) -> EvolutionGradientResult:
-        raise NotImplementedError()
+        pass
 
     def bind_initial_state(
         self,
         state: Union[QuantumCircuit, StateFn],
         param_dict: Dict[Parameter, Union[float, complex]],
     ) -> None:
+        """
+        Bind parameters in a given quantum state to values provided. Uses a CircuitSampler if
+        available.
+        Args:
+            state: Parametrized quantum state to be bound.
+            param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
+        """
         if self._state_circ_sampler:
             self._initial_state = self._state_circ_sampler.convert(state, param_dict)
         else:
@@ -229,6 +238,7 @@ class VarQte(ABC):
         self._initial_state = self._initial_state.eval().primitive.data
 
     def _init_samplers(self) -> None:
+        """Creates all possible samplers if a backend is present."""
         self._operator_circ_sampler = CircuitSampler(self._backend) if self._backend else None
         self._state_circ_sampler = CircuitSampler(self._backend) if self._backend else None
         self._h_squared_circ_sampler = CircuitSampler(self._backend) if self._backend else None
@@ -237,22 +247,41 @@ class VarQte(ABC):
         self._energy_sampler = CircuitSampler(self._backend) if self._backend else None
 
     def _init_ham_objects(self) -> None:
-        """
-        Initialize the gradient objects needed to perform VarQTE.
-        """
+        """Initialize the gradient objects needed to perform VarQTE."""
         self._hamiltonian = self._operator.oplist[0].primitive * self._operator.oplist[0].coeff
         self._hamiltonian_squared = self._hamiltonian_power(2)
 
     def _hamiltonian_power(self, power: int) -> OperatorBase:
+        """
+        Calculates a Hamiltonian raised to a given power.
+        Args:
+            power: Power to which a Hamiltonian operator should be raised.
+        Returns:
+            Hamiltonian raised to a given power.
+        """
         h_power = self._hamiltonian ** power
         h_power = ComposedOp([~StateFn(h_power.reduce()), StateFn(self._initial_state)])
         h_power = PauliExpectation().convert(h_power)
         # TODO Include Sampler here if backend is given
         return h_power
 
+    # TODO handle the case where quantum state params are not present in a dictionary; possibly
+    #  rename the dictionary because it not only relates to a Hamiltonian but also to a state
     def _create_init_state_param_dict(
-        self, hamiltonian_value_dict: Dict[Parameter, Union[float, complex]], init_state_parameters
+        self,
+        hamiltonian_value_dict: Dict[Parameter, Union[float, complex]],
+        init_state_parameters: List[Parameter],
     ) -> Dict[Parameter, Union[float, complex]]:
+        """
+        Looks for parameters present in an initial state (an ansatz) in a hamiltonian_value_dict
+        provided. Based on that, it creates a new dictionary containing only parameters present
+        in an initial state and their respective values. If not hamiltonian_value_dict is
+        present, values are chosen uniformly at random.
+        Args:
+            hamiltonian_value_dict: Dictionary which relates parameter values to the parameters.
+            init_state_parameters: Parameters present in a quantum state.
+        Returns:
+        """
         if hamiltonian_value_dict is None:
             init_state_parameter_values = np.random.random(len(init_state_parameters))
         else:
@@ -267,8 +296,19 @@ class VarQte(ABC):
         self,
         error_calculator: ErrorCalculator,
         init_state_param_dict: Dict[Parameter, Union[float, complex]],
-        t_param: Parameter,
+        t_param: Optional[Parameter] = None,
     ) -> AbstractOdeFunctionGenerator:
+        """
+        Creates an ODE function generator for variational time evolution, with an
+        ErrorCalculator in case of an error-based evolution.
+        Args:
+            error_calculator: ErrorCalculator object in case of error-based evolution.
+            init_state_param_dict: Dictionary mapping parameters to their initial values for a
+                                quantum state.
+            t_param: Time parameter in case of a time-dependent Hamiltonian.
+        Returns:
+            Instantiated ODE function generator.
+        """
         # TODO potentially introduce a factory
         if self._error_based_ode:
             ode_function_generator = ErrorBasedOdeFunctionGenerator(
@@ -298,8 +338,16 @@ class VarQte(ABC):
         return ode_function_generator
 
     def _validate_operator(self, operator) -> None:
+        """
+        Validates a constructed operator to make sure that it includes an ansatz and that it is
+        an ComposedOp or a ListOp.
+        Args:
+            operator: Operator to be validated.
+        Raises:
+            TypeError: In case an operator provided is not valid.
+        """
         if not isinstance(operator[-1], CircuitStateFn):
-            raise TypeError("Please provide the respective Ansatz as a CircuitStateFn.")
+            raise TypeError("Please provide the respective ansatz as a CircuitStateFn.")
         if not isinstance(operator, ComposedOp) and not all(
             isinstance(op, CircuitStateFn) for op in operator.oplist
         ):

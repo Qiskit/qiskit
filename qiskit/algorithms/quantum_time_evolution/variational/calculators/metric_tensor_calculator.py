@@ -24,7 +24,22 @@ def calculate(
     basis: OperatorBase = Z,
     phase_fix: bool = True,
 ) -> ListOp:
-    """Calculates a parametrized metric tensor object."""
+    """
+    Calculates a parametrized metric tensor object.
+    Args:
+        ansatz: Quantum state to be evolved.
+        parameters: Parameters with respect to which gradients should be computed.
+        qfi_method: The method used to compute the QFI. Can be either
+                    ``'lin_comb_full'`` or ``'overlap_block_diag'`` or ``'overlap_diag'``.
+        basis: Basis with respect to which metric tensor is calculated. In case of a default Z
+                basis a real part of a metric tensor is returned. In case of a Y basis,
+                an imaginary part
+                of a metric tensor is returned.
+        phase_fix: Flag that indicates whether a phase fix should be applied. It depends on the
+                    type of a variational principle.
+    Returns:
+        Parametrized metric tensor as a ListOp.
+    """
     operator = CircuitStateFn(ansatz)
 
     if qfi_method == "lin_comb_full":
@@ -38,8 +53,16 @@ def eval_metric_result(
     param_dict: Dict[Parameter, Union[float, complex]],
     metric_circ_sampler: CircuitSampler,
 ) -> OperatorBase:
-    """Binds a parametrized metric tensor object to parameters values provided. Uses circuit
-    samplers if available."""
+    """
+    Binds a parametrized metric tensor object to parameters values provided. Uses a circuit
+    sampler if available.
+    Args:
+        metric: Metric tensor to be evaluated.
+        param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
+        metric_circ_sampler: CircuitSampler for metric tensors.
+    Returns:
+        Metric tensor with all parameters bound.
+    """
     if metric_circ_sampler:
         metric_result = metric_circ_sampler.convert(metric, params=param_dict).eval()
     else:

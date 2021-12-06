@@ -56,20 +56,34 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
         self._error_calculator = error_calculator
         self._optimizer = optimizer
 
-    def var_qte_ode_function(self, t: float, parameters_values: Iterable) -> float:
+    def var_qte_ode_function(self, time: float, parameters_values: Iterable) -> float:
+        """
+        Evaluates an ODE function for a given time and parameter values. It is used by an ODE
+        solver.
+        Args:
+            time: Current time of evolution.
+            parameters_values: Current values of parameters.
+        Returns:
+            Tuple containing natural gradient, metric tensor and evolution gradient results
+            arising from solving a system of linear equations.
+        """
         current_param_dict = dict(zip(self._param_dict.keys(), parameters_values))
 
         nat_grad_res, metric_res, grad_res = self._linear_solver._solve_sle(
-            self._variational_principle, current_param_dict, self._t_param, t, self._regularization
+            self._variational_principle,
+            current_param_dict,
+            self._t_param,
+            time,
+            self._regularization,
         )
 
         def argmin_fun(dt_param_values: Union[List, np.ndarray]) -> float:
             """
             Search for the dω/dt which minimizes ||e_t||^2
             Args:
-                dt_param_values: values for dω/dt
+                dt_param_values: Values for dω/dt.
             Returns:
-                ||e_t||^2 for given for dω/dt
+                ||e_t||^2 for given for dω/dt.
             """
             et_squared = self._error_calculator._calc_single_step_error(
                 dt_param_values, grad_res, metric_res, current_param_dict

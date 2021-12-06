@@ -122,8 +122,20 @@ class VarQrte(VarQte, EvolutionBase):
         )
 
     def _create_real_ode_function_generator(
-        self, init_state_param_dict: Dict[Parameter, Union[float, complex]], t_param: Parameter
+        self,
+        init_state_param_dict: Dict[Parameter, Union[float, complex]],
+        t_param: Optional[Parameter] = None,
     ):
+        """
+        Creates an ODE function generator for the real time evolution, i.e. with an
+        RealErrorCalculator in case of an error-based evolution.
+        Args:
+            init_state_param_dict: Dictionary mapping parameters to their initial values for a
+                                quantum state.
+            t_param: Time parameter in case of a time-dependent Hamiltonian.
+        Returns:
+            Instantiated real ODE function generator.
+        """
         if self._error_based_ode:
             error_calculator = RealErrorCalculator(
                 self._hamiltonian_squared,

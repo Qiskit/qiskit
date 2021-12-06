@@ -52,6 +52,14 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
         ansatz: QuantumCircuit,
         parameters: List[Parameter],
     ) -> ListOp:
+        """
+        Calculates a metric tensor according to the rules of this variational principle.
+        Args:
+            ansatz: Quantum state to be used for calculating a metric tensor.
+            parameters: Parameters with respect to which gradients should be computed.
+        Returns:
+            Transformed metric tensor.
+        """
         raw_metric_tensor_real = metric_tensor_calculator.calculate(
             ansatz, parameters, self._qfi_method
         )
@@ -64,9 +72,24 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
         ansatz: Union[StateFn, QuantumCircuit],
         parameters: List[Parameter],
     ) -> Callable:
+        """
+        Calculates an evolution gradient according to the rules of this variational principle.
+        Args:
+            hamiltonian: Observable for which an evolution gradient should be calculated,
+                        e.g., a Hamiltonian of a system.
+            ansatz: Quantum state to be used for calculating an evolution gradient.
+            parameters: Parameters with respect to which gradients should be computed.
+        Returns:
+            Transformed evolution gradient.
+        """
+
         def raw_evolution_grad_imag(
             param_dict: Dict[Parameter, Union[float, complex]], energy_sampler: CircuitSampler
         ) -> OperatorBase:
+            """
+            Args:
+            Returns:
+            """
             energy = ~StateFn(hamiltonian) @ StateFn(ansatz)
             energy = PauliExpectation().convert(energy)
 

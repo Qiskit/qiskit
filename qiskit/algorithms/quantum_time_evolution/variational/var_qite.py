@@ -23,6 +23,9 @@ from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.grad
 from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
 )
+from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
+    AbstractOdeFunctionGenerator,
+)
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
     OperatorBase,
@@ -104,8 +107,7 @@ class VarQite(VarQte, EvolutionBase):
                                     are provided, they are generated randomly.
         Returns:
             StateFn (parameters are bound) which represents an approximation to the
-            respective
-            time evolution.
+            respective time evolution.
         """
         init_state_param_dict = self._create_init_state_param_dict(
             hamiltonian_value_dict, list(initial_state.parameters)
@@ -121,8 +123,20 @@ class VarQite(VarQte, EvolutionBase):
         )
 
     def _create_imag_ode_function_generator(
-        self, init_state_param_dict: Dict[Parameter, Union[float, complex]], t_param
-    ):
+        self,
+        init_state_param_dict: Dict[Parameter, Union[float, complex]],
+        t_param: Optional[Parameter] = None,
+    ) -> AbstractOdeFunctionGenerator:
+        """
+        Creates an ODE function generator for the imaginary time evolution, i.e. with an
+        ImaginaryErrorCalculator in case of an error-based evolution.
+        Args:
+            init_state_param_dict: Dictionary mapping parameters to their initial values for a
+                                quantum state.
+            t_param: Time parameter in case of a time-dependent Hamiltonian.
+        Returns:
+            Instantiated imaginary ODE function generator.
+        """
         if self._error_based_ode:
             error_calculator = ImaginaryErrorCalculator(
                 self._hamiltonian_squared,

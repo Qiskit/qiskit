@@ -43,11 +43,11 @@ class ImaginaryErrorCalculator(ErrorCalculator):
         """
         Evaluate the l2 norm of the error for a single time step of VarQITE.
         Args:
-            ng_res: dω/dt
-            grad_res: 2Re⟨dψ(ω)/dω|H|ψ(ω)〉
-            metric: Fubini-Study Metric
+            ng_res: dω/dt.
+            grad_res: 2Re⟨dψ(ω)/dω|H|ψ(ω).
+            metric: Fubini-Study Metric.
         Returns:
-            square root of the l2 norm of the error
+            Square root of the l2 norm of the error.
         """
         eps_squared = 0
         h_squared_bound = self._bind_or_sample_operator(
@@ -80,11 +80,11 @@ class ImaginaryErrorCalculator(ErrorCalculator):
         """
         Evaluate the gradient of the l2 norm for a single time step of VarQITE.
         Args:
-            ng_res: dω/dt
-            grad_res: 2Re⟨dψ(ω)/dω|H|ψ(ω)〉
-            metric: Fubini-Study Metric
+            ng_res: dω/dt.
+            grad_res: 2Re⟨dψ(ω)/dω|H|ψ(ω).
+            metric: Fubini-Study Metric.
         Returns:
-            square root of the l2 norm of the error
+            Square root of the l2 norm of the error.
         """
         grad_eps_squared = 0
         # dω_jF_ij^Q

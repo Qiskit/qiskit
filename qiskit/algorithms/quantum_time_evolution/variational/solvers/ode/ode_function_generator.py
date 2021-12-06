@@ -46,5 +46,27 @@ class OdeFunctionGenerator(AbstractOdeFunctionGenerator):
             t_param,
         )
 
-    def var_qte_ode_function(self, t: float, parameters_values: Iterable) -> Iterable:
-        return super().var_qte_ode_function(t, parameters_values)
+    def var_qte_ode_function(self, time: float, parameters_values: Iterable) -> Iterable:
+        """
+        Evaluates an ODE function for a given time and parameter values. It is used by an ODE
+        solver.
+        Args:
+            time: Current time of evolution.
+            parameters_values: Current values of parameters.
+        Returns:
+            Tuple containing natural gradient, metric tensor and evolution gradient results
+            arising from solving a system of linear equations.
+        """
+        current_param_dict = dict(zip(self._param_dict.keys(), parameters_values))
+        print("t ", time)
+        print("params ", parameters_values)
+
+        nat_grad_res, _, _ = self._linear_solver._solve_sle(
+            self._variational_principle,
+            current_param_dict,
+            self._t_param,
+            time,
+            self._regularization,
+        )
+
+        return nat_grad_res

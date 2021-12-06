@@ -27,7 +27,7 @@ class VarQteOdeSolver:
         ode_solver_callable: OdeSolver = "RK45",
     ):
         """
-        Initialize ODE Solver
+        Initialize ODE Solver.
         Args:
             init_params: Set of initial parameters for time 0.
             ode_function_generator: Generator for a function that ODE will use.
@@ -42,6 +42,8 @@ class VarQteOdeSolver:
         Find numerical solution with ODE Solver.
         Args:
             evolution_time: Evolution time.
+        Returns:
+            List of parameters found by an ODE solver for a given ODE function callable.
         """
         # TODO remove prints later; useful for debugging
         print(self._ode_function(0, self._init_params))

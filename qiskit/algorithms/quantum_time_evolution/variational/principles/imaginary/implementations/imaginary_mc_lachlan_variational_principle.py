@@ -44,9 +44,19 @@ class ImaginaryMcLachlanVariationalPrinciple(ImaginaryVariationalPrinciple):
     def _get_metric_tensor(
         self,
         ansatz: Union[StateFn, QuantumCircuit],
-        params: List[Parameter],
+        parameters: List[Parameter],
     ) -> ListOp:
-        metric_tensor_real = metric_tensor_calculator.calculate(ansatz, params, self._qfi_method)
+        """
+        Calculates a metric tensor according to the rules of this variational principle.
+        Args:
+            ansatz: Quantum state to be used for calculating a metric tensor.
+            parameters: Parameters with respect to which gradients should be computed.
+        Returns:
+            Transformed metric tensor.
+        """
+        metric_tensor_real = metric_tensor_calculator.calculate(
+            ansatz, parameters, self._qfi_method
+        )
 
         return metric_tensor_real * 0.25
 
@@ -54,10 +64,20 @@ class ImaginaryMcLachlanVariationalPrinciple(ImaginaryVariationalPrinciple):
         self,
         hamiltonian: OperatorBase,
         ansatz: Union[StateFn, QuantumCircuit],
-        params: List[Parameter],
+        parameters: List[Parameter],
     ) -> OperatorBase:
+        """
+        Calculates an evolution gradient according to the rules of this variational principle.
+        Args:
+            hamiltonian: Observable for which an evolution gradient should be calculated,
+                        e.g., a Hamiltonian of a system.
+            ansatz: Quantum state to be used for calculating an evolution gradient.
+            parameters: Parameters with respect to which gradients should be computed.
+        Returns:
+            Transformed evolution gradient.
+        """
         evolution_grad_real = evolution_grad_calculator.calculate(
-            hamiltonian, ansatz, params, self._grad_method
+            hamiltonian, ansatz, parameters, self._grad_method
         )
 
         return (-1) * evolution_grad_real * 0.5

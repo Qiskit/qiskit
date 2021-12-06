@@ -49,7 +49,7 @@ class RealErrorCalculator(ErrorCalculator):
             metric: Fubini-Study Metric.
             param_dict: Dictionary of parameters to be bound.
         Returns:
-            The l2 norm of the error
+            L2 norm of the error.
         """
         eps_squared = 0
         h_squared_bound = self._bind_or_sample_operator(
@@ -84,11 +84,13 @@ class RealErrorCalculator(ErrorCalculator):
         """
         Evaluate the gradient of the l2 norm for a single time step of VarQRTE.
         Args:
-            ng_res: dω/dt
-            grad_res: -2Im⟨dψ(ω)/dω|H|ψ(ω)〉
-            metric: Fubini-Study Metric
+            ng_res: dω/dt.
+            grad_res: -2Im⟨dψ(ω)/dω|H|ψ(ω).
+            metric: Fubini-Study Metric.
         Returns:
-            square root of the l2 norm of the error
+            Square root of the l2 norm of the error.
+        Raises:
+            Warning if the value of an error has too large imaginary part (larger than 1e-6).
         """
         grad_eps_squared = 0
         # dω_jF_ij^Q
@@ -98,7 +100,7 @@ class RealErrorCalculator(ErrorCalculator):
 
         # 2Im⟨dωψ(ω)|H | ψ(ω)〉
         grad_eps_squared -= grad_res
-
+        # TODO should this be an exception?
         if np.linalg.norm(np.imag(grad_eps_squared)) > 1e-6:
             raise Warning("Error gradient complex part are not to be neglected.")
         return np.real(grad_eps_squared)

@@ -48,8 +48,16 @@ class ImaginaryVariationalPrinciple(VariationalPrinciple):
     def _get_metric_tensor(
         self,
         ansatz: QuantumCircuit,
-        param_dict: Dict[Parameter, Union[float, complex]],
+        parameters: Dict[Parameter, Union[float, complex]],
     ) -> ListOp:
+        """
+        Calculates a metric tensor according to the rules of this variational principle.
+        Args:
+            ansatz: Quantum state to be used for calculating a metric tensor.
+            parameters: Parameters with respect to which gradients should be computed.
+        Returns:
+            Transformed metric tensor.
+        """
         pass
 
     @abstractmethod
@@ -57,6 +65,16 @@ class ImaginaryVariationalPrinciple(VariationalPrinciple):
         self,
         hamiltonian: OperatorBase,
         ansatz: Union[StateFn, QuantumCircuit],
-        param_dict: Dict[Parameter, Union[float, complex]],
+        parameters: Dict[Parameter, Union[float, complex]],
     ) -> OperatorBase:
+        """
+        Calculates an evolution gradient according to the rules of this variational principle.
+        Args:
+            hamiltonian: Observable for which an evolution gradient should be calculated,
+                        e.g., a Hamiltonian of a system.
+            ansatz: Quantum state to be used for calculating an evolution gradient.
+            parameters: Parameters with respect to which gradients should be computed.
+        Returns:
+            Transformed evolution gradient.
+        """
         pass

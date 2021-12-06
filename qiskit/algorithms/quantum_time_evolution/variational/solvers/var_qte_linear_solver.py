@@ -58,7 +58,7 @@ class VarQteLinearSolver:
         calculation without error bounds.
         Args:
             var_principle: Variational Principle to be used.
-            param_dict: Dictionary which relates parameter values to the parameters in the Ansatz.
+            param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
             time_value: Time value that will be bound to t_param. It is required if t_param is not None.
             regularization: Use the following regularization with a least square method to solve the

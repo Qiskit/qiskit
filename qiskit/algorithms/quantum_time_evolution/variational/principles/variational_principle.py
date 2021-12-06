@@ -45,6 +45,18 @@ class VariationalPrinciple(ABC):
         ansatz: Union[StateFn, QuantumCircuit],
         parameters: List[Parameter],
     ) -> None:
+        """
+        Initiates a variational principle object with data provided in evolve() or gradient() methods.
+        Args:
+            hamiltonian:
+                ⟨ψ(ω)|H|ψ(ω)〉
+                Operator used vor Variational Quantum Time Evolution (VarQTE).
+                The coefficient of the operator (operator.coeff) determines the evolution time.
+                The operator may be given either as a composed op consisting of a Hermitian
+                observable and a CircuitStateFn or a ListOp of a CircuitStateFn with a ComboFn.
+            ansatz: Quantum state to be evolved.
+            parameters: Parameters present in an ansatz.
+        """
 
         self._hamiltonian = hamiltonian
         self._ansatz = ansatz
@@ -60,6 +72,14 @@ class VariationalPrinciple(ABC):
         ansatz: QuantumCircuit,
         parameters: List[Parameter],
     ) -> ListOp:
+        """
+        Calculates a metric tensor according to the rules of this variational principle.
+        Args:
+            ansatz: Quantum state to be used for calculating a metric tensor.
+            parameters: Parameters with respect to which gradients should be computed.
+        Returns:
+            Transformed metric tensor.
+        """
         pass
 
     @abstractmethod
@@ -69,4 +89,14 @@ class VariationalPrinciple(ABC):
         ansatz: Union[StateFn, QuantumCircuit],
         parameters: List[Parameter],
     ) -> Union[OperatorBase, Callable]:
+        """
+        Calculates an evolution gradient according to the rules of this variational principle.
+        Args:
+            hamiltonian: Observable for which an evolution gradient should be calculated,
+                        e.g., a Hamiltonian of a system.
+            ansatz: Quantum state to be used for calculating an evolution gradient.
+            parameters: Parameters with respect to which gradients should be computed.
+        Returns:
+            Transformed evolution gradient.
+        """
         pass

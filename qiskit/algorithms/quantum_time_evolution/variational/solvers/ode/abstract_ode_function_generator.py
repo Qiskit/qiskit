@@ -9,7 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Iterable, Union, Dict, Optional
 
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
@@ -52,17 +52,16 @@ class AbstractOdeFunctionGenerator(ABC):
         )
         self._t_param = t_param
 
+    @abstractmethod
     def var_qte_ode_function(self, time: float, parameters_values: Iterable) -> Iterable:
-        current_param_dict = dict(zip(self._param_dict.keys(), parameters_values))
-        print("t ", time)
-        print("params ", parameters_values)
-
-        nat_grad_res, _, _ = self._linear_solver._solve_sle(
-            self._variational_principle,
-            current_param_dict,
-            self._t_param,
-            time,
-            self._regularization,
-        )
-
-        return nat_grad_res
+        """
+        Evaluates an ODE function for a given time and parameter values. It is used by an ODE
+        solver.
+        Args:
+            time: Current time of evolution.
+            parameters_values: Current values of parameters.
+        Returns:
+            Tuple containing natural gradient, metric tensor and evolution gradient results
+            arising from solving a system of linear equations.
+        """
+        pass
