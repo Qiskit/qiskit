@@ -167,6 +167,8 @@ class Target(Mapping):
         "min_length",
         "pulse_alignment",
         "aquire_alignment",
+        "_non_global_basis",
+        "_non_global_strict_basis",
     )
 
     def __init__(
@@ -223,6 +225,8 @@ class Target(Mapping):
         self.min_length = min_length
         self.pulse_alignment = pulse_alignment
         self.aquire_alignment = aquire_alignment
+        self._non_global_basis = None
+        self._non_global_strict_basis = None
 
     def add_instruction(self, instruction, properties=None, name=None):
         """Add a new instruction to the :class:`~qiskit.transpiler.Target`
@@ -300,6 +304,8 @@ class Target(Mapping):
         self._coupling_graph = None
         self._instruction_durations = None
         self._instruction_schedule_map = None
+        self._non_global_basis = None
+        self._non_global_strict_basis = None
 
     def update_instruction_properties(self, instruction, qargs, properties):
         """Update the property object for an instruction qarg pair already in the Target
@@ -599,6 +605,55 @@ class Target(Mapping):
     def physical_qubits(self):
         """Returns a sorted list of physical_qubits"""
         return list(range(self.num_qubits))
+
+    def get_non_global_operation_names(self, strict_direction=False):
+        """Return the non-global operation names for the target
+
+        The non-global operations are those in the target which don't apply
+        on all qubits (for single qubit operations) or all multiqubit qargs
+        (for multi-qubit operations).
+
+        Args:
+            strict_direction (bool): If set to ``True`` the multi-qubit
+                operations considered as non-global respect the strict
+                direction (or order of qubits in the qargs is signifcant). For
+                example, if ``cx`` is defined on ``(0, 1)`` and ``ecr`` is
+                defined over ``(1, 0)`` by default neither would be considered
+                non-global, but if ``strict_direction`` is set ``True`` both
+                ``cx`` and ``ecr`` would be returned.
+
+        Returns:
+            List[str]: A list of operation names for operations that aren't global in this target
+        """
+        if strict_direction:
+            if self._non_global_strict_basis is not None:
+                return self._non_global_strict_basis
+            search_set = self._qarg_gate_map.keys()
+        else:
+            if self._non_global_basis is not None:
+                return self._non_global_basis
+
+            search_set = {frozenset(qarg) for qarg in self._qarg_gate_map if len(qarg) != 1}
+        incomplete_basis_gates = []
+        size_dict = defaultdict(int)
+        size_dict[1] = self.num_qubits
+        for qarg in search_set:
+            if len(qarg) == 1:
+                continue
+            size_dict[len(qarg)] += 1
+        for inst, qargs in self._gate_map.items():
+            qarg_sample = next(iter(qargs))
+            if qarg_sample is None:
+                continue
+            if not strict_direction:
+                qargs = {frozenset(qarg) for qarg in qargs}
+            if len(qargs) != size_dict[len(qarg_sample)]:
+                incomplete_basis_gates.append(inst)
+        if strict_direction:
+            self._non_global_strict_basis = incomplete_basis_gates
+        else:
+            self._non_global_basis = incomplete_basis_gates
+        return incomplete_basis_gates
 
     def __iter__(self):
         return iter(self._gate_map)
