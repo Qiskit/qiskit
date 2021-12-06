@@ -79,7 +79,7 @@ with open(README_PATH) as readme_file:
 
 
 visualization_extras = [
-    "matplotlib>=3.3,<3.5",
+    "matplotlib>=3.3",
     "ipywidgets>=7.3.0",
     "pydot",
     "pillow>=4.2.1",
@@ -95,7 +95,7 @@ bip_requirements = ["cplex", "docplex"]
 
 setup(
     name="qiskit-terra",
-    version="0.19.0",
+    version="0.20.0",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -142,6 +142,7 @@ setup(
     entry_points={
         "qiskit.unitary_synthesis": [
             "default = qiskit.transpiler.passes.synthesis.unitary_synthesis:DefaultUnitarySynthesis",
+            "aqc = qiskit.transpiler.synthesis.aqc.aqc_plugin:AQCSynthesisPlugin",
         ]
     },
 )

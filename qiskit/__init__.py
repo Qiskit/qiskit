@@ -17,7 +17,6 @@
 import pkgutil
 import sys
 import warnings
-import os
 
 # qiskit errors operator
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
@@ -119,3 +118,20 @@ class IBMQWrapper:
 
 Aer = AerWrapper()
 IBMQ = IBMQWrapper()
+
+__all__ = [
+    "Aer",
+    "AncillaRegister",
+    "BasicAer",
+    "ClassicalRegister",
+    "IBMQ",
+    "MissingOptionalLibraryError",
+    "QiskitError",
+    "QuantumCircuit",
+    "QuantumRegister",
+    "assemble",
+    "execute",
+    "schedule",
+    "sequence",
+    "transpile",
+]
