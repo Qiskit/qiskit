@@ -112,7 +112,6 @@ setup(
         "Operating System :: MacOS",
         "Operating System :: POSIX :: Linux",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
@@ -123,7 +122,7 @@ setup(
     install_requires=REQUIREMENTS,
     setup_requires=["Cython>=0.27.1"],
     include_package_data=True,
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     extras_require={
         "visualization": visualization_extras,
         "bip-mapper": bip_requirements,
