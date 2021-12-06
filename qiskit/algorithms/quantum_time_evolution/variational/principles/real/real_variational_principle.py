@@ -24,6 +24,8 @@ from qiskit.opflow import (
     StateFn,
 )
 
+"""Class for a Real Variational Principle."""
+
 
 class RealVariationalPrinciple(VariationalPrinciple):
     def __init__(

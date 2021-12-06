@@ -28,6 +28,8 @@ from qiskit.opflow import CircuitSampler
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
 
+"""Class for generating error-based ODE functions."""
+
 
 class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
     def __init__(

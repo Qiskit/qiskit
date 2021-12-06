@@ -16,6 +16,8 @@ from qiskit.circuit import ParameterVector, ParameterExpression, Parameter
 from qiskit.opflow import QFI, CircuitQFI, CircuitStateFn, OperatorBase, Z, ListOp, CircuitSampler
 from qiskit.opflow.gradients.circuit_qfis import LinCombFull
 
+"""Calculates and binds metric tensors for Variational Quantum Time Evolution."""
+
 
 def calculate(
     ansatz: QuantumCircuit,

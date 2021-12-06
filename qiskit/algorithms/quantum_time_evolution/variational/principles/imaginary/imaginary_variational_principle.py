@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 from abc import abstractmethod
-from typing import Union, List, Dict
+from typing import Union, Dict
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
@@ -24,6 +24,8 @@ from qiskit.opflow import (
     OperatorBase,
     ListOp,
 )
+
+"""Abstract class for an Imaginary Variational Principle."""
 
 
 class ImaginaryVariationalPrinciple(VariationalPrinciple):

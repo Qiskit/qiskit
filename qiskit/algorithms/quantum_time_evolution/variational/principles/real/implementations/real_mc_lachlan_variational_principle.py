@@ -32,6 +32,8 @@ from qiskit.opflow import (
     OperatorBase,
 )
 
+"""Class for a Real McLachlan's Variational Principle."""
+
 
 class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
     def __init__(

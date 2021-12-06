@@ -18,6 +18,8 @@ from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.abstract_o
     AbstractOdeFunctionGenerator,
 )
 
+"""Class for solving ODEs for Quantum Time Evolution."""
+
 
 class VarQteOdeSolver:
     def __init__(

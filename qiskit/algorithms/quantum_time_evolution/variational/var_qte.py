@@ -52,6 +52,8 @@ from qiskit.opflow import (
     Gradient,
 )
 
+"""Abstract class for Variational Quantum Time Evolution algorithm."""
+
 
 class VarQte(ABC):
     """Variational Quantum Time Evolution.

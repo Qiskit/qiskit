@@ -22,6 +22,8 @@ from qiskit.algorithms.quantum_time_evolution.variational.principles.real.real_v
 from qiskit.circuit import Parameter
 from qiskit.opflow import CircuitQFI, Y, OperatorBase, ListOp, StateFn
 
+"""Class for a Real Time Dependent Variational Principle."""
+
 
 class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):
     def __init__(

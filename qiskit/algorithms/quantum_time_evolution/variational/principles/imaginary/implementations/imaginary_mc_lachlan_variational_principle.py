@@ -22,6 +22,8 @@ from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.i
 from qiskit.circuit import Parameter
 from qiskit.opflow import CircuitQFI, CircuitGradient, StateFn, OperatorBase, ListOp
 
+"""Class for an Imaginary McLachlan's Variational Principle."""
+
 
 class ImaginaryMcLachlanVariationalPrinciple(ImaginaryVariationalPrinciple):
     def __init__(

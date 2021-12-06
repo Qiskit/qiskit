@@ -21,6 +21,8 @@ from qiskit.opflow import OperatorBase, CircuitSampler
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
 
+"""Class for calculating gradient errors for Variational Quantum Imaginary Time Evolution."""
+
 
 class ImaginaryErrorCalculator(ErrorCalculator):
     def __init__(

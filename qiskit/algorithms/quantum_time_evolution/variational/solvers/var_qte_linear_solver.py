@@ -28,6 +28,8 @@ from qiskit.opflow import CircuitSampler
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
 
+""""Class for solving linear equations for Quantum Time Evolution."""
+
 
 class VarQteLinearSolver:
     def __init__(
@@ -60,7 +62,8 @@ class VarQteLinearSolver:
             var_principle: Variational Principle to be used.
             param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
-            time_value: Time value that will be bound to t_param. It is required if t_param is not None.
+            time_value: Time value that will be bound to t_param. It is required if t_param is
+            not None.
             regularization: Use the following regularization with a least square method to solve the
                 underlying system of linear equations.
                 Can be either None or ``'ridge'`` or ``'lasso'`` or ``'perturb_diag'``

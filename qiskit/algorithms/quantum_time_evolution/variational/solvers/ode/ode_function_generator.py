@@ -22,6 +22,8 @@ from qiskit.opflow import CircuitSampler
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
 
+"""Class for generating ODE functions based on natural gradients."""
+
 
 class OdeFunctionGenerator(AbstractOdeFunctionGenerator):
     def __init__(

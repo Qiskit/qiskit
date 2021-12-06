@@ -23,6 +23,8 @@ from qiskit.opflow import CircuitSampler
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
 
+"""Abstract class for generating ODE functions."""
+
 
 class AbstractOdeFunctionGenerator(ABC):
     def __init__(

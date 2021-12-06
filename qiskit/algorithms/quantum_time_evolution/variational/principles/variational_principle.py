@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 from abc import ABC, abstractmethod
-from typing import Union, Optional, List, Callable
+from typing import Union, List, Callable
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
@@ -21,6 +21,8 @@ from qiskit.opflow import (
     ListOp,
     OperatorBase,
 )
+
+"""Class for a Variational Principle."""
 
 
 class VariationalPrinciple(ABC):

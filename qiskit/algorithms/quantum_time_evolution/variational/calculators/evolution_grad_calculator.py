@@ -18,6 +18,8 @@ from qiskit.circuit import ParameterVector, ParameterExpression, Parameter
 from qiskit.opflow import StateFn, Gradient, CircuitGradient, OperatorBase, Z, CircuitSampler
 from qiskit.opflow.gradients.circuit_gradients import LinComb
 
+"""Calculates and binds evolution gradients for Variational Quantum Time Evolution."""
+
 
 def calculate(
     observable: OperatorBase,
@@ -57,7 +59,8 @@ def eval_grad_result(
     samplers if available.
     Args:
         grad: Either an evolution gradient as an OperatorBase to be evaluated or a callable that
-            constructs an OperatorBase from a dictionairy of parameters and evalues and potentially a
+            constructs an OperatorBase from a dictionairy of parameters and evalues and
+            potentially a
             CircuitSampler.
         param_dict: Dictionary which relates parameter values to the parameters in the ansatz.
         grad_circ_sampler: CircuitSampler for evolution gradients.
