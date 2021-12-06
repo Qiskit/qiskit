@@ -8,4 +8,4 @@ fixes:
     from the tapered zero operators (since taper has returned the input operator unchanged).
     The code will now correctly taper a zero operator such that the number of qubits is
     reduced as expected and matches to tapered non-zero operators e.g ```0*"IIII"``` when we are
-    tapering by 3 qubits will become ```0*"I"```.
+    tapering by 3 qubits will become ``0*"I"``.

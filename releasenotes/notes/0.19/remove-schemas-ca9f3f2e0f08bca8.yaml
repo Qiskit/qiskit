@@ -26,7 +26,7 @@ upgrade:
   - |
     The exception raised by the :func:`~.compiler.assemble` function when
     invalid parameters are passed in for constructing a
-    :class:`~qiskit.qobj.PulseQobj` have changed from a ``SchemaValidationError`
+    :class:`~qiskit.qobj.PulseQobj` have changed from a ``SchemaValidationError``
     to a :class:`.QiskitError`. This was necessary because
     the ``SchemaValidationError`` class was removed along with the rest of
     the deprecated ``qiskit.schemas`` and ``qiskit.validation``. This also

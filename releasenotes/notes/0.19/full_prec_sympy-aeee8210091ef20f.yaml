@@ -6,8 +6,6 @@ other:
     parameters that are bound to floats.  This has consequences for QASM
     serialization and the circuit text drawer::
 
-    .. code-block:: python
-
       >>> from qiskit.circuit import Parameter
       >>> x = Parameter('x')
       >>> str(x.bind({x:0.5}))

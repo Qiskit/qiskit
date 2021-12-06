@@ -30,7 +30,7 @@ features:
     The other change around this is that the number of attributes exposed in
     the abstract :class:`~qiskit.providers.BackendV2` class is designed to be
     a hardware/vendor agnostic set of the required or optional fields that the
-    rest of Qiskit can use today with any backend. Sub-classes of the abstract
+    rest of Qiskit can use today with any backend. Subclasses of the abstract
     :class:`~qiskit.providers.BackendV2` class can add support for additional
     attributes and methods beyond those defined in
     :class:`~qiskit.providers.BackendV2`, but these will not be supported
