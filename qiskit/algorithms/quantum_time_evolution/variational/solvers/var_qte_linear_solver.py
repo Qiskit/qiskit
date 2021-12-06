@@ -39,6 +39,20 @@ class VarQteLinearSolver:
         regularization: Optional[str] = None,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
     ):
+        """
+        Args:
+            grad_circ_sampler: CircuitSampler for evolution gradients.
+            metric_circ_sampler: CircuitSampler for metric tensors.
+            energy_sampler: CircuitSampler for energy.
+            regularization: Use the following regularization with a least square method to solve the
+                            underlying system of linear equations.
+                            Can be either None or ``'ridge'`` or ``'lasso'`` or ``'perturb_diag'``
+                            ``'ridge'`` and ``'lasso'`` use an automatic optimal parameter search,
+                            or a penalty term given as Callable.
+                            If regularization is None but the metric is ill-conditioned or singular
+                            then a least square solver is used without regularization.
+            backend: Optional backend tht enables the use of circuit samplers.
+        """
 
         self._backend = backend
         self._regularization = regularization

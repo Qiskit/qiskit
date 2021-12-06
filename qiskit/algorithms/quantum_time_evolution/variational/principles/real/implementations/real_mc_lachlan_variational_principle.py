@@ -35,6 +35,8 @@ from qiskit.opflow import (
 
 
 class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
+    """Class for a Real McLachlan's Variational Principle."""
+
     def __init__(
         self,
         qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
@@ -42,7 +44,7 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
         """
         Args:
             qfi_method: The method used to compute the QFI. Can be either
-                ``'lin_comb_full'`` or ``'overlap_block_diag'`` or ``'overlap_diag'``.
+                        ``'lin_comb_full'`` or ``'overlap_block_diag'`` or ``'overlap_diag'``.
         """
         super().__init__(
             qfi_method,

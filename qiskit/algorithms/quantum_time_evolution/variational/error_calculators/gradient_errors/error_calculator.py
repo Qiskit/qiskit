@@ -22,19 +22,30 @@ from qiskit.utils import QuantumInstance
 
 
 class ErrorCalculator:
+    """Abstract class for calculating gradient errors for Variational Quantum Time Evolution."""
+
     def __init__(
         self,
         h_squared: OperatorBase,
-        exp_operator: OperatorBase,
+        operator: OperatorBase,
         h_squared_sampler: CircuitSampler,
         exp_operator_sampler: CircuitSampler,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
     ):
         self._h_squared = h_squared
-        self._exp_operator = exp_operator
+        self._operator = operator
         self._h_squared_sampler = h_squared_sampler
         self._exp_operator_sampler = exp_operator_sampler
         self._backend = backend
+
+    """
+    Args:
+        h_squared: Squared Hamiltonian.
+        operator: Operator composed of a Hamiltonian and a quantum state.
+        h_squared_sampler: CircuitSampler for a squared Hamiltonian.
+        operator_sampler: CircuitSampler for an operator.
+        backend: Optional backend tht enables the use of circuit samplers.
+    """
 
     def _bind_or_sample_operator(
         self,

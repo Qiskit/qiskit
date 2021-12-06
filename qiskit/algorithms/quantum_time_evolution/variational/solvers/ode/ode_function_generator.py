@@ -25,6 +25,8 @@ from qiskit.utils import QuantumInstance
 
 
 class OdeFunctionGenerator(AbstractOdeFunctionGenerator):
+    """Class for generating ODE functions based on natural gradients."""
+
     def __init__(
         self,
         param_dict: Dict[Parameter, Union[float, complex]],
@@ -36,6 +38,24 @@ class OdeFunctionGenerator(AbstractOdeFunctionGenerator):
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
         t_param: Parameter = None,
     ):
+        """
+        Args:
+            param_dict: Dictionary which relates parameter values to the parameters in
+            the ansatz.
+            variational_principle: Variational Principle to be used.
+            grad_circ_sampler: CircuitSampler for evolution gradients.
+            metric_circ_sampler: CircuitSampler for metric tensors.
+            energy_sampler: CircuitSampler for energy.
+            regularization: Use the following regularization with a least square method
+                            to solve the underlying system of linear equations.
+                            Can be either None or ``'ridge'`` or ``'lasso'`` or ``'perturb_diag'``
+                            ``'ridge'`` and ``'lasso'`` use an automatic optimal parameter search,
+                            or a penalty term given as Callable.
+                            If regularization is None but the metric is ill-conditioned or singular
+                            then a least square solver is used without regularization.
+            backend: Optional backend tht enables the use of circuit samplers.
+            t_param: Time parameter in case of a time-dependent Hamiltonian.
+        """
         super().__init__(
             param_dict,
             variational_principle,

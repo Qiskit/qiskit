@@ -25,6 +25,8 @@ from qiskit.opflow import (
 
 
 class VariationalPrinciple(ABC):
+    """Class for a Variational Principle."""
+
     def __init__(
         self,
         qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
@@ -35,7 +37,7 @@ class VariationalPrinciple(ABC):
             grad_method: The method used to compute the state gradient. Can be either
                         ``'param_shift'`` or ``'lin_comb'`` or ``'fin_diff'``.
             qfi_method: The method used to compute the QFI. Can be either
-                ``'lin_comb_full'`` or ``'overlap_block_diag'`` or ``'overlap_diag'``.
+                        ``'lin_comb_full'`` or ``'overlap_block_diag'`` or ``'overlap_diag'``.
         """
         self._qfi_method = qfi_method
         self._grad_method = grad_method

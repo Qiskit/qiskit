@@ -27,6 +27,8 @@ from qiskit.opflow import (
 
 
 class RealVariationalPrinciple(VariationalPrinciple):
+    """Class for a Real Variational Principle."""
+
     def __init__(
         self,
         qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
@@ -34,7 +36,7 @@ class RealVariationalPrinciple(VariationalPrinciple):
         """
         Args:
             qfi_method: The method used to compute the QFI. Can be either
-                ``'lin_comb_full'`` or ``'overlap_block_diag'`` or ``'overlap_diag'``.
+                        ``'lin_comb_full'`` or ``'overlap_block_diag'`` or ``'overlap_diag'``.
         """
         grad_method = "lin_comb"  # we only know how to do this with lin_comb for a real case
         super().__init__(

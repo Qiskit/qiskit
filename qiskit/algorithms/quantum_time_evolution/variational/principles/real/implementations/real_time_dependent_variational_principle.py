@@ -25,6 +25,8 @@ from qiskit.opflow import CircuitQFI, Y, OperatorBase, ListOp, StateFn
 
 
 class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):
+    """Class for a Real Time Dependent Variational Principle."""
+
     def __init__(
         self,
         qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
@@ -32,7 +34,7 @@ class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):
         """
         Args:
             qfi_method: The method used to compute the QFI. Can be either
-                ``'lin_comb_full'`` or ``'overlap_block_diag'`` or ``'overlap_diag'``.
+                     ``'lin_comb_full'`` or ``'overlap_block_diag'`` or ``'overlap_diag'``.
         """
         super().__init__(
             qfi_method,

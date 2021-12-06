@@ -54,11 +54,11 @@ class VarQite(VarQte, EvolutionBase):
         Args:
             variational_principle: Variational Principle to be used.
             regularization: Use the following regularization with a least square method to solve the
-                underlying system of linear equations
-                Can be either None or ``'ridge'`` or ``'lasso'`` or ``'perturb_diag'``
-                ``'ridge'`` and ``'lasso'`` use an automatic optimal parameter search
-                If regularization is None but the metric is ill-conditioned or singular then
-                a least square solver is used without regularization
+                            underlying system of linear equations.
+                            Can be either None or ``'ridge'`` or ``'lasso'`` or ``'perturb_diag'``
+                            ``'ridge'`` and ``'lasso'`` use an automatic optimal parameter search
+                            If regularization is None but the metric is ill-conditioned or singular
+                            then a least square solver is used without regularization.
             backend: Backend used to evaluate the quantum circuit outputs
             error_based_ode: If False use the provided variational principle to get the parameter
                                 updates.

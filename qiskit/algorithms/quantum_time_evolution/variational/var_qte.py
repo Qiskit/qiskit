@@ -56,8 +56,8 @@ from qiskit.opflow import (
 class VarQte(ABC):
     """Variational Quantum Time Evolution.
        https://doi.org/10.22331/q-2019-10-07-191
-    Algorithms that use McLachlans variational principle to compute a time evolution for a given
-    Hermitian operator (Hamiltonian) and quantum state.
+    Algorithms that use variational principles to compute a time evolution for a given
+    Hermitian operator (Hamiltonian) and a quantum state.
     """
 
     def __init__(
@@ -302,7 +302,8 @@ class VarQte(ABC):
         Creates an ODE function generator for variational time evolution, with an
         ErrorCalculator in case of an error-based evolution.
         Args:
-            error_calculator: ErrorCalculator object in case of error-based evolution.
+            error_calculator: ErrorCalculator object to calculate gradient errors in case of
+                                error-based evolution.
             init_state_param_dict: Dictionary mapping parameters to their initial values for a
                                 quantum state.
             t_param: Time parameter in case of a time-dependent Hamiltonian.

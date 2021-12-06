@@ -21,6 +21,8 @@ from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.abstract_o
 
 
 class VarQteOdeSolver:
+    """Class for solving ODEs for Quantum Time Evolution."""
+
     def __init__(
         self,
         init_params: List[Union[float, complex]],

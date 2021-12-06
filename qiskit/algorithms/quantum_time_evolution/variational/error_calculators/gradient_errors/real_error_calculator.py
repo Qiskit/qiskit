@@ -24,15 +24,25 @@ from qiskit.utils import QuantumInstance
 
 
 class RealErrorCalculator(ErrorCalculator):
+    """Class for calculating gradient errors for Variational Quantum Real Time Evolution."""
+
     def __init__(
         self,
         h_squared: OperatorBase,
-        exp_operator: OperatorBase,
+        operator: OperatorBase,
         h_squared_sampler: CircuitSampler,
-        exp_operator_sampler: CircuitSampler,
+        operator_sampler: CircuitSampler,
         backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
     ):
-        super().__init__(h_squared, exp_operator, h_squared_sampler, exp_operator_sampler, backend)
+        """
+        Args:
+            h_squared: Squared Hamiltonian.
+            operator: Operator composed of a Hamiltonian and a quantum state.
+            h_squared_sampler: CircuitSampler for a squared Hamiltonian.
+            operator_sampler: CircuitSampler for an operator.
+            backend: Optional backend tht enables the use of circuit samplers.
+        """
+        super().__init__(h_squared, operator, h_squared_sampler, operator_sampler, backend)
 
     def _calc_single_step_error(
         self,
@@ -57,7 +67,7 @@ class RealErrorCalculator(ErrorCalculator):
             self._h_squared, self._h_squared_sampler, param_dict
         )
         exp_operator_bound = self._bind_or_sample_operator(
-            self._exp_operator, self._exp_operator_sampler, param_dict
+            self._operator, self._exp_operator_sampler, param_dict
         )
         eps_squared += h_squared_bound
         eps_squared -= np.real(exp_operator_bound ** 2)

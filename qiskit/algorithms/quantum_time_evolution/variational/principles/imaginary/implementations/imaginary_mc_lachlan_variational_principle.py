@@ -25,6 +25,8 @@ from qiskit.opflow import CircuitQFI, CircuitGradient, StateFn, OperatorBase, Li
 
 
 class ImaginaryMcLachlanVariationalPrinciple(ImaginaryVariationalPrinciple):
+    """Class for an Imaginary McLachlan's Variational Principle."""
+
     def __init__(
         self,
         qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
