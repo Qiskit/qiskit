@@ -204,12 +204,14 @@ class TestPresetPassManager(QiskitTestCase):
             transpile(circuit, backend=FakeJohannesburg(), optimization_level=level)
         mock.assert_called_once()
 
-    def test_unroll_only_if_not_gates_in_basis(self, level=3):
+    def test_unroll_only_if_not_gates_in_basis(self):
+        """Test that the list of passes _unroll only runs if a gate is not in the basis."""
         qcomp = FakeBelem()
         qv_circuit = QuantumVolume(3)
         gates_in_basis_true_count = 0
         collect_2q_blocks_count = 0
 
+        # pylint: disable=unused-argument
         def counting_callback_func(pass_, dag, time, property_set, count):
             nonlocal gates_in_basis_true_count
             nonlocal collect_2q_blocks_count
