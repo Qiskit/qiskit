@@ -20,7 +20,7 @@ features:
       
       circuit.draw('latex', filename='./file.spooky')
 
-    it will give user a ``ValueError`` to change the filename extension to a supported image format.
+    it will raise a ``ValueError`` to change the filename extension to a supported image format.
 upgrade:
   - |
     The circuit drawers :meth:`.QuantumCircuit.draw` and

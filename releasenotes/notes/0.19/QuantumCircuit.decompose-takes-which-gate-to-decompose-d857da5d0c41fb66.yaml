@@ -11,12 +11,10 @@ features:
 
     will decompose any ``h``, ``rx`` or ``rz`` gates, but leave (for example) ``x`` gates untouched.
 
-    See  `#2906 <https://github.com/Qiskit/qiskit-terra/issues/2906>`__ for more information.
-
 deprecations:
   - |
     The ``gate`` attribute and initialization parameter of
-    :obj:`qiskit.transpiler.passes.basis.Decompose` is deprecated, and will be
+    :class:`qiskit.transpiler.passes.Decompose` is deprecated, and will be
     removed in a future release.  Instead of this single gate, you should pass a
     list of gate names to the new parameter ``gates_to_decompose``.  This was
     done as the new form allows you to select more than one gate as a

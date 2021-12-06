@@ -20,7 +20,7 @@ features:
     Note that currently the :mod:`qiskit.algorithms` module and the
     :class:`~qiskit.utils.QuantumInstance` class still use the legacy mitigators
     migrated from Qiskit Ignis in :mod:`qiskit.utils.mitigation`. It is planned
-    to upgrade code to use the new mitigator classes and deprecate the legacy
+    to upgrade the module to use the new mitigator classes and deprecate the legacy
     mitgation code in a future release.
   - |
     Added the :class:`~qiskit.result.LocalReadoutMitigator` class for
@@ -45,10 +45,10 @@ features:
     :class:`~qiskit.result.QuasiDistribution` and expectation values.
   - |
     Added a :attr:`.QuasiDistribution.stddev_upper_bound`
-    attribute and init kwarg to :meth:`qiskit.result.QuasiDistribution` for
-    storing standard errors in quasi-probability estimates. This is used by
-    :class:`~qiskit.result.BaseReadoutMitigator` classes to store the
-    standard error in mitigated quasi probabilities.
+    attribute and a kwarg to the constructor of the :class:`.QuasiDistribution`
+    class, which is used for storing standard errors in quasi-probability
+    estimates. This is used by :class:`~qiskit.result.BaseReadoutMitigator`
+    classes to store the standard error in mitigated quasi probabilities.
   - |
     Added a :meth:`~qiskit.result.Counts.shots` method to
     :class:`qiskit.result.Counts` to return the sum of all outcomes in

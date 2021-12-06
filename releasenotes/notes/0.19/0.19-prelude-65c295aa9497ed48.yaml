@@ -24,5 +24,11 @@ prelude: |
 
     .. _OpenQASM 3 specification: https://qiskit.github.io/openqasm/
 
+    This release marks the end of support for Python 3.6 in Qiskit.  This
+    release of Qiskit Terra, and any subsequent bugfix releases in the 0.19.x
+    series, will be the last to work with Python 3.6.  Starting from the next
+    minor release (0.20.0) of Qiskit Terra, the minimum required Python version
+    will be 3.7.
+
     As always, there are many more features and fixes in this release as well,
     which you can read about below.

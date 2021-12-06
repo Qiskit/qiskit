@@ -8,5 +8,4 @@ fixes:
     ``ConfigurableFakeBackend`` compatible with anything expecting a
     :class:`~qiskit.providers.BackendV1` object. However, if you were using the
     ``name`` attribute directly before you will now need to either call it as a
-    method or access the ``backend_name`` attribute instead.  in several
-    unittests because string is not callable.
+    method or access the ``backend_name`` attribute instead.

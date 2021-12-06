@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Added the ``termination_callback`` argument to the :class:`~qiskit.algorithms.optimizers.SPSA` optimizer.
+    Added the ``termination_checker`` argument to the :class:`~qiskit.algorithms.optimizers.SPSA` optimizer.
     This allows the user to implement a custom termination criterion.
     
     .. code-block:: python
@@ -41,4 +41,3 @@ features:
         maxiter = 400
         spsa = SPSA(maxiter=maxiter, termination_checker=TerminationChecker(10))
         parameters, value, niter = spsa.optimize(2, objective, initial_point=np.array([0.5, 0.5]))
-        print(f'SPSA completed after {niter} iterations')
