@@ -82,11 +82,11 @@ deprecations:
     are deprecated, and will be removed in a future release.
     The import path::
 
-        from qiskit.transpiler.passes.scheduling.rzx_templates.rzx_templates import rzx_templates
+        from qiskit.transpiler.passes.scheduling.rzx_templates import rzx_templates
 
     is also deprecated, and will be removed in a future release.
     You should use the new import paths::
 
         from qiskit.transpiler.passes import RZXCalibrationBuilder
         from qiskit.transpiler.passes import RZXCalibrationBuilderNoEcho
-        from qiskit.transpiler.passes.calibration import rzx_templates
+        from qiskit.transpiler.passes.calibration.rzx_templates import rzx_templates
