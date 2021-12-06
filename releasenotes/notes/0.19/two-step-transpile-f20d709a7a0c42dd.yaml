@@ -17,7 +17,7 @@ features:
 
     For example, this feature allows using the pulse-efficient CX decomposition in the VQE, as
 
-    .. code-block::python
+    .. code-block:: python
 
         from qiskit.algorithms import VQE
         from qiskit.opflow import Z
