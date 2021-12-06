@@ -1,31 +1,19 @@
 ---
 features:
   - |
-    A new transpiler pass group ``qiskit.transpiler.passes.calibration`` has
-    been added.  This group consists of
+    A new transpile pass, :class:`.PulseGates`, was added, which automatically
+    extracts user-provided calibrations from the instruction schedule map and
+    attaches the gate schedule to the given (transpiled) quantum circuit as a
+    pulse gate.
 
-    - :class:`~qiskit.transpiler.passes.RZXCalibrationBuilder`
-    - :class:`~qiskit.transpiler.passes.RZXCalibrationBuilderNoEcho`
-    - :func:`~qiskit.transpiler.passes.calibration.rzx_templates.rzx_templates`.
-    - :class:`~qiskit.transpiler.passes.PulseGates`
-
-    :obj:`.RZXCalibrationBuilder`, :obj:`.RZXCalibrationBuilderNoEcho`, and
-    ``rzx_templates`` were moved from ``qiskit.transpiler.passes.scheduling``,
-    whereas :obj:`.PulseGates` is the new pass that automatically extracts
-    user-provided calibrations from the instruction schedule map and attaches
-    the gate schedule to the given (transpiled) quantum circuit as a pulse gate.
-    Any transpiler pass that interacts with the pulse gate feature will be
-    grouped to ``qiskit.transpiler.passes.calibration``.
-
-    This pass is applied to all optimization levels from 0 to 3.
-    No gate implementation is updated unless the end-user explicitly overrides
-    the ``backend.defaults().instruction_schedule_map``.
-
+    The :class:`.PulseGates` transpiler pass is applied to all optimization
+    levels from 0 to 3.  No gate implementation is updated unless the end-user
+    explicitly overrides the ``backend.defaults().instruction_schedule_map``.
     This pass saves users from individually calling
     :meth:`.QuantumCircuit.add_calibration` for every circuit run on the
     hardware.
 
-    Along with this change, a schedule was added to
+    To supplement this new pass, a schedule was added to
     :class:`~qiskit.pulse.InstructionScheduleMap` and is implicitly updated with
     a metadata ``"publisher"``.  Backend-calibrated gate schedules have a
     special publisher kind to avoid overriding circuits with calibrations of
@@ -91,10 +79,14 @@ deprecations:
         from qiskit.transpiler.passes.scheduling.calibration_creators import RZXCalibrationBuilder
         from qiskit.transpiler.passes.scheduling.calibration_creators import RZXCalibrationBuilderNoEcho
 
-    are deprecated.
+    are deprecated, and will be removed in a future release.
     The import path::
 
         from qiskit.transpiler.passes.scheduling.rzx_templates.rzx_templates import rzx_templates
 
-    is also deprecated.
-    You should use the new import path ``qiskit.transpiler.passes.calibration``.
+    is also deprecated, and will be removed in a future release.
+    You should use the new import paths::
+
+        from qiskit.transpiler.passes import RZXCalibrationBuilder
+        from qiskit.transpiler.passes import RZXCalibrationBuilderNoEcho
+        from qiskit.transpiler.passes.calibration import rzx_templates
