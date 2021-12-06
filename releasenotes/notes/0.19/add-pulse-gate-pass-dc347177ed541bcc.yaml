@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    A new transpile pass, :class:`.PulseGates`, was added, which automatically
+    A new transpiler pass, :class:`.PulseGates`, was added, which automatically
     extracts user-provided calibrations from the instruction schedule map and
     attaches the gate schedule to the given (transpiled) quantum circuit as a
     pulse gate.
@@ -15,7 +15,7 @@ features:
 
     To supplement this new pass, a schedule was added to
     :class:`~qiskit.pulse.InstructionScheduleMap` and is implicitly updated with
-    a metadata ``"publisher"``.  Backend-calibrated gate schedules have a
+    a metadata field ``"publisher"``.  Backend-calibrated gate schedules have a
     special publisher kind to avoid overriding circuits with calibrations of
     already known schedules.  Usually, end-users don't need to take care of this
     metadata as it is applied automatically.  You can call
