@@ -111,7 +111,7 @@ Where:
 
     def test_copy(self):
         options = Options(opt1=1, opt2=2)
-        cpy = options.copy()
+        cpy = copy.copy(options)
         cpy.update_options(opt1=10, opt3=20)
         self.assertEqual(options.opt1, 1)
         self.assertEqual(options.opt2, 2)
