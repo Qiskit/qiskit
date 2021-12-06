@@ -12,9 +12,23 @@
 
 # pylint: disable=cyclic-import, missing-return-doc
 
-"""The Schedule is one of the most fundamental objects to this pulse-level programming module.
+"""
+=========
+Schedules
+=========
+
+.. currentmodule:: qiskit.pulse
+
+Schedules are Pulse programs. They describe instruction sequences for the control hardware.
+The Schedule is one of the most fundamental objects to this pulse-level programming module.
 A ``Schedule`` is a representation of a *program* in Pulse. Each schedule tracks the time of each
 instruction occuring in parallel over multiple signal *channels*.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   Schedule
+   ScheduleBlock
 """
 
 import abc
@@ -66,30 +80,30 @@ class Schedule:
 
     - Appending an instruction to the end of a channel
 
-    .. code-block:: python
+      .. code-block:: python
 
-        sched = Schedule()
-        sched += Play(Gaussian(160, 0.1, 40), DriveChannel(0))
+          sched = Schedule()
+          sched += Play(Gaussian(160, 0.1, 40), DriveChannel(0))
 
     - Appending an instruction shifted in time by a given amount
 
-    .. code-block:: python
+      .. code-block:: python
 
-        sched = Schedule()
-        sched += Play(Gaussian(160, 0.1, 40), DriveChannel(0)) << 30
+          sched = Schedule()
+          sched += Play(Gaussian(160, 0.1, 40), DriveChannel(0)) << 30
 
     - Merge two schedules
 
-    .. code-block:: python
+      .. code-block:: python
 
-        sched1 = Schedule()
-        sched1 += Play(Gaussian(160, 0.1, 40), DriveChannel(0))
+          sched1 = Schedule()
+          sched1 += Play(Gaussian(160, 0.1, 40), DriveChannel(0))
 
-        sched2 = Schedule()
-        sched2 += Play(Gaussian(160, 0.1, 40), DriveChannel(1))
-        sched2 = sched1 | sched2
+          sched2 = Schedule()
+          sched2 += Play(Gaussian(160, 0.1, 40), DriveChannel(1))
+          sched2 = sched1 | sched2
 
-    A ``PulseError`` is immediately raised when the overlap constraint is violated.
+    A :obj:`.PulseError` is immediately raised when the overlap constraint is violated.
 
     In the schedule representation, we cannot parametrize the duration of instructions.
     Thus we need to create a new schedule object for each duration.
@@ -807,13 +821,13 @@ def _require_schedule_conversion(function: Callable) -> Callable:
 
 
 class ScheduleBlock:
-    """A ``ScheduleBlock`` is a time-ordered sequence of instructions and transform macro to
+    r"""A ``ScheduleBlock`` is a time-ordered sequence of instructions and transform macro to
     manage their relative timing. The relative position of the instructions is managed by
-    the ``context_alignment``. This allows ``ScheduleBlock`` to support instructions with
+    the ``alignment_context``. This allows ``ScheduleBlock`` to support instructions with
     a parametric duration and allows the lazy scheduling of instructions,
     i.e. allocating the instruction time just before execution.
 
-    ``ScheduleBlock`` s should be initialized with one of the following alignment contexts:
+    ``ScheduleBlock``\ s should be initialized with one of the following alignment contexts:
 
     - :class:`~qiskit.pulse.transforms.AlignLeft`: Align instructions in the
       `as-soon-as-possible` manner. Instructions are scheduled at the earliest
