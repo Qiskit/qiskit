@@ -269,6 +269,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
             "VariadicZeroParamGate",
             "ClassicalFunction",
             "ClassicalElement",
+            "BridgeGate",
         }
         cls._gate_classes = []
         for aclass in class_list:

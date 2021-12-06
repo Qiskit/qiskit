@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Adds a new gate :class:`~qiskit.circuit.library.BridgeGate` which allows
+    executing a CNOT between two qubits that are connected by a path of length
+    greater than 1 in a quantum device.
+  - |
+    Adds a new transpiler pass :class:`~qiskit.transpiler.passes.SwapCXSwapToBridge`
+    which runs post-routing to find instances where a routing pass inserted a SWAP-CX-SWAP
+    and replaces it with a :class:`~qiskit.circuit.library.BridgeGate`. 
