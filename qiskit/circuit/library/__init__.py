@@ -17,6 +17,24 @@ Circuit Library (:mod:`qiskit.circuit.library`)
 
 .. currentmodule:: qiskit.circuit.library
 
+Circuit Library is a collection of well studied circuits, instructions, and gates that can be plugged
+into many experiments allowing users to program at higher levels of abstraction when developing and
+experimenting with circuits.
+
+
+Any element of the circuit library can be attached to a circuit with the method
+:meth:`~qiskit.circuit.QuantumCircuit.append()`. For example, to append a multi-controlled CNOT:
+
+.. jupyter-execute::
+
+    from qiskit.circuit.library import MCXGate
+    gate = MCXGate(4)
+
+    from qiskit import QuantumCircuit
+    circuit = QuantumCircuit(5)
+    circuit.append(gate, [0, 1, 4, 2, 3])
+    circuit.draw('text')
+
 Standard Gates
 ==============
 
@@ -24,7 +42,6 @@ Standard Gates
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
-   Barrier
    C3XGate
    C3SXGate
    C4XGate
@@ -50,12 +67,10 @@ Standard Gates
    MCXGrayCode
    MCXRecursive
    MCXVChain
-   Measure
    MSGate
    PhaseGate
    RCCXGate
    RC3XGate
-   Reset
    RGate
    RXGate
    RXXGate
@@ -80,6 +95,17 @@ Standard Gates
    XGate
    YGate
    ZGate
+
+Standard Instructions
+==============
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+   Barrier
+   Measure
+   Reset
 
 Generalized Gates
 =================
@@ -107,6 +133,7 @@ Boolean Logic Circuits
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
+   BooleanExpression
    AND
    OR
    XOR
@@ -354,6 +381,8 @@ from .templates import *
 from ..barrier import Barrier
 from ..measure import Measure
 from ..reset import Reset
+
+from ..classicalfunction import BooleanExpression
 
 from .blueprintcircuit import BlueprintCircuit
 from .generalized_gates import (
