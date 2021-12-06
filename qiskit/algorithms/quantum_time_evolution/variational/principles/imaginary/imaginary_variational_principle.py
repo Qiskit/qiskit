@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""Abstract class for an Imaginary Variational Principle."""
 from abc import abstractmethod
 from typing import Union, Dict
 
@@ -24,8 +25,6 @@ from qiskit.opflow import (
     OperatorBase,
     ListOp,
 )
-
-"""Abstract class for an Imaginary Variational Principle."""
 
 
 class ImaginaryVariationalPrinciple(VariationalPrinciple):

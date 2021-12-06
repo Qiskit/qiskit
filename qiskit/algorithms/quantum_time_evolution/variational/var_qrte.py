@@ -9,6 +9,8 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
+"""Variational Quantum Real Time Evolution algorithm."""
 from typing import Optional, Union, Dict
 
 from scipy.integrate import OdeSolver
@@ -32,8 +34,6 @@ from qiskit.opflow import (
 )
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
-
-"""Variational Quantum Real Time Evolution algorithm."""
 
 
 class VarQrte(VarQte, EvolutionBase):

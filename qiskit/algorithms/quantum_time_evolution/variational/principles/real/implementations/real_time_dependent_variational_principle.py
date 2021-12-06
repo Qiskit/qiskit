@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""Class for a Real Time Dependent Variational Principle."""
 from typing import Union, List
 
 from qiskit import QuantumCircuit
@@ -21,8 +22,6 @@ from qiskit.algorithms.quantum_time_evolution.variational.principles.real.real_v
 )
 from qiskit.circuit import Parameter
 from qiskit.opflow import CircuitQFI, Y, OperatorBase, ListOp, StateFn
-
-"""Class for a Real Time Dependent Variational Principle."""
 
 
 class RealTimeDependentVariationalPrinciple(RealVariationalPrinciple):

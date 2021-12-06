@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""Class for a Variational Principle."""
 from abc import ABC, abstractmethod
 from typing import Union, List, Callable
 
@@ -21,8 +22,6 @@ from qiskit.opflow import (
     ListOp,
     OperatorBase,
 )
-
-"""Class for a Variational Principle."""
 
 
 class VariationalPrinciple(ABC):

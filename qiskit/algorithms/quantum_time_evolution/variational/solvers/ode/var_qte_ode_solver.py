@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""Class for solving ODEs for Quantum Time Evolution."""
 import itertools
 from typing import List, Union
 
@@ -17,8 +18,6 @@ from scipy.integrate import OdeSolver, solve_ivp
 from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
     AbstractOdeFunctionGenerator,
 )
-
-"""Class for solving ODEs for Quantum Time Evolution."""
 
 
 class VarQteOdeSolver:

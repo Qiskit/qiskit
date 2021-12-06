@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""Variational Quantum Imaginary Time Evolution algorithm."""
 from typing import Optional, Union, Dict
 
 from scipy.integrate import OdeSolver
@@ -35,8 +36,6 @@ from qiskit.opflow import (
 from qiskit.algorithms.quantum_time_evolution.variational.var_qte import VarQte
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
-
-"""Variational Quantum Imaginary Time Evolution algorithm."""
 
 
 class VarQite(VarQte, EvolutionBase):

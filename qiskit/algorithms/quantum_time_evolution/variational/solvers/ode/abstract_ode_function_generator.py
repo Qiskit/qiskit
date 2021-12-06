@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""Abstract class for generating ODE functions."""
 from abc import ABC, abstractmethod
 from typing import Iterable, Union, Dict, Optional
 
@@ -22,8 +23,6 @@ from qiskit.circuit import Parameter
 from qiskit.opflow import CircuitSampler
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
-
-"""Abstract class for generating ODE functions."""
 
 
 class AbstractOdeFunctionGenerator(ABC):

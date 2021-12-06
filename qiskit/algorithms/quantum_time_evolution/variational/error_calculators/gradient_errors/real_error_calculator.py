@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""Class for calculating gradient errors for Variational Quantum Real Time Evolution."""
 from typing import Union, List, Dict, Optional, Tuple
 
 import numpy as np
@@ -20,8 +21,6 @@ from qiskit.circuit import Parameter
 from qiskit.opflow import OperatorBase, CircuitSampler
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
-
-"""Class for calculating gradient errors for Variational Quantum Real Time Evolution."""
 
 
 class RealErrorCalculator(ErrorCalculator):

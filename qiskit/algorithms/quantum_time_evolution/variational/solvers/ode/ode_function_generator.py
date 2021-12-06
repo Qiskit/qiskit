@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""Class for generating ODE functions based on natural gradients."""
 from typing import Union, Dict, Optional, Iterable
 
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
@@ -21,8 +22,6 @@ from qiskit.circuit import Parameter
 from qiskit.opflow import CircuitSampler
 from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
-
-"""Class for generating ODE functions based on natural gradients."""
 
 
 class OdeFunctionGenerator(AbstractOdeFunctionGenerator):

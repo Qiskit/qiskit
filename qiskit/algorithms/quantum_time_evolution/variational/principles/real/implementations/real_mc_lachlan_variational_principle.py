@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""Class for a Real McLachlan's Variational Principle."""
 from typing import Union, Dict, List, Callable
 
 from qiskit import QuantumCircuit
@@ -31,8 +32,6 @@ from qiskit.opflow import (
     ListOp,
     OperatorBase,
 )
-
-"""Class for a Real McLachlan's Variational Principle."""
 
 
 class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):

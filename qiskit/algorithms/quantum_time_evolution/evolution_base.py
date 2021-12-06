@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""Base class for quantum time evolution."""
 from abc import ABC, abstractmethod
 
 from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import (
@@ -16,8 +17,6 @@ from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result 
 )
 from qiskit.algorithms.quantum_time_evolution.results.evolution_result import EvolutionResult
 from qiskit.opflow import OperatorBase, StateFn, Gradient
-
-"""Base class for quantum time evolution."""
 
 
 class EvolutionBase(ABC):
