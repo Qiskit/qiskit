@@ -25,7 +25,7 @@ from .evolution_synthesis import EvolutionSynthesis
 class ProductFormula(EvolutionSynthesis):
     """Product formula base class for the decomposition of non-commuting operator exponentials.
 
-    Lie-Trotter and Suzuki inherit this class.
+    :obj:`.LieTrotter` and :obj:`.SuzukiTrotter` inherit from this class.
     """
 
     def __init__(

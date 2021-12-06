@@ -1,0 +1,75 @@
+---
+upgrade:
+  - |
+    Various methods of assigning parameters to operands of pulse program
+    instructions have been removed, having been deprecated in Qiskit Terra 0.17.
+    These include:
+    
+    * the ``assign()`` method of :obj:`.pulse.Instruction`.
+    * the ``assign()`` method of ``Channel``, which is the base of
+      :obj:`.AcquireChannel`, :obj:`.SnapshotChannel`, :obj:`.MemorySlot` and
+      :obj:`.RegisterSlot`.
+    * the ``assign()`` and ``assign_parameters()`` methods of
+      ``ParametricPulse``, which is the base of :obj:`.pulse.Gaussian`,
+      :obj:`.pulse.GaussianSquare`, :obj:`.pulse.Drag` and :obj:`.pulse.Constant`.
+
+    These parameters should be assigned from the pulse program
+    (:class:`.pulse.Schedule` and :class:`.pulse.ScheduleBlock`) rather than
+    operands of the pulse program instruction.
+  - |
+    The ``flatten()`` method of :class:`.pulse.Instruction` and
+    :class:`qiskit.pulse.Schedule` has been removed and no longer exists as per
+    the deprecation notice from Qiskit Terra 0.17. This transformation is
+    defined as a standalone function in
+    :func:`qiskit.pulse.transforms.canonicalization.flatten`.
+  - |
+    ``qiskit.pulse.interfaces.ScheduleComponent`` has been removed and no longer
+    exists as per the deprecation notice from Qiskit Terra 0.15. No alternative
+    class will be provided.
+  - |
+    Legacy pulse drawer arguments have been removed from
+    :meth:`.pulse.Waveform.draw`, :meth:`.Schedule.draw` and
+    :meth:`.ScheduleBlock.draw` and no longer exist as per the deprecation
+    notice from Qiskit Terra 0.16. Now these draw methods support only V2 pulse
+    drawer arguments. See method documentations for details.
+  - |
+    The ``qiskit.pulse.reschedule`` module has been removed and this import path
+    no longer exist as per the deprecation notice from Qiskit Terra 0.14. Use
+    :mod:`qiskit.pulse.transforms` instead.
+  - |
+    A protected method ``Schedule._children()`` has been removed and replaced by
+    a protected instance variable as per the deprecation notice from Qiskit
+    Terra 0.17.  This is now provided as a public attribute
+    :obj:`.Schedule.children`.
+  - |
+    Timeslot relevant methods and properties have been removed and no longer
+    exist in :class:`~.pulse.ScheduleBlock` as per the deprecation notice from
+    Qiskit Terra 0.17.  Since this representation doesn't have notion of
+    instruction time ``t0``, the timeslot information will be available after it
+    is transformed to a :obj:`~.pulse.Schedule`.  Corresponding attributes have
+    been provided after this conversion, but they are no longer supported.  The
+    following attributes are removed:
+
+    * ``timeslots``
+    * ``start_time``
+    * ``stop_time``
+    * ``ch_start_time``
+    * ``ch_stop_time``
+    * ``shift``
+    * ``insert``
+  - |
+    Alignment pulse schedule transforms have been removed and no longer exist as
+    per the deprecation notice from Qiskit Terra 0.17. These transforms are
+    integrated and implemented in the ``AlignmentKind`` context of the schedule
+    block.  The following explicit transform functions are removed:
+
+    * ``qiskit.pulse.transforms.align_equispaced``
+    * ``qiskit.pulse.transforms.align_func``
+    * ``qiskit.pulse.transforms.align_left``
+    * ``qiskit.pulse.transforms.align_right``
+    * ``qiskit.pulse.transforms.align_sequential``
+  - |
+    Redundant pulse builder commands have been removed and no longer exist as
+    per the deprecation notice from Qiskit Terra 0.17.
+    ``pulse.builder.call_schedule`` and ``pulse.builder.call_circuit`` have been
+    integrated into :func:`.pulse.builder.call`.
