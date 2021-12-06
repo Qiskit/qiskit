@@ -4,21 +4,21 @@ features:
     The :class:`~qiskit.transpiler.passes.BasisTranslator`,
     :class:`~qiskit.transpiler.passes.GateDirection`, and
     :class:`~qiskit.transpiler.passes.CheckGateDirection` transpiler passes have
-    a new kwarg on the constructor, ``target`` which can be used to set
+    a new ``target`` kwarg in their constructors, which can be used to set
     a :class:`~qiskit.transpiler.Target` object as the target for the pass. If
-    it is set it will be used instead of the ``basis_gates`` (in the case of
+    it is set it will be used instead of the ``target_basis`` (in the case of
     the :class:`~qiskit.transpiler.passes.BasisTranslator` pass) or
     ``coupling_map`` (in the case of the
     :class:`~qiskit.transpiler.passes.GateDirection` and
     :class:`~qiskit.transpiler.passes.CheckGateDirection` passes) arguments.
 issues:
   - |
-    When running the :class:`~qiskit.transpiler.pass.BasisTranslator` in
+    When running the :class:`~qiskit.transpiler.passes.BasisTranslator` in
     isolation with the ``target`` argument set to a
-    :class:`~qiskit.transpiler.Target` object set with non-overlapping sets
-    of single qubit operations on different qubits the output circuit might
-    incorrectly include operations outside the set defined on that single qubit.
-    For example, if you ran::
+    :class:`~qiskit.transpiler.Target` object, where some single-qubit gates
+    can only apply to non-overlapping sets of qubits, the output circuit might
+    incorrectly include operations on a qubit that are not allowed by the
+    :class:`~qiskit.transpiler.Target`.  For example, if you ran::
 
         from qiskit.circuit import QuantumCircuit, Parameter
         from qiskit.circuit.library import UGate, RZGate, XGate, SXGate, CXGate
@@ -73,9 +73,9 @@ issues:
         qc.iswap(0, 1)
         output = bt_pass(qc)
 
-    ``output`` will have `RZGate` and ``SXGate`` on qubit 0. To correct this
-    you can normally run the basis translator a second time (i.e.
-    ``output = bt_pass(output)`` in the above example) to correct this. This
-    should not effect the output of running the
+    ``output`` will have :class:`.RZGate` and :class:`.SXGate` on qubit 0, even
+    though this is forbidden. To correct this you can normally run the basis
+    translator a second time (i.e.  ``output = bt_pass(output)`` in the above
+    example) to correct this. This should not affect the output of running the
     :func:`~qiskit.compiler.transpile` function and is only an issue if you run
     the pass by itself.
