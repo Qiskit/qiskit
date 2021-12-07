@@ -3541,11 +3541,12 @@ class QuantumCircuit:
         targets = self.qbit_argument_conversion(target_qubit)
 
         if future.__MULTICONTROLLED_GATES__ and (len(controls) > 1 or len(targets) > 1):
-            from .library.standard_gates.u import UGate
             from .library.generalized_gates.mcmt import MCMT
 
-            # TODO what about gamma?
-            gate = MCMT(UGate(theta, phi, lam), len(controls), len(targets)).data[0][0]
+            u_gate = QuantumCircuit(1, global_phase=gamma, name="U")
+            u_gate.u(theta, phi, lam, 0)
+
+            gate = MCMT(u_gate, len(controls), len(targets)).data[0][0]
             qubits = controls + targets
         else:
             from .library.standard_gates.u import CUGate
@@ -4060,13 +4061,23 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.y import CYGate
+        controls = self.qbit_argument_conversion(control_qubit)
+        targets = self.qbit_argument_conversion(target_qubit)
 
-        _warn_on_broadcasting_controlled_gate([control_qubit, target_qubit], "cy")
+        if future.__MULTICONTROLLED_GATES__ and (len(controls) > 1 or len(targets) > 1):
+            from .library.standard_gates.y import YGate
+            from .library.generalized_gates.mcmt import MCMT
 
-        return self.append(
-            CYGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
-        )
+            gate = MCMT(YGate(), len(controls), len(targets)).data[0][0]
+            qubits = controls + targets
+        else:
+            from .library.standard_gates.y import CYGate
+
+            _warn_on_broadcasting_controlled_gate([controls, targets], "cy")
+            gate = CYGate(label=label, ctrl_state=ctrl_state)
+            qubits = [control_qubit, target_qubit]
+
+        return self.append(gate, qubits, [])
 
     def z(self, qubit: QubitSpecifier) -> InstructionSet:
         r"""Apply :class:`~qiskit.circuit.library.ZGate`.
@@ -4105,13 +4116,23 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.z import CZGate
+        controls = self.qbit_argument_conversion(control_qubit)
+        targets = self.qbit_argument_conversion(target_qubit)
 
-        _warn_on_broadcasting_controlled_gate([control_qubit, target_qubit], "cz")
+        if future.__MULTICONTROLLED_GATES__ and (len(controls) > 1 or len(targets) > 1):
+            from .library.standard_gates.z import ZGate
+            from .library.generalized_gates.mcmt import MCMT
 
-        return self.append(
-            CZGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
-        )
+            gate = MCMT(ZGate(), len(controls), len(targets)).data[0][0]
+            qubits = controls + targets
+        else:
+            from .library.standard_gates.z import CZGate
+
+            _warn_on_broadcasting_controlled_gate([controls, targets], "cz")
+            gate = CZGate(label=label, ctrl_state=ctrl_state)
+            qubits = [control_qubit, target_qubit]
+
+        return self.append(gate, qubits, [])
 
     def pauli(
         self,

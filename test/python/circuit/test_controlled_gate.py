@@ -1230,14 +1230,29 @@ class TestFutureMulticontrolled(QiskitTestCase):
         # future.__MULTICONTROLLED_GATES__ = False
 
     @data(
+        ("cx", [], [0, 1], 2),
+        ("cy", [], [0, 1], 2),
+        ("cz", [], [0, 1], 2),
         ("ch", [], [0, 1], 2),
-        ("crx", [0.4], [0, 1, 2], 3)
+        ("cp", [0.1], [0, 1], 2),
+        # ("cswap", [], [0, 1, 2], [3, 4]),
+        ("cu", [0.1, 0.2, 0.3, 0.4], [0, 1], 2),
+        ("crx", [0.4], [0, 1, 2], 3),
+        ("cry", [0.4], [0, 1, 2], 3),
+        ("crz", [0.4], [0, 1, 2], 3),
+        ("crz", [0.4], [0, 1, 2], 3)
     )
     @unpack
     def test_future_multicontrolled(self, method, args, control, target):
         qc = QuantumCircuit(5)
         getattr(qc, method)(*args, control, target)
-        print(qc.draw())
+        cgate = qc.data[0][0]
+
+        # assert one single gate
+        self.assertTrue(len(qc.data) == 1)
+
+        # assert a gate with the correct number of controls
+        self.assertEqual(cgate.num_ctrl_qubits, len(control))
 
 
 @ddt
