@@ -604,13 +604,11 @@ class TextDrawing:
         cregbundle=False,
         global_phase=None,
         encoding=None,
-        qregs=None,
-        cregs=None,
+        circuit=None,
     ):
         self.qubits = qubits
         self.clbits = clbits
-        self.qregs = qregs
-        self.cregs = cregs
+        self._circuit = circuit
         self.nodes = nodes
         self.reverse_bits = reverse_bits
         self.layout = layout
@@ -630,8 +628,6 @@ class TextDrawing:
                 self.encoding = sys.stdout.encoding
             else:
                 self.encoding = "utf8"
-
-        self._bit_locations = get_bit_locations(qregs, cregs, qubits, clbits, reverse_bits)
 
     def __str__(self):
         return self.single_string()
@@ -774,9 +770,14 @@ class TextDrawing:
 
         # quantum register
         qubit_labels = []
-        for reg in self.qubits:
-            register = self._bit_locations[reg]["register"]
-            index = self._bit_locations[reg]["index"]
+        for bit in self.qubits:
+            qubit = self._circuit.find_bit(bit)
+            register = qubit.registers[0][0] if qubit.registers else None
+            index = qubit.index
+            if register is not None:
+                if self.reverse_bits:
+                    index = len(self.qubits) - index - 1
+                index = self.qubits[index].index
             qubit_label = get_bit_label("text", register, index, qubit=True, layout=self.layout)
             qubit_label += ": " if self.layout is None else " "
             qubit_labels.append(qubit_label + initial_qubit_value)
@@ -785,9 +786,14 @@ class TextDrawing:
         clbit_labels = []
         if self.clbits:
             prev_creg = None
-            for reg in self.clbits:
-                register = self._bit_locations[reg]["register"]
-                index = self._bit_locations[reg]["index"]
+            for bit in self.clbits:
+                clbit = self._circuit.find_bit(bit)
+                register = clbit.registers[0][0] if clbit.registers else None
+                index = clbit.index
+                if register is not None:
+                    if self.reverse_bits:
+                        index = len(self.clbits) - index - 1
+                    index = self.clbits[index].index
                 clbit_label = get_bit_label(
                     "text", register, index, qubit=False, cregbundle=self.cregbundle
                 )
@@ -1013,10 +1019,12 @@ class TextDrawing:
         if isinstance(op, Measure):
             gate = MeasureFrom()
             layer.set_qubit(node.qargs[0], gate)
-            if self.cregbundle and self._bit_locations[node.cargs[0]]["register"] is not None:
+            clbit = self._circuit.find_bit(node.cargs[0])
+            register = clbit.registers[0][0] if clbit.registers else None
+            if self.cregbundle and register is not None:
                 layer.set_clbit(
                     node.cargs[0],
-                    MeasureTo(str(self._bit_locations[node.cargs[0]]["index"])),
+                    MeasureTo(str(self.clbits[clbit.index].index)),
                 )
             else:
                 layer.set_clbit(node.cargs[0], MeasureTo())
@@ -1125,7 +1133,7 @@ class TextDrawing:
         layers = [InputWire.fillup_layer(wire_names)]
 
         for node_layer in self.nodes:
-            layer = Layer(self.qubits, self.clbits, self.reverse_bits, self.cregbundle, self.cregs)
+            layer = Layer(self.qubits, self.clbits, self.reverse_bits, self.cregbundle, self._circuit)
 
             for node in node_layer:
                 layer, current_connections, connection_label = self._node_to_gate(node, layer)
@@ -1140,31 +1148,23 @@ class TextDrawing:
 class Layer:
     """A layer is the "column" of the circuit."""
 
-    def __init__(self, qubits, clbits, reverse_bits=False, cregbundle=False, cregs=None):
-        cregs = [] if cregs is None else cregs
-
+    def __init__(self, qubits, clbits, reverse_bits=False, cregbundle=False, circuit=None):
         self.qubits = qubits
         self.clbits_raw = clbits  # list of clbits ignoring cregbundle change below
-
-        self._clbit_locations = {
-            bit: {"register": register, "index": index}
-            for register in cregs
-            for index, bit in enumerate(register)
-        }
-        for index, bit in enumerate(clbits):
-            if bit not in self._clbit_locations:
-                self._clbit_locations[bit] = {"register": None, "index": index}
+        self._circuit = circuit
 
         if cregbundle:
             self.clbits = []
             previous_creg = None
             for bit in clbits:
-                if previous_creg and previous_creg == self._clbit_locations[bit]["register"]:
+                clbit = self._circuit.find_bit(bit)
+                register = clbit.registers[0][0] if clbit.registers else None
+                if previous_creg and previous_creg == register:
                     continue
-                if self._clbit_locations[bit]["register"] is None:
+                if register is None:
                     self.clbits.append(bit)
                 else:
-                    previous_creg = self._clbit_locations[bit]["register"]
+                    previous_creg = register
                     self.clbits.append(previous_creg)
         else:
             self.clbits = clbits
@@ -1199,8 +1199,10 @@ class Layer:
             clbit (cbit): Element of self.clbits.
             element (DrawElement): Element to set in the clbit
         """
-        if self.cregbundle and self._clbit_locations[clbit]["register"] is not None:
-            self.clbit_layer[self.clbits.index(self._clbit_locations[clbit]["register"])] = element
+        cbit = self._circuit.find_bit(clbit)
+        register = cbit.registers[0][0] if cbit.registers else None
+        if self.cregbundle and register is not None:
+            self.clbit_layer[self.clbits.index(register)] = element
         else:
             self.clbit_layer[self.clbits.index(clbit)] = element
 
@@ -1338,7 +1340,7 @@ class Layer:
             top_connect (char): The char to connect the box on the top.
         """
         label, clbit_mask, val_list = get_condition_label(
-            condition, self.clbits_raw, self._clbit_locations, self.cregbundle
+            condition, self.clbits_raw, self._circuit, self.cregbundle
         )
         if not self.reverse_bits:
             val_list = val_list[::-1]
@@ -1346,7 +1348,9 @@ class Layer:
         if self.cregbundle:
             if isinstance(condition[0], Clbit):
                 # if it's a registerless Clbit
-                if self._clbit_locations[condition[0]]["register"] is None:
+                clbit = self._circuit.find_bit(condition[0])
+                register = clbit.registers[0][0] if clbit.registers else None
+                if register is None:
                     self.set_cond_bullets(label, val_list, [condition[0]])
                 # if it's a single bit in a register
                 else:

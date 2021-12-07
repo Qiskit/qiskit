@@ -357,7 +357,7 @@ def _text_circuit_drawer(
     Raises:
         VisualizationError: When the filename extenstion is not .txt.
     """
-    qubits, clbits, nodes = utils._get_layered_instructions(
+    circuit, qubits, clbits, nodes = utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
     )
 
@@ -376,8 +376,6 @@ def _text_circuit_drawer(
         cregbundle=cregbundle,
         global_phase=global_phase,
         encoding=encoding,
-        qregs=circuit.qregs,
-        cregs=circuit.cregs,
         circuit=circuit,
     )
     text_drawing.plotbarriers = plot_barriers
@@ -562,7 +560,7 @@ def _generate_latex_source(
     Returns:
         str: Latex string appropriate for writing to file.
     """
-    qubits, clbits, nodes = utils._get_layered_instructions(
+    circuit, qubits, clbits, nodes = utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
     )
     if with_layout:
@@ -583,8 +581,6 @@ def _generate_latex_source(
         initial_state=initial_state,
         cregbundle=cregbundle,
         global_phase=global_phase,
-        qregs=circuit.qregs,
-        cregs=circuit.cregs,
         circuit=circuit,
     )
     latex = qcimg.latex()
@@ -649,7 +645,7 @@ def _matplotlib_circuit_drawer(
             if the ``ax`` kwarg is not set.
     """
 
-    qubits, clbits, nodes = utils._get_layered_instructions(
+    circuit, qubits, clbits, nodes = utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
     )
     if with_layout:

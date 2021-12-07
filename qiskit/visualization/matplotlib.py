@@ -456,6 +456,11 @@ class MatplotlibDrawer:
             qubit = self._circuit.find_bit(bit)
             register = qubit.registers[0][0] if qubit.registers else None
             index = qubit.index
+            if register is not None:
+                if self._reverse_bits:
+                    index = len(self._qubits) - index - 1
+                index = self._qubits[index].index
+
             qubit_label = get_bit_label("mpl", register, index, qubit=True, layout=self._layout)
             qubit_label = "$" + _fix_double_script(qubit_label) + "$" + initial_qbit
 
@@ -480,6 +485,11 @@ class MatplotlibDrawer:
                 clbit = self._circuit.find_bit(bit)
                 register = clbit.registers[0][0] if clbit.registers else None
                 index = clbit.index
+                if register is not None:
+                    if self._reverse_bits:
+                        index = len(self._clbits) - index - 1
+                    index = self._clbits[index].index
+
                 if register is None or not self._cregbundle or prev_creg != register:
                     n_lines += 1
                     idx += 1
@@ -525,9 +535,10 @@ class MatplotlibDrawer:
                 q_indxs = []
                 for qarg in node.qargs:
                     for index, bit in self._qubits_dict.items():
-                        qubit = self._circuit.find_bit(qarg)
+                        qubit = self._circuit.find_bit(self._qubits[index])
                         register = qubit.registers[0][0] if qubit.registers else None
-                        if bit["register"] == register and bit["index"] == qubit.index:
+                        qarg_index = qubit.index if register is None else qarg.index
+                        if bit["register"] == register and bit["index"] == qarg_index:
                             q_indxs.append(index)
                             break
 
@@ -537,7 +548,8 @@ class MatplotlibDrawer:
                     for index, bit in self._clbits_dict.items():
                         clbit = self._circuit.find_bit(carg)
                         register = clbit.registers[0][0] if clbit.registers else None
-                        if bit["register"] == register and bit["index"] == clbit.index:
+                        carg_index = clbit.index if register is None else carg.index
+                        if bit["register"] == register and bit["index"] == carg_index:
                             c_indxs.append(index)
                             break
 
@@ -1144,7 +1156,7 @@ class MatplotlibDrawer:
         """Determine which qubits are controls and whether they are open or closed"""
         # place the control label at the top or bottom of controls
         if text:
-            qlist = [self._circuit.find_bit(qbit).index for qubit in qargs]
+            qlist = [self._circuit.find_bit(qubit).index for qubit in qargs]
             ctbits = qlist[:num_ctrl_qubits]
             qubits = qlist[num_ctrl_qubits:]
             max_ctbit = max(ctbits)

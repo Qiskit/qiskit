@@ -14,6 +14,7 @@
 
 import re
 from collections import OrderedDict
+import copy
 
 import numpy as np
 
@@ -28,7 +29,7 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit.tools import pi_check
-from qiskit.converters import circuit_to_dag
+from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.quantum_info.operators.symplectic import PauliList, SparsePauliOp
 from qiskit.quantum_info.states import DensityMatrix
@@ -260,10 +261,10 @@ def get_condition_label(condition, clbits, circuit, cregbundle):
     label = ""
     if cond_is_bit and cregbundle:
         cond_bit = circuit.find_bit(condition[0])
-        cond_reg = cond_bit.register
+        cond_reg = cond_bit.registers[0][0] if cond_bit.registers else None
         truth = "0x1" if val else "0x0"
         if cond_reg is not None:
-            label = f"{cond_reg.name}_{cond_bit.index}={truth}"
+            label = f"{cond_reg.name}_{clbits[index].index}={truth}"
     elif not cond_is_bit:
         label = hex(val)
 
@@ -367,10 +368,14 @@ def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wi
                 qubits.remove(wire)
             if wire in clbits:
                 clbits.remove(wire)
+        dag_copy = copy.deepcopy(dag)
+        for wire in dag.idle_wires(ignore=["barrier", "delay"]):
+            dag_copy._remove_idle_wire(wire)
+        circuit = dag_to_circuit(dag_copy)
 
     nodes = [[node for node in layer if any(q in qubits for q in node.qargs)] for layer in nodes]
 
-    return qubits, clbits, nodes
+    return circuit, qubits, clbits, nodes
 
 
 def _sorted_nodes(dag_layer):
