@@ -1,0 +1,10 @@
+---
+upgrade:
+  - |
+    The minimum version of Symengine__ required for installing has been increased
+    to 0.8.0. This was necessary to fix some issues with the handling of
+    ``numpy.float16`` and ``numpy.float32`` values when running
+    :meth:`~qiskit.circuit.ParameterExpression.bind` to bind parameters in a
+    :class:`~qiskit.circuit.ParameterExpression`.
+
+    .. __: https://pypi.org/project/symengine
