@@ -25,7 +25,7 @@ from .evolution_synthesis import EvolutionSynthesis
 class ProductFormula(EvolutionSynthesis):
     """Product formula base class for the decomposition of non-commuting operator exponentials.
 
-    Lie-Trotter and Suzuki inherit this class.
+    :obj:`.LieTrotter` and :obj:`.SuzukiTrotter` inherit from this class.
     """
 
     def __init__(
@@ -138,9 +138,9 @@ def _two_qubit_evolution(pauli, time, cx_structure):
     elif all(labels == "Z"):  # RZZ
         definition.rzz(2 * time, qubits[0], qubits[1])
     elif labels[0] == "Z" and labels[1] == "X":  # RZX
-        definition.rzx(2 * time, qubits[0], qubits[1])
-    elif labels[0] == "X" and labels[1] == "Z":  # RXZ
         definition.rzx(2 * time, qubits[1], qubits[0])
+    elif labels[0] == "X" and labels[1] == "Z":  # RXZ
+        definition.rzx(2 * time, qubits[0], qubits[1])
     else:  # all the others are not native in Qiskit, so use default the decomposition
         definition = _multi_qubit_evolution(pauli, time, cx_structure)
 
@@ -283,13 +283,13 @@ def cnot_fountain(pauli: Pauli) -> QuantumCircuit:
 def _default_atomic_evolution(operator, time, cx_structure):
     if isinstance(operator, Pauli):
         # single Pauli operator: just exponentiate it
-        evo = evolve_pauli(operator, time, cx_structure)
+        evolution_circuit = evolve_pauli(operator, time, cx_structure)
     else:
         # sum of Pauli operators: exponentiate each term (this assumes they commute)
         pauli_list = [(Pauli(op), np.real(coeff)) for op, coeff in operator.to_list()]
         name = f"exp(it {[pauli.to_label() for pauli, _ in pauli_list]})"
-        evo = QuantumCircuit(operator.num_qubits, name=name)
+        evolution_circuit = QuantumCircuit(operator.num_qubits, name=name)
         for pauli, coeff in pauli_list:
-            evo.compose(evolve_pauli(pauli, coeff * time, cx_structure), inplace=True)
+            evolution_circuit.compose(evolve_pauli(pauli, coeff * time, cx_structure), inplace=True)
 
-    return evo
+    return evolution_circuit

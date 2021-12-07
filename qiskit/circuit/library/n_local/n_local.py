@@ -779,7 +779,7 @@ class NLocal(BlueprintCircuit):
             for i in entangler_map:
                 params = self.ordered_parameters[-len(get_parameters(block)) :]
                 parameterized_block = self._parameterize_block(block, params=params)
-                layer.compose(parameterized_block, i)
+                layer.compose(parameterized_block, i, inplace=True)
 
             self.compose(layer, inplace=True)
         else:
@@ -954,9 +954,8 @@ class NLocal(BlueprintCircuit):
         # cast global phase to float if it has no free parameters
         if isinstance(circuit.global_phase, ParameterExpression):
             try:
-                circuit.global_phase = float(circuit.global_phase._symbol_expr)
-            # RuntimeError is raised if symengine is used, for SymPy it is a TypeError
-            except (RuntimeError, TypeError):
+                circuit.global_phase = float(circuit.global_phase)
+            except TypeError:
                 # expression contains free parameters
                 pass
 

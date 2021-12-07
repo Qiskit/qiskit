@@ -73,7 +73,6 @@ class NaturalGradient(GradientBase):
         self._regularization = regularization
         self._epsilon = kwargs.get("epsilon", 1e-6)
 
-    # pylint: disable=signature-differs
     def convert(
         self,
         operator: OperatorBase,

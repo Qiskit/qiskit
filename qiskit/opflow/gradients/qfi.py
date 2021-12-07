@@ -35,7 +35,6 @@ class QFI(QFIBase):
 
     """
 
-    # pylint: disable=signature-differs
     def convert(
         self,
         operator: CircuitStateFn,
