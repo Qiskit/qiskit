@@ -23,9 +23,10 @@ from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.library import XGate, QFT, QAOAAnsatz
+from qiskit.circuit.library import XGate, QFT, QAOAAnsatz, PauliEvolutionGate
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
+from qiskit.synthesis import LieTrotter
 from qiskit.extensions import UnitaryGate
 from qiskit.opflow import I, X, Y, Z
 from qiskit.test import QiskitTestCase
@@ -527,8 +528,35 @@ class TestLoadFromQPY(QiskitTestCase):
         dump(qaoa, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
+        # decompose to check the circuits, not their labels
+        qaoa = qaoa.decompose().decompose()
+        new_circ = new_circ.decompose().decompose()
         self.assertEqual(qaoa, new_circ)
         self.assertEqual([x[0].label for x in qaoa.data], [x[0].label for x in new_circ.data])
+
+    def test_evolutiongate(self):
+        """Test loading a circuit with evolution gate works."""
+        synthesis = LieTrotter(reps=2)
+        evo = PauliEvolutionGate((Z ^ I) + (I ^ Z), time=0.2, synthesis=synthesis)
+        qc = QuantumCircuit(2)
+        qc.append(evo, range(2))
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+
+        # remove wrapping of instructions
+        qc = qc.decompose().decompose()
+        new_circ = new_circ.decompose().decompose()
+
+        self.assertEqual(qc, new_circ)
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+
+        # enable these tests once we can can serialize allPauliEvolutionGate parameters such as
+        # new_evo = new_circ.data[0][0]
+        # SparsePauliOp and EvolutionSynthesis
+        # self.assertIsInstance(new_evo,PauliEvolutionGate)
+        # self.assertIsInstance(new_evo.synthesis, LieTrotter)
 
     def test_parameter_expression_global_phase(self):
         """Test a circuit with a parameter expression global_phase."""

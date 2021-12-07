@@ -443,7 +443,7 @@ class TestInitialize(QiskitTestCase):
                 # need to get rid of the resets in order to use the Operator class
                 disentangler = Operator(initializer.data[0][0].definition.data[1][0])
                 zero = Statevector.from_int(0, dim)
-                actual = zero @ disentangler
+                actual = zero & disentangler
                 self.assertEqual(target, actual)
 
 

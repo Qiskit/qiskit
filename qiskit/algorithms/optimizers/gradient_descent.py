@@ -212,7 +212,6 @@ class GradientDescent(Optimizer):
             "initial_point": OptimizerSupportLevel.required,
         }
 
-    # pylint: disable=unused-argument
     def optimize(
         self,
         num_vars,

@@ -20,7 +20,7 @@ by creating a stack of lexers.
 import os
 
 import numpy as np
-import ply.lex as lex
+from ply import lex
 
 from . import node
 from .exceptions import QasmError

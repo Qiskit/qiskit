@@ -40,15 +40,15 @@ class InverseCancellation(TransformationPass):
         for gates in gates_to_cancel:
             if isinstance(gates, Gate):
                 if gates != gates.inverse():
-                    raise TranspilerError("Gate {} is not self-inverse".format(gates.name))
+                    raise TranspilerError(f"Gate {gates.name} is not self-inverse")
             elif isinstance(gates, tuple):
                 if len(gates) != 2:
                     raise TranspilerError(
-                        "Too many or too few inputs: {}. Only two are allowed.".format(gates)
+                        f"Too many or too few inputs: {gates}. Only two are allowed."
                     )
                 if gates[0] != gates[1].inverse():
                     raise TranspilerError(
-                        "Gate {} and {} are not inverse.".format(gates[0].name, gates[1].name)
+                        f"Gate {gates[0].name} and {gates[1].name} are not inverse."
                     )
             else:
                 raise TranspilerError(

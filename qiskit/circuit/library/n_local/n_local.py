@@ -779,7 +779,7 @@ class NLocal(BlueprintCircuit):
             for i in entangler_map:
                 params = self.ordered_parameters[-len(get_parameters(block)) :]
                 parameterized_block = self._parameterize_block(block, params=params)
-                layer.compose(parameterized_block, i)
+                layer.compose(parameterized_block, i, inplace=True)
 
             self.compose(layer, inplace=True)
         else:
@@ -954,9 +954,8 @@ class NLocal(BlueprintCircuit):
         # cast global phase to float if it has no free parameters
         if isinstance(circuit.global_phase, ParameterExpression):
             try:
-                circuit.global_phase = float(circuit.global_phase._symbol_expr)
-            # RuntimeError is raised if symengine is used, for SymPy it is a TypeError
-            except (RuntimeError, TypeError):
+                circuit.global_phase = float(circuit.global_phase)
+            except TypeError:
                 # expression contains free parameters
                 pass
 
@@ -971,51 +970,6 @@ class NLocal(BlueprintCircuit):
     def _parameter_generator(self, rep: int, block: int, indices: List[int]) -> Optional[Parameter]:
         """If certain blocks should use certain parameters this method can be overriden."""
         return None
-
-    def __str__(self) -> str:
-        """Draw this NLocal in circuit format using the standard gates.
-
-        Returns:
-            A single string representing this NLocal.
-        """
-        from qiskit.compiler import transpile
-
-        basis_gates = [
-            "id",
-            "x",
-            "y",
-            "z",
-            "h",
-            "s",
-            "t",
-            "sdg",
-            "tdg",
-            "rx",
-            "ry",
-            "rz",
-            "rxx",
-            "ryy",
-            "cx",
-            "cy",
-            "cz",
-            "ch",
-            "crx",
-            "cry",
-            "crz",
-            "swap",
-            "cswap",
-            "ccx",
-            "cu1",
-            "cu3",
-            "u1",
-            "u2",
-            "u3",
-        ]
-        return (
-            transpile(self, basis_gates=basis_gates, optimization_level=0)
-            .draw(output="text")
-            .single_string()
-        )
 
 
 def get_parameters(block: Union[QuantumCircuit, Instruction]) -> List[Parameter]:

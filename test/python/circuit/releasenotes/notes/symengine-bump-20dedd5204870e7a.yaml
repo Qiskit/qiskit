@@ -1,8 +1,0 @@
----
-upgrade:
-  - |
-    The minimum version of syengine required for installing has been increased
-    to 0.8.0. This was neccessary to fix some issues with the handling of
-    ``numpy.float16`` and ``numpy.float32`` values when running
-    :meth:`qiskit.circuit.ParameterExpression.bind` to bind parameters in a
-    :class:`~qiskit.circuit.ParameterExpression`.

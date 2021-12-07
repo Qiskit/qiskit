@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=arguments-differ,no-member
-
 """ UnitaryGate tests """
 
 import json
@@ -179,7 +177,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         class NumpyEncoder(json.JSONEncoder):
             """Class for encoding json str with complex and numpy arrays."""
 
-            def default(self, obj):
+            def default(self, obj):  # pylint: disable=arguments-differ
                 if isinstance(obj, numpy.ndarray):
                     return obj.tolist()
                 if isinstance(obj, complex):

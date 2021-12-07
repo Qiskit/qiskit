@@ -154,15 +154,20 @@ class TestNLocal(QiskitTestCase):
         first_circuit = random_circuit(num_qubits[0], depth, seed=4220)
         # TODO Terra bug: if this is to_gate it fails, since the QC adds an instruction not gate
         nlocal = NLocal(max(num_qubits), entanglement_blocks=first_circuit.to_instruction(), reps=1)
+        nlocal2 = nlocal.copy()
+        _ = nlocal2.data
         reference.append(first_circuit, list(range(num_qubits[0])))
 
         # append the rest
         for num in num_qubits[1:]:
             circuit = random_circuit(num, depth, seed=4220)
-            nlocal.add_layer(NLocal(num, entanglement_blocks=circuit, reps=1))
+            layer = NLocal(num, entanglement_blocks=circuit, reps=1)
+            nlocal.add_layer(layer)
+            nlocal2.add_layer(layer)
             reference.append(circuit, list(range(num)))
 
         self.assertCircuitEqual(nlocal, reference)
+        self.assertCircuitEqual(nlocal2, reference)
 
     @unittest.skip("Feature missing")
     def test_iadd_overload(self):
