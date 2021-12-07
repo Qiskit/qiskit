@@ -136,6 +136,7 @@ class PauliSumOp(PrimitiveOp):
 
         return SummedOp([self, other])
 
+<<<<<<< HEAD
     # Flatten self to a SummedOp of Paulis
     def flatten_op(self) -> SummedOp:
         """Flatten nested PauliSumOp into one SummedOp
@@ -146,6 +147,12 @@ class PauliSumOp(PrimitiveOp):
         """
         ops = []
         for op in self:
+=======
+    #Flatten self to a SummedOp of Paulis
+    def flatten_op(self) -> SummedOp:
+        ops = []
+        for i, op in enumerate(self):
+>>>>>>> main
             if len(op) > 1:
                 ops_tmp = op.flatten_op()
                 ops.extend(ops_tmp)
@@ -157,7 +164,11 @@ class PauliSumOp(PrimitiveOp):
         if isinstance(scalar, (int, float, complex)) and scalar != 0:
             return PauliSumOp(scalar * self.primitive, coeff=self.coeff)
 
+<<<<<<< HEAD
         # Return a SummedOp if scalar is a ParameterExpression
+=======
+        #Return a SummedOp if scalar is a ParameterExpression
+>>>>>>> main
         if isinstance(scalar, ParameterExpression):
             op_to_flatten = PauliSumOp(self.primitive, coeff=self.coeff * scalar)
             return op_to_flatten.flatten_op()
@@ -184,6 +195,7 @@ class PauliSumOp(PrimitiveOp):
             len(self_reduced) == len(other_reduced)
             and self_reduced.primitive == other_reduced.primitive
         )
+
 
     def _expand_dim(self, num_qubits: int) -> "PauliSumOp":
         return PauliSumOp(
