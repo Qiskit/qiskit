@@ -532,6 +532,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         else:
             gradient = self._gradient
 
+
         self._eval_count = 0
         energy_evaluation, expectation = self.get_energy_evaluation(
             operator, return_expectation=True

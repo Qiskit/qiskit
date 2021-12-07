@@ -34,6 +34,7 @@ from qiskit.opflow import (
     SummedOp,
     ListOp,
     I,
+    Z,
     CircuitSampler, 
 )
 from qiskit.opflow.gradients import GradientBase
@@ -531,17 +532,10 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
         else:
             aux_operators = None
 
-        # Convert the gradient operator into a callable function that is compatible with the
-        # optimization routine.
-        if isinstance(self._gradient, GradientBase):
-            gradient = self._gradient.gradient_wrapper(
-                ~StateFn(operator) @ StateFn(self._ansatz),
-                bind_params=self._ansatz_params,
-                backend=self._quantum_instance,
-            )
-        else:
-            gradient = self._gradient
-
+        if self.betas == None:
+            bound = abs(operator.coeff) * sum(abs(operator.coeff) for operation in  operator)
+            self.betas = [bound] * self.k
+            print("beta autoevaluated to ",self.betas[0])
             
         result = kVQEResult()
         result.optimal_point = []
@@ -551,6 +545,7 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
         result.optimizer_time = []
         result.eigenvalues = []
         result.eigenstate = []
+        result.testing = []
 
         
         for step in range(self.k + 1):
@@ -560,12 +555,24 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
                 step, operator, return_expectation=True, prev_states = result.optimal_parameters 
             )
 
+            # Convert the gradient operator into a callable function that is compatible with the
+            # optimization routine.
+            if isinstance(self._gradient, GradientBase):
+                gradient = self._gradient.gradient_wrapper(
+                    ~StateFn(operator) @ StateFn(self._ansatz) + (~StateFn(self._ansatz) + StateFn(self._ansatz)) * step,
+                    bind_params=self._ansatz_params,
+                    backend=self._quantum_instance,
+                )
+            else:
+                gradient = self._gradient
+
+
             start_time = time()
 
             # keep this until Optimizer.optimize is removed
             try:
                 opt_result = self.optimizer.minimize(
-                    fun=energy_evaluation, x0=initial_point, jac=gradient, bounds=bounds
+                    fun=energy_evaluation, x0=initial_point,  bounds=bounds
                 )
             except AttributeError:
                 # self.optimizer is an optimizer with the deprecated interface that uses
@@ -585,14 +592,17 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
 
             eval_time = time() - start_time
 
-            print(dict(zip(self._ansatz_params, opt_result.x)))
 
             result.optimal_point.append(opt_result.x)
             result.optimal_parameters.append(dict(zip(self._ansatz_params, opt_result.x)))
             result.optimal_value.append(opt_result.fun)
             result.cost_function_evals.append(opt_result.nfev)
             result.optimizer_time.append(eval_time)
-            result.eigenvalues.append(opt_result.fun + 0j)
+            result.testing.append(opt_result.fun + 0j)
+
+            eigenvalue = StateFn(operator, is_measurement=True).compose(CircuitStateFn(self.ansatz.bind_parameters(result.optimal_parameters[-1]))).reduce().eval()
+
+            result.eigenvalues.append(eigenvalue)
             result.eigenstate.append(self._get_eigenstate(result.optimal_parameters[-1]))
             
             if step == 0:
@@ -616,7 +626,7 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
         self._ret = result
 
         if aux_operators is not None:
-            aux_values = self._eval_aux_ops(opt_result.x, aux_operators, expectation=expectation)
+            aux_values = self._eval_aux_ops(opt_result.x, aux_operators)
             result.aux_operator_eigenvalues = aux_values
 
         return result
@@ -661,26 +671,32 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
         observable_meas = StateFn(operator, is_measurement = True)
         ansatz_circ_op = CircuitStateFn(self._ansatz)
         expect_op = observable_meas.compose(ansatz_circ_op).reduce()
-        
+
         final_op.append(expect_op)
 
+        projection_operator = (I + Z)^self.ansatz.num_qubits
+        projection_measurement = StateFn(projection_operator, is_measurement = True)
+
         for state in range(step):
-            #prev_values = dict(zip(self._ansatz_params,prev_states[state - 1]))
-            prev_circ = CircuitStateFn(self.ansatz.bind_parameters(prev_states[state]))
-            final_op.append(self.betas[state - 1] * ~ansatz_circ_op @ prev_circ)
+
+            prev_circ = self.ansatz.bind_parameters(prev_states[state])
+            final_op.append(self.betas[state] * projection_measurement.compose(CircuitStateFn(prev_circ.inverse().compose(self.ansatz))).reduce())
+
 
         final_op = SummedOp(oplist = final_op)
-        print(final_op)
-        print("*"* 50)
+
 
         def energy_evaluation(parameters):
             parameter_sets = np.reshape(parameters, (-1, num_parameters))
             # Create dict associating each parameter with the lists of parameterization values for it
             param_bindings = dict(zip(self._ansatz_params, parameter_sets.transpose().tolist()))
 
+
             start_time = time()
             sampled_expect_op = self._circuit_sampler.convert(final_op, params=param_bindings)
             means = np.real(sampled_expect_op.eval())
+
+            means = np.round(means, 3)
 
             self._eval_count += len(means)
 
