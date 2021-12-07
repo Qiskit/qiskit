@@ -9,7 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 """Abstract class for an Imaginary Variational Principle."""
+
 from abc import abstractmethod
 from typing import Union, Dict
 
@@ -19,8 +21,6 @@ from qiskit.algorithms.quantum_time_evolution.variational.principles.variational
 )
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
-    CircuitQFI,
-    CircuitGradient,
     StateFn,
     OperatorBase,
     ListOp,
@@ -29,23 +29,6 @@ from qiskit.opflow import (
 
 class ImaginaryVariationalPrinciple(VariationalPrinciple):
     """Abstract class for an Imaginary Variational Principle."""
-
-    def __init__(
-        self,
-        qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
-        grad_method: Union[str, CircuitGradient] = "lin_comb",
-    ):
-        """
-        Args:
-            grad_method: The method used to compute the state gradient. Can be either
-                        ``'param_shift'`` or ``'lin_comb'`` or ``'fin_diff'``.
-            qfi_method: The method used to compute the QFI. Can be either
-                        ``'lin_comb_full'`` or ``'overlap_block_diag'`` or ``'overlap_diag'``.
-        """
-        super().__init__(
-            qfi_method,
-            grad_method,
-        )
 
     @abstractmethod
     def _get_metric_tensor(

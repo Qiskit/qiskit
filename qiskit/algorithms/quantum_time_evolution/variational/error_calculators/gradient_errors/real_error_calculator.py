@@ -9,8 +9,10 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 """Class for calculating gradient errors for Variational Quantum Real Time Evolution."""
-from typing import Union, List, Dict, Optional, Tuple
+
+from typing import Union, List, Dict, Tuple
 
 import numpy as np
 
@@ -18,31 +20,10 @@ from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.grad
     ErrorCalculator,
 )
 from qiskit.circuit import Parameter
-from qiskit.opflow import OperatorBase, CircuitSampler
-from qiskit.providers import BaseBackend
-from qiskit.utils import QuantumInstance
 
 
 class RealErrorCalculator(ErrorCalculator):
     """Class for calculating gradient errors for Variational Quantum Real Time Evolution."""
-
-    def __init__(
-        self,
-        h_squared: OperatorBase,
-        operator: OperatorBase,
-        h_squared_sampler: CircuitSampler,
-        operator_sampler: CircuitSampler,
-        backend: Optional[Union[BaseBackend, QuantumInstance]] = None,
-    ):
-        """
-        Args:
-            h_squared: Squared Hamiltonian.
-            operator: Operator composed of a Hamiltonian and a quantum state.
-            h_squared_sampler: CircuitSampler for a squared Hamiltonian.
-            operator_sampler: CircuitSampler for an operator.
-            backend: Optional backend tht enables the use of circuit samplers.
-        """
-        super().__init__(h_squared, operator, h_squared_sampler, operator_sampler, backend)
 
     def _calc_single_step_error(
         self,
@@ -67,7 +48,7 @@ class RealErrorCalculator(ErrorCalculator):
             self._h_squared, self._h_squared_sampler, param_dict
         )
         exp_operator_bound = self._bind_or_sample_operator(
-            self._operator, self._exp_operator_sampler, param_dict
+            self._operator, self._operator_sampler, param_dict
         )
         eps_squared += h_squared_bound
         eps_squared -= np.real(exp_operator_bound ** 2)

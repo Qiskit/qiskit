@@ -9,7 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 """Class for generating error-based ODE functions."""
+
 import logging
 from typing import Union, List, Dict, Optional, Iterable
 
@@ -92,7 +94,7 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
             arising from solving a system of linear equations.
         """
         current_param_dict = dict(zip(self._param_dict.keys(), parameters_values))
-        logging.info(f"Current time {time}")
+        logging.info("Current time: %t", time)
         nat_grad_res, metric_res, grad_res = self._linear_solver._solve_sle(
             self._variational_principle,
             current_param_dict,

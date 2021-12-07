@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """The Variational Quantum Time Evolution Interface"""
+
 from abc import ABC, abstractmethod
 from typing import Optional, Union, Dict, Callable, List
 
@@ -18,9 +19,7 @@ import numpy as np
 from scipy.integrate import RK45, OdeSolver
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import (
-    EvolutionGradientResult,
-)
+
 from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.error_calculator import (
     ErrorCalculator,
 )
@@ -108,8 +107,8 @@ class VarQte(ABC):
         time: float,
         initial_state: OperatorBase = None,
         observable: OperatorBase = None,
-        t_param=None,
-        hamiltonian_value_dict=None,
+        t_param: Parameter = None,
+        hamiltonian_value_dict: Dict[Parameter, Union[float, complex]] = None,
     ) -> StateFn:
         """
         Apply Variational Quantum Imaginary Time Evolution (VarQITE) w.r.t. the given
@@ -216,7 +215,8 @@ class VarQte(ABC):
         t_param: Parameter = None,
         hamiltonian_value_dict: Dict[Parameter, Union[float, complex]] = None,
         gradient_params=None,
-    ) -> EvolutionGradientResult:
+    ):
+        """Performs Variational Quantum Time Evolution of gradient expressions."""
         pass
 
     def bind_initial_state(

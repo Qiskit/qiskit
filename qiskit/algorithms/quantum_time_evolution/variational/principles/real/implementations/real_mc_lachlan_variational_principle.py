@@ -9,7 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 """Class for a Real McLachlan's Variational Principle."""
+
 from typing import Union, Dict, List, Callable
 
 from qiskit import QuantumCircuit
@@ -22,7 +24,6 @@ from qiskit.algorithms.quantum_time_evolution.variational.principles.real.real_v
 )
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
-    CircuitQFI,
     StateFn,
     SummedOp,
     Y,
@@ -36,19 +37,6 @@ from qiskit.opflow import (
 
 class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
     """Class for a Real McLachlan's Variational Principle."""
-
-    def __init__(
-        self,
-        qfi_method: Union[str, CircuitQFI] = "lin_comb_full",
-    ):
-        """
-        Args:
-            qfi_method: The method used to compute the QFI. Can be either
-                        ``'lin_comb_full'`` or ``'overlap_block_diag'`` or ``'overlap_diag'``.
-        """
-        super().__init__(
-            qfi_method,
-        )
 
     def _get_metric_tensor(
         self,
@@ -91,7 +79,11 @@ class RealMcLachlanVariationalPrinciple(RealVariationalPrinciple):
         ) -> OperatorBase:
             """
             Args:
+                param_dict: Dictionary which relates parameter values to the parameters in the
+                            ansatz.
+                energy_sampler: CircuitSampler for energy.
             Returns:
+                Calculated evolution gradient, according to the variational principle.
             """
             energy = ~StateFn(hamiltonian) @ StateFn(ansatz)
             energy = PauliExpectation().convert(energy)

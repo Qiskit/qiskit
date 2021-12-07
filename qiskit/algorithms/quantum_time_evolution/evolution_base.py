@@ -9,13 +9,13 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Base class for quantum time evolution."""
-from abc import ABC, abstractmethod
 
-from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import (
-    EvolutionGradientResult,
-)
-from qiskit.algorithms.quantum_time_evolution.results.evolution_result import EvolutionResult
+"""Base class for quantum time evolution."""
+
+from abc import ABC, abstractmethod
+from typing import Dict, Union, List
+
+from qiskit.circuit import Parameter
 from qiskit.opflow import OperatorBase, StateFn, Gradient
 
 
@@ -29,10 +29,11 @@ class EvolutionBase(ABC):
         time: float,
         initial_state: StateFn = None,
         observable: OperatorBase = None,
-        t_param=None,
-        hamiltonian_value_dict=None,
-    ) -> EvolutionResult:
+        t_param: Parameter = None,
+        hamiltonian_value_dict: [Parameter, Union[float, complex]] = None,
+    ):
         """
+        Evolves an initial state according to a Hamiltonian provided.
         Args:
             hamiltonian:
                 ⟨ψ(ω)|H|ψ(ω)〉
@@ -55,8 +56,9 @@ class EvolutionBase(ABC):
         initial_state: StateFn,
         gradient_object: Gradient,
         observable: OperatorBase = None,
-        t_param=None,
-        hamiltonian_value_dict=None,
-        gradient_params=None,
-    ) -> EvolutionGradientResult:
+        t_param: Parameter = None,
+        hamiltonian_value_dict: [Parameter, Union[float, complex]] = None,
+        gradient_params: List[Parameter] = None,
+    ):
+        """Performs Quantum Time Evolution of gradient expressions."""
         raise NotImplementedError()

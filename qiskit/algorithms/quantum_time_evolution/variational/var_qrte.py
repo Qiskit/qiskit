@@ -11,19 +11,20 @@
 # that they have been altered from the originals.
 
 """Variational Quantum Real Time Evolution algorithm."""
+
 from typing import Optional, Union, Dict
 
 from scipy.integrate import OdeSolver
 
 from qiskit.algorithms.quantum_time_evolution.evolution_base import EvolutionBase
-from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import (
-    EvolutionGradientResult,
-)
 from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.real_error_calculator import (
     RealErrorCalculator,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.principles.real.real_variational_principle import (
     RealVariationalPrinciple,
+)
+from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
+    AbstractOdeFunctionGenerator,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.var_qte import VarQte
 from qiskit.circuit import Parameter
@@ -86,7 +87,7 @@ class VarQrte(VarQte, EvolutionBase):
     ) -> StateFn:
 
         """
-        Apply Variational Quantum Time Evolution (VarQTE) w.r.t. the given operator
+        Apply Variational Quantum Real Time Evolution (VarQRTE) w.r.t. the given operator.
         Args:
             hamiltonian:
                 ⟨ψ(ω)|H|ψ(ω)〉
@@ -125,7 +126,7 @@ class VarQrte(VarQte, EvolutionBase):
         self,
         init_state_param_dict: Dict[Parameter, Union[float, complex]],
         t_param: Optional[Parameter] = None,
-    ):
+    ) -> AbstractOdeFunctionGenerator:
         """
         Creates an ODE function generator for the real time evolution, i.e. with an
         RealErrorCalculator in case of an error-based evolution.
@@ -159,5 +160,6 @@ class VarQrte(VarQte, EvolutionBase):
         t_param: Parameter = None,
         hamiltonian_value_dict: Dict[Parameter, Union[float, complex]] = None,
         gradient_params=None,
-    ) -> EvolutionGradientResult:
+    ):
+        """Performs Variational Quantum Real Time Evolution of gradient expressions."""
         raise NotImplementedError()

@@ -9,7 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-""""Class for solving linear equations for Quantum Time Evolution."""
+
+"""Class for solving linear equations for Quantum Time Evolution."""
+
 from typing import Union, List, Dict, Optional
 
 import numpy as np
@@ -31,6 +33,8 @@ from qiskit.utils import QuantumInstance
 
 
 class VarQteLinearSolver:
+    """Class for solving linear equations for Quantum Time Evolution."""
+
     def __init__(
         self,
         grad_circ_sampler: CircuitSampler,

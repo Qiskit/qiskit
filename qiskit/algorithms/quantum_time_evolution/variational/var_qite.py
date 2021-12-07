@@ -9,15 +9,15 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 """Variational Quantum Imaginary Time Evolution algorithm."""
-from typing import Optional, Union, Dict
+
+from typing import Optional, Union, Dict, List
 
 from scipy.integrate import OdeSolver
 
 from qiskit.algorithms.quantum_time_evolution.evolution_base import EvolutionBase
-from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import (
-    EvolutionGradientResult,
-)
+
 from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.imaginary_error_calculator import (
     ImaginaryErrorCalculator,
 )
@@ -81,12 +81,12 @@ class VarQite(VarQte, EvolutionBase):
         time: float,
         initial_state: OperatorBase = None,
         observable: OperatorBase = None,
-        t_param=None,
-        hamiltonian_value_dict=None,
+        t_param: Parameter = None,
+        hamiltonian_value_dict: Dict[Parameter, Union[float, complex]] = None,
     ) -> StateFn:
         """
         Apply Variational Quantum Imaginary Time Evolution (VarQITE) w.r.t. the given
-        operator
+        operator.
         Args:
             hamiltonian:
                 ⟨ψ(ω)|H|ψ(ω)〉
@@ -157,8 +157,9 @@ class VarQite(VarQte, EvolutionBase):
         initial_state: StateFn,
         gradient_object: Gradient,
         observable: OperatorBase = None,
-        t_param=None,
-        hamiltonian_value_dict=None,
-        gradient_params=None,
-    ) -> EvolutionGradientResult:
+        t_param: Parameter = None,
+        hamiltonian_value_dict: Dict[Parameter, Union[float, complex]] = None,
+        gradient_params: List[Parameter] = None,
+    ):
+        """Performs Variational Quantum Imaginary Time Evolution of gradient expressions."""
         raise NotImplementedError()

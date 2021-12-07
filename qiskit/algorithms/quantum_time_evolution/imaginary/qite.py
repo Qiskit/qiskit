@@ -9,17 +9,18 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
+"""Interface for Quantum Imaginary Time Evolution."""
+
 from abc import abstractmethod
 
 from qiskit.algorithms.quantum_time_evolution.evolution_base import EvolutionBase
-from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import (
-    EvolutionGradientResult,
-)
-from qiskit.algorithms.quantum_time_evolution.results.evolution_result import EvolutionResult
 from qiskit.opflow import OperatorBase, StateFn, Gradient
 
 
 class Qite(EvolutionBase):
+    """Interface for Quantum Imaginary Time Evolution."""
+
     @abstractmethod
     def evolve(
         self,
@@ -29,7 +30,11 @@ class Qite(EvolutionBase):
         observable: OperatorBase = None,
         t_param=None,
         hamiltonian_value_dict=None,
-    ) -> EvolutionResult:
+    ):
+        """
+        Performs Quantum Imaginary Time Evolution on an initial state according to a Hamiltonian
+        provided.
+        """
         raise NotImplementedError()
 
     @abstractmethod
@@ -43,5 +48,6 @@ class Qite(EvolutionBase):
         t_param=None,
         hamiltonian_value_dict=None,
         gradient_params=None,
-    ) -> EvolutionGradientResult:
+    ):
+        """Performs Quantum Imaginary Time Evolution of gradient expressions."""
         raise NotImplementedError()

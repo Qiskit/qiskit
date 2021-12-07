@@ -9,7 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 """Calculates and binds evolution gradients for Variational Quantum Time Evolution."""
+
 from typing import Union, Optional, List, Dict, Callable
 
 import numpy as np
