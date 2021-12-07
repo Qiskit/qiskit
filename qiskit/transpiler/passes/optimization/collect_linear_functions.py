@@ -13,24 +13,23 @@
 
 """Replace each SWAP-CX-SWAP sequence by a single Bridge gate."""
 
-from qiskit.dagcircuit.dagnode import DAGOpNode
 from qiskit.circuit.library.standard_gates import CXGate, SwapGate
 from qiskit.circuit.library.generalized_gates import LinearFunction
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.circuit import QuantumCircuit, Instruction
+from qiskit.circuit import QuantumCircuit
 
 
 class CollectLinearFunctions(TransformationPass):
-    """Collect blocks of linear gates (CX and SWAP) and replace them by linear functions.
-    """
+    """Collect blocks of linear gates (CX and SWAP) and replace them by linear functions."""
+
     @staticmethod
-    def is_linear_gate(op):
+    def _is_linear_gate(op):
         return isinstance(op, (CXGate, SwapGate)) and op.condition is None
 
     # Called when reached the end of the linear block (either the next gate
     # is not linear, or no more nodes)
     @staticmethod
-    def finalize_processing_block(cur_nodes, cur_qubits, blocks):
+    def _finalize_processing_block(cur_nodes, cur_qubits, blocks):
         # Collect only blocks comprising at least 2 gates.
         # ToDo: possibly make the minimum number of gates as a parameter
         if len(cur_nodes) >= 2:
@@ -56,8 +55,8 @@ class CollectLinearFunctions(TransformationPass):
 
         for node in dag.topological_op_nodes():
             # If the current gate is not linear, we are done processing the current block
-            if not self.is_linear_gate(node.op):
-                self.finalize_processing_block(cur_nodes, cur_qubits, blocks)
+            if not self._is_linear_gate(node.op):
+                self._finalize_processing_block(cur_nodes, cur_qubits, blocks)
                 cur_nodes = []
                 cur_qubits = set(())
 
@@ -67,7 +66,7 @@ class CollectLinearFunctions(TransformationPass):
                 cur_qubits.update(node.qargs)
 
         # Last block
-        self.finalize_processing_block(cur_nodes, cur_qubits, blocks)
+        self._finalize_processing_block(cur_nodes, cur_qubits, blocks)
 
         for block, wire_pos_map in blocks:
             qc = QuantumCircuit(len(wire_pos_map))
