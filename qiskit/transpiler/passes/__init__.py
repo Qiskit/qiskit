@@ -70,6 +70,7 @@ Optimizations
    Collect1qRuns
    Collect2qBlocks
    CollectMultiQBlocks
+   CollectLinearFunctions
    ConsolidateBlocks
    CXCancellation
    InverseCancellation
@@ -195,6 +196,7 @@ from .optimization import HoareOptimizer
 from .optimization import TemplateOptimization
 from .optimization import InverseCancellation
 from .optimization import EchoRZXWeylDecomposition
+from .optimization import CollectLinearFunctions
 
 # circuit analysis
 from .analysis import ResourceEstimation
