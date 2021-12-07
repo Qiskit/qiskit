@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 """Class for solving ODEs for Quantum Time Evolution."""
 import itertools
+import logging
 from typing import List, Union
 
 from scipy.integrate import OdeSolver, solve_ivp
@@ -48,9 +49,6 @@ class VarQteOdeSolver:
         Returns:
             List of parameters found by an ODE solver for a given ODE function callable.
         """
-        # TODO remove prints later; useful for debugging
-        print(self._ode_function(0, self._init_params))
-        print("******************")
         sol = solve_ivp(
             self._ode_function,
             (0, evolution_time),

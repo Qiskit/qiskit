@@ -53,7 +53,7 @@ from ...operator_base import OperatorBase
 from ...list_ops.list_op import ListOp
 from ...list_ops.composed_op import ComposedOp
 from ...list_ops.summed_op import SummedOp
-from ...operator_globals import Z, I, One, Zero, Y
+from ...operator_globals import Z, I, One, Zero
 from ...primitive_ops.primitive_op import PrimitiveOp
 from ...state_fns.state_fn import StateFn
 from ...state_fns.circuit_state_fn import CircuitStateFn
@@ -659,7 +659,7 @@ class LinComb(CircuitGradient):
             target_params = [target_params]
 
         oplist = []
-        for i, param in enumerate(target_params):
+        for param in target_params:
             if param not in state_qc.parameters:
                 oplist += [~Zero @ One]
             else:

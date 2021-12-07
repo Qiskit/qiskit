@@ -10,6 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """Class for generating ODE functions based on natural gradients."""
+import logging
 from typing import Union, Dict, Optional, Iterable
 
 from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
@@ -79,8 +80,7 @@ class OdeFunctionGenerator(AbstractOdeFunctionGenerator):
             arising from solving a system of linear equations.
         """
         current_param_dict = dict(zip(self._param_dict.keys(), parameters_values))
-        print("t ", time)
-        print("params ", parameters_values)
+        logging.info(f"Current time {time}")
 
         nat_grad_res, _, _ = self._linear_solver._solve_sle(
             self._variational_principle,

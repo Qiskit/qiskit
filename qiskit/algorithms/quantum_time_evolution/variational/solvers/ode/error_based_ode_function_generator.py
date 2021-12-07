@@ -10,6 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """Class for generating error-based ODE functions."""
+import logging
 from typing import Union, List, Dict, Optional, Iterable
 
 import numpy as np
@@ -91,7 +92,7 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
             arising from solving a system of linear equations.
         """
         current_param_dict = dict(zip(self._param_dict.keys(), parameters_values))
-
+        logging.info(f"Current time {time}")
         nat_grad_res, metric_res, grad_res = self._linear_solver._solve_sle(
             self._variational_principle,
             current_param_dict,
@@ -116,8 +117,6 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
 
         # Use the natural gradient result as initial point for least squares solver
         argmin = minimize(fun=argmin_fun, x0=nat_grad_res, method=self._optimizer, tol=1e-6)
-        # argmin = sp.optimize.least_squares(fun=argmin_fun, x0=nat_grad_result, ftol=1e-6)
 
-        print("final dt_omega", np.real(argmin.x))
         # self._et = argmin_fun(argmin.x)
         return argmin.x

@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""Base class for quantum real time evolution."""
 from abc import abstractmethod
 
 from qiskit.algorithms.quantum_time_evolution.evolution_base import EvolutionBase
@@ -17,8 +18,6 @@ from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result 
 )
 from qiskit.algorithms.quantum_time_evolution.results.evolution_result import EvolutionResult
 from qiskit.opflow import StateFn, OperatorBase, Gradient
-
-"""Base class for quantum real time evolution."""
 
 
 class Qrte(EvolutionBase):
