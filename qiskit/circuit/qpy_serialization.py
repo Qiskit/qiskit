@@ -473,6 +473,7 @@ from qiskit.extensions import quantum_initializer
 from qiskit.version import __version__
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import SparsePauliOp
+from qiskit.synthesis import evolution as evo_synth
 
 try:
     import symengine
@@ -1039,31 +1040,30 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate):
         element_buf.write(element_metadata)
         element_buf.write(data)
         pauli_data_buf.write(element_buf.getvalue())
-    pauli_list_data = buf.getvalue()
-    pauli_list_size = len(pauli_list_data)
     time = evolution_gate.time
     if isinstance(time, float):
         time_type = b"f"
         time_data = struct.pack("!d", time)
         time_size = struct.calcsize("!d")
-    elif isinstance(param, Parameter):
+    elif isinstance(time, Parameter):
         time_type = b"p"
-        _write_parameter(container, time)
-        container.seek(0)
-        time_data = container.read()
-        time_size = len(data)
-    elif isinstance(param, ParameterExpression):
+        buf = io.BytesIO()
+        _write_parameter(buf, time)
+        time_data = buf.getvalue()
+        time_size = len(time_data)
+    elif isinstance(time, ParameterExpression):
         time_type = b"e"
-        _write_parameter_expression(container, time)
-        container.seek(0)
-        time_data = container.read()
-        time_size = len(data)
+        buf = io.BytesIO()
+        _write_parameter_expression(buf, time)
+        time_data = buf.getvalue()
+        time_size = len(time_data)
     else:
-        raise TypeError(f"Invalid coefficient type {coeff} for PauliSumOp")
+        raise TypeError(f"Invalid time type {time} for PauliEvolutionGate")
 
-    # TODO: Add synthesis class to format (will need a new pack format and settings for classes)
-    synth_size = 0
-    synth_data = b""
+    synth_class = str(type(evolution_gate.synthesis).__name__)
+    settings_dict = evolution_gate.synthesis.settings
+    synth_data = json.dumps({"class": synth_class, "settings": settings_dict}).encode("utf8")
+    synth_size = len(synth_data)
     pauli_evolution_raw = struct.pack(
         PAULI_EVOLUTION_DEF_PACK, num_operators, standalone, time_type, time_size, synth_size
     )
@@ -1102,9 +1102,9 @@ def _read_pauli_evolution_gate(file_obj):
     elif time_type == b"e":
         buf = io.BytesIO(time_data)
         time = _read_parameter_expression(buf)
-    # TODO: Read synthesis class
-    synthesis = None
-    return_gate = library.PauliEvolutionGate(pauli_op, time=time, synthesis=None)
+    synth_data = json.loads(file_obj.read(pauli_evolution_raw[4]))
+    synthesis = getattr(evo_synth, synth_data["class"])(**synth_data["settings"])
+    return_gate = library.PauliEvolutionGate(pauli_op, time=time, synthesis=synthesis)
     return return_gate
 
 

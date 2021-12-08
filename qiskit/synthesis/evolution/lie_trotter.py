@@ -115,6 +115,6 @@ class LieTrotter(ProductFormula):
 
         return {
             "reps": self.reps,
-            "insert_barries": self.insert_barriers,
+            "insert_barriers": self.insert_barriers,
             "cx_structure": self._cx_structure,
         }
