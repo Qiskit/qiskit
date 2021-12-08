@@ -893,7 +893,7 @@ def _parse_custom_instruction(custom_instructions, gate_name, params):
     return inst_obj
 
 
-def _read_custom_instructions(file_obj, version):
+def _read_custom_instructions(file_obj, version, vectors):
     custom_instructions = {}
     custom_definition_header_raw = file_obj.read(CUSTOM_DEFINITION_HEADER_SIZE)
     custom_definition_header = struct.unpack(
@@ -919,7 +919,7 @@ def _read_custom_instructions(file_obj, version):
                 if version < 3 or not name.startswith(r"###PauliEvolutionGate_"):
                     definition_circuit = _read_circuit(definition_buffer, version)
                 elif name.startswith(r"###PauliEvolutionGate_"):
-                    definition_circuit = _read_pauli_evolution_gate(definition_buffer)
+                    definition_circuit = _read_pauli_evolution_gate(definition_buffer, vectors)
             custom_instructions[name] = (type_str, num_qubits, num_clbits, definition_circuit)
     return custom_instructions
 
@@ -1123,6 +1123,12 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate):
         time_type = b"f"
         time_data = struct.pack("!d", time)
         time_size = struct.calcsize("!d")
+    elif isinstance(time, ParameterVectorElement):
+        time_type = b"v"
+        with io.BytesIO() as buf:
+            _write_parameter_vec(buf, time)
+            time_data = buf.getvalue()
+            time_size = len(time_data)
     elif isinstance(time, Parameter):
         time_type = b"p"
         with io.BytesIO() as buf:
@@ -1152,7 +1158,7 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate):
     file_obj.write(synth_data)
 
 
-def _read_pauli_evolution_gate(file_obj):
+def _read_pauli_evolution_gate(file_obj, vectors):
     pauli_evolution_raw = struct.unpack(
         PAULI_EVOLUTION_DEF_PACK, file_obj.read(PAULI_EVOLUTION_DEF_SIZE)
     )
@@ -1181,6 +1187,9 @@ def _read_pauli_evolution_gate(file_obj):
     elif time_type == b"e":
         with io.BytesIO(time_data) as buf:
             time = _read_parameter_expression(buf)
+    elif time_type == b"v":
+        with io.BytesIO(time_data) as buf:
+            time = _read_parameter_vec(buf, vectors)
     synth_data = json.loads(file_obj.read(pauli_evolution_raw[4]))
     synthesis = getattr(evo_synth, synth_data["class"])(**synth_data["settings"])
     return_gate = library.PauliEvolutionGate(pauli_op, time=time, synthesis=synthesis)
@@ -1534,8 +1543,8 @@ def _read_circuit(file_obj, version):
             global_phase=global_phase,
             metadata=metadata,
         )
-    custom_instructions = _read_custom_instructions(file_obj, version)
     vectors = {}
+    custom_instructions = _read_custom_instructions(file_obj, version, vectors)
     for _instruction in range(num_instructions):
         _read_instruction(file_obj, circ, out_registers, custom_instructions, vectors)
 

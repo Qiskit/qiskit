@@ -585,6 +585,24 @@ class TestLoadFromQPY(QiskitTestCase):
         new_evo = new_circ.data[0][0]
         self.assertIsInstance(new_evo, PauliEvolutionGate)
 
+    def test_evolutiongate_param_vec_time(self):
+        """Test loading a an evolution gate that has a param vector element for time."""
+        synthesis = LieTrotter(reps=2)
+        time = ParameterVector("TimeVec", 1)
+        evo = PauliEvolutionGate((Z ^ I) + (I ^ Z), time=time[0], synthesis=synthesis)
+        qc = QuantumCircuit(2)
+        qc.append(evo, range(2))
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+
+        self.assertEqual(qc, new_circ)
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+
+        new_evo = new_circ.data[0][0]
+        self.assertIsInstance(new_evo, PauliEvolutionGate)
+
     def test_op_list_evolutiongate(self):
         """Test loading a circuit with evolution gate works."""
         evo = PauliEvolutionGate([(Z ^ I) + (I ^ Z)] * 5, time=0.2, synthesis=None)
@@ -658,6 +676,7 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(qc, new_circuit)
 
     def test_parameter_vector(self):
+        """Test a circuit with a parameter vector for gate parameters."""
         qc = QuantumCircuit(11)
         input_params = ParameterVector("x_par", 11)
         user_params = ParameterVector("θ_par", 11)
