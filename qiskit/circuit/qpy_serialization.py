@@ -178,6 +178,7 @@ object the data for a INSTRUCTION_PARAM. The contents of the PARAMETER_VECTOR ar
 defined as:
 
 .. code-block:: c
+
     struct {
         uint16_t vector_name_size;
         uint64_t vector_size;
