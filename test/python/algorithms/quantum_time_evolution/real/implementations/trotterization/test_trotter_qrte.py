@@ -123,27 +123,6 @@ class TestTrotterQrte(QiskitOpflowTestCase):
 
         np.testing.assert_equal(evolved_state, expected_evolved_state)
 
-    # TODO this test is disabled for the time being - no t_param for TrotterQrte
-    # def test_trotter_qrte_trotter_binding(self):
-    #     """Test for trotter qrte with binding."""
-    #     t_param = Parameter("t")
-    #     operator = X * t_param + Z
-    #     hamiltonian_value_dict = {t_param: 1}
-    #     trotter_qrte = TrotterQrte()
-    #     initial_state = Zero
-    #     evolved_state = trotter_qrte.evolve(
-    #         operator,
-    #         1,
-    #         initial_state,
-    #         t_param=t_param,
-    #         hamiltonian_value_dict=hamiltonian_value_dict,
-    #     )
-    #     expected_evolved_state = VectorStateFn(
-    #         Statevector([0.29192658 - 0.45464871j, -0.70807342 - 0.45464871j], dims=(2,))
-    #     )
-    #
-    #     np.testing.assert_equal(evolved_state, expected_evolved_state)
-    #
     def test_trotter_qrte_trotter_binding_missing_dict(self):
         """Test for trotter qrte with binding and missing dictionary.."""
         t_param = Parameter("t")
@@ -285,62 +264,6 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         )
         expected_gradient = {theta1: 0j}
         np.testing.assert_equal(gradient, expected_gradient)
-
-    # TODO this test is disabled for the time being - no t_param for TrotterQrte
-    # def test_trotter_qrte_gradient_summed_op_qdrift_t_param_grad(self):
-    #     """Test for trotter qrte gradient with SummedOp and QDrift; gradient not on all
-    #     parameters."""
-    #     t_param = Parameter("t_param")
-    #     theta1 = Parameter("theta1")
-    #     operator = t_param * (I ^ Z ^ I) + theta1 * (Z ^ I ^ I)
-    #     trotter_qrte = TrotterQrte(QDrift())
-    #     initial_state = Zero
-    #     time = 5
-    #     gradient_object = None
-    #     observable = Z
-    #     value_dict = {theta1: 2, t_param: 5}
-    #     gradient = trotter_qrte.gradient(
-    #         operator,
-    #         time,
-    #         initial_state,
-    #         gradient_object,
-    #         observable,
-    #         t_param=t_param,
-    #         hamiltonian_value_dict=value_dict,
-    #         gradient_params=[t_param],
-    #     )
-    #
-    #     expected_gradient = {t_param: (4.729550084903167e-12 + 0j)}
-    #     np.testing.assert_equal(gradient, expected_gradient)
-    #
-    # TODO this test is disabled for the time being - no t_param for TrotterQrte
-    # def test_trotter_qrte_gradient_summed_op_qdrift_t_param_theta(self):
-    #     """Test for trotter qrte gradient with SummedOp and QDrift; gradient on t_param and
-    #     another parameter."""
-    #     t_param = Parameter("t_param")
-    #     theta1 = Parameter("theta1")
-    #     operator = t_param * (I ^ Z ^ I) + theta1 * (Z ^ I ^ I)
-    #     mode = TrotterModeEnum.QDRIFT
-    #     trotter_qrte = TrotterQrte(mode)
-    #     initial_state = Zero
-    #     time = 5
-    #     gradient_object = None
-    #     observable = Z
-    #     value_dict = {theta1: 2, t_param: 5}
-    #     gradient = trotter_qrte.gradient(
-    #         operator,
-    #         time,
-    #         initial_state,
-    #         gradient_object,
-    #         observable,
-    #         t_param=t_param,
-    #         hamiltonian_value_dict=value_dict,
-    #         gradient_params=[t_param, theta1],
-    #     )
-    #
-    #     # expected_gradient = {t_param: (4.7628567756419216e-12+0j)}
-    #     # np.testing.assert_equal(gradient, expected_gradient)
-    #     print(gradient)
 
 
 if __name__ == "__main__":
