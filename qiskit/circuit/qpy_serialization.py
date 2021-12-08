@@ -860,9 +860,9 @@ def _read_custom_instructions(file_obj, version):
             definition_circuit = None
             if has_custom_definition:
                 definition_buffer = io.BytesIO(file_obj.read(size))
-                if version < 3 or not name.startswith(r"###PauliEvolutionGate"):
+                if version < 3 or not name.startswith(r"###PauliEvolutionGate_"):
                     definition_circuit = _read_circuit(definition_buffer, version)
-                elif name.startswith(r"###PauliEvolutionGate"):
+                elif name.startswith(r"###PauliEvolutionGate_"):
                     definition_circuit = _read_pauli_evolution_gate(definition_buffer)
             custom_instructions[name] = (type_str, num_qubits, num_clbits, definition_circuit)
     return custom_instructions
