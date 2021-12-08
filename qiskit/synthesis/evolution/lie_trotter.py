@@ -12,7 +12,7 @@
 
 """The Lie-Trotter product formula."""
 
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, Dict, Any
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
@@ -97,3 +97,24 @@ class LieTrotter(ProductFormula):
                 )
 
         return evolution_circuit
+
+    @property
+    def settings(self) -> Dict[str, Any]:
+        """Return the settings in a dictionary, which can be used to reconstruct the object.
+
+        Returns:
+            A dictionary containing the settings of this product formula.
+
+        Raises:
+            NotImplementedError: If a custom atomic evolution is set, which cannot be serialized.
+        """
+        if self._atomic_evolution is not None:
+            raise NotImplementedError(
+                "Cannot serialize a product formula with a custom atomic evolution."
+            )
+
+        return {
+            "reps": self.reps,
+            "insert_barries": self.insert_barriers,
+            "cx_structure": self._cx_structure,
+        }
