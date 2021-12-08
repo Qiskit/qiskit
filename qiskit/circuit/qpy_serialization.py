@@ -100,6 +100,66 @@ There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
 
+.. _version_3:
+
+Version 3
+=========
+
+Version 3 of the QPY format is identical to :ref:`version_2` except that it defines
+a struct format to represent a :class:`~qiskit.circuit.library.PauliEvolutionGate`
+natively in QPY. To accomplish this the :ref:`custom_definition` struct now supports
+a new type value ``'p'`` to represent a :class:`~qiskit.circuit.library.PauliEvolutionGate`.
+Enties in the custom instructions tables have unique name generated that start with the
+string ``"###PauliEvolutionGate_"`` followed by a uuid string. This gate name is reservered
+in QPY and if you have a custom :class:`~qiskit.circuit.Instruction` object with a definition
+set and that name prefix it will error. If it's of type ``'p'`` the data payload is defined
+as follows:
+
+.. _pauli_evo_qpy:
+
+PAULI_EVOLUTION
+---------------
+
+This represents the high level :class:`~qiskit.circuit.library.PauliEvolutionGate`
+
+.. code-block:: c
+
+    struct {
+        uint64_t operator_count;
+        _Bool standalone_op;
+        char time_type;
+        uint64_t time_size;
+        uint64_t synthesis_size;
+    }
+
+This is immediately followed by ``operator_count`` elements defined by the :ref:`pauli_sum_op`
+payload.  Following that we have ``time_size`` bytes representing the ``time`` attribute. If
+``standalone_op`` is ``True`` then there must only be a single operator. The
+encoding of these bytes is determined by the value of ``time_type``. Possible values of
+``time_type`` are ``'f'``, ``'p'``, and ``'e'``. If ``time_type`` is ``'f'`` it's a double,
+``'p'`` defines a :class:`~qiskit.circuit.Parameter` object  which is represented by a
+:ref:`param_struct`, ``e`` defines a :class:`~qiskit.circuit.ParameterExpression` object
+(that's not a :class:`~qiskit.circuit.Parameter`) which is represented by a :ref:`param_expr`.
+Following that is ``synthesis_size`` bytes which is a utf8 encoded json payload representing
+the :class:`.EvolutionSynthesis` class used by the gate.
+
+.. _pauli_sum_op:
+
+SPARSE_PAULI_OP_LIST_ELEM
+-------------------------
+
+This represents an instance of :class:`.PauliSumOp`.
+
+
+.. code-block:: c
+
+    struct {
+        uint32_t pauli_op_size;
+    }
+
+which is immediately followed by ``pauli_op_size`` bytes which are .npy format [#f2]_
+data which represents the :class:`~qiskit.quantum_info.SparsePauliOp`.
+
 .. _version_2:
 
 Version 2
@@ -213,6 +273,8 @@ the register ``qr`` would be a standalone register. While something like::
 ``qr`` would have ``standalone`` set to ``False``.
 
 
+.. _custom_definition:
+
 CUSTOM_DEFINITIONS
 ------------------
 
@@ -244,7 +306,10 @@ of size ``name_size``.
 If ``custom_definition`` is ``True`` that means that the immediately following
 ``size`` bytes contains a QPY circuit data which can be used for the custom
 definition of that gate. If ``custom_definition`` is ``False`` then the
-instruction can be considered opaque (ie no definition).
+instruction can be considered opaque (ie no definition). The ``type`` field
+determines what type of object will get created with the custom definition.
+If it's ``'g'`` it will be a :class:`~qiskit.circuit.Gate` object, ``'i'``
+it will be a :class:`~qiskit.circuit.Instruction` object.
 
 INSTRUCTIONS
 ------------
@@ -315,6 +380,8 @@ represented by a PARAM struct (see below), ``e`` defines a
 :class:`~qiskit.circuit.Parameter`) which is represented by a PARAM_EXPR struct
 (see below), and ``'n'`` represents an object from numpy (either an ``ndarray``
 or a numpy type) which means the data is .npy format [#f2]_ data.
+
+.. _param_struct:
 
 PARAMETER
 ---------
@@ -407,6 +474,8 @@ from qiskit import extensions
 from qiskit.extensions import quantum_initializer
 from qiskit.version import __version__
 from qiskit.exceptions import QiskitError
+from qiskit.quantum_info.operators import SparsePauliOp
+from qiskit.synthesis import evolution as evo_synth
 
 try:
     import symengine
@@ -518,6 +587,17 @@ PARAM_EXPR_MAP_ELEM_SIZE = struct.calcsize(PARAM_EXPR_MAP_ELEM_PACK)
 COMPLEX = namedtuple("COMPLEX", ["real", "imag"])
 COMPLEX_PACK = "!dd"
 COMPLEX_SIZE = struct.calcsize(COMPLEX_PACK)
+# Pauli Evolution Gate
+PAULI_EVOLUTION_DEF = namedtuple(
+    "PAULI_EVOLUTION_DEF",
+    ["operator_size", "standalone_op", "time_type", "time_size", "synth_method_size"],
+)
+PAULI_EVOLUTION_DEF_PACK = "!Q?1cQQ"
+PAULI_EVOLUTION_DEF_SIZE = struct.calcsize(PAULI_EVOLUTION_DEF_PACK)
+# SparsePauliOp List
+SPARSE_PAULI_OP_LIST_ELEM = namedtuple("SPARSE_PAULI_OP_LIST_ELEMENT", ["size"])
+SPARSE_PAULI_OP_LIST_ELEM_PACK = "!Q"
+SPARSE_PAULI_OP_LIST_ELEM_SIZE = struct.calcsize(SPARSE_PAULI_OP_LIST_ELEM_PACK)
 
 
 def _read_header_v2(file_obj):
@@ -751,6 +831,8 @@ def _parse_custom_instruction(custom_instructions, gate_name, params):
     elif type_str == "g":
         inst_obj = Gate(gate_name, num_qubits, params)
         inst_obj.definition = definition
+    elif type_str == "p":
+        inst_obj = definition
     else:
         raise ValueError("Invalid custom instruction type '%s'" % type_str)
     return inst_obj
@@ -779,7 +861,10 @@ def _read_custom_instructions(file_obj, version):
             definition_circuit = None
             if has_custom_definition:
                 definition_buffer = io.BytesIO(file_obj.read(size))
-                definition_circuit = _read_circuit(definition_buffer, version)
+                if version < 3 or not name.startswith(r"###PauliEvolutionGate_"):
+                    definition_circuit = _read_circuit(definition_buffer, version)
+                elif name.startswith(r"###PauliEvolutionGate_"):
+                    definition_circuit = _read_pauli_evolution_gate(definition_buffer)
             custom_instructions[name] = (type_str, num_qubits, num_clbits, definition_circuit)
     return custom_instructions
 
@@ -842,11 +927,15 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
         )
         or gate_class_name == "Gate"
         or gate_class_name == "Instruction"
-        or isinstance(instruction_tuple[0], (library.BlueprintCircuit, library.PauliEvolutionGate))
+        or isinstance(instruction_tuple[0], library.BlueprintCircuit)
     ):
         if instruction_tuple[0].name not in custom_instructions:
             custom_instructions[instruction_tuple[0].name] = instruction_tuple[0]
         gate_class_name = instruction_tuple[0].name
+
+    elif isinstance(instruction_tuple[0], library.PauliEvolutionGate):
+        gate_class_name = r"###PauliEvolutionGate_" + str(uuid.uuid4())
+        custom_instructions[gate_class_name] = instruction_tuple[0]
 
     has_condition = False
     condition_register = b""
@@ -936,8 +1025,97 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
         container.close()
 
 
+def _write_pauli_evolution_gate(file_obj, evolution_gate):
+    operator_list = evolution_gate.operator
+    standalone = False
+    if not isinstance(operator_list, list):
+        operator_list = [operator_list]
+        standalone = True
+    num_operators = len(operator_list)
+    pauli_data_buf = io.BytesIO()
+    for operator in operator_list:
+        with io.BytesIO() as element_buf:
+            with io.BytesIO() as buf:
+                pauli_list = operator.to_list(array=True)
+                np.save(buf, pauli_list)
+                data = buf.getvalue()
+            element_metadata = struct.pack(SPARSE_PAULI_OP_LIST_ELEM_PACK, len(data))
+            element_buf.write(element_metadata)
+            element_buf.write(data)
+            pauli_data_buf.write(element_buf.getvalue())
+    time = evolution_gate.time
+    if isinstance(time, float):
+        time_type = b"f"
+        time_data = struct.pack("!d", time)
+        time_size = struct.calcsize("!d")
+    elif isinstance(time, Parameter):
+        time_type = b"p"
+        with io.BytesIO() as buf:
+            _write_parameter(buf, time)
+            time_data = buf.getvalue()
+            time_size = len(time_data)
+    elif isinstance(time, ParameterExpression):
+        time_type = b"e"
+        with io.BytesIO() as buf:
+            _write_parameter_expression(buf, time)
+            time_data = buf.getvalue()
+            time_size = len(time_data)
+    else:
+        raise TypeError(f"Invalid time type {time} for PauliEvolutionGate")
+
+    synth_class = str(type(evolution_gate.synthesis).__name__)
+    settings_dict = evolution_gate.synthesis.settings
+    synth_data = json.dumps({"class": synth_class, "settings": settings_dict}).encode("utf8")
+    synth_size = len(synth_data)
+    pauli_evolution_raw = struct.pack(
+        PAULI_EVOLUTION_DEF_PACK, num_operators, standalone, time_type, time_size, synth_size
+    )
+    file_obj.write(pauli_evolution_raw)
+    file_obj.write(pauli_data_buf.getvalue())
+    pauli_data_buf.close()
+    file_obj.write(time_data)
+    file_obj.write(synth_data)
+
+
+def _read_pauli_evolution_gate(file_obj):
+    pauli_evolution_raw = struct.unpack(
+        PAULI_EVOLUTION_DEF_PACK, file_obj.read(PAULI_EVOLUTION_DEF_SIZE)
+    )
+    if pauli_evolution_raw[0] != 1 and pauli_evolution_raw[1]:
+        raise ValueError(
+            "Can't have a standalone operator with {pauli_evolution_raw[0]} operators in the payload"
+        )
+    operator_list = []
+    for _ in range(pauli_evolution_raw[0]):
+        op_size = struct.unpack(
+            SPARSE_PAULI_OP_LIST_ELEM_PACK, file_obj.read(SPARSE_PAULI_OP_LIST_ELEM_SIZE)
+        )[0]
+        operator_list.append(SparsePauliOp.from_list(np.load(io.BytesIO(file_obj.read(op_size)))))
+    if pauli_evolution_raw[1]:
+        pauli_op = operator_list[0]
+    else:
+        pauli_op = operator_list
+
+    time_type = pauli_evolution_raw[2]
+    time_data = file_obj.read(pauli_evolution_raw[3])
+    if time_type == b"f":
+        time = struct.unpack("!d", time_data)[0]
+    elif time_type == b"p":
+        with io.BytesIO(time_data) as buf:
+            time = _read_parameter(buf)
+    elif time_type == b"e":
+        with io.BytesIO(time_data) as buf:
+            time = _read_parameter_expression(buf)
+    synth_data = json.loads(file_obj.read(pauli_evolution_raw[4]))
+    synthesis = getattr(evo_synth, synth_data["class"])(**synth_data["settings"])
+    return_gate = library.PauliEvolutionGate(pauli_op, time=time, synthesis=synthesis)
+    return return_gate
+
+
 def _write_custom_instruction(file_obj, name, instruction):
-    if isinstance(instruction, Gate):
+    if isinstance(instruction, library.PauliEvolutionGate):
+        type_str = b"p"
+    elif isinstance(instruction, Gate):
         type_str = b"g"
     else:
         type_str = b"i"
@@ -946,10 +1124,13 @@ def _write_custom_instruction(file_obj, name, instruction):
     data = None
     num_qubits = instruction.num_qubits
     num_clbits = instruction.num_clbits
-    if instruction.definition:
+    if instruction.definition or type_str == b"p":
         has_definition = True
         definition_buffer = io.BytesIO()
-        _write_circuit(definition_buffer, instruction.definition)
+        if type_str == b"p":
+            _write_pauli_evolution_gate(definition_buffer, instruction)
+        else:
+            _write_circuit(definition_buffer, instruction.definition)
         definition_buffer.seek(0)
         data = definition_buffer.read()
         definition_buffer.close()
@@ -1019,7 +1200,7 @@ def dump(circuits, file_obj):
     header = struct.pack(
         FILE_HEADER_PACK,
         b"QISKIT",
-        2,
+        3,
         version_parts[0],
         version_parts[1],
         version_parts[2],
