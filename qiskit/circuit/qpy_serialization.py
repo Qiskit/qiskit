@@ -115,6 +115,8 @@ in QPY and if you have a custom :class:`~qiskit.circuit.Instruction` object with
 set and that name prefix it will error. If it's of type ``'p'`` the data payload is defined
 as follows:
 
+.. pauli_evo_qpy:
+
 PAULI_EVOLUTION
 ---------------
 

@@ -11,7 +11,11 @@ fixes:
     :class:`~qiskit.circuit.library.PauliEvolutionGate`. This has been fixed
     so that starting in this release a
     :class:`~qiskit.circuit.library.PauliEvolutionGate` in the circuit will
-    be preserved 1:1 across QPY serialization now.
+    be preserved 1:1 across QPY serialization now. The only limitation with
+    this is that it does not support custom
+    :class:`~qiskit.synthesis.EvolutionSynthesis` classes. Only the classes
+    available from :mod:`qiskit.synthesis` can be used with a
+    :class:`~qiskit.circuit.library.PauliEvolutionGate` for qpy serialization.
 
     To fix this the requires a new QPY format version, :ref:`version_3`, which
     contains a representation of the
