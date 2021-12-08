@@ -79,9 +79,26 @@ class PauliEvolutionGate(Gate):
         num_qubits = operator[0].num_qubits if isinstance(operator, list) else operator.num_qubits
         super().__init__(name=name, num_qubits=num_qubits, params=[time], label=label)
 
-        self.time = time
         self.operator = operator
         self.synthesis = synthesis
+
+    @property
+    def time(self) -> Union[float, ParameterExpression]:
+        """Return the evolution time as stored in the gate parameters.
+
+        Returns:
+            The evolution time.
+        """
+        return self.params[0]
+
+    @time.setter
+    def time(self, time: Union[float, ParameterExpression]) -> None:
+        """Set the evolution time.
+
+        Args:
+            time: The evolution time.
+        """
+        self.params = [time]
 
     def _define(self):
         """Unroll, where the default synthesis is matrix based."""

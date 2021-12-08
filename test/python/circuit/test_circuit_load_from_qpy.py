@@ -523,14 +523,11 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_qaoa(self):
         """Test loading a QAOA circuit works."""
         cost_operator = Z ^ I ^ I ^ Z
-        qaoa = QAOAAnsatz(cost_operator)
+        qaoa = QAOAAnsatz(cost_operator, reps=2)
         qpy_file = io.BytesIO()
         dump(qaoa, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
-        # decompose to check the circuits, not their labels
-        qaoa = qaoa.decompose().decompose()
-        new_circ = new_circ.decompose().decompose()
         self.assertEqual(qaoa, new_circ)
         self.assertEqual([x[0].label for x in qaoa.data], [x[0].label for x in new_circ.data])
 
