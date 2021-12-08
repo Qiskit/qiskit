@@ -26,16 +26,17 @@ Qiskit 0.33.0
 *************
 
 This release officially marks the end of support for the Qiskit Aqua project
-from Qiskit. It was originally deprecated in the 0.25.0 release and as was documented
+in Qiskit. It was originally deprecated in the 0.25.0 release and as was documented
 in that release the ``qiskit-aqua`` package has been removed from the Qiskit
-metapackage, which means in that future release ``pip install qiskit`` will no
-longer include ``qiskit-aqua``. However, note because of limitations in python
-packaging we cannot automatically remove a pre-existing install of ``qiskit-aqua``.
-If you are upgrading from a previous version it's recommended that you manually
-uninstall Qiskit Aqua with ``pip uninstall qiskit-aqua`` or install the metapackage
-in a fresh python environment.
+metapackage, which means ``pip install qiskit`` will no
+longer include ``qiskit-aqua``. However, because of limitations in python
+packaging we cannot automatically remove a pre-existing install of ``qiskit-aqua``
+when upgrading a previous version of Qiskit to this release (or a future release)
+with ``pip install -U qiskit``. If you are upgrading from a previous version it's
+recommended that you manually uninstall Qiskit Aqua with
+``pip uninstall qiskit-aqua`` or install in a fresh python environment.
 
-The application modules that are provided by ``qiskit-aqua`` have been split into
+The application modules that were provided by ``qiskit-aqua`` have been split into
 several new packages:
 ``qiskit-optimization``, ``qiskit-nature``, ``qiskit-machine-learning``, and
 ``qiskit-finance``. These packages can be installed by themselves (via the
