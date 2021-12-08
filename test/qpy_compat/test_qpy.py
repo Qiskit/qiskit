@@ -24,7 +24,7 @@ from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.qpy_serialization import dump, load
-from qiskit.opflow import X, Y, Z
+from qiskit.opflow import X, Y, Z, I
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, QFT
 
@@ -230,7 +230,8 @@ def generate_param_phase():
     return output_circuits
 
 
-def generate_single_clbit_condition_teleportation():
+def generate_single_clbit_condition_teleportation():  # pylint: disable=invalid-name
+    """Generate single clbit condition teleportation circuit."""
     qr = QuantumRegister(1)
     cr = ClassicalRegister(2, name="name")
     teleport_qc = QuantumCircuit(qr, cr, name="Reset Test")
@@ -239,6 +240,19 @@ def generate_single_clbit_condition_teleportation():
     teleport_qc.x(0).c_if(cr[0], 1)
     teleport_qc.measure(0, cr[1])
     return teleport_qc
+
+
+def generate_evolution_gate():
+    """Generate a circuit with a pauli evolution gate."""
+    # Runtime import since this only exists in terra 0.19.0
+    from qiskit.circuit.library import PauliEvolutionGate
+    from qiskit.synthesis import SuzukiTrotter
+
+    synthesis = SuzukiTrotter()
+    evo = PauliEvolutionGate([(Z ^ I) + (I ^ Z)] * 5, time=2.0, synthesis=synthesis)
+    qc = QuantumCircuit(2)
+    qc.append(evo, range(2))
+    return qc
 
 
 def generate_circuits(version_str=None):
@@ -264,6 +278,9 @@ def generate_circuits(version_str=None):
 
     if version_parts >= (0, 19, 0):
         output_circuits["param_phase.qpy"] = generate_param_phase()
+
+    if version_parts >= (0, 19, 1):
+        output_circuits["pauli_evo.qpy"] = [generate_evolution_gate()]
 
     return output_circuits
 
