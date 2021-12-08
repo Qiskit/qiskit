@@ -20,5 +20,5 @@ fixes:
     To fix this the requires a new QPY format version, :ref:`version_3`, which
     contains a representation of the
     :class:`~qiskit.circuit.library.PauliEvolutionGate` class which is
-    described in the `~qiskit.circuit.qpy_serialization` documentation at
+    described in the :mod:`~qiskit.circuit.qpy_serialization` documentation at
     :ref:`pauli_evo_qpy`.

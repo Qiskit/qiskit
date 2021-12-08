@@ -115,7 +115,7 @@ in QPY and if you have a custom :class:`~qiskit.circuit.Instruction` object with
 set and that name prefix it will error. If it's of type ``'p'`` the data payload is defined
 as follows:
 
-.. pauli_evo_qpy:
+.. _pauli_evo_qpy:
 
 PAULI_EVOLUTION
 ---------------
@@ -133,7 +133,7 @@ This represents the high level :class:`~qiskit.circuit.library.PauliEvolutionGat
     }
 
 This is immediately followed by ``operator_count`` elements defined by the :ref:`pauli_sum_op`
-payload.  Following that we have `time_size`` bytes representing the ``time`` attribute. If
+payload.  Following that we have ``time_size`` bytes representing the ``time`` attribute. If
 ``standalone_op`` is ``True`` then there must only be a single operator. The
 encoding of these bytes is determined by the value of ``time_type``. Possible values of
 ``time_type`` are ``'f'``, ``'p'``, and ``'e'``. If ``time_type`` is ``'f'`` it's a double,
@@ -143,15 +143,15 @@ encoding of these bytes is determined by the value of ``time_type``. Possible va
 Following that is ``synthesis_size`` bytes which is a utf8 encoded json payload representing
 the :class:`.EvolutionSynthesis` class used by the gate.
 
-.. pauli_sum_op
+.. _pauli_sum_op:
 
 SPARSE_PAULI_OP_LIST_ELEM
 -------------------------
 
-This represents an instance of :class:`~qiskit.opflow.PauliSumOp`.
+This represents an instance of :class:`.PauliSumOp`.
 
 
-.. code-block: c
+.. code-block:: c
 
     struct {
         uint32_t pauli_op_size;
@@ -273,7 +273,7 @@ the register ``qr`` would be a standalone register. While something like::
 ``qr`` would have ``standalone`` set to ``False``.
 
 
-.. custom_definition:
+.. _custom_definition:
 
 CUSTOM_DEFINITIONS
 ------------------
@@ -381,7 +381,7 @@ represented by a PARAM struct (see below), ``e`` defines a
 (see below), and ``'n'`` represents an object from numpy (either an ``ndarray``
 or a numpy type) which means the data is .npy format [#f2]_ data.
 
-.. param_struct:
+.. _param_struct:
 
 PARAMETER
 ---------
@@ -926,7 +926,7 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
         )
         or gate_class_name == "Gate"
         or gate_class_name == "Instruction"
-        or isinstance(instruction_tuple[0], (library.BlueprintCircuit))
+        or isinstance(instruction_tuple[0], library.BlueprintCircuit)
     ):
         if instruction_tuple[0].name not in custom_instructions:
             custom_instructions[instruction_tuple[0].name] = instruction_tuple[0]
