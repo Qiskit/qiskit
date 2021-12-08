@@ -1033,15 +1033,15 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate):
     num_operators = len(operator_list)
     pauli_data_buf = io.BytesIO()
     for operator in operator_list:
-        element_buf = io.BytesIO()
-        buf = io.BytesIO()
-        pauli_list = operator.to_list(array=True)
-        np.save(buf, pauli_list)
-        data = buf.getvalue()
-        element_metadata = struct.pack(SPARSE_PAULI_OP_LIST_ELEM_PACK, len(data))
-        element_buf.write(element_metadata)
-        element_buf.write(data)
-        pauli_data_buf.write(element_buf.getvalue())
+        with io.BytesIO() as element_buf:
+            with io.BytesIO() as buf:
+                pauli_list = operator.to_list(array=True)
+                np.save(buf, pauli_list)
+                data = buf.getvalue()
+            element_metadata = struct.pack(SPARSE_PAULI_OP_LIST_ELEM_PACK, len(data))
+            element_buf.write(element_metadata)
+            element_buf.write(data)
+            pauli_data_buf.write(element_buf.getvalue())
     time = evolution_gate.time
     if isinstance(time, float):
         time_type = b"f"
@@ -1049,16 +1049,16 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate):
         time_size = struct.calcsize("!d")
     elif isinstance(time, Parameter):
         time_type = b"p"
-        buf = io.BytesIO()
-        _write_parameter(buf, time)
-        time_data = buf.getvalue()
-        time_size = len(time_data)
+        with io.BytesIO() as buf:
+            _write_parameter(buf, time)
+            time_data = buf.getvalue()
+            time_size = len(time_data)
     elif isinstance(time, ParameterExpression):
         time_type = b"e"
-        buf = io.BytesIO()
-        _write_parameter_expression(buf, time)
-        time_data = buf.getvalue()
-        time_size = len(time_data)
+        with io.BytesIO() as buf:
+            _write_parameter_expression(buf, time)
+            time_data = buf.getvalue()
+            time_size = len(time_data)
     else:
         raise TypeError(f"Invalid time type {time} for PauliEvolutionGate")
 
@@ -1071,6 +1071,7 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate):
     )
     file_obj.write(pauli_evolution_raw)
     file_obj.write(pauli_data_buf.getvalue())
+    pauli_data_buf.close()
     file_obj.write(time_data)
     file_obj.write(synth_data)
 
@@ -1099,11 +1100,11 @@ def _read_pauli_evolution_gate(file_obj):
     if time_type == b"f":
         time = struct.unpack("!d", time_data)[0]
     elif time_type == b"p":
-        buf = io.BytesIO(time_data)
-        time = _read_parameter(buf)
+        with io.BytesIO(time_data) as buf:
+            time = _read_parameter(buf)
     elif time_type == b"e":
-        buf = io.BytesIO(time_data)
-        time = _read_parameter_expression(buf)
+        with io.BytesIO(time_data) as buf:
+           time = _read_parameter_expression(buf)
     synth_data = json.loads(file_obj.read(pauli_evolution_raw[4]))
     synthesis = getattr(evo_synth, synth_data["class"])(**synth_data["settings"])
     return_gate = library.PauliEvolutionGate(pauli_op, time=time, synthesis=synthesis)
