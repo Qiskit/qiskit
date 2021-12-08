@@ -31,7 +31,7 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
 
     @slow_test
     def test_pauli_two_design(self):
-        """Test standard gradient descent on the Pauli two-design example."""0
+        """Test standard gradient descent on the Pauli two-design example."""
         circuit = PauliTwoDesign(3, reps=3, seed=2)
         parameters = list(circuit.parameters)
         obs = Z ^ Z ^ I
