@@ -28,7 +28,6 @@ from qiskit.circuit.library.standard_gates.s import SGate, SdgGate
 from qiskit.circuit.library.standard_gates.ry import RYGate
 from qiskit.circuit.library.standard_gates.rz import RZGate
 from qiskit.circuit.reset import Reset
-from qiskit.quantum_info import Statevector
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -61,6 +60,9 @@ class Initialize(Instruction, Operation):
             and params is 3. This allows qubits 0 and 1 to be initialized to `|1>` and the
             remaining 3 qubits to be initialized to `|0>`.
         """
+        # pylint: disable=cyclic-import
+        from qiskit.quantum_info import Statevector
+
         if isinstance(params, Statevector):
             params = params.data
 

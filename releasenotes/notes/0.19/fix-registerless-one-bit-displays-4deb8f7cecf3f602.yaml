@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    Fixed an issue where trying to display registerless bits would cause a
+    failure of the ``mpl`` and the ``latex`` circuit drawers. A leading ``_``
+    has been removed from the display of registerless bits' numbers in the
+    ``text`` drawer.  Fixed `#6732
+    <https://github.com/Qiskit/qiskit-terra/issues/6732>`__.
+
+  - |
+    For one-bit registers, all of the circuit drawers now display only
+    the register name and no longer show the ``0`` subscript.
+    Fixed `#5784 <https://github.com/Qiskit/qiskit-terra/issues/5784>`__.

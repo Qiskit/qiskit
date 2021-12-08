@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,redefined-builtin,arguments-differ
+# pylint: disable=invalid-name,redefined-builtin
 # pylint: disable=super-init-not-called
 
 """Module providing definitions of Pulse Qobj classes."""

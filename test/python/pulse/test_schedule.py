@@ -281,7 +281,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         # sched must keep 3 instructions (must not update to 5 instructions)
         self.assertEqual(3, len(list(sched.instructions)))
 
-    @patch("qiskit.util.is_main_process", return_value=True)
+    @patch("qiskit.utils.is_main_process", return_value=True)
     def test_auto_naming(self, is_main_process_mock):
         """Test that a schedule gets a default name, incremented per instance"""
 
