@@ -589,7 +589,7 @@ COMPLEX_PACK = "!dd"
 COMPLEX_SIZE = struct.calcsize(COMPLEX_PACK)
 # Pauli Evolution Gate
 PAULI_EVOLUTION_DEF = namedtuple(
-    "PAULI_EVOLUTION_DEF", ["operator_size", "time_type", "time_size", "synth_method_size"]
+    "PAULI_EVOLUTION_DEF", ["operator_size", "standalone_op", "time_type", "time_size", "synth_method_size"]
 )
 PAULI_EVOLUTION_DEF_PACK = "!Q?1cQQ"
 PAULI_EVOLUTION_DEF_SIZE = struct.calcsize(PAULI_EVOLUTION_DEF_PACK)
