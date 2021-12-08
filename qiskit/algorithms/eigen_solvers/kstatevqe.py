@@ -534,7 +534,7 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
 
         if self.betas == None:
             bound = abs(operator.coeff) * sum(abs(operator.coeff) for operation in  operator)
-            self.betas = [bound] * self.k
+            self.betas = [bound * 10] * self.k
             print("beta autoevaluated to ",self.betas[0])
             
         result = kVQEResult()
@@ -551,8 +551,8 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
         for step in range(self.k + 1):
             
             self._eval_count = 0
-            energy_evaluation= self.get_energy_evaluation(
-                step, operator, return_expectation=True, prev_states = result.optimal_parameters 
+            energy_evaluation, expectation = self.get_energy_evaluation(
+                step, operator, return_expectation=True, prev_states = result.optimal_parameters
             )
 
             # Convert the gradient operator into a callable function that is compatible with the
@@ -666,24 +666,16 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
             raise AlgorithmError("The operator was never provided.")
 
         self._check_operator_ansatz(operator)
-        final_op = []
+        overlap_op = []
 
-        observable_meas = StateFn(operator, is_measurement = True)
-        ansatz_circ_op = CircuitStateFn(self._ansatz)
-        expect_op = observable_meas.compose(ansatz_circ_op).reduce()
-
-        final_op.append(expect_op)
-
-        projection_operator = (I + Z)^self.ansatz.num_qubits
-        projection_measurement = StateFn(projection_operator, is_measurement = True)
+        expect_op, expectation = self.construct_expectation(
+            self._ansatz_params, operator, return_expectation=True
+        )
 
         for state in range(step):
 
             prev_circ = self.ansatz.bind_parameters(prev_states[state])
-            final_op.append(self.betas[state] * projection_measurement.compose(CircuitStateFn(prev_circ.inverse().compose(self.ansatz))).reduce())
-
-
-        final_op = SummedOp(oplist = final_op)
+            overlap_op.append(~CircuitStateFn(prev_circ)@CircuitStateFn(self.ansatz))
 
 
         def energy_evaluation(parameters):
@@ -691,27 +683,37 @@ class kStateVQE(VariationalAlgorithm, Eigensolver):
             # Create dict associating each parameter with the lists of parameterization values for it
             param_bindings = dict(zip(self._ansatz_params, parameter_sets.transpose().tolist()))
 
-
             start_time = time()
-            sampled_expect_op = self._circuit_sampler.convert(final_op, params=param_bindings)
-            means = np.real(sampled_expect_op.eval())
+            sampled_expect_op = self._circuit_sampler.convert(expect_op, params=param_bindings)
+            mean = np.real(sampled_expect_op.eval())[0]
 
-            means = np.round(means, 3)
+            for state in range(step):
+                sampled_final_op = self._circuit_sampler.convert(overlap_op[state], params=param_bindings)
+                cost = sampled_final_op.eval()
+                mean += np.real(self.betas[state] * np.conj(cost) * cost)
 
-            self._eval_count += len(means)
+            return mean
 
-            end_time = time()
-            logger.info(
-                "Energy evaluation returned %s - %.5f (ms), eval count: %s",
-                means,
-                (end_time - start_time) * 1000,
-                self._eval_count,
-            )
+            #TODO: Integrate the following commented code.
+            # I am not sure when the eval() function returns a list of values
+            #
+            # self._eval_count += len(means)
+            #
+            # end_time = time()
+            # logger.info(
+            #     "Energy evaluation returned %s - %.5f (ms), eval count: %s",
+            #     means,
+            #     (end_time - start_time) * 1000,
+            #     self._eval_count,
+            # )
+            #
+            # return means if len(means) > 1 else means[0]
 
-            return means if len(means) > 1 else means[0]
-
+        if return_expectation:
+            return energy_evaluation, expectation
 
         return energy_evaluation
+
 
     @deprecate_function(
         """
