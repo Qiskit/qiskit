@@ -14,18 +14,26 @@
 
 import numbers
 from collections import defaultdict
-from typing import Union, Optional
+from typing import Union, Optional, List
 
 from qiskit.algorithms.quantum_time_evolution.real.qrte import Qrte
 from qiskit.circuit import Parameter, ParameterExpression
-from qiskit.opflow import OperatorBase, StateFn, Gradient, commutator, SummedOp, PauliSumOp, \
-    PauliOp, CircuitOp
+from qiskit.opflow import (
+    OperatorBase,
+    StateFn,
+    Gradient,
+    commutator,
+    SummedOp,
+    PauliSumOp,
+    PauliOp,
+    CircuitOp,
+)
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.synthesis import ProductFormula, LieTrotter
 
 
 class TrotterQrte(Qrte):
-    """ TODO write documentation
+    """ Class for performing Quantum Real Time Evolution using Trotterization. Type of Troterrization is defined by a ProductFormula provided.
 
     Examples:
 
@@ -41,11 +49,12 @@ class TrotterQrte(Qrte):
             initial_state = Zero
             evolved_state = trotter_qrte.evolve(operator, 1, initial_state)
     """
+
     def __init__(self, product_formula: ProductFormula = LieTrotter()):
         """
         Args:
             product_formula: A Lie-Trotter-Suzuki product formula. The default is the Lie-Trotter
-            first order product formula with a single repetition.
+                            first order product formula with a single repetition.
         """
         self.product_formula = product_formula
 
@@ -64,11 +73,12 @@ class TrotterQrte(Qrte):
                 The operator to evolve. Can also be provided as list of non-commuting
                 operators where the elements are sums of commuting operators.
                 For example: ``[XY + YX, ZZ + ZI + IZ, YY]``.
-            time: The evolution time.
-            initial_state: TODO.
-            observable: TODO.
-            t_param: Not accepted in this class.
-            hamiltonian_value_dict: TODO
+            time: Total time of evolution.
+            initial_state: If interested in a quantum state time evolution, a quantum state to be evolved.
+            observable: If interested in a quantum observable time evolution, a quantum observable to be evolved.
+            t_param: Not supported by this algorithm.
+            hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to
+                                    certain values.
 
         Returns:
             The evolved hamiltonian applied to either an initial state or an observable.
@@ -77,27 +87,31 @@ class TrotterQrte(Qrte):
             ValueError: If t_param is not set to None (feature not currently supported).
         """
         if t_param is not None:
-            raise ValueError("TrotterQrte does not accept a time dependent hamiltonian,"
-                             "t_param should be set to None.")
+            raise ValueError(
+                "TrotterQrte does not accept a time dependent hamiltonian,"
+                "t_param should be set to None."
+            )
 
         hamiltonian = self._try_binding_params(hamiltonian, hamiltonian_value_dict)
         self._validate_input(initial_state, observable)
         # the evolution gate
-        evolution_gate = CircuitOp(PauliEvolutionGate(hamiltonian, time,
-                                                      synthesis=self.product_formula))
+        evolution_gate = CircuitOp(
+            PauliEvolutionGate(hamiltonian, time, synthesis=self.product_formula)
+        )
 
         if initial_state is not None:
             return (evolution_gate @ initial_state).eval()
         if observable is not None:
             # TODO Temporary patch due to terra bug
-            evolution_gate_adjoint = CircuitOp(PauliEvolutionGate(hamiltonian[::-1], -time,
-                                                                  synthesis=self.product_formula))
+            evolution_gate_adjoint = CircuitOp(
+                PauliEvolutionGate(hamiltonian[::-1], -time, synthesis=self.product_formula)
+            )
             # return evolution_gate.adjoint() @ observable @ evolution_gate
             return evolution_gate_adjoint @ observable @ evolution_gate
 
     def _try_binding_params(self, hamiltonian, hamiltonian_value_dict):
         # PauliSumOp does not allow parametrized coefficients but after binding the parameters
-        # we need to convert it into a PauliSumOp for the PauliEvolutionGate
+        # we need to convert it into a PauliSumOp for the PauliEvolutionGate.
         if isinstance(hamiltonian, SummedOp):
             op_list = []
             for op in hamiltonian.oplist:
@@ -105,18 +119,27 @@ class TrotterQrte(Qrte):
                     op_bound = op.bind_parameters(hamiltonian_value_dict)
                 else:
                     op_bound = op
-                if len(op_bound.parameters) > 0:
-                    raise ValueError(
-                        f"Did not manage to bind all parameters in the Hamiltonian, "
-                        f"these parameters encountered: {op_bound.parameters}."
-                    )
+                self._is_op_bound(op_bound)
                 op_list.append(op_bound)
             return sum(op_list)
-        # for an observable, we might have an OperatorBase... TODO
-        elif isinstance(hamiltonian, PauliOp):
-            return hamiltonian.bind_parameters(hamiltonian_value_dict)
+        elif isinstance(hamiltonian, PauliOp) or isinstance(hamiltonian, OperatorBase):
+            if hamiltonian_value_dict is not None:
+                op_bound = hamiltonian.bind_parameters(hamiltonian_value_dict)
+            else:
+                op_bound = hamiltonian
+
+            self._is_op_bound(op_bound)
+            return op_bound
         else:
+            self._is_op_bound(hamiltonian)
             return hamiltonian
+
+    def _is_op_bound(self, op_bound):
+        if len(op_bound.parameters) > 0:
+            raise ValueError(
+                f"Did not manage to bind all parameters in the Hamiltonian, "
+                f"these parameters encountered: {op_bound.parameters}."
+            )
 
     def _validate_input(self, initial_state, observable):
         if initial_state is None and observable is None:
@@ -132,10 +155,10 @@ class TrotterQrte(Qrte):
 
     def gradient(
         self,
-        hamiltonian: Union[SummedOp],
+        hamiltonian: OperatorBase,
         time: float,
         initial_state: StateFn,
-        gradient_object: Optional[Gradient],
+        gradient_object: Gradient,
         observable: OperatorBase = None,
         t_param: Parameter = None,
         hamiltonian_value_dict: [Parameter, Union[float, complex]] = None,

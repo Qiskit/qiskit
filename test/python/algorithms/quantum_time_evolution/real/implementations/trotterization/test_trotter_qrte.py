@@ -19,8 +19,9 @@ import numpy as np
 from numpy.testing import assert_raises
 from scipy.linalg import expm
 
-from qiskit.algorithms.quantum_time_evolution.real.implementations.trotterization.trotter_qrte \
-    import TrotterQrte
+from qiskit.algorithms.quantum_time_evolution.real.implementations.trotterization.trotter_qrte import (
+    TrotterQrte,
+)
 from qiskit.quantum_info import Statevector
 from qiskit.utils import algorithm_globals
 from qiskit.circuit import Parameter
@@ -48,8 +49,9 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         initial_state = Zero
         evolved_state = trotter_qrte.evolve(operator, 1, initial_state)
         # Calculate the expected state
-        expected_state = expm(-1j * Z.to_matrix()) @ expm(-1j * X.to_matrix()) @ \
-                         initial_state.to_matrix()
+        expected_state = (
+            expm(-1j * Z.to_matrix()) @ expm(-1j * X.to_matrix()) @ initial_state.to_matrix()
+        )
         expected_evolved_state = VectorStateFn(Statevector(expected_state, dims=(2,)))
 
         np.testing.assert_equal(evolved_state, expected_evolved_state)
@@ -79,8 +81,9 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         evolved_observable = evolved_observable.to_matrix_op()
         # Calculate the expected operator
         expected_op = expm(-1j * Z.to_matrix()) @ expm(-1j * X.to_matrix())
-        expected_evolved_observable = MatrixOp(expected_op.conj().T @ observable.to_matrix()
-                                               @ expected_op)
+        expected_evolved_observable = MatrixOp(
+            expected_op.conj().T @ observable.to_matrix() @ expected_op
+        )
 
         np.testing.assert_equal(evolved_observable, expected_evolved_observable)
 
@@ -92,8 +95,12 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         initial_state = Zero
         evolved_state = trotter_qrte.evolve(operator, 1, initial_state)
         # Calculate the expected state
-        expected_state = expm(-1j * X.to_matrix() * 0.5) @ expm(-1j * Z.to_matrix()) \
-                         @ expm(-1j * X.to_matrix() * 0.5) @ initial_state.to_matrix()
+        expected_state = (
+            expm(-1j * X.to_matrix() * 0.5)
+            @ expm(-1j * Z.to_matrix())
+            @ expm(-1j * X.to_matrix() * 0.5)
+            @ initial_state.to_matrix()
+        )
         expected_evolved_state = VectorStateFn(Statevector(expected_state, dims=(2,)))
 
         np.testing.assert_equal(evolved_state, expected_evolved_state)
