@@ -12,10 +12,6 @@
 from abc import abstractmethod
 
 from qiskit.algorithms.quantum_time_evolution.evolution_base import EvolutionBase
-from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import (
-    EvolutionGradientResult,
-)
-from qiskit.algorithms.quantum_time_evolution.results.evolution_result import EvolutionResult
 from qiskit.opflow import StateFn, OperatorBase, Gradient
 
 
@@ -29,7 +25,7 @@ class Qrte(EvolutionBase):
         observable: OperatorBase = None,
         t_param=None,
         hamiltonian_value_dict=None,
-    ) -> EvolutionResult:
+    ):
         raise NotImplementedError()
 
     @abstractmethod
@@ -43,5 +39,5 @@ class Qrte(EvolutionBase):
         t_param=None,
         hamiltonian_value_dict=None,
         gradient_params=None,
-    ) -> EvolutionGradientResult:
+    ):
         raise NotImplementedError()

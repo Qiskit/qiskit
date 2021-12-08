@@ -11,10 +11,6 @@
 # that they have been altered from the originals.
 from abc import ABC, abstractmethod
 
-from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import (
-    EvolutionGradientResult,
-)
-from qiskit.algorithms.quantum_time_evolution.results.evolution_result import EvolutionResult
 from qiskit.opflow import OperatorBase, StateFn, Gradient
 
 
@@ -28,7 +24,7 @@ class EvolutionBase(ABC):
         observable: OperatorBase = None,
         t_param=None,
         hamiltonian_value_dict=None,
-    ) -> EvolutionResult:
+    ):
         raise NotImplementedError()
 
     @abstractmethod
@@ -42,5 +38,5 @@ class EvolutionBase(ABC):
         t_param=None,
         hamiltonian_value_dict=None,
         gradient_params=None,
-    ) -> EvolutionGradientResult:
+    ):
         raise NotImplementedError()

@@ -17,10 +17,6 @@ from collections import defaultdict
 from typing import Union, Optional
 
 from qiskit.algorithms.quantum_time_evolution.real.qrte import Qrte
-from qiskit.algorithms.quantum_time_evolution.results.evolution_gradient_result import (
-    EvolutionGradientResult,
-)
-from qiskit.algorithms.quantum_time_evolution.results.evolution_result import EvolutionResult
 from qiskit.circuit import Parameter, ParameterExpression
 from qiskit.opflow import OperatorBase, StateFn, Gradient, commutator, SummedOp, PauliSumOp, \
     PauliOp, CircuitOp
@@ -60,8 +56,8 @@ class TrotterQrte(Qrte):
         initial_state: StateFn = None,
         observable: OperatorBase = None,
         t_param: Parameter = None,
-        hamiltonian_value_dict=None,
-    ) -> EvolutionResult:
+        hamiltonian_value_dict: [Parameter, Union[float, complex]] = None,
+    ):
         """
         Args:
             hamiltonian (Pauli | PauliOp | SparsePauliOp | PauliSumOp | list):
@@ -141,10 +137,10 @@ class TrotterQrte(Qrte):
         initial_state: StateFn,
         gradient_object: Optional[Gradient],
         observable: OperatorBase = None,
-        t_param=None,
-        hamiltonian_value_dict=None,
-        gradient_params=None,
-    ) -> EvolutionGradientResult:
+        t_param: Parameter = None,
+        hamiltonian_value_dict: [Parameter, Union[float, complex]] = None,
+        gradient_params: List[Parameter] = None,
+    ):
         if observable is None:
             raise NotImplementedError(
                 "Observable not provided. Probability gradients are not yet supported by "
