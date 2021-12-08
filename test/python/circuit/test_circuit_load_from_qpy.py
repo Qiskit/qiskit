@@ -26,6 +26,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.library import XGate, QFT, QAOAAnsatz, PauliEvolutionGate
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.parametervector import ParameterVector
 from qiskit.synthesis import LieTrotter
 from qiskit.extensions import UnitaryGate
 from qiskit.opflow import I, X, Y, Z
@@ -596,3 +597,18 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circuit = load(qpy_file)[0]
         self.assertEqual(qc, new_circuit)
+
+    def test_parameter_vector(self):
+        qc = QuantumCircuit(11)
+        input_params = ParameterVector("x_par", 11)
+        user_params = ParameterVector("θ_par", 11)
+        for i, param in enumerate(user_params):
+            qc.ry(param, i)
+        for i, param in enumerate(input_params):
+            qc.rz(param, i)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        expected_params = [x.name for x in qc.parameters]
+        self.assertEqual([x.name for x in new_circuit.parameters], expected_params)

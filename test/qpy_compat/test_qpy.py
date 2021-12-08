@@ -23,6 +23,7 @@ from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.parametervector import ParameterVector
 from qiskit.circuit.qpy_serialization import dump, load
 from qiskit.opflow import X, Y, Z
 from qiskit.quantum_info.random import random_unitary
@@ -241,6 +242,18 @@ def generate_single_clbit_condition_teleportation():
     return teleport_qc
 
 
+def generate_parameter_vector():
+    """Generate tests for parameter vector element ordering."""
+    qc = QuantumCircuit(11)
+    input_params = ParameterVector("x_par", 11)
+    user_params = ParameterVector("θ_par", 11)
+    for i, param in enumerate(user_params):
+        qc.ry(param, i)
+    for i, param in enumerate(input_params):
+        qc.rz(param, i)
+    return qc
+
+
 def generate_circuits(version_str=None):
     """Generate reference circuits."""
     version_parts = None
@@ -265,12 +278,24 @@ def generate_circuits(version_str=None):
     if version_parts >= (0, 19, 0):
         output_circuits["param_phase.qpy"] = generate_param_phase()
 
+    if version_parts >= (0, 19, 1):
+        output_circuits["parameter_vector.qpy"] = [generate_parameter_vector()]
+
     return output_circuits
 
 
 def assert_equal(reference, qpy, count, bind=None):
     """Compare two circuits."""
     if bind is not None:
+        reference_parameter_names = [x.name for x in reference.parameters]
+        qpy_parameter_names = [x.name for x in qpy.parameters]
+        if reference_parameter_names != qpy_parameter_names:
+            msg = (
+                f"Circuit {count} parameter mismatch:"
+                f" {reference_parameter_names} != {qpy_parameter_names}"
+            )
+            sys.stderr.write(msg)
+            sys.exit(4)
         reference = reference.bind_parameters(bind)
         qpy = qpy.bind_parameters(bind)
     if reference != qpy:
@@ -281,7 +306,7 @@ def assert_equal(reference, qpy, count, bind=None):
         sys.stderr.write(msg)
         sys.exit(1)
     # Don't compare name on bound circuits
-    if not bind and reference.name != qpy.name:
+    if bind is None and reference.name != qpy.name:
         msg = f"Circuit {count} name mismatch {reference.name} != {qpy.name}"
         sys.stderr.write(msg)
         sys.exit(2)
@@ -313,6 +338,8 @@ def load_qpy(qpy_files):
                     bind = [1, 2]
                 else:
                     bind = [1]
+            elif path == "parameter_vector.qpy":
+                bind = np.linspace(1.0, 2.0, 22)
 
             assert_equal(circuit, qpy_circuits[i], i, bind=bind)
 

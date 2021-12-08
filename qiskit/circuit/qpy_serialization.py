@@ -100,6 +100,42 @@ There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
 
+.. _version_3:
+
+Version 3
+=========
+
+Version 3 of the QPY format is identical to :ref:`version_2` except that it
+defines a struct format to represent a
+:class:`~qiskit.circuit.ParameterVectorElement` as a distinct subclass from
+a :class:`~qiskit.circuit.Parameter`. This adds a new parameter type char ``'v'``
+to represent a :class:`~qiskit.circuit.ParameterVectorElement` which is now
+supported as a type string value for an INSTRUCTION_PARAM. The payload for these
+parameters are defined below as :ref:`param_vector`.
+
+.. _param_vector:
+
+
+PARAMETER_VECTOR
+----------------
+
+A PARAMETER_VECTOR represents a :class:`~qiskit.circuit.ParameterVectorElement`
+object the data for a INSTRUCTION_PARAM. The contents of the PARAMETER_VECTOR are
+defined as:
+
+.. code-block:: c
+
+    struct {
+        uint16_t vector_name_size;
+        uint64_t vector_size;
+        char uuid[16];
+        uint64_t index;
+    }
+
+which is immediately followed by ``vector_name_size`` utf8 bytes representing
+the parameter's vector name.
+
+
 .. _version_2:
 
 Version 2
@@ -399,6 +435,7 @@ from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.circuit.parametervector import ParameterVector, ParameterVectorElement
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit import library
@@ -518,6 +555,12 @@ PARAM_EXPR_MAP_ELEM_SIZE = struct.calcsize(PARAM_EXPR_MAP_ELEM_PACK)
 COMPLEX = namedtuple("COMPLEX", ["real", "imag"])
 COMPLEX_PACK = "!dd"
 COMPLEX_SIZE = struct.calcsize(COMPLEX_PACK)
+# PARAMETER_VECTOR
+PARAMETER_VECTOR = namedtuple(
+    "PARAMETER_VECTOR", ["vector_name_size", "vector_size", "uuid", "index"]
+)
+PARAMETER_VECTOR_PACK = "!HQ16sQ"
+PARAMETER_VECTOR_SIZE = struct.calcsize(PARAMETER_VECTOR_PACK)
 
 
 def _read_header_v2(file_obj):
@@ -593,6 +636,23 @@ def _read_parameter(file_obj):
     return param
 
 
+def _read_parameter_vec(file_obj, vectors):
+    param_raw = struct.unpack(PARAMETER_VECTOR_PACK, file_obj.read(PARAMETER_VECTOR_SIZE))
+    vec_name_size = param_raw[0]
+    param_uuid = uuid.UUID(bytes=param_raw[2])
+    param_index = param_raw[3]
+    name = file_obj.read(vec_name_size).decode("utf8")
+    if name not in vectors:
+        vectors[name] = ParameterVector(name, param_raw[1])
+    vector = vectors[name]
+    if vector[param_index]._uuid != param_uuid:
+        vector._params[param_index] = ParameterVectorElement.__new__(
+            ParameterVectorElement, vector, param_index, uuid=param_uuid
+        )
+        vector._params[param_index].__init__(vector, param_index)
+    return vector[param_index]
+
+
 def _read_parameter_expression(file_obj):
     param_expr_raw = struct.unpack(PARAMETER_EXPR_PACK, file_obj.read(PARAMETER_EXPR_SIZE))
     map_elements = param_expr_raw[0]
@@ -625,7 +685,7 @@ def _read_parameter_expression(file_obj):
     return ParameterExpression(symbol_map, expr)
 
 
-def _read_instruction(file_obj, circuit, registers, custom_instructions):
+def _read_instruction(file_obj, circuit, registers, custom_instructions, vectors):
     instruction_raw = file_obj.read(INSTRUCTION_SIZE)
     instruction = struct.unpack(INSTRUCTION_PACK, instruction_raw)
     name_size = instruction[0]
@@ -698,6 +758,9 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions):
         elif type_str == "e":
             container = io.BytesIO(data)
             param = _read_parameter_expression(container)
+        elif type_str == "v":
+            container = io.BytesIO(data)
+            param = _read_parameter_vec(container, vectors)
         else:
             raise TypeError("Invalid parameter type: %s" % type_str)
         params.append(param)
@@ -787,6 +850,20 @@ def _read_custom_instructions(file_obj, version):
 def _write_parameter(file_obj, param):
     name_bytes = param._name.encode("utf8")
     file_obj.write(struct.pack(PARAMETER_PACK, len(name_bytes), param._uuid.bytes))
+    file_obj.write(name_bytes)
+
+
+def _write_parameter_vec(file_obj, param):
+    name_bytes = param._vector._name.encode("utf8")
+    file_obj.write(
+        struct.pack(
+            PARAMETER_VECTOR_PACK,
+            len(name_bytes),
+            param._vector._size,
+            param._uuid.bytes,
+            param._index,
+        )
+    )
     file_obj.write(name_bytes)
 
 
@@ -904,6 +981,12 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
             type_key = "s"
             data = param.encode("utf8")
             size = len(data)
+        elif isinstance(param, ParameterVectorElement):
+            type_key = "v"
+            _write_parameter_vec(container, param)
+            container.seek(0)
+            data = container.read()
+            size = len(data)
         elif isinstance(param, Parameter):
             type_key = "p"
             _write_parameter(container, param)
@@ -1019,7 +1102,7 @@ def dump(circuits, file_obj):
     header = struct.pack(
         FILE_HEADER_PACK,
         b"QISKIT",
-        2,
+        3,
         version_parts[0],
         version_parts[1],
         version_parts[2],
@@ -1279,7 +1362,8 @@ def _read_circuit(file_obj, version):
             metadata=metadata,
         )
     custom_instructions = _read_custom_instructions(file_obj, version)
+    vectors = {}
     for _instruction in range(num_instructions):
-        _read_instruction(file_obj, circ, out_registers, custom_instructions)
+        _read_instruction(file_obj, circ, out_registers, custom_instructions, vectors)
 
     return circ
