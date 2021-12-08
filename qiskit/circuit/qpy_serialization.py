@@ -589,7 +589,8 @@ COMPLEX_PACK = "!dd"
 COMPLEX_SIZE = struct.calcsize(COMPLEX_PACK)
 # Pauli Evolution Gate
 PAULI_EVOLUTION_DEF = namedtuple(
-    "PAULI_EVOLUTION_DEF", ["operator_size", "standalone_op", "time_type", "time_size", "synth_method_size"]
+    "PAULI_EVOLUTION_DEF",
+    ["operator_size", "standalone_op", "time_type", "time_size", "synth_method_size"],
 )
 PAULI_EVOLUTION_DEF_PACK = "!Q?1cQQ"
 PAULI_EVOLUTION_DEF_SIZE = struct.calcsize(PAULI_EVOLUTION_DEF_PACK)
@@ -1104,7 +1105,7 @@ def _read_pauli_evolution_gate(file_obj):
             time = _read_parameter(buf)
     elif time_type == b"e":
         with io.BytesIO(time_data) as buf:
-           time = _read_parameter_expression(buf)
+            time = _read_parameter_expression(buf)
     synth_data = json.loads(file_obj.read(pauli_evolution_raw[4]))
     synthesis = getattr(evo_synth, synth_data["class"])(**synth_data["settings"])
     return_gate = library.PauliEvolutionGate(pauli_op, time=time, synthesis=synthesis)
