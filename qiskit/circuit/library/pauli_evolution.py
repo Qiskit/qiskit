@@ -51,7 +51,7 @@ class PauliEvolutionGate(Gate):
     def __init__(
         self,
         operator,
-        time: Union[float, ParameterExpression] = 1.0,
+        time: Union[int, float, ParameterExpression] = 1.0,
         label: Optional[str] = None,
         synthesis: Optional[EvolutionSynthesis] = None,
     ) -> None:
@@ -106,6 +106,15 @@ class PauliEvolutionGate(Gate):
 
     def inverse(self) -> "PauliEvolutionGate":
         return PauliEvolutionGate(operator=self.operator, time=-self.time, synthesis=self.synthesis)
+
+    def validate_parameter(
+        self, parameter: Union[int, float, ParameterExpression]
+    ) -> Union[float, ParameterExpression]:
+        """Gate parameters should be int, float, or ParameterExpression"""
+        if isinstance(parameter, int):
+            parameter = float(parameter)
+
+        return super().validate_parameter(parameter)
 
 
 def _to_sparse_pauli_op(operator):
