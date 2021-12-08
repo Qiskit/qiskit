@@ -4277,7 +4277,7 @@ class QuantumCircuit:
                 qc.h(0)
                 qc.cx(0, 1)
                 qc.measure(0, 0)
-                qc.break_loop().c_if(0)
+                qc.break_loop().c_if(0, True)
 
         Args:
             indexset (Iterable[int]): A collection of integers to loop over.  Always necessary.
