@@ -536,8 +536,8 @@ class TestLoadFromQPY(QiskitTestCase):
 
     def test_evolutiongate(self):
         """Test loading a circuit with evolution gate works."""
-        synthesis = LieTrotter(reps=2)
-        evo = PauliEvolutionGate((Z ^ I) + (I ^ Z), time=0.2, synthesis=synthesis)
+#        synthesis = LieTrotter(reps=2)
+        evo = PauliEvolutionGate((Z ^ I) + (I ^ Z), time=0.2, synthesis=None)
         qc = QuantumCircuit(2)
         qc.append(evo, range(2))
         qpy_file = io.BytesIO()
@@ -546,17 +546,16 @@ class TestLoadFromQPY(QiskitTestCase):
         new_circ = load(qpy_file)[0]
 
         # remove wrapping of instructions
-        qc = qc.decompose().decompose()
-        new_circ = new_circ.decompose().decompose()
+#        qc = qc.decompose().decompose()
+#        new_circ = new_circ.decompose().decompose()
 
         self.assertEqual(qc, new_circ)
         self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
 
-        # enable these tests once we can can serialize allPauliEvolutionGate parameters such as
-        # new_evo = new_circ.data[0][0]
+        new_evo = new_circ.data[0][0]
         # SparsePauliOp and EvolutionSynthesis
-        # self.assertIsInstance(new_evo,PauliEvolutionGate)
-        # self.assertIsInstance(new_evo.synthesis, LieTrotter)
+        self.assertIsInstance(new_evo,PauliEvolutionGate)
+#        self.assertIsInstance(new_evo.synthesis, LieTrotter)
 
     def test_parameter_expression_global_phase(self):
         """Test a circuit with a parameter expression global_phase."""

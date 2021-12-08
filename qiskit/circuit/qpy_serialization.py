@@ -100,6 +100,76 @@ There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
 
+.. _version_3:
+
+Version 3
+=========
+
+Version 3 of the QPY format is identical to :ref:`version_2` except that it defines
+a struct format to represent a :class:`~qiskit.circuit.library.PauliEvolutionGate`
+natively in QPY. To accomplish this the :ref:`custom_definition` struct now supports
+a new type value ``'p'`` to represent a :class:`~qiskit.circuit.library.PauliEvolutionGate`.
+Enties in the custom instructions tables have unique name generated that start with the
+string ``"###PauliEvolutionGate_"`` followed by a uuid string. This gate name is reservered
+in QPY and if you have a custom :class:`~qiskit.circuit.Instruction` object with a definition
+set and that name prefix it will error. If it's of type ``'p'`` the data payload is defined
+as follows:
+
+PAULI_EVOLUTION
+---------------
+
+This represents the high level :class:`~qiskit.circuit.library.PauliEvolutionGate`
+
+.. code-block:: c
+
+    struct {
+        uint64_t operator_size;
+        char time_type;
+        uint64_t time_size;
+        uint64_t synthesis_size;
+    }
+
+This is immediatedly followed by ``operator_size`` bytes represented by the :ref:`pauli_sum_op`
+data which is then followed by the :ref:`evolution_synthesis` data. Following that we have
+``time_size`` bytes representing the ``time`` attribute. The encoding of these bytes is determined
+by the value of ``time_type``. Possible values of ``time_type`` are ``'f'``, ``'p'``, and ``'e'``.
+If ``time_type`` is ``'f'`` it's a double, ``'p'`` defines a :class:`~qiskit.circuit.Parameter`
+object  which is represented by a :ref:`param_struct`, ``e`` defines a
+:class:`~qiskit.circuit.ParameterExpression` object (that's not a
+:class:`~qiskit.circuit.Parameter`) which is represented by a :ref:`param_expr`. Following that is
+``synthesis_size`` bytes. These are define
+
+.. pauli_sum_op
+
+PAULI_SUM_OP
+------------
+
+This represents an instance of :class:`~qiskit.opflow.PauliSumOp`.
+
+
+.. code-block: c
+
+    struct {
+        uint32_t pauli_list_size;
+        char coeff_type;
+        uint64_t coeff_size;
+        char grouping_type;
+    }
+
+which is immediately followed by ``pauli_list_size`` bytes which are .npy format [#f2]_
+data which represents the pauli list.
+:ref:`pauli_list_elements`. Then following that will be ``coeff_size`` bytes that
+represent the data for the coefficient. The data in these bytes are based on the
+value of ``coeff_type``. Possible values for ``coeff_type`` are
+``'f'``, ``'p'``, ``'e'``, ``'s'``, or ``'c'`` which dictate the format. For ``'f'``
+it's a double, ``'c'`` is a complex and the data is represented by the struct
+format in the :ref:`param_expr` section. ``'p'`` defines a
+:class:`~qiskit.circuit.Parameter` object  which is represented by a
+:ref:`param_struct`, ``e`` defines a :class:`~qiskit.circuit.ParameterExpression`
+object (that's not a :class:`~qiskit.circuit.Parameter`) which is represented by a
+:ref:`param_expr`. The ``grouping_type`` can either be of value ``'n'`` to represent
+``"None"`` or ``'t'`` to represent ``"TPB"``.
+
 .. _version_2:
 
 Version 2
@@ -213,6 +283,8 @@ the register ``qr`` would be a standalone register. While something like::
 ``qr`` would have ``standalone`` set to ``False``.
 
 
+.. custom_definition:
+
 CUSTOM_DEFINITIONS
 ------------------
 
@@ -244,7 +316,10 @@ of size ``name_size``.
 If ``custom_definition`` is ``True`` that means that the immediately following
 ``size`` bytes contains a QPY circuit data which can be used for the custom
 definition of that gate. If ``custom_definition`` is ``False`` then the
-instruction can be considered opaque (ie no definition).
+instruction can be considered opaque (ie no definition). The ``type`` field
+determines what type of object will get created with the custom definition.
+If it's ``'g'`` it will be a :class:`~qiskit.circuit.Gate` object, ``'i'``
+it will be a :class:`~qiskit.circuit.Instruction` object.
 
 INSTRUCTIONS
 ------------
@@ -315,6 +390,8 @@ represented by a PARAM struct (see below), ``e`` defines a
 :class:`~qiskit.circuit.Parameter`) which is represented by a PARAM_EXPR struct
 (see below), and ``'n'`` represents an object from numpy (either an ``ndarray``
 or a numpy type) which means the data is .npy format [#f2]_ data.
+
+.. param_struct:
 
 PARAMETER
 ---------
@@ -407,6 +484,7 @@ from qiskit import extensions
 from qiskit.extensions import quantum_initializer
 from qiskit.version import __version__
 from qiskit.exceptions import QiskitError
+from qiskit.quantum_info.operators import SparsePauliOp
 
 try:
     import symengine
@@ -518,6 +596,18 @@ PARAM_EXPR_MAP_ELEM_SIZE = struct.calcsize(PARAM_EXPR_MAP_ELEM_PACK)
 COMPLEX = namedtuple("COMPLEX", ["real", "imag"])
 COMPLEX_PACK = "!dd"
 COMPLEX_SIZE = struct.calcsize(COMPLEX_PACK)
+# Pauli Evolution Gate
+PAULI_EVOLUTION_DEF = namedtuple(
+    "PAULI_EVOLUTION_DEF", ["operator_size", "time_type", "time_size", "synth_method_size"]
+)
+PAULI_EVOLUTION_DEF_PACK = "!Q1cQQ"
+PAULI_EVOLUTION_DEF_SIZE = struct.calcsize(PAULI_EVOLUTION_DEF_PACK)
+# PauliSumOp
+PAULI_SUM_OP = namedtuple(
+    "PAULI_SUM_OP", ["pauli_list_size", "coeff_type", "coeff_size", "grouping_type"]
+)
+PAULI_SUM_OP_PACK = "!I1cQ1c"
+PAULI_SUM_OP_SIZE = struct.calcsize(PAULI_EVOLUTION_DEF_PACK)
 
 
 def _read_header_v2(file_obj):
@@ -751,6 +841,8 @@ def _parse_custom_instruction(custom_instructions, gate_name, params):
     elif type_str == "g":
         inst_obj = Gate(gate_name, num_qubits, params)
         inst_obj.definition = definition
+    elif type_str == "p":
+        inst_obj = definition
     else:
         raise ValueError("Invalid custom instruction type '%s'" % type_str)
     return inst_obj
@@ -779,7 +871,10 @@ def _read_custom_instructions(file_obj, version):
             definition_circuit = None
             if has_custom_definition:
                 definition_buffer = io.BytesIO(file_obj.read(size))
-                definition_circuit = _read_circuit(definition_buffer, version)
+                if version < 3 or not name.startswith(r"###PauliEvolutionGate"):
+                    definition_circuit = _read_circuit(definition_buffer, version)
+                else:
+                    definition_circuit = _read_pauli_evolution_gate(definition_buffer, version)
             custom_instructions[name] = (type_str, num_qubits, num_clbits, definition_circuit)
     return custom_instructions
 
@@ -842,11 +937,15 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
         )
         or gate_class_name == "Gate"
         or gate_class_name == "Instruction"
-        or isinstance(instruction_tuple[0], (library.BlueprintCircuit, library.PauliEvolutionGate))
+        or isinstance(instruction_tuple[0], (library.BlueprintCircuit))
     ):
         if instruction_tuple[0].name not in custom_instructions:
             custom_instructions[instruction_tuple[0].name] = instruction_tuple[0]
         gate_class_name = instruction_tuple[0].name
+
+    elif isinstance(instruction_tuple[0], library.PauliEvolutionGate):
+        evolutation_gate_str = r"###PauliEvolutionGate_" + str(uuid.uuid4())
+        custom_instructions[evolutation_gate_str] = instruction_tuple[0]
 
     has_condition = False
     condition_register = b""
@@ -936,9 +1035,135 @@ def _write_instruction(file_obj, instruction_tuple, custom_instructions, index_m
         container.close()
 
 
+def _write_pauli_sum_op(file_obj, sum_op):
+    buf = io.BytesIO()
+    pauli_list = sum_op.to_list(array=True)
+    np.save(buf, pauli_list)
+    buf.seek(0)
+    pauli_list_data = container.read()
+    pauli_list_size = len(data)
+    coeff = sum_op.coeff
+    if isinstance(coeff, float):
+        coeff_type = "f"
+        coeff_data = struct.pack("!d", coeff)
+        coeff_size = struct.calcsize("!d")
+    elif isinstance(param, Parameter):
+        coeff_type = "p"
+        _write_parameter(container, coeff)
+        container.seek(0)
+        coeff_data = container.read()
+        coeff_size = len(data)
+    elif isinstance(param, ParameterExpression):
+        coeff_type = "e"
+        _write_parameter_expression(container, coeff)
+        container.seek(0)
+        coeff_data = container.read()
+        coeff_size = len(data)
+    elif isinstance(param, complex):
+        coeff_type = "c"
+        coeff_data = struct.pack(COMPLEX_PACK, coeff.real, coeff.imag)
+        coeff_size = struct.calcsize(COMPLEX_PACK)
+    else:
+        raise TypeError(f"Invalid coefficient type {coeff} for PauliSumOp")
+    if sum_op.grouping_type == "None":
+        group_type = "n"
+    elif sum_op.grouping_type == "TPB":
+        group_type = "t"
+    else:
+        raise ValueError(f"Unknown grouping_type {sum_op.grouping_type} for PauliSumOp")
+    pauli_sum_op_raw = struct.pack(
+        PAULI_SUM_OP_PACK, pauli_list_size, coeff_type, coeff_size, group_type
+    )
+    file_obj.write(pauli_sum_op_raw)
+    file_obj.write(pauli_list_data)
+    file_obj.write(coeff_data)
+
+
+def _read_pauli_sum_op(file_obj):
+    sum_op_raw = struct.unpack(PAULI_SUM_OP_PACK, file_obj.read(PAULI_SUM_OP_SIZE))
+    pauli_list_data = io.BytesIO(file_obj.read(sum_op_raw[0]))
+    primitive = SparsePauliOp.from_list(np.load(pauli_list_data))
+    coeff_type = sum_op_raw[1]
+    coeff_data = file_obj.read(sum_op_raw[2])
+    if coeff_type == "f":
+        coeff = struct.unpack("!d", coeff_data)
+    elif coeff_type == "p":
+        buf = io.BytesIO(coeff_data)
+        coeff = _read_parameter(buf)
+    elif coeff_type == "e":
+        buf = io.BytesIO(coeff_data)
+        coeff = _read_parameter_expression(buf)
+    elif coeff_type == "c":
+        value = complex(*struct.unpack(COMPLEX_PACK, coeff_data))
+    if sum_op_raw[3] == "n":
+        grouping_type = "None"
+    elif sum_op_raw[3] == "t":
+        grouping_type = "TPB"
+    return PauliSumOp(primitive=primitive, coeff=coeff, grouping_type=grouping_type)
+
+
+def _write_pauli_evolution_gate(file_obj, evolution_gate):
+    pauli_sum_buf = io.BytesIO()
+    _write_pauli_sum_op(pauli_sum_buf, evolution_gate.operator)
+    pauli_sum_data = pauli_sum_buf.getvalue()
+    pauli_sum_size = len(pauli_sum_data)
+    time = evolution_gate.time
+    if isinstance(time, float):
+        time_type = "f"
+        time_data = struct.pack("!d", time)
+        time_size = struct.calcsize("!d")
+    elif isinstance(param, Parameter):
+        time_type = "p"
+        _write_parameter(container, time)
+        container.seek(0)
+        time_data = container.read()
+        time_size = len(data)
+    elif isinstance(param, ParameterExpression):
+        time_type = "e"
+        _write_parameter_expression(container, time)
+        container.seek(0)
+        time_data = container.read()
+        time_size = len(data)
+    else:
+        raise TypeError(f"Invalid coefficient type {coeff} for PauliSumOp")
+
+    # TODO: Add synthesis class to format (will need a new pack format and settings for classes)
+    synth_size = 0
+    synth_data = b""
+    pauli_evolution_raw = struct.pack(
+        PAULI_EVOLUTION_DEF_PACK, pauli_sum_size, time_type, time_size, synth_size
+    )
+    file_obj.write(pauli_evolution_raw)
+    file_obj.write(pauli_sum_data)
+    file_obj.write(time_data)
+    file_obj.write(synth_data)
+
+
+def _read_pauli_evolution_gate(file_obj):
+    pauli_evolution_raw = struct.unpack(
+        PAULI_EVOLUTION_DEF_PACK, file_obj.read(PAULI_EVOLUTION_DEF_SIZE)
+    )
+    pauli_sum = _read_pauli_sum_op(io.BytesIO(file_obj.read(pauli_evolution_raw[0])))
+    time_type = pauli_evolution_raw[1]
+    time_data = file_obj.read(file_obj.read(pauli_evolution_raw[2]))
+    if time_type == "f":
+        time = struct.unpack("!d", time_data)
+    elif time_type == "p":
+        buf = io.BytesIO(time_data)
+        time = _read_parameter(buf)
+    elif time_type == "e":
+        buf = io.BytesIO(time_data)
+        time = _read_parameter_expression(buf)
+    # TODO: Read synthesis class
+    synthesis = None
+    return PauliEvolutionGate(pauli_sum, time=time, synthesis=None)
+
+
 def _write_custom_instruction(file_obj, name, instruction):
     if isinstance(instruction, Gate):
         type_str = b"g"
+    elif isinstance(instruction, PauliEvolutionGate):
+        type_str = b"p"
     else:
         type_str = b"i"
     has_definition = False
@@ -949,7 +1174,10 @@ def _write_custom_instruction(file_obj, name, instruction):
     if instruction.definition:
         has_definition = True
         definition_buffer = io.BytesIO()
-        _write_circuit(definition_buffer, instruction.definition)
+        if isinstance(instruction, PauliEvolutionGate):
+            _write_pauli_evolution_gate(definition_buffer, instruction)
+        else:
+            _write_circuit(definition_buffer, instruction.definition)
         definition_buffer.seek(0)
         data = definition_buffer.read()
         definition_buffer.close()
@@ -1019,7 +1247,7 @@ def dump(circuits, file_obj):
     header = struct.pack(
         FILE_HEADER_PACK,
         b"QISKIT",
-        2,
+        3,
         version_parts[0],
         version_parts[1],
         version_parts[2],
