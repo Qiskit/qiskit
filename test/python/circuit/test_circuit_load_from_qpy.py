@@ -692,11 +692,8 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual([x.name for x in new_circuit.parameters], expected_params)
 
     def test_parameter_vector_element_in_expression(self):
+        """Test a circuit with a parameter vector used in a parameter expression."""
         qc = QuantumCircuit(7)
-
-        num_features = 14
-        entangler_map = [[0, 2], [3, 4], [2, 5], [1, 4], [2, 3], [4, 6]]
-
         entanglement = [[i, i + 1] for i in range(7 - 1)]
         input_params = ParameterVector("x_par", 14)
         user_params = ParameterVector("\u03B8_par", 1)

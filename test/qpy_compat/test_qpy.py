@@ -255,7 +255,7 @@ def generate_parameter_vector():
     return qc
 
 
-def generate_parameter_vector_expression():
+def generate_parameter_vector_expression():  # pylint: disable=invalid-name
     """Generate tests for parameter vector element ordering."""
     qc = QuantumCircuit(7)
     entanglement = [[i, i + 1] for i in range(7 - 1)]

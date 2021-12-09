@@ -831,7 +831,7 @@ def _read_parameter_expression_v3(file_obj, vectors):
             value = struct.unpack("!q", elem_data)
         elif elem_type == "c":
             value = complex(*struct.unpack(COMPLEX_PACK, elem_data))
-        elif elem_type == "p" or elem_type == "v":
+        elif elem_type in ("p", "v"):
             value = param._symbol_expr
         elif elem_type == "e":
             value = _read_parameter_expression_v3(io.BytesIO(elem_data), vectors)
