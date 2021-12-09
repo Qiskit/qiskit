@@ -215,7 +215,7 @@ are defined as:
 
 Immediately following the header is ``expr_size`` bytes of utf8 data containing
 the expression string, which is the sympy srepr of the expression for the
-parameter expression. Follwing that is a symbol map which contains
+parameter expression. Following that is a symbol map which contains
 ``map_elements`` elements with the format
 
 .. code-block:: c
@@ -230,7 +230,7 @@ The ``symbol_type`` key determines the payload type of the symbol representation
 for the element. If it's ``p`` it represents a :class:`~qiskit.circuit.Parameter`
 and if it's ``v`` it represents a :class:`~qiskit.circuit.ParameterVectorElement`.
 The map element struct is immediately followed by the symbol map key payload, if
-``symbol_type`` is ``p`` then it followed immediately by :ref:`param_struct`
+``symbol_type`` is ``p`` then it is followed immediately by a :ref:`param_struct`
 object (both the struct and utf8 name bytes) and if ``symbol_type`` is ``v``
 then the struct is imediately followed by :ref:`param_vector` (both the struct
 and utf8 name bytes). That is followed by ``size`` bytes for the
@@ -463,7 +463,7 @@ represented by a :ref:`param_struct` struct, ``e`` defines a
 :class:`~qiskit.circuit.ParameterExpression` object (that's not a
 :class:`~qiskit.circuit.Parameter`) which is represented by a :ref:`param_expr`
 struct (on QPY format :ref:`version_3` the format is tweak slightly see:
-:ref:`_param_expr_v3`), ``'n'`` represents an object from numpy (either an
+:ref:`param_expr_v3`), ``'n'`` represents an object from numpy (either an
 ``ndarray`` or a numpy type) which means the data is .npy format [#f2]_ data,
 and in QPY :ref:`version_3` ``'v'`` represents a
 :class:`~qiskit.circuit.ParameterVectorElement` which is represented by a
@@ -1683,7 +1683,7 @@ def _read_circuit(file_obj, version):
     for vec_name, (vector, initialized_params) in vectors.items():
         if len(initialized_params) != len(vector):
             warnings.warn(
-                f"The ParameterVector: '{vec_name}' is not fully identical to it's "
+                f"The ParameterVector: '{vec_name}' is not fully identical to its "
                 "pre-serialization state. Elements "
                 f"{', '.join([str(x) for x in set(range(len(vector))) - initialized_params])} "
                 "in the ParameterVector will be not equal to the pre-serialized ParameterVector "
