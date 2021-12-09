@@ -1,7 +1,7 @@
 ---
 fixes:
   - |
-    Fixed the handling :mod:`~qiskit.circuit.qpy_serialization` support for
+    Fixed :mod:`~qiskit.circuit.qpy_serialization` support for
     serializing :class:`~qiskit.circuit.QuantumCircuit` objects that are
     using :class:`.ParameterVector` or :class:`.ParameterVectorElement` as
     parameters. Previously, a :class:`.ParameterVectorElement` parameter was
