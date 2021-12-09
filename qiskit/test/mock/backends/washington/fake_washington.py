@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Fake Jakarta device (7 qubit).
+Fake Washington device (127 qubit).
 """
 
 import os
