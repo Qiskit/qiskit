@@ -62,6 +62,7 @@ class FakeProvider(ProviderV1):
             FakeCasablanca(),
             FakeEssex(),
             FakeGuadalupe(),
+            FakeHanoi(),
             FakeJakarta(),
             FakeJohannesburg(),
             FakeKolkata(),
