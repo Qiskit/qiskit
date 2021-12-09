@@ -16,26 +16,31 @@ gs_energy = min(np.real(np.linalg.eig(cost_op.to_matrix())[0]))
 quantum_instance = QuantumInstance(Aer.get_backend('qasm_simulator'), shots=1024)
 optimiser = NELDER_MEAD()
 max_reps = 8
-
+# adaptqaoa = AdaptQAOA(max_reps=max_reps, quantum_instance=quantum_instance,mixer_pool=[X^I^I^I + ^X^I^I + X^I^I^I ],
+#                         optimizer=optimiser, threshold=0)#,
 "--------------------------------------------------------------"
 "run adapt"
 "--------------------------------------------------------------"
-# cost_op = I^X^I^I^X^I
-adapt_vals_dict = {'Multi':[], 'Single':[], 'Singular':[]}
+import copy
+adapt_vals_dict = {'Multi':0, 'Single':0, 'Singular':0}
+adapt_val_dict = copy.copy(adapt_vals_dict)
 for mt in adapt_vals_dict.keys():
     print("Running adapt with mixer pool type {}".format(mt))
-    adaptqaoa = AdaptQAOA(max_reps=max_reps, quantum_instance=quantum_instance,mixer_pool_type=mt, optimizer=optimiser, threshold=0)#,
-                            # initial_point=extend_initial_points(max_reps=max_reps))
-    final_result, total_results = adaptqaoa.compute_minimum_eigenvalue(cost_op)
+    adaptqaoa = AdaptQAOA(max_reps=max_reps, quantum_instance=quantum_instance,mixer_pool_type=mt, optimizer=optimiser, threshold=0,
+                            initial_point=extend_initial_points(max_reps=max_reps))
+    final_result, total_results = adaptqaoa.compute_minimum_eigenvalue(cost_op, iter_results = True)
     adapt_depth = len(total_results)
     adapt_vals_dict[mt] = [(total_results[i].optimal_value-gs_energy) for i in range(adapt_depth)]
-"--------------------------------------------------------------"
-"now run regular qaoa over the maximum number of iterations!!!!"
-"--------------------------------------------------------------"
-print("Beginning QAOA experiment up to circuit depth {}".format(adapt_depth))
-ad_ip = adaptqaoa.initial_point
-init_beta = ad_ip[:max_reps+1]
-init_gamma = ad_ip[max_reps+1:]
+    adapt_val_dict[mt] = adaptqaoa.initial_point
+
+# "--------------------------------------------------------------"
+# "now run regular qaoa over the maximum number of iterations!!!!"
+# "--------------------------------------------------------------"
+# print("Beginning QAOA experiment up to circuit depth {}".format(adapt_depth))
+# ad_ip = adapt_val_dict[min(adapt_vals_dict)]
+# init_beta = ad_ip[:max_reps+1]
+# init_gamma = ad_ip[max_reps+1:]
+adapt_depth=2
 qaoa_vals = []
 for p in range(1,adapt_depth+1):
     qaoa = QAOA(reps=p, quantum_instance=quantum_instance, optimizer=optimiser)#, initial_point=np.concatenate((init_beta[:p],init_gamma[:p])))
@@ -61,6 +66,3 @@ plt.xlabel("Circuit depth")
 plt.ylabel("Energy")
 plt.legend()
 plt.savefig('adaptqaoa_vs_qaoa.png')
-
-
-

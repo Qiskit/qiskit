@@ -148,20 +148,20 @@ class AdaptQAOA(QAOA):
 
         # self.best_gamma, self.best_beta = [self.initial_point[-1]], []
 
-    def _update_ansatz(self):  # , operator: OperatorBase) -> OperatorBase:
+    def _update_ansatz(self, operator: OperatorBase) -> OperatorBase:
         # Recreates a circuit based on operator parameter.
         self.ansatz = QAOAAnsatz(
-            cost_operator=self.cost_operator,
+            cost_operator=operator,
             initial_state=self._initial_state,
             mixer_operator=self.optimal_mixer_list,
             name=self.name,
         )
-        # depth = len(self.ansatz.operators[::2])self.best_beta
-        beta_bounds = self._reps * [(0, 2 * np.pi)]
-        gamma_bounds = self._reps * [(None, None)]
+        beta_bounds = self._reps * [(-2*np.pi, 2 * np.pi)]
+        gamma_bounds = self._reps * [(-np.pi, np.pi)]
+
         self.ansatz._bounds = beta_bounds + gamma_bounds
 
-    def compute_energy_gradient(self, mixer, cost_operator, ansatz=None) -> ComposedOp:
+    def compute_energy_gradient(self, mixer, operator, ansatz=None) -> ComposedOp:
         """Computes the energy gradient of the cost operator wrt the mixer pool at an
             ansatz layer specified by the input 'state' and initial point.
 
@@ -172,14 +172,14 @@ class AdaptQAOA(QAOA):
 
         from qiskit.opflow import commutator
 
-        if not isinstance(cost_operator, MatrixOp):
-            cost_operator = MatrixOp(Operator(cost_operator.to_matrix()))
+        if not isinstance(operator, MatrixOp):
+            operator = MatrixOp(Operator(operator.to_matrix()))
         wave_function = ansatz.assign_parameters(self.hyperparameter_dict)
         # construct expectation operator
-        exp_hc = (self.initial_point[-1] * cost_operator).exp_i()
+        exp_hc = (self.initial_point[-1] * operator).exp_i()
         exp_hc_ad = exp_hc.adjoint().to_matrix()
         exp_hc = exp_hc.to_matrix()
-        energy_grad_op = exp_hc_ad @ (commutator(cost_operator, mixer).to_matrix()) @ exp_hc
+        energy_grad_op = exp_hc_ad @ (commutator(operator, mixer).to_matrix()) @ exp_hc
         energy_grad_op = PrimitiveOp(energy_grad_op)
 
         expectation = ExpectationFactory.build(
@@ -193,8 +193,8 @@ class AdaptQAOA(QAOA):
         return 1j*expect_op
 
     def _test_mixer_pool(self, operator: OperatorBase):
-        self._check_problem_configuration()
-        energy_gradients = []
+        self._check_problem_configuration(operator)
+        energy_gradients, test_grads = [], []
         for mixer in self.mixer_pool:
             expect_op = self.compute_energy_gradient(mixer, operator, ansatz=self.ansatz)
             # run expectation circuit
@@ -202,16 +202,26 @@ class AdaptQAOA(QAOA):
                 expect_op, params=self.hyperparameter_dict
             )
             meas = sampled_expect_op.eval()
-            energy_gradients.append(np.real(meas))
-        max_energy_idx = np.argmax(energy_gradients)
+            energy_gradients.append(meas)
+        max_energy_idx = np.argmax(np.abs(energy_gradients))
+        # print("ENERGY GRADIENTS:")
+        # for i in range(len(energy_gradients)):
+        #     print(i, energy_gradients[i])
+        # print()
+        # print()
+        # print("ABS ENERGY GRADEINTS:")
+        # for i in range(len(energy_gradients)):
+        #     print(i, np.abs(energy_gradients[i]))
+        # print()
+        # print()
+        # print("Index of best mixer:", max_energy_idx)
         return self.mixer_pool[max_energy_idx], np.abs(energy_gradients[max_energy_idx])
 
     def compute_minimum_eigenvalue(
         self, operator: OperatorBase, aux_operators: Optional[List[Optional[OperatorBase]]] = None,
-        iter_results = True
+        iter_results = False
     ):
         """Runs ADAPT-QAOA for each iteration"""
-        self.cost_operator = operator
         self._reps, self.ansatz = 1, self.initial_state  # initialise layer loop counter and ansatz
         print("--------------------------------------------------------")
         print("Cost operator {}".format(operator))
@@ -226,24 +236,30 @@ class AdaptQAOA(QAOA):
             self.optimal_mixer_list.append(
                 best_mixer
             )  # Append mixer associated with largest energy gradient to list
-            self._update_ansatz()
+            self._update_ansatz(operator)
             result = super().compute_minimum_eigenvalue(operator=operator, aux_operators=aux_operators)
             opt_params = result.optimal_point
             result_p.append(result)
-            self._update_initial_point()
+            # self._update_initial_point()
             self.best_beta = list(np.split(opt_params, 2)[0])
             self.best_gamma = list(np.split(opt_params, 2)[1])
             print()
             print("Optimal value", result.optimal_value)
             print("--------------------------------------------------------")
             self._reps += 1
+            print(self.initial_point)
+            print(result.optimal_parameters)
         print("Optimal mixers:", self.optimal_mixer_list)
         if iter_results:
             return result, result_p
         return result
 
-    def _check_problem_configuration(self):
+    def _check_problem_configuration(self, operator: OperatorBase):
         # Generates the pool of mixers with respect to the cost operator size
+        if self._cost_operator!=operator:
+            self._cost_operator = operator
+        if self.ansatz!=self.initial_state and self._reps==1:
+            self.ansatz = self.initial_state
         if isinstance(self.mixer_pool, list):
             mixer_n_qubits = [mixer.num_qubits for mixer in self.mixer_pool]
         else:
@@ -269,15 +285,11 @@ class AdaptQAOA(QAOA):
         Raises:
             AttributeError: If operator and thus num_qubits has not yet been defined.
         """
-        if not self._mixer_pool:
-            if not hasattr(self, "num_qubits"):
-                raise AttributeError(
-                    "Unable to automatically generate operators in mixer pool "
-                    "without reference to a problem operator."
+        if self.cost_operator is not None:
+            if self._mixer_pool is None:
+                self._mixer_pool = adapt_mixer_pool(
+                    num_qubits=self.num_qubits, pool_type=self.mixer_pool_type
                 )
-            self._mixer_pool = adapt_mixer_pool(
-                num_qubits=self.num_qubits, pool_type=self.mixer_pool_type
-            )
         return self._mixer_pool
 
     @mixer_pool.setter
@@ -331,15 +343,11 @@ class AdaptQAOA(QAOA):
         """
         return self._cost_operator
 
-    @cost_operator.setter
-    def cost_operator(self, cost_operator) -> None:
-        """Sets cost operator & number of qubits for optimization problem.
-
-        Args:
-            cost_operator (OperatorBase, optional): cost operator to set.
-        """
-        self.num_qubits = cost_operator.num_qubits
-        self._cost_operator = cost_operator
+    @property
+    def num_qubits(self) -> int:
+        if self._cost_operator is None:
+            return 0
+        return self._cost_operator.num_qubits
 
     @property
     def initial_point(self) -> np.ndarray:
@@ -362,7 +370,7 @@ class AdaptQAOA(QAOA):
         Raises:
             AttributeError: If the initial points doesnt match 2x the depth.
         """
-        if initial_point is None:
+        if not initial_point:
             self._user_specified_ip = None
             initial_point = self._generate_initial_point()
         else:
@@ -374,6 +382,7 @@ class AdaptQAOA(QAOA):
                         len(initial_point), 2 * self.max_reps
                     )
                 )
+            initial_point = [initial_point[0], initial_point[self.max_reps]]
         self._initial_point = initial_point
 
     def _generate_initial_point(self): # set initial value for gamma according to https://arxiv.org/abs/2005.10258
@@ -382,14 +391,15 @@ class AdaptQAOA(QAOA):
         return np.append(beta_ip,[gamma_ip])
 
     def _update_initial_point(self):
+        ordered_initial_points = np.zeros(2*self._reps)
         if self._user_specified_ip:
-            self._initial_point = self._user_specified_ip[: 2 * self._reps]
+            ordered_initial_points[:self._reps] = self._user_specified_ip[:self.max_reps][:self._reps]
+            ordered_initial_points[self._reps:] = self._user_specified_ip[self.max_reps:][:self._reps]
         else:
             new_beta, new_gamma = self._generate_initial_point()
-            ordered_initial_points = np.zeros(2*self._reps+2)
-            ordered_initial_points[:self._reps+1] = np.append(self._initial_point[:self._reps],new_beta)
-            ordered_initial_points[self._reps+1:] = np.append(self._initial_point[self._reps:],new_gamma)
-            self._initial_point = ordered_initial_points
+            ordered_initial_points[:self._reps] = np.append(self._initial_point[:self._reps-1],new_beta)
+            ordered_initial_points[self._reps:] = np.append(self._initial_point[self._reps-1:],new_gamma)
+        self._initial_point = ordered_initial_points
 
 
 def adapt_mixer_pool(
