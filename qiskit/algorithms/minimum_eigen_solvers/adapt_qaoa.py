@@ -432,11 +432,11 @@ def adapt_mixer_pool(
         ValueError: If an unrecognisible mixer type has been provided.
     """
     if pool_type:
-        if pool_type == "Multi":
+        if pool_type == "multi":
             add_multi, add_single = True, True
-        elif pool_type == "Singular":
+        elif pool_type == "singular":
             add_multi, add_single = False, True
-        elif pool_type == "Single":
+        elif pool_type == "single":
             add_multi, add_single = False, False
         else:
             raise ValueError(

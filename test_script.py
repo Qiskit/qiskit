@@ -22,7 +22,7 @@ max_reps = 8
 "run adapt"
 "--------------------------------------------------------------"
 import copy
-adapt_vals_dict = {'Multi':0, 'Single':0, 'Singular':0}
+adapt_vals_dict = {'multi':0, 'single':0, 'singular':0}
 adapt_val_dict = copy.copy(adapt_vals_dict)
 for mt in adapt_vals_dict.keys():
     print("Running adapt with mixer pool type {}".format(mt))
