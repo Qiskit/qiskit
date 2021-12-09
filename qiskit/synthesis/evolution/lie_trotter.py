@@ -12,7 +12,7 @@
 
 """The Lie-Trotter product formula."""
 
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, Dict, Any
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
@@ -54,14 +54,15 @@ class LieTrotter(ProductFormula):
         ] = None,
     ) -> None:
         """
-        reps: The number of time steps.
-        insert_barriers: Whether to insert barriers between the atomic evolutions.
-        cx_structure: How to arrange the CX gates for the Pauli evolutions, can be
-            "chain", where next neighbor connections are used, or "fountain", where all
-            qubits are connected to one.
-        atomic_evolution: A function to construct the circuit for the evolution of single
-            Pauli string. Per default, a single Pauli evolution is decomopsed in a CX chain
-            and a single qubit Z rotation.
+        Args:
+            reps: The number of time steps.
+            insert_barriers: Whether to insert barriers between the atomic evolutions.
+            cx_structure: How to arrange the CX gates for the Pauli evolutions, can be
+                "chain", where next neighbor connections are used, or "fountain", where all
+                qubits are connected to one.
+            atomic_evolution: A function to construct the circuit for the evolution of single
+                Pauli string. Per default, a single Pauli evolution is decomopsed in a CX chain
+                and a single qubit Z rotation.
         """
         super().__init__(1, reps, insert_barriers, cx_structure, atomic_evolution)
 
@@ -96,3 +97,24 @@ class LieTrotter(ProductFormula):
                 )
 
         return evolution_circuit
+
+    @property
+    def settings(self) -> Dict[str, Any]:
+        """Return the settings in a dictionary, which can be used to reconstruct the object.
+
+        Returns:
+            A dictionary containing the settings of this product formula.
+
+        Raises:
+            NotImplementedError: If a custom atomic evolution is set, which cannot be serialized.
+        """
+        if self._atomic_evolution is not None:
+            raise NotImplementedError(
+                "Cannot serialize a product formula with a custom atomic evolution."
+            )
+
+        return {
+            "reps": self.reps,
+            "insert_barriers": self.insert_barriers,
+            "cx_structure": self._cx_structure,
+        }

@@ -40,7 +40,6 @@ class SuzukiTrotter(ProductFormula):
         e^{-it(XX + ZZ)} = e^{-it/2 ZZ}e^{-it XX}e^{-it/2 ZZ} + \mathcal{O}(t^2).
 
     References:
-
         [1]: D. Berry, G. Ahokas, R. Cleve and B. Sanders,
         "Efficient quantum algorithms for simulating sparse Hamiltonians" (2006).
         `arXiv:quant-ph/0508139 <https://arxiv.org/abs/quant-ph/0508139>`_
@@ -56,6 +55,18 @@ class SuzukiTrotter(ProductFormula):
             Callable[[Union[Pauli, SparsePauliOp], float], QuantumCircuit]
         ] = None,
     ) -> None:
+        """
+        Args:
+            order: The order of the product formula.
+            reps: The number of time steps.
+            insert_barriers: Whether to insert barriers between the atomic evolutions.
+            cx_structure: How to arrange the CX gates for the Pauli evolutions, can be "chain",
+                where next neighbor connections are used, or "fountain", where all qubits are connected
+                to one.
+            atomic_evolution: A function to construct the circuit for the evolution of single
+                Pauli string. Per default, a single Pauli evolution is decomopsed in a CX chain
+                and a single qubit Z rotation.
+        """
         super().__init__(order, reps, insert_barriers, cx_structure, atomic_evolution)
 
     def synthesize(self, evolution):

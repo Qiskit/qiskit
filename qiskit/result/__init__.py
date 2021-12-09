@@ -39,6 +39,7 @@ Mitigation
 .. autosummary::
    :toctree: ../stubs/
 
+   BaseReadoutMitigator
    CorrelatedReadoutMitigator
    LocalReadoutMitigator
 
@@ -51,5 +52,6 @@ from .counts import Counts
 
 from .distributions.probability import ProbDistribution
 from .distributions.quasi import QuasiDistribution
+from .mitigation.base_readout_mitigator import BaseReadoutMitigator
 from .mitigation.correlated_readout_mitigator import CorrelatedReadoutMitigator
 from .mitigation.local_readout_mitigator import LocalReadoutMitigator

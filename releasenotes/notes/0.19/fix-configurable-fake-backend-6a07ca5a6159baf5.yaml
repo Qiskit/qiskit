@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    The member ``name`` of ``qiskit.test.mock.utils.ConfigurableFakeBackend``
+    has been changed to ``backend_name``. This was done to avoid a conflict with
+    the :meth:`~qiskit.providers.BackendV1.name` method inherited from the
+    parent abstract :class:`~qiskit.providers.BackendV1` class. This makes
+    ``ConfigurableFakeBackend`` compatible with anything expecting a
+    :class:`~qiskit.providers.BackendV1` object. However, if you were using the
+    ``name`` attribute directly before you will now need to either call it as a
+    method or access the ``backend_name`` attribute instead.

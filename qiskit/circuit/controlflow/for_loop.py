@@ -142,7 +142,7 @@ class ForLoopContext:
             qc.rx(i * math.pi/4, 0)
             qc.cx(0, 1)
             qc.measure(0, 0)
-            qc.break_loop().c_if(0)
+            qc.break_loop().c_if(0, True)
 
     This context should almost invariably be created by a :meth:`.QuantumCircuit.for_loop` call, and
     the resulting instance is a "friend" of the calling circuit.  The context will manipulate the
