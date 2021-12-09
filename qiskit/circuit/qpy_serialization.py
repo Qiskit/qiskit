@@ -200,8 +200,7 @@ Additionally, since QPY format version v3 distinguishes between a
 the payload for a :class:`~qiskit.circuit.ParameterExpression` needs to be updated
 to distinguish between the types. The following is the modified payload format
 which is mostly identical to the format in Version 1 and :ref:`version_2` but just
-modifies the ``map_elements`` struct to include a symbol type field
-
+modifies the ``map_elements`` struct to include a symbol type field.
 
 A PARAMETER_EXPR represents a :class:`~qiskit.circuit.ParameterExpression`
 object that the data for an INSTRUCTION_PARAM. The contents of a PARAMETER_EXPR
@@ -795,9 +794,10 @@ def _read_parameter_vec(file_obj, vectors):
     param_index = param_raw[3]
     name = file_obj.read(vec_name_size).decode("utf8")
     if name not in vectors:
-        vectors[name] = ParameterVector(name, param_raw[1])
-    vector = vectors[name]
+        vectors[name] = (ParameterVector(name, param_raw[1]), set())
+    vector = vectors[name][0]
     if vector[param_index]._uuid != param_uuid:
+        vectors[name][1].add(param_index)
         vector._params[param_index] = ParameterVectorElement.__new__(
             ParameterVectorElement, vector, param_index, uuid=param_uuid
         )
@@ -1675,5 +1675,15 @@ def _read_circuit(file_obj, version):
     custom_instructions = _read_custom_instructions(file_obj, version, vectors)
     for _instruction in range(num_instructions):
         _read_instruction(file_obj, circ, out_registers, custom_instructions, version, vectors)
+    for vec_name, (vector, initialized_params) in vectors.items():
+        if len(initialized_params) != len(vector):
+            warnings.warn(
+                f"The ParameterVector: '{vec_name}' is not fully identical to it's "
+                "pre-serialization state. Elements "
+                f"{', '.join([str(x) for x in set(range(len(vector))) - initialized_params])} "
+                "in the ParameterVector will be not equal to the pre-serialized ParameterVector "
+                f"as they weren't used in the circuit: {circ.name}",
+                UserWarning,
+            )
 
     return circ

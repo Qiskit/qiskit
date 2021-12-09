@@ -714,3 +714,15 @@ class TestLoadFromQPY(QiskitTestCase):
         new_circuit = load(qpy_file)[0]
         expected_params = [x.name for x in qc.parameters]
         self.assertEqual([x.name for x in new_circuit.parameters], expected_params)
+
+    def test_parameter_vector_incomplete_warns(self):
+        """Test that qpy's deserialization warns if a ParameterVector isn't fully identical."""
+        vec = ParameterVector("test", 3)
+        qc = QuantumCircuit(1, name="fun")
+        qc.rx(vec[1], 0)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        with self.assertWarnsRegex(UserWarning, r"^The ParameterVector.*Elements 0, 2.*fun$"):
+            new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
