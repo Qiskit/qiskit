@@ -148,6 +148,11 @@ class ForLoopContext:
     the resulting instance is a "friend" of the calling circuit.  The context will manipulate the
     circuit's defined scopes when it is entered (by pushing a new scope onto the stack) and exited
     (by popping its scope, building it, and appending the resulting :obj:`.ForLoopOp`).
+
+    .. warning::
+
+        This is an internal interface and no part of it should be relied upon outside of Qiskit
+        Terra.
     """
 
     # Class-level variable keep track of the number of auto-generated loop variables, so we don't
