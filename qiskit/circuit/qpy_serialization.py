@@ -170,11 +170,11 @@ parameters are defined below as :ref:`param_vector`.
 .. _param_vector:
 
 
-PARAMETER_VECTOR
+PARAMETER_VECTOR_ELEMENT
 ----------------
 
-A PARAMETER_VECTOR represents a :class:`~qiskit.circuit.ParameterVectorElement`
-object the data for a INSTRUCTION_PARAM. The contents of the PARAMETER_VECTOR are
+A PARAMETER_VECTOR_ELEMENT represents a :class:`~qiskit.circuit.ParameterVectorElement`
+object the data for a INSTRUCTION_PARAM. The contents of the PARAMETER_VECTOR_ELEMENT are
 defined as:
 
 .. code-block:: c
@@ -617,12 +617,12 @@ PARAM_EXPR_MAP_ELEM_SIZE = struct.calcsize(PARAM_EXPR_MAP_ELEM_PACK)
 COMPLEX = namedtuple("COMPLEX", ["real", "imag"])
 COMPLEX_PACK = "!dd"
 COMPLEX_SIZE = struct.calcsize(COMPLEX_PACK)
-# PARAMETER_VECTOR
-PARAMETER_VECTOR = namedtuple(
-    "PARAMETER_VECTOR", ["vector_name_size", "vector_size", "uuid", "index"]
+# PARAMETER_VECTOR_ELEMENT
+PARAMETER_VECTOR_ELEMENT = namedtuple(
+    "PARAMETER_VECTOR_ELEMENT", ["vector_name_size", "vector_size", "uuid", "index"]
 )
-PARAMETER_VECTOR_PACK = "!HQ16sQ"
-PARAMETER_VECTOR_SIZE = struct.calcsize(PARAMETER_VECTOR_PACK)
+PARAMETER_VECTOR_ELEMENT_PACK = "!HQ16sQ"
+PARAMETER_VECTOR_ELEMENT_SIZE = struct.calcsize(PARAMETER_VECTOR_ELEMENT_PACK)
 # Pauli Evolution Gate
 PAULI_EVOLUTION_DEF = namedtuple(
     "PAULI_EVOLUTION_DEF",
@@ -710,7 +710,7 @@ def _read_parameter(file_obj):
 
 
 def _read_parameter_vec(file_obj, vectors):
-    param_raw = struct.unpack(PARAMETER_VECTOR_PACK, file_obj.read(PARAMETER_VECTOR_SIZE))
+    param_raw = struct.unpack(PARAMETER_VECTOR_ELEMENT_PACK, file_obj.read(PARAMETER_VECTOR_ELEMENT_SIZE))
     vec_name_size = param_raw[0]
     param_uuid = uuid.UUID(bytes=param_raw[2])
     param_index = param_raw[3]
@@ -935,7 +935,7 @@ def _write_parameter_vec(file_obj, param):
     name_bytes = param._vector._name.encode("utf8")
     file_obj.write(
         struct.pack(
-            PARAMETER_VECTOR_PACK,
+            PARAMETER_VECTOR_ELEMENT_PACK,
             len(name_bytes),
             param._vector._size,
             param._uuid.bytes,
