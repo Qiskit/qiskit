@@ -255,6 +255,26 @@ def generate_parameter_vector():
     return qc
 
 
+def generate_parameter_vector_expression():
+    """Generate tests for parameter vector element ordering."""
+    qc = QuantumCircuit(7)
+    entanglement = [[i, i + 1] for i in range(7 - 1)]
+    input_params = ParameterVector("x_par", 14)
+    user_params = ParameterVector("\u03B8_par", 1)
+
+    for i in range(qc.num_qubits):
+        qc.ry(user_params[0], qc.qubits[i])
+
+    for source, target in entanglement:
+        qc.cz(qc.qubits[source], qc.qubits[target])
+
+    for i in range(qc.num_qubits):
+        qc.rz(-2 * input_params[2 * i + 1], qc.qubits[i])
+        qc.rx(-2 * input_params[2 * i], qc.qubits[i])
+
+    return qc
+
+
 def generate_evolution_gate():
     """Generate a circuit with a pauli evolution gate."""
     # Runtime import since this only exists in terra 0.19.0
@@ -295,6 +315,9 @@ def generate_circuits(version_str=None):
     if version_parts >= (0, 19, 1):
         output_circuits["parameter_vector.qpy"] = [generate_parameter_vector()]
         output_circuits["pauli_evo.qpy"] = [generate_evolution_gate()]
+        output_circuits["parameter_vector_expression.qpy"] = [
+            generate_parameter_vector_expression()
+        ]
 
     return output_circuits
 
@@ -355,6 +378,8 @@ def load_qpy(qpy_files):
                     bind = [1]
             elif path == "parameter_vector.qpy":
                 bind = np.linspace(1.0, 2.0, 22)
+            elif path == "parameter_vector_expression.qpy":
+                bind = np.linspace(1.0, 2.0, 15)
 
             assert_equal(circuit, qpy_circuits[i], i, bind=bind)
 
