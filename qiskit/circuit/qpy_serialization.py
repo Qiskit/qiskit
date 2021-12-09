@@ -171,7 +171,7 @@ parameters are defined below as :ref:`param_vector`.
 
 
 PARAMETER_VECTOR_ELEMENT
-----------------
+------------------------
 
 A PARAMETER_VECTOR_ELEMENT represents a :class:`~qiskit.circuit.ParameterVectorElement`
 object the data for a INSTRUCTION_PARAM. The contents of the PARAMETER_VECTOR_ELEMENT are
@@ -188,6 +188,64 @@ defined as:
 
 which is immediately followed by ``vector_name_size`` utf8 bytes representing
 the parameter's vector name.
+
+.. _param_expr_v3:
+
+
+PARAMETER_EXPR
+--------------
+
+Additionally, since QPY format version v3 distinguishes between a
+:class:`~qiskit.circuit.Parameter` and :class:`~qiskit.circuit.ParameterVectorElement`
+the payload for a :class:`~qiskit.circuit.ParameterExpression` needs to be updated
+to distinguish between the types. The following is the modified payload format
+which is mostly identical to the format in Version 1 and :ref:`version_2` but just
+modifies the ``map_elements`` struct to include a symbol type field
+
+
+A PARAMETER_EXPR represents a :class:`~qiskit.circuit.ParameterExpression`
+object that the data for an INSTRUCTION_PARAM. The contents of a PARAMETER_EXPR
+are defined as:
+
+The PARAMETER_EXPR data starts with a header:
+
+.. code-block:: c
+
+    struct {
+        uint64_t map_elements;
+        uint64_t expr_size;
+    }
+
+Immediately following the header is ``expr_size`` bytes of utf8 data containing
+the expression string, which is the sympy srepr of the expression for the
+parameter expression. Follwing that is a symbol map which contains
+``map_elements`` elements with the format
+
+.. code-block:: c
+
+    struct {
+        char symbol_type;
+        char type;
+        uint64_t size;
+    }
+
+The ``symbol_type`` key determines the payload type of the symbol representation
+for the element. If it's ``p`` it represents a :class:`~qiskit.circuit.Parameter`
+and if it's ``v`` it represents a :class:`~qiskit.circuit.ParameterVectorElement`.
+The map element struct is immediately followed by the symbol map key payload, if
+``symbol_type`` is ``p`` then it followed immediately by :ref:`param_struct`
+object (both the struct and utf8 name bytes) and if ``symbol_type`` is ``v``
+then the struct is imediately followed by :ref:`param_vector` (both the struct
+and utf8 name bytes). That is followed by ``size`` bytes for the
+data of the symbol. The data format is dependent on the value of ``type``. If
+``type`` is ``p`` then it represents a :class:`~qiskit.circuit.Parameter` and
+size will be 0, the value will just be the same as the key. Similarly if the
+``type`` is ``v`` then it represents a :class:`~qiskit.circuit.ParameterVectorElement`
+and size will be 0 as the value will just be the same as the key. If
+``type`` is ``f`` then it represents a double precision float. If ``type`` is
+``c`` it represents a double precision complex, which is represented by the
+:ref:`complex`. Finally, if type is ``i`` it represents an integer which is an
+``int64_t``.
 
 .. _version_2:
 
@@ -464,7 +522,17 @@ data of the symbol. The data format is dependent on the value of ``type``. If
 ``type`` is ``p`` then it represents a :class:`~qiskit.circuit.Parameter` and
 size will be 0, the value will just be the same as the key. If
 ``type`` is ``f`` then it represents a double precision float. If ``type`` is
-``c`` it represents a double precision complex, which is represented by:
+``c`` it represents a double precision complex, which is represented by :ref:`complex`.
+Finally, if type is ``i`` it represents an integer which is an ``int64_t``.
+
+.. _complex:
+
+COMPLEX
+-------
+
+When representing a double precision complex value in QPY the following
+struct is used:
+
 
 .. code-block:: c
 
@@ -474,7 +542,6 @@ size will be 0, the value will just be the same as the key. If
     }
 
 this matches the internal C representation of Python's complex type. [#f3]_
-Finally, if type is ``i`` it represents an integer which is an ``int64_t``.
 
 
 .. [#f1] https://tools.ietf.org/html/rfc1700
@@ -613,6 +680,10 @@ PARAMETER_EXPR_SIZE = struct.calcsize(PARAMETER_EXPR_PACK)
 PARAM_EXPR_MAP_ELEM = namedtuple("PARAMETER_EXPR_MAP_ELEM", ["type", "size"])
 PARAM_EXPR_MAP_ELEM_PACK = "!cQ"
 PARAM_EXPR_MAP_ELEM_SIZE = struct.calcsize(PARAM_EXPR_MAP_ELEM_PACK)
+# PARAMETER_EXPR_MAP_ELEM_V3
+PARAM_EXPR_MAP_ELEM_V3 = namedtuple("PARAMETER_EXPR_MAP_ELEM", ["symbol_type", "type", "size"])
+PARAM_EXPR_MAP_ELEM_PACK_V3 = "!ccQ"
+PARAM_EXPR_MAP_ELEM_SIZE_V3 = struct.calcsize(PARAM_EXPR_MAP_ELEM_PACK_V3)
 # Complex
 COMPLEX = namedtuple("COMPLEX", ["real", "imag"])
 COMPLEX_PACK = "!dd"
@@ -636,7 +707,7 @@ SPARSE_PAULI_OP_LIST_ELEM_PACK = "!Q"
 SPARSE_PAULI_OP_LIST_ELEM_SIZE = struct.calcsize(SPARSE_PAULI_OP_LIST_ELEM_PACK)
 
 
-def _read_header_v2(file_obj):
+def _read_header_v2(file_obj, version, vectors):
     header_raw = struct.unpack(HEADER_V2_PACK, file_obj.read(HEADER_V2_SIZE))
     header_tuple = HEADER_V2._make(header_raw)
     name = file_obj.read(header_tuple[0]).decode("utf8")
@@ -647,11 +718,17 @@ def _read_header_v2(file_obj):
     elif global_phase_type_str == "i":
         global_phase = struct.unpack("!q", data)[0]
     elif global_phase_type_str == "p":
-        container = io.BytesIO(data)
-        global_phase = _read_parameter(container)
+        with io.BytesIO(data) as container:
+            global_phase = _read_parameter(container)
+    elif global_phase_type_str == "v":
+        with io.BytesIO(data) as container:
+            global_phase = _read_parameter_vec(container, vectors)
     elif global_phase_type_str == "e":
-        container = io.BytesIO(data)
-        global_phase = _read_parameter_expression(container)
+        with io.BytesIO(data) as container:
+            if version < 3:
+                global_phase = _read_parameter_expression(container)
+            else:
+                global_phase = _read_parameter_expression_v3(container, vectors)
     else:
         raise TypeError("Invalid global phase type: %s" % global_phase_type_str)
     header = {
@@ -710,7 +787,9 @@ def _read_parameter(file_obj):
 
 
 def _read_parameter_vec(file_obj, vectors):
-    param_raw = struct.unpack(PARAMETER_VECTOR_ELEMENT_PACK, file_obj.read(PARAMETER_VECTOR_ELEMENT_SIZE))
+    param_raw = struct.unpack(
+        PARAMETER_VECTOR_ELEMENT_PACK, file_obj.read(PARAMETER_VECTOR_ELEMENT_SIZE)
+    )
     vec_name_size = param_raw[0]
     param_uuid = uuid.UUID(bytes=param_raw[2])
     param_index = param_raw[3]
@@ -724,6 +803,42 @@ def _read_parameter_vec(file_obj, vectors):
         )
         vector._params[param_index].__init__(vector, param_index)
     return vector[param_index]
+
+
+def _read_parameter_expression_v3(file_obj, vectors):
+    param_expr_raw = struct.unpack(PARAMETER_EXPR_PACK, file_obj.read(PARAMETER_EXPR_SIZE))
+    map_elements = param_expr_raw[0]
+    from sympy.parsing.sympy_parser import parse_expr
+
+    if HAS_SYMENGINE:
+        expr = symengine.sympify(parse_expr(file_obj.read(param_expr_raw[1]).decode("utf8")))
+    else:
+        expr = parse_expr(file_obj.read(param_expr_raw[1]).decode("utf8"))
+    symbol_map = {}
+    for _ in range(map_elements):
+        elem_raw = file_obj.read(PARAM_EXPR_MAP_ELEM_SIZE_V3)
+        elem = struct.unpack(PARAM_EXPR_MAP_ELEM_PACK_V3, elem_raw)
+        symbol_type = elem[0].decode("utf8")
+        if symbol_type == "p":
+            param = _read_parameter(file_obj)
+        elif symbol_type == "v":
+            param = _read_parameter_vec(file_obj, vectors)
+        elem_type = elem[1].decode("utf8")
+        elem_data = file_obj.read(elem[2])
+        if elem_type == "f":
+            value = struct.unpack("!d", elem_data)
+        elif elem_type == "i":
+            value = struct.unpack("!q", elem_data)
+        elif elem_type == "c":
+            value = complex(*struct.unpack(COMPLEX_PACK, elem_data))
+        elif elem_type == "p" or elem_type == "v":
+            value = param._symbol_expr
+        elif elem_type == "e":
+            value = _read_parameter_expression_v3(io.BytesIO(elem_data), vectors)
+        else:
+            raise TypeError("Invalid parameter expression map type: %s" % elem_type)
+        symbol_map[param] = value
+    return ParameterExpression(symbol_map, expr)
 
 
 def _read_parameter_expression(file_obj):
@@ -758,7 +873,7 @@ def _read_parameter_expression(file_obj):
     return ParameterExpression(symbol_map, expr)
 
 
-def _read_instruction(file_obj, circuit, registers, custom_instructions, vectors):
+def _read_instruction(file_obj, circuit, registers, custom_instructions, version, vectors):
     instruction_raw = file_obj.read(INSTRUCTION_SIZE)
     instruction = struct.unpack(INSTRUCTION_PACK, instruction_raw)
     name_size = instruction[0]
@@ -830,7 +945,10 @@ def _read_instruction(file_obj, circuit, registers, custom_instructions, vectors
             param = _read_parameter(container)
         elif type_str == "e":
             container = io.BytesIO(data)
-            param = _read_parameter_expression(container)
+            if version < 3:
+                param = _read_parameter_expression(container)
+            else:
+                param = _read_parameter_expression_v3(container, vectors)
         elif type_str == "v":
             container = io.BytesIO(data)
             param = _read_parameter_vec(container, vectors)
@@ -955,10 +1073,14 @@ def _write_parameter_expression(file_obj, param):
     file_obj.write(param_expr_header_raw)
     file_obj.write(expr_bytes)
     for parameter, value in param._parameter_symbols.items():
-        parameter_container = io.BytesIO()
-        _write_parameter(parameter_container, parameter)
-        parameter_container.seek(0)
-        parameter_data = parameter_container.read()
+        with io.BytesIO() as parameter_container:
+            if isinstance(parameter, ParameterVectorElement):
+                symbol_type_str = "v"
+                _write_parameter_vec(parameter_container, parameter)
+            else:
+                symbol_type_str = "p"
+                _write_parameter(parameter_container, parameter)
+            parameter_data = parameter_container.getvalue()
         if isinstance(value, float):
             type_str = "f"
             data = struct.pack("!d", value)
@@ -969,7 +1091,7 @@ def _write_parameter_expression(file_obj, param):
             type_str = "i"
             data = struct.pack("!q", value)
         elif value == parameter._symbol_expr:
-            type_str = "p"
+            type_str = symbol_type_str
             data = bytes()
         elif isinstance(value, ParameterExpression):
             type_str = "e"
@@ -980,7 +1102,12 @@ def _write_parameter_expression(file_obj, param):
         else:
             raise TypeError(f"Invalid expression type in symbol map for {param}: {type(value)}")
 
-        elem_header = struct.pack(PARAM_EXPR_MAP_ELEM_PACK, type_str.encode("utf8"), len(data))
+        elem_header = struct.pack(
+            PARAM_EXPR_MAP_ELEM_PACK_V3,
+            symbol_type_str.encode("utf8"),
+            type_str.encode("utf8"),
+            len(data),
+        )
         file_obj.write(elem_header)
         file_obj.write(parameter_data)
         file_obj.write(data)
@@ -1187,7 +1314,7 @@ def _read_pauli_evolution_gate(file_obj, vectors):
             time = _read_parameter(buf)
     elif time_type == b"e":
         with io.BytesIO(time_data) as buf:
-            time = _read_parameter_expression(buf)
+            time = _read_parameter_expression_v3(buf, vectors)
     elif time_type == b"v":
         with io.BytesIO(time_data) as buf:
             time = _read_parameter_vec(buf, vectors)
@@ -1442,10 +1569,11 @@ def load(file_obj):
 
 
 def _read_circuit(file_obj, version):
+    vectors = {}
     if version < 2:
         header, name, metadata = _read_header(file_obj)
     else:
-        header, name, metadata = _read_header_v2(file_obj)
+        header, name, metadata = _read_header_v2(file_obj, version, vectors)
     global_phase = header["global_phase"]
     num_qubits = header["num_qubits"]
     num_clbits = header["num_clbits"]
@@ -1544,9 +1672,8 @@ def _read_circuit(file_obj, version):
             global_phase=global_phase,
             metadata=metadata,
         )
-    vectors = {}
     custom_instructions = _read_custom_instructions(file_obj, version, vectors)
     for _instruction in range(num_instructions):
-        _read_instruction(file_obj, circ, out_registers, custom_instructions, vectors)
+        _read_instruction(file_obj, circ, out_registers, custom_instructions, version, vectors)
 
     return circ

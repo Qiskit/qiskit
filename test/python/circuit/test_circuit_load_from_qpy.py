@@ -690,3 +690,30 @@ class TestLoadFromQPY(QiskitTestCase):
         new_circuit = load(qpy_file)[0]
         expected_params = [x.name for x in qc.parameters]
         self.assertEqual([x.name for x in new_circuit.parameters], expected_params)
+
+    def test_parameter_vector_element_in_expression(self):
+        qc = QuantumCircuit(7)
+
+        num_features = 14
+        entangler_map = [[0, 2], [3, 4], [2, 5], [1, 4], [2, 3], [4, 6]]
+
+        entanglement = [[i, i + 1] for i in range(7 - 1)]
+        input_params = ParameterVector("x_par", 14)
+        user_params = ParameterVector("\u03B8_par", 1)
+
+        for i in range(qc.num_qubits):
+            qc.ry(user_params[0], qc.qubits[i])
+
+        for source, target in entanglement:
+            qc.cz(qc.qubits[source], qc.qubits[target])
+
+        for i in range(qc.num_qubits):
+            qc.rz(-2 * input_params[2 * i + 1], qc.qubits[i])
+            qc.rx(-2 * input_params[2 * i], qc.qubits[i])
+
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        expected_params = [x.name for x in qc.parameters]
+        self.assertEqual([x.name for x in new_circuit.parameters], expected_params)
