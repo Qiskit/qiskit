@@ -26,7 +26,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.library import XGate, QFT, QAOAAnsatz, PauliEvolutionGate
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
-from qiskit.synthesis import LieTrotter
+from qiskit.synthesis import LieTrotter, SuzukiTrotter
 from qiskit.extensions import UnitaryGate
 from qiskit.opflow import I, X, Y, Z
 from qiskit.test import QiskitTestCase
@@ -523,20 +523,86 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_qaoa(self):
         """Test loading a QAOA circuit works."""
         cost_operator = Z ^ I ^ I ^ Z
-        qaoa = QAOAAnsatz(cost_operator)
+        qaoa = QAOAAnsatz(cost_operator, reps=2)
         qpy_file = io.BytesIO()
         dump(qaoa, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
-        # decompose to check the circuits, not their labels
-        qaoa = qaoa.decompose().decompose()
-        new_circ = new_circ.decompose().decompose()
         self.assertEqual(qaoa, new_circ)
         self.assertEqual([x[0].label for x in qaoa.data], [x[0].label for x in new_circ.data])
 
     def test_evolutiongate(self):
         """Test loading a circuit with evolution gate works."""
         synthesis = LieTrotter(reps=2)
+        evo = PauliEvolutionGate((Z ^ I) + (I ^ Z), time=2, synthesis=synthesis)
+        qc = QuantumCircuit(2)
+        qc.append(evo, range(2))
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+
+        self.assertEqual(qc, new_circ)
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+
+        new_evo = new_circ.data[0][0]
+        self.assertIsInstance(new_evo, PauliEvolutionGate)
+
+    def test_evolutiongate_param_time(self):
+        """Test loading a circuit with an evolution gate that has a parameter for time."""
+        synthesis = LieTrotter(reps=2)
+        time = Parameter("t")
+        evo = PauliEvolutionGate((Z ^ I) + (I ^ Z), time=time, synthesis=synthesis)
+        qc = QuantumCircuit(2)
+        qc.append(evo, range(2))
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+
+        self.assertEqual(qc, new_circ)
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+
+        new_evo = new_circ.data[0][0]
+        self.assertIsInstance(new_evo, PauliEvolutionGate)
+
+    def test_evolutiongate_param_expr_time(self):
+        """Test loading a circuit with an evolution gate that has a parameter for time."""
+        synthesis = LieTrotter(reps=2)
+        time = Parameter("t")
+        evo = PauliEvolutionGate((Z ^ I) + (I ^ Z), time=time * time, synthesis=synthesis)
+        qc = QuantumCircuit(2)
+        qc.append(evo, range(2))
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+
+        self.assertEqual(qc, new_circ)
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+
+        new_evo = new_circ.data[0][0]
+        self.assertIsInstance(new_evo, PauliEvolutionGate)
+
+    def test_op_list_evolutiongate(self):
+        """Test loading a circuit with evolution gate works."""
+        evo = PauliEvolutionGate([(Z ^ I) + (I ^ Z)] * 5, time=0.2, synthesis=None)
+        qc = QuantumCircuit(2)
+        qc.append(evo, range(2))
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+
+        self.assertEqual(qc, new_circ)
+        self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
+
+        new_evo = new_circ.data[0][0]
+        self.assertIsInstance(new_evo, PauliEvolutionGate)
+
+    def test_op_evolution_gate_suzuki_trotter(self):
+        """Test qpy path with a suzuki trotter synthesis method on an evolution gate."""
+        synthesis = SuzukiTrotter()
         evo = PauliEvolutionGate((Z ^ I) + (I ^ Z), time=0.2, synthesis=synthesis)
         qc = QuantumCircuit(2)
         qc.append(evo, range(2))
@@ -545,18 +611,11 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
 
-        # remove wrapping of instructions
-        qc = qc.decompose().decompose()
-        new_circ = new_circ.decompose().decompose()
-
         self.assertEqual(qc, new_circ)
         self.assertEqual([x[0].label for x in qc.data], [x[0].label for x in new_circ.data])
 
-        # enable these tests once we can can serialize allPauliEvolutionGate parameters such as
-        # new_evo = new_circ.data[0][0]
-        # SparsePauliOp and EvolutionSynthesis
-        # self.assertIsInstance(new_evo,PauliEvolutionGate)
-        # self.assertIsInstance(new_evo.synthesis, LieTrotter)
+        new_evo = new_circ.data[0][0]
+        self.assertIsInstance(new_evo, PauliEvolutionGate)
 
     def test_parameter_expression_global_phase(self):
         """Test a circuit with a parameter expression global_phase."""
