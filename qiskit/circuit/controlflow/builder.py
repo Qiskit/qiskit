@@ -368,7 +368,10 @@ class ControlFlowBuilderBlock:
             # We already did the broadcasting and checking when the first call to
             # QuantumCircuit.append happened (which the user wrote), and added the instruction into
             # this scope.  We just need to finish the job now.
-            out._append(operation, qubits, clbits)
+            #
+            # We have to convert the tuples to lists, because some parts of QuantumCircuit still
+            # expect exactly this type.
+            out._append(operation, list(qubits), list(clbits))
 
         return out
 

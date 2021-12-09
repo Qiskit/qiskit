@@ -23,7 +23,7 @@ stages:
     condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
     jobs:
     - job: 'linux'
-      pool: {vmImage: 'Ubuntu-16.04'}
+      pool: {vmImage: 'ubuntu-latest'}
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
         python.version: '3.7'
@@ -44,7 +44,7 @@ stages:
           env:
             TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'sdist'
-      pool: {vmImage: 'Ubuntu-16.04'}
+      pool: {vmImage: 'ubuntu-latest'}
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
         TWINE_USERNAME: qiskit
