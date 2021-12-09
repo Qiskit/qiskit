@@ -56,6 +56,7 @@ class FakeProvider(ProviderV1):
             FakeBogota(),
             FakeBrooklyn(),
             FakeBurlington(),
+            FakeCairo(),
             FakeCambridge(),
             FakeCambridgeAlternativeBasis(),
             FakeCasablanca(),
@@ -63,6 +64,7 @@ class FakeProvider(ProviderV1):
             FakeGuadalupe(),
             FakeJakarta(),
             FakeJohannesburg(),
+            FakeKolkata(),
             FakeLagos(),
             FakeLima(),
             FakeLondon(),
@@ -71,6 +73,7 @@ class FakeProvider(ProviderV1):
             FakeMelbourne(),
             FakeMontreal(),
             FakeMumbai(),
+            FakeNairobi(),
             FakeOpenPulse2Q(),
             FakeOpenPulse3Q(),
             FakeOurense(),
@@ -89,6 +92,7 @@ class FakeProvider(ProviderV1):
             FakeToronto(),
             FakeValencia(),
             FakeVigo(),
+            FakeWashington(),
             FakeYorktown(),
         ]
 

@@ -24,13 +24,16 @@ from .boeblingen import FakeBoeblingen
 from .bogota import FakeBogota
 from .brooklyn import FakeBrooklyn
 from .burlington import FakeBurlington
+from .cairo import FakeCairo
 from .cambridge import FakeCambridge
 from .cambridge import FakeCambridgeAlternativeBasis
 from .casablanca import FakeCasablanca
 from .essex import FakeEssex
 from .guadalupe import FakeGuadalupe
+from .hanoi import FakeHanoi
 from .jakarta import FakeJakarta
 from .johannesburg import FakeJohannesburg
+from .kolkata import FakeKolkata
 from .lagos import FakeLagos
 from .lima import FakeLima
 from .london import FakeLondon
@@ -39,6 +42,7 @@ from .manila import FakeManila
 from .melbourne import FakeMelbourne
 from .montreal import FakeMontreal
 from .mumbai import FakeMumbai
+from .nairobi import FakeNairobi
 from .ourense import FakeOurense
 from .paris import FakeParis
 from .poughkeepsie import FakePoughkeepsie
@@ -54,6 +58,7 @@ from .tokyo import FakeTokyo
 from .toronto import FakeToronto
 from .valencia import FakeValencia
 from .vigo import FakeVigo
+from .washington import FakeWashington
 from .yorktown import FakeYorktown
 
 # Legacy Backends
