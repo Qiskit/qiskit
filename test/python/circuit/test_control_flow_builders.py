@@ -37,10 +37,6 @@ class SentinelException(Exception):
     """An exception that we know was raised deliberately."""
 
 
-def _reg_key(reg):
-    return reg.name
-
-
 @ddt.ddt
 class TestControlFlowBuilders(QiskitTestCase):
     """Test that the control-flow builder interfaces work, and manage resources correctly."""
@@ -65,8 +61,8 @@ class TestControlFlowBuilders(QiskitTestCase):
         # For our purposes here, we don't care about the order bits were added.
         self.assertEqual(set(a.qubits), set(b.qubits))
         self.assertEqual(set(a.clbits), set(b.clbits))
-        self.assertEqual(sorted(a.qregs, key=_reg_key), sorted(b.qregs, key=_reg_key))
-        self.assertEqual(sorted(a.cregs, key=_reg_key), sorted(b.cregs, key=_reg_key))
+        self.assertEqual(set(a.qregs), set(b.qregs))
+        self.assertEqual(set(a.cregs), set(b.cregs))
         self.assertEqual(len(a.data), len(b.data))
 
         for (a_op, a_qubits, a_clbits), (b_op, b_qubits, b_clbits) in zip(a.data, b.data):
