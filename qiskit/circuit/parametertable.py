@@ -12,43 +12,93 @@
 """
 Look-up table for variable parameters in QuantumCircuit.
 """
-import warnings
 import functools
-from collections.abc import MutableMapping, MappingView
+import warnings
+from collections.abc import MappingView, MutableMapping, Set
+from typing import MutableSequence
 
-from .instruction import Instruction
+class ReferenceListing(MutableSequence, Set):
+    def _instance_key(self, ref):
+        return (id(ref[0]), ref[1])
 
+    def __init__(self, refs) -> None:
+        self._data = []
+        self._instance_ids = set()
+
+        for ref in refs:
+            k = self._instance_key(ref)
+            if k not in self._instance_ids:
+                self._data.append(ref)
+                self._instance_ids.add(k)
+
+    def __getitem__(self, index):
+        return self._data[index]
+
+    def __setitem__(self, index, value):
+        raise NotImplementedError("Position is dictated by insertion order.")
+
+    def __delitem__(self, index):
+        ref = self._data[index]
+        del self._data[index]
+        self._instance_ids.discard(self._instance_key(ref))
+
+    def __len__(self):
+        return len(self._data)
+
+    def __iter__(self):
+        return iter(self._data)
+
+    def __contains__(self, x) -> bool:
+        return self._instance_key(x) in self._instance_ids
+
+    def __repr__(self) -> str:
+        return repr(self._data)
+
+    def insert(self, index, value) -> None:
+        raise NotImplementedError("Position is dictated by insertion order.")
+
+    def append(self, value):
+        """Adds a reference to the listing if it's not already present."""
+        k = self._instance_key(value)
+        if k in self._instance_ids:
+            return
+
+        self._data.append(value)
+        self._instance_ids.add(k)
+
+    def copy(self):
+        return ReferenceListing(self)
 
 class ParameterTable(MutableMapping):
     """Class for managing and setting circuit parameters"""
 
     __slots__ = ["_table", "_keys", "_names"]
 
-    def __init__(self, *args, **kwargs):
-        """
-        the structure of _table is,
-           {var_object: [(instruction_object, parameter_index), ...]}
-        """
-        self._table = dict(*args, **kwargs)
+    def __init__(self, mapping = None):
+        if mapping is not None:
+            # convert values to ReferenceListings
+            self._table = {
+                param: ReferenceListing(refs)
+                for param, refs in mapping.items()
+            }
+        else:
+            self._table = {}
+
         self._keys = set(self._table)
         self._names = {x.name for x in self._table}
 
     def __getitem__(self, key):
         return self._table[key]
 
-    def __setitem__(self, parameter, instr_params):
-        """Sets list of Instructions that depend on Parameter.
+    def __setitem__(self, parameter, refs):
+        """Associate a parameter with the set of parameter slots (instruction, param_index)
+        that reference it.
 
         Args:
-            parameter (Parameter): the parameter to set
-            instr_params (list): List of (Instruction, int) tuples. Int is the
-              parameter index at which the parameter appears in the instruction.
+            parameter (Parameter): the parameter
+            param_slot_refs (Sequence[ParamSlotRef]): the parameter slot references
         """
-
-        for instruction, param_index in instr_params:
-            assert isinstance(instruction, Instruction)
-            assert isinstance(param_index, int)
-        self._table[parameter] = instr_params
+        self._table[parameter] = ReferenceListing(refs)
         self._keys.add(parameter)
         self._names.add(parameter.name)
 
