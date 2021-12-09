@@ -206,8 +206,6 @@ A PARAMETER_EXPR represents a :class:`~qiskit.circuit.ParameterExpression`
 object that the data for an INSTRUCTION_PARAM. The contents of a PARAMETER_EXPR
 are defined as:
 
-The PARAMETER_EXPR data starts with a header:
-
 .. code-block:: c
 
     struct {
@@ -461,11 +459,15 @@ or ``'n'`` which dictate the format. For ``'i'`` it's an integer, ``'f'`` it's
 a double, ``'s'`` if it's a string (encoded as utf8), ``'c'`` is a complex and
 the data is represented by the struct format in the :ref:`param_expr` section.
 ``'p'`` defines a :class:`~qiskit.circuit.Parameter` object  which is
-represented by a PARAM struct (see below), ``e`` defines a
+represented by a :ref:`param_struct` struct, ``e`` defines a
 :class:`~qiskit.circuit.ParameterExpression` object (that's not a
-:class:`~qiskit.circuit.Parameter`) which is represented by a PARAM_EXPR struct
-(see below), and ``'n'`` represents an object from numpy (either an ``ndarray``
-or a numpy type) which means the data is .npy format [#f2]_ data.
+:class:`~qiskit.circuit.Parameter`) which is represented by a :ref:`param_expr`
+struct (on QPY format :ref:`version_3` the format is tweak slightly see:
+:ref:`_param_expr_v3`), ``'n'`` represents an object from numpy (either an
+``ndarray`` or a numpy type) which means the data is .npy format [#f2]_ data,
+and in QPY :ref:`version_3` ``'v'`` represents a
+:class:`~qiskit.circuit.ParameterVectorElement` which is represented by a
+:ref:`param_vector` struct.
 
 .. _param_struct:
 
