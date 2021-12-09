@@ -1435,18 +1435,21 @@ def _write_circuit(file_obj, circuit):
     elif isinstance(circuit.global_phase, int):
         global_phase_type = b"i"
         global_phase_data = struct.pack("!q", circuit.global_phase)
+    elif isinstance(circuit.global_phase, ParameterVectorElement):
+        global_phase_type = b"v"
+        with io.BytesIO() as container:
+            _write_parameter_vec(container, circuit.global_phase)
+            global_phase_data = container.getvalue()
     elif isinstance(circuit.global_phase, Parameter):
-        container = io.BytesIO()
         global_phase_type = b"p"
-        _write_parameter(container, circuit.global_phase)
-        container.seek(0)
-        global_phase_data = container.read()
+        with io.BytesIO() as container:
+            _write_parameter(container, circuit.global_phase)
+            global_phase_data = container.getvalue()
     elif isinstance(circuit.global_phase, ParameterExpression):
         global_phase_type = b"e"
-        container = io.BytesIO()
-        _write_parameter_expression(container, circuit.global_phase)
-        container.seek(0)
-        global_phase_data = container.read()
+        with io.BytesIO() as container:
+            _write_parameter_expression(container, circuit.global_phase)
+            global_phase_data = container.getvalue()
     else:
         raise TypeError("unsupported global phase type %s" % type(circuit.global_phase))
     header_raw = HEADER_V2(

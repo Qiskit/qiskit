@@ -726,3 +726,13 @@ class TestLoadFromQPY(QiskitTestCase):
         with self.assertWarnsRegex(UserWarning, r"^The ParameterVector.*Elements 0, 2.*fun$"):
             new_circuit = load(qpy_file)[0]
         self.assertEqual(qc, new_circuit)
+
+    def test_parameter_vector_globbal_phase(self):
+        """Test that a circuit with a standalone ParameterVectorElement phase works."""
+        vec = ParameterVector("phase", 1)
+        qc = QuantumCircuit(1, global_phase=vec[0])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
