@@ -26,13 +26,9 @@ from qiskit.extensions.quantum_initializer import Initialize, Isometry
 class TestOperationClass(QiskitTestCase):
     """Testing qiskit.circuit.Operation"""
 
-    def test_operation_cannot_be_instantiated_directly(self):
-        """Test that we cannot instantiate an object of class :class:`~qiskit.circuit.Operation` directly."""
-        with self.assertRaises(TypeError):
-            Operation()
-
     def test_measure_as_operation(self):
-        """Test that we can instantiate an object of class :class:`~qiskit.circuit.Measure` and that
+        """Test that we can instantiate an object of class
+        :class:`~qiskit.circuit.Measure` and that
         it has the expected name, num_qubits and num_clbits.
         """
         op = Measure()
@@ -41,7 +37,8 @@ class TestOperationClass(QiskitTestCase):
         self.assertTrue(op.num_clbits == 1)
 
     def test_reset_as_operation(self):
-        """Test that we can instantiate an object of class :class:`~qiskit.circuit.Reset` and that
+        """Test that we can instantiate an object of class
+        :class:`~qiskit.circuit.Reset` and that
         it has the expected name, num_qubits and num_clbits.
         """
         op = Reset()
@@ -50,7 +47,8 @@ class TestOperationClass(QiskitTestCase):
         self.assertTrue(op.num_clbits == 0)
 
     def test_barrier_as_operation(self):
-        """Test that we can instantiate an object of class :class:`~qiskit.circuit.Barrier` and that
+        """Test that we can instantiate an object of class
+        :class:`~qiskit.circuit.Barrier` and that
         it has the expected name, num_qubits and num_clbits.
         """
         num_qubits = 4
@@ -60,7 +58,8 @@ class TestOperationClass(QiskitTestCase):
         self.assertTrue(op.num_clbits == 0)
 
     def test_clifford_as_operation(self):
-        """Test that we can instantiate an object of class :class:`~qiskit.quantum_info.operators.Clifford` and that
+        """Test that we can instantiate an object of class
+        :class:`~qiskit.quantum_info.operators.Clifford` and that
         it has the expected name, num_qubits and num_clbits.
         """
         num_qubits = 4
@@ -73,7 +72,8 @@ class TestOperationClass(QiskitTestCase):
         self.assertTrue(op.num_clbits == 0)
 
     def test_cnotdihedral_as_operation(self):
-        """Test that we can instantiate an object of class :class:`~qiskit.quantum_info.operators.CNOTDihedral` and that
+        """Test that we can instantiate an object of class
+        :class:`~qiskit.quantum_info.operators.CNOTDihedral` and that
         it has the expected name, num_qubits and num_clbits.
         """
         num_qubits = 4
@@ -87,7 +87,8 @@ class TestOperationClass(QiskitTestCase):
         self.assertTrue(op.num_clbits == 0)
 
     def test_pauli_as_operation(self):
-        """Test that we can instantiate an object of class :class:`~qiskit.quantum_info.operators.Pauli` and that
+        """Test that we can instantiate an object of class
+        :class:`~qiskit.quantum_info.operators.Pauli` and that
         it has the expected name, num_qubits and num_clbits.
         """
         num_qubits = 4
@@ -97,7 +98,8 @@ class TestOperationClass(QiskitTestCase):
         self.assertTrue(op.num_clbits == 0)
 
     def test_isometry_as_operation(self):
-        """Test that we can instantiate an object of class :class:`~qiskit.extensions.quantum_initializer.Isometry` and that
+        """Test that we can instantiate an object of class
+        :class:`~qiskit.extensions.quantum_initializer.Isometry` and that
         it has the expected name, num_qubits and num_clbits.
         """
         op = Isometry(np.eye(4, 4), 3, 2)
@@ -106,7 +108,8 @@ class TestOperationClass(QiskitTestCase):
         self.assertTrue(op.num_clbits == 0)
 
     def test_initialize_as_operation(self):
-        """Test that we can instantiate an object of class :class:`~qiskit.extensions.quantum_initializer.Initialize` and that
+        """Test that we can instantiate an object of class
+        :class:`~qiskit.extensions.quantum_initializer.Initialize` and that
         it has the expected name, num_qubits and num_clbits.
         """
         desired_vector = [0.5, 0.5, 0.5, 0.5]
@@ -116,7 +119,8 @@ class TestOperationClass(QiskitTestCase):
         self.assertTrue(op.num_clbits == 0)
 
     def test_gate_as_operation(self):
-        """Test that we can instantiate an object of class :class:`~qiskit.circuit.Gate` and that
+        """Test that we can instantiate an object of class
+        :class:`~qiskit.circuit.Gate` and that
         it has the expected name, num_qubits and num_clbits.
         """
         name = "test_gate_name"
@@ -127,7 +131,8 @@ class TestOperationClass(QiskitTestCase):
         self.assertTrue(op.num_clbits == 0)
 
     def test_xgate_as_operation(self):
-        """Test that we can instantiate an object of class :class:`~qiskit.circuit.library.XGate` and that
+        """Test that we can instantiate an object of class
+        :class:`~qiskit.circuit.library.XGate` and that
         it has the expected name, num_qubits and num_clbits.
         """
         op = XGate()
@@ -136,7 +141,8 @@ class TestOperationClass(QiskitTestCase):
         self.assertTrue(op.num_clbits == 0)
 
     def test_cxgate_as_operation(self):
-        """Test that we can instantiate an object of class :class:`~qiskit.circuit.library.XGate` and that
+        """Test that we can instantiate an object of class
+        :class:`~qiskit.circuit.library.XGate` and that
         it has the expected name, num_qubits and num_clbits.
         """
         op = CXGate()
@@ -172,7 +178,7 @@ class TestOperationClass(QiskitTestCase):
         qc.append(CNOTDihedral(circ2), [2, 3])
 
         # If we got to here, we have successfully appended everything to qc
-        self.assertTrue(True)
+        self.assertIsInstance(qc, QuantumCircuit)
 
 
 if __name__ == "__main__":
