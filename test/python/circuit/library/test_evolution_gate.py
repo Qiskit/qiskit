@@ -12,21 +12,28 @@
 
 """Test the evolution gate."""
 
+import numpy as np
 import scipy
-from ddt import ddt, data
+from ddt import ddt, data, unpack
 
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.synthesis import LieTrotter, SuzukiTrotter, MatrixExponential
+from qiskit.synthesis import LieTrotter, SuzukiTrotter, MatrixExponential, QDrift
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.opflow import I, X, Y, Z, PauliSumOp
-from qiskit.quantum_info import Operator, SparsePauliOp, Pauli
+from qiskit.quantum_info import Operator, SparsePauliOp, Pauli, Statevector
+from qiskit.utils import algorithm_globals
 
 
 @ddt
 class TestEvolutionGate(QiskitTestCase):
     """Test the evolution gate."""
+
+    def setUp(self):
+        super().setUp()
+        # fix random seed for reproducibility (used in QDrift)
+        algorithm_globals.random_seed = 2
 
     def test_matrix_decomposition(self):
         """Test the default decomposition."""
@@ -112,6 +119,39 @@ class TestEvolutionGate(QiskitTestCase):
             expected.rx(p_4 * time, 0)
 
         self.assertEqual(evo_gate.definition.decompose(), expected)
+
+    @data(
+        (X + Y, 0.5, 1, [(Pauli("X"), 0.5), (Pauli("X"), 0.5)]),
+        (X, 0.238, 2, [(Pauli("X"), 0.238)]),
+    )
+    @unpack
+    def test_qdrift_manual(self, op, time, reps, sampled_ops):
+        """Test the evolution circuit of Suzuki Trotter against a manually constructed circuit."""
+        qdrift = QDrift(reps=reps)
+        evo_gate = PauliEvolutionGate(op, time, synthesis=qdrift)
+        evo_gate.definition.decompose()
+
+        # manually construct expected evolution
+        expected = QuantumCircuit(1)
+        for pauli in sampled_ops:
+            if pauli[0].to_label() == "X":
+                expected.rx(2 * pauli[1], 0)
+            elif pauli[0].to_label() == "Y":
+                expected.ry(2 * pauli[1], 0)
+
+        self.assertTrue(Operator(evo_gate.definition).equiv(expected))
+
+    def test_qdrift_evolution(self):
+        """Test QDrift on an example."""
+        op = 0.1 * (Z ^ Z) + (X ^ I) + (I ^ X) + 0.2 * (X ^ X)
+        reps = 20
+        qdrift = PauliEvolutionGate(op, time=0.5 / reps, synthesis=QDrift(reps=reps)).definition
+        exact = scipy.linalg.expm(-0.5j * op.to_matrix()).dot(np.eye(4)[0, :])
+
+        def energy(evo):
+            return Statevector(evo).expectation_value(op.to_matrix())
+
+        self.assertAlmostEqual(energy(exact), energy(qdrift), places=2)
 
     def test_passing_grouped_paulis(self):
         """Test passing a list of already grouped Paulis."""

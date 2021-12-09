@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue causing an error when trying to compute a gradient with the
+    :class:`~qiskit.opflow.gradients.CircuitGradient` class for a gate that was
+    not a supported gate. This bugfix transpiles a given gate to the set of
+    supported gates for a requested gradient method.  Fixes `#6918
+    <https://github.com/Qiskit/qiskit-terra/issues/6918>`__.
