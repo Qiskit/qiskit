@@ -244,6 +244,13 @@ def_ry = QuantumCircuit(q)
 def_ry.append(RGate(theta, pi / 2), [q[0]], [])
 _sel.add_equivalence(RYGate(theta), def_ry)
 
+q = QuantumRegister(1, "q")
+ry_to_rx = QuantumCircuit(q)
+ry_to_rx.s(0)
+ry_to_rx.rx(theta, 0)
+ry_to_rx.sdg(0)
+_sel.add_equivalence(RZGate(theta), ry_to_rx)
+
 # CRYGate
 
 q = QuantumRegister(2, "q")
@@ -289,6 +296,13 @@ rz_to_sxry.sx(0)
 rz_to_sxry.ry(-theta, 0)
 rz_to_sxry.sxdg(0)
 _sel.add_equivalence(RZGate(theta), rz_to_sxry)
+
+q = QuantumRegister(1, "q")
+rz_to_rx = QuantumCircuit(q)
+rz_to_rx.h(0)
+rz_to_rx.rx(theta, 0)
+rz_to_rx.h(0)
+_sel.add_equivalence(RZGate(theta), rz_to_rx)
 
 # CRZGate
 
