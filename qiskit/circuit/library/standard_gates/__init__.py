@@ -40,6 +40,11 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
    IGate
    MSGate
    MCPhaseGate
+   MCXGate
+   MCXGrayCode
+   MCXRecursive
+   MCXVChain
+   MSGate
    PhaseGate
    RCCXGate
    RC3XGate

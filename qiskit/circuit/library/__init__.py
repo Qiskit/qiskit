@@ -35,7 +35,7 @@ Any element of the circuit library can be attached to a circuit with the method
     circuit.append(gate, [0, 1, 4, 2, 3])
     circuit.draw('text')
 
-Standard Gates
+Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
 ==============
 
 .. autosummary::
@@ -62,6 +62,7 @@ Standard Gates
    CZGate
    HGate
    IGate
+   MSGate
    MCPhaseGate
    MCXGate
    MCXGrayCode
