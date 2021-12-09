@@ -202,11 +202,15 @@ class Pauli(BasePauli, Operation):
             raise QiskitError("Input is not a single Pauli")
         super().__init__(base_z, base_x, base_phase)
 
-        # Initialize Operation
-        self._name = "pauli"
-        self._num_qubits = self.num_qubits
-        self._num_clbits = 0
-        self._operands = []
+    @property
+    def name(self):
+        """Unique string identifier for operation type."""
+        return "pauli"
+
+    @property
+    def num_clbits(self):
+        """Number of classical bits."""
+        return 0
 
     def __repr__(self):
         """Display representation."""
