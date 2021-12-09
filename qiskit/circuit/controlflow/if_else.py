@@ -500,7 +500,7 @@ def _partition_registers(
         elif isinstance(register, ClassicalRegister):
             cregs.add(register)
         else:
-            # Purely defensive against Terra exapnsion.
+            # Purely defensive against Terra expansion.
             raise CircuitError(f"Unknown register: {register}.")
     return qregs, cregs
 
