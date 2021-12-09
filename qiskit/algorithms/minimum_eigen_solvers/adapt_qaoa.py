@@ -126,6 +126,10 @@ class AdaptQAOA(QAOA):
                 "A custom mixer pool can be passed in or a mixer pool type can be passed in but not both"
             )
 
+        if mixer_pool is not None:
+            if isinstance(mixer_pool[0], QuantumCircuit):
+                mixer_pool = [PrimitiveOp(Operator(mixer)) for mixer in mixer_pool]
+
         self.mixer_pool = mixer_pool
         self.mixer_pool_type = mixer_pool_type
 
@@ -190,7 +194,7 @@ class AdaptQAOA(QAOA):
         observable_meas = expectation.convert(StateFn(energy_grad_op, is_measurement=True))
         ansatz_circuit_op = CircuitStateFn(wave_function)
         expect_op = observable_meas.compose(ansatz_circuit_op).reduce()
-        return 1j*expect_op
+        return expect_op
 
     def _test_mixer_pool(self, operator: OperatorBase):
         self._check_problem_configuration(operator)
@@ -223,33 +227,33 @@ class AdaptQAOA(QAOA):
     ):
         """Runs ADAPT-QAOA for each iteration"""
         self._reps, self.ansatz = 1, self.initial_state  # initialise layer loop counter and ansatz
-        print("--------------------------------------------------------")
-        print("Cost operator {}".format(operator))
+        # print("--------------------------------------------------------")
+        # print("Cost operator {}".format(operator))
         result_p = []
         while self._reps < self.max_reps + 1:  # loop over number of maximum reps
             best_mixer, energy_norm = self._test_mixer_pool(operator=operator)
-            print(best_mixer)
-            print(f"REPETITION: {self._reps}")
-            print(f"Current energy norm | Threshold  =====> | {energy_norm} | {self.threshold} |")
+            # print(best_mixer)
+            # print(f"REPETITION: {self._reps}")
+            # print(f"Current energy norm | Threshold  =====> | {energy_norm} | {self.threshold} |")
             if energy_norm < self.threshold:  # Threshold stoppage condition
                 break
             self.optimal_mixer_list.append(
                 best_mixer
             )  # Append mixer associated with largest energy gradient to list
-            self._update_ansatz(operator)
-            result = super().compute_minimum_eigenvalue(operator=operator, aux_operators=aux_operators)
+            self._update_ansatz(operator=operator)
+            result = super().compute_minimum_eigenvalue(
+                operator=operator, aux_operators=aux_operators
+            )
             opt_params = result.optimal_point
             result_p.append(result)
             # self._update_initial_point()
             self.best_beta = list(np.split(opt_params, 2)[0])
             self.best_gamma = list(np.split(opt_params, 2)[1])
-            print()
-            print("Optimal value", result.optimal_value)
-            print("--------------------------------------------------------")
+            # print()
+            # print("Optimal value", result.optimal_value)
+            # print("--------------------------------------------------------")
             self._reps += 1
-            print(self.initial_point)
-            print(result.optimal_parameters)
-        print("Optimal mixers:", self.optimal_mixer_list)
+        # print("Optimal mixers:", self.optimal_mixer_list)
         if iter_results:
             return result, result_p
         return result
@@ -385,10 +389,12 @@ class AdaptQAOA(QAOA):
             initial_point = [initial_point[0], initial_point[self.max_reps]]
         self._initial_point = initial_point
 
-    def _generate_initial_point(self): # set initial value for gamma according to https://arxiv.org/abs/2005.10258
+    def _generate_initial_point(
+        self,
+    ):  # set initial value for gamma according to https://arxiv.org/abs/2005.10258
         gamma_ip = 0.01
-        beta_ip = algorithm_globals.random.uniform([-2 * np.pi], [2 * np.pi])#-np.pi/4
-        return np.append(beta_ip,[gamma_ip])
+        beta_ip = algorithm_globals.random.uniform([-2 * np.pi], [2 * np.pi])  # -np.pi/4
+        return np.append(beta_ip, [gamma_ip])
 
     def _update_initial_point(self):
         ordered_initial_points = np.zeros(2*self._reps)
