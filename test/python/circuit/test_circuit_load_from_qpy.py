@@ -727,7 +727,7 @@ class TestLoadFromQPY(QiskitTestCase):
             new_circuit = load(qpy_file)[0]
         self.assertEqual(qc, new_circuit)
 
-    def test_parameter_vector_globbal_phase(self):
+    def test_parameter_vector_global_phase(self):
         """Test that a circuit with a standalone ParameterVectorElement phase works."""
         vec = ParameterVector("phase", 1)
         qc = QuantumCircuit(1, global_phase=vec[0])
