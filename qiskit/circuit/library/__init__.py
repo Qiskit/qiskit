@@ -133,7 +133,6 @@ Boolean Logic Circuits
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
-   BooleanExpression
    AND
    OR
    XOR
@@ -391,7 +390,6 @@ from ..barrier import Barrier
 from ..measure import Measure
 from ..reset import Reset
 
-from ..classicalfunction import BooleanExpression
 
 from .blueprintcircuit import BlueprintCircuit
 from .generalized_gates import (
