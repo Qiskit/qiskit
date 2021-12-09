@@ -37,6 +37,10 @@ class SentinelException(Exception):
     """An exception that we know was raised deliberately."""
 
 
+def _reg_key(reg):
+    return reg.name
+
+
 @ddt.ddt
 class TestControlFlowBuilders(QiskitTestCase):
     """Test that the control-flow builder interfaces work, and manage resources correctly."""
@@ -61,6 +65,8 @@ class TestControlFlowBuilders(QiskitTestCase):
         # For our purposes here, we don't care about the order bits were added.
         self.assertEqual(set(a.qubits), set(b.qubits))
         self.assertEqual(set(a.clbits), set(b.clbits))
+        self.assertEqual(sorted(a.qregs, key=_reg_key), sorted(b.qregs, key=_reg_key))
+        self.assertEqual(sorted(a.cregs, key=_reg_key), sorted(b.cregs, key=_reg_key))
         self.assertEqual(len(a.data), len(b.data))
 
         for (a_op, a_qubits, a_clbits), (b_op, b_qubits, b_clbits) in zip(a.data, b.data):
@@ -158,6 +164,108 @@ class TestControlFlowBuilders(QiskitTestCase):
         expected.if_test((cr, 0), if_true0, [qr[0]], [cr[:]])
 
         self.assertCircuitsEquivalent(test, expected)
+
+    def test_register_condition_in_nested_block(self):
+        """Test that nested blocks can use registers of the outermost circuits as conditions, and
+        they get propagated through all the blocks."""
+
+        qr = QuantumRegister(2)
+        clbits = [Clbit(), Clbit(), Clbit()]
+        cr1 = ClassicalRegister(3)
+        # Try aliased classical registers as well, to catch potential overlap bugs.
+        cr2 = ClassicalRegister(bits=clbits[:2])
+        cr3 = ClassicalRegister(bits=clbits[1:])
+        cr4 = ClassicalRegister(bits=clbits)
+
+        with self.subTest("for/if"):
+            test = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            with test.for_loop(range(3)):
+                with test.if_test((cr1, 0)):
+                    test.x(0)
+                with test.if_test((cr2, 0)):
+                    test.y(0)
+                with test.if_test((cr3, 0)):
+                    test.z(0)
+
+            true_body1 = QuantumCircuit([qr[0]], cr1)
+            true_body1.x(0)
+            true_body2 = QuantumCircuit([qr[0]], cr2)
+            true_body2.y(0)
+            true_body3 = QuantumCircuit([qr[0]], cr3)
+            true_body3.z(0)
+
+            for_body = QuantumCircuit([qr[0]], clbits, cr1, cr2, cr3)  # but not cr4.
+            for_body.if_test((cr1, 0), true_body1, [qr[0]], cr1)
+            for_body.if_test((cr2, 0), true_body2, [qr[0]], cr2)
+            for_body.if_test((cr3, 0), true_body3, [qr[0]], cr3)
+
+            expected = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            expected.for_loop(range(3), None, for_body, [qr[0]], clbits + list(cr1))
+
+            self.assertCircuitsEquivalent(test, expected)
+
+        with self.subTest("for/while"):
+            test = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            with test.for_loop(range(3)):
+                with test.while_loop((cr1, 0)):
+                    test.x(0)
+                with test.while_loop((cr2, 0)):
+                    test.y(0)
+                with test.while_loop((cr3, 0)):
+                    test.z(0)
+
+            while_body1 = QuantumCircuit([qr[0]], cr1)
+            while_body1.x(0)
+            while_body2 = QuantumCircuit([qr[0]], cr2)
+            while_body2.y(0)
+            while_body3 = QuantumCircuit([qr[0]], cr3)
+            while_body3.z(0)
+
+            for_body = QuantumCircuit([qr[0]], clbits, cr1, cr2, cr3)
+            for_body.while_loop((cr1, 0), while_body1, [qr[0]], cr1)
+            for_body.while_loop((cr2, 0), while_body2, [qr[0]], cr2)
+            for_body.while_loop((cr3, 0), while_body3, [qr[0]], cr3)
+
+            expected = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            expected.for_loop(range(3), None, for_body, [qr[0]], clbits + list(cr1))
+
+            self.assertCircuitsEquivalent(test, expected)
+
+        with self.subTest("if/c_if"):
+            test = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            with test.if_test((cr1, 0)):
+                test.x(0).c_if(cr2, 0)
+                test.z(0).c_if(cr3, 0)
+
+            true_body = QuantumCircuit([qr[0]], cr1, cr2, cr3)
+            true_body.x(0).c_if(cr2, 0)
+            true_body.z(0).c_if(cr3, 0)
+
+            expected = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            expected.if_test((cr1, 0), true_body, [qr[0]], clbits + list(cr1))
+
+            self.assertCircuitsEquivalent(test, expected)
+
+        with self.subTest("while/else/c_if"):
+            test = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            with test.while_loop((cr1, 0)):
+                with test.if_test((cr2, 0)) as else_:
+                    test.x(0).c_if(cr3, 0)
+                with else_:
+                    test.z(0).c_if(cr4, 0)
+
+            true_body = QuantumCircuit([qr[0]], cr2, cr3, cr4)
+            true_body.x(0).c_if(cr3, 0)
+            false_body = QuantumCircuit([qr[0]], cr2, cr3, cr4)
+            false_body.z(0).c_if(cr4, 0)
+
+            while_body = QuantumCircuit([qr[0]], cr1, cr2, cr3, cr4)
+            while_body.if_else((cr2, 0), true_body, false_body, [qr[0]], clbits)
+
+            expected = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            expected.while_loop((cr1, 0), while_body, [qr[0]], clbits + list(cr1))
+
+            self.assertCircuitsEquivalent(test, expected)
 
     def test_if_else_simple(self):
         """Test a simple if/else statement builds correctly, in the midst of other instructions.
