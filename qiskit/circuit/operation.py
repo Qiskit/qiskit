@@ -12,51 +12,32 @@
 
 """Quantum Operation Mixin."""
 
-from abc import ABC
-from qiskit.circuit.exceptions import CircuitError
+from abc import ABC, abstractmethod
 
 
 class Operation(ABC):
-    """Quantum Operation Mixin Class.
+    """Quantum Operation Interface Class.
     For objects that can be added to a :class:`~qiskit.circuit.QuantumCircuit`.
     These objects include :class:`~qiskit.circuit.Gate`, :class:`~qiskit.circuit.Reset`,
     :class:`~qiskit.circuit.Barrier`, :class:`~qiskit.circuit.Measure`,
     and operators such as :class:`~qiskit.quantum_info.Clifford`.
     """
 
-    # pylint: disable=unused-argument
-    def __new__(cls, *args, **kwargs):
-        if cls is Operation:
-            raise CircuitError("An Operation mixin should not be instantiated directly.")
-        return super().__new__(cls)
-
-    def __init__(self, name, num_qubits, num_clbits, operands):
-        self._name = name
-        self._num_qubits = num_qubits
-        self._num_clbits = num_clbits
-        self._operands = operands
+    __slots__ = ()
 
     @property
+    @abstractmethod
     def name(self):
         """Unique string identifier for operation type."""
-        return self._name
+        raise NotImplementedError
 
     @property
+    @abstractmethod
     def num_qubits(self):
         """Number of qubits."""
-        return self._num_qubits
+        raise NotImplementedError
 
     @property
     def num_clbits(self):
         """Number of classical bits."""
-        return self._num_clbits
-
-    @property
-    def num_operands(self):
-        """Number of operands."""
-        return len(self._operands)
-
-    @property
-    def operands(self):
-        """List of operands to specialize a specific Operation instance."""
-        return self._operands
+        raise NotImplementedError
