@@ -441,6 +441,33 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         self.assertCircuitsEquivalent(test, expected)
 
+    def test_if_else_tracks_registers(self):
+        """Test that classical registers used in both branches of if statements are tracked
+        correctly."""
+        qr = QuantumRegister(2)
+        cr = [ClassicalRegister(2) for _ in [None] * 4]
+
+        test = QuantumCircuit(qr, *cr)
+        with test.if_test((cr[0], 0)) as else_:
+            test.h(0).c_if(cr[1], 0)
+            # Test repetition.
+            test.h(0).c_if(cr[1], 0)
+        with else_:
+            test.h(0).c_if(cr[2], 0)
+
+        true_body = QuantumCircuit([qr[0]], cr[0], cr[1], cr[2])
+        true_body.h(qr[0]).c_if(cr[1], 0)
+        true_body.h(qr[0]).c_if(cr[1], 0)
+        false_body = QuantumCircuit([qr[0]], cr[0], cr[1], cr[2])
+        false_body.h(qr[0]).c_if(cr[2], 0)
+
+        expected = QuantumCircuit(qr, *cr)
+        expected.if_else(
+            (cr[0], 0), true_body, false_body, [qr[0]], list(cr[0]) + list(cr[1]) + list(cr[2])
+        )
+
+        self.assertCircuitsEquivalent(test, expected)
+
     def test_if_else_nested(self):
         """Test that the if and else context managers can be nested, and don't interfere with each
         other."""
