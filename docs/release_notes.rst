@@ -22,6 +22,215 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.33.1
+*************
+
+.. _Release Notes_0.19.1_Terra:
+
+Terra 0.19.1
+============
+
+.. _Release Notes_0.19.1_Terra_Prelude:
+
+Prelude
+-------
+
+.. releasenotes/notes/prepare-0.19.1-37d14fd5cf05a576.yaml @ b'ee0d76052411230848ab2830c5741c14c2450439'
+
+Qiskit Terra 0.19.1 is a bugfix release, solving some issues in 0.19.0
+concerning circuits constructed by the control-flow builder interface,
+conditional gates and QPY serialisation of newer Terra objects.
+
+
+.. _Release Notes_0.19.1_Terra_Deprecation Notes:
+
+Deprecation Notes
+-----------------
+
+.. releasenotes/notes/reinstate-deprecate-loose-measure-reset-11591e35d350aaeb.yaml @ b'a9b6093551e0a6e6000fa2230c8182c7e0080dc5'
+
+- The loose functions ``qiskit.circuit.measure.measure()`` and
+  ``qiskit.circuit.reset.reset()`` are deprecated, and will be removed in a
+  future release.  Instead, you should access these as methods on
+  :class:`.QuantumCircuit`::
+
+      from qiskit import QuantumCircuit
+      circuit = QuantumCircuit(1, 1)
+
+      # Replace this deprecated form ...
+      from qiskit.circuit.measure import measure
+      measure(circuit, 0, 0)
+
+      # ... with either of the next two lines:
+      circuit.measure(0, 0)
+      QuantumCircuit.measure(circuit, 0, 0)
+
+
+.. _Release Notes_0.19.1_Terra_Bug Fixes:
+
+Bug Fixes
+---------
+
+.. releasenotes/notes/0.19/fix-circuit-conversion-loose-qubits-8d190426e4e892f1.yaml @ b'ee0d76052411230848ab2830c5741c14c2450439'
+
+- Fixed an error in the circuit conversion functions
+  :func:`.circuit_to_gate` and :func:`.circuit_to_instruction` (and their
+  associated circuit methods :meth:`.QuantumCircuit.to_gate` and
+  :meth:`.QuantumCircuit.to_instruction`) when acting on a circuit with
+  registerless bits, or bits in more than one register.  Previously, the
+  number of bits necessary for the created gate or instruction would be
+  calculated incorrectly, often causing an exception during the conversion.
+
+.. releasenotes/notes/0.19/fix-control-flow-builder-parameter-copy-b1f6efcc6bc283e7.yaml @ b'7df86762371a5fb69c56470e414ed3679de2384b'
+
+- Fixed an issue where calling :meth:`.QuantumCircuit.copy` on the "body"
+  circuits of a control-flow operation created with the builder interface
+  would raise an error.  For example, this was previously an error, but will
+  now return successfully::
+
+      from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
+
+      qreg = QuantumRegister(4)
+      creg = ClassicalRegister(1)
+      circ = QuantumCircuit(qreg, creg)
+
+      with circ.if_test((creg, 0)):
+          circ.h(0)
+
+      if_else_instruction, _, _ = circ.data[0]
+      true_body = if_else_instruction.params[0]
+      true_body.copy()
+
+.. releasenotes/notes/fix-circuit-builder-registers-21deba9a43356fb5.yaml @ b'188e9ecfdce2a1bb2262aeb9cbf5e8c94450064b'
+
+- The control-flow builder interface now supports using :class:`.ClassicalRegister`\ s
+  as conditions in nested control-flow scopes.  Previously, doing this would
+  not raise an error immediately, but the internal circuit blocks would not
+  have the correct registers defined, and so later logic that worked with the
+  inner blocks would fail.
+
+  For example, previously the drawers would fail when trying to draw an inner
+  block conditioned on a classical register, whereas now it will succeed, such
+  as in this example::
+
+      from qiskit import QuantumCircuit
+      from qiskit.circuit import QuantumRegister, ClassicalRegister
+
+      qreg = QuantumRegister(4)
+      creg = ClassicalRegister(1)
+      circ = QuantumCircuit(qreg, creg)
+
+      with circ.for_loop(range(10)) as a:
+          circ.ry(a, 0)
+          with circ.if_test((creg, 1)):
+              circ.break_loop()
+
+      print(circ.draw(cregbundle=False))
+      print(circ.data[0][0].blocks[0].draw(cregbundle=False))
+
+.. releasenotes/notes/fix-paramater-vector-qpy-52b16ccefecf8b2e.yaml @ b'76a54747df03c359744f1934dcc7f948715faf80'
+
+- Fixed :mod:`~qiskit.circuit.qpy_serialization` support for
+  serializing :class:`~qiskit.circuit.QuantumCircuit` objects that are
+  using :class:`.ParameterVector` or :class:`.ParameterVectorElement` as
+  parameters. Previously, a :class:`.ParameterVectorElement` parameter was
+  just treated as a :class:`.Parameter` for QPY serialization which meant
+  the :class:`.ParameterVector` context was lost in QPY and the output
+  order of :attr:`~qiskit.circuit.QuantumCircuit.parameters` could be
+  incorrect.
+
+  To fix this issue a new QPY format version, :ref:`version_3`, was required.
+  This new format version includes a representation of the
+  :class:`~qiskit.circuit.ParameterVectorElement` class which is
+  described in the :mod:`~qiskit.circuit.qpy_serialization` documentation at
+  :ref:`param_vector`.
+
+.. releasenotes/notes/fix-pauli-evolution-gate-bf85592f0f8f0ba7.yaml @ b'73024df2f62b0f8c9fd2e439a7bbeba2d8b0aaa9'
+
+- Fixed the :mod:`~qiskit.circuit.qpy_serialization` support for serializing
+  a :class:`~qiskit.circuit.library.PauliEvolutionGate` object. Previously,
+  the :class:`~qiskit.circuit.library.PauliEvolutionGate` was treated as
+  a custom gate for serialization and would be deserialized as a
+  :class:`~qiskit.circuit.Gate` object that had the same definition and
+  name as the original :class:`~qiskit.circuit.library.PauliEvolutionGate`.
+  However, this would lose the original state from the
+  :class:`~qiskit.circuit.library.PauliEvolutionGate`. This has been fixed
+  so that starting in this release a
+  :class:`~qiskit.circuit.library.PauliEvolutionGate` in the circuit will
+  be preserved 1:1 across QPY serialization now. The only limitation with
+  this is that it does not support custom
+  :class:`~qiskit.synthesis.EvolutionSynthesis` classes. Only the classes
+  available from :mod:`qiskit.synthesis` can be used with a
+  :class:`~qiskit.circuit.library.PauliEvolutionGate` for qpy serialization.
+
+  To fix this issue a new QPY format version, :ref:`version_3`, was required.
+  This new format version includes a representation of the
+  :class:`~qiskit.circuit.library.PauliEvolutionGate` class which is
+  described in the :mod:`~qiskit.circuit.qpy_serialization` documentation at
+  :ref:`pauli_evo_qpy`.
+
+.. releasenotes/notes/reinstate-deprecate-loose-measure-reset-11591e35d350aaeb.yaml @ b'a9b6093551e0a6e6000fa2230c8182c7e0080dc5'
+
+- Two loose functions ``qiskit.circuit.measure.measure()`` and
+  ``qiskit.circuit.reset.reset()`` were accidentally removed without a
+  deprecation period.  They have been reinstated, but are marked as deprecated
+  in favour of the methods :meth:`.QuantumCircuit.measure` and
+  :meth:`.QuantumCircuit.reset`, respectively, and will be removed in a future
+  release.
+
+
+.. _Release Notes_0.19.1_Terra_Other Notes:
+
+Other Notes
+-----------
+
+.. releasenotes/notes/fix-circuit-builder-registers-21deba9a43356fb5.yaml @ b'188e9ecfdce2a1bb2262aeb9cbf5e8c94450064b'
+
+- The new control-flow builder interface uses various context managers and
+  helper objects to do its work.  These should not be considered part of the
+  public API, and are liable to be changed and removed without warning.  The
+  *usage* of the builder interface has stability guarantees, in the sense that
+  the behaviour described by :meth:`.QuantumCircuit.for_loop`,
+  :meth:`~.QuantumCircuit.while_loop` and :meth:`~.QuantumCircuit.if_test` for
+  the builder interface are subject to the standard deprecation policies, but
+  the actual objects used to effect this are not.  You should not rely on the
+  objects (such as ``IfContext`` or ``ControlFlowBuilderBlock``) existing in
+  their current locations, or having any methods or attributes attached to
+  them.
+
+  This was not previously clear in the 0.19.0 release.  All such objects now
+  have a warning in their documentation strings making this explicit.  It is
+  likely in the future that their locations and backing implementations will
+  become quite different.
+
+Aer 0.9.1
+=========
+
+No change
+
+Ignis 0.7.0
+===========
+
+No change
+
+.. _Release Notes_0.18.2_IBMQ:
+
+IBM Q Provider 0.18.2
+=====================
+
+.. _Release Notes_0.18.2_IBMQ_Bug Fixes:
+
+Bug Fixes
+---------
+
+- Fix delivered in `#1065 <https://github.com/Qiskit/qiskit-ibmq-provider/pull/1065>`__ for the
+  issue where job kept crashing when ``Parameter`` was passed in circuit metadata.
+
+- Fix delivered in `#1094 <https://github.com/Qiskit/qiskit-ibmq-provider/pull/1094>`__ for
+  the issue wherein :class:`qiskit.providers.ibmq.runtime.RuntimeEncoder`
+  does an extra `decompose()` if the circuit being serialized is a ``BlueprintCircuit``.
+
+*************
 Qiskit 0.33.0
 *************
 
