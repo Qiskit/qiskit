@@ -144,7 +144,7 @@ class AdaptQAOA(QAOA):
             # TODO: check if this list of operators/circuits needs more preprocessing before use
             self.mixer_pool = mixer_pool
         if self.threshold is None:
-            self.threshold = 0.01  # TODO: work out a way to better set a default threshold
+            self.threshold = 0  # TODO: work out a way to better set a default threshold
 
         self.best_beta = 0
         self.best_gamma = 0
@@ -374,7 +374,7 @@ class AdaptQAOA(QAOA):
         Raises:
             AttributeError: If the initial points doesnt match 2x the depth.
         """
-        if not initial_point:
+        if initial_point is None:
             self._user_specified_ip = None
             initial_point = self._generate_initial_point()
         else:
