@@ -1,30 +1,35 @@
+from qiskit.algorithms.optimizers.slsqp import SLSQP
 from qiskit.algorithms import QAOA
 from qiskit import Aer
 from qiskit.utils import QuantumInstance
 from qiskit.algorithms import AdaptQAOA
 
 import numpy as np
-from qiskit.algorithms.optimizers import NELDER_MEAD
+from qiskit.algorithms.optimizers import NELDER_MEAD, SLSQP
 from max_cut import max_cut_hamiltonian
 
-def extend_initial_points(max_reps, gamma_0 = 0.01, beta_0 = np.pi/4):
-    return [beta_0+1000*np.pi]*max_reps+[gamma_0+1000*np.pi]*max_reps
+def extend_initial_points(max_reps, gamma_0 = 0.01, beta_0 = -np.pi/4):
+    # return [beta_0-np.pi]*max_reps+[gamma_0+np.pi]*max_reps
+    return [beta_0-np.pi]*max_reps+[gamma_0+np.pi]*max_reps
 
 def rand_ip(max_reps):
     from qiskit.utils import algorithm_globals
     return list(algorithm_globals.random.uniform(2*max_reps*[-2000 * np.pi], 2*max_reps*[2000 * np.pi]))
 max_reps = 16
-D, nq = 3, 4
+D, nq = 3, 6
 cost_op = max_cut_hamiltonian(D=D, nq=nq)
 gs_energy = min(np.real(np.linalg.eig(cost_op.to_matrix())[0]))
 init_pt = extend_initial_points(max_reps=max_reps)
-quantum_instance = QuantumInstance(Aer.get_backend('qasm_simulator'), shots=1024)
-optimiser = NELDER_MEAD()
+quantum_instance = QuantumInstance(Aer.get_backend('qasm_simulator'), shots=1064) 
+optimiser = NELDER_MEAD(disp=True)#, tol=1e-08)#, adaptive=True)#maxiter=(1+max_reps) * 3000, adaptive=True, xatol=0.00002, tol=0.00002)
+# optimiser = SLSQP(maxiter= (1+max_reps) * 1000, ftol=1e-08)
+
 "--------------------------------------------------------------"
 "run adapt"
 "--------------------------------------------------------------"
 import copy
-adapt_vals_dict = {'multi':0, 'single':0, 'singular':0}
+print(f"Problem ground state energy: {gs_energy}")
+adapt_vals_dict = {'multi':0, 'single':0}#, 'singular':0}
 adapt_val_dict = copy.copy(adapt_vals_dict)
 for mt in adapt_vals_dict.keys():
     print("Running adapt with mixer pool type {}".format(mt))
