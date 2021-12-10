@@ -10,7 +10,7 @@ from max_cut import max_cut_hamiltonian
 
 def extend_initial_points(max_reps, gamma_0 = 0.01, beta_0 = -np.pi/4):
     # return [beta_0-np.pi]*max_reps+[gamma_0+np.pi]*max_reps
-    return [beta_0-np.pi]*max_reps+[gamma_0+np.pi]*max_reps
+    return [beta_0-10*np.pi]*max_reps+[gamma_0+10*np.pi]*max_reps
 
 def rand_ip(max_reps):
     from qiskit.utils import algorithm_globals
@@ -21,7 +21,7 @@ cost_op = max_cut_hamiltonian(D=D, nq=nq)
 gs_energy = min(np.real(np.linalg.eig(cost_op.to_matrix())[0]))
 init_pt = extend_initial_points(max_reps=max_reps)
 quantum_instance = QuantumInstance(Aer.get_backend('qasm_simulator'), shots=1064) 
-optimiser = NELDER_MEAD(disp=True)#, tol=1e-08)#, adaptive=True)#maxiter=(1+max_reps) * 3000, adaptive=True, xatol=0.00002, tol=0.00002)
+optimiser = NELDER_MEAD(disp=True)#, maxiter=100000, maxfev=100000, xatol=0.00005, tol=0)#, adaptive=True)#maxiter=(1+max_reps) * 3000, adaptive=True, xatol=0.00002, tol=0.00002)
 # optimiser = SLSQP(maxiter= (1+max_reps) * 1000, ftol=1e-08)
 
 "--------------------------------------------------------------"

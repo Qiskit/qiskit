@@ -162,10 +162,10 @@ class AdaptQAOA(QAOA):
             mixer_operator=self.optimal_mixer_list,
             name=self.name,
         )
-        beta_bounds = self._reps * [(None,None)]
-        gamma_bounds = self._reps * [(None,None)]
-        # beta_bounds = self._reps * [(-2*np.pi, 2 * np.pi)]
-        # gamma_bounds = self._reps * [(-np.pi, np.pi)]
+        # beta_bounds = self._reps * [(None,None)]
+        # gamma_bounds = self._reps * [(None,None)]
+        beta_bounds = self._reps * [(-2*np.pi, 2 * np.pi)]
+        gamma_bounds = self._reps * [(-np.pi, np.pi)]
 
         self.ansatz._bounds = beta_bounds + gamma_bounds
 
@@ -187,8 +187,7 @@ class AdaptQAOA(QAOA):
         exp_hc = (self.initial_point[-1] * operator).exp_i()
         exp_hc_ad = exp_hc.adjoint().to_matrix()
         exp_hc = exp_hc.to_matrix()
-        kappa = commutator(operator.to_matrix_op(), mixer.to_matrix_op()).to_matrix()
-        energy_grad_op = exp_hc_ad @ (kappa) @ exp_hc
+        energy_grad_op = exp_hc_ad @ (commutator(operator.to_matrix_op(), mixer.to_matrix_op()).to_matrix()) @ exp_hc
         energy_grad_op = PrimitiveOp(energy_grad_op)
 
         expectation = ExpectationFactory.build(
@@ -199,7 +198,7 @@ class AdaptQAOA(QAOA):
         observable_meas = expectation.convert(StateFn(energy_grad_op, is_measurement=True))
         ansatz_circuit_op = CircuitStateFn(wave_function)
         expect_op = observable_meas.compose(ansatz_circuit_op).reduce()
-        return 1j*expect_op
+        return -1j*expect_op
 
     def _test_mixer_pool(self, operator: OperatorBase):
         self._check_problem_configuration(operator)
@@ -211,8 +210,8 @@ class AdaptQAOA(QAOA):
                 expect_op, params=self.hyperparameter_dict
             )
             meas = sampled_expect_op.eval()
-            energy_gradients.append(np.real(meas))
-        max_energy_idx = np.argmax(energy_gradients)
+            energy_gradients.append(meas)
+        max_energy_idx = np.argmax(np.abs(energy_gradients))
         return self.mixer_pool[max_energy_idx], np.abs(energy_gradients[max_energy_idx])
 
     def compute_minimum_eigenvalue(
@@ -245,6 +244,7 @@ class AdaptQAOA(QAOA):
             print("Optimal parameters: {}".format(result.optimal_parameters))
             print("Optimal value", result.optimal_value)
             print("--------------------------------------------------------")
+            print(self.get_optimal_circuit().decompose().draw())
             self._reps += 1
         if iter_results:
             return result, result_p
