@@ -10,19 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 import unittest
-
+from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
-
-from qiskit.algorithms.quantum_time_evolution.variational.calculators import (
-    metric_tensor_calculator,
-    evolution_grad_calculator,
-)
 from qiskit.algorithms.quantum_time_evolution.variational.principles.real.implementations.real_mc_lachlan_variational_principle import (
     RealMcLachlanVariationalPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import SummedOp, X, Y, I, Z
-from test.python.algorithms import QiskitAlgorithmsTestCase
 
 
 class TestRealMcLachlanVariationalPrinciple(QiskitAlgorithmsTestCase):

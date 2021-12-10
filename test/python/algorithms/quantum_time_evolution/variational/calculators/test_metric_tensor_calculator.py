@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 import unittest
-
+from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from numpy import array
 
@@ -19,7 +19,6 @@ from qiskit.algorithms.quantum_time_evolution.variational.calculators.metric_ten
 )
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import SummedOp, X, Y, I, Z
-from test.python.algorithms import QiskitAlgorithmsTestCase
 
 
 class TestMetricTensorCalculator(QiskitAlgorithmsTestCase):

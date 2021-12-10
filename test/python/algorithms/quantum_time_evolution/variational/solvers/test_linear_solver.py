@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 import unittest
-
+from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
 from qiskit import Aer
@@ -22,7 +22,6 @@ from qiskit.algorithms.quantum_time_evolution.variational.solvers.var_qte_linear
 )
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import SummedOp, X, Y, I, Z, CircuitSampler
-from test.python.algorithms import QiskitAlgorithmsTestCase
 
 
 class TestLinearSolver(QiskitAlgorithmsTestCase):

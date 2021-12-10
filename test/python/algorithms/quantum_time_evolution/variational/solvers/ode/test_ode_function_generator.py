@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 import unittest
-
+from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
 from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.ode_function_generator import (
@@ -31,7 +31,6 @@ from qiskit.opflow import (
     Z,
     CircuitSampler,
 )
-from test.python.algorithms import QiskitAlgorithmsTestCase
 
 
 class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
@@ -90,10 +89,10 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         np.testing.assert_array_almost_equal(expected_qte_ode_function, qte_ode_function)
 
     def test_var_qte_ode_function_time_param(self):
-        t = Parameter("t")
+        time = Parameter("t")
         observable = SummedOp(
             [
-                0.2252 * t * (I ^ I),
+                0.2252 * time * (I ^ I),
                 0.5716 * (Z ^ Z),
                 0.3435 * (I ^ Z),
                 -0.4347 * (Z ^ I),
@@ -122,7 +121,7 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
             CircuitSampler(backend),
             CircuitSampler(backend),
             CircuitSampler(backend),
-            t_param=t,
+            t_param=time,
         )
 
         qte_ode_function = ode_function_generator.var_qte_ode_function(time, param_dict.values())

@@ -13,7 +13,7 @@
 """Base class for quantum time evolution."""
 
 from abc import ABC, abstractmethod
-from typing import Dict, Union, List
+from typing import Union, List
 
 from qiskit.circuit import Parameter
 from qiskit.opflow import OperatorBase, StateFn, Gradient

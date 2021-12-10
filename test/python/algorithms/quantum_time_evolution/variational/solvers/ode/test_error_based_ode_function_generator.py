@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 import unittest
-
+from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from numpy import array
 
@@ -37,7 +37,6 @@ from qiskit.opflow import (
     ComposedOp,
     PauliExpectation,
 )
-from test.python.algorithms import QiskitAlgorithmsTestCase
 
 
 class TestErrorBasedOdeFunctionGenerator(QiskitAlgorithmsTestCase):
@@ -64,8 +63,8 @@ class TestErrorBasedOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         backend = Aer.get_backend("statevector_simulator")
         state = operator[-1]
 
-        h = operator.oplist[0].primitive * operator.oplist[0].coeff
-        h_squared = h ** 2
+        hamiltonian = operator.oplist[0].primitive * operator.oplist[0].coeff
+        h_squared = hamiltonian ** 2
         h_squared = ComposedOp([~StateFn(h_squared.reduce()), state])
         h_squared = PauliExpectation().convert(h_squared)
 

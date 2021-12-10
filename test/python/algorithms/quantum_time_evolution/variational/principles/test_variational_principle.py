@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 import unittest
-
+from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
 from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
@@ -18,7 +18,6 @@ from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.i
 )
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import SummedOp, X, Y, I, Z
-from test.python.algorithms import QiskitAlgorithmsTestCase
 
 
 class TestVariationalPrinciple(QiskitAlgorithmsTestCase):

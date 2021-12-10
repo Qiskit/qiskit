@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 import unittest
-
+from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
 from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.var_qte_ode_solver import (
@@ -33,7 +33,6 @@ from qiskit.opflow import (
     Z,
     CircuitSampler,
 )
-from test.python.algorithms import QiskitAlgorithmsTestCase
 
 
 class TestVarQteOdeSolver(QiskitAlgorithmsTestCase):

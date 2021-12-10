@@ -14,9 +14,6 @@
 
 from collections.abc import Iterable
 from typing import List, Tuple, Callable, Optional, Union
-import warnings
-
-import numpy as np
 from scipy.optimize import least_squares
 
 import functools

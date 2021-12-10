@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 import unittest
-
+from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
 from qiskit import Aer
@@ -28,7 +28,6 @@ from qiskit.opflow import (
     Z,
 )
 from qiskit.quantum_info import state_fidelity, Statevector
-from test.python.algorithms import QiskitAlgorithmsTestCase
 
 np.random.seed = 11
 

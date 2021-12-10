@@ -9,9 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
+from qiskit.utils import algorithm_globals
 import unittest
-
+from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
 from qiskit.quantum_info import state_fidelity, Statevector
@@ -28,11 +28,8 @@ from qiskit.opflow import (
     I,
     Z,
 )
-from test.python.algorithms import QiskitAlgorithmsTestCase
 
 np.random.seed = 11
-from qiskit.utils import algorithm_globals
-
 algorithm_globals.random_seed = 11
 
 

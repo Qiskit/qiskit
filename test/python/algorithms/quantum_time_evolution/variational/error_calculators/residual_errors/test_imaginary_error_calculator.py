@@ -10,11 +10,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 import unittest
-
+from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from ddt import ddt
 
-from qiskit import Aer
 from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.imaginary_error_calculator import (
     ImaginaryErrorCalculator,
 )
@@ -32,11 +31,9 @@ from qiskit.opflow import (
     I,
     Z,
     StateFn,
-    CircuitSampler,
     PauliExpectation,
     ComposedOp,
 )
-from test.python.algorithms import QiskitAlgorithmsTestCase
 
 
 @ddt
@@ -68,8 +65,8 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
         backend = None
         circuit_sampler = None
 
-        h = operator.oplist[0].primitive * operator.oplist[0].coeff
-        h_squared = h ** 2
+        hamiltonian = operator.oplist[0].primitive * operator.oplist[0].coeff
+        h_squared = hamiltonian ** 2
         h_squared = ComposedOp([~StateFn(h_squared.reduce()), state])
         h_squared = PauliExpectation().convert(h_squared)
 
@@ -126,8 +123,8 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
         backend = None
         circuit_sampler = None
 
-        h = operator.oplist[0].primitive * operator.oplist[0].coeff
-        h_squared = h ** 2
+        hamiltonian = operator.oplist[0].primitive * operator.oplist[0].coeff
+        h_squared = hamiltonian ** 2
         h_squared = ComposedOp([~StateFn(h_squared.reduce()), state])
         h_squared = PauliExpectation().convert(h_squared)
 
