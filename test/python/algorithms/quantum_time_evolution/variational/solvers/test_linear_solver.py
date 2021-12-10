@@ -9,6 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
+"""Test solver of linear equations."""
+
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
@@ -25,6 +28,8 @@ from qiskit.opflow import SummedOp, X, Y, I, Z, CircuitSampler
 
 
 class TestLinearSolver(QiskitAlgorithmsTestCase):
+    """Test solver of linear equations."""
+
     # TODO use ddt
     def test_solve_sle_no_backend(self):
         backend = Aer.get_backend("statevector_simulator")

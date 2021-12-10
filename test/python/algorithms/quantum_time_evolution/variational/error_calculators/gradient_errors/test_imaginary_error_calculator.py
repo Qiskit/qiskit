@@ -9,6 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
+"""Test imaginary gradient errors calculator."""
+
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
@@ -38,8 +41,8 @@ from qiskit.opflow import (
 
 @ddt
 class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
+    """Test imaginary gradient errors calculator."""
 
-    # TODO adjust implementations to PR changes
     def test_calc_single_step_error(self):
         observable = SummedOp(
             [

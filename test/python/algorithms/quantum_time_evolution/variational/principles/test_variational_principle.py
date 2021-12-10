@@ -9,6 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
+"""Test variational principle."""
+
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
@@ -21,6 +24,8 @@ from qiskit.opflow import SummedOp, X, Y, I, Z
 
 
 class TestVariationalPrinciple(QiskitAlgorithmsTestCase):
+    """Test variational principle."""
+
     def test_lazy_init(self):
         observable = SummedOp(
             [

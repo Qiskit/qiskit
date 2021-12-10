@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Test Variational Quantum Imaginary Time Evolution algorithm."""
+
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
@@ -33,6 +35,8 @@ np.random.seed = 11
 
 
 class TestVarQite(QiskitAlgorithmsTestCase):
+    """Test Variational Quantum Imaginary Time Evolution algorithm."""
+
     def test_run_d_1(self):
         observable = SummedOp(
             [

@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Test error-based ODE function generator."""
+
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
@@ -40,6 +42,8 @@ from qiskit.opflow import (
 
 
 class TestErrorBasedOdeFunctionGenerator(QiskitAlgorithmsTestCase):
+    """Test error-based ODE function generator."""
+
     def test_error_based_ode_fun(self):
         observable = SummedOp(
             [

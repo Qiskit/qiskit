@@ -9,6 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
+"""Test real gradient errors calculator."""
+
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
@@ -38,7 +41,9 @@ from qiskit.opflow import (
 
 @ddt
 class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
-    # TODO test fail due to non-negligible imaginary parts, check real imag principles if they work.
+
+    """Test real gradient errors calculator."""
+
     def test_calc_single_step_error(self):
         observable = SummedOp(
             [

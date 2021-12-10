@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Test solver of ODEs."""
+
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
@@ -36,6 +38,7 @@ from qiskit.opflow import (
 
 
 class TestVarQteOdeSolver(QiskitAlgorithmsTestCase):
+    """Test solver of ODEs."""
 
     # TODO runs slowly
     def test_run_no_backend(self):

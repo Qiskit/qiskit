@@ -9,6 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
+"""Test imaginary McLachlan's variational principle."""
+
 import unittest
 
 import numpy as np
@@ -22,6 +25,8 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 
 
 class TestImaginaryMcLachlanVariationalPrinciple(QiskitAlgorithmsTestCase):
+    """Test imaginary McLachlan's variational principle."""
+
     def test_calc_calc_metric_tensor(self):
         observable = SummedOp(
             [

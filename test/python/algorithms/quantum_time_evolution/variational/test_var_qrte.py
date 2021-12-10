@@ -9,6 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
+"""Test Variational Quantum Real Time Evolution algorithm."""
+
 from qiskit.utils import algorithm_globals
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
@@ -34,6 +37,8 @@ algorithm_globals.random_seed = 11
 
 
 class TestVarQrte(QiskitAlgorithmsTestCase):
+    """Test Variational Quantum Real Time Evolution algorithm."""
+
     def test_run_d_1(self):
         observable = SummedOp(
             [
