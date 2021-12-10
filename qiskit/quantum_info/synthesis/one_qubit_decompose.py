@@ -48,7 +48,6 @@ ONE_QUBIT_EULER_BASIS_GATES = {
     "RR": ["r"],
     "ZYZ": ["rz", "ry"],
     "ZXZ": ["rz", "rx"],
-    "XZX": ["rz", "rx"],
     "XYX": ["rx", "ry"],
     "ZSXX": ["rz", "sx", "x"],
     "ZSX": ["rz", "sx"],
