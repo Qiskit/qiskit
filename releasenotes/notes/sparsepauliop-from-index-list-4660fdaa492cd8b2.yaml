@@ -12,7 +12,7 @@ features:
 
     .. code-block:: python
 
-      op = SparsePauliOp.from_list([("XZ", [0, 3], 1), ("YY", [1, 4])], num_qubits=5)
+      op = SparsePauliOp.from_list([("XZ", [0, 3], 1), ("YY", [1, 4], 2)], num_qubits=5)
 
     This greatly facilitates the construction of very sparse operators on many qubits, as
     is e.g. often the case for Ising Hamiltonians.

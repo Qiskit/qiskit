@@ -522,7 +522,7 @@ class SparsePauliOp(LinearOp):
             op = SparsePauliOp.from_list([("XIIZI", 1), ("IYIIY", 2)])
 
             # via triples and local Paulis with indices
-            op = SparsePauliOp.from_list([("XZ", [0, 3], 1), ("YY", [1, 4])], num_qubits=5)
+            op = SparsePauliOp.from_list([("XZ", [0, 3], 1), ("YY", [1, 4], 2)], num_qubits=5)
 
         Args:
             obj (Union[List[Tuple[str, complex]], List[Tuple[str, List[int], complex]]]):
