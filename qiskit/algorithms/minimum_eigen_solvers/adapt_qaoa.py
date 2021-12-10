@@ -120,6 +120,8 @@ class AdaptQAOA(QAOA):
         self.max_reps = max_reps
         super().__init__(**kwargs)
         self.threshold = threshold
+        self.qt_mixer_pool = None
+        self.mixer_pool_length = 0
 
         if mixer_pool is not None and mixer_pool_type is not None:
             raise AttributeError(
@@ -160,8 +162,10 @@ class AdaptQAOA(QAOA):
             mixer_operator=self.optimal_mixer_list,
             name=self.name,
         )
-        beta_bounds = self._reps * [(None,None)]#[(-2*np.pi, 2 * np.pi)]
-        gamma_bounds = self._reps * [(None,None)]#[(-np.pi, np.pi)]
+        beta_bounds = self._reps * [(None,None)]
+        gamma_bounds = self._reps * [(None,None)]
+        # beta_bounds = self._reps * [(-2*np.pi, 2 * np.pi)]
+        # gamma_bounds = self._reps * [(-np.pi, np.pi)]
 
         self.ansatz._bounds = beta_bounds + gamma_bounds
 
@@ -183,7 +187,8 @@ class AdaptQAOA(QAOA):
         exp_hc = (self.initial_point[-1] * operator).exp_i()
         exp_hc_ad = exp_hc.adjoint().to_matrix()
         exp_hc = exp_hc.to_matrix()
-        energy_grad_op = exp_hc_ad @ (commutator(operator, mixer).to_matrix()) @ exp_hc
+        kappa = commutator(operator.to_matrix_op(), mixer.to_matrix_op()).to_matrix()
+        energy_grad_op = exp_hc_ad @ (kappa) @ exp_hc
         energy_grad_op = PrimitiveOp(energy_grad_op)
 
         expectation = ExpectationFactory.build(
@@ -206,9 +211,9 @@ class AdaptQAOA(QAOA):
                 expect_op, params=self.hyperparameter_dict
             )
             meas = sampled_expect_op.eval()
-            energy_gradients.append(np.abs(meas))
+            energy_gradients.append(np.real(meas))
         max_energy_idx = np.argmax(energy_gradients)
-        return self.mixer_pool[max_energy_idx], energy_gradients[max_energy_idx]
+        return self.mixer_pool[max_energy_idx], np.abs(energy_gradients[max_energy_idx])
 
     def compute_minimum_eigenvalue(
         self, operator: OperatorBase, aux_operators: Optional[List[Optional[OperatorBase]]] = None,
@@ -221,6 +226,8 @@ class AdaptQAOA(QAOA):
             best_mixer, energy_norm = self._test_mixer_pool(operator=operator)
             print(f"REPETITION: {self._reps}")
             print(f"Current energy norm | Threshold  =====> | {energy_norm} | {self.threshold} |")
+            print(f"Best mixer: {best_mixer}")
+            print()
             if energy_norm < self.threshold:  # Threshold stoppage condition
                 break
             self.optimal_mixer_list.append(
@@ -426,7 +433,7 @@ def adapt_mixer_pool(
         else:
             raise ValueError(
                 "Unrecognised mixer pool type {}, modify this input to the available presets"
-                " 'Single', 'Singular' or 'Multi'."
+                " 'single', 'singular' or 'multi'."
             )
 
     # always include the all x's:
