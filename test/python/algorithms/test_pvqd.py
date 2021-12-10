@@ -70,8 +70,9 @@ class TestPVQD(QiskitTestCase):
         initial_parameters[-4] = np.pi / 2
 
         # run pVQD keeping track of the energy and the magnetization
-        pvqd = PVQD(ansatz, initial_parameters, optimizer,
-                    quantum_instance=backend, expectation=expectation)
+        pvqd = PVQD(
+            ansatz, initial_parameters, optimizer, quantum_instance=backend, expectation=expectation
+        )
         result = pvqd.evolve(hamiltonian, time, dt, observables=[hamiltonian, observable])
 
         # get reference results

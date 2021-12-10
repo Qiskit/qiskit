@@ -21,7 +21,12 @@ from qiskit.circuit import QuantumCircuit, ParameterVector
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.providers import Backend
 from qiskit.opflow import (
-    OperatorBase, CircuitSampler, ExpectationBase, ListOp, StateFn, GradientBase
+    OperatorBase,
+    CircuitSampler,
+    ExpectationBase,
+    ListOp,
+    StateFn,
+    GradientBase,
 )
 from qiskit.synthesis import EvolutionSynthesis, LieTrotter
 from qiskit.utils import QuantumInstance
