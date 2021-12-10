@@ -19,7 +19,7 @@ from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 
 
 def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None, label=None):
-    """Build an ``Instruction`` object from a ``QuantumCircuit``.
+    """Build an :class:`~.circuit.Instruction` object from a :class:`.QuantumCircuit`.
 
     The instruction is anonymous (not tied to a named quantum register),
     and so can be inserted into another circuit. The instruction will
@@ -48,7 +48,6 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
 
             from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
             from qiskit.converters import circuit_to_instruction
-            %matplotlib inline
 
             q = QuantumRegister(3, 'q')
             c = ClassicalRegister(3, 'c')
@@ -77,8 +76,8 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
 
     instruction = Instruction(
         name=circuit.name,
-        num_qubits=sum(qreg.size for qreg in circuit.qregs),
-        num_clbits=sum(creg.size for creg in circuit.cregs),
+        num_qubits=circuit.num_qubits,
+        num_clbits=circuit.num_clbits,
         params=[*parameter_dict.values()],
         label=label,
     )
