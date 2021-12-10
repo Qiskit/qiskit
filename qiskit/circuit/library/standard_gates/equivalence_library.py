@@ -247,7 +247,7 @@ _sel.add_equivalence(RYGate(theta), def_ry)
 q = QuantumRegister(1, "q")
 ry_to_rx = QuantumCircuit(q)
 ry_to_rx.s(0)
-ry_to_rx.rx(theta, 0)
+ry_to_rx.rx(-theta, 0)
 ry_to_rx.sdg(0)
 _sel.add_equivalence(RZGate(theta), ry_to_rx)
 
