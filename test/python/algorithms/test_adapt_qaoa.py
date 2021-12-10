@@ -431,33 +431,6 @@ class TestAdaptQAOA(QiskitAlgorithmsTestCase):
         opflow_list = [(pauli[1].to_label(), pauli[0]) for pauli in pauli_list]
         return PauliSumOp.from_list(opflow_list), shift
 
-    def _get_op(self, weight_matrix):
-        from functools import reduce
-        """Generate Hamiltonian for the max-cut problem of a graph.
-
-        Args:
-            weight_matrix (numpy.ndarray) : adjacency matrix.
-
-        Returns:
-            WeightedPauliOperator: operator for the Hamiltonian
-            float: a constant shift for the obj function.
-
-        """
-        QISKIT_DICT = {"I": I, "X": X, "Y": Y, "Z": Z}
-        num_nodes = weight_matrix.shape[0]
-        pauli_list = []
-        shift = 0
-        for i in range(num_nodes):
-            for j in range(i):
-                if weight_matrix[i, j] != 0:
-                    x_p = np.zeros(num_nodes, dtype=bool)
-                    z_p = np.zeros(num_nodes, dtype=bool)
-                    z_p[i] = True
-                    z_p[j] = True
-                    pauli_list.append([0.5 * weight_matrix[i, j], reduce(lambda a, b: a ^ b, [QISKIT_DICT[char.upper()] for char in Pauli(z_p, x_p).to_label()])])
-                    shift -= 0.5 * weight_matrix[i, j]
-        return pauli_list, shift
-
     def _get_graph_solution(self, x: np.ndarray) -> str:
         """Get graph solution from binary string.
 
@@ -504,8 +477,8 @@ class TestAdaptQAOA(QiskitAlgorithmsTestCase):
                 temp = G.get_edge_data(i,j,default=0)
                 if temp != 0:
                     w[i,j] = temp['weight']
-        hc_pauli = self._get_op(w)[0]
-        return sum([coeff*w_op for coeff, w_op in hc_pauli])
+        hc_pauli, _ = self._get_operator(w)
+        return hc_pauli
 
 
 if __name__ == "__main__":
