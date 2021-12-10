@@ -1,0 +1,4 @@
+prelude: >
+  Qiskit Terra 0.19.1 is a bugfix release, solving some issues in 0.19.0
+  concerning circuits constructed by the control-flow builder interface,
+  conditional gates and QPY serialisation of newer Terra objects.
