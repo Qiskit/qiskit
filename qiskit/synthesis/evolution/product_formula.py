@@ -199,7 +199,7 @@ def cnot_chain(pauli: Pauli) -> QuantumCircuit:
 
     For example, for the Pauli with the label 'XYZIX'.
 
-    .. code-block::
+    .. parsed-literal::
 
                        ┌───┐
         q_0: ──────────┤ X ├
@@ -244,7 +244,7 @@ def cnot_fountain(pauli: Pauli) -> QuantumCircuit:
 
     For example, for the Pauli with the label 'XYZIX'.
 
-    .. code-block::
+    .. parsed-literal::
 
              ┌───┐┌───┐┌───┐
         q_0: ┤ X ├┤ X ├┤ X ├

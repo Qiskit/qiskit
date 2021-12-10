@@ -40,13 +40,14 @@ class MergeAdjacentBarriers(TransformationPass):
 
     i.e,
 
-          ░  ░             ░  ░
-    q_0: ─░──░─      q_0: ─░──░─
-          ░  ░             ░  ░
-    q_1: ─░──░─  =>  q_1: ────░─
-          ░  ░                ░
-    q_2: ────░─      q_2: ────░─
-             ░
+    .. parsed-literal::
+              ░  ░             ░  ░
+        q_0: ─░──░─      q_0: ─░──░─
+              ░  ░             ░  ░
+        q_1: ─░──░─  =>  q_1: ────░─
+              ░  ░                ░
+        q_2: ────░─      q_2: ────░─
+                 ░
 
     after one iteration of the pass. These two barriers were not merged by the
     first pass as they are not adjacent in the initial circuit.

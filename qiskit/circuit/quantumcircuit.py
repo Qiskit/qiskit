@@ -425,18 +425,20 @@ class QuantumCircuit:
         Examples:
 
             input:
-                 ┌───┐
-            q_0: ┤ H ├─────■──────
-                 └───┘┌────┴─────┐
-            q_1: ─────┤ RX(1.57) ├
-                      └──────────┘
+            .. parsed-literal::
+                     ┌───┐
+                q_0: ┤ H ├─────■──────
+                     └───┘┌────┴─────┐
+                q_1: ─────┤ RX(1.57) ├
+                          └──────────┘
 
             output:
-                             ┌───┐
-            q_0: ─────■──────┤ H ├
-                 ┌────┴─────┐└───┘
-            q_1: ┤ RX(1.57) ├─────
-                 └──────────┘
+            .. parsed-literal::
+                                 ┌───┐
+                q_0: ─────■──────┤ H ├
+                     ┌────┴─────┐└───┘
+                q_1: ┤ RX(1.57) ├─────
+                     └──────────┘
         """
         reverse_circ = QuantumCircuit(
             self.qubits, self.clbits, *self.qregs, *self.cregs, name=self.name + "_reverse"
@@ -465,18 +467,20 @@ class QuantumCircuit:
         Examples:
 
             input:
-                 ┌───┐
-            q_0: ┤ H ├─────■──────
-                 └───┘┌────┴─────┐
-            q_1: ─────┤ RX(1.57) ├
-                      └──────────┘
+            .. parsed-literal::
+                     ┌───┐
+                q_0: ┤ H ├─────■──────
+                     └───┘┌────┴─────┐
+                q_1: ─────┤ RX(1.57) ├
+                          └──────────┘
 
             output:
-                      ┌──────────┐
-            q_0: ─────┤ RX(1.57) ├
-                 ┌───┐└────┬─────┘
-            q_1: ┤ H ├─────■──────
-                 └───┘
+            .. parsed-literal::
+                          ┌──────────┐
+                q_0: ─────┤ RX(1.57) ├
+                     ┌───┐└────┬─────┘
+                q_1: ┤ H ├─────■──────
+                     └───┘
         """
         circ = QuantumCircuit(
             *reversed(self.qregs),
@@ -511,18 +515,20 @@ class QuantumCircuit:
         Examples:
 
             input:
-                 ┌───┐
-            q_0: ┤ H ├─────■──────
-                 └───┘┌────┴─────┐
-            q_1: ─────┤ RX(1.57) ├
-                      └──────────┘
+            .. parsed-literal::
+                    ┌───┐
+                q_0: ┤ H ├─────■──────
+                    └───┘┌────┴─────┐
+                q_1: ─────┤ RX(1.57) ├
+                        └──────────┘
 
             output:
-                              ┌───┐
-            q_0: ──────■──────┤ H ├
-                 ┌─────┴─────┐└───┘
-            q_1: ┤ RX(-1.57) ├─────
-                 └───────────┘
+            .. parsed-literal::
+                                  ┌───┐
+                q_0: ──────■──────┤ H ├
+                     ┌─────┴─────┐└───┘
+                q_1: ┤ RX(-1.57) ├─────
+                     └───────────┘
         """
         inverse_circ = QuantumCircuit(
             self.qubits,
@@ -910,11 +916,11 @@ class QuantumCircuit:
 
         .. parsed-literal::
 
-                 ┌────────┐        ┌─────┐          ┌─────┐
+                 ┌────────┐         ┌─────┐          ┌─────┐
             q_0: ┤ bottom ├ ⊗ q_0: ┤ top ├  = q_0: ─┤ top ├──
-                 └────────┘        └─────┘         ┌┴─────┴─┐
-                                              q_1: ┤ bottom ├
-                                                   └────────┘
+                 └────────┘         └─────┘         ┌┴─────┴─┐
+                                               q_1: ┤ bottom ├
+                                                    └────────┘
 
         Args:
             other (QuantumCircuit): The other circuit to tensor this circuit with.
