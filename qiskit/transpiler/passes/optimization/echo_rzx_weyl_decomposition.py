@@ -50,7 +50,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
     @staticmethod
     def _echo_rzx_dag(theta):
         """Return the following circuit
-        
+
         .. parsed-literal::
                  ┌───────────────┐┌───┐┌────────────────┐┌───┐
             q_0: ┤0              ├┤ X ├┤0               ├┤ X ├
