@@ -1,9 +1,0 @@
----
-fixes:
-  - |
-    Fixed the issue that :meth:`~qiskit.algorithms.QAOA.construct_circuit`
-    with different operators with same number of qubits generates an identical circuit.
-  - |
-    Fixed the issue that :class:`~qiskit.circuit.library.QAOAAnsatz` has
-    a wrong number of parameters if identities of :class:`~qiskit.opflow.PauliSumOp` are given,
-    e.g., ``PauliSumOp.from_list([("III", 1)])``.

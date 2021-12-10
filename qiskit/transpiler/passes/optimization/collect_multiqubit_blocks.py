@@ -24,8 +24,10 @@ class CollectMultiQBlocks(AnalysisPass):
 
     Traverse the DAG and find blocks of gates that act consecutively on
     groups of qubits. Write the blocks to propert_set as a list of blocks
-    of the form:
+    of the form::
+
         [[g0, g1, g2], [g4, g5]]
+
     Blocks are reported in a valid topological order. Further, the gates
     within each block are also reported in topological order
     Some gates may not be present in any block (e.g. if the number

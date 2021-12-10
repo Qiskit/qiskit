@@ -16,6 +16,7 @@ from typing import Optional, Tuple, Union
 
 from qiskit.circuit import Clbit, ClassicalRegister, QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
+from .condition import validate_condition, condition_bits
 from .control_flow import ControlFlowOp
 
 
@@ -64,29 +65,7 @@ class WhileLoopOp(ControlFlowOp):
         num_clbits = body.num_clbits
 
         super().__init__("while_loop", num_qubits, num_clbits, [body], label=label)
-
-        try:
-            lhs, rhs = condition
-        except TypeError as err:
-            raise CircuitError(
-                "WhileLoopOp expects a condition argument as either a "
-                "Tuple[ClassicalRegister, int], a Tuple[Clbit, bool] or "
-                f"a Tuple[Clbit, int], but received {condition} of type "
-                f"{type(condition)}."
-            ) from err
-
-        if not (
-            (isinstance(lhs, ClassicalRegister) and isinstance(rhs, int))
-            or (isinstance(lhs, Clbit) and isinstance(rhs, (int, bool)))
-        ):
-            raise CircuitError(
-                "WhileLoopOp expects a condition argument as either a "
-                "Tuple[ClassicalRegister, int], a Tuple[Clbit, bool] or "
-                f"a Tuple[Clbit, int], but receieved a {type(condition)}"
-                f"[{type(lhs)}, {type(rhs)}]."
-            )
-
-        self.condition = condition
+        self.condition = validate_condition(condition)
 
     @property
     def params(self):
@@ -121,3 +100,67 @@ class WhileLoopOp(ControlFlowOp):
             "WhileLoopOp cannot be classically controlled through Instruction.c_if. "
             "Please use an IfElseOp instead."
         )
+
+
+class WhileLoopContext:
+    """A context manager for building up while loops onto circuits in a natural order, without
+    having to construct the loop body first.
+
+    Within the block, a lot of the bookkeeping is done for you; you do not need to keep track of
+    which qubits and clbits you are using, for example.  All normal methods of accessing the qubits
+    on the underlying :obj:`~QuantumCircuit` will work correctly, and resolve into correct accesses
+    within the interior block.
+
+    You generally should never need to instantiate this object directly.  Instead, use
+    :obj:`.QuantumCircuit.while_loop` in its context-manager form, i.e. by not supplying a ``body``
+    or sets of qubits and clbits.
+
+    Example usage::
+
+        from qiskit.circuit import QuantumCircuit, Clbit, Qubit
+        bits = [Qubit(), Qubit(), Clbit()]
+        qc = QuantumCircuit(bits)
+
+        with qc.while_loop((bits[2], 0)):
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.measure(0, 0)
+    """
+
+    __slots__ = ("_circuit", "_condition", "_label")
+
+    def __init__(
+        self,
+        circuit: QuantumCircuit,
+        condition: Union[
+            Tuple[ClassicalRegister, int],
+            Tuple[Clbit, int],
+            Tuple[Clbit, bool],
+        ],
+        *,
+        label: Optional[str] = None,
+    ):
+
+        self._circuit = circuit
+        self._condition = validate_condition(condition)
+        self._label = label
+
+    def __enter__(self):
+        self._circuit._push_scope(clbits=condition_bits(self._condition))
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type is not None:
+            # If we're leaving the context manager because an exception was raised, there's nothing
+            # to do except restore the circuit state.
+            self._circuit._pop_scope()
+            return False
+        scope = self._circuit._pop_scope()
+        # Loops do not need to pass any further resources in, because this scope itself defines the
+        # extent of ``break`` and ``continue`` statements.
+        body = scope.build(scope.qubits, scope.clbits)
+        self._circuit.append(
+            WhileLoopOp(self._condition, body, label=self._label),
+            body.qubits,
+            body.clbits,
+        )
+        return False
