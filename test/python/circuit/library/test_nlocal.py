@@ -422,16 +422,12 @@ class TestNLocal(QiskitTestCase):
         self.assertCircuitEqual(nlocal, circuit)
 
     def test_initial_state_as_circuit_object(self):
-        """Test setting `initial_state` to `QuantumCircuit` object
-
-        (ref)
-
-                  ┌───┐          ┌───┐
-        q_0: ──■──┤ X ├───────■──┤ X ├
-             ┌─┴─┐├───┤┌───┐┌─┴─┐├───┤
-        q_1: ┤ X ├┤ H ├┤ X ├┤ X ├┤ X ├
-             └───┘└───┘└───┘└───┘└───┘
-        """
+        """Test setting `initial_state` to `QuantumCircuit` object"""
+        #           ┌───┐          ┌───┐
+        # q_0: ──■──┤ X ├───────■──┤ X ├
+        #      ┌─┴─┐├───┤┌───┐┌─┴─┐├───┤
+        # q_1: ┤ X ├┤ H ├┤ X ├┤ X ├┤ X ├
+        #      └───┘└───┘└───┘└───┘└───┘
         ref = QuantumCircuit(2)
         ref.cx(0, 1)
         ref.x(0)

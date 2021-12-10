@@ -517,19 +517,18 @@ class TestCommutativeCancellation(QiskitTestCase):
         self.assertEqual(expected, new_circuit)
 
     def test_conditional_gates_dont_commute(self):
-        """Conditional gates do not commute and do not cancel
+        """Conditional gates do not commute and do not cancel"""
 
-             ┌───┐┌─┐
-        q_0: ┤ H ├┤M├─────────────
-             └───┘└╥┘       ┌─┐
-        q_1: ──■───╫────■───┤M├───
-             ┌─┴─┐ ║  ┌─┴─┐ └╥┘┌─┐
-        q_2: ┤ X ├─╫──┤ X ├──╫─┤M├
-             └───┘ ║  └─╥─┘  ║ └╥┘
-                   ║ ┌──╨──┐ ║  ║
-        c: 2/══════╩═╡ 0x0 ╞═╩══╩═
-                   0 └─────┘ 0  1
-        """
+        #      ┌───┐┌─┐
+        # q_0: ┤ H ├┤M├─────────────
+        #      └───┘└╥┘       ┌─┐
+        # q_1: ──■───╫────■───┤M├───
+        #      ┌─┴─┐ ║  ┌─┴─┐ └╥┘┌─┐
+        # q_2: ┤ X ├─╫──┤ X ├──╫─┤M├
+        #      └───┘ ║  └─╥─┘  ║ └╥┘
+        #            ║ ┌──╨──┐ ║  ║
+        # c: 2/══════╩═╡ 0x0 ╞═╩══╩═
+        #            0 └─────┘ 0  1
         circuit = QuantumCircuit(3, 2)
         circuit.h(0)
         circuit.measure(0, 0)

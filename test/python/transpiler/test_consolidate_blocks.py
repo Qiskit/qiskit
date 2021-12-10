@@ -101,15 +101,14 @@ class TestConsolidateBlocks(QiskitTestCase):
         self.assertEqual(new_topo_ops[1].qargs, [qr[0], qr[1]])
 
     def test_3q_blocks(self):
-        """blocks of more than 2 qubits work.
+        """blocks of more than 2 qubits work."""
 
-                    ┌────────┐
-        qr_0: ──────┤ P(0.5) ├────────────■──
-              ┌─────┴────────┴────┐┌───┐┌─┴─┐
-        qr_1: ┤ U(1.5708,0.2,0.6) ├┤ X ├┤ X ├
-              └───────────────────┘└─┬─┘└───┘
-        qr_2: ───────────────────────■───────
-        """
+        #             ┌────────┐
+        # qr_0: ──────┤ P(0.5) ├────────────■──
+        #       ┌─────┴────────┴────┐┌───┐┌─┴─┐
+        # qr_1: ┤ U(1.5708,0.2,0.6) ├┤ X ├┤ X ├
+        #       └───────────────────┘└─┬─┘└───┘
+        # qr_2: ───────────────────────■───────
         qr = QuantumRegister(3, "qr")
         qc = QuantumCircuit(qr)
         qc.p(0.5, qr[0])
@@ -128,14 +127,13 @@ class TestConsolidateBlocks(QiskitTestCase):
         self.assertAlmostEqual(fidelity, 1.0, places=7)
 
     def test_block_spanning_two_regs(self):
-        """blocks spanning wires on different quantum registers work.
+        """blocks spanning wires on different quantum registers work."""
 
-                   ┌────────┐
-        qr0: ──────┤ P(0.5) ├───────■──
-             ┌─────┴────────┴────┐┌─┴─┐
-        qr1: ┤ U(1.5708,0.2,0.6) ├┤ X ├
-             └───────────────────┘└───┘
-        """
+        #            ┌────────┐
+        # qr0: ──────┤ P(0.5) ├───────■──
+        #      ┌─────┴────────┴────┐┌─┴─┐
+        # qr1: ┤ U(1.5708,0.2,0.6) ├┤ X ├
+        #      └───────────────────┘└───┘
         qr0 = QuantumRegister(1, "qr0")
         qr1 = QuantumRegister(1, "qr1")
         qc = QuantumCircuit(qr0, qr1)
@@ -183,14 +181,13 @@ class TestConsolidateBlocks(QiskitTestCase):
         first node in the block was seen.
 
         blocks = [['id', 'cx', 'id']]
-
-                ┌────┐┌───┐
-        q_0: |0>┤ Id ├┤ X ├──────
-                └┬─┬─┘└─┬─┘┌────┐
-        q_1: |0>─┤M├────■──┤ Id ├
-                 └╥┘       └────┘
-        c_0:  0 ══╩══════════════
         """
+        #         ┌────┐┌───┐
+        # q_0: |0>┤ Id ├┤ X ├──────
+        #         └┬─┬─┘└─┬─┘┌────┐
+        # q_1: |0>─┤M├────■──┤ Id ├
+        #          └╥┘       └────┘
+        # c_0:  0 ══╩══════════════
         qc = QuantumCircuit(2, 1)
         qc.i(0)
         qc.measure(1, 0)
@@ -210,13 +207,12 @@ class TestConsolidateBlocks(QiskitTestCase):
     def test_consolidate_blocks_big(self):
         """Test ConsolidateBlocks with U2(<big numbers>)
         https://github.com/Qiskit/qiskit-terra/issues/3637#issuecomment-612954865
-
-             ┌────────────────┐     ┌───┐
-        q_0: ┤ U2(-804.15,pi) ├──■──┤ X ├
-             ├────────────────┤┌─┴─┐└─┬─┘
-        q_1: ┤ U2(-6433.2,pi) ├┤ X ├──■──
-             └────────────────┘└───┘
         """
+        #      ┌────────────────┐     ┌───┐
+        # q_0: ┤ U2(-804.15,pi) ├──■──┤ X ├
+        #      ├────────────────┤┌─┴─┐└─┬─┘
+        # q_1: ┤ U2(-6433.2,pi) ├┤ X ├──■──
+        #      └────────────────┘└───┘
         circuit = QuantumCircuit(2)
         circuit.append(U2Gate(-804.15, np.pi), [0])
         circuit.append(U2Gate(-6433.2, np.pi), [1])
@@ -298,14 +294,13 @@ class TestConsolidateBlocks(QiskitTestCase):
         self.assertEqual(qc, qc1)
 
     def test_overlapping_block_and_run(self):
-        """Test that an overlapping block and run only consolidate once
+        """Test that an overlapping block and run only consolidate once"""
 
-             ┌───┐┌───┐┌─────┐
-        q_0: ┤ H ├┤ T ├┤ Sdg ├──■────────────────────────
-             └───┘└───┘└─────┘┌─┴─┐┌───┐┌─────┐┌───┐┌───┐
-        q_1: ─────────────────┤ X ├┤ T ├┤ Sdg ├┤ Z ├┤ I ├
-                              └───┘└───┘└─────┘└───┘└───┘
-        """
+        #      ┌───┐┌───┐┌─────┐
+        # q_0: ┤ H ├┤ T ├┤ Sdg ├──■────────────────────────
+        #      └───┘└───┘└─────┘┌─┴─┐┌───┐┌─────┐┌───┐┌───┐
+        # q_1: ─────────────────┤ X ├┤ T ├┤ Sdg ├┤ Z ├┤ I ├
+        #                       └───┘└───┘└─────┘└───┘└───┘
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.t(0)

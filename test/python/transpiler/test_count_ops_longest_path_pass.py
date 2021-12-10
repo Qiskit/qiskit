@@ -36,13 +36,12 @@ class TestCountOpsLongestPathPass(QiskitTestCase):
     def test_just_qubits(self):
         """A dag with 9 operations (3 CXs, 2Xs, 2Ys and 2 Hs) on the longest
         path
-
-                   ┌───┐┌───┐┌───┐
-        q0_0: ──■──┤ X ├┤ Y ├┤ H ├──■───────────────────■──
-              ┌─┴─┐└───┘└───┘└───┘┌─┴─┐┌───┐┌───┐┌───┐┌─┴─┐
-        q0_1: ┤ X ├───────────────┤ X ├┤ X ├┤ Y ├┤ H ├┤ X ├
-              └───┘               └───┘└───┘└───┘└───┘└───┘
         """
+        #            ┌───┐┌───┐┌───┐
+        # q0_0: ──■──┤ X ├┤ Y ├┤ H ├──■───────────────────■──
+        #       ┌─┴─┐└───┘└───┘└───┘┌─┴─┐┌───┐┌───┐┌───┐┌─┴─┐
+        # q0_1: ┤ X ├───────────────┤ X ├┤ X ├┤ Y ├┤ H ├┤ X ├
+        #       └───┘               └───┘└───┘└───┘└───┘└───┘
         qr = QuantumRegister(2)
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])

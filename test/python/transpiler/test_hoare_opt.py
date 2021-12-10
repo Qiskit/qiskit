@@ -30,7 +30,8 @@ class TestHoareOptimizer(QiskitTestCase):
 
     def test_phasegate_removal(self):
         """Should remove the phase on a classical state,
-        but not on a superposition state."""
+        but not on a superposition state.
+        """
 
         #      ┌───┐
         # q_0: ┤ Z ├──────
@@ -60,7 +61,8 @@ class TestHoareOptimizer(QiskitTestCase):
 
     def test_cswap_removal(self):
         """Should remove Fredkin gates because the optimizer
-        can deduce the targets are in the same state"""
+        can deduce the targets are in the same state
+        """
 
         #      ┌───┐┌───┐     ┌───┐     ┌───┐          ┌───┐
         # q_0: ┤ X ├┤ X ├──■──┤ X ├──■──┤ X ├──■────■──┤ X ├─────────────────────────────────
@@ -165,7 +167,8 @@ class TestHoareOptimizer(QiskitTestCase):
     def test_lnn_cnot_removal(self):
         """Should remove some cnots from swaps introduced
         because of linear nearest architecture. Only uses
-        single-gate optimization techniques."""
+        single-gate optimization techniques.
+        """
 
         #      ┌───┐     ┌───┐                                                       »
         # q_0: ┤ H ├──■──┤ X ├──■────────────────────────────────────────────────────»
@@ -230,7 +233,8 @@ class TestHoareOptimizer(QiskitTestCase):
     def test_lnncnot_advanced_removal(self):
         """Should remove all cnots from swaps introduced
         because of linear nearest architecture. This time
-        using multi-gate optimization techniques."""
+        using multi-gate optimization techniques.
+        """
 
         #      ┌───┐     ┌───┐                                                       »
         # q_0: ┤ H ├──■──┤ X ├──■────────────────────────────────────────────────────»
@@ -311,7 +315,8 @@ class TestHoareOptimizer(QiskitTestCase):
     def test_targetsuccessive_identity_removal(self):
         """Should remove pair of controlled target successive
         which are the inverse of each other, if they can be
-        identified to be executed as a unit (either both or none)."""
+        identified to be executed as a unit (either both or none).
+        """
 
         #      ┌───┐     ┌───┐┌───┐
         # q_0: ┤ H ├──■──┤ X ├┤ X ├──■──
@@ -354,7 +359,8 @@ class TestHoareOptimizer(QiskitTestCase):
     def test_targetsuccessive_identity_advanced_removal(self):
         """Should remove target successive identity gates
         with DIFFERENT sets of control qubits.
-        In this case CCCX(4,5,6,7) & CCX(5,6,7)."""
+        In this case CCCX(4,5,6,7) & CCX(5,6,7).
+        """
 
         #      ┌───┐┌───┐                                                            »
         # q_0: ┤ H ├┤ X ├───────■─────────────────────────────■───────────────────■──»
@@ -621,7 +627,8 @@ class TestHoareOptimizer(QiskitTestCase):
 
     def test_multiple_pass(self):
         """Verify that multiple pass can be run
-        with the same Hoare instance."""
+        with the same Hoare instance.
+        """
 
         #      ┌───┐┌───┐
         # q_0:─┤ H ├┤ Z ├─

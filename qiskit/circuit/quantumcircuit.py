@@ -426,6 +426,7 @@ class QuantumCircuit:
 
             input:
             .. parsed-literal::
+
                      ┌───┐
                 q_0: ┤ H ├─────■──────
                      └───┘┌────┴─────┐
@@ -434,6 +435,7 @@ class QuantumCircuit:
 
             output:
             .. parsed-literal::
+
                                  ┌───┐
                 q_0: ─────■──────┤ H ├
                      ┌────┴─────┐└───┘
@@ -468,6 +470,7 @@ class QuantumCircuit:
 
             input:
             .. parsed-literal::
+
                      ┌───┐
                 q_0: ┤ H ├─────■──────
                      └───┘┌────┴─────┐
@@ -476,6 +479,7 @@ class QuantumCircuit:
 
             output:
             .. parsed-literal::
+
                           ┌──────────┐
                 q_0: ─────┤ RX(1.57) ├
                      ┌───┐└────┬─────┘
@@ -516,14 +520,16 @@ class QuantumCircuit:
 
             input:
             .. parsed-literal::
-                    ┌───┐
+
+                     ┌───┐
                 q_0: ┤ H ├─────■──────
-                    └───┘┌────┴─────┐
+                     └───┘┌────┴─────┐
                 q_1: ─────┤ RX(1.57) ├
-                        └──────────┘
+                         └──────────┘
 
             output:
             .. parsed-literal::
+
                                   ┌───┐
                 q_0: ──────■──────┤ H ├
                      ┌─────┴─────┐└───┘
