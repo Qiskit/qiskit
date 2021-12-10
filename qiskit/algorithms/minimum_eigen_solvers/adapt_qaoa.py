@@ -146,7 +146,7 @@ class AdaptQAOA(QAOA):
             # TODO: check if this list of operators/circuits needs more preprocessing before use
             self.mixer_pool = mixer_pool
         if self.threshold is None:
-            self.threshold = 0.01  # TODO: work out a way to better set a default threshold
+            self.threshold = 0  # TODO: work out a way to better set a default threshold
 
         self.best_beta = 0
         self.best_gamma = 0

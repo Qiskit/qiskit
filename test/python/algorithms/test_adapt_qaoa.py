@@ -18,7 +18,9 @@ from functools import reduce
 from itertools import combinations_with_replacement, permutations, product
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
+import random
 import numpy as np
+import networkx as nx
 import retworkx as rx
 from ddt import ddt, idata, unpack
 from qiskit import BasicAer, QuantumCircuit, QuantumRegister
@@ -317,7 +319,7 @@ class TestAdaptQAOA(QiskitAlgorithmsTestCase):
         with self.subTest("Initial Point"):
             # If None the preferred random initial point of QAOA variational form
             if init_pt is None:
-                self.assertLess(result.eigenvalue, -0.97)
+                self.assertLess(result.eigenvalue.real, -0.97)
             else:
                 self.assertListEqual(init_pt, first_pt)
 
@@ -352,6 +354,11 @@ class TestAdaptQAOA(QiskitAlgorithmsTestCase):
             initial_point=init_pt,
             quantum_instance=self.statevector_simulator,
         )
+
+        cost_op = self._max_cut_hamiltonian(D=3, nq=4)
+
+        adapt_qaoa.compute_minimum_eigenvalue(cost_op)
+        adapt_qaoa_zero_init_state.compute_minimum_eigenvalue(cost_op)
 
         zero_circuits = adapt_qaoa_zero_init_state.construct_circuit(init_pt, qubit_op)
         custom_circuits = adapt_qaoa.construct_circuit(init_pt, qubit_op)
@@ -396,7 +403,7 @@ class TestAdaptQAOA(QiskitAlgorithmsTestCase):
 
         result = adapt_qaoa.compute_minimum_eigenvalue(operator=qubit_op)
 
-        self.assertLess(result.eigenvalue, -0.97)
+        self.assertLess(result.eigenvalue.real, -0.97)
 
     def _get_operator(self, weight_matrix):
         """Generate Hamiltonian for the max-cut problem of a graph.
@@ -423,6 +430,33 @@ class TestAdaptQAOA(QiskitAlgorithmsTestCase):
                     shift -= 0.5 * weight_matrix[i, j]
         opflow_list = [(pauli[1].to_label(), pauli[0]) for pauli in pauli_list]
         return PauliSumOp.from_list(opflow_list), shift
+
+    def _get_op(self, weight_matrix):
+        from functools import reduce
+        """Generate Hamiltonian for the max-cut problem of a graph.
+
+        Args:
+            weight_matrix (numpy.ndarray) : adjacency matrix.
+
+        Returns:
+            WeightedPauliOperator: operator for the Hamiltonian
+            float: a constant shift for the obj function.
+
+        """
+        QISKIT_DICT = {"I": I, "X": X, "Y": Y, "Z": Z}
+        num_nodes = weight_matrix.shape[0]
+        pauli_list = []
+        shift = 0
+        for i in range(num_nodes):
+            for j in range(i):
+                if weight_matrix[i, j] != 0:
+                    x_p = np.zeros(num_nodes, dtype=bool)
+                    z_p = np.zeros(num_nodes, dtype=bool)
+                    z_p[i] = True
+                    z_p[j] = True
+                    pauli_list.append([0.5 * weight_matrix[i, j], reduce(lambda a, b: a ^ b, [QISKIT_DICT[char.upper()] for char in Pauli(z_p, x_p).to_label()])])
+                    shift -= 0.5 * weight_matrix[i, j]
+        return pauli_list, shift
 
     def _get_graph_solution(self, x: np.ndarray) -> str:
         """Get graph solution from binary string.
@@ -451,6 +485,27 @@ class TestAdaptQAOA(QiskitAlgorithmsTestCase):
             x[i] = k % 2
             k >>= 1
         return x
+
+    def _max_cut_hamiltonian(self, D, nq):
+        """ Calculates the Hamiltonian for a specific max cut graph.
+        Args: 
+            D (int): connectivity. 
+            nq (int): number of qubits.
+
+        Returns:
+            PauliSumOp: Hamiltonian of graph.
+        """
+        G = nx.random_regular_graph(D, nq, seed=1234) # connectivity, vertices
+        for (u, v) in G.edges():
+            G.edges[u,v]['weight'] = random.randint(0,1000)/1000
+        w = np.zeros([nq,nq])
+        for i in range(nq):
+            for j in range(nq):
+                temp = G.get_edge_data(i,j,default=0)
+                if temp != 0:
+                    w[i,j] = temp['weight']
+        hc_pauli = self._get_op(w)[0]
+        return sum([coeff*w_op for coeff, w_op in hc_pauli])
 
 
 if __name__ == "__main__":
