@@ -98,6 +98,15 @@ class Optimize1qGates(TransformationPass):
                     and current_node.op.definition.global_phase
                 ):
                     right_global_phase += current_node.op.definition.global_phase
+
+                # If there are any sympy objects coming from the gate convert
+                # to numpy.
+                try:
+                    left_parameters = tuple(float(x) for x in left_parameters)
+                except TypeError:
+                    # If left_parameters contained any unbound Parameters
+                    pass
+
                 # Compose gates
                 name_tuple = (left_name, right_name)
                 if name_tuple in (("u1", "u1"), ("p", "p")):
@@ -337,6 +346,10 @@ def _split_runs_on_parameters(runs):
 
     out = []
     for run in runs:
+        # We exclude only u3 and u gate because for u1 and u2 we can really straightforward merge two gate
+        # with parameters.
+        # It would be great to combine all gate with parameters but this requires
+        # support parameters in qiskit.quantum_info.synthesis.Quaternion.
         groups = groupby(run, lambda x: x.op.is_parameterized() and x.op.name in ("u3", "u"))
 
         for group_is_parameterized, gates in groups:
