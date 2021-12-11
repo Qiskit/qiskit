@@ -337,7 +337,7 @@ def _split_runs_on_parameters(runs):
 
     out = []
     for run in runs:
-        groups = groupby(run, lambda x: x.op.is_parameterized() and x.op.name == "u3")
+        groups = groupby(run, lambda x: x.op.is_parameterized() and x.op.name in ("u3", "u"))
 
         for group_is_parameterized, gates in groups:
             if not group_is_parameterized:
