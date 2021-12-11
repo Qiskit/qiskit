@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Introduced an approximate quantum compiler and a corresponding unitary
+    synthesis plugin implementation. The main AQC class is
+    :class:`~qiskit.transpiler.synthesis.aqc.AQC` for a standalone version that
+    compiles a unitary matrix into an approximate circuit. The plugin may be
+    invoked by :func:`~.compiler.transpile` when the
+    ``unitary_synthesis_method`` argument is set to ``'aqc'``.  See
+    :mod:`qiskit.transpiler.synthesis.aqc` for full details.
