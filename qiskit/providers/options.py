@@ -80,6 +80,15 @@ class Options:
         super().__setattr__("_fields", _fields)
         super().__setattr__("validator", validator)
 
+    def __copy__(self):
+        """Return a copy of the Options.
+
+        The returned option and validator values are shallow copies of the originals.
+        """
+        out = self.__new__(type(self))
+        out.__setstate__((self._fields.copy(), self.validator.copy()))
+        return out
+
     def __init__(self, **kwargs):
         super().__setattr__("_fields", kwargs)
         super().__setattr__("validator", {})

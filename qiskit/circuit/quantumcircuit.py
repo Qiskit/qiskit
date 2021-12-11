@@ -4064,7 +4064,11 @@ class QuantumCircuit:
         return self.append(PauliGate(pauli_string), qubits, [])
 
     def _push_scope(
-        self, qubits: Iterable[Qubit] = (), clbits: Iterable[Clbit] = (), allow_jumps: bool = True
+        self,
+        qubits: Iterable[Qubit] = (),
+        clbits: Iterable[Clbit] = (),
+        registers: Iterable[Register] = (),
+        allow_jumps: bool = True,
     ):
         """Add a scope for collecting instructions into this circuit.
 
@@ -4079,11 +4083,19 @@ class QuantumCircuit:
         # pylint: disable=cyclic-import
         from qiskit.circuit.controlflow.builder import ControlFlowBuilderBlock
 
+        # Chain resource requests so things like registers added to inner scopes via conditions are
+        # requested in the outer scope as well.
+        if self._control_flow_scopes:
+            resource_requester = self._control_flow_scopes[-1].request_classical_resource
+        else:
+            resource_requester = self._resolve_classical_resource
+
         self._control_flow_scopes.append(
             ControlFlowBuilderBlock(
                 qubits,
                 clbits,
-                resource_requester=self._resolve_classical_resource,
+                resource_requester=resource_requester,
+                registers=registers,
                 allow_jumps=allow_jumps,
             )
         )
@@ -4289,7 +4301,7 @@ class QuantumCircuit:
                 qc.h(0)
                 qc.cx(0, 1)
                 qc.measure(0, 0)
-                qc.break_loop().c_if(0)
+                qc.break_loop().c_if(0, True)
 
         Args:
             indexset (Iterable[int]): A collection of integers to loop over.  Always necessary.
@@ -4528,7 +4540,8 @@ class QuantumCircuit:
 
         if self._control_flow_scopes:
             operation = BreakLoopPlaceholder()
-            return self.append(operation, *operation.placeholder_resources())
+            resources = operation.placeholder_resources()
+            return self.append(operation, resources.qubits, resources.clbits)
         return self.append(BreakLoopOp(self.num_qubits, self.num_clbits), self.qubits, self.clbits)
 
     def continue_loop(self) -> InstructionSet:
@@ -4557,7 +4570,8 @@ class QuantumCircuit:
 
         if self._control_flow_scopes:
             operation = ContinueLoopPlaceholder()
-            return self.append(operation, *operation.placeholder_resources())
+            resources = operation.placeholder_resources()
+            return self.append(operation, resources.qubits, resources.clbits)
         return self.append(
             ContinueLoopOp(self.num_qubits, self.num_clbits), self.qubits, self.clbits
         )
