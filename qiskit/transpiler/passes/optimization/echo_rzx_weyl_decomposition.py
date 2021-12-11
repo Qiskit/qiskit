@@ -54,6 +54,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
         """Return the following circuit
 
         .. parsed-literal::
+
                  ┌───────────────┐┌───┐┌────────────────┐┌───┐
             q_0: ┤0              ├┤ X ├┤0               ├┤ X ├
                  │  Rzx(theta/2) │└───┘│  Rzx(-theta/2) │└───┘
@@ -74,6 +75,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
         """Return the following circuit
 
         .. parsed-literal::
+
                  ┌───┐┌───────────────┐     ┌────────────────┐┌───┐
             q_0: ┤ H ├┤1              ├─────┤1               ├┤ H ├─────
                  ├───┤│  Rzx(theta/2) │┌───┐│  Rzx(-theta/2) │├───┤┌───┐

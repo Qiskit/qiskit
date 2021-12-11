@@ -457,6 +457,7 @@ class TemplateSubstitution:
         assignment of the parameters. For example the template
 
         .. parsed-literal::
+
                  ┌───────────┐                  ┌────────┐
             q_0: ┤ P(-1.0*β) ├──■────────────■──┤0       ├
                  ├───────────┤┌─┴─┐┌──────┐┌─┴─┐│  CZ(β) │
@@ -466,6 +467,7 @@ class TemplateSubstitution:
         should only maximally match once in the circuit
 
         .. parsed-literal::
+
                  ┌───────┐
             q_0: ┤ P(-2) ├──■────────────■────────────────────────────
                  ├───────┤┌─┴─┐┌──────┐┌─┴─┐┌──────┐

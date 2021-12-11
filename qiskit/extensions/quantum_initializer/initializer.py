@@ -404,6 +404,7 @@ def initialize(self, params, qubits=None):
             circuit.draw()
 
         output:
+
         .. parsed-literal::
 
                  ┌──────────────────────────────┐
@@ -426,6 +427,7 @@ def initialize(self, params, qubits=None):
             circuit.draw()
 
         output:
+
         .. parsed-literal::
 
                  ┌──────────────────┐
@@ -445,6 +447,7 @@ def initialize(self, params, qubits=None):
             circuit.draw()
 
         output:
+
         .. parsed-literal::
 
                  ┌────────────────────────────────────┐

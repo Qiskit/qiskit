@@ -105,6 +105,7 @@ class TestTranspile(QiskitTestCase):
         """Transpile pipeline can handle manual layout on non-adjacent qubits.
 
         circuit:
+
         .. parsed-literal::
 
                   ┌───┐
@@ -210,6 +211,7 @@ class TestTranspile(QiskitTestCase):
         See: https://github.com/Qiskit/qiskit-terra/issues/2036
 
         circuit:
+
         .. parsed-literal::
 
                   ┌───┐                  ┌───┐ ░ ┌─┐
