@@ -346,8 +346,8 @@ def _split_runs_on_parameters(runs):
 
     out = []
     for run in runs:
-        # We exclude only u3 and u gate because for u1 and u2 we can really straightforward merge two gate
-        # with parameters.
+        # We exclude only u3 and u gate because for u1 and u2 we can really straightforward
+        # merge two gate with parameters.
         # It would be great to combine all gate with parameters but this requires
         # support parameters in qiskit.quantum_info.synthesis.Quaternion.
         groups = groupby(run, lambda x: x.op.is_parameterized() and x.op.name in ("u3", "u"))
