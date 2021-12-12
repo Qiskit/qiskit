@@ -94,7 +94,8 @@ class DynamicalDecoupling(TransformationPass):
         timeline_drawer(circ_dd)
     """
 
-    def __init__(self, durations, dd_sequence, qubits=None, spacing=None, skip_reset_qubits=True):
+    def __init__(self, durations, dd_sequence, qubits=None, spacing=None,
+                 skip_reset_qubits=True, skip_threshold=1):
         """Dynamical decoupling initializer.
 
         Args:
@@ -111,6 +112,9 @@ class DynamicalDecoupling(TransformationPass):
             skip_reset_qubits (bool): if True, does not insert DD on idle
                 periods that immediately follow initialized/reset qubits (as
                 qubits in the ground state are less susceptile to decoherence).
+            skip_threshold (float): a number in range [0, 1]. If the DD sequence
+                amounts to more than this fraction of the idle window, we skip.
+                Default: 1 (i.e. always insert, even if filling up the window).
         """
         super().__init__()
         self._durations = durations
@@ -118,6 +122,7 @@ class DynamicalDecoupling(TransformationPass):
         self._qubits = qubits
         self._spacing = spacing
         self._skip_reset_qubits = skip_reset_qubits
+        self._skip_threshold = skip_threshold
 
     def run(self, dag):
         """Run the DynamicalDecoupling pass on dag.
@@ -198,7 +203,8 @@ class DynamicalDecoupling(TransformationPass):
 
             dd_sequence_duration = index_sequence_duration_map[physical_qubit]
             slack = nd.op.duration - dd_sequence_duration
-            if slack <= 0:  # dd doesn't fit
+            slack_fraction = slack / nd.op.duration
+            if 1 - slack_fraction >= self._skip_threshold:  # dd doesn't fit
                 new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
                 continue
 
