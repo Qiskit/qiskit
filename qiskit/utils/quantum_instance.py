@@ -155,6 +155,7 @@ class QuantumInstance:
         # transpile
         initial_layout=None,
         pass_manager=None,
+        bound_pass_manager=None,
         seed_transpiler: Optional[int] = None,
         optimization_level: Optional[int] = None,
         # simulation
@@ -184,13 +185,21 @@ class QuantumInstance:
             seed_simulator: Random seed for simulators
             max_credits: Maximum credits to use
             basis_gates: List of basis gate names supported by the
-                                               target. Defaults to basis gates of the backend.
+                target. Defaults to basis gates of the backend.
             coupling_map (Optional[Union['CouplingMap', List[List]]]):
-                        Coupling map (perhaps custom) to target in mapping
+                Coupling map (perhaps custom) to target in mapping
             initial_layout (Optional[Union['Layout', Dict, List]]):
-                        Initial layout of qubits in mapping
-            pass_manager (Optional['PassManager']):
-                        Pass manager to handle how to compile the circuits
+                Initial layout of qubits in mapping
+            pass_manager (Optional['PassManager']): Pass manager to handle how to compile the circuits.
+                To run only this pass manager and not the ``bound_pass_manager``, call the
+                :meth:`~qiskit.utils.QuantumInstance.transpile` method with the argument
+                ``pass_manager=quantum_instance.unbound_pass_manager``.
+            bound_pass_manager (Optional['PassManager']): A second pass manager to apply on bound
+                circuits only, that is, circuits without any free parameters. To only run this pass
+                manager and not ``pass_manager`` call the
+                :meth:`~qiskit.utils.QuantumInstance.transpile` method with the argument
+                ``pass_manager=quantum_instance.bound_pass_manager``.
+                manager should also be run.
             seed_transpiler: The random seed for circuit mapper
             optimization_level: How much optimization to perform on the circuits.
                 Higher levels generate more optimized circuits, at the expense of longer
@@ -207,7 +216,6 @@ class QuantumInstance:
                 or :class:`~qiskit.utils.mitigation.TensoredMeasFitter` from the
                 :mod:`qiskit.utils.mitigation` module can be used here as exact values, not
                 instances. ``TensoredMeasFitter`` doesn't support the ``subset_fitter`` method.
-
             cals_matrix_refresh_period: How often to refresh the calibration
                 matrix in measurement mitigation. in minutes
             measurement_error_mitigation_shots: The number of shots number for
@@ -230,6 +238,7 @@ class QuantumInstance:
         """
         self._backend = backend
         self._pass_manager = pass_manager
+        self._bound_pass_manager = bound_pass_manager
 
         # if the shots are none, try to get them from the backend
         if shots is None:
@@ -367,24 +376,62 @@ class QuantumInstance:
 
         return info
 
-    def transpile(self, circuits):
+    @property
+    def unbound_pass_manager(self):
+        """Return the pass manager for designated for unbound circuits.
+
+        Returns:
+            Optional['PassManager']: The pass manager for unbound circuits, if it has been set.
         """
-        A wrapper to transpile circuits to allow algorithm access the transpiled circuits.
+        return self._pass_manager
+
+    @property
+    def bound_pass_manager(self):
+        """Return the pass manager for designated for bound circuits.
+
+        Returns:
+            Optional['PassManager']: The pass manager for bound circuits, if it has been set.
+        """
+        return self._bound_pass_manager
+
+    def transpile(self, circuits, pass_manager=None):
+        """A wrapper to transpile circuits to allow algorithm access the transpiled circuits.
+
         Args:
             circuits (Union['QuantumCircuit', List['QuantumCircuit']]): circuits to transpile
+            pass_manager (Optional['PassManager']): A pass manager to transpile the circuits. If
+                none is given, but either ``pass_manager`` or ``bound_pass_manager`` has been set
+                in the initializer, these are run. If none has been provided there either, the
+                backend and compile configs from the initializer are used.
+
         Returns:
             List['QuantumCircuit']: The transpiled circuits, it is always a list even though
-                                    the length is one.
+                the length is one.
         """
         # pylint: disable=cyclic-import
         from qiskit import compiler
+        from qiskit.transpiler import PassManager
 
-        if self._pass_manager is not None:
-            transpiled_circuits = self._pass_manager.run(circuits)
+        # if no pass manager here is given, check if they have been set in the init
+        if pass_manager is None:
+            # if they haven't been set in the init, use the transpile args from the init
+            if self._pass_manager is None and self._bound_pass_manager is None:
+                transpiled_circuits = compiler.transpile(
+                    circuits, self._backend, **self._backend_config, **self._compile_config
+                )
+            # it they have been set, run them
+            else:
+                pass_manager = PassManager()
+                if self._pass_manager is not None:
+                    pass_manager += self._pass_manager  # check if None
+                if self._bound_pass_manager is not None:
+                    pass_manager += self._bound_pass_manager
+
+                transpiled_circuits = pass_manager.run(circuits)
+        # custom pass manager set by user
         else:
-            transpiled_circuits = compiler.transpile(
-                circuits, self._backend, **self._backend_config, **self._compile_config
-            )
+            transpiled_circuits = pass_manager.run(circuits)
+
         if not isinstance(transpiled_circuits, list):
             transpiled_circuits = [transpiled_circuits]
 
