@@ -17,7 +17,7 @@ import math
 import re
 
 import numpy as np
-from qiskit.circuit import Clbit
+from qiskit.circuit import Clbit, Qubit, ClassicalRegister
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.library.standard_gates import SwapGate, XGate, ZGate, RZZGate, U1Gate, PhaseGate
 from qiskit.circuit.measure import Measure
@@ -26,6 +26,8 @@ from qiskit.circuit.tools.pi_check import pi_check
 from .utils import (
     get_gate_ctrl_text,
     get_param_str,
+    get_bits_regs_map,
+    get_bit_reg_index,
     get_bit_label,
     generate_latex_label,
     get_condition_label,
@@ -113,35 +115,16 @@ class QCircuitImage:
         self._circuit = circuit
 
         self._cregbundle = cregbundle
-        # If there is any custom instruction that uses clasiscal bits
+
+        # If there is any custom instruction that uses classical bits
         # then cregbundle is forced to be False.
         for layer in self._nodes:
             for node in layer:
                 if node.op.name not in {"measure"} and node.cargs:
                     self._cregbundle = False
 
-        prev_reg = None
-        reg_bit_index = len(qubits)
-        self._bundle_bits_dict = {}
-        if self._cregbundle:
-            for bit in clbits:
-                clbit = self._circuit.find_bit(bit)
-                register = clbit.registers[0][0] if clbit.registers else None
-                if register is None:
-                    self._bundle_bits_dict[bit] = reg_bit_index
-                    reg_bit_index += 1
-
-                elif register is not None and register != prev_reg:
-                    prev_reg = register
-                    self._bundle_bits_dict[register] = reg_bit_index
-                    reg_bit_index += 1
-
-        self._bits_dict = {bit: ind for ind, bit in enumerate(qubits + clbits)}
-        if self._cregbundle:
-            self._img_width = len(self._qubits) + len(self._bundle_bits_dict)
-        else:
-            self._img_width = len(self._bits_dict)
-
+        self._bits_regs_map = get_bits_regs_map(circuit, qubits + clbits, self._cregbundle)
+        self._img_width = len(self._bits_regs_map)
         self._global_phase = global_phase
 
         self._style, _ = load_style(style)
@@ -200,58 +183,37 @@ class QCircuitImage:
         else:
             self._wire_separation = 1.0
         self._latex = [
-            [
-                "\\cw" if isinstance(bit, Clbit) else "\\qw"
-                for _ in range(self._img_depth + 1)
-            ]
-            for bit in self._bits_dict.keys()
+            ["\\qw" if isinstance(bit, Qubit) else "\\cw" for _ in range(self._img_depth + 1)]
+            for bit in self._bits_regs_map.keys()
         ]
         self._latex.append([" "] * (self._img_depth + 1))
 
-        # quantum register
-        for ii, bit in enumerate(self._qubits):
-            qubit = self._circuit.find_bit(bit)
-            register = qubit.registers[0][0] if qubit.registers else None
-            index = qubit.index
-            if register is not None:
-                if self._reverse_bits:
-                    index = len(self._qubits) - index - 1
-                index = self._qubits[index].index
-
-            qubit_label = get_bit_label("latex", register, index, qubit=True, layout=self._layout)
-            qubit_label += " : "
-            if self._initial_state:
-                qubit_label += "\\ket{{0}}"
-            qubit_label += " }"
-            self._latex[ii][0] = "\\nghost{" + qubit_label + " & " + "\\lstick{" + qubit_label
-
-        # classical register
-        idx = len(self._qubits)
-        prev_creg = None
-        if self._clbits:
-            for bit in self._clbits:
-                clbit = self._circuit.find_bit(bit)
-                register = clbit.registers[0][0] if clbit.registers else None
-                index = clbit.index
-                if register is not None:
-                    if self._reverse_bits:
-                        index = len(self._clbits) - index - 1
-                    index = self._clbits[index].index
-                clbit_label = get_bit_label(
-                    "latex", register, index, qubit=False, cregbundle=self._cregbundle
+        # display the bit/register labels
+        for bit in self._bits_regs_map.keys():
+            if isinstance(bit, ClassicalRegister):
+                register = bit
+                index = self._bits_regs_map[bit]
+            else:
+                register, bit_index, reg_index = get_bit_reg_index(
+                    self._circuit, bit, self._reverse_bits
                 )
-                if register is None or not self._cregbundle or prev_creg != register:
-                    idx += 1
-                prev_creg = register
-                if self._cregbundle and register is not None:
-                    self._latex[idx-1][1] = "\\lstick{/_{_{" + str(register.size) + "}}} \\cw"
-                clbit_label += " : "
-                if self._initial_state:
-                    clbit_label += "0"
-                clbit_label += " }"
-                if self._cregbundle:
-                    clbit_label = f"\\mathrm{{{clbit_label}}}"
-                self._latex[idx-1][0] = "\\nghost{" + clbit_label + " & " + "\\lstick{" + clbit_label
+                index = bit_index if register is None else reg_index
+
+            bit_label = get_bit_label(
+                "latex", register, index, layout=self._layout, cregbundle=self._cregbundle
+            )
+            bit_label += " : "
+            if self._initial_state:
+                bit_label += "\\ket{{0}}" if isinstance(bit, Qubit) else "0"
+            bit_label += " }"
+
+            if isinstance(bit, (Clbit, ClassicalRegister)) and self._cregbundle and register is not None:
+                pos = self._bits_regs_map[register]
+                self._latex[pos][1] = "\\lstick{/_{_{" + str(register.size) + "}}} \\cw"
+                bit_label = f"\\mathrm{{{bit_label}}}"
+            else:
+                pos = self._bits_regs_map[bit]
+            self._latex[pos][0] = "\\nghost{" + bit_label + " & " + "\\lstick{" + bit_label
 
     def _get_image_depth(self):
         """Get depth information for the circuit."""
@@ -333,10 +295,14 @@ class QCircuitImage:
         sum_column_widths = sum(1 + v / 3 for v in max_column_widths)
 
         max_reg_name = 3
-        for reg in self._bits_dict:
-            registers = self._circuit.find_bit(reg).registers
-            if registers:
-                max_reg_name = max(max_reg_name, len(registers[0][0].name))
+        for reg in self._bits_regs_map:
+            if isinstance(reg, (Qubit, Clbit)):
+                registers = self._circuit.find_bit(reg).registers
+                name = registers[0][0].name if registers else ""
+            else:
+                name = reg.name
+            max_reg_name = max(max_reg_name, len(name))
+
         sum_column_widths += 5 + max_reg_name / 3
 
         # could be a fraction so ceil
@@ -391,7 +357,7 @@ class QCircuitImage:
             for node in layer:
                 op = node.op
                 num_cols_op = 1
-                wire_list = [self._bits_dict[qarg] for qarg in node.qargs]
+                wire_list = [self._bits_regs_map[qarg] for qarg in node.qargs]
                 if op.condition:
                     self._add_condition(op, wire_list, column)
 
@@ -406,7 +372,7 @@ class QCircuitImage:
                     gate_text += get_param_str(op, "latex", ndigits=4)
                     gate_text = generate_latex_label(gate_text)
                     if node.cargs:
-                        cwire_list = [self._bits_dict[carg] for carg in node.cargs]
+                        cwire_list = [self._bits_regs_map[carg] for carg in node.cargs]
                     else:
                         cwire_list = []
 
@@ -528,7 +494,7 @@ class QCircuitImage:
 
     def _build_measure(self, node, col):
         """Build a meter and the lines to the creg"""
-        wire1 = self._bits_dict[node.qargs[0]]
+        wire1 = self._bits_regs_map[node.qargs[0]]
         self._latex[wire1][col] = "\\meter"
 
         idx_str = ""
@@ -537,10 +503,10 @@ class QCircuitImage:
             clbit = self._circuit.find_bit(node.cargs[0])
             register = clbit.registers[0][0] if clbit.registers else None
             if register is not None:
-                wire2 = self._bundle_bits_dict[register]
+                wire2 = self._bits_regs_map[register]
                 idx_str = str(node.cargs[0].index)
             else:
-                wire2 = self._bundle_bits_dict[node.cargs[0]]
+                wire2 = self._bits_regs_map[node.cargs[0]]
 
             self._latex[wire2][col] = "\\dstick{_{_{\\hspace{%sem}%s}}} \\cw \\ar @{<=} [-%s,0]" % (
                 cond_offset,
@@ -548,24 +514,24 @@ class QCircuitImage:
                 str(wire2 - wire1),
             )
         else:
-            wire2 = self._bits_dict[node.cargs[0]]
+            wire2 = self._bits_regs_map[node.cargs[0]]
             self._latex[wire2][col] = "\\cw \\ar @{<=} [-" + str(wire2 - wire1) + ",0]"
 
     def _build_barrier(self, node, col):
         """Build a partial or full barrier if plot_barriers set"""
         if self._plot_barriers:
-            indexes = [self._bits_dict[qarg] for qarg in node.qargs]
+            indexes = [self._bits_regs_map[qarg] for qarg in node.qargs]
             indexes.sort()
             first = last = indexes[0]
             for index in indexes[1:]:
                 if index - 1 == last:
                     last = index
                 else:
-                    pos = self._bits_dict[self._qubits[first]]
+                    pos = self._bits_regs_map[self._qubits[first]]
                     self._latex[pos][col - 1] += " \\barrier[0em]{" + str(last - first) + "}"
                     self._latex[pos][col] = "\\qw"
                     first = last = index
-            pos = self._bits_dict[self._qubits[first]]
+            pos = self._bits_regs_map[self._qubits[first]]
             self._latex[pos][col - 1] += " \\barrier[0em]{" + str(last - first) + "}"
             self._latex[pos][col] = "\\qw"
 
@@ -606,12 +572,13 @@ class QCircuitImage:
                 cond_reg = registers[0][0]
 
         if self._cregbundle:
-            cwire = self._bundle_bits_dict[cond_reg]
+            cwire = self._bits_regs_map[cond_reg]
         else:
-            cwire = self._bits_dict[op.condition[0] if cond_is_bit else cond_reg[0]]
+            cwire = self._bits_regs_map[op.condition[0] if cond_is_bit else cond_reg[0]]
 
         gap = cwire - max(wire_list)
         meas_offset = -0.3 if isinstance(op, Measure) else 0.0
+
         # Print the condition value at the bottom and put bullet on creg line
         if cond_is_bit or self._cregbundle:
             control = "\\control" if op.condition[1] else "\\controlo"
@@ -621,14 +588,19 @@ class QCircuitImage:
                 str(gap),
             )
         else:
-            creg_size = op.condition[0].size
-            for i in range(creg_size - 1):
+            cond_len = op.condition[0].size - 1
+            # If reverse, start at highest reg bit and go down to 0
+            if self._reverse_bits:
+                cwire -= cond_len
+                gap -= cond_len
+            # Iterate through the reg bits down to the lowest one
+            for i in range(cond_len):
                 control = "\\control" if val_list[i] == "1" else "\\controlo"
                 self._latex[cwire + i][col] = f"{control} \\cw \\cwx[-" + str(gap) + "]"
                 gap = 1
             # Add (hex condition value) below the last cwire
-            control = "\\control" if val_list[creg_size - 1] == "1" else "\\controlo"
-            self._latex[creg_size + cwire - 1][col] = (
+            control = "\\control" if val_list[cond_len] == "1" else "\\controlo"
+            self._latex[cwire + cond_len][col] = (
                 f"{control}" + " \\cw^(%s){^{\\mathtt{%s}}} \\cwx[-%s]"
             ) % (
                 meas_offset,

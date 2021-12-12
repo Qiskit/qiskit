@@ -28,6 +28,7 @@ from qiskit.circuit import (
     Measure,
 )
 from qiskit.circuit.library import PauliEvolutionGate
+from qiskit.circuit import ClassicalRegister
 from qiskit.circuit.tools import pi_check
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.exceptions import MissingOptionalLibraryError
@@ -157,7 +158,63 @@ def get_param_str(op, drawer, ndigits=3):
     return param_str
 
 
-def get_bit_label(drawer, register, index, qubit=True, layout=None, cregbundle=True):
+def get_bits_regs_map(circuit, bits, cregbundle):
+    """Map the bits and registers to the index from the top of the drawing
+
+    Args:
+        circuit (QuantumCircuit): the circuit being drawn
+        bits (list): the Qubit's and Clbit's in the circuit
+        cregbundle (bool): if True bundle classical registers. Default: ``True``.
+
+    Returns:
+        dict((Qubit, Clbit, ClassicalRegister): index): map of bits/registers
+            to index
+    """
+    prev_reg = None
+    bit_reg_index = 0
+    bits_regs_map = {}
+    for bit in bits:
+        bit_loc = circuit.find_bit(bit)
+        register = bit_loc.registers[0][0] if bit_loc.registers else None
+        if register is None or not isinstance(bit, Clbit) or not cregbundle:
+            bits_regs_map[bit] = bit_reg_index
+            bit_reg_index += 1
+        elif register is not None and cregbundle and register != prev_reg:
+            prev_reg = register
+            bits_regs_map[register] = bit_reg_index
+            bit_reg_index += 1
+
+    return bits_regs_map
+
+
+def get_bit_reg_index(circuit, bit, reverse_bits):
+    """Get the register for a bit if there is one, and the index of the bit
+    from the top of the circuit, or the index of the bit within a register.
+
+    Args:
+        circuit (QuantumCircuit): the circuit being drawn
+        bit (Qubit, Clbit): the bit to use to find the register and indexes
+        reverse_bits (bool): if True reverse order of the bits. Default: ``False``.
+
+    Returns:
+        (ClassicalRegister, None): register associated with the bit
+        int: index of the bit from the top of the circuit
+        int: index of the bit within the register, if there is a register
+    """
+    bit_loc = circuit.find_bit(bit)
+    register = bit_loc.registers[0][0] if bit_loc.registers else None
+    bit_index = bit_loc.index
+    reg_index = None
+    if register is not None:
+        reg_index = bit_loc.registers[0][1]
+        if reverse_bits:
+            bits_len = len(circuit.clbits) if isinstance(bit, Clbit) else len(circuit.qubits)
+            bit_index = bits_len - bit_index - 1
+
+    return register, bit_index, reg_index
+
+
+def get_bit_label(drawer, register, index, layout=None, cregbundle=True):
     """Get the bit labels to display to the left of the wires.
 
     Args:
@@ -171,7 +228,6 @@ def get_bit_label(drawer, register, index, qubit=True, layout=None, cregbundle=T
 
     Returns:
         str: label to display for the register/index
-
     """
     index_str = f"{index}" if drawer == "text" else f"{{{index}}}"
     if register is None:
@@ -186,7 +242,7 @@ def get_bit_label(drawer, register, index, qubit=True, layout=None, cregbundle=T
         reg_name_index = f"{{{register.name}}}_{{{index}}}"
 
     # Clbits
-    if not qubit:
+    if isinstance(register, ClassicalRegister):
         if cregbundle:
             bit_label = f"{register.name}"
         elif register.size == 1:

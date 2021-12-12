@@ -18,7 +18,7 @@ from warnings import warn
 from shutil import get_terminal_size
 import sys
 
-from qiskit.circuit import Clbit
+from qiskit.circuit import Qubit, Clbit, ClassicalRegister
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import Reset
 from qiskit.circuit import Measure
@@ -27,6 +27,8 @@ from qiskit.circuit.tools.pi_check import pi_check
 from qiskit.visualization.utils import (
     get_gate_ctrl_text,
     get_param_str,
+    get_bits_regs_map,
+    get_bit_reg_index,
     get_bit_label,
     get_condition_label,
 )
@@ -768,43 +770,34 @@ class TextDrawing:
             initial_qubit_value = ""
             initial_clbit_value = ""
 
+        self._bits_regs_map = get_bits_regs_map(self._circuit, (self.qubits + self.clbits), self.cregbundle)
         # quantum register
-        qubit_labels = []
-        for bit in self.qubits:
-            qubit = self._circuit.find_bit(bit)
-            register = qubit.registers[0][0] if qubit.registers else None
-            index = qubit.index
-            if register is not None:
-                if self.reverse_bits:
-                    index = len(self.qubits) - index - 1
-                index = self.qubits[index].index
-            qubit_label = get_bit_label("text", register, index, qubit=True, layout=self.layout)
-            qubit_label += ": " if self.layout is None else " "
-            qubit_labels.append(qubit_label + initial_qubit_value)
-
-        # classical register
-        clbit_labels = []
-        if self.clbits:
-            prev_creg = None
-            for bit in self.clbits:
-                clbit = self._circuit.find_bit(bit)
-                register = clbit.registers[0][0] if clbit.registers else None
-                index = clbit.index
-                if register is not None:
-                    if self.reverse_bits:
-                        index = len(self.clbits) - index - 1
-                    index = self.clbits[index].index
-                clbit_label = get_bit_label(
-                    "text", register, index, qubit=False, cregbundle=self.cregbundle
+        bit_labels = []
+        for bit in self._bits_regs_map.keys():#self.qubits + self.clbits:
+            if isinstance(bit, ClassicalRegister):
+                register = bit
+                index = self._bits_regs_map[bit]
+            else:
+                register, bit_index, reg_index = get_bit_reg_index(
+                    self._circuit, bit, self.reverse_bits
                 )
-                if register is None or not self.cregbundle or prev_creg != register:
-                    cregb_add = (
-                        str(register.size) + "/" if self.cregbundle and register is not None else ""
-                    )
-                    clbit_labels.append(clbit_label + ": " + initial_clbit_value + cregb_add)
-                prev_creg = register
+                index = bit_index if register is None else reg_index
 
-        return qubit_labels + clbit_labels
+            bit_label = get_bit_label(
+                "text", register, index, layout=self.layout, cregbundle=self.cregbundle
+            )
+            bit_label += " " if self.layout is not None and isinstance(bit, Qubit) else ": "
+
+            cregb_add = ""
+            if isinstance(bit, Qubit):
+                initial_bit_value = initial_qubit_value
+            else:
+                initial_bit_value = initial_clbit_value
+                if self.cregbundle and register is not None:
+                    cregb_add = str(register.size) + "/"
+            bit_labels.append(bit_label + initial_bit_value + cregb_add)
+
+        return bit_labels
 
     def should_compress(self, top_line, bot_line):
         """Decides if the top_line and bot_line should be merged,
@@ -1133,7 +1126,9 @@ class TextDrawing:
         layers = [InputWire.fillup_layer(wire_names)]
 
         for node_layer in self.nodes:
-            layer = Layer(self.qubits, self.clbits, self.reverse_bits, self.cregbundle, self._circuit)
+            layer = Layer(
+                self.qubits, self.clbits, self.reverse_bits, self.cregbundle, self._circuit
+            )
 
             for node in node_layer:
                 layer, current_connections, connection_label = self._node_to_gate(node, layer)
