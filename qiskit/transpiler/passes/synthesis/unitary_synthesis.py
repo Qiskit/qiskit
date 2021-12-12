@@ -92,10 +92,12 @@ def _basis_gates_to_decomposer_2q(basis_gates, pulse_optimize=None):
     euler_basis = _choose_euler_basis(basis_gates)
 
     if isinstance(kak_gate, RZXGate):
+        embodiments = {pi/2: TwoQubitBasisDecomposer(CXGate())(RXXGate(pi/2))}
         backup_optimizer = TwoQubitBasisDecomposer(
-            CXGate(), euler_basis=euler_basis, pulse_optimize=pulse_optimize
+            CXGate(), euler_basis='ZSX', pulse_optimize=True
         )
-        return XXDecomposer(euler_basis=euler_basis, backup_optimizer=backup_optimizer)
+        return XXDecomposer(euler_basis=euler_basis, embodiments=embodiments,
+                            backup_optimizer=backup_optimizer)
     elif kak_gate is not None:
         return TwoQubitBasisDecomposer(
             kak_gate, euler_basis=euler_basis, pulse_optimize=pulse_optimize
@@ -118,7 +120,7 @@ class UnitarySynthesis(TransformationPass):
         synth_gates: Union[List[str], None] = None,
         method: str = "default",
         min_qubits: int = None,
-        plugin_config: dict = None,
+        plugin_config: dict = None
     ):
         """Synthesize unitaries over some basis gates.
 

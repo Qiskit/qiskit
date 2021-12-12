@@ -242,8 +242,12 @@ class XXDecomposer:
         }
         circuit = canonical_xx_circuit(best_point, best_sequence, embodiments)
 
-        if best_sequence == [np.pi / 2, np.pi / 2, np.pi / 2] and self.backup_optimizer is not None:
-            return self.backup_optimizer(unitary, basis_fidelity=basis_fidelity)
+        if (best_sequence == [np.pi / 2, np.pi / 2, np.pi / 2] or
+            best_sequence == [np.pi / 2, np.pi / 2]) and self.backup_optimizer is not None:
+            cx_fidelity = basis_fidelity
+            if isinstance(basis_fidelity, dict):
+                cx_fidelity = basis_fidelity[np.pi / 2]
+            return self.backup_optimizer(unitary, basis_fidelity=cx_fidelity)
 
         # change to positive canonical coordinates
         if weyl_decomposition.c >= -EPSILON:
