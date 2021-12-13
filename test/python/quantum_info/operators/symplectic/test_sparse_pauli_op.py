@@ -167,9 +167,14 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         paulis = ["XXZ", "X", "YZ", ""]
         indices = [[0, 1, 2], [1], [0, 2], []]
         coeffs = [3.0, 5.5, -1j, 23.3333]
-        spp_op = SparsePauliOp.from_list(list(zip(paulis, indices, coeffs)))
+        spp_op = SparsePauliOp.from_list(list(zip(paulis, indices, coeffs)), num_qubits=3)
         np.testing.assert_array_equal(spp_op.coeffs, coeffs)
         self.assertEqual(spp_op.paulis, PauliList(labels))
+
+    def test_from_index_list_raises(self):
+        """Test from_list via Pauli + indices raises correctly, if number of qubits is missing."""
+        with self.assertRaises(ValueError):
+            _ = SparsePauliOp.from_list([("Z", [1], 1)])
 
     def test_from_zip(self):
         """Test from_list method for zipped input."""
