@@ -19,16 +19,41 @@
 
 
 import abc
+import itertools
 import typing
-from typing import Callable, Iterable, List, FrozenSet, Tuple, Union
+from typing import Callable, Collection, Iterable, List, FrozenSet, Tuple, Union
 
-from qiskit.circuit.classicalregister import Clbit
+from qiskit.circuit.classicalregister import Clbit, ClassicalRegister
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
-from qiskit.circuit.quantumregister import Qubit
+from qiskit.circuit.quantumregister import Qubit, QuantumRegister
+from qiskit.circuit.register import Register
+
+from .condition import condition_registers
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
+
+
+class InstructionResources(typing.NamedTuple):
+    """The quantum and classical resources used within a particular instruction.
+
+    .. warning::
+
+        This is an internal interface and no part of it should be relied upon outside of Qiskit
+        Terra.
+
+    Attributes:
+        qubits: A collection of qubits that will be used by the instruction.
+        clbits: A collection of clbits that will be used by the instruction.
+        qregs: A collection of quantum registers that are used by the instruction.
+        cregs: A collection of classical registers that are used by the instruction.
+    """
+
+    qubits: Collection[Qubit] = ()
+    clbits: Collection[Clbit] = ()
+    qregs: Collection[QuantumRegister] = ()
+    cregs: Collection[ClassicalRegister] = ()
 
 
 class InstructionPlaceholder(Instruction, abc.ABC):
@@ -38,7 +63,7 @@ class InstructionPlaceholder(Instruction, abc.ABC):
     process, when their lengths cannot be known until the end of the block.  This is necessary to
     allow constructs like::
 
-        with qc.for_loop(None, range(5)):
+        with qc.for_loop(range(5)):
             qc.h(0)
             qc.measure(0, 0)
             qc.break_loop().c_if(0, 0)
@@ -51,6 +76,11 @@ class InstructionPlaceholder(Instruction, abc.ABC):
     calling :meth:`.InstructionPlaceholder.placeholder_instructions`.  This set will be a subset of
     the final resources it asks for, but it is used for initialising resources that *must* be
     supplied, such as the bits used in the conditions of placeholder ``if`` statements.
+
+    .. warning::
+
+        This is an internal interface and no part of it should be relied upon outside of Qiskit
+        Terra.
     """
 
     _directive = True
@@ -58,7 +88,7 @@ class InstructionPlaceholder(Instruction, abc.ABC):
     @abc.abstractmethod
     def concrete_instruction(
         self, qubits: FrozenSet[Qubit], clbits: FrozenSet[Clbit]
-    ) -> Tuple[Instruction, Tuple[Qubit, ...], Tuple[Clbit, ...]]:
+    ) -> Tuple[Instruction, InstructionResources]:
         """Get a concrete, complete instruction that is valid to act over all the given resources.
 
         The returned resources may not be the full width of the given resources, but will certainly
@@ -76,14 +106,14 @@ class InstructionPlaceholder(Instruction, abc.ABC):
             clbits: The clbits the created instruction should be defined across.
 
         Returns:
-            Instruction: a full version of the relevant control-flow instruction.  This is a
-            "proper" instruction instance, as if it had been defined with the correct number of
-            qubits and clbits from the beginning.
+            A full version of the relevant control-flow instruction, and the resources that it uses.
+            This is a "proper" instruction instance, as if it had been defined with the correct
+            number of qubits and clbits from the beginning.
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def placeholder_resources(self) -> Tuple[Tuple[Qubit, ...], Tuple[Clbit, ...]]:
+    def placeholder_resources(self) -> InstructionResources:
         """Get the qubit and clbit resources that this placeholder instruction should be considered
         as using before construction.
 
@@ -93,7 +123,7 @@ class InstructionPlaceholder(Instruction, abc.ABC):
         will be tracked by the scope managers.
 
         Returns:
-            A 2-tuple of the quantum and classical resources this placeholder instruction will
+            A collection of the quantum and classical resources this placeholder instruction will
             certainly use.
         """
         raise NotImplementedError
@@ -156,12 +186,18 @@ class ControlFlowBuilderBlock:
     In short, :meth:`.append` adds resources, and :meth:`.build` may use only a subset of the extra
     ones passed.  This ensures that all instructions know about all the resources they need, even in
     the case of ``break``, but do not block any resources that they do *not* need.
+
+    .. warning::
+
+        This is an internal interface and no part of it should be relied upon outside of Qiskit
+        Terra.
     """
 
     __slots__ = (
         "instructions",
         "qubits",
         "clbits",
+        "registers",
         "_allow_jumps",
         "_resource_requester",
         "_built",
@@ -172,6 +208,7 @@ class ControlFlowBuilderBlock:
         qubits: Iterable[Qubit],
         clbits: Iterable[Clbit],
         *,
+        registers: Iterable[Register] = (),
         resource_requester: Callable,
         allow_jumps: bool = True,
     ):
@@ -182,6 +219,9 @@ class ControlFlowBuilderBlock:
                 with ``qubits``, this is useful for things such as ``if`` and ``while`` loop
                 builders, where the classical condition has associated resources, and is known when
                 this scope is created.
+            registers: Any registers this scope should consider itself as using from the
+                beginning.  This is useful for :obj:`.IfElseOp` and :obj:`.WhileLoopOp` instances
+                which use a classical register as their condition.
             allow_jumps: Whether this builder scope should allow ``break`` and ``continue``
                 statements within it.  This is intended to help give sensible error messages when
                 dangerous behaviour is encountered, such as using ``break`` inside an ``if`` context
@@ -201,6 +241,7 @@ class ControlFlowBuilderBlock:
         self.instructions: List[Tuple[Instruction, Tuple[Qubit, ...], Tuple[Clbit, ...]]] = []
         self.qubits = set(qubits)
         self.clbits = set(clbits)
+        self.registers = set(registers)
         self._allow_jumps = allow_jumps
         self._resource_requester = resource_requester
         self._built = False
@@ -267,7 +308,10 @@ class ControlFlowBuilderBlock:
             raise CircuitError("Cannot add resources after the scope has been built.")
         # Allow the inner resolve to propagate exceptions.
         resource = self._resource_requester(specifier)
-        self.add_bits((resource,) if isinstance(resource, Clbit) else resource)
+        if isinstance(resource, Clbit):
+            self.add_bits((resource,))
+        else:
+            self.add_register(resource)
         return resource
 
     def peek(self) -> Tuple[Instruction, Tuple[Qubit, ...], Tuple[Clbit, ...]]:
@@ -307,10 +351,23 @@ class ControlFlowBuilderBlock:
             else:
                 raise TypeError(f"Can only add qubits or classical bits, but received '{bit}'.")
 
+    def add_register(self, register: Register):
+        """Add a :obj:`.Register` to the set of resources used by this block, ensuring that
+        all bits contained within are also accounted for.
+
+        Args:
+            register: the register to add to the block.
+        """
+        if register in self.registers:
+            # Fast return to avoid iterating through the bits.
+            return
+        self.registers.add(register)
+        self.add_bits(register)
+
     def build(
         self, all_qubits: FrozenSet[Qubit], all_clbits: FrozenSet[Clbit]
     ) -> "qiskit.circuit.QuantumCircuit":
-        """Build this scoped block into a complete :obj:`~QuantumCircuit` instance.
+        """Build this scoped block into a complete :obj:`.QuantumCircuit` instance.
 
         This will build a circuit which contains all of the necessary qubits and clbits and no
         others.
@@ -348,11 +405,13 @@ class ControlFlowBuilderBlock:
 
         # We start off by only giving the QuantumCircuit the qubits we _know_ it will need, and add
         # more later as needed.
-        out = QuantumCircuit(list(self.qubits), list(self.clbits))
+        out = QuantumCircuit(list(self.qubits), list(self.clbits), *self.registers)
 
         for operation, qubits, clbits in self.instructions:
             if isinstance(operation, InstructionPlaceholder):
-                operation, qubits, clbits = operation.concrete_instruction(all_qubits, all_clbits)
+                operation, resources = operation.concrete_instruction(all_qubits, all_clbits)
+                qubits = tuple(resources.qubits)
+                clbits = tuple(resources.clbits)
                 # We want to avoid iterating over the tuples unnecessarily if there's no chance
                 # we'll need to add bits to the circuit.
                 if potential_qubits and qubits:
@@ -365,12 +424,23 @@ class ControlFlowBuilderBlock:
                     if add_clbits:
                         potential_clbits -= add_clbits
                         out.add_bits(add_clbits)
+                for register in itertools.chain(resources.qregs, resources.cregs):
+                    if register not in self.registers:
+                        # As of 2021-12-09, QuantumCircuit doesn't have an efficient way to check if
+                        # a register is already present, so we use our own tracking.
+                        self.add_register(register)
+                        out.add_register(register)
+            if operation.condition is not None:
+                for register in condition_registers(operation.condition):
+                    if register not in self.registers:
+                        self.add_register(register)
+                        out.add_register(register)
             # We already did the broadcasting and checking when the first call to
             # QuantumCircuit.append happened (which the user wrote), and added the instruction into
             # this scope.  We just need to finish the job now.
             #
-            # We have to convert the tuples to lists, because some parts of QuantumCircuit still
-            # expect exactly this type.
+            # We have to convert to lists, because some parts of QuantumCircuit still expect
+            # exactly this type.
             out._append(operation, list(qubits), list(clbits))
 
         return out
@@ -388,5 +458,6 @@ class ControlFlowBuilderBlock:
         out.instructions = self.instructions.copy()
         out.qubits = self.qubits.copy()
         out.clbits = self.clbits.copy()
+        out.registers = self.registers.copy()
         out._allow_jumps = self._allow_jumps
         return out
