@@ -142,7 +142,7 @@ class TestOperationClass(QiskitTestCase):
 
     def test_cxgate_as_operation(self):
         """Test that we can instantiate an object of class
-        :class:`~qiskit.circuit.library.XGate` and that
+        :class:`~qiskit.circuit.library.CXGate` and that
         it has the expected name, num_qubits and num_clbits.
         """
         op = CXGate()
