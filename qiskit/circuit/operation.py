@@ -38,6 +38,7 @@ class Operation(ABC):
         raise NotImplementedError
 
     @property
+    @abstractmethod
     def num_clbits(self):
         """Number of classical bits."""
         raise NotImplementedError
