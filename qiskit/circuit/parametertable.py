@@ -18,6 +18,15 @@ from collections.abc import MappingView, MutableMapping, Set
 from typing import MutableSequence
 
 class ReferenceListing(MutableSequence, Set):
+    """An (insertion) ordered set of parameter slot references. Items are
+    expected in the form ``(instruction, param_index)``. Membership testing
+    is overriden such that items that are otherwise value-wise equal are still
+    considered distinct if their ``instruction``\ s are referentially distinct.
+    
+    Items are ordered by insertion, and may be read or deleted by sequence index.
+    However, update by index and insert by index are not supported, since
+    these actions inherently violate insertion order.
+    """
     def _instance_key(self, ref):
         return (id(ref[0]), ref[1])
 
@@ -34,7 +43,7 @@ class ReferenceListing(MutableSequence, Set):
     def __getitem__(self, index):
         return self._data[index]
 
-    def __setitem__(self, index, value):
+    def __setitem__(self, index, ref):
         raise NotImplementedError("Position is dictated by insertion order.")
 
     def __delitem__(self, index):
@@ -54,20 +63,20 @@ class ReferenceListing(MutableSequence, Set):
     def __repr__(self) -> str:
         return repr(self._data)
 
-    def insert(self, index, value) -> None:
+    def insert(self, index, ref) -> None:
         raise NotImplementedError("Position is dictated by insertion order.")
 
-    def append(self, value):
+    def append(self, ref):
         """Adds a reference to the listing if it's not already present."""
-        k = self._instance_key(value)
+        k = self._instance_key(ref)
         if k in self._instance_ids:
             return
 
-        self._data.append(value)
+        self._data.append(ref)
         self._instance_ids.add(k)
 
     def copy(self):
-        return ReferenceListing(self)
+        return ReferenceListing(self._data)
 
 class ParameterTable(MutableMapping):
     """Class for managing and setting circuit parameters"""
@@ -76,9 +85,8 @@ class ParameterTable(MutableMapping):
 
     def __init__(self, mapping = None):
         if mapping is not None:
-            # convert values to ReferenceListings
             self._table = {
-                param: ReferenceListing(refs)
+                param: refs if isinstance(refs, ReferenceListing) else ReferenceListing(refs)
                 for param, refs in mapping.items()
             }
         else:
@@ -91,14 +99,24 @@ class ParameterTable(MutableMapping):
         return self._table[key]
 
     def __setitem__(self, parameter, refs):
-        """Associate a parameter with the set of parameter slots (instruction, param_index)
+        """Associate a parameter with the set of parameter slots ``(instruction, param_index)``
         that reference it.
+
+        .. note::
+
+            Items in ``refs`` are considered unique if their ``instruction`` is referentially
+            unique. See :class:`~ReferenceListing` for details.
 
         Args:
             parameter (Parameter): the parameter
-            param_slot_refs (Sequence[ParamSlotRef]): the parameter slot references
+            refs Union[ReferenceListing, (Iterable[(Instruction, int)])]: the parameter slots.
+                If this is an iterable, a new :class:`~ReferenceListing` is created from its
+                contents in iteration order and stored in the table.
         """
-        self._table[parameter] = ReferenceListing(refs)
+        if not isinstance(refs, ReferenceListing):
+            refs = ReferenceListing(refs)
+
+        self._table[parameter] = refs
         self._keys.add(parameter)
         self._names.add(parameter.name)
 
