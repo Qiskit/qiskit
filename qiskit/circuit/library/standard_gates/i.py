@@ -44,6 +44,11 @@ class IGate(Gate):
         """Create new Identity gate."""
         super().__init__("id", 1, [], label=label)
 
+    def _define(self) -> None:
+        from qiskit.circuit import QuantumCircuit  # pylint: disable=cyclic-import
+
+        self.definition = QuantumCircuit(1, name=self.name)
+
     def inverse(self):
         """Invert this gate."""
         return IGate()  # self-inverse

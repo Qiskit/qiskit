@@ -803,6 +803,27 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(ref, c_qc)
 
+    def test_control_primitive_gates(self):
+        """Test that circuits containing primitive gates (with no definition) can be controlled
+        during `QuantumCircuit.control`.
+
+        Regression test of gh-7399."""
+        qc = QuantumCircuit(2)
+        qc.u(0.2, 0.3, 0.4, 0)
+        qc.i(1)
+        controlled = qc.control()
+
+        # The identity gate should have no effect.
+        expected = QuantumCircuit(
+            QuantumRegister(1, name="control"), QuantumRegister(2, name="target")
+        )
+        expected.cu(0.2, 0.3, 0.4, 0, 0, 1)
+
+        self.assertIsInstance(controlled, QuantumCircuit)
+        self.assertEqual(len(controlled.data), 1)
+        instruction, _, _ = controlled.data[0]
+        self.assertEqual(instruction.definition, expected)
+
     @data("gate", "instruction")
     def test_repeat_appended_type(self, subtype):
         """Test repeat appends Gate if circuit contains only gates and Instructions otherwise."""

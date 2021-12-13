@@ -1,0 +1,13 @@
+fixes:
+  - |
+    Fixed a bug where certain operations, such as
+    :meth:`.QuantumCircuit.control`, would crash if an identity operation
+    represented by an :class:`.IGate` was present in a :class:`.QuantumCircuit`.
+    For example, the following code was previously an error, but will now function
+    correctly::
+
+        from qiskit import QuantumCircuit
+
+        qc = QuantumCircuit(1)
+        qc.i(0)
+        controlled = qc.control()
