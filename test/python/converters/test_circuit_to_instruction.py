@@ -201,7 +201,7 @@ class TestCircuitToInstruction(QiskitTestCase):
         test_instruction, _, _ = test.definition.data[0]
         expected_instruction, _, _ = expected.data[0]
         self.assertIs(type(test_instruction), type(expected_instruction))
-        self.assertEqual(test_instruction.condition, (test.definition.clbits[0], False))
+        self.assertEqual(test_instruction.condition, (test.definition.clbits[0], 0))
 
 
 if __name__ == "__main__":
