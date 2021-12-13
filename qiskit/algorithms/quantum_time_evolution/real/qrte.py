@@ -9,6 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
+"""Interface for Quantum Real Time Evolution."""
+
 from abc import abstractmethod
 
 from qiskit.algorithms.quantum_time_evolution.evolution_base import EvolutionBase
@@ -16,6 +19,8 @@ from qiskit.opflow import StateFn, OperatorBase, Gradient
 
 
 class Qrte(EvolutionBase):
+    """Base class for quantum real time evolution."""
+
     @abstractmethod
     def evolve(
         self,
@@ -26,6 +31,10 @@ class Qrte(EvolutionBase):
         t_param=None,
         hamiltonian_value_dict=None,
     ):
+        """
+        Performs Quantum Real Time Evolution on an initial state according to a Hamiltonian
+        provided.
+        """
         raise NotImplementedError()
 
     @abstractmethod
@@ -40,4 +49,5 @@ class Qrte(EvolutionBase):
         hamiltonian_value_dict=None,
         gradient_params=None,
     ):
+        """Performs Quantum Real Time Evolution of gradient expressions."""
         raise NotImplementedError()

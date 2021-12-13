@@ -14,7 +14,7 @@
 
 import numbers
 from collections import defaultdict
-from typing import Union, Optional, List
+from typing import Union, List, Dict
 
 from qiskit.algorithms.quantum_time_evolution.real.qrte import Qrte
 from qiskit.circuit import Parameter, ParameterExpression
@@ -29,11 +29,13 @@ from qiskit.opflow import (
     CircuitOp,
 )
 from qiskit.circuit.library import PauliEvolutionGate
+from qiskit.quantum_info import SparsePauliOp, Pauli
 from qiskit.synthesis import ProductFormula, LieTrotter
 
 
 class TrotterQrte(Qrte):
-    """ Class for performing Quantum Real Time Evolution using Trotterization. Type of Troterrization is defined by a ProductFormula provided.
+    """ Class for performing Quantum Real Time Evolution using Trotterization.
+    Type of Trotterization is defined by a ProductFormula provided.
 
     Examples:
 
@@ -60,22 +62,24 @@ class TrotterQrte(Qrte):
 
     def evolve(
         self,
-        hamiltonian,
+        hamiltonian: Union[Pauli, PauliOp, SparsePauliOp, PauliSumOp, List],
         time: float,
         initial_state: StateFn = None,
         observable: OperatorBase = None,
         t_param: Parameter = None,
-        hamiltonian_value_dict: [Parameter, Union[float, complex]] = None,
-    ):
+        hamiltonian_value_dict: Dict[Parameter, Union[float, complex]] = None,
+    ) -> StateFn:
         """
         Args:
-            hamiltonian (Pauli | PauliOp | SparsePauliOp | PauliSumOp | list):
+            hamiltonian:
                 The operator to evolve. Can also be provided as list of non-commuting
                 operators where the elements are sums of commuting operators.
                 For example: ``[XY + YX, ZZ + ZI + IZ, YY]``.
             time: Total time of evolution.
-            initial_state: If interested in a quantum state time evolution, a quantum state to be evolved.
-            observable: If interested in a quantum observable time evolution, a quantum observable to be evolved.
+            initial_state: If interested in a quantum state time evolution, a quantum state to be
+                            evolved.
+            observable: If interested in a quantum observable time evolution, a quantum observable
+                        to be evolved.
             t_param: Not supported by this algorithm.
             hamiltonian_value_dict: Dictionary that maps all parameters in a Hamiltonian to
                                     certain values.
@@ -101,15 +105,21 @@ class TrotterQrte(Qrte):
 
         if initial_state is not None:
             return (evolution_gate @ initial_state).eval()
-        if observable is not None:
+        elif observable is not None:
             # TODO Temporary patch due to terra bug
             evolution_gate_adjoint = CircuitOp(
                 PauliEvolutionGate(hamiltonian[::-1], -time, synthesis=self.product_formula)
             )
-            # return evolution_gate.adjoint() @ observable @ evolution_gate
             return evolution_gate_adjoint @ observable @ evolution_gate
+        else:
+            raise ValueError(
+                "Did not manage to evolve because both initial_state and observable "
+                "provided are None."
+            )
 
-    def _try_binding_params(self, hamiltonian, hamiltonian_value_dict):
+    def _try_binding_params(
+        self, hamiltonian, hamiltonian_value_dict: Dict[Parameter, Union[float, complex]]
+    ):
         # PauliSumOp does not allow parametrized coefficients but after binding the parameters
         # we need to convert it into a PauliSumOp for the PauliEvolutionGate.
         if isinstance(hamiltonian, SummedOp):
@@ -122,7 +132,7 @@ class TrotterQrte(Qrte):
                 self._is_op_bound(op_bound)
                 op_list.append(op_bound)
             return sum(op_list)
-        elif isinstance(hamiltonian, PauliOp) or isinstance(hamiltonian, OperatorBase):
+        elif isinstance(hamiltonian, (PauliOp, OperatorBase)):
             if hamiltonian_value_dict is not None:
                 op_bound = hamiltonian.bind_parameters(hamiltonian_value_dict)
             else:
@@ -141,7 +151,7 @@ class TrotterQrte(Qrte):
                 f"these parameters encountered: {op_bound.parameters}."
             )
 
-    def _validate_input(self, initial_state, observable):
+    def _validate_input(self, initial_state, observable: OperatorBase):
         if initial_state is None and observable is None:
             raise ValueError(
                 "TrotterQrte requires an initial state or an observable to be evolved; None "
@@ -155,7 +165,7 @@ class TrotterQrte(Qrte):
 
     def gradient(
         self,
-        hamiltonian: OperatorBase,
+        hamiltonian: Union[Pauli, PauliOp, SparsePauliOp, PauliSumOp, List],
         time: float,
         initial_state: StateFn,
         gradient_object: Gradient,
@@ -163,7 +173,7 @@ class TrotterQrte(Qrte):
         t_param: Parameter = None,
         hamiltonian_value_dict: [Parameter, Union[float, complex]] = None,
         gradient_params: List[Parameter] = None,
-    ):
+    ) -> StateFn:
         if observable is None:
             raise NotImplementedError(
                 "Observable not provided. Probability gradients are not yet supported by "
@@ -217,9 +227,15 @@ class TrotterQrte(Qrte):
             )
 
     def _calc_time_gradient_finite_diff(
-        self, hamiltonian, hamiltonian_value_dict, initial_state, observable, t_param, time
+        self,
+        hamiltonian,
+        hamiltonian_value_dict: Dict[Parameter, Union[float, complex]],
+        initial_state: StateFn,
+        observable: OperatorBase,
+        t_param: Parameter,
+        time: float,
+        epsilon: float = 0.01,
     ):
-        epsilon = 0.01
         hamiltonian = self._try_binding_params(hamiltonian, hamiltonian_value_dict)
         evolved_state1 = self.evolve(hamiltonian, time + epsilon, initial_state, t_param=t_param)
         evolved_state2 = self.evolve(hamiltonian, time - epsilon, initial_state, t_param=t_param)
@@ -232,11 +248,11 @@ class TrotterQrte(Qrte):
         self,
         hamiltonian,
         hamiltonian_term: Union[OperatorBase, PauliSumOp, SummedOp],
-        initial_state,
-        observable,
-        t_param,
-        time,
-        hamiltonian_value_dict,
+        initial_state: StateFn,
+        observable: OperatorBase,
+        t_param: Parameter,
+        time: float,
+        hamiltonian_value_dict: Dict[Parameter, Union[float, complex]],
     ):
         hamiltonian_term = self._try_binding_params(hamiltonian_term, hamiltonian_value_dict)
         custom_observable = commutator(1j * time * hamiltonian_term, observable)
