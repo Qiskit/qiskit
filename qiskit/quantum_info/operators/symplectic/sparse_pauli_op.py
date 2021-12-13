@@ -15,6 +15,7 @@ N-Qubit Sparse Pauli Operator class.
 
 from numbers import Number
 from typing import Dict
+import warnings
 
 import numpy as np
 
@@ -501,9 +502,9 @@ class SparsePauliOp(LinearOp):
         """Construct from a list of Pauli strings and coefficients.
 
         Each list element can be
-        * a tuple of a Pauli string and a coefficient
-        * a triple of a local, non-trivial Pauli string, an index where to apply it, and a
-          coefficient
+
+        * a 2-tuple of a Pauli string and a coefficient, or
+        * a 3-tuple of a local Pauli string, indices where to apply it, and a coefficient.
 
         If the Paulis are specified via the indices, the total number of qubits of the operator
         must be specified.
@@ -525,8 +526,8 @@ class SparsePauliOp(LinearOp):
             op = SparsePauliOp.from_list([("XZ", [0, 3], 1), ("YY", [1, 4], 2)], num_qubits=5)
 
         Args:
-            obj (Union[List[Tuple[str, complex]], List[Tuple[str, List[int], complex]]]):
-                The list of tuples (or triples) specifying the Pauli terms.
+            obj (Union[Iterable[Tuple[str, complex]], Iterable[Tuple[str, List[int], complex]]]):
+                The list of 2-tuples or 3-tuples specifying the Pauli terms.
             num_qubits (int): If the Paulis are specified as triples, the number of qubits of
                 the operator must be specified.
 
@@ -534,39 +535,30 @@ class SparsePauliOp(LinearOp):
             SparsePauliOp: The SparsePauliOp representation of the Pauli terms.
 
         Raises:
-            ValueError: If the number of qubits is required but not specified, or incompatible
+            QiskitError: If the list of Paulis is empty.
+            QiskitError: If the number of qubits is required but not specified, or incompatible
                 with the indices of the Pauli terms.
         """
         obj = list(obj)  # To convert zip or other iterable
 
+        if len(obj) == 0:
+            raise QiskitError("Input Pauli list is empty.")
+
         # determine the number of qubits
         if len(obj[0]) == 2:  # list of tuples: number of qubits is the length of the Pauli string
-            num_qubits = len(obj[0][0])
-        else:  # list of triples: the number of qubits must be specified
-            if num_qubits is None:
-                raise ValueError(
-                    "If the Paulis are specified via indices, the number of qubits must be set."
+            if num_qubits is not None:
+                warnings.warn(
+                    "If the Paulis are specified as full Pauli string, "
+                    "the ``num_qubits`` argument is ignored."
                 )
+            return _from_list_full_paulis(obj)
 
-        size = len(obj)  # number of Pauli terms
-        coeffs = np.zeros(size, dtype=complex)
-        labels = np.zeros(size, dtype=f"<U{num_qubits}")
-        for i, item in enumerate(obj):
-            # tuple of Pauli string and coefficient
-            if len(item) == 2:
-                labels[i] = item[0]
-                coeffs[i] = item[1]
-            else:
-                # construct the full label based off the non-trivial Paulis and indices
-                label = ["I"] * num_qubits
-                for pauli, index in zip(item[0], item[1]):
-                    label[index] = pauli
+        if num_qubits is None:
+            raise QiskitError(
+                "If the Paulis are specified via indices, the number of qubits must be set."
+            )
 
-                labels[i] = "".join(label)
-                coeffs[i] = item[2]
-
-        paulis = PauliList(labels)
-        return SparsePauliOp(paulis, coeffs, copy=False)
+        return _from_list_index_paulis(obj, num_qubits)
 
     def to_list(self, array=False):
         """Convert to a list Pauli string labels and coefficients.
@@ -670,6 +662,40 @@ class SparsePauliOp(LinearOp):
                 return coeff * mat
 
         return MatrixIterator(self)
+
+
+def _from_list_full_paulis(obj):
+    size = len(obj)  # number of Pauli terms
+
+    # determine the number of qubits
+    num_qubits = len(obj[0][0])
+
+    coeffs = np.zeros(size, dtype=complex)
+    labels = np.zeros(size, dtype=f"<U{num_qubits}")
+    for i, item in enumerate(obj):
+        labels[i] = item[0]
+        coeffs[i] = item[1]
+
+    paulis = PauliList(labels)
+    return SparsePauliOp(paulis, coeffs, copy=False)
+
+
+def _from_list_index_paulis(obj, num_qubits):
+    size = len(obj)  # number of Pauli terms
+    coeffs = np.zeros(size, dtype=complex)
+    labels = np.zeros(size, dtype=f"<U{num_qubits}")
+
+    for i, item in enumerate(obj):
+        # construct the full label based off the non-trivial Paulis and indices
+        label = ["I"] * num_qubits
+        for pauli, index in zip(item[0], item[1]):
+            label[index] = pauli
+
+        labels[i] = "".join(label)
+        coeffs[i] = item[2]
+
+    paulis = PauliList(labels)
+    return SparsePauliOp(paulis, coeffs, copy=False)
 
 
 # Update docstrings for API docs

@@ -1,8 +1,9 @@
 ---
 features:
   - |
-    Support the construction of a :class:`.SparsePauliOp` from a list of Paulis, specifying with
-    an index on which qubits the Pauli act. For example, the operator
+    The :meth:`.SparsePauliOp.from_list` constructor can now take an iterable where
+    the elements represent Pauli terms that are themselves sparse, so that
+    `"XIIIIIIIIIIIIIIIIX"` can now be written as `("XX", [0, 16])`. For example, the operator
 
     .. math::
 
@@ -15,4 +16,4 @@ features:
       op = SparsePauliOp.from_list([("XZ", [0, 3], 1), ("YY", [1, 4], 2)], num_qubits=5)
 
     This greatly facilitates the construction of very sparse operators on many qubits, as
-    is e.g. often the case for Ising Hamiltonians.
+    is often the case for Ising Hamiltonians.
