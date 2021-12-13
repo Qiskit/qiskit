@@ -9,3 +9,12 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
+"""
+Solvers (:mod:`qiskit.algorithms.quantum_time_evolution.variational.solvers`)
+=====================================================
+This folder contains the necessary interfaces to solve ordinary differential equations (ODE) which
+describe ansatz parameter propagation that implements a variational time evolution.
+
+# TODO @ Dal describe the different classes.
+"""

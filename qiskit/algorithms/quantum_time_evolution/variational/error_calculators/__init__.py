@@ -9,3 +9,13 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
+"""
+Error Calculators (:mod:`qiskit.algorithms.quantum_time_evolution.variational.error_calculators`)
+=====================================================
+The error calculators include helper functions to evaluate errors that occur during the
+variational quantum time evolution.
+
+
+# TODO @Dal list functions
+"""
