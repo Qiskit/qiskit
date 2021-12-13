@@ -49,7 +49,7 @@ from qiskit.utils.deprecation import deprecate_function
 from .parameterexpression import ParameterExpression, ParameterValueType
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .classicalregister import ClassicalRegister, Clbit
-from .parametertable import ParameterTable, ParameterView
+from .parametertable import ParameterReferences, ParameterTable, ParameterView
 from .parametervector import ParameterVector, ParameterVectorElement
 from .instructionset import InstructionSet
 from .register import Register
@@ -1293,7 +1293,9 @@ class QuantumCircuit:
                 else:
                     if parameter.name in self._parameter_table.get_names():
                         raise CircuitError(f"Name conflict on adding parameter: {parameter.name}")
-                    self._parameter_table[parameter] = ((instruction, param_index),)
+                    self._parameter_table[parameter] = ParameterReferences(
+                        (instruction, param_index)
+                    )
 
                     # clear cache if new parameter is added
                     self._parameters = None
@@ -2120,7 +2122,7 @@ class QuantumCircuit:
 
         cpy._parameter_table = ParameterTable(
             {
-                param: (
+                param: ParameterReferences(
                     (instr_copies[id(instr)], param_index)
                     for instr, param_index in self._parameter_table[param]
                 )
@@ -4118,18 +4120,18 @@ class QuantumCircuit:
                 atomic_parameters.update(parameter.parameters)
         for atomic_parameter in atomic_parameters:
             entries = self._parameter_table[atomic_parameter]
-            new_entries = (
+            new_entries = ParameterReferences(
                 (entry_instruction, entry_index)
                 for entry_instruction, entry_index in entries
                 if entry_instruction is not instruction
             )
 
-            self._parameter_table[atomic_parameter] = new_entries
-
-            if not self._parameter_table[atomic_parameter]:
+            if not new_entries:
                 del self._parameter_table[atomic_parameter]
                 # Invalidate cache.
                 self._parameters = None
+            else:
+                self._parameter_table[atomic_parameter] = new_entries
 
     @typing.overload
     def while_loop(

@@ -17,20 +17,23 @@ import warnings
 from collections.abc import MappingView, MutableMapping, Set
 from typing import MutableSequence
 
-class ReferenceListing(MutableSequence, Set):
-    """An (insertion) ordered set of parameter slot references. Items are
-    expected in the form ``(instruction, param_index)``. Membership testing
-    is overriden such that items that are otherwise value-wise equal are still
-    considered distinct if their ``instruction``\ s are referentially distinct.
-    
+
+class ParameterReferences(MutableSequence, Set):
+    """An (insertion) ordered set of instruction parameter slot references.
+    Items are expected in the form ``(instruction, param_index)``. Membership
+    testing is overriden such that items that are otherwise value-wise equal
+    are still considered distinct if their ``instruction``\ s are referentially
+    distinct.
+
     Items are ordered by insertion, and may be read or deleted by sequence index.
     However, update by index and insert by index are not supported, since
     these actions inherently violate insertion order.
     """
+
     def _instance_key(self, ref):
         return (id(ref[0]), ref[1])
 
-    def __init__(self, refs) -> None:
+    def __init__(self, *refs) -> None:
         self._data = []
         self._instance_ids = set()
 
@@ -76,19 +79,33 @@ class ReferenceListing(MutableSequence, Set):
         self._instance_ids.add(k)
 
     def copy(self):
-        return ReferenceListing(self._data)
+        return ParameterReferences(self._data)
+
 
 class ParameterTable(MutableMapping):
-    """Class for managing and setting circuit parameters"""
+    """Class for tracking references to circuit parameters by specific
+    instruction instances.
+
+    Keys are parameters. Values are of type :class:`~ParameterReferences`,
+    which overrides membership testing to be referential for instructions,
+    and is both set-like and sequence-like. Elements of :class:`~ParameterReferences`
+    are tuples of ``(instruction, param_index)``.
+    """
 
     __slots__ = ["_table", "_keys", "_names"]
 
-    def __init__(self, mapping = None):
+    def __init__(self, mapping=None):
+        """Create a new instance, initialized with ``mapping`` if provided.
+
+        Args:
+            mapping (Mapping[Parameter, ReferenceListing]):
+                Mapping of parameter to the set of parameter slots that reference
+                it.
+        """
         if mapping is not None:
-            self._table = {
-                param: refs if isinstance(refs, ReferenceListing) else ReferenceListing(refs)
-                for param, refs in mapping.items()
-            }
+            if any(not isinstance(ParameterReferences, refs) for refs in mapping.values()):
+                raise ValueError("Values must be of type ParameterReferences")
+            self._table = {param: refs for param, refs in mapping.items()}
         else:
             self._table = {}
 
@@ -99,22 +116,19 @@ class ParameterTable(MutableMapping):
         return self._table[key]
 
     def __setitem__(self, parameter, refs):
-        """Associate a parameter with the set of parameter slots ``(instruction, param_index)``
-        that reference it.
+        """Associate a parameter with the set of parameter slots that reference it.
 
         .. note::
 
             Items in ``refs`` are considered unique if their ``instruction`` is referentially
-            unique. See :class:`~ReferenceListing` for details.
+            unique. See :class:`~ParameterReferences` for details.
 
         Args:
-            parameter (Parameter): the parameter
-            refs Union[ReferenceListing, (Iterable[(Instruction, int)])]: the parameter slots.
-                If this is an iterable, a new :class:`~ReferenceListing` is created from its
-                contents in iteration order and stored in the table.
+            parameter (Parameter): the parameter.
+            refs (ParameterReferences): the parameter slots.
         """
-        if not isinstance(refs, ReferenceListing):
-            refs = ReferenceListing(refs)
+        if not isinstance(refs, ParameterReferences):
+            raise ValueError("Value must be of type ParameterReferences")
 
         self._table[parameter] = refs
         self._keys.add(parameter)
