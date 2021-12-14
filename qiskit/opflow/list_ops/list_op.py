@@ -216,12 +216,12 @@ class ListOp(OperatorBase):
         )
 
     def flatten(self):
-        '''Think about how to recursively traverse the list_op and convert any PauliSumOps
-            to SummedOp objects (check for a primitive_string of "SparsePauliOp")'''
+        """Think about how to recursively traverse the list_op and convert any PauliSumOps
+        to SummedOp objects (check for a primitive_string of "SparsePauliOp")"""
         for i, op in enumerate(self._oplist):
             if op.primitive_strings() == {"SparsePauliOp"}:
                 self._oplist[i] = op.to_pauli_op()
-            elif len(op) > 1:
+            elif len(op) > 1 and not isinstance(op, PauliOp()):
                 op.flatten()
         return self
 
