@@ -163,11 +163,13 @@ def get_param_str(op, drawer, ndigits=3):
 
 
 def get_bits_regs_map(circuit, bits, cregbundle):
-    """Map the bits and registers to the index from the top of the drawing
+    """Map the bits and registers to the index from the top of the drawing.
+    The key to the dict is either the (Qubit, Clbit) or if cregbunle True,
+    the register that is being bundled.
 
     Args:
         circuit (QuantumCircuit): the circuit being drawn
-        bits (list): the Qubit's and Clbit's in the circuit
+        bits (list(Qubit, Clbit)): the Qubit's and Clbit's in the circuit
         cregbundle (bool): if True bundle classical registers. Default: ``True``.
 
     Returns:
@@ -296,6 +298,8 @@ def get_condition_label_val(condition, circuit, cregbundle, reverse_bits):
     cond_is_bit = bool(isinstance(condition[0], Clbit))
     cond_val = int(condition[1])
 
+    # if condition on a register, return list of 1's and 0's indicating
+    # closed or open, else only one element is returned
     if isinstance(condition[0], ClassicalRegister) and not cregbundle:
         val_bits = list(str(bin(cond_val))[2:].zfill(condition[0].size))
         if not reverse_bits:

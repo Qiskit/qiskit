@@ -109,6 +109,10 @@ class MatplotlibDrawer:
         self._clbits = clbits
         self._qubits_dict = {}
         self._clbits_dict = {}
+        self._q_anchors = {}
+        self._c_anchors = {}
+        self._bits_regs_map = {}
+
         self._nodes = nodes
         self._circuit = circuit
         self._scale = 1.0 if scale is None else scale
@@ -139,7 +143,6 @@ class MatplotlibDrawer:
         self._ax.set_aspect("equal")
         self._ax.tick_params(labelbottom=False, labeltop=False, labelleft=False, labelright=False)
 
-        self._bits_regs_map = {}
         self._initial_state = initial_state
         self._cregbundle = cregbundle
         self._global_phase = global_phase
@@ -157,8 +160,6 @@ class MatplotlibDrawer:
         # and colors 'fc', 'ec', 'lc', 'sc', 'gt', and 'tc'
         self._data = {}
         self._layer_widths = []
-        self._q_anchors = {}
-        self._c_anchors = {}
 
         # _char_list for finding text_width of names, labels, and params
         self._char_list = {
@@ -270,7 +271,7 @@ class MatplotlibDrawer:
         self._get_layer_widths()
 
         # load the _qubit_dict and _clbit_dict with register info
-        n_lines = self._get_bit_labels()
+        n_lines = self._get_bit_reg_info()
 
         # load the coordinates for each gate and compute number of folds
         max_anc = self._get_coords(n_lines)
@@ -436,8 +437,8 @@ class MatplotlibDrawer:
 
             self._layer_widths.append(int(widest_box) + 1)
 
-    def _get_bit_labels(self):
-        """Get all the info for drawing reg names and numbers"""
+    def _get_bit_reg_info(self):
+        """Get all the info for drawing bit/reg names and numbers"""
 
         self._bits_regs_map = get_bits_regs_map(
             self._circuit, self._qubits + self._clbits, self._cregbundle
@@ -456,13 +457,16 @@ class MatplotlibDrawer:
             bit_label = " ".join(words).replace(" ", "\\;")
             return bit_label
 
-        # quantum register
         idx = 0
         pos = y_off = -len(self._qubits) + 1
-        for ii, bit in enumerate(self._bits_regs_map.keys()):
+        for ii, bit in enumerate(self._bits_regs_map):
+            # if it's a creg, register is the key and just load the index
             if isinstance(bit, ClassicalRegister):
                 register = bit
                 index = self._bits_regs_map[bit]
+
+            # otherwise, get the register from find_bit and use bit_index if
+            # it's a bit, or the index of the bit in the register if it's a reg
             else:
                 register, bit_index, reg_index = get_bit_reg_index(
                     self._circuit, bit, self._reverse_bits
@@ -474,6 +478,9 @@ class MatplotlibDrawer:
             )
             initial_bit = initial_qbit if isinstance(bit, Qubit) else initial_cbit
             bit_label = _fix_double_script(bit_label)
+
+            # for cregs with cregbundle on, don't use math formatting, which means
+            # no italics
             if isinstance(bit, Qubit) or register is None or not self._cregbundle:
                 bit_label = "$" + bit_label + "$"
             bit_label += initial_bit
@@ -834,12 +841,14 @@ class MatplotlibDrawer:
 
         first_clbit = len(self._qubits)
         cond_pos = []
+
         # In the first case, multiple bits are indicated on the drawing. In all
         # other cases, only one bit is shown.
         if not self._cregbundle and isinstance(cond_bit_reg, ClassicalRegister):
             for idx in range(cond_bit_reg.size):
                 rev_idx = cond_bit_reg.size - idx - 1 if self._reverse_bits else idx
                 cond_pos.append(cond_xy[self._bits_regs_map[cond_bit_reg[rev_idx]] - first_clbit])
+
         # If it's a register bit and cregbundle, need to use the register to find the location
         elif self._cregbundle and isinstance(cond_bit_reg, Clbit):
             register, _, _ = get_bit_reg_index(self._circuit, cond_bit_reg, self._reverse_bits)
@@ -854,7 +863,7 @@ class MatplotlibDrawer:
         for idx, xy in enumerate(cond_pos):
             if val_bits[idx] == "1" or (
                 isinstance(cond_bit_reg, ClassicalRegister)
-                and int(cond_bit_val) != 0
+                and cond_bit_val != 0
                 and self._cregbundle
             ):
                 fc = self._style["lc"]
@@ -895,6 +904,7 @@ class MatplotlibDrawer:
         qx, qy = self._data[node]["q_xy"][0]
         cx, cy = self._data[node]["c_xy"][0]
         register, _, reg_index = get_bit_reg_index(self._circuit, node.cargs[0], self._reverse_bits)
+
         # draw gate box
         self._gate(node)
 
