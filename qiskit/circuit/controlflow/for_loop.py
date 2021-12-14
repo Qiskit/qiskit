@@ -142,12 +142,17 @@ class ForLoopContext:
             qc.rx(i * math.pi/4, 0)
             qc.cx(0, 1)
             qc.measure(0, 0)
-            qc.break_loop().c_if(0)
+            qc.break_loop().c_if(0, True)
 
     This context should almost invariably be created by a :meth:`.QuantumCircuit.for_loop` call, and
     the resulting instance is a "friend" of the calling circuit.  The context will manipulate the
     circuit's defined scopes when it is entered (by pushing a new scope onto the stack) and exited
     (by popping its scope, building it, and appending the resulting :obj:`.ForLoopOp`).
+
+    .. warning::
+
+        This is an internal interface and no part of it should be relied upon outside of Qiskit
+        Terra.
     """
 
     # Class-level variable keep track of the number of auto-generated loop variables, so we don't
