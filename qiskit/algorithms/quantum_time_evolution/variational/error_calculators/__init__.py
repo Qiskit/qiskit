@@ -14,7 +14,8 @@
 Error Calculators (:mod:`qiskit.algorithms.quantum_time_evolution.variational.error_calculators`)
 =====================================================
 The error calculators include helper functions to evaluate errors that occur during the
-variational quantum time evolution.
+variational quantum time evolution, such as the error in the state gradient at time `t` which is
+due to the variational approximation.
 
 
 # TODO @Dal list functions
