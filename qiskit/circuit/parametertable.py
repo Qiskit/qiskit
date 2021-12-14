@@ -15,7 +15,7 @@ Look-up table for variable parameters in QuantumCircuit.
 import functools
 import warnings
 from collections.abc import MappingView, MutableMapping, Set
-from typing import MutableSequence
+from typing import Iterable, MutableSequence
 
 
 class ParameterReferences(MutableSequence, Set):
@@ -38,10 +38,16 @@ class ParameterReferences(MutableSequence, Set):
         self._instance_ids = set()
 
         for ref in refs:
+            if not isinstance(ref, tuple) or len(ref) != 2:
+                raise ValueError("refs must be in form (instruction, param_index)")
             k = self._instance_key(ref)
             if k not in self._instance_ids:
                 self._data.append(ref)
                 self._instance_ids.add(k)
+
+    @classmethod
+    def from_iterable(cls, it):
+        return cls(*it)
 
     def __getitem__(self, index):
         return self._data[index]
@@ -79,7 +85,7 @@ class ParameterReferences(MutableSequence, Set):
         self._instance_ids.add(k)
 
     def copy(self):
-        return ParameterReferences(self._data)
+        return ParameterReferences.from_iterable(self._data)
 
 
 class ParameterTable(MutableMapping):
@@ -103,7 +109,7 @@ class ParameterTable(MutableMapping):
                 it.
         """
         if mapping is not None:
-            if any(not isinstance(ParameterReferences, refs) for refs in mapping.values()):
+            if any(not isinstance(refs, ParameterReferences) for refs in mapping.values()):
                 raise ValueError("Values must be of type ParameterReferences")
             self._table = {param: refs for param, refs in mapping.items()}
         else:
@@ -116,7 +122,8 @@ class ParameterTable(MutableMapping):
         return self._table[key]
 
     def __setitem__(self, parameter, refs):
-        """Associate a parameter with the set of parameter slots that reference it.
+        """Associate a parameter with the set of parameter slots ``(instruction, param_index)``
+        that reference it.
 
         .. note::
 
@@ -124,11 +131,13 @@ class ParameterTable(MutableMapping):
             unique. See :class:`~ParameterReferences` for details.
 
         Args:
-            parameter (Parameter): the parameter.
-            refs (ParameterReferences): the parameter slots.
+            parameter (Parameter): the parameter
+            refs (Union[ParameterReferences, Iterable[(Instruction, int)]]): the parameter slots.
+                If this is an iterable, a new :class:`~ParameterReferences` is created from its
+                contents in iteration order and stored in the table.
         """
         if not isinstance(refs, ParameterReferences):
-            raise ValueError("Value must be of type ParameterReferences")
+            refs = ParameterReferences.from_iterable(refs)
 
         self._table[parameter] = refs
         self._keys.add(parameter)

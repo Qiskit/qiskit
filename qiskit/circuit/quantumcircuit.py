@@ -2122,7 +2122,7 @@ class QuantumCircuit:
 
         cpy._parameter_table = ParameterTable(
             {
-                param: ParameterReferences(
+                param: ParameterReferences.from_iterable(
                     (instr_copies[id(instr)], param_index)
                     for instr, param_index in self._parameter_table[param]
                 )
@@ -4120,7 +4120,7 @@ class QuantumCircuit:
                 atomic_parameters.update(parameter.parameters)
         for atomic_parameter in atomic_parameters:
             entries = self._parameter_table[atomic_parameter]
-            new_entries = ParameterReferences(
+            new_entries = ParameterReferences.from_iterable(
                 (entry_instruction, entry_index)
                 for entry_instruction, entry_index in entries
                 if entry_instruction is not instruction
