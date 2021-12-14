@@ -776,7 +776,7 @@ class TextDrawing:
         )
         # quantum register
         bit_labels = []
-        for bit in self._bits_regs_map.keys():
+        for bit in self._bits_regs_map:
             if isinstance(bit, ClassicalRegister):
                 register = bit
                 index = self._bits_regs_map[bit]

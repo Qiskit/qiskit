@@ -113,6 +113,7 @@ class QCircuitImage:
         self._qubits = qubits
         self._clbits = clbits
         self._circuit = circuit
+        self._latex = []
 
         self._cregbundle = cregbundle
 
@@ -184,12 +185,12 @@ class QCircuitImage:
             self._wire_separation = 1.0
         self._latex = [
             ["\\qw" if isinstance(bit, Qubit) else "\\cw" for _ in range(self._img_depth + 1)]
-            for bit in self._bits_regs_map.keys()
+            for bit in self._bits_regs_map
         ]
         self._latex.append([" "] * (self._img_depth + 1))
 
         # display the bit/register labels
-        for bit in self._bits_regs_map.keys():
+        for bit in self._bits_regs_map:
             if isinstance(bit, ClassicalRegister):
                 register = bit
                 index = self._bits_regs_map[bit]
