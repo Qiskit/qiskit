@@ -30,7 +30,7 @@ from .utils import (
     get_bit_reg_index,
     get_bit_label,
     generate_latex_label,
-    get_condition_label,
+    get_condition_label_val,
 )
 
 
@@ -207,7 +207,7 @@ class QCircuitImage:
                 bit_label += "\\ket{{0}}" if isinstance(bit, Qubit) else "0"
             bit_label += " }"
 
-            if isinstance(bit, (Clbit, ClassicalRegister)) and self._cregbundle and register is not None:
+            if not isinstance(bit, (Qubit)) and self._cregbundle and register is not None:
                 pos = self._bits_regs_map[register]
                 self._latex[pos][1] = "\\lstick{/_{_{" + str(register.size) + "}}} \\cw"
                 bit_label = f"\\mathrm{{{bit_label}}}"
@@ -559,11 +559,9 @@ class QCircuitImage:
         #         or if cregbundle, wire number of the condition register itself
         # gap - the number of wires from cwire to the bottom gate qubit
 
-        label, clbit_mask, val_list = get_condition_label(
-            op.condition, self._clbits, self._circuit, self._cregbundle
+        label, val_bits = get_condition_label_val(
+            op.condition, self._circuit, self._cregbundle, self._reverse_bits
         )
-        if not self._reverse_bits:
-            val_list = val_list[::-1]
         cond_is_bit = isinstance(op.condition[0], Clbit)
         cond_reg = op.condition[0]
         if cond_is_bit:
@@ -595,11 +593,11 @@ class QCircuitImage:
                 gap -= cond_len
             # Iterate through the reg bits down to the lowest one
             for i in range(cond_len):
-                control = "\\control" if val_list[i] == "1" else "\\controlo"
+                control = "\\control" if val_bits[i] == "1" else "\\controlo"
                 self._latex[cwire + i][col] = f"{control} \\cw \\cwx[-" + str(gap) + "]"
                 gap = 1
             # Add (hex condition value) below the last cwire
-            control = "\\control" if val_list[cond_len] == "1" else "\\controlo"
+            control = "\\control" if val_bits[cond_len] == "1" else "\\controlo"
             self._latex[cwire + cond_len][col] = (
                 f"{control}" + " \\cw^(%s){^{\\mathtt{%s}}} \\cwx[-%s]"
             ) % (

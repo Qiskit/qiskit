@@ -100,7 +100,9 @@ class TestVisualizationUtils(QiskitTestCase):
         circuit.cx(qr1[1], qr1[0])
         circuit.measure(qr1[1], cr1[1])
 
-        (circuit, qregs, cregs, layered_ops) = utils._get_layered_instructions(circuit, idle_wires=False)
+        (circuit, qregs, cregs, layered_ops) = utils._get_layered_instructions(
+            circuit, idle_wires=False
+        )
 
         exp = [
             [("cx", [qr2[0], qr2[1]], []), ("cx", [qr1[0], qr1[1]], [])],

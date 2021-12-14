@@ -281,54 +281,38 @@ def get_bit_label(drawer, register, index, layout=None, cregbundle=True):
     return bit_label
 
 
-def get_condition_label(condition, clbits, circuit, cregbundle):
-    """Get the label to display as a condition
+def get_condition_label_val(condition, circuit, cregbundle, reverse_bits):
+    """Get the label and value list to display a condition
 
     Args:
         condition (Union[Clbit, ClassicalRegister], int): classical condition
-        clbits (list(Clbit)): the classical bits in the circuit
-        bit_locations (dict): the bits in the circuit with register and index
+        circuit (QuantumCircuit): the circuit that is being drawn
         cregbundle (bool): if set True bundle classical registers
+        reverse_bits (bool): if set True reverse the bit order
 
     Returns:
         str: label to display for the condition
-        list(str): list of 1's and 0's with 1's indicating a bit that's part of the condition
-        list(str): list of 1's and 0's indicating values of condition at that position
+        list(str): list of 1's and 0's indicating values of condition
     """
     cond_is_bit = bool(isinstance(condition[0], Clbit))
-    mask = 0
-    if cond_is_bit:
-        for index, cbit in enumerate(clbits):
-            if cbit == condition[0]:
-                mask = 1 << index
-                break
+    cond_val = int(condition[1])
+
+    if isinstance(condition[0], ClassicalRegister) and not cregbundle:
+        val_bits = list(str(bin(cond_val))[2:].zfill(condition[0].size))
+        if not reverse_bits:
+            val_bits = val_bits[::-1]
     else:
-        for index, cbit in enumerate(clbits):
-            registers = circuit.find_bit(cbit).registers
-            reg = registers[0][0] if registers else None
-            if reg == condition[0]:
-                mask |= 1 << index
-    val = condition[1]
-
-    # cbit list to consider
-    fmt_c = f"{{:0{len(clbits)}b}}"
-    clbit_mask = list(fmt_c.format(mask))[::-1]
-
-    # value
-    fmt_v = f"{{:0{clbit_mask.count('1')}b}}"
-    vlist = list(fmt_v.format(val))
+        val_bits = list(str(cond_val))
 
     label = ""
     if cond_is_bit and cregbundle:
-        cond_bit = circuit.find_bit(condition[0])
-        cond_reg = cond_bit.registers[0][0] if cond_bit.registers else None
-        truth = "0x1" if val else "0x0"
-        if cond_reg is not None:
-            label = f"{cond_reg.name}_{clbits[index].index}={truth}"
+        register, _, reg_index = get_bit_reg_index(circuit, condition[0], False)
+        if register is not None:
+            label = f"{register.name}_{reg_index}={hex(cond_val)}"
     elif not cond_is_bit:
-        label = hex(val)
+        label = hex(cond_val)
 
-    return label, clbit_mask, vlist
+    return label, val_bits
 
 
 def generate_latex_label(label):
