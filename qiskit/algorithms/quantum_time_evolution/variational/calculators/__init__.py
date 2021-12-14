@@ -9,3 +9,14 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
+"""
+Calculators (:mod:`qiskit.algorithms.quantum_time_evolution.variational.calculators`)
+=====================================================
+The calculators include helper functions to evaluate the quantities which define the ordinary
+differential equations underlying the variational quantum time evolution, i.e., the
+quantum geometric tensor and the timenevolution gradient.
+
+
+# TODO @Dal list functions
+"""
