@@ -28,6 +28,17 @@ import matplotlib.pyplot as plt
 class TestPVQD(QiskitTestCase):
     """Tests for the pVQD algorithm."""
 
+    def setUp(self):
+        super().setUp()
+        self.backend = Aer.get_backend("statevector_simulator")
+        self.expectation = MatrixExpectation()
+        self.hamiltonian = 0.1 * (Z ^ Z) + (I ^ X) + (X ^ I)
+        self.observable = Z ^ Z
+        self.ansatz = EfficientSU2(2, reps=2)
+        self.initial_parameters = np.zeros(self.ansatz.num_parameters)
+        self.initial_parameters[-2] = np.pi / 2
+        self.initial_parameters[-4] = np.pi / 2
+
     def exact(self, final_time, dt, hamiltonian, observable, initial_state):
         """Get the exact values for energy and the observable."""
         energies = []  # list of energies evaluated at timesteps dt
@@ -50,43 +61,38 @@ class TestPVQD(QiskitTestCase):
 
     def test_pvqd(self):
         """Test a simple evolution."""
-
-        backend = Aer.get_backend("statevector_simulator")
-        expectation = MatrixExpectation()
-        hamiltonian = 0.1 * (Z ^ Z) + (I ^ X) + (X ^ I)
-        observable = Z ^ Z
-
-        time = 1
+        time = 0.02
         dt = 0.01
 
-        ansatz = EfficientSU2(2, reps=2)
-        optimizer = SPSA(maxiter=300, learning_rate=0.1, perturbation=0.01)
-        # optimizer = SPSA()
-        # optimizer = COBYLA()
-        # optimizer = GradientDescent(learning_rate=0.01)
-        # optimizer = L_BFGS_B()
-        initial_parameters = np.zeros(ansatz.num_parameters)
-        initial_parameters[-2] = np.pi / 2
-        initial_parameters[-4] = np.pi / 2
+        optimizer = L_BFGS_B()
 
         # run pVQD keeping track of the energy and the magnetization
         pvqd = PVQD(
-            ansatz, initial_parameters, optimizer, quantum_instance=backend, expectation=expectation
+            self.ansatz, self.initial_parameters, optimizer, quantum_instance=self.backend,
+            expectation=self.expectation
         )
-        result = pvqd.evolve(hamiltonian, time, dt, observables=[hamiltonian, observable])
+        result = pvqd.evolve(self.hamiltonian, time, dt, observables=[self.hamiltonian, self.observable])
 
-        # get reference results
-        initial_state = Statevector(ansatz.bind_parameters(initial_parameters))
-        ref_t, ref_energy, ref_magn = self.exact(time, dt, hamiltonian, observable, initial_state)
+        self.assertTrue(len(result.fidelities) == 3)
+        self.assertTrue(np.all(result.times == np.array([0.0, 0.01, 0.02])))
+        self.assertTrue(result.observables.shape == (3, 2))
+        num_parameters = self.ansatz.num_parameters
+        self.assertTrue(len(result.parameters) == 3 and np.all(
+            [len(params) == num_parameters for params in result.parameters]))
 
-        _, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
-        ax1.set_title("Energy")
-        ax1.plot(result.times, result.observables[:, 0], label="pVQD")
-        ax1.plot(ref_t, ref_energy, label="exact")
-        ax2.set_title("Magnetization")
-        ax2.plot(result.times, result.observables[:, 1], label="pVQD")
-        ax2.plot(ref_t, ref_magn, label="exact")
-        ax2.set_xlabel(r"time $t$")
-        plt.tight_layout()
-        plt.show()
+    def test_gradients(self):
+        """Test the calculation of gradients with the gradient framework."""
+        time = 0.01
+        dt = 0.01
+
+        optimizer = GradientDescent(learning_rate=0.01)
+        gradient = Gradient()
+
+        # run pVQD keeping track of the energy and the magnetization
+        pvqd = PVQD(
+            self.ansatz, self.initial_parameters, optimizer, gradient=gradient,
+            quantum_instance=self.backend, expectation=self.expectation
+        )
+        result = pvqd.evolve(self.hamiltonian, time, dt)
+
         print(result)

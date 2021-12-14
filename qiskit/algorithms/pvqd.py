@@ -90,6 +90,7 @@ class PVQD:
             hamiltonian: The Hamiltonian under which to evolve.
             theta: The current parameters.
             dt: The time step.
+            initial_guess: The initial guess for the update to minimize the fidelity.
 
         Returns:
             A tuple consisting of the next parameters and the fidelity of the optimization.
