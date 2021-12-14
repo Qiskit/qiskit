@@ -533,9 +533,7 @@ class MatplotlibDrawer:
 
                 c_indxs = []
                 for carg in node.cargs:
-                    register, _, _ = get_bit_reg_index(
-                        self._circuit, carg, self._reverse_bits
-                    )
+                    register, _, _ = get_bit_reg_index(self._circuit, carg, self._reverse_bits)
                     if register is not None and self._cregbundle:
                         c_indxs.append(self._bits_regs_map[register])
                     else:
@@ -844,9 +842,7 @@ class MatplotlibDrawer:
                 cond_pos.append(cond_xy[self._bits_regs_map[cond_bit_reg[rev_idx]] - first_clbit])
         # If it's a register bit and cregbundle, need to use the register to find the location
         elif self._cregbundle and isinstance(cond_bit_reg, Clbit):
-            register, _, _ = get_bit_reg_index(
-                self._circuit, cond_bit_reg, self._reverse_bits
-            )
+            register, _, _ = get_bit_reg_index(self._circuit, cond_bit_reg, self._reverse_bits)
             if register is not None:
                 cond_pos.append(cond_xy[self._bits_regs_map[register] - first_clbit])
             else:
