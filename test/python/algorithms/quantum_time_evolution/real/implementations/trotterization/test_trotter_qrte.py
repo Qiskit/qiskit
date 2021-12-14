@@ -19,7 +19,8 @@ import numpy as np
 from numpy.testing import assert_raises
 from scipy.linalg import expm
 
-from qiskit.algorithms.quantum_time_evolution.real.implementations.trotterization.trotter_qrte import (
+from qiskit.algorithms.quantum_time_evolution.real.implementations.trotterization.trotter_qrte \
+    import (
     TrotterQrte,
 )
 from qiskit.quantum_info import Statevector
@@ -50,26 +51,27 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         evolved_state = trotter_qrte.evolve(operator, 1, initial_state)
         # Calculate the expected state
         expected_state = (
-            expm(-1j * Z.to_matrix()) @ expm(-1j * X.to_matrix()) @ initial_state.to_matrix()
+                expm(-1j * Z.to_matrix()) @ expm(-1j * X.to_matrix()) @ initial_state.to_matrix()
         )
         expected_evolved_state = VectorStateFn(Statevector(expected_state, dims=(2,)))
 
         np.testing.assert_equal(evolved_state, expected_evolved_state)
 
+    # TODO refactor with ddt
     def test_trotter_qrte_trotter_2(self):
         """Test for trotter qrte."""
         operator = [(X ^ Y) + (Y ^ X), (Z ^ Z) + (Z ^ I) + (I ^ Z), Y ^ Y]
         # LieTrotter with 1 rep
         trotter_qrte = TrotterQrte()
         initial_state = StateFn([1, 0, 0, 0])
-        evolved_state = trotter_qrte.evolve(operator, 1, initial_state)
-        # Calculate the expected state
-        expected_state = initial_state.to_matrix()
-        for op in operator:
-            expected_state = expm(-1j * op.to_matrix()) @ expected_state
-        expected_evolved_state = VectorStateFn(Statevector(expected_state, dims=(2, 2)))
 
-        np.testing.assert_equal(evolved_state, expected_evolved_state)
+        # Calculate the expected state
+        for op in operator:
+            expected_state = initial_state.to_matrix()
+            expected_state = expm(-1j * op.to_matrix()) @ expected_state
+            expected_evolved_state = VectorStateFn(Statevector(expected_state, dims=(2, 2)))
+            evolved_state = trotter_qrte.evolve(op, 1, initial_state)
+            np.testing.assert_equal(evolved_state, expected_evolved_state)
 
     def test_trotter_qrte_trotter_observable(self):
         """Test for trotter qrte with an observable."""
@@ -96,10 +98,10 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         evolved_state = trotter_qrte.evolve(operator, 1, initial_state)
         # Calculate the expected state
         expected_state = (
-            expm(-1j * X.to_matrix() * 0.5)
-            @ expm(-1j * Z.to_matrix())
-            @ expm(-1j * X.to_matrix() * 0.5)
-            @ initial_state.to_matrix()
+                expm(-1j * X.to_matrix() * 0.5)
+                @ expm(-1j * Z.to_matrix())
+                @ expm(-1j * X.to_matrix() * 0.5)
+                @ initial_state.to_matrix()
         )
         expected_evolved_state = VectorStateFn(Statevector(expected_state, dims=(2,)))
 

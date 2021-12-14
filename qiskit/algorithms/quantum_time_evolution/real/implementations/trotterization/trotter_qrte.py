@@ -62,7 +62,7 @@ class TrotterQrte(Qrte):
 
     def evolve(
         self,
-        hamiltonian: Union[Pauli, PauliOp, SparsePauliOp, PauliSumOp, List],
+        hamiltonian: Union[Pauli, PauliOp, SparsePauliOp, PauliSumOp],
         time: float,
         initial_state: StateFn = None,
         observable: OperatorBase = None,
@@ -165,7 +165,7 @@ class TrotterQrte(Qrte):
 
     def gradient(
         self,
-        hamiltonian: Union[Pauli, PauliOp, SparsePauliOp, PauliSumOp, List],
+        hamiltonian: Union[Pauli, PauliOp, SparsePauliOp, PauliSumOp],
         time: float,
         initial_state: StateFn,
         gradient_object: Gradient,
