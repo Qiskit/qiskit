@@ -178,7 +178,7 @@ class TestSparsePauliOpConversions(QiskitTestCase):
 
     def test_from_full_paulis_warns(self):
         """Test from_list with full Pauli strings raises if the number of qubits is set."""
-        with self.assertWarns(Warning):
+        with self.assertRaises(QiskitError):
             _ = SparsePauliOp.from_list([("Z", 1)], num_qubits=1)
 
     def test_from_zip(self):

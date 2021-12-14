@@ -15,7 +15,6 @@ N-Qubit Sparse Pauli Operator class.
 
 from numbers import Number
 from typing import Dict
-import warnings
 
 import numpy as np
 
@@ -509,6 +508,10 @@ class SparsePauliOp(LinearOp):
         If the Paulis are specified via the indices, the total number of qubits of the operator
         must be specified.
 
+        .. note::
+
+            It is not supported to mix 2- and 3-tuples within the list.
+
         For example, the 5-qubit Hamiltonian
 
         .. math::
@@ -538,6 +541,8 @@ class SparsePauliOp(LinearOp):
             QiskitError: If the list of Paulis is empty.
             QiskitError: If the number of qubits is required but not specified, or incompatible
                 with the indices of the Pauli terms.
+            QiskitError: If the Paulis are specified with the full Pauli string but the number of
+                qubits is set.
         """
         obj = list(obj)  # To convert zip or other iterable
 
@@ -547,7 +552,7 @@ class SparsePauliOp(LinearOp):
         # determine the number of qubits
         if len(obj[0]) == 2:  # list of tuples: number of qubits is the length of the Pauli string
             if num_qubits is not None:
-                warnings.warn(
+                raise QiskitError(
                     "If the Paulis are specified as full Pauli string, "
                     "the ``num_qubits`` argument is ignored."
                 )
