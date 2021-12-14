@@ -20,7 +20,7 @@ from ddt import ddt
 from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.imaginary_error_calculator import (
     ImaginaryErrorCalculator,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.variational_principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.solvers.var_qte_linear_solver import (
@@ -44,6 +44,7 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
     """Test imaginary gradient errors calculator."""
 
     def test_calc_single_step_error(self):
+        """Test calculating single step error."""
         observable = SummedOp(
             [
                 0.2252 * (I ^ I),
@@ -102,6 +103,7 @@ class TestImaginaryErrorCalculator(QiskitAlgorithmsTestCase):
         np.testing.assert_almost_equal(regrad2, regrad2_expected, decimal=5)
 
     def test_calc_single_step_error_gradient(self):
+        """Test calculating single step error gradient."""
         observable = SummedOp(
             [
                 0.2252 * (I ^ I),

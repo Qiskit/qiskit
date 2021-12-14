@@ -29,7 +29,7 @@ class TestMetricTensorCalculator(QiskitAlgorithmsTestCase):
 
     # checked, correct
     def test_calculate_real(self):
-
+        """Test calculating the real part of a metric tensor."""
         observable = SummedOp(
             [
                 0.2252 * (I ^ I),
@@ -405,7 +405,7 @@ class TestMetricTensorCalculator(QiskitAlgorithmsTestCase):
             np.testing.assert_array_almost_equal(result, correct_values[i])
 
     def test_calculate_imaginary(self):
-
+        """Test calculating the imaginary part of a metric tensor."""
         observable = SummedOp(
             [
                 0.2252 * (I ^ I),

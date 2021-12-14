@@ -23,7 +23,7 @@ from qiskit import QuantumCircuit
 from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.error_calculator import (
     ErrorCalculator,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.variational_principles.variational_principle import (
     VariationalPrinciple,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
@@ -55,7 +55,7 @@ from qiskit.opflow import (
 class VarQte(ABC):
     """Variational Quantum Time Evolution.
        https://doi.org/10.22331/q-2019-10-07-191
-    Algorithms that use variational principles to compute a time evolution for a given
+    Algorithms that use variational variational_principles to compute a time evolution for a given
     Hermitian operator (Hamiltonian) and a quantum state.
     """
 
@@ -280,7 +280,7 @@ class VarQte(ABC):
         Args:
             hamiltonian_value_dict: Dictionary which relates parameter values to the parameters.
             init_state_parameters: Parameters present in a quantum state.
-        Returns:
+        Returns: Dictionary that maps parameters of an initial state to some values.
         """
         if hamiltonian_value_dict is None:
             init_state_parameter_values = np.random.random(len(init_state_parameters))

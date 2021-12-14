@@ -13,8 +13,23 @@
 """
 Solvers (:mod:`qiskit.algorithms.quantum_time_evolution.variational.solvers`)
 =====================================================
-This folder contains the necessary interfaces to solve ordinary differential equations (ODE) which
-describe ansatz parameter propagation that implements a variational time evolution.
+This package contains the necessary classes to solve systems of equations arising in the
+Variational Quantum Time Evolution. They include ordinary differential equations (ODE) which
+describe ansatz parameter propagation and systems of linear equations.
 
-# TODO @ Dal describe the different classes.
+Systems of Linear Equations Solver
+====================
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+    VarQteLinearSolver
+
+ODE Solver
+================
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+    VarQteOdeSolver
 """

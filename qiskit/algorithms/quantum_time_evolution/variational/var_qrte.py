@@ -20,7 +20,7 @@ from qiskit.algorithms.quantum_time_evolution.evolution_base import EvolutionBas
 from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.real_error_calculator import (
     RealErrorCalculator,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.principles.real.real_variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.variational_principles.real.real_variational_principle import (
     RealVariationalPrinciple,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.abstract_ode_function_generator import (

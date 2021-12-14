@@ -18,7 +18,7 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
 from qiskit.quantum_info import state_fidelity, Statevector
-from qiskit.algorithms.quantum_time_evolution.variational.principles.real.implementations.real_mc_lachlan_variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.variational_principles.real.implementations.real_mc_lachlan_variational_principle import (
     RealMcLachlanVariationalPrinciple,
 )
 from qiskit import Aer
@@ -40,6 +40,7 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
     """Test Variational Quantum Real Time Evolution algorithm."""
 
     def test_run_d_1(self):
+        """Test VarQrte for d = 1 and t = 0.1."""
         observable = SummedOp(
             [
                 0.2252 * (I ^ I),
@@ -104,6 +105,7 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
             np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=3)
 
     def test_run_d_2(self):
+        """Test VarQrte for d = 2 and t = 1."""
         observable = SummedOp(
             [
                 0.2252 * (I ^ I),
@@ -170,6 +172,7 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
             np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=4)
 
     def test_run_d_1_error_based(self):
+        """Test VarQrte for d = 1 and t = 0.1, error-based."""
         observable = SummedOp(
             [
                 0.2252 * (I ^ I),
@@ -230,6 +233,7 @@ class TestVarQrte(QiskitAlgorithmsTestCase):
             np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=3)
 
     def test_run_d_1_error_based_t_006(self):
+        """Test VarQrte for d = 1 and t = 0.06, error-based."""
         observable = SummedOp(
             [
                 0.2252 * (I ^ I),

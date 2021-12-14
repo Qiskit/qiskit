@@ -17,7 +17,7 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
 from qiskit import Aer
-from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.variational_principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.var_qite import VarQite
@@ -38,6 +38,7 @@ class TestVarQite(QiskitAlgorithmsTestCase):
     """Test Variational Quantum Imaginary Time Evolution algorithm."""
 
     def test_run_d_1(self):
+        """Test VarQite for d = 1 and t = 1."""
         observable = SummedOp(
             [
                 0.2252 * (I ^ I),
@@ -100,6 +101,7 @@ class TestVarQite(QiskitAlgorithmsTestCase):
             np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=3)
 
     def test_run_d_1_t_7(self):
+        """Test VarQite for d = 1 and t = 7."""
         observable = SummedOp(
             [
                 0.2252 * (I ^ I),
@@ -162,6 +164,7 @@ class TestVarQite(QiskitAlgorithmsTestCase):
             np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=2)
 
     def test_run_d_2(self):
+        """Test VarQite for d = 2 and t = 1."""
         observable = SummedOp(
             [
                 0.2252 * (I ^ I),

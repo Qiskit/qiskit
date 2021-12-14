@@ -20,7 +20,7 @@ from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.ode_functi
     OdeFunctionGenerator,
 )
 from qiskit import Aer
-from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.variational_principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
 from qiskit.circuit import Parameter
@@ -39,6 +39,7 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
     """Test ODE function generator."""
 
     def test_var_qte_ode_function(self):
+        """Test ODE function generator."""
         observable = SummedOp(
             [
                 0.2252 * (I ^ I),
@@ -93,6 +94,7 @@ class TestOdeFunctionGenerator(QiskitAlgorithmsTestCase):
         np.testing.assert_array_almost_equal(expected_qte_ode_function, qte_ode_function)
 
     def test_var_qte_ode_function_time_param(self):
+        """Test ODE function generator with time param."""
         time = Parameter("t")
         observable = SummedOp(
             [

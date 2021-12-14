@@ -21,7 +21,7 @@ from scipy.optimize import minimize
 from qiskit.algorithms.quantum_time_evolution.variational.error_calculators.gradient_errors.error_calculator import (
     ErrorCalculator,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.variational_principles.variational_principle import (
     VariationalPrinciple,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.abstract_ode_function_generator import (

@@ -9,3 +9,30 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
+"""
+Solvers (:mod:`qiskit.algorithms.quantum_time_evolution.variational.solvers.ode`)
+=====================================================
+This package contains the necessary classes to solve ordinary differential equations (ODE) which
+describe ansatz parameter propagation that implements a variational time evolution. An ODE salver
+uses one of ODE functions generators. OdeFunctionGenerator utilizes a natural gradient and
+ErrorBasedOdeFunctionGenerator uses a calculated error to steer the evolution.
+
+ODE functions generators
+====================
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+    AbstractOdeFunctionGenerator
+    OdeFunctionGenerator
+    ErrorBasedOdeFunctionGenerator
+
+ODE Solver
+================
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+    VarQteOdeSolver
+"""

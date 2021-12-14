@@ -18,5 +18,13 @@ variational quantum time evolution, such as the error in the state gradient at t
 due to the variational approximation.
 
 
-# TODO @Dal list functions
+Gradient Errors Calculators
+====================
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+    ErrorCalculator
+    ImaginaryErrorCalculator
+    RealErrorCalculator
 """

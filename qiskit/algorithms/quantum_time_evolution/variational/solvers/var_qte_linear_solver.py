@@ -22,7 +22,7 @@ from qiskit.algorithms.quantum_time_evolution.variational.calculators.metric_ten
 from qiskit.algorithms.quantum_time_evolution.variational.calculators.evolution_grad_calculator import (
     eval_grad_result,
 )
-from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.variational_principles.variational_principle import (
     VariationalPrinciple,
 )
 from qiskit.opflow.gradients.natural_gradient import NaturalGradient

@@ -28,6 +28,7 @@ class TestEvolutionGradCalculator(QiskitAlgorithmsTestCase):
 
     # checked, correct
     def test_calculate(self):
+        """Test calculating evolution gradient."""
         observable = SummedOp(
             [
                 0.2252 * (I ^ I),

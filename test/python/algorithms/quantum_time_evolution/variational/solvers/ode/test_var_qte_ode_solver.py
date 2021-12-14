@@ -23,7 +23,7 @@ from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.ode_functi
     OdeFunctionGenerator,
 )
 from qiskit import Aer
-from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.variational_principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
@@ -42,7 +42,7 @@ class TestVarQteOdeSolver(QiskitAlgorithmsTestCase):
 
     # TODO runs slowly
     def test_run_no_backend(self):
-
+        """Test ODE solver with no backend."""
         observable = SummedOp(
             [
                 0.2252 * (I ^ I),

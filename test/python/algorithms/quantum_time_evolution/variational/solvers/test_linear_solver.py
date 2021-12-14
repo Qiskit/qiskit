@@ -17,7 +17,7 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
 from qiskit import Aer
-from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.variational_principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.solvers.var_qte_linear_solver import (
@@ -32,6 +32,7 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
 
     # TODO use ddt
     def test_solve_sle_no_backend(self):
+        """Test SLE solver with no backend."""
         backend = Aer.get_backend("statevector_simulator")
         linear_solver = VarQteLinearSolver(
             CircuitSampler(backend),

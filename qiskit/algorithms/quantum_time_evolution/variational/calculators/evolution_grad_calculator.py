@@ -68,6 +68,8 @@ def eval_grad_result(
         energy_sampler: CircuitSampler for energy.
     Returns:
         Evolution gradient with all parameters bound.
+    Raises:
+        Warning: if an unexpected non-negligible imaginary part of the gradient is detected.
     """
     # TODO would be nicer to somehow get rid of this if statement
     if isinstance(grad, OperatorBase):

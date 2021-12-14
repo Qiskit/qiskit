@@ -15,7 +15,7 @@
 from abc import ABC, abstractmethod
 from typing import Iterable, Union, Dict, Optional
 
-from qiskit.algorithms.quantum_time_evolution.variational.principles.variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.variational_principles.variational_principle import (
     VariationalPrinciple,
 )
 from qiskit.algorithms.quantum_time_evolution.variational.solvers.var_qte_linear_solver import (

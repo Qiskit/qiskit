@@ -24,7 +24,7 @@ from qiskit.algorithms.quantum_time_evolution.variational.solvers.ode.error_base
     ErrorBasedOdeFunctionGenerator,
 )
 from qiskit import Aer
-from qiskit.algorithms.quantum_time_evolution.variational.principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.variational_principles.imaginary.implementations.imaginary_mc_lachlan_variational_principle import (
     ImaginaryMcLachlanVariationalPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
@@ -45,6 +45,7 @@ class TestErrorBasedOdeFunctionGenerator(QiskitAlgorithmsTestCase):
     """Test error-based ODE function generator."""
 
     def test_error_based_ode_fun(self):
+        """Test error-based ODE function generator."""
         observable = SummedOp(
             [
                 0.2252 * (I ^ I),

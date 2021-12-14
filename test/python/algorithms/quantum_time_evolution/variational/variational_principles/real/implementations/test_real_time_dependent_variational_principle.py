@@ -15,7 +15,7 @@
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
-from qiskit.algorithms.quantum_time_evolution.variational.principles.real.implementations.real_time_dependent_variational_principle import (
+from qiskit.algorithms.quantum_time_evolution.variational.variational_principles.real.implementations.real_time_dependent_variational_principle import (
     RealTimeDependentVariationalPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
@@ -26,6 +26,7 @@ class TestRealTimeDependentVariationalPrinciple(QiskitAlgorithmsTestCase):
     """Test real time dependent variational principle."""
 
     def test_calc_calc_metric_tensor(self):
+        """Test calculating a metric tensor."""
         observable = SummedOp(
             [
                 0.2252 * (I ^ I),
@@ -227,6 +228,7 @@ class TestRealTimeDependentVariationalPrinciple(QiskitAlgorithmsTestCase):
         )
 
     def test_calc_calc_evolution_grad(self):
+        """Test calculating evolution gradient."""
         observable = SummedOp(
             [
                 0.2252 * (I ^ I),
