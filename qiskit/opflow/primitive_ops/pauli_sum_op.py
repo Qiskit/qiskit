@@ -157,11 +157,6 @@ class PauliSumOp(PrimitiveOp):
         if isinstance(scalar, (int, float, complex)) and scalar != 0:
             return PauliSumOp(scalar * self.primitive, coeff=self.coeff)
 
-        #Return a SummedOp if scalar is a ParameterExpression
-        if isinstance(scalar, ParameterExpression):
-            op_to_flatten = PauliSumOp(self.primitive, coeff=self.coeff * scalar)
-            return op_to_flatten.flatten_op()
-
         return PauliSumOp(self.primitive, coeff=self.coeff * scalar)
 
     def adjoint(self) -> "PauliSumOp":
