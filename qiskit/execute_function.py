@@ -50,7 +50,6 @@ def execute(
     qobj_header=None,
     shots=None,  # common run options
     memory=None,
-    max_credits=None,
     seed_simulator=None,
     default_qubit_los=None,
     default_meas_los=None,  # schedule run options
@@ -165,8 +164,6 @@ def execute(
         memory (bool): If True, per-shot measurement bitstrings are returned as well
             (provided the backend supports it). For OpenPulse jobs, only
             measurement level 2 supports this option. Default: False
-
-        max_credits (int): Maximum credits to spend on job. Default: 10
 
         seed_simulator (int): Random seed to control sampling, for when backend is a simulator
 
@@ -317,8 +314,6 @@ def execute(
             shots = 1024
         if memory is None:
             memory = False
-        if max_credits is None:
-            max_credits = 10
         if meas_level is None:
             meas_level = MeasLevel.CLASSIFIED
         if meas_return is None:
@@ -332,7 +327,6 @@ def execute(
             qobj_header=qobj_header,
             shots=shots,
             memory=memory,
-            max_credits=max_credits,
             seed_simulator=seed_simulator,
             qubit_lo_freq=default_qubit_los,
             meas_lo_freq=default_meas_los,

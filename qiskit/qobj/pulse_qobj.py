@@ -280,7 +280,6 @@ class PulseQobjConfig(QobjDictField):
         rep_time=None,
         rep_delay=None,
         shots=None,
-        max_credits=None,
         seed_simulator=None,
         memory_slots=None,
         **kwargs,
@@ -307,7 +306,6 @@ class PulseQobjConfig(QobjDictField):
                 supplied by the backend (``backend.configuration().rep_delay_range``). Default is
                 ``backend.configuration().default_rep_delay``.
             shots (int): The number of shots
-            max_credits (int): the max_credits to use on the IBMQ public devices.
             seed_simulator (int): the seed to use in the simulator
             memory_slots (list): The number of memory slots on the device
             kwargs: Additional free form key value fields to add to the
@@ -326,9 +324,6 @@ class PulseQobjConfig(QobjDictField):
             self.rep_delay = rep_delay
         if shots is not None:
             self.shots = int(shots)
-
-        if max_credits is not None:
-            self.max_credits = int(max_credits)
 
         if seed_simulator is not None:
             self.seed_simulator = int(seed_simulator)

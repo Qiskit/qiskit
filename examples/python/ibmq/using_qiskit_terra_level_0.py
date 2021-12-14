@@ -70,7 +70,7 @@ except:
 print("Running on current least busy device: ", least_busy_device)
 
 # running the job
-job_exp = execute([qc1, qc2], backend=least_busy_device, shots=1024, max_credits=10)
+job_exp = execute([qc1, qc2], backend=least_busy_device, shots=1024)
 
 job_monitor(job_exp)
 exp_result = job_exp.result()
