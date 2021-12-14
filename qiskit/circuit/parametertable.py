@@ -15,14 +15,14 @@ Look-up table for variable parameters in QuantumCircuit.
 import functools
 import warnings
 from collections.abc import MappingView, MutableMapping, Set
-from typing import Iterable, MutableSequence
+from typing import MutableSequence
 
 
 class ParameterReferences(MutableSequence, Set):
     """An (insertion) ordered set of instruction parameter slot references.
     Items are expected in the form ``(instruction, param_index)``. Membership
     testing is overriden such that items that are otherwise value-wise equal
-    are still considered distinct if their ``instruction``\ s are referentially
+    are still considered distinct if their ``instruction``\\ s are referentially
     distinct.
 
     Items are ordered by insertion, and may be read or deleted by sequence index.
@@ -46,8 +46,10 @@ class ParameterReferences(MutableSequence, Set):
                 self._instance_ids.add(k)
 
     @classmethod
-    def from_iterable(cls, it):
-        return cls(*it)
+    def from_iterable(cls, iterable):
+        """Create a new instance from an iterable of ``(instruction, param_index)``
+        tuples."""
+        return cls(*iterable)
 
     def __getitem__(self, index):
         return self._data[index]
@@ -72,19 +74,20 @@ class ParameterReferences(MutableSequence, Set):
     def __repr__(self) -> str:
         return repr(self._data)
 
-    def insert(self, index, ref) -> None:
+    def insert(self, index, value) -> None:
         raise NotImplementedError("Position is dictated by insertion order.")
 
-    def append(self, ref):
+    def append(self, value):
         """Adds a reference to the listing if it's not already present."""
-        k = self._instance_key(ref)
+        k = self._instance_key(value)
         if k in self._instance_ids:
             return
 
-        self._data.append(ref)
+        self._data.append(value)
         self._instance_ids.add(k)
 
     def copy(self):
+        """Create a shallow copy."""
         return ParameterReferences.from_iterable(self._data)
 
 
@@ -107,11 +110,14 @@ class ParameterTable(MutableMapping):
             mapping (Mapping[Parameter, ReferenceListing]):
                 Mapping of parameter to the set of parameter slots that reference
                 it.
+
+        Raises:
+            ValueError: A value in ``mapping`` is not a :class:`~ParameterReferences`.
         """
         if mapping is not None:
             if any(not isinstance(refs, ParameterReferences) for refs in mapping.values()):
                 raise ValueError("Values must be of type ParameterReferences")
-            self._table = {param: refs for param, refs in mapping.items()}
+            self._table = mapping.copy()
         else:
             self._table = {}
 

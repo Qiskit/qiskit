@@ -1786,6 +1786,7 @@ class TestParameterReferences(QiskitTestCase):
     """Test the ParameterReferences class."""
 
     def test_equal_inst_diff_instance(self):
+        """Different value equal instructions are treated as distinct."""
         from qiskit.circuit.library.standard_gates.rz import RZGate
 
         theta = Parameter("theta")
@@ -1807,19 +1808,21 @@ class TestParameterReferences(QiskitTestCase):
         self.assertEqual(refs[1][1], 0)
 
     def test_equal_inst_same_instance(self):
+        """Referentially equal instructions are treated as same."""
         from qiskit.circuit.library.standard_gates.rz import RZGate
 
         theta = Parameter("theta")
         gate = RZGate(theta)
 
         refs = ParameterReferences((gate, 0), (gate, 0))
-        
+
         self.assertIn((gate, 0), refs)
         self.assertEqual(len(refs), 1)
         self.assertIs(refs[0][0], gate)
         self.assertEqual(refs[0][1], 0)
 
     def test_delete_ref(self):
+        """Reference deletion preserves insertion order."""
         from qiskit.circuit.library.standard_gates.rz import RZGate
 
         theta = Parameter("theta")
@@ -1832,26 +1835,33 @@ class TestParameterReferences(QiskitTestCase):
         self.assertEqual(list(refs), expected)
 
     def test_set_ref_disallowed(self):
+        """Index-based setting of reference is disallowed."""
         from qiskit.circuit.library.standard_gates.rz import RZGate
 
         theta = Parameter("theta")
         gate = RZGate(theta)
         refs = ParameterReferences.from_iterable((gate, i) for i in range(3))
 
-        with self.assertRaisesRegex(NotImplementedError, "Position is dictated by insertion order."):
+        with self.assertRaisesRegex(
+            NotImplementedError, "Position is dictated by insertion order."
+        ):
             refs[1] = (gate, 0)
 
     def test_insert_ref_disallowed(self):
+        """Index-based insertion of reference is disallowed."""
         from qiskit.circuit.library.standard_gates.rz import RZGate
 
         theta = Parameter("theta")
         gate = RZGate(theta)
         refs = ParameterReferences()
 
-        with self.assertRaisesRegex(NotImplementedError, "Position is dictated by insertion order."):
+        with self.assertRaisesRegex(
+            NotImplementedError, "Position is dictated by insertion order."
+        ):
             refs.insert(0, (gate, 0))
 
     def test_extend_refs(self):
+        """Extending references handles duplicates and respects order."""
         from qiskit.circuit.library.standard_gates.rz import RZGate
 
         theta = Parameter("theta")
@@ -1866,6 +1876,7 @@ class TestParameterReferences(QiskitTestCase):
         self.assertEqual(list(refs), [ref0, ref1, ref2])
 
     def test_copy_param_refs(self):
+        """Copy of parameter references is a shallow copy."""
         from qiskit.circuit.library.standard_gates.rz import RZGate
 
         theta = Parameter("theta")
@@ -1893,6 +1904,7 @@ class TestParameterTable(QiskitTestCase):
     """Test the ParameterTable class."""
 
     def test_init_param_table(self):
+        """Parameter table init from mapping."""
         from qiskit.circuit.library.standard_gates.rz import RZGate
 
         p1 = Parameter("theta")
@@ -1902,17 +1914,18 @@ class TestParameterTable(QiskitTestCase):
         ref1 = (RZGate(p1), 0)
         ref2 = (RZGate(p2), 0)
 
-        mapping = {
-            p1: ParameterReferences(ref0, ref1),
-            p2: ParameterReferences(ref2)
-        }
+        mapping = {p1: ParameterReferences(ref0, ref1), p2: ParameterReferences(ref2)}
 
         table = ParameterTable(mapping)
+
+        # make sure editing mapping doesn't change `table`
+        del mapping[p1]
 
         self.assertEqual(list(table[p1]), [ref0, ref1])
         self.assertEqual(list(table[p2]), [ref2])
 
     def test_set_references(self):
+        """References replacement by parameter key."""
         from qiskit.circuit.library.standard_gates.rz import RZGate
 
         p1 = Parameter("theta")
@@ -1928,6 +1941,7 @@ class TestParameterTable(QiskitTestCase):
         self.assertEqual(list(table[p1]), [ref1])
 
     def test_set_references_from_iterable(self):
+        """Parameter table init from iterable."""
         from qiskit.circuit.library.standard_gates.rz import RZGate
 
         p1 = Parameter("theta")
@@ -1936,9 +1950,11 @@ class TestParameterTable(QiskitTestCase):
         ref1 = (RZGate(p1), 0)
         ref2 = (RZGate(p1), 0)
 
-        table = ParameterTable({
-            p1: ParameterReferences(ref0, ref1),
-        })
+        table = ParameterTable(
+            {
+                p1: ParameterReferences(ref0, ref1),
+            }
+        )
 
         table[p1] = (ref2, ref1, ref0)
         self.assertEqual(list(table[p1]), [ref2, ref1, ref0])
