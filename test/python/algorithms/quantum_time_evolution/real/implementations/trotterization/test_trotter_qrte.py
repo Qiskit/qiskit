@@ -21,7 +21,8 @@ import numpy as np
 from numpy.testing import assert_raises
 from scipy.linalg import expm
 
-from qiskit.algorithms.quantum_time_evolution.real.implementations.trotterization.trotter_qrte import (
+from qiskit.algorithms.quantum_time_evolution.real.implementations.trotterization.trotter_qrte \
+    import (
     TrotterQrte,
 )
 from qiskit.quantum_info import Statevector
@@ -53,7 +54,7 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         evolved_state = trotter_qrte.evolve(operator, 1, initial_state)
         # Calculate the expected state
         expected_state = (
-            expm(-1j * Z.to_matrix()) @ expm(-1j * X.to_matrix()) @ initial_state.to_matrix()
+                expm(-1j * Z.to_matrix()) @ expm(-1j * X.to_matrix()) @ initial_state.to_matrix()
         )
         expected_evolved_state = VectorStateFn(Statevector(expected_state, dims=(2,)))
 
@@ -98,10 +99,10 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         evolved_state = trotter_qrte.evolve(operator, 1, initial_state)
         # Calculate the expected state
         expected_state = (
-            expm(-1j * X.to_matrix() * 0.5)
-            @ expm(-1j * Z.to_matrix())
-            @ expm(-1j * X.to_matrix() * 0.5)
-            @ initial_state.to_matrix()
+                expm(-1j * X.to_matrix() * 0.5)
+                @ expm(-1j * Z.to_matrix())
+                @ expm(-1j * X.to_matrix() * 0.5)
+                @ initial_state.to_matrix()
         )
         expected_evolved_state = VectorStateFn(Statevector(expected_state, dims=(2,)))
 
@@ -219,7 +220,7 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         for key in expected_gradient.keys():
             np.testing.assert_almost_equal(gradient[key], expected_gradient[key])
 
-    # TODO fails due to Terra bug
+    # TODO fix problem with randomness causing different results
     def test_trotter_qrte_gradient_summed_op_qdrift_4(self):
         """Test for trotter qrte gradient with SummedOp and QDrift with commuting operators
         with complex parameter binding."""
@@ -271,6 +272,9 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         )
         expected_gradient = {theta1: 0j}
         np.testing.assert_equal(gradient, expected_gradient)
+
+    # TODO unit tests for _try_binding_params, def _validate_hamiltonian_form(self, hamiltonian:
+    #  SummedOp), _is_linear_with_single_param
 
 
 if __name__ == "__main__":
