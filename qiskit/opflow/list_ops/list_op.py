@@ -221,8 +221,11 @@ class ListOp(OperatorBase):
         for i, op in enumerate(self._oplist):
             if op.primitive_strings() == {"SparsePauliOp"}:
                 self._oplist[i] = op.to_pauli_op()
-            elif len(op) > 1 and not isinstance(op, PauliOp()):
-                op.flatten()
+            else:
+                try:
+                    if len(op) > 1:
+                        op.flatten()
+                except: TypeError
         return self
 
     def traverse(
