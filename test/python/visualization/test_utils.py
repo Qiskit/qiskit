@@ -45,7 +45,7 @@ class TestVisualizationUtils(QiskitTestCase):
 
     def test_get_layered_instructions(self):
         """_get_layered_instructions without reverse_bits"""
-        (circuit, qregs, cregs, layered_ops) = utils._get_layered_instructions(self.circuit)
+        (_, qregs, cregs, layered_ops) = utils._get_layered_instructions(self.circuit)
 
         exp = [
             [("cx", [self.qr2[0], self.qr2[1]], []), ("cx", [self.qr1[0], self.qr1[1]], [])],
@@ -64,7 +64,7 @@ class TestVisualizationUtils(QiskitTestCase):
 
     def test_get_layered_instructions_reverse_bits(self):
         """_get_layered_instructions with reverse_bits=True"""
-        (circuit, qregs, cregs, layered_ops) = utils._get_layered_instructions(
+        (_, qregs, cregs, layered_ops) = utils._get_layered_instructions(
             self.circuit, reverse_bits=True
         )
 

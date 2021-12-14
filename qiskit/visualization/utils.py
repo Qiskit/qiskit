@@ -225,7 +225,6 @@ def get_bit_label(drawer, register, index, layout=None, cregbundle=True):
         drawer (str): which drawer is calling ("text", "mpl", or "latex")
         register (QuantumRegister or ClassicalRegister): get bit_label for this register
         index (int): index of bit in register
-        qubit (bool): Optional. if set True, a Qubit or QuantumRegister. Default: ``True``
         layout (Layout): Optional. mapping of virtual to physical bits
         cregbundle (bool): Optional. if set True bundle classical registers.
             Default: ``True``.

@@ -669,8 +669,6 @@ def _matplotlib_circuit_drawer(
         initial_state=initial_state,
         cregbundle=cregbundle,
         global_phase=global_phase,
-        qregs=circuit.qregs,
-        cregs=circuit.cregs,
         calibrations=circuit.calibrations,
         circuit=circuit,
     )

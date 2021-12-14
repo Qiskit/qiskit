@@ -82,8 +82,6 @@ class MatplotlibDrawer:
         initial_state=False,
         cregbundle=True,
         global_phase=None,
-        qregs=None,
-        cregs=None,
         calibrations=None,
         circuit=None,
     ):
@@ -459,7 +457,6 @@ class MatplotlibDrawer:
             return bit_label
 
         # quantum register
-        bit_labels = []
         idx = 0
         pos = y_off = -len(self._qubits) + 1
         for ii, bit in enumerate(self._bits_regs_map.keys()):
@@ -476,7 +473,10 @@ class MatplotlibDrawer:
                 "mpl", register, index, layout=self._layout, cregbundle=self._cregbundle
             )
             initial_bit = initial_qbit if isinstance(bit, Qubit) else initial_cbit
-            bit_label = "$" + _fix_double_script(bit_label) + "$" + initial_bit
+            bit_label = _fix_double_script(bit_label)
+            if isinstance(bit, Qubit) or register is None or not self._cregbundle:
+                bit_label = "$" + bit_label + "$"
+            bit_label += initial_bit
 
             text_width = self._get_text_width(bit_label, self._fs) * 1.15
             if text_width > longest_bit_label_width:
@@ -529,14 +529,11 @@ class MatplotlibDrawer:
                 # get qubit index
                 q_indxs = []
                 for qarg in node.qargs:
-                    register, bit_index, reg_index = get_bit_reg_index(
-                        self._circuit, qarg, self._reverse_bits
-                    )
                     q_indxs.append(self._bits_regs_map[qarg])
 
                 c_indxs = []
                 for carg in node.cargs:
-                    register, bit_index, reg_index = get_bit_reg_index(
+                    register, _, _ = get_bit_reg_index(
                         self._circuit, carg, self._reverse_bits
                     )
                     if register is not None and self._cregbundle:
@@ -656,7 +653,7 @@ class MatplotlibDrawer:
                     self._ax.text(
                         self._x_offset + 0.1,
                         y + 0.1,
-                        str(this_clbit["val"]),
+                        str(this_clbit["register"].size),
                         ha="left",
                         va="bottom",
                         fontsize=0.8 * self._fs,
@@ -847,7 +844,7 @@ class MatplotlibDrawer:
                 cond_pos.append(cond_xy[self._bits_regs_map[cond_bit_reg[rev_idx]] - first_clbit])
         # If it's a register bit and cregbundle, need to use the register to find the location
         elif self._cregbundle and isinstance(cond_bit_reg, Clbit):
-            register, bit_index, reg_index = get_bit_reg_index(
+            register, _, _ = get_bit_reg_index(
                 self._circuit, cond_bit_reg, self._reverse_bits
             )
             if register is not None:

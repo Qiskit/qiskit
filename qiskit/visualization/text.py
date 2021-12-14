@@ -622,6 +622,7 @@ class TextDrawing:
         if vertical_compression not in ["high", "medium", "low"]:
             raise ValueError("Vertical compression can only be 'high', 'medium', or 'low'")
         self.vertical_compression = vertical_compression
+        self._bits_regs_map = {}
 
         if encoding:
             self.encoding = encoding
@@ -1014,7 +1015,7 @@ class TextDrawing:
         if isinstance(op, Measure):
             gate = MeasureFrom()
             layer.set_qubit(node.qargs[0], gate)
-            register, bit_index, reg_index = get_bit_reg_index(
+            register, _, reg_index = get_bit_reg_index(
                 self._circuit, node.cargs[0], self.reverse_bits
             )
             if self.cregbundle and register is not None:
@@ -1382,8 +1383,6 @@ class Layer:
             clbits (list[Clbit]): The list of classical bits on
                 which the instruction is conditioned.
         """
-        print(clbits)
-        print(val_bits)
         for i, bit in enumerate(clbits):
             bot_connect = " "
             if bit == clbits[-1]:
