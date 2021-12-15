@@ -111,11 +111,9 @@ class QFT(BlueprintCircuit):
 
         Returns:
             The number of qubits in the circuit.
-
-        Note:
-            This method needs to be overwritten to allow adding the setter for num_qubits while
-            still complying to pylint.
         """
+        # This method needs to be overwritten to allow adding the setter for num_qubits while still
+        # complying to pylint.
         return super().num_qubits
 
     @num_qubits.setter
@@ -130,10 +128,9 @@ class QFT(BlueprintCircuit):
         if num_qubits != self.num_qubits:
             self._invalidate()
 
-            if num_qubits:
+            self.qregs = []
+            if num_qubits is not None and num_qubits > 0:
                 self.qregs = [QuantumRegister(num_qubits, name="q")]
-            else:
-                self.qregs = []
 
     @property
     def approximation_degree(self) -> int:

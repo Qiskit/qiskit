@@ -20,7 +20,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 
 from qiskit.circuit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.circuit.library.standard_gates import RYGate, HGate, CXGate, ECRGate
+from qiskit.circuit.library.standard_gates import RYGate, HGate, CXGate, ECRGate, RZXGate
 
 
 class GateDirection(TransformationPass):
@@ -39,16 +39,25 @@ class GateDirection(TransformationPass):
              │  ECR │  =       └┬──────────┤│  ECR │├───┤
         q_1: ┤1     ├     q_1: ─┤ RY(pi/2) ├┤0     ├┤ H ├
              └──────┘           └──────────┘└──────┘└───┘
+
+             ┌──────┐          ┌───┐┌──────┐┌───┐
+        q_0: ┤0     ├     q_0: ┤ H ├┤1     ├┤ H ├
+             │  RZX │  =       ├───┤│  RZX │├───┤
+        q_1: ┤1     ├     q_1: ┤ H ├┤0     ├┤ H ├
+             └──────┘          └───┘└──────┘└───┘
     """
 
-    def __init__(self, coupling_map):
+    def __init__(self, coupling_map, target=None):
         """GateDirection pass.
 
         Args:
             coupling_map (CouplingMap): Directed graph represented a coupling map.
+            target (Target): The backend target to use for this pass. If this is specified
+                it will be used instead of the coupling map
         """
         super().__init__()
         self.coupling_map = coupling_map
+        self.target = target
 
         # Create the replacement dag and associated register.
         self._cx_dag = DAGCircuit()
@@ -69,6 +78,18 @@ class GateDirection(TransformationPass):
         self._ecr_dag.apply_operation_back(HGate(), [qr[0]], [])
         self._ecr_dag.apply_operation_back(HGate(), [qr[1]], [])
 
+    @staticmethod
+    def _rzx_dag(parameter):
+        _rzx_dag = DAGCircuit()
+        qr = QuantumRegister(2)
+        _rzx_dag.add_qreg(qr)
+        _rzx_dag.apply_operation_back(HGate(), [qr[0]], [])
+        _rzx_dag.apply_operation_back(HGate(), [qr[1]], [])
+        _rzx_dag.apply_operation_back(RZXGate(parameter), [qr[1], qr[0]], [])
+        _rzx_dag.apply_operation_back(HGate(), [qr[0]], [])
+        _rzx_dag.apply_operation_back(HGate(), [qr[1]], [])
+        return _rzx_dag
+
     def run(self, dag):
         """Run the GateDirection pass on `dag`.
 
@@ -85,38 +106,92 @@ class GateDirection(TransformationPass):
             TranspilerError: If the circuit cannot be mapped just by flipping the
                 cx nodes.
         """
-        cmap_edges = set(self.coupling_map.get_edges())
-
+        trivial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
+        layout_map = trivial_layout.get_virtual_bits()
         if len(dag.qregs) > 1:
             raise TranspilerError(
                 "GateDirection expects a single qreg input DAG,"
                 "but input DAG had qregs: {}.".format(dag.qregs)
             )
+        if self.target is None:
+            cmap_edges = set(self.coupling_map.get_edges())
+            if not cmap_edges:
+                return dag
 
-        trivial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
+            self.coupling_map.compute_distance_matrix()
 
-        for node in dag.two_qubit_ops():
-            control = node.qargs[0]
-            target = node.qargs[1]
+            dist_matrix = self.coupling_map.distance_matrix
 
-            physical_q0 = trivial_layout[control]
-            physical_q1 = trivial_layout[target]
+            for node in dag.two_qubit_ops():
+                control = node.qargs[0]
+                target = node.qargs[1]
 
-            if self.coupling_map.distance(physical_q0, physical_q1) != 1:
-                raise TranspilerError(
-                    "The circuit requires a connection between physical "
-                    "qubits %s and %s" % (physical_q0, physical_q1)
-                )
+                physical_q0 = layout_map[control]
+                physical_q1 = layout_map[target]
 
-            if (physical_q0, physical_q1) not in cmap_edges:
-                if node.name == "cx":
-                    dag.substitute_node_with_dag(node, self._cx_dag)
-                elif node.name == "ecr":
-                    dag.substitute_node_with_dag(node, self._ecr_dag)
-                else:
+                if dist_matrix[physical_q0, physical_q1] != 1:
                     raise TranspilerError(
-                        "Flipping of gate direction is only supported "
-                        "for CX and ECR at this time."
+                        "The circuit requires a connection between physical "
+                        "qubits %s and %s" % (physical_q0, physical_q1)
                     )
 
+                if (physical_q0, physical_q1) not in cmap_edges:
+                    if node.name == "cx":
+                        dag.substitute_node_with_dag(node, self._cx_dag)
+                    elif node.name == "ecr":
+                        dag.substitute_node_with_dag(node, self._ecr_dag)
+                    elif node.name == "rzx":
+                        dag.substitute_node_with_dag(node, self._rzx_dag(*node.op.params))
+                    else:
+                        raise TranspilerError(
+                            f"Flipping of gate direction is only supported "
+                            f"for CX, ECR, and RZX at this time, not {node.name}."
+                        )
+        else:
+            # TODO: Work with the gate instances and only use names as look up keys.
+            # This will require iterating over the target names to build a mapping
+            # of names to gates that implement CXGate, ECRGate, RZXGate (including
+            # fixed angle variants)
+            for node in dag.two_qubit_ops():
+                control = node.qargs[0]
+                target = node.qargs[1]
+
+                physical_q0 = layout_map[control]
+                physical_q1 = layout_map[target]
+
+                if node.name == "cx":
+                    if (physical_q0, physical_q1) in self.target["cx"]:
+                        continue
+                    if (physical_q1, physical_q0) in self.target["cx"]:
+                        dag.substitute_node_with_dag(node, self._cx_dag)
+                    else:
+                        raise TranspilerError(
+                            "The circuit requires a connection between physical "
+                            "qubits %s and %s for cx" % (physical_q0, physical_q1)
+                        )
+                elif node.name == "ecr":
+                    if (physical_q0, physical_q1) in self.target["ecr"]:
+                        continue
+                    if (physical_q1, physical_q0) in self.target["ecr"]:
+                        dag.substitute_node_with_dag(node, self._ecr_dag)
+                    else:
+                        raise TranspilerError(
+                            "The circuit requires a connection between physical "
+                            "qubits %s and %s for ecr" % (physical_q0, physical_q1)
+                        )
+                elif node.name == "rzx":
+                    if (physical_q0, physical_q1) in self.target["rzx"]:
+                        continue
+                    if (physical_q1, physical_q0) in self.target["rzx"]:
+                        dag.substitute_node_with_dag(node, self._rzx_dag(*node.op.params))
+                    else:
+                        raise TranspilerError(
+                            "The circuit requires a connection between physical "
+                            "qubits %s and %s for rzx" % (physical_q0, physical_q1)
+                        )
+                else:
+                    raise TranspilerError(
+                        f"Flipping of gate direction is only supported "
+                        f"for CX, ECR, and RZX at this time, not {node.name}."
+                    )
         return dag

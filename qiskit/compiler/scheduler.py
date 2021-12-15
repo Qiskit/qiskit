@@ -66,24 +66,34 @@ def schedule(
         QiskitError: If ``inst_map`` and ``meas_map`` are not passed and ``backend`` is not passed
     """
     start_time = time()
-    if inst_map is None:
-        if backend is None:
-            raise QiskitError(
-                "Must supply either a backend or InstructionScheduleMap for scheduling passes."
-            )
-        defaults = backend.defaults()
-        if defaults is None:
-            raise QiskitError(
-                "The backend defaults are unavailable. The backend may not support pulse."
-            )
-        inst_map = defaults.instruction_schedule_map
-    if meas_map is None:
-        if backend is None:
-            raise QiskitError("Must supply either a backend or a meas_map for scheduling passes.")
-        meas_map = backend.configuration().meas_map
-    if dt is None:
-        if backend is not None:
-            dt = backend.configuration().dt
+    if backend and getattr(backend, "version", 0) > 1:
+        if inst_map is None:
+            inst_map = backend.instruction_schedule_map
+        if meas_map is None:
+            meas_map = backend.meas_map
+        if dt is None:
+            dt = backend.dt
+    else:
+        if inst_map is None:
+            if backend is None:
+                raise QiskitError(
+                    "Must supply either a backend or InstructionScheduleMap for scheduling passes."
+                )
+            defaults = backend.defaults()
+            if defaults is None:
+                raise QiskitError(
+                    "The backend defaults are unavailable. The backend may not support pulse."
+                )
+            inst_map = defaults.instruction_schedule_map
+        if meas_map is None:
+            if backend is None:
+                raise QiskitError(
+                    "Must supply either a backend or a meas_map for scheduling passes."
+                )
+            meas_map = backend.configuration().meas_map
+        if dt is None:
+            if backend is not None:
+                dt = backend.configuration().dt
 
     schedule_config = ScheduleConfig(inst_map=inst_map, meas_map=meas_map, dt=dt)
     circuits = circuits if isinstance(circuits, list) else [circuits]

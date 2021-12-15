@@ -185,6 +185,22 @@ class TestParameters(QiskitTestCase):
                 bqc_list = getattr(qc, assign_fun)(param_dict)
                 self.assertEqual(bqc_anonymous, bqc_list)
 
+    def test_bind_half_single_precision(self):
+        """Test binding with 16bit and 32bit floats."""
+        phase = Parameter("phase")
+        x = Parameter("x")
+        y = Parameter("y")
+        z = Parameter("z")
+        v = ParameterVector("v", 3)
+        for i in (numpy.float16, numpy.float32):
+            with self.subTest(float_type=i):
+                expr = (v[0] * (x + y + z) + phase) - (v[2] * v[1])
+                params = numpy.array([0.1 * j for j in range(8)], dtype=i)
+                order = [phase] + v[:] + [x, y, z]
+                param_dict = dict(zip(order, params))
+                bound_value = expr.bind(param_dict)
+                self.assertAlmostEqual(float(bound_value), 0.09, delta=1e-4)
+
     def test_parameter_order(self):
         """Test the parameters are sorted by name but parameter vector order takes precedence.
 
@@ -1171,6 +1187,13 @@ class TestParameterExpressions(QiskitTestCase):
         bound_expr = x.bind({x: 2.3})
         self.assertEqual(float(bound_expr), 2.3)
 
+    def test_cast_to_float_when_underlying_expression_bound(self):
+        """Verify expression can be cast to a float when it still contains unbound parameters, but
+        the underlying symbolic expression has a knowable value."""
+        x = Parameter("x")
+        expr = x - x + 2.3
+        self.assertEqual(float(expr), 2.3)
+
     def test_raise_if_cast_to_float_when_not_fully_bound(self):
         """Verify raises if casting to float and not fully bound."""
 
@@ -1195,6 +1218,13 @@ class TestParameterExpressions(QiskitTestCase):
         y = Parameter("y")
         bound_expr = (x + y).bind({x: 2.3, y: 0.8})
         self.assertEqual(int(bound_expr), 3)
+
+    def test_cast_to_int_when_underlying_expression_bound(self):
+        """Verify expression can be cast to a int when it still contains unbound parameters, but the
+        underlying symbolic expression has a knowable value."""
+        x = Parameter("x")
+        expr = x - x + 2.3
+        self.assertEqual(int(expr), 2)
 
     def test_raise_if_cast_to_int_when_not_fully_bound(self):
         """Verify raises if casting to int and not fully bound."""

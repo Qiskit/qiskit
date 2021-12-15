@@ -23,12 +23,12 @@ stages:
     condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
     jobs:
     - job: 'linux'
-      pool: {vmImage: 'Ubuntu-16.04'}
+      pool: {vmImage: 'ubuntu-latest'}
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
         python.version: '3.7'
         CIBW_BEFORE_BUILD: pip install -U Cython
-        CIBW_SKIP: cp27-* cp34-* cp35-* pp*
+        CIBW_SKIP: cp27-* cp34-* cp35-* cp36-* pp*
         TWINE_USERNAME: qiskit
         CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
       steps:
@@ -47,7 +47,7 @@ stages:
           env:
             TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'sdist'
-      pool: {vmImage: 'Ubuntu-16.04'}
+      pool: {vmImage: 'ubuntu-latest'}
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
         TWINE_USERNAME: qiskit
@@ -68,11 +68,11 @@ stages:
             TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'macos'
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
-      pool: {vmImage: 'macOS-latest'}
+      pool: {vmImage: 'macOS-10.15'}
       variables:
         python.version: '3.7'
         CIBW_BEFORE_BUILD: pip install -U Cython
-        CIBW_SKIP: cp27-* cp34-* cp35-* pp*
+        CIBW_SKIP: cp27-* cp34-* cp35-* cp36-* pp*
         TWINE_USERNAME: qiskit
         CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
       steps:
@@ -92,11 +92,11 @@ stages:
           TWINE_PASSWORD: $(TWINE_PASSWORD)
     - job: 'macos_arm'
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
-      pool: {vmImage: 'macOS-latest'}
+      pool: {vmImage: 'macOS-10.15'}
       variables:
         python.version: '3.7'
         CIBW_BEFORE_BUILD: pip install -U Cython
-        CIBW_SKIP: cp27-* cp34-* cp35-* pp*
+        CIBW_SKIP: cp27-* cp34-* cp35-* cp36-* pp*
         CIBW_ARCHS_MACOS: universal2
         TWINE_USERNAME: qiskit
         CIBW_TEST_COMMAND: python {project}/examples/python/stochastic_swap.py
@@ -120,12 +120,10 @@ stages:
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
         CIBW_BEFORE_BUILD: pip install -U Cython
-        CIBW_SKIP: cp27-* cp34-* cp35-* pp*
+        CIBW_SKIP: cp27-* cp34-* cp35-* cp36-* pp*
         TWINE_USERNAME: qiskit
         CIBW_TEST_COMMAND: python {project}\examples\python\stochastic_swap.py
       steps:
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x86}}
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x64}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x86}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x64}}
         - {task: UsePythonVersion@0, inputs: {versionSpec: '3.8', architecture: x86}}
@@ -193,6 +191,7 @@ stages:
             mkdir -p /tmp/terra-tests
             cp -r test /tmp/terra-tests/.
             cp .stestr.conf /tmp/terra-tests/.
+            cp -r .stestr /tmp/terra-tests/. || :
             sudo apt install -y graphviz
             pip check
           displayName: 'Install dependencies'
@@ -225,11 +224,12 @@ stages:
             pushd /tmp/terra-tests
             mkdir -p junit
             stestr last --subunit | ./subunit_to_junit.py -o junit/test-results.xml
-            popd
-            cp -r /tmp/terra-tests/junit .
             pushd .stestr
             ls | grep -P "^\d" | xargs -d "\n" rm -f
             popd
+            popd
+            cp -r /tmp/terra-tests/junit .
+            cp -r /tmp/terra-tests/.stestr .
           condition: succeededOrFailed()
           displayName: 'Generate results'
         - task: PublishTestResults@2
@@ -342,7 +342,7 @@ stages:
             Parallel: true
             ParallelCount: 8
     - job: 'MacOS_Catalina_Tests'
-      pool: {vmImage: 'macOS-latest'}
+      pool: {vmImage: 'macOS-10.15'}
       strategy:
         matrix:
           Python37:
@@ -504,8 +504,6 @@ stages:
       pool: {vmImage: 'windows-latest'}
       strategy:
         matrix:
-          Python36:
-            python.version: '3.6'
           Python38:
             python.version: '3.8'
           Python39:
@@ -585,8 +583,6 @@ stages:
       pool: {vmImage: 'ubuntu-latest'}
       strategy:
         matrix:
-          Python36:
-            python.version: '3.6'
           Python38:
             python.version: '3.8'
           Python39:
@@ -666,11 +662,9 @@ stages:
             testResultsFiles: '**/test-*.xml'
             testRunTitle: 'Test results for Linux Python $(python.version)'
     - job: 'MacOS_Catalina_Tests'
-      pool: {vmImage: 'macOS-latest'}
+      pool: {vmImage: 'macOS-10.15'}
       strategy:
         matrix:
-          Python36:
-            python.version: '3.6'
           Python38:
             python.version: '3.8'
           Python39:
@@ -776,7 +770,7 @@ stages:
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" "qiskit-ignis" "matplotlib<3.3.0" sphinx nbsphinx sphinx_rtd_theme cvxpy -c constraints.txt
+            pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" "qiskit-ignis" "matplotlib>=3.3.0" sphinx nbsphinx sphinx_rtd_theme cvxpy -c constraints.txt
             python setup.py build_ext --inplace
             sudo apt install -y graphviz pandoc
             pip check

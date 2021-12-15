@@ -33,6 +33,7 @@ The circuit itself keeps this context.
 import warnings
 import copy
 from itertools import zip_longest
+from typing import List
 
 import numpy
 
@@ -403,7 +404,14 @@ class Instruction:
         return inverse_gate
 
     def c_if(self, classical, val):
-        """Add classical condition on register or cbit classical and value val."""
+        """Set a classical equality condition on this instruction between the register or cbit
+        ``classical`` and value ``val``.
+
+        .. note::
+
+            This is a setter method, not an additive one.  Calling this multiple times will silently
+            override any previously set condition; it does not stack.
+        """
         if not isinstance(classical, (ClassicalRegister, Clbit)):
             raise CircuitError("c_if must be used with a classical register or classical bit")
         if val < 0:
@@ -528,3 +536,13 @@ class Instruction:
             qc.data = [(self, qargs[:], cargs[:])] * n
         instruction.definition = qc
         return instruction
+
+    @property
+    def condition_bits(self) -> List[Clbit]:
+        """Get Clbits in condition."""
+        if self.condition is None:
+            return []
+        if isinstance(self.condition[0], Clbit):
+            return [self.condition[0]]
+        else:  # ClassicalRegister
+            return list(self.condition[0])

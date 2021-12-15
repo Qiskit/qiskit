@@ -52,7 +52,6 @@ class HamiltonianPhaseEstimationResult(AlgorithmResult):
         self._id_coefficient = id_coefficient
         self._phase_estimation_result = phase_estimation_result
 
-    # pylint: disable=arguments-differ
     def filter_phases(
         self, cutoff: float = 0.0, scaled: bool = True, as_float: bool = True
     ) -> Dict[Union[str, float], float]:

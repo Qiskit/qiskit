@@ -384,8 +384,6 @@ def _text_circuit_drawer(
     text_drawing.vertical_compression = vertical_compression
 
     if filename:
-        if not filename.endswith(".txt"):
-            raise VisualizationError("ERROR: filename parameter does not use .txt extension.")
         text_drawing.dump(filename, encoding=encoding)
     return text_drawing
 
@@ -675,5 +673,6 @@ def _matplotlib_circuit_drawer(
         global_phase=global_phase,
         qregs=circuit.qregs,
         cregs=circuit.cregs,
+        calibrations=circuit.calibrations,
     )
     return qcd.draw(filename)

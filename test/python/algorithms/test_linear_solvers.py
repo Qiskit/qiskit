@@ -17,7 +17,7 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 from scipy.linalg import expm
 import numpy as np
 from ddt import ddt, idata, unpack
-from qiskit import QuantumCircuit
+from qiskit import BasicAer, QuantumCircuit
 from qiskit.algorithms.linear_solvers.hhl import HHL
 from qiskit.algorithms.linear_solvers.matrices.tridiagonal_toeplitz import TridiagonalToeplitz
 from qiskit.algorithms.linear_solvers.matrices.numpy_matrix import NumPyMatrix
@@ -26,6 +26,7 @@ from qiskit.algorithms.linear_solvers.observables.matrix_functional import Matri
 from qiskit.circuit.library.arithmetic.exact_reciprocal import ExactReciprocal
 from qiskit.quantum_info import Operator, partial_trace
 from qiskit.opflow import I, Z, StateFn
+from qiskit.utils import QuantumInstance
 from qiskit import quantum_info
 
 
@@ -272,6 +273,20 @@ class TestLinearSolver(QiskitAlgorithmsTestCase):
         exact_result = observable.evaluate_classically(exact_x)
 
         np.testing.assert_almost_equal(approx_result, exact_result, decimal=1)
+
+    def test_hhl_qi(self):
+        """Test the HHL quantum instance getter and setter."""
+        hhl = HHL()
+        self.assertIsNone(hhl.quantum_instance)  # Defaults to None
+
+        # First set a valid quantum instance and check via getter
+        qinst = QuantumInstance(backend=BasicAer.get_backend("qasm_simulator"))
+        hhl.quantum_instance = qinst
+        self.assertEqual(hhl.quantum_instance, qinst)
+
+        # Now set quantum instance back to None and check via getter
+        hhl.quantum_instance = None
+        self.assertIsNone(hhl.quantum_instance)
 
 
 if __name__ == "__main__":
