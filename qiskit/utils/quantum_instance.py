@@ -177,6 +177,7 @@ class QuantumInstance:
         Quantum Instance holds a Qiskit Terra backend as well as configuration for circuit
         transpilation and execution. When provided to an Aqua algorithm the algorithm will
         execute the circuits it needs to run using the instance.
+
         Args:
             backend (Union['Backend', 'BaseBackend']): Instance of selected backend
             shots: Number of repetitions of each circuit, for sampling. If None, the shots are
@@ -353,6 +354,7 @@ class QuantumInstance:
 
     def __str__(self) -> str:
         """Overload string.
+
         Returns:
             str: the info of the object.
         """
@@ -452,6 +454,7 @@ class QuantumInstance:
     def execute(self, circuits, had_transpiled: bool = False):
         """
         A wrapper to interface with quantum backend.
+
         Args:
             circuits (Union['QuantumCircuit', List['QuantumCircuit']]):
                         circuits to execute
@@ -462,8 +465,10 @@ class QuantumInstance:
             QiskitError: TensoredMeasFitter class doesn't support subset fitter
             MissingOptionalLibraryError: Ignis not installed
 
+
         Returns:
             Result: result object
+
         TODO: Maybe we can combine the circuits for the main ones and calibration circuits before
               assembling to the qobj.
         """
@@ -971,8 +976,10 @@ class QuantumInstance:
     def maybe_refresh_cals_matrix(self, timestamp: Optional[float] = None) -> bool:
         """
         Calculate the time difference from the query of last time.
+
         Args:
             timestamp: timestamp
+
         Returns:
             Whether or not refresh the cals_matrix
         """
@@ -990,9 +997,11 @@ class QuantumInstance:
     ) -> Optional[Union[Tuple[np.ndarray, float], Dict[str, Tuple[np.ndarray, float]]]]:
         """
         Get the stored calibration matrices and its timestamp.
+
         Args:
             qubit_index: the qubit index of corresponding calibration matrix.
                          If None, return all stored calibration matrices.
+
         Returns:
             The calibration matrix and the creation timestamp if qubit_index
             is not None otherwise, return all matrices and their timestamp
