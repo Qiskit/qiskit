@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Added a new coupling-map constructor method
+    :meth:`.CouplingMap.from_hexagonal_lattice` for constructing a hexagonal
+    lattice coupling map.  For example, to construct a 2x2 hexagonal
+    lattice coupling map:
+
+    .. jupyter-execute::
+
+      from qiskit.transpiler import CouplingMap
+      cmap = CouplingMap.from_hexagonal_lattice(2, 2)
+      cmap.draw()

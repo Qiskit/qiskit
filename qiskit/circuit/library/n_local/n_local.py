@@ -954,9 +954,8 @@ class NLocal(BlueprintCircuit):
         # cast global phase to float if it has no free parameters
         if isinstance(circuit.global_phase, ParameterExpression):
             try:
-                circuit.global_phase = float(circuit.global_phase._symbol_expr)
-            # RuntimeError is raised if symengine is used, for SymPy it is a TypeError
-            except (RuntimeError, TypeError):
+                circuit.global_phase = float(circuit.global_phase)
+            except TypeError:
                 # expression contains free parameters
                 pass
 
