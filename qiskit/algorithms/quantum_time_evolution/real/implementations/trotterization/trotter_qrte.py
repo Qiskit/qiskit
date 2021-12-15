@@ -29,7 +29,7 @@ from qiskit.opflow import (
     CircuitOp,
 )
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.quantum_info import SparsePauliOp, Pauli
+from qiskit.quantum_info import Pauli
 from qiskit.synthesis import ProductFormula, LieTrotter
 
 
@@ -49,7 +49,8 @@ class TrotterQrte(Qrte):
             # LieTrotter with 1 rep
             trotter_qrte = TrotterQrte()
             initial_state = Zero
-            evolved_state = trotter_qrte.evolve(operator, 1, initial_state)
+            time = 1
+            evolved_state = trotter_qrte.evolve(operator, time, initial_state)
     """
 
     def __init__(self, product_formula: ProductFormula = LieTrotter()):
@@ -62,7 +63,7 @@ class TrotterQrte(Qrte):
 
     def evolve(
         self,
-        hamiltonian: Union[Pauli, PauliOp, SparsePauliOp, PauliSumOp],
+        hamiltonian: Union[Pauli, PauliOp, PauliSumOp],
         time: float,
         initial_state: StateFn = None,
         observable: OperatorBase = None,
@@ -114,9 +115,9 @@ class TrotterQrte(Qrte):
 
     def _try_binding_params(
         self,
-        hamiltonian: Union[SummedOp, PauliOp, SparsePauliOp, OperatorBase],
+        hamiltonian: Union[SummedOp, PauliOp, OperatorBase],
         hamiltonian_value_dict: Dict[Parameter, Union[float, complex]],
-    ) -> Union[SummedOp, PauliOp, SparsePauliOp, OperatorBase]:
+    ) -> Union[SummedOp, PauliOp, OperatorBase]:
         # PauliSumOp does not allow parametrized coefficients but after binding the parameters
         # we need to convert it into a PauliSumOp for the PauliEvolutionGate.
         if isinstance(hamiltonian, SummedOp):
@@ -130,7 +131,7 @@ class TrotterQrte(Qrte):
                 op_list.append(op_bound)
             return sum(op_list)
         elif isinstance(
-            hamiltonian, (PauliOp, OperatorBase, SparsePauliOp)
+            hamiltonian, (PauliOp, OperatorBase)
         ):  # in case there is only a single summand
             if hamiltonian_value_dict is not None:
                 op_bound = hamiltonian.bind_parameters(hamiltonian_value_dict)
@@ -142,11 +143,10 @@ class TrotterQrte(Qrte):
         else:
             raise ValueError(
                 f"Provided a Hamiltonian of an unsupported type: {type(hamiltonian)}. Only "
-                f"SummedOp, PauliOp, SparsePauliOp and OperatorBase base are supported by "
-                f"TrotterQrte."
+                f"SummedOp, PauliOp, and OperatorBase base are supported by TrotterQrte."
             )
 
-    def _is_op_bound(self, op_bound: Union[SummedOp, PauliOp, SparsePauliOp, OperatorBase]) -> None:
+    def _is_op_bound(self, op_bound: Union[SummedOp, PauliOp, OperatorBase]) -> None:
         """Checks if an operator provided has all parameters bound."""
         if len(op_bound.parameters) > 0:
             raise ValueError(
@@ -154,7 +154,7 @@ class TrotterQrte(Qrte):
                 f"these parameters encountered: {op_bound.parameters}."
             )
 
-    def _validate_input(self, initial_state, observable: OperatorBase) -> None:
+    def _validate_input(self, initial_state: StateFn, observable: OperatorBase) -> None:
         """Validates if one and only one among initial_state and observable is provided."""
         if initial_state is None and observable is None:
             raise ValueError(
@@ -169,7 +169,7 @@ class TrotterQrte(Qrte):
 
     def gradient(
         self,
-        hamiltonian: Union[SummedOp, PauliOp, SparsePauliOp, OperatorBase],
+        hamiltonian: Union[SummedOp, PauliOp, OperatorBase],
         time: float,
         initial_state: StateFn,
         gradient_object: Gradient,
@@ -232,7 +232,7 @@ class TrotterQrte(Qrte):
 
     def _calc_time_gradient_finite_diff(
         self,
-        hamiltonian,
+        hamiltonian: Union[SummedOp, PauliOp, OperatorBase],
         hamiltonian_value_dict: Dict[Parameter, Union[float, complex]],
         initial_state: StateFn,
         observable: OperatorBase,
@@ -252,8 +252,8 @@ class TrotterQrte(Qrte):
 
     def _calc_term_gradient(
         self,
-        hamiltonian,
-        hamiltonian_term: Union[OperatorBase, PauliSumOp, SummedOp],
+        hamiltonian: Union[SummedOp, PauliOp, OperatorBase],
+        hamiltonian_term: Union[PauliOp, OperatorBase],
         initial_state: StateFn,
         observable: OperatorBase,
         t_param: Parameter,
@@ -278,8 +278,7 @@ class TrotterQrte(Qrte):
         gradient = gradient.eval()
         return gradient
 
-    # TODO cover PauliOp, SparsePauliOp, and OperatorBase
-    def _validate_hamiltonian_form(self, hamiltonian: SummedOp):
+    def _validate_hamiltonian_form(self, hamiltonian: Union[SummedOp, PauliOp, OperatorBase]):
         """Validates that a Hamiltonian is of a correct type and with expected dependence on
         parameters."""
         if isinstance(hamiltonian, SummedOp):
@@ -294,7 +293,12 @@ class TrotterQrte(Qrte):
                         "Hamiltonian term has a coefficient that is not a linear function of a "
                         "single parameter. It is not supported."
                     )
-
+        elif isinstance(hamiltonian, (PauliOp, OperatorBase)):
+            if not self._is_linear_with_single_param(hamiltonian):
+                raise ValueError(
+                    "Hamiltonian term has a coefficient that is not a linear function of a "
+                    "single parameter. It is not supported."
+                )
         else:
             raise ValueError("Hamiltonian not a SummedOp which is the only option supported.")
 
