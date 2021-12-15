@@ -215,7 +215,6 @@ class TestTrotterQrte(QiskitOpflowTestCase):
             gradient_params=[theta1, theta2],
         )
         expected_gradient = {theta1: 0j, theta2: 0j}
-        print(gradient)
         np.testing.assert_equal(expected_gradient.keys(), gradient.keys())
         for key in expected_gradient.keys():
             np.testing.assert_almost_equal(gradient[key], expected_gradient[key])
@@ -224,8 +223,7 @@ class TestTrotterQrte(QiskitOpflowTestCase):
     def test_trotter_qrte_gradient_summed_op_qdrift_4(self):
         """Test for trotter qrte gradient with SummedOp and QDrift with commuting operators
         with complex parameter binding."""
-        algorithm_globals.random_seed = 5
-        random.seed(1234)
+        algorithm_globals.random_seed = 0
         theta1 = Parameter("theta1")
         theta2 = Parameter("theta2")
         operator = theta1 * (Z) + theta2 * (Y)
@@ -244,8 +242,7 @@ class TestTrotterQrte(QiskitOpflowTestCase):
             hamiltonian_value_dict=value_dict,
             gradient_params=[theta1, theta2],
         )
-        expected_gradient = {theta1: -7.1894106501296875 + 0j, theta2: 9.745099298494452 + 0j}
-        print(gradient)
+        expected_gradient = {theta1: 10.938002663771012 + 0j, theta2: 9.745099298494452 + 0j}
         np.testing.assert_equal(expected_gradient.keys(), gradient.keys())
         for key in expected_gradient.keys():
             np.testing.assert_almost_equal(gradient[key], expected_gradient[key])
