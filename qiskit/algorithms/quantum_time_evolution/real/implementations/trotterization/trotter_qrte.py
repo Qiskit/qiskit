@@ -12,12 +12,16 @@
 
 """An algorithm to implement a Trotterization real time-evolution."""
 
-import numbers
 from collections import defaultdict
 from typing import Union, List, Dict
 
+from qiskit.algorithms.quantum_time_evolution.real.implementations.trotterization.trotter_ops_validator import (
+    _validate_hamiltonian_form,
+    _validate_input,
+    _is_op_bound,
+)
 from qiskit.algorithms.quantum_time_evolution.real.qrte import Qrte
-from qiskit.circuit import Parameter, ParameterExpression
+from qiskit.circuit import Parameter
 from qiskit.opflow import (
     OperatorBase,
     StateFn,
@@ -98,7 +102,7 @@ class TrotterQrte(Qrte):
             )
 
         hamiltonian = self._try_binding_params(hamiltonian, hamiltonian_value_dict)
-        self._validate_input(initial_state, observable)
+        _validate_input(initial_state, observable)
         # the evolution gate
         evolution_gate = CircuitOp(
             PauliEvolutionGate(hamiltonian, time, synthesis=self.product_formula)
@@ -106,12 +110,14 @@ class TrotterQrte(Qrte):
 
         if initial_state is not None:
             return (evolution_gate @ initial_state).eval()
-        elif observable is not None:
+        if observable is not None:
             # TODO Temporary patch due to terra bug
             evolution_gate_adjoint = CircuitOp(
                 PauliEvolutionGate(hamiltonian[::-1], -time, synthesis=self.product_formula)
             )
             return evolution_gate_adjoint @ observable @ evolution_gate
+
+        raise ValueError("Either initial_state or observable must be provided.")
 
     def _try_binding_params(
         self,
@@ -127,7 +133,7 @@ class TrotterQrte(Qrte):
                     op_bound = op.bind_parameters(hamiltonian_value_dict)
                 else:
                     op_bound = op
-                self._is_op_bound(op_bound)
+                _is_op_bound(op_bound)
                 op_list.append(op_bound)
             return sum(op_list)
         elif isinstance(
@@ -138,33 +144,12 @@ class TrotterQrte(Qrte):
             else:
                 op_bound = hamiltonian
 
-            self._is_op_bound(op_bound)
+            _is_op_bound(op_bound)
             return op_bound
         else:
             raise ValueError(
                 f"Provided a Hamiltonian of an unsupported type: {type(hamiltonian)}. Only "
                 f"SummedOp, PauliOp, and OperatorBase base are supported by TrotterQrte."
-            )
-
-    def _is_op_bound(self, op_bound: Union[SummedOp, PauliOp, OperatorBase]) -> None:
-        """Checks if an operator provided has all parameters bound."""
-        if len(op_bound.parameters) > 0:
-            raise ValueError(
-                f"Did not manage to bind all parameters in the Hamiltonian, "
-                f"these parameters encountered: {op_bound.parameters}."
-            )
-
-    def _validate_input(self, initial_state: StateFn, observable: OperatorBase) -> None:
-        """Validates if one and only one among initial_state and observable is provided."""
-        if initial_state is None and observable is None:
-            raise ValueError(
-                "TrotterQrte requires an initial state or an observable to be evolved; None "
-                "provided."
-            )
-        if initial_state is not None and observable is not None:
-            raise ValueError(
-                "TrotterQrte requires an initial state or an observable to be evolved; both "
-                "provided."
             )
 
     def gradient(
@@ -189,7 +174,7 @@ class TrotterQrte(Qrte):
                 "ignored."
             )
 
-        self._validate_hamiltonian_form(hamiltonian)
+        _validate_hamiltonian_form(hamiltonian)
         param_set = set(gradient_params)
         if t_param is not None:
             param_set.add(t_param)
@@ -277,45 +262,3 @@ class TrotterQrte(Qrte):
         gradient = ~StateFn(custom_observable) @ evolved_state
         gradient = gradient.eval()
         return gradient
-
-    def _validate_hamiltonian_form(self, hamiltonian: Union[SummedOp, PauliOp, OperatorBase]):
-        """Validates that a Hamiltonian is of a correct type and with expected dependence on
-        parameters."""
-        if isinstance(hamiltonian, SummedOp):
-            if isinstance(hamiltonian.coeff, ParameterExpression):
-                raise ValueError(
-                    "The coefficient multiplying the whole Hamiltonian cannot be a "
-                    "ParameterExpression."
-                )
-            for op in hamiltonian.oplist:
-                if not self._is_linear_with_single_param(op):
-                    raise ValueError(
-                        "Hamiltonian term has a coefficient that is not a linear function of a "
-                        "single parameter. It is not supported."
-                    )
-        elif isinstance(hamiltonian, (PauliOp, OperatorBase)):
-            if not self._is_linear_with_single_param(hamiltonian):
-                raise ValueError(
-                    "Hamiltonian term has a coefficient that is not a linear function of a "
-                    "single parameter. It is not supported."
-                )
-        else:
-            raise ValueError("Hamiltonian not a SummedOp which is the only option supported.")
-
-    def _is_linear_with_single_param(self, operator: OperatorBase) -> bool:
-        """Checks if an operator provided is linear w.r.t. one and only one parameter."""
-        if (
-            not isinstance(operator.coeff, ParameterExpression)
-            and not isinstance(operator.coeff, Parameter)
-            or len(operator.coeff.parameters) == 0
-        ):
-            return True
-        if len(operator.coeff.parameters) > 1:
-            raise ValueError(
-                "Term of a Hamiltonian has a coefficient that depends on several "
-                "parameters. Only dependence on a single parameter is allowed."
-            )
-        single_parameter_expression = operator.coeff
-        parameter = list(single_parameter_expression.parameters)[0]
-        gradient = single_parameter_expression.gradient(parameter)
-        return isinstance(gradient, numbers.Number)

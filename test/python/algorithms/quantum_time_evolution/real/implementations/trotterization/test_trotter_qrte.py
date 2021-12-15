@@ -13,18 +13,17 @@
 """ Test Trotter Qrte. """
 
 import unittest
-import random
-from ddt import ddt, data, unpack
 
-from test.python.opflow import QiskitOpflowTestCase
+from ddt import ddt, data, unpack
 import numpy as np
 from numpy.testing import assert_raises
 from scipy.linalg import expm
 
+from test.python.opflow import QiskitOpflowTestCase
 from qiskit.algorithms.quantum_time_evolution.real.implementations.trotterization.trotter_qrte import (
     TrotterQrte,
 )
-from qiskit.quantum_info import Statevector, SparsePauliOp
+from qiskit.quantum_info import Statevector
 from qiskit.utils import algorithm_globals
 from qiskit.circuit import Parameter
 from qiskit.opflow import (
@@ -53,7 +52,7 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         evolved_state = trotter_qrte.evolve(operator, 1, initial_state)
         # Calculate the expected state
         expected_state = (
-                expm(-1j * Z.to_matrix()) @ expm(-1j * X.to_matrix()) @ initial_state.to_matrix()
+            expm(-1j * Z.to_matrix()) @ expm(-1j * X.to_matrix()) @ initial_state.to_matrix()
         )
         expected_evolved_state = VectorStateFn(Statevector(expected_state, dims=(2,)))
 
@@ -98,10 +97,10 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         evolved_state = trotter_qrte.evolve(operator, 1, initial_state)
         # Calculate the expected state
         expected_state = (
-                expm(-1j * X.to_matrix() * 0.5)
-                @ expm(-1j * Z.to_matrix())
-                @ expm(-1j * X.to_matrix() * 0.5)
-                @ initial_state.to_matrix()
+            expm(-1j * X.to_matrix() * 0.5)
+            @ expm(-1j * Z.to_matrix())
+            @ expm(-1j * X.to_matrix() * 0.5)
+            @ initial_state.to_matrix()
         )
         expected_evolved_state = VectorStateFn(Statevector(expected_state, dims=(2,)))
 
@@ -283,7 +282,7 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         trotter_qrte = TrotterQrte(QDrift())
         valid = True
         try:
-            trotter_qrte._validate_hamiltonian_form(hamiltonian)
+            _validate_hamiltonian_form(hamiltonian)
         except ValueError:
             valid = False
 
