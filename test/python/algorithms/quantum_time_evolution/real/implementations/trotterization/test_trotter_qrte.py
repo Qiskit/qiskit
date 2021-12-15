@@ -14,7 +14,7 @@
 
 import unittest
 
-from ddt import ddt, data, unpack
+from ddt import ddt, data
 import numpy as np
 from numpy.testing import assert_raises
 from scipy.linalg import expm
@@ -269,24 +269,6 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         )
         expected_gradient = {theta1: 0j}
         np.testing.assert_equal(gradient, expected_gradient)
-
-    @data(
-        (X, True),
-        (Parameter("theta") * Y, True),
-        (Parameter("theta") * Parameter("gamma") * Z, False),
-        (Parameter("theta") * X + Parameter("gamma") * Y, True),
-        (Parameter("theta1") * Parameter("theta2") * X + Parameter("gamma") * Y, False),
-    )
-    @unpack
-    def test_validate_hamiltonian_form(self, hamiltonian, expected):
-        trotter_qrte = TrotterQrte(QDrift())
-        valid = True
-        try:
-            _validate_hamiltonian_form(hamiltonian)
-        except ValueError:
-            valid = False
-
-        np.testing.assert_equal(valid, expected)
 
 
 if __name__ == "__main__":

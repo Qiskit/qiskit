@@ -181,6 +181,7 @@ class TrotterQrte(Qrte):
 
         if param_set.issubset(set(hamiltonian.parameters)):
             gradients = defaultdict(float)
+            # TODO support PauliOp, OperatorBase
             if isinstance(hamiltonian, SummedOp):
                 for gradient_param in param_set:
                     for hamiltonian_term in hamiltonian.oplist:
