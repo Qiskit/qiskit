@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Added Trotterization-based Quantum Real Time Evolution Algorithm. It is compliant with the new
+    Quantum Time Evolution Framework and makes use of recent
+    :class:`qiskit.synthesis.evolution.ProductFormula` and
+    :class:`qiskit.circuit.library.PauliEvolutionGate` implementations.
