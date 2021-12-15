@@ -28,7 +28,7 @@ from qiskit.visualization.circuit_visualization import _matplotlib_circuit_drawe
 from qiskit.circuit.library import XGate, MCXGate, HGate, RZZGate, SwapGate, DCXGate, ZGate, SGate
 from qiskit.circuit.library import MCXVChain
 from qiskit.extensions import HamiltonianGate
-from qiskit.circuit import Parameter
+from qiskit.circuit import Parameter, Qubit, Clbit
 from qiskit.circuit.library import IQP
 from qiskit.quantum_info.random import random_unitary
 from qiskit.tools.visualization import HAS_MATPLOTLIB
@@ -486,7 +486,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         self.circuit_drawer(circuit, filename="scale_double.png", scale=2)
 
     def test_pi_param_expr(self):
-        """Text pi in circuit with parameter expression."""
+        """Test pi in circuit with parameter expression."""
         x, y = Parameter("x"), Parameter("y")
         circuit = QuantumCircuit(1)
         circuit.rx((pi - x) * (pi - y), 0)
@@ -787,8 +787,6 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
     def test_registerless_one_bit(self):
         """Test circuit with one-bit registers and registerless bits."""
-        from qiskit.circuit import Qubit, Clbit
-
         qrx = QuantumRegister(2, "qrx")
         qry = QuantumRegister(1, "qry")
         crx = ClassicalRegister(2, "crx")
@@ -808,6 +806,28 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.h(0).c_if(cr2, 3)
         self.circuit_drawer(circuit, cregbundle=False, filename="measure_cond_false.png")
         self.circuit_drawer(circuit, cregbundle=True, filename="measure_cond_true.png")
+
+    def test_conditions_measures_with_bits(self):
+        """Test that gates with conditions and measures work with bits"""
+        bits = [Qubit(), Qubit(), Clbit(), Clbit()]
+        cr = ClassicalRegister(2, "cr")
+        crx = ClassicalRegister(3, "cs")
+        circuit = QuantumCircuit(bits, cr, [Clbit()], crx)
+        circuit.x(0).c_if(crx[1], 0)
+        circuit.measure(0, bits[3])
+        self.circuit_drawer(circuit, cregbundle=False, filename="measure_cond_bits_false.png")
+        self.circuit_drawer(circuit, cregbundle=True, filename="measure_cond_bits_true.png")
+
+    def test_conditional_gates_right_of_measures_with_bits(self):
+        """Test that gates with conditions draw to right of measures when same bit"""
+        qr = QuantumRegister(3, "qr")
+        cr = ClassicalRegister(2, "cr")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr[0])
+        circuit.measure(qr[0], cr[1])
+        circuit.h(qr[1]).c_if(cr[1], 0)
+        circuit.h(qr[2]).c_if(cr[0], 0)
+        self.circuit_drawer(circuit, cregbundle=False, filename="measure_cond_bits_right.png")
 
 
 if __name__ == "__main__":

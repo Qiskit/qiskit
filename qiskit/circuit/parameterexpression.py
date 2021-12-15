@@ -35,6 +35,11 @@ except ImportError:
 ParameterValueType = Union["ParameterExpression", float]
 
 
+class ParameterTypeError(TypeError):
+    """The type error throw by parameter if we try to cast to number unbind parameter."""
+    pass
+
+
 class ParameterExpression:
     """ParameterExpression class to enable creating expressions of Parameters."""
 
@@ -175,7 +180,7 @@ class ParameterExpression:
         else:
             from sympy import Symbol
 
-            new_parameter_symbols = {p: Symbol(p.name) for p in inbound_parameters}
+            new_parameter_symbols = {p: Symbol(p.name, real=True) for p in inbound_parameters}
 
         # Include existing parameters in self not set to be replaced.
         new_parameter_symbols.update(
