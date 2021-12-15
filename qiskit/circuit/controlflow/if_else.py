@@ -13,13 +13,15 @@
 "Circuit operation representing an ``if/else`` statement."
 
 
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, Iterable, Set
 
-from qiskit.circuit import ClassicalRegister, Clbit, QuantumCircuit, Qubit
+from qiskit.circuit import ClassicalRegister, Clbit, QuantumCircuit
 from qiskit.circuit.instructionset import InstructionSet
 from qiskit.circuit.exceptions import CircuitError
-from .builder import ControlFlowBuilderBlock, InstructionPlaceholder
-from .condition import validate_condition, condition_bits
+from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.register import Register
+from .builder import ControlFlowBuilderBlock, InstructionPlaceholder, InstructionResources
+from .condition import validate_condition, condition_bits, condition_registers
 from .control_flow import ControlFlowOp
 
 
@@ -148,6 +150,11 @@ class IfElsePlaceholder(InstructionPlaceholder):
 
     This generally should not be instantiated manually; only :obj:`.IfContext` and
     :obj:`.ElseContext` should do it when they need to defer creation of the concrete instruction.
+
+    .. warning::
+
+        This is an internal interface and no part of it should be relied upon outside of Qiskit
+        Terra.
     """
 
     def __init__(
@@ -171,8 +178,9 @@ class IfElsePlaceholder(InstructionPlaceholder):
         self.__true_block = true_block
         self.__false_block: Optional[ControlFlowBuilderBlock] = false_block
         self.__resources = self._placeholder_resources()
-        qubits, clbits = self.__resources
-        super().__init__("if_else", len(qubits), len(clbits), [], label=label)
+        super().__init__(
+            "if_else", len(self.__resources.qubits), len(self.__resources.clbits), [], label=label
+        )
         # Set the condition after super().__init__() has initialised it to None.
         self.condition = validate_condition(condition)
 
@@ -201,7 +209,13 @@ class IfElsePlaceholder(InstructionPlaceholder):
         false_block.add_bits(true_bits - false_bits)
         return type(self)(self.condition, true_block, false_block, label=self.label)
 
-    def _placeholder_resources(self) -> Tuple[Tuple[Qubit, ...], Tuple[Clbit, ...]]:
+    def registers(self):
+        """Get the registers used by the interior blocks."""
+        if self.__false_block is None:
+            return self.__true_block.registers.copy()
+        return self.__true_block.registers | self.__false_block.registers
+
+    def _placeholder_resources(self) -> InstructionResources:
         """Get the placeholder resources (see :meth:`.placeholder_resources`).
 
         This is a separate function because we use the resources during the initialisation to
@@ -209,14 +223,24 @@ class IfElsePlaceholder(InstructionPlaceholder):
         public version as a cache access for efficiency.
         """
         if self.__false_block is None:
-            return tuple(self.__true_block.qubits), tuple(self.__true_block.clbits)
-        return (
-            tuple(self.__true_block.qubits | self.__false_block.qubits),
-            tuple(self.__true_block.clbits | self.__false_block.clbits),
+            qregs, cregs = _partition_registers(self.__true_block.registers)
+            return InstructionResources(
+                qubits=tuple(self.__true_block.qubits),
+                clbits=tuple(self.__true_block.clbits),
+                qregs=tuple(qregs),
+                cregs=tuple(cregs),
+            )
+        true_qregs, true_cregs = _partition_registers(self.__true_block.registers)
+        false_qregs, false_cregs = _partition_registers(self.__false_block.registers)
+        return InstructionResources(
+            qubits=tuple(self.__true_block.qubits | self.__false_block.qubits),
+            clbits=tuple(self.__true_block.clbits | self.__false_block.clbits),
+            qregs=tuple(true_qregs) + tuple(false_qregs),
+            cregs=tuple(true_cregs) + tuple(false_cregs),
         )
 
     def placeholder_resources(self):
-        # Tuple and Bit are both immutable, so the resource cache is completely immutable.
+        # All the elements of our InstructionResources are immutable (tuple, Bit and Register).
         return self.__resources
 
     def concrete_instruction(self, qubits, clbits):
@@ -241,13 +265,17 @@ class IfElsePlaceholder(InstructionPlaceholder):
         # The bodies are not compelled to use all the resources that the
         # ControlFlowBuilderBlock.build calls get passed, but they do need to be as wide as each
         # other.  Now we ensure that they are.
-        true_body, false_body = _unify_circuit_bits(true_body, false_body)
+        true_body, false_body = _unify_circuit_resources(true_body, false_body)
         return (
             self._copy_mutable_properties(
                 IfElseOp(self.condition, true_body, false_body, label=self.label)
             ),
-            tuple(true_body.qubits),
-            tuple(true_body.clbits),
+            InstructionResources(
+                qubits=tuple(true_body.qubits),
+                clbits=tuple(true_body.clbits),
+                qregs=tuple(true_body.qregs),
+                cregs=tuple(true_body.cregs),
+            ),
         )
 
     def c_if(self, classical, val):
@@ -268,6 +296,11 @@ class IfContext:
     the resulting instance is a "friend" of the calling circuit.  The context will manipulate the
     circuit's defined scopes when it is entered (by pushing a new scope onto the stack) and exited
     (by popping its scope, building it, and appending the resulting :obj:`.IfElseOp`).
+
+    .. warning::
+
+        This is an internal interface and no part of it should be relied upon outside of Qiskit
+        Terra.
     """
 
     __slots__ = ("_appended_instructions", "_circuit", "_condition", "_in_loop", "_label")
@@ -312,7 +345,11 @@ class IfContext:
         return self._in_loop
 
     def __enter__(self):
-        self._circuit._push_scope(clbits=condition_bits(self._condition), allow_jumps=self._in_loop)
+        self._circuit._push_scope(
+            clbits=condition_bits(self._condition),
+            registers=condition_registers(self._condition),
+            allow_jumps=self._in_loop,
+        )
         return ElseContext(self)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -328,8 +365,9 @@ class IfContext:
             # attached which _does_ gain them.  We emit a placeholder to defer defining the
             # resources we use until the containing loop concludes, to support ``break``.
             operation = IfElsePlaceholder(self._condition, true_block, label=self._label)
+            resources = operation.placeholder_resources()
             self._appended_instructions = self._circuit.append(
-                operation, *operation.placeholder_resources()
+                operation, resources.qubits, resources.clbits
             )
         else:
             # If we're not in a loop, we don't need to be worried about passing in any outer-scope
@@ -353,9 +391,14 @@ class ElseContext:
     The context will manipulate the circuit's defined scopes when it is entered (by popping the old
     :obj:`.IfElseOp` if it exists and pushing a new scope onto the stack) and exited (by popping its
     scope, building it, and appending the resulting :obj:`.IfElseOp`).
+
+    .. warning::
+
+        This is an internal interface and no part of it should be relied upon outside of Qiskit
+        Terra.
     """
 
-    __slots__ = ("_if_block", "_if_clbits", "_if_context", "_if_qubits", "_used")
+    __slots__ = ("_if_block", "_if_clbits", "_if_registers", "_if_context", "_if_qubits", "_used")
 
     def __init__(self, if_context: IfContext):
         # We want to avoid doing any processing until we're actually used, because the `if` block
@@ -364,6 +407,7 @@ class ElseContext:
         self._if_block = None
         self._if_qubits = None
         self._if_clbits = None
+        self._if_registers = None
         self._if_context = if_context
         self._used = False
 
@@ -390,7 +434,18 @@ class ElseContext:
             self._if_qubits,
             self._if_clbits,
         ) = circuit._pop_previous_instruction_in_scope()
-        circuit._push_scope(self._if_qubits, self._if_clbits, allow_jumps=self._if_context.in_loop)
+        if isinstance(self._if_block, IfElseOp):
+            self._if_registers = set(self._if_block.blocks[0].cregs).union(
+                self._if_block.blocks[0].qregs
+            )
+        else:
+            self._if_registers = self._if_block.registers()
+        circuit._push_scope(
+            self._if_qubits,
+            self._if_clbits,
+            registers=self._if_registers,
+            allow_jumps=self._if_context.in_loop,
+        )
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         circuit = self._if_context.circuit
@@ -409,7 +464,8 @@ class ElseContext:
         # is not.
         if isinstance(self._if_block, IfElsePlaceholder):
             if_block = self._if_block.with_false_block(false_block)
-            circuit.append(if_block, *if_block.placeholder_resources())
+            resources = if_block.placeholder_resources()
+            circuit.append(if_block, resources.qubits, resources.clbits)
         else:
             # In this case, we need to update both true_body and false_body to have exactly the same
             # widths.  Passing extra resources to `ControlFlowBuilderBlock.build` doesn't _compel_
@@ -418,7 +474,7 @@ class ElseContext:
             # bits onto the circuits at the end.
             true_body = self._if_block.blocks[0]
             false_body = false_block.build(false_block.qubits, false_block.clbits)
-            true_body, false_body = _unify_circuit_bits(true_body, false_body)
+            true_body, false_body = _unify_circuit_resources(true_body, false_body)
             circuit.append(
                 IfElseOp(
                     self._if_context.condition,
@@ -432,20 +488,37 @@ class ElseContext:
         return False
 
 
-def _unify_circuit_bits(
+def _partition_registers(
+    registers: Iterable[Register],
+) -> Tuple[Set[QuantumRegister], Set[ClassicalRegister]]:
+    """Partition a sequence of registers into its quantum and classical registers."""
+    qregs = set()
+    cregs = set()
+    for register in registers:
+        if isinstance(register, QuantumRegister):
+            qregs.add(register)
+        elif isinstance(register, ClassicalRegister):
+            cregs.add(register)
+        else:
+            # Purely defensive against Terra expansion.
+            raise CircuitError(f"Unknown register: {register}.")
+    return qregs, cregs
+
+
+def _unify_circuit_resources(
     true_body: QuantumCircuit, false_body: Optional[QuantumCircuit]
 ) -> Tuple[QuantumCircuit, Union[QuantumCircuit, None]]:
     """
-    Ensure that ``true_body`` and ``false_body`` have all the same qubits and clbits, and that they
-    are defined in the same order.  The order is important for binding when the bodies are used in
-    the 3-tuple :obj:`.Instruction` context.
+    Ensure that ``true_body`` and ``false_body`` have all the same qubits, clbits and registers, and
+    that they are defined in the same order.  The order is important for binding when the bodies are
+    used in the 3-tuple :obj:`.Instruction` context.
 
     This function will preferentially try to mutate ``true_body`` and ``false_body`` if they share
     an ordering, but if not, it will rebuild two new circuits.  This is to avoid coupling too
     tightly to the inner class; there is no real support for deleting or re-ordering bits within a
     :obj:`.QuantumCircuit` context, and we don't want to rely on the *current* behaviour of the
     private APIs, since they are very liable to change.  No matter the method used, two circuits
-    with unified bits are returned.
+    with unified bits and registers are returned.
     """
     if false_body is None:
         return true_body, false_body
@@ -461,17 +534,17 @@ def _unify_circuit_bits(
     elif n_false_qubits < n_true_qubits and false_qubits == true_qubits[:n_false_qubits]:
         false_body.add_bits(true_qubits[n_false_qubits:])
     else:
-        return _unify_circuit_bits_rebuild(true_body, false_body)
+        return _unify_circuit_resources_rebuild(true_body, false_body)
     if n_true_clbits <= n_false_clbits and true_clbits == false_clbits[:n_true_clbits]:
         true_body.add_bits(false_clbits[n_true_clbits:])
     elif n_false_clbits < n_true_clbits and false_clbits == true_clbits[:n_false_clbits]:
         false_body.add_bits(true_clbits[n_false_clbits:])
     else:
-        return _unify_circuit_bits_rebuild(true_body, false_body)
-    return true_body, false_body
+        return _unify_circuit_resources_rebuild(true_body, false_body)
+    return _unify_circuit_registers(true_body, false_body)
 
 
-def _unify_circuit_bits_rebuild(
+def _unify_circuit_resources_rebuild(  # pylint: disable=invalid-name  # (it's too long?!)
     true_body: QuantumCircuit, false_body: QuantumCircuit
 ) -> Tuple[QuantumCircuit, QuantumCircuit]:
     """
@@ -484,10 +557,27 @@ def _unify_circuit_bits_rebuild(
     qubits = list(set(true_body.qubits).union(false_body.qubits))
     clbits = list(set(true_body.clbits).union(false_body.clbits))
     # We use the inner `_append` method because everything is already resolved.
-    true_out = QuantumCircuit(qubits, clbits)
+    true_out = QuantumCircuit(qubits, clbits, *true_body.qregs, *true_body.cregs)
     for data in true_body.data:
         true_out._append(*data)
-    false_out = QuantumCircuit(qubits, clbits)
+    false_out = QuantumCircuit(qubits, clbits, *false_body.qregs, *false_body.cregs)
     for data in false_body.data:
         false_out._append(*data)
-    return true_out, false_out
+    return _unify_circuit_registers(true_out, false_out)
+
+
+def _unify_circuit_registers(
+    true_body: QuantumCircuit, false_body: QuantumCircuit
+) -> Tuple[QuantumCircuit, QuantumCircuit]:
+    """
+    Ensure that ``true_body`` and ``false_body`` have the same registers defined within them.  These
+    do not need to be in the same order between circuits.  The two input circuits are returned,
+    mutated to have the same registers.
+    """
+    true_registers = set(true_body.qregs) | set(true_body.cregs)
+    false_registers = set(false_body.qregs) | set(false_body.cregs)
+    for register in false_registers - true_registers:
+        true_body.add_register(register)
+    for register in true_registers - false_registers:
+        false_body.add_register(register)
+    return true_body, false_body
