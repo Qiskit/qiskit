@@ -113,7 +113,9 @@ class PauliTrotterEvolution(EvolutionBase):
 
     def _recursive_convert(self, operator: OperatorBase) -> OperatorBase:
         if isinstance(operator, EvolvedOp):
-            if isinstance(operator.primitive, (PauliOp, PauliSumOp)):
+            if isinstance(operator.primitive, (PauliOp)):
+                return self.evolution_for_pauli(operator.primitive)
+            if isinstance(operator.primitive, (PauliSumOp)):
                 pauli = operator.primitive.primitive
                 time = operator.coeff * operator.primitive.coeff
                 evo = PauliEvolutionGate(
