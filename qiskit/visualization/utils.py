@@ -212,7 +212,7 @@ def get_bit_reg_index(circuit, bit, reverse_bits):
     bit_index = bit_loc.index
     reg_index = None
     if register is not None:
-        reg_index = bit_loc.registers[0][1]
+        reg_index = register.index(bit)
         if reverse_bits:
             bits_len = len(circuit.clbits) if isinstance(bit, Clbit) else len(circuit.qubits)
             bit_index = bits_len - bit_index - 1
