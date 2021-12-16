@@ -24,6 +24,7 @@ from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import TemplateOptimization
+from qiskit.transpiler.passes.calibration.rzx_templates import rzx_templates
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.exceptions import TranspilerError
 
@@ -355,6 +356,22 @@ class TestTemplateMatching(QiskitTestCase):
 
         self.assertEqual(circuit_out.count_ops().get("cx", 0), 0)
 
+    def test_unbound_parameters_in_rzx_template(self):
+        """
+        Test that rzx template ('zz2') functions correctly for a simple
+        circuit with an unbound ParameterExpression.
+        """
+
+        phi = Parameter('$\phi$')
+        circuit_in = QuantumCircuit(2)
+        circuit_in.cx(0, 1)
+        circuit_in.p(2*phi, 1)
+        circuit_in.cx(0, 1)
+
+        pass_ = TemplateOptimization(**rzx_templates(['zz2']))
+        circuit_out = PassManager(pass_).run(circuit_in)
+
+        self.assertEqual(circuit_out.count_ops().get('cx', 0), 0)
 
 if __name__ == "__main__":
     unittest.main()
