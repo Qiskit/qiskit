@@ -538,10 +538,12 @@ class ParameterExpression:
         return True
 
     def get_sympy_expr(self):
-        """Return symbolic expression from sympy"""
-        from sympy import sympify
-
-        return sympify(self._symbol_expr)
+        """Return symbolic expression from sympy/symengine"""
+        if HAS_SYMENGINE:
+            return symengine.sympify(self._symbol_expr)
+        else:
+            from sympy import sympify
+            return sympify(self._symbol_expr)
 
 
 # Redefine the type so external imports get an evaluated reference; Sphinx needs this to understand
