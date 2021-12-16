@@ -197,7 +197,9 @@ class TrotterQrte(Qrte):
         if param_set.issubset(set(hamiltonian.parameters)):
             gradients = defaultdict(float)
             if isinstance(hamiltonian, SummedOp):
-                for gradient_param in param_set:
+                # access through gradient_params rather param_set for testing purposes. set() adds
+                # the elements in random order and otherwise there is no way to seed the results.
+                for gradient_param in gradient_params:
                     for hamiltonian_term in hamiltonian.oplist:
                         if gradient_param in hamiltonian_term.parameters:
                             if gradient_param == t_param:
