@@ -20,7 +20,7 @@ from qiskit.qasm import pi
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+from qiskit.circuit.parameterexpression import ParameterValueType
 
 
 class RXGate(Gate):

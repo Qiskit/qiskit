@@ -16,7 +16,6 @@ Arbitrary unitary circuit instruction.
 
 from collections import OrderedDict
 import numpy
-import sympy as sp
 
 from qiskit.circuit import Gate, ControlledGate
 from qiskit.circuit import QuantumCircuit
@@ -43,13 +42,15 @@ def to_sympy_matrix(numpy_matrix):
     for row in numpy_matrix:
         nrow = []
         i += 1
-        for e in row:
-            if isinstance(e, ParameterExpression):
-                e = e.get_sympy_expr()
-            nrow.append(e)
+        for expr in row:
+            if isinstance(expr, ParameterExpression):
+                expr = expr.get_sympy_expr()
+            nrow.append(expr)
         matrix.append(nrow)
 
-    return sp.Matrix(matrix), i
+    from sympy import Matrix
+
+    return Matrix(matrix), i
 
 
 class UnitaryGate(Gate):
@@ -83,16 +84,18 @@ class UnitaryGate(Gate):
             # Check input is unitary
             if not is_unitary_matrix(data):
                 raise ExtensionError("Input matrix is not unitary.")
-        except ParameterTypeError:
+        except ParameterTypeError as ex:
+            from sympy import eye, sympify
             from sympy.physics.quantum import Dagger
-            matrix, matrix_dim = to_sympy_matrix(data)
-            iden = sp.sympify(matrix * Dagger(matrix))
 
-            if iden != sp.eye(matrix_dim):
+            matrix, matrix_dim = to_sympy_matrix(data)
+            iden = sympify(matrix * Dagger(matrix))
+
+            if iden != eye(matrix_dim):
                 # There may be a case when there is still a parameter and
                 # we are not quite sure if this is unitary or not.
                 # But just in case we throw exception :)
-                raise ExtensionError("Input matrix is not unitary.")
+                raise ExtensionError("Input matrix is not unitary.") from ex
 
         # Check input is N-qubit matrix
         input_dim, output_dim = data.shape
