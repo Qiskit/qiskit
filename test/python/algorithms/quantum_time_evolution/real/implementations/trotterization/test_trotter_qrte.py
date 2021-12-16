@@ -13,14 +13,16 @@
 """ Test Trotter Qrte. """
 
 import unittest
-
+import random
 from ddt import ddt, data
+
+from test.python.opflow import QiskitOpflowTestCase
 import numpy as np
 from numpy.testing import assert_raises
 from scipy.linalg import expm
 
-from test.python.opflow import QiskitOpflowTestCase
-from qiskit.algorithms.quantum_time_evolution.real.implementations.trotterization.trotter_qrte import (
+from qiskit.algorithms.quantum_time_evolution.real.implementations.trotterization.trotter_qrte \
+    import (
     TrotterQrte,
 )
 from qiskit.quantum_info import Statevector
@@ -52,7 +54,7 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         evolved_state = trotter_qrte.evolve(operator, 1, initial_state)
         # Calculate the expected state
         expected_state = (
-            expm(-1j * Z.to_matrix()) @ expm(-1j * X.to_matrix()) @ initial_state.to_matrix()
+                expm(-1j * Z.to_matrix()) @ expm(-1j * X.to_matrix()) @ initial_state.to_matrix()
         )
         expected_evolved_state = VectorStateFn(Statevector(expected_state, dims=(2,)))
 
@@ -97,10 +99,10 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         evolved_state = trotter_qrte.evolve(operator, 1, initial_state)
         # Calculate the expected state
         expected_state = (
-            expm(-1j * X.to_matrix() * 0.5)
-            @ expm(-1j * Z.to_matrix())
-            @ expm(-1j * X.to_matrix() * 0.5)
-            @ initial_state.to_matrix()
+                expm(-1j * X.to_matrix() * 0.5)
+                @ expm(-1j * Z.to_matrix())
+                @ expm(-1j * X.to_matrix() * 0.5)
+                @ initial_state.to_matrix()
         )
         expected_evolved_state = VectorStateFn(Statevector(expected_state, dims=(2,)))
 
@@ -217,36 +219,34 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         for key in expected_gradient.keys():
             np.testing.assert_almost_equal(gradient[key], expected_gradient[key])
 
-    # # TODO fix problem with randomness causing different results
-    # def test_trotter_qrte_gradient_summed_op_qdrift_4(self):
-    #     """Test for trotter qrte gradient with SummedOp and QDrift with commuting operators
-    #     with complex parameter binding."""
-    #     algorithm_globals.random_seed = 5
-    #     random.seed(1234)
-    #     theta1 = Parameter("theta1")
-    #     theta2 = Parameter("theta2")
-    #     operator = theta1 * (Z) + theta2 * (Y)
-    #     trotter_qrte = TrotterQrte(QDrift())
-    #     initial_state = Zero
-    #     time = 5
-    #     gradient_object = None
-    #     observable = X
-    #     value_dict = {theta1: 2, theta2: 3}
-    #     gradient = trotter_qrte.gradient(
-    #         operator,
-    #         time,
-    #         initial_state,
-    #         gradient_object,
-    #         observable,
-    #         hamiltonian_value_dict=value_dict,
-    #         gradient_params=[theta1, theta2],
-    #     )
-    #     expected_gradient = {theta1: -7.1894106501296875 + 0j, theta2: 9.745099298494452 + 0j}
-    #     print(gradient)
-    #     np.testing.assert_equal(expected_gradient.keys(), gradient.keys())
-    #     for key in expected_gradient.keys():
-    #         np.testing.assert_almost_equal(gradient[key], expected_gradient[key])
-    #
+    # TODO fix problem with randomness causing different results
+    def test_trotter_qrte_gradient_summed_op_qdrift_4(self):
+        """Test for trotter qrte gradient with SummedOp and QDrift with commuting operators
+        with complex parameter binding."""
+        algorithm_globals.random_seed = 0
+        theta1 = Parameter("theta1")
+        theta2 = Parameter("theta2")
+        operator = theta1 * (Z) + theta2 * (Y)
+        trotter_qrte = TrotterQrte(QDrift())
+        initial_state = Zero
+        time = 5
+        gradient_object = None
+        observable = X
+        value_dict = {theta1: 2, theta2: 3}
+        gradient = trotter_qrte.gradient(
+            operator,
+            time,
+            initial_state,
+            gradient_object,
+            observable,
+            hamiltonian_value_dict=value_dict,
+            gradient_params=[theta1, theta2],
+        )
+        expected_gradient = {theta1: 10.938002663771012 + 0j, theta2: 9.745099298494452 + 0j}
+        np.testing.assert_equal(expected_gradient.keys(), gradient.keys())
+        for key in expected_gradient.keys():
+            np.testing.assert_almost_equal(gradient[key], expected_gradient[key])
+
     def test_trotter_qrte_gradient_summed_op_qdrift_no_param(self):
         """Test for trotter qrte gradient with SummedOp and QDrift; missing param."""
         algorithm_globals.random_seed = 0
@@ -269,6 +269,9 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         )
         expected_gradient = {theta1: 0j}
         np.testing.assert_equal(gradient, expected_gradient)
+
+    # TODO unit tests for _try_binding_params, def _validate_hamiltonian_form(self, hamiltonian:
+    #  SummedOp), _is_linear_with_single_param
 
 
 if __name__ == "__main__":
