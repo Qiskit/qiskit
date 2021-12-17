@@ -22,6 +22,7 @@ from qiskit.circuit import Gate, Instruction, Parameter
 from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumcircuit import BitLocations
+from qiskit.circuit.quantumregister import Qubit
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.library.standard_gates import SGate
 from qiskit.quantum_info import Operator
@@ -892,6 +893,26 @@ class TestCircuitOperations(QiskitTestCase):
         expected.cx(qr1[1], qr1[0])
         expected.cx(qr1[0], qr2[1])
         expected.cx(qr2[1], qr2[0])
+
+        self.assertEqual(qc.reverse_bits(), expected)
+
+    def test_reverse_bits_with_registerless_bits(self):
+        """Test reversing order of registerless bits."""
+        q0 = Qubit()
+        q1 = Qubit()
+        c0 = Clbit()
+        c1 = Clbit()
+        qc = QuantumCircuit([q0, q1], [c0, c1])
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.x(0).c_if(1, True)
+        qc.measure(0, 0)
+
+        expected = QuantumCircuit([c1, c0], [q1, q0])
+        expected.h(1)
+        expected.cx(1, 0)
+        expected.x(1).c_if(0, True)
+        expected.measure(1, 1)
 
         self.assertEqual(qc.reverse_bits(), expected)
 

@@ -479,6 +479,8 @@ class QuantumCircuit:
                  └───┘
         """
         circ = QuantumCircuit(
+            list(reversed(self.qubits)),
+            list(reversed(self.clbits)),
             *reversed(self.qregs),
             *reversed(self.cregs),
             name=self.name,
