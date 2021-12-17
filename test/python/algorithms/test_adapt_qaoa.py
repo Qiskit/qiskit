@@ -16,7 +16,7 @@ import math
 import unittest
 from functools import reduce
 from itertools import combinations_with_replacement, permutations, product
-from test.python.algorithms import QiskitAlgorithmsTestCase
+from qiskit.test import QiskitTestCase#test.python.algorithms import QiskitAlgorithmsTestCase
 
 import random
 import numpy as np
@@ -118,7 +118,8 @@ CUSTOM_SUPERPOSITION = [1 / math.sqrt(15)] * 15 + [0]
 
 
 @ddt
-class TestAdaptQAOA(QiskitAlgorithmsTestCase):
+# class TestAdaptQAOA(QiskitAlgorithmsTestCase):
+class TestAdaptQAOA(QiskitTestCase):
     """Test AdaptQAOA with MaxCut."""
 
     def setUp(self):
@@ -153,10 +154,11 @@ class TestAdaptQAOA(QiskitAlgorithmsTestCase):
 
         qubit_op, _ = self._get_operator(w)
         if convert_to_matrix_op:
-            qubit_op = qubit_op.to_matrix_op()
+            # qubit_op = qubit_op.to_matrix_op()
+            pass
 
         adapt_qaoa = AdaptQAOA(
-            optimizer=COBYLA(), reps=prob, mixer_pool=m, quantum_instance=self.statevector_simulator
+            optimizer=COBYLA(maxiter=1000000, tol=0), max_reps=prob, mixer_pool=m, quantum_instance=self.statevector_simulator
         )
         result = adapt_qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
@@ -181,7 +183,7 @@ class TestAdaptQAOA(QiskitAlgorithmsTestCase):
             w,
         )
 
-        optimizer = optimizer = COBYLA()
+        optimizer = optimizer = COBYLA(maxiter=1000000, tol=0)
         qubit_op, _ = self._get_operator(w)
         if convert_to_matrix_op:
             qubit_op = qubit_op.to_matrix_op()
@@ -191,7 +193,7 @@ class TestAdaptQAOA(QiskitAlgorithmsTestCase):
 
         adapt_qaoa = AdaptQAOA(
             optimizer=optimizer,
-            reps=prob,
+            max_reps=prob,
             mixer_pool=mixer,
             quantum_instance=self.statevector_simulator,
         )
@@ -206,8 +208,8 @@ class TestAdaptQAOA(QiskitAlgorithmsTestCase):
         qubit_op, _ = self._get_operator(W1)
 
         adapt_qaoa = AdaptQAOA(
-            optimizer=COBYLA(),
-            reps=2,
+            optimizer=COBYLA(maxiter=1000000, tol=0),
+            max_reps=2,
             mixer_pool_type="multi",
             quantum_instance=self.statevector_simulator,
         )
@@ -228,8 +230,8 @@ class TestAdaptQAOA(QiskitAlgorithmsTestCase):
         mixer = _create_mixer_pool(num_qubits, add_multi=True, circ=True)
 
         adapt_qaoa = AdaptQAOA(
-            optimizer=COBYLA(),
-            reps=2,
+            optimizer=COBYLA(maxiter=1000000, tol=0),
+            max_reps=2,
             mixer_pool=mixer,
             quantum_instance=self.statevector_simulator,
         )
@@ -248,8 +250,8 @@ class TestAdaptQAOA(QiskitAlgorithmsTestCase):
         mixer = _create_mixer_pool(num_qubits, add_multi=True, circ=True)
 
         adapt_qaoa = AdaptQAOA(
-            optimizer=COBYLA(),
-            reps=1,
+            optimizer=COBYLA(maxiter=1000000, tol=0),
+            max_reps=1,
             mixer_pool=mixer,
             quantum_instance=self.statevector_simulator,
         )
@@ -264,7 +266,7 @@ class TestAdaptQAOA(QiskitAlgorithmsTestCase):
             np.array([[0, 1, 0, 1], [1, 0, 1, 0], [0, 1, 0, 1], [1, 0, 1, 0]])
         )
         adapt_qaoa = AdaptQAOA(
-            optimizer=COBYLA(), reps=1, quantum_instance=self.statevector_simulator
+            optimizer=COBYLA(maxiter=1000000, tol=0), max_reps=1, quantum_instance=self.statevector_simulator
         )
 
         result = adapt_qaoa.compute_minimum_eigenvalue(operator=qubit_op)
@@ -306,7 +308,7 @@ class TestAdaptQAOA(QiskitAlgorithmsTestCase):
                 first_pt = list(parameters)
 
         adapt_qaoa = AdaptQAOA(
-            optimizer=COBYLA(),
+            optimizer=COBYLA(maxiter=1000000, tol=0),
             initial_point=init_pt,
             callback=cb_callback,
             quantum_instance=self.statevector_simulator,
@@ -330,7 +332,7 @@ class TestAdaptQAOA(QiskitAlgorithmsTestCase):
     @unpack
     def test_adapt_qaoa_initial_state(self, w, init_state):
         """AdaptQAOA initial state test"""
-        optimizer = COBYLA()
+        optimizer = COBYLA(maxiter=1000000, tol=0)
         qubit_op, _ = self._get_operator(w)
 
         init_pt = np.asarray([0.0, 0.0])  # Avoid generating random initial point
@@ -398,7 +400,7 @@ class TestAdaptQAOA(QiskitAlgorithmsTestCase):
         qubit_op, _ = self._get_operator(w)
 
         adapt_qaoa = AdaptQAOA(
-            optimizer=NELDER_MEAD(disp=True), reps=1, quantum_instance=self.qasm_simulator
+            optimizer=COBYLA(maxiter=1000000, tol=0), max_reps=1, quantum_instance=self.qasm_simulator
         )
 
         result = adapt_qaoa.compute_minimum_eigenvalue(operator=qubit_op)
