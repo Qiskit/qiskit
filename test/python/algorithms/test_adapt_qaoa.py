@@ -154,8 +154,7 @@ class TestAdaptQAOA(QiskitTestCase):
 
         qubit_op, _ = self._get_operator(w)
         if convert_to_matrix_op:
-            # qubit_op = qubit_op.to_matrix_op()
-            pass
+            qubit_op = qubit_op.to_matrix_op()
 
         adapt_qaoa = AdaptQAOA(
             optimizer=COBYLA(maxiter=1000000, tol=0), max_reps=prob, mixer_pool=m, quantum_instance=self.statevector_simulator
