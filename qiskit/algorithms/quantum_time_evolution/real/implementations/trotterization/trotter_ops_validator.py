@@ -24,12 +24,17 @@ from qiskit.opflow import (
 )
 
 
-def _is_op_bound(op_bound: Union[SummedOp, PauliOp, OperatorBase]) -> None:
-    """Checks if an operator provided has all parameters bound."""
-    if len(op_bound.parameters) > 0:
+def _is_op_bound(operator: Union[SummedOp, PauliOp, OperatorBase]) -> None:
+    """Checks if an operator provided has all parameters bound.
+    Args:
+        operator: Operator to be checked.
+    Raises:
+        ValueError: If an operator has unbound parameters.
+    """
+    if len(operator.parameters) > 0:
         raise ValueError(
             f"Did not manage to bind all parameters in the Hamiltonian, "
-            f"these parameters encountered: {op_bound.parameters}."
+            f"these parameters encountered: {operator.parameters}."
         )
 
 
@@ -49,7 +54,12 @@ def _validate_input(initial_state: StateFn, observable: OperatorBase) -> None:
 
 def _validate_hamiltonian_form(hamiltonian: Union[SummedOp, PauliOp, OperatorBase]):
     """Validates that a Hamiltonian is of a correct type and with expected dependence on
-    parameters."""
+    parameters.
+    Args:
+        hamiltonian: Hamiltonian to be validated.
+    Raises:
+        ValueError: if an invalid Hamiltonian is provided.
+    """
     if isinstance(hamiltonian, SummedOp):
         if isinstance(hamiltonian.coeff, ParameterExpression):
             raise ValueError(
@@ -73,7 +83,15 @@ def _validate_hamiltonian_form(hamiltonian: Union[SummedOp, PauliOp, OperatorBas
 
 
 def _is_linear_with_single_param(operator: OperatorBase) -> bool:
-    """Checks if an operator provided is linear w.r.t. one and only one parameter."""
+    """Checks if an operator provided is linear w.r.t. one and only one parameter.
+    Args:
+        operator: Operator to be checked.
+    Returns:
+        True or False depending on whether an operator is linear in a single param and only contains'
+        a single param.
+    Raises:
+        ValueError: If an operator contains more than 1 parameter.
+    """
     if (
         not isinstance(operator.coeff, ParameterExpression)
         and not isinstance(operator.coeff, Parameter)

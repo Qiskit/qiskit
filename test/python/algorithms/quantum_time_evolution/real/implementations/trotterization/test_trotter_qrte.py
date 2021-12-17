@@ -21,8 +21,7 @@ import numpy as np
 from numpy.testing import assert_raises
 from scipy.linalg import expm
 
-from qiskit.algorithms.quantum_time_evolution.real.implementations.trotterization.trotter_qrte \
-    import (
+from qiskit.algorithms.quantum_time_evolution.real.implementations.trotterization.trotter_qrte import (
     TrotterQrte,
 )
 from qiskit.quantum_info import Statevector
@@ -54,7 +53,7 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         evolved_state = trotter_qrte.evolve(operator, 1, initial_state)
         # Calculate the expected state
         expected_state = (
-                expm(-1j * Z.to_matrix()) @ expm(-1j * X.to_matrix()) @ initial_state.to_matrix()
+            expm(-1j * Z.to_matrix()) @ expm(-1j * X.to_matrix()) @ initial_state.to_matrix()
         )
         expected_evolved_state = VectorStateFn(Statevector(expected_state, dims=(2,)))
 
@@ -99,10 +98,10 @@ class TestTrotterQrte(QiskitOpflowTestCase):
         evolved_state = trotter_qrte.evolve(operator, 1, initial_state)
         # Calculate the expected state
         expected_state = (
-                expm(-1j * X.to_matrix() * 0.5)
-                @ expm(-1j * Z.to_matrix())
-                @ expm(-1j * X.to_matrix() * 0.5)
-                @ initial_state.to_matrix()
+            expm(-1j * X.to_matrix() * 0.5)
+            @ expm(-1j * Z.to_matrix())
+            @ expm(-1j * X.to_matrix() * 0.5)
+            @ initial_state.to_matrix()
         )
         expected_evolved_state = VectorStateFn(Statevector(expected_state, dims=(2,)))
 
