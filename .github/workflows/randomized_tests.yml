@@ -19,7 +19,7 @@ jobs:
           pip install -U -r requirements-dev.txt coveralls -c constraints.txt
           pip install -c constraints.txt -e .
           pip install "qiskit-ibmq-provider" -c constraints.txt
-          pip install "qiskit-aer==0.9.1"
+          pip install "qiskit-aer"
       - name: Run randomized tests
         run: make test_randomized
       - name: Create comment on failed test run
