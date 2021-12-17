@@ -53,6 +53,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
         evaluation_schedule: Union[List[int], int],
         minimizer: Optional[MINIMIZER] = None,
         quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
+        run_circuits_as_one_job: bool = True,
     ) -> None:
         r"""
         Args:
@@ -66,6 +67,9 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
                 argument and a list of (float, float) tuples (as bounds) as second argument and
                 returns a single float which is the found minimum.
             quantum_instance: Quantum Instance or Backend
+            run_circuits_as_one_job: If set to True, the necessary circuits will be submitted as
+                one job. Otherwise, each circuit will be run separately. This is useful for
+                backends that don't support multi-circuit experiments.
 
         Raises:
             ValueError: If the number of oracle circuits is smaller than 1.
@@ -98,6 +102,8 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
             self._minimizer = default_minimizer
         else:
             self._minimizer = minimizer
+
+        self._run_circuits_as_one_job = run_circuits_as_one_job
 
     @property
     def quantum_instance(self) -> Optional[QuantumInstance]:
@@ -286,12 +292,18 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
             result.shots = 1
 
         else:
-            # run circuit on QASM simulator
+            # construct circuits
             circuits = self.construct_circuits(estimation_problem, measurement=True)
-            ret = self._quantum_instance.execute(circuits)
 
-            # get counts and construct MLE input
-            result.circuit_results = [ret.get_counts(circuit) for circuit in circuits]
+            # run circuit on QASM simulator, get counts, and construct MLE input
+            if self._run_circuits_as_one_job:
+                ret = self._quantum_instance.execute(circuits)
+                result.circuit_results = [ret.get_counts(circuit) for circuit in circuits]
+            else:
+                rets = [self._quantum_instance.execute(circuit) for circuit in circuits]
+                result.circuit_results = [
+                    ret.get_counts(circuit) for ret, circuit in zip(rets, circuits)
+                ]
 
             # to count the number of Q-oracle calls
             result.shots = self._quantum_instance._run_config.shots

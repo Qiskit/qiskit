@@ -547,5 +547,35 @@ class TestFasterAmplitudeEstimation(QiskitAlgorithmsTestCase):
         self.assertAlmostEqual(result.estimation, expect, places=5)
 
 
+@ddt
+class TestMaximumLikelihoodAmplitudeEstimation(QiskitAlgorithmsTestCase):
+    """Specific tests for Maximum Likelihood AE."""
+
+    def test_sequential_circuit_submission(self):
+        """Test that the results are correct when circuits are submitted separately."""
+        prob = 0.2
+        a_op = BernoulliStateIn(prob)
+        q_op = BernoulliGrover(prob)
+        problem = EstimationProblem(a_op, objective_qubits=[0], grover_operator=q_op)
+
+        # construct algo
+        quantum_instance = QuantumInstance(
+            backend=BasicAer.get_backend("qasm_simulator"),
+            shots=1000,
+            seed_simulator=2,
+            seed_transpiler=2,
+        )
+        mlae = MaximumLikelihoodAmplitudeEstimation(
+            evaluation_schedule=5,
+            quantum_instance=quantum_instance,
+            run_circuits_as_one_job=False,
+        )
+
+        # run the algo
+        result = mlae.estimate(problem)
+
+        self.assertAlmostEqual(prob, result.estimation, places=3, msg=f"estimate failed")
+
+
 if __name__ == "__main__":
     unittest.main()
