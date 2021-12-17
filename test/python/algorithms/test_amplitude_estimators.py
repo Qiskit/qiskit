@@ -574,7 +574,7 @@ class TestMaximumLikelihoodAmplitudeEstimation(QiskitAlgorithmsTestCase):
         # run the algo
         result = mlae.estimate(problem)
 
-        self.assertAlmostEqual(prob, result.estimation, places=3, msg=f"estimate failed")
+        self.assertAlmostEqual(prob, result.estimation, places=3, msg="estimate failed")
 
 
 if __name__ == "__main__":
