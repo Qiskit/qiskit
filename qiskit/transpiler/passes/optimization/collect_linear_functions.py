@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 
-"""Replace each SWAP-CX-SWAP sequence by a single Bridge gate."""
+"""Replace each sequence of CX and SWAP gates by a single LinearFunction gate."""
 
 from qiskit.circuit.library.standard_gates import CXGate, SwapGate
 from qiskit.circuit.library.generalized_gates import LinearFunction
@@ -76,9 +76,8 @@ class CollectLinearFunctions(TransformationPass):
                 elif isinstance(node.op, SwapGate):
                     qc.swap(wire_pos_map[node.qargs[0]], wire_pos_map[node.qargs[1]])
 
-            lf = LinearFunction(len(wire_pos_map), qc)
-            op = lf.to_instruction()
-            op.condition = None
+            op = LinearFunction(qc)
+            # op.condition = None
             dag.replace_block_with_op(block, op, wire_pos_map, cycle_check=False)
 
         return dag
