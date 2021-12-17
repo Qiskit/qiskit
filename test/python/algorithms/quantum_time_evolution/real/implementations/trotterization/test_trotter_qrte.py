@@ -13,14 +13,13 @@
 """ Test Trotter Qrte. """
 
 import unittest
-import random
-from ddt import ddt, data
 
-from test.python.opflow import QiskitOpflowTestCase
+from ddt import ddt, data
 import numpy as np
 from numpy.testing import assert_raises
 from scipy.linalg import expm
 
+from test.python.opflow import QiskitOpflowTestCase
 from qiskit.algorithms.quantum_time_evolution.real.implementations.trotterization.trotter_qrte import (
     TrotterQrte,
 )

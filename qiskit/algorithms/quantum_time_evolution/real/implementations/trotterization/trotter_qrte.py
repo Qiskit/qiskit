@@ -13,7 +13,8 @@
 """An algorithm to implement a Trotterization real time-evolution."""
 
 from collections import defaultdict
-from typing import Union, List, Dict
+from itertools import product
+from typing import Union, List, Dict, Optional
 
 from qiskit.algorithms.quantum_time_evolution.real.implementations.trotterization.trotter_ops_validator import (
     _validate_hamiltonian_form,
@@ -122,8 +123,8 @@ class TrotterQrte(Qrte):
 
         raise ValueError("Either initial_state or observable must be provided.")
 
+    @staticmethod
     def _try_binding_params(
-        self,
         hamiltonian: Union[SummedOp, PauliOp, OperatorBase],
         hamiltonian_value_dict: Dict[Parameter, Union[float, complex]],
     ) -> Union[SummedOp, PauliOp, OperatorBase]:
@@ -228,39 +229,34 @@ class TrotterQrte(Qrte):
 
         _validate_hamiltonian_form(hamiltonian)
         param_set = set(gradient_params)
-        if t_param is not None:
-            param_set.add(t_param)
+
+        # when t_param becomes supported
+        # if t_param is not None:
+        #     param_set.add(t_param)
+
+        if isinstance(hamiltonian, PauliOp):
+            hamiltonian = SummedOp([hamiltonian])
 
         if param_set.issubset(set(hamiltonian.parameters)):
             gradients = defaultdict(float)
-            # TODO support PauliOp, OperatorBase
             if isinstance(hamiltonian, SummedOp):
                 # access through gradient_params rather param_set for testing purposes. set() adds
                 # the elements in random order and otherwise there is no way to seed the results.
-                for gradient_param in gradient_params:
-                    for hamiltonian_term in hamiltonian.oplist:
-                        if gradient_param in hamiltonian_term.parameters:
-                            if gradient_param == t_param:
-                                finite_difference = self._calc_time_gradient_finite_diff(
-                                    hamiltonian,
-                                    hamiltonian_value_dict,
-                                    initial_state,
-                                    observable,
-                                    t_param,
-                                    time,
-                                )
-                                gradients[gradient_param] += finite_difference.eval()
-                            else:
-                                gradient = self._calc_term_gradient(
-                                    hamiltonian,
-                                    hamiltonian_term,
-                                    initial_state,
-                                    observable,
-                                    t_param,
-                                    time,
-                                    hamiltonian_value_dict,
-                                )
-                                gradients[gradient_param] += gradient
+                for gradient_param, hamiltonian_term in product(
+                    gradient_params, hamiltonian.oplist
+                ):
+                    if gradient_param in hamiltonian_term.parameters:
+                        self._calc_term_gradient_by_type(
+                            gradient_param,
+                            gradients,
+                            hamiltonian,
+                            hamiltonian_term,
+                            hamiltonian_value_dict,
+                            initial_state,
+                            observable,
+                            t_param,
+                            time,
+                        )
 
             return gradients
 
@@ -269,6 +265,40 @@ class TrotterQrte(Qrte):
                 "gradient_params provided that are not found in hamiltonian.params "
                 "and not a t_param."
             )
+
+    def _calc_term_gradient_by_type(
+        self,
+        gradient_param,
+        gradients,
+        hamiltonian,
+        hamiltonian_term,
+        hamiltonian_value_dict,
+        initial_state,
+        observable,
+        t_param,
+        time,
+    ):
+        if gradient_param == t_param:
+            finite_difference = self._calc_time_gradient_finite_diff(
+                hamiltonian,
+                hamiltonian_value_dict,
+                initial_state,
+                observable,
+                t_param,
+                time,
+            )
+            gradients[gradient_param] += finite_difference.eval()
+        else:
+            gradient = self._calc_term_gradient(
+                hamiltonian,
+                hamiltonian_term,
+                initial_state,
+                observable,
+                t_param,
+                time,
+                hamiltonian_value_dict,
+            )
+            gradients[gradient_param] += gradient
 
     def _calc_time_gradient_finite_diff(
         self,
@@ -313,7 +343,7 @@ class TrotterQrte(Qrte):
         hamiltonian_term: Union[PauliOp, OperatorBase],
         initial_state: StateFn,
         observable: OperatorBase,
-        t_param: Parameter,
+        t_param: Optional[Parameter],
         time: float,
         hamiltonian_value_dict: Dict[Parameter, Union[float, complex]],
     ) -> float:
