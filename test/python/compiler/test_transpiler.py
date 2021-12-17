@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member
-
 """Tests basic functionality of the transpile function"""
 
 import io
@@ -49,6 +47,10 @@ from qiskit.transpiler.preset_passmanagers import level_0_pass_manager
 @ddt
 class TestTranspile(QiskitTestCase):
     """Test transpile function."""
+
+    def test_empty_transpilation(self):
+        """Test that transpiling an empty list is a no-op.  Regression test of gh-7287."""
+        self.assertEqual(transpile([]), [])
 
     def test_pass_manager_none(self):
         """Test passing the default (None) pass manager to the transpiler.
@@ -523,8 +525,7 @@ class TestTranspile(QiskitTestCase):
             transpile(qc, backend, initial_layout=bad_initial_layout)
 
         self.assertEqual(
-            "FullAncillaAllocation: The layout refers to a qubit that does "
-            "not exist in circuit.",
+            "FullAncillaAllocation: The layout refers to a qubit that does not exist in circuit.",
             cm.exception.message,
         )
 

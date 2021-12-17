@@ -1,0 +1,26 @@
+deprecations:
+  - |
+    The loose functions ``qiskit.circuit.measure.measure()`` and
+    ``qiskit.circuit.reset.reset()`` are deprecated, and will be removed in a
+    future release.  Instead, you should access these as methods on
+    :class:`.QuantumCircuit`::
+
+        from qiskit import QuantumCircuit
+        circuit = QuantumCircuit(1, 1)
+
+        # Replace this deprecated form ...
+        from qiskit.circuit.measure import measure
+        measure(circuit, 0, 0)
+
+        # ... with either of the next two lines:
+        circuit.measure(0, 0)
+        QuantumCircuit.measure(circuit, 0, 0)
+
+fixes:
+  - |
+    Two loose functions ``qiskit.circuit.measure.measure()`` and
+    ``qiskit.circuit.reset.reset()`` were accidentally removed without a
+    deprecation period.  They have been reinstated, but are marked as deprecated
+    in favour of the methods :meth:`.QuantumCircuit.measure` and
+    :meth:`.QuantumCircuit.reset`, respectively, and will be removed in a future
+    release.

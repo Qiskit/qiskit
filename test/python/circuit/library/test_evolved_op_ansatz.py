@@ -37,7 +37,7 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
         for string, time in zip(strings, parameters):
             reference.compose(evolve(string, time), inplace=True)
 
-        self.assertEqual(evo.decompose(), reference)
+        self.assertEqual(evo.decompose().decompose(), reference)
 
     def test_custom_evolution(self):
         """Test using another evolution than the default (e.g. matrix evolution)."""
@@ -101,7 +101,7 @@ def evolve(pauli_string, time):
             forward.h(i)
 
     for i in range(1, num_qubits):
-        forward.cx(i, 0)
+        forward.cx(num_qubits - i, num_qubits - i - 1)
 
     circuit = QuantumCircuit(num_qubits)
     circuit.compose(forward, inplace=True)

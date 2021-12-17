@@ -9,10 +9,10 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-===================================================
+r"""
+=================================================
 Pulse Transforms (:mod:`qiskit.pulse.transforms`)
-===================================================
+=================================================
 
 The pulse transforms provide transformation routines to reallocate and optimize
 pulse programs for backends.
@@ -20,8 +20,8 @@ pulse programs for backends.
 Alignments
 ==========
 
-The alignment transforms define alignment policies of instructions in ``ScheduleBlock``.
-These transformations are called to create ``Schedule``s from ``ScheduleBlock``s.
+The alignment transforms define alignment policies of instructions in :obj:`.ScheduleBlock`.
+These transformations are called to create :obj:`.Schedule`\ s from :obj:`.ScheduleBlock`\ s.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -32,12 +32,16 @@ These transformations are called to create ``Schedule``s from ``ScheduleBlock``s
    AlignRight
    AlignSequential
 
+These are all subtypes of the abstract base class :class:`AlignmentKind`.
+
+.. autoclass:: AlignmentKind
+
 
 Canonicalization
 ================
 
 The canonicalization transforms convert schedules to a form amenable for execution on
-Openpulse backends.
+OpenPulse backends.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -83,11 +87,7 @@ from qiskit.pulse.transforms.alignments import (
     AlignLeft,
     AlignRight,
     AlignSequential,
-    align_equispaced,
-    align_func,
-    align_left,
-    align_right,
-    align_sequential,
+    AlignmentKind,
 )
 
 from qiskit.pulse.transforms.base_transforms import target_qobj_transform
