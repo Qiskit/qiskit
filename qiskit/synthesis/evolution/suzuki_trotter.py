@@ -71,10 +71,14 @@ class SuzukiTrotter(ProductFormula):
                 and a single qubit Z rotation.
         """
         if order % 2 == 1:
-            warnings.warn('SuzukiTrotter for odd orders is deprecated as of 0.20.0, and will be '
-                          'removed no earlier than 3 months after that release date. Suzuki '
-                          'product formulae are symmetric and therefore only defined for even'
-                          'orders.', DeprecationWarning, stacklevel=2)
+            warnings.warn(
+                "SuzukiTrotter for odd orders is deprecated as of 0.20.0, and will be "
+                "removed no earlier than 3 months after that release date. Suzuki "
+                "product formulae are symmetric and therefore only defined for even"
+                "orders.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         super().__init__(order, reps, insert_barriers, cx_structure, atomic_evolution)
 
     def synthesize(self, evolution):
