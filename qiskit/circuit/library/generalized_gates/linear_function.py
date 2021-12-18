@@ -40,7 +40,7 @@ class LinearFunction(Gate):
                 such as checking that a given n x n matrix is invertible.
 
         Raises:
-            QiskitError: if the input is invalid:
+            CircuitError: if the input is invalid:
                 either a matrix is non {square, binary, invertible},
                 or a quantum circuit contains non-linear gates.
         """
