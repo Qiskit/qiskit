@@ -18,7 +18,7 @@ import numpy as np
 from ddt import ddt, data
 
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import Gate, QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 
 from qiskit.circuit.library.standard_gates import CXGate, SwapGate
 from qiskit.circuit.library.generalized_gates import LinearFunction
