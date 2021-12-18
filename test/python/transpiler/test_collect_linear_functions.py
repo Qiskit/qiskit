@@ -49,38 +49,45 @@ class TestCollectLinearFunctions(QiskitTestCase):
     def test_two_linear_blocks(self):
         """Test that when we have two blocks of linear gates with one nonlinear gate in the middle,
         we end up with two LinearFunctions."""
+        # Create a circuit with a nonlinear gate (h) cleanly separating it into two linear blocks.
         circuit = QuantumCircuit(4)
         circuit.cx(0, 1)
         circuit.cx(0, 2)
         circuit.cx(0, 3)
         circuit.h(3)
         circuit.swap(2, 3)
+        circuit.cx(1, 2)
         circuit.cx(0, 1)
-        circuit.cx(0, 3)
 
         pass_manager = PassManager(CollectLinearFunctions())
-        optimized_circuit = pass_manager.run(circuit)
+        result_circuit = pass_manager.run(circuit)
 
-        linear_functions = [inst for inst, _, _ in optimized_circuit.data if isinstance(inst, LinearFunction)]
-        self.assertTrue(len(linear_functions) == 2)
+        # We expect to see 3 gates (linear, h, linear)
+        self.assertTrue(len(result_circuit.data) == 3)
+        inst1, qargs1, cargs1 = result_circuit.data[0]
+        inst2, qargs2, cargs2 = result_circuit.data[2]
+        self.assertTrue(isinstance(inst1, LinearFunction))
+        self.assertTrue(isinstance(inst2, LinearFunction))
 
-        subcircuit1 = QuantumCircuit(4)
-        subcircuit1.cx(0, 1)
-        subcircuit1.cx(0, 2)
-        subcircuit1.cx(0, 3)
+        # Check that the first linear function represents the subcircuit before h
+        resulting_subcircuit1 = QuantumCircuit(4)
+        resulting_subcircuit1.append(inst1, qargs1, cargs1)
 
-        subcircuit2 = QuantumCircuit(4)
-        subcircuit2.swap(2, 3)
-        subcircuit2.cx(0, 1)
-        subcircuit2.cx(0, 3)
+        expected_subcircuit1 = QuantumCircuit(4)
+        expected_subcircuit1.cx(0, 1)
+        expected_subcircuit1.cx(0, 2)
+        expected_subcircuit1.cx(0, 3)
+        self.assertEqual(Operator(resulting_subcircuit1), Operator(expected_subcircuit1))
 
-        expected_circuit = QuantumCircuit(4)
-        expected_circuit.append(LinearFunction(subcircuit1), [0, 1, 2, 3])
-        expected_circuit.h(3)
-        expected_circuit.append(LinearFunction(subcircuit2), [0, 1, 2, 3])
+        # Check that the second linear function represents the subcircuit after h
+        resulting_subcircuit2 = QuantumCircuit(4)
+        resulting_subcircuit2.append(inst2, qargs2, cargs2)
 
-        # Check that the two circuits represent the same operator
-        self.assertEqual(Operator(optimized_circuit), Operator(expected_circuit))
+        expected_subcircuit2 = QuantumCircuit(4)
+        expected_subcircuit2.swap(2, 3)
+        expected_subcircuit2.cx(1, 2)
+        expected_subcircuit2.cx(0, 1)
+        self.assertEqual(Operator(resulting_subcircuit2), Operator(expected_subcircuit2))
 
 
 if __name__ == "__main__":
