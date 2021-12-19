@@ -14,7 +14,6 @@
 
 import re
 from collections import OrderedDict
-import copy
 
 import numpy as np
 
