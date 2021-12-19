@@ -804,7 +804,7 @@ class MatplotlibDrawer:
                 gt = color[1]
         # Treat special case of classical gates in iqx style by making all
         # controlled gates of x, dcx, and swap the classical gate color
-        elif self._style["name"] == "iqx" and base_name in ["x", "dcx", "swap"]:
+        elif self._style["name"] in ["iqx", "iqx-dark"] and base_name in ["x", "dcx", "swap"]:
             color = self._style["dispcol"][base_name]
             if isinstance(color, str):
                 fc = color
