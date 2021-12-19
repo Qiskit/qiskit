@@ -259,7 +259,7 @@ class QuantumCircuit:
         self._qubits = []
         self._clbits = []
 
-        # Dict mapping Qubt or Clbit instances to tuple comprised of 0) the
+        # Dict mapping Qubit or Clbit instances to tuple comprised of 0) the
         # corresponding index in circuit.{qubits,clbits} and 1) a list of
         # Register-int pairs for each Register containing the Bit and its index
         # within that register.
@@ -465,37 +465,70 @@ class QuantumCircuit:
         Examples:
 
             input:
-                 ┌───┐
-            q_0: ┤ H ├─────■──────
-                 └───┘┌────┴─────┐
-            q_1: ─────┤ RX(1.57) ├
-                      └──────────┘
+
+            .. parsed-literal::
+
+                     ┌───┐
+                a_0: ┤ H ├──■─────────────────
+                     └───┘┌─┴─┐
+                a_1: ─────┤ X ├──■────────────
+                          └───┘┌─┴─┐
+                a_2: ──────────┤ X ├──■───────
+                               └───┘┌─┴─┐
+                b_0: ───────────────┤ X ├──■──
+                                    └───┘┌─┴─┐
+                b_1: ────────────────────┤ X ├
+                                         └───┘
 
             output:
-                      ┌──────────┐
-            q_0: ─────┤ RX(1.57) ├
-                 ┌───┐└────┬─────┘
-            q_1: ┤ H ├─────■──────
-                 └───┘
+
+            .. parsed-literal::
+
+                                         ┌───┐
+                b_0: ────────────────────┤ X ├
+                                    ┌───┐└─┬─┘
+                b_1: ───────────────┤ X ├──■──
+                               ┌───┐└─┬─┘
+                a_0: ──────────┤ X ├──■───────
+                          ┌───┐└─┬─┘
+                a_1: ─────┤ X ├──■────────────
+                     ┌───┐└─┬─┘
+                a_2: ┤ H ├──■─────────────────
+                     └───┘
         """
         circ = QuantumCircuit(
-            list(reversed(self.qubits)),
-            list(reversed(self.clbits)),
-            *reversed(self.qregs),
-            *reversed(self.cregs),
             name=self.name,
             global_phase=self.global_phase,
         )
-        num_qubits = self.num_qubits
-        num_clbits = self.num_clbits
-        old_qubits = self.qubits
-        old_clbits = self.clbits
-        new_qubits = circ.qubits
-        new_clbits = circ.clbits
+        for bits, indices in [
+            (self.qubits, self._qubit_indices),
+            (self.clbits, self._clbit_indices),
+        ]:
+            i = len(bits) - 1
+            while i >= 0:
+                bit = bits[i]
+                _, regs = indices[bit]
+                if regs:
+                    reg, local_idx = regs[0]
+                    circ.add_register(reg)
+                    i -= reg.size
+                else:
+                    circ.add_bits([bit])
+                    i -= 1
 
         for inst, qargs, cargs in self.data:
-            new_qargs = [new_qubits[num_qubits - old_qubits.index(q) - 1] for q in qargs]
-            new_cargs = [new_clbits[num_clbits - old_clbits.index(c) - 1] for c in cargs]
+            new_qargs = []
+            new_cargs = []
+            for new_args, args, indices in [
+                (new_qargs, qargs, self._qubit_indices),
+                (new_cargs, cargs, self._clbit_indices),
+            ]:
+                for arg in args:
+                    _, regs = indices[arg]
+                    if regs:
+                        reg, local_idx = regs[0]
+                        arg = reg[reg.size - 1 - local_idx]
+                    new_args.append(arg)
             circ._append(inst, new_qargs, new_cargs)
         return circ
 
