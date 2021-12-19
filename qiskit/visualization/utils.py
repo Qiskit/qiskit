@@ -31,7 +31,7 @@ from qiskit.circuit import (
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit import ClassicalRegister
 from qiskit.circuit.tools import pi_check
-from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.converters import circuit_to_dag
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.quantum_info.operators.symplectic import PauliList, SparsePauliOp
 from qiskit.quantum_info.states import DensityMatrix
@@ -415,10 +415,6 @@ def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wi
                 qubits.remove(wire)
             if wire in clbits:
                 clbits.remove(wire)
-        dag_copy = copy.deepcopy(dag)
-        for wire in dag.idle_wires(ignore=["barrier", "delay"]):
-            dag_copy._remove_idle_wire(wire)
-        circuit = dag_to_circuit(dag_copy)
 
     nodes = [[node for node in layer if any(q in qubits for q in node.qargs)] for layer in nodes]
 
