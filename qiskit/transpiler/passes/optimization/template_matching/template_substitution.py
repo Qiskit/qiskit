@@ -21,6 +21,12 @@ from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.dagcircuit.dagdependency import DAGDependency
 from qiskit.converters.dagdependency_to_dag import dagdependency_to_dag
 
+try:
+    import symengine
+
+    HAS_SYMENGINE = True
+except ImportError:
+    HAS_SYMENGINE = False
 
 class SubstitutionConfig:
     """
@@ -505,11 +511,17 @@ class TemplateSubstitution:
                 equations.append(sym.Eq(template_params.get_sympy_expr(), circ_param_sym))
 
                 for param in template_params.parameters:
-                    temp_symbols[param] = sym.Symbol(str(param))
+                    if not HAS_SYMENGINE:
+                        temp_symbols[param] = sym.Symbol(str(param), real=True)
+                    else:
+                        temp_symbols[param] = sym.Symbol(str(param))
 
                 if isinstance(circuit_params[t_idx], ParameterExpression):
                     for param in circuit_params[t_idx].parameters:
-                        circ_dict[param] = sym.Symbol(str(param))
+                        if not HAS_SYMENGINE:
+                            circ_dict[param] = sym.Symbol(str(param), real=True)
+                        else:
+                            circ_dict[param] = sym.Symbol(str(param))
 
         if not temp_symbols:
             return template_dag_dep

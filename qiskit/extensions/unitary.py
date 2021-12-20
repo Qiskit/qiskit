@@ -32,6 +32,13 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import two_qubit_cnot_dec
 from qiskit.extensions.exceptions import ExtensionError
 from qiskit.circuit.parameterexpression import ParameterTypeError, ParameterExpression
 
+try:
+    import symengine
+
+    HAS_SYMENGINE = True
+except ImportError:
+    HAS_SYMENGINE = False
+
 _DECOMPOSER1Q = OneQubitEulerDecomposer("U3")
 
 
@@ -85,17 +92,19 @@ class UnitaryGate(Gate):
             if not is_unitary_matrix(data):
                 raise ExtensionError("Input matrix is not unitary.")
         except ParameterTypeError as ex:
-            from sympy import eye, sympify
-            from sympy.physics.quantum import Dagger
+            # we can check unitary only for sympy
+            if not HAS_SYMENGINE:
+                from sympy import eye, sympify
+                from sympy.physics.quantum import Dagger
 
-            matrix, matrix_dim = to_sympy_matrix(data)
-            iden = sympify(matrix * Dagger(matrix))
+                matrix, matrix_dim = to_sympy_matrix(data)
+                iden = sympify(matrix * Dagger(matrix))
 
-            if iden != eye(matrix_dim):
-                # There may be a case when there is still a parameter and
-                # we are not quite sure if this is unitary or not.
-                # But just in case we throw exception :)
-                raise ExtensionError("Input matrix is not unitary.") from ex
+                if iden != eye(matrix_dim):
+                    # There may be a case when there is still a parameter and
+                    # we are not quite sure if this is unitary or not.
+                    # But just in case we throw exception :)
+                    raise ExtensionError("Input matrix is not unitary.") from ex
 
         # Check input is N-qubit matrix
         input_dim, output_dim = data.shape
