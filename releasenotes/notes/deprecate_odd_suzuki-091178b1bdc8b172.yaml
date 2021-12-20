@@ -1,6 +1,5 @@
 ---
 deprecations:
   - |
-    Deprecate initialising :class:`~qiskit.synthesis.evolution.SuzukiTrotter` with odd orders.
-    These product formulae are only defined when the order is even and therefore Qiskit should
-    accept an odd integer as the order.
+    Deprecate initializing :class:`~qiskit.synthesis.evolution.SuzukiTrotter` where the ``order``
+    argument is an odd integer. These product formulae are only defined when the order is even.
