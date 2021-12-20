@@ -1217,17 +1217,18 @@ class TestControlledGate(QiskitTestCase):
 
 @ddt
 class TestFutureMulticontrolled(QiskitTestCase):
-
     def setUp(self):
         super().setUp()
 
         from qiskit import future
+
         future.__MULTICONTROLLED_GATES__ = True
 
     def tearDown(self):
         super().tearDown()
 
         from qiskit import future
+
         future.__MULTICONTROLLED_GATES__ = False
 
     @data(

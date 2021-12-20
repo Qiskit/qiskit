@@ -3388,8 +3388,9 @@ class QuantumCircuit:
 
         if future.__MULTICONTROLLED_GATES__ and len(controls) > 1:
             if len(targets1) > 1 or len(targets2) > 1:
-                raise NotImplementedError("The multi-control multi-target gate is not supported "
-                                          "the SWAP gate.")
+                raise NotImplementedError(
+                    "The multi-control multi-target gate is not supported " "the SWAP gate."
+                )
 
             from .library.standard_gates.swap import SwapGate
 
@@ -3839,10 +3840,12 @@ class QuantumCircuit:
 
             if len(targets) == 1:
                 from .library.standard_gates.x import MCXGate
+
                 gate = MCXGate(len(controls), ctrl_state=ctrl_state)
             else:
                 from .library.standard_gates.x import XGate
                 from .library.generalized_gates.mcmt import MCMT
+
                 gate = MCMT(XGate(), len(controls), len(targets))
 
         else:
