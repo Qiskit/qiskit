@@ -22,25 +22,35 @@ class AQCSynthesisPlugin(UnitarySynthesisPlugin):
     """
     An AQC-based Qiskit unitary synthesis plugin.
 
-    This plugin is invoked by transpiler when `unitary_synthesis_method` parameter is set
-    to `"aqc"`.
+    This plugin is invoked by :func:`~.compiler.transpile` when the ``unitary_synthesis_method``
+    parameter is set to ``"aqc"``.
 
     This plugin supports customization and additional parameters can be passed to the plugin
-    by passing a dictionary as the `unitary_synthesis_plugin_config` parameter of
+    by passing a dictionary as the ``unitary_synthesis_plugin_config`` parameter of
     the :func:`~qiskit.compiler.transpile` function.
 
     Supported parameters in the dictionary:
-        * network_layout (str): type of network geometry, one of ``{"sequ", "spin", "cart",
-            "cyclic_spin", "cyclic_line"}``. Default value is ``"spin"``.
-        * connectivity_type (str): type of inter-qubit connectivity, ``{"full", "line", "star"}``.
-            Default value is ``"full"``.
-        * depth (int): depth of the CNOT-network, i.e. the number of layers, where each layer
-            consists of a single CNOT-block.
-        * optimizer (:class:`~qiskit.algorithms.optimizers.Optimizer`): an instance of optimizer to
-            be used in the optimization process.
-        * seed (int): a random seed.
-        * initial_point (:class:`~numpy.ndarray`): initial values of angles/parameters to start
-            optimization process from.
+
+    network_layout (str)
+        Type of network geometry, one of {``"sequ"``, ``"spin"``, ``"cart"``, ``"cyclic_spin"``,
+        ``"cyclic_line"``}. Default value is ``"spin"``.
+
+    connectivity_type (str)
+        type of inter-qubit connectivity, {``"full"``, ``"line"``, ``"star"``}.  Default value
+        is ``"full"``.
+
+    depth (int)
+        depth of the CNOT-network, i.e. the number of layers, where each layer consists of a
+        single CNOT-block.
+
+    optimizer (:class:`~qiskit.algorithms.optimizers.Optimizer`)
+        An instance of optimizer to be used in the optimization process.
+
+    seed (int)
+        A random seed.
+
+    initial_point (:class:`~numpy.ndarray`)
+        Initial values of angles/parameters to start the optimization process from.
     """
 
     @property

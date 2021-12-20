@@ -13,6 +13,9 @@
 # pylint: disable=missing-class-docstring,missing-function-docstring
 # pylint: disable=missing-module-docstring
 
+import copy
+import pickle
+
 from qiskit.providers import Options
 from qiskit.qobj.utils import MeasLevel
 
@@ -105,3 +108,98 @@ Where:
         options = Options(shots=1024)
         self.assertTrue(hasattr(options, "shots"))
         self.assertFalse(hasattr(options, "method"))
+
+    def test_copy(self):
+        options = Options(opt1=1, opt2=2)
+        cpy = copy.copy(options)
+        cpy.update_options(opt1=10, opt3=20)
+        self.assertEqual(options.opt1, 1)
+        self.assertEqual(options.opt2, 2)
+        self.assertNotIn("opt3", options)
+        self.assertEqual(cpy.opt1, 10)
+        self.assertEqual(cpy.opt2, 2)
+        self.assertEqual(cpy.opt3, 20)
+
+
+class TestOptionsSimpleNamespaceBackwardCompatibility(QiskitTestCase):
+    """Tests that SimpleNamespace-like functionality that qiskit-experiments relies on for Options
+    still works."""
+
+    def test_unpacking_dict(self):
+        kwargs = {"hello": "world", "a": "b"}
+        options = Options(**kwargs)
+        self.assertEqual(options.__dict__, kwargs)
+        self.assertEqual({**options.__dict__}, kwargs)
+
+    def test_setting_attributes(self):
+        options = Options()
+        options.hello = "world"  # pylint: disable=assigning-non-slot
+        options.a = "b"  # pylint: disable=assigning-non-slot
+        self.assertEqual(options.get("hello"), "world")
+        self.assertEqual(options.get("a"), "b")
+        self.assertEqual(options.__dict__, {"hello": "world", "a": "b"})
+
+    def test_overriding_instance_attributes(self):
+        """Test that setting instance attributes and methods does not interfere with previously
+        defined attributes and methods.  This produces an inconsistency where
+            >>> options = Options()
+            >>> options.validators = "hello"
+            >>> options.validators
+            {}
+            >>> options.get("validators")
+            "hello"
+        """
+        options = Options(get="a string")
+        options.validator = "another string"
+        setattr(options, "update_options", "not a method")
+        options.update_options(_fields="not a dict")
+        options.__dict__ = "also not a dict"
+
+        self.assertEqual(
+            options.__dict__,
+            {
+                "get": "a string",
+                "validator": "another string",
+                "update_options": "not a method",
+                "_fields": "not a dict",
+                "__dict__": "also not a dict",
+            },
+        )
+        self.assertEqual(
+            options._fields,
+            {
+                "get": "a string",
+                "validator": "another string",
+                "update_options": "not a method",
+                "_fields": "not a dict",
+                "__dict__": "also not a dict",
+            },
+        )
+        self.assertEqual(options.validator, {})
+        self.assertEqual(options.get("_fields"), "not a dict")
+
+    def test_copy(self):
+        options = Options(shots=1024, method="auto", meas_level=MeasLevel.KERNELED)
+        options.set_validator("shots", (1, 1024))
+        options.set_validator("method", ["auto", "statevector", "mps"])
+        options.set_validator("meas_level", MeasLevel)
+        expected = """Options(shots=1024, method='auto', meas_level=<MeasLevel.KERNELED: 1>)
+Where:
+\tshots is >= 1 and <= 1024
+\tmethod is one of ['auto', 'statevector', 'mps']
+\tmeas_level is of type <enum 'MeasLevel'>\n"""
+        self.assertEqual(str(options), expected)
+        self.assertEqual(str(copy.copy(options)), expected)
+
+    def test_pickle(self):
+        options = Options(shots=1024, method="auto", meas_level=MeasLevel.KERNELED)
+        options.set_validator("shots", (1, 1024))
+        options.set_validator("method", ["auto", "statevector", "mps"])
+        options.set_validator("meas_level", MeasLevel)
+        expected = """Options(shots=1024, method='auto', meas_level=<MeasLevel.KERNELED: 1>)
+Where:
+\tshots is >= 1 and <= 1024
+\tmethod is one of ['auto', 'statevector', 'mps']
+\tmeas_level is of type <enum 'MeasLevel'>\n"""
+        self.assertEqual(str(options), expected)
+        self.assertEqual(str(pickle.loads(pickle.dumps(options))), expected)

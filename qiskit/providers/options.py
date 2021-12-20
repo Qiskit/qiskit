@@ -26,12 +26,78 @@ class Options:
     options.
     """
 
-    _fields = {}
+    # Here there are dragons.
+
+    # This class preamble is an abhorrent hack to make `Options` work similarly to a
+    # SimpleNamespace, but with its instance methods and attributes in a separate namespace.  This
+    # is required to make the initial release of Qiskit Terra 0.19 compatible with already released
+    # versions of Qiskit Experiments, which rely on both of
+    #       options.my_key = my_value
+    #       transpile(qc, **options.__dict__)
+    # working.
+    #
+    # Making `__dict__` a property which gets a slotted attribute solves the second line.  The
+    # slotted attributes are not stored in a `__dict__` anyway, and `__slots__` classes suppress the
+    # creation of `__dict__`.  That leaves it free for us to override it with a property, which
+    # returns the options namespace `_fields`.
+    #
+    # We need to make attribute setting simply set options as well, to support statements of the
+    # form `options.key = value`.  We also need to ensure that existing uses do not override any new
+    # methods.  We do this by overriding `__setattr__` to purely write into our `_fields` dict
+    # instead.  This has the highly unusual behavior that
+    #       >>> options = Options()
+    #       >>> options.validator = "my validator option setting"
+    #       >>> options.validator
+    #       {}
+    #       >>> options.get("validator")
+    #       "my validator option setting"
+    # This is the most we can do to support the old interface; _getting_ attributes must return the
+    # new forms where appropriate, but setting will work with anything.  All options can always be
+    # returned by `Options.get`.  To initialise the attributes in `__init__`, we need to dodge the
+    # overriding of `__setattr__`, and upcall to `object.__setattr__`.
+    #
+    # To support copying and pickling, we also have to define how to set our state, because Python's
+    # normal way of trying to get attributes in the unpickle will fail.
+    #
+    # This is a terrible hack, and is purely to ensure that Terra 0.19 does not break versions of
+    # other Qiskit-family packages that are already deployed.  It should be removed as soon as
+    # possible.
+
+    __slots__ = ("_fields", "validator")
+
+    @property
+    def __dict__(self):
+        return self._fields
+
+    def __setattr__(self, key, value):
+        self._fields[key] = value
+
+    def __getstate__(self):
+        return (self._fields, self.validator)
+
+    def __setstate__(self, state):
+        _fields, validator = state
+        super().__setattr__("_fields", _fields)
+        super().__setattr__("validator", validator)
+
+    def __copy__(self):
+        """Return a copy of the Options.
+
+        The returned option and validator values are shallow copies of the originals.
+        """
+        out = self.__new__(type(self))
+        out.__setstate__((self._fields.copy(), self.validator.copy()))
+        return out
 
     def __init__(self, **kwargs):
-        self._fields = {}
-        self._fields.update(kwargs)
-        self.validator = {}
+        super().__setattr__("_fields", kwargs)
+        super().__setattr__("validator", {})
+
+    # The eldritch horrors are over, and normal service resumes below.  Beware that while
+    # `__setattr__` is overridden, you cannot do `self.x = y` (but `self.x[key] = y` is fine).  This
+    # should not be necessary, but if _absolutely_ required, you must do
+    #       super().__setattr__("x", y)
+    # to avoid just setting a value in `_fields`.
 
     def __repr__(self):
         items = (f"{k}={v!r}" for k, v in self._fields.items())
@@ -121,14 +187,19 @@ class Options:
         self._fields.update(fields)
 
     def __getattr__(self, name):
+        # This does not interrupt the normal lookup of things like methods or `_fields`, because
+        # those are successfully resolved by the normal Python lookup apparatus.  If we are here,
+        # then lookup has failed, so we must be looking for an option.  If the user has manually
+        # called `self.__getattr__("_fields")` then they'll get the option not the full dict, but
+        # that's not really our fault.  `getattr(self, "_fields")` will still find the dict.
         try:
             return self._fields[name]
         except KeyError as ex:
-            raise AttributeError(f"Attribute {name} is not defined") from ex
+            raise AttributeError(f"Option {name} is not defined") from ex
 
     def get(self, field, default=None):
         """Get an option value for a given key."""
-        return getattr(self, field, default)
+        return self._fields.get(field, default)
 
     def __str__(self):
         no_validator = super().__str__()
