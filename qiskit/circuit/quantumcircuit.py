@@ -177,7 +177,8 @@ class QuantumCircuit:
 
             qc = QuantumCircuit(5)
             qc.h(0)
-            qc.cx(0, range(1, 5))
+            for i in range(1, 5):
+                qc.cx(0, i)
             qc.measure_all()
 
         Construct a 4-qubit Bernstein-Vazirani circuit using registers.
@@ -194,7 +195,8 @@ class QuantumCircuit:
             qc.x(anc[0])
             qc.h(anc[0])
             qc.h(qr[0:3])
-            qc.cx(qr[0:3], anc[0])
+            for q in qr[0:3]:
+                qc.cx(q, anc[0])
             qc.h(qr[0:3])
             qc.barrier(qr)
             qc.measure(qr, cr)
@@ -4979,5 +4981,5 @@ def _warn_on_broadcasting_controlled_gate(qargs, name):
             f"To construct multiple gates, you can call the {name} method multiple times with a "
             "single control and target.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=3,
         )
