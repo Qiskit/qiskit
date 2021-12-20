@@ -1221,38 +1221,105 @@ class TestFutureMulticontrolled(QiskitTestCase):
     def setUp(self):
         super().setUp()
 
-        from qiskit.future import multicontrolled_gates
+        from qiskit import future
+        future.__MULTICONTROLLED_GATES__ = True
 
     def tearDown(self):
         super().tearDown()
 
-        # from qiskit import future
-        # future.__MULTICONTROLLED_GATES__ = False
+        from qiskit import future
+        future.__MULTICONTROLLED_GATES__ = False
 
     @data(
-        ("cx", [], [0, 1], 2),
-        ("cy", [], [0, 1], 2),
-        ("cz", [], [0, 1], 2),
-        ("ch", [], [0, 1], 2),
-        ("cp", [0.1], [0, 1], 2),
-        # ("cswap", [], [0, 1, 2], [3, 4]),
-        ("cu", [0.1, 0.2, 0.3, 0.4], [0, 1], 2),
-        ("crx", [0.4], [0, 1, 2], 3),
-        ("cry", [0.4], [0, 1, 2], 3),
-        ("crz", [0.4], [0, 1, 2], 3),
-        ("crz", [0.4], [0, 1, 2], 3)
+        (XGate, "cx", [], [0, 1], 2),
+        (YGate, "cy", [], [0, 1], 2),
+        (ZGate, "cz", [], [0, 1], 2),
+        (HGate, "ch", [], [0, 1], 2),
+        (PhaseGate, "cp", [0.1], [0, 1], 2),
+        (SwapGate, "cswap", [], [0, 1, 2], [3, 4]),
+        (RXGate, "crx", [0.4], [0, 1, 2], 3),
+        (RYGate, "cry", [0.4], [0, 1, 2], 3),
+        (RZGate, "crz", [0.4], [0, 1, 2], 3),
     )
     @unpack
-    def test_future_multicontrolled(self, method, args, control, target):
+    def test_future_multicontrolled(self, base_gate, method, args, control, target):
+        """Test multicontrolling gates with qiskit.future.multicontrolled_gates enabled."""
         qc = QuantumCircuit(5)
-        getattr(qc, method)(*args, control, target)
-        cgate = qc.data[0][0]
+        if isinstance(target, list):  # multi-qubit gates, such as swap
+            getattr(qc, method)(*args, control, *target)
+        else:  # single-qubit gates, such as x
+            getattr(qc, method)(*args, control, target)
 
         # assert one single gate
         self.assertTrue(len(qc.data) == 1)
+        cgate = qc.data[0][0]
 
-        # assert a gate with the correct number of controls
-        self.assertEqual(cgate.num_ctrl_qubits, len(control))
+        # check the gate is correct
+        base = base_gate(*args)
+        reference = base.control(len(control))
+
+        self.assertTrue(Operator(cgate).equiv(reference))
+
+    def test_future_multicontrolled_u(self):
+        """Test the multicontrolled U gate.
+
+        The U gate is in a separate test due to the global phase parameter which the other gates
+        do not have.
+        """
+        qc = QuantumCircuit(3)
+        qc.cu(0.1, 0.2, 0.3, 0.4, [0, 1], 2)
+
+        base = UGate(0.1, 0.2, 0.3)
+        base_mat = base.to_matrix() * np.exp(1j * 0.4)
+        reference = _compute_control_matrix(base_mat, 2)
+
+        self.assertEqual(Operator(qc), Operator(reference))
+
+    @data(
+        (XGate, "cx", [], [0, 1], [2, 3]),
+        (YGate, "cy", [], [0, 1], [2, 3, 4]),
+        (ZGate, "cz", [], [0, 1], [2]),
+        (HGate, "ch", [], [0, 1], [2, 3]),
+        (PhaseGate, "cp", [0.1], [0, 1], [2, 3]),
+        (RXGate, "crx", [0.4], [0, 1, 2], [3, 4]),
+        (RYGate, "cry", [0.4], [0, 1, 2], [3, 4]),
+        (RZGate, "crz", [0.4], [0, 1, 2], [3, 4]),
+    )
+    @unpack
+    def test_future_multicontrol_multitarget(self, base_gate, method, args, control, target):
+        """Test multicontrol-multitarget gates with qiskit.future.multicontrolled_gates enabled."""
+        qc = QuantumCircuit(5)
+        getattr(qc, method)(*args, control, target)
+
+        # assert one single gate
+        self.assertTrue(len(qc.data) == 1)
+        cgate = qc.data[0][0]
+
+        # assert correct gate
+        base = base_gate(*args)
+        base_mat = base.to_matrix()
+
+        # compute the base matrix expanded on all the target qubits
+        reference = base_mat
+        for _ in range(len(target) - 1):
+            reference = np.kron(base_mat, reference)
+
+        # control the expanded base matrix on the control qubit
+        reference = _compute_control_matrix(reference, len(control))
+
+        # check the matrix
+        self.assertTrue(Operator(cgate).equiv(reference))
+
+    def test_future_multicontrol_multitarget_u(self):
+        """Test the multicontrol-multitarget U gate."""
+        qc = QuantumCircuit(4)
+        qc.cu(0.1, 0.2, 0.3, 0.4, [0, 1], [2, 3])
+
+        base = UGate(0.1, 0.2, 0.3)
+        base_mat = base.to_matrix() * np.exp(1j * 0.4)
+        reference = _compute_control_matrix(np.kron(base_mat, base_mat), 2)
+
+        self.assertEqual(Operator(qc), Operator(reference))
 
 
 @ddt
