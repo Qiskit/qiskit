@@ -51,7 +51,7 @@ class MCMT(QuantumCircuit):
         num_ctrl_qubits: int,
         num_target_qubits: int,
         label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None
+        ctrl_state: Optional[Union[str, int]] = None,
     ) -> None:
         """Create a new multi-control multi-target gate.
 
