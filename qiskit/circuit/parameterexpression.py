@@ -440,7 +440,7 @@ class ParameterExpression:
             return complex(self._symbol_expr)
         # TypeError is for sympy, RuntimeError for symengine
         except (TypeError, RuntimeError) as exc:
-            raise TypeError(
+            raise ParameterTypeError(
                 "ParameterExpression with unbound parameters ({}) "
                 "cannot be cast to a complex.".format(self.parameters)
             ) from exc
@@ -450,7 +450,7 @@ class ParameterExpression:
             return float(self._symbol_expr)
         # TypeError is for sympy, RuntimeError for symengine
         except (TypeError, RuntimeError) as exc:
-            raise TypeError(
+            raise ParameterTypeError(
                 "ParameterExpression with unbound parameters ({}) "
                 "cannot be cast to a float.".format(self.parameters)
             ) from exc
