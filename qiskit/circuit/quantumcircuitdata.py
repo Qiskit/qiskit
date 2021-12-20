@@ -54,18 +54,30 @@ class QuantumCircuitData(MutableSequence):
         self._circuit._check_qargs(qargs)
         self._circuit._check_cargs(cargs)
 
+        old_instruction = current_data[key][0] # Mycode
         self._circuit._data[key] = (instruction, qargs, cargs)
 
-        self._circuit._update_parameter_table(instruction)
+        # 元々あったコード
+        # self._circuit._update_parameter_table(instruction)
 
-        if len(instruction.params) > 0: # Remove params = None
-            if type(instruction.params[0]) is int or float or complex: # Remove params is not Parameter
-                pass
-            else:
-                param = instruction.params[0]
-                
-                #self._circuit._parameter_table[param][idx] = self._circuit._parameter_table[param][-1]
-                #self._circuit._parameter_table[param].pop()
+        # Mycode from here
+
+        current_data = self._circuit._data
+
+        if len(old_instruction.params) > 0:
+            old_param = old_instruction.params[0]
+            if type(old_param) == Parameter:
+                self._circuit._parameter_table[old_param] = [] 
+
+        if len(instruction.params) > 0:
+            param = instruction.params[0]
+            if type(param) == Parameter:
+                self._circuit._parameter_table[param] = []
+
+        for idx, (instr, qargs, cargs) in enumerate(current_data):
+            if len(instr.params) > 0:
+                if instr.params[0] == old_param or instr.params[0] == param:
+                    self._circuit._update_parameter_table(instr)
 
     def insert(self, index, value):
         self._circuit._data.insert(index, None)
