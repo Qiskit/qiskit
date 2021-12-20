@@ -3847,7 +3847,7 @@ class QuantumCircuit:
                 from .library.standard_gates.x import XGate
                 from .library.generalized_gates.mcmt import MCMT  # pylint: disable=cyclic-import
 
-                gate = MCMT(XGate(), len(controls), len(targets))
+                gate = MCMT(XGate(), len(controls), len(targets)).data[0][0]
 
         else:
             from .library.standard_gates.x import CXGate
