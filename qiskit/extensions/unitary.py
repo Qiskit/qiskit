@@ -106,6 +106,22 @@ class UnitaryGate(Gate):
                     # But just in case we throw exception :)
                     raise ExtensionError("Input matrix is not unitary.") from ex
 
+            else:
+                # Bind to test value and convert to numpy array in case not already an array
+                for ii in range(numpy.shape(data)[0]):
+                    for jj in range(numpy.shape(data)[1]):
+                        if isinstance(data[ii][jj], ParameterExpression):
+                            for param in data[ii][jj].parameters:
+                                data[ii][jj] = data[ii][jj].bind(
+                                    {param: float(symengine.conjugate(0.42))}
+                                )
+
+                data = numpy.array(data, dtype=complex)
+
+                # Check input is unitary
+                if not is_unitary_matrix(data):
+                    raise ExtensionError("Input matrix is not unitary.") from ex
+
         # Check input is N-qubit matrix
         input_dim, output_dim = data.shape
         num_qubits = int(numpy.log2(input_dim))

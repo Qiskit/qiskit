@@ -28,6 +28,7 @@ try:
 except ImportError:
     HAS_SYMENGINE = False
 
+
 class SubstitutionConfig:
     """
     Class to store the configuration of a given match substitution, which circuit
@@ -514,14 +515,14 @@ class TemplateSubstitution:
                     if not HAS_SYMENGINE:
                         temp_symbols[param] = sym.Symbol(str(param), real=True)
                     else:
-                        temp_symbols[param] = sym.Symbol(str(param))
+                        temp_symbols[param] = symengine.Symbol(str(param))
 
                 if isinstance(circuit_params[t_idx], ParameterExpression):
                     for param in circuit_params[t_idx].parameters:
                         if not HAS_SYMENGINE:
                             circ_dict[param] = sym.Symbol(str(param), real=True)
                         else:
-                            circ_dict[param] = sym.Symbol(str(param))
+                            circ_dict[param] = symengine.Symbol(str(param))
 
         if not temp_symbols:
             return template_dag_dep
