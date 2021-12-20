@@ -13,6 +13,7 @@
 """Models for RunConfig and its related components."""
 
 from types import SimpleNamespace
+import warnings
 
 
 class RunConfig(SimpleNamespace):
@@ -20,6 +21,7 @@ class RunConfig(SimpleNamespace):
 
     Attributes:
         shots (int): the number of shots
+        max_credits (int): DEPRECATED the max_credits to use on the IBM Q public devices
         seed_simulator (int): the seed to use in the simulator
         memory (bool): whether to request memory from backend (per-shot
             readouts)
@@ -29,6 +31,7 @@ class RunConfig(SimpleNamespace):
     def __init__(
         self,
         shots=None,
+        max_credits=None,
         seed_simulator=None,
         memory=None,
         parameter_binds=None,
@@ -38,6 +41,8 @@ class RunConfig(SimpleNamespace):
 
         Args:
             shots (int): the number of shots
+            max_credits (int): DEPRECATED the max_credits to use on the IBM Q public
+                devices
             seed_simulator (int): the seed to use in the simulator
             memory (bool): whether to request memory from backend
                 (per-shot readouts)
@@ -46,6 +51,15 @@ class RunConfig(SimpleNamespace):
         """
         if shots is not None:
             self.shots = shots
+        if max_credits is not None:
+            self.max_credits = max_credits
+            warnings.warn(
+                "Max_credits parameter is deprecated as of 0.33.2, and "
+                "will be removed no earlier than 3 months after that "
+                "release date. You should not use it.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         if seed_simulator is not None:
             self.seed_simulator = seed_simulator
         if memory is not None:

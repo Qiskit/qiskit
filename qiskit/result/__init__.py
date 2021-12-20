@@ -46,6 +46,7 @@ Mitigation
 """
 
 from .result import Result
+from .exceptions import ResultError
 from .utils import marginal_counts
 from .counts import Counts
 

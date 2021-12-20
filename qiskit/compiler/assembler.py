@@ -53,6 +53,7 @@ def assemble(
     qobj_header: Optional[Union[QobjHeader, Dict]] = None,
     shots: Optional[int] = None,
     memory: Optional[bool] = False,
+    max_credits: Optional[int] = None,
     seed_simulator: Optional[int] = None,
     qubit_lo_freq: Optional[List[float]] = None,
     meas_lo_freq: Optional[List[float]] = None,
@@ -101,6 +102,7 @@ def assemble(
         memory: If ``True``, per-shot measurement bitstrings are returned as well
             (provided the backend supports it). For OpenPulse jobs, only
             measurement level 2 supports this option.
+        max_credits: DEPRECATED Maximum credits to spend on job. Default: 10
         seed_simulator: Random seed to control sampling, for when backend is a simulator
         qubit_lo_freq: List of job level qubit drive LO frequencies in Hz. Overridden by
             ``schedule_los`` if specified. Must have length ``n_qubits.``
@@ -162,6 +164,7 @@ def assemble(
         qobj_header,
         shots,
         memory,
+        max_credits,
         seed_simulator,
         init_qubits,
         rep_delay,
@@ -227,6 +230,7 @@ def _parse_common_args(
     qobj_header,
     shots,
     memory,
+    max_credits,
     seed_simulator,
     init_qubits,
     rep_delay,
@@ -352,6 +356,7 @@ def _parse_common_args(
     run_config_dict = dict(
         shots=shots,
         memory=memory,
+        max_credits=max_credits,
         seed_simulator=seed_simulator,
         init_qubits=init_qubits,
         rep_delay=rep_delay,

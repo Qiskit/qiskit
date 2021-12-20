@@ -21,6 +21,7 @@ Executing Experiments (:mod:`qiskit.execute_function`)
 """
 import logging
 from time import time
+import warnings
 from qiskit.compiler import transpile, assemble, schedule
 from qiskit.providers import BaseBackend
 from qiskit.providers.backend import Backend
@@ -50,6 +51,7 @@ def execute(
     qobj_header=None,
     shots=None,  # common run options
     memory=None,
+    max_credits=None,
     seed_simulator=None,
     default_qubit_los=None,
     default_meas_los=None,  # schedule run options
@@ -164,6 +166,8 @@ def execute(
         memory (bool): If True, per-shot measurement bitstrings are returned as well
             (provided the backend supports it). For OpenPulse jobs, only
             measurement level 2 supports this option. Default: False
+
+        max_credits (int): DEPRECATED Maximum credits to spend on job. Default: 10
 
         seed_simulator (int): Random seed to control sampling, for when backend is a simulator
 
@@ -314,6 +318,16 @@ def execute(
             shots = 1024
         if memory is None:
             memory = False
+        if max_credits is None:
+            max_credits = 10
+            warnings.warn(
+                "Max_credits parameter is deprecated as of 0.33.2, and "
+                "will be removed no earlier than 3 months after that "
+                "release date. You should not use it.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         if meas_level is None:
             meas_level = MeasLevel.CLASSIFIED
         if meas_return is None:
