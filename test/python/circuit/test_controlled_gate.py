@@ -1217,6 +1217,8 @@ class TestControlledGate(QiskitTestCase):
 
 @ddt
 class TestFutureMulticontrolled(QiskitTestCase):
+    """Test the future feature of adding multicontrolled gates."""
+
     def setUp(self):
         super().setUp()
 

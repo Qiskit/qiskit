@@ -10,4 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Flags to indicate whether a future feature is enabled or not."""
+
 __MULTICONTROLLED_GATES__ = False

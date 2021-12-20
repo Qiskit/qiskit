@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Enable the future feature of adding multicontrolled gates to a circuit."""
+
 import qiskit.future
 
 qiskit.future.__MULTICONTROLLED_GATES__ = True

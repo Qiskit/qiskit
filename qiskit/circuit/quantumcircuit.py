@@ -2787,7 +2787,7 @@ class QuantumCircuit:
 
         if future.__MULTICONTROLLED_GATES__ and (len(controls) > 1 or len(targets) > 1):
             from .library.standard_gates.h import HGate
-            from .library.generalized_gates.mcmt import MCMT
+            from .library.generalized_gates.mcmt import MCMT  # pylint: disable=cyclic-import
 
             gate = MCMT(HGate(), len(controls), len(targets)).data[0][0]
             qubits = controls + targets
@@ -2893,7 +2893,7 @@ class QuantumCircuit:
 
         if future.__MULTICONTROLLED_GATES__ and (len(controls) > 1 or len(targets) > 1):
             from .library.standard_gates.p import PhaseGate
-            from .library.generalized_gates.mcmt import MCMT
+            from .library.generalized_gates.mcmt import MCMT  # pylint: disable=cyclic-import
 
             gate = MCMT(PhaseGate(theta), len(controls), len(targets)).data[0][0]
             qubits = controls + targets
@@ -3071,10 +3071,9 @@ class QuantumCircuit:
         controls = self.qbit_argument_conversion(control_qubit)
         targets = self.qbit_argument_conversion(target_qubit)
 
-        print(future.__MULTICONTROLLED_GATES__)
         if future.__MULTICONTROLLED_GATES__ and (len(controls) > 1 or len(targets) > 1):
             from .library.standard_gates.rx import RXGate
-            from .library.generalized_gates.mcmt import MCMT
+            from .library.generalized_gates.mcmt import MCMT  # pylint: disable=cyclic-import
 
             gate = MCMT(RXGate(theta), len(controls), len(targets)).data[0][0]
             qubits = controls + targets
@@ -3154,7 +3153,7 @@ class QuantumCircuit:
 
         if future.__MULTICONTROLLED_GATES__ and (len(controls) > 1 or len(targets) > 1):
             from .library.standard_gates.ry import RYGate
-            from .library.generalized_gates.mcmt import MCMT
+            from .library.generalized_gates.mcmt import MCMT  # pylint: disable=cyclic-import
 
             gate = MCMT(RYGate(theta), len(controls), len(targets)).data[0][0]
             qubits = controls + targets
@@ -3231,7 +3230,7 @@ class QuantumCircuit:
 
         if future.__MULTICONTROLLED_GATES__ and (len(controls) > 1 or len(targets) > 1):
             from .library.standard_gates.rz import RZGate
-            from .library.generalized_gates.mcmt import MCMT
+            from .library.generalized_gates.mcmt import MCMT  # pylint: disable=cyclic-import
 
             gate = MCMT(RZGate(theta), len(controls), len(targets)).data[0][0]
             qubits = controls + targets
@@ -3490,7 +3489,7 @@ class QuantumCircuit:
 
         if future.__MULTICONTROLLED_GATES__ and (len(controls) > 1 or len(targets) > 1):
             from .library.standard_gates.sx import SXGate
-            from .library.generalized_gates.mcmt import MCMT
+            from .library.generalized_gates.mcmt import MCMT  # pylint: disable=cyclic-import
 
             gate = MCMT(SXGate(), len(controls), len(targets)).data[0][0]
             qubits = controls + targets
@@ -3590,7 +3589,7 @@ class QuantumCircuit:
         targets = self.qbit_argument_conversion(target_qubit)
 
         if future.__MULTICONTROLLED_GATES__ and (len(controls) > 1 or len(targets) > 1):
-            from .library.generalized_gates.mcmt import MCMT
+            from .library.generalized_gates.mcmt import MCMT  # pylint: disable=cyclic-import
 
             u_gate = QuantumCircuit(1, global_phase=gamma, name="U")
             u_gate.u(theta, phi, lam, 0)
@@ -3846,7 +3845,7 @@ class QuantumCircuit:
                 gate = MCXGate(len(controls), ctrl_state=ctrl_state)
             else:
                 from .library.standard_gates.x import XGate
-                from .library.generalized_gates.mcmt import MCMT
+                from .library.generalized_gates.mcmt import MCMT  # pylint: disable=cyclic-import
 
                 gate = MCMT(XGate(), len(controls), len(targets))
 
@@ -4117,7 +4116,7 @@ class QuantumCircuit:
 
         if future.__MULTICONTROLLED_GATES__ and (len(controls) > 1 or len(targets) > 1):
             from .library.standard_gates.y import YGate
-            from .library.generalized_gates.mcmt import MCMT
+            from .library.generalized_gates.mcmt import MCMT  # pylint: disable=cyclic-import
 
             gate = MCMT(YGate(), len(controls), len(targets)).data[0][0]
             qubits = controls + targets
@@ -4172,7 +4171,7 @@ class QuantumCircuit:
 
         if future.__MULTICONTROLLED_GATES__ and (len(controls) > 1 or len(targets) > 1):
             from .library.standard_gates.z import ZGate
-            from .library.generalized_gates.mcmt import MCMT
+            from .library.generalized_gates.mcmt import MCMT  # pylint: disable=cyclic-import
 
             gate = MCMT(ZGate(), len(controls), len(targets)).data[0][0]
             qubits = controls + targets
