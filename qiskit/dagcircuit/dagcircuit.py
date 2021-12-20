@@ -215,8 +215,9 @@ class DAGCircuit:
         Raises:
             Exception: if the gate is of type string and params is None.
         """
+        # import pdb; pdb.set_trace()
         if isinstance(gate, Gate):
-            try:
+            if gate.params:
                 for param in gate.params:
                     try:
                         gate_has_param_exp = isinstance(param, ParameterExpression)
@@ -224,10 +225,12 @@ class DAGCircuit:
                         gate_has_param_exp = False
 
                     if gate_has_param_exp:
-                        self._calibrations[gate.name][(tuple(qubits), tuple([float(param)]))] = schedule
+                        self._calibrations[gate.name][
+                            (tuple(qubits), tuple([float(param)]))
+                        ] = schedule
                     else:
                         self._calibrations[gate.name][(tuple(qubits), tuple(param))] = schedule
-            except:
+            else:
                 self._calibrations[gate.name][(tuple(qubits), tuple(gate.params))] = schedule
         else:
             self._calibrations[gate][(tuple(qubits), tuple(params or []))] = schedule

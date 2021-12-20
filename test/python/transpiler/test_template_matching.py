@@ -353,7 +353,7 @@ class TestTemplateMatching(QiskitTestCase):
 
         pass_ = TemplateOptimization(template_list=[template()])
         circuit_out = PassManager(pass_).run(circuit_in)
-
+        
         self.assertEqual(circuit_out.count_ops().get("cx", 0), 0)
 
     def test_unbound_parameters_in_rzx_template(self):
@@ -362,16 +362,17 @@ class TestTemplateMatching(QiskitTestCase):
         circuit with an unbound ParameterExpression.
         """
 
-        phi = Parameter('$\phi$')
+        phi = Parameter("$\phi$")
         circuit_in = QuantumCircuit(2)
         circuit_in.cx(0, 1)
-        circuit_in.p(2*phi, 1)
+        circuit_in.p(2 * phi, 1)
         circuit_in.cx(0, 1)
 
-        pass_ = TemplateOptimization(**rzx_templates(['zz2']))
+        pass_ = TemplateOptimization(**rzx_templates(["zz2"]))
         circuit_out = PassManager(pass_).run(circuit_in)
 
-        self.assertEqual(circuit_out.count_ops().get('cx', 0), 0)
+        self.assertEqual(circuit_out.count_ops().get("cx", 0), 0)
+
 
 if __name__ == "__main__":
     unittest.main()
