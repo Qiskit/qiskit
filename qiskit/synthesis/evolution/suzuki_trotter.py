@@ -79,6 +79,9 @@ class SuzukiTrotter(ProductFormula):
                 DeprecationWarning,
                 stacklevel=2,
             )
+            # TODO replace deprecation warning by the following error and add unit test for odd
+            # raise ValueError("Suzuki product formulae are symmetric and therefore only defined "
+            #                  "for even orders.")
         super().__init__(order, reps, insert_barriers, cx_structure, atomic_evolution)
 
     def synthesize(self, evolution):
