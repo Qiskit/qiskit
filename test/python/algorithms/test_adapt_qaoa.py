@@ -16,7 +16,7 @@ import math
 import unittest
 from functools import reduce
 from itertools import combinations_with_replacement, permutations, product
-from qiskit.test import QiskitTestCase#test.python.algorithms import QiskitAlgorithmsTestCase
+from qiskit.test import QiskitTestCase  # test.python.algorithms import QiskitAlgorithmsTestCase
 
 import random
 import numpy as np
@@ -157,7 +157,10 @@ class TestAdaptQAOA(QiskitTestCase):
             qubit_op = qubit_op.to_matrix_op()
 
         adapt_qaoa = AdaptQAOA(
-            optimizer=COBYLA(maxiter=1000000, tol=0), max_reps=prob, mixer_pool=m, quantum_instance=self.statevector_simulator
+            optimizer=COBYLA(maxiter=1000000, tol=0),
+            max_reps=prob,
+            mixer_pool=m,
+            quantum_instance=self.statevector_simulator,
         )
         result = adapt_qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
@@ -265,7 +268,9 @@ class TestAdaptQAOA(QiskitTestCase):
             np.array([[0, 1, 0, 1], [1, 0, 1, 0], [0, 1, 0, 1], [1, 0, 1, 0]])
         )
         adapt_qaoa = AdaptQAOA(
-            optimizer=COBYLA(maxiter=1000000, tol=0), max_reps=1, quantum_instance=self.statevector_simulator
+            optimizer=COBYLA(maxiter=1000000, tol=0),
+            max_reps=1,
+            quantum_instance=self.statevector_simulator,
         )
 
         result = adapt_qaoa.compute_minimum_eigenvalue(operator=qubit_op)
@@ -399,7 +404,9 @@ class TestAdaptQAOA(QiskitTestCase):
         qubit_op, _ = self._get_operator(w)
 
         adapt_qaoa = AdaptQAOA(
-            optimizer=COBYLA(maxiter=1000000, tol=0), max_reps=1, quantum_instance=self.qasm_simulator
+            optimizer=COBYLA(maxiter=1000000, tol=0),
+            max_reps=1,
+            quantum_instance=self.qasm_simulator,
         )
 
         result = adapt_qaoa.compute_minimum_eigenvalue(operator=qubit_op)
@@ -461,23 +468,23 @@ class TestAdaptQAOA(QiskitTestCase):
         return x
 
     def _max_cut_hamiltonian(self, D, nq):
-        """ Calculates the Hamiltonian for a specific max cut graph.
-        Args: 
-            D (int): connectivity. 
+        """Calculates the Hamiltonian for a specific max cut graph.
+        Args:
+            D (int): connectivity.
             nq (int): number of qubits.
 
         Returns:
             PauliSumOp: Hamiltonian of graph.
         """
-        G = nx.random_regular_graph(D, nq, seed=1234) # connectivity, vertices
+        G = nx.random_regular_graph(D, nq, seed=1234)  # connectivity, vertices
         for (u, v) in G.edges():
-            G.edges[u,v]['weight'] = random.randint(0,1000)/1000
-        w = np.zeros([nq,nq])
+            G.edges[u, v]["weight"] = random.randint(0, 1000) / 1000
+        w = np.zeros([nq, nq])
         for i in range(nq):
             for j in range(nq):
-                temp = G.get_edge_data(i,j,default=0)
+                temp = G.get_edge_data(i, j, default=0)
                 if temp != 0:
-                    w[i,j] = temp['weight']
+                    w[i, j] = temp["weight"]
         hc_pauli, _ = self._get_operator(w)
         return hc_pauli
 
