@@ -301,7 +301,9 @@ class QasmQobjConfig(SimpleNamespace):
 
         Args:
             shots (int): the number of shots.
-            max_credits (int): the max_credits to use on the IBMQ public devices.
+            max_credits (int): DEPRECATED This parameter is deprecated as of
+                Qiskit Terra 0.20.0, and will be removed in a future release. This parameter has
+                no effect on modern IBM Quantum systems, and no alternative is necessary.
             seed_simulator (int): the seed to use in the simulator
             memory (bool): whether to request memory from backend (per-shot readouts)
             parameter_binds (list[dict]): List of parameter bindings
@@ -327,9 +329,9 @@ class QasmQobjConfig(SimpleNamespace):
         if max_credits is not None:
             self.max_credits = int(max_credits)
             warnings.warn(
-                "Max_credits parameter is deprecated as of 0.33.2, and "
-                "will be removed no earlier than 3 months after that "
-                "release date. You should not use it.",
+                "The `max_credits` parameter is deprecated as of Qiskit Terra 0.20.0, "
+                "and will be removed in a future release. This parameter has no effect on "
+                "modern IBM Quantum systems, and no alternative is necessary.",
                 DeprecationWarning,
                 stacklevel=2,
             )

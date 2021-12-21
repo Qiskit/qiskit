@@ -167,7 +167,9 @@ def execute(
             (provided the backend supports it). For OpenPulse jobs, only
             measurement level 2 supports this option. Default: False
 
-        max_credits (int): DEPRECATED Maximum credits to spend on job. Default: 10
+        max_credits (int): DEPRECATED This parameter is deprecated as of
+        Qiskit Terra 0.20.0, and will be removed in a future release. This parameter has
+        no effect on modern IBM Quantum systems, and no alternative is necessary.
 
         seed_simulator (int): Random seed to control sampling, for when backend is a simulator
 
@@ -311,6 +313,14 @@ def execute(
             meas_map=meas_map,
             method=scheduling_method,
         )
+    if max_credits is not None:
+        warnings.warn(
+            "The `max_credits` parameter is deprecated as of Qiskit Terra 0.20.0, "
+            "and will be removed in a future release. This parameter has no effect on "
+            "modern IBM Quantum systems, and no alternative is necessary.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
     if isinstance(backend, BaseBackend):
         # assembling the circuits into a qobj to be run on the backend
@@ -318,16 +328,6 @@ def execute(
             shots = 1024
         if memory is None:
             memory = False
-        if max_credits is None:
-            max_credits = 10
-            warnings.warn(
-                "Max_credits parameter is deprecated as of 0.33.2, and "
-                "will be removed no earlier than 3 months after that "
-                "release date. You should not use it.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-
         if meas_level is None:
             meas_level = MeasLevel.CLASSIFIED
         if meas_return is None:

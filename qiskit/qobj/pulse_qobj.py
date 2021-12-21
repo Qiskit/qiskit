@@ -306,7 +306,9 @@ class PulseQobjConfig(QobjDictField):
                 supplied by the backend (``backend.configuration().rep_delay_range``). Default is
                 ``backend.configuration().default_rep_delay``.
             shots (int): The number of shots
-            max_credits (int): DEPRECATED the max_credits to use on the IBMQ public devices.
+            max_credits (int): DEPRECATED This parameter is deprecated as of
+                Qiskit Terra 0.20.0, and will be removed in a future release. This parameter has
+                no effect on modern IBM Quantum systems, and no alternative is necessary.
             seed_simulator (int): the seed to use in the simulator
             memory_slots (list): The number of memory slots on the device
             kwargs: Additional free form key value fields to add to the
@@ -329,9 +331,9 @@ class PulseQobjConfig(QobjDictField):
         if max_credits is not None:
             self.max_credits = int(max_credits)
             warnings.warn(
-                "Max_credits parameter is deprecated as of 0.33.2, and "
-                "will be removed no earlier than 3 months after that "
-                "release date. You should not use it.",
+                "The `max_credits` parameter is deprecated as of Qiskit Terra 0.20.0, "
+                "and will be removed in a future release. This parameter has no effect on "
+                "modern IBM Quantum systems, and no alternative is necessary.",
                 DeprecationWarning,
                 stacklevel=2,
             )

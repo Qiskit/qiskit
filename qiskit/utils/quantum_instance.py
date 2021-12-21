@@ -183,7 +183,9 @@ class QuantumInstance:
             shots: Number of repetitions of each circuit, for sampling. If None, the shots are
                 extracted from the backend. If the backend has none set, the default is 1024.
             seed_simulator: Random seed for simulators
-            max_credits: DEPRECATED Maximum credits to use
+            max_credits: DEPRECATED This parameter is deprecated as of
+                Qiskit Terra 0.20.0, and will be removed in a future release. This parameter has
+                no effect on modern IBM Quantum systems, and no alternative is necessary.
             basis_gates: List of basis gate names supported by the
                 target. Defaults to basis gates of the backend.
             coupling_map (Optional[Union['CouplingMap', List[List]]]):
@@ -264,9 +266,9 @@ class QuantumInstance:
 
         if max_credits is not None:
             warnings.warn(
-                "Max_credits parameter is deprecated as of 0.33.2, and "
-                "will be removed no earlier than 3 months after that "
-                "release date. You should not use it.",
+                "The `max_credits` parameter is deprecated as of Qiskit Terra 0.20.0, "
+                "and will be removed in a future release. This parameter has no effect on "
+                "modern IBM Quantum systems, and no alternative is necessary.",
                 DeprecationWarning,
                 stacklevel=2,
             )
