@@ -35,6 +35,8 @@ class PassManagerConfig:
         seed_transpiler=None,
         timing_constraints=None,
         unitary_synthesis_method="default",
+        unitary_synthesis_plugin_config=None,
+        target=None,
     ):
         """Initialize a PassManagerConfig object
 
@@ -65,6 +67,7 @@ class PassManagerConfig:
             unitary_synthesis_method (str): The string method to use for the
                 :class:`~qiskit.transpiler.passes.UnitarySynthesis` pass. Will
                 search installed plugins for a valid method.
+            target (Target): The backend target
         """
         self.initial_layout = initial_layout
         self.basis_gates = basis_gates
@@ -80,6 +83,8 @@ class PassManagerConfig:
         self.seed_transpiler = seed_transpiler
         self.timing_constraints = timing_constraints
         self.unitary_synthesis_method = unitary_synthesis_method
+        self.unitary_synthesis_plugin_config = unitary_synthesis_plugin_config
+        self.target = target
 
     @classmethod
     def from_backend(cls, backend, **pass_manager_options):
@@ -111,5 +116,11 @@ class PassManagerConfig:
             res.instruction_durations = InstructionDurations.from_backend(backend)
         if res.backend_properties is None:
             res.backend_properties = backend.properties()
+        if res.target is None:
+            backend_version = getattr(backend, "version", 0)
+            if not isinstance(backend_version, int):
+                backend_version = 0
+            if backend_version >= 2:
+                res.target = backend.target
 
         return res

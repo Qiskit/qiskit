@@ -64,7 +64,7 @@ class MatrixOp(PrimitiveOp):
                 f"not '{primitive_orig.__class__.__name__}'"
             )
 
-        if not primitive.input_dims() == primitive.output_dims():
+        if primitive.input_dims() != primitive.output_dims():
             raise ValueError("Cannot handle non-square matrices yet.")
 
         super().__init__(primitive, coeff=coeff)

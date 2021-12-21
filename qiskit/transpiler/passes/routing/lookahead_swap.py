@@ -121,8 +121,7 @@ class LookaheadSwap(TransformationPass):
 
             if best_step is None:
                 raise TranspilerError(
-                    "Lookahead failed to find a swap which mapped "
-                    "gates or improved layout score."
+                    "Lookahead failed to find a swap which mapped gates or improved layout score."
                 )
 
             logger.debug(
