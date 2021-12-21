@@ -32,6 +32,7 @@ from qiskit.utils import algorithm_globals
 # from qiskit.algorithms.minimum_eigen_solvers.qaoa import QAOA
 from .qaoa import QAOA
 
+
 class AdaptQAOA(QAOA):
     """
     The Adaptive Derivative Assembled Problem Tailored - Quantum Approximate Optimization Algorithm.
@@ -57,9 +58,7 @@ class AdaptQAOA(QAOA):
         self,
         mixer_pool: Optional[Union[OperatorBase, QuantumCircuit]] = None,
         mixer_pool_type: Optional[str] = None,
-        threshold: Optional[
-            Callable[[int, float], None]
-        ] = 0,
+        threshold: Optional[Callable[[int, float], None]] = 0,
         max_reps=1,
         **kwargs,
     ) -> None:
@@ -145,7 +144,6 @@ class AdaptQAOA(QAOA):
         self.ansatz = None
         self.threshold = threshold
 
-
     def _update_ansatz(self, operator: OperatorBase) -> OperatorBase:
         # Recreates a circuit based on operator parameter.
         self.ansatz = QAOAAnsatz(
@@ -154,7 +152,7 @@ class AdaptQAOA(QAOA):
             mixer_operator=self.optimal_mixer_list,
             name=self.name,
         )
-        beta_bounds = self._reps * [(-2*np.pi, 2 * np.pi)]
+        beta_bounds = self._reps * [(-2 * np.pi, 2 * np.pi)]
         gamma_bounds = self._reps * [(-np.pi, np.pi)]
 
         self.ansatz._bounds = beta_bounds + gamma_bounds
@@ -177,7 +175,11 @@ class AdaptQAOA(QAOA):
         exp_hc = (self.initial_point[-1] * operator).exp_i()
         exp_hc_ad = exp_hc.adjoint().to_matrix()
         exp_hc = exp_hc.to_matrix()
-        energy_grad_op = exp_hc_ad @ (commutator(operator.to_matrix_op(), mixer.to_matrix_op()).to_matrix()) @ exp_hc
+        energy_grad_op = (
+            exp_hc_ad
+            @ (commutator(operator.to_matrix_op(), mixer.to_matrix_op()).to_matrix())
+            @ exp_hc
+        )
         energy_grad_op = PrimitiveOp(energy_grad_op)
 
         expectation = ExpectationFactory.build(
@@ -188,7 +190,7 @@ class AdaptQAOA(QAOA):
         observable_meas = expectation.convert(StateFn(energy_grad_op, is_measurement=True))
         ansatz_circuit_op = CircuitStateFn(wave_function)
         expect_op = observable_meas.compose(ansatz_circuit_op).reduce()
-        return -1j*expect_op
+        return -1j * expect_op
 
     def _test_mixer_pool(self, operator: OperatorBase):
         self._check_problem_configuration(operator)
@@ -205,8 +207,11 @@ class AdaptQAOA(QAOA):
         return self.mixer_pool[max_energy_idx], np.abs(energy_gradients[max_energy_idx])
 
     def compute_minimum_eigenvalue(
-        self, operator: OperatorBase, aux_operators: Optional[List[Optional[OperatorBase]]] = None,
-        iter_results = False, disp=False,
+        self,
+        operator: OperatorBase,
+        aux_operators: Optional[List[Optional[OperatorBase]]] = None,
+        iter_results=False,
+        disp=False,
     ):
         self.optimal_mixer_list = None
         """Runs ADAPT-QAOA for each iteration"""
@@ -216,14 +221,16 @@ class AdaptQAOA(QAOA):
             best_mixer, energy_norm = self._test_mixer_pool(operator=operator)
             if disp:
                 print(f"Circuit depth: {self._reps}")
-                print(f"Current energy norm | Threshold  =====> | {energy_norm} | {self.threshold} |")
+                print(
+                    f"Current energy norm | Threshold  =====> | {energy_norm} | {self.threshold} |"
+                )
                 print(f"Best mixer: {best_mixer}")
                 print()
             if energy_norm < self.threshold:  # Threshold stoppage condition
                 if result is None:
                     result = super().compute_minimum_eigenvalue(
                         operator=operator, aux_operators=aux_operators
-                        )
+                    )
                 break
             self.optimal_mixer_list.append(
                 best_mixer
@@ -236,12 +243,12 @@ class AdaptQAOA(QAOA):
             result_p.append(result)
             self.best_beta = list(np.split(opt_params, 2)[0])
             self.best_gamma = list(np.split(opt_params, 2)[1])
-            if np.abs(result.optimal_value-self.ground_state_energy)<1e-16:
+            if np.abs(result.optimal_value - self.ground_state_energy) < 1e-16:
                 break
             if disp:
                 print("Initial point: {}".format(self.initial_point))
                 print("Optimal parameters: {}".format(result.optimal_parameters))
-                print("Relative Energy", result.optimal_value-self.ground_state_energy)
+                print("Relative Energy", result.optimal_value - self.ground_state_energy)
                 print("--------------------------------------------------------")
             self._reps += 1
         if iter_results:
@@ -250,9 +257,9 @@ class AdaptQAOA(QAOA):
 
     def _check_problem_configuration(self, operator: OperatorBase):
         # Generates the pool of mixers with respect to the cost operator size
-        if self._cost_operator!=operator:
+        if self._cost_operator != operator:
             self._cost_operator = operator
-        if self.ansatz!=self.initial_state and self._reps==1:
+        if self.ansatz != self.initial_state and self._reps == 1:
             self.ansatz = self.initial_state
         if isinstance(self.mixer_pool, list):
             mixer_n_qubits = [mixer.num_qubits for mixer in self.mixer_pool]
@@ -307,7 +314,7 @@ class AdaptQAOA(QAOA):
     @property
     def optimal_mixer_list(self) -> List:
         if self._optimal_mixer_list is None:
-            self._optimal_mixer_list = ([])
+            self._optimal_mixer_list = []
         return self._optimal_mixer_list
 
     @optimal_mixer_list.setter
@@ -353,6 +360,7 @@ class AdaptQAOA(QAOA):
             return min(np.real(np.linalg.eig(self._cost_operator.to_matrix())[0]))
         else:
             return None
+
     # @property
     # def optimal_mixer_list(self) -> List:
 
@@ -365,7 +373,7 @@ class AdaptQAOA(QAOA):
 
         """
         if self._ansatz_params:
-            if len(self._initial_point) != 2*self._reps:#self.ansatz.num_parameters:
+            if len(self._initial_point) != 2 * self._reps:  # self.ansatz.num_parameters:
                 self._update_initial_point()
         return self._initial_point
 
@@ -400,22 +408,27 @@ class AdaptQAOA(QAOA):
         return np.append(beta_ip, [gamma_ip])
 
     def _update_initial_point(self):
-        ordered_initial_points = np.zeros(2*self._reps)
+        ordered_initial_points = np.zeros(2 * self._reps)
         if self._user_specified_ip is not None:
-            ordered_initial_points[:self._reps] = self._user_specified_ip[:self.max_reps][:self._reps]
-            ordered_initial_points[self._reps:] = self._user_specified_ip[self.max_reps:][:self._reps]
+            ordered_initial_points[: self._reps] = self._user_specified_ip[: self.max_reps][
+                : self._reps
+            ]
+            ordered_initial_points[self._reps :] = self._user_specified_ip[self.max_reps :][
+                : self._reps
+            ]
         else:
             new_beta, new_gamma = self._generate_initial_point()
-            ordered_initial_points[:self._reps] = np.append(self._initial_point[:self._reps-1],new_beta)
-            ordered_initial_points[self._reps:] = np.append(self._initial_point[self._reps-1:],new_gamma)
+            ordered_initial_points[: self._reps] = np.append(
+                self._initial_point[: self._reps - 1], new_beta
+            )
+            ordered_initial_points[self._reps :] = np.append(
+                self._initial_point[self._reps - 1 :], new_gamma
+            )
         self._initial_point = ordered_initial_points
 
 
 def adapt_mixer_pool(
-    num_qubits: int,
-    add_single: bool = True,
-    add_multi: bool = True,
-    pool_type: str = None
+    num_qubits: int, add_single: bool = True, add_multi: bool = True, pool_type: str = None
 ) -> List:
     """
     Gets all combinations of mixers in desired set (standard qaoa mixer, single qubit
@@ -489,7 +502,7 @@ def adapt_mixer_pool(
     return mixer_pool
 
 
-#TODO: Fix the following issues for unittest:
+# TODO: Fix the following issues for unittest:
 """
     (1) test_adapt_qaoa:
         - For some reason adapt computes the wrong result when to_matrix_op() is applied to cost operator
