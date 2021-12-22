@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    The :obj:`.HHL` algorithm can now find solutions when its matrix has negative eigenvalues.
+    To enable this, the algorithm now adds an extra qubit to represent the sign of the value,
+    and the helper algorithm :obj:`.ExactReciprocal` was updated to process this
+    new information.  See `#6971
+    <https://github.com/Qiskit/qiskit-terra/pull/6971>`__ for more details.

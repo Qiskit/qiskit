@@ -64,6 +64,7 @@ Standard Gates
    RZGate
    RZZGate
    RZXGate
+   XYGate
    ECRGate
    SGate
    SdgGate
@@ -186,6 +187,15 @@ Functions on binary variables
    :template: autosummary/class_no_inherited_members.rst
 
    QuadraticForm
+
+Other arithmetic functions
+--------------------------
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+   ExactReciprocal
 
 Amplitude Functions
 ===================
@@ -393,6 +403,7 @@ from .arithmetic import (
     PiecewiseChebyshev,
     HRSCumulativeMultiplier,
     RGQFTMultiplier,
+    ExactReciprocal,
 )
 
 from .n_local import (

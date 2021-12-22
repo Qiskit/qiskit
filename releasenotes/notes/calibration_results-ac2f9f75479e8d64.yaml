@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    Removed calibration results when using error mitigation with the :meth:`~qiskit.utils.QuantumInstance.execute` method of
-    :class:`~qiskit.utils.QuantumInstance`.
-    Fixes `#7129 <https://github.com/Qiskit/qiskit-terra/issues/7129>`__.
