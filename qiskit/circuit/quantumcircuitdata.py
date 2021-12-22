@@ -17,7 +17,7 @@ from collections.abc import MutableSequence
 
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
-
+from .parameter import Parameter
 
 class QuantumCircuitData(MutableSequence):
     """A wrapper class for the purposes of validating modifications to
@@ -54,30 +54,31 @@ class QuantumCircuitData(MutableSequence):
         self._circuit._check_qargs(qargs)
         self._circuit._check_cargs(cargs)
 
-        old_instruction = current_data[key][0] # Mycode
+        old_circ_data = self._circuit._data 
         self._circuit._data[key] = (instruction, qargs, cargs)
+        new_circ_data = self._circuit._data
 
-        # 元々あったコード
-        # self._circuit._update_parameter_table(instruction)
+        param_list = []
 
-        # Mycode from here
-
-        current_data = self._circuit._data
-
-        if len(old_instruction.params) > 0:
-            old_param = old_instruction.params[0]
-            if type(old_param) == Parameter:
-                self._circuit._parameter_table[old_param] = [] 
+        for data in old_circ_data:
+            if len(data[0].params) > 0:
+                if isinstance(data[0].params[0], Parameter):
+                    if not data[0].params[0] in param_list:
+                        param_list.append(data[0].params[0])
 
         if len(instruction.params) > 0:
-            param = instruction.params[0]
-            if type(param) == Parameter:
-                self._circuit._parameter_table[param] = []
+            if isinstance(instruction.params[0], Parameter):
+                if not instruction.params[0] in param_list:
+                    param_list.append(instruction.params[0])
 
-        for idx, (instr, qargs, cargs) in enumerate(current_data):
+        for param in param_list:
+            self._circuit._parameter_table[param] = [] 
+
+        for instr, qargs, cargs in new_circ_data:
             if len(instr.params) > 0:
-                if instr.params[0] == old_param or instr.params[0] == param:
-                    self._circuit._update_parameter_table(instr)
+                if isinstance(instr.params[0], Parameter):
+                    if instr.params[0] in param_list:
+                        self._circuit._update_parameter_table(instr)
 
     def insert(self, index, value):
         self._circuit._data.insert(index, None)
