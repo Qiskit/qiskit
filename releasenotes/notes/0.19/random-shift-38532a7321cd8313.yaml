@@ -1,0 +1,13 @@
+---
+upgrade:
+  - |
+    The internal use of the random number generator in
+    :func:`~qiskit.circuit.random.random_circuit` was adjusted, which will
+    change the output from previous versions, even with a fixed seed. This was
+    done to greatly improve the runtime scaling with the number of qubits being
+    used. If you were depending on an identical output from a previous version
+    it is recommended that you use
+    :func:`.qpy_serialization.dump` to save the random
+    circuit generated with a previous version and instead of re-generating it
+    with the new release, and instead just use
+    :func:`.qpy_serialization.load` to load that saved circuit.

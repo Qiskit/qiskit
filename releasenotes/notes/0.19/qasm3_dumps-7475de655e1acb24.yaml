@@ -1,0 +1,46 @@
+---
+features:
+  - |
+    Qiskit Terra now has initial support for serializing
+    :class:`.QuantumCircuit`\ s to `OpenQASM 3 <https://github.com/Qiskit/openqasm>`__:
+
+    .. jupyter-execute::
+
+        from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
+        from qiskit import qasm3
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        print(qasm3.dumps(qc))
+
+    This initial release has limited support for named registers, basic built-in
+    instructions (such as measure, barrier and reset), user-defined gates,
+    user-defined instructions (as subroutines), and the new control-flow constructs
+    also introduced in this release:
+
+    .. jupyter-execute::
+
+        from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
+        from qiskit import qasm3
+        import math
+
+        composite_circ_qreg = QuantumRegister(2)
+        composite_circ = QuantumCircuit(composite_circ_qreg, name="composite_circ")
+        composite_circ.h(0)
+        composite_circ.x(1)
+        composite_circ.cx(0, 1)
+        composite_circ_gate = composite_circ.to_gate()
+
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(2, "cr")
+        qc = QuantumCircuit(qr, cr)
+        with qc.for_loop(range(4)) as i:
+            qc.rx(i * math.pi / 4, 0)
+            qc.cx(0, 1)
+        qc.barrier()
+        qc.append(composite_circ_gate, [0, 1])
+        qc.measure([0, 1], [0, 1])
+
+        print(qasm3.dumps(qc))
