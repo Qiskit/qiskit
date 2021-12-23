@@ -1,0 +1,6 @@
+---
+
+features:
+  - |
+    Mock backends from `~qiskit.test.mock` are now accessible from `~qiskit.mock`.
+    The `~qiskit.test.mock package will be deprecated soon.
