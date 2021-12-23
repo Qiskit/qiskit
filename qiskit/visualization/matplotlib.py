@@ -365,6 +365,19 @@ class MatplotlibDrawer:
                         RuntimeWarning,
                         2,
                     )
+                if isinstance(op.condition[0], list):
+                    for bit in op.condition[0]:
+                        register, _, _ = get_bit_reg_index(self._circuit, bit, self._reverse_bits)
+                        if register is not None:
+                            self._cregbundle = False
+                            warn(
+                                "Cregbundle set to False since there is a gate in the circuit"
+                                " with a classical condition on a list of bits and at least one"
+                                " of those bits belongs to a register",
+                                RuntimeWarning,
+                                2,
+                            )
+                            break
                 self._data[node] = {}
                 self._data[node]["width"] = WID
                 num_ctrl_qubits = 0 if not hasattr(op, "num_ctrl_qubits") else op.num_ctrl_qubits
@@ -842,12 +855,17 @@ class MatplotlibDrawer:
         first_clbit = len(self._qubits)
         cond_pos = []
 
-        # In the first case, multiple bits are indicated on the drawing. In all
+        # In the first two cases, multiple bits are indicated on the drawing. In all
         # other cases, only one bit is shown.
+        # If it's an open register
         if not self._cregbundle and isinstance(cond_bit_reg, ClassicalRegister):
             for idx in range(cond_bit_reg.size):
                 rev_idx = cond_bit_reg.size - idx - 1 if self._reverse_bits else idx
-                cond_pos.append(cond_xy[self._bits_regs_map[cond_bit_reg[rev_idx]] - first_clbit])
+
+        # If it's a list
+        if isinstance(cond_bit_reg, list):
+            for bit in cond_bit_reg:
+                cond_pos.append(cond_xy[self._bits_regs_map[bit] - first_clbit])
 
         # If it's a register bit and cregbundle, need to use the register to find the location
         elif self._cregbundle and isinstance(cond_bit_reg, Clbit):

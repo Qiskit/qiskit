@@ -285,7 +285,7 @@ def get_condition_label_val(condition, circuit, cregbundle, reverse_bits):
     """Get the label and value list to display a condition
 
     Args:
-        condition (Union[Clbit, ClassicalRegister], int): classical condition
+        condition (Union[Clbit, ClassicalRegister, list[Clbit]], int): classical condition
         circuit (QuantumCircuit): the circuit that is being drawn
         cregbundle (bool): if set True bundle classical registers
         reverse_bits (bool): if set True reverse the bit order
@@ -297,10 +297,14 @@ def get_condition_label_val(condition, circuit, cregbundle, reverse_bits):
     cond_is_bit = bool(isinstance(condition[0], Clbit))
     cond_val = int(condition[1])
 
-    # if condition on a register, return list of 1's and 0's indicating
-    # closed or open, else only one element is returned
+    # if condition on a register or a list of bits, return list of 1's and 0's
+    # indicating closed or open, else only one element is returned
     if isinstance(condition[0], ClassicalRegister) and not cregbundle:
         val_bits = list(str(bin(cond_val))[2:].zfill(condition[0].size))
+        if not reverse_bits:
+            val_bits = val_bits[::-1]
+    elif isinstance(condition[0], list):
+        val_bits = list(str(bin(cond_val))[2:].zfill(len(condition[0])))
         if not reverse_bits:
             val_bits = val_bits[::-1]
     else:
