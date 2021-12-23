@@ -1174,6 +1174,11 @@ class QuantumCircuit:
                 return self._clbits[specifier]
             except IndexError:
                 raise CircuitError(f"Classical bit index {specifier} is out-of-range.") from None
+        if isinstance(specifier, list):
+            for bit in specifier:
+                if bit not in self._clbit_indices:
+                    raise CircuitError(f"Clbit {specifier} is not present in this circuit.")
+                return specifier
         raise CircuitError(f"Unknown classical resource specifier: '{specifier}'.")
 
     def append(
@@ -3217,6 +3222,30 @@ class QuantumCircuit:
         from .library.standard_gates.rzz import RZZGate
 
         return self.append(RZZGate(theta), [qubit1, qubit2], [])
+
+    def xy(
+        self,
+        theta: ParameterValueType,
+        qubit1: QubitSpecifier,
+        qubit2: QubitSpecifier,
+        beta: Optional[ParameterValueType] = 0,
+    ) -> InstructionSet:
+        """Apply :class:`~qiskit.circuit.library.XYGate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Args:
+            theta: The rotation angle of the gate.
+            beta: The phase angle of the gate.
+            qubit1: The qubit(s) to apply the gate to.
+            qubit2: The qubit(s) to apply the gate to.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        from .library.standard_gates.xy import XYGate
+
+        return self.append(XYGate(theta, beta), [qubit1, qubit2], [])
 
     def ecr(self, qubit1: QubitSpecifier, qubit2: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.ECRGate`.

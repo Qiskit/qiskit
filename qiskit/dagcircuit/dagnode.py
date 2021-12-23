@@ -303,9 +303,21 @@ class DAGNode:
             if "barrier" == node1.op.name == node2.op.name:
                 return set(node1_qargs) == set(node2_qargs)
 
+            def cond_eq(cond1, cond2):
+                if cond1 == cond2:
+                    return True
+                if len(cond1[0]) != len(cond2[0]):
+                    return False
+                cond_len = len(cond1[0])
+                cond1_pairs = {(cond1[0][i], (cond1[1] >> i) & 1) for i in range(cond_len)}
+                cond2_pairs = {(cond2[0][i], (cond2[1] >> i) & 1) for i in range(cond_len)}
+                if cond1_pairs == cond2_pairs:
+                    return True
+                return False
+
             if node1_qargs == node2_qargs:
                 if node1_cargs == node2_cargs:
-                    if node1.op.condition == node2.op.condition:
+                    if cond_eq(node1.op.condition, node2.op.condition):
                         if node1.op == node2.op:
                             return True
         elif (isinstance(node1, DAGInNode) and isinstance(node2, DAGInNode)) or (
