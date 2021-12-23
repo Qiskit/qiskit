@@ -274,6 +274,18 @@ path. A migration path might be "stop using that feature", but in such cases
 it is necessary to first judge how widely used and/or important the feature
 is to users, in order to determine a reasonable obsolescence date.
 
+2a. The migration path must have existed in a least a prior release before the
+new feature can be deprecated. For example, if you have a function ``foo()``
+which is going to be replaced with ``bar()`` you can't deprecate the ``foo()``
+function in the same release that introduces ``bar()``. The ``bar()`` function
+needs to be available in a release prior to the deprecation of ``foo()``. This
+is necessary to enable downstream consumers of Qiskit that maintain their
+own libraries to write code that works with > 1 release at a time, which is
+important for the entire ecosystem. If you would like to indicate that
+a deprecation will be coming in a future release you can use the
+``PendingDeprecationWarning``  warning to signal this. But, the deprecation
+period only begins after a ``DeprecationWarning`` is being emitted.
+
 3. An obsolescence date for the feature will be set. The feature must remain
 intact and working (although with the proper warning being emitted) in all
 releases pushed until after that obsolescence date. At the very minimum, the
@@ -282,14 +294,24 @@ continue to be supported) for at least three months of linear time from the rele
 date of the first release to include the deprecation warning. For example, if a
 feature were deprecated in the 0.9.0 release of Terra, which was released on
 August 22, 2019, then that feature should still appear in all releases until at
-least November 22, 2019. Since releases do not occur at fixed time intervals,
-a deprecation warning may only occur in one release prior to removal.
+least November 22, 2019.
 
 Note that this delay is a minimum. For significant features, it is recommended
 that the deprecated feature appears for at least double that time. Also, per
 the stable branch policy, deprecation removals can only occur during minor
 version releases; they are not appropriate for backporting.
 
+3a. A deprecated feature can not be removed unless it is deprecated in more
+than one release even if the minimum deprecation period has elapsed. For example,
+if a feature is deprecated in 0.20.0 which is released on January 20, 2022
+and the next minor version release 0.21.0 is released on June 16, 2022 the
+deprecated feature can't be removed until the 0.22.0 release, even though
+0.21.0 was more than three months after the 0.20.0 release. This is important
+because the point of the deprecation warnings are to inform users that a
+potentially breaking API change is coming and to give them a chance to adapt
+their code. However, many users skip versions (especially if there are a large
+numbers of changes in each release) and don't upgrade to every release, so
+might miss the warning if it's only present for a single minor version release.
 
 
 Deprecation Warnings
