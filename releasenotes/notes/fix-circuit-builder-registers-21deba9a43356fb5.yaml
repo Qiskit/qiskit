@@ -1,0 +1,46 @@
+---
+fixes:
+  - |
+    The control-flow builder interface now supports using :class:`.ClassicalRegister`\ s
+    as conditions in nested control-flow scopes.  Previously, doing this would
+    not raise an error immediately, but the internal circuit blocks would not
+    have the correct registers defined, and so later logic that worked with the
+    inner blocks would fail.
+
+    For example, previously the drawers would fail when trying to draw an inner
+    block conditioned on a classical register, whereas now it will succeed, such
+    as in this example::
+
+        from qiskit import QuantumCircuit
+        from qiskit.circuit import QuantumRegister, ClassicalRegister
+
+        qreg = QuantumRegister(4)
+        creg = ClassicalRegister(1)
+        circ = QuantumCircuit(qreg, creg)
+
+        with circ.for_loop(range(10)) as a:
+            circ.ry(a, 0)
+            with circ.if_test((creg, 1)):
+                circ.break_loop()
+
+        print(circ.draw(cregbundle=False))
+        print(circ.data[0][0].blocks[0].draw(cregbundle=False))
+
+other:
+  - |
+    The new control-flow builder interface uses various context managers and
+    helper objects to do its work.  These should not be considered part of the
+    public API, and are liable to be changed and removed without warning.  The
+    *usage* of the builder interface has stability guarantees, in the sense that
+    the behaviour described by :meth:`.QuantumCircuit.for_loop`,
+    :meth:`~.QuantumCircuit.while_loop` and :meth:`~.QuantumCircuit.if_test` for
+    the builder interface are subject to the standard deprecation policies, but
+    the actual objects used to effect this are not.  You should not rely on the
+    objects (such as ``IfContext`` or ``ControlFlowBuilderBlock``) existing in
+    their current locations, or having any methods or attributes attached to
+    them.
+
+    This was not previously clear in the 0.19.0 release.  All such objects now
+    have a warning in their documentation strings making this explicit.  It is
+    likely in the future that their locations and backing implementations will
+    become quite different.
