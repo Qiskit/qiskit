@@ -497,38 +497,25 @@ class QuantumCircuit:
                      └───┘
         """
         circ = QuantumCircuit(
+            list(reversed(self.qubits)),
+            list(reversed(self.clbits)),
             name=self.name,
             global_phase=self.global_phase,
         )
-        for bits, indices in [
-            (self.qubits, self._qubit_indices),
-            (self.clbits, self._clbit_indices),
-        ]:
-            i = len(bits) - 1
-            while i >= 0:
-                bit = bits[i]
-                _, regs = indices[bit]
-                if regs:
-                    reg, local_idx = regs[0]
-                    circ.add_register(reg)
-                    i -= reg.size
-                else:
-                    circ.add_bits([bit])
-                    i -= 1
+        num_qubits = self.num_qubits
+        num_clbits = self.num_clbits
+        new_qubits = circ.qubits
+        new_clbits = circ.clbits
+        for reg in reversed(self.qregs):
+            bits = [new_qubits[num_qubits - self._qubit_indices[q].index - 1] for q in reg]
+            circ.add_register(QuantumRegister(None, reg.name, list(reversed(bits))))
+        for reg in reversed(self.cregs):
+            bits = [new_clbits[num_clbits - self._clbit_indices[c].index - 1] for c in reg]
+            circ.add_register(ClassicalRegister(None, reg.name, list(reversed(bits))))
 
         for inst, qargs, cargs in self.data:
-            new_qargs = []
-            new_cargs = []
-            for new_args, args, indices in [
-                (new_qargs, qargs, self._qubit_indices),
-                (new_cargs, cargs, self._clbit_indices),
-            ]:
-                for arg in args:
-                    _, regs = indices[arg]
-                    if regs:
-                        reg, local_idx = regs[0]
-                        arg = reg[reg.size - 1 - local_idx]
-                    new_args.append(arg)
+            new_qargs = [new_qubits[num_qubits - self._qubit_indices[q].index - 1] for q in qargs]
+            new_cargs = [new_clbits[num_clbits - self._clbit_indices[c].index - 1] for c in cargs]
             circ._append(inst, new_qargs, new_cargs)
         return circ
 
