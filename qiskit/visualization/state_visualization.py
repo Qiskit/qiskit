@@ -260,22 +260,7 @@ def plot_bloch_multivector(
         MissingOptionalLibraryError: Requires matplotlib.
         VisualizationError: if input is not a valid N-qubit state.
 
-    Example - bell state:
-        .. jupyter-execute::
-
-            from qiskit import QuantumCircuit
-            from qiskit.quantum_info import Statevector
-            from qiskit.visualization import plot_bloch_multivector
-            %matplotlib inline
-
-            qc = QuantumCircuit(2)
-            qc.h(0)
-            qc.cx(0, 1)
-
-            state = Statevector.from_instruction(qc)
-            plot_bloch_multivector(state, title="New Bloch Multivector", reverse_bits=False)
-
-    Example - without entanglement:
+    Example:
         .. jupyter-execute::
 
             from qiskit import QuantumCircuit
@@ -288,7 +273,7 @@ def plot_bloch_multivector(
             qc.x(1)
 
             state = Statevector.from_instruction(qc)
-            plot_bloch_multivector(state, title="New Bloch Multivector", reverse_bits=False)
+            plot_bloch_multivector(state)
     """
     if not HAS_MATPLOTLIB:
         raise MissingOptionalLibraryError(
