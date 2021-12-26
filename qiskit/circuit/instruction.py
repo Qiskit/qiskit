@@ -420,10 +420,14 @@ class Instruction:
             )
         if val < 0:
             raise CircuitError("condition value should be non-negative")
-        if (isinstance(classical, ClassicalRegister) and val >= 2 ** classical.size) or (
-            isinstance(classical, list) and val >= 2 ** len(classical)
+
+        if (
+            (isinstance(classical, ClassicalRegister) and val >= 2 ** classical.size)
+            or (isinstance(classical, list) and val >= 2 ** len(classical))
+            or (isinstance(classical, Clbit) and int(val) > 1)
         ):
             raise CircuitError("condition value should be less than 2 ^ number of bits")
+
         if isinstance(classical, Clbit):
             # Casting the conditional value as Boolean when
             # the classical condition is on a classical bit.

@@ -43,6 +43,7 @@ from qiskit.visualization.utils import (
     get_gate_ctrl_text,
     get_param_str,
     get_bits_regs_map,
+    get_bit_register,
     get_bit_reg_index,
     get_bit_label,
     get_condition_label_val,
@@ -360,18 +361,23 @@ class MatplotlibDrawer:
                 if self._cregbundle and node.cargs and not isinstance(op, Measure):
                     self._cregbundle = False
                     warn(
-                        "Cregbundle set to False since an instruction needs to refer"
+                        "cregbundle set to False since an instruction needs to refer"
                         " to individual classical wire",
                         RuntimeWarning,
                         2,
                     )
-                if isinstance(op.condition[0], list):
+                if (
+                    op.condition is not None
+                    and isinstance(op.condition[0], list)
+                    and len(op.condition[0]) > 1
+                    and self._cregbundle
+                ):
                     for bit in op.condition[0]:
-                        register, _, _ = get_bit_reg_index(self._circuit, bit, self._reverse_bits)
+                        register = get_bit_register(self._circuit, bit)
                         if register is not None:
                             self._cregbundle = False
                             warn(
-                                "Cregbundle set to False since there is a gate in the circuit"
+                                "cregbundle set to False since there is a gate in the circuit"
                                 " with a classical condition on a list of bits and at least one"
                                 " of those bits belongs to a register",
                                 RuntimeWarning,
@@ -553,7 +559,7 @@ class MatplotlibDrawer:
 
                 c_indxs = []
                 for carg in node.cargs:
-                    register, _, _ = get_bit_reg_index(self._circuit, carg, self._reverse_bits)
+                    register = get_bit_register(self._circuit, carg)
                     if register is not None and self._cregbundle:
                         c_indxs.append(self._bits_regs_map[register])
                     else:
@@ -846,47 +852,25 @@ class MatplotlibDrawer:
 
     def _condition(self, node, cond_xy):
         """Add a conditional to a gate"""
-        label, val_bits = get_condition_label_val(
-            node.op.condition, self._circuit, self._cregbundle, self._reverse_bits
-        )
-        cond_bit_reg = node.op.condition[0]
-        cond_bit_val = int(node.op.condition[1])
-
-        first_clbit = len(self._qubits)
-        cond_pos = []
-
-        # In the first two cases, multiple bits are indicated on the drawing. In all
-        # other cases, only one bit is shown.
-        # If it's an open register
-        if not self._cregbundle and isinstance(cond_bit_reg, ClassicalRegister):
-            for idx in range(cond_bit_reg.size):
-                rev_idx = cond_bit_reg.size - idx - 1 if self._reverse_bits else idx
-
-        # If it's a list
-        if isinstance(cond_bit_reg, list):
-            for bit in cond_bit_reg:
-                cond_pos.append(cond_xy[self._bits_regs_map[bit] - first_clbit])
-
-        # If it's a register bit and cregbundle, need to use the register to find the location
-        elif self._cregbundle and isinstance(cond_bit_reg, Clbit):
-            register, _, _ = get_bit_reg_index(self._circuit, cond_bit_reg, self._reverse_bits)
-            if register is not None:
-                cond_pos.append(cond_xy[self._bits_regs_map[register] - first_clbit])
-            else:
-                cond_pos.append(cond_xy[self._bits_regs_map[cond_bit_reg] - first_clbit])
-        else:
-            cond_pos.append(cond_xy[self._bits_regs_map[cond_bit_reg] - first_clbit])
-
+        condition = node.op.condition
+        cond_label, cond_list = get_condition_label_val(condition, self._circuit, self._cregbundle)
         xy_plot = []
-        for idx, xy in enumerate(cond_pos):
-            if val_bits[idx] == "1" or (
-                isinstance(cond_bit_reg, ClassicalRegister)
-                and cond_bit_val != 0
-                and self._cregbundle
-            ):
+        for bit, val in cond_list:
+            # if it's a register bit and cregbundle on, need to use
+            # register to find it in the map
+            bit_reg = bit
+            if isinstance(bit, Clbit) and self._cregbundle:
+                register = get_bit_register(self._circuit, bit)
+                if register is not None:
+                    bit_reg = register
+
+            xy = cond_xy[self._bits_regs_map[bit_reg] - len(self._qubits)]
+
+            if val == "1":
                 fc = self._style["lc"]
             else:
                 fc = self._style["bg"]
+
             box = self._patches_mod.Circle(
                 xy=xy,
                 radius=WID * 0.15,
@@ -897,6 +881,7 @@ class MatplotlibDrawer:
             )
             self._ax.add_patch(box)
             xy_plot.append(xy)
+
         qubit_b = min(self._data[node]["q_xy"], key=lambda xy: xy[1])
         clbit_b = min(xy_plot, key=lambda xy: xy[1])
 
@@ -907,7 +892,7 @@ class MatplotlibDrawer:
         self._ax.text(
             xpos,
             ypos - 0.3 * HIG,
-            label,
+            cond_label,
             ha="center",
             va="top",
             fontsize=self._sfs,

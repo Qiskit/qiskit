@@ -2922,9 +2922,9 @@ class TestTextConditional(QiskitTestCase):
                 "qr_1: |0>──╫──┤ H ├",
                 "           ║  └─╥─┘",
                 " cr_0: 0 ══■════╬══",
-                "                ║  ",
+                "          0x1   ║  ",
                 " cr_1: 0 ═══════o══",
-                "                   ",
+                "               0x0 ",
             ]
         )
 
@@ -3020,7 +3020,7 @@ class TestTextConditional(QiskitTestCase):
                 "cs_0: ══╬═════",
                 "        ║     ",
                 "cs_1: ══o═════",
-                "              ",
+                "       0x0    ",
                 "cs_2: ════════",
                 "              ",
             ]
@@ -3111,7 +3111,7 @@ class TestTextConditional(QiskitTestCase):
                 "cr: 2/══╬══",
                 "        ║  ",
                 "   1: ══o══",
-                "           ",
+                "       0x0 ",
                 "   0: ═════",
                 "           ",
             ]

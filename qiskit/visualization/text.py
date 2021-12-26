@@ -28,6 +28,7 @@ from qiskit.visualization.utils import (
     get_gate_ctrl_text,
     get_param_str,
     get_bits_regs_map,
+    get_bit_register,
     get_bit_reg_index,
     get_bit_label,
     get_condition_label_val,
@@ -616,6 +617,30 @@ class TextDrawing:
         self.layout = layout
         self.initial_state = initial_state
         self.cregbundle = cregbundle
+        if self.cregbundle:
+            for layer in nodes:
+                for node in layer:
+                    if (
+                        node.op.condition is not None
+                        and isinstance(node.op.condition[0], list)
+                        and len(node.op.condition[0]) > 1
+                        and self.cregbundle
+                    ):
+                        for bit in node.op.condition[0]:
+                            register = get_bit_register(self._circuit, bit)
+                            if register is not None:
+                                self.cregbundle = False
+                                warn(
+                                    "cregbundle set to False since there is a gate in the circuit"
+                                    " with a classical condition on a list of bits and at least one"
+                                    " of those bits belongs to a register",
+                                    RuntimeWarning,
+                                    2,
+                                )
+                                break
+                if not self.cregbundle:
+                    break
+
         self.global_phase = global_phase
         self.plotbarriers = plotbarriers
         self.line_length = line_length
@@ -992,7 +1017,6 @@ class TextDrawing:
         connection_label = None
         conditional = False
         base_gate = getattr(op, "base_gate", None)
-
         params = get_param_str(op, "text", ndigits=5)
         if not isinstance(op, (Measure, SwapGate, Reset)) and not op._directive:
             gate_text, ctrl_text, _ = get_gate_ctrl_text(op, "text")
@@ -1198,8 +1222,10 @@ class Layer:
             clbit (cbit): Element of self.clbits.
             element (DrawElement): Element to set in the clbit
         """
-        cbit = self._circuit.find_bit(clbit)
-        register = cbit.registers[0][0] if cbit.registers else None
+        if isinstance(clbit, ClassicalRegister):
+            register = clbit
+        else:
+            register = get_bit_register(self._circuit, clbit)
         if self.cregbundle and register is not None:
             self.clbit_layer[self.clbits.index(register)] = element
         else:
@@ -1338,41 +1364,28 @@ class Layer:
             condition (list[Union(Clbit, ClassicalRegister), int]): The condition
             top_connect (char): The char to connect the box on the top.
         """
-        label, val_bits = get_condition_label_val(
-            condition, self._circuit, self.cregbundle, self.reverse_bits
-        )
-        if isinstance(condition[0], ClassicalRegister):
-            cond_reg = condition[0]
-        else:
-            clbit = self._circuit.find_bit(condition[0])
-            cond_reg = clbit.registers[0][0] if clbit.registers else None
+        cond_label, cond_list = get_condition_label_val(condition, self._circuit, self.cregbundle)
+        val_bits = [val for bit, val in cond_list]
+        cond_bits = [bit for bit, val in cond_list]
         if self.cregbundle:
             if isinstance(condition[0], Clbit):
                 # if it's a registerless Clbit
-                if cond_reg is None:
-                    self.set_cond_bullets(label, val_bits, [condition[0]])
+                register = get_bit_register(self._circuit, condition[0])
+                if register is None:
+                    self.set_cond_bullets(cond_label, val_bits, cond_bits)
                 # if it's a single bit in a register
                 else:
-                    self.set_clbit(condition[0], BoxOnClWire(label=label, top_connect=top_connect))
+                    self.set_clbit(
+                        condition[0], BoxOnClWire(label=cond_label, top_connect=top_connect)
+                    )
+            # if it's a list of bits
+            elif isinstance(condition[0], list):
+                self.set_cond_bullets(cond_label, val_bits, cond_bits)
             # if it's a whole register
             else:
-                self.set_clbit(condition[0][0], BoxOnClWire(label=label, top_connect=top_connect))
+                self.set_clbit(cond_bits[0], BoxOnClWire(label=cond_label, top_connect=top_connect))
         else:
-            clbits = []
-            if isinstance(condition[0], Clbit):
-                for i, bit in enumerate(self.clbits):
-                    if bit == condition[0]:
-                        clbits.append(self.clbits[i])
-            else:
-                for i, bit in enumerate(self.clbits):
-                    if isinstance(bit, ClassicalRegister):
-                        reg = bit
-                    else:
-                        clbit = self._circuit.find_bit(bit)
-                        reg = clbit.registers[0][0] if clbit.registers else None
-                    if reg == cond_reg:
-                        clbits.append(self.clbits[i])
-            self.set_cond_bullets(label, val_bits, clbits)
+            self.set_cond_bullets(cond_label, val_bits, cond_bits)
 
     def set_cond_bullets(self, label, val_bits, clbits):
         """Sets bullets for classical conditioning when cregbundle=False.
@@ -1383,10 +1396,10 @@ class Layer:
             clbits (list[Clbit]): The list of classical bits on
                 which the instruction is conditioned.
         """
+        max_index = 0
+        max_val = val_bits[0]
         for i, bit in enumerate(clbits):
             bot_connect = " "
-            if bit == clbits[-1]:
-                bot_connect = label
             if val_bits[i] == "1":
                 self.clbit_layer[self.clbits.index(bit)] = ClBullet(
                     top_connect="║", bot_connect=bot_connect
@@ -1395,6 +1408,15 @@ class Layer:
                 self.clbit_layer[self.clbits.index(bit)] = ClOpenBullet(
                     top_connect="║", bot_connect=bot_connect
                 )
+            if max_index < self.clbits.index(bit):
+                max_index = self.clbits.index(bit)
+                max_val = val_bits[i]
+        # now add the label below the bit with the max_index
+        bot_connect = label
+        if max_val == "1":
+            self.clbit_layer[max_index] = ClBullet(top_connect="║", bot_connect=bot_connect)
+        elif max_val == "0":
+            self.clbit_layer[max_index] = ClOpenBullet(top_connect="║", bot_connect=bot_connect)
 
     def set_qu_multibox(
         self,
