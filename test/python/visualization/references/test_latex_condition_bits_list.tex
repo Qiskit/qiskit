@@ -1,0 +1,18 @@
+\documentclass[border=2px]{standalone}
+
+\usepackage[braket, qm]{qcircuit}
+\usepackage{graphicx}
+
+\begin{document}
+\scalebox{1.0}{
+\Qcircuit @C=1.0em @R=0.2em @!R { \\
+	 	\nghost{{qr}_{0} :  } & \lstick{{qr}_{0} :  } & \gate{\mathrm{X}} & \qw & \qw\\
+	 	\nghost{{qr}_{1} :  } & \lstick{{qr}_{1} :  } & \qw & \qw & \qw\\
+	 	\nghost{{0} :  } & \lstick{{0} :  } & \cw & \cw & \cw\\
+	 	\nghost{{1} :  } & \lstick{{1} :  } & \control \cw \cwx[-3] & \cw & \cw\\
+	 	\nghost{{2} :  } & \lstick{{2} :  } & \control \cw \cwx[-1] & \cw & \cw\\
+	 	\nghost{{cr}_{0} :  } & \lstick{{cr}_{0} :  } & \control \cw \cwx[-1] & \cw & \cw\\
+	 	\nghost{{cr}_{1} :  } & \lstick{{cr}_{1} :  } & \controlo \cw^(0.0){^{\mathtt{0xb}}} \cwx[-1] & \cw & \cw\\
+	 	\nghost{{cr}_{2} :  } & \lstick{{cr}_{2} :  } & \cw & \cw & \cw\\
+\\ }}
+\end{document}

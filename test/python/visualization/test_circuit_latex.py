@@ -631,6 +631,19 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         )
         self.assertEqualToReference(filename)
 
+    def test_conditions_with_bits_list(self):
+        """Test gates with a list of bits for a condition"""
+        filename = self._get_resource_path("test_latex_condition_bits_list.tex")
+        clbits = [Clbit(), Clbit(), Clbit()]
+        qr = QuantumRegister(2, 'qr')
+        cr = ClassicalRegister(3, 'cr')
+        circuit = QuantumCircuit(qr, clbits, cr)
+        circuit.x(0).c_if([cr[0], clbits[1], cr[1], clbits[2]], 11)
+        circuit_drawer(
+            circuit, cregbundle=False, filename=filename, output="latex_source"
+        )
+        self.assertEqualToReference(filename)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
