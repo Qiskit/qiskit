@@ -187,7 +187,7 @@ stages:
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             python setup.py sdist
             pip install -U -c constraints.txt dist/qiskit-terra*.tar.gz
-            pip install -U "cplex" "qiskit-aer==0.9.1" "z3-solver" -c constraints.txt
+            pip install -U "cplex" "qiskit-aer" "z3-solver" -c constraints.txt
             mkdir -p /tmp/terra-tests
             cp -r test /tmp/terra-tests/.
             cp .stestr.conf /tmp/terra-tests/.
@@ -283,7 +283,7 @@ stages:
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -U -c constraints.txt -e .
-            pip install -U "qiskit-aer==0.9.1" -c constraints.txt
+            pip install -U "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
           displayName: 'Install dependencies'
         - bash: |
@@ -381,7 +381,7 @@ stages:
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -U -c constraints.txt -e .
-            pip install -U "qiskit-aer==0.9.1" -c constraints.txt
+            pip install -U "qiskit-aer" -c constraints.txt
             python setup.py build_ext --inplace
             pip check
           displayName: 'Install dependencies'
@@ -621,7 +621,7 @@ stages:
             source test-job/bin/activate
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -U -c constraints.txt -e .
-            pip install -U "qiskit-aer==0.9.1" "z3-solver" -c constraints.txt
+            pip install -U "qiskit-aer" "z3-solver" -c constraints.txt
             python setup.py build_ext --inplace
             sudo apt install -y graphviz
             pip check
@@ -770,7 +770,7 @@ stages:
             python -m pip install --upgrade pip
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" "qiskit-aer==0.9.1" "z3-solver" "qiskit-ignis" "matplotlib>=3.3.0" sphinx nbsphinx sphinx_rtd_theme cvxpy -c constraints.txt
+            pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" "qiskit-ignis" "matplotlib>=3.3.0" sphinx nbsphinx sphinx_rtd_theme cvxpy -c constraints.txt
             python setup.py build_ext --inplace
             sudo apt install -y graphviz pandoc
             pip check
