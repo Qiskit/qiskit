@@ -3154,8 +3154,6 @@ class TestTextConditional(QiskitTestCase):
                 "           ",
             ]
         )
-        print('\n\n', expected)
-        print(circuit)
         self.assertEqual(str(_text_circuit_drawer(circuit, cregbundle=False, initial_state=False)), expected)
 
 
