@@ -26,7 +26,7 @@ class LinearFunction(Gate):
         linear: Union[List[List[int]], np.ndarray, QuantumCircuit],
         validate_input: Optional[bool] = False,
     ) -> None:
-        """Create a new linear function.
+        r"""Create a new linear function.
 
         Internally, represents a linear function acting on n qubits as a n x n matrix of 0s and 1s
         in numpy array format.
