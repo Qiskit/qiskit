@@ -845,13 +845,11 @@ class TestMatplotlibDrawer(QiskitTestCase):
     def test_conditions_with_bits_list(self):
         """Test gates with a list of bits for a condition"""
         clbits = [Clbit(), Clbit(), Clbit()]
-        qr = QuantumRegister(2, 'qr')
-        cr = ClassicalRegister(3, 'cr')
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(3, "cr")
         circuit = QuantumCircuit(qr, clbits, cr)
         circuit.x(0).c_if([cr[0], clbits[1], cr[1], clbits[2]], 11)
-        self.circuit_drawer(
-            circuit, cregbundle=False, filename="condition_bits_list.png"
-        )
+        self.circuit_drawer(circuit, cregbundle=False, filename="condition_bits_list.png")
 
 
 if __name__ == "__main__":

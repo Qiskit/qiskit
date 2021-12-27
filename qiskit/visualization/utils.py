@@ -200,7 +200,7 @@ def get_bit_register(circuit, bit):
         bit (Qubit, Clbit): the bit to use to find the register and indexes
 
     Returns:
-        (ClassicalRegister, None): register associated with the bit
+        ClassicalRegister: register associated with the bit
     """
     bit_loc = circuit.find_bit(bit)
     return bit_loc.registers[0][0] if bit_loc.registers else None

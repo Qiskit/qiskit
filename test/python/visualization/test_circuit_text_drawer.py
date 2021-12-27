@@ -3128,8 +3128,8 @@ class TestTextConditional(QiskitTestCase):
     def test_text_condition_bits_list(self):
         """Test text drawer using gate with condition on a list of bits."""
         clbits = [Clbit(), Clbit(), Clbit()]
-        qr = QuantumRegister(2, 'qr')
-        cr = ClassicalRegister(3, 'cr')
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(3, "cr")
         circuit = QuantumCircuit(qr, clbits, cr)
         circuit.x(0).c_if([cr[0], clbits[1], cr[1], clbits[2]], 11)
 
@@ -3154,7 +3154,9 @@ class TestTextConditional(QiskitTestCase):
                 "           ",
             ]
         )
-        self.assertEqual(str(_text_circuit_drawer(circuit, cregbundle=False, initial_state=False)), expected)
+        self.assertEqual(
+            str(_text_circuit_drawer(circuit, cregbundle=False, initial_state=False)), expected
+        )
 
 
 class TestTextIdleWires(QiskitTestCase):
