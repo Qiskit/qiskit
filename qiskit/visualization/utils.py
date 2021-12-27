@@ -192,6 +192,20 @@ def get_bits_regs_map(circuit, bits, cregbundle):
     return bits_regs_map
 
 
+def get_bit_register(circuit, bit):
+    """Get the register for a bit if there is one
+
+    Args:
+        circuit (QuantumCircuit): the circuit being drawn
+        bit (Qubit, Clbit): the bit to use to find the register and indexes
+
+    Returns:
+        ClassicalRegister: register associated with the bit
+    """
+    bit_loc = circuit.find_bit(bit)
+    return bit_loc.registers[0][0] if bit_loc.registers else None
+
+
 def get_bit_reg_index(circuit, bit, reverse_bits):
     """Get the register for a bit if there is one, and the index of the bit
     from the top of the circuit, or the index of the bit within a register.

@@ -28,6 +28,7 @@ from qiskit.visualization.utils import (
     get_gate_ctrl_text,
     get_param_str,
     get_bits_regs_map,
+    get_bit_register,
     get_bit_reg_index,
     get_bit_label,
     get_condition_label_val,
@@ -1156,8 +1157,7 @@ class Layer:
             self.clbits = []
             previous_creg = None
             for bit in clbits:
-                clbit = self._circuit.find_bit(bit)
-                register = clbit.registers[0][0] if clbit.registers else None
+                register = get_bit_register(self._circuit, bit)
                 if previous_creg and previous_creg == register:
                     continue
                 if register is None:
@@ -1198,8 +1198,7 @@ class Layer:
             clbit (cbit): Element of self.clbits.
             element (DrawElement): Element to set in the clbit
         """
-        cbit = self._circuit.find_bit(clbit)
-        register = cbit.registers[0][0] if cbit.registers else None
+        register = get_bit_register(self._circuit, clbit)
         if self.cregbundle and register is not None:
             self.clbit_layer[self.clbits.index(register)] = element
         else:
@@ -1344,8 +1343,7 @@ class Layer:
         if isinstance(condition[0], ClassicalRegister):
             cond_reg = condition[0]
         else:
-            clbit = self._circuit.find_bit(condition[0])
-            cond_reg = clbit.registers[0][0] if clbit.registers else None
+            cond_reg = get_bit_register(self._circuit, condition[0])
         if self.cregbundle:
             if isinstance(condition[0], Clbit):
                 # if it's a registerless Clbit
@@ -1368,8 +1366,7 @@ class Layer:
                     if isinstance(bit, ClassicalRegister):
                         reg = bit
                     else:
-                        clbit = self._circuit.find_bit(bit)
-                        reg = clbit.registers[0][0] if clbit.registers else None
+                        reg = get_bit_register(self._circuit, bit)
                     if reg == cond_reg:
                         clbits.append(self.clbits[i])
             self.set_cond_bullets(label, val_bits, clbits)

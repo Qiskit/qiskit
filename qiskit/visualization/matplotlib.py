@@ -43,6 +43,7 @@ from qiskit.visualization.utils import (
     get_gate_ctrl_text,
     get_param_str,
     get_bits_regs_map,
+    get_bit_register,
     get_bit_reg_index,
     get_bit_label,
     get_condition_label_val,
@@ -540,7 +541,7 @@ class MatplotlibDrawer:
 
                 c_indxs = []
                 for carg in node.cargs:
-                    register, _, _ = get_bit_reg_index(self._circuit, carg, self._reverse_bits)
+                    register = get_bit_register(self._circuit, carg)
                     if register is not None and self._cregbundle:
                         c_indxs.append(self._bits_regs_map[register])
                     else:
@@ -851,7 +852,7 @@ class MatplotlibDrawer:
 
         # If it's a register bit and cregbundle, need to use the register to find the location
         elif self._cregbundle and isinstance(cond_bit_reg, Clbit):
-            register, _, _ = get_bit_reg_index(self._circuit, cond_bit_reg, self._reverse_bits)
+            register = get_bit_register(self._circuit, cond_bit_reg)
             if register is not None:
                 cond_pos.append(cond_xy[self._bits_regs_map[register] - first_clbit])
             else:
