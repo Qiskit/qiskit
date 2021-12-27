@@ -125,16 +125,15 @@ def _linear_quantum_circuit_to_mat(qc: QuantumCircuit):
     """This creates a n x n matrix corresponding to the given linear quantum circuit."""
     nq = qc.num_qubits
     mat = np.eye(nq, nq, dtype=bool)
-    bit_indices = {bit: idx for idx, bit in enumerate(qc.qubits)}
 
     for inst, qargs, _ in qc.data:
         if inst.name == "cx":
-            cb = bit_indices[qargs[0]]
-            tb = bit_indices[qargs[1]]
+            cb = qc.find_bit(qargs[0]).index
+            tb = qc.find_bit(qargs[1]).index
             mat[tb, :] = (mat[tb, :]) ^ (mat[cb, :])
         elif inst.name == "swap":
-            cb = bit_indices[qargs[0]]
-            tb = bit_indices[qargs[1]]
+            cb = qc.find_bit(qargs[0]).index
+            tb = qc.find_bit(qargs[1]).index
             mat[[cb, tb]] = mat[[tb, cb]]
         else:
             raise CircuitError("A linear quantum circuit can include only CX and SWAP gates.")
