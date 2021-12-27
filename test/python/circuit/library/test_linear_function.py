@@ -188,9 +188,9 @@ class TestLinearFunctions(QiskitTestCase):
         mat = [[1, 1, 0], [1, 0, 0], [0, 1, 0], [1, 1, 1]]
         self.assertRaises(CircuitError, LinearFunction, mat)
 
-    def test_bad_matrix_non_binary(self):
-        """Tests that an error is raised if the matrix contains values other than 0 and 1."""
-        mat = [[1, 0, 0], [0, 0, 2], [0, 1, 0]]
+    def test_bad_matrix_non_two_dimensional(self):
+        """Tests that an error is raised if the matrix is not two-dimensional."""
+        mat = [1, 0, 0, 1, 0]
         self.assertRaises(CircuitError, LinearFunction, mat)
 
     def test_bad_matrix_non_invertible(self):

@@ -28,7 +28,8 @@ class LinearFunction(Gate):
     ) -> None:
         """Create a new linear function.
 
-        Internally, represents a linear function acting on n qubits as a n x n matrix of 0s and 1s.
+        Internally, represents a linear function acting on n qubits as a n x n matrix of 0s and 1s
+        in numpy array format.
 
         Args:
             linear (list[list] or ndarray or QuantumCircuit):
@@ -41,8 +42,29 @@ class LinearFunction(Gate):
 
         Raises:
             CircuitError: if the input is invalid:
-                either a matrix is non {square, binary, invertible},
+                either a matrix is non {square, invertible},
                 or a quantum circuit contains non-linear gates.
+
+        **Example:** the circuit
+
+        .. parsed-literal::
+
+            q_0: ──■──
+                 ┌─┴─┐
+            q_1: ┤ X ├
+                 └───┘
+            q_2: ─────
+
+        is represented by a 3x3 linear matrix
+
+        .. math::
+
+                \begin{pmatrix}
+                    1 & 0 & 0 \\
+                    1 & 1 & 0 \\
+                    0 & 0 & 1
+                \end{pmatrix}
+
         """
         if not isinstance(linear, (list, np.ndarray, QuantumCircuit)):
             raise CircuitError(
@@ -55,15 +77,19 @@ class LinearFunction(Gate):
             self._mat = _linear_quantum_circuit_to_mat(linear)
 
         else:
-            # Check that the matrix is square
-            if not all(len(row) == len(linear) for row in linear):
+            # Normalize to numpy array (coercing entries to 0s and 1s)
+            ok = True
+            try:
+                self._mat = np.array(linear, dtype=bool, copy=False)
+            except ValueError:
+                ok = False
+
+            if not ok:
                 raise CircuitError("A linear function must be represented by a square matrix.")
 
-            # Check that all entries are either 0 or 1
-            for row in linear:
-                for entry in row:
-                    if entry not in (0, 1):
-                        raise CircuitError("A linear function must only contain 0s or 1s.")
+            # Check that the matrix is square
+            if not len(self._mat.shape) == 2 or self._mat.shape[0] != self._mat.shape[1]:
+                raise CircuitError("A linear function must be represented by a square matrix.")
 
             # Optionally, check that the matrix is invertible
             if validate_input:
@@ -72,8 +98,6 @@ class LinearFunction(Gate):
                     raise CircuitError(
                         "A linear function must be represented by an invertible matrix."
                     )
-
-            self._mat = linear
 
         super().__init__(name="linear_function", num_qubits=len(self._mat), params=[])
 
