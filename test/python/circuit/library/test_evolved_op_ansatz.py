@@ -63,7 +63,6 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
         evogate = Operator(evocirc)
         self.assertEqual(evogate, refgate)
 
-#        self.assertEqual(evo.decompose().decompose(), reference)
 
     def test_custom_evolution(self):
         """Test using another evolution than the default (e.g. matrix evolution)."""
@@ -75,34 +74,8 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
         parameters = evo.parameters
         reference = QuantumCircuit(3)
         reference.hamiltonian(matrix, parameters[0], [0, 1, 2])
-        self.assertEqual(evo.decompose().decompose(), reference)
 
-        '''
-        t = 0.01
-        refcirc = reference.bind_parameters(
-            {
-                parameters[0]: t,
-                parameters[1]: t,
-                parameters[2]: t,
-                parameters[3]: t,
-                parameters[4]: t,
-                parameters[5]: t,
-            }
-        )
-        evocirc = evo.decompose().bind_parameters(
-            {
-                parameters[0]: t,
-                parameters[1]: t,
-                parameters[2]: t,
-                parameters[3]: t,
-                parameters[4]: t,
-                parameters[5]: t,
-            }
-        )
-        refgate = Operator(refcirc)
-        evogate = Operator(evocirc)
-        self.assertEqual(evogate, refgate)
-        '''
+        self.assertEqual(evo.decompose(), reference)
 
     def test_changing_operators(self):
         """Test rebuilding after the operators changed."""
