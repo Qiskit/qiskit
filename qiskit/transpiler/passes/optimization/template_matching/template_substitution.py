@@ -513,14 +513,14 @@ class TemplateSubstitution:
 
                 for param in template_params.parameters:
                     if not HAS_SYMENGINE:
-                        temp_symbols[param] = sym.Symbol(str(param), real=True)
+                        temp_symbols[param] = sym.Symbol(str(param))
                     else:
                         temp_symbols[param] = symengine.Symbol(str(param))
 
                 if isinstance(circuit_params[t_idx], ParameterExpression):
                     for param in circuit_params[t_idx].parameters:
                         if not HAS_SYMENGINE:
-                            circ_dict[param] = sym.Symbol(str(param), real=True)
+                            circ_dict[param] = sym.Symbol(str(param))
                         else:
                             circ_dict[param] = symengine.Symbol(str(param))
 

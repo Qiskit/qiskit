@@ -58,9 +58,7 @@ class Parameter(ParameterExpression):
         self._name = name
         if not HAS_SYMENGINE:
             from sympy import Symbol
-
-            # Parameter can only be real
-            symbol = Symbol(name, real=True)
+            symbol = Symbol(name)
         else:
             symbol = symengine.Symbol(name)
         super().__init__(symbol_map={self: symbol}, expr=symbol)
@@ -104,8 +102,7 @@ class Parameter(ParameterExpression):
         self._name = state["name"]
         if not HAS_SYMENGINE:
             from sympy import Symbol
-
-            symbol = Symbol(self._name, real=True)
+            symbol = Symbol(self._name)
         else:
             symbol = symengine.Symbol(self._name)
         super().__init__(symbol_map={self: symbol}, expr=symbol)
