@@ -948,9 +948,62 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertFalse(qc1 == qc2)
 
+    def test_deprecated_measure_function(self):
+        """Test that the deprecated version of the loose 'measure' function works correctly."""
+        from qiskit.circuit.measure import measure
 
-class TestCircuitBuilding(QiskitTestCase):
-    """QuantumCircuit tests."""
+        test = QuantumCircuit(1, 1)
+        with self.assertWarnsRegex(DeprecationWarning, r".*Qiskit Terra 0\.19.*"):
+            measure(test, 0, 0)
 
-    def test_append_dimension_mismatch(self):
-        """Test appending to incompatible wires."""
+        expected = QuantumCircuit(1, 1)
+        expected.measure(0, 0)
+
+        self.assertEqual(test, expected)
+
+    def test_deprecated_reset_function(self):
+        """Test that the deprecated version of the loose 'reset' function works correctly."""
+        from qiskit.circuit.reset import reset
+
+        test = QuantumCircuit(1, 1)
+        with self.assertWarnsRegex(DeprecationWarning, r".*Qiskit Terra 0\.19.*"):
+            reset(test, 0)
+
+        expected = QuantumCircuit(1, 1)
+        expected.reset(0)
+
+        self.assertEqual(test, expected)
+
+
+class TestCircuitPrivateOperations(QiskitTestCase):
+    """Direct tests of some of the private methods of QuantumCircuit.  These do not represent
+    functionality that we want to expose to users, but there are some cases where private methods
+    are used internally (similar to "protected" access in .NET or "friend" access in C++), and we
+    want to make sure they work in those cases."""
+
+    def test_previous_instruction_in_scope_failures(self):
+        """Test the failure paths of the peek and pop methods for retrieving the most recent
+        instruction in a scope."""
+        test = QuantumCircuit(1, 1)
+        with self.assertRaisesRegex(CircuitError, r"This circuit contains no instructions\."):
+            test._peek_previous_instruction_in_scope()
+        with self.assertRaisesRegex(CircuitError, r"This circuit contains no instructions\."):
+            test._pop_previous_instruction_in_scope()
+        with test.for_loop(range(2)):
+            with self.assertRaisesRegex(CircuitError, r"This scope contains no instructions\."):
+                test._peek_previous_instruction_in_scope()
+            with self.assertRaisesRegex(CircuitError, r"This scope contains no instructions\."):
+                test._pop_previous_instruction_in_scope()
+
+    def test_pop_previous_instruction_removes_parameters(self):
+        """Test that the private "pop instruction" method removes parameters from the parameter
+        table if that instruction is the only instance."""
+        x, y = Parameter("x"), Parameter("y")
+        test = QuantumCircuit(1, 1)
+        test.rx(y, 0)
+        last_instructions = test.u(x, y, 0, 0)
+        self.assertEqual({x, y}, set(test.parameters))
+
+        instruction, _, _ = test._pop_previous_instruction_in_scope()
+        self.assertEqual(list(last_instructions), [instruction])
+        self.assertEqual({y}, set(test.parameters))

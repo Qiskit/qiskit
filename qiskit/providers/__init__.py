@@ -92,6 +92,8 @@ Backend
 
    Backend
    BackendV1
+   BackendV2
+   QubitProperties
 
 Options
 -------
@@ -116,22 +118,22 @@ Writing a New Provider
 
 If you have a quantum device or simulator that you would like to integrate with
 Qiskit you will need to write a provider. A provider will provide Terra with a
-method to get available :class:`~qiskit.providers.BackendV1` objects. The
-:class:`~qiskit.providers.BackendV1` object provides both information describing
+method to get available :class:`~qiskit.providers.BackendV2` objects. The
+:class:`~qiskit.providers.BackendV2` object provides both information describing
 a backend and its operation for the :mod:`~qiskit.transpiler` so that circuits
 can be compiled to something that is optimized and can execute on the
-backend. It also provides the :meth:`~qiskit.providers.BackendV1.run` method which can
+backend. It also provides the :meth:`~qiskit.providers.BackendV2.run` method which can
 run the :class:`~qiskit.circuit.QuantumCircuit` objects and/or
 :class:`~qiskit.pulse.Schedule` objects. This enables users and other Qiskit
 APIs, such as :func:`~qiskit.execute_function.execute` and higher level algorithms in
-Qiskit Aqua, to get results from executing circuits on devices in a standard
-fashion regardless of how the Backend is implemented. At a high level the basic
+:mod:`qiskit.algorithms`, to get results from executing circuits on devices in a standard
+fashion regardless of how the backend is implemented. At a high level the basic
 steps for writing a provider are:
 
  * Implement a :class:`~qiskit.providers.ProviderV1` subclass that handles
    access to the backend(s).
- * Implement a :class:`~qiskit.providers.BackendV1` subclass and its
-   :meth:`~~qiskit.providers.BackendV1.run` method.
+ * Implement a :class:`~qiskit.providers.BackendV2` subclass and its
+   :meth:`~~qiskit.providers.BackendV2.run` method.
 
    * Add any custom gates for the backend's basis to the session
      :class:`~qiskit.circuit.EquivalenceLibrary` instance.
@@ -139,9 +141,8 @@ steps for writing a provider are:
  * Implement a :class:`~qiskit.providers.JobV1` subclass that handles
    interacting with a running job.
 
-For a simple example of a provider the
-`qiskit-aqt-provider <https://github.com/qiskit-community/qiskit-aqt-provider>`__
-package is worth using as an example.
+For a simple example of a provider, see the
+`qiskit-aqt-provider <https://github.com/Qiskit-Partners/qiskit-aqt-provider>`__
 
 Provider
 ========
@@ -182,37 +183,60 @@ The backend classes are the core to the provider. These classes are what
 provide the interface between Qiskit and the hardware or simulator that will
 execute circuits. This includes providing the necessary information to
 describe a backend to the compiler so that it can embed and optimize any
-circuit for the backend. There are 3 required things in every backend object: a
-backend configuration property, a :obj:`~qiskit.providers.BackendV1.run` method, and a
-:obj:`~qiskit.providers.BackendV1._default_options` method. For example, a
-minimum working example would be something like::
+circuit for the backend. There are 4 required things in every backend object: a
+:attr:`~qiskit.providers.BackendV2.target` property to define the model of the
+backend for the compiler, a :attr:`~qiskit.providers.BackendV2.max_circuits`
+property to define a limit on the number of circuits the backend can execute in
+a single batch job (if there is no limit ``None`` can be used), a
+:meth:`~qiskit.providers.BackendV2.run` method to accept job submissions, and
+a :obj:`~qiskit.providers.BackendV2._default_options` method to define the
+user configurable options and their default values. For example, a minimum working
+example would be something like::
 
-    from qiskit.providers import BackendV1 as Backend
-    from qiskit.providers.models import BackendConfiguration
+    from qiskit.providers import BackendV2 as Backend
+    from qiskit.transpiler import Target
     from qiskit.providers import Options
+    from qiskit.circuit import Parameter, Measure
+    from qiskit.circuit.library import PhaseGate, SXGate, UGate, CXGate, IGate
 
 
     class Mybackend(Backend):
 
-        configuration = {
-            'backend_name': 'my_backend',
-            'backend_version': '1.0.0',
-            'n_qubits': 5,
-            'basis_gates': ['p', 'sx', 'u', 'cx', 'id'],
-            'coupling_map': [[0, 1], [1, 2], [2, 3], [3, 4]],
-            'simulator': False,
-            'local': False,
-            'conditional': True,
-            'open_pulse': False,
-            'memory': True,
-            'max_shots': 8196,
-            'gates': []
-        }
+        def __init__(self):
+            super().__init__()
 
-        def __init(self, provider):
-            super().__init__(
-                configuration=BackendConfiguration.from_dict(self.configuration),
-                provider=provider)
+            # Create Target
+            self._target = Target("Target for My Backend")
+            # Instead of None for this and below instructions you can define
+            # a qiskit.transpiler.InstructionProperties object to define properties
+            # for an instruction.
+            lam = Parameter("λ")
+            p_props = {(qubit,): None for qubit in range(5)}
+            self._target.add_instruction(PhaseGate(lam), p_props)
+            sx_props = {(qubit,): None for qubit in range(5)}
+            self._target.add_instruction(SXGate(), sx_props)
+            phi = Parameter("φ")
+            theta = Parameter("ϴ")
+            u_props = {(qubit,): None for qubit in range(5)}
+            self._target.add_instruction(UGate(theta, phi, lam), u_props)
+            cx_props = {edge: None for edge in [(0, 1), (1, 2), (2, 3), (3, 4)]}
+            self._target.add_instruction(CXGate(), cx_props)
+            meas_props = {(qubit,): None for qubit in range(5)}
+            self._target.add_instruction(Measure(), meas_props)
+            id_props = {(qubit,): None for qubit in range(5)}
+            self._target.add_instruction(IGate(), id_props)
+
+            # Set option validators
+            self.options.set_validator("shots", (1, 4096))
+            self.options.set_validator("memory", bool)
+
+        @property
+        def target(self):
+            return self._target
+
+        @property
+        def max_circuits(self):
+            return 1024
 
         @classmethod
         def _default_options(cls):
@@ -237,123 +261,134 @@ minimum working example would be something like::
 Transpiler Interface
 --------------------
 
-The key piece of the backend object is how it describes itself to the compiler.
-This is composed of three classes, the
-:class:`~qiskit.providers.models.BackendConfiguration` which describes the
-immutable properties of the backend (things like the number of qubits, coupling
-map, etc), the :class:`~qiskit.providers.models.BackendProperties` which
-describes measured properties of the device (such as current error rates), and
-the :class:`~qiskit.providers.models.PulseDefaults` which defines the
-default pulse behavior for the backend (such as the pulse sequences for gates).
-Of these only :class:`~qiskit.providers.models.BackendConfiguration` is
-required.
-
-It's worth noting that this interface will likely evolve over time as the
-compiler grows and improves, thus requiring new information from the backends.
-This is a key reason why the providers interfaces are versioned to enable
-making these changes in a controlled manner. The details here will change and
-reflect the latest version of this interface.
+The key piece of the :class:`~qiskit.providers.Backend` object is how it describes itself to the
+compiler. This is handled with the :class:`~qiskit.transpiler.Target` class which defines
+a model of a backend for the transpiler. A backend object will need to return
+a :class:`~qiskit.transpiler.Target` object from the :attr:`~qiskit.providers.BackendV2.target`
+attribute which the :func:`~qiskit.compiler.transpile` function will use as
+its model of a backend target for compilation.
 
 Custom Basis Gates
 ^^^^^^^^^^^^^^^^^^
 
 1. If your backend doesn't use gates in the Qiskit circuit library
-(:mod:`qiskit.circuit.library`) you can integrate support for this into your
-provider. The basic method for doing this is first to define a
-:class:`~qiskit.circuit.Gate` class for all the custom gates in the basis
-set. For example::
+   (:mod:`qiskit.circuit.library`) you can integrate support for this into your
+   provider. The basic method for doing this is first to define a
+   :class:`~qiskit.circuit.Gate` subclass for each custom gate in the basis
+   set. For example::
 
-    import numpy as np
+       import numpy as np
 
-    from qiskit.circuit import Gate
-    from qiskit.circuit import QuantumCircuit
+       from qiskit.circuit import Gate
+       from qiskit.circuit import QuantumCircuit
 
-    class SYGate(Gate):
-        def __init__(self, label=None):
-            super().__init__("sy", 1, [], label=label)
+       class SYGate(Gate):
+           def __init__(self, label=None):
+               super().__init__("sy", 1, [], label=label)
 
-        def _define(self):
-            qc = QuantumCircuit(1)
-            q.ry(np.pi / 2, 0)
-            self.definition = qc
+           def _define(self):
+               qc = QuantumCircuit(1)
+               q.ry(np.pi / 2, 0)
+               self.definition = qc
 
-The key thing to ensure is that for any custom gates in your Backend's basis set
-your custom gate's name attribute (the first param on
-``super().__init__()`` in the ``__init__`` definition above) does not conflict
-with the name of any other gates. The name attribute is what is used to
-identify the gate in the basis set for the transpiler. If there is a conflict
-the transpiler will not know which gate to use.
+   The key thing to ensure is that for any custom gates in your Backend's basis set
+   your custom gate's name attribute (the first param on
+   ``super().__init__()`` in the ``__init__`` definition above) does not conflict
+   with the name of any other gates. The name attribute is what is used to
+   identify the gate in the basis set for the transpiler. If there is a conflict
+   the transpiler will not know which gate to use.
 
-2. After you've defined the custom gates to use for the Backend's basis set
-then you need to add equivalence rules to the standard equivalence library
-so that the :func:`~qiskit.compiler.transpile` function and
-:mod:`~qiskit.transpiler` module can convert an arbitrary circuit using the
-custom basis set. This can be done by defining equivalent circuits, in terms
-of the custom gate, for standard gates. Typically if you can convert from a
-:class:`~qiskit.circuit.library.CXGate` (if your basis doesn't include a
-standard 2 qubit gate) and some commonly used single qubit rotation gates like
-the :class:`~qiskit.circuit.library.HGate` and
-:class:`~qiskit.circuit.library.UGate` that should be sufficient for the
-transpiler to translate any circuit into the custom basis gates. But, the more
-equivalence rules that are defined from standard gates to your basis the more
-efficient translation from an arbitrary circuit to the target basis will be
-(although not always, and there is a diminishing margin of return).
+2. Add the custom gate to the target for your backend. This can be done with
+   the :meth:`.Target.add_instruction` method. You'll need to add an instance of
+   ``SYGate`` and its parameters to the target so the transpiler knows it
+   exists. For example, assuming this is part of your
+   :class:`~qiskit.providers.BackendV2` implementation for your backend::
 
-For example, if you were to add some rules for the above custom ``SYGate``
-we could define the :class:`~qiskit.circuit.library.U2Gate` and
-:class:`~qiskit.circuit.library.HGate`::
+       from qiskit.transpiler import InstructionProperties
 
-    from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary
-    from qiskit.circuit.library import HGate
-    from qiskit.circuit.library import ZGate
-    from qiskit.circuit.library import RZGate
-    from qiskit.circuit.library import U2Gate
+       sy_props = {
+           (0,): InstructionProperties(duration=2.3e-6, error=0.0002)
+           (1,): InstructionProperties(duration=2.1e-6, error=0.0001)
+           (2,): InstructionProperties(duration=2.5e-6, error=0.0003)
+           (3,): InstructionProperties(duration=2.2e-6, error=0.0004)
+       }
+       self.target.add_instruction(SYGate(), sy_props)
+
+   The keys in ``sy_props`` define the qubits on the backend ``SYGate`` can be
+   used on, and the values define the properties of ``SYGate`` on that qubit.
+   For multiqubit gates the tuple keys contain all qubit combinations the gate
+   works on (order is significant, i.e. ``(0, 1)`` is different from ``(1, 0)``).
+
+3. After you've defined the custom gates to use for the backend's basis set
+   then you need to add equivalence rules to the standard equivalence library
+   so that the :func:`~qiskit.compiler.transpile` function and
+   :mod:`~qiskit.transpiler` module can convert an arbitrary circuit using the
+   custom basis set. This can be done by defining equivalent circuits, in terms
+   of the custom gate, for standard gates. Typically if you can convert from a
+   :class:`~qiskit.circuit.library.CXGate` (if your basis doesn't include a
+   standard 2 qubit gate) and some commonly used single qubit rotation gates like
+   the :class:`~qiskit.circuit.library.HGate` and
+   :class:`~qiskit.circuit.library.UGate` that should be sufficient for the
+   transpiler to translate any circuit into the custom basis gates. But, the more
+   equivalence rules that are defined from standard gates to your basis the more
+   efficient translation from an arbitrary circuit to the target basis will be
+   (although not always, and there is a diminishing margin of return).
+
+   For example, if you were to add some rules for the above custom ``SYGate``
+   we could define the :class:`~qiskit.circuit.library.U2Gate` and
+   :class:`~qiskit.circuit.library.HGate`::
+
+       from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary
+       from qiskit.circuit.library import HGate
+       from qiskit.circuit.library import ZGate
+       from qiskit.circuit.library import RZGate
+       from qiskit.circuit.library import U2Gate
 
 
-    # H => Z SY
-    q = qiskit.QuantumRegister(1, "q")
-    def_sy_h = qiskit.QuantumCircuit(q)
-    def_sy_h.append(ZGate(), [q[0]], [])
-    def_sy_h.append(SYGate(), [q[0]], [])
-    SessionEquivalenceLibrary.add_equivalence(
-        HGate(), def_sy_h)
+       # H => Z SY
+       q = qiskit.QuantumRegister(1, "q")
+       def_sy_h = qiskit.QuantumCircuit(q)
+       def_sy_h.append(ZGate(), [q[0]], [])
+       def_sy_h.append(SYGate(), [q[0]], [])
+       SessionEquivalenceLibrary.add_equivalence(
+           HGate(), def_sy_h)
 
-    # u2 => Z SY Z
-    phi = qiskit.circuit.Parameter('phi')
-    lam = qiskit.circuit.Parameter('lambda')
-    q = qiskit.QuantumRegister(1, "q")
-    def_sy_u2 = qiskit.QuantumCircuit(q)
-    def_sy_u2.append(RZGate(lam), [q[0]], [])
-    def_sy_u2.append(SYGate(), [q[0]], [])
-    def_sy_u2.append(RZGate(phi), [q[0]], [])
-    SessionEquivalenceLibrary.add_equivalence(
-        U2Gate(phi, lam), def_sy_u2)
+       # u2 => Z SY Z
+       phi = qiskit.circuit.Parameter('phi')
+       lam = qiskit.circuit.Parameter('lambda')
+       q = qiskit.QuantumRegister(1, "q")
+       def_sy_u2 = qiskit.QuantumCircuit(q)
+       def_sy_u2.append(RZGate(lam), [q[0]], [])
+       def_sy_u2.append(SYGate(), [q[0]], [])
+       def_sy_u2.append(RZGate(phi), [q[0]], [])
+       SessionEquivalenceLibrary.add_equivalence(
+           U2Gate(phi, lam), def_sy_u2)
 
 
-You will want this to be run on import so that as soon as the provider's
-package is imported it will be run. This will ensure that any time the
-:class:`~qiskit.transpiler.passes.BasisTranslator` pass is run with the
-custom gates the equivalence rules are defined.
+   You will want this to be run on import so that as soon as the provider's
+   package is imported it will be run. This will ensure that any time the
+   :class:`~qiskit.transpiler.passes.BasisTranslator` pass is run with the
+   custom gates the equivalence rules are defined.
 
-It's also worth noting that depending on the basis you're using, some optimization
-passes in the transpiler, such as
-:class:`~qiskit.transpiler.passes.Optimize1qGatesDecomposition`, may not
-be able to operate with your custom basis. For our ``SYGate`` example, the
-:class:`~qiskit.transpiler.passes.Optimize1qGatesDecomposition` will not be
-able to simplify runs of single qubit gates into the SY basis. This is because
-the :class:`~qiskit.quantum_info.OneQubitEulerDecomposer` class does not
-know how to work in the SY basis. To solve this the ``SYGate`` class would
-need to be added to Qiskit and
-:class:`~qiskit.quantum_info.OneQubitEulerDecomposer` updated to support
-decomposing to the ``SYGate``. Longer term that is likely a better direction
-for custom basis gates and contributing the definitions and support in the
-transpiler will ensure that it continues to be well supported by Qiskit
-moving forward.
+   It's also worth noting that depending on the basis you're using, some optimization
+   passes in the transpiler, such as
+   :class:`~qiskit.transpiler.passes.Optimize1qGatesDecomposition`, may not
+   be able to operate with your custom basis. For our ``SYGate`` example, the
+   :class:`~qiskit.transpiler.passes.Optimize1qGatesDecomposition` will not be
+   able to simplify runs of single qubit gates into the SY basis. This is because
+   the :class:`~qiskit.quantum_info.OneQubitEulerDecomposer` class does not
+   know how to work in the SY basis. To solve this the ``SYGate`` class would
+   need to be added to Qiskit and
+   :class:`~qiskit.quantum_info.OneQubitEulerDecomposer` updated to support
+   decomposing to the ``SYGate``. Longer term that is likely a better direction
+   for custom basis gates and contributing the definitions and support in the
+   transpiler will ensure that it continues to be well supported by Qiskit
+   moving forward.
 
 Run Method
 ----------
 
-Of key importance is the :meth:`~qiskit.providers.BackendV1.run` method, which
+Of key importance is the :meth:`~qiskit.providers.BackendV2.run` method, which
 is used to actually submit circuits to a device or simulator. The run method
 handles submitting the circuits to the backend to be executed and returning a
 :class:`~qiskit.providers.Job` object. Depending on the type of backend this
@@ -363,7 +398,7 @@ package this involves converting from a quantum circuit and options into a
 `qobj <https://arxiv.org/abs/1809.03452>`__ JSON payload and submitting
 that to the IBM Quantum API. Since every backend interface is different (and
 in the case of the local simulators serialization may not be needed) it is
-expected that the backend's :obj:`~qiskit.providers.BackendV1.run` method will
+expected that the backend's :obj:`~qiskit.providers.BackendV2.run` method will
 handle this conversion.
 
 An example run method would be something like::
@@ -390,21 +425,32 @@ The typical example of this is something like the number of ``shots`` which is
 how many times the circuit is to be executed. The options available for a
 backend are defined using an :class:`~qiskit.providers.Options` object. This
 object is initially created by the
-:obj:`~qiskit.providers.BackendV1._default_options` method of a Backend class.
+:obj:`~qiskit.providers.BackendV2._default_options` method of a Backend class.
 The default options returns an initialized :class:`~qiskit.providers.Options`
 object with all the default values for all the options a backend supports. For
 example, if the backend supports only supports ``shots`` the
-:obj:`~qiskit.providers.BackendV1._default_options` method would look like::
+:obj:`~qiskit.providers.BackendV2._default_options` method would look like::
 
     @classmethod
     def _default_options(cls):
         return Options(shots=1024)
 
+You can also set validators on an :class:`~qiskit.providers.Options` object to
+provide limits and validation on user provided values based on what's acceptable
+for your backend. For example, if the ``"shots"`` option defined above can be set
+to any value between 1 and 4096 you can set the validator on the options object
+for you backend with::
+
+    self.options.set_validator("shots", (1, 4096))
+
+you can refer to the :meth:`~qiskit.providers.Options.set_validator` documentation
+for a full list of validation options.
+
 
 Job
 ===
 
-The output from the :obj:`~qiskit.providers.BackendV1.run` method is a :class:`~qiskit.providers.JobV1`
+The output from the :obj:`~qiskit.providers.BackendV2.run` method is a :class:`~qiskit.providers.JobV1`
 object. Each provider is expected to implement a custom job subclass that
 defines the behavior for the provider. There are 2 types of jobs depending on
 the backend's execution method, either a sync or async. By default jobs are
@@ -498,6 +544,110 @@ and for a sync job::
         def status(self):
             return JobStatus.DONE
 
+======================================
+Migrating between Backend API Versions
+======================================
+
+BackendV1 -> BackendV2
+======================
+
+The :obj:`~BackendV2` class re-defined user access for most properties of a
+backend to make them work with native Qiskit data structures and have flatter
+access patterns. However this means when using a provider that upgrades
+from :obj:`~BackendV1` to :obj:`~BackendV2` existing access patterns will need
+to be adjusted. It is expected for existing providers to deprecate the old
+access where possible to provide a graceful migration, but eventually users
+will need to adjust code. The biggest change to adapt to in :obj:`~BackendV2` is
+that most of the information accesible about a backend is contained in its
+:class:`~qiskit.transpiler.Target` object and the backend's attributes often query
+its :attr:`~qiskit.providers.BackendV2.target`
+attribute to return information, however in many cases the attributes only provide
+a subset of information the target can contain. For example, ``backend.coupling_map``
+returns a :class:`~qiskit.transpiler.CouplingMap` constructed from the
+:class:`~qiskit.transpiler.Target` accesible in the
+:attr:`~qiskit.providers.BackendV2.target` attribute, however the target may contain
+instructions that operate on more than two qubits (which can't be represented in a
+:class:`~qiskit.transpiler.CouplingMap`) or has instructions that only operate on
+a subset of qubits (or two qubit links for a two qubit instruction) which won't be
+detailed in the full coupling map returned by
+:attr:`~qiskit.providers.BackendV2.coupling_map`. So depending on your use case
+it might be necessary to look deeper than just the equivalent access with
+:obj:`~BackendV2`.
+
+Below is a table of example access patterns in :obj:`~BackendV1` and the new form
+with :obj:`~BackendV2`:
+
+.. list-table:: Migrate from :obj:`~BackendV1` to :obj:`~BackendV2`
+   :header-rows: 1
+
+   * - :obj:`~BackendV1`
+     - :obj:`~BackendV2`
+     - Notes
+   * - ``backend.configuration().n_qubits``
+     - ``backend.num_qubits``
+     -
+   * - ``backend.configuration().coupling_map``
+     - ``backend.coupling_map``
+     - The return from :obj:`~BackendV2` is a :class:`~qiskit.transpiler.CouplingMap` object.
+       while in :obj:`~BackendV1` it is an edge list. Also this is just a view of
+       the information contained in ``backend.target`` which may only be a subset of the
+       information contained in :class:`~qiskit.transpiler.Target` object.
+   * - ``backend.configuration().backend_name``
+     - ``backend.name``
+     -
+   * - ``backend.configuration().backend_version``
+     - ``backend.backend_version``
+     - The :attr:`~qiskit.providers.BackendV2.version` attribute represents
+       the version of the abstract :class:`~qiskit.providers.Backend` interface
+       the object implements while :attr:`~qiskit.providers.BackendV2.backend_version`
+       is metadata about the version of the backend itself.
+   * - ``backend.configuration().basis_gates``
+     - ``backend.operation_names``
+     - The :obj:`~BackendV2` return is a list of operation names contained in the
+       ``backend.target`` attribute. The :class:`~qiskit.transpiler.Target` may contain more
+       information that can be expressed by this list of names. For example, that some
+       operations only work on a subset of qubits or that some names implement the same gate
+       with different parameters.
+   * - ``backend.configuration().dt``
+     - ``backend.dt``
+     -
+   * - ``backend.configuration().dtm``
+     - ``backend.dtm``
+     -
+   * - ``backend.configuration().max_experiments``
+     - ``backend.max_circuits``
+     -
+   * - ``backend.configuration().online_date``
+     - ``backend.online_date``
+     -
+   * - ``InstructionDurations.from_backend(backend)``
+     - ``backend.instruction_durations``
+     -
+   * - ``backend.defaults().instruction_schedule_map``
+     - ``backend.instruction_schedule_map``
+     -
+   * - ``backend.properties().t1(0)``
+     - ``backend.qubit_properties(0).t1``
+     -
+   * - ``backend.properties().t2(0)``
+     - ``backend.qubit_properties(0).t2``
+     -
+   * - ``backend.properties().frequency(0)``
+     - ``backend.qubit_properties(0).frequency``
+     -
+   * - ``backend.properties().readout_error(0)``
+     - ``backend.target["measure"][(0,)].error``
+     - In :obj:`~BackendV2` the error rate for the :class:`~qiskit.circuit.Measure`
+       operation on a given qubit is used to model the readout error. However a
+       :obj:`~BackendV2` can implement multiple measurement types and list them
+       separately in a :class:`~qiskit.transpiler.Target`.
+   * - ``backend.properties().readout_length(0)``
+     - ``backend.target["measure"][(0,)].duration``
+     - In :obj:`~BackendV2` the duration for the :class:`~qiskit.circuit.Measure`
+       operation on a given qubit is used to model the readout length. However, a
+       :obj:`~BackendV2` can implement multiple measurement types and list them
+       separately in a :class:`~qiskit.transpiler.Target`.
+
 
 ================================================================
 Legacy Provider Interface Base Objects (:mod:`qiskit.providers`)
@@ -547,6 +697,8 @@ from qiskit.providers.provider import Provider
 from qiskit.providers.provider import ProviderV1
 from qiskit.providers.backend import Backend
 from qiskit.providers.backend import BackendV1
+from qiskit.providers.backend import BackendV2
+from qiskit.providers.backend import QubitProperties
 from qiskit.providers.options import Options
 from qiskit.providers.job import Job
 from qiskit.providers.job import JobV1
