@@ -1352,7 +1352,9 @@ class QuantumCircuit:
                 raise CircuitError('register name "%s" already exists' % register.name)
 
             if isinstance(register, AncillaRegister):
-                self._ancillas.extend(register)
+                for bit in register:
+                    if bit not in self._qubit_indices:
+                        self._ancillas.append(bit)
 
             if isinstance(register, QuantumRegister):
                 self.qregs.append(register)

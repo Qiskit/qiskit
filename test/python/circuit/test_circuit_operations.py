@@ -22,6 +22,7 @@ from qiskit.circuit import Gate, Instruction, Parameter
 from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumcircuit import BitLocations
+from qiskit.circuit.quantumregister import AncillaQubit, AncillaRegister, Qubit
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.library.standard_gates import SGate
 from qiskit.quantum_info import Operator
@@ -947,6 +948,23 @@ class TestCircuitOperations(QiskitTestCase):
         qc2 = None
 
         self.assertFalse(qc1 == qc2)
+
+    def test_add_existing_bits(self):
+        """Test add registers whose bits have already been added."""
+        qc = QuantumCircuit()
+        for bit_type, reg_type in (
+            [Qubit, QuantumRegister],
+            [Clbit, ClassicalRegister],
+            [AncillaQubit, AncillaRegister],
+        ):
+            bits = [bit_type() for _ in range(10)]
+            reg = reg_type(bits=bits)
+            qc.add_bits(bits)
+            qc.add_register(reg)
+
+        self.assertEqual(qc.num_qubits, 20)
+        self.assertEqual(qc.num_clbits, 10)
+        self.assertEqual(qc.num_ancillas, 10)
 
     def test_deprecated_measure_function(self):
         """Test that the deprecated version of the loose 'measure' function works correctly."""
