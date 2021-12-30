@@ -55,12 +55,47 @@ class QuantumCircuitData(MutableSequence):
         self._circuit._check_qargs(qargs)
         self._circuit._check_cargs(cargs)
 
-        old_circ_data = self._circuit._data
+        circ_data = {}
+        param = {"old": 0, "new": 0}
+        circ_data["old"] = self._circuit._data
         self._circuit._data[key] = (instruction, qargs, cargs)
-        new_circ_data = self._circuit._data
+        circ_data["new"] = self._circuit._data
 
-        param_list = []
+        self._circuit._update_parameter_table(instruction)
+    
+        if len(circ_data["old"][key][0].params) > 0:
+            if issinstance(circ_data["old"][key][0].params[0], Parameter):
+                param["old"] = circ_data["old"][key][0].params[0] 
 
+        if len(circ_data["new"][key][0].params) > 0:
+            if issinstance(circ_data["new"][key][0].params[0], Parameter):
+                param["new"] = circ_data["new"][key][0].params[0] 
+
+        param_count = -1
+        if isinstance(param["old"], Parameter):
+            for idx, data in enumerate(circ_data["old"]):
+                if idx <= key:
+                    if len(data[0].params) > 0:
+                        if data[0].params[0] == param["old"]:
+                            param_count = param_count + 1
+                else:
+                    pass
+            self._circuit._parameter_table[param["old"]].pop(param_count)
+            
+        param_count = -1
+        if isinstance(param["new"], Parameter):
+            for idx, data in enumerate(circ_data["new"]):
+                if idx <= key:
+                    if len(data[0].params) > 0:
+                        if data[0].params[0] == param["new"]:
+                            param_count = param_count + 1
+                else:
+                    pass
+            added_element = self._circuit._parameter_table[param["new"]][-1] 
+            self._circuit._parameter_table[param["new"]].insert(param_count, added_element) 
+            self._circuit._parameter_table[param["new"]].pop()
+
+        '''
         for data in old_circ_data:
             if len(data[0].params) > 0:
                 if isinstance(data[0].params[0], Parameter):
@@ -80,6 +115,7 @@ class QuantumCircuitData(MutableSequence):
                 if isinstance(instr.params[0], Parameter):
                     if instr.params[0] in param_list:
                         self._circuit._update_parameter_table(instr)
+        '''
 
     def insert(self, index, value):
         self._circuit._data.insert(index, None)
