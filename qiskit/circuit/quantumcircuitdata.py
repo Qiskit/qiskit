@@ -19,6 +19,7 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
 from .parameter import Parameter
 
+
 class QuantumCircuitData(MutableSequence):
     """A wrapper class for the purposes of validating modifications to
     QuantumCircuit.data while maintaining the interface of a python list."""
@@ -54,7 +55,7 @@ class QuantumCircuitData(MutableSequence):
         self._circuit._check_qargs(qargs)
         self._circuit._check_cargs(cargs)
 
-        old_circ_data = self._circuit._data 
+        old_circ_data = self._circuit._data
         self._circuit._data[key] = (instruction, qargs, cargs)
         new_circ_data = self._circuit._data
 
@@ -72,7 +73,7 @@ class QuantumCircuitData(MutableSequence):
                     param_list.append(instruction.params[0])
 
         for param in param_list:
-            self._circuit._parameter_table[param] = [] 
+            self._circuit._parameter_table[param] = []
 
         for instr, qargs, cargs in new_circ_data:
             if len(instr.params) > 0:
