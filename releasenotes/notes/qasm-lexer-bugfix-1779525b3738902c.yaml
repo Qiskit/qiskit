@@ -1,0 +1,5 @@
+fixes:
+  - |
+    Fixes qasm lexer so the parser errors if version other than 2.0 is passed.
+    `#139 in openqasm <https://github.com/Qiskit/openqasm/issues/319>` for more
+    details.
