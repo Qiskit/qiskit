@@ -220,11 +220,20 @@ class QCircuitImage:
         ]
         self._latex.append([" "] * (self.img_depth + 1))
 
+        def _fix_double_script(bit_label, size, cregbundle=False):
+            rep_count = bit_label.count("_")
+            if size > 1 and not cregbundle:
+                rep_count -= 1
+            bit_label = bit_label.replace("_", r"\_", rep_count)
+            return bit_label
+
         # quantum register
         for ii, reg in enumerate(self._qubits):
             register = self._bit_locations[reg]["register"]
             index = self._bit_locations[reg]["index"]
+            reg_size = 0 if register is None else register.size
             qubit_label = get_bit_label("latex", register, index, qubit=True, layout=self.layout)
+            qubit_label = _fix_double_script(qubit_label, reg_size)
             qubit_label += " : "
             if self.initial_state:
                 qubit_label += "\\ket{{0}}"
@@ -237,12 +246,14 @@ class QCircuitImage:
             for ii in range(len(self._qubits), self.img_width):
                 register = self._bit_locations[self._ordered_bits[ii + offset]]["register"]
                 index = self._bit_locations[self._ordered_bits[ii + offset]]["index"]
+                reg_size = 0 if register is None else register.size
                 clbit_label = get_bit_label(
                     "latex", register, index, qubit=False, cregbundle=self.cregbundle
                 )
                 if self.cregbundle and register is not None:
                     self._latex[ii][1] = "\\lstick{/_{_{" + str(register.size) + "}}} \\cw"
                     offset += register.size - 1
+                clbit_label = _fix_double_script(clbit_label, reg_size, self.cregbundle)
                 clbit_label += " : "
                 if self.initial_state:
                     clbit_label += "0"
