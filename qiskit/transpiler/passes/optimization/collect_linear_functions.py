@@ -68,6 +68,7 @@ class CollectLinearFunctions(TransformationPass):
         # Last block
         self._finalize_processing_block(cur_nodes, cur_qubits, blocks)
 
+        # Replace every discovered block by a linear function
         for block, wire_pos_map in blocks:
             qc = QuantumCircuit(len(wire_pos_map))
             for node in block:
