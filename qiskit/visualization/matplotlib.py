@@ -596,7 +596,9 @@ class MatplotlibDrawer:
         # If there are subscripts or superscripts in mathtext string
         # we need to account for that spacing by manually removing
         # from text string for text length
-        if num_underscores and not reg:
+        if reg:
+            num_underscores = 1
+        if num_underscores:
             text = text.replace("_", "", num_underscores)
         if num_carets:
             text = text.replace("^", "", num_carets)
