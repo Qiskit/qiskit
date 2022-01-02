@@ -727,7 +727,7 @@ class TestStabilizerState(QiskitTestCase):
 
         for _ in range(self.samples):
             cliff = random_clifford(num_qubits, seed=self.rng)
-            op = random_pauli(num_qubits, seed=self.rng)
+            op = random_pauli(num_qubits, group_phase=True, seed=self.rng)
             qc = cliff.to_circuit()
             stab = StabilizerState(cliff)
             exp_val = stab.expectation_value(op)
@@ -740,13 +740,29 @@ class TestStabilizerState(QiskitTestCase):
 
         for _ in range(self.samples):
             cliff = random_clifford(num_qubits, seed=self.rng)
-            op = random_pauli(2, seed=self.rng)
+            op = random_pauli(2, group_phase=True, seed=self.rng)
             qargs = np.random.choice(num_qubits, size=2, replace=False)
             qc = cliff.to_circuit()
             stab = StabilizerState(cliff)
             exp_val = stab.expectation_value(op, qargs)
             target = Statevector(qc).expectation_value(op, qargs)
             self.assertAlmostEqual(exp_val, target)
+
+    @combine(num_qubits=[2, 3, 4, 5])
+    def test_expval_from_random_clifford(self, num_qubits):
+        """Test that the expectation values for a random Clifford,
+        where the Pauli operators are all its stabilizers,
+        are equal to 1."""
+
+        for _ in range(self.samples):
+            cliff = random_clifford(num_qubits, seed=self.rng)
+            qc = cliff.to_circuit()
+            stab = StabilizerState(qc)
+            stab_gen = stab.clifford.to_dict()["stabilizer"]
+            for i in range(num_qubits):
+                op = Pauli(stab_gen[i])
+                exp_val = stab.expectation_value(op)
+                self.assertEqual(exp_val, 1)
 
     def test_sample_counts_reset_bell(self):
         """Test sample_counts after reset for Bell state"""
