@@ -455,7 +455,7 @@ class MatplotlibDrawer:
             rep_count = bit_label.count("_")
             if size > 1:
                 rep_count -= 1
-            bit_label = bit_label.replace("_", r"\_", rep_count)
+            bit_label = bit_label.replace("_", r"\_", rep_count).replace(" ", "\\;")
             return bit_label
 
         # quantum register
