@@ -466,7 +466,8 @@ class MatplotlibDrawer:
             qubit_label = get_bit_label("mpl", register, index, qubit=True, layout=self._layout)
             qubit_label = "$" + _fix_double_script(qubit_label, reg_size) + "$" + initial_qbit
 
-            text_width = self._get_text_width(qubit_label, self._fs, reg=True) * 1.15
+            reg_single = 0 if reg_size < 2 else 1
+            text_width = self._get_text_width(qubit_label, self._fs, reg=reg_single) * 1.15
             if text_width > longest_bit_label_width:
                 longest_bit_label_width = text_width
             pos = -ii
@@ -500,7 +501,8 @@ class MatplotlibDrawer:
                     clbit_label = "$" + clbit_label + "$"
                 clbit_label += initial_cbit
 
-                text_width = self._get_text_width(clbit_label, self._fs, reg=True) * 1.15
+                reg_single = 0 if reg_size < 2 or self._cregbundle else 1
+                text_width = self._get_text_width(clbit_label, self._fs, reg=reg_single) * 1.15
                 if text_width > longest_bit_label_width:
                     longest_bit_label_width = text_width
                 pos = y_off - idx
@@ -579,7 +581,7 @@ class MatplotlibDrawer:
         anchors = [self._q_anchors[ii].get_index() for ii in self._qubits_dict]
         return max(anchors) if anchors else 0
 
-    def _get_text_width(self, text, fontsize, param=False, reg=False):
+    def _get_text_width(self, text, fontsize, param=False, reg=None):
         """Compute the width of a string in the default font"""
         if not text:
             return 0.0
@@ -596,8 +598,11 @@ class MatplotlibDrawer:
         # If there are subscripts or superscripts in mathtext string
         # we need to account for that spacing by manually removing
         # from text string for text length
-        if reg:
-            num_underscores = 1
+
+        # if it's a register and there's a subscript at the end,
+        # remove 1 underscore, otherwise don't remove any
+        if reg is not None:
+            num_underscores = reg
         if num_underscores:
             text = text.replace("_", "", num_underscores)
         if num_carets:
