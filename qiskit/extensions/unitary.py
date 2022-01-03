@@ -92,35 +92,29 @@ class UnitaryGate(Gate):
             if not is_unitary_matrix(data):
                 raise ExtensionError("Input matrix is not unitary.")
         except ParameterTypeError as ex:
-            # we can check unitary only for sympy
             if not HAS_SYMENGINE:
-                from sympy import eye, sympify
-                from sympy.physics.quantum import Dagger
-
-                matrix, matrix_dim = to_sympy_matrix(data)
-                iden = sympify(matrix * Dagger(matrix))
-
-                if iden != eye(matrix_dim):
-                    # There may be a case when there is still a parameter and
-                    # we are not quite sure if this is unitary or not.
-                    # But just in case we throw exception :)
-                    raise ExtensionError("Input matrix is not unitary.") from ex
-
+                from sympy import conjugate
+                conj = lambda x: conjugate(x)
             else:
-                # Bind to test value and convert to numpy array in case not already an array
-                for ii in range(numpy.shape(data)[0]):
-                    for jj in range(numpy.shape(data)[1]):
-                        if isinstance(data[ii][jj], ParameterExpression):
-                            for param in data[ii][jj].parameters:
-                                data[ii][jj] = data[ii][jj].bind(
-                                    {param: float(symengine.conjugate(0.42))}
-                                )
+                conj = lambda x: symengine.conjugate(x)
 
-                data = numpy.array(data, dtype=complex)
+            # Bind to test value and convert to numpy array in case not already an array
+            for ii in range(numpy.shape(data)[0]):
+                for jj in range(numpy.shape(data)[1]):
+                    if isinstance(data[ii][jj], ParameterExpression):
+                        for param in data[ii][jj].parameters:
+                            if not HAS_SYMENGINE:
+                                from sympy import eye, sympify
+                                from sympy.physics.quantum import Dagger
 
-                # Check input is unitary
-                if not is_unitary_matrix(data):
-                    raise ExtensionError("Input matrix is not unitary.") from ex
+                            data[ii][jj] = data[ii][jj].bind(
+                                {param: float(conj(0.42))}
+                            )
+            data = numpy.array(data, dtype=complex)
+
+            # Check input is unitary
+            if not is_unitary_matrix(data):
+                raise ExtensionError("Input matrix is not unitary.") from ex
 
         # Check input is N-qubit matrix
         input_dim, output_dim = data.shape
