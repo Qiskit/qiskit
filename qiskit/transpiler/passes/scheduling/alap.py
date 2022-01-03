@@ -84,13 +84,13 @@ class ALAPSchedule(TransformationPass):
             # validate node.op.duration
             if node.op.duration is None:
                 indices = [bit_indices[qarg] for qarg in node.qargs]
-                # if dag.has_calibration_for(node): # does not always works
-                if dag.calibrations[node.op.name] is not None:
-                    for key in dag.calibrations[node.op.name]:
-                        if tuple(indices) in key:
-                            node.op.duration = dag.calibrations[node.op.name][key].duration
-                else:
-                    import pdb; pdb.set_trace()
+                if node.op.name in dag.calibrations:
+                    if dag.calibrations[node.op.name] is not None:
+                        for key in dag.calibrations[node.op.name]:
+                            if tuple(indices) in key:
+                                node.op.duration = dag.calibrations[node.op.name][key].duration
+
+                if node.op.duration is None:
                     raise TranspilerError(
                         f"Duration of {node.op.name} on qubits {indices} is not found."
                     )
