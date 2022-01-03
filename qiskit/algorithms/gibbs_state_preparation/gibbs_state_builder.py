@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""Interface for building Gibbs States."""
 from abc import abstractmethod
 
 from qiskit.algorithms.gibbs_state_preparation.gibbs_state import GibbsState
@@ -16,6 +17,8 @@ from qiskit.opflow import OperatorBase
 
 
 class GibbsStateBuilder:
+    """Interface for building Gibbs States."""
+
     BOLTZMANN_CONSTANT = 1.38064852e-2
 
     @abstractmethod

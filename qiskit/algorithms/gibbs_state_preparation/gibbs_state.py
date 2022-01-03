@@ -9,12 +9,17 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""Class representing a quantum state of a Gibbs State along with metadata and gradient
+calculation methods."""
 from typing import List, Optional
 
 from qiskit.opflow import StateFn, OperatorBase
 
 
 class GibbsState:
+    """Class representing a quantum state of a Gibbs State along with metadata and gradient
+    calculation methods."""
+
     def __init__(
         self,
         gibbs_state_function: StateFn,

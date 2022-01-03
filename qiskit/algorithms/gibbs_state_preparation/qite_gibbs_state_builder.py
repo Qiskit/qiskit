@@ -9,19 +9,58 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""Class for building Gibbs States using Quantum Imaginary Time Evolution algorithms."""
+from typing import Dict, Union
+
 from qiskit.algorithms.gibbs_state_preparation.gibbs_state import GibbsState
 from qiskit.algorithms.gibbs_state_preparation.gibbs_state_builder import GibbsStateBuilder
+from qiskit.circuit import Parameter
 from qiskit.opflow import OperatorBase
+from qiskit.quantum_info import state_fidelity, Statevector
 
 
 class QiteGibbsStateBuilder(GibbsStateBuilder):
-    def __init__(self, qite_algorithm):
+    """Class for building Gibbs States using Quantum Imaginary Time Evolution algorithms."""
+
+    def __init__(
+        self,
+        qite_algorithm,
+        ansatz: OperatorBase,
+        ansatz_init_params_dict: Dict[Parameter, Union[complex, float]],
+    ):
         self._qite_algorithm = qite_algorithm
+        if ansatz.num_qubits % 2 != 0:
+            raise ValueError(
+                f"QiteGibbsStateBuilder requires an ansatz on an even number of qubits. "
+                f"{ansatz.num_qubits} qubits provided."
+            )  # TODO might be specific to VarQite?
+        self._ansatz = ansatz
+        self._ansatz_init_params_dict = ansatz_init_params_dict
+        # TODO ansatz and init params need to form n MES, add a check? add defaults?
+
+    def _evaluate_initial_ansatz(self) -> Statevector:
+        maximally_entangled_states = self._ansatz.assign_parameters(self._ansatz_init_params_dict)
+        return Statevector(maximally_entangled_states)
+
+    def _build_mes(self, num_qubits) -> Statevector:
+        """Builds n Maximally Entangled States (MES) exactly."""
+        pass
+
+    # TODO or by tracing out to the maximally mixed state?
+    def _calc_ansatz_mes_fidelity(self):
+        """Calculates fidelity between n exact Maximally Entangled States (MES) and bound ansatz."""
+        num_of_mes = self._ansatz.num_qubits / 2
+        exact_n_mes = self._build_mes(num_of_mes)
+        ansatz_n_mes = self._evaluate_initial_ansatz()
+        return state_fidelity(exact_n_mes, ansatz_n_mes)
 
     def build(self, problem_hamiltonian: OperatorBase, temperature: float) -> GibbsState:
         time = 1 / (self.BOLTZMANN_CONSTANT * temperature)
         gibbs_state_function = self._qite_algorithm.evolve(
-            hamiltonian=problem_hamiltonian, time=time
+            hamiltonian=problem_hamiltonian,
+            time=time,
+            initial_state=self._ansatz,
+            hamiltonian_value_dict=self._ansatz_init_params_dict,
         )
         return GibbsState(
             gibbs_state_function=gibbs_state_function,
