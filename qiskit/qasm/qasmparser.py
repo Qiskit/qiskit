@@ -373,7 +373,12 @@ class QasmParser:
         """
         format : FORMAT
         """
-        program[0] = node.Format(program[1])
+		version = node.Format(program[1])
+		if version != "2.0":
+			raise QasmError(
+				"Invalid version string. This module supports OPENQASM 2.0 only."
+			)
+        program[0] = version
 
     def p_format_0(self, _):
         """

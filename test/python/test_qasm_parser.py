@@ -40,6 +40,7 @@ class TestParser(QiskitTestCase):
         self.qasm_file_path = os.path.join(self.qasm_dir, "example.qasm")
         self.qasm_file_path_fail = os.path.join(self.qasm_dir, "example_fail.qasm")
         self.qasm_file_path_if = os.path.join(self.qasm_dir, "example_if.qasm")
+        self.qasm_file_path_version_fail = os.path.join(self.qasm_dir, "example_version_fail.qasm")
 
     def test_parser(self):
         """should return a correct response for a valid circuit."""
@@ -72,6 +73,13 @@ class TestParser(QiskitTestCase):
 
         self.assertRaisesRegex(
             QasmError, "Perhaps there is a missing", parse, file_path=self.qasm_file_path_fail
+        )
+
+    def test_parser_version_fail(self):
+        """should fail for OPENQASM version other than 2.0."""
+
+        self.assertRaisesRegex(
+            QasmError, "Invalid verson string.", parse, file_path=self.qasm_file_path_version_fail
         )
 
     def test_all_valid_nodes(self):
