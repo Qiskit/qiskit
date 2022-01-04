@@ -12,11 +12,14 @@
 """Class for building Gibbs States using Quantum Imaginary Time Evolution algorithms."""
 from typing import Dict, Union
 
+from qiskit import QuantumCircuit
 from qiskit.algorithms.gibbs_state_preparation.gibbs_state import GibbsState
 from qiskit.algorithms.gibbs_state_preparation.gibbs_state_builder import GibbsStateBuilder
 from qiskit.circuit import Parameter
 from qiskit.opflow import OperatorBase
+from qiskit.providers import BaseBackend
 from qiskit.quantum_info import state_fidelity, Statevector
+from qiskit.utils import QuantumInstance
 
 
 class QiteGibbsStateBuilder(GibbsStateBuilder):
@@ -58,15 +61,27 @@ class QiteGibbsStateBuilder(GibbsStateBuilder):
         maximally_entangled_states = self._ansatz.assign_parameters(self._ansatz_init_params_dict)
         return Statevector(maximally_entangled_states)
 
-    def _build_mes(self, num_qubits) -> Statevector:
-        """Builds n Maximally Entangled States (MES) exactly."""
-        pass
+    def _build_n_mes(self, num_qubits, backend: Union[BaseBackend, QuantumInstance]) -> Statevector:
+        """Builds n Maximally Entangled States (MES) as state vectors exactly."""
+        qc = QuantumCircuit(2)
+        for _ in range(num_qubits):
+            qc = qc @ self._build_mes()
+
+        return backend.run(qc).result().get_statevector()
+
+    def _build_mes(self) -> QuantumCircuit:
+        """Builds a quantum circuit for a single Maximally Entangled State (MES)."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        return qc
 
     # TODO or by tracing out to the maximally mixed state?
-    def _calc_ansatz_mes_fidelity(self):
+    def _calc_ansatz_mes_fidelity(self, backend: Union[BaseBackend, QuantumInstance]) -> float:
         """Calculates fidelity between n exact Maximally Entangled States (MES) and bound ansatz."""
         num_of_mes = self._ansatz.num_qubits / 2
-        exact_n_mes = self._build_mes(num_of_mes)
+        exact_n_mes = self._build_n_mes(num_of_mes, backend)
         ansatz_n_mes = self._evaluate_initial_ansatz()
         return state_fidelity(exact_n_mes, ansatz_n_mes)
 
