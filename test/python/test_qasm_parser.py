@@ -79,7 +79,10 @@ class TestParser(QiskitTestCase):
         """should fail for OPENQASM version other than 2.0."""
 
         self.assertRaisesRegex(
-            QasmError, "Invalid verson string.", parse, file_path=self.qasm_file_path_version_fail
+            QasmError,
+            "Invalid version string. This module supports OPENQASM 2.0; only.",
+            parse,
+            file_path=self.qasm_file_path_version_fail,
         )
 
     def test_all_valid_nodes(self):
