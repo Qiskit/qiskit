@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a bug in :mod:`~qiskit.QuantumCircuit.add_register` by checking the
+    existance of a :class:`~qiskit.circuit.quantumregister.AncillaQubit` before
+    adding it to the circuit.
