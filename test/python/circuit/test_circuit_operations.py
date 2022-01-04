@@ -949,8 +949,8 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertFalse(qc1 == qc2)
 
-    def test_add_existing_bits(self):
-        """Test add registers whose bits have already been added."""
+    def test_overlapped_add_bits_and_add_register(self):
+        """Test add registers whose bits have already been added by add_bits."""
         qc = QuantumCircuit()
         for bit_type, reg_type in (
             [Qubit, QuantumRegister],
@@ -961,6 +961,24 @@ class TestCircuitOperations(QiskitTestCase):
             reg = reg_type(bits=bits)
             qc.add_bits(bits)
             qc.add_register(reg)
+
+        self.assertEqual(qc.num_qubits, 20)
+        self.assertEqual(qc.num_clbits, 10)
+        self.assertEqual(qc.num_ancillas, 10)
+
+    def test_overlapped_add_register_and_add_register(self):
+        """Test add registers whose bits have already been added by add_register."""
+        qc = QuantumCircuit()
+        for bit_type, reg_type in (
+            [Qubit, QuantumRegister],
+            [Clbit, ClassicalRegister],
+            [AncillaQubit, AncillaRegister],
+        ):
+            bits = [bit_type() for _ in range(10)]
+            reg1 = reg_type(bits=bits)
+            reg2 = reg_type(bits=bits)
+            qc.add_register(reg1)
+            qc.add_register(reg2)
 
         self.assertEqual(qc.num_qubits, 20)
         self.assertEqual(qc.num_clbits, 10)
