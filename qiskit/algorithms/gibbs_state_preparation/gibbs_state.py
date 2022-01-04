@@ -28,6 +28,15 @@ class GibbsState:
         gradients: Optional[List] = None,
         gradient_params: Optional[List] = None,
     ):
+        """
+        Args:
+            gibbs_state_function: Quantum state function of a Gibbs state.
+            hamiltonian: Hamiltonian used to build a Gibbs state.
+            temperature: Temperature used to build a Gibbs state.
+            gradients: Optional values of gradients, obtained, e.g., from a VarQite algorithm.
+            gradient_params: Optional list of parameters present in the gibbs_state_function in
+                            respect to which gradients shall be calculated.
+        """
         self._hamiltonian = hamiltonian
         self._temperature = temperature
         self._gibbs_state_function = gibbs_state_function
@@ -36,33 +45,41 @@ class GibbsState:
 
     @property
     def hamiltonian(self):
+        """Returns a hamiltonian."""
         return self._hamiltonian
 
     @property
     def temperature(self):
+        """Returns a temperature."""
         return self._temperature
 
     @property
     def gibbs_state_function(self):
+        """Returns a Gibbs state function."""
         return self._gibbs_state_function
 
     @property
     def gradients(self):
+        """Returns gradients values."""
         return self._gradients
 
     @gradients.setter
     def gradients(self, gradients: List):
+        """Sets gradients values."""
         self._gradients = gradients
 
     @property
     def gradient_params(self):
+        """Returns parameters for gradient calculation."""
         return self._gradient_params
 
     @gradient_params.setter
     def gradient_params(self, gradient_params: List):
+        """Sets parameters for gradient calculation."""
         self._gradient_params = gradient_params
 
     def calc_gradients(self):
+        """Calculates gradients w.r.t. gradient_params, using gradients values."""
         if not self._gradient_params or not self._gradients:
             raise ValueError(
                 "Could not calculate gradients because gradient_params and/or gradients not set."

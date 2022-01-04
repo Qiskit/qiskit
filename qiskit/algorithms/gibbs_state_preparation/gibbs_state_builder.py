@@ -23,4 +23,12 @@ class GibbsStateBuilder:
 
     @abstractmethod
     def build(self, problem_hamiltonian: OperatorBase, temperature: float) -> GibbsState:
+        """
+        Creates a Gibbs state from given parameters.
+        Args:
+            problem_hamiltonian: Hamiltonian that defines a desired Gibbs state.
+            temperature: Temperature of a desired Gibbs state.
+        Returns: GibbsState object that includes a relevant quantum state functions as well as
+                metadata.
+        """
         raise NotImplementedError
