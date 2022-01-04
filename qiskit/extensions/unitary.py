@@ -32,13 +32,6 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import two_qubit_cnot_dec
 from qiskit.extensions.exceptions import ExtensionError
 from qiskit.circuit.parameterexpression import ParameterTypeError, ParameterExpression
 
-try:
-    import symengine
-
-    HAS_SYMENGINE = True
-except ImportError:
-    HAS_SYMENGINE = False
-
 _DECOMPOSER1Q = OneQubitEulerDecomposer("U3")
 
 
@@ -92,24 +85,12 @@ class UnitaryGate(Gate):
             if not is_unitary_matrix(data):
                 raise ExtensionError("Input matrix is not unitary.")
         except ParameterTypeError as ex:
-            if not HAS_SYMENGINE:
-                from sympy import conjugate
-                conj = lambda x: conjugate(x)
-            else:
-                conj = lambda x: symengine.conjugate(x)
-
             # Bind to test value and convert to numpy array in case not already an array
             for ii in range(numpy.shape(data)[0]):
                 for jj in range(numpy.shape(data)[1]):
                     if isinstance(data[ii][jj], ParameterExpression):
                         for param in data[ii][jj].parameters:
-                            if not HAS_SYMENGINE:
-                                from sympy import eye, sympify
-                                from sympy.physics.quantum import Dagger
-
-                            data[ii][jj] = data[ii][jj].bind(
-                                {param: float(conj(0.42))}
-                            )
+                            data[ii][jj] = data[ii][jj].bind({param: float(0.42)})
             data = numpy.array(data, dtype=complex)
 
             # Check input is unitary
