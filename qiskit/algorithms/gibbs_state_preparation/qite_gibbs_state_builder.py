@@ -12,14 +12,11 @@
 """Class for building Gibbs States using Quantum Imaginary Time Evolution algorithms."""
 from typing import Dict, Union
 
-from qiskit import QuantumCircuit
 from qiskit.algorithms.gibbs_state_preparation.gibbs_state import GibbsState
 from qiskit.algorithms.gibbs_state_preparation.gibbs_state_builder import GibbsStateBuilder
 from qiskit.circuit import Parameter
 from qiskit.opflow import OperatorBase
-from qiskit.providers import BaseBackend
-from qiskit.quantum_info import state_fidelity, Statevector
-from qiskit.utils import QuantumInstance
+from qiskit.quantum_info import Statevector
 
 
 class QiteGibbsStateBuilder(GibbsStateBuilder):
@@ -60,32 +57,6 @@ class QiteGibbsStateBuilder(GibbsStateBuilder):
         """Binds initial parameters values to an ansatz and returns the result as a state vector."""
         maximally_entangled_states = self._ansatz.assign_parameters(self._ansatz_init_params_dict)
         return Statevector(maximally_entangled_states)
-
-    @classmethod
-    def _build_n_mes(cls, num_states, backend: Union[BaseBackend, QuantumInstance]) -> Statevector:
-        """Builds n Maximally Entangled States (MES) as state vectors exactly."""
-        qc = cls._build_mes()
-        for _ in range(num_states-1):
-            qc = qc.tensor(cls._build_mes())
-
-        return backend.run(qc).result().get_statevector()
-
-    @classmethod
-    def _build_mes(cls) -> QuantumCircuit:
-        """Builds a quantum circuit for a single Maximally Entangled State (MES)."""
-        qc = QuantumCircuit(2)
-        qc.h(0)
-        qc.cx(0, 1)
-
-        return qc
-
-    # TODO or by tracing out to the maximally mixed state?
-    def _calc_ansatz_mes_fidelity(self, backend: Union[BaseBackend, QuantumInstance]) -> float:
-        """Calculates fidelity between n exact Maximally Entangled States (MES) and bound ansatz."""
-        num_of_mes = self._ansatz.num_qubits / 2
-        exact_n_mes = self._build_n_mes(num_of_mes, backend)
-        ansatz_n_mes = self._evaluate_initial_ansatz()
-        return state_fidelity(exact_n_mes, ansatz_n_mes)
 
     def build(self, problem_hamiltonian: OperatorBase, temperature: float) -> GibbsState:
         """
