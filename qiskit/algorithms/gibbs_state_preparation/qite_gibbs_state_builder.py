@@ -61,15 +61,17 @@ class QiteGibbsStateBuilder(GibbsStateBuilder):
         maximally_entangled_states = self._ansatz.assign_parameters(self._ansatz_init_params_dict)
         return Statevector(maximally_entangled_states)
 
-    def _build_n_mes(self, num_qubits, backend: Union[BaseBackend, QuantumInstance]) -> Statevector:
+    @classmethod
+    def _build_n_mes(cls, num_states, backend: Union[BaseBackend, QuantumInstance]) -> Statevector:
         """Builds n Maximally Entangled States (MES) as state vectors exactly."""
-        qc = QuantumCircuit(2)
-        for _ in range(num_qubits):
-            qc = qc @ self._build_mes()
+        qc = cls._build_mes()
+        for _ in range(num_states-1):
+            qc = qc.tensor(cls._build_mes())
 
         return backend.run(qc).result().get_statevector()
 
-    def _build_mes(self) -> QuantumCircuit:
+    @classmethod
+    def _build_mes(cls) -> QuantumCircuit:
         """Builds a quantum circuit for a single Maximally Entangled State (MES)."""
         qc = QuantumCircuit(2)
         qc.h(0)
