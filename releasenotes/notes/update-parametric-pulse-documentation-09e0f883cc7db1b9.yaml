@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    The documentation was updated for :class:`~qiskit.pulse.library.parametric_pulses.Gaussian`,
+    :class:`~qiskit.pulse.library.parametric_pulses.GaussianSquare` and
+    :class:`~qiskit.pulse.library.parametric_pulses.Drag` to include a description of lifting.
+

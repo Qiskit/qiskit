@@ -101,12 +101,18 @@ class ParametricPulse(Pulse):
 
 
 class Gaussian(ParametricPulse):
-    """A truncated pulse envelope shaped according to the Gaussian function whose mean is centered
-    at the center of the pulse (duration / 2):
+    """A lifted and truncated pulse envelope shaped according to the Gaussian function whose
+    mean is centered at the center of the pulse (duration / 2):
 
     .. math::
+        f'(x) = exp( -(1/2) * (x - duration/2)^2 / sigma^2 )
+        f(x) = amp * \frac{f'(x) - f'(-1)}{1-f'(-1)} ,  0 <= x < duration
 
-        f(x) = amp * exp( -(1/2) * (x - duration/2)^2 / sigma^2 )  ,  0 <= x < duration
+    where :math:`f'(x)` is the gaussian waveform without lifting or amplitude scaling.
+
+    Note: This pulse would be more accurately named as `LiftedGaussian`, however, for historical
+        and practical DSP reasons it has the name `Gaussian`.
+
     """
 
     def __init__(
@@ -172,8 +178,10 @@ class Gaussian(ParametricPulse):
 
 
 class GaussianSquare(ParametricPulse):
-    """A square pulse with a Gaussian shaped risefall on both sides. Either risefall_sigma_ratio
-     or width parameter has to be specified.
+    """A square pulse with a Gaussian shaped risefall on both sides lifted such that
+    its first sample is zero.
+
+    Either risefall_sigma_ratio or width parameter has to be specified.
 
     If risefall_sigma_ratio is not None and width is None:
 
@@ -187,21 +195,28 @@ class GaussianSquare(ParametricPulse):
 
         risefall = (duration - width) / 2
 
-    In both cases, the pulse is defined as:
+    In both cases, the lifted gaussian square pulse :math:`f'(x)` is defined as:
 
     .. math::
 
-        0 <= x < risefall
+        x < risefall
 
-        f(x) = amp * exp( -(1/2) * (x - risefall)^2 / sigma^2 )
+        f'(x) = exp( -(1/2) * (x - risefall)^2 / sigma^2 )
 
         risefall <= x < risefall + width
 
-        f(x) = amp
+        f'(x) = amp
 
-        risefall + width <= x < duration
+        risefall + width <= x
 
-        f(x) = amp * exp( -(1/2) * (x - (risefall + width))^2 / sigma^2 )
+        f'(x) = exp( -(1/2) * (x - (risefall + width))^2 / sigma^2 )
+
+        f(x) = amp * \frac{f'(x) - f'(-1)}{1-f'(-1)}, 0 <= x < duration
+
+    where :math:`f'(x)` is the gaussian square waveform without lifting or amplitude scaling.
+
+    Note: This pulse would be more accurately named as `LiftedGaussianSquare`, however, for historical
+        and practical DSP reasons it has the name `GaussianSquare`.
     """
 
     def __init__(
@@ -324,20 +339,23 @@ class GaussianSquare(ParametricPulse):
 
 class Drag(ParametricPulse):
     r"""The Derivative Removal by Adiabatic Gate (DRAG) pulse is a standard Gaussian pulse
-    with an additional Gaussian derivative component. It is designed to reduce the frequency
-    spectrum of a normal gaussian pulse near the :math:`|1\rangle` - :math:`|2\rangle` transition,
+    with an additional Gaussian derivative component and lifting applied.
+
+    It is designed to reduce the frequency spectrum of a normal gaussian pulse near
+    the :math:`|1\rangle` - :math:`|2\rangle` transition,
     reducing the chance of leakage to the :math:`|2\rangle` state.
 
     .. math::
+        g(x) = exp( -(1/2) * (x - duration/2)^2 / sigma^2 )
+        f'(x) = g(x) + 1j * beta * d/dx [g(x)]
+             = g(x) + 1j * beta * (-(x - duration/2) / sigma^2) * g(x)
+        f(x) = amp * \frac{f'(x) - f'(-1)}{1-f'(-1)}, 0 <= x < duration
 
-        f(x) = Gaussian + 1j * beta * d/dx [Gaussian]
-             = Gaussian + 1j * beta * (-(x - duration/2) / sigma^2) [Gaussian]
+    where :math:`g(x)` is a standard unlifted gaussian waveform and
+    :math:`f'(x)` is the DRAG waveform without lifting or amplitude scaling.
 
-    where 'Gaussian' is:
-
-    .. math::
-
-        Gaussian(x, amp, sigma) = amp * exp( -(1/2) * (x - duration/2)^2 / sigma^2 )
+    Note: This pulse would be more accurately named as `LiftedDrag`, however, for historical
+        and practical DSP reasons it has the name `Drag`.
 
     References:
         1. |citation1|_
