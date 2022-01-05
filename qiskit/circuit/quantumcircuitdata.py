@@ -62,14 +62,14 @@ class QuantumCircuitData(MutableSequence):
         circ_data["new"] = self._circuit._data
 
         self._circuit._update_parameter_table(instruction)
-    
+
         if len(circ_data["old"][key][0].params) > 0:
             if issinstance(circ_data["old"][key][0].params[0], Parameter):
-                param["old"] = circ_data["old"][key][0].params[0] 
+                param["old"] = circ_data["old"][key][0].params[0]
 
         if len(circ_data["new"][key][0].params) > 0:
             if issinstance(circ_data["new"][key][0].params[0], Parameter):
-                param["new"] = circ_data["new"][key][0].params[0] 
+                param["new"] = circ_data["new"][key][0].params[0]
 
         param_count = -1
         if isinstance(param["old"], Parameter):
@@ -81,7 +81,7 @@ class QuantumCircuitData(MutableSequence):
                 else:
                     pass
             self._circuit._parameter_table[param["old"]].pop(param_count)
-            
+
         param_count = -1
         if isinstance(param["new"], Parameter):
             for idx, data in enumerate(circ_data["new"]):
@@ -91,31 +91,9 @@ class QuantumCircuitData(MutableSequence):
                             param_count = param_count + 1
                 else:
                     pass
-            added_element = self._circuit._parameter_table[param["new"]][-1] 
-            self._circuit._parameter_table[param["new"]].insert(param_count, added_element) 
+            added_element = self._circuit._parameter_table[param["new"]][-1]
+            self._circuit._parameter_table[param["new"]].insert(param_count, added_element)
             self._circuit._parameter_table[param["new"]].pop()
-
-        '''
-        for data in old_circ_data:
-            if len(data[0].params) > 0:
-                if isinstance(data[0].params[0], Parameter):
-                    if not data[0].params[0] in param_list:
-                        param_list.append(data[0].params[0])
-
-        if len(instruction.params) > 0:
-            if isinstance(instruction.params[0], Parameter):
-                if not instruction.params[0] in param_list:
-                    param_list.append(instruction.params[0])
-
-        for param in param_list:
-            self._circuit._parameter_table[param] = []
-
-        for instr, qargs, cargs in new_circ_data:
-            if len(instr.params) > 0:
-                if isinstance(instr.params[0], Parameter):
-                    if instr.params[0] in param_list:
-                        self._circuit._update_parameter_table(instr)
-        '''
 
     def insert(self, index, value):
         self._circuit._data.insert(index, None)
