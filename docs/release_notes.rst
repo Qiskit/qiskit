@@ -22,6 +22,63 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.34.1
+*************
+
+Terra 0.19.1
+============
+
+No change
+
+.. _Release Notes_0.10.2_Aer:
+
+Aer 0.10.2
+===========
+
+.. _Release Notes_0.10.2_Aer_Bug Fixes:
+
+Bug Fixes
+---------
+
+.. releasenotes/notes/fix-for-loop-no-parameter-aa5b04b1da0e956b.yaml @ b'c4a97d4e02baebd22497e3a3f6e83bdcf35fbb6a'
+
+- Fixed simulation of ``for`` loops where the loop parameter was not used in
+  the body of the loop.  For example, previously this code would fail, but
+  will now succeed:
+
+  .. code-block:: python
+
+      import qiskit
+      from qiskit.providers.aer import AerSimulator
+
+      qc = qiskit.QuantumCircuit(2)
+      with qc.for_loop(range(4)) as i:
+          qc.h(0)
+          qc.cx(0, 1)
+
+      AerSimulator(method="statevector").run(qc)
+
+.. releasenotes/notes/fix_qerror_to_dict-13a7683ac4adddd4.yaml @ b'cb17b3fd547eb54b7b48f1c3e959ec2c3dabab6a'
+
+- Fixes a bug in :meth:`.QuantumError.to_dict` where N-qubit circuit
+  instructions where the assembled instruction always applied to
+  qubits ``[0, ..., N-1]`` rather than the instruction qubits. This
+  bug also affected device and fake backend noise models.
+
+  See `Issue 1415 <https://github.com/Qiskit/qiskit-aer/issues/1415>`__
+  for details.
+
+Ignis 0.7.0
+===========
+
+No change
+
+IBM Q Provider 0.18.3
+=====================
+
+No change
+
+*************
 Qiskit 0.34.0
 *************
 
