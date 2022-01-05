@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2021.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -480,8 +480,13 @@ class QuantumInstance:
             build_measurement_error_mitigation_qobj,
         )
 
-        # maybe compile
-        if not had_transpiled:
+        if had_transpiled:
+            if isinstance(circuits, list):
+                circuits = circuits.copy()
+            else:
+                circuits = [circuits]
+        else:
+            # transpile here, the method always returns a list
             circuits = self.transpile(circuits)
 
         from qiskit.providers import BackendV1

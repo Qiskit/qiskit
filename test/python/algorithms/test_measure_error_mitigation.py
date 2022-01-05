@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2021.
+# (C) Copyright IBM 2019, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -332,7 +332,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
 
     @unittest.skipUnless(HAS_AER, "qiskit-aer is required for this test")
     @unittest.skipUnless(HAS_IGNIS, "qiskit-ignis is required to run this test")
-    def test_callibration_results(self):
+    def test_calibration(self):
         """check that results counts are the same with/without error mitigation"""
         algorithm_globals.random_seed = 1679
         np.random.seed(algorithm_globals.random_seed)
@@ -341,11 +341,18 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
 
         qc_meas = qc.copy()
         qc_meas.measure_all()
+        qc_meas = [qc_meas]
         backend = Aer.get_backend("aer_simulator")
+        quantum_instance = QuantumInstance(
+            backend,
+            seed_simulator=algorithm_globals.random_seed,
+            seed_transpiler=algorithm_globals.random_seed,
+            shots=1024,
+        )
+        counts_ref = quantum_instance.execute(qc_meas).get_counts()
 
-        counts_array = [None, None]
-        for idx, is_use_mitigation in enumerate([True, False]):
-            if is_use_mitigation:
+        for transpiled in [True, False]:
+            try:
                 quantum_instance = QuantumInstance(
                     backend,
                     seed_simulator=algorithm_globals.random_seed,
@@ -353,19 +360,18 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
                     shots=1024,
                     measurement_error_mitigation_cls=CompleteMeasFitter_IG,
                 )
+                if transpiled:
+                    qc_meas = quantum_instance.transpile(qc_meas)
                 with self.assertWarnsRegex(DeprecationWarning, r".*ignis.*"):
-                    counts_array[idx] = quantum_instance.execute(qc_meas).get_counts()
-            else:
-                quantum_instance = QuantumInstance(
-                    backend,
-                    seed_simulator=algorithm_globals.random_seed,
-                    seed_transpiler=algorithm_globals.random_seed,
-                    shots=1024,
+                    results = quantum_instance.execute(qc_meas, had_transpiled=transpiled)
+                counts = results.get_counts(qc_meas[0])
+                self.assertEqual(
+                    counts,
+                    counts_ref,
+                    msg=f"Counts different with/without fitter and transpiled {transpiled}.",
                 )
-                counts_array[idx] = quantum_instance.execute(qc_meas).get_counts()
-        self.assertEqual(
-            counts_array[0], counts_array[1], msg="Counts different with/without fitter."
-        )
+            except QiskitError as err:
+                self.fail(msg=f"unexpected exception transpiled {transpiled}: {err}")
 
 
 if __name__ == "__main__":
