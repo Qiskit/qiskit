@@ -74,7 +74,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         z = np.array([[True, True], [False, False]])
         x = np.array([[False, True], [True, False]])
         phase = np.array([0, 1])
-        pauli_list = PauliList.from_symplectic(z, x)
+        pauli_list = PauliList.from_symplectic(z, x, phase)
         print("4. ", pauli_list)
 
     **Data Access**
