@@ -1,6 +1,6 @@
 fixes:
   - |
     Fixes qasm 2.0 parser to error if version other than 2.0 is passed.
-	Note: this is only done for OPENQASM 2.0, 3.0 is a separate module and not affected by this commit.
+    Note: this is only done for OPENQASM 2.0, 3.0 is a separate module and not affected by this commit.
     `#139 in openqasm <https://github.com/Qiskit/openqasm/issues/319>` for more
     details.
