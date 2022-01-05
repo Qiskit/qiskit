@@ -14,7 +14,7 @@
 
 """Test InstructionDurations class."""
 
-from qiskit.circuit import Delay, Parameter
+from qiskit.circuit import Delay, Parameter, Barrier
 from qiskit.test.mock.backends import FakeParis, FakeTokyo
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
@@ -30,6 +30,10 @@ class TestInstructionDurationsClass(QiskitTestCase):
         self.assertEqual(durations.dt, None)
         with self.assertRaises(TranspilerError):
             durations.get("cx", [0, 1], "dt")
+
+    def test_get_duration_of_barrier(self):
+        durations = InstructionDurations()
+        self.assertEqual(durations.get(Barrier(1), 0), 0)
 
     def test_fail_if_invalid_dict_is_supplied_when_construction(self):
         invalid_dic = [("cx", [0, 1])]  # no duration

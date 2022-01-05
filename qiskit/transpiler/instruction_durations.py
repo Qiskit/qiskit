@@ -14,7 +14,7 @@
 import warnings
 from typing import Optional, List, Tuple, Union, Iterable, Set
 
-from qiskit.circuit import Barrier, Delay
+from qiskit.circuit import Delay
 from qiskit.circuit import Instruction, Qubit, ParameterExpression
 from qiskit.circuit.duration import duration_in_dt
 from qiskit.providers import BaseBackend
@@ -137,6 +137,8 @@ class InstructionDurations:
         unit: str = "dt",
     ) -> float:
         """Get the duration of the instruction with the name and the qubits.
+        If the instruction is a directive, e.g. barrier, return 0.
+        If the instruction is a delay, return its own duration stored in it (not asking the self).
 
         Args:
             inst: An instruction or its name to be queried.
@@ -149,9 +151,10 @@ class InstructionDurations:
         Raises:
             TranspilerError: No duration is defined for the instruction.
         """
-        if isinstance(inst, Barrier):
+        if isinstance(inst, Instruction) and inst._directive:
             return 0
-        elif isinstance(inst, Delay):
+
+        if isinstance(inst, Delay):
             return self._convert_unit(inst.duration, inst.unit, unit)
 
         if isinstance(inst, Instruction):
