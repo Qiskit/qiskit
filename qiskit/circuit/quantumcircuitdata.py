@@ -64,11 +64,11 @@ class QuantumCircuitData(MutableSequence):
         self._circuit._update_parameter_table(instruction)
 
         if len(circ_data["old"][key][0].params) > 0:
-            if issinstance(circ_data["old"][key][0].params[0], Parameter):
+            if isinstance(circ_data["old"][key][0].params[0], Parameter):
                 param["old"] = circ_data["old"][key][0].params[0]
 
         if len(circ_data["new"][key][0].params) > 0:
-            if issinstance(circ_data["new"][key][0].params[0], Parameter):
+            if isinstance(circ_data["new"][key][0].params[0], Parameter):
                 param["new"] = circ_data["new"][key][0].params[0]
 
         param_count = -1
