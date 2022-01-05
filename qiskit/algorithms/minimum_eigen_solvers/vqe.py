@@ -378,8 +378,10 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         else:
             expectation = self.expectation
 
+        wave_function = self.ansatz.assign_parameters(parameter)
+
         observable_meas = expectation.convert(StateFn(operator, is_measurement=True))
-        ansatz_circuit_op = CircuitStateFn(self.ansatz)
+        ansatz_circuit_op = CircuitStateFn(wave_function)
         expect_op = observable_meas.compose(ansatz_circuit_op).reduce()
 
         if return_expectation:
