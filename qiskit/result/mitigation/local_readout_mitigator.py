@@ -231,8 +231,9 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
             qubits = self._qubits
         if isinstance(qubits, int):
             qubits = [self._qubits[qubits]]
-        mat = self._mitigation_mats[qubits[0]]
-        for i in qubits[1:]:
+        qubit_indices = [self._qubit_index[qubit] for qubit in qubits]
+        mat = self._mitigation_mats[qubit_indices[0]]
+        for i in qubit_indices[1:]:
             mat = np.kron(self._mitigation_mats[i], mat)
         return mat
 
@@ -253,9 +254,10 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
             qubits = self._qubits
         if isinstance(qubits, int):
             qubits = [qubits]
-        mat = self._assignment_mats[qubits[0]]
-        for i in qubits[1:]:
-            mat = np.kron(self._assignment_mats[qubits[i]], mat)
+        qubit_indices = [self._qubit_index[qubit] for qubit in qubits]
+        mat = self._assignment_mats[qubit_indices[qubits[0]]]
+        for i in qubit_indices[1:]:
+            mat = np.kron(self._assignment_mats[i], mat)
         return mat
 
     def _compute_gamma(self, qubits=None):
