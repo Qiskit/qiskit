@@ -112,7 +112,7 @@ class Gaussian(ParametricPulse):
     where :math:`f'(x)` is the gaussian waveform without lifting or amplitude scaling.
 
     Note: This pulse would be more accurately named as `LiftedGaussian`, however, for historical
-        and practical DSP reasons it has the name `Gaussian`.
+    and practical DSP reasons it has the name `Gaussian`.
     """
 
     def __init__(
@@ -216,7 +216,7 @@ class GaussianSquare(ParametricPulse):
     where :math:`f'(x)` is the gaussian square waveform without lifting or amplitude scaling.
 
     Note: This pulse would be more accurately named as `LiftedGaussianSquare`, however, for historical
-        and practical DSP reasons it has the name `GaussianSquare`.
+    and practical DSP reasons it has the name `GaussianSquare`.
     """
 
     def __init__(
@@ -356,7 +356,7 @@ class Drag(ParametricPulse):
     :math:`f'(x)` is the DRAG waveform without lifting or amplitude scaling.
 
     Note: This pulse would be more accurately named as `LiftedDrag`, however, for historical
-        and practical DSP reasons it has the name `Drag`.
+    and practical DSP reasons it has the name `Drag`.
 
     References:
         1. |citation1|_
