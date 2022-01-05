@@ -111,7 +111,7 @@ class Gaussian(ParametricPulse):
 
     where :math:`f'(x)` is the gaussian waveform without lifting or amplitude scaling.
 
-    Note: This pulse would be more accurately named as `LiftedGaussian`, however, for historical
+    This pulse would be more accurately named as `LiftedGaussian`, however, for historical
     and practical DSP reasons it has the name `Gaussian`.
     """
 
@@ -215,7 +215,7 @@ class GaussianSquare(ParametricPulse):
 
     where :math:`f'(x)` is the gaussian square waveform without lifting or amplitude scaling.
 
-    Note: This pulse would be more accurately named as `LiftedGaussianSquare`, however, for historical
+    This pulse would be more accurately named as `LiftedGaussianSquare`, however, for historical
     and practical DSP reasons it has the name `GaussianSquare`.
     """
 
@@ -355,7 +355,7 @@ class Drag(ParametricPulse):
     where :math:`g(x)` is a standard unlifted gaussian waveform and
     :math:`f'(x)` is the DRAG waveform without lifting or amplitude scaling.
 
-    Note: This pulse would be more accurately named as `LiftedDrag`, however, for historical
+    This pulse would be more accurately named as `LiftedDrag`, however, for historical
     and practical DSP reasons it has the name `Drag`.
 
     References:
