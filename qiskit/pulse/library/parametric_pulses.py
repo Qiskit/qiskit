@@ -105,14 +105,14 @@ class Gaussian(ParametricPulse):
     mean is centered at the center of the pulse (duration / 2):
 
     .. math::
+
         f'(x) = exp( -(1/2) * (x - duration/2)^2 / sigma^2 )
-        f(x) = amp * \frac{f'(x) - f'(-1)}{1-f'(-1)} ,  0 <= x < duration
+        f(x) = amp * \frac{f'(x) - f'(-1)}{1-f'(-1)} , 0 <= x < duration
 
     where :math:`f'(x)` is the gaussian waveform without lifting or amplitude scaling.
 
     Note: This pulse would be more accurately named as `LiftedGaussian`, however, for historical
         and practical DSP reasons it has the name `Gaussian`.
-
     """
 
     def __init__(
@@ -346,6 +346,7 @@ class Drag(ParametricPulse):
     reducing the chance of leakage to the :math:`|2\rangle` state.
 
     .. math::
+
         g(x) = exp( -(1/2) * (x - duration/2)^2 / sigma^2 )
         f'(x) = g(x) + 1j * beta * d/dx [g(x)]
              = g(x) + 1j * beta * (-(x - duration/2) / sigma^2) * g(x)
