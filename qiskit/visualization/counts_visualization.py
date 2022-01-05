@@ -268,6 +268,14 @@ def _plot_histogram_data(data, labels, number_to_keep):
 
     all_pvalues = []
     all_inds = []
+    # if multiple executions, we consider number_to_keep for each execution
+    # and this may result in more than number_to_keep slots
+    multimple_exec_keys_dict = OrderedDict()
+    if len(data) > 1 and number_to_keep is not None:
+        for execution in data:
+            for common_key in dict(Counter(execution).most_common(number_to_keep)):
+                multimple_exec_keys_dict[common_key] = 1
+
     for execution in data:
         if number_to_keep is not None:
             data_temp = dict(Counter(execution).most_common(number_to_keep))
@@ -280,7 +288,10 @@ def _plot_histogram_data(data, labels, number_to_keep):
                     labels_dict[key] = 1
                     values.append(0)
                 else:
-                    values.append(-1)
+                    if key in multimple_exec_keys_dict:
+                        # save label only if the key is present in other execution
+                        labels_dict[key] = 1
+                        values.append(0)
             else:
                 labels_dict[key] = 1
                 values.append(execution[key])

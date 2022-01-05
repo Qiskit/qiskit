@@ -107,6 +107,18 @@ class TestPlotHistogram(QiskitTestCase):
         fig = plot_histogram([raw_dist, exact_dist])
         self.assertIsInstance(fig, mpl.figure.Figure)
 
+    def test_with_number_to_keep(self):
+        """Test plotting using number_to_keep"""
+        dist = {"00": 3, "01": 5, "11": 8, "10": 11}
+        fig = plot_histogram(dist, number_to_keep=2)
+        self.assertIsInstance(fig, mpl.figure.Figure)
+
+    def test_with_number_to_keep_multiple_executions(self):
+        """Test plotting using number_to_keep with multiple executions"""
+        dist = [{"00": 3, "01": 5, "11": 8, "10": 11}, {"00": 3, "01": 7, "10": 11}]
+        fig = plot_histogram(dist, number_to_keep=2)
+        self.assertIsInstance(fig, mpl.figure.Figure)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
