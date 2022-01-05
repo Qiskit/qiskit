@@ -22,7 +22,7 @@ Sphinx>=3.0.0
 qiskit-sphinx-theme>=1.6
 sphinx-autodoc-typehints
 jupyter-sphinx
-sphinx-panels<0.6.0
+sphinx-panels
 pygments>=2.4
 networkx>=2.2
 scikit-learn>=0.20.0
