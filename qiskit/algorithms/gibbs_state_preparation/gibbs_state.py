@@ -59,6 +59,14 @@ class GibbsState:
         """Returns a Gibbs state function."""
         return self._gibbs_state_function
 
+    @property
+    def ansatz(self):
+        return self._ansatz
+
+    @property
+    def ansatz_params_dict(self):
+        return self._ansatz_params_dict
+
     def calc_gradients(
         self,
         gradient_params: List,

@@ -55,7 +55,6 @@ class QiteGibbsStateBuilder(GibbsStateBuilder):
             )  # TODO might be specific to VarQite?
         self._ansatz = ansatz
         self._ansatz_init_params_dict = ansatz_init_params_dict
-        # TODO ansatz and init params need to form n MES, add a check? add defaults?
 
     def _evaluate_initial_ansatz(self) -> Statevector:
         """Binds initial parameters values to an ansatz and returns the result as a state vector."""
