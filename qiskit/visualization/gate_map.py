@@ -348,6 +348,16 @@ def plot_gate_map(
     num_qubits = config.n_qubits
     coupling_map = config.coupling_map
     qubit_coordinates = qubit_coordinates_map.get(num_qubits)
+    
+    # try to adjust num_qubits to match the next highest hardcoded grid size
+    if qubit_coordinates is None:
+        if any([num_qubits < key for key in qubit_coordinates_map.keys()]):
+            num_qubits_roundup = max(qubit_coordinates_map.keys())
+            for key in qubit_coordinates_map.keys():
+                if key < num_qubits_roundup and key > num_qubits:
+                    num_qubits_roundup = key
+            qubit_coordinates = qubit_coordinates_map.get(num_qubits_roundup)
+    
     return plot_coupling_map(
         num_qubits,
         qubit_coordinates,
@@ -545,6 +555,9 @@ def plot_coupling_map(
 
     # Add circles for qubits
     for var, idx in enumerate(grid_data):
+        # add check if num_qubits had been rounded up
+        if var >= num_qubits:
+            break
         _idx = [idx[1], -idx[0]]
         ax.add_artist(
             mpatches.Ellipse(
