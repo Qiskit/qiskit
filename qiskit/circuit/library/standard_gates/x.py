@@ -947,7 +947,7 @@ class MCXGate(ControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         _name="mcx",
-        synthesis=None
+        synthesis=None,
     ):
         """Create new MCX gate."""
         if synthesis is None:
@@ -971,12 +971,10 @@ class MCXGate(ControlledGate):
         """Invert this gate. The MCX is its own inverse."""
         return MCXGate(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state, synthesis=self.synthesis)
 
-
     def _define(self):
         """The standard definition used the Gray code implementation."""
         # pylint: disable=cyclic-import
         self.definition = self.synthesis.synthesize(self.num_ctrl_qubits)
-
 
     @property
     def num_ancilla_qubits(self):
@@ -1001,6 +999,7 @@ class MCXGate(ControlledGate):
             ControlledGate: controlled version of this gate.
         """
         if ctrl_state is None:
+            # SASHA: want to switch to MCX definition...and pass self.synthesis as param
             # use __class__ so this works for derived classes
             gate = self.__class__(
                 self.num_ctrl_qubits + num_ctrl_qubits, label=label, ctrl_state=ctrl_state
@@ -1036,8 +1035,7 @@ class MCXGrayCode(MCXGate):
         cls,
         num_ctrl_qubits: Optional[int] = None,
         label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
-        synthesis=None,
+        ctrl_state: Optional[Union[str, int]] = None
     ):
         """Create a new MCXGrayCode instance"""
         # if 1 to 4 control qubits, create explicit gates
@@ -1055,22 +1053,18 @@ class MCXGrayCode(MCXGate):
         num_ctrl_qubits: int,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
-        synthesis=None,
     ):
-        if synthesis is None:
-            from qiskit.synthesis.mcx_synthesis import MCXSynthesisGrayCode
-            synthesis = MCXSynthesisGrayCode("mcx_gray")
+        from qiskit.synthesis.mcx_synthesis import MCXSynthesisGrayCode
+        synthesis = MCXSynthesisGrayCode("mcx_gray")
         super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_gray", synthesis=synthesis)
 
     def inverse(self):
         """Invert this gate. The MCX is its own inverse."""
-        return MCXGrayCode(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state, synthesis=self.synthesis)
+        return MCXGrayCode(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
 
     def _define(self):
         """Define the MCX gate using the Gray code."""
         self.definition = self.synthesis.synthesize(self.num_ctrl_qubits)
-
-
 
 
 class MCXRecursive(MCXGate):
@@ -1086,17 +1080,14 @@ class MCXRecursive(MCXGate):
         num_ctrl_qubits: int,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
-        synthesis=None,
     ):
-        if synthesis is None:
-            from qiskit.synthesis.mcx_synthesis import MCXSynthesisRecursive
-            synthesis = MCXSynthesisRecursive("mcx_recursive")
-
+        from qiskit.synthesis.mcx_synthesis import MCXSynthesisRecursive
+        synthesis = MCXSynthesisRecursive("mcx_recursive")
         super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_recursive", synthesis=synthesis)
 
     def inverse(self):
         """Invert this gate. The MCX is its own inverse."""
-        return MCXRecursive(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state, synthesis=self.synthesis)
+        return MCXRecursive(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
 
     def _define(self):
         """Define the MCX gate using recursion."""
@@ -1118,7 +1109,6 @@ class MCXVChain(MCXGate):
         dirty_ancillas: bool = False,  # pylint: disable=unused-argument
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
-        synthesis=None,
     ):
         """Create a new MCX instance.
 
@@ -1132,13 +1122,9 @@ class MCXVChain(MCXGate):
         dirty_ancillas: bool = False,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
-        synthesis=None,
     ):
-        if synthesis is None:
-            from qiskit.synthesis.mcx_synthesis import MCXSynthesisVChain
-            synthesis = MCXSynthesisVChain("mcx_vchain")
-        self.synthesis = synthesis
-
+        from qiskit.synthesis.mcx_synthesis import MCXSynthesisVChain
+        synthesis = MCXSynthesisVChain("mcx_vchain")
         super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_vchain", synthesis=synthesis)
         self._dirty_ancillas = dirty_ancillas
 
@@ -1148,7 +1134,6 @@ class MCXVChain(MCXGate):
             num_ctrl_qubits=self.num_ctrl_qubits,
             dirty_ancillas=self._dirty_ancillas,
             ctrl_state=self.ctrl_state,
-            synthesis=self.synthesis
         )
 
     def _define(self):
