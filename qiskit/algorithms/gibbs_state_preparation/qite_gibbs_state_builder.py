@@ -12,6 +12,10 @@
 """Class for building Gibbs States using Quantum Imaginary Time Evolution algorithms."""
 from typing import Dict, Union
 
+from qiskit.algorithms.gibbs_state_preparation.default_ansatz_builder import (
+    build_ansatz,
+    build_init_ansatz_params_vals,
+)
 from qiskit.algorithms.gibbs_state_preparation.gibbs_state import GibbsState
 from qiskit.algorithms.gibbs_state_preparation.gibbs_state_builder import GibbsStateBuilder
 from qiskit.circuit import Parameter
@@ -68,6 +72,9 @@ class QiteGibbsStateBuilder(GibbsStateBuilder):
             GibbsState object that includes a relevant quantum state functions as well as
             metadata.
         """
+        if self._ansatz is None:  # set default ansatz
+            self._set_default_ansatz(problem_hamiltonian)
+
         time = 1 / (self.BOLTZMANN_CONSTANT * temperature)
         gibbs_state_function = self._qite_algorithm.evolve(
             hamiltonian=problem_hamiltonian,
@@ -79,4 +86,13 @@ class QiteGibbsStateBuilder(GibbsStateBuilder):
             gibbs_state_function=gibbs_state_function,
             hamiltonian=problem_hamiltonian,
             temperature=temperature,
+        )
+
+    def _set_default_ansatz(self, problem_hamiltonian):
+        num_qubits = problem_hamiltonian.num_qubits
+        depth = 1
+        self._ansatz = build_ansatz(num_qubits, depth)
+        ansatz_init_params_vals = build_init_ansatz_params_vals(num_qubits, depth)
+        self._ansatz_params_dict = dict(
+            zip(self._ansatz.ordered_parameters, ansatz_init_params_vals)
         )
