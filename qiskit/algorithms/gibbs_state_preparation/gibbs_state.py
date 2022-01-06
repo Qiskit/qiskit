@@ -14,7 +14,7 @@ calculation methods."""
 from typing import List, Optional, Union, Dict
 
 from qiskit.circuit import Parameter
-from qiskit.opflow import StateFn, OperatorBase, Gradient, CircuitStateFn, CircuitSampler
+from qiskit.opflow import StateFn, OperatorBase, Gradient, CircuitStateFn
 
 
 class GibbsState:
@@ -34,6 +34,9 @@ class GibbsState:
             gibbs_state_function: Quantum state function of a Gibbs state.
             hamiltonian: Hamiltonian used to build a Gibbs state.
             temperature: Temperature used to build a Gibbs state.
+            ansatz: Ansatz that gave rise to a Gibbs state.
+            ansatz_params_dict: Dictionary that maps ansatz parameters to values optimal for a
+                                Gibbs state.
         """
         self._gibbs_state_function = gibbs_state_function
         self._hamiltonian = hamiltonian

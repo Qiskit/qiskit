@@ -11,17 +11,14 @@
 # that they have been altered from the originals.
 """Tests GibbsState class."""
 import unittest
-
-from ddt import ddt, data
-
-from qiskit import Aer
-from qiskit.circuit import Parameter
-from qiskit.circuit.library import EfficientSU2
 from test.python.algorithms import QiskitAlgorithmsTestCase
+from ddt import ddt, data
 import numpy as np
 
+from qiskit.circuit import Parameter
+from qiskit.circuit.library import EfficientSU2
 from qiskit.algorithms.gibbs_state_preparation.gibbs_state import GibbsState
-from qiskit.opflow import Zero, X, Y, H, SummedOp, Z, I, CircuitSampler
+from qiskit.opflow import Zero, X, H, SummedOp, Z, I
 
 
 @ddt
