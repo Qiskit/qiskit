@@ -20,7 +20,7 @@ seaborn>=0.9.0
 reno>=3.4.0
 Sphinx>=3.0.0
 qiskit-sphinx-theme>=1.6
-sphinx-autodoc-typehints
+sphinx-autodoc-typehints<1.14.0
 jupyter-sphinx
 sphinx-panels
 pygments>=2.4
