@@ -481,12 +481,17 @@ class QuantumInstance:
         )
 
         if had_transpiled:
+            # Convert to a list or make a copy.
+            # The measurement mitigation logic expects a list and
+            # may change it in place. This makes sure that logic works
+            # and any future logic that may change the input.
+            # It also makes the code easier: it will always deal with a list.
             if isinstance(circuits, list):
                 circuits = circuits.copy()
             else:
                 circuits = [circuits]
         else:
-            # transpile here, the method always returns a list
+            # transpile here, the method always returns a copied list
             circuits = self.transpile(circuits)
 
         from qiskit.providers import BackendV1
