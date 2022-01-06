@@ -947,9 +947,16 @@ class MCXGate(ControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         _name="mcx",
+        synthesis=None
     ):
         """Create new MCX gate."""
-        num_ancilla_qubits = self.__class__.get_num_ancilla_qubits(num_ctrl_qubits)
+        if synthesis is None:
+            from qiskit.synthesis.mcx_synthesis import MCXSynthesisGrayCode
+            synthesis = MCXSynthesisGrayCode(_name)
+        self.synthesis = synthesis
+
+        num_ancilla_qubits = self.synthesis.get_num_ancilla_qubits(num_ctrl_qubits)
+
         super().__init__(
             _name,
             num_ctrl_qubits + 1 + num_ancilla_qubits,
@@ -962,37 +969,19 @@ class MCXGate(ControlledGate):
 
     def inverse(self):
         """Invert this gate. The MCX is its own inverse."""
-        return MCXGate(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
+        return MCXGate(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state, synthesis=self.synthesis)
 
-    @staticmethod
-    def get_num_ancilla_qubits(num_ctrl_qubits: int, mode: str = "noancilla") -> int:
-        """Get the number of required ancilla qubits without instantiating the class.
-
-        This staticmethod might be necessary to check the number of ancillas before
-        creating the gate, or to use the number of ancillas in the initialization.
-        """
-        if mode == "noancilla":
-            return 0
-        if mode in ["recursion", "advanced"]:
-            return int(num_ctrl_qubits > 4)
-        if mode[:7] == "v-chain" or mode[:5] == "basic":
-            return max(0, num_ctrl_qubits - 2)
-        raise AttributeError(f"Unsupported mode ({mode}) specified!")
 
     def _define(self):
         """The standard definition used the Gray code implementation."""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        self.definition = self.synthesis.synthesize(self.num_ctrl_qubits)
 
-        q = QuantumRegister(self.num_qubits, name="q")
-        qc = QuantumCircuit(q)
-        qc._append(MCXGrayCode(self.num_ctrl_qubits), q[:], [])
-        self.definition = qc
 
     @property
     def num_ancilla_qubits(self):
         """The number of ancilla qubits."""
-        return self.__class__.get_num_ancilla_qubits(self.num_ctrl_qubits)
+        return self.synthesis.get_num_ancilla_qubits(self.num_ctrl_qubits)
 
     def control(
         self,
@@ -1020,6 +1009,22 @@ class MCXGate(ControlledGate):
             return gate
         return super().control(num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
+    # SASHA: HOW TO CLEAN THIS UP?
+    @staticmethod
+    def get_num_ancilla_qubits(num_ctrl_qubits: int, mode: str = "noancilla") -> int:
+        """Get the number of required ancilla qubits without instantiating the class.
+
+        This staticmethod might be necessary to check the number of ancillas before
+        creating the gate, or to use the number of ancillas in the initialization.
+        """
+        if mode == "noancilla":
+            return 0
+        if mode in ["recursion", "advanced"]:
+            return int(num_ctrl_qubits > 4)
+        if mode[:7] == "v-chain" or mode[:5] == "basic":
+            return max(0, num_ctrl_qubits - 2)
+        raise AttributeError(f"Unsupported mode ({mode}) specified!")
+
 
 class MCXGrayCode(MCXGate):
     r"""Implement the multi-controlled X gate using the Gray code.
@@ -1032,6 +1037,7 @@ class MCXGrayCode(MCXGate):
         num_ctrl_qubits: Optional[int] = None,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        synthesis=None,
     ):
         """Create a new MCXGrayCode instance"""
         # if 1 to 4 control qubits, create explicit gates
@@ -1049,25 +1055,22 @@ class MCXGrayCode(MCXGate):
         num_ctrl_qubits: int,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        synthesis=None,
     ):
-        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_gray")
+        if synthesis is None:
+            from qiskit.synthesis.mcx_synthesis import MCXSynthesisGrayCode
+            synthesis = MCXSynthesisGrayCode("mcx_gray")
+        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_gray", synthesis=synthesis)
 
     def inverse(self):
         """Invert this gate. The MCX is its own inverse."""
-        return MCXGrayCode(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
+        return MCXGrayCode(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state, synthesis=self.synthesis)
 
     def _define(self):
         """Define the MCX gate using the Gray code."""
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .u1 import MCU1Gate
+        self.definition = self.synthesis.synthesize(self.num_ctrl_qubits)
 
-        q = QuantumRegister(self.num_qubits, name="q")
-        qc = QuantumCircuit(q, name=self.name)
-        qc._append(HGate(), [q[-1]], [])
-        qc._append(MCU1Gate(numpy.pi, num_ctrl_qubits=self.num_ctrl_qubits), q[:], [])
-        qc._append(HGate(), [q[-1]], [])
-        self.definition = qc
+
 
 
 class MCXRecursive(MCXGate):
@@ -1083,58 +1086,27 @@ class MCXRecursive(MCXGate):
         num_ctrl_qubits: int,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        synthesis=None,
     ):
-        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_recursive")
+        if synthesis is None:
+            from qiskit.synthesis.mcx_synthesis import MCXSynthesisRecursive
+            synthesis = MCXSynthesisRecursive("mcx_recursive")
 
+        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_recursive", synthesis=synthesis)
+
+    def inverse(self):
+        """Invert this gate. The MCX is its own inverse."""
+        return MCXRecursive(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state, synthesis=self.synthesis)
+
+    def _define(self):
+        """Define the MCX gate using recursion."""
+        self.definition = self.synthesis.synthesize(self.num_ctrl_qubits)
+
+    ### SASHA: HOW TO REFACTOR THIS?
     @staticmethod
     def get_num_ancilla_qubits(num_ctrl_qubits: int, mode: str = "recursion"):
         """Get the number of required ancilla qubits."""
         return MCXGate.get_num_ancilla_qubits(num_ctrl_qubits, mode)
-
-    def inverse(self):
-        """Invert this gate. The MCX is its own inverse."""
-        return MCXRecursive(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
-
-    def _define(self):
-        """Define the MCX gate using recursion."""
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-
-        q = QuantumRegister(self.num_qubits, name="q")
-        qc = QuantumCircuit(q, name=self.name)
-        if self.num_qubits == 4:
-            qc._append(C3XGate(), q[:], [])
-            self.definition = qc
-        elif self.num_qubits == 5:
-            qc._append(C4XGate(), q[:], [])
-            self.definition = qc
-        else:
-            for instr, qargs, cargs in self._recurse(q[:-1], q_ancilla=q[-1]):
-                qc._append(instr, qargs, cargs)
-            self.definition = qc
-
-    def _recurse(self, q, q_ancilla=None):
-        # recursion stop
-        if len(q) == 4:
-            return [(C3XGate(), q[:], [])]
-        if len(q) == 5:
-            return [(C4XGate(), q[:], [])]
-        if len(q) < 4:
-            raise AttributeError("Something went wrong in the recursion, have less than 4 qubits.")
-
-        # recurse
-        num_ctrl_qubits = len(q) - 1
-        middle = ceil(num_ctrl_qubits / 2)
-        first_half = [*q[:middle], q_ancilla]
-        second_half = [*q[middle:num_ctrl_qubits], q_ancilla, q[num_ctrl_qubits]]
-
-        rule = []
-        rule += self._recurse(first_half, q_ancilla=q[middle])
-        rule += self._recurse(second_half, q_ancilla=q[middle - 1])
-        rule += self._recurse(first_half, q_ancilla=q[middle])
-        rule += self._recurse(second_half, q_ancilla=q[middle - 1])
-
-        return rule
 
 
 class MCXVChain(MCXGate):
@@ -1146,6 +1118,7 @@ class MCXVChain(MCXGate):
         dirty_ancillas: bool = False,  # pylint: disable=unused-argument
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        synthesis=None,
     ):
         """Create a new MCX instance.
 
@@ -1159,8 +1132,14 @@ class MCXVChain(MCXGate):
         dirty_ancillas: bool = False,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        synthesis=None,
     ):
-        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_vchain")
+        if synthesis is None:
+            from qiskit.synthesis.mcx_synthesis import MCXSynthesisVChain
+            synthesis = MCXSynthesisVChain("mcx_vchain")
+        self.synthesis = synthesis
+
+        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_vchain", synthesis=synthesis)
         self._dirty_ancillas = dirty_ancillas
 
     def inverse(self):
@@ -1169,82 +1148,16 @@ class MCXVChain(MCXGate):
             num_ctrl_qubits=self.num_ctrl_qubits,
             dirty_ancillas=self._dirty_ancillas,
             ctrl_state=self.ctrl_state,
+            synthesis=self.synthesis
         )
 
+    def _define(self):
+        """Define the MCX gate using a V-chain of CX gates."""
+        self.definition = self.synthesis.synthesize(self.num_ctrl_qubits, self._dirty_ancillas)
+
+    ### SASHA: HOW TO REFACTOR THIS?
     @staticmethod
     def get_num_ancilla_qubits(num_ctrl_qubits: int, mode: str = "v-chain"):
         """Get the number of required ancilla qubits."""
         return MCXGate.get_num_ancilla_qubits(num_ctrl_qubits, mode)
 
-    def _define(self):
-        """Define the MCX gate using a V-chain of CX gates."""
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-
-        q = QuantumRegister(self.num_qubits, name="q")
-        qc = QuantumCircuit(q, name=self.name)
-        q_controls = q[: self.num_ctrl_qubits]
-        q_target = q[self.num_ctrl_qubits]
-        q_ancillas = q[self.num_ctrl_qubits + 1 :]
-
-        definition = []
-
-        if self._dirty_ancillas:
-            i = self.num_ctrl_qubits - 3
-            ancilla_pre_rule = [
-                (U2Gate(0, numpy.pi), [q_target], []),
-                (CXGate(), [q_target, q_ancillas[i]], []),
-                (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_controls[-1], q_ancillas[i]], []),
-                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_target, q_ancillas[i]], []),
-                (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_controls[-1], q_ancillas[i]], []),
-                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
-            ]
-            for inst in ancilla_pre_rule:
-                definition.append(inst)
-
-            for j in reversed(range(2, self.num_ctrl_qubits - 1)):
-                definition.append(
-                    (RCCXGate(), [q_controls[j], q_ancillas[i - 1], q_ancillas[i]], [])
-                )
-                i -= 1
-
-        definition.append((RCCXGate(), [q_controls[0], q_controls[1], q_ancillas[0]], []))
-        i = 0
-        for j in range(2, self.num_ctrl_qubits - 1):
-            definition.append((RCCXGate(), [q_controls[j], q_ancillas[i], q_ancillas[i + 1]], []))
-            i += 1
-
-        if self._dirty_ancillas:
-            ancilla_post_rule = [
-                (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_controls[-1], q_ancillas[i]], []),
-                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_target, q_ancillas[i]], []),
-                (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_controls[-1], q_ancillas[i]], []),
-                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_target, q_ancillas[i]], []),
-                (U2Gate(0, numpy.pi), [q_target], []),
-            ]
-            for inst in ancilla_post_rule:
-                definition.append(inst)
-        else:
-            definition.append((CCXGate(), [q_controls[-1], q_ancillas[i], q_target], []))
-
-        for j in reversed(range(2, self.num_ctrl_qubits - 1)):
-            definition.append((RCCXGate(), [q_controls[j], q_ancillas[i - 1], q_ancillas[i]], []))
-            i -= 1
-        definition.append((RCCXGate(), [q_controls[0], q_controls[1], q_ancillas[i]], []))
-
-        if self._dirty_ancillas:
-            for i, j in enumerate(list(range(2, self.num_ctrl_qubits - 1))):
-                definition.append(
-                    (RCCXGate(), [q_controls[j], q_ancillas[i], q_ancillas[i + 1]], [])
-                )
-
-        for instr, qargs, cargs in definition:
-            qc._append(instr, qargs, cargs)
-        self.definition = qc
