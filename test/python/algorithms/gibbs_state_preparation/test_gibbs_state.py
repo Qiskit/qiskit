@@ -11,13 +11,20 @@
 # that they have been altered from the originals.
 """Tests GibbsState class."""
 import unittest
+
+from ddt import ddt, data
+
+from qiskit import Aer
+from qiskit.circuit import Parameter
+from qiskit.circuit.library import EfficientSU2
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 
 from qiskit.algorithms.gibbs_state_preparation.gibbs_state import GibbsState
-from qiskit.opflow import Zero, X
+from qiskit.opflow import Zero, X, Y, H, SummedOp, Z, I, CircuitSampler
 
 
+@ddt
 class TestGibbsState(QiskitAlgorithmsTestCase):
     """Tests GibbsState class."""
 
@@ -32,8 +39,104 @@ class TestGibbsState(QiskitAlgorithmsTestCase):
         np.testing.assert_equal(gibbs_state.gibbs_state_function, Zero)
         np.testing.assert_equal(gibbs_state.hamiltonian, X)
         np.testing.assert_equal(gibbs_state.temperature, 42)
-        np.testing.assert_equal(gibbs_state.gradients, None)
-        np.testing.assert_equal(gibbs_state.gradient_params, None)
+
+    def test_calc_gradients(self):
+        """Tests if gradients are calculated correctly."""
+        gibbs_state_function = Zero
+        hamiltonian = SummedOp([0.3 * Z ^ Z ^ I ^ I, 0.2 * Z ^ I ^ I ^ I, 0.5 * I ^ Z ^ I ^ I])
+        temperature = 42
+
+        depth = 1
+        entangler_map = [[i + 1, i] for i in range(hamiltonian.num_qubits - 1)]
+        ansatz = EfficientSU2(4, reps=depth, entanglement=entangler_map)
+        qr = ansatz.qregs[0]
+        for i in range(int(len(qr) / 2)):
+            ansatz.cx(qr[i], qr[i + int(len(qr) / 2)])
+
+        # Initialize the Ansatz parameters
+        param_values_init = np.zeros(2 * hamiltonian.num_qubits * (depth + 1))
+        for j in range(2 * H.num_qubits * depth, int(len(param_values_init) - H.num_qubits - 2)):
+            param_values_init[int(j)] = np.pi / 2.0
+
+        params_dict = dict(zip(ansatz.ordered_parameters, param_values_init))
+        gibbs_state = GibbsState(
+            gibbs_state_function, hamiltonian, temperature, ansatz, params_dict
+        )
+
+        gradient_params = list(ansatz.parameters)
+        measurement_op = X
+        gradient_method = "param_shift"
+        gradients = gibbs_state.calc_gradients(gradient_params, measurement_op, gradient_method)
+        expected_gradients = [
+            (-3.0000000000000007e-17 + 0j),
+            (-2.05e-17 + 0j),
+            (-4.199999999999999e-17 + 0j),
+            (-0.9999999999999998 + 0j),
+            0j,
+            0j,
+            (1.5250000000000001e-16 + 0j),
+            (-1.0999999999999994e-17 + 0j),
+            (-7.000000000000003e-18 + 0j),
+            (-2.4999999999999913e-18 + 0j),
+            0j,
+            (5.4999999999999994e-17 + 0j),
+            (-2.2499999999999996e-17 + 0j),
+            (-3.5e-17 + 0j),
+            (-1.500000000000001e-17 + 0j),
+            (-6.95e-17 + 0j),
+        ]
+
+        np.testing.assert_almost_equal(gradients, expected_gradients)
+
+    def test_calc_gradients_missing_ansatz(self):
+        """Tests if an expected error is raised when an ansatz is missing when calculating
+        gradients."""
+        gibbs_state_function = Zero
+        hamiltonian = SummedOp([0.3 * Z ^ Z ^ I ^ I, 0.2 * Z ^ I ^ I ^ I, 0.5 * I ^ Z ^ I ^ I])
+        temperature = 42
+        param_values_init = np.zeros(2)
+
+        params_dict = dict(zip([Parameter("a"), Parameter("b")], param_values_init))
+        gibbs_state = GibbsState(
+            gibbs_state_function, hamiltonian, temperature, ansatz_params_dict=params_dict
+        )
+
+        gradient_params = [Parameter("a"), Parameter("b")]
+        measurement_op = X
+        gradient_method = "param_shift"
+        np.testing.assert_raises(
+            ValueError, gibbs_state.calc_gradients, gradient_params, measurement_op, gradient_method
+        )
+
+    @data(None, [Parameter("w")])
+    def test_calc_gradients_invalid_gradient_params(self, gradient_params):
+        """Tests if expected errors are raised when gradient_params is invalid."""
+        gibbs_state_function = Zero
+        hamiltonian = SummedOp([0.3 * Z ^ Z ^ I ^ I, 0.2 * Z ^ I ^ I ^ I, 0.5 * I ^ Z ^ I ^ I])
+        temperature = 42
+
+        depth = 1
+        entangler_map = [[i + 1, i] for i in range(hamiltonian.num_qubits - 1)]
+        ansatz = EfficientSU2(4, reps=depth, entanglement=entangler_map)
+        qr = ansatz.qregs[0]
+        for i in range(int(len(qr) / 2)):
+            ansatz.cx(qr[i], qr[i + int(len(qr) / 2)])
+
+        # Initialize the Ansatz parameters
+        param_values_init = np.zeros(2 * hamiltonian.num_qubits * (depth + 1))
+        for j in range(2 * H.num_qubits * depth, int(len(param_values_init) - H.num_qubits - 2)):
+            param_values_init[int(j)] = np.pi / 2.0
+
+        params_dict = dict(zip(ansatz.ordered_parameters, param_values_init))
+        gibbs_state = GibbsState(
+            gibbs_state_function, hamiltonian, temperature, ansatz, params_dict
+        )
+
+        measurement_op = X
+        gradient_method = "param_shift"
+        np.testing.assert_raises(
+            ValueError, gibbs_state.calc_gradients, gradient_params, measurement_op, gradient_method
+        )
 
 
 if __name__ == "__main__":
