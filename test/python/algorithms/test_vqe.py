@@ -171,7 +171,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
     @data(
         (SLSQP(maxiter=50), 5, 4),
-        (SPSA(maxiter=150), 3, 2),  # max_evals_grouped=n or =2 if n>2
+        (SPSA(maxiter=150), 2, 2),  # max_evals_grouped=n or =2 if n>2
     )
     @unpack
     def test_max_evals_grouped(self, optimizer, places, max_evals_grouped):
