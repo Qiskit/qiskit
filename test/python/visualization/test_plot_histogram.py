@@ -13,15 +13,18 @@
 """Tests for plot_histogram."""
 
 import unittest
-import matplotlib as mpl
-
 from qiskit.test import QiskitTestCase
-from qiskit.tools.visualization import plot_histogram
+from qiskit.tools.visualization import plot_histogram, HAS_MATPLOTLIB
+
+
+if HAS_MATPLOTLIB:
+    import matplotlib as mpl
 
 
 class TestPlotHistogram(QiskitTestCase):
     """Qiskit plot_histogram tests."""
 
+    @unittest.skipIf(not HAS_MATPLOTLIB, "matplotlib not available.")
     def test_different_counts_lengths(self):
         """Test plotting two different length dists works"""
         exact_dist = {
@@ -107,12 +110,14 @@ class TestPlotHistogram(QiskitTestCase):
         fig = plot_histogram([raw_dist, exact_dist])
         self.assertIsInstance(fig, mpl.figure.Figure)
 
+    @unittest.skipIf(not HAS_MATPLOTLIB, "matplotlib not available.")
     def test_with_number_to_keep(self):
         """Test plotting using number_to_keep"""
         dist = {"00": 3, "01": 5, "11": 8, "10": 11}
         fig = plot_histogram(dist, number_to_keep=2)
         self.assertIsInstance(fig, mpl.figure.Figure)
 
+    @unittest.skipIf(not HAS_MATPLOTLIB, "matplotlib not available.")
     def test_with_number_to_keep_multiple_executions(self):
         """Test plotting using number_to_keep with multiple executions"""
         dist = [{"00": 3, "01": 5, "11": 8, "10": 11}, {"00": 3, "01": 7, "10": 11}]
