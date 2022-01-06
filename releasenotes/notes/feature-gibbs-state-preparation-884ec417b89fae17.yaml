@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    A framework for preparing Gibbs quantum states is introduced. A designed interface is
+    implemented for the case of Gibbs state preparation using Quantum Imaginary Time Evolution.
+    The builder class  constructs a default ansatz and initial parameters accepted by the algorithm.
+    In case a custom ansatz and initial parameters are provided by the user, tools for validating
+    their correctness are provided. The result of the algorithm is an instance of a
+    :class:`~qiskit.algorithms.gibbs_state_preparation.gibbs_state` class provided in this
+    contribution. It contains a final quantum state (a Gibbs state) and relevant metadata. A method
+    for calculating gradients of Gibbs states is also implemented there.
+
