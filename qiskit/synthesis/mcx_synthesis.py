@@ -24,7 +24,7 @@ class MCXSynthesis(ABC):
     """Interface for MCX synthesis algorithms."""
 
     @abstractmethod
-    def synthesize(self, num_cntl_qubits, dirty_ancillas):
+    def synthesize(self, num_cntl_qubits):
         """Synthesize..
 
         Args:
@@ -34,6 +34,7 @@ class MCXSynthesis(ABC):
         """
         raise NotImplementedError
 
+    @staticmethod
     @abstractmethod
     def get_num_ancilla_qubits(num_ctrl_qubits):
         """Returns the number of ancilla qubits required by the synthesis algorithm."""
@@ -50,10 +51,11 @@ class MCXSynthesisGrayCode(MCXSynthesis):
     def __init__(self, name):
         self.name = name
 
-    def get_num_ancilla_qubits(self, num_ctrl_qubits):
+    @staticmethod
+    def get_num_ancilla_qubits(num_ctrl_qubits):
         return 0
 
-    def synthesize(self, num_ctrl_qubits, dirty_ancillas=False):
+    def synthesize(self, num_ctrl_qubits):
         """Define the MCX gate using the Gray code."""
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -79,10 +81,11 @@ class MCXSynthesisRecursive(MCXSynthesis):
     def __init__(self, name):
         self.name = name
 
-    def get_num_ancilla_qubits(self, num_ctrl_qubits):
+    @staticmethod
+    def get_num_ancilla_qubits(num_ctrl_qubits):
         return int(num_ctrl_qubits > 4)
 
-    def synthesize(self, num_ctrl_qubits, dirty_ancillas=False):
+    def synthesize(self, num_ctrl_qubits):
         """Define the MCX gate using recursion."""
 
         # pylint: disable=cyclic-import
@@ -126,13 +129,15 @@ class MCXSynthesisRecursive(MCXSynthesis):
 class MCXSynthesisVChain(MCXSynthesis):
     """Implement the multi-controlled X gate using a V-chain of CX gates."""
 
-    def __init__(self, name):
+    def __init__(self, name, dirty_ancillas):
         self.name = name
+        self.dirty_ancillas = dirty_ancillas
 
-    def get_num_ancilla_qubits(self, num_ctrl_qubits):
+    @staticmethod
+    def get_num_ancilla_qubits(num_ctrl_qubits):
         return max(0, num_ctrl_qubits - 2)
 
-    def synthesize(self, num_ctrl_qubits, dirty_ancillas=False):
+    def synthesize(self, num_ctrl_qubits):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
 
@@ -146,7 +151,7 @@ class MCXSynthesisVChain(MCXSynthesis):
 
         definition = []
 
-        if dirty_ancillas:
+        if self.dirty_ancillas:
             i = num_ctrl_qubits - 3
             ancilla_pre_rule = [
                 (U2Gate(0, numpy.pi), [q_target], []),
@@ -174,7 +179,7 @@ class MCXSynthesisVChain(MCXSynthesis):
             definition.append((RCCXGate(), [q_controls[j], q_ancillas[i], q_ancillas[i + 1]], []))
             i += 1
 
-        if dirty_ancillas:
+        if self.dirty_ancillas:
             ancilla_post_rule = [
                 (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
                 (CXGate(), [q_controls[-1], q_ancillas[i]], []),
@@ -196,7 +201,7 @@ class MCXSynthesisVChain(MCXSynthesis):
             i -= 1
         definition.append((RCCXGate(), [q_controls[0], q_controls[1], q_ancillas[i]], []))
 
-        if dirty_ancillas:
+        if self.dirty_ancillas:
             for i, j in enumerate(list(range(2, num_ctrl_qubits - 1))):
                 definition.append(
                     (RCCXGate(), [q_controls[j], q_ancillas[i], q_ancillas[i + 1]], [])

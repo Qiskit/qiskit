@@ -32,6 +32,19 @@ def test_mcx(num_control_qubits, mcx_mode):
         mcy = MCXGrayCode(num_control_qubits)
         mcx = mcy.control(2)
 
+    elif mcx_mode == "mcxi":
+        mcy = MCXGate(num_control_qubits)
+        mcx = mcy.inverse()
+    elif mcx_mode == "recursioni":
+        mcy = MCXRecursive(num_control_qubits)
+        mcx = mcy.inverse()
+    elif mcx_mode == "v-chaini":
+        mcy = MCXVChain(num_control_qubits)
+        mcx = mcy.inverse()
+    elif mcx_mode == "noancillai":
+        mcy = MCXGrayCode(num_control_qubits)
+        mcx = mcy.inverse()
+
 
     #qc = QuantumCircuit(num_control_qubits + num_ancilla_qubits + 1)
     print("--> Printing gate...")
@@ -62,3 +75,7 @@ if __name__ == "__main__":
         test_mcx(q, "noancillac")
         test_mcx(q, "v-chainc")
         test_mcx(q, "recursionc")
+        test_mcx(q, "mcxi")
+        test_mcx(q, "noancillai")
+        test_mcx(q, "v-chaini")
+        test_mcx(q, "recursioni")

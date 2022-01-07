@@ -924,6 +924,8 @@ class MCXGate(ControlledGate):
         num_ctrl_qubits: Optional[int] = None,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        _name="mcx",
+        synthesis=None,
     ):
         """Create a new MCX instance.
 
@@ -1093,11 +1095,11 @@ class MCXRecursive(MCXGate):
         """Define the MCX gate using recursion."""
         self.definition = self.synthesis.synthesize(self.num_ctrl_qubits)
 
-    ### SASHA: HOW TO REFACTOR THIS?
     @staticmethod
     def get_num_ancilla_qubits(num_ctrl_qubits: int, mode: str = "recursion"):
         """Get the number of required ancilla qubits."""
-        return MCXGate.get_num_ancilla_qubits(num_ctrl_qubits, mode)
+        return MCXRecursive.get_num_ancilla_qubits(num_ctrl_qubits)
+
 
 
 class MCXVChain(MCXGate):
@@ -1124,21 +1126,22 @@ class MCXVChain(MCXGate):
         ctrl_state: Optional[Union[str, int]] = None,
     ):
         from qiskit.synthesis.mcx_synthesis import MCXSynthesisVChain
-        synthesis = MCXSynthesisVChain("mcx_vchain")
+        synthesis = MCXSynthesisVChain("mcx_vchain", dirty_ancillas)
         super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_vchain", synthesis=synthesis)
-        self._dirty_ancillas = dirty_ancillas
 
     def inverse(self):
         """Invert this gate. The MCX is its own inverse."""
-        return MCXVChain(
+        return MCXGate(
             num_ctrl_qubits=self.num_ctrl_qubits,
-            dirty_ancillas=self._dirty_ancillas,
+            label=self.label,
             ctrl_state=self.ctrl_state,
+            _name="mcx_vchain",
+            synthesis=self.synthesis,
         )
 
     def _define(self):
         """Define the MCX gate using a V-chain of CX gates."""
-        self.definition = self.synthesis.synthesize(self.num_ctrl_qubits, self._dirty_ancillas)
+        self.definition = self.synthesis.synthesize(self.num_ctrl_qubits)
 
     ### SASHA: HOW TO REFACTOR THIS?
     @staticmethod
