@@ -35,6 +35,7 @@ class ConfigurableFakeBackendV2(BackendV2):
         n_qubits: int,
         gate_configuration: Dict[Gate, List[Tuple[int]]],
         measurable_qubits: List[int] = None,
+        parameterized_gates: Optional[Dict[Gate, str]] = None,
         qubit_coordinates: Optional[List[List[int]]] = None,
         qubit_t1: Optional[Union[float, List[float]]] = None,
         qubit_t2: Optional[Union[float, List[float]]] = None,
@@ -52,6 +53,7 @@ class ConfigurableFakeBackendV2(BackendV2):
             description: An optional description of the backend
             n_qubits: Number of qubits
             gate_configuration: Basis gates of the backend. Pass a dictionary where the key is the reference to the Gate object (ie XGate) whose value is a list of tuples containing qubits where the gate may be placed.
+            parameterized_gates: Dictionary with keys being Gate classes that take parameters and value contains string parameter name
             measurable_qubits: Optional specify which qubits can be measured, default is all.
             qubit_coordinates: Optional specification of grid for displaying gate maps.
             qubit_t1: Longitudinal coherence times.
@@ -96,7 +98,7 @@ class ConfigurableFakeBackendV2(BackendV2):
         if dt is None:
             dt = 0.2222222222222222e-9
 
-        if qubit_coordinates is None:
+        if not qubit_coordinates is None:
             self.qubit_coordinates = qubit_coordinates
 
         self.backend_name = name
@@ -128,7 +130,12 @@ class ConfigurableFakeBackendV2(BackendV2):
                 qubit_tuple: InstructionProperties(duration=0.0, error=0)
                 for qubit_tuple in qubit_tuple_list
             }
-            self._target.add_instruction(gate(), temp_gate_props)
+            if gate in parameterized_gates.keys():
+                self._target.add_instruction(
+                    gate(Parameter(parameterized_gates[gate])), temp_gate_props
+                )
+            else:
+                self._target.add_instruction(gate(), temp_gate_props)
 
         # Add reset to target
         reset_props = {
