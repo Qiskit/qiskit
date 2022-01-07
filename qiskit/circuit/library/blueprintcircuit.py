@@ -32,7 +32,8 @@ class BlueprintCircuit(QuantumCircuit, ABC):
     def __init__(self, *regs, name: Optional[str] = None) -> None:
         """Create a new blueprint circuit.
 
-        The ``_is_built`` argument is set to ``False`` to indicate that the circuit has not been built yet.
+        The ``_is_built`` argument is set to ``False`` to indicate that the circuit
+        has not been built yet.
         """
         super().__init__(*regs, name=name)
         self._qregs = []
