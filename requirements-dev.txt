@@ -30,3 +30,6 @@ scikit-quant<=0.7;platform_system != 'Windows'
 jax;platform_system != 'Windows'
 jaxlib;platform_system != 'Windows'
 docplex
+mthree
+# qiskit_experiments>=0.3.0 # After Released
+git+https://github.com/Qiskit/qiskit-experiments.git@main
