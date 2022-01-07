@@ -1,0 +1,5 @@
+---
+deprecations:
+  - |
+    Deprecate initializing :class:`~qiskit.synthesis.evolution.SuzukiTrotter` where the ``order``
+    argument is an odd integer. These product formulae are only defined when the order is even.

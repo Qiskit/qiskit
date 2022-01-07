@@ -57,7 +57,7 @@ T = make_immutable(CircuitOp(TGate()))
 Swap = make_immutable(CircuitOp(SwapGate()))
 CZ = make_immutable(CircuitOp(CZGate()))
 
-# 1-Qubit Paulis
+# 1-Qubit states
 Zero = make_immutable(DictStateFn("0"))
 One = make_immutable(DictStateFn("1"))
 Plus = make_immutable(H.compose(Zero))
