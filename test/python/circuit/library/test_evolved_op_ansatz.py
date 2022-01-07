@@ -84,7 +84,7 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
     def test_empty_build_fails(self):
         """Test setting no operators to evolve raises the appropriate error."""
         evo = EvolvedOperatorAnsatz()
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             _ = evo.draw()
 
 

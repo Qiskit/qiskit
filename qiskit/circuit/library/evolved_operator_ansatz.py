@@ -156,6 +156,9 @@ class EvolvedOperatorAnsatz(NLocal):
         if self._valid:
             return
 
+        # need to check configuration here to ensure the operators are not None
+        self._check_configuration()
+
         coeff = Parameter("c")
         circuits = []
 
@@ -168,9 +171,8 @@ class EvolvedOperatorAnsatz(NLocal):
                 if _is_pauli_identity(op):
                     continue
 
-                if op is not None:
-                    evolved_op = self.evolution.convert((coeff * op).exp_i()).reduce()
-                    circuits.append(evolved_op.to_circuit())
+                evolved_op = self.evolution.convert((coeff * op).exp_i()).reduce()
+                circuits.append(evolved_op.to_circuit())
 
         self.rotation_blocks = []
         self.entanglement_blocks = circuits
