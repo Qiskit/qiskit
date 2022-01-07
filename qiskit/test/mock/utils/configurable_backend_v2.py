@@ -98,7 +98,7 @@ class ConfigurableFakeBackendV2(BackendV2):
         if dt is None:
             dt = 0.2222222222222222e-9
 
-        if not qubit_coordinates is None:
+        if qubit_coordinates is None:
             self.qubit_coordinates = qubit_coordinates
 
         self.backend_name = name
