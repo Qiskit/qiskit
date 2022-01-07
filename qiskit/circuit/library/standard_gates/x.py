@@ -932,6 +932,8 @@ class MCXGate(ControlledGate):
         Depending on the number of controls and which mode of the MCX, this creates an
         explicit CX, CCX, C3X or C4X instance or a generic MCX gate.
         """
+        print("Calling MCXGate.__new__")
+
         # The CXGate and CCXGate will be implemented for all modes of the MCX, and
         # the C3XGate and C4XGate will be implemented in the MCXGrayCode class.
         explicit = {1: CXGate, 2: CCXGate}
@@ -952,6 +954,8 @@ class MCXGate(ControlledGate):
         synthesis=None,
     ):
         """Create new MCX gate."""
+        print("Calling MCXGate.__init__")
+
         if synthesis is None:
             from qiskit.synthesis.mcx_synthesis import MCXSynthesisGrayCode
             synthesis = MCXSynthesisGrayCode(_name)
@@ -1003,8 +1007,11 @@ class MCXGate(ControlledGate):
         if ctrl_state is None:
             # SASHA: want to switch to MCX definition...and pass self.synthesis as param
             # use __class__ so this works for derived classes
-            gate = self.__class__(
-                self.num_ctrl_qubits + num_ctrl_qubits, label=label, ctrl_state=ctrl_state
+            gate = MCXGate(
+                self.num_ctrl_qubits + num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                synthesis=self.synthesis
             )
             gate.base_gate.label = self.label
             return gate
@@ -1027,7 +1034,9 @@ class MCXGate(ControlledGate):
         raise AttributeError(f"Unsupported mode ({mode}) specified!")
 
 
-class MCXGrayCode(MCXGate):
+# The following explicit classes exist for backward compatibility
+
+class MCXGrayCode:
     r"""Implement the multi-controlled X gate using the Gray code.
 
     This delegates the implementation to the MCU1 gate, since :math:`X = H \cdot U1(\pi) \cdot H`.
@@ -1039,6 +1048,8 @@ class MCXGrayCode(MCXGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None
     ):
+        print("Calling MCXGrayCode.__new__")
+
         """Create a new MCXGrayCode instance"""
         # if 1 to 4 control qubits, create explicit gates
         explicit = {1: CXGate, 2: CCXGate, 3: C3XGate, 4: C4XGate}
@@ -1048,61 +1059,37 @@ class MCXGrayCode(MCXGate):
             # if __new__ does not return the same type as cls, init is not called
             gate.__init__(label=label, ctrl_state=ctrl_state)
             return gate
-        return super().__new__(cls)
-
-    def __init__(
-        self,
-        num_ctrl_qubits: int,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
-    ):
-        from qiskit.synthesis.mcx_synthesis import MCXSynthesisGrayCode
-        synthesis = MCXSynthesisGrayCode("mcx_gray")
-        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_gray", synthesis=synthesis)
-
-    def inverse(self):
-        """Invert this gate. The MCX is its own inverse."""
-        return MCXGrayCode(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
-
-    def _define(self):
-        """Define the MCX gate using the Gray code."""
-        self.definition = self.synthesis.synthesize(self.num_ctrl_qubits)
+        else:
+            from qiskit.synthesis.mcx_synthesis import MCXSynthesisGrayCode
+            synthesis = MCXSynthesisGrayCode("mcx_gray")
+            gate = MCXGate.__new__(MCXGate, label=label, ctrl_state=ctrl_state)
+            gate.__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_gray", synthesis=synthesis)
+            return gate
 
 
-class MCXRecursive(MCXGate):
+class MCXRecursive:
     """Implement the multi-controlled X gate using recursion.
 
     Using a single ancilla qubit, the multi-controlled X gate is recursively split onto
     four sub-registers. This is done until we reach the 3- or 4-controlled X gate since
     for these we have a concrete implementation that do not require ancillas.
     """
-
-    def __init__(
-        self,
-        num_ctrl_qubits: int,
+    def __new__(
+        cls,
+        num_ctrl_qubits: Optional[int] = None,
         label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        ctrl_state: Optional[Union[str, int]] = None
     ):
+        print("Calling MCXRecursive.__new__")
+
         from qiskit.synthesis.mcx_synthesis import MCXSynthesisRecursive
         synthesis = MCXSynthesisRecursive("mcx_recursive")
-        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_recursive", synthesis=synthesis)
-
-    def inverse(self):
-        """Invert this gate. The MCX is its own inverse."""
-        return MCXRecursive(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
-
-    def _define(self):
-        """Define the MCX gate using recursion."""
-        self.definition = self.synthesis.synthesize(self.num_ctrl_qubits)
-
-    @staticmethod
-    def get_num_ancilla_qubits(num_ctrl_qubits: int, mode: str = "recursion"):
-        """Get the number of required ancilla qubits."""
-        return MCXRecursive.get_num_ancilla_qubits(num_ctrl_qubits)
+        gate = MCXGate.__new__(MCXGate, label=label, ctrl_state=ctrl_state)
+        gate.__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_recursive", synthesis=synthesis)
+        return gate
 
 
-
-class MCXVChain(MCXGate):
+class MCXVChain:
     """Implement the multi-controlled X gate using a V-chain of CX gates."""
 
     def __new__(
@@ -1112,40 +1099,15 @@ class MCXVChain(MCXGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
     ):
-        """Create a new MCX instance.
+        """Create a new MCX instance."""
 
-        This must be defined anew to include the additional argument ``dirty_ancillas``.
-        """
-        return super().__new__(cls, num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+        print("Calling MCXVChain.__new__")
 
-    def __init__(
-        self,
-        num_ctrl_qubits: int,
-        dirty_ancillas: bool = False,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
-    ):
         from qiskit.synthesis.mcx_synthesis import MCXSynthesisVChain
         synthesis = MCXSynthesisVChain("mcx_vchain", dirty_ancillas)
-        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_vchain", synthesis=synthesis)
+        gate = MCXGate.__new__(MCXGate, label=label, ctrl_state=ctrl_state)
+        gate.__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_vchain", synthesis=synthesis)
+        return gate
 
-    def inverse(self):
-        """Invert this gate. The MCX is its own inverse."""
-        return MCXGate(
-            num_ctrl_qubits=self.num_ctrl_qubits,
-            label=self.label,
-            ctrl_state=self.ctrl_state,
-            _name="mcx_vchain",
-            synthesis=self.synthesis,
-        )
 
-    def _define(self):
-        """Define the MCX gate using a V-chain of CX gates."""
-        self.definition = self.synthesis.synthesize(self.num_ctrl_qubits)
-
-    ### SASHA: HOW TO REFACTOR THIS?
-    @staticmethod
-    def get_num_ancilla_qubits(num_ctrl_qubits: int, mode: str = "v-chain"):
-        """Get the number of required ancilla qubits."""
-        return MCXGate.get_num_ancilla_qubits(num_ctrl_qubits, mode)
 

@@ -73,7 +73,7 @@ def test_ancillas():
 
 
 def test_circuits():
-    for q in range(1, 8):
+    for q in range(5, 6):
         test_mcx(q, "mcx")
         test_mcx(q, "noancilla")
         test_mcx(q, "v-chain")
@@ -139,6 +139,6 @@ def test_circuits_new():
 
 
 if __name__ == "__main__":
-    #test_circuits();
-    #test_ancillas()
-    test_circuits_new()
+    test_circuits();
+    test_ancillas()
+    #test_circuits_new()
