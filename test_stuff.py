@@ -2,6 +2,7 @@
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import MCXGate, MCXRecursive, MCXVChain, MCXGrayCode
+from qiskit.synthesis.mcx_synthesis import MCXSynthesis,MCXSynthesisRecursive, MCXSynthesisVChain, MCXSynthesisGrayCode
 
 # ["v-chain", "basic", "noancilla", "recursion", "advanced"]
 def test_mcx(num_control_qubits, mcx_mode):
@@ -60,13 +61,19 @@ def test_mcx(num_control_qubits, mcx_mode):
     print("")
 
 
+def test_anc(num_control_qubits):
+    print(f"noancilla: {MCXGate.get_num_ancilla_qubits(num_control_qubits, 'noancilla')}")
+    print(f"recursion: {MCXGate.get_num_ancilla_qubits(num_control_qubits, 'recursion')}")
+    print(f"v-chain:   {MCXGate.get_num_ancilla_qubits(num_control_qubits, 'v-chain')}")
 
 
-
-if __name__ == "__main__":
-
+def test_ancillas():
     for q in range(1, 8):
+        test_anc(q)
 
+
+def test_circuits():
+    for q in range(1, 8):
         test_mcx(q, "mcx")
         test_mcx(q, "noancilla")
         test_mcx(q, "v-chain")
@@ -79,3 +86,59 @@ if __name__ == "__main__":
         test_mcx(q, "noancillai")
         test_mcx(q, "v-chaini")
         test_mcx(q, "recursioni")
+
+
+def test_mcx_new(num_control_qubits, mcx_mode):
+    """test"""
+    print(f"==> MCX_NEW with {num_control_qubits} control qubits and mode {mcx_mode}")
+
+    print("--> Creating gate...")
+
+    if mcx_mode == "mcx":
+        synthesis = MCXSynthesisGrayCode("mcx")
+    elif mcx_mode == "recursion":
+        synthesis = MCXSynthesisRecursive("mcx_recursive")
+    elif mcx_mode == "v-chain":
+        synthesis = MCXSynthesisVChain("v-chain", dirty_ancillas=False)
+    elif mcx_mode == "noancilla":
+        synthesis = MCXSynthesisGrayCode("noancilla")
+
+    mcx = MCXGate(num_control_qubits, synthesis=synthesis)
+
+    print("------> Original gate")
+    print("--> Printing gate...")
+    print(mcx)
+    print("--> Synthesizing...")
+    print(mcx.definition)
+    print("")
+
+    print("------> Creating 2-controlled")
+    mcy = mcx.control(2)
+    print("--> Printing gate...")
+    print(mcy)
+    print("--> Synthesizing...")
+    print(mcy.definition)
+    print("")
+
+    print("------> Creating inverse")
+    mci = mcx.inverse()
+    print("--> Printing gate...")
+    print(mci)
+    print("--> Synthesizing...")
+    print(mci.definition)
+    print("")
+
+
+
+def test_circuits_new():
+    for q in range(1, 8):
+        test_mcx_new(q, "mcx")
+        test_mcx_new(q, "noancilla")
+        test_mcx_new(q, "v-chain")
+        test_mcx_new(q, "recursion")
+
+
+if __name__ == "__main__":
+    #test_circuits();
+    #test_ancillas()
+    test_circuits_new()
