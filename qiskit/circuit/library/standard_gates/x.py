@@ -975,11 +975,11 @@ class MCXGate(ControlledGate):
 
     def inverse(self):
         """Invert this gate. The MCX is its own inverse."""
-        return MCXGate(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state, synthesis=self.synthesis)
+        return MCXGate(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state,
+                       _name=self.name, synthesis=self.synthesis)
 
     def _define(self):
         """The standard definition used the Gray code implementation."""
-        # pylint: disable=cyclic-import
         self.definition = self.synthesis.synthesize(self.num_ctrl_qubits)
 
     @property
@@ -1005,12 +1005,11 @@ class MCXGate(ControlledGate):
             ControlledGate: controlled version of this gate.
         """
         if ctrl_state is None:
-            # SASHA: want to switch to MCX definition...and pass self.synthesis as param
-            # use __class__ so this works for derived classes
             gate = MCXGate(
                 self.num_ctrl_qubits + num_ctrl_qubits,
                 label=label,
                 ctrl_state=ctrl_state,
+                _name=self.name,
                 synthesis=self.synthesis
             )
             gate.base_gate.label = self.label
