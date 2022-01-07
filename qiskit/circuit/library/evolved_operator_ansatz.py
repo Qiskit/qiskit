@@ -153,7 +153,7 @@ class EvolvedOperatorAnsatz(NLocal):
             return np.zeros(self.reps * len(self.operators), dtype=float)
 
     def _build(self):
-        if self._valid:
+        if self._is_built:
             return
 
         # need to check configuration here to ensure the operators are not None

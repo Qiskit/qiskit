@@ -73,7 +73,7 @@ class TestBlueprintCircuit(QiskitTestCase):
 
         mock._invalidate()
         with self.subTest(msg="after invalidating"):
-            self.assertFalse(mock._valid)
+            self.assertFalse(mock._is_built)
             self.assertEqual(len(mock._parameter_table), 0)
 
         mock._build()

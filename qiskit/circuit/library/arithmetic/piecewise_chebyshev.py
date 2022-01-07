@@ -329,7 +329,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
     def _build(self):
         """Build the circuit if not already build. The operation is considered successful
         when q_objective is :math:`|1>`"""
-        if self._valid:
+        if self._is_built:
             return
 
         super()._build()

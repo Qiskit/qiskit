@@ -246,7 +246,7 @@ class TridiagonalToeplitz(LinearSystemMatrix):
 
     def _build(self) -> None:
         """If not already built, build the circuit."""
-        if self._valid:
+        if self._is_built:
             return
 
         super()._build()
