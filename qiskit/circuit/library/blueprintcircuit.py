@@ -38,7 +38,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         self._qregs = []
         self._cregs = []
         self._qubits = []
-        self._qubit_indices = dict()
+        self._qubit_indices = {}
         self._valid = False
 
     @abstractmethod

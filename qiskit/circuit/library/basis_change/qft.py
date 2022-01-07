@@ -110,11 +110,9 @@ class QFT(BlueprintCircuit):
 
         Returns:
             The number of qubits in the circuit.
-
-        Note:
-            This method needs to be overwritten to allow adding the setter for num_qubits while
-            still complying to pylint.
         """
+        # This method needs to be overwritten to allow adding the setter for num_qubits while still
+        # complying to pylint.
         return super().num_qubits
 
     @num_qubits.setter

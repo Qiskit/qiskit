@@ -79,7 +79,7 @@ class TestResultOperations(QiskitTestCase):
 
     def test_counts_duplicate_name(self):
         """Test results containing multiple entries of a single name will warn."""
-        data = models.ExperimentResultData(counts=dict())
+        data = models.ExperimentResultData(counts={})
         exp_result_header = QobjExperimentHeader(name="foo")
         exp_result = models.ExperimentResult(
             shots=14, success=True, data=data, header=exp_result_header
