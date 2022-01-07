@@ -108,8 +108,6 @@ class ConfigurableFakeBackendV2(BackendV2):
         self.qubit_frequency = qubit_frequency
         self.qubit_readout_error = qubit_readout_error
         self.single_qubit_gates = single_qubit_gates
-        self.now = datetime.now()
-        self.dt = dt
         self.std = std
         # self.n_qubits = n_qubits
 
