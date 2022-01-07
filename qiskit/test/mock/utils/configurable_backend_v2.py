@@ -98,7 +98,7 @@ class ConfigurableFakeBackendV2(BackendV2):
         if dt is None:
             dt = 0.2222222222222222e-9
 
-        if qubit_coordinates is None:
+        if not qubit_coordinates is None:
             self.qubit_coordinates = qubit_coordinates
 
         self.backend_name = name
@@ -124,7 +124,6 @@ class ConfigurableFakeBackendV2(BackendV2):
 
         # Add gates to target
         # TODO: dynamic instruction properties
-        # TODO: parameterized gates
         for gate, qubit_tuple_list in self.gate_configuration.items():
             temp_gate_props = {
                 qubit_tuple: InstructionProperties(duration=0.0, error=0)
