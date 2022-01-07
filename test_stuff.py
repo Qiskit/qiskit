@@ -2,7 +2,9 @@
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import MCXGate, MCXRecursive, MCXVChain, MCXGrayCode
-from qiskit.synthesis.mcx_synthesis import MCXSynthesis,MCXSynthesisRecursive, MCXSynthesisVChain, MCXSynthesisGrayCode
+from qiskit.synthesis.mcx_synthesis import MCXSynthesis,MCXSynthesisRecursive, \
+    MCXSynthesisVChain, MCXSynthesisGrayCode, mcx_mode_to_synthesis
+from qiskit.compiler.transpiler import transpile
 
 # ["v-chain", "basic", "noancilla", "recursion", "advanced"]
 def test_mcx(num_control_qubits, mcx_mode):
@@ -137,8 +139,41 @@ def test_circuits_new():
         test_mcx_new(q, "v-chain")
         test_mcx_new(q, "recursion")
 
+def test_qc():
+    qc = QuantumCircuit(10)
+    qc.mcx([0, 1, 2, 3, 4], 9, [], "noancilla")
+    qc.mcx([0, 1, 2, 3, 4], 9, [5], "recursion")
+    qc.mcx([0, 1, 2, 3, 4], 9, [5, 6, 7], "v-chain")
+    qc.mcx([0, 1, 2, 3, 4], 9, [])
+    print(qc)
+    #qc2 = transpile(qc, optimization_level=3)
+    #print(qc2)
+
+
+def test_synthesis_map():
+    synthesis = mcx_mode_to_synthesis("noancilla")
+
+def test_previous_map():
+    num_ctrl_qubits = 6
+
+    available_implementations = {
+        "noancilla": MCXGrayCode(num_ctrl_qubits),
+        "recursion": MCXRecursive(num_ctrl_qubits),
+        "v-chain": MCXVChain(num_ctrl_qubits, False),
+        "v-chain-dirty": MCXVChain(num_ctrl_qubits, dirty_ancillas=True),
+        # outdated, previous names
+        "advanced": MCXRecursive(num_ctrl_qubits),
+        "basic": MCXVChain(num_ctrl_qubits, dirty_ancillas=False),
+        "basic-dirty-ancilla": MCXVChain(num_ctrl_qubits, dirty_ancillas=True),
+    }
+
+    gate = available_implementations[mode]
+    print(gate)
 
 if __name__ == "__main__":
-    test_circuits();
-    test_ancillas()
+    #test_circuits();
+    #test_ancillas()
     #test_circuits_new()
+    #test_qc()
+    #test_synthesis_map()
+    test_previous_map()

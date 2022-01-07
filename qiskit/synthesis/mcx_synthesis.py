@@ -49,13 +49,17 @@ class MCXSynthesisGrayCode(MCXSynthesis):
     """
 
     def __init__(self, name):
+        print(f"MCXSynthesisGrayCode:__init__")
         self.name = name
 
     @staticmethod
     def get_num_ancilla_qubits(num_ctrl_qubits):
+        print(f"MCXSynthesisGrayCode:get_num_ancilla_qubits")
         return 0
 
     def synthesize(self, num_ctrl_qubits):
+        print(f"MCXSynthesisGrayCode:synthesize")
+
         """Define the MCX gate using the Gray code."""
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -79,14 +83,17 @@ class MCXSynthesisRecursive(MCXSynthesis):
     """
 
     def __init__(self, name):
+        print(f"MCXSynthesisRecursive:__init__")
         self.name = name
 
     @staticmethod
     def get_num_ancilla_qubits(num_ctrl_qubits):
+        print(f"MCXSynthesisRecursive:get_num_ancilla_qubits")
         return int(num_ctrl_qubits > 4)
 
     def synthesize(self, num_ctrl_qubits):
         """Define the MCX gate using recursion."""
+        print(f"MCXSynthesisRecursive:synthesize")
 
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -130,14 +137,18 @@ class MCXSynthesisVChain(MCXSynthesis):
     """Implement the multi-controlled X gate using a V-chain of CX gates."""
 
     def __init__(self, name, dirty_ancillas):
+        print(f"MCXSynthesisVChain:__init__")
         self.name = name
         self.dirty_ancillas = dirty_ancillas
 
     @staticmethod
     def get_num_ancilla_qubits(num_ctrl_qubits):
+        print(f"MCXSynthesisVChain:get_num_ancilla_qubits")
         return max(0, num_ctrl_qubits - 2)
 
     def synthesize(self, num_ctrl_qubits):
+        print(f"MCXSynthesisVChain:synthesize")
+
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
 
@@ -211,5 +222,21 @@ class MCXSynthesisVChain(MCXSynthesis):
             qc._append(instr, qargs, cargs)
 
         return qc
+
+
+def mcx_mode_to_synthesis(mcx_mode):
+    mcx_mode_to_synthesis_map = {
+        "noancilla":     MCXSynthesisGrayCode("mcx_gray"),
+        "recursion":     MCXSynthesisRecursive("mcx_recursive"),
+        "v-chain":       MCXSynthesisVChain("mcx_vchain", dirty_ancillas=False),
+        "v-chain-dirty": MCXSynthesisVChain("mcx_vchain", dirty_ancillas=True),
+
+        # outdated, previous names
+        "advanced":     MCXSynthesisRecursive("mcx_recursive"),
+        "basic":        MCXSynthesisVChain("mcx_vchain", dirty_ancillas=False),
+        "basic-dirty-ancilla": MCXSynthesisVChain("mcx_vchain", dirty_ancillas=True),
+    }
+
+    return mcx_mode_to_synthesis_map[mcx_mode]
 
 
