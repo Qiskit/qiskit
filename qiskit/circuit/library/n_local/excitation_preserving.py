@@ -24,8 +24,8 @@ class ExcitationPreserving(TwoLocal):
     r"""The heuristic excitation-preserving wave function ansatz.
 
     The ``ExcitationPreserving`` circuit preserves the ratio of :math:`|00\rangle`,
-    :math:`|01\rangle + |10\rangle` and :math:`|11\rangle` states. The matrix representing
-    the operation is
+    :math:`|01\rangle + |10\rangle` and :math:`|11\rangle` states. To this end, this circuit
+    uses two-qubit interactions of the form
 
     .. math::
 
@@ -33,8 +33,8 @@ class ExcitationPreserving(TwoLocal):
 
         \begin{pmatrix}
         1 & 0 & 0 & 0 \\
-        0 & \cos(\th) & -\sin(\th) & 0 \\
-        0 & \sin(\th) & \cos(\th) & 0 \\
+        0 & \cos(\th) & -i\sin(\th) & 0 \\
+        0 & -i\sin(\th) & \cos(\th) & 0 \\
         0 & 0 & 0 & e^{-i\phi}
         \end{pmatrix}
 
