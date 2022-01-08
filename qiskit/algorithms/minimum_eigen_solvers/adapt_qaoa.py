@@ -136,9 +136,8 @@ class AdaptQAOA(QAOA):
         self.mixer_pool = mixer_pool
         self.mixer_pool_type = mixer_pool_type
 
-        self.optimal_mixer_list = (
-            []
-        )  # will be appending optimal mixers to this, first mixer is H see above
+        # will be appending optimal mixers to this, first mixer is H see above
+        self.optimal_mixer_list = []
         self.name = "AdaptQAOA"
         self.ansatz = None
         self.threshold = threshold
