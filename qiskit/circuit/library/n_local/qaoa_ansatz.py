@@ -91,21 +91,9 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
                 )
 
         if self.mixer_operator is not None:
-            if isinstance(self.mixer_operator, list):
-                mixer_qubit_check = np.argwhere(
-                    [_.num_qubits != self.num_qubits for _ in self.mixer_operator] is True
-                )
-                if len(mixer_qubit_check) > 0:
-                    valid = False
-                    if raise_on_failure:
-                        raise AttributeError(
-                            f"The number of qubits of the mixer operator(s)"
-                            f"{[_.num_qubits for _ in self.mixer_operator[mixer_qubit_check]]} at "
-                            f"argument(s) {mixer_qubit_check[0]} does not match the number of qubits of "
-                            f"the cost operator {self.num_qubits}"
-                        )
-            else:
-                if self.mixer_operator.num_qubits != self.num_qubits:
+            # wrap mixers in a list
+            mixers = [self.mixer_operator] if not isinstance(self.mixer_operator, list) else self.mixer_operator
+            if any(mixer.num_qubits != self.num_qubits):
                     valid = False
                     if raise_on_failure:
                         raise AttributeError(
