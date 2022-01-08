@@ -211,8 +211,8 @@ class AdaptQAOA(QAOA):
         iter_results=False,
         disp=False,
     ):
-        self.optimal_mixer_list = None
         """Runs ADAPT-QAOA for each iteration"""
+        self.optimal_mixer_list = []
         self._reps, self.ansatz = 1, self.initial_state  # initialise layer loop counter and ansatz
         result_p, result = [], None
         while self._reps < self.max_reps + 1:  # loop over number of maximum reps
