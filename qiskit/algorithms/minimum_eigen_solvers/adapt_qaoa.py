@@ -29,7 +29,6 @@ from qiskit.opflow.state_fns.state_fn import StateFn
 from qiskit.quantum_info import Operator
 from qiskit.utils import algorithm_globals
 
-# from qiskit.algorithms.minimum_eigen_solvers.qaoa import QAOA
 from .qaoa import QAOA
 
 
