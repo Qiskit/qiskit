@@ -77,7 +77,7 @@ class AdaptQAOA(QAOA):
                 from which mixers are chosen from.
                 Cannot be used in conjunction with `mixer_pool_type`.
             mixer_pool_type: An optional string representing different mixer pool types `single`
-            creates the same mixer pool as the
+                creates the same mixer pool as the
                 standard QAOA. `singular` creates a mixer pool including mixers in `single` as well
                 as additional single qubit
                 mixers. `multi` creates a mixer pool including mixers from `single`, `singular` as
