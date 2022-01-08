@@ -80,6 +80,7 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
    RZGate
    RZZGate
    RZXGate
+   XYGate
    ECRGate
    SGate
    SdgGate
@@ -97,16 +98,18 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
    YGate
    ZGate
 
-Standard Instructions
-==============
+Standard Directives
+===================
+
+..
+    This summary table deliberately does not generate toctree entries; these directives are "owned"
+    by ``qiskit.circuit``.
 
 .. autosummary::
-   :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
 
-   Barrier
-   Measure
-   Reset
+   ~qiskit.circuit.Barrier
+   ~qiskit.circuit.Measure
+   ~qiskit.circuit.Reset
 
 Generalized Gates
 =================
