@@ -187,6 +187,7 @@ Gates and Instructions
    Gate
    ControlledGate
    Delay
+   Barrier
    Measure
    Reset
    Instruction
