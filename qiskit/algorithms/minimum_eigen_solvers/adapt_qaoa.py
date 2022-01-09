@@ -404,7 +404,7 @@ class AdaptQAOA(QAOA):
         self,
     ):  # set initial value for gamma according to https://arxiv.org/abs/2005.10258
         gamma_ip = 0.01
-        beta_ip = -np.pi/4#algorithm_globals.random.uniform([-2 * np.pi], [2 * np.pi])
+        beta_ip = -np.pi / 4  # algorithm_globals.random.uniform([-2 * np.pi], [2 * np.pi])
         return np.append(beta_ip, [gamma_ip])
 
     def _update_initial_point(self):

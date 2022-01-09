@@ -28,27 +28,12 @@ from qiskit.algorithms import AdaptQAOA
 from qiskit.algorithms.optimizers import COBYLA, NELDER_MEAD
 from qiskit.circuit.library import IGate, XGate, YGate, ZGate
 from qiskit.opflow import I, PauliSumOp, X, Y, Z
-from qiskit.quantum_info import Pauli
+from qiskit.opflow.primitive_ops import PauliOp
+from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.utils import QuantumInstance, algorithm_globals
 
 
-def _string_to_qiskit(qstring):
-    qis_dict = {"I": I, "X": X, "Y": Y, "Z": Z}
-
-    if all(x == qstring[0] for x in qstring):
-        gate = qstring[0]
-        list_string = [i * "I" + gate + (len(qstring) - i - 1) * "I" for i in range(len(qstring))]
-
-        return sum(
-            [
-                reduce(lambda a, b: a ^ b, [qis_dict[char.upper()] for char in x])
-                for x in list_string
-            ]
-        )
-    return reduce(lambda a, b: a ^ b, [qis_dict[char.upper()] for char in qstring])
-
-
-def _create_mixer_pool(num_q, add_multi, circ):
+def _create_mixer_pool(num_q, add_multi, circ, parameterize):
     """Compute the mixer pool
     Args:
         num_q (int): number of qubits
@@ -82,16 +67,28 @@ def _create_mixer_pool(num_q, add_multi, circ):
     mixer_circ_list = []
     for mix_str in mixer_pool:
         if circ:
+
+            # TODO: parameterise these circuits
             qr = QuantumRegister(num_q)
             qc = QuantumCircuit(qr)
             for i, mix in enumerate(mix_str):
                 qiskit_dict = {"I": IGate(), "X": XGate(), "Y": YGate(), "Z": ZGate()}
+                if parameterize:
+                    qiskit_dict = {"I": IGate(), "X": XGate(), "Y": YGate(), "Z": ZGate()}
 
                 mix_qis_gate = qiskit_dict[mix]
                 qc.append(mix_qis_gate, [i])
                 mixer_circ_list.append(qc)
         else:
-            op = _string_to_qiskit(mix_str)
+            if mix_str == len(mix_str) * mix_str[0]:
+                gate = mix_str[0]
+                list_string = [
+                    i * "I" + gate + (len(mix_str) - i - 1) * "I" for i in range(len(mix_str))
+                ]
+                op_list = [(op, 1) for op in list_string]
+                op = PauliSumOp(SparsePauliOp.from_list(op_list))
+            else:
+                op = PauliOp(Pauli(mix_str))
             mixer_circ_list.append(op)
     return mixer_circ_list
 
@@ -114,6 +111,7 @@ M2 = None
 S2 = {"1011", "0100"}
 
 CUSTOM_SUPERPOSITION = [1 / math.sqrt(15)] * 15 + [0]
+
 
 @ddt
 # class TestAdaptQAOA(QiskitAlgorithmsTestCase):
@@ -154,7 +152,11 @@ class TestAdaptQAOA(QiskitTestCase):
             qubit_op = qubit_op.to_matrix_op()
 
         adapt_qaoa = AdaptQAOA(
-            optimizer=COBYLA(maxiter=1000000, tol=0), max_reps=prob, mixer_pool=m, quantum_instance=self.statevector_simulator)
+            optimizer=COBYLA(maxiter=1000000, tol=0),
+            max_reps=prob,
+            mixer_pool=m,
+            quantum_instance=self.statevector_simulator,
+        )
         result = adapt_qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
