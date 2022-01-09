@@ -1016,7 +1016,6 @@ class MCXGate(ControlledGate):
             return gate
         return super().control(num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
-    # SASHA: HOW TO CLEAN THIS UP?
     @staticmethod
     def get_num_ancilla_qubits(num_ctrl_qubits: int, mode: str = "noancilla") -> int:
         """Get the number of required ancilla qubits without instantiating the class.
@@ -1024,13 +1023,8 @@ class MCXGate(ControlledGate):
         This staticmethod might be necessary to check the number of ancillas before
         creating the gate, or to use the number of ancillas in the initialization.
         """
-        if mode == "noancilla":
-            return 0
-        if mode in ["recursion", "advanced"]:
-            return int(num_ctrl_qubits > 4)
-        if mode[:7] == "v-chain" or mode[:5] == "basic":
-            return max(0, num_ctrl_qubits - 2)
-        raise AttributeError(f"Unsupported mode ({mode}) specified!")
+        from qiskit.synthesis.mcx_synthesis import mcx_mode_to_num_ancilla_qubits
+        return mcx_mode_to_num_ancilla_qubits(num_ctrl_qubits, mode)
 
 
 # The following explicit classes exist for backward compatibility

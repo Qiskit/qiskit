@@ -224,19 +224,23 @@ class MCXSynthesisVChain(MCXSynthesis):
         return qc
 
 
-def mcx_mode_to_synthesis(mcx_mode):
-    mcx_mode_to_synthesis_map = {
-        "noancilla":     MCXSynthesisGrayCode("mcx_gray"),
-        "recursion":     MCXSynthesisRecursive("mcx_recursive"),
-        "v-chain":       MCXSynthesisVChain("mcx_vchain", dirty_ancillas=False),
-        "v-chain-dirty": MCXSynthesisVChain("mcx_vchain", dirty_ancillas=True),
+mcx_mode_to_synthesis_map = {
+    "noancilla":     MCXSynthesisGrayCode,
+    "recursion":     MCXSynthesisRecursive,
+    "v-chain":       MCXSynthesisVChain,
+    "v-chain-dirty": MCXSynthesisVChain,
 
-        # outdated, previous names
-        "advanced":     MCXSynthesisRecursive("mcx_recursive"),
-        "basic":        MCXSynthesisVChain("mcx_vchain", dirty_ancillas=False),
-        "basic-dirty-ancilla": MCXSynthesisVChain("mcx_vchain", dirty_ancillas=True),
-    }
+    # outdated, previous names
+    "advanced":     MCXSynthesisRecursive,
+    "basic":        MCXSynthesisVChain,
+    "basic-dirty-ancilla": MCXSynthesisVChain,
+}
 
-    return mcx_mode_to_synthesis_map[mcx_mode]
+def mcx_mode_to_num_ancilla_qubits(num_ctrl_qubits, mcx_mode):
+    """Returns the number of ancilla qubits for a given synthesis mode"""
+    return mcx_mode_to_synthesis_map[mcx_mode].get_num_ancilla_qubits(num_ctrl_qubits)
+
+    # try-except
+    #         raise AttributeError(f"Unsupported mode ({mode}) specified!")
 
 

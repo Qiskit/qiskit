@@ -3,7 +3,7 @@
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import MCXGate, MCXRecursive, MCXVChain, MCXGrayCode
 from qiskit.synthesis.mcx_synthesis import MCXSynthesis,MCXSynthesisRecursive, \
-    MCXSynthesisVChain, MCXSynthesisGrayCode, mcx_mode_to_synthesis
+    MCXSynthesisVChain, MCXSynthesisGrayCode, mcx_mode_to_num_ancilla_qubits
 from qiskit.compiler.transpiler import transpile
 
 # ["v-chain", "basic", "noancilla", "recursion", "advanced"]
@@ -64,14 +64,24 @@ def test_mcx(num_control_qubits, mcx_mode):
 
 
 def test_anc(num_control_qubits):
-    print(f"noancilla: {MCXGate.get_num_ancilla_qubits(num_control_qubits, 'noancilla')}")
-    print(f"recursion: {MCXGate.get_num_ancilla_qubits(num_control_qubits, 'recursion')}")
-    print(f"v-chain:   {MCXGate.get_num_ancilla_qubits(num_control_qubits, 'v-chain')}")
+    print("TEST_ANC1")
+    print(f" noancilla: {MCXGate.get_num_ancilla_qubits(num_control_qubits, 'noancilla')}")
+    print(f" recursion: {MCXGate.get_num_ancilla_qubits(num_control_qubits, 'recursion')}")
+    print(f" v-chain:   {MCXGate.get_num_ancilla_qubits(num_control_qubits, 'v-chain')}")
+
+def test_anc2(num_control_qubits):
+    print("TEST_ANC2")
+    print(f" noancilla: {mcx_mode_to_num_ancilla_qubits(num_control_qubits, 'noancilla')}")
+    print(f" recursion: {mcx_mode_to_num_ancilla_qubits(num_control_qubits, 'recursion')}")
+    print(f" v-chain:   {mcx_mode_to_num_ancilla_qubits(num_control_qubits, 'v-chain')}")
+
 
 
 def test_ancillas():
     for q in range(1, 8):
         test_anc(q)
+    for q in range(1, 8):
+        test_anc2(q)
 
 
 def test_circuits():
@@ -150,11 +160,24 @@ def test_qc():
     #print(qc2)
 
 
-def test_synthesis_map():
-    synthesis = mcx_mode_to_synthesis("noancilla")
+def m_to_s(mcx_mode):
+    m_to_s_map = {
+        "noancilla":     MCXSynthesisGrayCode,
+        "recursion":     MCXSynthesisRecursive,
+        "v-chain":       MCXSynthesisVChain,
+        "v-chain-dirty": MCXSynthesisVChain,
+    }
+    return m_to_s_map[mcx_mode]
 
+def test_synthesis_map():
+    synthesis = m_to_s("v-chain")
+    a = synthesis()
+    print(a)
+
+### HOW TO MAKE THIS BETTER?
 def test_previous_map():
     num_ctrl_qubits = 6
+    mcx_mode = "noancilla"
 
     available_implementations = {
         "noancilla": MCXGrayCode(num_ctrl_qubits),
@@ -167,13 +190,13 @@ def test_previous_map():
         "basic-dirty-ancilla": MCXVChain(num_ctrl_qubits, dirty_ancillas=True),
     }
 
-    gate = available_implementations[mode]
+    gate = available_implementations[mcx_mode]
     print(gate)
 
 if __name__ == "__main__":
     #test_circuits();
-    #test_ancillas()
+    test_ancillas()
     #test_circuits_new()
     #test_qc()
     #test_synthesis_map()
-    test_previous_map()
+    #test_previous_map()
