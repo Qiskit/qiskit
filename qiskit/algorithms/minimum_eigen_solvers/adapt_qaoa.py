@@ -29,7 +29,6 @@ from qiskit.opflow.state_fns.state_fn import StateFn
 from qiskit.quantum_info import Operator
 from qiskit.utils import algorithm_globals
 
-# from qiskit.algorithms.minimum_eigen_solvers.qaoa import QAOA
 from .qaoa import QAOA
 
 
@@ -77,7 +76,7 @@ class AdaptQAOA(QAOA):
                 from which mixers are chosen from.
                 Cannot be used in conjunction with `mixer_pool_type`.
             mixer_pool_type: An optional string representing different mixer pool types `single`
-            creates the same mixer pool as the
+                creates the same mixer pool as the
                 standard QAOA. `singular` creates a mixer pool including mixers in `single` as well
                 as additional single qubit
                 mixers. `multi` creates a mixer pool including mixers from `single`, `singular` as
@@ -137,9 +136,8 @@ class AdaptQAOA(QAOA):
         self.mixer_pool = mixer_pool
         self.mixer_pool_type = mixer_pool_type
 
-        self.optimal_mixer_list = (
-            []
-        )  # will be appending optimal mixers to this, first mixer is H see above
+        # will be appending optimal mixers to this, first mixer is H see above
+        self.optimal_mixer_list = []
         self.name = "AdaptQAOA"
         self.ansatz = None
         self.threshold = threshold
@@ -213,8 +211,8 @@ class AdaptQAOA(QAOA):
         iter_results=False,
         disp=False,
     ):
-        self.optimal_mixer_list = None
         """Runs ADAPT-QAOA for each iteration"""
+        self.optimal_mixer_list = []
         self._reps, self.ansatz = 1, self.initial_state  # initialise layer loop counter and ansatz
         result_p, result = [], None
         while self._reps < self.max_reps + 1:  # loop over number of maximum reps
