@@ -309,8 +309,8 @@ class QCircuitImage:
         max_reg_name = 3
         for reg in self._bits_regs_map:
             if isinstance(reg, (Qubit, Clbit)):
-                registers = self._circuit.find_bit(reg).registers
-                name = registers[0][0].name if registers else ""
+                register = get_bit_register(self._circuit, reg)
+                name = register.name if register is not None else ""
             else:
                 name = reg.name
             max_reg_name = max(max_reg_name, len(name))
@@ -512,8 +512,7 @@ class QCircuitImage:
         idx_str = ""
         cond_offset = 1.5 if node.op.condition else 0.0
         if self._cregbundle:
-            clbit = self._circuit.find_bit(node.cargs[0])
-            register = clbit.registers[0][0] if clbit.registers else None
+            register = get_bit_register(self._circuit, node.cargs[0])
             if register is not None:
                 wire2 = self._bits_regs_map[register]
                 idx_str = str(node.cargs[0].index)

@@ -1180,8 +1180,7 @@ class Layer:
             self.clbits = []
             previous_creg = None
             for bit in clbits:
-                clbit = self._circuit.find_bit(bit)
-                register = clbit.registers[0][0] if clbit.registers else None
+                register = get_bit_register(self._circuit, bit)
                 if previous_creg and previous_creg == register:
                     continue
                 if register is None:
