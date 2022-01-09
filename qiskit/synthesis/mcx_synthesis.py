@@ -48,9 +48,9 @@ class MCXSynthesisGrayCode(MCXSynthesis):
     This delegates the implementation to the MCU1 gate, since :math:`X = H \cdot U1(\pi) \cdot H`.
     """
 
-    def __init__(self, name):
+    def __init__(self):
         print(f"MCXSynthesisGrayCode:__init__")
-        self.name = name
+        self.name = "noancilla"
 
     @staticmethod
     def get_num_ancilla_qubits(num_ctrl_qubits):
@@ -82,9 +82,9 @@ class MCXSynthesisRecursive(MCXSynthesis):
     for these we have a concrete implementation that do not require ancillas.
     """
 
-    def __init__(self, name):
+    def __init__(self):
         print(f"MCXSynthesisRecursive:__init__")
-        self.name = name
+        self.name = "mcx_recursive"
 
     @staticmethod
     def get_num_ancilla_qubits(num_ctrl_qubits):
@@ -136,9 +136,9 @@ class MCXSynthesisRecursive(MCXSynthesis):
 class MCXSynthesisVChain(MCXSynthesis):
     """Implement the multi-controlled X gate using a V-chain of CX gates."""
 
-    def __init__(self, name, dirty_ancillas):
+    def __init__(self, dirty_ancillas):
         print(f"MCXSynthesisVChain:__init__")
-        self.name = name
+        self.name = "mcx_vchain"
         self.dirty_ancillas = dirty_ancillas
 
     @staticmethod

@@ -958,7 +958,7 @@ class MCXGate(ControlledGate):
 
         if synthesis is None:
             from qiskit.synthesis.mcx_synthesis import MCXSynthesisGrayCode
-            synthesis = MCXSynthesisGrayCode(_name)
+            synthesis = MCXSynthesisGrayCode()
         self.synthesis = synthesis
 
         num_ancilla_qubits = self.synthesis.get_num_ancilla_qubits(num_ctrl_qubits)
@@ -1054,7 +1054,7 @@ class MCXGrayCode:
             return gate
         else:
             from qiskit.synthesis.mcx_synthesis import MCXSynthesisGrayCode
-            synthesis = MCXSynthesisGrayCode("mcx_gray")
+            synthesis = MCXSynthesisGrayCode()
             gate = MCXGate.__new__(MCXGate, label=label, ctrl_state=ctrl_state)
             gate.__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_gray", synthesis=synthesis)
             return gate
@@ -1076,7 +1076,7 @@ class MCXRecursive:
         print("Calling MCXRecursive.__new__")
 
         from qiskit.synthesis.mcx_synthesis import MCXSynthesisRecursive
-        synthesis = MCXSynthesisRecursive("mcx_recursive")
+        synthesis = MCXSynthesisRecursive()
         gate = MCXGate.__new__(MCXGate, label=label, ctrl_state=ctrl_state)
         gate.__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_recursive", synthesis=synthesis)
         return gate
@@ -1097,7 +1097,7 @@ class MCXVChain:
         print("Calling MCXVChain.__new__")
 
         from qiskit.synthesis.mcx_synthesis import MCXSynthesisVChain
-        synthesis = MCXSynthesisVChain("mcx_vchain", dirty_ancillas)
+        synthesis = MCXSynthesisVChain(dirty_ancillas)
         gate = MCXGate.__new__(MCXGate, label=label, ctrl_state=ctrl_state)
         gate.__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_vchain", synthesis=synthesis)
         return gate

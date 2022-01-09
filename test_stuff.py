@@ -107,13 +107,13 @@ def test_mcx_new(num_control_qubits, mcx_mode):
     print("--> Creating gate...")
 
     if mcx_mode == "mcx":
-        synthesis = MCXSynthesisGrayCode("mcx")
+        synthesis = MCXSynthesisGrayCode()
     elif mcx_mode == "recursion":
-        synthesis = MCXSynthesisRecursive("mcx_recursive")
+        synthesis = MCXSynthesisRecursive()
     elif mcx_mode == "v-chain":
-        synthesis = MCXSynthesisVChain("v-chain", dirty_ancillas=False)
+        synthesis = MCXSynthesisVChain(dirty_ancillas=False)
     elif mcx_mode == "noancilla":
-        synthesis = MCXSynthesisGrayCode("noancilla")
+        synthesis = MCXSynthesisGrayCode()
 
     mcx = MCXGate(num_control_qubits, synthesis=synthesis)
 
@@ -195,8 +195,8 @@ def test_previous_map():
 
 if __name__ == "__main__":
     #test_circuits();
-    test_ancillas()
-    #test_circuits_new()
+    #test_ancillas()
+    test_circuits_new()
     #test_qc()
     #test_synthesis_map()
     #test_previous_map()
