@@ -17,7 +17,7 @@ from math import ceil
 import numpy
 
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.library import C3XGate, C4XGate, U2Gate, RCCXGate, U1Gate, CXGate, CCXGate, HGate, MCU1Gate
+from qiskit.circuit.library import C3XGate, C4XGate, U2Gate, RCCXGate, U1Gate, CXGate, CCXGate, HGate, MCU1Gate, MCXGate
 
 
 class MCXSynthesis(ABC):
@@ -224,6 +224,28 @@ mcx_mode_to_synthesis_map = {
     "basic":        MCXSynthesisVChain,
     "basic-dirty-ancilla": MCXSynthesisVChain,
 }
+
+
+def mcx_declaration_to_gate(num_ctrl_qubits, mcx_mode):
+    gate = None
+    if num_ctrl_qubits == 1:
+        gate = CXGate()
+    elif num_ctrl_qubits == 2:
+        gate = CCXGate()
+    elif num_ctrl_qubits == 3 and mcx_mode in ["noancilla"]:
+        gate = C3XGate()
+    elif num_ctrl_qubits == 4 and mcx_mode in ["noancilla"]:
+        gate = C4XGate()
+    elif mcx_mode in ["noancilla"]:
+        gate = MCXGate(num_ctrl_qubits, synthesis=MCXSynthesisGrayCode())
+    elif mcx_mode in ["recursion", "advanced"]:
+        gate = MCXGate(num_ctrl_qubits, synthesis=MCXSynthesisRecursive())
+    elif mcx_mode in ["v-chain", "basic"]:
+        gate = MCXGate(num_ctrl_qubits, synthesis=MCXSynthesisVChain(dirty_ancillas=False))
+    elif mcx_mode in ["v-chain-dirty", "basic-dirty-ancilla"]:
+        gate = MCXGate(num_ctrl_qubits, synthesis=MCXSynthesisVChain(dirty_ancillas=True))
+    return gate
+
 
 def mcx_mode_to_synthesis(mcx_mode):
     """Returns an (instance) of the synthesis algorithm corresponding to a given synthesis mode"""

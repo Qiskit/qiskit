@@ -3889,10 +3889,12 @@ class QuantumCircuit:
             AttributeError: if no ancilla qubits are passed, but some are needed.
         """
         from .library.standard_gates.x import MCXGate
-        from qiskit.synthesis.mcx_synthesis import mcx_mode_to_num_ancilla_qubits, mcx_mode_to_synthesis
+        from qiskit.synthesis.mcx_synthesis import mcx_mode_to_num_ancilla_qubits, mcx_declaration_to_gate
 
         num_ctrl_qubits = len(control_qubits)
         num_required_ancilla_qubits = mcx_mode_to_num_ancilla_qubits(num_ctrl_qubits, mode)
+        gate = mcx_declaration_to_gate(num_ctrl_qubits, mode)
+
 
         # check ancilla input
         if ancilla_qubits:
@@ -3914,8 +3916,6 @@ class QuantumCircuit:
         else:
             ancilla_qubits = []
 
-        synthesis = mcx_mode_to_synthesis(mode)
-        gate = MCXGate(num_ctrl_qubits, synthesis=synthesis)
         return self.append(gate, control_qubits[:] + [target_qubit] + ancilla_qubits[:], [])
 
     def mct(
