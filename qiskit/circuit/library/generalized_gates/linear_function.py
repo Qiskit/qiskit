@@ -32,7 +32,7 @@ class LinearFunction(Gate):
         in numpy array format.
 
         Args:
-            linear (list[list] or ndarray or QuantumCircuit):
+            linear (list[list] or ndarray[bool] or QuantumCircuit):
                 either an n x n matrix, describing the linear function,
                 or a quantum circuit composed of linear gates only
                 (currently supported gates are CX and SWAP).
