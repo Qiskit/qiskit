@@ -932,8 +932,6 @@ class MCXGate(ControlledGate):
         Depending on the number of controls and which mode of the MCX, this creates an
         explicit CX, CCX, C3X or C4X instance or a generic MCX gate.
         """
-        print("Calling MCXGate.__new__")
-
         # The CXGate and CCXGate will be implemented for all modes of the MCX, and
         # the C3XGate and C4XGate will be implemented in the MCXGrayCode class.
         explicit = {1: CXGate, 2: CCXGate}
@@ -954,8 +952,6 @@ class MCXGate(ControlledGate):
         synthesis=None,
     ):
         """Create new MCX gate."""
-        print("Calling MCXGate.__init__")
-
         if synthesis is None:
             from qiskit.synthesis.mcx_synthesis import MCXSynthesisGrayCode
             synthesis = MCXSynthesisGrayCode()
@@ -1041,8 +1037,6 @@ class MCXGrayCode:
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None
     ):
-        print("Calling MCXGrayCode.__new__")
-
         """Create a new MCXGrayCode instance"""
         # if 1 to 4 control qubits, create explicit gates
         explicit = {1: CXGate, 2: CCXGate, 3: C3XGate, 4: C4XGate}
@@ -1073,8 +1067,6 @@ class MCXRecursive:
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None
     ):
-        print("Calling MCXRecursive.__new__")
-
         from qiskit.synthesis.mcx_synthesis import MCXSynthesisRecursive
         synthesis = MCXSynthesisRecursive()
         gate = MCXGate.__new__(MCXGate, label=label, ctrl_state=ctrl_state)
@@ -1093,9 +1085,6 @@ class MCXVChain:
         ctrl_state: Optional[Union[str, int]] = None,
     ):
         """Create a new MCX instance."""
-
-        print("Calling MCXVChain.__new__")
-
         from qiskit.synthesis.mcx_synthesis import MCXSynthesisVChain
         synthesis = MCXSynthesisVChain(dirty_ancillas)
         gate = MCXGate.__new__(MCXGate, label=label, ctrl_state=ctrl_state)
