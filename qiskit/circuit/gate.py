@@ -90,9 +90,7 @@ class Gate(Instruction, Operation):
         return UnitaryGate(unitary_power, label=f"{self.name}^{exponent}")
 
     def _return_repeat(self, exponent: float) -> "Gate":
-        return Gate(
-            name=f"{self._name}*{exponent}", num_qubits=self._num_qubits, params=self._params
-        )
+        return Gate(name=f"{self.name}*{exponent}", num_qubits=self.num_qubits, params=self.params)
 
     def control(
         self,
