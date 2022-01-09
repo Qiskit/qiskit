@@ -160,6 +160,15 @@ def test_qc():
     #print(qc2)
 
 
+def test_mcx():
+    qc = QuantumCircuit(10)
+    #qc.mcx([0, 1, 2, 3, 4], 9, [5, 6, 7], "what-is-this")
+    qc.mcx([0, 1, 2, 3, 4], 9, [5, 6, 7], "v-chain")
+
+    print(qc)
+
+
+
 def m_to_s(mcx_mode):
     m_to_s_map = {
         "noancilla":     MCXSynthesisGrayCode,
@@ -196,7 +205,8 @@ def test_previous_map():
 if __name__ == "__main__":
     #test_circuits();
     #test_ancillas()
-    test_circuits_new()
+    #test_circuits_new()
     #test_qc()
+    test_mcx()
     #test_synthesis_map()
     #test_previous_map()

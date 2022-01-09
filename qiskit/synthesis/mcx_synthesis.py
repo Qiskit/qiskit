@@ -236,6 +236,23 @@ mcx_mode_to_synthesis_map = {
     "basic-dirty-ancilla": MCXSynthesisVChain,
 }
 
+def mcx_mode_to_synthesis(mcx_mode):
+    """Returns an (instance) of the synthesis algorithm corresponding to a given synthesis mode"""
+
+    # How to make this cleaner?
+    synthesis = None
+
+    if mcx_mode == "noancilla":
+        synthesis = MCXSynthesisGrayCode()
+    elif mcx_mode == "recursion":
+        synthesis = MCXSynthesisRecursive()
+    elif mcx_mode == "v-chain":
+        synthesis = MCXSynthesisVChain(dirty_ancillas=False)
+    elif mcx_mode == "v-chain-dirty":
+        synthesis = MCXSynthesisVChain(dirty_ancillas=True)
+    return synthesis
+
+
 def mcx_mode_to_num_ancilla_qubits(num_ctrl_qubits, mcx_mode):
     """Returns the number of ancilla qubits for a given synthesis mode"""
     return mcx_mode_to_synthesis_map[mcx_mode].get_num_ancilla_qubits(num_ctrl_qubits)
