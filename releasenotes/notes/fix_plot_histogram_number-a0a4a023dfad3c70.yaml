@@ -2,18 +2,4 @@
 fixes:
   - |
     Fixed error in :func:`qiskit.visualization.plot_histogram` when using
-    number_to_keep smaller that the number of keys. The following code will work now:
-
-    .. code-block:: python
-
-        from qiskit.visualization import plot_histogram
-        a = {'00': 3, '01': 5, '11': 8, '10': 11}
-        plot_histogram(a, number_to_keep=2)
-
-    In the case of displaying multiple executions, the plot is now displayed and correctly alligned:
-
-    .. code-block:: python
-
-        dist = [{"00": 3, "01": 5, "11": 8, "10": 11}, {"00": 3, "01": 7, "10": 11}]
-        fig = plot_histogram(dist, number_to_keep=2)
-        self.assertIsInstance(fig, mpl.figure.Figure)
+    number_to_keep smaller that the number of keys.
