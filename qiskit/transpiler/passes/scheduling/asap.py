@@ -85,11 +85,10 @@ class ASAPSchedule(TransformationPass):
             # validate node.op.duration
             if node.op.duration is None:
                 indices = [bit_indices[qarg] for qarg in node.qargs]
-                if node.op.name in dag.calibrations:
-                    if dag.calibrations[node.op.name] is not None:
-                        for key in dag.calibrations[node.op.name]:
-                            if tuple(indices) in key:
-                                node.op.duration = dag.calibrations[node.op.name][key].duration
+                if dag.has_calibration_for(node):
+                    node.op.duration = dag.calibrations[node.op.name][
+                        (tuple(indices), tuple(float(p) for p in node.op.params))
+                    ].duration
 
                 if node.op.duration is None:
                     raise TranspilerError(
