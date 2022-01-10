@@ -12,42 +12,11 @@
 
 """Interface for Quantum Imaginary Time Evolution."""
 
-from abc import abstractmethod
+from abc import ABC
 
 from qiskit.algorithms.time_evolution.evolution_base import EvolutionBase
-from qiskit.opflow import OperatorBase, StateFn, Gradient
 
 
-class Qite(EvolutionBase):
+class Qite(ABC, EvolutionBase):
     """Interface for Quantum Imaginary Time Evolution."""
 
-    @abstractmethod
-    def evolve(
-        self,
-        hamiltonian: OperatorBase,
-        time: float,
-        initial_state: StateFn = None,
-        observable: OperatorBase = None,
-        t_param=None,
-        hamiltonian_value_dict=None,
-    ):
-        """
-        Performs Quantum Imaginary Time Evolution on an initial state according to a Hamiltonian
-        provided.
-        """
-        raise NotImplementedError()
-
-    @abstractmethod
-    def gradient(
-        self,
-        hamiltonian: OperatorBase,
-        time: float,
-        initial_state: StateFn,
-        gradient_object: Gradient,
-        observable: OperatorBase = None,
-        t_param=None,
-        hamiltonian_value_dict=None,
-        gradient_params=None,
-    ):
-        """Performs Quantum Imaginary Time Evolution of gradient expressions."""
-        raise NotImplementedError()

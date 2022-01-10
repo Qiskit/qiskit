@@ -90,7 +90,7 @@ class VarQrte(VarQte, EvolutionBase):
         Apply Variational Quantum Real Time Evolution (VarQRTE) w.r.t. the given operator.
         Args:
             hamiltonian:
-                ⟨ψ(ω)|H|ψ(ω)〉
+                ⟨ψ(ω)|H(t, theta)|ψ(ω)〉
                 Operator used vor Variational Quantum Imaginary Time Evolution (VarQITE)
                 The coefficient of the operator (operator.coeff) determines the evolution
                 time.

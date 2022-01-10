@@ -12,42 +12,11 @@
 
 """Interface for Quantum Real Time Evolution."""
 
-from abc import abstractmethod
+from abc import ABC
 
 from qiskit.algorithms.time_evolution.evolution_base import EvolutionBase
-from qiskit.opflow import StateFn, OperatorBase, Gradient
 
 
-class Qrte(EvolutionBase):
+class Qrte(ABC, EvolutionBase):
     """Base class for quantum real time evolution."""
 
-    @abstractmethod
-    def evolve(
-        self,
-        hamiltonian: OperatorBase,
-        time: float,
-        initial_state: StateFn = None,
-        observable: OperatorBase = None,
-        t_param=None,
-        hamiltonian_value_dict=None,
-    ):
-        """
-        Performs Quantum Real Time Evolution on an initial state according to a Hamiltonian
-        provided.
-        """
-        raise NotImplementedError()
-
-    @abstractmethod
-    def gradient(
-        self,
-        hamiltonian: OperatorBase,
-        time: float,
-        initial_state: StateFn,
-        gradient_object: Gradient,
-        observable: OperatorBase = None,
-        t_param=None,
-        hamiltonian_value_dict=None,
-        gradient_params=None,
-    ):
-        """Performs Quantum Real Time Evolution of gradient expressions."""
-        raise NotImplementedError()

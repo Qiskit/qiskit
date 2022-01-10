@@ -48,11 +48,11 @@ from qiskit.opflow import (
     PauliExpectation,
     OperatorBase,
     CircuitStateFn,
-    Gradient,
+    Gradient, EvolutionBase,
 )
 
 
-class VarQte(ABC):
+class VarQte(ABC, EvolutionBase):
     """Variational Quantum Time Evolution.
        https://doi.org/10.22331/q-2019-10-07-191
     Algorithms that use variational variational_principles to compute a time evolution for a given
@@ -115,7 +115,7 @@ class VarQte(ABC):
         operator
         Args:
             hamiltonian:
-                ⟨ψ(ω)|H|ψ(ω)〉
+                ⟨ψ(ω)|H(t, theta)|ψ(ω)〉
                 Operator used vor Variational Quantum Imaginary Time Evolution (VarQITE)
                 The coefficient of the operator (operator.coeff) determines the evolution
                 time.

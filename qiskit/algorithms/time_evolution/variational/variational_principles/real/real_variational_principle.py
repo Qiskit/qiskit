@@ -12,23 +12,19 @@
 
 """Class for a Real Variational Principle."""
 
-from abc import abstractmethod
-from typing import Union, Dict, Callable
+from abc import ABC
+from typing import Union
 
-from qiskit import QuantumCircuit
-from qiskit.algorithms.time_evolution.variational.variational_principles.variational_principle import (
+from qiskit.algorithms.time_evolution.variational.variational_principles.variational_principle \
+    import (
     VariationalPrinciple,
 )
-from qiskit.circuit import Parameter
 from qiskit.opflow import (
     CircuitQFI,
-    ListOp,
-    OperatorBase,
-    StateFn,
 )
 
 
-class RealVariationalPrinciple(VariationalPrinciple):
+class RealVariationalPrinciple(ABC, VariationalPrinciple):
     """Class for a Real Variational Principle."""
 
     def __init__(
@@ -46,37 +42,3 @@ class RealVariationalPrinciple(VariationalPrinciple):
             grad_method,
         )
 
-    @abstractmethod
-    def _get_metric_tensor(
-        self,
-        ansatz: QuantumCircuit,
-        parameters: Dict[Parameter, Union[float, complex]],
-    ) -> ListOp:
-        """
-        Calculates a metric tensor according to the rules of this variational principle.
-        Args:
-            ansatz: Quantum state to be used for calculating a metric tensor.
-            parameters: Parameters with respect to which gradients should be computed.
-        Returns:
-            Transformed metric tensor.
-        """
-        pass
-
-    @abstractmethod
-    def _get_evolution_grad(
-        self,
-        hamiltonian: OperatorBase,
-        ansatz: Union[StateFn, QuantumCircuit],
-        parameters: Dict[Parameter, Union[float, complex]],
-    ) -> Union[OperatorBase, Callable]:
-        """
-        Calculates an evolution gradient according to the rules of this variational principle.
-        Args:
-            hamiltonian: Observable for which an evolution gradient should be calculated,
-                        e.g., a Hamiltonian of a system.
-            ansatz: Quantum state to be used for calculating an evolution gradient.
-            parameters: Parameters with respect to which gradients should be computed.
-        Returns:
-            Transformed evolution gradient.
-        """
-        pass
