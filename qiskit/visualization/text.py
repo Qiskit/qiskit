@@ -775,7 +775,6 @@ class TextDrawing:
         self._bits_regs_map = get_bits_regs_map(
             self._circuit, (self.qubits + self.clbits), self.cregbundle
         )
-        # quantum register
         bit_labels = []
         for bit in self._bits_regs_map:
             if isinstance(bit, ClassicalRegister):

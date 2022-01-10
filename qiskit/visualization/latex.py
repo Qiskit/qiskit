@@ -81,8 +81,41 @@ class QCircuitImage:
         """
         self._qubits = qubits
         self._clbits = clbits
+
+        # list of lists corresponding to layers of the circuit
         self._nodes = nodes
+
+        # image scaling
         self._scale = 1.0 if scale is None else scale
+
+        # Map of cregs to sizes
+        self._cregs = {}
+
+        # Array to hold the \\LaTeX commands to generate a circuit image.
+        self._latex = []
+
+        # Variable to hold image depth (width)
+        self._img_depth = 0
+
+        # Variable to hold image width (height)
+        self._img_width = 0
+
+        # Variable to hold total circuit depth
+        self._sum_column_widths = 0
+
+        # Variable to hold total circuit width
+        self._sum_wire_heights = 0
+
+        # em points of separation between circuit columns
+        self._column_separation = 1
+
+        # em points of separation between circuit wire
+        self._wire_separation = 0
+
+        # presence of "box" or "target" determines wire spacing
+        self._has_box = False
+        self._has_target = False
+
         self._reverse_bits = reverse_bits
         self._plot_barriers = plot_barriers
         self._layout = layout
@@ -90,18 +123,6 @@ class QCircuitImage:
         self._cregbundle = cregbundle
         self._global_phase = global_phase
         self._circuit = circuit
-
-        self._img_depth = 0
-        self._img_width = 0
-        self._sum_column_widths = 0
-        self._sum_wire_heights = 0
-        self._column_separation = 1
-        self._wire_separation = 0
-
-        self._has_box = False
-        self._has_target = False
-
-        self._latex = []
 
         # If there is any custom instruction that uses classical bits
         # then cregbundle is forced to be False.

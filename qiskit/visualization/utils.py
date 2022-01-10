@@ -163,7 +163,7 @@ def get_param_str(op, drawer, ndigits=3):
 
 def get_bits_regs_map(circuit, bits, cregbundle):
     """Map the bits and registers to the index from the top of the drawing.
-    The key to the dict is either the (Qubit, Clbit) or if cregbunle True,
+    The key to the dict is either the (Qubit, Clbit) or if cregbundle True,
     the register that is being bundled.
 
     Args:
