@@ -19,6 +19,8 @@ from qiskit.circuit.exceptions import CircuitError
 
 # pylint: disable=cyclic-import
 from .quantumcircuit import QuantumCircuit
+from .parameter import Parameter
+from .parameterexpression import ParameterValueType
 from .gate import Gate
 from .quantumregister import QuantumRegister
 from ._utils import _ctrl_state_to_int
@@ -252,3 +254,14 @@ class ControlledGate(Gate):
     def inverse(self) -> "ControlledGate":
         """Invert this gate by calling inverse on the base gate."""
         return self.base_gate.inverse().control(self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
+
+    def assign_parameter(self, parameter: Parameter, value: ParameterValueType, index: int) -> None:
+        """Update this instruction where instances of ``parameter`` are replaced by ``value``.
+
+        Args:
+            parameter: Parameter to be bound
+            value: A numeric or parametric expression to replace instances of ``parameter``.
+            index: The index of the parameter within ``Instruction.params`` that we want to assign.
+        """
+        self.base_gate.definition.assign_parameters({parameter: value}, inplace=True)
+        super().assign_parameter(parameter, value, index)

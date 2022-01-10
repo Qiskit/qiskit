@@ -2584,41 +2584,10 @@ class QuantumCircuit:
                 and the parameter table to become out of sync, and the table now contains a
                 reference to a value that cannot be assigned.
         """
-        # the ControlledGate import on module-level creates a cyclic import issue, as
-        # the controlled gate file imports the QuantumCircuit
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.controlledgate import ControlledGate
-
         # parameter might be in global phase only
         if parameter in self._parameter_table.keys():
             for instr, param_index in self._parameter_table[parameter]:
-                assignee = instr.params[param_index]
-                # Normal ParameterExpression.
-                if isinstance(assignee, ParameterExpression):
-                    new_param = assignee.assign(parameter, value)
-                    # if fully bound, validate
-                    if len(new_param.parameters) == 0:
-                        instr.params[param_index] = instr.validate_parameter(new_param)
-                    else:
-                        instr.params[param_index] = new_param
-
-                    self._rebind_definition(instr, parameter, value)
-                # Scoped block of a larger instruction.
-                elif isinstance(assignee, QuantumCircuit):
-                    # It's possible that someone may re-use a loop body, so we need to mutate the
-                    # parameter vector with a new circuit, rather than mutating the body.
-                    instr.params[param_index] = assignee.assign_parameters({parameter: value})
-                else:
-                    raise RuntimeError(  # pragma: no cover
-                        "The ParameterTable or data of this QuantumCircuit have become out-of-sync."
-                        f"\nParameterTable: {self._parameter_table}"
-                        f"\nData: {self.data}"
-                    )
-
-                # If the circuit contains a ControlledGate, we also have to bind the parameter
-                # in the base_gate. See also issue #7486.
-                if isinstance(instr, ControlledGate):
-                    instr.base_gate.definition._assign_parameter(parameter, value)
+                instr.assign_parameter(param_index, parameter, value)
 
             if isinstance(value, ParameterExpression):
                 entry = self._parameter_table.pop(parameter)

@@ -39,9 +39,10 @@ import numpy
 
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.qobj.qasm_qobj import QasmQobjInstruction
-from qiskit.circuit.parameter import ParameterExpression
 from .tools import pi_check
 
 _CUTOFF_PRECISION = 1e-10
@@ -224,6 +225,49 @@ class Instruction:
         return any(
             isinstance(param, ParameterExpression) and param.parameters for param in self.params
         )
+
+    def assign_parameter(self, parameter: Parameter, value: ParameterValueType, index: int) -> None:
+        """Update this instruction where instances of ``parameter`` are replaced by ``value``.
+
+        Args:
+            parameter: Parameter to be bound
+            value: A numeric or parametric expression to replace instances of ``parameter``.
+            index: The index of the parameter within ``Instruction.params`` that we want to assign.
+        """
+        # parameter might be in global phase only
+        assignee = self.params[index]
+        # Normal ParameterExpression.
+        if isinstance(assignee, ParameterExpression):
+            new_param = assignee.assign(parameter, value)
+            # if fully bound, validate
+            if len(new_param.parameters) == 0:
+                self.params[index] = self.validate_parameter(new_param)
+            else:
+                self.params[index] = new_param
+
+            self._rebind_definition(self, parameter, value)
+        # Scoped block of a larger instruction.
+
+        # It's possible that someone may re-use a loop body, so we need to mutate the
+        # parameter vector with a new circuit, rather than mutating the body.
+        # Here we're not type checking for a quantum circuit to avoid the local import
+        # of the quantum circuit class (which would have to be local to avoid cyclic dependencies)
+        # but instead simply check if the assignee has the assign_parameters method
+        elif hasattr(assignee, "assign_parameters"):
+            self.params[index] = assignee.assign_parameters({parameter: value})
+
+    def _rebind_definition(
+        self, instruction: "Instruction", parameter: Parameter, value: ParameterValueType
+    ) -> None:
+        if instruction._definition:
+            for op, _, _ in instruction._definition:
+                for idx, param in enumerate(op.params):
+                    if isinstance(param, ParameterExpression) and parameter in param.parameters:
+                        if isinstance(value, ParameterExpression):
+                            op.params[idx] = param.subs({parameter: value})
+                        else:
+                            op.params[idx] = param.bind({parameter: value})
+                        self._rebind_definition(op, parameter, value)
 
     @property
     def definition(self):
