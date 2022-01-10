@@ -421,7 +421,7 @@ class ParameterExpression:
 
             return self._call(_log)
 
-    def abs(self):
+    def __abs__(self):
         """Absolute of a ParameterExpression"""
         if HAS_SYMENGINE:
             return self._call(symengine.Abs)
