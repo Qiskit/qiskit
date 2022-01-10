@@ -12,7 +12,7 @@
 
 """Utils for testing the standard gates."""
 
-from inspect import signature, Parameter, isclass
+from inspect import signature, Parameter
 
 
 def _get_free_params(fun, ignore=None):
@@ -27,14 +27,8 @@ def _get_free_params(fun, ignore=None):
     """
     ignore = ignore or []
     free_params = []
-    if isclass(fun):
-        fun = fun.__init__
     for name, param in signature(fun).parameters.items():
-        if (
-            param.default == Parameter.empty
-            and param.kind != Parameter.VAR_POSITIONAL
-            and name != "self"
-        ):
+        if param.default == Parameter.empty and param.kind != Parameter.VAR_POSITIONAL:
             if name not in ignore:
                 free_params.append(name)
     return free_params
