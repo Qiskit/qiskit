@@ -932,15 +932,16 @@ class MCXGate(ControlledGate):
         Depending on the number of controls and which mode of the MCX, this creates an
         explicit CX, CCX, C3X or C4X instance or a generic MCX gate.
         """
+
         # The CXGate and CCXGate will be implemented for all modes of the MCX, and
         # the C3XGate and C4XGate will be implemented in the MCXGrayCode class.
         explicit = {1: CXGate, 2: CCXGate}
+
         if num_ctrl_qubits in explicit:
             gate_class = explicit[num_ctrl_qubits]
-            gate = gate_class.__new__(gate_class, label=label, ctrl_state=ctrl_state)
-            # if __new__ does not return the same type as cls, init is not called
-            gate.__init__(label=label, ctrl_state=ctrl_state)
+            gate = gate_class(label=label, ctrl_state=ctrl_state)
             return gate
+
         return super().__new__(cls)
 
     def __init__(
@@ -1025,7 +1026,7 @@ class MCXGate(ControlledGate):
 
 # The following explicit classes exist for backward compatibility
 
-class MCXGrayCode:
+class MCXGrayCode(MCXGate):
     r"""Implement the multi-controlled X gate using the Gray code.
 
     This delegates the implementation to the MCU1 gate, since :math:`X = H \cdot U1(\pi) \cdot H`.
@@ -1042,19 +1043,15 @@ class MCXGrayCode:
         explicit = {1: CXGate, 2: CCXGate, 3: C3XGate, 4: C4XGate}
         if num_ctrl_qubits in explicit:
             gate_class = explicit[num_ctrl_qubits]
-            gate = gate_class.__new__(gate_class, label=label, ctrl_state=ctrl_state)
-            # if __new__ does not return the same type as cls, init is not called
-            gate.__init__(label=label, ctrl_state=ctrl_state)
-            return gate
+            gate = gate_class(label=label, ctrl_state=ctrl_state)
         else:
             from qiskit.synthesis.mcx_synthesis import MCXSynthesisGrayCode
-            synthesis = MCXSynthesisGrayCode()
-            gate = MCXGate.__new__(MCXGate, label=label, ctrl_state=ctrl_state)
-            gate.__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_gray", synthesis=synthesis)
-            return gate
+            gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state,
+                           _name="mcx_gray", synthesis=MCXSynthesisGrayCode())
+        return gate
 
 
-class MCXRecursive:
+class MCXRecursive(MCXGate):
     """Implement the multi-controlled X gate using recursion.
 
     Using a single ancilla qubit, the multi-controlled X gate is recursively split onto
@@ -1067,14 +1064,21 @@ class MCXRecursive:
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None
     ):
-        from qiskit.synthesis.mcx_synthesis import MCXSynthesisRecursive
-        synthesis = MCXSynthesisRecursive()
-        gate = MCXGate.__new__(MCXGate, label=label, ctrl_state=ctrl_state)
-        gate.__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_recursive", synthesis=synthesis)
+        """Create a new MCXRecursive instance"""
+
+        # if 1 to 2 control qubits, create explicit gates
+        explicit = {1: CXGate, 2: CCXGate}
+        if num_ctrl_qubits in explicit:
+            gate_class = explicit[num_ctrl_qubits]
+            gate = gate_class(label=label, ctrl_state=ctrl_state)
+        else:
+            from qiskit.synthesis.mcx_synthesis import MCXSynthesisRecursive
+            gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state,
+                           _name="mcx_recursive", synthesis=MCXSynthesisRecursive())
         return gate
 
 
-class MCXVChain:
+class MCXVChain(MCXGate):
     """Implement the multi-controlled X gate using a V-chain of CX gates."""
 
     def __new__(
@@ -1084,11 +1088,17 @@ class MCXVChain:
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
     ):
-        """Create a new MCX instance."""
-        from qiskit.synthesis.mcx_synthesis import MCXSynthesisVChain
-        synthesis = MCXSynthesisVChain(dirty_ancillas)
-        gate = MCXGate.__new__(MCXGate, label=label, ctrl_state=ctrl_state)
-        gate.__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_vchain", synthesis=synthesis)
+        """Create a new MCX instance with v-chain synthesis algorithm."""
+
+        # if 1 to 2 control qubits, create explicit gates
+        explicit = {1: CXGate, 2: CCXGate}
+        if num_ctrl_qubits in explicit:
+            gate_class = explicit[num_ctrl_qubits]
+            gate = gate_class(label=label, ctrl_state=ctrl_state)
+        else:
+            from qiskit.synthesis.mcx_synthesis import MCXSynthesisVChain
+            gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state,
+                           _name="mcx_vchain", synthesis=MCXSynthesisVChain(dirty_ancillas))
         return gate
 
 
