@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed a deprecation warning emitted when running
+    :meth:`.QuantumCircuit.draw` or :func:`.circuit_drawer` with Sympy 1.9
+    installed, mentioning the Sympy function ``expr_free_symbols()``.
+    The circuit drawers previously made use of this method when finding
+    instances of symbolic constants.

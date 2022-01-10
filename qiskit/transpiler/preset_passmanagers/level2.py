@@ -104,8 +104,22 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
     timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
     unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
+    target = pass_manager_config.target
 
-    # 1. Search for a perfect layout, or choose a dense layout, if no layout given
+    # 1. Unroll to 1q or 2q gates
+    _unroll3q = [
+        # Use unitary synthesis for basis aware decomposition of UnitaryGates
+        UnitarySynthesis(
+            basis_gates,
+            approximation_degree=approximation_degree,
+            method=unitary_synthesis_method,
+            min_qubits=3,
+            plugin_config=unitary_synthesis_plugin_config,
+        ),
+        Unroll3qOrMore(),
+    ]
+
+    # 2. Search for a perfect layout, or choose a dense layout, if no layout given
     _given_layout = SetLayout(initial_layout)
 
     def _choose_layout_condition(property_set):
@@ -151,23 +165,8 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     else:
         raise TranspilerError("Invalid layout method %s." % layout_method)
 
-    # 2. Extend dag/layout with ancillas using the full coupling map
+    # 3. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
-
-    # 3. Unroll to 1q or 2q gates
-    _unroll3q = [
-        # Use unitary synthesis for basis aware decomposition of UnitaryGates
-        UnitarySynthesis(
-            basis_gates,
-            approximation_degree=approximation_degree,
-            coupling_map=coupling_map,
-            backend_props=backend_properties,
-            method=unitary_synthesis_method,
-            min_qubits=3,
-            plugin_config=unitary_synthesis_plugin_config,
-        ),
-        Unroll3qOrMore(),
-    ]
 
     # 4. Swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
@@ -215,7 +214,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
                 plugin_config=unitary_synthesis_plugin_config,
             ),
             UnrollCustomDefinitions(sel, basis_gates),
-            BasisTranslator(sel, basis_gates),
+            BasisTranslator(sel, basis_gates, target),
         ]
     elif translation_method == "synthesis":
         _unroll = [
@@ -246,12 +245,12 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
         raise TranspilerError("Invalid translation method %s." % translation_method)
 
     # 6. Fix any bad CX directions
-    _direction_check = [CheckGateDirection(coupling_map)]
+    _direction_check = [CheckGateDirection(coupling_map, target)]
 
     def _direction_condition(property_set):
         return not property_set["is_direction_mapped"]
 
-    _direction = [GateDirection(coupling_map)]
+    _direction = [GateDirection(coupling_map, target)]
 
     # 7. Remove zero-state reset
     _reset = RemoveResetInZeroState()
@@ -303,15 +302,17 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
     # Build pass manager
     pm2 = PassManager()
     if coupling_map or initial_layout:
-        pm2.append(_unroll3q)
         pm2.append(_given_layout)
+        pm2.append(_unroll3q)
         pm2.append(_choose_layout_0, condition=_choose_layout_condition)
         pm2.append(_choose_layout_1, condition=_vf2_match_not_found)
         pm2.append(_embed)
         pm2.append(_swap_check)
         pm2.append(_swap, condition=_swap_condition)
     pm2.append(_unroll)
-    if coupling_map and not coupling_map.is_symmetric:
+    if (coupling_map and not coupling_map.is_symmetric) or (
+        target is not None and target.get_non_global_operation_names(strict_direction=True)
+    ):
         pm2.append(_direction_check)
         pm2.append(_direction, condition=_direction_condition)
     pm2.append(_reset)
