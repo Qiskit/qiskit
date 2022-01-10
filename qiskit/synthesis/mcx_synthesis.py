@@ -154,15 +154,15 @@ class MCXSynthesisVChain(MCXSynthesis):
         if self.dirty_ancillas:
             i = num_ctrl_qubits - 3
             ancilla_pre_rule = [
-                (U2Gate(0, numpy.pi), [q_target], []),
+                (HGate(), [q_target], []),
                 (CXGate(), [q_target, q_ancillas[i]], []),
-                (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
+                (PhaseGate(-numpy.pi / 4), [q_ancillas[i]], []),
                 (CXGate(), [q_controls[-1], q_ancillas[i]], []),
-                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
+                (PhaseGate(numpy.pi / 4), [q_ancillas[i]], []),
                 (CXGate(), [q_target, q_ancillas[i]], []),
-                (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
+                (PhaseGate(-numpy.pi / 4), [q_ancillas[i]], []),
                 (CXGate(), [q_controls[-1], q_ancillas[i]], []),
-                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
+                (PhaseGate(numpy.pi / 4), [q_ancillas[i]], []),
             ]
             for inst in ancilla_pre_rule:
                 definition.append(inst)
