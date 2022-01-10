@@ -44,6 +44,7 @@ from qiskit.visualization.utils import (
     get_param_str,
     get_bit_label,
     get_condition_label,
+    fix_special_characters,
     matplotlib_close_if_inline,
 )
 from qiskit.circuit.tools.pi_check import pi_check
@@ -451,20 +452,13 @@ class MatplotlibDrawer:
         initial_qbit = " |0>" if self._initial_state else ""
         initial_cbit = " 0" if self._initial_state else ""
 
-        def _fix_double_script(bit_label, size):
-            rep_count = bit_label.count("_")
-            if size > 1:
-                rep_count -= 1
-            bit_label = bit_label.replace("_", r"\_", rep_count).replace(" ", "\\;")
-            return bit_label
-
         # quantum register
         for ii, reg in enumerate(self._qubits):
             register = self._bit_locations[reg]["register"]
             index = self._bit_locations[reg]["index"]
             reg_size = 0 if register is None else register.size
             qubit_label = get_bit_label("mpl", register, index, qubit=True, layout=self._layout)
-            qubit_label = "$" + _fix_double_script(qubit_label, reg_size) + "$" + initial_qbit
+            qubit_label = "$" + fix_special_characters(qubit_label, reg_size) + "$" + initial_qbit
 
             reg_single = 0 if reg_size < 2 else 1
             text_width = self._get_text_width(qubit_label, self._fs, reg=reg_single) * 1.15
@@ -497,7 +491,7 @@ class MatplotlibDrawer:
                     "mpl", register, index, qubit=False, cregbundle=self._cregbundle
                 )
                 if register is None or not self._cregbundle:
-                    clbit_label = _fix_double_script(clbit_label, reg_size)
+                    clbit_label = fix_special_characters(clbit_label, reg_size)
                     clbit_label = "$" + clbit_label + "$"
                 clbit_label += initial_cbit
 

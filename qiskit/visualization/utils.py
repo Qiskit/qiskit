@@ -272,6 +272,14 @@ def get_condition_label(condition, clbits, bit_locations, cregbundle):
     return label, clbit_mask, vlist
 
 
+def fix_special_characters(bit_label, size, cregbundle=False):
+    rep_count = bit_label.count("_")
+    if size > 1 and not cregbundle:
+        rep_count -= 1
+    bit_label = bit_label.replace("_", r"\_", rep_count).replace(" ", "\\;")
+    return bit_label
+
+
 def generate_latex_label(label):
     """Convert a label to a valid latex string."""
     if not HAS_PYLATEX:
