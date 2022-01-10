@@ -44,7 +44,7 @@ def calculate(
     Returns:
         Parametrized evolution gradient as an OperatorBase.
     """
-    operator = ~StateFn(observable) @ StateFn(ansatz)
+    operator = StateFn(observable, is_measurement=True) @ StateFn(ansatz)
     if grad_method == "lin_comb":
         return LinComb().convert(operator, parameters, aux_meas_op=basis)
     return Gradient(grad_method).convert(operator, parameters)
