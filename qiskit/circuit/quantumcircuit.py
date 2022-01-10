@@ -2587,7 +2587,7 @@ class QuantumCircuit:
         # parameter might be in global phase only
         if parameter in self._parameter_table.keys():
             for instr, param_index in self._parameter_table[parameter]:
-                instr.assign_parameter(param_index, parameter, value)
+                instr.assign_parameter(parameter, value, param_index)
 
             if isinstance(value, ParameterExpression):
                 entry = self._parameter_table.pop(parameter)
