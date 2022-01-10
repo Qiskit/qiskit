@@ -110,8 +110,14 @@ class PauliEvolutionGate(Gate):
     def validate_parameter(
         self, parameter: Union[int, float, ParameterExpression]
     ) -> Union[float, ParameterExpression]:
-        """Gate parameters should be int, float, or ParameterExpression"""
+        """Gate parameters should be int, float, or ParameterExpression.
+
+        If the parameter is a fully bound ParameterExpression, it must be cast to a number otherwise
+        synthesis methods relying on the numerical value (like MatrixExponential) might fail.
+        """
         if isinstance(parameter, int):
+            parameter = float(parameter)
+        if isinstance(parameter, ParameterExpression) and len(parameter.parameters) == 0:
             parameter = float(parameter)
 
         return super().validate_parameter(parameter)
