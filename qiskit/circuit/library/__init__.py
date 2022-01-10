@@ -17,7 +17,7 @@ Circuit Library (:mod:`qiskit.circuit.library`)
 
 .. currentmodule:: qiskit.circuit.library
 
-Circuit Library is a collection of well studied circuits, instructions, and gates that can be plugged
+Circuit Library is a collection of well studied circuits, directives, and gates that can be plugged
 into many experiments allowing users to program at higher levels of abstraction when developing and
 experimenting with circuits.
 
@@ -35,8 +35,26 @@ Any element of the circuit library can be attached to a circuit with the method
     circuit.append(gate, [0, 1, 4, 2, 3])
     circuit.draw('text')
 
+The library is organized in several sections.
+
 Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
 ==============
+
+These instructions are reversible unitary gates and they all subclass
+:class:`qiskit.circuit.gate.Gate`. As a consequence, they all have the methods
+:meth:~`qiskit.circuit.gate.Gate.to_matrix`, :meth:~`qiskit.circuit.gate.Gate.power`,
+and :meth:~`qiskit.circuit.gate.Gate.control`.
+
+For example:
+
+.. jupyter-execute::
+
+    from qiskit.circuit.library import XGate
+    gate = XGate()
+    print(gate.to_matrix())             # X gate
+    print(gate.power(1/2).to_matrix())  # √X gate
+    print(gate.control(1).to_matrix())  # CX (controlled X) gate
+
 
 .. autosummary::
    :toctree: ../stubs/
@@ -104,6 +122,9 @@ Standard Directives
 ..
     This summary table deliberately does not generate toctree entries; these directives are "owned"
     by ``qiskit.circuit``.
+
+Directives are instructions to the quantum stack that are not reversible. They are all interpreted
+by the backend.
 
 .. autosummary::
 
