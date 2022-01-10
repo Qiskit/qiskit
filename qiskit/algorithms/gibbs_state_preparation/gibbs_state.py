@@ -113,19 +113,7 @@ class GibbsState:
                         provided or if any of the provided gradient parameters is not present in an
                         ansatz that gave rise to a Gibbs state.
         """
-        if not gradient_params:
-            raise ValueError("Could not calculate gradients because gradient_params not set.")
-        if not self._ansatz or not self._ansatz_params_dict:
-            raise ValueError(
-                "Both ansatz and ansatz_params_dict must be present in the class to compute "
-                "gradients."
-            )
-        for param in gradient_params:
-            if param not in self._ansatz.parameters:
-                raise ValueError(
-                    f"Provided parameter {param} not present in an ansatz that gave rise to the "
-                    f"Gibbs state. "
-                )
+        self._validate_arguments(gradient_params)
         op = ~StateFn(measurement_op) @ CircuitStateFn(self._ansatz)
 
         state_grad = Gradient(grad_method=gradient_method).convert(
@@ -160,19 +148,7 @@ class GibbsState:
                         provided or if any of the provided gradient parameters is not present in an
                         ansatz that gave rise to a Gibbs state.
         """
-        if not gradient_params:
-            raise ValueError("Could not calculate gradients because gradient_params not set.")
-        if not self._ansatz or not self._ansatz_params_dict:
-            raise ValueError(
-                "Both ansatz and ansatz_params_dict must be present in the class to compute "
-                "gradients."
-            )
-        for param in gradient_params:
-            if param not in self._ansatz.parameters:
-                raise ValueError(
-                    f"Provided parameter {param} not present in an ansatz that gave rise to the "
-                    f"Gibbs state. "
-                )
+        self._validate_arguments(gradient_params)
         ansatz_gradients = self.calc_ansatz_gradients(
             gradient_params, measurement_op, gradient_method
         )
@@ -186,3 +162,18 @@ class GibbsState:
             gibbs_state_hamiltonian_gradients[hamiltonian_parameter] = summed_gradient
 
         return gibbs_state_hamiltonian_gradients
+
+    def _validate_arguments(self, gradient_params):
+        if not gradient_params:
+            raise ValueError("Could not calculate gradients because gradient_params not set.")
+        if not self._ansatz or not self._ansatz_params_dict:
+            raise ValueError(
+                "Both ansatz and ansatz_params_dict must be present in the class to compute "
+                "gradients."
+            )
+        for param in gradient_params:
+            if param not in self._ansatz.parameters:
+                raise ValueError(
+                    f"Provided parameter {param} not present in an ansatz that gave rise to the "
+                    f"Gibbs state. "
+                )
