@@ -1178,7 +1178,10 @@ class TestParameterExpressions(QiskitTestCase):
 
         x = Parameter("x")
         bound_expr = x.bind({x: 2.3})
+
         self.assertEqual(bound_expr, 2.3)
+        self.assertTrue(bound_expr < 3.0)
+        self.assertTrue(bound_expr > 1.0)
 
     def test_cast_to_float_when_bound(self):
         """Verify expression can be cast to a float when fully bound."""

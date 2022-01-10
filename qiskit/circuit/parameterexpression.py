@@ -421,15 +421,6 @@ class ParameterExpression:
 
             return self._call(_log)
 
-    def __abs__(self):
-        """Absolute of a ParameterExpression"""
-        if HAS_SYMENGINE:
-            return self._call(symengine.Abs)
-        else:
-            from sympy import Abs as _abs
-
-            return self._call(_abs)
-
     def __repr__(self):
         return f"{self.__class__.__name__}({str(self)})"
 
@@ -477,6 +468,15 @@ class ParameterExpression:
     def __deepcopy__(self, memo=None):
         return self
 
+    def __abs__(self):
+        """Absolute of a ParameterExpression"""
+        if HAS_SYMENGINE:
+            return self._call(symengine.Abs)
+        else:
+            from sympy import Abs as _abs
+
+            return self._call(_abs)
+
     def __eq__(self, other):
         """Check if this parameter expression is equal to another parameter expression
            or a fixed value (only if this is a bound expression).
@@ -498,6 +498,52 @@ class ParameterExpression:
         elif isinstance(other, numbers.Number):
             return len(self.parameters) == 0 and complex(self._symbol_expr) == other
         return False
+
+    def __lt__(self, other):
+        """Check if this parameter expression is less than another parameter expression
+           or a fixed value (only if this is a bound expression).
+        Args:
+            other (ParameterExpression or a number):
+                Parameter expression or numeric constant used for comparison
+        Returns:
+            bool: result of the comparison
+        """
+        if isinstance(other, ParameterExpression):
+            if HAS_SYMENGINE:
+                from sympy import sympify
+
+                return sympify(self._symbol_expr).__lt__(sympify(other._symbol_expr))
+            else:
+                return self._symbol_expr.__lt__(other._symbol_expr)
+        elif isinstance(other, numbers.Number):
+            return len(self.parameters) == 0 and float(self._symbol_expr) < other
+        return False
+
+    def __gt__(self, other):
+        """Check if this parameter expression is greater than another parameter expression
+           or a fixed value (only if this is a bound expression).
+        Args:
+            other (ParameterExpression or a number):
+                Parameter expression or numeric constant used for comparison
+        Returns:
+            bool: result of the comparison
+        """
+        if isinstance(other, ParameterExpression):
+            if HAS_SYMENGINE:
+                from sympy import sympify
+
+                return sympify(self._symbol_expr).__gt__(sympify(other._symbol_expr))
+            else:
+                return self._symbol_expr.__gt__(other._symbol_expr)
+        elif isinstance(other, numbers.Number):
+            return len(self.parameters) == 0 and float(self._symbol_expr) > other
+        return False
+
+    def __ge__(self, other):
+        return not self.__lt__(other)
+
+    def __le__(self, other):
+        return not self.__gt__(other)
 
     def __getstate__(self):
         if HAS_SYMENGINE:
