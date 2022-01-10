@@ -16,7 +16,7 @@ from typing import Optional, Union, Dict, List
 
 from scipy.integrate import OdeSolver
 
-from qiskit.algorithms.time_evolution.evolution_base import EvolutionBase
+from qiskit.algorithms.time_evolution.imaginary.qite import Qite
 
 from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors.imaginary_error_calculator import (
     ImaginaryErrorCalculator,
@@ -38,7 +38,7 @@ from qiskit.providers import BaseBackend
 from qiskit.utils import QuantumInstance
 
 
-class VarQite(VarQte, EvolutionBase):
+class VarQite(VarQte, Qite):
     """Variational Quantum Imaginary Time Evolution algorithm."""
 
     def __init__(
