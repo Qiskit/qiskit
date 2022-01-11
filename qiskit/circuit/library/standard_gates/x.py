@@ -985,7 +985,7 @@ class MCXGate(ControlledGate):
 
     def _define(self):
         """The standard definition used the Gray code implementation."""
-        self.definition = self.synthesis.synthesize(self.num_ctrl_qubits)
+        self.definition = self.synthesis.synthesize(self)
 
     @property
     def num_ancilla_qubits(self):
