@@ -74,13 +74,13 @@ class LinearFunction(Gate):
 
         if isinstance(linear, QuantumCircuit):
             # The following function will raise a CircuitError if there are nonlinear gates.
-            self._mat = _linear_quantum_circuit_to_mat(linear)
+            self._linear = _linear_quantum_circuit_to_mat(linear)
 
         else:
             # Normalize to numpy array (coercing entries to 0s and 1s)
             ok = True
             try:
-                self._mat = np.array(linear, dtype=bool, copy=False)
+                self._linear = np.array(linear, dtype=bool, copy=True)
             except ValueError:
                 ok = False
 
@@ -88,7 +88,7 @@ class LinearFunction(Gate):
                 raise CircuitError("A linear function must be represented by a square matrix.")
 
             # Check that the matrix is square
-            if not len(self._mat.shape) == 2 or self._mat.shape[0] != self._mat.shape[1]:
+            if not len(self._linear.shape) == 2 or self._linear.shape[0] != self._linear.shape[1]:
                 raise CircuitError("A linear function must be represented by a square matrix.")
 
             # Optionally, check that the matrix is invertible
@@ -99,7 +99,7 @@ class LinearFunction(Gate):
                         "A linear function must be represented by an invertible matrix."
                     )
 
-        super().__init__(name="linear_function", num_qubits=len(self._mat), params=[])
+        super().__init__(name="linear_function", num_qubits=len(self._linear), params=[])
 
     def _define(self):
         """Populates self.definition with a decomposition of this gate."""
@@ -113,12 +113,12 @@ class LinearFunction(Gate):
         """
         from qiskit.transpiler.synthesis import cnot_synth
 
-        return cnot_synth(self._mat)
+        return cnot_synth(self._linear)
 
     @property
-    def matrix(self):
+    def linear(self):
         """Returns the n x n matrix representing this linear function"""
-        return self._mat
+        return self._linear
 
 
 def _linear_quantum_circuit_to_mat(qc: QuantumCircuit):
