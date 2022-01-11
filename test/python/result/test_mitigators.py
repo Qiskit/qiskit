@@ -494,12 +494,12 @@ class TestReadoutMitigation(QiskitTestCase):
 class TestLocalReadoutMitigation(QiskitTestCase):
     def test_assignment_matrix(self):
         qubits = [0, 2, 3]
-        mitigation_matrices = [
+        assignment_matrices = [
             np.array([[0.98828125, 0.04003906], [0.01171875, 0.95996094]]),
             np.array([[0.99023438, 0.02929688], [0.00976562, 0.97070312]]),
             np.array([[0.984375, 0.02441406], [0.015625, 0.97558594]]),
         ]
-        expected_assignment_matrix = np.array([[ 1.03929190e+00, -4.33478790e-02, -3.13669642e-02,  1.30828632e-03,
+        expected_mitigation_matrix = np.array([[ 1.03929190e+00, -4.33478790e-02, -3.13669642e-02,  1.30828632e-03,
   -2.60083030e-02,  1.08478164e-03,  7.84958982e-04, -3.27398944e-05],
  [-1.26871849e-02,  1.06995259e+00,  3.82913092e-04, -3.22923375e-02,
    3.17497086e-04, -2.67755876e-02, -9.58240871e-06,  8.08116468e-04],
@@ -515,13 +515,16 @@ class TestLocalReadoutMitigation(QiskitTestCase):
   -1.05498426e-02,  4.40023925e-04,  1.06975459e+00, -4.46184491e-02],
  [-2.04424601e-06,  1.72398080e-04,  2.07286652e-04, -1.74811743e-02,
    1.28787498e-04, -1.08610790e-02, -1.30590591e-02,  1.10131398e+00]])
-        LRM = LocalReadoutMitigator(mitigation_matrices, qubits)
+        LRM = LocalReadoutMitigator(assignment_matrices, qubits)
         self.assertTrue(
             matrix_equal(
-                expected_assignment_matrix,
+                expected_mitigation_matrix,
                 LRM.mitigation_matrix()
             )
         )
 
 if __name__ == "__main__":
-    unittest.main()
+    assignment_matirx = np.array([
+        []
+    ])
+    # unittest.main()
