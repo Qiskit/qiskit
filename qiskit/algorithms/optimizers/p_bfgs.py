@@ -15,6 +15,7 @@
 import logging
 import multiprocessing
 import platform
+import sys
 import warnings
 from typing import Optional, List, Tuple, Callable
 
@@ -144,8 +145,7 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
             # default. The fork start method should be considered unsafe as it can
             # lead to crashes.
             # However P_BFGS doesn't support spawn, so we revert to single process.
-            major, minor, _ = platform.python_version_tuple()
-            if major > "3" or (major == "3" and minor >= "8"):
+            if sys.version_info >= (3, 8):
                 num_procs = 0
                 logger.warning(
                     "For MacOS, python >= 3.8, using only current process. "

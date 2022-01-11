@@ -24,7 +24,6 @@ Standard Gates
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
 
-   Barrier
    C3XGate
    C3SXGate
    C4XGate
@@ -50,12 +49,10 @@ Standard Gates
    MCXGrayCode
    MCXRecursive
    MCXVChain
-   Measure
    MSGate
    PhaseGate
    RCCXGate
    RC3XGate
-   Reset
    RGate
    RXGate
    RXXGate
@@ -81,6 +78,19 @@ Standard Gates
    XGate
    YGate
    ZGate
+
+Standard Directives
+===================
+
+..
+    This summary table deliberately does not generate toctree entries; these directives are "owned"
+    by ``qiskit.circuit``.
+
+.. autosummary::
+
+   ~qiskit.circuit.Barrier
+   ~qiskit.circuit.Measure
+   ~qiskit.circuit.Reset
 
 Generalized Gates
 =================
