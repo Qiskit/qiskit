@@ -37,129 +37,6 @@ from qiskit.quantum_info.operators.predicates import matrix_equal
 
 class TestReadoutMitigation(QiskitTestCase):
     """Tests for correlated and local readout mitigation."""
-
-    # test_data = {
-    #     "test_1": {
-    #         "local_method_matrices": [
-    #             array([[0.996525, 0.002], [0.003475, 0.998]]),
-    #             array([[0.991175, 0.00415], [0.008825, 0.99585]]),
-    #             array([[0.9886, 0.00565], [0.0114, 0.99435]]),
-    #         ],
-    #         "correlated_method_matrix": array(
-    #             [
-    #                 [
-    #                     9.771e-01,
-    #                     1.800e-03,
-    #                     4.600e-03,
-    #                     0.000e00,
-    #                     5.600e-03,
-    #                     0.000e00,
-    #                     0.000e00,
-    #                     0.000e00,
-    #                 ],
-    #                 [
-    #                     3.200e-03,
-    #                     9.799e-01,
-    #                     0.000e00,
-    #                     3.400e-03,
-    #                     0.000e00,
-    #                     5.800e-03,
-    #                     0.000e00,
-    #                     1.000e-04,
-    #                 ],
-    #                 [
-    #                     8.000e-03,
-    #                     0.000e00,
-    #                     9.791e-01,
-    #                     2.400e-03,
-    #                     1.000e-04,
-    #                     0.000e00,
-    #                     5.700e-03,
-    #                     0.000e00,
-    #                 ],
-    #                 [
-    #                     0.000e00,
-    #                     8.300e-03,
-    #                     3.200e-03,
-    #                     9.834e-01,
-    #                     0.000e00,
-    #                     0.000e00,
-    #                     0.000e00,
-    #                     5.300e-03,
-    #                 ],
-    #                 [
-    #                     1.170e-02,
-    #                     0.000e00,
-    #                     0.000e00,
-    #                     0.000e00,
-    #                     9.810e-01,
-    #                     2.500e-03,
-    #                     5.000e-03,
-    #                     0.000e00,
-    #                 ],
-    #                 [
-    #                     0.000e00,
-    #                     9.900e-03,
-    #                     0.000e00,
-    #                     0.000e00,
-    #                     3.900e-03,
-    #                     9.823e-01,
-    #                     0.000e00,
-    #                     3.500e-03,
-    #                 ],
-    #                 [
-    #                     0.000e00,
-    #                     0.000e00,
-    #                     1.310e-02,
-    #                     0.000e00,
-    #                     9.400e-03,
-    #                     1.000e-04,
-    #                     9.857e-01,
-    #                     1.200e-03,
-    #                 ],
-    #                 [
-    #                     0.000e00,
-    #                     1.000e-04,
-    #                     0.000e00,
-    #                     1.080e-02,
-    #                     0.000e00,
-    #                     9.300e-03,
-    #                     3.600e-03,
-    #                     9.899e-01,
-    #                 ],
-    #             ]
-    #         ),
-    #         "num_qubits": 3,
-    #         "shots": 10000,
-    #         "circuits": {
-    #             "ghz_3_qubits": {
-    #                 "counts_ideal": {"111": 5000, "000": 5000},
-    #                 "counts_noise": {
-    #                     "111": 4955,
-    #                     "000": 4886,
-    #                     "001": 16,
-    #                     "100": 46,
-    #                     "010": 36,
-    #                     "101": 23,
-    #                     "011": 29,
-    #                     "110": 9,
-    #                 },
-    #             },
-    #             "first_qubit_h_3_qubits": {
-    #                 "counts_ideal": {"000": 5000, "001": 5000},
-    #                 "counts_noise": {
-    #                     "000": 4844,
-    #                     "001": 4962,
-    #                     "100": 56,
-    #                     "101": 65,
-    #                     "011": 37,
-    #                     "010": 35,
-    #                     "110": 1,
-    #                 },
-    #             },
-    #         },
-    #     }
-    # }
     rng = np.random.default_rng(42)
 
     @staticmethod
@@ -184,32 +61,6 @@ class TestReadoutMitigation(QiskitTestCase):
         LRM = LocalReadoutMitigator(assignment_matrices, qubits)
         mitigators = [CRM, LRM]
         return mitigators
-
-    # @staticmethod
-    # def prepare_test_data(assignment_matrices, circuits, shots=1024):
-    #     full_assignment_matrix = assignment_matrices[0]
-    #     for m in assignment_matrices[1:]:
-    #         full_assignment_matrix = full_assignment_matrix.kron(m)
-    #     num_qubits = len(assignment_matrices)
-    #     ideal_assignment_matrix = np.eye(2**num_qubits)
-    #     circuit_results = {}
-    #     for (circuit_name, circuit) in circuits.items():
-    #         result = {
-    #             "counts_ideal": TestReadoutMitigation.simulate_circuit(circuit,
-    #                                                   ideal_assignment_matrix,
-    #                                                   num_qubits, shots),
-    #             "counts_noise": TestReadoutMitigation.simulate_circuit(circuit, full_assignment_matrix, num_qubits, shots)
-    #         }
-    #         circuit_results[circuit_name] = result
-    #
-    #     test_data = {
-    #         "local_method_matrices": assignment_matrices,
-    #         "correlated_method_matrix": full_assignment_matrix,
-    #         "num_qubits": num_qubits,
-    #         "shots": shots,
-    #         "circuits": circuit_results
-    #     }
-    #     return test_data
 
     @staticmethod
     def simulate_circuit(circuit, assignment_matrix, num_qubits, shots=1024):
@@ -243,16 +94,6 @@ class TestReadoutMitigation(QiskitTestCase):
             np.array([[0.984375, 0.02441406], [0.015625, 0.97558594]]),
         ]
         return assignment_matrices
-        # result.append((assignment_matrices, 3))
-
-    # @staticmethod
-    # def test_data_list():
-    #     result = []
-    #     for ((c,c_qubits), (m, m_qubits)) in itertools.product(TestReadoutMitigation.circuits(),
-    #                                                            TestReadoutMitigation.assignment_matrices()):
-    #         if c_qubits == m_qubits:
-    #             result.append(TestReadoutMitigation.prepare_test_data(m,c))
-    #     return result
 
     @staticmethod
     def counts_data(circuit, assignment_matrices, shots=1024):
