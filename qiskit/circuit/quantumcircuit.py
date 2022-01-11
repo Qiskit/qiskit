@@ -3888,13 +3888,14 @@ class QuantumCircuit:
             ValueError: if the given mode is not known, or if too few ancilla qubits are passed.
             AttributeError: if no ancilla qubits are passed, but some are needed.
         """
-        from .library.standard_gates.x import MCXGate
-        from qiskit.synthesis.mcx_synthesis import mcx_mode_to_num_ancilla_qubits, mcx_declaration_to_gate
+        from qiskit.synthesis.mcx_synthesis import (
+            mcx_mode_to_num_ancilla_qubits,
+            mcx_mode_to_gate,
+        )
 
         num_ctrl_qubits = len(control_qubits)
         num_required_ancilla_qubits = mcx_mode_to_num_ancilla_qubits(num_ctrl_qubits, mode)
-        gate = mcx_declaration_to_gate(num_ctrl_qubits, mode)
-
+        gate = mcx_mode_to_gate(num_ctrl_qubits, mode)
 
         # check ancilla input
         if ancilla_qubits:
@@ -3902,7 +3903,9 @@ class QuantumCircuit:
 
         if num_required_ancilla_qubits > 0:
             if ancilla_qubits is None:
-                raise AttributeError(f"No ancillas provided, but {num_required_ancilla_qubits} are needed!")
+                raise AttributeError(
+                    f"No ancillas provided, but {num_required_ancilla_qubits} are needed!"
+                )
 
             # convert ancilla qubits to a list if they were passed as int or qubit
             if not hasattr(ancilla_qubits, "__len__"):
@@ -3910,7 +3913,9 @@ class QuantumCircuit:
 
             if len(ancilla_qubits) < num_required_ancilla_qubits:
                 actually = len(ancilla_qubits)
-                raise ValueError(f"At least {num_required_ancilla_qubits} ancillas required, but {actually} given.")
+                raise ValueError(
+                    f"At least {num_required_ancilla_qubits} ancillas required, but {actually} given."
+                )
             # size down if too many ancillas were provided
             ancilla_qubits = ancilla_qubits[:num_required_ancilla_qubits]
         else:

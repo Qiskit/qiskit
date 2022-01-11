@@ -14,7 +14,6 @@
 
 from typing import Optional, Union
 import warnings
-from math import ceil
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
@@ -919,18 +918,21 @@ class C4XGate(ControlledGate):
 class MCXGate(ControlledGate):
     """The general, multi-controlled X gate."""
 
+    # pylint: disable=unused-argument
     def __new__(
         cls,
         num_ctrl_qubits: Optional[int] = None,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
-        _name="mcx",
         synthesis=None,
+        _name="mcx",
     ):
         """Create a new MCX instance.
 
         Depending on the number of controls and which mode of the MCX, this creates an
         explicit CX, CCX, C3X or C4X instance or a generic MCX gate.
+
+        The synthesis argument refers to the synthesis algorithm for implementing the gate.
         """
 
         # The CXGate and CCXGate will be implemented for all modes of the MCX, and
@@ -949,12 +951,14 @@ class MCXGate(ControlledGate):
         num_ctrl_qubits: int,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
-        _name="mcx",
         synthesis=None,
+        _name="mcx",
     ):
         """Create new MCX gate."""
         if synthesis is None:
+            # pylint: disable=cyclic-import
             from qiskit.synthesis.mcx_synthesis import MCXSynthesisGrayCode
+
             synthesis = MCXSynthesisGrayCode()
         self.synthesis = synthesis
 
@@ -972,8 +976,12 @@ class MCXGate(ControlledGate):
 
     def inverse(self):
         """Invert this gate. The MCX is its own inverse."""
-        return MCXGate(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state,
-                       _name=self.name, synthesis=self.synthesis)
+        return MCXGate(
+            num_ctrl_qubits=self.num_ctrl_qubits,
+            ctrl_state=self.ctrl_state,
+            synthesis=self.synthesis,
+            _name=self.name,
+        )
 
     def _define(self):
         """The standard definition used the Gray code implementation."""
@@ -1006,8 +1014,8 @@ class MCXGate(ControlledGate):
                 self.num_ctrl_qubits + num_ctrl_qubits,
                 label=label,
                 ctrl_state=ctrl_state,
+                synthesis=self.synthesis,
                 _name=self.name,
-                synthesis=self.synthesis
             )
             gate.base_gate.label = self.label
             return gate
@@ -1017,14 +1025,20 @@ class MCXGate(ControlledGate):
     def get_num_ancilla_qubits(num_ctrl_qubits: int, mode: str = "noancilla") -> int:
         """Get the number of required ancilla qubits without instantiating the class.
 
-        This staticmethod might be necessary to check the number of ancillas before
+        This static method might be necessary to check the number of ancillas before
         creating the gate, or to use the number of ancillas in the initialization.
         """
+        # pylint: disable=cyclic-import
         from qiskit.synthesis.mcx_synthesis import mcx_mode_to_num_ancilla_qubits
+
         return mcx_mode_to_num_ancilla_qubits(num_ctrl_qubits, mode)
 
 
-# The following explicit classes exist for backward compatibility
+# The following explicit classes remain for backward compatibility.
+# The __new__ method is modified to return the MCX gate with the matching synthesis algorithm
+# (or, as previously, an explicit few-qubit gate).
+# These classes still inherit from MCXGate and in particular from ControlledGate.
+
 
 class MCXGrayCode(MCXGate):
     r"""Implement the multi-controlled X gate using the Gray code.
@@ -1032,11 +1046,12 @@ class MCXGrayCode(MCXGate):
     This delegates the implementation to the MCU1 gate, since :math:`X = H \cdot U1(\pi) \cdot H`.
     """
 
+    # pylint: disable=signature-differs
     def __new__(
         cls,
         num_ctrl_qubits: Optional[int] = None,
         label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None
+        ctrl_state: Optional[Union[str, int]] = None,
     ):
         """Create a new MCXGrayCode instance"""
         # if 1 to 4 control qubits, create explicit gates
@@ -1045,9 +1060,16 @@ class MCXGrayCode(MCXGate):
             gate_class = explicit[num_ctrl_qubits]
             gate = gate_class(label=label, ctrl_state=ctrl_state)
         else:
+            # pylint: disable=cyclic-import
             from qiskit.synthesis.mcx_synthesis import MCXSynthesisGrayCode
-            gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state,
-                           _name="mcx_gray", synthesis=MCXSynthesisGrayCode())
+
+            gate = MCXGate(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                synthesis=MCXSynthesisGrayCode(),
+                _name="mcx_gray",
+            )
         return gate
 
 
@@ -1058,11 +1080,13 @@ class MCXRecursive(MCXGate):
     four sub-registers. This is done until we reach the 3- or 4-controlled X gate since
     for these we have a concrete implementation that do not require ancillas.
     """
+
+    # pylint: disable=signature-differs
     def __new__(
         cls,
         num_ctrl_qubits: Optional[int] = None,
         label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None
+        ctrl_state: Optional[Union[str, int]] = None,
     ):
         """Create a new MCXRecursive instance"""
 
@@ -1072,15 +1096,23 @@ class MCXRecursive(MCXGate):
             gate_class = explicit[num_ctrl_qubits]
             gate = gate_class(label=label, ctrl_state=ctrl_state)
         else:
+            # pylint: disable=cyclic-import
             from qiskit.synthesis.mcx_synthesis import MCXSynthesisRecursive
-            gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state,
-                           _name="mcx_recursive", synthesis=MCXSynthesisRecursive())
+
+            gate = MCXGate(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                synthesis=MCXSynthesisRecursive(),
+                _name="mcx_recursive",
+            )
         return gate
 
 
 class MCXVChain(MCXGate):
     """Implement the multi-controlled X gate using a V-chain of CX gates."""
 
+    # pylint: disable=signature-differs
     def __new__(
         cls,
         num_ctrl_qubits: Optional[int] = None,
@@ -1096,10 +1128,14 @@ class MCXVChain(MCXGate):
             gate_class = explicit[num_ctrl_qubits]
             gate = gate_class(label=label, ctrl_state=ctrl_state)
         else:
+            # pylint: disable=cyclic-import
             from qiskit.synthesis.mcx_synthesis import MCXSynthesisVChain
-            gate = MCXGate(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state,
-                           _name="mcx_vchain", synthesis=MCXSynthesisVChain(dirty_ancillas))
+
+            gate = MCXGate(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                synthesis=MCXSynthesisVChain(dirty_ancillas),
+                _name="mcx_vchain",
+            )
         return gate
-
-
-
