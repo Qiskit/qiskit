@@ -38,7 +38,7 @@ Any element of the circuit library can be attached to a circuit with the method
 The library is organized in several sections.
 
 Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
-==============
+=============================================================
 
 These instructions are reversible unitary gates and they all subclass
 :class:`qiskit.circuit.gate.Gate`. As a consequence, they all have the methods
