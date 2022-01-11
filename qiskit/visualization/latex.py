@@ -29,7 +29,6 @@ from .utils import (
     get_bit_label,
     generate_latex_label,
     get_condition_label,
-    fix_special_characters,
 )
 
 
@@ -227,7 +226,6 @@ class QCircuitImage:
             index = self._bit_locations[reg]["index"]
             reg_size = 0 if register is None else register.size
             qubit_label = get_bit_label("latex", register, index, qubit=True, layout=self.layout)
-            qubit_label = fix_special_characters(qubit_label, reg_size)
             qubit_label += " : "
             if self.initial_state:
                 qubit_label += "\\ket{{0}}"
@@ -247,7 +245,6 @@ class QCircuitImage:
                 if self.cregbundle and register is not None:
                     self._latex[ii][1] = "\\lstick{/_{_{" + str(register.size) + "}}} \\cw"
                     offset += register.size - 1
-                clbit_label = fix_special_characters(clbit_label, reg_size, self.cregbundle)
                 clbit_label += " : "
                 if self.initial_state:
                     clbit_label += "0"

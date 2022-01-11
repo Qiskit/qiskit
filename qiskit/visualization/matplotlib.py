@@ -44,7 +44,6 @@ from qiskit.visualization.utils import (
     get_param_str,
     get_bit_label,
     get_condition_label,
-    fix_special_characters,
     matplotlib_close_if_inline,
 )
 from qiskit.circuit.tools.pi_check import pi_check
@@ -458,7 +457,7 @@ class MatplotlibDrawer:
             index = self._bit_locations[reg]["index"]
             reg_size = 0 if register is None else register.size
             qubit_label = get_bit_label("mpl", register, index, qubit=True, layout=self._layout)
-            qubit_label = "$" + fix_special_characters(qubit_label, reg_size) + "$" + initial_qbit
+            qubit_label = "$" + qubit_label + "$" + initial_qbit
 
             reg_single = 0 if reg_size < 2 else 1
             text_width = self._get_text_width(qubit_label, self._fs, reg=reg_single) * 1.15
@@ -490,10 +489,7 @@ class MatplotlibDrawer:
                 clbit_label = get_bit_label(
                     "mpl", register, index, qubit=False, cregbundle=self._cregbundle
                 )
-                if register is None or not self._cregbundle:
-                    clbit_label = fix_special_characters(clbit_label, reg_size)
-                    clbit_label = "$" + clbit_label + "$"
-                clbit_label += initial_cbit
+                clbit_label = "$" + clbit_label + "$" + initial_cbit
 
                 reg_single = 0 if reg_size < 2 or self._cregbundle else 1
                 text_width = self._get_text_width(clbit_label, self._fs, reg=reg_single) * 1.15
