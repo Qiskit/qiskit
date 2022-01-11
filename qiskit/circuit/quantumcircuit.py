@@ -3888,6 +3888,7 @@ class QuantumCircuit:
             ValueError: if the given mode is not known, or if too few ancilla qubits are passed.
             AttributeError: if no ancilla qubits are passed, but some are needed.
         """
+        # pylint: disable=cyclic-import
         from qiskit.synthesis.mcx_synthesis import (
             mcx_mode_to_num_ancilla_qubits,
             mcx_mode_to_gate,

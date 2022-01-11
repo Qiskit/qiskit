@@ -16,7 +16,6 @@ from abc import ABC, abstractmethod
 from math import ceil
 import numpy
 
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.library import (
     C3XGate,
     C4XGate,
@@ -76,7 +75,7 @@ class MCXSynthesisGrayCode(MCXSynthesis):
         """Synthesize the MCX gate using the Gray code."""
 
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
 
         num_ctrl_qubits = gate.num_ctrl_qubits
         num_qubits = num_ctrl_qubits + self.get_num_ancilla_qubits(num_ctrl_qubits) + 1
@@ -110,7 +109,7 @@ class MCXSynthesisRecursive(MCXSynthesis):
         """Synthesize the MCX gate using recursion."""
 
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
 
         num_ctrl_qubits = gate.num_ctrl_qubits
         num_qubits = num_ctrl_qubits + self.get_num_ancilla_qubits(num_ctrl_qubits) + 1
@@ -173,7 +172,7 @@ class MCXSynthesisVChain(MCXSynthesis):
         """Synthesize the MCX gate using a V-chain of CX gates."""
 
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
 
         num_ctrl_qubits = gate.num_ctrl_qubits
         num_qubits = num_ctrl_qubits + self.get_num_ancilla_qubits(num_ctrl_qubits) + 1
