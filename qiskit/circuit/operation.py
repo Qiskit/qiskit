@@ -21,6 +21,23 @@ class Operation(ABC):
     These objects include :class:`~qiskit.circuit.Gate`, :class:`~qiskit.circuit.Reset`,
     :class:`~qiskit.circuit.Barrier`, :class:`~qiskit.circuit.Measure`,
     and operators such as :class:`~qiskit.quantum_info.Clifford`.
+    The main purpose is to add an :class:`~qiskit.circuit.Operation` to a
+    :class:`~qiskit.circuit.QuantumCircuit` without synthesizing it before the transpilation.
+
+    Example:
+
+        Add a Clifford and a Toffoli gate to a QuantumCircuit.
+
+        .. jupyter-execute::
+
+            from qiskit import QuantumCircuit
+            from qiskit.quantum_info import Clifford, random_clifford
+
+            qc = QuantumCircuit(3)
+            cliff = random_clifford(2)
+            qc.append(cliff, [0, 1])
+            qc.ccx(0, 1, 2)
+            qc.draw()
     """
 
     __slots__ = ()
