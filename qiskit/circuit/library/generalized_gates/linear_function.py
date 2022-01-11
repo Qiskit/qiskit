@@ -31,6 +31,10 @@ class LinearFunction(Gate):
         Internally, represents a linear function acting on n qubits as a n x n matrix of 0s and 1s
         in numpy array format.
 
+        A linear function can be synthesized into CX and SWAP gates using the Patel–Markov–Hayes
+        algorithm. For efficiency, the internal n x n matrix is stored in the format expected
+        by cnot_synth, which is the big-endian (and not the little-endian) bit-ordering convention.
+
         Args:
             linear (list[list] or ndarray[bool] or QuantumCircuit):
                 either an n x n matrix, describing the linear function,
