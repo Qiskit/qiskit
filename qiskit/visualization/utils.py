@@ -293,7 +293,7 @@ def fix_special_characters(label, size):
     """
     # Currently only checks for multiple underscores in register names
     rep_count = label.count("_")
-    if size > 1:    # for subscripts at end, don't replace "_"
+    if size > 1:  # for subscripts at end, don't replace "_"
         rep_count -= 1
     label = label.replace("_", r"\_", rep_count).replace(" ", "\\;")
     return label
