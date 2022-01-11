@@ -40,6 +40,7 @@ class GeneratedFakeBackendsTest(QiskitTestCase):
     """Generated fake backends test."""
 
     def setUp(self) -> None:
+        super().setUp()
         self.backend = ConfigurableFakeBackend("Tashkent", n_qubits=4)
 
     @unittest.skipUnless(HAS_AER, "qiskit-aer is required to run this test")
