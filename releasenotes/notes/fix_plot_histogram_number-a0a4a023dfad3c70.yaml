@@ -5,6 +5,6 @@ fixes:
     number_to_keep smaller that the number of keys. The following code will work now:
     .. code-block:: python
       from qiskit.visualization import plot_histogram
-        a = {'00': 3, '01': 5, '11': 8, '10': 11}
-        plot_histogram(a, number_to_keep=2)
+      a = {'00': 3, '01': 5, '11': 8, '10': 11}
+      plot_histogram(a, number_to_keep=2)
 
