@@ -489,7 +489,9 @@ class MatplotlibDrawer:
                 clbit_label = get_bit_label(
                     "mpl", register, index, qubit=False, cregbundle=self._cregbundle
                 )
-                clbit_label = "$" + clbit_label + "$" + initial_cbit
+                if register is None or not self._cregbundle:
+                    clbit_label = "$" + clbit_label + "$"
+                clbit_label += initial_cbit
 
                 reg_single = 0 if reg_size < 2 or self._cregbundle else 1
                 text_width = self._get_text_width(clbit_label, self._fs, reg=reg_single) * 1.15

@@ -190,7 +190,7 @@ def get_bit_label(drawer, register, index, qubit=True, layout=None, cregbundle=T
 
     # Clbits
     if not qubit:
-        if cregbundle and drawer == "text":
+        if cregbundle and drawer != "latex":
             bit_label = f"{register.name}"
             return bit_label
 
