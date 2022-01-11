@@ -224,7 +224,6 @@ class QCircuitImage:
         for ii, reg in enumerate(self._qubits):
             register = self._bit_locations[reg]["register"]
             index = self._bit_locations[reg]["index"]
-            reg_size = 0 if register is None else register.size
             qubit_label = get_bit_label("latex", register, index, qubit=True, layout=self.layout)
             qubit_label += " : "
             if self.initial_state:
@@ -238,7 +237,6 @@ class QCircuitImage:
             for ii in range(len(self._qubits), self.img_width):
                 register = self._bit_locations[self._ordered_bits[ii + offset]]["register"]
                 index = self._bit_locations[self._ordered_bits[ii + offset]]["index"]
-                reg_size = 0 if register is None else register.size
                 clbit_label = get_bit_label(
                     "latex", register, index, qubit=False, cregbundle=self.cregbundle
                 )

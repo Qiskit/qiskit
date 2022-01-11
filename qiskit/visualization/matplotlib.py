@@ -460,7 +460,9 @@ class MatplotlibDrawer:
             qubit_label = "$" + qubit_label + "$" + initial_qbit
 
             reg_single = 0 if reg_size < 2 else 1
-            text_width = self._get_text_width(qubit_label, self._fs, reg=reg_single) * 1.15
+            text_width = (
+                self._get_text_width(qubit_label, self._fs, reg_to_remove=reg_single) * 1.15
+            )
             if text_width > longest_bit_label_width:
                 longest_bit_label_width = text_width
             pos = -ii
@@ -494,7 +496,9 @@ class MatplotlibDrawer:
                 clbit_label += initial_cbit
 
                 reg_single = 0 if reg_size < 2 or self._cregbundle else 1
-                text_width = self._get_text_width(clbit_label, self._fs, reg=reg_single) * 1.15
+                text_width = (
+                    self._get_text_width(clbit_label, self._fs, reg_to_remove=reg_single) * 1.15
+                )
                 if text_width > longest_bit_label_width:
                     longest_bit_label_width = text_width
                 pos = y_off - idx
@@ -573,7 +577,7 @@ class MatplotlibDrawer:
         anchors = [self._q_anchors[ii].get_index() for ii in self._qubits_dict]
         return max(anchors) if anchors else 0
 
-    def _get_text_width(self, text, fontsize, param=False, reg=None):
+    def _get_text_width(self, text, fontsize, param=False, reg_to_remove=None):
         """Compute the width of a string in the default font"""
         if not text:
             return 0.0
@@ -593,8 +597,8 @@ class MatplotlibDrawer:
 
         # if it's a register and there's a subscript at the end,
         # remove 1 underscore, otherwise don't remove any
-        if reg is not None:
-            num_underscores = reg
+        if reg_to_remove is not None:
+            num_underscores = reg_to_remove
         if num_underscores:
             text = text.replace("_", "", num_underscores)
         if num_carets:
