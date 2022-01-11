@@ -272,12 +272,22 @@ def get_condition_label(condition, clbits, bit_locations, cregbundle):
     return label, clbit_mask, vlist
 
 
-def fix_special_characters(bit_label, size, cregbundle=False):
-    rep_count = bit_label.count("_")
+def fix_special_characters(label, size, cregbundle=False):
+    """Convert any special characters for mpl and latex drawers
+
+    Args:
+        label (str): the label to fix
+        size (int): if a register, the size
+        cregbundle (bool): if set True classical registers are bundled
+
+    Returns:
+        str: label to display
+    """
+    rep_count = label.count("_")
     if size > 1 and not cregbundle:
         rep_count -= 1
-    bit_label = bit_label.replace("_", r"\_", rep_count).replace(" ", "\\;")
-    return bit_label
+    label = label.replace("_", r"\_", rep_count).replace(" ", "\\;")
+    return label
 
 
 def generate_latex_label(label):
