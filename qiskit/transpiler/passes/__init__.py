@@ -127,6 +127,7 @@ Synthesis
    :toctree: ../stubs/
 
    UnitarySynthesis
+   LinearFunctionsSynthesis
 
 Additional Passes
 =================
@@ -211,6 +212,7 @@ from .analysis import DAGLongestPath
 # synthesis
 from .synthesis import UnitarySynthesis
 from .synthesis import unitary_synthesis_plugin_names
+from .synthesis import LinearFunctionsSynthesis
 
 # calibration
 from .calibration import PulseGates
