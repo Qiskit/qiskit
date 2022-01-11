@@ -42,7 +42,6 @@ class GeneratedFakeBackendsTest(QiskitTestCase):
     def setUp(self) -> None:
         self.backend = ConfigurableFakeBackend("Tashkent", n_qubits=4)
 
-    @unittest.skip("Skipped until qiskit-aer#741 is fixed and released")
     @unittest.skipUnless(HAS_AER, "qiskit-aer is required to run this test")
     def test_transpile_schedule_and_assemble(self):
         """Test transpile, schedule and assemble on generated backend."""
