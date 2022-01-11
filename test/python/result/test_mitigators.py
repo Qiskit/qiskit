@@ -37,6 +37,7 @@ from qiskit.quantum_info.operators.predicates import matrix_equal
 
 class TestReadoutMitigation(QiskitTestCase):
     """Tests for correlated and local readout mitigation."""
+
     rng = np.random.default_rng(42)
 
     @staticmethod
