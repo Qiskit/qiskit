@@ -3135,7 +3135,7 @@ class QuantumCircuit:
         return self.append(RYYGate(theta), [qubit1, qubit2], [])
 
     def rz(self, phi: ParameterValueType, qubit: QubitSpecifier) -> InstructionSet:
-        """Apply :class:`~qiskit.circuit.library.RYGate`.
+        """Apply :class:`~qiskit.circuit.library.RZGate`.
 
         For the full matrix form of this gate, see the underlying gate documentation.
 
