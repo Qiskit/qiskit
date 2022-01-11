@@ -101,18 +101,18 @@ class ParametricPulse(Pulse):
 
 
 class Gaussian(ParametricPulse):
-    """A lifted and truncated pulse envelope shaped according to the Gaussian function whose
+    r"""A lifted and truncated pulse envelope shaped according to the Gaussian function whose
     mean is centered at the center of the pulse (duration / 2):
 
     .. math::
 
-        f'(x) = exp( -(1/2) * (x - duration/2)^2 / sigma^2 )
-        f(x) = amp * \frac{f'(x) - f'(-1)}{1-f'(-1)} , 0 <= x < duration
+        f'(x) &= \exp\Bigl( -\frac12 \frac{{(x - \text{duration}/2)}^2}{\text{sigma}^2} \Bigr)\\
+        f(x) &= \text{amp} \times \frac{f'(x) - f'(-1)}{1-f'(-1)}, \quad 0 \le x < \text{duration}
 
     where :math:`f'(x)` is the gaussian waveform without lifting or amplitude scaling.
 
-    This pulse would be more accurately named as `LiftedGaussian`, however, for historical
-    and practical DSP reasons it has the name `Gaussian`.
+    This pulse would be more accurately named as ``LiftedGaussian``, however, for historical
+    and practical DSP reasons it has the name ``Gaussian``.
     """
 
     def __init__(
@@ -178,45 +178,45 @@ class Gaussian(ParametricPulse):
 
 
 class GaussianSquare(ParametricPulse):
+    # Not a raw string because we need to be able to split lines.
     """A square pulse with a Gaussian shaped risefall on both sides lifted such that
     its first sample is zero.
 
-    Either risefall_sigma_ratio or width parameter has to be specified.
+    Either the ``risefall_sigma_ratio`` or ``width`` parameter has to be specified.
 
-    If risefall_sigma_ratio is not None and width is None:
-
-    :math:`risefall = risefall` _ :math:`to` _ :math:`sigma * sigma`
-
-    :math:`width = duration - 2 * risefall`
-
-    If width is not None and risefall_sigma_ratio is None:
+    If ``risefall_sigma_ratio`` is not None and ``width`` is None:
 
     .. math::
 
-        risefall = (duration - width) / 2
+        \\text{risefall} &= \\text{risefall_sigma_ratio} \\times \\text{sigma}\\\\
+        \\text{width} &= \\text{duration} - 2 \\times \\text{risefall}
+
+    If ``width`` is not None and ``risefall_sigma_ratio`` is None:
+
+    .. math:: \\text{risefall} = \\frac{\\text{duration} - \\text{width}}{2}
 
     In both cases, the lifted gaussian square pulse :math:`f'(x)` is defined as:
 
     .. math::
 
-        x < risefall
-
-        f'(x) = exp( -(1/2) * (x - risefall)^2 / sigma^2 )
-
-        risefall <= x < risefall + width
-
-        f'(x) = amp
-
-        risefall + width <= x
-
-        f'(x) = exp( -(1/2) * (x - (risefall + width))^2 / sigma^2 )
-
-        f(x) = amp * \frac{f'(x) - f'(-1)}{1-f'(-1)}, 0 <= x < duration
+        f'(x) &= \\begin{cases}\
+            \\exp\\biggl(-\\frac12 \\frac{(x - \\text{risefall})^2}{\\text{sigma}^2}\\biggr)\
+                & x < \\text{risefall}\\\\
+            \\text{amp}\
+                & \\text{risefall} \\le x < \\text{risefall} + \\text{width}\\\\
+            \\exp\\biggl(-\\frac12\
+                    \\frac{{\\bigl(x - (\\text{risefall} + \\text{width})\\bigr)}^2}\
+                          {\\text{sigma}^2}\
+                    \\biggr)\
+                & \\text{risefall} + \\text{width} \\le x\
+        \\end{cases}\\\\
+        f(x) &= \\text{amp} \\times \\frac{f'(x) - f'(-1)}{1-f'(-1)},\
+            \\quad 0 \\le x < \\text{duration}
 
     where :math:`f'(x)` is the gaussian square waveform without lifting or amplitude scaling.
 
-    This pulse would be more accurately named as `LiftedGaussianSquare`, however, for historical
-    and practical DSP reasons it has the name `GaussianSquare`.
+    This pulse would be more accurately named as ``LiftedGaussianSquare``, however, for historical
+    and practical DSP reasons it has the name ``GaussianSquare``.
     """
 
     def __init__(
@@ -338,25 +338,26 @@ class GaussianSquare(ParametricPulse):
 
 
 class Drag(ParametricPulse):
-    r"""The Derivative Removal by Adiabatic Gate (DRAG) pulse is a standard Gaussian pulse
+    """The Derivative Removal by Adiabatic Gate (DRAG) pulse is a standard Gaussian pulse
     with an additional Gaussian derivative component and lifting applied.
 
     It is designed to reduce the frequency spectrum of a normal gaussian pulse near
-    the :math:`|1\rangle` - :math:`|2\rangle` transition,
-    reducing the chance of leakage to the :math:`|2\rangle` state.
+    the :math:`|1\\rangle\\leftrightarrow|2\\rangle` transition,
+    reducing the chance of leakage to the :math:`|2\\rangle` state.
 
     .. math::
 
-        g(x) = exp( -(1/2) * (x - duration/2)^2 / sigma^2 )
-        f'(x) = g(x) + 1j * beta * d/dx [g(x)]
-             = g(x) + 1j * beta * (-(x - duration/2) / sigma^2) * g(x)
-        f(x) = amp * \frac{f'(x) - f'(-1)}{1-f'(-1)}, 0 <= x < duration
+        g(x) &= \\exp\\Bigl(-\\frac12 \\frac{(x - \\text{duration}/2)^2}{\\text{sigma}^2}\\Bigr)\\\\
+        f'(x) &= g(x) + 1j \\times \\text{beta} \\times \\frac{\\mathrm d}{\\mathrm{d}x} g(x)\\\\
+              &= g(x) + 1j \\times \\text{beta} \\times\
+                    \\Bigl(-\\frac{x - \\text{duration}/2}{\\text{sigma}^2}\\Bigr)g(x)\\\\
+        f(x) &= \\text{amp}\\times\\frac{f'(x)-f'(-1)}{1-f'(-1)}, \\quad 0 \\le x < \\text{duration}
 
     where :math:`g(x)` is a standard unlifted gaussian waveform and
     :math:`f'(x)` is the DRAG waveform without lifting or amplitude scaling.
 
-    This pulse would be more accurately named as `LiftedDrag`, however, for historical
-    and practical DSP reasons it has the name `Drag`.
+    This pulse would be more accurately named as ``LiftedDrag``, however, for historical
+    and practical DSP reasons it has the name ``Drag``.
 
     References:
         1. |citation1|_
