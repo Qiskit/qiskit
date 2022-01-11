@@ -279,7 +279,7 @@ def mcx_mode_to_num_ancilla_qubits(num_ctrl_qubits: int, mcx_mode: str):
     """Returns the number of ancilla qubits corresponding to the given number of control qubits
     and the given synthesis mode (represented as a string).
     """
-    if mcx_mode in ["no_ancilla"]:
+    if mcx_mode in ["noancilla"]:
         num_ancillas = MCXSynthesisGrayCode.get_num_ancilla_qubits(num_ctrl_qubits)
     elif mcx_mode in ["recursion", "advanced"]:
         num_ancillas = MCXSynthesisRecursive.get_num_ancilla_qubits(num_ctrl_qubits)
