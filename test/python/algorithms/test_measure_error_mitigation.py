@@ -332,7 +332,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
 
     @unittest.skipUnless(HAS_AER, "qiskit-aer is required for this test")
     @unittest.skipUnless(HAS_IGNIS, "qiskit-ignis is required to run this test")
-    def test_calibration(self):
+    def test_calibration_results(self):
         """check that results counts are the same with/without error mitigation"""
         algorithm_globals.random_seed = 1679
         np.random.seed(algorithm_globals.random_seed)
@@ -341,18 +341,11 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
 
         qc_meas = qc.copy()
         qc_meas.measure_all()
-        qc_meas = [qc_meas]
         backend = Aer.get_backend("aer_simulator")
-        quantum_instance = QuantumInstance(
-            backend,
-            seed_simulator=algorithm_globals.random_seed,
-            seed_transpiler=algorithm_globals.random_seed,
-            shots=1024,
-        )
-        counts_ref = quantum_instance.execute(qc_meas).get_counts()
 
-        for transpiled in [True, False]:
-            try:
+        counts_array = [None, None]
+        for idx, is_use_mitigation in enumerate([True, False]):
+            if is_use_mitigation:
                 quantum_instance = QuantumInstance(
                     backend,
                     seed_simulator=algorithm_globals.random_seed,
@@ -360,18 +353,47 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
                     shots=1024,
                     measurement_error_mitigation_cls=CompleteMeasFitter_IG,
                 )
-                if transpiled:
-                    qc_meas = quantum_instance.transpile(qc_meas)
                 with self.assertWarnsRegex(DeprecationWarning, r".*ignis.*"):
-                    results = quantum_instance.execute(qc_meas, had_transpiled=transpiled)
-                counts = results.get_counts(qc_meas[0])
-                self.assertEqual(
-                    counts,
-                    counts_ref,
-                    msg=f"Counts different with/without fitter and transpiled {transpiled}.",
+                    counts_array[idx] = quantum_instance.execute(qc_meas).get_counts()
+            else:
+                quantum_instance = QuantumInstance(
+                    backend,
+                    seed_simulator=algorithm_globals.random_seed,
+                    seed_transpiler=algorithm_globals.random_seed,
+                    shots=1024,
                 )
-            except QiskitError as err:
-                self.fail(msg=f"unexpected exception transpiled {transpiled}: {err}")
+                counts_array[idx] = quantum_instance.execute(qc_meas).get_counts()
+        self.assertEqual(
+            counts_array[0], counts_array[1], msg="Counts different with/without fitter."
+        )
+
+    @unittest.skipUnless(HAS_AER, "qiskit-aer is required for this test")
+    @unittest.skipUnless(HAS_IGNIS, "qiskit-ignis is required to run this test")
+    def test_circuit_modified(self):
+        """tests that circuits don't get modified on QI execute with error mitigation
+        as per issue #7449
+        """
+        algorithm_globals.random_seed = 1679
+        np.random.seed(algorithm_globals.random_seed)
+        circuit = QuantumCircuit(1)
+        circuit.x(0)
+        circuit.measure_all()
+
+        qi = QuantumInstance(
+            Aer.get_backend("aer_simulator"),
+            seed_simulator=algorithm_globals.random_seed,
+            seed_transpiler=algorithm_globals.random_seed,
+            shots=1024,
+            measurement_error_mitigation_cls=CompleteMeasFitter_IG,
+        )
+        # The error happens on transpiled circuits since "execute" was changing the input array
+        # Non transpiled circuits didn't have a problem because a new transpiled array was created
+        # internally.
+        circuits_ref = qi.transpile(circuit)  # always returns a new array
+        circuits_input = circuits_ref.copy()
+        with self.assertWarnsRegex(DeprecationWarning, r".*ignis.*"):
+            _ = qi.execute(circuits_input, had_transpiled=True)
+        self.assertEqual(circuits_ref, circuits_input, msg="Transpiled circuit array modified.")
 
 
 if __name__ == "__main__":
