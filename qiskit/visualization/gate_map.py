@@ -15,12 +15,13 @@
 import math
 from typing import List
 import numpy as np
-from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
-from .matplotlib import HAS_MATPLOTLIB
+from qiskit.exceptions import QiskitError
+from qiskit.utils import optionals as _optionals
 from .exceptions import VisualizationError
 from .utils import matplotlib_close_if_inline
 
 
+@_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_gate_map(
     backend,
     figsize=None,
@@ -81,13 +82,6 @@ def plot_gate_map(
            backend = accountProvider.get_backend('ibmq_vigo')
            plot_gate_map(backend)
     """
-    if not HAS_MATPLOTLIB:
-        raise MissingOptionalLibraryError(
-            libname="Matplotlib",
-            name="plot_gate_map",
-            pip_install="pip install matplotlib",
-        )
-
     if backend.configuration().simulator:
         raise QiskitError("Requires a device backend, not simulator.")
 
@@ -367,6 +361,7 @@ def plot_gate_map(
     )
 
 
+@_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_coupling_map(
     num_qubits: int,
     qubit_coordinates: List[List[int]],
@@ -424,13 +419,6 @@ def plot_coupling_map(
             qubit_coordinates = [[0, 1], [1, 1], [1, 0], [1, 2], [2, 0], [2, 2], [2, 1], [3, 1]]
             plot_coupling_map(num_qubits, coupling_map, qubit_coordinates)
     """
-
-    if not HAS_MATPLOTLIB:
-        raise MissingOptionalLibraryError(
-            libname="Matplotlib",
-            name="plot_coupling_map",
-            pip_install="pip install matplotlib",
-        )
     import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
 
@@ -673,6 +661,8 @@ def plot_circuit_layout(circuit, backend, view="virtual"):
     return fig
 
 
+@_optionals.HAS_MATPLOTLIB.require_in_call
+@_optionals.HAS_SEABORN.require_in_call
 def plot_error_map(backend, figsize=(12, 9), show_title=True):
     """Plots the error map of a given backend.
 
@@ -708,20 +698,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
             backend = provider.get_backend('ibmq_vigo')
             plot_error_map(backend)
     """
-    try:
-        import seaborn as sns
-    except ImportError as ex:
-        raise MissingOptionalLibraryError(
-            libname="seaborn",
-            name="plot_error_map",
-            pip_install="pip install seaborn",
-        ) from ex
-    if not HAS_MATPLOTLIB:
-        raise MissingOptionalLibraryError(
-            libname="Matplotlib",
-            name="plot_error_map",
-            pip_install="pip install matplotlib",
-        )
+    import seaborn as sns
     import matplotlib
     import matplotlib.pyplot as plt
     from matplotlib import gridspec, ticker

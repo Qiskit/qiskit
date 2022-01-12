@@ -15,25 +15,27 @@
 import unittest
 import os
 from unittest.mock import patch
-from PIL import Image
 
 from qiskit import QuantumCircuit
 from qiskit.test import QiskitTestCase
+from qiskit.utils import optionals
 from qiskit import visualization
 from qiskit.visualization import text
 from qiskit.visualization.exceptions import VisualizationError
 
-if visualization.HAS_MATPLOTLIB:
+if optionals.HAS_MATPLOTLIB:
     from matplotlib import figure
+if optionals.HAS_PIL:
+    from PIL import Image
 
 
 _latex_drawer_condition = unittest.skipUnless(
     all(
         (
-            visualization.HAS_PYLATEX,
-            visualization.HAS_PIL,
-            visualization.HAS_PDFLATEX,
-            visualization.HAS_PDFTOCAIRO,
+            optionals.HAS_PYLATEX,
+            optionals.HAS_PIL,
+            optionals.HAS_PDFLATEX,
+            optionals.HAS_PDFTOCAIRO,
         )
     ),
     "Skipped because not all of PIL, pylatex, pdflatex and pdftocairo are available",
@@ -47,9 +49,7 @@ class TestCircuitDrawer(QiskitTestCase):
             out = visualization.circuit_drawer(circuit)
             self.assertIsInstance(out, text.TextDrawing)
 
-    @unittest.skipUnless(
-        visualization.HAS_MATPLOTLIB, "Skipped because matplotlib is not available"
-    )
+    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "Skipped because matplotlib is not available")
     def test_user_config_default_output(self):
         with patch("qiskit.user_config.get_config", return_value={"circuit_drawer": "mpl"}):
             circuit = QuantumCircuit()
@@ -62,18 +62,14 @@ class TestCircuitDrawer(QiskitTestCase):
             out = visualization.circuit_drawer(circuit)
             self.assertIsInstance(out, text.TextDrawing)
 
-    @unittest.skipUnless(
-        visualization.HAS_MATPLOTLIB, "Skipped because matplotlib is not available"
-    )
+    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "Skipped because matplotlib is not available")
     def test_kwarg_priority_over_user_config_default_output(self):
         with patch("qiskit.user_config.get_config", return_value={"circuit_drawer": "latex"}):
             circuit = QuantumCircuit()
             out = visualization.circuit_drawer(circuit, output="mpl")
             self.assertIsInstance(out, figure.Figure)
 
-    @unittest.skipUnless(
-        visualization.HAS_MATPLOTLIB, "Skipped because matplotlib is not available"
-    )
+    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "Skipped because matplotlib is not available")
     def test_default_backend_auto_output_with_mpl(self):
         with patch("qiskit.user_config.get_config", return_value={"circuit_drawer": "auto"}):
             circuit = QuantumCircuit()
@@ -82,10 +78,7 @@ class TestCircuitDrawer(QiskitTestCase):
 
     def test_default_backend_auto_output_without_mpl(self):
         with patch("qiskit.user_config.get_config", return_value={"circuit_drawer": "auto"}):
-            with patch.object(
-                visualization.circuit_visualization, "_matplotlib", autospec=True
-            ) as mpl_mock:
-                mpl_mock.HAS_MATPLOTLIB = False
+            with optionals.HAS_MATPLOTLIB.disable_locally():
                 circuit = QuantumCircuit()
                 out = visualization.circuit_drawer(circuit)
                 self.assertIsInstance(out, text.TextDrawing)

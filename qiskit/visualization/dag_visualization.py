@@ -21,17 +21,11 @@ import sys
 import tempfile
 
 from qiskit.dagcircuit.dagnode import DAGOpNode, DAGInNode, DAGOutNode
-from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.utils import optionals as _optionals
 from .exceptions import VisualizationError
 
-try:
-    from PIL import Image
 
-    HAS_PIL = True
-except ImportError:
-    HAS_PIL = False
-
-
+@_optionals.HAS_PYDOT.require_in_call
 def dag_drawer(dag, scale=0.7, filename=None, style="color"):
     """Plot the directed acyclic graph (dag) to represent operation dependencies
     in a quantum circuit.
@@ -80,14 +74,8 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
             dag = circuit_to_dag(circ)
             dag_drawer(dag)
     """
-    try:
-        import pydot
-    except ImportError as ex:
-        raise MissingOptionalLibraryError(
-            libname="PyDot",
-            name="dag_drawer",
-            pip_install="pip install pydot",
-        ) from ex
+    import pydot
+
     # NOTE: use type str checking to avoid potential cyclical import
     # the two tradeoffs ere that it will not handle subclasses and it is
     # slower (which doesn't matter for a visualization function)
@@ -170,12 +158,8 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
         dot.write(filename, format=extension)
         return None
     elif ("ipykernel" in sys.modules) and ("spyder" not in sys.modules):
-        if not HAS_PIL:
-            raise MissingOptionalLibraryError(
-                libname="pillow",
-                name="dag_drawer",
-                pip_install="pip install pillow",
-            )
+        _optionals.HAS_PIL.require_now("dag_drawer")
+        from PIL import Image
 
         with tempfile.TemporaryDirectory() as tmpdirname:
             tmp_path = os.path.join(tmpdirname, "dag.png")
@@ -185,12 +169,9 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
             os.remove(tmp_path)
             return image
     else:
-        if not HAS_PIL:
-            raise MissingOptionalLibraryError(
-                libname="pillow",
-                name="dag_drawer",
-                pip_install="pip install pillow",
-            )
+        _optionals.HAS_PIL.require_now("dag_drawer")
+        from PIL import Image
+
         with tempfile.TemporaryDirectory() as tmpdirname:
             tmp_path = os.path.join(tmpdirname, "dag.png")
             dot.write_png(tmp_path)

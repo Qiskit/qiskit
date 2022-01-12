@@ -19,6 +19,7 @@ import numpy as np
 from qiskit.circuit.quantumcircuit import _compare_parameters
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.circuit import ParameterVector, ParameterExpression
+from qiskit.utils import optionals as _optionals
 from ..operator_globals import Zero, One
 from ..state_fns.circuit_state_fn import CircuitStateFn
 from ..state_fns.state_fn import StateFn
@@ -33,13 +34,6 @@ from .derivative_base import _coeff_derivative
 from .hessian_base import HessianBase
 from ..exceptions import OpflowError
 from ...utils.arithmetic import triu_to_dense
-
-try:
-    from jax import grad, jit
-
-    _HAS_JAX = True
-except ImportError:
-    _HAS_JAX = False
 
 
 class Hessian(HessianBase):
@@ -244,7 +238,9 @@ class Hessian(HessianBase):
 
             if operator.grad_combo_fn:
                 first_partial_combo_fn = operator.grad_combo_fn
-                if _HAS_JAX:
+                if _optionals.HAS_JAX:
+                    from jax import grad, jit
+
                     second_partial_combo_fn = jit(
                         grad(lambda x: first_partial_combo_fn(x)[0], holomorphic=True)
                     )
@@ -259,7 +255,9 @@ class Hessian(HessianBase):
                         ),
                     )
             else:
-                if _HAS_JAX:
+                if _optionals.HAS_JAX:
+                    from jax import grad, jit
+
                     first_partial_combo_fn = jit(grad(operator.combo_fn, holomorphic=True))
                     second_partial_combo_fn = jit(
                         grad(lambda x: first_partial_combo_fn(x)[0], holomorphic=True)

@@ -19,14 +19,6 @@ from warnings import warn
 
 import numpy as np
 
-
-try:
-    from pylatexenc.latex2text import LatexNodes2Text
-
-    HAS_PYLATEX = True
-except ImportError:
-    HAS_PYLATEX = False
-
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import Measure
 from qiskit.circuit.library.standard_gates import (
@@ -47,7 +39,7 @@ from qiskit.visualization.utils import (
     matplotlib_close_if_inline,
 )
 from qiskit.circuit.tools.pi_check import pi_check
-from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.utils import optionals as _optionals
 
 # Default gate width and height
 WID = 0.65
@@ -84,25 +76,14 @@ class MatplotlibDrawer:
         cregs=None,
         calibrations=None,
     ):
-
-        if not HAS_MATPLOTLIB:
-            raise MissingOptionalLibraryError(
-                libname="Matplotlib",
-                name="MatplotlibDrawer",
-                pip_install="pip install matplotlib",
-            )
+        _optionals.HAS_MATPLOTLIB.require_now("matplotlib drawer")
+        _optionals.HAS_PYLATEX.require_now("matplotlib drawer")
         from matplotlib import patches
 
         self._patches_mod = patches
         from matplotlib import pyplot as plt
 
         self._plt_mod = plt
-        if not HAS_PYLATEX:
-            raise MissingOptionalLibraryError(
-                libname="pylatexenc",
-                name="MatplotlibDrawer",
-                pip_install="pip install pylatexenc",
-            )
 
         # First load register and index info for the cregs and qregs,
         # then add any bits which don't have registers associated with them.
@@ -581,6 +562,8 @@ class MatplotlibDrawer:
 
     def _get_text_width(self, text, fontsize, param=False):
         """Compute the width of a string in the default font"""
+        from pylatexenc.latex2text import LatexNodes2Text
+
         if not text:
             return 0.0
 
@@ -1415,25 +1398,3 @@ class Anchor:
         if self._gate_placed:
             return self._gate_placed[-1] + 1
         return 0
-
-
-class HasMatplotlibWrapper:
-    """Wrapper to lazily import matplotlib."""
-
-    has_matplotlib = False
-
-    # pylint: disable=unused-import
-    def __bool__(self):
-        if not self.has_matplotlib:
-            try:
-                from matplotlib import get_backend
-                from matplotlib import patches
-                from matplotlib import pyplot as plt
-
-                self.has_matplotlib = True
-            except ImportError:
-                self.has_matplotlib = False
-        return self.has_matplotlib
-
-
-HAS_MATPLOTLIB = HasMatplotlibWrapper()

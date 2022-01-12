@@ -23,12 +23,11 @@ import colorsys
 import numpy as np
 from scipy import linalg
 from qiskit import user_config
-from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.quantum_info.states.statevector import Statevector
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 from qiskit.visualization.array import array_to_latex
 from qiskit.utils.deprecation import deprecate_arguments
-from qiskit.visualization.matplotlib import HAS_MATPLOTLIB
+from qiskit.utils import optionals as _optionals
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.utils import (
     _bloch_multivector_data,
@@ -39,6 +38,7 @@ from qiskit.circuit.tools.pi_check import pi_check
 
 
 @deprecate_arguments({"rho": "state"})
+@_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_state_hinton(
     state, title="", figsize=None, ax_real=None, ax_imag=None, *, rho=None, filename=None
 ):
@@ -86,12 +86,6 @@ def plot_state_hinton(
             state = DensityMatrix.from_instruction(qc)
             plot_state_hinton(state, title="New Hinton Plot")
     """
-    if not HAS_MATPLOTLIB:
-        raise MissingOptionalLibraryError(
-            libname="Matplotlib",
-            name="plot_state_hinton",
-            pip_install="pip install matplotlib",
-        )
     from matplotlib import pyplot as plt
 
     # Figure data
@@ -181,6 +175,7 @@ def plot_state_hinton(
         return fig.savefig(filename)
 
 
+@_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartesian"):
     """Plot the Bloch sphere.
 
@@ -212,12 +207,6 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
 
            plot_bloch_vector([0,1,0], title="New Bloch Sphere")
     """
-    if not HAS_MATPLOTLIB:
-        raise MissingOptionalLibraryError(
-            libname="Matplotlib",
-            name="plot_bloch_vector",
-            pip_install="pip install matplotlib",
-        )
     from qiskit.visualization.bloch import Bloch
 
     if figsize is None:
@@ -239,6 +228,7 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
 
 
 @deprecate_arguments({"rho": "state"})
+@_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_bloch_multivector(
     state, title="", figsize=None, *, rho=None, reverse_bits=False, filename=None
 ):
@@ -275,12 +265,6 @@ def plot_bloch_multivector(
             state = Statevector.from_instruction(qc)
             plot_bloch_multivector(state)
     """
-    if not HAS_MATPLOTLIB:
-        raise MissingOptionalLibraryError(
-            libname="Matplotlib",
-            name="plot_bloch_multivector",
-            pip_install="pip install matplotlib",
-        )
     from matplotlib import pyplot as plt
 
     # Data
@@ -303,6 +287,7 @@ def plot_bloch_multivector(
 
 
 @deprecate_arguments({"rho": "state"})
+@_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_state_city(
     state,
     title="",
@@ -366,12 +351,6 @@ def plot_state_city(
            plot_state_city(state, color=['midnightblue', 'midnightblue'],
                 title="New State City")
     """
-    if not HAS_MATPLOTLIB:
-        raise MissingOptionalLibraryError(
-            libname="Matplotlib",
-            name="plot_state_city",
-            pip_install="pip install matplotlib",
-        )
     from matplotlib import pyplot as plt
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
@@ -538,6 +517,7 @@ def plot_state_city(
 
 
 @deprecate_arguments({"rho": "state"})
+@_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_state_paulivec(
     state, title="", figsize=None, color=None, ax=None, *, rho=None, filename=None
 ):
@@ -580,12 +560,6 @@ def plot_state_paulivec(
            plot_state_paulivec(state, color='midnightblue',
                 title="New PauliVec plot")
     """
-    if not HAS_MATPLOTLIB:
-        raise MissingOptionalLibraryError(
-            libname="Matplotlib",
-            name="plot_state_paulivec",
-            pip_install="pip install matplotlib",
-        )
     from matplotlib import pyplot as plt
 
     labels, values = _paulivec_data(state)
@@ -684,6 +658,8 @@ def phase_to_rgb(complex_number):
 
 
 @deprecate_arguments({"rho": "state"})
+@_optionals.HAS_MATPLOTLIB.require_in_call
+@_optionals.HAS_SEABORN.require_in_call
 def plot_state_qsphere(
     state,
     figsize=None,
@@ -738,26 +714,12 @@ def plot_state_qsphere(
            state = Statevector.from_instruction(qc)
            plot_state_qsphere(state)
     """
-    if not HAS_MATPLOTLIB:
-        raise MissingOptionalLibraryError(
-            libname="Matplotlib",
-            name="plot_state_qsphere",
-            pip_install="pip install matplotlib",
-        )
-
     from matplotlib import gridspec
     from matplotlib import pyplot as plt
     from matplotlib.patches import Circle
+    import seaborn as sns
     from qiskit.visualization.bloch import Arrow3D
 
-    try:
-        import seaborn as sns
-    except ImportError as ex:
-        raise MissingOptionalLibraryError(
-            libname="seaborn",
-            name="plot_state_qsphere",
-            pip_install="pip install seaborn",
-        ) from ex
     rho = DensityMatrix(state)
     num = rho.num_qubits
     if num is None:
@@ -961,6 +923,7 @@ def plot_state_qsphere(
         return fig.savefig(filename)
 
 
+@_optionals.HAS_MATPLOTLIB.require_in_call
 def generate_facecolors(x, y, z, dx, dy, dz, color):
     """Generates shaded facecolors for shaded bars.
 
@@ -980,12 +943,6 @@ def generate_facecolors(x, y, z, dx, dy, dz, color):
     Raises:
         MissingOptionalLibraryError: If matplotlib is not installed
     """
-    if not HAS_MATPLOTLIB:
-        raise MissingOptionalLibraryError(
-            libname="Matplotlib",
-            name="plot_state_city",
-            pip_install="pip install matplotlib",
-        )
     import matplotlib.colors as mcolors
 
     cuboid = np.array(
@@ -1106,13 +1063,6 @@ def _shade_colors(color, normals, lightsource=None):
     Shade *color* using normal vectors given by *normals*.
     *color* can also be an array of the same length as *normals*.
     """
-    if not HAS_MATPLOTLIB:
-        raise MissingOptionalLibraryError(
-            libname="Matplotlib",
-            name="plot_state_city",
-            pip_install="pip install matplotlib",
-        )
-
     from matplotlib.colors import Normalize, LightSource
     import matplotlib.colors as mcolors
 
@@ -1410,20 +1360,11 @@ def state_drawer(state, output=None, **drawer_args):
         "paulivec": plot_state_paulivec,
     }
     if output == "latex":
-        try:
-            from IPython.display import Latex
-        except ImportError as err:
-            raise MissingOptionalLibraryError(
-                libname="IPython",
-                name="state_drawer",
-                pip_install=(
-                    "\"pip install ipython\", or set output='latex_source' "
-                    "instead for an ASCII string."
-                ),
-            ) from err
-        else:
-            draw_func = drawers["latex_source"]
-            return Latex(f"$${draw_func(state, **drawer_args)}$$")
+        _optionals.HAS_IPYTHON.require_now("state_drawer")
+        from IPython.display import Latex
+
+        draw_func = drawers["latex_source"]
+        return Latex(f"$${draw_func(state, **drawer_args)}$$")
 
     if output == "repr":
         return state.__repr__()

@@ -22,7 +22,7 @@ from qiskit.visualization.state_visualization import state_drawer
 from qiskit import BasicAer, execute
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit
-from qiskit.tools.visualization import HAS_MATPLOTLIB
+from qiskit.utils import optionals
 from qiskit.visualization.counts_visualization import plot_histogram
 from qiskit.visualization.gate_map import plot_gate_map, plot_coupling_map
 from qiskit.test.mock.fake_provider import (
@@ -34,7 +34,7 @@ from qiskit.test.mock.fake_provider import (
     FakeManhattan,
 )
 
-if HAS_MATPLOTLIB:
+if optionals.HAS_MATPLOTLIB:
     from matplotlib.pyplot import close as mpl_close
 else:
     raise ImportError('Must have Matplotlib installed. To install, run "pip install matplotlib".')

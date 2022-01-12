@@ -19,8 +19,7 @@ from typing import Dict, List, Tuple, Callable, Union, Any
 
 import numpy as np
 
-from qiskit.visualization.matplotlib import HAS_MATPLOTLIB
-from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.utils import optionals as _optionals
 from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
 from qiskit.visualization.pulse.interpolation import step_wise
 from qiskit.pulse.channels import (
@@ -287,6 +286,7 @@ class WaveformDrawer:
         """
         self.style = style or PulseStyle()
 
+    @_optionals.HAS_MATPLOTLIB.require_in_call("waveform drawer")
     def draw(
         self,
         pulse: Waveform,
@@ -310,17 +310,10 @@ class WaveformDrawer:
         Raises:
             MissingOptionalLibraryError: If matplotlib is not installed
         """
-        # If these self.style.dpi or self.style.figsize are None, they will
-        # revert back to their default rcParam keys.
-        if not HAS_MATPLOTLIB:
-            raise MissingOptionalLibraryError(
-                libname="Matplotlib",
-                name="WaveformDrawer",
-                pip_install="pip install matplotlib",
-            )
-
         from matplotlib import pyplot as plt
 
+        # If these self.style.dpi or self.style.figsize are None, they will
+        # revert back to their default rcParam keys.
         figure = plt.figure(dpi=self.style.dpi, figsize=self.style.figsize)
 
         interp_method = interp_method or step_wise
@@ -387,12 +380,7 @@ class ScheduleDrawer:
         Raises:
             MissingOptionalLibraryError: If matplotlib is not installed
         """
-        if not HAS_MATPLOTLIB:
-            raise MissingOptionalLibraryError(
-                libname="Matplotlib",
-                name="ScheduleDrawer",
-                pip_install="pip install matplotlib",
-            )
+        _optionals.HAS_MATPLOTLIB.require_now("ScheduleDrawer")
 
         from matplotlib import pyplot as plt
 

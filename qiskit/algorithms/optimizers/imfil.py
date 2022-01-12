@@ -14,15 +14,8 @@
 
 from typing import Any, Dict, Callable, Optional, List, Tuple
 
-from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.utils import optionals as _optionals
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
-
-try:
-    import skquant.opt as skq
-
-    _HAS_SKQUANT = True
-except ImportError:
-    _HAS_SKQUANT = False
 
 
 class IMFIL(Optimizer):
@@ -49,10 +42,7 @@ class IMFIL(Optimizer):
         Raises:
             MissingOptionalLibraryError: scikit-quant not installed
         """
-        if not _HAS_SKQUANT:
-            raise MissingOptionalLibraryError(
-                libname="scikit-quant", name="IMFIL", pip_install="pip install scikit-quant"
-            )
+        _optionals.HAS_SKQUANT.require_now("IMFIL")
         super().__init__()
         self._maxiter = maxiter
 
@@ -77,6 +67,8 @@ class IMFIL(Optimizer):
         jac: Optional[Callable[[POINT], POINT]] = None,
         bounds: Optional[List[Tuple[float, float]]] = None,
     ) -> OptimizerResult:
+        from skquant import opt as skq
+
         res, history = skq.minimize(
             func=fun,
             x0=x0,

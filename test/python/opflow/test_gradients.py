@@ -19,13 +19,6 @@ from itertools import product
 import numpy as np
 from ddt import ddt, data, idata, unpack
 
-try:
-    import jax.numpy as jnp
-
-    _HAS_JAX = True
-except ImportError:
-    _HAS_JAX = False
-
 from qiskit import QuantumCircuit, QuantumRegister, BasicAer
 from qiskit.test import slow_test
 from qiskit.utils import QuantumInstance
@@ -51,6 +44,10 @@ from qiskit.opflow.gradients.circuit_qfis import LinCombFull, OverlapBlockDiag, 
 from qiskit.circuit import Parameter
 from qiskit.circuit import ParameterVector
 from qiskit.circuit.library import RealAmplitudes, EfficientSU2
+from qiskit.utils import optionals
+
+if optionals.HAS_JAX:
+    import jax.numpy as jnp
 
 
 @ddt
@@ -479,7 +476,7 @@ class TestGradients(QiskitOpflowTestCase):
                 state_hess.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
             )
 
-    @unittest.skipIf(not _HAS_JAX, "Skipping test due to missing jax module.")
+    @unittest.skipIf(not optionals.HAS_JAX, "Skipping test due to missing jax module.")
     @data("lin_comb", "param_shift", "fin_diff")
     def test_state_hessian_custom_combo_fn(self, method):
         """Test the state Hessian with on an operator which includes
@@ -688,7 +685,7 @@ class TestGradients(QiskitOpflowTestCase):
         except MissingOptionalLibraryError as ex:
             self.skipTest(str(ex))
 
-    @unittest.skipIf(not _HAS_JAX, "Skipping test due to missing jax module.")
+    @unittest.skipIf(not optionals.HAS_JAX, "Skipping test due to missing jax module.")
     @idata(product(["lin_comb", "param_shift", "fin_diff"], [True, False]))
     @unpack
     def test_jax_chain_rule(self, method: str, autograd: bool):

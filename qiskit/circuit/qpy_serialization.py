@@ -574,13 +574,7 @@ from qiskit.version import __version__
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.synthesis import evolution as evo_synth
-
-try:
-    import symengine
-
-    HAS_SYMENGINE = True
-except ImportError:
-    HAS_SYMENGINE = False
+from qiskit.utils import optionals as _optionals
 
 
 # v1 Binary Format
@@ -812,7 +806,9 @@ def _read_parameter_expression_v3(file_obj, vectors):
     map_elements = param_expr_raw[0]
     from sympy.parsing.sympy_parser import parse_expr
 
-    if HAS_SYMENGINE:
+    if _optionals.HAS_SYMENGINE:
+        import symengine
+
         expr = symengine.sympify(parse_expr(file_obj.read(param_expr_raw[1]).decode("utf8")))
     else:
         expr = parse_expr(file_obj.read(param_expr_raw[1]).decode("utf8"))
@@ -848,7 +844,9 @@ def _read_parameter_expression(file_obj):
     map_elements = param_expr_raw[0]
     from sympy.parsing.sympy_parser import parse_expr
 
-    if HAS_SYMENGINE:
+    if _optionals.HAS_SYMENGINE:
+        import symengine
+
         expr = symengine.sympify(parse_expr(file_obj.read(param_expr_raw[1]).decode("utf8")))
     else:
         expr = parse_expr(file_obj.read(param_expr_raw[1]).decode("utf8"))

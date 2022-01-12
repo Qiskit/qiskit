@@ -31,9 +31,9 @@ from qiskit.extensions import HamiltonianGate
 from qiskit.circuit import Parameter, Qubit, Clbit
 from qiskit.circuit.library import IQP
 from qiskit.quantum_info.random import random_unitary
-from qiskit.tools.visualization import HAS_MATPLOTLIB
+from qiskit.utils import optionals
 
-if HAS_MATPLOTLIB:
+if optionals.HAS_MATPLOTLIB:
     from matplotlib.pyplot import close as mpl_close
 else:
     raise ImportError('Must have Matplotlib installed. To install, run "pip install matplotlib".')

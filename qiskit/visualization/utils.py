@@ -30,24 +30,10 @@ from qiskit.circuit import (
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit.tools import pi_check
 from qiskit.converters import circuit_to_dag
-from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.quantum_info.operators.symplectic import PauliList, SparsePauliOp
 from qiskit.quantum_info.states import DensityMatrix
+from qiskit.utils import optionals as _optionals
 from qiskit.visualization.exceptions import VisualizationError
-
-try:
-    import PIL
-
-    HAS_PIL = True
-except ImportError:
-    HAS_PIL = False
-
-try:
-    from pylatexenc.latexencode import utf8tolatex
-
-    HAS_PYLATEX = True
-except ImportError:
-    HAS_PYLATEX = False
 
 
 def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
@@ -272,14 +258,10 @@ def get_condition_label(condition, clbits, bit_locations, cregbundle):
     return label, clbit_mask, vlist
 
 
+@_optionals.HAS_PYLATEX.require_in_call("the latex and latex_source circuit drawers")
 def generate_latex_label(label):
     """Convert a label to a valid latex string."""
-    if not HAS_PYLATEX:
-        raise MissingOptionalLibraryError(
-            libname="pylatexenc",
-            name="the latex and latex_source circuit drawers",
-            pip_install="pip install pylatexenc",
-        )
+    from pylatexenc.latexencode import utf8tolatex
 
     regex = re.compile(r"(?<!\\)\$(.*)(?<!\\)\$")
     match = regex.search(label)
@@ -300,14 +282,11 @@ def generate_latex_label(label):
     return final_str.replace(" ", "\\,")  # Put in proper spaces
 
 
+@_optionals.HAS_PIL.require_in_call("the latex circuit drawer")
 def _trim(image):
     """Trim a PIL image and remove white space."""
-    if not HAS_PIL:
-        raise MissingOptionalLibraryError(
-            libname="pillow",
-            name="the latex circuit drawer",
-            pip_install="pip install pillow",
-        )
+    import PIL
+
     background = PIL.Image.new(image.mode, image.size, image.getpixel((0, 0)))
     diff = PIL.ImageChops.difference(image, background)
     diff = PIL.ImageChops.add(diff, diff, 2.0, -100)

@@ -19,6 +19,7 @@ import numpy as np
 from qiskit.circuit.quantumcircuit import _compare_parameters
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.circuit import ParameterExpression, ParameterVector
+from qiskit.utils import optionals as _optionals
 from ..expectations.pauli_expectation import PauliExpectation
 from .gradient_base import GradientBase
 from .derivative_base import _coeff_derivative
@@ -30,13 +31,6 @@ from ..operator_base import OperatorBase
 from ..operator_globals import Zero, One
 from ..state_fns.circuit_state_fn import CircuitStateFn
 from ..exceptions import OpflowError
-
-try:
-    from jax import grad, jit
-
-    _HAS_JAX = True
-except ImportError:
-    _HAS_JAX = False
 
 
 class Gradient(GradientBase):
@@ -199,7 +193,9 @@ class Gradient(GradientBase):
             if operator.grad_combo_fn:
                 grad_combo_fn = operator.grad_combo_fn
             else:
-                if _HAS_JAX:
+                if _optionals.HAS_JAX:
+                    from jax import jit, grad
+
                     grad_combo_fn = jit(grad(operator.combo_fn, holomorphic=True))
                 else:
                     raise MissingOptionalLibraryError(
