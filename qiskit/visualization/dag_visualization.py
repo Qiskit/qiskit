@@ -31,7 +31,7 @@ try:
 except ImportError:
     HAS_PIL = False
 
-FILENAME_EXTENSIONS = [
+FILENAME_EXTENSIONS = {
     "bmp",
     "canon",
     "cgimage",
@@ -40,7 +40,8 @@ FILENAME_EXTENSIONS = [
     "cmapx_np",
     "dot",
     "dot_json",
-    "eps exr",
+    "eps",
+    "exr",
     "fig",
     "gd",
     "gd2",
@@ -86,7 +87,7 @@ FILENAME_EXTENSIONS = [
     "xdot1.2",
     "xdot1.4",
     "xdot_json",
-]
+}
 
 
 def dag_drawer(dag, scale=0.7, filename=None, style="color"):
@@ -229,8 +230,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
         extension = filename.split(".")[-1]
         if extension not in FILENAME_EXTENSIONS:
             raise InvalidFileError(
-                "Filename extension must be one of: "
-                + " ".join([str(elem) for elem in FILENAME_EXTENSIONS])
+                "Filename extension must be one of: " + " ".join(FILENAME_EXTENSIONS)
             )
         dot.write(filename, format=extension)
         return None
