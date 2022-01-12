@@ -368,7 +368,6 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         )
 
     @unittest.skipUnless(HAS_AER, "qiskit-aer is required for this test")
-    @unittest.skipUnless(HAS_IGNIS, "qiskit-ignis is required to run this test")
     def test_circuit_modified(self):
         """tests that circuits don't get modified on QI execute with error mitigation
         as per issue #7449
@@ -384,15 +383,14 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
             seed_simulator=algorithm_globals.random_seed,
             seed_transpiler=algorithm_globals.random_seed,
             shots=1024,
-            measurement_error_mitigation_cls=CompleteMeasFitter_IG,
+            measurement_error_mitigation_cls=CompleteMeasFitter,
         )
         # The error happens on transpiled circuits since "execute" was changing the input array
         # Non transpiled circuits didn't have a problem because a new transpiled array was created
         # internally.
         circuits_ref = qi.transpile(circuit)  # always returns a new array
         circuits_input = circuits_ref.copy()
-        with self.assertWarnsRegex(DeprecationWarning, r".*ignis.*"):
-            _ = qi.execute(circuits_input, had_transpiled=True)
+        _ = qi.execute(circuits_input, had_transpiled=True)
         self.assertEqual(circuits_ref, circuits_input, msg="Transpiled circuit array modified.")
 
 
