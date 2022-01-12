@@ -1,0 +1,12 @@
+---
+
+features:
+  - |
+    Added new gate :class:`~qiskit.circuit.library.generalized_gates.LinearFunction`
+    that efficiently encodes a linear function.
+    Added a traspiler pass :class:`~qiskit.traspiler.passes.optimization.CollectLinearFunctions`
+    that collects all blocks of CX and SWAP gates and replaces each block by a linear function.
+    Added a transpiler pass :class:`~qiskit.traspiler.passes.synthesis.LinearFunctionsSynthesis`
+    that synthesizes linear functions using the Patel-Markov-Hayes algorithm.
+    Added a transpiler pass :class:`~qiskit.traspiler.passes.synthesis.LinearFunctionsToPermutations`
+    that promotes linear functions to permutations whenever possible.
