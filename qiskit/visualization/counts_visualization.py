@@ -274,13 +274,18 @@ def _plot_histogram_data(data, labels, number_to_keep):
     if len(data) > 1 and number_to_keep is not None:
         for execution in data:
             for common_key in dict(Counter(execution).most_common(number_to_keep)):
-                # if data[common_key] > 0:
-                # add only keys with values
-                multiple_exec_keys_dict[common_key] = 1
+                if execution[common_key] > 0:
+                    # add only keys with values
+                    multiple_exec_keys_dict[common_key] = 1
 
     for execution in data:
         if number_to_keep is not None:
-            data_temp = dict(Counter(execution).most_common(number_to_keep))
+            # only keys with values > 0
+            data_temp = dict(
+                Counter(
+                    {key: val for key, val in Counter(execution).items() if val > 0}
+                ).most_common(number_to_keep)
+            )
             data_temp["rest"] = sum(execution.values()) - sum(data_temp.values())
             execution = data_temp
         values = []
