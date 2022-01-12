@@ -1,6 +1,4 @@
 ---
-prelude: >
-    The linear solvers package API documentation was incomplete.
 fixes:
   - |
     The linear solvers package API documentation was incomplete. The subfolders
