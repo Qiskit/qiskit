@@ -263,5 +263,5 @@ class ControlledGate(Gate):
             value: A numeric or parametric expression to replace instances of ``parameter``.
             index: The index of the parameter within ``Instruction.params`` that we want to assign.
         """
-        self.base_gate.definition.assign_parameters({parameter: value}, inplace=True)
+        self.base_gate.definition._assign_parameter(parameter, value)
         super().assign_parameter(parameter, value, index)
