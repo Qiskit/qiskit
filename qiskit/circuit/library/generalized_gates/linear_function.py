@@ -124,6 +124,21 @@ class LinearFunction(Gate):
         """Returns the n x n matrix representing this linear function"""
         return self._linear
 
+    def is_permutation(self) -> bool:
+        """Returns whether this linear function is a permutation."""
+        ones = np.ones([self._linear.shape[0]], dtype=int)
+        perm = np.all(np.sum(self._linear, axis=0) == ones) and np.all(
+            np.sum(self._linear, axis=1) == ones
+        )
+        return perm
+
+    def get_permutation_pattern(self):
+        """In the case that this linear function is a permutation, returns the permutation pattern"""
+        if not self.is_permutation():
+            raise CircuitError("The linear function is not a permutation")
+        locs = np.where(self._linear == 1)
+        return locs[1]
+
 
 def _linear_quantum_circuit_to_mat(qc: QuantumCircuit):
     """This creates a n x n matrix corresponding to the given linear quantum circuit."""

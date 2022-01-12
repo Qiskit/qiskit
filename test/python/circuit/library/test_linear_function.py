@@ -207,6 +207,18 @@ class TestLinearFunctions(QiskitTestCase):
         non_linear_circuit.cx(1, 3)
         self.assertRaises(CircuitError, LinearFunction, non_linear_circuit)
 
+    def test_is_permutation(self):
+        """Tests that a permutation is detected correctly."""
+        mat = [[1, 0, 0, 0], [0, 0, 0, 1], [0, 1, 0, 0], [0, 0, 1, 0]]
+        linear_function = LinearFunction(mat)
+        self.assertTrue(linear_function.is_permutation())
+
+    def test_is_not_permutation(self):
+        """Tests that a permutation is detected correctly."""
+        mat = [[1, 0, 0, 0], [0, 0, 0, 1], [0, 1, 0, 1], [0, 0, 1, 0]]
+        linear_function = LinearFunction(mat)
+        self.assertFalse(linear_function.is_permutation())
+
 
 if __name__ == "__main__":
     unittest.main()

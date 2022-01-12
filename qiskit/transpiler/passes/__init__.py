@@ -213,6 +213,7 @@ from .analysis import DAGLongestPath
 from .synthesis import UnitarySynthesis
 from .synthesis import unitary_synthesis_plugin_names
 from .synthesis import LinearFunctionsSynthesis
+from .synthesis import LinearFunctionsToPermutations
 
 # calibration
 from .calibration import PulseGates

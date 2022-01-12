@@ -16,6 +16,7 @@
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
+from qiskit.circuit.library import Permutation
 
 
 class LinearFunctionsSynthesis(TransformationPass):
@@ -34,4 +35,23 @@ class LinearFunctionsSynthesis(TransformationPass):
             decomposition = circuit_to_dag(node.op.definition)
             dag.substitute_node_with_dag(node, decomposition)
 
+        return dag
+
+
+class LinearFunctionsToPermutations(TransformationPass):
+    """Promotes linear functions to permutations when possible."""
+
+    def run(self, dag: DAGCircuit) -> DAGCircuit:
+        """Run the LinearFunctionsToPermutations pass on `dag`.
+        Args:
+            dag: input dag.
+        Returns:
+            Output dag with LinearFunctions synthesized.
+        """
+
+        for node in dag.named_nodes("linear_function"):
+            if node.op.is_permutation():
+                pattern = node.op.get_permutation_pattern()
+                permutation = Permutation(len(pattern), pattern)
+                dag.substitute_node(node, permutation.to_instruction())
         return dag

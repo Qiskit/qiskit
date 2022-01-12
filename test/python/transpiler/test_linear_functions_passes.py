@@ -10,13 +10,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test transpiler passes that work with linear functions."""
+"""Test transpiler passes that deal with linear functions."""
 
 import unittest
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.transpiler.passes.optimization import CollectLinearFunctions
-from qiskit.transpiler.passes.synthesis import LinearFunctionsSynthesis
+from qiskit.transpiler.passes.synthesis import (
+    LinearFunctionsSynthesis,
+    LinearFunctionsToPermutations,
+)
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.library.generalized_gates import LinearFunction
 from qiskit.transpiler import PassManager
@@ -24,10 +27,11 @@ from qiskit.quantum_info import Operator
 
 
 class TestLinearFunctionsPasses(QiskitTestCase):
-    """Tests to verify correctness of the transpiler pass that extracts
-    blocks of CX and SWAP gates and replaces these blocks by LinearFunctions,
-    and the correctness of the transpiler pass that synthesizes LinearFunctions
-    into CX and SWAP gates.
+    """Tests to verify correctness of the transpiler passes that deal with
+    linear functions:
+    the pass that extracts blocks of CX and SWAP gates and replaces these blocks by LinearFunctions,
+    the pass that synthesizes LinearFunctions into CX and SWAP gates,
+    and the pass that promotes LinearFunctions to Permutations whenever possible.
     """
 
     def test_single_linear_block(self):
@@ -72,22 +76,22 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         """Test that when we have two blocks of linear gates with one nonlinear gate in the middle,
         we end up with two LinearFunctions."""
         # Create a circuit with a nonlinear gate (h) cleanly separating it into two linear blocks.
-        circuit = QuantumCircuit(4)
-        circuit.cx(0, 1)
-        circuit.cx(0, 2)
-        circuit.cx(0, 3)
-        circuit.h(3)
-        circuit.swap(2, 3)
-        circuit.cx(1, 2)
-        circuit.cx(0, 1)
+        circuit1 = QuantumCircuit(4)
+        circuit1.cx(0, 1)
+        circuit1.cx(0, 2)
+        circuit1.cx(0, 3)
+        circuit1.h(3)
+        circuit1.swap(2, 3)
+        circuit1.cx(1, 2)
+        circuit1.cx(0, 1)
 
         # new circuit with linear functions extracted using transpiler pass
-        result_circuit = PassManager(CollectLinearFunctions()).run(circuit)
+        circuit2 = PassManager(CollectLinearFunctions()).run(circuit1)
 
         # We expect to see 3 gates (linear, h, linear)
-        self.assertTrue(len(result_circuit.data) == 3)
-        inst1, qargs1, cargs1 = result_circuit.data[0]
-        inst2, qargs2, cargs2 = result_circuit.data[2]
+        self.assertTrue(len(circuit2.data) == 3)
+        inst1, qargs1, cargs1 = circuit2.data[0]
+        inst2, qargs2, cargs2 = circuit2.data[2]
         self.assertTrue(isinstance(inst1, LinearFunction))
         self.assertTrue(isinstance(inst2, LinearFunction))
 
@@ -112,13 +116,44 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         self.assertEqual(Operator(resulting_subcircuit2), Operator(expected_subcircuit2))
 
         # now a circuit with linear functions synthesized
-        synthesized_circuit = PassManager(LinearFunctionsSynthesis()).run(result_circuit)
+        synthesized_circuit = PassManager(LinearFunctionsSynthesis()).run(circuit2)
 
         # check that there are no LinearFunctions present in synthesized_circuit
         self.assertFalse("linear_function" in synthesized_circuit.count_ops().keys())
 
         # check that we have an equivalent circuit
-        self.assertEqual(Operator(result_circuit), Operator(synthesized_circuit))
+        self.assertEqual(Operator(circuit2), Operator(synthesized_circuit))
+
+    def test_to_permutation(self):
+        """Test that converting linear functions to permutations works correctly."""
+
+        # Original circuit with two linear blocks; the second block happens to be
+        # a permutation
+        circuit1 = QuantumCircuit(4)
+        circuit1.cx(0, 1)
+        circuit1.cx(0, 2)
+        circuit1.cx(0, 3)
+        circuit1.h(3)
+        circuit1.swap(2, 3)
+        circuit1.cx(1, 2)
+        circuit1.cx(2, 1)
+        circuit1.cx(1, 2)
+
+        # new circuit with linear functions extracted
+        circuit2 = PassManager(CollectLinearFunctions()).run(circuit1)
+
+        # check that we have two blocks of linear functions
+        self.assertTrue(circuit2.count_ops()["linear_function"] == 2)
+
+        # new circuit with linear functions converted to permutations
+        # (the first linear function should not be converted, the second should)
+        circuit3 = PassManager(LinearFunctionsToPermutations()).run(circuit2)
+
+        # check that there is one linear function and one permutation
+        self.assertTrue(circuit3.count_ops()["linear_function"] == 1)
+
+        # check that the final circuit is still equivalent to the original circuit
+        self.assertEqual(Operator(circuit1), Operator(circuit3))
 
 
 if __name__ == "__main__":
