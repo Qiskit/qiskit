@@ -14,8 +14,6 @@
 
 
 import numpy as np
-import scipy.sparse as sp
-import scipy.sparse.csgraph as cs
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
@@ -61,6 +59,8 @@ class DenseLayout(AnalysisPass):
         Raises:
             TranspilerError: if dag wider than self.coupling_map
         """
+        from scipy.sparse import coo_matrix
+
         num_dag_qubits = sum(qreg.size for qreg in dag.qregs.values())
         if num_dag_qubits > self.coupling_map.size():
             raise TranspilerError("Number of qubits greater than device.")
@@ -89,7 +89,7 @@ class DenseLayout(AnalysisPass):
                 else:
                     continue
 
-            self.cx_mat = sp.coo_matrix(
+            self.cx_mat = coo_matrix(
                 (cx_err, (rows, cols)), shape=(device_qubits, device_qubits)
             ).tocsr()
 
@@ -123,6 +123,8 @@ class DenseLayout(AnalysisPass):
         Returns:
             ndarray: Array of qubits to use for best connectivity mapping.
         """
+        from scipy.sparse import coo_matrix, csgraph
+
         if num_qubits == 1:
             return np.array([0])
         if num_qubits == 0:
@@ -132,7 +134,7 @@ class DenseLayout(AnalysisPass):
 
         cmap = np.asarray(self.coupling_map.get_edges())
         data = np.ones_like(cmap[:, 0])
-        sp_cmap = sp.coo_matrix(
+        sp_cmap = coo_matrix(
             (data, (cmap[:, 0], cmap[:, 1])), shape=(device_qubits, device_qubits)
         ).tocsr()
         best = 0
@@ -141,7 +143,7 @@ class DenseLayout(AnalysisPass):
         best_sub = None
         # do bfs with each node as starting point
         for k in range(sp_cmap.shape[0]):
-            bfs = cs.breadth_first_order(
+            bfs = csgraph.breadth_first_order(
                 sp_cmap, i_start=k, directed=False, return_predecessors=False
             )
 
@@ -189,7 +191,7 @@ class DenseLayout(AnalysisPass):
         rows = [edge[0] for edge in new_cmap]
         cols = [edge[1] for edge in new_cmap]
         data = [1] * len(rows)
-        sp_sub_graph = sp.coo_matrix((data, (rows, cols)), shape=(num_qubits, num_qubits)).tocsr()
-        perm = cs.reverse_cuthill_mckee(sp_sub_graph)
+        sp_sub_graph = coo_matrix((data, (rows, cols)), shape=(num_qubits, num_qubits)).tocsr()
+        perm = csgraph.reverse_cuthill_mckee(sp_sub_graph)
         best_map = best_map[perm]
         return best_map

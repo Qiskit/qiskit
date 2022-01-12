@@ -33,7 +33,6 @@ from typing import ClassVar, Optional, Type
 import logging
 
 import numpy as np
-import scipy.linalg as la
 
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit, Gate
@@ -145,6 +144,8 @@ class TwoQubitWeylDecomposition:
 
         The overall decomposition scheme is taken from Drury and Love, arXiv:0806.4015 [quant-ph].
         """
+        from scipy import linalg as la
+
         pi = np.pi
         pi2 = np.pi / 2
         pi4 = np.pi / 4
@@ -1402,4 +1403,47 @@ class TwoQubitBasisDecomposer:
         return np.argmax([trace_to_fid(traces[i]) * self.basis_fidelity ** i for i in range(4)])
 
 
-two_qubit_cnot_decompose = TwoQubitBasisDecomposer(CXGate())
+# This weird duplicated lazy structure is for backwards compatibility; Qiskit has historically
+# always made ``two_qubit_cnot_decompose`` available publicly immediately on import, but it's quite
+# expensive to construct, and we want to defer the obejct's creation until it's actually used.  We
+# only need to pass through the public methods that take `self` as a parameter.  Using `__getattr__`
+# doesn't work because it is only called if the normal resolution methods fail.  Using
+# `__getattribute__` is too messy for a simple one-off use object.
+
+
+class _LazyTwoQubitCXDecomposer(TwoQubitBasisDecomposer):
+    __slots__ = ("_inner",)
+
+    def __init__(self):  # pylint: disable=super-init-not-called
+        self._inner = None
+
+    def _load(self):
+        if self._inner is None:
+            self._inner = TwoQubitBasisDecomposer(CXGate())
+
+    def __call__(self, *args, **kwargs):
+        self._load()
+        return self._inner(*args, **kwargs)
+
+    def traces(self, target):
+        self._load()
+        return self._inner.traces(target)
+
+    def decomp1(self, target):
+        self._load()
+        return self._inner.decomp1(target)
+
+    def decomp2_supercontrolled(self, target):
+        self._load()
+        return self._inner.decomp2_supercontrolled(target)
+
+    def decomp3_supercontrolled(self, target):
+        self._load()
+        return self._inner.decomp3_supercontrolled(target)
+
+    def num_basis_gates(self, unitary):
+        self._load()
+        return self._inner.num_basis_gates(unitary)
+
+
+two_qubit_cnot_decompose = _LazyTwoQubitCXDecomposer()

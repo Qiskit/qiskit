@@ -17,7 +17,6 @@ A collection of useful quantum information functions for operators.
 import logging
 import warnings
 import numpy as np
-from scipy import sparse
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 from qiskit.circuit.gate import Gate
@@ -271,6 +270,8 @@ def diamond_norm(choi, **kwargs):
         function. See the CVXPY documentation for information on available
         SDP solvers.
     """
+    from scipy import sparse
+
     cvxpy = _cvxpy_check("`diamond_norm`")  # Check CVXPY is installed
 
     choi = Choi(_input_formatter(choi, Choi, "diamond_norm", "choi"))

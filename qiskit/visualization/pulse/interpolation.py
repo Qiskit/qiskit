@@ -19,7 +19,6 @@ from functools import partial
 from typing import Tuple
 
 import numpy as np
-from scipy import interpolate
 
 
 def interp1d(
@@ -38,6 +37,8 @@ def interp1d(
     Returns:
         Interpolated time vector and real and imaginary part of waveform.
     """
+    from scipy import interpolate
+
     re_y = np.real(samples)
     im_y = np.imag(samples)
 

@@ -21,7 +21,6 @@ from typing import Optional, List, Union
 from functools import reduce
 import colorsys
 import numpy as np
-from scipy import linalg
 from qiskit import user_config
 from qiskit.quantum_info.states.statevector import Statevector
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
@@ -718,6 +717,7 @@ def plot_state_qsphere(
     from matplotlib import pyplot as plt
     from matplotlib.patches import Circle
     import seaborn as sns
+    from scipy import linalg
     from qiskit.visualization.bloch import Arrow3D
 
     rho = DensityMatrix(state)

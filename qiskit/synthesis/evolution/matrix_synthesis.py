@@ -12,7 +12,6 @@
 
 """Exact synthesis of operator evolution via (exponentially expensive) matrix exponentiation."""
 
-from scipy.linalg import expm
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 from .evolution_synthesis import EvolutionSynthesis
@@ -28,6 +27,8 @@ class MatrixExponential(EvolutionSynthesis):
     """
 
     def synthesize(self, evolution):
+        from scipy.linalg import expm
+
         # get operators and time to evolve
         operators = evolution.operator
         time = evolution.time

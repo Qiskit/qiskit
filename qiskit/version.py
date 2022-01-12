@@ -17,7 +17,6 @@
 from collections.abc import Mapping
 import os
 import subprocess
-import pkg_resources
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -103,6 +102,8 @@ class QiskitVersion(Mapping):
         self._loaded = False
 
     def _load_versions(self):
+        import pkg_resources
+
         try:
             from qiskit.providers import aer
 

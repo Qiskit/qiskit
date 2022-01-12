@@ -13,6 +13,7 @@
 
 """Decorator for using with Qiskit unit tests."""
 
+import collections.abc
 import functools
 import inspect
 import os
@@ -375,4 +376,29 @@ def enforce_subclasses_call(
     return decorator
 
 
-TEST_OPTIONS = get_test_options()
+class _TestOptions(collections.abc.Mapping):
+    """Lazy-loading view onto the test options retrieved from the environment."""
+
+    __slots__ = ("_options",)
+
+    def __init__(self):
+        self._options = None
+
+    def _load(self):
+        if self._options is None:
+            self._options = get_test_options()
+
+    def __getitem__(self, key):
+        self._load()
+        return self._options[key]
+
+    def __iter__(self):
+        self._load()
+        return iter(self._options)
+
+    def __len__(self):
+        self._load()
+        return len(self._options)
+
+
+TEST_OPTIONS = _TestOptions()
