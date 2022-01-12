@@ -55,6 +55,7 @@ class TestReadoutMitigation(QiskitTestCase):
 
     @staticmethod
     def mitigators(assignment_matrices, qubits=None):
+        """Generates the mitigators to test for given assignment matrices"""
         full_assignment_matrix = assignment_matrices[0]
         for m in assignment_matrices[1:]:
             full_assignment_matrix = np.kron(full_assignment_matrix, m)
@@ -65,6 +66,7 @@ class TestReadoutMitigation(QiskitTestCase):
 
     @staticmethod
     def simulate_circuit(circuit, assignment_matrix, num_qubits, shots=1024):
+        """Simulates the given circuit under the given readout noise"""
         probs = Statevector.from_instruction(circuit).probabilities()
         noisy_probs = assignment_matrix @ probs
         labels = [bin(a)[2:].zfill(num_qubits) for a in range(2 ** num_qubits)]
@@ -73,6 +75,7 @@ class TestReadoutMitigation(QiskitTestCase):
 
     @staticmethod
     def ghz_3_circuit():
+        """A 3-qubit circuit generating |000>+|111>"""
         c = QuantumCircuit(3)
         c.h(0)
         c.cx(0, 1)
@@ -81,13 +84,14 @@ class TestReadoutMitigation(QiskitTestCase):
 
     @staticmethod
     def first_qubit_h_3_circuit():
+        """A 3-qubit circuit generating |000>+|001>"""
         c = QuantumCircuit(3)
         c.h(0)
         return (c, "first_qubit_h_3_circuit", 3)
 
     @staticmethod
     def assignment_matrices():
-        result = []
+        """A 3-qubit readout noise assignment matrices"""
         # from FakeYorktown
         assignment_matrices = [
             np.array([[0.98828125, 0.04003906], [0.01171875, 0.95996094]]),
@@ -98,6 +102,7 @@ class TestReadoutMitigation(QiskitTestCase):
 
     @staticmethod
     def counts_data(circuit, assignment_matrices, shots=1024):
+        """Generates count data for the noisy and noiseless versions of the circuit simulation"""
         full_assignment_matrix = assignment_matrices[0]
         for m in assignment_matrices[1:]:
             full_assignment_matrix = np.kron(full_assignment_matrix, m)
@@ -207,7 +212,7 @@ class TestReadoutMitigation(QiskitTestCase):
         shots = 10000
         assignment_matrices = self.assignment_matrices()
         mitigators = self.mitigators(assignment_matrices)
-        circuit, circuit_name, num_qubits = self.first_qubit_h_3_circuit()
+        circuit, _, _ = self.first_qubit_h_3_circuit()
         counts_ideal, counts_noise, _ = self.counts_data(circuit, assignment_matrices, shots)
         counts_ideal_12 = marginal_counts(counts_ideal, [1, 2])
         counts_ideal_02 = marginal_counts(counts_ideal, [0, 2])
@@ -240,7 +245,7 @@ class TestReadoutMitigation(QiskitTestCase):
         shots = 10000
         assignment_matrices = self.assignment_matrices()
         mitigators = self.mitigators(assignment_matrices)
-        circuit, circuit_name, num_qubits = self.first_qubit_h_3_circuit()
+        circuit, _, _ = self.first_qubit_h_3_circuit()
         counts_ideal, counts_noise, _ = self.counts_data(circuit, assignment_matrices, shots)
         counts_ideal_012 = counts_ideal
         counts_ideal_210 = Counts({"000": counts_ideal["000"], "100": counts_ideal["001"]})
@@ -285,7 +290,7 @@ class TestReadoutMitigation(QiskitTestCase):
         shots = 10000
         assignment_matrices = self.assignment_matrices()
         mitigators = self.mitigators(assignment_matrices, qubits=[0, 1, 2])
-        circuit, circuit_name, num_qubits = self.first_qubit_h_3_circuit()
+        circuit, _, _ = self.first_qubit_h_3_circuit()
         counts_ideal, counts_noise, _ = self.counts_data(circuit, assignment_matrices, shots)
         counts_ideal_012 = counts_ideal
         counts_ideal_210 = Counts({"000": counts_ideal["000"], "100": counts_ideal["001"]})
@@ -322,7 +327,7 @@ class TestReadoutMitigation(QiskitTestCase):
         shots = 10000
         assignment_matrices = self.assignment_matrices()
         mitigators = self.mitigators(assignment_matrices, qubits=[2, 4, 6])
-        circuit, circuit_name, num_qubits = self.first_qubit_h_3_circuit()
+        circuit, _, _ = self.first_qubit_h_3_circuit()
         counts_ideal, counts_noise, _ = self.counts_data(circuit, assignment_matrices, shots)
         counts_ideal_2 = marginal_counts(counts_ideal, [0])
         counts_ideal_6 = marginal_counts(counts_ideal, [2])
@@ -421,7 +426,10 @@ class TestReadoutMitigation(QiskitTestCase):
 
 
 class TestLocalReadoutMitigation(QiskitTestCase):
+    """Tests specific to the local readout mitigator"""
+
     def test_assignment_matrix(self):
+        """Tests that the local mitigator generates the full assignment matrix correctly"""
         qubits = [0, 2, 3]
         assignment_matrices = [
             np.array([[0.98828125, 0.04003906], [0.01171875, 0.95996094]]),
