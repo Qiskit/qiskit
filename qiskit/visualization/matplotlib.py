@@ -449,15 +449,6 @@ class MatplotlibDrawer:
         initial_qbit = " |0>" if self._initial_state else ""
         initial_cbit = " 0" if self._initial_state else ""
 
-        def _fix_double_script(bit_label):
-            words = bit_label.split(" ")
-            words = [word.replace("_", r"\_") if word.count("_") > 1 else word for word in words]
-            words = [
-                word.replace("^", r"\^{\ }") if word.count("^") > 1 else word for word in words
-            ]
-            bit_label = " ".join(words).replace(" ", "\\;")
-            return bit_label
-
         idx = 0
         pos = y_off = -len(self._qubits) + 1
         for ii, bit in enumerate(self._bits_regs_map):
@@ -478,7 +469,6 @@ class MatplotlibDrawer:
                 "mpl", register, index, layout=self._layout, cregbundle=self._cregbundle
             )
             initial_bit = initial_qbit if isinstance(bit, Qubit) else initial_cbit
-            bit_label = _fix_double_script(bit_label)
 
             # for cregs with cregbundle on, don't use math formatting, which means
             # no italics
@@ -486,7 +476,13 @@ class MatplotlibDrawer:
                 bit_label = "$" + bit_label + "$"
             bit_label += initial_bit
 
-            text_width = self._get_text_width(bit_label, self._fs) * 1.15
+            reg_size = (
+                0 if register is None or isinstance(bit, ClassicalRegister) else register.size
+            )
+            reg_remove_under = 0 if reg_size < 2 else 1
+            text_width = (
+                self._get_text_width(bit_label, self._fs, reg_remove_under=reg_remove_under) * 1.15
+            )
             if text_width > longest_bit_label_width:
                 longest_bit_label_width = text_width
 
@@ -576,7 +572,7 @@ class MatplotlibDrawer:
         anchors = [self._q_anchors[ii].get_index() for ii in self._qubits_dict]
         return max(anchors) if anchors else 0
 
-    def _get_text_width(self, text, fontsize, param=False):
+    def _get_text_width(self, text, fontsize, param=False, reg_remove_under=None):
         """Compute the width of a string in the default font"""
         if not text:
             return 0.0
@@ -593,6 +589,11 @@ class MatplotlibDrawer:
         # If there are subscripts or superscripts in mathtext string
         # we need to account for that spacing by manually removing
         # from text string for text length
+
+        # if it's a register and there's a subscript at the end,
+        # remove 1 underscore, otherwise don't remove any
+        if reg_remove_under is not None:
+            num_underscores = reg_remove_under
         if num_underscores:
             text = text.replace("_", "", num_underscores)
         if num_carets:
