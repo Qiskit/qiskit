@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 
 # pylint: disable=invalid-name
-# pylint: disable=inconsistent-return-statements
 # pylint: disable=missing-param-doc,missing-type-doc,unused-argument
 
 """
@@ -271,10 +270,10 @@ def plot_bloch_multivector(
 
             qc = QuantumCircuit(2)
             qc.h(0)
-            qc.cx(0, 1)
+            qc.x(1)
 
             state = Statevector.from_instruction(qc)
-            plot_bloch_multivector(state, title="New Bloch Multivector", reverse_bits=False)
+            plot_bloch_multivector(state)
     """
     if not HAS_MATPLOTLIB:
         raise MissingOptionalLibraryError(
@@ -746,7 +745,7 @@ def plot_state_qsphere(
             pip_install="pip install matplotlib",
         )
 
-    import matplotlib.gridspec as gridspec
+    from matplotlib import gridspec
     from matplotlib import pyplot as plt
     from matplotlib.patches import Circle
     from qiskit.visualization.bloch import Arrow3D
@@ -1417,8 +1416,10 @@ def state_drawer(state, output=None, **drawer_args):
             raise MissingOptionalLibraryError(
                 libname="IPython",
                 name="state_drawer",
-                pip_install="\"pip install ipython\", or set output='latex_source' "
-                "instead for an ASCII string.",
+                pip_install=(
+                    "\"pip install ipython\", or set output='latex_source' "
+                    "instead for an ASCII string."
+                ),
             ) from err
         else:
             draw_func = drawers["latex_source"]

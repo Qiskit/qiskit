@@ -119,6 +119,7 @@ Synthesis
    two_qubit_cnot_decompose
    Quaternion
    decompose_clifford
+   XXDecomposer
 """
 
 from .operators import Operator, ScalarOp, Pauli, Clifford, SparsePauliOp
@@ -159,6 +160,7 @@ from .synthesis import (
     two_qubit_cnot_decompose,
     Quaternion,
     decompose_clifford,
+    XXDecomposer,
 )
 
 from .analysis import hellinger_distance, hellinger_fidelity

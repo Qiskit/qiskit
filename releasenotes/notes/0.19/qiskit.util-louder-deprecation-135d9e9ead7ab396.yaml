@@ -1,0 +1,6 @@
+deprecations:
+  - |
+    Importing the ``qiskit.util`` module will now issue a ``DeprecationWarning``.
+    Users should instead import all the same functionality from :obj:`qiskit.utils`.
+    The ``util`` module has been deprecated since Terra 0.17, but previously did not issue a warning.
+    It will be removed in Terra 0.20.

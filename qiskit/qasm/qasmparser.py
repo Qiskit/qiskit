@@ -17,7 +17,7 @@ import shutil
 import tempfile
 
 import numpy as np
-import ply.yacc as yacc
+from ply import yacc
 
 from . import node
 from .exceptions import QasmError
@@ -142,7 +142,7 @@ class QasmParser:
                 obj.file,
             )
         g_sym = self.global_symtab[obj.name]
-        if not (g_sym.type == "gate" or g_sym.type == "opaque"):
+        if g_sym.type not in ("gate", "opaque"):
             raise QasmError(
                 "'"
                 + obj.name
@@ -261,7 +261,7 @@ class QasmParser:
             g_sym = self.current_symtab[id_node.name]
         except KeyError:
             g_sym = self.global_symtab[id_node.name]
-        if g_sym.type == "qreg" or g_sym.type == "creg":
+        if g_sym.type in ("qreg", "creg"):
             # Return list of (name, idx) for reg ids
             for idx in range(g_sym.index):
                 bit_list.append((id_node.name, idx))

@@ -124,7 +124,7 @@ class TestGateSqrt(QiskitTestCase):
         def rxgate(theta):
             return np.cos(0.5 * theta) * iden - 1j * np.sin(0.5 * theta) * xgen
 
-        rxrz = rxgate(thetax) * rzgate(thetaz)
+        rxrz = rxgate(thetax).dot(rzgate(thetaz))
 
         self.assertEqual(result.label, "my_gate^0.5")
         self.assertEqual(len(result.definition), 1)
