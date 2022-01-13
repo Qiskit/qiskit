@@ -57,7 +57,7 @@ class AdaptQAOA(QAOA):
         self,
         mixer_pool: Optional[Union[OperatorBase, QuantumCircuit]] = None,
         mixer_pool_type: Optional[str] = None,
-        threshold: Optional[Callable[[int, float], None]] = 0,
+        threshold: Optional[Callable[[int, float], None]] = None,
         max_reps=1,
         **kwargs,
     ) -> None:
@@ -151,7 +151,7 @@ class AdaptQAOA(QAOA):
             name=self.name,
         )
         beta_bounds = self._reps * [(-2 * np.pi, 2 * np.pi)]
-        gamma_bounds = self._reps * [(-np.pi, np.pi)]
+        gamma_bounds = self._reps * [(-0.5 * np.pi, 0.5 * np.pi)]
 
         self.ansatz._bounds = beta_bounds + gamma_bounds
 
@@ -165,9 +165,6 @@ class AdaptQAOA(QAOA):
         """
 
         from qiskit.opflow import commutator
-
-        if not isinstance(operator, MatrixOp):
-            operator = MatrixOp(Operator(operator.to_matrix()))
         wave_function = ansatz.assign_parameters(self.hyperparameter_dict)
         # construct expectation operator
         exp_hc = (self.initial_point[-1] * operator).exp_i()
@@ -175,7 +172,7 @@ class AdaptQAOA(QAOA):
         exp_hc = exp_hc.to_matrix()
         energy_grad_op = (
             exp_hc_ad
-            @ (commutator(operator.to_matrix_op(), mixer.to_matrix_op()).to_matrix())
+            @ (commutator(operator, mixer).to_matrix())
             @ exp_hc
         )
         energy_grad_op = PrimitiveOp(energy_grad_op)
@@ -191,7 +188,6 @@ class AdaptQAOA(QAOA):
         return -1j * expect_op
 
     def _test_mixer_pool(self, operator: OperatorBase):
-        self._check_problem_configuration(operator)
         energy_gradients = []
         for mixer in self.mixer_pool:
             expect_op = self.compute_energy_gradient(mixer, operator, ansatz=self.ansatz)
@@ -211,12 +207,15 @@ class AdaptQAOA(QAOA):
         iter_results=False,
         disp=False,
     ):
+        self.optimal_mixer_list = None
         """Runs ADAPT-QAOA for each iteration"""
         self.optimal_mixer_list = []
         self._reps, self.ansatz = 1, self.initial_state  # initialise layer loop counter and ansatz
         result_p, result = [], None
         while self._reps < self.max_reps + 1:  # loop over number of maximum reps
-            best_mixer, energy_norm = self._test_mixer_pool(operator=operator)
+            best_mixer, energy_norm = self._test_mixer_pool(operator=operator.to_matrix_op() 
+                                                        if not isinstance(operator, MatrixOp) 
+                                                        else operator)
             if disp:
                 print(f"Circuit depth: {self._reps}")
                 print(
@@ -246,7 +245,8 @@ class AdaptQAOA(QAOA):
             if disp:
                 print("Initial point: {}".format(self.initial_point))
                 print("Optimal parameters: {}".format(result.optimal_parameters))
-                print("Relative Energy", result.optimal_value - self.ground_state_energy)
+                print("Computed Energy: {}".format(result.optimal_value))
+                print("Relative Energy: {}".format(result.optimal_value - self.ground_state_energy))
                 print("--------------------------------------------------------")
             self._reps += 1
         if iter_results:
@@ -359,11 +359,18 @@ class AdaptQAOA(QAOA):
         else:
             return None
 
-    # @property
-    # def optimal_mixer_list(self) -> List:
+    @property
+    def threshold(self) -> float:
+        if self._threshold is None:
+            self._threshold = 0
+        return self._threshold      
+
+    @threshold.setter
+    def threshold(self, threshold) -> Optional[Callable[[int, float], None]]:
+        self._threshold = threshold
 
     @property
-    def initial_point(self) -> np.ndarray:
+    def initial_point(self) -> np.array:
         """Updates initial points
 
         Returns:
@@ -401,8 +408,8 @@ class AdaptQAOA(QAOA):
     def _generate_initial_point(
         self,
     ):  # set initial value for gamma according to https://arxiv.org/abs/2005.10258
-        gamma_ip = 0.01
-        beta_ip = -np.pi / 4  # algorithm_globals.random.uniform([-2 * np.pi], [2 * np.pi])
+        gamma_ip = 0.01#algorithm_globals.random.uniform([-2 * np.pi], [2 * np.pi])
+        beta_ip = -0.25 * np.pi#algorithm_globals.random.uniform([-2 * np.pi], [2 * np.pi])
         return np.append(beta_ip, [gamma_ip])
 
     def _update_initial_point(self):
