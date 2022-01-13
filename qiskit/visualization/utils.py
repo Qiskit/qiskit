@@ -171,14 +171,18 @@ def get_bit_label(drawer, register, index, qubit=True, layout=None, cregbundle=T
         reg_name = f"{register.name}"
         reg_name_index = f"{register.name}_{index}"
     else:
-        reg_name = f"{{{register.name}}}"
-        reg_name_index = f"{{{register.name}}}_{{{index}}}"
+        reg_name = f"{{{fix_special_characters(register.name)}}}"
+        reg_name_index = f"{reg_name}_{{{index}}}"
 
     # Clbits
     if not qubit:
-        if cregbundle:
+        if cregbundle and drawer != "latex":
             bit_label = f"{register.name}"
-        elif register.size == 1:
+            return bit_label
+
+        size = register.size
+        if size == 1 or cregbundle:
+            size = 1
             bit_label = reg_name
         else:
             bit_label = reg_name_index
@@ -204,6 +208,8 @@ def get_bit_label(drawer, register, index, qubit=True, layout=None, cregbundle=T
                 bit_label = f"{virt_bit} -> {index}"
             else:
                 bit_label = f"{{{virt_bit}}} \\mapsto {{{index}}}"
+        if drawer != "text":
+            bit_label = bit_label.replace(" ", "\\;")  # use wider spaces
     else:
         bit_label = index_str
 
@@ -256,6 +262,22 @@ def get_condition_label(condition, clbits, bit_locations, cregbundle):
         label = hex(val)
 
     return label, clbit_mask, vlist
+
+
+def fix_special_characters(label):
+    """
+    Convert any special characters for mpl and latex drawers.
+    Currently only checks for multiple underscores in register names
+    and uses wider space for mpl and latex drawers.
+
+    Args:
+        label (str): the label to fix
+
+    Returns:
+        str: label to display
+    """
+    label = label.replace("_", r"\_").replace(" ", "\\;")
+    return label
 
 
 @_optionals.HAS_PYLATEX.require_in_call("the latex and latex_source circuit drawers")
