@@ -109,15 +109,19 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
 
         if self.mixer_operator is not None:
             # wrap mixers in a list
-            mixers = [self.mixer_operator] if not isinstance(self.mixer_operator, list) else self.mixer_operator
+            mixers = (
+                [self.mixer_operator]
+                if not isinstance(self.mixer_operator, list)
+                else self.mixer_operator
+            )
             if any(mixer.num_qubits != self.num_qubits):
-                    valid = False
-                    if raise_on_failure:
-                        raise AttributeError(
-                            f"The number of qubits of the mixer {self.mixer_operator.num_qubits}"
-                            "does not match the number of qubits of the cost operator "
-                            f"{self.num_qubits}."
-                        )
+                valid = False
+                if raise_on_failure:
+                    raise AttributeError(
+                        f"The number of qubits of the mixer {self.mixer_operator.num_qubits}"
+                        "does not match the number of qubits of the cost operator "
+                        f"{self.num_qubits}."
+                    )
 
         return valid
 

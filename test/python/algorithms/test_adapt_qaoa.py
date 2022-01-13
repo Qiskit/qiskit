@@ -25,7 +25,7 @@ import retworkx as rx
 from ddt import ddt, idata, unpack
 from qiskit import BasicAer, QuantumCircuit, QuantumRegister
 from qiskit.algorithms import AdaptQAOA
-from qiskit.algorithms.optimizers import COBYLA, NELDER_MEAD
+from qiskit.algorithms.optimizers import COBYLA
 from qiskit.circuit.library import IGate, XGate, YGate, ZGate
 from qiskit.opflow import I, PauliSumOp, X, Y, Z
 from qiskit.opflow.primitive_ops import PauliOp
@@ -33,13 +33,12 @@ from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.utils import QuantumInstance, algorithm_globals
 
 
-def _create_mixer_pool(num_q, add_multi, circ, parameterize):
+def _create_mixer_pool(num_q, add_multi, circ):
     """Compute the mixer pool
     Args:
         num_q (int): number of qubits
         add_multi (bool): whether to add multi qubit gates to the mixer pool
         circ (bool): if output mixer pool in form of list of circuits instead of list of operators
-        parameterize (bool): if the circuit mixers should be parameterized
 
     Returns:
         list: all possible combinations of mixers
@@ -67,14 +66,10 @@ def _create_mixer_pool(num_q, add_multi, circ, parameterize):
     mixer_circ_list = []
     for mix_str in mixer_pool:
         if circ:
-
-            # TODO: parameterise these circuits
             qr = QuantumRegister(num_q)
             qc = QuantumCircuit(qr)
             for i, mix in enumerate(mix_str):
                 qiskit_dict = {"I": IGate(), "X": XGate(), "Y": YGate(), "Z": ZGate()}
-                if parameterize:
-                    qiskit_dict = {"I": IGate(), "X": XGate(), "Y": YGate(), "Z": ZGate()}
 
                 mix_qis_gate = qiskit_dict[mix]
                 qc.append(mix_qis_gate, [i])

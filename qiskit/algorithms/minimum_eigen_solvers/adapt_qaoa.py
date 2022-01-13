@@ -12,24 +12,27 @@
 
 """ The Adaptive Derivative Assembled Problem Tailored - Quantum Approximate Optimization Algorithm. """
 
+import logging
 from functools import reduce
 from itertools import combinations_with_replacement, permutations, product
-from qiskit.algorithms.optimizers.cobyla import COBYLA
 from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
 from qiskit import QuantumCircuit
+from qiskit.algorithms.optimizers.cobyla import COBYLA
 from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
-from qiskit.opflow import ComposedOp, I, OperatorBase, X, Y, Z
+from qiskit.opflow import ComposedOp, I, OperatorBase, PauliSumOp, X, Y, Z
 from qiskit.opflow.expectations.expectation_factory import ExpectationFactory
-from qiskit.opflow.primitive_ops import MatrixOp
+from qiskit.opflow.primitive_ops import MatrixOp, PauliOp
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
 from qiskit.opflow.state_fns.state_fn import StateFn
-from qiskit.quantum_info import Operator
+from qiskit.quantum_info import Operator, Pauli, SparsePauliOp
 from qiskit.utils import algorithm_globals
 
 from .qaoa import QAOA
+
+logger = logging.getLogger(__name__)
 
 
 class AdaptQAOA(QAOA):
@@ -168,7 +171,7 @@ class AdaptQAOA(QAOA):
 
         if not isinstance(operator, MatrixOp):
             operator = MatrixOp(Operator(operator.to_matrix()))
-        wave_function = ansatz.assign_parameters(self.hyperparameter_dict)
+        wave_function = ansatz.assign_parameters(self._create_hyperparameter_dict)
         # construct expectation operator
         exp_hc = (self.initial_point[-1] * operator).exp_i()
         exp_hc_ad = exp_hc.adjoint().to_matrix()
@@ -191,13 +194,13 @@ class AdaptQAOA(QAOA):
         return -1j * expect_op
 
     def _test_mixer_pool(self, operator: OperatorBase):
-        self._check_problem_configuration(operator)
+        self._update_states(operator)
         energy_gradients = []
         for mixer in self.mixer_pool:
             expect_op = self.compute_energy_gradient(mixer, operator, ansatz=self.ansatz)
             # run expectation circuit
             sampled_expect_op = self._circuit_sampler.convert(
-                expect_op, params=self.hyperparameter_dict
+                expect_op, params=self._create_hyperparameter_dict
             )
             meas = sampled_expect_op.eval()
             energy_gradients.append(meas)
@@ -209,7 +212,6 @@ class AdaptQAOA(QAOA):
         operator: OperatorBase,
         aux_operators: Optional[List[Optional[OperatorBase]]] = None,
         iter_results=False,
-        disp=False,
     ):
         """Runs ADAPT-QAOA for each iteration"""
         self.optimal_mixer_list = []
@@ -217,13 +219,11 @@ class AdaptQAOA(QAOA):
         result_p, result = [], None
         while self._reps < self.max_reps + 1:  # loop over number of maximum reps
             best_mixer, energy_norm = self._test_mixer_pool(operator=operator)
-            if disp:
-                print(f"Circuit depth: {self._reps}")
-                print(
-                    f"Current energy norm | Threshold  =====> | {energy_norm} | {self.threshold} |"
-                )
-                print(f"Best mixer: {best_mixer}")
-                print()
+
+            logger.info(f"Circuit depth: {self._reps}")
+            logger.info(f"Current energy norm: {energy_norm}")
+            logger.info(f"Best mixer: {best_mixer}")
+
             if energy_norm < self.threshold:  # Threshold stoppage condition
                 if result is None:
                     result = super().compute_minimum_eigenvalue(
@@ -243,18 +243,18 @@ class AdaptQAOA(QAOA):
             self.best_gamma = list(np.split(opt_params, 2)[1])
             if np.abs(result.optimal_value - self.ground_state_energy) < 1e-16:
                 break
-            if disp:
-                print("Initial point: {}".format(self.initial_point))
-                print("Optimal parameters: {}".format(result.optimal_parameters))
-                print("Relative Energy", result.optimal_value - self.ground_state_energy)
-                print("--------------------------------------------------------")
+
+            logger.info(f"Initial point: {self.initial_point}")
+            logger.info(f"Optimal parameters: {result.optimal_parameters}")
+            logger.info(f"Relative Energy: {result.optimal_value - self.ground_state_energy}")
+
             self._reps += 1
         if iter_results:
             return result, result_p
         return result
 
-    def _check_problem_configuration(self, operator: OperatorBase):
-        # Generates the pool of mixers with respect to the cost operator size
+    def _update_states(self, operator: OperatorBase):
+        # Updates the cost operator and initial state to match current best operator
         if self._cost_operator != operator:
             self._cost_operator = operator
         if self.ansatz != self.initial_state and self._reps == 1:
@@ -320,7 +320,7 @@ class AdaptQAOA(QAOA):
         self._optimal_mixer_list = optimal_mixer_list
 
     @property
-    def hyperparameter_dict(self) -> Dict:
+    def _create_hyperparameter_dict(self) -> Dict:
         """Creates dictionary of hyperparameters including ansatz parameters
 
         Returns:
@@ -333,9 +333,9 @@ class AdaptQAOA(QAOA):
             )
         return self._hyperparameter_dict
 
-    @hyperparameter_dict.setter
-    def hyperparameter_dict(self, hyperparameter_dict) -> Dict:
-        self._hyperparameter_dict = hyperparameter_dict
+    @_create_hyperparameter_dict.setter
+    def _create_hyperparameter_dict(self, _create_hyperparameter_dict) -> Dict:
+        self._hyperparameter_dict = _create_hyperparameter_dict
 
     @property
     def cost_operator(self):
@@ -476,28 +476,20 @@ def adapt_mixer_pool(
             iden_str[item[0][1]] = item[1][1]
             mixer_pool.append("".join(iden_str))
 
-    op_dict = {"I": I, "X": X, "Y": Y, "Z": Z}
-
-    def is_all_same(items):
-        return all(x == items[0] for x in items)
-
-    def string_to_op(qstring):
-        if is_all_same(qstring):
-            # case where its all X's or Y's
-            gate = qstring[0]
+    mixer_circ_list = []
+    for mix_str in mixer_pool:
+        if mix_str == len(mix_str) * mix_str[0]:
+            gate = mix_str[0]
             list_string = [
-                i * "I" + gate + (len(qstring) - i - 1) * "I" for i in range(len(qstring))
+                i * "I" + gate + (len(mix_str) - i - 1) * "I" for i in range(len(mix_str))
             ]
-            return sum(
-                [
-                    reduce(lambda a, b: a ^ b, [op_dict[char.upper()] for char in x])
-                    for x in list_string
-                ]
-            )
-        return reduce(lambda a, b: a ^ b, [op_dict[char.upper()] for char in qstring])
+            op_list = [(op, 1) for op in list_string]
+            op = PauliSumOp(SparsePauliOp.from_list(op_list))
+        else:
+            op = PauliOp(Pauli(mix_str))
+        mixer_circ_list.append(op)
 
-    mixer_pool = [string_to_op(mixer) for mixer in mixer_pool]
-    return mixer_pool
+    return mixer_circ_list
 
 
 # TODO: Fix the following issues for unittest:
