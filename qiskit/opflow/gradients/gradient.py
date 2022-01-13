@@ -17,7 +17,6 @@ import functools
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import _compare_parameters
-from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.circuit import ParameterExpression, ParameterVector
 from qiskit.utils import optionals as _optionals
 from ..expectations.pauli_expectation import PauliExpectation
@@ -193,20 +192,10 @@ class Gradient(GradientBase):
             if operator.grad_combo_fn:
                 grad_combo_fn = operator.grad_combo_fn
             else:
-                if _optionals.HAS_JAX:
-                    from jax import jit, grad
+                _optionals.HAS_JAX.require_now("automatic differentiation")
+                from jax import jit, grad  # pylint: disable=import-error
 
-                    grad_combo_fn = jit(grad(operator.combo_fn, holomorphic=True))
-                else:
-                    raise MissingOptionalLibraryError(
-                        libname="jax",
-                        name="get_gradient",
-                        msg=(
-                            "This automatic differentiation function is based on JAX. "
-                            "Please install jax and use `import jax.numpy as jnp` instead "
-                            "of `import numpy as np` when defining a combo_fn."
-                        ),
-                    )
+                grad_combo_fn = jit(grad(operator.combo_fn, holomorphic=True))
 
             def chain_rule_combo_fn(x):
                 result = np.dot(x[1], x[0])
