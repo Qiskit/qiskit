@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fix the synthesis of a :class:`~qiskit.circuit.library.PauliEvolutionGate` using the
+    :class:`qiskit.synthesis.MatrixExponential` method, which previously failed if the evolution
+    time was a bound :class:`~qiskit.circuit.ParameterExpression`.

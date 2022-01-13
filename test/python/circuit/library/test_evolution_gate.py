@@ -47,6 +47,23 @@ class TestEvolutionGate(QiskitTestCase):
 
         self.assertTrue(Operator(evo_gate).equiv(evolved))
 
+    def test_matrix_parameterized(self):
+        """Test the matrix synthesis if the time was parameterized.
+
+        Regression test of Qiskit/qiskit-terra#7507.
+        """
+        op = X
+        time = Parameter("t")
+        evo_gate = PauliEvolutionGate(op, time, synthesis=MatrixExponential())
+        circuit = QuantumCircuit(1)
+        circuit.append(evo_gate, [0])
+        bound = circuit.bind_parameters({time: 0.12})
+
+        ref = QuantumCircuit(1)
+        ref.rx(0.24, 0)
+
+        self.assertTrue(Operator(bound).equiv(ref))
+
     def test_lie_trotter(self):
         """Test constructing the circuit with Lie Trotter decomposition."""
         op = (X ^ 3) + (Y ^ 3) + (Z ^ 3)
