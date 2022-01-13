@@ -15,13 +15,18 @@
 import os
 import re
 import sys
+import subprocess
 from setuptools import setup, find_packages, Extension
+
+try:
+    import numpy as np
+except ImportError:
+    subprocess.call([sys.executable, '-m', 'pip', 'install', 'numpy>=1.17'])
+    import numpy as np
 
 try:
     from Cython.Build import cythonize
 except ImportError:
-    import subprocess
-
     subprocess.call([sys.executable, "-m", "pip", "install", "Cython>=0.27.1"])
     from Cython.Build import cythonize
 
@@ -37,9 +42,16 @@ CYTHON_EXTS = {
         "qiskit.transpiler.passes.routing.cython.stochastic_swap.swap_trial"
     ),
     "qiskit/quantum_info/states/cython/exp_value": "qiskit.quantum_info.states.cython.exp_value",
+    "qiskit/result/mitigation/mthree/compute": "qiskit.result.mitigation.mthree.compute",
+    "qiskit/result/mitigation/mthree/converters": "qiskit.result.mitigation.mthree.converters",
+    "qiskit/result/mitigation/mthree/hamming": "qiskit.result.mitigation.mthree.hamming",
+    "qiskit/result/mitigation/mthree/matrix": "qiskit.result.mitigation.mthree.matrix",
+    "qiskit/result/mitigation/mthree/probability": "qiskit.result.mitigation.mthree.probability",
+    "qiskit/result/mitigation/mthree/matvec": "qiskit.result.mitigation.mthree.matvec",
+    "qiskit/result/mitigation/mthree/expval": "qiskit.result.mitigation.mthree.expval",
 }
 
-INCLUDE_DIRS = []
+INCLUDE_DIRS = [np.get_include()]
 # Extra link args
 LINK_FLAGS = []
 # If on Win and not in MSYS2 (i.e. Visual studio compile)
