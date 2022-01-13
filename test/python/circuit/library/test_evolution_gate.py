@@ -261,3 +261,14 @@ class TestEvolutionGate(QiskitTestCase):
             circuit.data[2][0].params[0],  # Z
         ]
         self.assertListEqual(rz_angles, [20, 30, -10])
+
+    @data(LieTrotter, MatrixExponential)
+    def test_inverse(self, synth_cls):
+        """Test calculating the inverse is correct."""
+        evo = PauliEvolutionGate(X + Y, time=0.12, synthesis=synth_cls())
+
+        circuit = QuantumCircuit(1)
+        circuit.append(evo, circuit.qubits)
+        circuit.append(evo.inverse(), circuit.qubits)
+
+        self.assertTrue(Operator(circuit).equiv(np.identity(2 ** circuit.num_qubits)))

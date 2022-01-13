@@ -104,9 +104,6 @@ class PauliEvolutionGate(Gate):
         """Unroll, where the default synthesis is matrix based."""
         self.definition = self.synthesis.synthesize(self)
 
-    def inverse(self) -> "PauliEvolutionGate":
-        return PauliEvolutionGate(operator=self.operator, time=-self.time, synthesis=self.synthesis)
-
     def validate_parameter(
         self, parameter: Union[int, float, ParameterExpression]
     ) -> Union[float, ParameterExpression]:
