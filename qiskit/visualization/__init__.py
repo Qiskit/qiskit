@@ -128,7 +128,7 @@ from qiskit.visualization.transition_visualization import visualize_transition
 from qiskit.visualization.array import array_to_latex
 
 # NOTE (Jake Lishman, 2022-01-12): for backwards compatibility. Deprecate these paths in Terra 0.21.
-from qiskit.utils.optionals import HAS_MATPLOTLIB, HAS_PYLATEX
+from qiskit.utils.optionals import HAS_MATPLOTLIB, HAS_PYLATEX, HAS_PIL, HAS_PDFTOCAIRO
 
 from .circuit_visualization import circuit_drawer
 from .dag_visualization import dag_drawer
