@@ -279,7 +279,10 @@ def get_condition_label(condition, clbits, bit_locations, cregbundle):
 
 
 def fix_special_characters(label):
-    """Convert any special characters for mpl and latex drawers
+    """
+    Convert any special characters for mpl and latex drawers.
+    Currently only checks for multiple underscores in register names
+    and uses wider space for mpl and latex drawers.
 
     Args:
         label (str): the label to fix
@@ -287,8 +290,6 @@ def fix_special_characters(label):
     Returns:
         str: label to display
     """
-    # Currently only checks for multiple underscores in register names
-    # and uses wider space for mpl and latex drawers
     label = label.replace("_", r"\_").replace(" ", "\\;")
     return label
 
