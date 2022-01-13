@@ -41,9 +41,8 @@ __unittest = True  # Allows shorter stack trace for .assertDictAlmostEqual
 # If testtools is installed use that as a (mostly) drop in replacement for
 # unittest's TestCase. This will enable the fixtures used for capturing stdout
 # stderr, and pylogging to attach the output to stestr's result stream.
-if _optionals.HAS_FIXTURES:
-    _optionals.HAS_TESTTOOLS.require_now("build test suite with fixtures")
-    import testtools
+if _optionals.HAS_TESTTOOLS:
+    import testtools  # pylint: disable=import-error
 
     class BaseTestCase(testtools.TestCase):
         """Base test class."""
@@ -223,6 +222,7 @@ class FullQiskitTestCase(QiskitTestCase):
     If you derive directly from it, you may try and instantiate the class without satisfying its
     dependencies."""
 
+    @_optionals.HAS_FIXTURES.require_in_call("output-capturing test cases")
     def setUp(self):
         import fixtures
 
@@ -297,5 +297,5 @@ def dicts_almost_equal(dict1, dict2, delta=None, places=None, default_value=0):
 # Maintain naming backwards compatibility for downstream packages.
 BasicQiskitTestCase = QiskitTestCase
 
-if _optionals.HAS_FIXTURES:
+if _optionals.HAS_TESTTOOLS and _optionals.HAS_FIXTURES:
     QiskitTestCase = FullQiskitTestCase
