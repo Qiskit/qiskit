@@ -211,7 +211,6 @@ class AdaptQAOA(QAOA):
         self,
         operator: OperatorBase,
         aux_operators: Optional[List[Optional[OperatorBase]]] = None,
-        iter_results=False,
     ):
         """Runs ADAPT-QAOA for each iteration"""
         self.optimal_mixer_list = []
@@ -249,8 +248,6 @@ class AdaptQAOA(QAOA):
             logger.info(f"Relative Energy: {result.optimal_value - self.ground_state_energy}")
 
             self._reps += 1
-        if iter_results:
-            return result, result_p
         return result
 
     def _update_states(self, operator: OperatorBase):
