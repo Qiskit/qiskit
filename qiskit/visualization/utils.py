@@ -161,7 +161,7 @@ def get_param_str(op, drawer, ndigits=3):
     return param_str
 
 
-def get_bits_regs_map(circuit, bits, cregbundle):
+def get_wire_map(circuit, bits, cregbundle):
     """Map the bits and registers to the index from the top of the drawing.
     The key to the dict is either the (Qubit, Clbit) or if cregbundle True,
     the register that is being bundled.
@@ -176,20 +176,19 @@ def get_bits_regs_map(circuit, bits, cregbundle):
             to index
     """
     prev_reg = None
-    bit_reg_index = 0
-    bits_regs_map = {}
+    wire_index = 0
+    wire_map = {}
     for bit in bits:
-        bit_loc = circuit.find_bit(bit)
-        register = bit_loc.registers[0][0] if bit_loc.registers else None
+        register = get_bit_register(circuit, bit)
         if register is None or not isinstance(bit, Clbit) or not cregbundle:
-            bits_regs_map[bit] = bit_reg_index
-            bit_reg_index += 1
+            wire_map[bit] = wire_index
+            wire_index += 1
         elif register is not None and cregbundle and register != prev_reg:
             prev_reg = register
-            bits_regs_map[register] = bit_reg_index
-            bit_reg_index += 1
+            wire_map[register] = wire_index
+            wire_index += 1
 
-    return bits_regs_map
+    return wire_map
 
 
 def get_bit_register(circuit, bit):
@@ -221,24 +220,21 @@ def get_bit_reg_index(circuit, bit, reverse_bits):
         int: index of the bit within the register, if there is a register
     """
     bit_loc = circuit.find_bit(bit)
-    register = bit_loc.registers[0][0] if bit_loc.registers else None
     bit_index = bit_loc.index
-    reg_index = None
-    if register is not None:
-        reg_index = register.index(bit)
-        if reverse_bits:
-            bits_len = len(circuit.clbits) if isinstance(bit, Clbit) else len(circuit.qubits)
-            bit_index = bits_len - bit_index - 1
+    register, reg_index = bit_loc.registers[0] if bit_loc.registers else (None, None)
+    if register is not None and reverse_bits:
+        bits_len = len(circuit.clbits) if isinstance(bit, Clbit) else len(circuit.qubits)
+        bit_index = bits_len - bit_index - 1
 
     return register, bit_index, reg_index
 
 
-def get_bit_label(drawer, register, index, layout=None, cregbundle=True):
+def get_wire_label(drawer, register, index, layout=None, cregbundle=True):
     """Get the bit labels to display to the left of the wires.
 
     Args:
         drawer (str): which drawer is calling ("text", "mpl", or "latex")
-        register (QuantumRegister or ClassicalRegister): get bit_label for this register
+        register (QuantumRegister or ClassicalRegister): get wire_label for this register
         index (int): index of bit in register
         layout (Layout): Optional. mapping of virtual to physical bits
         cregbundle (bool): Optional. if set True bundle classical registers.
@@ -249,8 +245,8 @@ def get_bit_label(drawer, register, index, layout=None, cregbundle=True):
     """
     index_str = f"{index}" if drawer == "text" else f"{{{index}}}"
     if register is None:
-        bit_label = index_str
-        return bit_label
+        wire_label = index_str
+        return wire_label
 
     if drawer == "text":
         reg_name = f"{register.name}"
@@ -262,41 +258,41 @@ def get_bit_label(drawer, register, index, layout=None, cregbundle=True):
     # Clbits
     if isinstance(register, ClassicalRegister):
         if cregbundle and drawer != "latex":
-            bit_label = f"{register.name}"
-            return bit_label
+            wire_label = f"{register.name}"
+            return wire_label
 
         if register.size == 1 or cregbundle:
-            bit_label = reg_name
+            wire_label = reg_name
         else:
-            bit_label = reg_name_index
-        return bit_label
+            wire_label = reg_name_index
+        return wire_label
 
     # Qubits
     if register.size == 1:
-        bit_label = reg_name
+        wire_label = reg_name
     elif layout is None:
-        bit_label = reg_name_index
+        wire_label = reg_name_index
     elif layout[index]:
         virt_bit = layout[index]
         try:
             virt_reg = next(reg for reg in layout.get_registers() if virt_bit in reg)
             if drawer == "text":
-                bit_label = f"{virt_reg.name}_{virt_reg[:].index(virt_bit)} -> {index}"
+                wire_label = f"{virt_reg.name}_{virt_reg[:].index(virt_bit)} -> {index}"
             else:
-                bit_label = (
+                wire_label = (
                     f"{{{virt_reg.name}}}_{{{virt_reg[:].index(virt_bit)}}} \\mapsto {{{index}}}"
                 )
         except StopIteration:
             if drawer == "text":
-                bit_label = f"{virt_bit} -> {index}"
+                wire_label = f"{virt_bit} -> {index}"
             else:
-                bit_label = f"{{{virt_bit}}} \\mapsto {{{index}}}"
+                wire_label = f"{{{virt_bit}}} \\mapsto {{{index}}}"
         if drawer != "text":
-            bit_label = bit_label.replace(" ", "\\;")  # use wider spaces
+            wire_label = wire_label.replace(" ", "\\;")  # use wider spaces
     else:
-        bit_label = index_str
+        wire_label = index_str
 
-    return bit_label
+    return wire_label
 
 
 def get_condition_label_val(condition, circuit, cregbundle, reverse_bits):
@@ -318,7 +314,7 @@ def get_condition_label_val(condition, circuit, cregbundle, reverse_bits):
     # if condition on a register, return list of 1's and 0's indicating
     # closed or open, else only one element is returned
     if isinstance(condition[0], ClassicalRegister) and not cregbundle:
-        val_bits = list(str(bin(cond_val))[2:].zfill(condition[0].size))
+        val_bits = list(f"{cond_val:0{condition[0].size}b}")
         if not reverse_bits:
             val_bits = val_bits[::-1]
     else:
@@ -451,7 +447,7 @@ def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wi
 
     nodes = [[node for node in layer if any(q in qubits for q in node.qargs)] for layer in nodes]
 
-    return circuit, qubits, clbits, nodes
+    return qubits, clbits, nodes
 
 
 def _sorted_nodes(dag_layer):

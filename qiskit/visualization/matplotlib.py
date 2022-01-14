@@ -42,10 +42,10 @@ from qiskit.visualization.qcstyle import load_style
 from qiskit.visualization.utils import (
     get_gate_ctrl_text,
     get_param_str,
-    get_bits_regs_map,
+    get_wire_map,
     get_bit_register,
     get_bit_reg_index,
-    get_bit_label,
+    get_wire_label,
     get_condition_label_val,
     matplotlib_close_if_inline,
 )
@@ -112,7 +112,7 @@ class MatplotlibDrawer:
         self._clbits_dict = {}
         self._q_anchors = {}
         self._c_anchors = {}
-        self._bits_regs_map = {}
+        self._wire_map = {}
 
         self._nodes = nodes
         self._circuit = circuit
@@ -272,7 +272,7 @@ class MatplotlibDrawer:
         self._get_layer_widths()
 
         # load the _qubit_dict and _clbit_dict with register info
-        n_lines = self._get_bit_reg_info()
+        n_lines = self._set_bit_reg_info()
 
         # load the coordinates for each gate and compute number of folds
         max_anc = self._get_coords(n_lines)
@@ -438,59 +438,57 @@ class MatplotlibDrawer:
 
             self._layer_widths.append(int(widest_box) + 1)
 
-    def _get_bit_reg_info(self):
+    def _set_bit_reg_info(self):
         """Get all the info for drawing bit/reg names and numbers"""
 
-        self._bits_regs_map = get_bits_regs_map(
-            self._circuit, self._qubits + self._clbits, self._cregbundle
-        )
-        longest_bit_label_width = 0
+        self._wire_map = get_wire_map(self._circuit, self._qubits + self._clbits, self._cregbundle)
+        longest_wire_label_width = 0
         n_lines = 0
         initial_qbit = " |0>" if self._initial_state else ""
         initial_cbit = " 0" if self._initial_state else ""
 
         idx = 0
         pos = y_off = -len(self._qubits) + 1
-        for ii, bit in enumerate(self._bits_regs_map):
+        for ii, wire in enumerate(self._wire_map):
             # if it's a creg, register is the key and just load the index
-            if isinstance(bit, ClassicalRegister):
-                register = bit
-                index = self._bits_regs_map[bit]
+            if isinstance(wire, ClassicalRegister):
+                register = wire
+                index = self._wire_map[wire]
 
             # otherwise, get the register from find_bit and use bit_index if
             # it's a bit, or the index of the bit in the register if it's a reg
             else:
                 register, bit_index, reg_index = get_bit_reg_index(
-                    self._circuit, bit, self._reverse_bits
+                    self._circuit, wire, self._reverse_bits
                 )
                 index = bit_index if register is None else reg_index
 
-            bit_label = get_bit_label(
+            wire_label = get_wire_label(
                 "mpl", register, index, layout=self._layout, cregbundle=self._cregbundle
             )
-            initial_bit = initial_qbit if isinstance(bit, Qubit) else initial_cbit
+            initial_bit = initial_qbit if isinstance(wire, Qubit) else initial_cbit
 
             # for cregs with cregbundle on, don't use math formatting, which means
             # no italics
-            if isinstance(bit, Qubit) or register is None or not self._cregbundle:
-                bit_label = "$" + bit_label + "$"
-            bit_label += initial_bit
+            if isinstance(wire, Qubit) or register is None or not self._cregbundle:
+                wire_label = "$" + wire_label + "$"
+            wire_label += initial_bit
 
             reg_size = (
-                0 if register is None or isinstance(bit, ClassicalRegister) else register.size
+                0 if register is None or isinstance(wire, ClassicalRegister) else register.size
             )
             reg_remove_under = 0 if reg_size < 2 else 1
             text_width = (
-                self._get_text_width(bit_label, self._fs, reg_remove_under=reg_remove_under) * 1.15
+                self._get_text_width(wire_label, self._fs, reg_remove_under=reg_remove_under) * 1.15
             )
-            if text_width > longest_bit_label_width:
-                longest_bit_label_width = text_width
+            if text_width > longest_wire_label_width:
+                longest_wire_label_width = text_width
 
-            if isinstance(bit, Qubit):
+            if isinstance(wire, Qubit):
                 pos = -ii
                 self._qubits_dict[ii] = {
                     "y": pos,
-                    "bit_label": bit_label,
+                    "wire_label": wire_label,
                     "index": bit_index,
                     "register": register,
                 }
@@ -499,7 +497,7 @@ class MatplotlibDrawer:
                 if (
                     not self._cregbundle
                     or register is None
-                    or (self._cregbundle and isinstance(bit, ClassicalRegister))
+                    or (self._cregbundle and isinstance(wire, ClassicalRegister))
                 ):
                     n_lines += 1
                     idx += 1
@@ -507,12 +505,12 @@ class MatplotlibDrawer:
                 pos = y_off - idx
                 self._clbits_dict[ii] = {
                     "y": pos,
-                    "bit_label": bit_label,
+                    "wire_label": wire_label,
                     "index": bit_index,
                     "register": register,
                 }
 
-        self._x_offset = -1.2 + longest_bit_label_width
+        self._x_offset = -1.2 + longest_wire_label_width
         return n_lines
 
     def _get_coords(self, n_lines):
@@ -533,15 +531,15 @@ class MatplotlibDrawer:
                 # get qubit index
                 q_indxs = []
                 for qarg in node.qargs:
-                    q_indxs.append(self._bits_regs_map[qarg])
+                    q_indxs.append(self._wire_map[qarg])
 
                 c_indxs = []
                 for carg in node.cargs:
                     register = get_bit_register(self._circuit, carg)
                     if register is not None and self._cregbundle:
-                        c_indxs.append(self._bits_regs_map[register])
+                        c_indxs.append(self._wire_map[register])
                     else:
-                        c_indxs.append(self._bits_regs_map[carg])
+                        c_indxs.append(self._wire_map[carg])
 
                 # only add the gate to the anchors if it is going to be plotted.
                 if self._plot_barriers or not node.op._directive:
@@ -621,7 +619,7 @@ class MatplotlibDrawer:
         for fold_num in range(num_folds + 1):
             # quantum registers
             for qubit in self._qubits_dict.values():
-                qubit_label = qubit["bit_label"]
+                qubit_label = qubit["wire_label"]
                 y = qubit["y"] - fold_num * (n_lines + 1)
                 self._ax.text(
                     self._x_offset - 0.2,
@@ -640,11 +638,15 @@ class MatplotlibDrawer:
             # classical registers
             this_clbit_dict = {}
             for clbit in self._clbits_dict.values():
-                clbit_label = clbit["bit_label"]
+                clbit_label = clbit["wire_label"]
                 clbit_reg = clbit["register"]
                 y = clbit["y"] - fold_num * (n_lines + 1)
                 if y not in this_clbit_dict.keys():
-                    this_clbit_dict[y] = {"val": 1, "bit_label": clbit_label, "register": clbit_reg}
+                    this_clbit_dict[y] = {
+                        "val": 1,
+                        "wire_label": clbit_label,
+                        "register": clbit_reg,
+                    }
                 else:
                     this_clbit_dict[y]["val"] += 1
 
@@ -671,7 +673,7 @@ class MatplotlibDrawer:
                 self._ax.text(
                     self._x_offset - 0.2,
                     y,
-                    this_clbit["bit_label"],
+                    this_clbit["wire_label"],
                     ha="right",
                     va="center",
                     fontsize=1.25 * self._fs,
@@ -849,17 +851,17 @@ class MatplotlibDrawer:
         if not self._cregbundle and isinstance(cond_bit_reg, ClassicalRegister):
             for idx in range(cond_bit_reg.size):
                 rev_idx = cond_bit_reg.size - idx - 1 if self._reverse_bits else idx
-                cond_pos.append(cond_xy[self._bits_regs_map[cond_bit_reg[rev_idx]] - first_clbit])
+                cond_pos.append(cond_xy[self._wire_map[cond_bit_reg[rev_idx]] - first_clbit])
 
         # If it's a register bit and cregbundle, need to use the register to find the location
         elif self._cregbundle and isinstance(cond_bit_reg, Clbit):
             register = get_bit_register(self._circuit, cond_bit_reg)
             if register is not None:
-                cond_pos.append(cond_xy[self._bits_regs_map[register] - first_clbit])
+                cond_pos.append(cond_xy[self._wire_map[register] - first_clbit])
             else:
-                cond_pos.append(cond_xy[self._bits_regs_map[cond_bit_reg] - first_clbit])
+                cond_pos.append(cond_xy[self._wire_map[cond_bit_reg] - first_clbit])
         else:
-            cond_pos.append(cond_xy[self._bits_regs_map[cond_bit_reg] - first_clbit])
+            cond_pos.append(cond_xy[self._wire_map[cond_bit_reg] - first_clbit])
 
         xy_plot = []
         for idx, xy in enumerate(cond_pos):

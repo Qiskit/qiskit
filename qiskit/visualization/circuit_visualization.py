@@ -357,7 +357,7 @@ def _text_circuit_drawer(
     Raises:
         VisualizationError: When the filename extenstion is not .txt.
     """
-    circuit, qubits, clbits, nodes = utils._get_layered_instructions(
+    qubits, clbits, nodes = utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
     )
 
@@ -558,7 +558,7 @@ def _generate_latex_source(
     Returns:
         str: Latex string appropriate for writing to file.
     """
-    circuit, qubits, clbits, nodes = utils._get_layered_instructions(
+    qubits, clbits, nodes = utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
     )
     if with_layout:
@@ -643,7 +643,7 @@ def _matplotlib_circuit_drawer(
             if the ``ax`` kwarg is not set.
     """
 
-    circuit, qubits, clbits, nodes = utils._get_layered_instructions(
+    qubits, clbits, nodes = utils._get_layered_instructions(
         circuit, reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires
     )
     if with_layout:
