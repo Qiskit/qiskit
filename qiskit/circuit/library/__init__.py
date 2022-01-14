@@ -41,9 +41,9 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
 =============================================================
 
 These instructions are reversible unitary gates and they all subclass
-:class:`qiskit.circuit.gate.Gate`. As a consequence, they all have the methods
-:meth:~`qiskit.circuit.gate.Gate.to_matrix`, :meth:~`qiskit.circuit.gate.Gate.power`,
-and :meth:~`qiskit.circuit.gate.Gate.control`.
+:class:`~qiskit.circuit.gate.Gate`. As a consequence, they all have the methods
+:meth:`~qiskit.circuit.gate.Gate.to_matrix`, :meth:`~qiskit.circuit.gate.Gate.power`,
+and :meth:`~qiskit.circuit.gate.Gate.control`.
 
 For example:
 
@@ -80,12 +80,6 @@ For example:
    CZGate
    HGate
    IGate
-   MSGate
-   MCPhaseGate
-   MCXGate
-   MCXGrayCode
-   MCXRecursive
-   MCXVChain
    MSGate
    PhaseGate
    RCCXGate
@@ -135,6 +129,20 @@ by the backend.
 Generalized Gates
 =================
 
+These "gates" (many are :class:`~qiskit.circuit.quantumcircuit.QuantumCircuit` subclasses) allow to
+set the amount of qubits involved at instantiation time.
+
+
+.. jupyter-execute::
+
+    from qiskit.circuit.library.generalized_gates import Diagonal
+
+    diagonal = Diagonal([1, 1])
+    print(diagonal.num_qubits)
+
+    diagonal = Diagonal([1, 1, 1, 1])
+    print(diagonal.num_qubits)
+
 .. autosummary::
    :toctree: ../stubs/
    :template: autosummary/class_no_inherited_members.rst
@@ -148,6 +156,11 @@ Generalized Gates
    GRX
    GRY
    GRZ
+   MCPhaseGate
+   MCXGate
+   MCXGrayCode
+   MCXRecursive
+   MCXVChain
    RVGate
    PauliGate
 
