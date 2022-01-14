@@ -74,7 +74,7 @@ def _num_to_latex(num, precision=5):
         # try to factorise val nicely
         frac = Fraction(val).limit_denominator()
         num, denom = frac.numerator, frac.denominator
-        if num + denom < 20:
+        if abs(num) + abs(denom) < 20:
             # If fraction is 'nice' return
             if val > 0:
                 return f"\\tfrac{{{abs(num)}}}{{{abs(denom)}}}"
