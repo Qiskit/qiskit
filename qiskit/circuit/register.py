@@ -113,7 +113,7 @@ class Register:
         self._repr = "%s(%d, '%s')" % (self.__class__.__qualname__, self.size, self.name)
         if bits is not None:
             # check duplicated bits
-            if size != len(set(bits)):
+            if self._size != len(set(bits)):
                 raise CircuitError(f"Register bits must not be duplicated. bits={bits}")
             # pylint: disable=isinstance-second-argument-not-valid-type
             if any(not isinstance(bit, self.bit_type) for bit in bits):
