@@ -425,3 +425,19 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         qc0_instance = qc0._parameter_table[b][0][0]
         qc1_instance = qc1._parameter_table[a][0][0]
         self.assertNotEqual(qc0_instance, qc1_instance)
+
+    def test_parameter_table_is_updated(self):
+        """Verify that circuit._parameter_table is consistent with circuit.data."""
+        qr = QuantumRegister(1, "q")
+        qc = QuantumCircuit(qr)
+
+        a = Parameter("a")
+        qc.h(0)
+        qc.ry(a, 0)
+        qc.rz(a, 0)
+
+        qc.data[0] = (RXGate(a), [qr[0]], [])
+        qc.data[1] = (RXGate(a), [qr[0]], [])
+        qc.data[2] = (HGate(), [qr[0]], [])
+
+        qc.copy()
