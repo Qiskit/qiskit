@@ -221,6 +221,17 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename="long_name.png")
 
+    def test_multi_underscore_reg_names(self):
+        """Test that multi-underscores in register names display properly"""
+        q_reg1 = QuantumRegister(1, "q1_re__g__g")
+        q_reg3 = QuantumRegister(3, "q3_re_g__g")
+        c_reg1 = ClassicalRegister(1, "c1_re_g__g")
+        c_reg3 = ClassicalRegister(3, "c3_re_g__g")
+        circuit = QuantumCircuit(q_reg1, q_reg3, c_reg1, c_reg3)
+
+        self.circuit_drawer(circuit, cregbundle=True, filename="multi_underscore_true.png")
+        self.circuit_drawer(circuit, cregbundle=False, filename="multi_underscore_false.png")
+
     def test_conditional(self):
         """Test that circuits with conditionals draw correctly"""
         qr = QuantumRegister(2, "q")
@@ -527,33 +538,35 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
     def test_iqx_colors(self):
         """Tests with iqx color scheme"""
-        circuit = QuantumCircuit(7)
-        circuit.h(0)
-        circuit.x(0)
-        circuit.cx(0, 1)
-        circuit.ccx(0, 1, 2)
-        circuit.swap(0, 1)
-        circuit.cswap(0, 1, 2)
-        circuit.append(SwapGate().control(2), [0, 1, 2, 3])
-        circuit.dcx(0, 1)
-        circuit.append(DCXGate().control(1), [0, 1, 2])
-        circuit.append(DCXGate().control(2), [0, 1, 2, 3])
-        circuit.z(4)
-        circuit.s(4)
-        circuit.sdg(4)
-        circuit.t(4)
-        circuit.tdg(4)
-        circuit.p(pi / 2, 4)
-        circuit.cz(5, 6)
-        circuit.cp(pi / 2, 5, 6)
-        circuit.y(5)
-        circuit.rx(pi / 3, 5)
-        circuit.rzx(pi / 2, 5, 6)
-        circuit.u(pi / 2, pi / 2, pi / 2, 5)
-        circuit.barrier(5, 6)
-        circuit.reset(5)
+        for style in ["iqx", "iqx-dark"]:
+            with self.subTest(style=style):
+                circuit = QuantumCircuit(7)
+                circuit.h(0)
+                circuit.x(0)
+                circuit.cx(0, 1)
+                circuit.ccx(0, 1, 2)
+                circuit.swap(0, 1)
+                circuit.cswap(0, 1, 2)
+                circuit.append(SwapGate().control(2), [0, 1, 2, 3])
+                circuit.dcx(0, 1)
+                circuit.append(DCXGate().control(1), [0, 1, 2])
+                circuit.append(DCXGate().control(2), [0, 1, 2, 3])
+                circuit.z(4)
+                circuit.s(4)
+                circuit.sdg(4)
+                circuit.t(4)
+                circuit.tdg(4)
+                circuit.p(pi / 2, 4)
+                circuit.cz(5, 6)
+                circuit.cp(pi / 2, 5, 6)
+                circuit.y(5)
+                circuit.rx(pi / 3, 5)
+                circuit.rzx(pi / 2, 5, 6)
+                circuit.u(pi / 2, pi / 2, pi / 2, 5)
+                circuit.barrier(5, 6)
+                circuit.reset(5)
 
-        self.circuit_drawer(circuit, style={"name": "iqx"}, filename="iqx_color.png")
+                self.circuit_drawer(circuit, style={"name": style}, filename=f"{style}_color.png")
 
     def test_reverse_bits(self):
         """Tests reverse_bits parameter"""

@@ -948,6 +948,32 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertFalse(qc1 == qc2)
 
+    def test_deprecated_measure_function(self):
+        """Test that the deprecated version of the loose 'measure' function works correctly."""
+        from qiskit.circuit.measure import measure
+
+        test = QuantumCircuit(1, 1)
+        with self.assertWarnsRegex(DeprecationWarning, r".*Qiskit Terra 0\.19.*"):
+            measure(test, 0, 0)
+
+        expected = QuantumCircuit(1, 1)
+        expected.measure(0, 0)
+
+        self.assertEqual(test, expected)
+
+    def test_deprecated_reset_function(self):
+        """Test that the deprecated version of the loose 'reset' function works correctly."""
+        from qiskit.circuit.reset import reset
+
+        test = QuantumCircuit(1, 1)
+        with self.assertWarnsRegex(DeprecationWarning, r".*Qiskit Terra 0\.19.*"):
+            reset(test, 0)
+
+        expected = QuantumCircuit(1, 1)
+        expected.reset(0)
+
+        self.assertEqual(test, expected)
+
 
 class TestCircuitPrivateOperations(QiskitTestCase):
     """Direct tests of some of the private methods of QuantumCircuit.  These do not represent
