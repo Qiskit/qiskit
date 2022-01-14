@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Function ``dag_drawer`` from ``qiskit.visualization`` now throws a specific exception when the filename
+    provided is invalid.
