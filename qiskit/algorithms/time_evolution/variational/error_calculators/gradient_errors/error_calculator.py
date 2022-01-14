@@ -63,7 +63,7 @@ class ErrorCalculator:
             Operator with all parameters bound.
         """
         # ⟨ψ(ω)|H^2|ψ(ω)〉
-        if operator_circuit_sampler:
+        if operator_circuit_sampler is not None:
             operator = operator_circuit_sampler.convert(operator, params=param_dict)
         else:
             operator = operator.assign_parameters(param_dict)
