@@ -1,5 +1,6 @@
 ---
 fixes:
   - |
-    Function ``dag_drawer`` from ``qiskit.visualization`` now throws a specific exception when the filename
-    provided is invalid.
+    :meth:`.DAGCircuit.draw` and the associated function :func:`.dag_drawer`
+    will now show a more useful error message when the provided filename is not
+    valid.
