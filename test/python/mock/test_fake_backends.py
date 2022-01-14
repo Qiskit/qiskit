@@ -23,8 +23,6 @@ from qiskit.test.mock import FakeAthens
 
 from qiskit.test.mock.fake_backend import HAS_AER
 
-HAS_AER = True
-
 
 def get_test_circuit():
     """Generates simple circuit for tests."""
@@ -52,9 +50,6 @@ class GeneratedFakeBackendsTest(QiskitTestCase):
         self.backend = ConfigurableFakeBackend("Tashkent", n_qubits=4)
         circuit = transpile(qc, backend=self.backend, optimization_level=3)
 
-        # some error in init of pulse schedule
-
-        # to-do more..
         self.assertTrue(isinstance(circuit, QuantumCircuit))
         self.assertEqual(circuit.num_qubits, 4)
 

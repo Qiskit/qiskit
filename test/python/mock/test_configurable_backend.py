@@ -42,7 +42,7 @@ class TestConfigurableFakeBackend(QiskitTestCase):
                 fake_backend = ConfigurableFakeBackend(
                     "Tashkent",
                     n_qubits=n_qubits,
-                    version="0.0.1",
+                    backend_version="0.0.1",
                     basis_gates=["u1"],
                     qubit_t1=99.0,
                     qubit_t2=146.0,
