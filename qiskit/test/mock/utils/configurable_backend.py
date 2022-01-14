@@ -37,7 +37,7 @@ class ConfigurableFakeBackend(FakeBackend):
         self,
         name: str,
         n_qubits: int,
-        version: Optional[str] = None,
+        backend_version: Optional[str] = None,
         coupling_map: Optional[List[List[int]]] = None,
         basis_gates: Optional[List[str]] = None,
         qubit_t1: Optional[Union[float, List[float]]] = None,
@@ -54,7 +54,7 @@ class ConfigurableFakeBackend(FakeBackend):
         Args:
             name: Name of the backend.
             n_qubits: Number of qubits in the backend.
-            version: Version of the fake backend.
+            backend_version: version of the fake backend.
             coupling_map: Coupling map.
             basis_gates: Basis gates of the backend.
             qubit_t1: Longitudinal coherence times.
@@ -68,8 +68,8 @@ class ConfigurableFakeBackend(FakeBackend):
         """
         np.random.seed(seed)
 
-        if version is None:
-            version = "0.0.0"
+        if backend_version is None:
+            backend_version = "0.0.0"
 
         if basis_gates is None:
             basis_gates = ["id", "u1", "u2", "u3", "cx"]
@@ -100,7 +100,7 @@ class ConfigurableFakeBackend(FakeBackend):
             dt = 1.33
 
         self.backend_name = name
-        self.version = version
+        self.backend_version = backend_version
         self.basis_gates = basis_gates
         self.qubit_t1 = qubit_t1
         self.qubit_t2 = qubit_t2
@@ -197,7 +197,7 @@ class ConfigurableFakeBackend(FakeBackend):
 
         return BackendProperties(
             backend_name=self.backend_name,
-            backend_version=self.version,
+            backend_version=self.backend_version,
             last_update_date=self.now,
             qubits=qubits,
             gates=gates,
@@ -236,7 +236,7 @@ class ConfigurableFakeBackend(FakeBackend):
 
         return PulseBackendConfiguration(
             backend_name=self.backend_name,
-            backend_version=self.version,
+            backend_version=self.backend_version,
             n_qubits=self.n_qubits,
             meas_levels=[0, 1, 2],
             basis_gates=self.basis_gates,

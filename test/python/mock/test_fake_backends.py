@@ -23,14 +23,19 @@ from qiskit.test.mock import FakeAthens
 
 from qiskit.test.mock.fake_backend import HAS_AER
 
+HAS_AER = True
+
 
 def get_test_circuit():
     """Generates simple circuit for tests."""
-    desired_vector = [1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)]
+
     qr = QuantumRegister(2, "qr")
     cr = ClassicalRegister(2, "cr")
     qc = QuantumCircuit(qr, cr)
-    qc.initialize(desired_vector, [qr[0], qr[1]])
+
+    qc.z(qr[0])
+    qc.cx(qr[0], qr[1])
+
     qc.measure(qr[0], cr[0])
     qc.measure(qr[1], cr[1])
     return qc
@@ -39,24 +44,27 @@ def get_test_circuit():
 class GeneratedFakeBackendsTest(QiskitTestCase):
     """Generated fake backends test."""
 
-    def setUp(self) -> None:
-        super().setUp()
-        self.backend = ConfigurableFakeBackend("Tashkent", n_qubits=4)
-
     @unittest.skipUnless(HAS_AER, "qiskit-aer is required to run this test")
     def test_transpile_schedule_and_assemble(self):
         """Test transpile, schedule and assemble on generated backend."""
         qc = get_test_circuit()
 
-        circuit = transpile(qc, backend=self.backend)
+        self.backend = ConfigurableFakeBackend("Tashkent", n_qubits=4)
+        circuit = transpile(qc, backend=self.backend, optimization_level=3)
+
+        # some error in init of pulse schedule
+
+        # to-do more..
         self.assertTrue(isinstance(circuit, QuantumCircuit))
         self.assertEqual(circuit.num_qubits, 4)
 
         experiments = schedule(circuits=circuit, backend=self.backend)
+
         self.assertTrue(isinstance(experiments, Schedule))
         self.assertGreater(experiments.duration, 0)
 
         qobj = assemble(experiments, backend=self.backend)
+
         self.assertTrue(isinstance(qobj, PulseQobj))
         self.assertEqual(qobj.header.backend_name, "Tashkent")
         self.assertEqual(len(qobj.experiments), 1)
