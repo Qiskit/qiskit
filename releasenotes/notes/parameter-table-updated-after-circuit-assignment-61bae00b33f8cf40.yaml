@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a bug when ``QuantumCircuit._parameter_table`` is inconsistent with
+    ``QuantumCircuit.data`` after a circuit assignment.
+    In __setitem__ of QuantumCiruitData, for each new entry, the old element 
+    is removed and the new element is added properly.
