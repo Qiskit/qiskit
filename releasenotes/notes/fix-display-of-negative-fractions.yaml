@@ -1,0 +1,3 @@
+---
+Bug Fix:
+- Fixed display of negative fractions to appear as decimal number like positive fractions in arrays.
