@@ -27,10 +27,10 @@ from qiskit.circuit.tools.pi_check import pi_check
 from qiskit.visualization.utils import (
     get_gate_ctrl_text,
     get_param_str,
-    get_bits_regs_map,
+    get_wire_map,
     get_bit_register,
     get_bit_reg_index,
-    get_bit_label,
+    get_wire_label,
     get_condition_label_val,
 )
 from .exceptions import VisualizationError
@@ -647,7 +647,7 @@ class TextDrawing:
         if vertical_compression not in ["high", "medium", "low"]:
             raise ValueError("Vertical compression can only be 'high', 'medium', or 'low'")
         self.vertical_compression = vertical_compression
-        self._bits_regs_map = {}
+        self._wire_map = {}
 
         if encoding:
             self.encoding = encoding
@@ -796,36 +796,33 @@ class TextDrawing:
             initial_qubit_value = ""
             initial_clbit_value = ""
 
-        self._bits_regs_map = get_bits_regs_map(
-            self._circuit, (self.qubits + self.clbits), self.cregbundle
-        )
-        # quantum register
-        bit_labels = []
-        for bit in self._bits_regs_map:
-            if isinstance(bit, ClassicalRegister):
-                register = bit
-                index = self._bits_regs_map[bit]
+        self._wire_map = get_wire_map(self._circuit, (self.qubits + self.clbits), self.cregbundle)
+        wire_labels = []
+        for wire in self._wire_map:
+            if isinstance(wire, ClassicalRegister):
+                register = wire
+                index = self._wire_map[wire]
             else:
                 register, bit_index, reg_index = get_bit_reg_index(
-                    self._circuit, bit, self.reverse_bits
+                    self._circuit, wire, self.reverse_bits
                 )
                 index = bit_index if register is None else reg_index
 
-            bit_label = get_bit_label(
+            wire_label = get_wire_label(
                 "text", register, index, layout=self.layout, cregbundle=self.cregbundle
             )
-            bit_label += " " if self.layout is not None and isinstance(bit, Qubit) else ": "
+            wire_label += " " if self.layout is not None and isinstance(wire, Qubit) else ": "
 
             cregb_add = ""
-            if isinstance(bit, Qubit):
+            if isinstance(wire, Qubit):
                 initial_bit_value = initial_qubit_value
             else:
                 initial_bit_value = initial_clbit_value
                 if self.cregbundle and register is not None:
                     cregb_add = str(register.size) + "/"
-            bit_labels.append(bit_label + initial_bit_value + cregb_add)
+            wire_labels.append(wire_label + initial_bit_value + cregb_add)
 
-        return bit_labels
+        return wire_labels
 
     def should_compress(self, top_line, bot_line):
         """Decides if the top_line and bot_line should be merged,

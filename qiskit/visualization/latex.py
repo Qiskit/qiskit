@@ -27,10 +27,10 @@ from qiskit.circuit.tools.pi_check import pi_check
 from .utils import (
     get_gate_ctrl_text,
     get_param_str,
-    get_bits_regs_map,
+    get_wire_map,
     get_bit_register,
     get_bit_reg_index,
-    get_bit_label,
+    get_wire_label,
     generate_latex_label,
     get_condition_label_val,
 )
@@ -82,8 +82,41 @@ class QCircuitImage:
         """
         self._qubits = qubits
         self._clbits = clbits
+
+        # list of lists corresponding to layers of the circuit
         self._nodes = nodes
+
+        # image scaling
         self._scale = 1.0 if scale is None else scale
+
+        # Map of cregs to sizes
+        self._cregs = {}
+
+        # Array to hold the \\LaTeX commands to generate a circuit image.
+        self._latex = []
+
+        # Variable to hold image depth (width)
+        self._img_depth = 0
+
+        # Variable to hold image width (height)
+        self._img_width = 0
+
+        # Variable to hold total circuit depth
+        self._sum_column_widths = 0
+
+        # Variable to hold total circuit width
+        self._sum_wire_heights = 0
+
+        # em points of separation between circuit columns
+        self._column_separation = 1
+
+        # em points of separation between circuit wire
+        self._wire_separation = 0
+
+        # presence of "box" or "target" determines wire spacing
+        self._has_box = False
+        self._has_target = False
+
         self._reverse_bits = reverse_bits
         self._plot_barriers = plot_barriers
         self._layout = layout
@@ -91,18 +124,6 @@ class QCircuitImage:
         self._cregbundle = cregbundle
         self._global_phase = global_phase
         self._circuit = circuit
-
-        self._img_depth = 0
-        self._img_width = 0
-        self._sum_column_widths = 0
-        self._sum_wire_heights = 0
-        self._column_separation = 1
-        self._wire_separation = 0
-
-        self._has_box = False
-        self._has_target = False
-
-        self._latex = []
 
         # If there is any custom instruction that uses classical bits
         # or a condition on a gate contains a register bit in a list,
@@ -136,8 +157,8 @@ class QCircuitImage:
                             )
                             break
 
-        self._bits_regs_map = get_bits_regs_map(circuit, qubits + clbits, self._cregbundle)
-        self._img_width = len(self._bits_regs_map)
+        self._wire_map = get_wire_map(circuit, qubits + clbits, self._cregbundle)
+        self._img_width = len(self._wire_map)
 
         self._style, _ = load_style(style)
 
@@ -195,37 +216,37 @@ class QCircuitImage:
         else:
             self._wire_separation = 1.0
         self._latex = [
-            ["\\qw" if isinstance(bit, Qubit) else "\\cw" for _ in range(self._img_depth + 1)]
-            for bit in self._bits_regs_map
+            ["\\qw" if isinstance(wire, Qubit) else "\\cw" for _ in range(self._img_depth + 1)]
+            for wire in self._wire_map
         ]
         self._latex.append([" "] * (self._img_depth + 1))
 
         # display the bit/register labels
-        for bit in self._bits_regs_map:
-            if isinstance(bit, ClassicalRegister):
-                register = bit
-                index = self._bits_regs_map[bit]
+        for wire in self._wire_map:
+            if isinstance(wire, ClassicalRegister):
+                register = wire
+                index = self._wire_map[wire]
             else:
                 register, bit_index, reg_index = get_bit_reg_index(
-                    self._circuit, bit, self._reverse_bits
+                    self._circuit, wire, self._reverse_bits
                 )
                 index = bit_index if register is None else reg_index
 
-            bit_label = get_bit_label(
+            wire_label = get_wire_label(
                 "latex", register, index, layout=self._layout, cregbundle=self._cregbundle
             )
-            bit_label += " : "
+            wire_label += " : "
             if self._initial_state:
-                bit_label += "\\ket{{0}}" if isinstance(bit, Qubit) else "0"
-            bit_label += " }"
+                wire_label += "\\ket{{0}}" if isinstance(wire, Qubit) else "0"
+            wire_label += " }"
 
-            if not isinstance(bit, (Qubit)) and self._cregbundle and register is not None:
-                pos = self._bits_regs_map[register]
+            if not isinstance(wire, (Qubit)) and self._cregbundle and register is not None:
+                pos = self._wire_map[register]
                 self._latex[pos][1] = "\\lstick{/_{_{" + str(register.size) + "}}} \\cw"
-                bit_label = f"\\mathrm{{{bit_label}}}"
+                wire_label = f"\\mathrm{{{wire_label}}}"
             else:
-                pos = self._bits_regs_map[bit]
-            self._latex[pos][0] = "\\nghost{" + bit_label + " & " + "\\lstick{" + bit_label
+                pos = self._wire_map[wire]
+            self._latex[pos][0] = "\\nghost{" + wire_label + " & " + "\\lstick{" + wire_label
 
     def _get_image_depth(self):
         """Get depth information for the circuit."""
@@ -306,16 +327,16 @@ class QCircuitImage:
         # the wires poking out at the ends is 2 more
         sum_column_widths = sum(1 + v / 3 for v in max_column_widths)
 
-        max_reg_name = 3
-        for reg in self._bits_regs_map:
-            if isinstance(reg, (Qubit, Clbit)):
-                register = get_bit_register(self._circuit, reg)
+        max_wire_name = 3
+        for wire in self._wire_map:
+            if isinstance(wire, (Qubit, Clbit)):
+                register = get_bit_register(self._circuit, wire)
                 name = register.name if register is not None else ""
             else:
-                name = reg.name
-            max_reg_name = max(max_reg_name, len(name))
+                name = wire.name
+            max_wire_name = max(max_wire_name, len(name))
 
-        sum_column_widths += 5 + max_reg_name / 3
+        sum_column_widths += 5 + max_wire_name / 3
 
         # could be a fraction so ceil
         return columns, math.ceil(sum_column_widths)
@@ -369,7 +390,7 @@ class QCircuitImage:
             for node in layer:
                 op = node.op
                 num_cols_op = 1
-                wire_list = [self._bits_regs_map[qarg] for qarg in node.qargs]
+                wire_list = [self._wire_map[qarg] for qarg in node.qargs]
                 if op.condition:
                     self._add_condition(op, wire_list, column)
 
@@ -384,7 +405,7 @@ class QCircuitImage:
                     gate_text += get_param_str(op, "latex", ndigits=4)
                     gate_text = generate_latex_label(gate_text)
                     if node.cargs:
-                        cwire_list = [self._bits_regs_map[carg] for carg in node.cargs]
+                        cwire_list = [self._wire_map[carg] for carg in node.cargs]
                     else:
                         cwire_list = []
 
@@ -506,7 +527,7 @@ class QCircuitImage:
 
     def _build_measure(self, node, col):
         """Build a meter and the lines to the creg"""
-        wire1 = self._bits_regs_map[node.qargs[0]]
+        wire1 = self._wire_map[node.qargs[0]]
         self._latex[wire1][col] = "\\meter"
 
         idx_str = ""
@@ -514,10 +535,10 @@ class QCircuitImage:
         if self._cregbundle:
             register = get_bit_register(self._circuit, node.cargs[0])
             if register is not None:
-                wire2 = self._bits_regs_map[register]
+                wire2 = self._wire_map[register]
                 idx_str = str(node.cargs[0].index)
             else:
-                wire2 = self._bits_regs_map[node.cargs[0]]
+                wire2 = self._wire_map[node.cargs[0]]
 
             self._latex[wire2][col] = "\\dstick{_{_{\\hspace{%sem}%s}}} \\cw \\ar @{<=} [-%s,0]" % (
                 cond_offset,
@@ -525,24 +546,24 @@ class QCircuitImage:
                 str(wire2 - wire1),
             )
         else:
-            wire2 = self._bits_regs_map[node.cargs[0]]
+            wire2 = self._wire_map[node.cargs[0]]
             self._latex[wire2][col] = "\\cw \\ar @{<=} [-" + str(wire2 - wire1) + ",0]"
 
     def _build_barrier(self, node, col):
         """Build a partial or full barrier if plot_barriers set"""
         if self._plot_barriers:
-            indexes = [self._bits_regs_map[qarg] for qarg in node.qargs]
+            indexes = [self._wire_map[qarg] for qarg in node.qargs]
             indexes.sort()
             first = last = indexes[0]
             for index in indexes[1:]:
                 if index - 1 == last:
                     last = index
                 else:
-                    pos = self._bits_regs_map[self._qubits[first]]
+                    pos = self._wire_map[self._qubits[first]]
                     self._latex[pos][col - 1] += " \\barrier[0em]{" + str(last - first) + "}"
                     self._latex[pos][col] = "\\qw"
                     first = last = index
-            pos = self._bits_regs_map[self._qubits[first]]
+            pos = self._wire_map[self._qubits[first]]
             self._latex[pos][col - 1] += " \\barrier[0em]{" + str(last - first) + "}"
             self._latex[pos][col] = "\\qw"
 
@@ -575,16 +596,15 @@ class QCircuitImage:
             if self._cregbundle and not isinstance(bit, ClassicalRegister):
                 register = get_bit_register(self._circuit, bit)
                 if register is not None:
-                    cwire_list.append((self._bits_regs_map[register], val))
+                    cwire_list.append((self._wire_map[register], val))
                 else:
-                    cwire_list.append((self._bits_regs_map[bit], val))
+                    cwire_list.append((self._wire_map[bit], val))
             else:
-                cwire_list.append((self._bits_regs_map[bit], val))
+                cwire_list.append((self._wire_map[bit], val))
 
         # sort the cwire_list so we can put the value label below
         # the bottommost wire
         cwire_list = sorted(cwire_list)
-
         prev_wire = max(wire_list)
         meas_offset = -0.3 if isinstance(op, Measure) else 0.0
 

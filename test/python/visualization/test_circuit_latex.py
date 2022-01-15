@@ -57,6 +57,20 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
 
         self.assertEqualToReference(filename)
 
+    def test_multi_underscore_reg_names(self):
+        """Test multi-underscores in register names display properly"""
+        filename1 = self._get_resource_path("test_latex_multi_underscore_true.tex")
+        filename2 = self._get_resource_path("test_latex_multi_underscore_false.tex")
+        q_reg1 = QuantumRegister(1, "q1_re__g__g")
+        q_reg3 = QuantumRegister(3, "q3_re_g__g")
+        c_reg1 = ClassicalRegister(1, "c1_re_g__g")
+        c_reg3 = ClassicalRegister(3, "c3_re_g__g")
+        circuit = QuantumCircuit(q_reg1, q_reg3, c_reg1, c_reg3)
+        circuit_drawer(circuit, cregbundle=True, filename=filename1, output="latex_source")
+        circuit_drawer(circuit, cregbundle=False, filename=filename2, output="latex_source")
+        self.assertEqualToReference(filename1)
+        self.assertEqualToReference(filename2)
+
     def test_normal_circuit(self):
         """Test draw normal size circuit."""
         filename = self._get_resource_path("test_latex_normal.tex")
