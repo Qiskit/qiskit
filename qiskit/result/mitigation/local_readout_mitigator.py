@@ -255,7 +255,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         if isinstance(qubits, int):
             qubits = [qubits]
         qubit_indices = [self._qubit_index[qubit] for qubit in qubits]
-        mat = self._assignment_mats[qubit_indices[qubits[0]]]
+        mat = self._assignment_mats[qubit_indices[0]]
         for i in qubit_indices[1:]:
             mat = np.kron(self._assignment_mats[i], mat)
         return mat
