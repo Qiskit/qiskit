@@ -924,7 +924,7 @@ class MCXGate(ControlledGate):
         num_ctrl_qubits: Optional[int] = None,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
-        synthesis=None,
+        synthesis: Optional["MCXSynthesis"] = None,
         _name="mcx",
     ):
         """Create a new MCX instance.
