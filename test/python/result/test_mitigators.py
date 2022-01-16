@@ -343,7 +343,7 @@ class TestReadoutMitigation(QiskitTestCase):
             )
             mitigated_error = self.compare_results(counts_ideal_2, mitigated_probs_2)
             self.assertTrue(
-                mitigated_error < 0.001,
+                mitigated_error < 0.01,
                 "Mitigator {} did not correctly handle qubit subset".format(mitigator),
             )
 
