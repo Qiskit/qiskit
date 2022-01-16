@@ -38,7 +38,10 @@ from qiskit.quantum_info.operators.predicates import matrix_equal
 class TestReadoutMitigation(QiskitTestCase):
     """Tests for correlated and local readout mitigation."""
 
-    rng = np.random.default_rng(42)
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.rng = np.random.default_rng(42)
 
     @staticmethod
     def compare_results(res1, res2):
@@ -369,8 +372,7 @@ class TestReadoutMitigation(QiskitTestCase):
         """Test whether a local mitigator can be created directly from backend properties"""
         backend = FakeYorktown()
         num_qubits = len(backend.properties().qubits)
-        rng = np.random.default_rng(42)
-        probs = rng.random((num_qubits, 2))
+        probs = TestReadoutMitigation.rng.random((num_qubits, 2))
         for qubit_idx, qubit_prop in enumerate(backend.properties().qubits):
             for prop in qubit_prop:
                 if prop.name == "prob_meas1_prep0":
