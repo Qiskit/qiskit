@@ -1,6 +1,7 @@
 fixes:
   - |
-    Fixes qasm 2.0 parser to error if version other than 2.0 is passed.
-    Note: this is only done for OPENQASM 2.0, 3.0 is a separate module and not affected by this commit.
-    `#139 in openqasm <https://github.com/Qiskit/openqasm/issues/319>` for more
-    details.
+    Stopped the parser in :meth:`.QuantumCircuit.from_qasm_str` and
+    :meth:`~.QuantumCircuit.from_qasm_file` from accepting OpenQASM programs
+    that identified themselves as being from a language version other than 2.0.
+    This parser is only for OpenQASM 2.0; support for imported circuits from
+    OpenQASM 3.0 will be added in an upcoming release.
