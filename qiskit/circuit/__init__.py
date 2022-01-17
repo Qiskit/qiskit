@@ -187,6 +187,7 @@ Gates and Instructions
    Gate
    ControlledGate
    Delay
+   Barrier
    Measure
    Reset
    Instruction
@@ -233,6 +234,7 @@ from .gate import Gate
 from .controlledgate import ControlledGate
 from .instruction import Instruction
 from .instructionset import InstructionSet
+from .operation import Operation
 from .barrier import Barrier
 from .delay import Delay
 from .measure import Measure

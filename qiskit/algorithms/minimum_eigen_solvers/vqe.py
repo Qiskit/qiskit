@@ -141,8 +141,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self.expectation = expectation
         self._include_custom = include_custom
 
-        # set ansatz -- still supporting pre 0.18.0 sorting
-        self._ansatz_params = None
         self._ansatz = None
         self.ansatz = ansatz
 
@@ -186,7 +184,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             ansatz = RealAmplitudes()
 
         self._ansatz = ansatz
-        self._ansatz_params = list(ansatz.parameters)
 
     @property
     def gradient(self) -> Optional[Union[GradientBase, Callable]]:
@@ -278,7 +275,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
                 # try to set the number of qubits on the ansatz, if possible
                 try:
                     self.ansatz.num_qubits = operator.num_qubits
-                    self._ansatz_params = sorted(self.ansatz.parameters, key=lambda p: p.name)
                 except AttributeError as ex:
                     raise AlgorithmError(
                         "The number of qubits of the ansatz does not match the "
@@ -382,8 +378,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         else:
             expectation = self.expectation
 
-        param_dict = dict(zip(self._ansatz_params, parameter))  # type: Dict
-        wave_function = self.ansatz.assign_parameters(param_dict)
+        wave_function = self.ansatz.assign_parameters(parameter)
 
         observable_meas = expectation.convert(StateFn(operator, is_measurement=True))
         ansatz_circuit_op = CircuitStateFn(wave_function)
@@ -525,8 +520,8 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         # optimization routine.
         if isinstance(self._gradient, GradientBase):
             gradient = self._gradient.gradient_wrapper(
-                ~StateFn(operator) @ StateFn(self._ansatz),
-                bind_params=self._ansatz_params,
+                ~StateFn(operator) @ StateFn(self.ansatz),
+                bind_params=list(self.ansatz.parameters),
                 backend=self._quantum_instance,
             )
         else:
@@ -565,7 +560,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         result = VQEResult()
         result.optimal_point = opt_result.x
-        result.optimal_parameters = dict(zip(self._ansatz_params, opt_result.x))
+        result.optimal_parameters = dict(zip(self.ansatz.parameters, opt_result.x))
         result.optimal_value = opt_result.fun
         result.cost_function_evals = opt_result.nfev
         result.optimizer_time = eval_time
@@ -616,14 +611,15 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         if num_parameters == 0:
             raise RuntimeError("The ansatz must be parameterized, but has 0 free parameters.")
 
+        ansatz_params = self.ansatz.parameters
         expect_op, expectation = self.construct_expectation(
-            self._ansatz_params, operator, return_expectation=True
+            ansatz_params, operator, return_expectation=True
         )
 
         def energy_evaluation(parameters):
             parameter_sets = np.reshape(parameters, (-1, num_parameters))
             # Create dict associating each parameter with the lists of parameterization values for it
-            param_bindings = dict(zip(self._ansatz_params, parameter_sets.transpose().tolist()))
+            param_bindings = dict(zip(ansatz_params, parameter_sets.transpose().tolist()))
 
             start_time = time()
             sampled_expect_op = self._circuit_sampler.convert(expect_op, params=param_bindings)
