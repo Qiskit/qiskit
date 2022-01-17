@@ -176,7 +176,7 @@ class LinComb(CircuitGradient):
             ValueError: If ``operator`` does not correspond to an expectation value.
             TypeError: If the ``StateFn`` corresponding to the quantum state could not be extracted
                        from ``operator``.
-            AquaError: If third or higher order gradients are requested.
+            OpflowError: If third or higher order gradients are requested.
 
         References:
             [1]: Evaluating analytic gradients on quantum hardware

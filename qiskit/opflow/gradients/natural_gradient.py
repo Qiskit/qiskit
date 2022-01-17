@@ -14,9 +14,9 @@
 
 from collections.abc import Iterable
 from typing import List, Tuple, Callable, Optional, Union
+import functools
 from scipy.optimize import least_squares
 
-import functools
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import _compare_parameters

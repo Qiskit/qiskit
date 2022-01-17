@@ -82,7 +82,7 @@ class RealErrorCalculator(ErrorCalculator):
         Returns:
             Square root of the l2 norm of the error.
         Raises:
-            Warning if the value of an error has too large imaginary part (larger than 1e-6).
+            Warning: if the value of an error has too large imaginary part (larger than 1e-6).
         """
         grad_eps_squared = 0
         # dω_jF_ij^Q

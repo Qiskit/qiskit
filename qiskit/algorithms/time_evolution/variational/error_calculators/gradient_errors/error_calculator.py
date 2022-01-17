@@ -13,7 +13,7 @@
 """Abstract class for calculating gradient errors for Variational Quantum Time Evolution."""
 
 from abc import abstractmethod, ABC
-from typing import Union, List, Tuple, Any, Dict, Optional, Iterable
+from typing import Union, List, Tuple, Any, Dict, Optional
 
 import numpy as np
 
@@ -118,7 +118,7 @@ class ErrorCalculator(ABC):
         Returns:
             Modified (or not) value provided.
         Raises:
-            Warning if the value provided is too large.
+            Warning: if the value provided is too large.
         """
         if eps_squared < 0:
             if np.abs(eps_squared) < 1e-3:

@@ -12,7 +12,7 @@
 
 """The Variational Quantum Time Evolution Interface"""
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Optional, Union, Dict, Callable, List
 
 import numpy as np

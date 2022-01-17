@@ -12,7 +12,6 @@
 
 """Class for generating error-based ODE functions."""
 
-import logging
 from typing import Union, List, Dict, Optional, Iterable
 
 import numpy as np
@@ -94,7 +93,7 @@ class ErrorBasedOdeFunctionGenerator(AbstractOdeFunctionGenerator):
             arising from solving a system of linear equations.
         """
         current_param_dict = dict(zip(self._param_dict.keys(), parameters_values))
-        logging.info("Current time: %t", time)
+
         nat_grad_res, metric_res, grad_res = self._linear_solver._solve_sle(
             self._variational_principle,
             current_param_dict,
