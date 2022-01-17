@@ -163,22 +163,22 @@ External Command-Line Tools
         <https://poppler.freedesktop.org/>`__.
 
 
-_Lazy Checker Classes
+Lazy Checker Classes
 ====================
 
 .. currentmodule:: qiskit.utils
 
-Each of the lazy checkers is an instance of :class:`._LazyDependencyManager` in one of its two
-subclasses: :class:`._LazyImportTester` and :class:`._LazySubprocessTester`.  These should be imported
+Each of the lazy checkers is an instance of :class:`.LazyDependencyManager` in one of its two
+subclasses: :class:`.LazyImportTester` and :class:`.LazySubprocessTester`.  These should be imported
 from :mod:`.utils` directly if required, such as::
 
-    from qiskit.utils import _LazyImportTester
+    from qiskit.utils import LazyImportTester
 
-.. autoclass:: qiskit.utils._LazyDependencyManager
+.. autoclass:: qiskit.utils.LazyDependencyManager
     :members:
 
-.. autoclass:: qiskit.utils._LazyImportTester
-.. autoclass:: qiskit.utils._LazySubprocessTester
+.. autoclass:: qiskit.utils.LazyImportTester
+.. autoclass:: qiskit.utils.LazySubprocessTester
 """
 
 import logging as _logging
