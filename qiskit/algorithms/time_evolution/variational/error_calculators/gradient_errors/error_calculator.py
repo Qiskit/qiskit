@@ -55,6 +55,10 @@ class ErrorCalculator(ABC):
         operator_circuit_sampler: Optional[CircuitSampler] = None,
     ) -> Union[np.ndarray, int, float, complex]:
         """
+        Method accepts an OperatorBase and potentially a respective CircuitSampler. If the
+        CircuitSampler is provided, it uses it to sample the operator using a dictionary of
+        parameters and values. Otherwise, assign_parameters method is used to bind parameters in
+        an operator. A bound operator is then executed and a real part is returned because TODO.
         Args:
             operator: Operator to be bound with parameter values.
             operator_circuit_sampler: CircuitSampler for the operator.
@@ -109,21 +113,25 @@ class ErrorCalculator(ABC):
         """
         pass
 
-    def _validate_epsilon_squared(self, eps_squared: float) -> float:
+    @classmethod
+    def _validate_epsilon_squared(cls, eps_squared: float) -> float:
         """
-        Sets an epsilon provided to 0 if it is small enough and negative (smaller than 1e-3 in
+        Sets an epsilon provided to 0 if it is small enough and negative (smaller than 1e-7 in
         absolute value).
         Args:
             eps_squared: Value to be validated.
         Returns:
             Modified (or not) value provided.
         Raises:
-            Warning: if the value provided is too large.
+            ValueError: If the value provided is too large.
         """
+        numerical_instability_error = 1e-7
         if eps_squared < 0:
-            if np.abs(eps_squared) < 1e-3:
+            if np.abs(eps_squared) < numerical_instability_error:
                 eps_squared = 0
             else:
-                # TODO should this be an excpetion?
-                raise Warning("Propagation failed")
+                raise ValueError(
+                    "Propagation failed - eps_squared negative and larger in absolute value than "
+                    "a potential numerical instability."
+                )
         return eps_squared

@@ -17,16 +17,13 @@ from typing import Optional, Union, Dict
 from scipy.integrate import OdeSolver
 
 from qiskit.algorithms.time_evolution.real.qrte import Qrte
-from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors\
-    .real_error_calculator import (
+from qiskit.algorithms.time_evolution.variational.error_calculators.gradient_errors.real_error_calculator import (
     RealErrorCalculator,
 )
-from qiskit.algorithms.time_evolution.variational.variational_principles.real\
-    .real_variational_principle import (
+from qiskit.algorithms.time_evolution.variational.variational_principles.real.real_variational_principle import (
     RealVariationalPrinciple,
 )
-from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator \
-    import (
+from qiskit.algorithms.time_evolution.variational.solvers.ode.abstract_ode_function_generator import (
     AbstractOdeFunctionGenerator,
 )
 from qiskit.algorithms.time_evolution.variational.var_qte import VarQte

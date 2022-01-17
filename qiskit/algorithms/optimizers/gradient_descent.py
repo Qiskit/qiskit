@@ -19,7 +19,7 @@ import numpy as np
 
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
-CALLBACK = Callable[[int, np.ndarray, float], None]
+CALLBACK = Callable[[int, np.ndarray, float, float], None]
 
 
 class GradientDescent(Optimizer):
