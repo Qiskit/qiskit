@@ -41,6 +41,8 @@ class TestParser(QiskitTestCase):
         self.qasm_file_path_fail = os.path.join(self.qasm_dir, "example_fail.qasm")
         self.qasm_file_path_if = os.path.join(self.qasm_dir, "example_if.qasm")
         self.qasm_file_path_version_fail = os.path.join(self.qasm_dir, "example_version_fail.qasm")
+        self.qasm_file_path_version_3_fail = os.path.join(self.qasm_dir, "example_version_3_fail.qasm")
+        self.qasm_file_path_version_2 = os.path.join(self.qasm_dir, "example_version_2.qasm")
 
     def test_parser(self):
         """should return a correct response for a valid circuit."""
@@ -75,15 +77,27 @@ class TestParser(QiskitTestCase):
             QasmError, "Perhaps there is a missing", parse, file_path=self.qasm_file_path_fail
         )
 
-    def test_parser_version_fail(self):
-        """should fail for OPENQASM version other than 2.0."""
-
+    def assert_invalid_version_failure(self, file):
         self.assertRaisesRegex(
             QasmError,
-            "Invalid version string: .+\. This module supports OPENQASM 2.0; only.",
+            "Invalid version string: .+\\. This module supports OPENQASM 2.0; only.",
             parse,
-            file_path=self.qasm_file_path_version_fail,
+            file_path=file,
         )
+
+    def test_parser_version_fail(self):
+        """should fail for OPENQASM version other than 2.0 or 2"""
+        self.assert_invalid_version_failure(self.qasm_file_path_version_fail)
+
+    def test_parser_version_3_fail(self):
+        """should fail for OPENQASM version 3"""
+        self.assert_invalid_version_failure(self.qasm_file_path_version_3_fail)
+
+    def test_parser_version_2(self):
+        """should succeed for OPENQASM version 2. Parser should automatically add minor verison."""
+        res = parse(self.qasm_file_path_version_2)
+        version_start = "OPENQASM 2.0;"
+        self.assertEqual(res[:len(version_start)], version_start)
 
     def test_all_valid_nodes(self):
         """Test that the tree contains only Node subclasses."""

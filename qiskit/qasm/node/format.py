@@ -23,10 +23,13 @@ class Format(Node):
     def __init__(self, value):
         """Create the version node."""
         super().__init__("format", None, None)
-        parts = re.match(r"(\w+)\s+(\d+)\.(\d+)", value)
+        parts = re.match(r"(\w+)\s+(\d+)(\.(\d+))?", value)
+        has_minor_version = re.match("\\.", value)
         self.language = parts.group(1)
         self.majorversion = parts.group(2)
-        self.minorversion = parts.group(3)
+        self.minorversion = "0"
+        if has_minor_version:
+            self.minorversion = parts.group(3)
 
     def version(self):
         """Return the version."""
