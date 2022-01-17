@@ -80,7 +80,7 @@ class TestParser(QiskitTestCase):
 
         self.assertRaisesRegex(
             QasmError,
-            "Invalid version string. This module supports OPENQASM 2.0; only.",
+            "Invalid version string: .+\. This module supports OPENQASM 2.0; only.",
             parse,
             file_path=self.qasm_file_path_version_fail,
         )
