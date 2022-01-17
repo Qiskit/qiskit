@@ -41,7 +41,9 @@ class TestParser(QiskitTestCase):
         self.qasm_file_path_fail = os.path.join(self.qasm_dir, "example_fail.qasm")
         self.qasm_file_path_if = os.path.join(self.qasm_dir, "example_if.qasm")
         self.qasm_file_path_version_fail = os.path.join(self.qasm_dir, "example_version_fail.qasm")
-        self.qasm_file_path_version_3_fail = os.path.join(self.qasm_dir, "example_version_3_fail.qasm")
+        self.qasm_file_path_version_3_fail = os.path.join(
+            self.qasm_dir, "example_version_3_fail.qasm"
+        )
         self.qasm_file_path_version_2 = os.path.join(self.qasm_dir, "example_version_2.qasm")
 
     def test_parser(self):
@@ -78,6 +80,7 @@ class TestParser(QiskitTestCase):
         )
 
     def assert_invalid_version_failure(self, file):
+        """Helper method for ensuring invalid QASM versions throw an exception."""
         self.assertRaisesRegex(
             QasmError,
             "Invalid version string: .+\\. This module supports OPENQASM 2.0; only.",
@@ -97,7 +100,7 @@ class TestParser(QiskitTestCase):
         """should succeed for OPENQASM version 2. Parser should automatically add minor verison."""
         res = parse(self.qasm_file_path_version_2)
         version_start = "OPENQASM 2.0;"
-        self.assertEqual(res[:len(version_start)], version_start)
+        self.assertEqual(res[: len(version_start)], version_start)
 
     def test_all_valid_nodes(self):
         """Test that the tree contains only Node subclasses."""
