@@ -87,11 +87,14 @@ class TestLazyDependencyTester(QiskitTestCase):
                 feature.require_now("no message")
                 feature.require_in_call(lambda: None)()
                 feature.require_in_call("no message")(lambda: None)()
+                feature.require_in_instance(type("Dummy", (), {}))()
+                feature.require_in_instance("no message")(type("Dummy", (), {}))()
+
             check.assert_called_once()
 
     @ddt.data(available_importer, available_process, unavailable_importer, unavailable_process)
     def test_callback_occurs_once(self, test_generator):
-        """Check that the test of availability is only performed once."""
+        """Check that the callback is only called once."""
         callback = mock.MagicMock()
 
         feature = test_generator(callback=callback)
@@ -106,6 +109,8 @@ class TestLazyDependencyTester(QiskitTestCase):
             feature.require_now("no message")
             feature.require_in_call(lambda: None)()
             feature.require_in_call("no message")(lambda: None)()
+            feature.require_in_instance(type("Dummy", (), {}))()
+            feature.require_in_instance("no message")(type("Dummy", (), {}))()
         callback.assert_not_called()
 
     @ddt.data(available_importer, available_process)
@@ -147,6 +152,38 @@ class TestLazyDependencyTester(QiskitTestCase):
 
                 check.assert_not_called()
                 decorated()
+                check.assert_called_once()
+
+    @ddt.data(available_importer, available_process)
+    def test_require_in_instance_silently_succeeds_for_available_tests(self, test_generator):
+        """Test that the available loaders silently do nothing when they are required in the
+        decorator form."""
+        # pylint: disable=function-redefined
+
+        with self.subTest("direct decorator"):
+            feature = test_generator()
+            with mock_availability_test(feature) as check:
+                check.assert_not_called()
+
+                @feature.require_in_instance
+                class Dummy:
+                    """Dummy class."""
+
+                check.assert_not_called()
+                Dummy()
+                check.assert_called_once()
+
+        with self.subTest("named decorator"):
+            feature = test_generator()
+            with mock_availability_test(feature) as check:
+                check.assert_not_called()
+
+                @feature.require_in_instance("sentinel name")
+                class Dummy:
+                    """Dummy class."""
+
+                check.assert_not_called()
+                Dummy()
                 check.assert_called_once()
 
     @ddt.data(unavailable_importer, unavailable_process)
@@ -197,6 +234,46 @@ class TestLazyDependencyTester(QiskitTestCase):
                 check.assert_called_once()
                 with self.assertRaisesRegex(MissingOptionalLibraryError, "sentinel message"):
                     decorated()
+                check.assert_called_once()
+
+    @ddt.data(unavailable_importer, unavailable_process)
+    def test_require_in_instance_raises_for_unavailable_tests(self, test_generator):
+        """Test that the unavailable loaders loudly raise when the inner classes of decorators are
+        instantiated, and not before, and raise each time they are instantiated."""
+        # pylint: disable=function-redefined
+
+        with self.subTest("direct decorator"):
+            feature = test_generator()
+            with mock_availability_test(feature) as check:
+                check.assert_not_called()
+
+                @feature.require_in_instance
+                class Dummy:
+                    """Dummy class."""
+
+                check.assert_not_called()
+                with self.assertRaisesRegex(MissingOptionalLibraryError, "Dummy"):
+                    Dummy()
+                check.assert_called_once()
+                with self.assertRaisesRegex(MissingOptionalLibraryError, "Dummy"):
+                    Dummy()
+                check.assert_called_once()
+
+        with self.subTest("named decorator"):
+            feature = test_generator()
+            with mock_availability_test(feature) as check:
+                check.assert_not_called()
+
+                @feature.require_in_instance("sentinel message")
+                class Dummy:
+                    """Dummy class."""
+
+                check.assert_not_called()
+                with self.assertRaisesRegex(MissingOptionalLibraryError, "sentinel message"):
+                    Dummy()
+                check.assert_called_once()
+                with self.assertRaisesRegex(MissingOptionalLibraryError, "sentinel message"):
+                    Dummy()
                 check.assert_called_once()
 
     def test_import_allows_multiple_modules_successful(self):
