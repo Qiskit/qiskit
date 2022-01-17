@@ -163,71 +163,74 @@ External Command-Line Tools
         <https://poppler.freedesktop.org/>`__.
 
 
-Lazy Checker Classes
+_Lazy Checker Classes
 ====================
 
 .. currentmodule:: qiskit.utils
 
-Each of the lazy checkers is an instance of :class:`.LazyDependencyManager` in one of its two
-subclasses: :class:`.LazyImportTester` and :class:`.LazySubprocessTester`.  These should be imported
+Each of the lazy checkers is an instance of :class:`._LazyDependencyManager` in one of its two
+subclasses: :class:`._LazyImportTester` and :class:`._LazySubprocessTester`.  These should be imported
 from :mod:`.utils` directly if required, such as::
 
-    from qiskit.utils import LazyImportTester
+    from qiskit.utils import _LazyImportTester
 
-.. autoclass:: qiskit.utils.LazyDependencyManager
+.. autoclass:: qiskit.utils._LazyDependencyManager
     :members:
 
-.. autoclass:: qiskit.utils.LazyImportTester
-.. autoclass:: qiskit.utils.LazySubprocessTester
+.. autoclass:: qiskit.utils._LazyImportTester
+.. autoclass:: qiskit.utils._LazySubprocessTester
 """
 
 import logging as _logging
 
-from .lazy_tester import LazyImportTester, LazySubprocessTester
+from .lazy_tester import (
+    LazyImportTester as _LazyImportTester,
+    LazySubprocessTester as _LazySubprocessTester,
+)
 
 _logger = _logging.getLogger(__name__)
 
-HAS_AER = LazyImportTester(
+HAS_AER = _LazyImportTester(
     "qiskit.providers.aer",
     name="Qiskit Aer",
     install="pip install qiskit-aer",
 )
-HAS_IBMQ = LazyImportTester(
+HAS_IBMQ = _LazyImportTester(
     "qiskit.providers.ibmq",
     name="IBMQ Provider",
     install="pip install qiskit-ibmq-provider",
 )
-HAS_IGNIS = LazyImportTester(
+HAS_IGNIS = _LazyImportTester(
     "qiskit.ignis",
     name="Qiskit Ignis",
     install="pip install qiskit-ignis",
 )
 
-HAS_CPLEX = LazyImportTester(
+HAS_CPLEX = _LazyImportTester(
     "cplex",
     install="pip install 'qiskit-terra[bip-mapper]'",
     msg="This may not be possible for all Python versions and OSes",
 )
-HAS_CVXPY = LazyImportTester("cvxpy", install="pip install cvxpy")
-HAS_DOCPLEX = LazyImportTester(
+HAS_CVXPY = _LazyImportTester("cvxpy", install="pip install cvxpy")
+HAS_DOCPLEX = _LazyImportTester(
     {"docplex": (), "docplex.mp.model": ("Model",)},
     install="pip install 'qiskit-terra[bip-mapper]'",
     msg="This may not be possible for all Python versions and OSes",
 )
-HAS_FIXTURES = LazyImportTester("fixtures", install="pip install fixtures")
-HAS_IPYTHON = LazyImportTester("IPython", install="pip install ipython")
-HAS_IPYWIDGETS = LazyImportTester("ipywidgets", install="pip install ipywidgets")
-HAS_JAX = LazyImportTester(
+HAS_FIXTURES = _LazyImportTester("fixtures", install="pip install fixtures")
+HAS_IPYTHON = _LazyImportTester("IPython", install="pip install ipython")
+HAS_IPYWIDGETS = _LazyImportTester("ipywidgets", install="pip install ipywidgets")
+HAS_JAX = _LazyImportTester(
     {"jax": ("grad", "jit"), "jax.numpy": ()},
     name="jax",
     install="pip install jax",
 )
-HAS_MATPLOTLIB = LazyImportTester(
+HAS_MATPLOTLIB = _LazyImportTester(
     ("matplotlib.patches", "matplotlib.pyplot"),
     name="matplotlib",
     install="pip install matplotlib",
 )
-HAS_NETWORKX = LazyImportTester("networkx", install="pip install networkx")
+HAS_NETWORKX = _LazyImportTester("networkx", install="pip install networkx")
 
 
 def _nlopt_callback(available):
@@ -243,15 +246,15 @@ def _nlopt_callback(available):
     )
 
 
-HAS_NLOPT = LazyImportTester(
+HAS_NLOPT = _LazyImportTester(
     "nlopt",
     name="NLopt Optimizer",
     callback=_nlopt_callback,
     msg="See the documentation of 'qiskit.algorithms.optimizer.nlopts' for installation help",
 )
-HAS_PIL = LazyImportTester({"PIL": ("Image",)}, name="pillow", install="pip install pillow")
-HAS_PYDOT = LazyImportTester("pydot", install="pip install pydot")
-HAS_PYLATEX = LazyImportTester(
+HAS_PIL = _LazyImportTester({"PIL": ("Image",)}, name="pillow", install="pip install pillow")
+HAS_PYDOT = _LazyImportTester("pydot", install="pip install pydot")
+HAS_PYLATEX = _LazyImportTester(
     {
         "pylatexenc.latex2text": ("LatexNodes2Text",),
         "pylatexenc.latexencode": ("utf8tolatex",),
@@ -259,34 +262,32 @@ HAS_PYLATEX = LazyImportTester(
     name="pylatexenc",
     install="pip install pylatexenc",
 )
-HAS_SEABORN = LazyImportTester("seaborn", install="pip install seaborn")
-HAS_SKLEARN = LazyImportTester(
+HAS_SEABORN = _LazyImportTester("seaborn", install="pip install seaborn")
+HAS_SKLEARN = _LazyImportTester(
     {"sklearn.linear_model": ("Ridge", "Lasso")},
     name="scikit-learn",
     install="pip install scikit-learn",
 )
-HAS_SKQUANT = LazyImportTester(
+HAS_SKQUANT = _LazyImportTester(
     "skquant.opt",
     name="scikit-quant",
     install="pip install scikit-quant",
 )
-HAS_SQSNOBFIT = LazyImportTester("SQSnobFit", install="pip install SQSnobFit")
-HAS_SYMENGINE = LazyImportTester("symengine", install="pip install symengine")
-HAS_TESTTOOLS = LazyImportTester("testtools", install="pip install testtools")
-HAS_Z3 = LazyImportTester("z3", install="pip install z3-solver")
+HAS_SQSNOBFIT = _LazyImportTester("SQSnobFit", install="pip install SQSnobFit")
+HAS_SYMENGINE = _LazyImportTester("symengine", install="pip install symengine")
+HAS_TESTTOOLS = _LazyImportTester("testtools", install="pip install testtools")
+HAS_Z3 = _LazyImportTester("z3", install="pip install z3-solver")
 
-HAS_GRAPHVIZ = LazySubprocessTester(
+HAS_GRAPHVIZ = _LazySubprocessTester(
     ("dot", "-V"),
     name="graphviz",
     install="'brew install graphviz' if on Mac, or by downloding it from their website",
 )
-HAS_PDFLATEX = LazySubprocessTester(
+HAS_PDFLATEX = _LazySubprocessTester(
     ("pdflatex", "-version"),
     msg="You will likely need to install a full LaTeX distribution for your system",
 )
-HAS_PDFTOCAIRO = LazySubprocessTester(
+HAS_PDFTOCAIRO = _LazySubprocessTester(
     ("pdftocairo", "-v"),
     msg="This is part of the 'poppler' set of PDF utilities",
 )
-
-del LazyImportTester, LazySubprocessTester
