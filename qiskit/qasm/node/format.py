@@ -24,12 +24,9 @@ class Format(Node):
         """Create the version node."""
         super().__init__("format", None, None)
         parts = re.match(r"(\w+)\s+(\d+)(\.(\d+))?", value)
-        has_minor_version = re.match("\\.", value)
         self.language = parts.group(1)
         self.majorversion = parts.group(2)
-        self.minorversion = "0"
-        if has_minor_version:
-            self.minorversion = parts.group(3)
+        self.minorversion = parts.group(4) if parts.group(4) is not None else "0"
 
     def version(self):
         """Return the version."""

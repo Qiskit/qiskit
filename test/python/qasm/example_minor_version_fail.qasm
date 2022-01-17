@@ -1,4 +1,4 @@
-OPENQASM 3;
+OPENQASM 2.6;
 include "qelib1.inc";
 qreg q[3];
 qreg r[3];
